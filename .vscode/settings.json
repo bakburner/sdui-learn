@@ -1,0 +1,17 @@
+{
+    "java.project.sourcePaths": [
+        "server/src/main/java",
+        "codegen/build/generated-sources/jsonschema2pojo"
+    ],
+    "java.project.referencedLibraries": [
+        "server/build/libs/**/*.jar"
+    ],
+    "java.import.gradle.enabled": true,
+    "java.import.gradle.wrapper.enabled": true,
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "java.jdt.ls.java.home": "",
+    "files.associations": {
+        "*.gradle.kts": "kotlin"
+    },
+    "java.project.importOnFirstTimeStartup": "automatic"
+}

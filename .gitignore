@@ -1,0 +1,19 @@
+# Root project gitignore
+.DS_Store
+*.log
+.idea/
+*.iml
+
+# Build outputs
+build/
+out/
+target/
+
+# Environment files
+.env
+*.local
+
+.trash/
+.cursor/
+.cursorrules
+docs/discovery/

@@ -1,0 +1,114 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://nba.com/sdui/schema/v1/all-types",
+  "title": "SDUI All Types",
+  "description": "Wrapper schema that references all SDUI types for complete codegen",
+  "type": "object",
+  "properties": {
+    "screen": {
+      "$ref": "sdui-schema.json#/definitions/Screen"
+    },
+    "section": {
+      "$ref": "sdui-schema.json#/definitions/Section"
+    },
+    "action": {
+      "$ref": "sdui-schema.json#/definitions/Action"
+    },
+    "component": {
+      "$ref": "sdui-schema.json#/definitions/Component"
+    },
+    "refreshPolicy": {
+      "$ref": "sdui-schema.json#/definitions/RefreshPolicy"
+    },
+    "dataBindings": {
+      "$ref": "sdui-schema.json#/definitions/DataBinding"
+    },
+    "dataBindingPath": {
+      "$ref": "sdui-schema.json#/definitions/DataBindingPath"
+    },
+    "spacing": {
+      "$ref": "sdui-schema.json#/definitions/Spacing"
+    },
+    "state": {
+      "$ref": "sdui-schema.json#/definitions/State"
+    },
+    "textVariant": {
+      "$ref": "sdui-schema.json#/definitions/TextVariant"
+    },
+    "textWeight": {
+      "$ref": "sdui-schema.json#/definitions/TextWeight"
+    },
+    "actionType": {
+      "$ref": "sdui-schema.json#/definitions/ActionType"
+    },
+    "actionTrigger": {
+      "$ref": "sdui-schema.json#/definitions/ActionTrigger"
+    },
+    "refreshType": {
+      "$ref": "sdui-schema.json#/definitions/RefreshType"
+    },
+    "buttonVariant": {
+      "$ref": "sdui-schema.json#/definitions/ButtonVariant"
+    },
+    "direction": {
+      "$ref": "sdui-schema.json#/definitions/Direction"
+    },
+    "alignment": {
+      "$ref": "sdui-schema.json#/definitions/Alignment"
+    },
+    "crossAlignment": {
+      "$ref": "sdui-schema.json#/definitions/CrossAlignment"
+    },
+    "imageFit": {
+      "$ref": "sdui-schema.json#/definitions/ImageFit"
+    },
+    "teamData": {
+      "$ref": "sdui-schema.json#/definitions/TeamData"
+    },
+    "scoreboardHeaderData": {
+      "$ref": "sdui-schema.json#/definitions/ScoreboardHeaderData"
+    },
+    "statLineData": {
+      "$ref": "sdui-schema.json#/definitions/StatLineData"
+    },
+    "contentCardData": {
+      "$ref": "sdui-schema.json#/definitions/ContentCardData"
+    },
+    "tabData": {
+      "$ref": "sdui-schema.json#/definitions/TabData"
+    },
+    "navigation": {
+      "$ref": "sdui-schema.json#/definitions/Navigation"
+    },
+    "navigationItem": {
+      "$ref": "sdui-schema.json#/definitions/NavigationItem"
+    },
+    "gameLeaderData": {
+      "$ref": "sdui-schema.json#/definitions/GameLeaderData"
+    },
+    "gameLeadersData": {
+      "$ref": "sdui-schema.json#/definitions/GameLeadersData"
+    },
+    "gameCardData": {
+      "$ref": "sdui-schema.json#/definitions/GameCardData"
+    },
+    "statLineListData": {
+      "$ref": "sdui-schema.json#/definitions/StatLineListData"
+    },
+    "contentRailData": {
+      "$ref": "sdui-schema.json#/definitions/ContentRailData"
+    },
+    "tabGroupData": {
+      "$ref": "sdui-schema.json#/definitions/TabGroupData"
+    },
+    "rowData": {
+      "$ref": "sdui-schema.json#/definitions/RowData"
+    },
+    "promoBannerData": {
+      "$ref": "sdui-schema.json#/definitions/PromoBannerData"
+    },
+    "subsection": {
+      "$ref": "sdui-schema.json#/definitions/Subsection"
+    }
+  }
+}

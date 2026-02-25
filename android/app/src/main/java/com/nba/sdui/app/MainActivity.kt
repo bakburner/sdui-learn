@@ -1,0 +1,81 @@
+package com.nba.sdui.app
+
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import com.nba.sdui.app.ui.GameDetailScreen
+import com.nba.sdui.app.ui.theme.SduiPrototypeTheme
+import kotlinx.coroutines.launch
+
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
+        setContent {
+            SduiPrototypeTheme {
+                val snackbarHostState = remember { SnackbarHostState() }
+                val scope = rememberCoroutineScope()
+                var currentConfig by remember { mutableStateOf(SduiConfig.scoreboard()) }
+                
+                Scaffold(
+                    modifier = Modifier.fillMaxSize(),
+                    snackbarHost = { SnackbarHost(snackbarHostState) }
+                ) { innerPadding ->
+                    val config = currentConfig
+
+                    GameDetailScreen(
+                        config = config,
+                        modifier = Modifier.padding(innerPadding),
+                        onNavigateUri = { targetUri ->
+                            when {
+                                targetUri.startsWith("nba://game/") -> {
+                                    val gameId = targetUri.removePrefix("nba://game/")
+                                    currentConfig = SduiConfig.gameDetail(gameId)
+                                }
+                                targetUri == "nba://scoreboard" -> {
+                                    currentConfig = SduiConfig.scoreboard()
+                                }
+                                else -> {
+                                    val name = targetUri
+                                        .removePrefix("nba://")
+                                        .replace("/", " ")
+                                        .replaceFirstChar { it.uppercase() }
+                                        .replace("-", " ")
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar(
+                                            "Navigating to $name (not implemented)"
+                                        )
+                                    }
+                                }
+                            }
+                        },
+                        onVariantChange = { nextVariant ->
+                            currentConfig = when (config.screenType) {
+                                SduiConfig.ScreenType.SCOREBOARD -> SduiConfig.scoreboard(variant = nextVariant)
+                                SduiConfig.ScreenType.GAME_DETAIL -> SduiConfig.gameDetail(
+                                    gameId = config.gameId ?: "0042300102",
+                                    variant = nextVariant
+                                )
+                            }
+                        },
+                        onBack = {
+                            currentConfig = SduiConfig.scoreboard()
+                        }
+                    )
+                }
+            }
+        }
+    }
+}

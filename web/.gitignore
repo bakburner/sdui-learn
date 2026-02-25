@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# Build output (Vite default)
+dist/
+
+# Local env
+.env
+.env.local
+.env.*.local
+
+# Logs and cache
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.cache/
+
+# Editor
+.DS_Store
+*.local
+
+# Optional: test / coverage (uncomment if you add them)
+# coverage/
+# .nyc_output/

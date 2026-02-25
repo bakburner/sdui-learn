@@ -1,0 +1,32 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: sdui-composition-service
+
+# Stats API configuration
+stats:
+  api:
+    base-url: https://stats-trafficcop-prod.nba.com/v0/api
+    subscription-key: ${STATS_API_KEY:}
+
+# Ably configuration
+ably:
+  api:
+    key: ${ABLY_SUBSCRIBE_API_KEY:}
+
+# SDUI configuration
+sdui:
+  schema:
+    version: "1.0"
+  cache:
+    enabled: true
+    ttl-seconds: 60
+
+# Logging
+logging:
+  level:
+    com.nba.sdui: DEBUG
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - traceId=%X{traceId} - %msg%n"

@@ -1,0 +1,54 @@
+plugins {
+    java
+    id("org.springframework.boot") version "3.2.3"
+    id("io.spring.dependency-management") version "1.1.4"
+}
+
+group = "com.nba.sdui"
+version = "0.0.1-SNAPSHOT"
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Spring Boot
+    implementation("org.springframework.boot:spring-boot-starter-web")
+    implementation("org.springframework.boot:spring-boot-starter-validation")
+    
+    // Jackson JSON
+    implementation("com.fasterxml.jackson.core:jackson-databind")
+    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
+    
+    // Environment variables (.env support)
+    implementation("me.paulschwarz:spring-dotenv:4.0.0")
+    
+    // OkHttp for external API calls
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    
+    // Ably for token generation
+    implementation("io.ably:ably-java:1.2.33")
+    
+    // Lombok (optional - for reducing boilerplate)
+    compileOnly("org.projectlombok:lombok")
+    annotationProcessor("org.projectlombok:lombok")
+    
+    // Testing
+    testImplementation("org.springframework.boot:spring-boot-starter-test")
+}
+
+tasks.withType<Test> {
+    useJUnitPlatform()
+}
+
+// Copy generated models from codegen module
+tasks.register<Copy>("copyGeneratedModels") {
+    from("${projectDir}/../codegen/build/generated-sources/jsonschema2pojo")
+    into("${projectDir}/src/main/java")
+    include("**/*.java")
+}

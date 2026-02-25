@@ -1,0 +1,200 @@
+{
+  "id": "game-detail-0042300102",
+  "schemaVersion": "1.0",
+  "title": "BOS vs MIA",
+  "analyticsId": "game_detail_0042300102",
+  "traceId": "trace-pre-001",
+  "defaultRefreshPolicy": {
+    "type": "static"
+  },
+  "state": {
+    "activeTab": "boxscore"
+  },
+  "sections": [
+    {
+      "id": "scoreboard",
+      "type": "ScoreboardHeader",
+      "analyticsId": "scoreboard_header",
+      "refreshPolicy": {
+        "type": "static"
+      },
+      "data": {
+        "homeTeam": {
+          "teamId": 1610612738,
+          "teamTricode": "BOS",
+          "teamName": "Celtics",
+          "teamCity": "Boston",
+          "logoUrl": "https://cdn.nba.com/logos/nba/1610612738/global/L/logo.svg",
+          "score": 0
+        },
+        "awayTeam": {
+          "teamId": 1610612748,
+          "teamTricode": "MIA",
+          "teamName": "Heat",
+          "teamCity": "Miami",
+          "logoUrl": "https://cdn.nba.com/logos/nba/1610612748/global/L/logo.svg",
+          "score": 0
+        },
+        "gameStatus": 1,
+        "gameStatusText": "7:00 PM ET",
+        "period": 0,
+        "clock": ""
+      }
+    },
+    {
+      "id": "game-info",
+      "type": "StatLine",
+      "analyticsId": "game_info_section",
+      "refreshPolicy": {
+        "type": "static"
+      },
+      "data": {
+        "title": "Game Info",
+        "stats": [
+          {
+            "playerId": 0,
+            "playerName": "Venue",
+            "teamTricode": "",
+            "statCategory": "",
+            "statValue": "TD Garden",
+            "statLabel": "Arena"
+          },
+          {
+            "playerId": 0,
+            "playerName": "Broadcast",
+            "teamTricode": "",
+            "statCategory": "",
+            "statValue": "ESPN",
+            "statLabel": "TV"
+          },
+          {
+            "playerId": 0,
+            "playerName": "Series",
+            "teamTricode": "",
+            "statCategory": "",
+            "statValue": "BOS leads 2-1",
+            "statLabel": "Playoffs"
+          }
+        ]
+      }
+    },
+    {
+      "id": "content-rail",
+      "type": "ContentRail",
+      "analyticsId": "content_rail",
+      "refreshPolicy": {
+        "type": "static"
+      },
+      "data": {
+        "title": "Preview",
+        "cards": [
+          {
+            "id": "content-1",
+            "thumbnailUrl": "https://cdn.nba.com/manage/2024/04/GettyImages-preview.jpg",
+            "headline": "Game 4 Preview",
+            "subhead": "Can the Heat even the series?",
+            "contentType": "article",
+            "action": {
+              "trigger": "onTap",
+              "type": "navigate",
+              "targetUri": "nba://article/game4-preview",
+              "fallbackUrl": "https://www.nba.com/news/game4-preview"
+            }
+          },
+          {
+            "id": "content-2",
+            "thumbnailUrl": "https://cdn.nba.com/manage/2024/04/tatum-interview.jpg",
+            "headline": "Tatum Pre-Game Interview",
+            "subhead": "Watch the full interview",
+            "contentType": "video",
+            "duration": "3:45",
+            "action": {
+              "trigger": "onTap",
+              "type": "navigate",
+              "targetUri": "nba://video/tatum-pregame",
+              "fallbackUrl": "https://www.nba.com/video/tatum-pregame"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "game-tabs",
+      "type": "TabGroup",
+      "analyticsId": "game_tabs",
+      "refreshPolicy": {
+        "type": "static"
+      },
+      "data": {
+        "stateKey": "activeTab",
+        "defaultTab": "boxscore",
+        "tabs": [
+          {
+            "id": "tab-boxscore",
+            "label": "Starters",
+            "stateKey": "activeTab",
+            "stateValue": "boxscore"
+          },
+          {
+            "id": "tab-playbyplay",
+            "label": "Season Stats",
+            "stateKey": "activeTab",
+            "stateValue": "playbyplay"
+          }
+        ],
+        "tabContents": {
+          "boxscore": [
+            {
+              "id": "starters-home",
+              "type": "StatLine",
+              "data": {
+                "title": "Boston Celtics Starters",
+                "stats": [
+                  {
+                    "playerId": 1627759,
+                    "playerName": "Jaylen Brown",
+                    "teamTricode": "BOS",
+                    "statCategory": "SF",
+                    "statValue": "#7"
+                  },
+                  {
+                    "playerId": 1628369,
+                    "playerName": "Jayson Tatum",
+                    "teamTricode": "BOS",
+                    "statCategory": "PF",
+                    "statValue": "#0"
+                  }
+                ]
+              }
+            }
+          ],
+          "playbyplay": [
+            {
+              "id": "season-stats",
+              "type": "StatLine",
+              "data": {
+                "title": "Season Leaders",
+                "stats": [
+                  {
+                    "playerId": 1628369,
+                    "playerName": "Jayson Tatum",
+                    "teamTricode": "BOS",
+                    "statCategory": "PPG",
+                    "statValue": "26.9"
+                  },
+                  {
+                    "playerId": 202710,
+                    "playerName": "Jimmy Butler",
+                    "teamTricode": "MIA",
+                    "statCategory": "PPG",
+                    "statValue": "22.9"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

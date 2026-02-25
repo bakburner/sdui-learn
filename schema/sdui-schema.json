@@ -1,0 +1,473 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://nba.com/sdui/schema/v1",
+  "title": "SDUI Screen Schema",
+  "description": "Server-Driven UI schema for NBA Game Detail screens",
+  "type": "object",
+  "definitions": {
+    "TextVariant": {
+      "type": "string",
+      "enum": ["heading1", "heading2", "heading3", "body", "bodySmall", "caption", "label", "score"]
+    },
+    "TextWeight": {
+      "type": "string",
+      "enum": ["regular", "medium", "semibold", "bold"]
+    },
+    "ButtonVariant": {
+      "type": "string",
+      "enum": ["primary", "secondary", "tertiary", "text"]
+    },
+    "Direction": {
+      "type": "string",
+      "enum": ["row", "column"]
+    },
+    "Alignment": {
+      "type": "string",
+      "enum": ["start", "center", "end", "spaceBetween", "spaceAround", "spaceEvenly"]
+    },
+    "CrossAlignment": {
+      "type": "string",
+      "enum": ["start", "center", "end", "stretch"]
+    },
+    "ImageFit": {
+      "type": "string",
+      "enum": ["cover", "contain", "fill", "none"]
+    },
+    "ActionTrigger": {
+      "type": "string",
+      "enum": ["onTap", "onLongPress", "onVisible", "onSwipe"]
+    },
+    "ActionType": {
+      "type": "string",
+      "enum": ["navigate", "analytics", "mutate", "refresh", "dismiss"]
+    },
+    "RefreshType": {
+      "type": "string",
+      "enum": ["static", "poll", "sse"]
+    },
+    "Action": {
+      "type": "object",
+      "required": ["trigger", "type"],
+      "properties": {
+        "trigger": { "$ref": "#/definitions/ActionTrigger" },
+        "type": { "$ref": "#/definitions/ActionType" },
+        "targetUri": {
+          "type": "string",
+          "description": "For navigate actions: deeplink URI"
+        },
+        "fallbackUrl": {
+          "type": "string",
+          "description": "For navigate actions: web fallback if deeplink fails"
+        },
+        "eventName": {
+          "type": "string",
+          "description": "For analytics actions: event name"
+        },
+        "eventParams": {
+          "type": "object",
+          "description": "For analytics actions: event parameters",
+          "additionalProperties": true
+        },
+        "stateKey": {
+          "type": "string",
+          "description": "For mutate actions: state key to update"
+        },
+        "stateValue": {
+          "description": "For mutate actions: new value for the state key"
+        },
+        "sectionId": {
+          "type": "string",
+          "description": "For refresh actions: specific section to refresh (null = full screen)"
+        }
+      }
+    },
+    "RefreshPolicy": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "$ref": "#/definitions/RefreshType" },
+        "intervalMs": {
+          "type": "integer",
+          "description": "For poll type: interval in milliseconds",
+          "minimum": 1000
+        },
+        "url": {
+          "type": "string",
+          "description": "For poll/sse type: URL to poll or connect to. If omitted, polls the SDUI endpoint."
+        },
+        "channel": {
+          "type": "string",
+          "description": "For sse type: Ably channel name pattern (e.g., '{gameId}:linescore')"
+        },
+        "dataPath": {
+          "type": "string",
+          "description": "JSONPath to extract section data from response (e.g., '$.game' or '$.sections[0].data')"
+        }
+      }
+    },
+    "DataBindingPath": {
+      "type": "object",
+      "required": ["sourcePath", "targetPath"],
+      "properties": {
+        "sourcePath": {
+          "type": "string",
+          "description": "JSONPath in incoming message (e.g., '$.homeTeam.score')"
+        },
+        "targetPath": {
+          "type": "string",
+          "description": "Dot-path to component property (e.g., 'homeScore.content')"
+        }
+      }
+    },
+    "DataBinding": {
+      "type": "object",
+      "properties": {
+        "bindings": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/DataBindingPath" }
+        },
+        "stringKeys": {
+          "type": "object",
+          "description": "Optional map of targetPath to translation key for client-side i18n resolution on bound fields",
+          "additionalProperties": { "type": "string" }
+        }
+      }
+    },
+    "Spacing": {
+      "type": "object",
+      "properties": {
+        "top": { "type": "integer" },
+        "bottom": { "type": "integer" },
+        "start": { "type": "integer" },
+        "end": { "type": "integer" }
+      }
+    },
+    "Component": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["Container", "Text", "Image", "Button", "Spacer", "Divider", "ScrollContainer", "Conditional"]
+        },
+        "id": { "type": "string" },
+        "children": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/Component" }
+        },
+        "direction": { "$ref": "#/definitions/Direction" },
+        "alignment": { "$ref": "#/definitions/Alignment" },
+        "crossAlignment": { "$ref": "#/definitions/CrossAlignment" },
+        "gap": { "type": "integer" },
+        "padding": { "$ref": "#/definitions/Spacing" },
+        "backgroundColor": { "type": "string" },
+        "content": { "type": "string" },
+        "variant": { "$ref": "#/definitions/TextVariant" },
+        "weight": { "$ref": "#/definitions/TextWeight" },
+        "color": { "type": "string" },
+        "maxLines": { "type": "integer" },
+        "src": { "type": "string" },
+        "aspectRatio": { "type": "number" },
+        "fit": { "$ref": "#/definitions/ImageFit" },
+        "placeholder": { "type": "string" },
+        "alt": { "type": "string" },
+        "width": { "type": "integer" },
+        "height": { "type": "integer" },
+        "label": { "type": "string" },
+        "buttonVariant": { "$ref": "#/definitions/ButtonVariant" },
+        "icon": { "type": "string" },
+        "disabled": { "type": "boolean" },
+        "actions": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/Action" }
+        },
+        "size": { "type": "integer" },
+        "orientation": {
+          "type": "string",
+          "enum": ["horizontal", "vertical"]
+        },
+        "thickness": { "type": "integer" },
+        "paging": { "type": "boolean" },
+        "snapAlignment": {
+          "type": "string",
+          "enum": ["start", "center", "end"]
+        },
+        "condition": { "type": "string" },
+        "trueChild": { "$ref": "#/definitions/Component" },
+        "falseChild": { "$ref": "#/definitions/Component" }
+      }
+    },
+    "TeamData": {
+      "type": "object",
+      "required": ["teamId", "teamTricode", "teamName", "teamCity", "score"],
+      "properties": {
+        "teamId": { "type": "integer" },
+        "teamTricode": { "type": "string" },
+        "teamName": { "type": "string" },
+        "teamCity": { "type": "string" },
+        "logoUrl": { "type": "string" },
+        "score": { "type": "integer" }
+      }
+    },
+    "ScoreboardHeaderData": {
+      "type": "object",
+      "required": ["homeTeam", "awayTeam", "gameStatus"],
+      "properties": {
+        "homeTeam": { "$ref": "#/definitions/TeamData" },
+        "awayTeam": { "$ref": "#/definitions/TeamData" },
+        "gameStatus": { "type": "integer" },
+        "gameStatusText": { "type": "string" },
+        "period": { "type": "integer" },
+        "clock": { "type": "string" }
+      }
+    },
+    "StatLineData": {
+      "type": "object",
+      "required": ["playerId", "playerName", "statCategory", "statValue"],
+      "properties": {
+        "playerId": { "type": "integer" },
+        "playerName": { "type": "string" },
+        "playerImageUrl": { "type": "string" },
+        "teamTricode": { "type": "string" },
+        "statCategory": { "type": "string" },
+        "statValue": { "type": "string" },
+        "statLabel": { "type": "string" }
+      }
+    },
+    "StatLineListData": {
+      "type": "object",
+      "description": "Container for a titled list of stat lines",
+      "properties": {
+        "title": { "type": "string" },
+        "stats": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/StatLineData" }
+        }
+      }
+    },
+    "ContentCardData": {
+      "type": "object",
+      "required": ["id", "headline"],
+      "properties": {
+        "id": { "type": "string" },
+        "thumbnailUrl": { "type": "string" },
+        "headline": { "type": "string" },
+        "subhead": { "type": "string" },
+        "contentType": {
+          "type": "string",
+          "enum": ["article", "video", "gallery"]
+        },
+        "duration": { "type": "string" },
+        "action": { "$ref": "#/definitions/Action" }
+      }
+    },
+    "ContentRailData": {
+      "type": "object",
+      "description": "Horizontal scrolling strip of content cards",
+      "properties": {
+        "title": { "type": "string" },
+        "cards": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/ContentCardData" }
+        }
+      }
+    },
+    "TabGroupData": {
+      "type": "object",
+      "description": "Tabbed navigation with dynamic content sections per tab",
+      "properties": {
+        "tabs": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/TabData" }
+        },
+        "defaultTab": { "type": "string" },
+        "stateKey": { "type": "string" },
+        "tabContents": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": { "$ref": "#/definitions/Section" }
+          }
+        }
+      }
+    },
+    "TabData": {
+      "type": "object",
+      "required": ["id", "label"],
+      "properties": {
+        "id": { "type": "string" },
+        "label": { "type": "string" },
+        "stateKey": { "type": "string" },
+        "stateValue": { "type": "string" }
+      }
+    },
+    "NavigationItem": {
+      "type": "object",
+      "required": ["id", "label"],
+      "properties": {
+        "id": { "type": "string" },
+        "label": { "type": "string" },
+        "icon": { "type": "string" },
+        "targetUri": { "type": "string" },
+        "selected": { "type": "boolean" },
+        "children": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/NavigationItem" }
+        }
+      }
+    },
+    "Navigation": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/NavigationItem" }
+        }
+      }
+    },
+    "GameLeaderData": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "points": { "type": "integer" },
+        "rebounds": { "type": "integer" },
+        "assists": { "type": "integer" }
+      }
+    },
+    "GameLeadersData": {
+      "type": "object",
+      "properties": {
+        "homeLeader": { "$ref": "#/definitions/GameLeaderData" },
+        "awayLeader": { "$ref": "#/definitions/GameLeaderData" }
+      }
+    },
+    "RowData": {
+      "type": "object",
+      "description": "Responsive row layout that places children side-by-side above a breakpoint width, and stacks vertically below it",
+      "required": ["children"],
+      "properties": {
+        "children": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/Section" },
+          "description": "Child sections rendered in a row (or column when collapsed)"
+        },
+        "spacing": {
+          "type": "integer",
+          "default": 16,
+          "description": "Gap between children in dp/px"
+        },
+        "breakpoint": {
+          "type": "integer",
+          "default": 600,
+          "description": "Screen width (dp) below which children stack vertically"
+        }
+      }
+    },
+    "GameCardData": {
+      "type": "object",
+      "required": ["gameId", "gameStatus", "homeTeam", "awayTeam"],
+      "properties": {
+        "gameId": { "type": "string" },
+        "gameStatus": { "type": "integer" },
+        "gameStatusText": { "type": "string" },
+        "gameTimeEt": { "type": "string" },
+        "homeTeam": { "$ref": "#/definitions/TeamData" },
+        "awayTeam": { "$ref": "#/definitions/TeamData" },
+        "gameLeaders": { "$ref": "#/definitions/GameLeadersData" },
+        "actions": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/Action" }
+        }
+      }
+    },
+    "Subsection": {
+      "type": "object",
+      "description": "Nested interaction target within a section (e.g., tappable team area inside a scoreboard)",
+      "required": ["id"],
+      "properties": {
+        "id": { "type": "string" },
+        "actions": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/Action" }
+        }
+      }
+    },
+    "PromoBannerData": {
+      "type": "object",
+      "description": "Promotional banner with optional image and call-to-action",
+      "required": ["title"],
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "actions": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/Action" }
+        }
+      }
+    },
+    "Section": {
+      "type": "object",
+      "required": ["id", "type"],
+      "properties": {
+        "id": { "type": "string" },
+        "type": {
+          "type": "string",
+          "enum": ["ScoreboardHeader", "StatLine", "ContentCard", "ContentRail", "TabGroup", "PromoBanner", "GameCard", "Row"]
+        },
+        "refreshPolicy": { "$ref": "#/definitions/RefreshPolicy" },
+        "dataBindings": { "$ref": "#/definitions/DataBinding" },
+        "actions": {
+          "type": "array",
+          "description": "Section-level interaction actions",
+          "items": { "$ref": "#/definitions/Action" }
+        },
+        "subsections": {
+          "type": "array",
+          "description": "Nested interaction targets within the section",
+          "items": { "$ref": "#/definitions/Subsection" }
+        },
+        "analyticsId": { "type": "string" },
+        "padding": { "$ref": "#/definitions/Spacing" },
+        "backgroundColor": { "type": "string" },
+        "data": {
+          "description": "Section-specific data payload",
+          "oneOf": [
+            { "$ref": "#/definitions/ScoreboardHeaderData" },
+            { "$ref": "#/definitions/StatLineListData" },
+            { "$ref": "#/definitions/ContentCardData" },
+            { "$ref": "#/definitions/ContentRailData" },
+            { "$ref": "#/definitions/TabGroupData" },
+            { "$ref": "#/definitions/PromoBannerData" },
+            { "$ref": "#/definitions/GameCardData" },
+            { "$ref": "#/definitions/RowData" }
+          ]
+        }
+      }
+    },
+    "State": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Screen-level state map for interactive patterns"
+    },
+    "Screen": {
+      "type": "object",
+      "required": ["id", "schemaVersion", "sections"],
+      "properties": {
+        "id": { "type": "string" },
+        "schemaVersion": { "type": "string" },
+        "title": { "type": "string" },
+        "analyticsId": { "type": "string" },
+        "traceId": { "type": "string" },
+        "defaultRefreshPolicy": { "$ref": "#/definitions/RefreshPolicy" },
+        "navigation": { "$ref": "#/definitions/Navigation" },
+        "state": { "$ref": "#/definitions/State" },
+        "sections": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/Section" }
+        }
+      }
+    }
+  },
+  "$ref": "#/definitions/Screen"
+}

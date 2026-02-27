@@ -1,4 +1,4 @@
-# SDUI Platform - Technical Proposal (v2)
+# Technical Proposal
 
 **A developer-oriented proposal for SDUI architecture, runtime behavior, and implementation patterns aligned to the current requirements baseline.**
 
@@ -14,6 +14,7 @@
 | 2026-02-24 | Added i18n section (9p) with server-resolved default + `stringKeys` on data bindings. Removed `layoutHints` from schema and appendix examples (moved to ADR-008 for evaluation). Added locale transport policy to 9o and 9p. |
 | 2026-02-25 | Added `stringKeys` to binding JSON examples in section 3 and Appendix B. Added JSON snippet with explanation to i18n section (9p). Added revision history. |
 | 2026-02-25 | Established platform-aware composition as settled architectural position: shared schema, shared data pipeline, per-platform-family composition. Renamed `fallbackUrl` → `webUrl` in action contract (section 4). Updated platform coverage (section 8). |
+| 2026-02-27 | Replaced `entitlements` with `userContext` in request envelope (governance, 9o, Appendix A). Aligned analytics field names (`event`/`params`) and mutate field names (`target`/`operation`/`value`) with requirements summary. Moved `schemaVersion` to `meta` object. Added `onBlur` trigger. |
 
 ---
 
@@ -33,6 +34,7 @@ Current decisions reflected here:
 - Transport policy: support GET and POST by route context and cacheability needs.
 - Ad boundary: auction/targeting is delegated; SDUI carries ad placement contract.
 - Caching direction: section-first caching with optional screen snapshot caching.
+- Entitlement/restriction resolution: server-authoritative. The client provides user/device context via `userContext` in the request envelope; the composition service resolves entitlements and restrictions server-side.
 
 ---
 
@@ -121,13 +123,13 @@ Reference: ADR-002
 
 ### Response Hierarchy
 
-Every response follows `Screen -> Section -> Component`, where each section can carry data, refresh policy, bindings, actions, and optional layout hints.
+Every response follows `Screen -> Section -> Component`, where each section can carry data, refresh policy, bindings, actions, and subsections.
 
 ```json
 {
+  "meta": { "schemaVersion": "1.1" },
   "screen": {
     "id": "game-detail",
-    "schemaVersion": "1.1",
     "sections": [
       {
         "id": "scoreboard-001",
@@ -241,6 +243,7 @@ Actions are supported at three scopes:
 | `onVisible`   | enters viewport           |
 | `onSwipe`     | directional swipe         |
 | `onFocus`     | TV focus enters item      |
+| `onBlur`      | TV focus leaves item      |
 
 
 ### Action Types
@@ -249,8 +252,8 @@ Actions are supported at three scopes:
 | Type        | Purpose              | Key fields                                 |
 | ----------- | -------------------- | ------------------------------------------ |
 | `navigate`  | route/deeplink       | `targetUri` (native deeplink), `webUrl` (web equivalent) |
-| `analytics` | fire beacon          | `eventName`, `eventParams`, `destinations` |
-| `mutate`    | update screen state  | `stateKey`, `stateValue`                   |
+| `analytics` | fire beacon          | `event`, `params`, `destinations`          |
+| `mutate`    | update screen state  | `target`, `operation`, `value`             |
 | `dismiss`   | close overlay/screen | `target`                                   |
 | `refresh`   | force fetch          | `target`                                   |
 
@@ -268,7 +271,7 @@ Reference: ADR-005
 ```json
 {
   "screenDefaults": {
-    "actions": [{ "trigger": "onTap", "type": "analytics", "eventName": "screen_tap" }]
+    "actions": [{ "trigger": "onTap", "type": "analytics", "event": "screen_tap" }]
   },
   "section": {
     "actions": [{ "trigger": "onTap", "type": "navigate", "targetUri": "nba://game/0022500384" }],
@@ -276,7 +279,7 @@ Reference: ADR-005
       {
         "id": "home-team-hotspot",
         "actions": [
-          { "trigger": "onTap", "type": "analytics", "eventName": "home_team_tap" },
+          { "trigger": "onTap", "type": "analytics", "event": "home_team_tap" },
           { "trigger": "onTap", "type": "navigate", "targetUri": "nba://team/1610612752" }
         ]
       }
@@ -423,7 +426,7 @@ Composition must support a typed request envelope:
 - platform/app version/device class
 - locale/region/timezone
 - auth context (`Authorization` header)
-- entitlement/restriction context
+- user context (device ID, ZIP code, country code, region)
 - experiment hints/assignments
 - client capabilities
 - traceId
@@ -535,11 +538,18 @@ The alternative is duplicated platform composition logic and drift in feature be
       "onFocus": false
     }
   },
-  "entitlements": { "leaguePass": true, "blackoutEligible": false },
+  "userContext": {
+    "deviceId": "a1b2c3d4-5678-90ef-ghij-klmnopqrstuv",
+    "zipCode": "10001",
+    "countryCode": "US",
+    "region": "ny"
+  },
   "experiments": { "gd_tab_order_v2": "client_hint_variant_b" },
   "traceId": "8d68d9d5-4512-4ff4-8d55-1f1b20ea4e11"
 }
 ```
+
+The `userContext` object carries user and device signals that the composition service may use for any purpose — entitlement resolution, geo-based content filtering, personalization, restriction checks, or other server-side decisions. The envelope does not prescribe how these inputs are consumed. Content-specific fields (production ID, league ID, content type) are known to the composer from the content being composed and do not need to appear in the client request. Auth identity is carried via the `Authorization` header.
 
 ---
 
@@ -565,8 +575,8 @@ The alternative is duplicated platform composition logic and drift in feature be
       {
         "trigger": "onTap",
         "type": "analytics",
-        "eventName": "screen_tap",
-        "eventParams": { "screenId": "game-detail" }
+        "event": "screen_tap",
+        "params": { "screenId": "game-detail" }
       }
     ],
     "sections": [
@@ -611,8 +621,8 @@ The alternative is duplicated platform composition logic and drift in feature be
           {
             "trigger": "onTap",
             "type": "analytics",
-            "eventName": "scoreboard_tapped",
-            "eventParams": {
+            "event": "scoreboard_tapped",
+            "params": {
               "gameId": "0022500384",
               "sectionId": "scoreboard-001"
             }
@@ -631,8 +641,8 @@ The alternative is duplicated platform composition logic and drift in feature be
               {
                 "trigger": "onTap",
                 "type": "analytics",
-                "eventName": "home_team_tapped",
-                "eventParams": { "teamId": "1610612752" }
+                "event": "home_team_tapped",
+                "params": { "teamId": "1610612752" }
               },
               {
                 "trigger": "onTap",
@@ -662,8 +672,8 @@ The alternative is duplicated platform composition logic and drift in feature be
           {
             "trigger": "onVisible",
             "type": "analytics",
-            "eventName": "section_impression",
-            "eventParams": { "sectionId": "stats-001", "policy": "once_per_screen" }
+            "event": "section_impression",
+            "params": { "sectionId": "stats-001", "policy": "once_per_screen" }
           }
         ]
       },
@@ -678,8 +688,8 @@ The alternative is duplicated platform composition logic and drift in feature be
           ]
         },
         "actions": [
-          { "trigger": "onTap", "type": "mutate", "stateKey": "selectedTab", "stateValue": "boxscore" },
-          { "trigger": "onTap", "type": "analytics", "eventName": "tab_selected", "eventParams": { "tabId": "boxscore" } }
+          { "trigger": "onTap", "type": "mutate", "target": "selectedTab", "operation": "set", "value": "boxscore" },
+          { "trigger": "onTap", "type": "analytics", "event": "tab_selected", "params": { "tabId": "boxscore" } }
         ]
       },
       {

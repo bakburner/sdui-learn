@@ -17,6 +17,7 @@
 | 2026-02-25 | Added `stringKeys` to binding contract JSON example in section 3. Added JSON snippet with explanation to i18n section (9p). Added revision history. |
 | 2026-02-25 | Established platform-aware composition as settled architectural position: shared schema, shared data pipeline, per-platform-family composition responses. Renamed `fallbackUrl` → `webUrl` in action contract. Updated platform coverage, 9b, 9m. |
 | 2026-02-27 | Cross-document consistency review. Replaced `entitlements` references with `userContext` in governance, schema decisions, and 9o to align with Technical Proposal. |
+| 2026-03-04 | Added gap section 9q: Tabular Data Sections and Forms. New semantic section types (`BoxscoreTable`, `Form`), parameterized refresh on actions, sort/form state conventions. Updated status matrix. |
 
 ---
 
@@ -159,7 +160,7 @@ graph LR
 
 ### Key Schema Decisions
 
-- **Semantic section types** (ScoreboardHeader, StatLine, ContentCard) — not atomic primitives (Text, Image, Stack). The design system already handles layout; the schema just names what to render and passes typed data.
+- **Semantic section types** (ScoreboardHeader, StatLine, ContentCard, BoxscoreTable, Form) — not atomic primitives (Text, Image, Stack). The design system already handles layout; the schema just names what to render and passes typed data.
 - **Codegen produces data models only** — not UI code. Platform teams write a thin renderer layer (~30 lines per section type) that wires generated models to existing design system components.
 - **Schema is versioned** — client sends its schema version, server responds with a compatible payload. Fields can never be removed without a major version bump.
 - **Subsection actions are required** — `actions` must be supported at section and nested component/subsection level (for example, tapping home team area within a game section).
@@ -795,6 +796,35 @@ In this example, `homeTeam.score` is numeric and needs no translation. `gameStat
 
 **Decision required:** Governance for string key taxonomy, ownership of server-side translation bundles, and which platform i18n libraries are standard per client.
 
+### 9q. Tabular Data Sections and Forms
+
+**Problem:** Apps display tabular stat views (boxscore, roster, standings, league leaders) with shared UX patterns — frozen first column, horizontal scroll, sortable columns, aggregation rows — but each table has a distinct domain-specific data shape and platform-specific rendering needs (headshots, badges, combined value formatting). Users also need settings controls (season picker, season-type toggle) to drive which dataset is displayed.
+
+**Decision: semantic table types over generic DataTable.** The server describes *what* the data is (e.g., `BoxscoreTable` with typed player statistics); clients decide *how* to render it (column order, frozen behavior, headshot rendering, sort UX). Client teams own rendering reuse via internal base components (e.g., `BaseDataTable` shared across `BoxscoreTableRenderer`, future `RosterTableRenderer`, `StandingsTableRenderer`). This follows the established semantic pattern used for all existing section types.
+
+Key factors:
+- Different tables have genuinely different data shapes — a boxscore row (player + game stats) is fundamentally different from a roster row (player + bio/contract) or a standings row (team + record/GB)
+- Platform-specific rendering needs per table type (circular headshots in boxscore, position badges in roster, clinch indicators in standings) would require complex cell metadata in a generic approach
+- Semantic types provide meaningful analytics events ("viewed BoxscoreTable" vs. "viewed DataTable")
+- The "schema explosion" concern is overstated — each new table type is ~30 lines of JSON schema; codegen handles type generation; clients share a base table renderer internally
+
+**Decision: generic `Form` section for settings.** Unlike tables, form pickers genuinely share shape regardless of domain — a season picker and a position picker have the same structure (`label`, `options[]`, `stateKey`). A single `Form` section type with extensible field types (`picker`, `segmented`, `toggle`, `datePicker`, `text`) serves boxscore, roster, and future table settings.
+
+**Decision: client-side sort for tabular data.** Tabular data payloads are small (≤15 rows for a boxscore). Sort is performed client-side via `mutate` actions updating `Screen.state`, with no server round-trip. Sort state persists across live poll refreshes because it resides in `Screen.state`, not in section data.
+
+**Decision: parameterized refresh actions.** The `refresh` action type is extended with optional `endpoint` (target URL) and `paramBindings` (map of param name → state key). At execution time, the client resolves state values for each binding and appends them as query parameters to the refresh endpoint. This lets a Form submit button say "refresh the screen with `season={state.season}&seasonType={state.seasonType}`" — reusable for any server-driven settings interaction.
+
+**Requirement statements:**
+
+- New section types (`BoxscoreTable`, `Form`) must follow the existing section anatomy contract (data, actions, refreshPolicy, dataBindings, analytics)
+- Sort state must survive live poll refreshes (state lives in `Screen.state`, refresh replaces section data only)
+- Server must pre-populate `Screen.state` with default sort column/direction per table and current form field values
+- State keys must be namespaced per section to avoid collisions when multiple tables appear on the same screen (e.g., `boxscore_home_sortCol`, `boxscore_away_sortCol`)
+- `BoxscoreTable` must support an `emptyMessage` field for pre-game or missing-data states; server may also omit the section entirely
+- `BoxscoreTable` must include a `teamTotals` aggregation row that renders as a frozen bottom row excluded from client-side sorting
+- `Form` field changes accumulate in `Screen.state`; submit fires a `refresh` action with `paramBindings` resolved from current state
+- Parameterized refresh (`endpoint` + `paramBindings` on Action) must be backward-compatible — existing refresh actions with only `target` continue to work unchanged
+
 ---
 
 ## ADR Approvals Pending
@@ -849,6 +879,9 @@ Until approved, these remain directional requirements and may be refined.
 | Debugging / observability | **Partial** | traceId in responses; structured Logcat; no dashboards |
 | Contract testing | **Gap** | No automated tests yet |
 | Internationalization (i18n) | **Gap** | Server-resolved default + optional string keys on data bindings for external source translations |
+| Tabular data sections (BoxscoreTable) | **Gap** | Semantic table type with domain-typed data, client-side sort, frozen column/totals row |
+| Form section (generic) | **Gap** | Extensible field types (picker, segmented, toggle, datePicker, text), parameterized refresh on submit |
+| Parameterized refresh (Action extension) | **Gap** | `endpoint` + `paramBindings` resolved from screen state at action time |
 
 ---
 

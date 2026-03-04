@@ -58,6 +58,7 @@ Every concept from the original roadmap's prototype validation checklist has bee
 - **Schema version negotiation** — client sends version header; server includes version in response
 - **Graceful unknown type handling** — unrecognized section types skipped without crash
 - **A/B variant composition** — server returns different section ordering/content per variant parameter
+- **Tabular data with domain-typed stats** — semantic `BoxscoreTable` section with frozen player column, horizontally scrollable stat columns, client-side sorting via screen state, and frozen totals row. Generic `Form` section for settings pickers (season, season type) driving parameterized refresh
 
 ---
 
@@ -84,6 +85,8 @@ A reverse-engineering audit of the production Android and iOS codebases compared
 | **Grid/table with pinned rows and columns**         | Standings, full box score surface                           | Medium–High |
 | **Entitlement/paywall awareness**                   | Surfaces with premium content gating                        | Medium      |
 | **Form/input/search primitives**                    | Search surfaces, settings, profile editing                  | Low–Medium  |
+
+> **Update (2026-03-04):** Grid/table and Form/input capabilities are now designed and planned for implementation as `BoxscoreTable` (semantic table type) and `Form` (generic settings section). See Requirements Summary 9q and Technical Proposal sections 2, 4, 5.
 | **Responsive/form-factor layouts**                  | Tablet and desktop surface variants                         | Medium      |
 
 
@@ -191,6 +194,8 @@ Expand SDUI to a second surface, introducing schema capabilities as the new surf
 | **M2: All Platforms Staging** | Week 12  | Game Detail on Android + iOS + Web in staging with A/B variants  |
 | **M3: Production**            | Week 18  | Game Detail in production on all platforms                       |
 | **M4: Second Surface**        | Week 24  | Second SDUI-powered surface in production                        |
+
+> **Update (2026-03-04):** Boxscore table and form sections are planned deliverables. BoxscoreTable demonstrates semantic tabular data rendering with client-side sort; Form demonstrates extensible settings pickers with parameterized server refresh. These capabilities feed into M4 surface expansion (standings, roster, stats leaders).
 
 
 **Time to first production surface: ~18 weeks (4.5 months).** Second surface by week 24 (6 months). The original v1 estimate of 32 weeks to production assumed building from scratch; the prototype has already retired that risk. Capabilities identified in the mobile native audit (layout managers, entitlement, grid/table) are introduced when a surface requires them — they do not gate the beachhead.

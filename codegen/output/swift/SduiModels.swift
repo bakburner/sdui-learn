@@ -8,6 +8,8 @@ import Foundation
 /// Server-Driven UI schema for NBA Game Detail screens
 // MARK: - SduiModels
 struct SduiModels: Codable {
+    /// Screen-level actions (e.g. analytics beacons, lifecycle hooks)
+    let actions: [Action]?
     let analyticsID: String?
     let defaultRefreshPolicy: RefreshPolicy?
     let id: String
@@ -18,6 +20,7 @@ struct SduiModels: Codable {
     let title, traceID: String?
 
     enum CodingKeys: String, CodingKey {
+        case actions
         case analyticsID = "analyticsId"
         case defaultRefreshPolicy, id, navigation, schemaVersion, sections, state, title
         case traceID = "traceId"
@@ -43,6 +46,7 @@ extension SduiModels {
     }
 
     func with(
+        actions: [Action]?? = nil,
         analyticsID: String?? = nil,
         defaultRefreshPolicy: RefreshPolicy?? = nil,
         id: String? = nil,
@@ -54,6 +58,7 @@ extension SduiModels {
         traceID: String?? = nil
     ) -> SduiModels {
         return SduiModels(
+            actions: actions ?? self.actions,
             analyticsID: analyticsID ?? self.analyticsID,
             defaultRefreshPolicy: defaultRefreshPolicy ?? self.defaultRefreshPolicy,
             id: id ?? self.id,
@@ -73,6 +78,271 @@ extension SduiModels {
     func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
         return String(data: try self.jsonData(), encoding: encoding)
     }
+}
+
+/// Action fired when the form is submitted
+// MARK: - Action
+struct Action: Codable {
+    /// For analytics actions: where to send the beacon
+    let destinations: [Destination]?
+    /// For refresh actions: target URL (defaults to current screen endpoint if omitted)
+    let endpoint: String?
+    /// For analytics actions: event name
+    let event: String?
+    /// For analytics actions with onVisible trigger: impression tracking policy
+    let impression: ImpressionPolicy?
+    /// For navigate actions with modal presentation: sheet height
+    let modalHeight: ModalHeight?
+    /// For mutate actions: operation to perform on the state key
+    let operation: MutateOperation?
+    /// For refresh actions: map of query param name to screen state key, resolved at action time
+    let paramBindings: [String: String]?
+    /// For analytics actions: event parameters
+    let params: [String: JSONAny]?
+    /// For navigate actions: how the destination is presented
+    let presentation: NavigationPresentation?
+    /// For mutate actions: state key to update. For dismiss actions: what to dismiss
+    /// (modal/overlay/screen). For refresh actions: section ID to refresh (omit for full screen)
+    let target: String?
+    /// For navigate actions: native deeplink URI
+    let targetURI: String?
+    let trigger: ActionTrigger
+    let type: ActionType
+    /// For mutate actions: the value to apply with the operation
+    let value: JSONAny?
+    /// For navigate actions: web-equivalent URL (first-class, not a fallback)
+    let webURL: String?
+
+    enum CodingKeys: String, CodingKey {
+        case destinations, endpoint, event, impression, modalHeight, operation, paramBindings, params, presentation, target
+        case targetURI = "targetUri"
+        case trigger, type, value
+        case webURL = "webUrl"
+    }
+}
+
+// MARK: Action convenience initializers and mutators
+
+extension Action {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(Action.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        destinations: [Destination]?? = nil,
+        endpoint: String?? = nil,
+        event: String?? = nil,
+        impression: ImpressionPolicy?? = nil,
+        modalHeight: ModalHeight?? = nil,
+        operation: MutateOperation?? = nil,
+        paramBindings: [String: String]?? = nil,
+        params: [String: JSONAny]?? = nil,
+        presentation: NavigationPresentation?? = nil,
+        target: String?? = nil,
+        targetURI: String?? = nil,
+        trigger: ActionTrigger? = nil,
+        type: ActionType? = nil,
+        value: JSONAny?? = nil,
+        webURL: String?? = nil
+    ) -> Action {
+        return Action(
+            destinations: destinations ?? self.destinations,
+            endpoint: endpoint ?? self.endpoint,
+            event: event ?? self.event,
+            impression: impression ?? self.impression,
+            modalHeight: modalHeight ?? self.modalHeight,
+            operation: operation ?? self.operation,
+            paramBindings: paramBindings ?? self.paramBindings,
+            params: params ?? self.params,
+            presentation: presentation ?? self.presentation,
+            target: target ?? self.target,
+            targetURI: targetURI ?? self.targetURI,
+            trigger: trigger ?? self.trigger,
+            type: type ?? self.type,
+            value: value ?? self.value,
+            webURL: webURL ?? self.webURL
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+enum Destination: String, Codable {
+    case adobe = "adobe"
+    case all = "all"
+    case destinationInternal = "internal"
+    case firebase = "firebase"
+}
+
+/// For analytics actions with onVisible trigger: impression tracking policy
+///
+/// Impression tracking policy for analytics actions with onVisible trigger
+// MARK: - ImpressionPolicy
+struct ImpressionPolicy: Codable {
+    let dedup: ImpressionDedup?
+    /// Reset interval for once-per-interval strategy (milliseconds)
+    let intervalMS: Int?
+    let threshold: ImpressionThreshold?
+
+    enum CodingKeys: String, CodingKey {
+        case dedup
+        case intervalMS = "intervalMs"
+        case threshold
+    }
+}
+
+// MARK: ImpressionPolicy convenience initializers and mutators
+
+extension ImpressionPolicy {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(ImpressionPolicy.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        dedup: ImpressionDedup?? = nil,
+        intervalMS: Int?? = nil,
+        threshold: ImpressionThreshold?? = nil
+    ) -> ImpressionPolicy {
+        return ImpressionPolicy(
+            dedup: dedup ?? self.dedup,
+            intervalMS: intervalMS ?? self.intervalMS,
+            threshold: threshold ?? self.threshold
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+enum ImpressionDedup: String, Codable {
+    case none = "none"
+    case oncePerInterval = "once-per-interval"
+    case oncePerScreen = "once-per-screen"
+    case oncePerSession = "once-per-session"
+}
+
+// MARK: - ImpressionThreshold
+struct ImpressionThreshold: Codable {
+    /// Milliseconds section must remain visible before impression fires
+    let dwellMS: Int?
+    /// Fraction of section area that must be visible (0.5 = 50%)
+    let visibility: Double?
+
+    enum CodingKeys: String, CodingKey {
+        case dwellMS = "dwellMs"
+        case visibility
+    }
+}
+
+// MARK: ImpressionThreshold convenience initializers and mutators
+
+extension ImpressionThreshold {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(ImpressionThreshold.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        dwellMS: Int?? = nil,
+        visibility: Double?? = nil
+    ) -> ImpressionThreshold {
+        return ImpressionThreshold(
+            dwellMS: dwellMS ?? self.dwellMS,
+            visibility: visibility ?? self.visibility
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+/// For navigate actions with modal presentation: sheet height
+enum ModalHeight: String, Codable {
+    case compact = "compact"
+    case full = "full"
+    case half = "half"
+}
+
+/// For mutate actions: operation to perform on the state key
+enum MutateOperation: String, Codable {
+    case append = "append"
+    case increment = "increment"
+    case mutateOperationSet = "set"
+    case toggle = "toggle"
+}
+
+/// For navigate actions: how the destination is presented
+enum NavigationPresentation: String, Codable {
+    case external = "external"
+    case fullscreen = "fullscreen"
+    case modal = "modal"
+    case push = "push"
+    case replace = "replace"
+}
+
+enum ActionTrigger: String, Codable {
+    case onBlur = "onBlur"
+    case onFocus = "onFocus"
+    case onLongPress = "onLongPress"
+    case onSwipe = "onSwipe"
+    case onTap = "onTap"
+    case onVisible = "onVisible"
+}
+
+enum ActionType: String, Codable {
+    case analytics = "analytics"
+    case dismiss = "dismiss"
+    case mutate = "mutate"
+    case navigate = "navigate"
+    case refresh = "refresh"
 }
 
 // MARK: - RefreshPolicy
@@ -254,6 +524,10 @@ extension NavigationItem {
 ///
 /// Responsive row layout that places children side-by-side above a breakpoint width, and
 /// stacks vertically below it
+///
+/// Typed tabular data for an NBA-style boxscore (one per team)
+///
+/// Server-driven form section with typed fields bound to screen state
 // MARK: - DataClass
 struct DataClass: Codable {
     let awayTeam: TeamData?
@@ -282,6 +556,29 @@ struct DataClass: Codable {
     let children: [Section]?
     /// Gap between children in dp/px
     let spacing: Int?
+    /// Ordered list of column definitions; clients render left-to-right
+    let columns: [BoxscoreColumnDefinition]?
+    /// Text shown when no player rows are available
+    let emptyMessage: String?
+    /// Player rows ordered by server (starters first, then bench)
+    let players: [BoxscorePlayerRow]?
+    /// Screen-state key holding the current sort direction (asc/desc)
+    let sortDirectionStateKey: String?
+    /// Screen-state key holding the current sort column key
+    let sortStateKey: String?
+    /// Hex colour for team accent
+    let teamColor: String?
+    let teamLogoURL, teamName: String?
+    /// Aggregate row shown at the bottom of the table
+    let teamTotals: [String: JSONAny]?
+    /// Three-letter team code, e.g. 'BOS'
+    let teamTricode: String?
+    let fields: [FormField]?
+    /// Layout hint for field arrangement
+    let layout: Layout?
+    /// Action fired when the form is submitted
+    let submitAction: Action?
+    let submitLabel: String?
 
     enum CodingKeys: String, CodingKey {
         case awayTeam, clock, gameStatus, gameStatusText, homeTeam, period, stats, title, action, contentType, duration, headline, id, subhead
@@ -289,7 +586,9 @@ struct DataClass: Codable {
         case cards, defaultTab, stateKey, tabContents, tabs, actions, description
         case imageURL = "imageUrl"
         case gameID = "gameId"
-        case gameLeaders, gameTimeEt, breakpoint, children, spacing
+        case gameLeaders, gameTimeEt, breakpoint, children, spacing, columns, emptyMessage, players, sortDirectionStateKey, sortStateKey, teamColor
+        case teamLogoURL = "teamLogoUrl"
+        case teamName, teamTotals, teamTricode, fields, layout, submitAction, submitLabel
     }
 }
 
@@ -340,7 +639,21 @@ extension DataClass {
         gameTimeEt: String?? = nil,
         breakpoint: Int?? = nil,
         children: [Section]?? = nil,
-        spacing: Int?? = nil
+        spacing: Int?? = nil,
+        columns: [BoxscoreColumnDefinition]?? = nil,
+        emptyMessage: String?? = nil,
+        players: [BoxscorePlayerRow]?? = nil,
+        sortDirectionStateKey: String?? = nil,
+        sortStateKey: String?? = nil,
+        teamColor: String?? = nil,
+        teamLogoURL: String?? = nil,
+        teamName: String?? = nil,
+        teamTotals: [String: JSONAny]?? = nil,
+        teamTricode: String?? = nil,
+        fields: [FormField]?? = nil,
+        layout: Layout?? = nil,
+        submitAction: Action?? = nil,
+        submitLabel: String?? = nil
     ) -> DataClass {
         return DataClass(
             awayTeam: awayTeam ?? self.awayTeam,
@@ -371,7 +684,21 @@ extension DataClass {
             gameTimeEt: gameTimeEt ?? self.gameTimeEt,
             breakpoint: breakpoint ?? self.breakpoint,
             children: children ?? self.children,
-            spacing: spacing ?? self.spacing
+            spacing: spacing ?? self.spacing,
+            columns: columns ?? self.columns,
+            emptyMessage: emptyMessage ?? self.emptyMessage,
+            players: players ?? self.players,
+            sortDirectionStateKey: sortDirectionStateKey ?? self.sortDirectionStateKey,
+            sortStateKey: sortStateKey ?? self.sortStateKey,
+            teamColor: teamColor ?? self.teamColor,
+            teamLogoURL: teamLogoURL ?? self.teamLogoURL,
+            teamName: teamName ?? self.teamName,
+            teamTotals: teamTotals ?? self.teamTotals,
+            teamTricode: teamTricode ?? self.teamTricode,
+            fields: fields ?? self.fields,
+            layout: layout ?? self.layout,
+            submitAction: submitAction ?? self.submitAction,
+            submitLabel: submitLabel ?? self.submitLabel
         )
     }
 
@@ -457,101 +784,6 @@ extension Section {
     func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
         return String(data: try self.jsonData(), encoding: encoding)
     }
-}
-
-// MARK: - Action
-struct Action: Codable {
-    /// For analytics actions: event name
-    let eventName: String?
-    /// For analytics actions: event parameters
-    let eventParams: [String: JSONAny]?
-    /// For navigate actions: web fallback if deeplink fails
-    let fallbackURL: String?
-    /// For refresh actions: specific section to refresh (null = full screen)
-    let sectionID: String?
-    /// For mutate actions: state key to update
-    let stateKey: String?
-    /// For mutate actions: new value for the state key
-    let stateValue: JSONAny?
-    /// For navigate actions: deeplink URI
-    let targetURI: String?
-    let trigger: ActionTrigger
-    let type: ActionType
-
-    enum CodingKeys: String, CodingKey {
-        case eventName, eventParams
-        case fallbackURL = "fallbackUrl"
-        case sectionID = "sectionId"
-        case stateKey, stateValue
-        case targetURI = "targetUri"
-        case trigger, type
-    }
-}
-
-// MARK: Action convenience initializers and mutators
-
-extension Action {
-    init(data: Data) throws {
-        self = try newJSONDecoder().decode(Action.self, from: data)
-    }
-
-    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
-        guard let data = json.data(using: encoding) else {
-            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
-        }
-        try self.init(data: data)
-    }
-
-    init(fromURL url: URL) throws {
-        try self.init(data: try Data(contentsOf: url))
-    }
-
-    func with(
-        eventName: String?? = nil,
-        eventParams: [String: JSONAny]?? = nil,
-        fallbackURL: String?? = nil,
-        sectionID: String?? = nil,
-        stateKey: String?? = nil,
-        stateValue: JSONAny?? = nil,
-        targetURI: String?? = nil,
-        trigger: ActionTrigger? = nil,
-        type: ActionType? = nil
-    ) -> Action {
-        return Action(
-            eventName: eventName ?? self.eventName,
-            eventParams: eventParams ?? self.eventParams,
-            fallbackURL: fallbackURL ?? self.fallbackURL,
-            sectionID: sectionID ?? self.sectionID,
-            stateKey: stateKey ?? self.stateKey,
-            stateValue: stateValue ?? self.stateValue,
-            targetURI: targetURI ?? self.targetURI,
-            trigger: trigger ?? self.trigger,
-            type: type ?? self.type
-        )
-    }
-
-    func jsonData() throws -> Data {
-        return try newJSONEncoder().encode(self)
-    }
-
-    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
-        return String(data: try self.jsonData(), encoding: encoding)
-    }
-}
-
-enum ActionTrigger: String, Codable {
-    case onLongPress = "onLongPress"
-    case onSwipe = "onSwipe"
-    case onTap = "onTap"
-    case onVisible = "onVisible"
-}
-
-enum ActionType: String, Codable {
-    case analytics = "analytics"
-    case dismiss = "dismiss"
-    case mutate = "mutate"
-    case navigate = "navigate"
-    case refresh = "refresh"
 }
 
 // MARK: - TeamData
@@ -682,6 +914,200 @@ enum ContentType: String, Codable {
     case video = "video"
 }
 
+/// Defines a single column in the boxscore table
+// MARK: - BoxscoreColumnDefinition
+struct BoxscoreColumnDefinition: Codable {
+    /// Whether this column should be visually emphasised (e.g., bold)
+    let highlighted: Bool?
+    /// Property key on each player's stats object that supplies this column's value
+    let key: String
+    /// Column header text displayed to the user
+    let label: String
+    /// Whether this column supports client-side sorting
+    let sortable: Bool?
+    /// Optional hint for column width (e.g. 'auto', '64px', '1fr')
+    let width: String?
+}
+
+// MARK: BoxscoreColumnDefinition convenience initializers and mutators
+
+extension BoxscoreColumnDefinition {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(BoxscoreColumnDefinition.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        highlighted: Bool?? = nil,
+        key: String? = nil,
+        label: String? = nil,
+        sortable: Bool?? = nil,
+        width: String?? = nil
+    ) -> BoxscoreColumnDefinition {
+        return BoxscoreColumnDefinition(
+            highlighted: highlighted ?? self.highlighted,
+            key: key ?? self.key,
+            label: label ?? self.label,
+            sortable: sortable ?? self.sortable,
+            width: width ?? self.width
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+/// One input field inside a form section
+// MARK: - FormField
+struct FormField: Codable {
+    let disabled: Bool?
+    let fieldID: String
+    /// Input type; clients map to platform-native controls
+    let fieldType: FieldType
+    let label: String
+    /// For select/radio/checkbox field types: the available choices
+    let options: [FormOption]?
+    let placeholder: String?
+    let formFieldRequired: Bool?
+    /// Screen-state key that holds this field's current value
+    let stateKey: String
+    /// Message to show when validation fails
+    let validationMessage: String?
+    /// Optional regex pattern for client-side validation
+    let validationPattern: String?
+
+    enum CodingKeys: String, CodingKey {
+        case disabled
+        case fieldID = "fieldId"
+        case fieldType, label, options, placeholder
+        case formFieldRequired = "required"
+        case stateKey, validationMessage, validationPattern
+    }
+}
+
+// MARK: FormField convenience initializers and mutators
+
+extension FormField {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(FormField.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        disabled: Bool?? = nil,
+        fieldID: String? = nil,
+        fieldType: FieldType? = nil,
+        label: String? = nil,
+        options: [FormOption]?? = nil,
+        placeholder: String?? = nil,
+        formFieldRequired: Bool?? = nil,
+        stateKey: String? = nil,
+        validationMessage: String?? = nil,
+        validationPattern: String?? = nil
+    ) -> FormField {
+        return FormField(
+            disabled: disabled ?? self.disabled,
+            fieldID: fieldID ?? self.fieldID,
+            fieldType: fieldType ?? self.fieldType,
+            label: label ?? self.label,
+            options: options ?? self.options,
+            placeholder: placeholder ?? self.placeholder,
+            formFieldRequired: formFieldRequired ?? self.formFieldRequired,
+            stateKey: stateKey ?? self.stateKey,
+            validationMessage: validationMessage ?? self.validationMessage,
+            validationPattern: validationPattern ?? self.validationPattern
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+/// Input type; clients map to platform-native controls
+enum FieldType: String, Codable {
+    case checkbox = "checkbox"
+    case date = "date"
+    case number = "number"
+    case radio = "radio"
+    case select = "select"
+    case text = "text"
+    case textarea = "textarea"
+    case toggle = "toggle"
+}
+
+/// One selectable option within a select/radio/checkbox form field
+// MARK: - FormOption
+struct FormOption: Codable {
+    let label, value: String
+}
+
+// MARK: FormOption convenience initializers and mutators
+
+extension FormOption {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(FormOption.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        label: String? = nil,
+        value: String? = nil
+    ) -> FormOption {
+        return FormOption(
+            label: label ?? self.label,
+            value: value ?? self.value
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
 // MARK: - GameLeadersData
 struct GameLeadersData: Codable {
     let awayLeader, homeLeader: GameLeaderData?
@@ -760,6 +1186,84 @@ extension GameLeaderData {
             name: name ?? self.name,
             points: points ?? self.points,
             rebounds: rebounds ?? self.rebounds
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+/// Layout hint for field arrangement
+enum Layout: String, Codable {
+    case grid = "grid"
+    case horizontal = "horizontal"
+    case vertical = "vertical"
+}
+
+/// One player row inside a boxscore table
+// MARK: - BoxscorePlayerRow
+struct BoxscorePlayerRow: Codable {
+    let actions: [Action]?
+    let imageURL, jerseyNumber: String?
+    /// Display name (short form, e.g. 'J. Tatum')
+    let name: String
+    let playerID: String
+    let position: String?
+    /// Whether this player was in the starting lineup
+    let starter: Bool?
+    let stats: [String: JSONAny]
+
+    enum CodingKeys: String, CodingKey {
+        case actions
+        case imageURL = "imageUrl"
+        case jerseyNumber, name
+        case playerID = "playerId"
+        case position, starter, stats
+    }
+}
+
+// MARK: BoxscorePlayerRow convenience initializers and mutators
+
+extension BoxscorePlayerRow {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(BoxscorePlayerRow.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        actions: [Action]?? = nil,
+        imageURL: String?? = nil,
+        jerseyNumber: String?? = nil,
+        name: String? = nil,
+        playerID: String? = nil,
+        position: String?? = nil,
+        starter: Bool?? = nil,
+        stats: [String: JSONAny]? = nil
+    ) -> BoxscorePlayerRow {
+        return BoxscorePlayerRow(
+            actions: actions ?? self.actions,
+            imageURL: imageURL ?? self.imageURL,
+            jerseyNumber: jerseyNumber ?? self.jerseyNumber,
+            name: name ?? self.name,
+            playerID: playerID ?? self.playerID,
+            position: position ?? self.position,
+            starter: starter ?? self.starter,
+            stats: stats ?? self.stats
         )
     }
 
@@ -1063,8 +1567,10 @@ extension Subsection {
 }
 
 enum TypeEnum: String, Codable {
+    case boxscoreTable = "BoxscoreTable"
     case contentCard = "ContentCard"
     case contentRail = "ContentRail"
+    case form = "Form"
     case gameCard = "GameCard"
     case promoBanner = "PromoBanner"
     case row = "Row"

@@ -15,6 +15,7 @@
 | 2026-02-25 | Added `stringKeys` to binding JSON examples in section 3 and Appendix B. Added JSON snippet with explanation to i18n section (9p). Added revision history. |
 | 2026-02-25 | Established platform-aware composition as settled architectural position: shared schema, shared data pipeline, per-platform-family composition. Renamed `fallbackUrl` → `webUrl` in action contract (section 4). Updated platform coverage (section 8). |
 | 2026-02-27 | Replaced `entitlements` with `userContext` in request envelope (governance, 9o, Appendix A). Aligned analytics field names (`event`/`params`) and mutate field names (`target`/`operation`/`value`) with requirements summary. Moved `schemaVersion` to `meta` object. Added `onBlur` trigger. |
+| 2026-03-04 | Added tabular data sections and forms. New semantic types (`BoxscoreTable`, `Form`) in schema design (section 2). Parameterized refresh on actions (section 4). Sort and form state patterns (section 5). Platform coverage update (section 8). Gap 9q. Requirement status updates. Appendix C boxscore response example. |
 
 ---
 
@@ -157,6 +158,7 @@ Every response follows `Screen -> Section -> Component`, where each section can 
 - Unknown section/action types must degrade gracefully (skip/no-op).
 - **Subsection actions are required** at nested component level.
 - **Request context is contract input** and must be typed.
+- **Tabular data uses semantic per-domain types** — server describes *what* (domain-typed data), clients own *how* (rendering, sort UX, frozen columns). See *Tabular Data and Form Sections* below.
 
 ### Schema Fragment Example
 
@@ -186,6 +188,122 @@ Every response follows `Screen -> Section -> Component`, where each section can 
   }
 }
 ```
+
+### Tabular Data and Form Sections
+
+Tabular stat views (boxscore, roster, standings) share UX patterns — frozen first column, horizontal scroll, sortable columns, aggregation rows — but each has a distinct domain-specific data shape. The schema uses **semantic per-domain section types** rather than a generic `DataTable`.
+
+**Key decision factors:**
+
+- **Semantic types over generic DataTable.** Different tables have genuinely different data shapes — a boxscore row (player + game stats) is fundamentally different from a roster row (player + bio/contract). Forcing different data into a generic container creates implicit contracts that break silently. Semantic types provide compile-time safety, meaningful analytics events, and platform-specific rendering freedom.
+- **Generic Form is the correct exception.** Form pickers genuinely share shape regardless of domain — a season picker and a position picker have the same structure (`label`, `options[]`, `stateKey`). `Form` is correctly generic; tables are not.
+- **Client-side sort.** Payloads are small (≤15 rows). Sort via `mutate` action updating screen state. No server round-trip. Sort state survives live poll refreshes.
+- **Clients own rendering reuse internally.** Client teams share a `BaseDataTable` component across `BoxscoreTableRenderer`, future `RosterTableRenderer`, etc. This reuse is a client implementation detail invisible to the schema.
+
+**`BoxscoreTableData` — domain-typed player statistics:**
+
+```json
+{
+  "type": "BoxscoreTable",
+  "data": {
+    "teamId": 1610612752,
+    "teamTricode": "NYK",
+    "teamName": "New York Knicks",
+    "teamLogoUrl": "https://cdn.nba.com/logos/nba/1610612752/global/L/logo.svg",
+    "players": [
+      {
+        "playerId": 1630596,
+        "name": "Jalen Brunson",
+        "nameAbbreviated": "J. Brunson",
+        "headshotUrl": "https://cdn.nba.com/headshots/nba/latest/260x190/1630596.png",
+        "jerseyNum": "11",
+        "position": "G",
+        "starter": true,
+        "played": true,
+        "statistics": {
+          "minutes": "34:22",
+          "points": 28,
+          "rebounds": 3,
+          "assists": 7,
+          "steals": 1,
+          "blocks": 0,
+          "turnovers": 2,
+          "personalFouls": 1,
+          "fieldGoalsMade": 10,
+          "fieldGoalsAttempted": 23,
+          "fieldGoalPercentage": 0.435,
+          "threePointersMade": 3,
+          "threePointersAttempted": 8,
+          "threePointPercentage": 0.375,
+          "freeThrowsMade": 5,
+          "freeThrowsAttempted": 6,
+          "freeThrowPercentage": 0.833,
+          "reboundsOffensive": 0,
+          "reboundsDefensive": 3,
+          "plusMinus": 12
+        }
+      }
+    ],
+    "teamTotals": {
+      "points": 104,
+      "rebounds": 45,
+      "assists": 24
+    },
+    "sortStateKey": "boxscore_home_sortCol",
+    "sortDirectionStateKey": "boxscore_home_sortDir",
+    "emptyMessage": null
+  }
+}
+```
+
+`teamTotals` renders as a frozen bottom row excluded from client-side sorting. `emptyMessage` is used for pre-game states when player data is unavailable. `additionalStatistics` (not shown) provides a forward-compatible escape hatch for new stats without schema changes.
+
+**`FormData` — extensible settings fields:**
+
+```json
+{
+  "type": "Form",
+  "data": {
+    "fields": [
+      {
+        "id": "season",
+        "label": "Season",
+        "stateKey": "season",
+        "defaultValue": "2025-26",
+        "fieldType": "picker",
+        "options": [
+          { "label": "2025-26", "value": "2025-26" },
+          { "label": "2024-25", "value": "2024-25" }
+        ]
+      },
+      {
+        "id": "seasonType",
+        "label": "Season Type",
+        "stateKey": "seasonType",
+        "defaultValue": "Regular Season",
+        "fieldType": "segmented",
+        "options": [
+          { "label": "Regular Season", "value": "Regular Season" },
+          { "label": "Playoffs", "value": "Playoffs" }
+        ]
+      }
+    ],
+    "submitAction": {
+      "trigger": "onTap",
+      "type": "refresh",
+      "endpoint": "/sdui/stats/leaders",
+      "paramBindings": {
+        "season": "season",
+        "seasonType": "seasonType"
+      }
+    },
+    "submitLabel": "Apply",
+    "layout": "inline"
+  }
+}
+```
+
+Field types: `picker` (dropdown), `segmented` (button group), `toggle` (switch), `datePicker`, `text`. Field changes accumulate in `Screen.state`; submit fires the `refresh` action with `paramBindings` resolved from current state values.
 
 ---
 
@@ -255,7 +373,29 @@ Actions are supported at three scopes:
 | `analytics` | fire beacon          | `event`, `params`, `destinations`          |
 | `mutate`    | update screen state  | `target`, `operation`, `value`             |
 | `dismiss`   | close overlay/screen | `target`                                   |
-| `refresh`   | force fetch          | `target`                                   |
+| `refresh`   | force fetch          | `target`, optional `endpoint`, optional `paramBindings` |
+
+
+### Parameterized Refresh
+
+The `refresh` action type supports two optional fields for server-driven settings interactions:
+
+- **`endpoint`** (string, optional) — target URL for the refresh. Defaults to the current screen endpoint if omitted.
+- **`paramBindings`** (object, optional) — map of query parameter name → screen state key. At execution time, the client resolves each state key's current value and appends the result as query parameters to the refresh endpoint.
+
+This enables Form submit buttons to say "refresh the screen with `season={state.season}&seasonType={state.seasonType}`" without any client-side knowledge of what parameters mean. Existing `refresh` actions with only `target` continue to work unchanged — the extension is backward-compatible.
+
+```json
+{
+  "trigger": "onTap",
+  "type": "refresh",
+  "endpoint": "/sdui/stats/leaders",
+  "paramBindings": {
+    "season": "season",
+    "seasonType": "seasonType"
+  }
+}
+```
 
 
 ### Precedence and Composability
@@ -299,6 +439,8 @@ Examples:
 - selected tab
 - expanded/collapsed section ids
 - selected filter chip
+- **sort column and direction per table section**
+- **form field selections (season, season type, etc.)**
 
 ```json
 {
@@ -308,6 +450,30 @@ Examples:
   }
 }
 ```
+
+### Sort and Form State Conventions
+
+The server pre-populates `Screen.state` with default values for sort and form fields. This means:
+
+- Tables render with the correct initial sort on first paint
+- Forms display the correct initial selections
+- After a parameterized refresh, the new response includes submitted values in state so the form reflects what was applied
+
+State keys are **namespaced per section** to avoid collisions when multiple tables or forms appear on the same screen.
+
+```json
+{
+  "state": {
+    "boxscore_team": "NYK",
+    "boxscore_home_sortCol": "points",
+    "boxscore_home_sortDir": "desc",
+    "boxscore_away_sortCol": "points",
+    "boxscore_away_sortDir": "desc"
+  }
+}
+```
+
+Sort state survives live poll refreshes because `Screen.state` is managed by the client — when a poll replaces section data, the sort column/direction remain unchanged and the client re-sorts the new data locally.
 
 ---
 
@@ -381,6 +547,20 @@ Each platform family receives a tailored composition from the server while shari
 | Mobile          | iOS phone/tablet       | SwiftUI                  | URLSession + SSE/EventSource | touch gestures            | Full section set, responsive breakpoints |
 | Web             | Browser                | React                    | fetch + SSE/EventSource      | mouse/touch/keyboard      | Wide layout, `webUrl` preferred for navigation |
 | TV              | tvOS, Fire TV          | Compose/SwiftUI variants | platform-specific            | D-pad focus + select      | Reduced sections, large art, simplified interactions |
+
+**Section type coverage across platforms:**
+
+| Section type | Web (React) | Android (Compose) | iOS (SwiftUI) |
+|---|---|---|---|
+| ScoreboardHeader | Built | Built | Designed |
+| StatLine | Built | Built | Designed |
+| ContentCard | Built | Built | Designed |
+| ContentRail | Built | Built | Designed |
+| TabGroup | Built | Built | Designed |
+| PromoBanner | Built | Built | Designed |
+| GameCard | Built | Built | Designed |
+| BoxscoreTable | Gap | Gap | Gap |
+| Form | Gap | Gap | Gap |
 
 
 ---
@@ -473,6 +653,20 @@ In this example, `homeTeam.score` is numeric and needs no translation. `gameStat
 - Server-side SSE proxy (subscribe, translate, re-publish) — adds latency and infrastructure for no benefit.
 - Format templates (server sends patterns, client fills values) — cannot guarantee all translatable content fits a template.
 
+### 9q. Tabular Data Sections and Forms
+
+Semantic table section types (`BoxscoreTable`, future `RosterTable`, `StandingsTable`) with domain-typed data. Generic `Form` section for settings pickers. Client-side sort via `mutate` actions. Parameterized refresh for form submission.
+
+Key decisions settled (follows established semantic pattern — no ADR needed):
+
+- Semantic types over generic DataTable — server describes *what*, clients own *how*
+- Generic Form — pickers share shape regardless of domain
+- Client-side sort — small payloads, no server round-trip, state survives poll refreshes
+- Parameterized refresh — backward-compatible Action extension with `endpoint` + `paramBindings`
+- Server-namespaced state keys — avoids collisions with multiple tables on screen
+
+See Section 2 (Schema Design) for data shapes and Section 4 (Action System) for parameterized refresh details.
+
 ---
 
 ## 10. Requirement Status
@@ -489,6 +683,9 @@ In this example, `homeTeam.score` is numeric and needs no translation. `gameStat
 | Impression semantics           | Gap     | ADR-009 | threshold/dwell/dedup governance pending            |
 | Contract testing/observability | Gap     | —       | broader test corpus + dashboards pending            |
 | Internationalization (i18n)    | Gap     | —       | server-resolved default + string keys on bindings   |
+| Tabular data (BoxscoreTable)   | Gap     | —       | semantic table type, domain-typed data, client-side sort |
+| Form section (generic)         | Gap     | —       | extensible field types, parameterized refresh       |
+| Parameterized refresh          | Gap     | —       | `endpoint` + `paramBindings` Action extension       |
 
 
 ---
@@ -737,4 +934,133 @@ This expanded example demonstrates:
 - field-level data binding patch behavior
 - ad section as explicit primitive
 - screen state mutation with analytics chaining
+
+---
+
+## Appendix C: Boxscore Screen Response Example
+
+A composed boxscore screen using `TabGroup` to toggle between teams, each tab containing a `BoxscoreTable` with domain-typed player data. Demonstrates semantic table composition, server-namespaced state keys, and sort state pre-population.
+
+```json
+{
+  "meta": {
+    "traceId": "c4f29a11-7e33-4b8a-a1d2-9f3c5e8b7a01",
+    "schemaVersion": "1.2",
+    "cacheability": "live"
+  },
+  "screen": {
+    "id": "game-boxscore",
+    "state": {
+      "boxscore_team": "BKN",
+      "boxscore_away_sortCol": "points",
+      "boxscore_away_sortDir": "desc",
+      "boxscore_home_sortCol": "points",
+      "boxscore_home_sortDir": "desc"
+    },
+    "sections": [
+      {
+        "id": "boxscore-tabs",
+        "type": "TabGroup",
+        "data": {
+          "tabs": [
+            { "id": "away", "label": "BKN" },
+            { "id": "home", "label": "NYK" }
+          ],
+          "stateKey": "boxscore_team",
+          "loadingStrategy": "eager"
+        }
+      },
+      {
+        "id": "boxscore-away",
+        "type": "BoxscoreTable",
+        "data": {
+          "teamId": 1610612751,
+          "teamTricode": "BKN",
+          "teamName": "Brooklyn Nets",
+          "teamLogoUrl": "https://cdn.nba.com/logos/nba/1610612751/global/L/logo.svg",
+          "players": [
+            {
+              "playerId": 1629029,
+              "name": "Mikal Bridges",
+              "nameAbbreviated": "M. Bridges",
+              "headshotUrl": "https://cdn.nba.com/headshots/nba/latest/260x190/1629029.png",
+              "jerseyNum": "1",
+              "position": "F",
+              "starter": true,
+              "played": true,
+              "statistics": {
+                "minutes": "36:15",
+                "points": 22,
+                "rebounds": 5,
+                "assists": 4,
+                "steals": 2,
+                "blocks": 1,
+                "turnovers": 3,
+                "personalFouls": 2,
+                "fieldGoalsMade": 8,
+                "fieldGoalsAttempted": 18,
+                "fieldGoalPercentage": 0.444,
+                "threePointersMade": 3,
+                "threePointersAttempted": 7,
+                "threePointPercentage": 0.429,
+                "freeThrowsMade": 3,
+                "freeThrowsAttempted": 4,
+                "freeThrowPercentage": 0.750,
+                "reboundsOffensive": 1,
+                "reboundsDefensive": 4,
+                "plusMinus": -6
+              }
+            }
+          ],
+          "teamTotals": {
+            "points": 98,
+            "rebounds": 40,
+            "assists": 21,
+            "steals": 7,
+            "blocks": 4,
+            "turnovers": 14,
+            "personalFouls": 22,
+            "fieldGoalsMade": 36,
+            "fieldGoalsAttempted": 88,
+            "fieldGoalPercentage": 0.409,
+            "threePointersMade": 10,
+            "threePointersAttempted": 32,
+            "threePointPercentage": 0.313,
+            "freeThrowsMade": 16,
+            "freeThrowsAttempted": 20,
+            "freeThrowPercentage": 0.800,
+            "reboundsOffensive": 10,
+            "reboundsDefensive": 30
+          },
+          "sortStateKey": "boxscore_away_sortCol",
+          "sortDirectionStateKey": "boxscore_away_sortDir",
+          "emptyMessage": null
+        },
+        "refreshPolicy": {
+          "type": "poll",
+          "intervalSec": 30,
+          "url": "https://cdn.nba.com/static/json/liveData/boxscore/boxscore_0022500384.json"
+        },
+        "actions": [
+          {
+            "trigger": "onVisible",
+            "type": "analytics",
+            "event": "section_impression",
+            "params": { "sectionType": "BoxscoreTable", "teamTricode": "BKN" }
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+This example demonstrates:
+
+- Flat composition: `TabGroup` wrapping `BoxscoreTable` sections (no nesting)
+- Server-namespaced state keys (`boxscore_away_sortCol`, `boxscore_home_sortCol`) avoiding collisions
+- Domain-typed player data with statistics, headshot URLs, and position metadata
+- `teamTotals` as a pre-computed aggregation row (frozen at bottom, excluded from sort)
+- Poll-based refresh for live game updates (sort state in `Screen.state` survives refresh)
+- Semantic analytics (`sectionType: "BoxscoreTable"`) vs. generic "viewed DataTable"
 

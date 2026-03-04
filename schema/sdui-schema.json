@@ -35,7 +35,7 @@
     },
     "ActionTrigger": {
       "type": "string",
-      "enum": ["onTap", "onLongPress", "onVisible", "onSwipe"]
+      "enum": ["onTap", "onLongPress", "onVisible", "onSwipe", "onFocus", "onBlur"]
     },
     "ActionType": {
       "type": "string",
@@ -45,6 +45,55 @@
       "type": "string",
       "enum": ["static", "poll", "sse"]
     },
+    "NavigationPresentation": {
+      "type": "string",
+      "enum": ["push", "modal", "fullscreen", "replace", "external"]
+    },
+    "ModalHeight": {
+      "type": "string",
+      "enum": ["compact", "half", "full"]
+    },
+    "MutateOperation": {
+      "type": "string",
+      "enum": ["set", "toggle", "increment", "append"]
+    },
+    "ImpressionDedup": {
+      "type": "string",
+      "enum": ["none", "once-per-screen", "once-per-session", "once-per-interval"]
+    },
+    "ImpressionThreshold": {
+      "type": "object",
+      "properties": {
+        "visibility": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.5,
+          "description": "Fraction of section area that must be visible (0.5 = 50%)"
+        },
+        "dwellMs": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 1000,
+          "description": "Milliseconds section must remain visible before impression fires"
+        }
+      }
+    },
+    "ImpressionPolicy": {
+      "type": "object",
+      "description": "Impression tracking policy for analytics actions with onVisible trigger",
+      "properties": {
+        "dedup": {
+          "$ref": "#/definitions/ImpressionDedup",
+          "default": "once-per-screen"
+        },
+        "threshold": { "$ref": "#/definitions/ImpressionThreshold" },
+        "intervalMs": {
+          "type": "integer",
+          "description": "Reset interval for once-per-interval strategy (milliseconds)"
+        }
+      }
+    },
     "Action": {
       "type": "object",
       "required": ["trigger", "type"],
@@ -53,31 +102,61 @@
         "type": { "$ref": "#/definitions/ActionType" },
         "targetUri": {
           "type": "string",
-          "description": "For navigate actions: deeplink URI"
+          "description": "For navigate actions: native deeplink URI"
         },
-        "fallbackUrl": {
+        "webUrl": {
           "type": "string",
-          "description": "For navigate actions: web fallback if deeplink fails"
+          "description": "For navigate actions: web-equivalent URL (first-class, not a fallback)"
         },
-        "eventName": {
+        "presentation": {
+          "$ref": "#/definitions/NavigationPresentation",
+          "description": "For navigate actions: how the destination is presented"
+        },
+        "modalHeight": {
+          "$ref": "#/definitions/ModalHeight",
+          "description": "For navigate actions with modal presentation: sheet height"
+        },
+        "event": {
           "type": "string",
           "description": "For analytics actions: event name"
         },
-        "eventParams": {
+        "params": {
           "type": "object",
           "description": "For analytics actions: event parameters",
           "additionalProperties": true
         },
-        "stateKey": {
-          "type": "string",
-          "description": "For mutate actions: state key to update"
+        "destinations": {
+          "type": "array",
+          "description": "For analytics actions: where to send the beacon",
+          "items": {
+            "type": "string",
+            "enum": ["adobe", "firebase", "internal", "all"]
+          },
+          "default": ["all"]
         },
-        "stateValue": {
-          "description": "For mutate actions: new value for the state key"
+        "impression": {
+          "$ref": "#/definitions/ImpressionPolicy",
+          "description": "For analytics actions with onVisible trigger: impression tracking policy"
         },
-        "sectionId": {
+        "target": {
           "type": "string",
-          "description": "For refresh actions: specific section to refresh (null = full screen)"
+          "description": "For mutate actions: state key to update. For dismiss actions: what to dismiss (modal/overlay/screen). For refresh actions: section ID to refresh (omit for full screen)"
+        },
+        "operation": {
+          "$ref": "#/definitions/MutateOperation",
+          "description": "For mutate actions: operation to perform on the state key"
+        },
+        "value": {
+          "description": "For mutate actions: the value to apply with the operation"
+        },
+        "endpoint": {
+          "type": "string",
+          "description": "For refresh actions: target URL (defaults to current screen endpoint if omitted)"
+        },
+        "paramBindings": {
+          "type": "object",
+          "description": "For refresh actions: map of query param name to screen state key, resolved at action time",
+          "additionalProperties": { "type": "string" }
         }
       }
     },
@@ -406,6 +485,167 @@
         }
       }
     },
+    "BoxscoreColumnDefinition": {
+      "type": "object",
+      "description": "Defines a single column in the boxscore table",
+      "required": ["key", "label"],
+      "properties": {
+        "key": {
+          "type": "string",
+          "description": "Property key on each player's stats object that supplies this column's value"
+        },
+        "label": {
+          "type": "string",
+          "description": "Column header text displayed to the user"
+        },
+        "sortable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether this column supports client-side sorting"
+        },
+        "highlighted": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether this column should be visually emphasised (e.g., bold)"
+        },
+        "width": {
+          "type": "string",
+          "description": "Optional hint for column width (e.g. 'auto', '64px', '1fr')"
+        }
+      }
+    },
+    "BoxscorePlayerStatistics": {
+      "type": "object",
+      "description": "Key-value map of stat abbreviation to value for one player row",
+      "additionalProperties": true
+    },
+    "BoxscorePlayerRow": {
+      "type": "object",
+      "description": "One player row inside a boxscore table",
+      "required": ["playerId", "name", "stats"],
+      "properties": {
+        "playerId": { "type": "string" },
+        "name": { "type": "string", "description": "Display name (short form, e.g. 'J. Tatum')" },
+        "position": { "type": "string" },
+        "jerseyNumber": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "starter": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether this player was in the starting lineup"
+        },
+        "stats": { "$ref": "#/definitions/BoxscorePlayerStatistics" },
+        "actions": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/Action" }
+        }
+      }
+    },
+    "BoxscoreTableData": {
+      "type": "object",
+      "description": "Typed tabular data for an NBA-style boxscore (one per team)",
+      "required": ["teamTricode", "teamName", "columns", "players"],
+      "properties": {
+        "teamTricode": { "type": "string", "description": "Three-letter team code, e.g. 'BOS'" },
+        "teamName": { "type": "string" },
+        "teamColor": { "type": "string", "description": "Hex colour for team accent" },
+        "teamLogoUrl": { "type": "string" },
+        "columns": {
+          "type": "array",
+          "description": "Ordered list of column definitions; clients render left-to-right",
+          "items": { "$ref": "#/definitions/BoxscoreColumnDefinition" }
+        },
+        "players": {
+          "type": "array",
+          "description": "Player rows ordered by server (starters first, then bench)",
+          "items": { "$ref": "#/definitions/BoxscorePlayerRow" }
+        },
+        "teamTotals": {
+          "$ref": "#/definitions/BoxscorePlayerStatistics",
+          "description": "Aggregate row shown at the bottom of the table"
+        },
+        "sortStateKey": {
+          "type": "string",
+          "description": "Screen-state key holding the current sort column key"
+        },
+        "sortDirectionStateKey": {
+          "type": "string",
+          "description": "Screen-state key holding the current sort direction (asc/desc)"
+        },
+        "emptyMessage": {
+          "type": "string",
+          "description": "Text shown when no player rows are available"
+        }
+      }
+    },
+    "FormOption": {
+      "type": "object",
+      "description": "One selectable option within a select/radio/checkbox form field",
+      "required": ["label", "value"],
+      "properties": {
+        "label": { "type": "string" },
+        "value": { "type": "string" }
+      }
+    },
+    "FormField": {
+      "type": "object",
+      "description": "One input field inside a form section",
+      "required": ["fieldId", "fieldType", "label", "stateKey"],
+      "properties": {
+        "fieldId": { "type": "string" },
+        "fieldType": {
+          "type": "string",
+          "enum": ["text", "number", "date", "select", "radio", "checkbox", "toggle", "textarea"],
+          "description": "Input type; clients map to platform-native controls"
+        },
+        "label": { "type": "string" },
+        "placeholder": { "type": "string" },
+        "stateKey": {
+          "type": "string",
+          "description": "Screen-state key that holds this field's current value"
+        },
+        "required": { "type": "boolean", "default": false },
+        "disabled": { "type": "boolean", "default": false },
+        "options": {
+          "type": "array",
+          "description": "For select/radio/checkbox field types: the available choices",
+          "items": { "$ref": "#/definitions/FormOption" }
+        },
+        "validationPattern": {
+          "type": "string",
+          "description": "Optional regex pattern for client-side validation"
+        },
+        "validationMessage": {
+          "type": "string",
+          "description": "Message to show when validation fails"
+        }
+      }
+    },
+    "FormData": {
+      "type": "object",
+      "description": "Server-driven form section with typed fields bound to screen state",
+      "required": ["fields", "submitAction"],
+      "properties": {
+        "fields": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/FormField" }
+        },
+        "submitAction": {
+          "$ref": "#/definitions/Action",
+          "description": "Action fired when the form is submitted"
+        },
+        "submitLabel": {
+          "type": "string",
+          "default": "Submit"
+        },
+        "layout": {
+          "type": "string",
+          "enum": ["vertical", "horizontal", "grid"],
+          "default": "vertical",
+          "description": "Layout hint for field arrangement"
+        }
+      }
+    },
     "Section": {
       "type": "object",
       "required": ["id", "type"],
@@ -413,7 +653,7 @@
         "id": { "type": "string" },
         "type": {
           "type": "string",
-          "enum": ["ScoreboardHeader", "StatLine", "ContentCard", "ContentRail", "TabGroup", "PromoBanner", "GameCard", "Row"]
+          "enum": ["ScoreboardHeader", "StatLine", "ContentCard", "ContentRail", "TabGroup", "PromoBanner", "GameCard", "Row", "BoxscoreTable", "Form"]
         },
         "refreshPolicy": { "$ref": "#/definitions/RefreshPolicy" },
         "dataBindings": { "$ref": "#/definitions/DataBinding" },
@@ -440,7 +680,9 @@
             { "$ref": "#/definitions/TabGroupData" },
             { "$ref": "#/definitions/PromoBannerData" },
             { "$ref": "#/definitions/GameCardData" },
-            { "$ref": "#/definitions/RowData" }
+            { "$ref": "#/definitions/RowData" },
+            { "$ref": "#/definitions/BoxscoreTableData" },
+            { "$ref": "#/definitions/FormData" }
           ]
         }
       }
@@ -462,6 +704,11 @@
         "defaultRefreshPolicy": { "$ref": "#/definitions/RefreshPolicy" },
         "navigation": { "$ref": "#/definitions/Navigation" },
         "state": { "$ref": "#/definitions/State" },
+        "actions": {
+          "type": "array",
+          "description": "Screen-level actions (e.g. analytics beacons, lifecycle hooks)",
+          "items": { "$ref": "#/definitions/Action" }
+        },
         "sections": {
           "type": "array",
           "items": { "$ref": "#/definitions/Section" }

@@ -276,4 +276,165 @@ Add the `impression` field to the `AnalyticsAction` definition in `sdui-schema.j
 
 ---
 
+## BoxscoreTable — Client Rendering Patterns
+
+> **Reference guidance** — non-normative. Each platform team owns their rendering implementation. These patterns are recommendations based on prototype experience and platform best practices.
+
+The `BoxscoreTable` section type contains domain-typed player statistics for one team. The client renders a table with a frozen player column (name, headshot, jersey number) on the left, horizontally scrollable stat columns, sortable column headers, and a frozen totals row at the bottom.
+
+### Web (React / CSS)
+
+**Frozen player column** — CSS `position: sticky` on the first column:
+
+```css
+.boxscore-table-container {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.boxscore-table th:first-child,
+.boxscore-table td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--surface-primary);
+}
+
+.boxscore-totals-row {
+  position: sticky;
+  bottom: 0;
+  background: var(--surface-secondary);
+  font-weight: 600;
+}
+```
+
+**Sort state** — reads from screen state via `mutate` actions:
+
+```tsx
+const sortCol = screenState[data.sortStateKey] as string;
+const sortDir = screenState[data.sortDirectionStateKey] as string;
+
+const sortedPlayers = useMemo(() => {
+  const played = data.players.filter(p => p.played);
+  const dnp = data.players.filter(p => !p.played);
+  const sorted = [...played].sort((a, b) => {
+    const aVal = a.statistics[sortCol] ?? 0;
+    const bVal = b.statistics[sortCol] ?? 0;
+    return sortDir === 'asc' ? aVal - bVal : bVal - aVal;
+  });
+  return [...sorted, ...dnp]; // DNP players always at bottom
+}, [data.players, sortCol, sortDir]);
+```
+
+**Column header tap** fires a `mutate` action to update the sort state key. The sort column and direction live in `Screen.state`, so they survive poll refreshes that replace the section data.
+
+### Android (Jetpack Compose)
+
+**Frozen player column** — fixed-width composable alongside horizontally scrollable stat columns:
+
+```kotlin
+@Composable
+fun BoxscoreTableRenderer(
+    data: BoxscoreTableData,
+    screenState: StateFlow<Map<String, Any>>,
+    onAction: (Action) -> Unit
+) {
+    val state by screenState.collectAsState()
+    val sortCol = state[data.sortStateKey] as? String ?: "points"
+    val sortDir = state[data.sortDirectionStateKey] as? String ?: "desc"
+
+    val sortedPlayers = remember(data.players, sortCol, sortDir) {
+        val (played, dnp) = data.players.partition { it.played }
+        val sorted = played.sortedWith(
+            if (sortDir == "asc") compareBy { it.statistics.getValue(sortCol) }
+            else compareByDescending { it.statistics.getValue(sortCol) }
+        )
+        sorted + dnp
+    }
+
+    Row(modifier = Modifier.fillMaxWidth()) {
+        // Frozen player column
+        Column(modifier = Modifier.width(160.dp)) {
+            HeaderCell("PLAYER")
+            sortedPlayers.forEach { player ->
+                PlayerCell(
+                    name = player.nameAbbreviated,
+                    headshotUrl = player.headshotUrl,
+                    jerseyNum = player.jerseyNum,
+                    position = player.position
+                )
+            }
+            TotalsLabelCell()
+        }
+
+        // Scrollable stat columns
+        val scrollState = rememberScrollState()
+        Column(modifier = Modifier.horizontalScroll(scrollState)) {
+            StatHeaderRow(sortCol, sortDir, onAction)
+            sortedPlayers.forEach { player ->
+                StatValueRow(player.statistics)
+            }
+            TotalsValueRow(data.teamTotals)
+        }
+    }
+}
+```
+
+**Row virtualization** — for larger datasets (standings, league leaders), wrap the player rows in a `LazyColumn`. For boxscore (~15 rows), eager rendering is acceptable.
+
+### iOS (SwiftUI)
+
+**Frozen player column** with horizontal scroll for stats:
+
+```swift
+struct BoxscoreTableView: View {
+    let data: BoxscoreTableData
+    @EnvironmentObject var screenState: ScreenStateManager
+
+    private var sortCol: String {
+        screenState.value(for: data.sortStateKey) as? String ?? "points"
+    }
+    private var sortDir: String {
+        screenState.value(for: data.sortDirectionStateKey) as? String ?? "desc"
+    }
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 0) {
+            // Frozen player column
+            VStack(spacing: 0) {
+                Text("PLAYER").font(.caption).bold()
+                ForEach(sortedPlayers) { player in
+                    PlayerCell(player: player)
+                }
+                TotalsLabelCell()
+            }
+            .frame(width: 160)
+
+            // Scrollable stat columns
+            ScrollView(.horizontal, showsIndicators: false) {
+                VStack(spacing: 0) {
+                    StatHeaderRow(sortCol: sortCol, sortDir: sortDir)
+                    ForEach(sortedPlayers) { player in
+                        StatValueRow(statistics: player.statistics)
+                    }
+                    TotalsValueRow(totals: data.teamTotals)
+                }
+            }
+        }
+    }
+}
+```
+
+**Gesture disambiguation** — on mobile, horizontal scroll of the stat columns must not conflict with screen-level vertical scroll or tab swipe gestures. This is a platform-owned UX concern handled via gesture recognizer priority.
+
+### Cross-Platform Notes
+
+- **DNP players**: rendered at the bottom of the sorted list with `notPlayingReason` text and no stat values
+- **Empty state**: when `emptyMessage` is non-null, render it in place of the table (pre-game, no data)
+- **Team totals row**: always frozen at the bottom, visually distinct (bold/background), excluded from sort
+- **Combined value formatting**: clients decide display format (e.g., "10-23" for FGM-A, "43.5%" for FG%) — this is a rendering decision, not a server concern
+- **Sort state survival**: sort column and direction live in `Screen.state`; when a live poll replaces section data, the client re-sorts the new data using the existing state values
+
+---
+
 *Implementation reference for SDUI platform — February 2025*

@@ -2,6 +2,10 @@
  * Server-Driven UI schema for NBA Game Detail screens
  */
 export interface SduiModels {
+    /**
+     * Screen-level actions (e.g. analytics beacons, lifecycle hooks)
+     */
+    actions?:              Action[];
     analyticsId?:          string;
     defaultRefreshPolicy?: RefreshPolicy;
     id:                    string;
@@ -12,6 +16,156 @@ export interface SduiModels {
     title?:                string;
     traceId?:              string;
     [property: string]: any;
+}
+
+/**
+ * Action fired when the form is submitted
+ */
+export interface Action {
+    /**
+     * For analytics actions: where to send the beacon
+     */
+    destinations?: Destination[];
+    /**
+     * For refresh actions: target URL (defaults to current screen endpoint if omitted)
+     */
+    endpoint?: string;
+    /**
+     * For analytics actions: event name
+     */
+    event?: string;
+    /**
+     * For analytics actions with onVisible trigger: impression tracking policy
+     */
+    impression?: ImpressionPolicy;
+    /**
+     * For navigate actions with modal presentation: sheet height
+     */
+    modalHeight?: ModalHeight;
+    /**
+     * For mutate actions: operation to perform on the state key
+     */
+    operation?: MutateOperation;
+    /**
+     * For refresh actions: map of query param name to screen state key, resolved at action time
+     */
+    paramBindings?: { [key: string]: string };
+    /**
+     * For analytics actions: event parameters
+     */
+    params?: { [key: string]: any };
+    /**
+     * For navigate actions: how the destination is presented
+     */
+    presentation?: NavigationPresentation;
+    /**
+     * For mutate actions: state key to update. For dismiss actions: what to dismiss
+     * (modal/overlay/screen). For refresh actions: section ID to refresh (omit for full screen)
+     */
+    target?: string;
+    /**
+     * For navigate actions: native deeplink URI
+     */
+    targetUri?: string;
+    trigger:    ActionTrigger;
+    type:       ActionType;
+    /**
+     * For mutate actions: the value to apply with the operation
+     */
+    value?: any;
+    /**
+     * For navigate actions: web-equivalent URL (first-class, not a fallback)
+     */
+    webUrl?: string;
+    [property: string]: any;
+}
+
+export enum Destination {
+    Adobe = "adobe",
+    All = "all",
+    Firebase = "firebase",
+    Internal = "internal",
+}
+
+/**
+ * For analytics actions with onVisible trigger: impression tracking policy
+ *
+ * Impression tracking policy for analytics actions with onVisible trigger
+ */
+export interface ImpressionPolicy {
+    dedup?: ImpressionDedup;
+    /**
+     * Reset interval for once-per-interval strategy (milliseconds)
+     */
+    intervalMs?: number;
+    threshold?:  ImpressionThreshold;
+    [property: string]: any;
+}
+
+export enum ImpressionDedup {
+    None = "none",
+    OncePerInterval = "once-per-interval",
+    OncePerScreen = "once-per-screen",
+    OncePerSession = "once-per-session",
+}
+
+export interface ImpressionThreshold {
+    /**
+     * Milliseconds section must remain visible before impression fires
+     */
+    dwellMs?: number;
+    /**
+     * Fraction of section area that must be visible (0.5 = 50%)
+     */
+    visibility?: number;
+    [property: string]: any;
+}
+
+/**
+ * For navigate actions with modal presentation: sheet height
+ */
+export enum ModalHeight {
+    Compact = "compact",
+    Full = "full",
+    Half = "half",
+}
+
+/**
+ * For mutate actions: operation to perform on the state key
+ */
+export enum MutateOperation {
+    Append = "append",
+    Increment = "increment",
+    Set = "set",
+    Toggle = "toggle",
+}
+
+/**
+ * For navigate actions: how the destination is presented
+ */
+export enum NavigationPresentation {
+    External = "external",
+    Fullscreen = "fullscreen",
+    Modal = "modal",
+    Push = "push",
+    Replace = "replace",
+}
+
+export enum ActionTrigger {
+    OnBlur = "onBlur",
+    OnFocus = "onFocus",
+    OnLongPress = "onLongPress",
+    OnSwipe = "onSwipe",
+    OnTap = "onTap",
+    OnVisible = "onVisible",
+}
+
+export enum ActionType {
+    Analytics = "analytics",
+    Dismiss = "dismiss",
+    Mutate = "mutate",
+    Navigate = "navigate",
+    Refresh = "refresh",
 }
 
 export interface RefreshPolicy {
@@ -69,6 +223,10 @@ export interface NavigationItem {
  *
  * Responsive row layout that places children side-by-side above a breakpoint width, and
  * stacks vertically below it
+ *
+ * Typed tabular data for an NBA-style boxscore (one per team)
+ *
+ * Server-driven form section with typed fields bound to screen state
  */
 export interface Data {
     awayTeam?:       TeamData;
@@ -109,6 +267,50 @@ export interface Data {
      * Gap between children in dp/px
      */
     spacing?: number;
+    /**
+     * Ordered list of column definitions; clients render left-to-right
+     */
+    columns?: BoxscoreColumnDefinition[];
+    /**
+     * Text shown when no player rows are available
+     */
+    emptyMessage?: string;
+    /**
+     * Player rows ordered by server (starters first, then bench)
+     */
+    players?: BoxscorePlayerRow[];
+    /**
+     * Screen-state key holding the current sort direction (asc/desc)
+     */
+    sortDirectionStateKey?: string;
+    /**
+     * Screen-state key holding the current sort column key
+     */
+    sortStateKey?: string;
+    /**
+     * Hex colour for team accent
+     */
+    teamColor?:   string;
+    teamLogoUrl?: string;
+    teamName?:    string;
+    /**
+     * Aggregate row shown at the bottom of the table
+     */
+    teamTotals?: { [key: string]: any };
+    /**
+     * Three-letter team code, e.g. 'BOS'
+     */
+    teamTricode?: string;
+    fields?:      FormField[];
+    /**
+     * Layout hint for field arrangement
+     */
+    layout?: Layout;
+    /**
+     * Action fired when the form is submitted
+     */
+    submitAction?: Action;
+    submitLabel?:  string;
     [property: string]: any;
 }
 
@@ -133,55 +335,6 @@ export interface Section {
     subsections?: Subsection[];
     type:         Type;
     [property: string]: any;
-}
-
-export interface Action {
-    /**
-     * For analytics actions: event name
-     */
-    eventName?: string;
-    /**
-     * For analytics actions: event parameters
-     */
-    eventParams?: { [key: string]: any };
-    /**
-     * For navigate actions: web fallback if deeplink fails
-     */
-    fallbackUrl?: string;
-    /**
-     * For refresh actions: specific section to refresh (null = full screen)
-     */
-    sectionId?: string;
-    /**
-     * For mutate actions: state key to update
-     */
-    stateKey?: string;
-    /**
-     * For mutate actions: new value for the state key
-     */
-    stateValue?: any;
-    /**
-     * For navigate actions: deeplink URI
-     */
-    targetUri?: string;
-    trigger:    ActionTrigger;
-    type:       ActionType;
-    [property: string]: any;
-}
-
-export enum ActionTrigger {
-    OnLongPress = "onLongPress",
-    OnSwipe = "onSwipe",
-    OnTap = "onTap",
-    OnVisible = "onVisible",
-}
-
-export enum ActionType {
-    Analytics = "analytics",
-    Dismiss = "dismiss",
-    Mutate = "mutate",
-    Navigate = "navigate",
-    Refresh = "refresh",
 }
 
 export interface TeamData {
@@ -211,6 +364,88 @@ export enum ContentType {
     Video = "video",
 }
 
+/**
+ * Defines a single column in the boxscore table
+ */
+export interface BoxscoreColumnDefinition {
+    /**
+     * Whether this column should be visually emphasised (e.g., bold)
+     */
+    highlighted?: boolean;
+    /**
+     * Property key on each player's stats object that supplies this column's value
+     */
+    key: string;
+    /**
+     * Column header text displayed to the user
+     */
+    label: string;
+    /**
+     * Whether this column supports client-side sorting
+     */
+    sortable?: boolean;
+    /**
+     * Optional hint for column width (e.g. 'auto', '64px', '1fr')
+     */
+    width?: string;
+    [property: string]: any;
+}
+
+/**
+ * One input field inside a form section
+ */
+export interface FormField {
+    disabled?: boolean;
+    fieldId:   string;
+    /**
+     * Input type; clients map to platform-native controls
+     */
+    fieldType: FieldType;
+    label:     string;
+    /**
+     * For select/radio/checkbox field types: the available choices
+     */
+    options?:     FormOption[];
+    placeholder?: string;
+    required?:    boolean;
+    /**
+     * Screen-state key that holds this field's current value
+     */
+    stateKey: string;
+    /**
+     * Message to show when validation fails
+     */
+    validationMessage?: string;
+    /**
+     * Optional regex pattern for client-side validation
+     */
+    validationPattern?: string;
+    [property: string]: any;
+}
+
+/**
+ * Input type; clients map to platform-native controls
+ */
+export enum FieldType {
+    Checkbox = "checkbox",
+    Date = "date",
+    Number = "number",
+    Radio = "radio",
+    Select = "select",
+    Text = "text",
+    Textarea = "textarea",
+    Toggle = "toggle",
+}
+
+/**
+ * One selectable option within a select/radio/checkbox form field
+ */
+export interface FormOption {
+    label: string;
+    value: string;
+    [property: string]: any;
+}
+
 export interface GameLeadersData {
     awayLeader?: GameLeaderData;
     homeLeader?: GameLeaderData;
@@ -222,6 +457,36 @@ export interface GameLeaderData {
     name?:     string;
     points?:   number;
     rebounds?: number;
+    [property: string]: any;
+}
+
+/**
+ * Layout hint for field arrangement
+ */
+export enum Layout {
+    Grid = "grid",
+    Horizontal = "horizontal",
+    Vertical = "vertical",
+}
+
+/**
+ * One player row inside a boxscore table
+ */
+export interface BoxscorePlayerRow {
+    actions?:      Action[];
+    imageUrl?:     string;
+    jerseyNumber?: string;
+    /**
+     * Display name (short form, e.g. 'J. Tatum')
+     */
+    name:      string;
+    playerId:  string;
+    position?: string;
+    /**
+     * Whether this player was in the starting lineup
+     */
+    starter?: boolean;
+    stats:    { [key: string]: any };
     [property: string]: any;
 }
 
@@ -284,8 +549,10 @@ export interface Subsection {
 }
 
 export enum Type {
+    BoxscoreTable = "BoxscoreTable",
     ContentCard = "ContentCard",
     ContentRail = "ContentRail",
+    Form = "Form",
     GameCard = "GameCard",
     PromoBanner = "PromoBanner",
     Row = "Row",

@@ -1,4 +1,15 @@
-import type { Action, ContentCardData, Data, Section, StatLineData, TabData, TeamData } from '@sdui/models';
+import type {
+  Action,
+  BoxscoreColumnDefinition,
+  BoxscorePlayerRow,
+  ContentCardData,
+  Data,
+  FormField,
+  Section,
+  StatLineData,
+  TabData,
+  TeamData,
+} from '@sdui/models';
 
 export interface ScoreboardHeaderUiModel {
   awayTeam?: TeamData;
@@ -116,6 +127,68 @@ export function mapPromoBanner(section: Section): PromoBannerUiModel | null {
     imageUrl: data.imageUrl as string | undefined,
     backgroundImageUrl: data.backgroundImageUrl as string | undefined,
     primaryAction: actions?.[0] || singleAction,
+  };
+}
+
+// ── BoxscoreTable ──────────────────────────────────────────────────
+
+export interface BoxscoreTableUiModel {
+  teamTricode: string;
+  teamName: string;
+  teamColor?: string;
+  teamLogoUrl?: string;
+  columns: BoxscoreColumnDefinition[];
+  players: BoxscorePlayerRow[];
+  teamTotals?: Record<string, unknown>;
+  sortColumn?: string;
+  sortDirection: 'asc' | 'desc';
+  sortStateKey?: string;
+  sortDirectionStateKey?: string;
+  emptyMessage?: string;
+}
+
+export function mapBoxscoreTable(section: Section, state: Record<string, unknown>): BoxscoreTableUiModel | null {
+  const data = section.data as Data | undefined;
+  if (!data) return null;
+
+  const sortStateKey = data.sortStateKey as string | undefined;
+  const sortDirectionStateKey = data.sortDirectionStateKey as string | undefined;
+  const sortColumn = sortStateKey ? (state[sortStateKey] as string | undefined) : undefined;
+  const sortDirection = (sortDirectionStateKey ? (state[sortDirectionStateKey] as string) : 'desc') as 'asc' | 'desc';
+
+  return {
+    teamTricode: (data.teamTricode as string) || '',
+    teamName: (data.teamName as string) || '',
+    teamColor: data.teamColor as string | undefined,
+    teamLogoUrl: data.teamLogoUrl as string | undefined,
+    columns: (data.columns as BoxscoreColumnDefinition[]) || [],
+    players: (data.players as BoxscorePlayerRow[]) || [],
+    teamTotals: data.teamTotals as Record<string, unknown> | undefined,
+    sortColumn,
+    sortDirection,
+    sortStateKey,
+    sortDirectionStateKey,
+    emptyMessage: data.emptyMessage as string | undefined,
+  };
+}
+
+// ── Form ───────────────────────────────────────────────────────────
+
+export interface FormUiModel {
+  fields: FormField[];
+  submitAction?: Action;
+  submitLabel?: string;
+  layout: string;
+}
+
+export function mapForm(section: Section, _state: Record<string, unknown>): FormUiModel | null {
+  const data = section.data as Data | undefined;
+  if (!data?.fields) return null;
+  return {
+    fields: data.fields as FormField[],
+    submitAction: data.submitAction as Action | undefined,
+    submitLabel: data.submitLabel as string | undefined,
+    layout: (data.layout as string) || 'vertical',
   };
 }
 

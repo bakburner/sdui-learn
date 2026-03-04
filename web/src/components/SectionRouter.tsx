@@ -7,6 +7,8 @@ import { TabGroup } from './sections/TabGroup';
 import { PromoBanner } from './sections/PromoBanner';
 import { GameCard } from './sections/GameCard';
 import { Row } from './sections/Row';
+import { BoxscoreTable } from './sections/BoxscoreTable';
+import { Form } from './sections/Form';
 import { LiveSectionWrapper } from './LiveSectionWrapper';
 
 export interface SectionProps {
@@ -55,6 +57,12 @@ function SectionRenderer({
 
     case 'Row':
       return <Row {...commonProps} />;
+
+    case 'BoxscoreTable':
+      return <BoxscoreTable {...commonProps} />;
+
+    case 'Form':
+      return <Form {...commonProps} />;
       
     case 'ContentCard':
       // Single content card - could be rendered inline

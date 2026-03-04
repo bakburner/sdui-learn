@@ -61,8 +61,50 @@ function handleMutate(action: Action, context: ActionContext): void {
 }
 
 function handleRefresh(action: Action, context: ActionContext): void {
-  console.log('[Action] Refreshing:', action.sectionId || 'full screen');
-  context.onRefresh(action.sectionId);
+  // Resolve paramBindings from screen state (Form submit support)
+  if (action.paramBindings && Object.keys(action.paramBindings).length > 0) {
+    const params = new URLSearchParams();
+    for (const [paramName, stateKey] of Object.entries(action.paramBindings)) {
+      const value = context.state[stateKey];
+      if (value !== undefined && value !== null) {
+        params.set(paramName, String(value));
+      }
+    }
+
+    const baseUrl = action.endpoint || '';
+    const separator = baseUrl.includes('?') ? '&' : '?';
+    const url = baseUrl ? `${baseUrl}${separator}${params.toString()}` : undefined;
+
+    console.log('[Action] Parameterized refresh:', url || `params=${params.toString()}`);
+
+    if (url) {
+      // Fetch new screen data from the parameterized endpoint
+      fetch(url)
+        .then((res) => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.json();
+        })
+        .then((screen) => {
+          console.log('[Action] Parameterized refresh succeeded, new screen:', screen.id);
+          // Merge new state from refresh response
+          if (screen.state) {
+            for (const [k, v] of Object.entries(screen.state)) {
+              context.onStateChange(k, v);
+            }
+          }
+          // Trigger UI refresh
+          context.onRefresh(action.target);
+        })
+        .catch((err) => {
+          console.error('[Action] Parameterized refresh failed:', err);
+          showToast(`Refresh failed: ${err.message}`);
+        });
+      return;
+    }
+  }
+
+  console.log('[Action] Refreshing:', action.target || 'full screen');
+  context.onRefresh(action.target);
 }
 
 function handleAnalytics(action: Action): void {

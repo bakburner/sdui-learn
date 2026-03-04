@@ -15,6 +15,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -134,7 +135,397 @@ public class SduiCompositionService {
 
         return response;
     }
-    
+
+    // ── Boxscore Screen ────────────────────────────────────────────────
+
+    /**
+     * Compose a dedicated Boxscore SDUI screen.
+     *
+     * Layout:
+     * <pre>
+     *   Screen
+     *     state: { boxscore_team, boxscore_away_sortCol, boxscore_away_sortDir,
+     *              boxscore_home_sortCol, boxscore_home_sortDir }
+     *     sections:
+     *       └── TabGroup (team toggle — eager, inline)
+     *           ├── Tab "{awayTricode}" → BoxscoreTable
+     *           └── Tab "{homeTricode}" → BoxscoreTable
+     * </pre>
+     *
+     * Source data: NBA CDN boxscore endpoint → {@code game.homeTeam / game.awayTeam}.
+     */
+    public JsonNode composeBoxscore(String gameId, String traceId) throws IOException {
+        log.info("Composing boxscore screen: gameId={}", gameId);
+
+        JsonNode boxscore = statsApiClient.getBoxscore(gameId);
+        JsonNode game = boxscore != null ? boxscore.path("game") : null;
+
+        boolean hasLiveData = game != null && !game.isMissingNode() && game.has("homeTeam");
+
+        ObjectNode response = objectMapper.createObjectNode();
+        response.put("id", "boxscore-" + gameId);
+        response.put("type", "boxscore");
+        response.put("traceId", traceId);
+        response.put("schemaVersion", schemaVersion);
+        response.set("navigation", buildNavigation("game-detail"));
+
+        if (!hasLiveData) {
+            // Pre-game / unavailable — return shell with empty message
+            log.warn("No boxscore data available for gameId={}, returning empty screen", gameId);
+            response.set("state", objectMapper.createObjectNode());
+            ArrayNode sections = objectMapper.createArrayNode();
+            ObjectNode emptySection = objectMapper.createObjectNode();
+            emptySection.put("id", "boxscore-empty");
+            emptySection.put("type", "BoxscoreTable");
+            ObjectNode emptyData = objectMapper.createObjectNode();
+            emptyData.put("teamTricode", "");
+            emptyData.put("teamName", "");
+            emptyData.set("columns", buildBoxscoreColumns());
+            emptyData.set("players", objectMapper.createArrayNode());
+            emptyData.put("emptyMessage", "Box score will be available once the game begins.");
+            emptySection.set("data", emptyData);
+            sections.add(emptySection);
+            response.set("sections", sections);
+            return response;
+        }
+
+        JsonNode homeTeam = game.path("homeTeam");
+        JsonNode awayTeam = game.path("awayTeam");
+        String homeTricode = homeTeam.path("teamTricode").asText("HOME");
+        String awayTricode = awayTeam.path("teamTricode").asText("AWAY");
+        int gameStatus = game.path("gameStatus").asInt(1);
+
+        // ── Screen state (pre-populated defaults) ──────────────────────
+        ObjectNode state = objectMapper.createObjectNode();
+        state.put("boxscore_team", awayTricode);
+        state.put("boxscore_away_sortCol", "points");
+        state.put("boxscore_away_sortDir", "desc");
+        state.put("boxscore_home_sortCol", "points");
+        state.put("boxscore_home_sortDir", "desc");
+        response.set("state", state);
+
+        // ── Sections ───────────────────────────────────────────────────
+        ArrayNode sections = objectMapper.createArrayNode();
+
+        // Build individual BoxscoreTable sections per team
+        ObjectNode awayTable = buildBoxscoreTableSection(
+                awayTeam, gameId, "boxscore_away_sortCol", "boxscore_away_sortDir", gameStatus);
+        ObjectNode homeTable = buildBoxscoreTableSection(
+                homeTeam, gameId, "boxscore_home_sortCol", "boxscore_home_sortDir", gameStatus);
+
+        // Wrap in TabGroup for team toggling (eager / inline)
+        ObjectNode tabGroup = objectMapper.createObjectNode();
+        tabGroup.put("id", "boxscore-team-tabs");
+        tabGroup.put("type", "TabGroup");
+        tabGroup.put("analyticsId", "boxscore_team_toggle");
+
+        ObjectNode tabData = objectMapper.createObjectNode();
+        tabData.put("stateKey", "boxscore_team");
+        tabData.put("defaultTab", awayTricode);
+
+        ArrayNode tabs = objectMapper.createArrayNode();
+
+        ObjectNode awayTab = objectMapper.createObjectNode();
+        awayTab.put("id", "tab-" + awayTricode.toLowerCase());
+        awayTab.put("label", awayTricode);
+        awayTab.put("stateKey", "boxscore_team");
+        awayTab.put("stateValue", awayTricode);
+        tabs.add(awayTab);
+
+        ObjectNode homeTab = objectMapper.createObjectNode();
+        homeTab.put("id", "tab-" + homeTricode.toLowerCase());
+        homeTab.put("label", homeTricode);
+        homeTab.put("stateKey", "boxscore_team");
+        homeTab.put("stateValue", homeTricode);
+        tabs.add(homeTab);
+
+        tabData.set("tabs", tabs);
+
+        // Tab contents — each tab maps to a single-element array containing
+        // the corresponding BoxscoreTable section.
+        ObjectNode tabContents = objectMapper.createObjectNode();
+        ArrayNode awayContent = objectMapper.createArrayNode();
+        awayContent.add(awayTable);
+        tabContents.set(awayTricode, awayContent);
+
+        ArrayNode homeContent = objectMapper.createArrayNode();
+        homeContent.add(homeTable);
+        tabContents.set(homeTricode, homeContent);
+
+        tabData.set("tabContents", tabContents);
+        tabGroup.set("data", tabData);
+
+        sections.add(tabGroup);
+        response.set("sections", sections);
+
+        log.info("Boxscore screen composed: {} @ {}, gameStatus={}, awayPlayers={}, homePlayers={}",
+                awayTricode, homeTricode, gameStatus,
+                awayTeam.path("players").size(), homeTeam.path("players").size());
+
+        return response;
+    }
+
+    // ── BoxscoreTable section builder ──────────────────────────────────
+
+    /**
+     * Build a single {@code BoxscoreTable} section for one team.
+     */
+    private ObjectNode buildBoxscoreTableSection(JsonNode team, String gameId,
+                                                  String sortColKey, String sortDirKey,
+                                                  int gameStatus) {
+        String teamTricode = team.path("teamTricode").asText("");
+        String teamName = team.path("teamName").asText("");
+        String teamCity = team.path("teamCity").asText("");
+        int teamId = team.path("teamId").asInt();
+
+        ObjectNode section = objectMapper.createObjectNode();
+        section.put("id", "boxscore-table-" + teamTricode.toLowerCase());
+        section.put("type", "BoxscoreTable");
+        section.put("analyticsId", "boxscore_table_" + teamTricode.toLowerCase());
+
+        // Live games get a poll refresh policy
+        if (gameStatus == 2) {
+            ObjectNode refreshPolicy = objectMapper.createObjectNode();
+            refreshPolicy.put("type", "poll");
+            refreshPolicy.put("intervalMs", 30000);
+            refreshPolicy.put("url",
+                    "https://cdn.nba.com/static/json/liveData/boxscore/boxscore_" + gameId + ".json");
+            refreshPolicy.put("dataPath", "game");
+            section.set("refreshPolicy", refreshPolicy);
+        }
+
+        ObjectNode data = objectMapper.createObjectNode();
+        data.put("teamTricode", teamTricode);
+        data.put("teamName", teamCity + " " + teamName);
+        data.put("teamColor", getTeamPrimaryColor(teamTricode));
+        data.put("teamLogoUrl",
+                "https://cdn.nba.com/logos/nba/" + teamId + "/primary/L/logo.svg");
+
+        // Column definitions — client uses these for header rendering &
+        // mapping into each player's stats map
+        data.set("columns", buildBoxscoreColumns());
+
+        // Player rows
+        ArrayNode playerRows = objectMapper.createArrayNode();
+        ArrayNode players = team.has("players") ? (ArrayNode) team.get("players") : objectMapper.createArrayNode();
+
+        for (JsonNode player : players) {
+            ObjectNode row = mapPlayerToBoxscoreRow(player, teamTricode);
+            if (row != null) {
+                playerRows.add(row);
+            }
+        }
+        data.set("players", playerRows);
+
+        // Team totals
+        if (team.has("statistics")) {
+            data.set("teamTotals", mapTeamStatistics(team.path("statistics")));
+        }
+
+        // Sort state references (keys into Screen.state)
+        data.put("sortStateKey", sortColKey);
+        data.put("sortDirectionStateKey", sortDirKey);
+
+        // Pre-game fallback
+        if (playerRows.isEmpty()) {
+            data.put("emptyMessage", "Box score will be available once the game begins.");
+        }
+
+        section.set("data", data);
+        return section;
+    }
+
+    /**
+     * Standard boxscore column definitions.
+     * Clients render left-to-right; the first (player) column is frozen.
+     */
+    private ArrayNode buildBoxscoreColumns() {
+        ArrayNode columns = objectMapper.createArrayNode();
+        // The order here defines the default column order the client should use
+        columns.add(colDef("min",  "MIN",  true, false, null));
+        columns.add(colDef("pts",  "PTS",  true, true,  null));
+        columns.add(colDef("reb",  "REB",  true, false, null));
+        columns.add(colDef("ast",  "AST",  true, false, null));
+        columns.add(colDef("stl",  "STL",  true, false, null));
+        columns.add(colDef("blk",  "BLK",  true, false, null));
+        columns.add(colDef("to",   "TO",   true, false, null));
+        columns.add(colDef("pf",   "PF",   true, false, null));
+        columns.add(colDef("fgm",  "FGM",  true, false, null));
+        columns.add(colDef("fga",  "FGA",  true, false, null));
+        columns.add(colDef("fgPct","FG%",  true, false, null));
+        columns.add(colDef("tpm",  "3PM",  true, false, null));
+        columns.add(colDef("tpa",  "3PA",  true, false, null));
+        columns.add(colDef("tpPct","3P%",  true, false, null));
+        columns.add(colDef("ftm",  "FTM",  true, false, null));
+        columns.add(colDef("fta",  "FTA",  true, false, null));
+        columns.add(colDef("ftPct","FT%",  true, false, null));
+        columns.add(colDef("oreb", "OREB", true, false, null));
+        columns.add(colDef("dreb", "DREB", true, false, null));
+        columns.add(colDef("pm",   "+/-",  true, false, null));
+        return columns;
+    }
+
+    private ObjectNode colDef(String key, String label, boolean sortable,
+                               boolean highlighted, String width) {
+        ObjectNode col = objectMapper.createObjectNode();
+        col.put("key", key);
+        col.put("label", label);
+        col.put("sortable", sortable);
+        col.put("highlighted", highlighted);
+        if (width != null) col.put("width", width);
+        return col;
+    }
+
+    /**
+     * Map a single NBA API player node to a {@code BoxscorePlayerRow}.
+     * Returns null for players with status != ACTIVE if they have no stats.
+     */
+    private ObjectNode mapPlayerToBoxscoreRow(JsonNode player, String teamTricode) {
+        int personId = player.path("personId").asInt();
+        String status = player.path("status").asText("");
+        String played = player.path("played").asText("0");
+        String notPlayingReason = player.path("notPlayingReason").asText("");
+
+        // Derive display name — prefer nameI (abbreviated), then name, then first+last
+        String name = player.path("nameI").asText("");
+        if (name.isEmpty()) {
+            name = player.path("name").asText("");
+        }
+        if (name.isEmpty()) {
+            name = player.path("firstName").asText("") + " " + player.path("familyName").asText("");
+        }
+
+        ObjectNode row = objectMapper.createObjectNode();
+        row.put("playerId", String.valueOf(personId));
+        row.put("name", name.trim());
+        row.put("position", player.path("position").asText(""));
+        row.put("jerseyNumber", player.path("jerseyNum").asText(""));
+        row.put("imageUrl",
+                "https://cdn.nba.com/headshots/nba/latest/1040x760/" + personId + ".png");
+        row.put("starter", "1".equals(player.path("starter").asText("0")));
+
+        // Stats map — keyed to match column definitions above
+        JsonNode s = player.path("statistics");
+        ObjectNode stats = objectMapper.createObjectNode();
+
+        boolean didPlay = "1".equals(played) && !"PT0M00.00S".equals(s.path("minutes").asText(""));
+
+        if (didPlay) {
+            stats.put("min", formatMinutes(s.path("minutes").asText("")));
+            stats.put("pts", s.path("points").asInt());
+            stats.put("reb", s.path("reboundsTotal").asInt());
+            stats.put("ast", s.path("assists").asInt());
+            stats.put("stl", s.path("steals").asInt());
+            stats.put("blk", s.path("blocks").asInt());
+            stats.put("to",  s.path("turnovers").asInt());
+            stats.put("pf",  s.path("foulsPersonal").asInt());
+            stats.put("fgm", s.path("fieldGoalsMade").asInt());
+            stats.put("fga", s.path("fieldGoalsAttempted").asInt());
+            stats.put("fgPct", formatPct(s.path("fieldGoalsPercentage").asDouble()));
+            stats.put("tpm", s.path("threePointersMade").asInt());
+            stats.put("tpa", s.path("threePointersAttempted").asInt());
+            stats.put("tpPct", formatPct(s.path("threePointersPercentage").asDouble()));
+            stats.put("ftm", s.path("freeThrowsMade").asInt());
+            stats.put("fta", s.path("freeThrowsAttempted").asInt());
+            stats.put("ftPct", formatPct(s.path("freeThrowsPercentage").asDouble()));
+            stats.put("oreb", s.path("reboundsOffensive").asInt());
+            stats.put("dreb", s.path("reboundsDefensive").asInt());
+            stats.put("pm",  (int) s.path("plusMinusPoints").asDouble());
+        } else {
+            // DNP — provide notPlayingReason as a stat entry so clients can display it
+            stats.put("min", notPlayingReason.isEmpty() ? "DNP" : notPlayingReason);
+        }
+
+        row.set("stats", stats);
+
+        // Navigate to player profile on tap
+        ArrayNode actions = objectMapper.createArrayNode();
+        ObjectNode action = objectMapper.createObjectNode();
+        action.put("trigger", "onTap");
+        action.put("type", "navigate");
+        action.put("targetUri", "nba://player/" + personId);
+        actions.add(action);
+        row.set("actions", actions);
+
+        return row;
+    }
+
+    /**
+     * Map the team-level statistics node to a {@code BoxscorePlayerStatistics} map
+     * (same key namespace as player rows so the totals row aligns to columns).
+     */
+    private ObjectNode mapTeamStatistics(JsonNode s) {
+        ObjectNode totals = objectMapper.createObjectNode();
+        totals.put("min", formatMinutes(s.path("minutes").asText("")));
+        totals.put("pts", s.path("points").asInt());
+        totals.put("reb", s.path("reboundsTotal").asInt());
+        totals.put("ast", s.path("assists").asInt());
+        totals.put("stl", s.path("steals").asInt());
+        totals.put("blk", s.path("blocks").asInt());
+        totals.put("to",  s.path("turnovers").asInt());
+        totals.put("pf",  s.path("foulsPersonal").asInt());
+        totals.put("fgm", s.path("fieldGoalsMade").asInt());
+        totals.put("fga", s.path("fieldGoalsAttempted").asInt());
+        totals.put("fgPct", formatPct(s.path("fieldGoalsPercentage").asDouble()));
+        totals.put("tpm", s.path("threePointersMade").asInt());
+        totals.put("tpa", s.path("threePointersAttempted").asInt());
+        totals.put("tpPct", formatPct(s.path("threePointersPercentage").asDouble()));
+        totals.put("ftm", s.path("freeThrowsMade").asInt());
+        totals.put("fta", s.path("freeThrowsAttempted").asInt());
+        totals.put("ftPct", formatPct(s.path("freeThrowsPercentage").asDouble()));
+        totals.put("oreb", s.path("reboundsOffensive").asInt());
+        totals.put("dreb", s.path("reboundsDefensive").asInt());
+        totals.put("pm",  (int) s.path("plusMinusPoints").asDouble());
+        return totals;
+    }
+
+    /**
+     * Format a decimal like 0.565 → ".565" (NBA percentage style).
+     */
+    private String formatPct(double pct) {
+        if (pct == 0.0) return ".000";
+        return String.format("%.3f", pct).substring(1); // strip leading zero
+    }
+
+    /**
+     * Resolve a rough team primary colour by tricode. Clients may override.
+     */
+    private String getTeamPrimaryColor(String tricode) {
+        return switch (tricode) {
+            case "ATL" -> "#E03A3E";
+            case "BOS" -> "#007A33";
+            case "BKN" -> "#000000";
+            case "CHA" -> "#1D1160";
+            case "CHI" -> "#CE1141";
+            case "CLE" -> "#860038";
+            case "DAL" -> "#00538C";
+            case "DEN" -> "#0E2240";
+            case "DET" -> "#C8102E";
+            case "GSW" -> "#1D428A";
+            case "HOU" -> "#CE1141";
+            case "IND" -> "#002D62";
+            case "LAC" -> "#C8102E";
+            case "LAL" -> "#552583";
+            case "MEM" -> "#5D76A9";
+            case "MIA" -> "#98002E";
+            case "MIL" -> "#00471B";
+            case "MIN" -> "#0C2340";
+            case "NOP" -> "#0C2340";
+            case "NYK" -> "#006BB6";
+            case "OKC" -> "#007AC1";
+            case "ORL" -> "#0077C0";
+            case "PHI" -> "#006BB6";
+            case "PHX" -> "#1D1160";
+            case "POR" -> "#E03A3E";
+            case "SAC" -> "#5A2D81";
+            case "SAS" -> "#C4CED4";
+            case "TOR" -> "#CE1141";
+            case "UTA" -> "#002B5C";
+            case "WAS" -> "#002B5C";
+            default -> "#17408B"; // NBA blue
+        };
+    }
+
     /**
      * Compose response from live NBA API data.
      * Returns null if live data is not available.

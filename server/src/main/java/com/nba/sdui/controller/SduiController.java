@@ -2,7 +2,9 @@ package com.nba.sdui.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.nba.sdui.service.SduiCompositionService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,6 +13,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -132,6 +136,104 @@ public class SduiController {
             
         } catch (Exception e) {
             log.error("Error fetching stats", e);
+            return ResponseEntity.internalServerError().build();
+        } finally {
+            MDC.clear();
+        }
+    }
+
+    // ── Boxscore Screen ────────────────────────────────────────────────
+
+    /**
+     * Get SDUI screen response for the boxscore view.
+     *
+     * <p>Returns a {@code Screen} containing a {@code TabGroup} that wraps two
+     * {@code BoxscoreTable} sections (away / home).  Screen-level state is
+     * pre-populated with default sort column, direction, and active team tab.
+     *
+     * @param gameId Game ID (e.g. "0042300102")
+     */
+    @GetMapping(value = "/sdui/boxscore/{gameId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<JsonNode> getBoxscore(
+            @PathVariable String gameId,
+            @RequestHeader(value = "X-Schema-Version", defaultValue = "1.0") String schemaVersion,
+            HttpServletResponse response) {
+
+        String traceId = "trace-" + UUID.randomUUID().toString().substring(0, 8);
+        MDC.put("traceId", traceId);
+        log.info("SDUI boxscore request: gameId={}, schemaVersion={}", gameId, schemaVersion);
+
+        try {
+            JsonNode screenResponse = compositionService.composeBoxscore(gameId, traceId);
+
+            response.setHeader("X-Trace-Id", traceId);
+            response.setHeader("X-Schema-Version", "1.0");
+            log.info("SDUI boxscore response composed successfully");
+            return ResponseEntity.ok(screenResponse);
+        } catch (Exception e) {
+            log.error("Error composing SDUI boxscore response", e);
+            return ResponseEntity.internalServerError().build();
+        } finally {
+            MDC.clear();
+        }
+    }
+
+    // ── Parameterized Refresh (Form submit support) ────────────────────
+
+    /**
+     * Generic SDUI screen refresh endpoint that accepts arbitrary query parameters.
+     *
+     * <p>Clients call this when a {@code Form} submit action fires with
+     * {@code paramBindings} resolved from screen state.  The controller passes
+     * all query parameters through to the composition service so the server
+     * can return an updated screen reflecting the submitted values.
+     *
+     * <p>Example:
+     * <pre>
+     *   GET /sdui/refresh/stats-leaders?season=2025-26&seasonType=Regular+Season
+     * </pre>
+     *
+     * @param screenId  Logical screen identifier (e.g. "stats-leaders", "roster")
+     * @param request   The HTTP request — all query params are extracted and forwarded
+     */
+    @GetMapping(value = "/sdui/refresh/{screenId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<JsonNode> refreshScreen(
+            @PathVariable String screenId,
+            @RequestParam Map<String, String> allParams,
+            @RequestHeader(value = "X-Schema-Version", defaultValue = "1.0") String schemaVersion,
+            HttpServletRequest request,
+            HttpServletResponse response) {
+
+        String traceId = "trace-" + UUID.randomUUID().toString().substring(0, 8);
+        MDC.put("traceId", traceId);
+        log.info("SDUI parameterized refresh: screenId={}, params={}", screenId, allParams);
+
+        try {
+            // Build a fresh screen incorporating the submitted param values.
+            // The params map flows into screen-level state so the Form reflects
+            // whatever the user submitted.
+            ObjectNode screenResponse = objectMapper.createObjectNode();
+            screenResponse.put("id", screenId);
+            screenResponse.put("traceId", traceId);
+            screenResponse.put("schemaVersion", "1.0");
+
+            // Echo submitted params back as screen state so form fields retain
+            // their selected values after refresh.
+            ObjectNode state = objectMapper.createObjectNode();
+            allParams.forEach(state::put);
+            screenResponse.set("state", state);
+
+            // Placeholder sections — in a real implementation this would
+            // delegate to a screen-specific composition method that uses the
+            // params to fetch upstream data and compose sections accordingly.
+            screenResponse.set("sections", objectMapper.createArrayNode());
+
+            response.setHeader("X-Trace-Id", traceId);
+            response.setHeader("X-Schema-Version", "1.0");
+            log.info("SDUI refresh response composed: screenId={}", screenId);
+            return ResponseEntity.ok(screenResponse);
+        } catch (Exception e) {
+            log.error("Error composing SDUI refresh response for screenId={}", screenId, e);
             return ResponseEntity.internalServerError().build();
         } finally {
             MDC.clear();

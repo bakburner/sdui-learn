@@ -579,16 +579,16 @@ public class SduiCompositionService {
                 sections.add(contentRail);
             }
             
-            // 4. TabGroup with live boxscore data (direct CDN polling)
-            ObjectNode tabGroup = buildTabGroupFromLive(game, gameId);
-            if (tabGroup != null) {
-                sections.add(tabGroup);
-            }
-            
-            // 5. PromoBanner from demo example
+            // 4. PromoBanner from demo example
             ObjectNode promoBanner = loadSectionFromExample(gameState, "PromoBanner");
             if (promoBanner != null) {
                 sections.add(promoBanner);
+            }
+
+            // 5. BoxscoreTable TabGroup at the bottom (home/away team toggle)
+            ObjectNode tabGroup = buildBoxscoreTabGroupFromLive(game, gameId);
+            if (tabGroup != null) {
+                sections.add(tabGroup);
             }
             
             response.set("sections", sections);
@@ -621,7 +621,68 @@ public class SduiCompositionService {
         }
         return null;
     }
-    
+
+    /**
+     * Build a TabGroup wrapping full BoxscoreTable sections (home/away toggle)
+     * for the bottom of game detail. Uses the same table builder as the
+     * dedicated /sdui/boxscore/{gameId} endpoint.
+     */
+    private ObjectNode buildBoxscoreTabGroupFromLive(JsonNode game, String gameId) {
+        JsonNode homeTeam = game.path("homeTeam");
+        JsonNode awayTeam = game.path("awayTeam");
+        if (homeTeam.isMissingNode() || awayTeam.isMissingNode()) return null;
+
+        String homeTricode = homeTeam.path("teamTricode").asText("HOME");
+        String awayTricode = awayTeam.path("teamTricode").asText("AWAY");
+        int gameStatus = game.path("gameStatus").asInt(1);
+
+        ObjectNode section = objectMapper.createObjectNode();
+        section.put("id", "game-detail-boxscore-tabs");
+        section.put("type", "TabGroup");
+        section.put("analyticsId", "game_detail_boxscore_tabs");
+
+        ObjectNode data = objectMapper.createObjectNode();
+        data.put("stateKey", "gd_boxscore_team");
+        data.put("defaultTab", awayTricode);
+
+        ArrayNode tabs = objectMapper.createArrayNode();
+
+        ObjectNode awayTab = objectMapper.createObjectNode();
+        awayTab.put("id", "tab-" + awayTricode.toLowerCase());
+        awayTab.put("label", awayTricode);
+        awayTab.put("stateKey", "gd_boxscore_team");
+        awayTab.put("stateValue", awayTricode);
+        tabs.add(awayTab);
+
+        ObjectNode homeTab = objectMapper.createObjectNode();
+        homeTab.put("id", "tab-" + homeTricode.toLowerCase());
+        homeTab.put("label", homeTricode);
+        homeTab.put("stateKey", "gd_boxscore_team");
+        homeTab.put("stateValue", homeTricode);
+        tabs.add(homeTab);
+
+        data.set("tabs", tabs);
+
+        // Reuse the full BoxscoreTable builder from the dedicated boxscore endpoint
+        ObjectNode awayTable = buildBoxscoreTableSection(
+                awayTeam, gameId, "gd_boxscore_away_sortCol", "gd_boxscore_away_sortDir", gameStatus);
+        ObjectNode homeTable = buildBoxscoreTableSection(
+                homeTeam, gameId, "gd_boxscore_home_sortCol", "gd_boxscore_home_sortDir", gameStatus);
+
+        ObjectNode tabContents = objectMapper.createObjectNode();
+        ArrayNode awayContent = objectMapper.createArrayNode();
+        awayContent.add(awayTable);
+        tabContents.set(awayTricode, awayContent);
+
+        ArrayNode homeContent = objectMapper.createArrayNode();
+        homeContent.add(homeTable);
+        tabContents.set(homeTricode, homeContent);
+
+        data.set("tabContents", tabContents);
+        section.set("data", data);
+        return section;
+    }
+
     /**
      * Build TabGroup section with live boxscore data.
      * Uses direct CDN URL for polling instead of SDUI server.
@@ -1237,7 +1298,7 @@ public class SduiCompositionService {
     // ── Demos Kitchen-Sink Screen ──────────────────────────────────────
 
     /**
-     * Compose a kitchen-sink demo screen showcasing all 10 semantic section types
+     * Compose a kitchen-sink demo screen showcasing all 11 semantic section types
      * with static mock data.  No external API calls.
      */
     public JsonNode composeDemos(String traceId) {
@@ -1286,6 +1347,9 @@ public class SduiCompositionService {
 
         // 10. Form — interactive form with dropdowns
         sections.add(buildDemoForm());
+
+        // 11. AdSlot — ad placement placeholder (ADR-007)
+        sections.add(buildDemoAdSlot());
 
         screen.set("sections", sections);
         return screen;
@@ -1692,35 +1756,44 @@ public class SduiCompositionService {
         section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
 
         ObjectNode data = objectMapper.createObjectNode();
-        data.put("title", "Stats Lookup");
+        data.put("layout", "vertical");
 
         ArrayNode fields = objectMapper.createArrayNode();
 
-        // Season dropdown
-        ObjectNode seasonField = objectMapper.createObjectNode();
-        seasonField.put("id", "season");
-        seasonField.put("type", "dropdown");
-        seasonField.put("label", "Season");
-        seasonField.put("stateKey", "form_season");
+        // 1. Text input — Player name
+        ObjectNode nameField = objectMapper.createObjectNode();
+        nameField.put("fieldId", "playerName");
+        nameField.put("fieldType", "text");
+        nameField.put("label", "Player Name");
+        nameField.put("placeholder", "e.g. LeBron James");
+        nameField.put("stateKey", "form_player_name");
+        nameField.put("required", true);
+        fields.add(nameField);
 
+        // 2. Select (dropdown) — Season
+        ObjectNode seasonField = objectMapper.createObjectNode();
+        seasonField.put("fieldId", "season");
+        seasonField.put("fieldType", "select");
+        seasonField.put("label", "Season");
+        seasonField.put("placeholder", "Choose a season…");
+        seasonField.put("stateKey", "form_season");
+        seasonField.put("required", true);
         ArrayNode seasonOptions = objectMapper.createArrayNode();
-        for (String s : new String[]{"2024-25", "2023-24", "2022-23"}) {
+        for (String s : new String[]{"2025-26", "2024-25", "2023-24", "2022-23"}) {
             ObjectNode opt = objectMapper.createObjectNode();
             opt.put("label", s);
             opt.put("value", s);
             seasonOptions.add(opt);
         }
         seasonField.set("options", seasonOptions);
-        seasonField.put("defaultValue", "2024-25");
         fields.add(seasonField);
 
-        // Season Type dropdown
+        // 3. Radio group — Season Type
         ObjectNode typeField = objectMapper.createObjectNode();
-        typeField.put("id", "seasonType");
-        typeField.put("type", "dropdown");
+        typeField.put("fieldId", "seasonType");
+        typeField.put("fieldType", "radio");
         typeField.put("label", "Season Type");
         typeField.put("stateKey", "form_season_type");
-
         ArrayNode typeOptions = objectMapper.createArrayNode();
         for (String[] st : new String[][]{
             {"Regular Season", "regular"},
@@ -1733,25 +1806,106 @@ public class SduiCompositionService {
             typeOptions.add(opt);
         }
         typeField.set("options", typeOptions);
-        typeField.put("defaultValue", "regular");
         fields.add(typeField);
+
+        // 4. Number input — Minimum PPG
+        ObjectNode ppgField = objectMapper.createObjectNode();
+        ppgField.put("fieldId", "minPpg");
+        ppgField.put("fieldType", "number");
+        ppgField.put("label", "Minimum PPG");
+        ppgField.put("placeholder", "0");
+        ppgField.put("stateKey", "form_min_ppg");
+        fields.add(ppgField);
+
+        // 5. Toggle — Include inactive players
+        ObjectNode toggleField = objectMapper.createObjectNode();
+        toggleField.put("fieldId", "includeInactive");
+        toggleField.put("fieldType", "toggle");
+        toggleField.put("label", "Include Inactive Players");
+        toggleField.put("stateKey", "form_include_inactive");
+        fields.add(toggleField);
+
+        // 6. Checkbox — Agree to terms (demonstrates checkbox variant)
+        ObjectNode checkboxField = objectMapper.createObjectNode();
+        checkboxField.put("fieldId", "agreeTerms");
+        checkboxField.put("fieldType", "checkbox");
+        checkboxField.put("label", "I agree to the data usage terms");
+        checkboxField.put("stateKey", "form_agree_terms");
+        checkboxField.put("required", true);
+        fields.add(checkboxField);
+
+        // 7. Date picker — Stats as of date
+        ObjectNode dateField = objectMapper.createObjectNode();
+        dateField.put("fieldId", "asOfDate");
+        dateField.put("fieldType", "date");
+        dateField.put("label", "Stats As-Of Date");
+        dateField.put("stateKey", "form_as_of_date");
+        fields.add(dateField);
+
+        // 8. Textarea — Notes
+        ObjectNode notesField = objectMapper.createObjectNode();
+        notesField.put("fieldId", "notes");
+        notesField.put("fieldType", "textarea");
+        notesField.put("label", "Notes");
+        notesField.put("placeholder", "Any additional filters or context…");
+        notesField.put("stateKey", "form_notes");
+        fields.add(notesField);
 
         data.set("fields", fields);
 
-        // Submit action
+        // Submit action (schema requires submitAction on FormData directly)
         ObjectNode submitAction = objectMapper.createObjectNode();
         submitAction.put("trigger", "onSubmit");
         submitAction.put("type", "refresh");
         submitAction.put("targetUri", "nba://refresh/stats-leaders");
-
         ObjectNode paramBindings = objectMapper.createObjectNode();
+        paramBindings.put("playerName", "{{form_player_name}}");
         paramBindings.put("season", "{{form_season}}");
         paramBindings.put("seasonType", "{{form_season_type}}");
+        paramBindings.put("minPpg", "{{form_min_ppg}}");
+        paramBindings.put("includeInactive", "{{form_include_inactive}}");
+        paramBindings.put("asOfDate", "{{form_as_of_date}}");
         submitAction.set("paramBindings", paramBindings);
+        data.set("submitAction", submitAction);
 
-        ArrayNode actions = objectMapper.createArrayNode();
-        actions.add(submitAction);
-        data.set("actions", actions);
+        data.put("submitLabel", "Search Stats");
+
+        section.set("data", data);
+        return section;
+    }
+
+    /**
+     * 11. AdSlot — GAM ad placement placeholder (ADR-007).
+     */
+    private ObjectNode buildDemoAdSlot() {
+        ObjectNode section = objectMapper.createObjectNode();
+        section.put("id", "demo-ad-slot");
+        section.put("type", "AdSlot");
+        section.put("analyticsId", "demo_ad_slot");
+        section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
+
+        ObjectNode data = objectMapper.createObjectNode();
+        data.put("provider", "gam");
+        data.put("adUnitPath", "/21234567/sports/nba/homepage_top");
+
+        ArrayNode sizes = objectMapper.createArrayNode();
+        ArrayNode size320 = objectMapper.createArrayNode();
+        size320.add(320);
+        size320.add(50);
+        sizes.add(size320);
+        ArrayNode size728 = objectMapper.createArrayNode();
+        size728.add(728);
+        size728.add(90);
+        sizes.add(size728);
+        data.set("sizes", sizes);
+
+        ObjectNode targeting = objectMapper.createObjectNode();
+        targeting.put("section", "homepage");
+        targeting.put("content_type", "live_game");
+        data.set("targeting", targeting);
+
+        data.put("collapseOnEmpty", true);
+        data.put("label", "Advertisement");
 
         section.set("data", data);
         return section;

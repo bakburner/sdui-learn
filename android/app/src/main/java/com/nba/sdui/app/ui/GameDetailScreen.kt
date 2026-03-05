@@ -83,7 +83,7 @@ fun GameDetailScreen(
         TopAppBar(
             title = {
                 Text(
-                    text = screenState.screen?.title
+                    text = (uiState as? SduiScreenUiState.Success)?.screen?.title
                         ?: when (config.screenType) {
                             SduiConfig.ScreenType.SCOREBOARD -> "Today's Games"
                             SduiConfig.ScreenType.GAME_DETAIL -> "Game: ${config.gameId}"

@@ -9,6 +9,7 @@ import { GameCard } from './sections/GameCard';
 import { Row } from './sections/Row';
 import { BoxscoreTable } from './sections/BoxscoreTable';
 import { Form } from './sections/Form';
+import { AdSlot } from './sections/AdSlot';
 import { LiveSectionWrapper } from './LiveSectionWrapper';
 
 export interface SectionProps {
@@ -63,6 +64,9 @@ function SectionRenderer({
 
     case 'Form':
       return <Form {...commonProps} />;
+
+    case 'AdSlot':
+      return <AdSlot {...commonProps} />;
       
     case 'ContentCard':
       // Single content card - could be rendered inline

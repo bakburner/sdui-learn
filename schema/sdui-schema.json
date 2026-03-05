@@ -656,7 +656,7 @@
         "id": { "type": "string" },
         "type": {
           "type": "string",
-          "enum": ["ScoreboardHeader", "StatLine", "ContentCard", "ContentRail", "TabGroup", "PromoBanner", "GameCard", "Row", "BoxscoreTable", "Form"]
+          "enum": ["ScoreboardHeader", "StatLine", "ContentCard", "ContentRail", "TabGroup", "PromoBanner", "GameCard", "Row", "BoxscoreTable", "Form", "AdSlot"]
         },
         "refreshPolicy": { "$ref": "#/definitions/RefreshPolicy" },
         "dataBindings": { "$ref": "#/definitions/DataBinding" },
@@ -685,8 +685,53 @@
             { "$ref": "#/definitions/GameCardData" },
             { "$ref": "#/definitions/RowData" },
             { "$ref": "#/definitions/BoxscoreTableData" },
-            { "$ref": "#/definitions/FormData" }
+            { "$ref": "#/definitions/FormData" },
+            { "$ref": "#/definitions/AdSlotData" }
           ]
+        }
+      }
+    },
+    "AdSlotData": {
+      "type": "object",
+      "description": "Ad placement primitive — carries placement semantics while delegating auction/targeting to ad-platform SDKs (see ADR-007)",
+      "required": ["provider", "adUnitPath", "sizes"],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "description": "Ad network identifier, e.g. 'gam', 'amazon'"
+        },
+        "adUnitPath": {
+          "type": "string",
+          "description": "Ad unit path used by the ad SDK"
+        },
+        "sizes": {
+          "type": "array",
+          "description": "Accepted creative sizes as [width, height] pairs",
+          "items": {
+            "type": "array",
+            "items": { "type": "integer" },
+            "minItems": 2,
+            "maxItems": 2
+          }
+        },
+        "targeting": {
+          "type": "object",
+          "description": "Key-value targeting hints passed to ad SDK",
+          "additionalProperties": { "type": "string" }
+        },
+        "collapseOnEmpty": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to collapse the slot when no fill is returned"
+        },
+        "refreshIntervalSec": {
+          "type": "integer",
+          "description": "Optional auto-refresh interval in seconds"
+        },
+        "label": {
+          "type": "string",
+          "default": "Advertisement",
+          "description": "Disclosure label displayed above/below the ad"
         }
       }
     },

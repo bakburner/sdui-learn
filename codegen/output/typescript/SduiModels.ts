@@ -312,6 +312,34 @@ export interface Data {
      */
     submitAction?: Action;
     submitLabel?:  string;
+    /**
+     * Ad network identifier, e.g. 'gam', 'amazon'
+     */
+    provider?: string;
+    /**
+     * Ad unit path used by the ad SDK
+     */
+    adUnitPath?: string;
+    /**
+     * Accepted creative sizes as [width, height] pairs
+     */
+    sizes?: number[][];
+    /**
+     * Key-value targeting hints passed to ad SDK
+     */
+    targeting?: { [key: string]: string };
+    /**
+     * Whether to collapse the slot when no fill is returned
+     */
+    collapseOnEmpty?: boolean;
+    /**
+     * Optional auto-refresh interval in seconds
+     */
+    refreshIntervalSec?: number;
+    /**
+     * Disclosure label displayed above/below the ad
+     */
+    label?: string;
     [property: string]: any;
 }
 
@@ -550,6 +578,7 @@ export interface Subsection {
 }
 
 export enum Type {
+    AdSlot = "AdSlot",
     BoxscoreTable = "BoxscoreTable",
     ContentCard = "ContentCard",
     ContentRail = "ContentRail",

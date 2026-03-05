@@ -16,6 +16,7 @@
 | 2026-02-25 | Established platform-aware composition as settled architectural position: shared schema, shared data pipeline, per-platform-family composition. Renamed `fallbackUrl` → `webUrl` in action contract (section 4). Updated platform coverage (section 8). |
 | 2026-02-27 | Replaced `entitlements` with `userContext` in request envelope (governance, 9o, Appendix A). Aligned analytics field names (`event`/`params`) and mutate field names (`target`/`operation`/`value`) with requirements summary. Moved `schemaVersion` to `meta` object. Added `onBlur` trigger. |
 | 2026-03-04 | Added tabular data sections and forms. New semantic types (`BoxscoreTable`, `Form`) in schema design (section 2). Parameterized refresh on actions (section 4). Sort and form state patterns (section 5). Platform coverage update (section 8). Gap 9q. Requirement status updates. Appendix C boxscore response example. |
+| 2026-03-04 | Added `parentUri` to Screen response contract and example. Added client URI resolution convention. |
 
 ---
 
@@ -131,6 +132,7 @@ Every response follows `Screen -> Section -> Component`, where each section can 
   "meta": { "schemaVersion": "1.1" },
   "screen": {
     "id": "game-detail",
+    "parentUri": "nba://scoreboard",
     "sections": [
       {
         "id": "scoreboard-001",
@@ -144,6 +146,22 @@ Every response follows `Screen -> Section -> Component`, where each section can 
   }
 }
 ```
+
+### Client URI Resolution Convention
+
+Navigate action URIs use the `nba://` scheme.  Clients resolve these to
+server endpoints using a simple convention:
+
+```
+nba://{path}  →  GET /sdui/{path}
+```
+
+Special case: `nba://game/{id}` → `GET /sdui/game-detail/{id}?gameState=live`
+(preserves backward compatibility with the existing game-detail endpoint).
+
+This convention means new screens require **no client code changes** —
+adding a server endpoint and including its URI in navigation items or
+action targets is sufficient.
 
 ---
 

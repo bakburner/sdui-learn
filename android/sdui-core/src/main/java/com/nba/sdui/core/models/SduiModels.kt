@@ -16,6 +16,7 @@ data class SduiScreen(
     @JsonProperty("title") val title: String? = null,
     @JsonProperty("analyticsId") val analyticsId: String? = null,
     @JsonProperty("traceId") val traceId: String? = null,
+    @JsonProperty("parentUri") val parentUri: String? = null,
     @JsonProperty("defaultRefreshPolicy") val defaultRefreshPolicy: RefreshPolicy? = null,
     @JsonProperty("navigation") val navigation: Navigation? = null,
     @JsonProperty("state") val state: Map<String, Any>? = null,

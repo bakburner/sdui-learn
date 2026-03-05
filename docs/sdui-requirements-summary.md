@@ -18,6 +18,7 @@
 | 2026-02-25 | Established platform-aware composition as settled architectural position: shared schema, shared data pipeline, per-platform-family composition responses. Renamed `fallbackUrl` → `webUrl` in action contract. Updated platform coverage, 9b, 9m. |
 | 2026-02-27 | Cross-document consistency review. Replaced `entitlements` references with `userContext` in governance, schema decisions, and 9o to align with Technical Proposal. |
 | 2026-03-04 | Added gap section 9q: Tabular Data Sections and Forms. New semantic section types (`BoxscoreTable`, `Form`), parameterized refresh on actions, sort/form state conventions. Updated status matrix. |
+| 2026-03-04 | Added `parentUri` to Screen contract. Updated status matrix for composition API contract (Gap → Partial). Added Prototype Concessions subsection. |
 
 ---
 
@@ -131,6 +132,7 @@ graph TD
 | Navigation destinations and presentation style | Gesture recognition |
 | Tab structure and selection behavior | Deeplink resolution logic |
 | A/B test variants | Analytics SDK integration |
+| Back navigation target (`parentUri`) | Back button rendering and gesture |
 
 ---
 
@@ -165,6 +167,15 @@ graph LR
 - **Schema is versioned** — client sends its schema version, server responds with a compatible payload. Fields can never be removed without a major version bump.
 - **Subsection actions are required** — `actions` must be supported at section and nested component/subsection level (for example, tapping home team area within a game section).
 - **Request context is contract input** — composition must support a typed request envelope (platform, app version, locale, user context, experiments, capabilities, traceId).
+- **Server-driven back navigation** — `Screen.parentUri` (optional) tells the client where the back button should navigate.  Omit for root screens.  Clients always show the back button on non-root screens.
+
+### Prototype Concessions
+
+| Concession | Rationale | Migration Path |
+|-----------|-----------|----------------|
+| Android `GENERIC` screen-type enum | Scoreboard and game-detail have pre-existing Ably/polling transport wiring that is coupled to screen type. Making transport fully server-driven (`refreshPolicy` + `realtimeChannel`/`realtimeTopic` fields) doesn't advance the demo goal. | Remove enum entirely; derive all transport behavior from `refreshPolicy` fields in the server response. `GENERIC` branches become the only branches. |
+| `resolveEndpoint()` special case (`nba://game/{id}` → `game-detail/{id}?gameState=live`) | Preserves backward compatibility with the existing game-detail endpoint path and required query parameter. | Server normalizes URIs so the mapping is a straight `nba://` → `/sdui/` prefix swap with no special cases. |
+| Variant selector is a developer tool | Variant chips are hardcoded client-side UI, not server-driven. Real A/B would use experiment assignment. | Remove variant selector; server resolves variant via experiment assignment header. |
 
 ---
 
@@ -867,7 +878,7 @@ Until approved, these remain directional requirements and may be refined.
 | Schema versioning protocol | **Partial** | Version header sent; no multi-version routing yet |
 | Composition ownership model (SDUI composer as source of truth) | **Partial** | Architecture intent clear; transitional CoreAPI-derived composition still in use |
 | Request context envelope for composition | **Gap** | Needs formal schema and server/client conformance |
-| Composition API contract (auth, method, cacheability) | **Gap** | Needs explicit endpoint contract and route policy by screen/section |
+| Composition API contract (auth, method, cacheability) | **Partial** | URI convention defined (`nba://{path}` → `GET /sdui/{path}`); auth and cacheability still gap |
 | Actions at subsection level | **Partial** | Supported conceptually; needs explicit schema examples and conformance tests |
 | Form-factor layout manager | **Partial** | Cross-platform: settled (platform-aware composition). Within-family responsive: gap (ADR-008 scoped to within-family only) |
 | Ad support as first-class primitive | **Gap** | Needs ad primitive definition and fallback behavior |

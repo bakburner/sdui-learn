@@ -15,6 +15,7 @@ export interface SduiModels {
     state?:                { [key: string]: any };
     title?:                string;
     traceId?:              string;
+    parentUri?:            string;
     [property: string]: any;
 }
 

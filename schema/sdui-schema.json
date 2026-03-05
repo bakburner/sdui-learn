@@ -704,6 +704,10 @@
         "title": { "type": "string" },
         "analyticsId": { "type": "string" },
         "traceId": { "type": "string" },
+        "parentUri": {
+          "type": "string",
+          "description": "URI the back button should navigate to.  Clients always show a back button; this field tells them the target.  Omit for root screens (e.g. scoreboard)."
+        },
         "defaultRefreshPolicy": { "$ref": "#/definitions/RefreshPolicy" },
         "navigation": { "$ref": "#/definitions/Navigation" },
         "state": { "$ref": "#/definitions/State" },

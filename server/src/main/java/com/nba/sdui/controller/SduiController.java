@@ -142,6 +142,34 @@ public class SduiController {
         }
     }
 
+    // ── Demos Kitchen-Sink Screen ─────────────────────────────────────
+
+    /**
+     * Get SDUI screen response for the demos kitchen-sink page.
+     * Showcases all 10 semantic section types with static mock data.
+     */
+    @GetMapping(value = "/sdui/demos", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<JsonNode> getDemos(
+            @RequestHeader(value = "X-Schema-Version", defaultValue = "1.0") String schemaVersion,
+            HttpServletResponse response) {
+
+        String traceId = "trace-" + UUID.randomUUID().toString().substring(0, 8);
+        MDC.put("traceId", traceId);
+        log.info("SDUI demos request: schemaVersion={}", schemaVersion);
+
+        try {
+            JsonNode screenResponse = compositionService.composeDemos(traceId);
+            response.setHeader("X-Trace-Id", traceId);
+            response.setHeader("X-Schema-Version", "1.0");
+            return ResponseEntity.ok(screenResponse);
+        } catch (Exception e) {
+            log.error("Error composing demos screen", e);
+            return ResponseEntity.internalServerError().build();
+        } finally {
+            MDC.clear();
+        }
+    }
+
     // ── Boxscore Screen ────────────────────────────────────────────────
 
     /**

@@ -77,6 +77,7 @@ public class SduiCompositionService {
         response.put("id", "game-detail-" + gameId);
         response.put("traceId", traceId);
         response.put("schemaVersion", schemaVersion);
+        response.put("parentUri", "nba://scoreboard");
         response.set("navigation", buildNavigation("game-detail"));
         
         // Resolve Ably channel patterns with actual game ID
@@ -167,6 +168,7 @@ public class SduiCompositionService {
         response.put("type", "boxscore");
         response.put("traceId", traceId);
         response.put("schemaVersion", schemaVersion);
+        response.put("parentUri", "nba://scoreboard");
         response.set("navigation", buildNavigation("game-detail"));
 
         if (!hasLiveData) {
@@ -551,6 +553,7 @@ public class SduiCompositionService {
             response.put("id", "game-detail-" + gameId);
             response.put("type", "game_detail");
             response.put("schemaVersion", schemaVersion);
+            response.put("parentUri", "nba://scoreboard");
             
             ArrayNode sections = objectMapper.createArrayNode();
             
@@ -1231,6 +1234,529 @@ public class SduiCompositionService {
         return path;
     }
 
+    // ── Demos Kitchen-Sink Screen ──────────────────────────────────────
+
+    /**
+     * Compose a kitchen-sink demo screen showcasing all 10 semantic section types
+     * with static mock data.  No external API calls.
+     */
+    public JsonNode composeDemos(String traceId) {
+        ObjectNode screen = objectMapper.createObjectNode();
+        screen.put("id", "demos");
+        screen.put("schemaVersion", schemaVersion);
+        screen.put("title", "SDUI Section Types");
+        screen.put("analyticsId", "demos-kitchen-sink");
+        screen.put("traceId", traceId);
+        screen.put("parentUri", "nba://scoreboard");
+
+        ObjectNode refreshPolicy = objectMapper.createObjectNode();
+        refreshPolicy.put("type", "static");
+        screen.set("defaultRefreshPolicy", refreshPolicy);
+
+        screen.set("navigation", buildNavigation("demos"));
+
+        ArrayNode sections = objectMapper.createArrayNode();
+
+        // 1. ScoreboardHeader — mock matchup
+        sections.add(buildDemoScoreboardHeader());
+
+        // 2. StatLine — mock player leaders
+        sections.add(buildDemoStatLine());
+
+        // 3. PromoBanner — mock promotional card
+        sections.add(buildDemoPromoBanner());
+
+        // 4. ContentCard — standalone card
+        sections.add(buildDemoContentCard());
+
+        // 5. ContentRail — horizontal scroll of cards
+        sections.add(buildDemoContentRail());
+
+        // 6. GameCard — mock game tile
+        sections.add(buildDemoGameCard());
+
+        // 7. Row — key-value row
+        sections.add(buildDemoRow());
+
+        // 8. TabGroup — tabs wrapping sub-sections
+        sections.add(buildDemoTabGroup());
+
+        // 9. BoxscoreTable — stats table
+        sections.add(buildDemoBoxscoreTable());
+
+        // 10. Form — interactive form with dropdowns
+        sections.add(buildDemoForm());
+
+        screen.set("sections", sections);
+        return screen;
+    }
+
+    // ── Demo Section Builders ──────────────────────────────────────────
+
+    /**
+     * 1. ScoreboardHeader — Lakers vs Celtics, period 3, 89-94.
+     */
+    private ObjectNode buildDemoScoreboardHeader() {
+        ObjectNode section = objectMapper.createObjectNode();
+        section.put("id", "demo-scoreboard-header");
+        section.put("type", "ScoreboardHeader");
+        section.put("analyticsId", "demo_scoreboard_header");
+        section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
+
+        ObjectNode data = objectMapper.createObjectNode();
+        data.put("gameId", "0022400999");
+        data.put("gameStatus", 2);
+        data.put("gameStatusText", "Q3 4:32");
+        data.put("period", 3);
+        data.put("gameClock", "PT04M32.00S");
+
+        ObjectNode home = objectMapper.createObjectNode();
+        home.put("teamId", 1610612738);
+        home.put("teamTricode", "BOS");
+        home.put("teamName", "Celtics");
+        home.put("teamCity", "Boston");
+        home.put("score", 94);
+        home.put("logoUrl", "https://cdn.nba.com/logos/nba/1610612738/primary/L/logo.svg");
+        data.set("homeTeam", home);
+
+        ObjectNode away = objectMapper.createObjectNode();
+        away.put("teamId", 1610612747);
+        away.put("teamTricode", "LAL");
+        away.put("teamName", "Lakers");
+        away.put("teamCity", "Los Angeles");
+        away.put("score", 89);
+        away.put("logoUrl", "https://cdn.nba.com/logos/nba/1610612747/primary/L/logo.svg");
+        data.set("awayTeam", away);
+
+        section.set("data", data);
+        return section;
+    }
+
+    /**
+     * 2. StatLine — 3 mock players with PTS/REB/AST.
+     */
+    private ObjectNode buildDemoStatLine() {
+        ObjectNode section = objectMapper.createObjectNode();
+        section.put("id", "demo-stat-line");
+        section.put("type", "StatLine");
+        section.put("analyticsId", "demo_stat_line");
+        section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
+
+        ArrayNode stats = objectMapper.createArrayNode();
+
+        stats.add(createStatLine(1628369, "Jayson Tatum", "BOS", "PTS", "32"));
+        stats.add(createStatLine(203507, "LeBron James", "LAL", "PTS", "28"));
+        stats.add(createStatLine(203076, "Anthony Davis", "LAL", "REB", "14"));
+
+        ObjectNode data = objectMapper.createObjectNode();
+        data.put("title", "Top Performers");
+        data.set("stats", stats);
+        section.set("data", data);
+        return section;
+    }
+
+    /**
+     * 3. PromoBanner — "Welcome to SDUI" with gradient background.
+     */
+    private ObjectNode buildDemoPromoBanner() {
+        ObjectNode section = objectMapper.createObjectNode();
+        section.put("id", "demo-promo-banner");
+        section.put("type", "PromoBanner");
+        section.put("analyticsId", "demo_promo_banner");
+        section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
+
+        ObjectNode data = objectMapper.createObjectNode();
+        data.put("title", "Welcome to SDUI");
+        data.put("description", "All 10 semantic section types rendered from a single server response.");
+        data.put("imageUrl", "https://cdn.nba.com/promo/league-pass-banner.jpg");
+        data.put("backgroundColor", "#17408B");
+        data.put("textColor", "#FFFFFF");
+
+        ArrayNode actions = objectMapper.createArrayNode();
+        ObjectNode action = objectMapper.createObjectNode();
+        action.put("trigger", "onTap");
+        action.put("type", "navigate");
+        action.put("targetUri", "nba://scoreboard");
+        actions.add(action);
+        data.set("actions", actions);
+
+        section.set("data", data);
+        return section;
+    }
+
+    /**
+     * 4. ContentCard — single highlight card with thumbnail.
+     */
+    private ObjectNode buildDemoContentCard() {
+        ObjectNode section = objectMapper.createObjectNode();
+        section.put("id", "demo-content-card");
+        section.put("type", "ContentCard");
+        section.put("analyticsId", "demo_content_card");
+        section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
+
+        ObjectNode data = objectMapper.createObjectNode();
+        data.put("id", "card-highlight");
+        data.put("thumbnailUrl", "https://cdn.nba.com/manage/2024/04/top10-plays.jpg");
+        data.put("headline", "Celtics Lead Series 3-1");
+        data.put("subhead", "Boston takes commanding lead after Game 4 victory");
+        data.put("contentType", "article");
+
+        ObjectNode action = objectMapper.createObjectNode();
+        action.put("trigger", "onTap");
+        action.put("type", "navigate");
+        action.put("targetUri", "nba://article/celtics-lead-series");
+        action.put("fallbackUrl", "https://www.nba.com/news");
+        data.set("action", action);
+
+        section.set("data", data);
+        return section;
+    }
+
+    /**
+     * 5. ContentRail — 4 cards (Top Plays, Player Spotlight, etc.).
+     */
+    private ObjectNode buildDemoContentRail() {
+        ObjectNode section = objectMapper.createObjectNode();
+        section.put("id", "demo-content-rail");
+        section.put("type", "ContentRail");
+        section.put("analyticsId", "demo_content_rail");
+        section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
+
+        ObjectNode data = objectMapper.createObjectNode();
+        data.put("title", "Featured Content");
+
+        ArrayNode cards = objectMapper.createArrayNode();
+
+        String[][] cardData = {
+            {"rail-1", "Top 10 Plays", "Last night's best moments", "video", "https://cdn.nba.com/manage/2024/04/top10-plays.jpg"},
+            {"rail-2", "Player Spotlight", "Jayson Tatum's monster game", "article", "https://cdn.nba.com/manage/2024/04/player-spotlight.jpg"},
+            {"rail-3", "Draft Preview", "Top prospects for 2025 draft", "article", "https://cdn.nba.com/manage/2024/04/draft-preview.jpg"},
+            {"rail-4", "Playoff Bracket", "Updated bracket after today's results", "interactive", "https://cdn.nba.com/manage/2024/04/playoff-bracket.jpg"}
+        };
+
+        for (String[] cd : cardData) {
+            ObjectNode card = objectMapper.createObjectNode();
+            card.put("id", cd[0]);
+            card.put("headline", cd[1]);
+            card.put("subhead", cd[2]);
+            card.put("contentType", cd[3]);
+            card.put("thumbnailUrl", cd[4]);
+
+            ObjectNode action = objectMapper.createObjectNode();
+            action.put("trigger", "onTap");
+            action.put("type", "navigate");
+            action.put("targetUri", "nba://content/" + cd[0]);
+            card.set("action", action);
+
+            cards.add(card);
+        }
+
+        data.set("cards", cards);
+        section.set("data", data);
+        return section;
+    }
+
+    /**
+     * 6. GameCard — mock game tile for a single game.
+     */
+    private ObjectNode buildDemoGameCard() {
+        ObjectNode section = objectMapper.createObjectNode();
+        section.put("id", "demo-game-card");
+        section.put("type", "GameCard");
+        section.put("analyticsId", "demo_game_card");
+        section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
+
+        ObjectNode data = objectMapper.createObjectNode();
+        data.put("gameId", "0022400888");
+        data.put("gameStatus", 3);
+        data.put("gameStatusText", "Final");
+
+        ObjectNode home = objectMapper.createObjectNode();
+        home.put("teamId", 1610612744);
+        home.put("teamTricode", "GSW");
+        home.put("teamName", "Warriors");
+        home.put("teamCity", "Golden State");
+        home.put("score", 112);
+        home.put("logoUrl", "https://cdn.nba.com/logos/nba/1610612744/primary/L/logo.svg");
+        data.set("homeTeam", home);
+
+        ObjectNode away = objectMapper.createObjectNode();
+        away.put("teamId", 1610612745);
+        away.put("teamTricode", "HOU");
+        away.put("teamName", "Rockets");
+        away.put("teamCity", "Houston");
+        away.put("score", 105);
+        away.put("logoUrl", "https://cdn.nba.com/logos/nba/1610612745/primary/L/logo.svg");
+        data.set("awayTeam", away);
+
+        ArrayNode actions = objectMapper.createArrayNode();
+        ObjectNode action = objectMapper.createObjectNode();
+        action.put("trigger", "onTap");
+        action.put("type", "navigate");
+        action.put("targetUri", "nba://game/0022400888");
+        actions.add(action);
+        data.set("actions", actions);
+
+        section.set("data", data);
+        return section;
+    }
+
+    /**
+     * 7. Row — league leader row (label/value pair with children).
+     */
+    private ObjectNode buildDemoRow() {
+        ObjectNode section = objectMapper.createObjectNode();
+        section.put("id", "demo-row");
+        section.put("type", "Row");
+        section.put("analyticsId", "demo_row");
+
+        ObjectNode data = objectMapper.createObjectNode();
+        data.put("spacing", 16);
+        data.put("breakpoint", 600);
+
+        ArrayNode children = objectMapper.createArrayNode();
+
+        // Left child — scoring leader
+        ObjectNode leftChild = objectMapper.createObjectNode();
+        leftChild.put("id", "row-scoring-leader");
+        leftChild.put("type", "StatLine");
+        ObjectNode leftData = objectMapper.createObjectNode();
+        leftData.put("title", "Scoring Leader");
+        ArrayNode leftStats = objectMapper.createArrayNode();
+        leftStats.add(createStatLine(203999, "Nikola Jokić", "DEN", "PTS", "26.4"));
+        leftData.set("stats", leftStats);
+        leftChild.set("data", leftData);
+        children.add(leftChild);
+
+        // Right child — assists leader
+        ObjectNode rightChild = objectMapper.createObjectNode();
+        rightChild.put("id", "row-assists-leader");
+        rightChild.put("type", "StatLine");
+        ObjectNode rightData = objectMapper.createObjectNode();
+        rightData.put("title", "Assists Leader");
+        ArrayNode rightStats = objectMapper.createArrayNode();
+        rightStats.add(createStatLine(201566, "Trae Young", "ATL", "AST", "11.1"));
+        rightData.set("stats", rightStats);
+        rightChild.set("data", rightData);
+        children.add(rightChild);
+
+        data.set("children", children);
+        section.set("data", data);
+        return section;
+    }
+
+    /**
+     * 8. TabGroup — two tabs ("Overview", "Stats") each with a ContentCard child.
+     */
+    private ObjectNode buildDemoTabGroup() {
+        ObjectNode section = objectMapper.createObjectNode();
+        section.put("id", "demo-tab-group");
+        section.put("type", "TabGroup");
+        section.put("analyticsId", "demo_tab_group");
+
+        ObjectNode data = objectMapper.createObjectNode();
+        data.put("stateKey", "demo_active_tab");
+        data.put("defaultTab", "overview");
+
+        ArrayNode tabs = objectMapper.createArrayNode();
+
+        ObjectNode overviewTab = objectMapper.createObjectNode();
+        overviewTab.put("id", "tab-overview");
+        overviewTab.put("label", "Overview");
+        overviewTab.put("stateKey", "demo_active_tab");
+        overviewTab.put("stateValue", "overview");
+        tabs.add(overviewTab);
+
+        ObjectNode statsTab = objectMapper.createObjectNode();
+        statsTab.put("id", "tab-stats");
+        statsTab.put("label", "Stats");
+        statsTab.put("stateKey", "demo_active_tab");
+        statsTab.put("stateValue", "stats");
+        tabs.add(statsTab);
+
+        data.set("tabs", tabs);
+
+        // Tab contents
+        ObjectNode tabContents = objectMapper.createObjectNode();
+
+        // Overview tab content — a ContentCard
+        ArrayNode overviewContent = objectMapper.createArrayNode();
+        ObjectNode overviewCard = objectMapper.createObjectNode();
+        overviewCard.put("id", "tab-overview-card");
+        overviewCard.put("type", "ContentCard");
+        ObjectNode overviewCardData = objectMapper.createObjectNode();
+        overviewCardData.put("id", "overview-highlight");
+        overviewCardData.put("headline", "Season Overview");
+        overviewCardData.put("subhead", "The 2024-25 season has been full of surprises");
+        overviewCardData.put("contentType", "article");
+        overviewCardData.put("thumbnailUrl", "https://cdn.nba.com/manage/2024/04/season-overview.jpg");
+        overviewCard.set("data", overviewCardData);
+        overviewContent.add(overviewCard);
+        tabContents.set("overview", overviewContent);
+
+        // Stats tab content — a ContentCard
+        ArrayNode statsContent = objectMapper.createArrayNode();
+        ObjectNode statsCard = objectMapper.createObjectNode();
+        statsCard.put("id", "tab-stats-card");
+        statsCard.put("type", "ContentCard");
+        ObjectNode statsCardData = objectMapper.createObjectNode();
+        statsCardData.put("id", "stats-summary");
+        statsCardData.put("headline", "League Statistical Leaders");
+        statsCardData.put("subhead", "Points, rebounds, assists and more");
+        statsCardData.put("contentType", "interactive");
+        statsCardData.put("thumbnailUrl", "https://cdn.nba.com/manage/2024/04/stats-leaders.jpg");
+        statsCard.set("data", statsCardData);
+        statsContent.add(statsCard);
+        tabContents.set("stats", statsContent);
+
+        data.set("tabContents", tabContents);
+        section.set("data", data);
+        return section;
+    }
+
+    /**
+     * 9. BoxscoreTable — 3 players, 5 stat columns.
+     */
+    private ObjectNode buildDemoBoxscoreTable() {
+        ObjectNode section = objectMapper.createObjectNode();
+        section.put("id", "demo-boxscore-table");
+        section.put("type", "BoxscoreTable");
+        section.put("analyticsId", "demo_boxscore_table");
+
+        ObjectNode data = objectMapper.createObjectNode();
+        data.put("teamTricode", "BOS");
+        data.put("teamName", "Boston Celtics");
+        data.put("teamColor", "#007A33");
+        data.put("teamLogoUrl", "https://cdn.nba.com/logos/nba/1610612738/primary/L/logo.svg");
+
+        ArrayNode columns = objectMapper.createArrayNode();
+        columns.add(colDef("min", "MIN", true, false, null));
+        columns.add(colDef("pts", "PTS", true, true, null));
+        columns.add(colDef("reb", "REB", true, false, null));
+        columns.add(colDef("ast", "AST", true, false, null));
+        columns.add(colDef("fgPct", "FG%", true, false, null));
+        data.set("columns", columns);
+
+        ArrayNode players = objectMapper.createArrayNode();
+
+        players.add(demoPlayerRow("1628369", "J. Tatum", "SF", "0", true,
+                Map.of("min", "38:12", "pts", 32, "reb", 8, "ast", 5, "fgPct", ".545")));
+        players.add(demoPlayerRow("1627759", "J. Brown", "SG", "7", true,
+                Map.of("min", "36:45", "pts", 26, "reb", 5, "ast", 3, "fgPct", ".480")));
+        players.add(demoPlayerRow("1629684", "D. White", "PG", "9", false,
+                Map.of("min", "32:10", "pts", 18, "reb", 4, "ast", 6, "fgPct", ".500")));
+
+        data.set("players", players);
+
+        data.put("sortStateKey", "demo_boxscore_sortCol");
+        data.put("sortDirectionStateKey", "demo_boxscore_sortDir");
+
+        section.set("data", data);
+        return section;
+    }
+
+    /**
+     * Helper to construct a demo BoxscoreTable player row.
+     */
+    private ObjectNode demoPlayerRow(String playerId, String name, String position,
+                                      String jerseyNumber, boolean starter,
+                                      Map<String, Object> stats) {
+        ObjectNode row = objectMapper.createObjectNode();
+        row.put("playerId", playerId);
+        row.put("name", name);
+        row.put("position", position);
+        row.put("jerseyNumber", jerseyNumber);
+        row.put("imageUrl", "https://cdn.nba.com/headshots/nba/latest/1040x760/" + playerId + ".png");
+        row.put("starter", starter);
+
+        ObjectNode statsNode = objectMapper.createObjectNode();
+        stats.forEach((key, value) -> {
+            if (value instanceof Integer i) {
+                statsNode.put(key, i);
+            } else {
+                statsNode.put(key, value.toString());
+            }
+        });
+        row.set("stats", statsNode);
+        return row;
+    }
+
+    /**
+     * 10. Form — two dropdowns (Season, Season Type) with a submit action.
+     */
+    private ObjectNode buildDemoForm() {
+        ObjectNode section = objectMapper.createObjectNode();
+        section.put("id", "demo-form");
+        section.put("type", "Form");
+        section.put("analyticsId", "demo_form");
+        section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
+
+        ObjectNode data = objectMapper.createObjectNode();
+        data.put("title", "Stats Lookup");
+
+        ArrayNode fields = objectMapper.createArrayNode();
+
+        // Season dropdown
+        ObjectNode seasonField = objectMapper.createObjectNode();
+        seasonField.put("id", "season");
+        seasonField.put("type", "dropdown");
+        seasonField.put("label", "Season");
+        seasonField.put("stateKey", "form_season");
+
+        ArrayNode seasonOptions = objectMapper.createArrayNode();
+        for (String s : new String[]{"2024-25", "2023-24", "2022-23"}) {
+            ObjectNode opt = objectMapper.createObjectNode();
+            opt.put("label", s);
+            opt.put("value", s);
+            seasonOptions.add(opt);
+        }
+        seasonField.set("options", seasonOptions);
+        seasonField.put("defaultValue", "2024-25");
+        fields.add(seasonField);
+
+        // Season Type dropdown
+        ObjectNode typeField = objectMapper.createObjectNode();
+        typeField.put("id", "seasonType");
+        typeField.put("type", "dropdown");
+        typeField.put("label", "Season Type");
+        typeField.put("stateKey", "form_season_type");
+
+        ArrayNode typeOptions = objectMapper.createArrayNode();
+        for (String[] st : new String[][]{
+            {"Regular Season", "regular"},
+            {"Playoffs", "playoffs"},
+            {"All-Star", "allstar"}
+        }) {
+            ObjectNode opt = objectMapper.createObjectNode();
+            opt.put("label", st[0]);
+            opt.put("value", st[1]);
+            typeOptions.add(opt);
+        }
+        typeField.set("options", typeOptions);
+        typeField.put("defaultValue", "regular");
+        fields.add(typeField);
+
+        data.set("fields", fields);
+
+        // Submit action
+        ObjectNode submitAction = objectMapper.createObjectNode();
+        submitAction.put("trigger", "onSubmit");
+        submitAction.put("type", "refresh");
+        submitAction.put("targetUri", "nba://refresh/stats-leaders");
+
+        ObjectNode paramBindings = objectMapper.createObjectNode();
+        paramBindings.put("season", "{{form_season}}");
+        paramBindings.put("seasonType", "{{form_season_type}}");
+        submitAction.set("paramBindings", paramBindings);
+
+        ArrayNode actions = objectMapper.createArrayNode();
+        actions.add(submitAction);
+        data.set("actions", actions);
+
+        section.set("data", data);
+        return section;
+    }
+
     private ObjectNode buildNavigation(String activeScreenId) {
         ObjectNode navigation = objectMapper.createObjectNode();
         ArrayNode items = objectMapper.createArrayNode();
@@ -1245,21 +1771,21 @@ public class SduiCompositionService {
         games.put("selected", gamesSelected);
         items.add(games);
 
-        ObjectNode teams = objectMapper.createObjectNode();
-        teams.put("id", "teams");
-        teams.put("label", "Teams");
-        teams.put("icon", "groups");
-        teams.put("targetUri", "nba://teams");
-        teams.put("selected", false);
-        items.add(teams);
+        ObjectNode demos = objectMapper.createObjectNode();
+        demos.put("id", "demos");
+        demos.put("label", "Demos");
+        demos.put("icon", "widgets");
+        demos.put("targetUri", "nba://demos");
+        demos.put("selected", "demos".equals(activeScreenId));
+        items.add(demos);
 
-        ObjectNode standings = objectMapper.createObjectNode();
-        standings.put("id", "standings");
-        standings.put("label", "Standings");
-        standings.put("icon", "table_chart");
-        standings.put("targetUri", "nba://standings");
-        standings.put("selected", false);
-        items.add(standings);
+        ObjectNode boxscore = objectMapper.createObjectNode();
+        boxscore.put("id", "boxscore");
+        boxscore.put("label", "Box Score");
+        boxscore.put("icon", "table_chart");
+        boxscore.put("targetUri", "nba://boxscore/0042300102");
+        boxscore.put("selected", activeScreenId != null && activeScreenId.startsWith("boxscore"));
+        items.add(boxscore);
 
         navigation.set("items", items);
         return navigation;

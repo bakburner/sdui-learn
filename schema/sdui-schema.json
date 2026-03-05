@@ -316,6 +316,7 @@
     "StatLineListData": {
       "type": "object",
       "description": "Container for a titled list of stat lines",
+      "required": ["stats"],
       "properties": {
         "title": { "type": "string" },
         "stats": {
@@ -343,6 +344,7 @@
     "ContentRailData": {
       "type": "object",
       "description": "Horizontal scrolling strip of content cards",
+      "required": ["cards"],
       "properties": {
         "title": { "type": "string" },
         "cards": {
@@ -354,6 +356,7 @@
     "TabGroupData": {
       "type": "object",
       "description": "Tabbed navigation with dynamic content sections per tab",
+      "required": ["tabs"],
       "properties": {
         "tabs": {
           "type": "array",

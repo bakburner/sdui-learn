@@ -1,0 +1,398 @@
+{
+  "id": "boxscore-0022400670",
+  "schemaVersion": "1.0",
+  "title": "MIA @ BOS – Box Score",
+  "analyticsId": "boxscore_0022400670",
+  "traceId": "trace-boxscore-001",
+  "defaultRefreshPolicy": {
+    "type": "poll",
+    "intervalMs": 30000
+  },
+  "state": {
+    "boxscore_team": "away",
+    "boxscore_away_sortCol": "pts",
+    "boxscore_away_sortDir": "desc",
+    "boxscore_home_sortCol": "pts",
+    "boxscore_home_sortDir": "desc"
+  },
+  "sections": [
+    {
+      "id": "scoreboard",
+      "type": "ScoreboardHeader",
+      "analyticsId": "scoreboard_header",
+      "data": {
+        "homeTeam": {
+          "teamId": 1610612738,
+          "teamTricode": "BOS",
+          "teamName": "Celtics",
+          "teamCity": "Boston",
+          "logoUrl": "https://cdn.nba.com/logos/nba/1610612738/global/L/logo.svg",
+          "score": 118
+        },
+        "awayTeam": {
+          "teamId": 1610612748,
+          "teamTricode": "MIA",
+          "teamName": "Heat",
+          "teamCity": "Miami",
+          "logoUrl": "https://cdn.nba.com/logos/nba/1610612748/global/L/logo.svg",
+          "score": 107
+        },
+        "gameStatus": 3,
+        "gameStatusText": "Final",
+        "period": 4,
+        "clock": "PT00M00.00S"
+      }
+    },
+    {
+      "id": "boxscore-tabs",
+      "type": "TabGroup",
+      "analyticsId": "boxscore_tab_group",
+      "data": {
+        "tabs": [
+          { "id": "away", "label": "MIA" },
+          { "id": "home", "label": "BOS" }
+        ],
+        "defaultTab": "away",
+        "stateKey": "boxscore_team",
+        "tabContents": {
+          "away": [
+            {
+              "id": "boxscore-away",
+              "type": "BoxscoreTable",
+              "analyticsId": "boxscore_away_table",
+              "data": {
+                "teamTricode": "MIA",
+                "teamName": "Heat",
+                "teamColor": "#98002E",
+                "teamLogoUrl": "https://cdn.nba.com/logos/nba/1610612748/global/L/logo.svg",
+                "sortStateKey": "boxscore_away_sortCol",
+                "sortDirectionStateKey": "boxscore_away_sortDir",
+                "emptyMessage": "Box score is not yet available.",
+                "columns": [
+                  { "key": "min", "label": "MIN", "sortable": true },
+                  { "key": "fgm", "label": "FGM", "sortable": true },
+                  { "key": "fga", "label": "FGA", "sortable": true },
+                  { "key": "fgPct", "label": "FG%", "sortable": true },
+                  { "key": "tpm", "label": "3PM", "sortable": true },
+                  { "key": "tpa", "label": "3PA", "sortable": true },
+                  { "key": "tpPct", "label": "3P%", "sortable": true },
+                  { "key": "ftm", "label": "FTM", "sortable": true },
+                  { "key": "fta", "label": "FTA", "sortable": true },
+                  { "key": "ftPct", "label": "FT%", "sortable": true },
+                  { "key": "oreb", "label": "OREB", "sortable": true },
+                  { "key": "dreb", "label": "DREB", "sortable": true },
+                  { "key": "reb", "label": "REB", "sortable": true },
+                  { "key": "ast", "label": "AST", "sortable": true },
+                  { "key": "stl", "label": "STL", "sortable": true },
+                  { "key": "blk", "label": "BLK", "sortable": true },
+                  { "key": "to", "label": "TO", "sortable": true },
+                  { "key": "pf", "label": "PF", "sortable": true },
+                  { "key": "pts", "label": "PTS", "sortable": true, "highlighted": true },
+                  { "key": "plusMinus", "label": "+/-", "sortable": true }
+                ],
+                "players": [
+                  {
+                    "playerId": "1629216",
+                    "name": "B. Adebayo",
+                    "position": "C",
+                    "jerseyNumber": "13",
+                    "imageUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1629216.png",
+                    "starter": true,
+                    "stats": {
+                      "min": "36:42", "fgm": "9", "fga": "17", "fgPct": ".529",
+                      "tpm": "0", "tpa": "1", "tpPct": ".000",
+                      "ftm": "5", "fta": "7", "ftPct": ".714",
+                      "oreb": "3", "dreb": "7", "reb": "10",
+                      "ast": "4", "stl": "1", "blk": "2",
+                      "to": "2", "pf": "3", "pts": "23", "plusMinus": "-5"
+                    }
+                  },
+                  {
+                    "playerId": "1628389",
+                    "name": "T. Herro",
+                    "position": "SG",
+                    "jerseyNumber": "14",
+                    "imageUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1628389.png",
+                    "starter": true,
+                    "stats": {
+                      "min": "34:18", "fgm": "7", "fga": "18", "fgPct": ".389",
+                      "tpm": "3", "tpa": "9", "tpPct": ".333",
+                      "ftm": "4", "fta": "4", "ftPct": "1.000",
+                      "oreb": "0", "dreb": "4", "reb": "4",
+                      "ast": "5", "stl": "0", "blk": "0",
+                      "to": "3", "pf": "2", "pts": "21", "plusMinus": "-8"
+                    }
+                  },
+                  {
+                    "playerId": "1629639",
+                    "name": "D. Robinson",
+                    "position": "SF",
+                    "jerseyNumber": "55",
+                    "imageUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1629639.png",
+                    "starter": true,
+                    "stats": {
+                      "min": "32:05", "fgm": "5", "fga": "12", "fgPct": ".417",
+                      "tpm": "4", "tpa": "10", "tpPct": ".400",
+                      "ftm": "0", "fta": "0", "ftPct": ".000",
+                      "oreb": "1", "dreb": "3", "reb": "4",
+                      "ast": "2", "stl": "1", "blk": "0",
+                      "to": "1", "pf": "4", "pts": "14", "plusMinus": "-6"
+                    }
+                  },
+                  {
+                    "playerId": "1630536",
+                    "name": "N. Jovic",
+                    "position": "PF",
+                    "jerseyNumber": "5",
+                    "imageUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1630536.png",
+                    "starter": true,
+                    "stats": {
+                      "min": "28:50", "fgm": "4", "fga": "9", "fgPct": ".444",
+                      "tpm": "2", "tpa": "5", "tpPct": ".400",
+                      "ftm": "2", "fta": "2", "ftPct": "1.000",
+                      "oreb": "1", "dreb": "5", "reb": "6",
+                      "ast": "3", "stl": "0", "blk": "1",
+                      "to": "1", "pf": "2", "pts": "12", "plusMinus": "-3"
+                    }
+                  },
+                  {
+                    "playerId": "1631105",
+                    "name": "T. Rozier",
+                    "position": "PG",
+                    "jerseyNumber": "3",
+                    "imageUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1631105.png",
+                    "starter": true,
+                    "stats": {
+                      "min": "33:15", "fgm": "6", "fga": "15", "fgPct": ".400",
+                      "tpm": "2", "tpa": "7", "tpPct": ".286",
+                      "ftm": "3", "fta": "4", "ftPct": ".750",
+                      "oreb": "0", "dreb": "2", "reb": "2",
+                      "ast": "6", "stl": "2", "blk": "0",
+                      "to": "4", "pf": "1", "pts": "17", "plusMinus": "-9"
+                    }
+                  },
+                  {
+                    "playerId": "1630549",
+                    "name": "H. Highsmith",
+                    "position": "PF",
+                    "jerseyNumber": "24",
+                    "imageUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1630549.png",
+                    "starter": false,
+                    "stats": {
+                      "min": "18:30", "fgm": "2", "fga": "5", "fgPct": ".400",
+                      "tpm": "1", "tpa": "3", "tpPct": ".333",
+                      "ftm": "0", "fta": "0", "ftPct": ".000",
+                      "oreb": "1", "dreb": "2", "reb": "3",
+                      "ast": "1", "stl": "1", "blk": "1",
+                      "to": "0", "pf": "3", "pts": "5", "plusMinus": "+2"
+                    }
+                  },
+                  {
+                    "playerId": "1630175",
+                    "name": "K. Love",
+                    "position": "C",
+                    "jerseyNumber": "42",
+                    "imageUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1630175.png",
+                    "starter": false,
+                    "stats": {
+                      "min": "14:20", "fgm": "3", "fga": "6", "fgPct": ".500",
+                      "tpm": "2", "tpa": "4", "tpPct": ".500",
+                      "ftm": "0", "fta": "0", "ftPct": ".000",
+                      "oreb": "2", "dreb": "4", "reb": "6",
+                      "ast": "1", "stl": "0", "blk": "0",
+                      "to": "1", "pf": "2", "pts": "8", "plusMinus": "+4"
+                    }
+                  },
+                  {
+                    "playerId": "1631168",
+                    "name": "J. Bridges",
+                    "position": "SG",
+                    "jerseyNumber": "11",
+                    "imageUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1631168.png",
+                    "starter": false,
+                    "stats": {
+                      "min": "12:00", "fgm": "2", "fga": "4", "fgPct": ".500",
+                      "tpm": "1", "tpa": "2", "tpPct": ".500",
+                      "ftm": "2", "fta": "2", "ftPct": "1.000",
+                      "oreb": "0", "dreb": "1", "reb": "1",
+                      "ast": "0", "stl": "0", "blk": "0",
+                      "to": "0", "pf": "1", "pts": "7", "plusMinus": "+3"
+                    }
+                  }
+                ],
+                "teamTotals": {
+                  "min": "240:00", "fgm": "38", "fga": "86", "fgPct": ".442",
+                  "tpm": "15", "tpa": "41", "tpPct": ".366",
+                  "ftm": "16", "fta": "19", "ftPct": ".842",
+                  "oreb": "8", "dreb": "28", "reb": "36",
+                  "ast": "22", "stl": "5", "blk": "4",
+                  "to": "12", "pf": "18", "pts": "107", "plusMinus": "-11"
+                }
+              }
+            }
+          ],
+          "home": [
+            {
+              "id": "boxscore-home",
+              "type": "BoxscoreTable",
+              "analyticsId": "boxscore_home_table",
+              "data": {
+                "teamTricode": "BOS",
+                "teamName": "Celtics",
+                "teamColor": "#007A33",
+                "teamLogoUrl": "https://cdn.nba.com/logos/nba/1610612738/global/L/logo.svg",
+                "sortStateKey": "boxscore_home_sortCol",
+                "sortDirectionStateKey": "boxscore_home_sortDir",
+                "emptyMessage": "Box score is not yet available.",
+                "columns": [
+                  { "key": "min", "label": "MIN", "sortable": true },
+                  { "key": "fgm", "label": "FGM", "sortable": true },
+                  { "key": "fga", "label": "FGA", "sortable": true },
+                  { "key": "fgPct", "label": "FG%", "sortable": true },
+                  { "key": "tpm", "label": "3PM", "sortable": true },
+                  { "key": "tpa", "label": "3PA", "sortable": true },
+                  { "key": "tpPct", "label": "3P%", "sortable": true },
+                  { "key": "ftm", "label": "FTM", "sortable": true },
+                  { "key": "fta", "label": "FTA", "sortable": true },
+                  { "key": "ftPct", "label": "FT%", "sortable": true },
+                  { "key": "oreb", "label": "OREB", "sortable": true },
+                  { "key": "dreb", "label": "DREB", "sortable": true },
+                  { "key": "reb", "label": "REB", "sortable": true },
+                  { "key": "ast", "label": "AST", "sortable": true },
+                  { "key": "stl", "label": "STL", "sortable": true },
+                  { "key": "blk", "label": "BLK", "sortable": true },
+                  { "key": "to", "label": "TO", "sortable": true },
+                  { "key": "pf", "label": "PF", "sortable": true },
+                  { "key": "pts", "label": "PTS", "sortable": true, "highlighted": true },
+                  { "key": "plusMinus", "label": "+/-", "sortable": true }
+                ],
+                "players": [
+                  {
+                    "playerId": "1628369",
+                    "name": "J. Tatum",
+                    "position": "SF",
+                    "jerseyNumber": "0",
+                    "imageUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1628369.png",
+                    "starter": true,
+                    "stats": {
+                      "min": "37:15", "fgm": "11", "fga": "21", "fgPct": ".524",
+                      "tpm": "3", "tpa": "8", "tpPct": ".375",
+                      "ftm": "7", "fta": "8", "ftPct": ".875",
+                      "oreb": "1", "dreb": "8", "reb": "9",
+                      "ast": "5", "stl": "1", "blk": "0",
+                      "to": "2", "pf": "2", "pts": "32", "plusMinus": "+14"
+                    }
+                  },
+                  {
+                    "playerId": "1627759",
+                    "name": "J. Brown",
+                    "position": "SG",
+                    "jerseyNumber": "7",
+                    "imageUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1627759.png",
+                    "starter": true,
+                    "stats": {
+                      "min": "35:48", "fgm": "9", "fga": "18", "fgPct": ".500",
+                      "tpm": "2", "tpa": "6", "tpPct": ".333",
+                      "ftm": "6", "fta": "7", "ftPct": ".857",
+                      "oreb": "2", "dreb": "5", "reb": "7",
+                      "ast": "3", "stl": "2", "blk": "1",
+                      "to": "3", "pf": "1", "pts": "26", "plusMinus": "+10"
+                    }
+                  },
+                  {
+                    "playerId": "1629684",
+                    "name": "D. White",
+                    "position": "PG",
+                    "jerseyNumber": "9",
+                    "imageUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1629684.png",
+                    "starter": true,
+                    "stats": {
+                      "min": "33:30", "fgm": "6", "fga": "12", "fgPct": ".500",
+                      "tpm": "4", "tpa": "8", "tpPct": ".500",
+                      "ftm": "2", "fta": "2", "ftPct": "1.000",
+                      "oreb": "0", "dreb": "3", "reb": "3",
+                      "ast": "7", "stl": "3", "blk": "1",
+                      "to": "1", "pf": "2", "pts": "18", "plusMinus": "+12"
+                    }
+                  },
+                  {
+                    "playerId": "1628464",
+                    "name": "A. Horford",
+                    "position": "C",
+                    "jerseyNumber": "42",
+                    "imageUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1628464.png",
+                    "starter": true,
+                    "stats": {
+                      "min": "30:05", "fgm": "5", "fga": "9", "fgPct": ".556",
+                      "tpm": "3", "tpa": "5", "tpPct": ".600",
+                      "ftm": "2", "fta": "2", "ftPct": "1.000",
+                      "oreb": "3", "dreb": "6", "reb": "9",
+                      "ast": "4", "stl": "0", "blk": "2",
+                      "to": "1", "pf": "3", "pts": "15", "plusMinus": "+8"
+                    }
+                  },
+                  {
+                    "playerId": "1630567",
+                    "name": "K. Porzingis",
+                    "position": "PF",
+                    "jerseyNumber": "8",
+                    "imageUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1630567.png",
+                    "starter": true,
+                    "stats": {
+                      "min": "28:22", "fgm": "7", "fga": "14", "fgPct": ".500",
+                      "tpm": "2", "tpa": "6", "tpPct": ".333",
+                      "ftm": "4", "fta": "5", "ftPct": ".800",
+                      "oreb": "2", "dreb": "4", "reb": "6",
+                      "ast": "1", "stl": "0", "blk": "3",
+                      "to": "2", "pf": "4", "pts": "20", "plusMinus": "+7"
+                    }
+                  },
+                  {
+                    "playerId": "1630174",
+                    "name": "P. Pritchard",
+                    "position": "PG",
+                    "jerseyNumber": "11",
+                    "imageUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1630174.png",
+                    "starter": false,
+                    "stats": {
+                      "min": "16:00", "fgm": "2", "fga": "5", "fgPct": ".400",
+                      "tpm": "1", "tpa": "3", "tpPct": ".333",
+                      "ftm": "0", "fta": "0", "ftPct": ".000",
+                      "oreb": "0", "dreb": "1", "reb": "1",
+                      "ast": "2", "stl": "1", "blk": "0",
+                      "to": "0", "pf": "1", "pts": "5", "plusMinus": "+1"
+                    }
+                  },
+                  {
+                    "playerId": "1641706",
+                    "name": "S. Hauser",
+                    "position": "SF",
+                    "jerseyNumber": "30",
+                    "imageUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1641706.png",
+                    "starter": false,
+                    "stats": {
+                      "min": "10:00", "fgm": "1", "fga": "3", "fgPct": ".333",
+                      "tpm": "0", "tpa": "2", "tpPct": ".000",
+                      "ftm": "0", "fta": "0", "ftPct": ".000",
+                      "oreb": "0", "dreb": "2", "reb": "2",
+                      "ast": "0", "stl": "0", "blk": "0",
+                      "to": "1", "pf": "0", "pts": "2", "plusMinus": "-1"
+                    }
+                  }
+                ],
+                "teamTotals": {
+                  "min": "240:00", "fgm": "41", "fga": "82", "fgPct": ".500",
+                  "tpm": "15", "tpa": "38", "tpPct": ".395",
+                  "ftm": "21", "fta": "24", "ftPct": ".875",
+                  "oreb": "8", "dreb": "29", "reb": "37",
+                  "ast": "22", "stl": "7", "blk": "7",
+                  "to": "10", "pf": "13", "pts": "118", "plusMinus": "+11"
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

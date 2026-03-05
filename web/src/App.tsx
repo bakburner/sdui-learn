@@ -5,9 +5,6 @@ import { SectionRouter } from './components/SectionRouter';
 import { TopNavigationBar } from './components/TopNavigationBar';
 import { createActionHandler, showToast } from './runtime/ActionHandler';
 
-// Demo game ID - Celtics vs Heat
-const DEMO_GAME_ID = '0042300102';
-
 const GAME_DETAIL_VARIANTS = [
   { id: 'A', label: 'Default', description: 'All sections, standard order' },
   { id: 'B', label: 'Reorder', description: 'ContentRail and TabGroup swapped' },
@@ -21,24 +18,50 @@ const SCOREBOARD_VARIANTS = [
   { id: 'F', label: 'Promo + Rail', description: 'Promo banner + content rail (when >2 games)' },
 ] as const;
 
+const VARIANT_PRESETS: Record<string, ReadonlyArray<{ id: string; label: string; description: string }>> = {
+  'nba://scoreboard': SCOREBOARD_VARIANTS,
+};
+
+/**
+ * Convert an nba:// URI to a server endpoint path.
+ *
+ *   nba://scoreboard        → /sdui/scoreboard
+ *   nba://game/0042300102   → /sdui/game-detail/0042300102?gameState=live
+ *   nba://boxscore/00423... → /sdui/boxscore/0042300102
+ *   nba://demos             → /sdui/demos
+ *   nba://anything/else     → /sdui/anything/else
+ */
+function resolveEndpoint(uri: string): string {
+  const path = uri.replace(/^nba:\/\//, '');
+
+  // Special case: game/{id} → game-detail/{id}?gameState=live
+  const gameMatch = path.match(/^game\/(.+)/);
+  if (gameMatch) {
+    return `/sdui/game-detail/${gameMatch[1]}?gameState=live`;
+  }
+
+  return `/sdui/${path}`;
+}
+
+function getVariants(uri: string): ReadonlyArray<{ id: string; label: string; description: string }> {
+  if (uri.startsWith('nba://game/')) {
+    return GAME_DETAIL_VARIANTS;
+  }
+  return VARIANT_PRESETS[uri] ?? [];
+}
+
 export function App(): React.ReactElement {
   const [variant, setVariant] = useState('A');
-  const [route, setRoute] = useState<{ screenType: 'scoreboard' | 'game-detail'; gameId?: string }>({
-    screenType: 'scoreboard',
-  });
+  const [currentUri, setCurrentUri] = useState('nba://scoreboard');
 
-  const variants = route.screenType === 'scoreboard' ? SCOREBOARD_VARIANTS : GAME_DETAIL_VARIANTS;
+  const variants = getVariants(currentUri);
 
   useEffect(() => {
     setVariant('A');
-  }, [route.screenType]);
+  }, [currentUri]);
 
-  const { screen, loading, error, refetch } = useSduiScreen({
-    screenType: route.screenType,
-    gameId: route.gameId ?? DEMO_GAME_ID,
-    gameState: 'live',
-    variant,
-  });
+  const endpoint = resolveEndpoint(currentUri);
+  const { screen, loading, error, refetch } = useSduiScreen({ endpoint, variant });
 
   // Screen-level state for TabGroup and other stateful sections
   const [screenState, setScreenState] = useState<Record<string, unknown>>({});
@@ -60,23 +83,7 @@ export function App(): React.ReactElement {
   }, [refetch]);
 
   const handleUriNavigate = useCallback((uri: string) => {
-    if (uri.startsWith('nba://game/')) {
-      setRoute({
-        screenType: 'game-detail',
-        gameId: uri.replace('nba://game/', ''),
-      });
-      return;
-    }
-    if (uri === 'nba://scoreboard') {
-      setRoute({ screenType: 'scoreboard' });
-      return;
-    }
-    const name = uri
-      .replace('nba://', '')
-      .replace(/\//g, ' ')
-      .replace(/-/g, ' ')
-      .replace(/^\w/, (c) => c.toUpperCase());
-    showToast(`Navigating to ${name} (not implemented)`);
+    setCurrentUri(uri);
   }, []);
 
   const handleAction = useCallback((action: Action) => {
@@ -130,7 +137,16 @@ export function App(): React.ReactElement {
     <div style={styles.container}>
       {/* Header */}
       <header style={styles.header}>
-        <h1 style={styles.title}>{screen.title || (route.screenType === 'scoreboard' ? "Today's Games" : 'Game Detail')}</h1>
+        {screen.parentUri && (
+          <button
+            style={styles.backButton}
+            onClick={() => handleUriNavigate(screen.parentUri!)}
+            aria-label="Back"
+          >
+            ←
+          </button>
+        )}
+        <h1 style={styles.title}>{screen.title || 'NBA'}</h1>
         <span style={styles.schemaVersion}>Schema v{screen.schemaVersion}</span>
       </header>
 
@@ -140,22 +156,24 @@ export function App(): React.ReactElement {
       />
 
       {/* Variant Selector - proves composability with zero client rendering changes */}
-      <div style={styles.variantBar}>
-        <span style={styles.variantLabel}>Variant:</span>
-        {variants.map((v) => (
-          <button
-            key={v.id}
-            style={{
-              ...styles.variantButton,
-              ...(variant === v.id ? styles.variantButtonActive : {}),
-            }}
-            onClick={() => setVariant(v.id)}
-            title={v.description}
-          >
-            {v.label}
-          </button>
-        ))}
-      </div>
+      {variants.length > 0 && (
+        <div style={styles.variantBar}>
+          <span style={styles.variantLabel}>Variant:</span>
+          {variants.map((v) => (
+            <button
+              key={v.id}
+              style={{
+                ...styles.variantButton,
+                ...(variant === v.id ? styles.variantButtonActive : {}),
+              }}
+              onClick={() => setVariant(v.id)}
+              title={v.description}
+            >
+              {v.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Sections */}
       <main style={styles.main}>
@@ -188,8 +206,9 @@ const styles: Record<string, React.CSSProperties> = {
     minHeight: '100vh',
     display: 'flex',
     flexDirection: 'column',
-    maxWidth: 480,
+    maxWidth: 1200,
     margin: '0 auto',
+    padding: '0 16px',
     backgroundColor: '#0f0f23',
   },
   header: {
@@ -199,6 +218,15 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '16px',
     backgroundColor: '#1a1a2e',
     borderBottom: '1px solid #333',
+  },
+  backButton: {
+    background: 'none',
+    border: 'none',
+    color: '#ffffff',
+    fontSize: 20,
+    cursor: 'pointer',
+    padding: '4px 8px',
+    marginRight: 8,
   },
   title: {
     fontSize: 18,

@@ -8,18 +8,21 @@ import com.nba.sdui.models.generated.Action
  */
 fun actionToSduiAction(action: Action?): SduiAction? {
     if (action == null) return null
-    val eventParams = action.eventParams?.additionalProperties?.mapValues { (_, v) -> v as Any }
+    val eventParams = action.params?.additionalProperties?.mapValues { (_, v) -> v as Any }
         ?: emptyMap<String, Any>()
     return SduiAction(
         trigger = action.trigger?.name?.lowercase() ?: "onTap",
         type = action.type?.name?.lowercase() ?: "navigate",
         targetUri = action.targetUri,
-        fallbackUrl = action.fallbackUrl,
-        eventName = action.eventName,
+        fallbackUrl = action.webUrl,
+        eventName = action.event,
         eventParams = if (eventParams.isEmpty()) null else eventParams,
-        stateKey = action.stateKey,
-        stateValue = action.stateValue,
-        sectionId = action.sectionId
+        stateKey = action.target,
+        stateValue = action.value,
+        sectionId = action.target,
+        endpoint = action.endpoint,
+        paramBindings = action.paramBindings?.additionalProperties
+            ?.mapValues { (_, v) -> v?.toString() ?: "" }
     )
 }
 
@@ -42,6 +45,9 @@ fun actionToSduiAction(map: Map<String, Any?>?): SduiAction? {
         eventParams = (map["eventParams"] as? Map<String, Any>)?.takeIf { it.isNotEmpty() },
         stateKey = map["stateKey"] as? String,
         stateValue = map["stateValue"],
-        sectionId = map["sectionId"] as? String
+        sectionId = map["sectionId"] as? String,
+        endpoint = map["endpoint"] as? String,
+        paramBindings = (map["paramBindings"] as? Map<String, Any?>)
+            ?.mapValues { (_, v) -> v?.toString() ?: "" }
     )
 }

@@ -197,3 +197,156 @@ private fun recordText(team: Map<String, Any?>): String {
     val losses = (team["losses"] as? Number)?.toInt()
     return if (wins != null && losses != null) "$wins-$losses" else "-"
 }
+
+// ============ BoxscoreTable ============
+
+data class BoxscoreColumnDef(
+    val key: String,
+    val label: String,
+    val sortable: Boolean = true,
+    val highlighted: Boolean = false,
+    val width: Int? = null
+)
+
+data class BoxscorePlayerRowUi(
+    val playerId: Int,
+    val name: String,
+    val imageUrl: String?,
+    val jerseyNumber: String?,
+    val position: String?,
+    val starter: Boolean,
+    val played: Boolean,
+    val notPlayingReason: String?,
+    val stats: Map<String, Any?>
+)
+
+data class BoxscoreTableUiModel(
+    val teamTricode: String,
+    val teamName: String,
+    val teamColor: String?,
+    val teamLogoUrl: String?,
+    val columns: List<BoxscoreColumnDef>,
+    val players: List<BoxscorePlayerRowUi>,
+    val teamTotals: Map<String, Any?>?,
+    val sortColumn: String?,
+    val sortDirection: String,
+    val sortStateKey: String?,
+    val sortDirectionStateKey: String?,
+    val emptyMessage: String?
+)
+
+@Suppress("UNCHECKED_CAST")
+fun mapBoxscoreTable(section: SduiSection, screenState: Map<String, Any>): BoxscoreTableUiModel? {
+    val data = section.data ?: return null
+
+    val sortStateKey = data["sortStateKey"] as? String
+    val sortDirectionStateKey = data["sortDirectionStateKey"] as? String
+    val sortColumn = sortStateKey?.let { screenState[it] as? String }
+    val sortDirection = (sortDirectionStateKey?.let { screenState[it] as? String } ?: "desc")
+
+    val rawColumns = data["columns"] as? List<Map<String, Any?>> ?: emptyList()
+    val columns = rawColumns.map { col ->
+        BoxscoreColumnDef(
+            key = (col["key"] as? String) ?: "",
+            label = (col["label"] as? String) ?: "",
+            sortable = (col["sortable"] as? Boolean) ?: true,
+            highlighted = (col["highlighted"] as? Boolean) ?: false,
+            width = (col["width"] as? Number)?.toInt()
+        )
+    }
+
+    val rawPlayers = data["players"] as? List<Map<String, Any?>> ?: emptyList()
+    val players = rawPlayers.map { p ->
+        val rawStats = p["stats"] as? Map<String, Any?> ?: emptyMap()
+        BoxscorePlayerRowUi(
+            playerId = (p["playerId"] as? Number)?.toInt() ?: 0,
+            name = (p["name"] as? String) ?: "",
+            imageUrl = p["imageUrl"] as? String,
+            jerseyNumber = p["jerseyNumber"] as? String,
+            position = p["position"] as? String,
+            starter = (p["starter"] as? Boolean) ?: false,
+            played = (p["played"] as? Boolean) ?: true,
+            notPlayingReason = p["notPlayingReason"] as? String,
+            stats = rawStats
+        )
+    }
+
+    val rawTotals = data["teamTotals"] as? Map<String, Any?>
+
+    return BoxscoreTableUiModel(
+        teamTricode = (data["teamTricode"] as? String) ?: "",
+        teamName = (data["teamName"] as? String) ?: "",
+        teamColor = data["teamColor"] as? String,
+        teamLogoUrl = data["teamLogoUrl"] as? String,
+        columns = columns,
+        players = players,
+        teamTotals = rawTotals,
+        sortColumn = sortColumn,
+        sortDirection = sortDirection,
+        sortStateKey = sortStateKey,
+        sortDirectionStateKey = sortDirectionStateKey,
+        emptyMessage = data["emptyMessage"] as? String
+    )
+}
+
+// ============ Form ============
+
+data class FormOptionUi(
+    val label: String,
+    val value: String
+)
+
+data class FormFieldUi(
+    val fieldId: String,
+    val fieldType: String,
+    val label: String?,
+    val stateKey: String,
+    val defaultValue: String?,
+    val options: List<FormOptionUi>,
+    val required: Boolean,
+    val disabled: Boolean,
+    val placeholder: String?
+)
+
+data class FormUiModel(
+    val fields: List<FormFieldUi>,
+    val submitAction: SduiAction?,
+    val submitLabel: String?,
+    val layout: String
+)
+
+@Suppress("UNCHECKED_CAST")
+fun mapForm(section: SduiSection, screenState: Map<String, Any>): FormUiModel? {
+    val data = section.data ?: return null
+    val rawFields = data["fields"] as? List<Map<String, Any?>> ?: return null
+
+    val fields = rawFields.map { f ->
+        val rawOptions = f["options"] as? List<Map<String, Any?>> ?: emptyList()
+        FormFieldUi(
+            fieldId = (f["fieldId"] as? String) ?: (f["id"] as? String) ?: "",
+            fieldType = (f["fieldType"] as? String) ?: "text",
+            label = f["label"] as? String,
+            stateKey = (f["stateKey"] as? String) ?: "",
+            defaultValue = f["defaultValue"] as? String,
+            options = rawOptions.map { o ->
+                FormOptionUi(
+                    label = (o["label"] as? String) ?: "",
+                    value = (o["value"] as? String) ?: ""
+                )
+            },
+            required = (f["required"] as? Boolean) ?: false,
+            disabled = (f["disabled"] as? Boolean) ?: false,
+            placeholder = f["placeholder"] as? String
+        )
+    }
+
+    val rawSubmitAction = data["submitAction"] as? Map<String, Any?>
+    val submitAction = rawSubmitAction?.let { actionToSduiAction(it) }
+
+    return FormUiModel(
+        fields = fields,
+        submitAction = submitAction,
+        submitLabel = data["submitLabel"] as? String,
+        layout = (data["layout"] as? String) ?: "vertical"
+    )
+}

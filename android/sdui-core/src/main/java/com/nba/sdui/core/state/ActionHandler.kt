@@ -17,7 +17,9 @@ data class SduiAction(
     val eventParams: Map<String, Any>? = null,
     val stateKey: String? = null,
     val stateValue: Any? = null,
-    val sectionId: String? = null
+    val sectionId: String? = null,
+    val endpoint: String? = null,
+    val paramBindings: Map<String, String>? = null
 )
 
 /**
@@ -46,7 +48,7 @@ class ActionHandler {
             "navigate" -> handleNavigate(action)
             "analytics" -> handleAnalytics(action)
             "mutate" -> handleMutate(action, stateManager)
-            "refresh" -> handleRefresh(action)
+            "refresh" -> handleRefresh(action, stateManager)
             "dismiss" -> handleDismiss(action)
             else -> {
                 Log.w(TAG, "Unknown action type: ${action.type}")
@@ -98,11 +100,29 @@ class ActionHandler {
         return ActionResult.MutateResult(key, value)
     }
     
-    private fun handleRefresh(action: SduiAction): ActionResult {
+    private fun handleRefresh(action: SduiAction, stateManager: StateManager): ActionResult {
         val sectionId = action.sectionId
-        
+        val endpoint = action.endpoint
+        val paramBindings = action.paramBindings
+
+        if (!paramBindings.isNullOrEmpty() && endpoint != null) {
+            // Parameterized refresh: resolve bindings from screen state → query params
+            val resolvedParams = paramBindings.mapValues { (_, stateKey) ->
+                stateManager.getState(stateKey)?.toString() ?: ""
+            }
+            val queryString = resolvedParams.entries
+                .filter { it.value.isNotEmpty() }
+                .joinToString("&") { "${it.key}=${it.value}" }
+            val separator = if ("?" in endpoint) "&" else "?"
+            val url = "$endpoint$separator$queryString"
+
+            Log.i(TAG, "Parameterized refresh: url=$url")
+            // In a real implementation, this would fetch the URL and replace screen data.
+            // For the prototype, we return the resolved URL for the UI layer to handle.
+            return ActionResult.ParameterizedRefreshResult(url, resolvedParams)
+        }
+
         Log.i(TAG, "Refresh: sectionId=$sectionId")
-        // In a real implementation, this would trigger a re-fetch
         return ActionResult.RefreshResult(sectionId)
     }
     
@@ -119,6 +139,7 @@ class ActionHandler {
         data class AnalyticsResult(val eventName: String, val params: Map<String, Any>) : ActionResult()
         data class MutateResult(val key: String, val value: Any?) : ActionResult()
         data class RefreshResult(val sectionId: String?) : ActionResult()
+        data class ParameterizedRefreshResult(val url: String, val params: Map<String, String>) : ActionResult()
         data object DismissResult : ActionResult()
         data class Error(val message: String) : ActionResult()
         data class Unknown(val actionType: String) : ActionResult()

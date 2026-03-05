@@ -92,6 +92,26 @@ fun SectionRouter(
                 modifier = modifier
             )
         }
+
+        "BoxscoreTable" -> {
+            BoxscoreTableRenderer(
+                section = section,
+                screenState = screenState,
+                onAction = onAction,
+                onStateChange = onStateChange,
+                modifier = modifier
+            )
+        }
+
+        "Form" -> {
+            FormRenderer(
+                section = section,
+                screenState = screenState,
+                onAction = onAction,
+                onStateChange = onStateChange,
+                modifier = modifier
+            )
+        }
         
         else -> {
             // Unknown section type - skip gracefully
@@ -113,5 +133,7 @@ val SUPPORTED_SECTION_TYPES = setOf(
     "TabGroup",
     "PromoBanner",
     "GameCard",
-    "Row"
+    "Row",
+    "BoxscoreTable",
+    "Form"
 )

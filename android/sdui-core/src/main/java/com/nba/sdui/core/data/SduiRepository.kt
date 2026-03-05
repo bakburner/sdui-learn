@@ -111,6 +111,41 @@ class SduiRepository(
     }
     
     /**
+     * Fetch any SDUI screen by its resolved server path.
+     *
+     * @param path  Path relative to baseUrl, e.g. "/sdui/demos"
+     */
+    suspend fun fetchScreen(
+        path: String,
+        variant: String = "A"
+    ): SduiScreen = withContext(Dispatchers.IO) {
+        val separator = if (path.contains("?")) "&" else "?"
+        val url = "$baseUrl$path${separator}variant=$variant"
+
+        Log.d(TAG, "Fetching screen: $url")
+
+        val request = Request.Builder()
+            .url(url)
+            .header("X-Schema-Version", SCHEMA_VERSION)
+            .build()
+
+        val response = httpClient.newCall(request).execute()
+        if (!response.isSuccessful) {
+            throw SduiException("Failed to fetch screen: ${response.code}")
+        }
+
+        val body = response.body?.string()
+            ?: throw SduiException("Empty response body")
+
+        try {
+            objectMapper.readValue(body, SduiScreen::class.java)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to parse screen response", e)
+            throw SduiException("Failed to parse screen response: ${e.message}")
+        }
+    }
+
+    /**
      * Fetch player stats for a game.
      */
     suspend fun getStats(gameId: String): Map<String, Any> = withContext(Dispatchers.IO) {

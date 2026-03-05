@@ -13,9 +13,10 @@ data class SduiConfig(
     val gameId: String? = null,
     val variant: String = "A",
     val enableAbly: Boolean,
-    val enablePolling: Boolean
+    val enablePolling: Boolean,
+    val uri: String? = null
 ) {
-    enum class ScreenType { SCOREBOARD, GAME_DETAIL }
+    enum class ScreenType { SCOREBOARD, GAME_DETAIL, GENERIC }
     
     companion object {
         fun scoreboard(variant: String = "A") = SduiConfig(
@@ -32,6 +33,17 @@ data class SduiConfig(
             enableAbly = true,
             enablePolling = true
         )
+
+        /**
+         * Factory for any server-driven screen.
+         * No Ably/polling — the server's refreshPolicy drives data updates.
+         */
+        fun fromUri(uri: String) = SduiConfig(
+            screenType = ScreenType.GENERIC,
+            uri = uri,
+            enableAbly = false,
+            enablePolling = false
+        )
     }
 
     /**
@@ -44,7 +56,7 @@ data class SduiConfig(
         SduiScreenConfig(
             baseUrl = baseUrl,
             ablyTokenUrl = ablyTokenUrl,
-            screenId = gameId ?: "scoreboard",
+            screenId = gameId ?: uri ?: "scoreboard",
             gameState = "live",
             variant = variant,
             enableAbly = enableAbly,

@@ -34,7 +34,7 @@ fun GameDetailScreen(
     viewModel: GameDetailViewModel = viewModel(
         // Key on the full config so a NEW ViewModel is created whenever
         // variant or gameId changes.
-        key = "sdui_${config.gameId}_${config.variant}_${config.screenType}"
+        key = "sdui_${config.gameId}_${config.variant}_${config.screenType}_${config.uri}"
     ) {
         GameDetailViewModel(
             baseUrl = BuildConfig.SDUI_BASE_URL,
@@ -52,6 +52,7 @@ fun GameDetailScreen(
         when (config.screenType) {
             SduiConfig.ScreenType.SCOREBOARD -> viewModel.loadScoreboard()
             SduiConfig.ScreenType.GAME_DETAIL -> viewModel.loadGameDetail(config.gameId ?: "")
+            SduiConfig.ScreenType.GENERIC -> viewModel.loadGenericScreen(config.uri ?: "")
         }
     }
 
@@ -69,6 +70,7 @@ fun GameDetailScreen(
                     when (config.screenType) {
                         SduiConfig.ScreenType.SCOREBOARD -> viewModel.loadScoreboard(result.sectionId)
                         SduiConfig.ScreenType.GAME_DETAIL -> viewModel.loadGameDetail(config.gameId ?: "", result.sectionId)
+                        SduiConfig.ScreenType.GENERIC -> viewModel.loadGenericScreen(config.uri ?: "", result.sectionId)
                     }
                 }
                 else -> {}
@@ -81,15 +83,20 @@ fun GameDetailScreen(
         TopAppBar(
             title = {
                 Text(
-                    text = when {
-                        config.screenType == SduiConfig.ScreenType.SCOREBOARD -> "Today's Games"
-                        else -> "Game: ${config.gameId}"
-                    }
+                    text = screenState.screen?.title
+                        ?: when (config.screenType) {
+                            SduiConfig.ScreenType.SCOREBOARD -> "Today's Games"
+                            SduiConfig.ScreenType.GAME_DETAIL -> "Game: ${config.gameId}"
+                            SduiConfig.ScreenType.GENERIC -> "NBA"
+                        }
                 )
             },
             navigationIcon = {
-                if (config.screenType == SduiConfig.ScreenType.GAME_DETAIL) {
-                    IconButton(onClick = onBack) {
+                val parentUri = (uiState as? SduiScreenUiState.Success)?.screen?.parentUri
+                if (config.screenType != SduiConfig.ScreenType.SCOREBOARD) {
+                    IconButton(onClick = {
+                        if (parentUri != null) onNavigateUri(parentUri) else onBack()
+                    }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back"
@@ -99,22 +106,25 @@ fun GameDetailScreen(
             }
         )
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            val variants = when (config.screenType) {
-                SduiConfig.ScreenType.SCOREBOARD -> listOf("A" to "Default", "E" to "Promo", "F" to "Promo + Rail")
-                SduiConfig.ScreenType.GAME_DETAIL -> listOf("A" to "Default", "B" to "Reorder", "C" to "Minimal", "D" to "Extra Rail")
-            }
-            variants.forEach { (id, label) ->
-                FilterChip(
-                    selected = config.variant == id,
-                    onClick = { onVariantChange(id) },
-                    label = { Text(label) }
-                )
+        if (config.screenType != SduiConfig.ScreenType.GENERIC) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                val variants = when (config.screenType) {
+                    SduiConfig.ScreenType.SCOREBOARD -> listOf("A" to "Default", "E" to "Promo", "F" to "Promo + Rail")
+                    SduiConfig.ScreenType.GAME_DETAIL -> listOf("A" to "Default", "B" to "Reorder", "C" to "Minimal", "D" to "Extra Rail")
+                    SduiConfig.ScreenType.GENERIC -> emptyList()
+                }
+                variants.forEach { (id, label) ->
+                    FilterChip(
+                        selected = config.variant == id,
+                        onClick = { onVariantChange(id) },
+                        label = { Text(label) }
+                    )
+                }
             }
         }
 
@@ -133,6 +143,7 @@ fun GameDetailScreen(
                     when (config.screenType) {
                         SduiConfig.ScreenType.SCOREBOARD -> viewModel.loadScoreboard()
                         SduiConfig.ScreenType.GAME_DETAIL -> viewModel.loadGameDetail(config.gameId ?: "")
+                        SduiConfig.ScreenType.GENERIC -> viewModel.loadGenericScreen(config.uri ?: "")
                     }
                 },
                 onAction = { viewModel.handleAction(it) },

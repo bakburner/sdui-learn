@@ -40,6 +40,18 @@ open class SduiScreenViewModel(
         private const val MIN_POLL_INTERVAL_MS = 5000L
         private const val ENDPOINT_GAME_DETAIL = "game-detail"
         private const val ENDPOINT_SCOREBOARD = "scoreboard"
+
+        /**
+         * Convert nba:// URI to server endpoint path.
+         */
+        fun resolveEndpoint(uri: String): String {
+            val path = uri.removePrefix("nba://")
+            val gameMatch = Regex("^game/(.+)").find(path)
+            if (gameMatch != null) {
+                return "/sdui/game-detail/${gameMatch.groupValues[1]}?gameState=live"
+            }
+            return "/sdui/$path"
+        }
     }
 
     // ── Dependencies (all from sdui-core) ────────────────────────────
@@ -156,16 +168,45 @@ open class SduiScreenViewModel(
         }
     }
 
+    /**
+     * Load a screen from a generic nba:// URI.
+     */
+    fun loadFromUri(uri: String, sectionId: String? = null) {
+        currentEndpoint = uri   // store URI for refresh
+        currentScreenId = uri
+
+        viewModelScope.launch {
+            if (sectionId == null) {
+                _uiState.value = SduiScreenUiState.Loading
+            }
+            try {
+                val endpoint = resolveEndpoint(uri)
+                Log.d(TAG, "Loading from URI: $uri → $endpoint")
+                val screen = repository.fetchScreen(endpoint, config.variant)
+                currentScreen = screen
+
+                screen.state?.forEach { (key, value) ->
+                    stateManager.setState(key, value)
+                }
+                _uiState.value = SduiScreenUiState.Success(screen)
+                if (config.enablePolling) setupPolling(screen)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to load from URI: $uri", e)
+                _uiState.value = SduiScreenUiState.Error(e.message ?: "Unknown error")
+            }
+        }
+    }
+
     /** Pull-to-refresh. */
     fun refresh() {
         val id = currentScreenId ?: return
         viewModelScope.launch {
             _isRefreshing.value = true
             try {
-                val screen = if (currentEndpoint == ENDPOINT_SCOREBOARD) {
-                    repository.getScoreboard(config.variant)
-                } else {
-                    repository.getGameDetail(id, "live", config.variant)
+                val screen = when (currentEndpoint) {
+                    ENDPOINT_SCOREBOARD -> repository.getScoreboard(config.variant)
+                    ENDPOINT_GAME_DETAIL -> repository.getGameDetail(id, "live", config.variant)
+                    else -> repository.fetchScreen(resolveEndpoint(currentEndpoint), config.variant)
                 }
                 currentScreen = screen
                 screen.state?.forEach { (k, v) -> stateManager.setState(k, v) }
@@ -221,10 +262,10 @@ open class SduiScreenViewModel(
                                 val data = repository.fetchRawJson(pollUrl, dataPath)
                                 updateSectionData(section.id, data)
                             } else {
-                                val updated = if (currentEndpoint == ENDPOINT_SCOREBOARD) {
-                                    repository.getScoreboard(config.variant)
-                                } else {
-                                    repository.getGameDetail(id, "live", config.variant)
+                                val updated = when (currentEndpoint) {
+                                    ENDPOINT_SCOREBOARD -> repository.getScoreboard(config.variant)
+                                    ENDPOINT_GAME_DETAIL -> repository.getGameDetail(id, "live", config.variant)
+                                    else -> repository.fetchScreen(resolveEndpoint(currentEndpoint), config.variant)
                                 }
                                 currentScreen = updated
                                 _uiState.value = SduiScreenUiState.Success(updated)

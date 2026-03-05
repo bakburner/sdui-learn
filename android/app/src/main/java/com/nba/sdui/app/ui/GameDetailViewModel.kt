@@ -28,4 +28,11 @@ class GameDetailViewModel(
     fun loadGameDetail(gameId: String, sectionId: String? = null, gameState: String = "live") {
         loadScreen(screenId = gameId, sectionId = sectionId, gameState = gameState)
     }
+
+    /**
+     * Convenience: load from a generic nba:// URI.
+     */
+    fun loadGenericScreen(uri: String, sectionId: String? = null) {
+        loadFromUri(uri = uri, sectionId = sectionId)
+    }
 }

@@ -48,16 +48,8 @@ class MainActivity : ComponentActivity() {
                                     currentConfig = SduiConfig.scoreboard()
                                 }
                                 else -> {
-                                    val name = targetUri
-                                        .removePrefix("nba://")
-                                        .replace("/", " ")
-                                        .replaceFirstChar { it.uppercase() }
-                                        .replace("-", " ")
-                                    scope.launch {
-                                        snackbarHostState.showSnackbar(
-                                            "Navigating to $name (not implemented)"
-                                        )
-                                    }
+                                    // Generic server-driven screen — no client enum needed
+                                    currentConfig = SduiConfig.fromUri(targetUri)
                                 }
                             }
                         },
@@ -68,6 +60,7 @@ class MainActivity : ComponentActivity() {
                                     gameId = config.gameId ?: "0042300102",
                                     variant = nextVariant
                                 )
+                                SduiConfig.ScreenType.GENERIC -> config.copy(variant = nextVariant)
                             }
                         },
                         onBack = {

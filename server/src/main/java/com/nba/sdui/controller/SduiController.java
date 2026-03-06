@@ -237,24 +237,24 @@ public class SduiController {
         log.info("SDUI parameterized refresh: screenId={}, params={}", screenId, allParams);
 
         try {
-            // Build a fresh screen incorporating the submitted param values.
-            // The params map flows into screen-level state so the Form reflects
-            // whatever the user submitted.
-            ObjectNode screenResponse = objectMapper.createObjectNode();
-            screenResponse.put("id", screenId);
-            screenResponse.put("traceId", traceId);
-            screenResponse.put("schemaVersion", "1.0");
+            JsonNode screenResponse;
 
-            // Echo submitted params back as screen state so form fields retain
-            // their selected values after refresh.
-            ObjectNode state = objectMapper.createObjectNode();
-            allParams.forEach(state::put);
-            screenResponse.set("state", state);
+            if ("stats-leaders".equals(screenId)) {
+                // Delegate to the composition service for leaders-table refresh
+                screenResponse = compositionService.composeLeadersRefresh(traceId, allParams);
+            } else {
+                // Generic placeholder for screens without a dedicated composer
+                ObjectNode placeholder = objectMapper.createObjectNode();
+                placeholder.put("id", screenId);
+                placeholder.put("traceId", traceId);
+                placeholder.put("schemaVersion", "1.0");
 
-            // Placeholder sections — in a real implementation this would
-            // delegate to a screen-specific composition method that uses the
-            // params to fetch upstream data and compose sections accordingly.
-            screenResponse.set("sections", objectMapper.createArrayNode());
+                ObjectNode state = objectMapper.createObjectNode();
+                allParams.forEach(state::put);
+                placeholder.set("state", state);
+                placeholder.set("sections", objectMapper.createArrayNode());
+                screenResponse = placeholder;
+            }
 
             response.setHeader("X-Trace-Id", traceId);
             response.setHeader("X-Schema-Version", "1.0");

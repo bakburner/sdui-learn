@@ -1,0 +1,287 @@
+package com.nba.sdui.service;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import java.io.IOException;
+
+/**
+ * Composes the Scoreboard SDUI screen from live NBA scoreboard data with
+ * example-file fallback, and applies server-driven variant transformations
+ * (E — promo banner, F — promo + content rail).
+ */
+@Component
+public class ScoreboardComposer {
+
+    private static final Logger log = LoggerFactory.getLogger(ScoreboardComposer.class);
+
+    private final ObjectMapper objectMapper;
+    private final StatsApiClient statsApiClient;
+    private final SduiUtils utils;
+
+    @Value("${sdui.schema.version:1.0}")
+    private String schemaVersion;
+
+    public ScoreboardComposer(ObjectMapper objectMapper,
+                              StatsApiClient statsApiClient,
+                              SduiUtils utils) {
+        this.objectMapper = objectMapper;
+        this.statsApiClient = statsApiClient;
+        this.utils = utils;
+    }
+
+    // ── Public entry point ─────────────────────────────────────────────
+
+    /**
+     * Compose a Scoreboard SDUI screen response.
+     */
+    public JsonNode composeScoreboard(String variant, String clientSchemaVersion,
+                                      String traceId) throws IOException {
+        log.info("Composing scoreboard: variant={}", variant);
+
+        ObjectNode response = composeScoreboardFromLiveData();
+        if (response == null) {
+            log.warn("Live scoreboard unavailable or no in-progress games, falling back to static scoreboard example");
+            response = utils.loadExampleByFilename("scoreboard-live.json");
+        }
+
+        if (response == null) {
+            response = objectMapper.createObjectNode();
+            response.put("id", "scoreboard-live");
+            response.put("title", "Today's Games");
+            response.set("sections", objectMapper.createArrayNode());
+        }
+
+        response.put("traceId", traceId);
+        response.put("schemaVersion", schemaVersion);
+        response.set("navigation", utils.buildNavigation("scoreboard"));
+
+        if (variant != null) {
+            switch (variant.toUpperCase()) {
+                case "E" -> applyScoreboardVariantPromo(response);
+                case "F" -> applyScoreboardVariantPromoRail(response);
+                default -> log.debug("Scoreboard using default variant (no transformation)");
+            }
+        }
+
+        return response;
+    }
+
+    // ── Live-data composition ──────────────────────────────────────────
+
+    private ObjectNode composeScoreboardFromLiveData() {
+        try {
+            JsonNode scoreboard = statsApiClient.getScoreboard();
+            if (scoreboard == null) {
+                return null;
+            }
+
+            JsonNode games = scoreboard.path("scoreboard").path("games");
+            if (!games.isArray()) {
+                return null;
+            }
+
+            ObjectNode response = objectMapper.createObjectNode();
+            response.put("id", "scoreboard-live");
+            response.put("title", "Today's Games");
+            response.put("analyticsId", "scoreboard_live");
+
+            ArrayNode sections = objectMapper.createArrayNode();
+            for (JsonNode game : games) {
+                String gameId = game.path("gameId").asText(null);
+                if (gameId == null || gameId.isBlank()) {
+                    continue;
+                }
+                sections.add(buildScoreboardRowSection(game, gameId));
+            }
+            if (sections.isEmpty()) {
+                log.warn("Live scoreboard has no games for today");
+                return null;
+            }
+            response.set("sections", sections);
+            return response;
+        } catch (Exception e) {
+            log.error("Failed to compose scoreboard from live data: {}", e.getMessage(), e);
+            return null;
+        }
+    }
+
+    // ── Section builders ───────────────────────────────────────────────
+
+    private ObjectNode buildScoreboardRowSection(JsonNode game, String gameId) {
+        ObjectNode section = objectMapper.createObjectNode();
+        section.put("id", "game-" + gameId);
+        section.put("type", "ScoreboardHeader");
+        section.put("analyticsId", "scoreboard_row_" + gameId);
+
+        ObjectNode data = objectMapper.createObjectNode();
+        int gameStatus = game.path("gameStatus").asInt(1);
+
+        if (gameStatus == 2) {
+            ObjectNode refreshPolicy = objectMapper.createObjectNode();
+            refreshPolicy.put("type", "sse");
+            refreshPolicy.put("channel", gameId + ":linescore");
+            section.set("refreshPolicy", refreshPolicy);
+
+            section.set("dataBindings", utils.buildLinescoreBindings());
+        } else {
+            section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
+        }
+        data.put("gameId", gameId);
+        data.put("gameStatus", gameStatus);
+        data.put("gameStatusText", game.path("gameStatusText").asText(""));
+        data.put("period", game.path("period").asInt(0));
+        data.put("gameClock", game.path("gameClock").asText(""));
+
+        data.set("homeTeam", mapGameCardTeam(game.path("homeTeam")));
+        data.set("awayTeam", mapGameCardTeam(game.path("awayTeam")));
+
+        ArrayNode actions = objectMapper.createArrayNode();
+        ObjectNode action = objectMapper.createObjectNode();
+        action.put("trigger", "onTap");
+        action.put("type", "navigate");
+        action.put("targetUri", "nba://game/" + gameId);
+        actions.add(action);
+        data.set("actions", actions);
+
+        section.set("data", data);
+        return section;
+    }
+
+    private ObjectNode mapGameCardTeam(JsonNode team) {
+        ObjectNode mapped = objectMapper.createObjectNode();
+        mapped.put("teamId", team.path("teamId").asInt());
+        mapped.put("teamTricode", team.path("teamTricode").asText(""));
+        mapped.put("teamName", team.path("teamName").asText(""));
+        mapped.put("teamCity", team.path("teamCity").asText(""));
+        mapped.put("score", team.path("score").asInt(0));
+        mapped.put("logoUrl", "https://cdn.nba.com/logos/nba/" + team.path("teamId").asText() + "/global/L/logo.svg");
+
+        if (team.has("wins")) {
+            mapped.put("wins", team.path("wins").asInt());
+        }
+        if (team.has("losses")) {
+            mapped.put("losses", team.path("losses").asInt());
+        }
+        return mapped;
+    }
+
+    private ObjectNode mapLeader(JsonNode leader) {
+        ObjectNode mapped = objectMapper.createObjectNode();
+        mapped.put("name", leader.path("name").asText(""));
+        mapped.put("points", leader.path("points").asInt(0));
+        mapped.put("rebounds", leader.path("rebounds").asInt(0));
+        mapped.put("assists", leader.path("assists").asInt(0));
+        return mapped;
+    }
+
+    // ── Variant transformations ────────────────────────────────────────
+
+    private void applyScoreboardVariantPromo(ObjectNode response) {
+        if (!response.has("sections")) return;
+
+        ArrayNode sections = (ArrayNode) response.get("sections");
+        ArrayNode updated = objectMapper.createArrayNode();
+        updated.add(buildScoreboardPromoBanner());
+        for (JsonNode section : sections) {
+            updated.add(section);
+        }
+        response.set("sections", updated);
+        log.debug("Applied scoreboard variant Promo: inserted PromoBanner at index 0, {} sections total", updated.size());
+    }
+
+    private void applyScoreboardVariantPromoRail(ObjectNode response) {
+        if (!response.has("sections")) return;
+
+        ArrayNode sections = (ArrayNode) response.get("sections");
+        int gameCount = sections.size();
+
+        ArrayNode updated = objectMapper.createArrayNode();
+        updated.add(buildScoreboardPromoBanner());
+
+        for (int i = 0; i < sections.size(); i++) {
+            updated.add(sections.get(i));
+            if (i == 1 && gameCount > 2) {
+                updated.add(buildScoreboardContentRail());
+            }
+        }
+
+        response.set("sections", updated);
+        log.debug("Applied scoreboard variant PromoRail: promo at 0, rail after game 2 ({}), {} sections total",
+                gameCount > 2 ? "inserted" : "skipped", updated.size());
+    }
+
+    private ObjectNode buildScoreboardPromoBanner() {
+        ObjectNode section = objectMapper.createObjectNode();
+        section.put("id", "scoreboard-promo");
+        section.put("type", "PromoBanner");
+        section.put("analyticsId", "scoreboard_promo_banner");
+        section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
+
+        ObjectNode data = objectMapper.createObjectNode();
+        data.put("title", "NBA League Pass");
+        data.put("description", "Watch every out-of-market game live or on demand.");
+        data.put("imageUrl", "https://cdn.nba.com/promo/league-pass-banner.jpg");
+
+        ArrayNode actions = objectMapper.createArrayNode();
+        ObjectNode action = objectMapper.createObjectNode();
+        action.put("trigger", "onTap");
+        action.put("type", "navigate");
+        action.put("targetUri", "nba://leaguepass");
+        action.put("fallbackUrl", "https://www.nba.com/watch/league-pass");
+        actions.add(action);
+        data.set("actions", actions);
+
+        section.set("data", data);
+        return section;
+    }
+
+    private ObjectNode buildScoreboardContentRail() {
+        ObjectNode section = objectMapper.createObjectNode();
+        section.put("id", "scoreboard-content-rail");
+        section.put("type", "ContentRail");
+        section.put("analyticsId", "scoreboard_content_rail");
+        section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
+
+        ObjectNode data = objectMapper.createObjectNode();
+        data.put("title", "Around the League");
+
+        ArrayNode cards = objectMapper.createArrayNode();
+
+        ObjectNode card1 = objectMapper.createObjectNode();
+        card1.put("id", "league-1");
+        card1.put("thumbnailUrl", "https://cdn.nba.com/manage/2024/04/top10-plays.jpg");
+        card1.put("headline", "Top 10 Plays of the Night");
+        card1.put("subhead", "Last night's best moments");
+        card1.put("contentType", "video");
+        ObjectNode a1 = objectMapper.createObjectNode();
+        a1.put("trigger", "onTap");
+        a1.put("type", "navigate");
+        a1.put("targetUri", "nba://video/top10-plays");
+        card1.set("action", a1);
+        cards.add(card1);
+
+        ObjectNode card2 = objectMapper.createObjectNode();
+        card2.put("id", "league-2");
+        card2.put("thumbnailUrl", "https://cdn.nba.com/manage/2024/04/standings.jpg");
+        card2.put("headline", "Standings Update");
+        card2.put("subhead", "Current playoff picture");
+        card2.put("contentType", "article");
+        ObjectNode a2 = objectMapper.createObjectNode();
+        a2.put("trigger", "onTap");
+        a2.put("type", "navigate");
+        a2.put("targetUri", "nba://standings");
+        card2.set("action", a2);
+        cards.add(card2);
+
+        data.set("cards", cards);
+        section.set("data", data);
+        return section;
+    }
+}

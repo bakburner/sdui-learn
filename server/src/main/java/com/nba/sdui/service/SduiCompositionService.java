@@ -30,6 +30,9 @@ public class SduiCompositionService {
     private final ScoreboardComposer scoreboardComposer;
     private final BoxscoreComposer boxscoreComposer;
     private final DemoScreenComposer demoScreenComposer;
+    private final ForYouComposer forYouComposer;
+    private final WatchComposer watchComposer;
+    private final LiveComposer liveComposer;
 
     public SduiCompositionService(ObjectMapper objectMapper,
                                    StatsApiClient statsApiClient,
@@ -37,7 +40,10 @@ public class SduiCompositionService {
                                    GameDetailComposer gameDetailComposer,
                                    ScoreboardComposer scoreboardComposer,
                                    BoxscoreComposer boxscoreComposer,
-                                   DemoScreenComposer demoScreenComposer) {
+                                   DemoScreenComposer demoScreenComposer,
+                                   ForYouComposer forYouComposer,
+                                   WatchComposer watchComposer,
+                                   LiveComposer liveComposer) {
         this.objectMapper = objectMapper;
         this.statsApiClient = statsApiClient;
         this.utils = utils;
@@ -45,6 +51,9 @@ public class SduiCompositionService {
         this.scoreboardComposer = scoreboardComposer;
         this.boxscoreComposer = boxscoreComposer;
         this.demoScreenComposer = demoScreenComposer;
+        this.forYouComposer = forYouComposer;
+        this.watchComposer = watchComposer;
+        this.liveComposer = liveComposer;
     }
 
     // ── Screen delegation ──────────────────────────────────────────────
@@ -69,8 +78,24 @@ public class SduiCompositionService {
         return demoScreenComposer.composeDemos(traceId);
     }
 
+    public JsonNode composeLeaders(String traceId) {
+        return demoScreenComposer.composeLeaders(traceId);
+    }
+
     public ObjectNode composeLeadersRefresh(String traceId, Map<String, String> params) {
         return demoScreenComposer.composeLeadersRefresh(traceId, params);
+    }
+
+    public JsonNode composeForYou(String traceId) {
+        return forYouComposer.composeForYou(traceId);
+    }
+
+    public JsonNode composeWatch(String traceId) {
+        return watchComposer.composeWatch(traceId);
+    }
+
+    public JsonNode composeLive(String traceId) {
+        return liveComposer.composeLive(traceId);
     }
 
     // ── Stats-polling helpers (kept here — they need StatsApiClient) ──
@@ -92,6 +117,7 @@ public class SduiCompositionService {
     private JsonNode transformBoxscoreToStatLines(JsonNode boxscore) {
         ObjectNode result = objectMapper.createObjectNode();
         result.put("title", "Top Performers");
+        result.put("layout", "vertical");
 
         ArrayNode stats = objectMapper.createArrayNode();
         extractTopPerformers(boxscore.path("homeTeam"), stats);
@@ -130,6 +156,7 @@ public class SduiCompositionService {
     private JsonNode createMockStats(String gameId) {
         ObjectNode result = objectMapper.createObjectNode();
         result.put("title", "Top Performers");
+        result.put("layout", "vertical");
 
         ArrayNode stats = objectMapper.createArrayNode();
         stats.add(utils.createStatLine(1627759, "Jaylen Brown", "BOS", "PTS", "31"));

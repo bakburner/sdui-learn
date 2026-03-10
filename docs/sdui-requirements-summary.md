@@ -16,7 +16,7 @@
 | 2026-02-24 | Added i18n requirement (9p) with two-layer strategy (server-resolved default + `stringKeys` on data bindings). Added locale transport policy to 9o (`locale` query param on GET, body on POST; `Accept-Language` rejected). |
 | 2026-02-25 | Added `stringKeys` to binding contract JSON example in section 3. Added JSON snippet with explanation to i18n section (9p). Added revision history. |
 | 2026-02-25 | Established platform-aware composition as settled architectural position: shared schema, shared data pipeline, per-platform-family composition responses. Renamed `fallbackUrl` → `webUrl` in action contract. Updated platform coverage, 9b, 9m. |
-| 2026-02-27 | Cross-document consistency review. Replaced `entitlements` references with `userContext` in governance, schema decisions, and 9o to align with Technical Proposal. |
+| 2026-02-27 | Cross-document consistency review. Replaced `entitlements` references with `device` in governance, schema decisions, and 9o to align with Technical Proposal. |
 | 2026-03-04 | Added gap section 9q: Tabular Data Sections and Forms. New semantic section types (`BoxscoreTable`, `Form`), parameterized refresh on actions, sort/form state conventions. Updated status matrix. |
 | 2026-03-04 | Added `parentUri` to Screen contract. Updated status matrix for composition API contract (Gap → Partial). Added Prototype Concessions subsection. |
 
@@ -73,7 +73,7 @@ locked_decisions:
 - **Cache policy ownership:** platform + backend input required
 - **CoreAPI adapter transition:** avoid unless necessary; evaluate case-by-case
 - **Entitlement/restriction resolution (short term):** support current client-side resolution until server-authoritative resolution is available
-- **Entitlement/restriction resolution (long term):** move to server-authoritative resolution in SDUI composition; client provides user/device context via `userContext` in the request envelope
+- **Entitlement/restriction resolution (long term):** move to server-authoritative resolution in SDUI composition; client provides device context via `device` in the request envelope
 - **Caching strategy:** section-first caching + optional screen snapshot cache
 
 ---
@@ -166,7 +166,7 @@ graph LR
 - **Codegen produces data models only** — not UI code. Platform teams write a thin renderer layer (~30 lines per section type) that wires generated models to existing design system components.
 - **Schema is versioned** — client sends its schema version, server responds with a compatible payload. Fields can never be removed without a major version bump.
 - **Subsection actions are required** — `actions` must be supported at section and nested component/subsection level (for example, tapping home team area within a game section).
-- **Request context is contract input** — composition must support a typed request envelope (platform, app version, locale, user context, experiments, capabilities, traceId).
+- **Request context is contract input** — composition must support a typed request envelope (platform, app version, locale, device context, experiments, capabilities, traceId).
 - **Server-driven back navigation** — `Screen.parentUri` (optional) tells the client where the back button should navigate.  Omit for root screens.  Clients always show the back button on non-root screens.
 
 ### Prototype Concessions
@@ -737,7 +737,7 @@ sequenceDiagram
   - platform/app version/device class
   - locale/region/timezone
   - auth context (identity token in header)
-  - user context (device ID, ZIP code, country code, region)
+  - device context (device ID, ZIP code, country code, region)
   - experiment assignments
   - client capabilities (e.g., SSE support)
   - traceId

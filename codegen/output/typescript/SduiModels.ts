@@ -10,17 +10,23 @@ export interface SduiModels {
     defaultRefreshPolicy?: RefreshPolicy;
     id:                    string;
     navigation?:           Navigation;
-    schemaVersion:         string;
-    sections:              Section[];
-    state?:                { [key: string]: any };
-    title?:                string;
-    traceId?:              string;
-    parentUri?:            string;
+    /**
+     * URI the back button should navigate to.  Clients always show a back button; this field
+     * tells them the target.  Omit for root screens (e.g. scoreboard).
+     */
+    parentUri?:    string;
+    schemaVersion: string;
+    sections:      Section[];
+    state?:        { [key: string]: any };
+    title?:        string;
+    traceId?:      string;
     [property: string]: any;
 }
 
 /**
  * Action fired when the form is submitted
+ *
+ * Optional 'See All' or navigation action
  */
 export interface Action {
     /**
@@ -39,6 +45,10 @@ export interface Action {
      * For analytics actions with onVisible trigger: impression tracking policy
      */
     impression?: ImpressionPolicy;
+    /**
+     * For toast actions: text message to display in the toast
+     */
+    message?: string;
     /**
      * For navigate actions with modal presentation: sheet height
      */
@@ -167,6 +177,7 @@ export enum ActionType {
     Mutate = "mutate",
     Navigate = "navigate",
     Refresh = "refresh",
+    Toast = "toast",
 }
 
 export interface RefreshPolicy {
@@ -228,6 +239,17 @@ export interface NavigationItem {
  * Typed tabular data for an NBA-style boxscore (one per team)
  *
  * Server-driven form section with typed fields bound to screen state
+ *
+ * Ad placement primitive — carries placement semantics while delegating auction/targeting
+ * to ad-platform SDKs (see ADR-007)
+ *
+ * Sortable, paginated table of season statistical leaders (league-wide)
+ *
+ * Horizontal scrolling rail of followed teams/players with circular avatars
+ *
+ * Hero-sized game card with larger imagery, prominent scores, and optional background
+ *
+ * Titled separator/divider between groups of sections, with optional See All action
  */
 export interface Data {
     awayTeam?:       TeamData;
@@ -236,26 +258,39 @@ export interface Data {
     gameStatusText?: string;
     homeTeam?:       TeamData;
     period?:         number;
-    stats?:          StatLineData[];
-    title?:          string;
-    action?:         Action;
-    contentType?:    ContentType;
-    duration?:       string;
-    headline?:       string;
-    id?:             string;
-    subhead?:        string;
-    thumbnailUrl?:   string;
-    cards?:          ContentCardData[];
-    defaultTab?:     string;
-    stateKey?:       string;
-    tabContents?:    { [key: string]: Section[] };
-    tabs?:           TabData[];
-    actions?:        Action[];
-    description?:    string;
-    imageUrl?:       string;
-    gameId?:         string;
-    gameLeaders?:    GameLeadersData;
-    gameTimeEt?:     string;
+    /**
+     * Row layout: 'horizontal' = image | name | stat inline, 'vertical' = name/image stacked
+     * above stat value. Use 'vertical' for narrow viewports.
+     *
+     * Layout hint for field arrangement
+     */
+    layout?: Layout;
+    stats?:  StatLineData[];
+    /**
+     * Table heading, e.g. 'Season Leaders'
+     */
+    title?: string;
+    /**
+     * Optional 'See All' or navigation action
+     */
+    action?:       Action;
+    contentType?:  ContentType;
+    duration?:     string;
+    headline?:     string;
+    id?:           string;
+    subhead?:      string;
+    thumbnailUrl?: string;
+    cards?:        ContentCardData[];
+    defaultTab?:   string;
+    stateKey?:     string;
+    tabContents?:  { [key: string]: Section[] };
+    tabs?:         TabData[];
+    actions?:      Action[];
+    description?:  string;
+    imageUrl?:     string;
+    gameId?:       string;
+    gameLeaders?:  GameLeadersData;
+    gameTimeEt?:   string;
     /**
      * Screen width (dp) below which children stack vertically
      */
@@ -270,6 +305,8 @@ export interface Data {
     spacing?: number;
     /**
      * Ordered list of column definitions; clients render left-to-right
+     *
+     * Ordered column definitions; clients render left-to-right
      */
     columns?: BoxscoreColumnDefinition[];
     /**
@@ -278,8 +315,10 @@ export interface Data {
     emptyMessage?: string;
     /**
      * Player rows ordered by server (starters first, then bench)
+     *
+     * Player rows, pre-sorted by the server
      */
-    players?: BoxscorePlayerRow[];
+    players?: PlayerRow[];
     /**
      * Screen-state key holding the current sort direction (asc/desc)
      */
@@ -304,42 +343,68 @@ export interface Data {
     teamTricode?: string;
     fields?:      FormField[];
     /**
-     * Layout hint for field arrangement
-     */
-    layout?: Layout;
-    /**
      * Action fired when the form is submitted
      */
     submitAction?: Action;
     submitLabel?:  string;
     /**
-     * Ad network identifier, e.g. 'gam', 'amazon'
-     */
-    provider?: string;
-    /**
      * Ad unit path used by the ad SDK
      */
     adUnitPath?: string;
-    /**
-     * Accepted creative sizes as [width, height] pairs
-     */
-    sizes?: number[][];
-    /**
-     * Key-value targeting hints passed to ad SDK
-     */
-    targeting?: { [key: string]: string };
     /**
      * Whether to collapse the slot when no fill is returned
      */
     collapseOnEmpty?: boolean;
     /**
+     * Disclosure label displayed above/below the ad
+     */
+    label?: string;
+    /**
+     * Ad network identifier, e.g. 'gam', 'amazon'
+     */
+    provider?: string;
+    /**
      * Optional auto-refresh interval in seconds
      */
     refreshIntervalSec?: number;
     /**
-     * Disclosure label displayed above/below the ad
+     * Accepted creative sizes as [width, height] pairs
      */
-    label?: string;
+    sizes?: Array<number[]>;
+    /**
+     * Key-value targeting hints passed to ad SDK
+     */
+    targeting?: { [key: string]: string };
+    /**
+     * Current page (1-based)
+     */
+    page?: number;
+    /**
+     * Number of rows per page
+     */
+    pageSize?: number;
+    /**
+     * Key of the column the table is currently sorted by
+     */
+    sortColumn?:    string;
+    sortDirection?: SortDirection;
+    /**
+     * Secondary text, e.g. '2025-26 Regular Season – Per Game'
+     */
+    subtitle?: string;
+    /**
+     * Total number of rows available server-side (for pagination display)
+     */
+    totalRows?: number;
+    items?:     FollowingRailItem[];
+    /**
+     * Background image URL for the hero card
+     */
+    backgroundImageUrl?: string;
+    /**
+     * Badge/chip label, e.g. 'LIVE', 'FEATURED'
+     */
+    badgeText?: string;
     [property: string]: any;
 }
 
@@ -490,6 +555,38 @@ export interface GameLeaderData {
 }
 
 /**
+ * One entity (team or player) in a following rail
+ */
+export interface FollowingRailItem {
+    action?: Action;
+    /**
+     * Whether this item represents a team or a player
+     */
+    entityType: EntityType;
+    id:         string;
+    /**
+     * Avatar / logo URL
+     */
+    imageUrl: string;
+    /**
+     * Display name, e.g. 'Lakers' or 'LeBron James'
+     */
+    name: string;
+    [property: string]: any;
+}
+
+/**
+ * Whether this item represents a team or a player
+ */
+export enum EntityType {
+    Player = "player",
+    Team = "team",
+}
+
+/**
+ * Row layout: 'horizontal' = image | name | stat inline, 'vertical' = name/image stacked
+ * above stat value. Use 'vertical' for narrow viewports.
+ *
  * Layout hint for field arrangement
  */
 export enum Layout {
@@ -500,13 +597,17 @@ export enum Layout {
 
 /**
  * One player row inside a boxscore table
+ *
+ * One ranked player row in a season leaders table
  */
-export interface BoxscorePlayerRow {
+export interface PlayerRow {
     actions?:      Action[];
     imageUrl?:     string;
     jerseyNumber?: string;
     /**
      * Display name (short form, e.g. 'J. Tatum')
+     *
+     * Display name, e.g. 'Luka Dončić'
      */
     name:      string;
     playerId:  string;
@@ -515,8 +616,24 @@ export interface BoxscorePlayerRow {
      * Whether this player was in the starting lineup
      */
     starter?: boolean;
-    stats:    { [key: string]: any };
+    /**
+     * Stat values keyed by column key (gp, min, pts, reb, ast, etc.)
+     */
+    stats: { [key: string]: any };
+    /**
+     * Ranking position (1-based)
+     */
+    rank?: number;
+    /**
+     * Team tricode, e.g. 'LAL'
+     */
+    team?: string;
     [property: string]: any;
+}
+
+export enum SortDirection {
+    Asc = "asc",
+    Desc = "desc",
 }
 
 export interface StatLineData {
@@ -582,11 +699,15 @@ export enum Type {
     BoxscoreTable = "BoxscoreTable",
     ContentCard = "ContentCard",
     ContentRail = "ContentRail",
+    FeaturedGameCard = "FeaturedGameCard",
+    FollowingRail = "FollowingRail",
     Form = "Form",
     GameCard = "GameCard",
     PromoBanner = "PromoBanner",
     Row = "Row",
     ScoreboardHeader = "ScoreboardHeader",
+    SeasonLeadersTable = "SeasonLeadersTable",
+    SectionHeader = "SectionHeader",
     StatLine = "StatLine",
     TabGroup = "TabGroup",
 }

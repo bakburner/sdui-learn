@@ -28,8 +28,8 @@ class SduiRepository(
         .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
     
     private val httpClient = OkHttpClient.Builder()
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
+        .connectTimeout(10, TimeUnit.SECONDS)
+        .readTimeout(10, TimeUnit.SECONDS)
         .addInterceptor(HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BASIC
         })
@@ -83,7 +83,7 @@ class SduiRepository(
     ): SduiScreen = withContext(Dispatchers.IO) {
         val url = "$baseUrl/sdui/scoreboard?variant=$variant"
 
-        Log.d(TAG, "Fetching scoreboard response: $url")
+        Log.e(TAG, ">>> Fetching scoreboard: $url")
 
         val request = Request.Builder()
             .url(url)

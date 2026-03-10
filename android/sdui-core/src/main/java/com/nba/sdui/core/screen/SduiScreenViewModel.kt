@@ -82,7 +82,7 @@ open class SduiScreenViewModel(
     private val pollingJobs = mutableMapOf<String, Job>()
 
     init {
-        Log.i(TAG, "Initialized: screenId=${config.screenId}, ably=${config.enableAbly}, polling=${config.enablePolling}")
+        Log.e(TAG, ">>> ViewModel INIT: screenId=${config.screenId}, baseUrl=${config.baseUrl}, ably=${config.enableAbly}, polling=${config.enablePolling}")
     }
 
     // ── Load / Refresh ───────────────────────────────────────────────
@@ -146,7 +146,7 @@ open class SduiScreenViewModel(
             }
 
             try {
-                Log.d(TAG, "Loading scoreboard: variant=${config.variant}")
+                Log.e(TAG, ">>> Loading scoreboard: variant=${config.variant}, baseUrl=${config.baseUrl}")
                 val screen = repository.getScoreboard(
                     variant = config.variant
                 )
@@ -156,7 +156,7 @@ open class SduiScreenViewModel(
                     stateManager.setState(key, value)
                 }
 
-                Log.d(TAG, "Scoreboard loaded: traceId=${screen.traceId}, sections=${screen.sections.size}")
+                Log.e(TAG, ">>> Scoreboard loaded OK: traceId=${screen.traceId}, sections=${screen.sections.size}")
                 _uiState.value = SduiScreenUiState.Success(screen)
 
                 if (config.enablePolling) setupPolling(screen)
@@ -192,6 +192,32 @@ open class SduiScreenViewModel(
                 if (config.enablePolling) setupPolling(screen)
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to load from URI: $uri", e)
+                _uiState.value = SduiScreenUiState.Error(e.message ?: "Unknown error")
+            }
+        }
+    }
+
+    /**
+     * Load a screen from a pre-resolved server endpoint (e.g. from parameterized refresh).
+     * The endpoint already includes query parameters.
+     */
+    fun loadFromEndpoint(endpoint: String) {
+        currentEndpoint = endpoint
+        currentScreenId = endpoint
+
+        viewModelScope.launch {
+            try {
+                Log.d(TAG, "Loading from endpoint: $endpoint")
+                val screen = repository.fetchScreen(endpoint, config.variant)
+                currentScreen = screen
+
+                screen.state?.forEach { (key, value) ->
+                    stateManager.setState(key, value)
+                }
+                _uiState.value = SduiScreenUiState.Success(screen)
+                if (config.enablePolling) setupPolling(screen)
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to load from endpoint: $endpoint", e)
                 _uiState.value = SduiScreenUiState.Error(e.message ?: "Unknown error")
             }
         }

@@ -10,6 +10,10 @@ import { Row } from './sections/Row';
 import { BoxscoreTable } from './sections/BoxscoreTable';
 import { Form } from './sections/Form';
 import { AdSlot } from './sections/AdSlot';
+import { SeasonLeadersTable } from './sections/SeasonLeadersTable';
+import { FollowingRail } from './sections/FollowingRail';
+import { FeaturedGameCard } from './sections/FeaturedGameCard';
+import { SectionHeader } from './sections/SectionHeader';
 import { LiveSectionWrapper } from './LiveSectionWrapper';
 
 export interface SectionProps {
@@ -67,6 +71,18 @@ function SectionRenderer({
 
     case 'AdSlot':
       return <AdSlot {...commonProps} />;
+
+    case 'SeasonLeadersTable':
+      return <SeasonLeadersTable {...commonProps} />;
+
+    case 'FollowingRail':
+      return <FollowingRail {...commonProps} />;
+
+    case 'FeaturedGameCard':
+      return <FeaturedGameCard {...commonProps} />;
+
+    case 'SectionHeader':
+      return <SectionHeader {...commonProps} />;
       
     case 'ContentCard':
       // Single content card - could be rendered inline

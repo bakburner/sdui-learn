@@ -56,7 +56,13 @@ export interface GameCardUiModel {
   homeScore: string;
   awayLogoUrl?: string;
   homeLogoUrl?: string;
+  awayName?: string;
+  homeName?: string;
+  awayRecord?: string;
+  homeRecord?: string;
   statusText: string;
+  broadcaster?: string;
+  gameDateEt?: string;
   primaryAction?: Action;
 }
 
@@ -192,6 +198,109 @@ export function mapForm(section: Section, _state: Record<string, unknown>): Form
   };
 }
 
+// ── FollowingRail ──────────────────────────────────────────────────
+
+export interface FollowingRailItemUi {
+  id: string;
+  name: string;
+  imageUrl?: string;
+  entityType?: string;
+  action?: Action;
+}
+
+export interface FollowingRailUiModel {
+  title?: string;
+  items: FollowingRailItemUi[];
+}
+
+export function mapFollowingRail(section: Section): FollowingRailUiModel | null {
+  const data = section.data as Record<string, unknown> | undefined;
+  if (!data) return null;
+  const rawItems = data.items as Array<Record<string, unknown>> | undefined;
+  if (!rawItems?.length) return null;
+  return {
+    title: data.title as string | undefined,
+    items: rawItems.map((item) => ({
+      id: (item.id as string) || '',
+      name: (item.name as string) || '',
+      imageUrl: item.imageUrl as string | undefined,
+      entityType: item.entityType as string | undefined,
+      action: item.action as Action | undefined,
+    })),
+  };
+}
+
+// ── FeaturedGameCard ───────────────────────────────────────────────
+
+export interface FeaturedGameCardUiModel {
+  awayTricode: string;
+  homeTricode: string;
+  awayScore: string;
+  homeScore: string;
+  awayLogoUrl?: string;
+  homeLogoUrl?: string;
+  awayName?: string;
+  homeName?: string;
+  awayRecord?: string;
+  homeRecord?: string;
+  statusText: string;
+  badgeText?: string;
+  visualLabel?: string;
+  backgroundImageUrl?: string;
+  visualState?: string;
+  primaryAction?: Action;
+}
+
+export function mapFeaturedGameCard(section: Section): FeaturedGameCardUiModel | null {
+  const data = section.data as Data | undefined;
+  if (!data?.homeTeam || !data?.awayTeam) return null;
+  const raw = data as Record<string, unknown>;
+  const actions = raw.actions as Action[] | undefined;
+  const primaryAction = actions?.find((a) => a.type === 'navigate') ?? actions?.[0];
+  const statusText =
+    data.gameStatusText ||
+    (data.gameStatus === 1 ? ((raw.gameTimeEt as string | undefined) || 'Pregame') : data.gameStatus === 2 ? 'Live' : 'Final');
+  return {
+    awayTricode: data.awayTeam.teamTricode,
+    homeTricode: data.homeTeam.teamTricode,
+    awayScore: String(data.awayTeam.score ?? '-'),
+    homeScore: String(data.homeTeam.score ?? '-'),
+    awayLogoUrl: data.awayTeam.logoUrl,
+    homeLogoUrl: data.homeTeam.logoUrl,
+    awayName: data.awayTeam.teamName || data.awayTeam.teamCity,
+    homeName: data.homeTeam.teamName || data.homeTeam.teamCity,
+    awayRecord: (raw.awayTeam as Record<string, unknown>)?.record as string | undefined,
+    homeRecord: (raw.homeTeam as Record<string, unknown>)?.record as string | undefined,
+    statusText,
+    badgeText: raw.badgeText as string | undefined,
+    visualLabel: raw.visualLabel as string | undefined,
+    backgroundImageUrl: raw.backgroundImageUrl as string | undefined,
+    visualState: raw.visualState as string | undefined,
+    primaryAction,
+  };
+}
+
+// ── SectionHeader ──────────────────────────────────────────────────
+
+export interface SectionHeaderUiModel {
+  title: string;
+  subtitle?: string;
+  action?: Action;
+}
+
+export function mapSectionHeader(section: Section): SectionHeaderUiModel | null {
+  const data = section.data as Record<string, unknown> | undefined;
+  if (!data) return null;
+  const rawAction = data.action as Record<string, unknown> | undefined;
+  return {
+    title: (data.title as string) || '',
+    subtitle: data.subtitle as string | undefined,
+    action: rawAction ? (rawAction as unknown as Action) : undefined,
+  };
+}
+
+// ── GameCard ───────────────────────────────────────────────────────
+
 export function mapGameCard(section: Section): GameCardUiModel | null {
   const data = section.data as Data | undefined;
   if (!data?.homeTeam || !data?.awayTeam) return null;
@@ -209,7 +318,13 @@ export function mapGameCard(section: Section): GameCardUiModel | null {
     homeScore: String(data.homeTeam.score ?? '-'),
     awayLogoUrl: data.awayTeam.logoUrl,
     homeLogoUrl: data.homeTeam.logoUrl,
+    awayName: data.awayTeam.teamName || data.awayTeam.teamCity,
+    homeName: data.homeTeam.teamName || data.homeTeam.teamCity,
+    awayRecord: (raw.awayTeam as Record<string, unknown>)?.record as string | undefined,
+    homeRecord: (raw.homeTeam as Record<string, unknown>)?.record as string | undefined,
     statusText,
+    broadcaster: raw.broadcaster as string | undefined,
+    gameDateEt: raw.gameDateEt as string | undefined,
     primaryAction,
   };
 }

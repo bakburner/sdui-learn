@@ -1,6 +1,7 @@
 package com.nba.sdui.app
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -20,9 +21,15 @@ import com.nba.sdui.app.ui.theme.SduiPrototypeTheme
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
+    companion object {
+        private const val TAG = "SDUI_MainActivity"
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Log.e(TAG, ">>> onCreate START")
         enableEdgeToEdge()
+        Log.e(TAG, ">>> setContent about to be called")
         setContent {
             SduiPrototypeTheme {
                 val snackbarHostState = remember { SnackbarHostState() }
@@ -52,6 +59,9 @@ class MainActivity : ComponentActivity() {
                                     currentConfig = SduiConfig.fromUri(targetUri)
                                 }
                             }
+                        },
+                        onShowToast = { message ->
+                            scope.launch { snackbarHostState.showSnackbar(message) }
                         },
                         onVariantChange = { nextVariant ->
                             currentConfig = when (config.screenType) {

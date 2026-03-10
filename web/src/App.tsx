@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import type { Action } from '@sdui/models';
+import type { Action, Section } from '@sdui/models';
 import { useSduiScreen } from './hooks/useSduiScreen';
 import { SectionRouter } from './components/SectionRouter';
 import { TopNavigationBar } from './components/TopNavigationBar';
@@ -58,10 +58,11 @@ export function App(): React.ReactElement {
 
   useEffect(() => {
     setVariant('A');
+    setScreenState({});
   }, [currentUri]);
 
   const endpoint = resolveEndpoint(currentUri);
-  const { screen, loading, error, refetch } = useSduiScreen({ endpoint, variant });
+  const { screen, loading, error, refetch, setScreen } = useSduiScreen({ endpoint, variant });
 
   // Screen-level state for TabGroup and other stateful sections
   const [screenState, setScreenState] = useState<Record<string, unknown>>({});
@@ -82,6 +83,24 @@ export function App(): React.ReactElement {
     refetch();
   }, [refetch]);
 
+  // Surgical section replacement — merges a single updated section into the
+  // current screen without touching any other section's state or data.
+  const handleSectionUpdate = useCallback((sectionId: string, updatedSection: Section) => {
+    setScreen((prev) => {
+      if (!prev) return prev;
+      const idx = prev.sections.findIndex((s) => s.id === sectionId);
+      if (idx === -1) {
+        // Section not found — append it (server may have added a new section)
+        console.log('[App] Appending new section:', sectionId);
+        return { ...prev, sections: [...prev.sections, updatedSection] };
+      }
+      console.log('[App] Replacing section:', sectionId, 'at index', idx);
+      const next = [...prev.sections];
+      next[idx] = updatedSection;
+      return { ...prev, sections: next };
+    });
+  }, []);
+
   const handleUriNavigate = useCallback((uri: string) => {
     setCurrentUri(uri);
   }, []);
@@ -95,9 +114,10 @@ export function App(): React.ReactElement {
       state: screenState,
       onStateChange: handleStateChange,
       onRefresh: handleRefresh,
+      onSectionUpdate: handleSectionUpdate,
     });
     handler(action);
-  }, [screenState, handleStateChange, handleRefresh, handleUriNavigate]);
+  }, [screenState, handleStateChange, handleRefresh, handleSectionUpdate, handleUriNavigate]);
 
   // Loading state
   if (loading) {

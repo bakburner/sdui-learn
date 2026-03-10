@@ -52,11 +52,61 @@ data class GameCardUiModel(
     val homeScore: String,
     val awayLogoUrl: String?,
     val homeLogoUrl: String?,
+    val awayName: String?,
+    val homeName: String?,
+    val awayRecord: String?,
+    val homeRecord: String?,
     val statusText: String,
     val recordsText: String?,
+    val broadcaster: String?,
+    val gameDateEt: String?,
     val leaderLines: List<String>,
     val visualState: GameCardVisualState,
     val primaryAction: SduiAction?
+)
+
+// ============ FollowingRail ============
+
+data class FollowingRailItemUi(
+    val id: String,
+    val name: String,
+    val imageUrl: String?,
+    val entityType: String?,
+    val action: SduiAction?
+)
+
+data class FollowingRailUiModel(
+    val title: String?,
+    val items: List<FollowingRailItemUi>
+)
+
+// ============ FeaturedGameCard ============
+
+data class FeaturedGameCardUiModel(
+    val awayTricode: String,
+    val homeTricode: String,
+    val awayScore: String,
+    val homeScore: String,
+    val awayLogoUrl: String?,
+    val homeLogoUrl: String?,
+    val awayName: String?,
+    val homeName: String?,
+    val awayRecord: String?,
+    val homeRecord: String?,
+    val statusText: String,
+    val badgeText: String?,
+    val visualLabel: String?,
+    val backgroundImageUrl: String?,
+    val visualState: GameCardVisualState,
+    val primaryAction: SduiAction?
+)
+
+// ============ SectionHeader ============
+
+data class SectionHeaderUiModel(
+    val title: String,
+    val subtitle: String?,
+    val action: SduiAction?
 )
 
 fun mapScoreboardHeader(section: SduiSection): ScoreboardHeaderUiModel? {
@@ -143,15 +193,92 @@ fun mapGameCard(section: SduiSection): GameCardUiModel? {
         homeScore = ((homeTeam["score"] as? Number)?.toInt()?.toString()) ?: "-",
         awayLogoUrl = awayTeam["logoUrl"] as? String,
         homeLogoUrl = homeTeam["logoUrl"] as? String,
+        awayName = awayTeam["teamName"] as? String,
+        homeName = homeTeam["teamName"] as? String,
+        awayRecord = awayTeam["record"] as? String,
+        homeRecord = homeTeam["record"] as? String,
         statusText = statusText,
         recordsText = if (visualState == GameCardVisualState.PRE) {
             "Records: ${recordText(awayTeam)} @ ${recordText(homeTeam)}"
         } else {
             null
         },
+        broadcaster = data["broadcaster"] as? String,
+        gameDateEt = data["gameDateEt"] as? String,
         leaderLines = leaderLines,
         visualState = visualState,
         primaryAction = firstActionFromSection(section)
+    )
+}
+
+@Suppress("UNCHECKED_CAST")
+fun mapFollowingRail(section: SduiSection): FollowingRailUiModel? {
+    val data = section.data ?: return null
+    val rawItems = data["items"] as? List<Map<String, Any?>> ?: return null
+    val items = rawItems.map { item ->
+        FollowingRailItemUi(
+            id = (item["id"] as? String) ?: "",
+            name = (item["name"] as? String) ?: "",
+            imageUrl = item["imageUrl"] as? String,
+            entityType = item["entityType"] as? String,
+            action = (item["action"] as? Map<String, Any?>)?.let { actionToSduiAction(it) }
+        )
+    }
+    return FollowingRailUiModel(
+        title = data["title"] as? String,
+        items = items
+    )
+}
+
+@Suppress("UNCHECKED_CAST")
+fun mapFeaturedGameCard(section: SduiSection): FeaturedGameCardUiModel? {
+    val data = section.data ?: return null
+    val homeTeam = data["homeTeam"] as? Map<String, Any?> ?: return null
+    val awayTeam = data["awayTeam"] as? Map<String, Any?> ?: return null
+    val gameStatus = (data["gameStatus"] as? Number)?.toInt() ?: 1
+    val statusText = (data["gameStatusText"] as? String).orEmpty().ifBlank {
+        if (gameStatus == 1) (data["gameTimeEt"] as? String).orEmpty().ifBlank { "Pregame" }
+        else if (gameStatus == 2) "Live" else "Final"
+    }
+    val visualState = when (gameStatus) {
+        1 -> GameCardVisualState.PRE
+        2 -> GameCardVisualState.LIVE
+        else -> GameCardVisualState.FINAL
+    }
+
+    return FeaturedGameCardUiModel(
+        awayTricode = (awayTeam["teamTricode"] as? String) ?: "AWY",
+        homeTricode = (homeTeam["teamTricode"] as? String) ?: "HME",
+        awayScore = ((awayTeam["score"] as? Number)?.toInt()?.toString()) ?: "-",
+        homeScore = ((homeTeam["score"] as? Number)?.toInt()?.toString()) ?: "-",
+        awayLogoUrl = awayTeam["logoUrl"] as? String,
+        homeLogoUrl = homeTeam["logoUrl"] as? String,
+        awayName = awayTeam["teamName"] as? String,
+        homeName = homeTeam["teamName"] as? String,
+        awayRecord = awayTeam["record"] as? String,
+        homeRecord = homeTeam["record"] as? String,
+        statusText = statusText,
+        badgeText = data["badgeText"] as? String,
+        visualLabel = data["visualLabel"] as? String,
+        backgroundImageUrl = data["backgroundImageUrl"] as? String,
+        visualState = visualState,
+        primaryAction = firstActionFromSection(section)
+    )
+}
+
+fun mapSectionHeader(section: SduiSection): SectionHeaderUiModel? {
+    val data = section.data ?: return null
+    val title = (data["title"] as? String) ?: return null
+    val subtitle = data["subtitle"] as? String
+
+    @Suppress("UNCHECKED_CAST")
+    val actionMap = data["action"] as? Map<String, Any?>
+    val action = actionMap?.let { actionToSduiAction(it) }
+
+    return SectionHeaderUiModel(
+        title = title,
+        subtitle = subtitle,
+        action = action
     )
 }
 

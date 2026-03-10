@@ -112,6 +112,30 @@ fun SectionRouter(
                 modifier = modifier
             )
         }
+
+        "FollowingRail" -> {
+            FollowingRailRenderer(
+                section = section,
+                onAction = onAction,
+                modifier = modifier
+            )
+        }
+
+        "FeaturedGameCard" -> {
+            FeaturedGameCardRenderer(
+                section = section,
+                onAction = onAction,
+                modifier = modifier
+            )
+        }
+
+        "SectionHeader" -> {
+            SectionHeaderRenderer(
+                section = section,
+                onAction = onAction,
+                modifier = modifier
+            )
+        }
         
         else -> {
             // Unknown section type - skip gracefully
@@ -135,5 +159,8 @@ val SUPPORTED_SECTION_TYPES = setOf(
     "GameCard",
     "Row",
     "BoxscoreTable",
-    "Form"
+    "Form",
+    "FollowingRail",
+    "FeaturedGameCard",
+    "SectionHeader"
 )

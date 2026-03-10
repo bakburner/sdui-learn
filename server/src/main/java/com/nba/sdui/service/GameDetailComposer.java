@@ -112,6 +112,16 @@ public class GameDetailComposer {
             response.put("schemaVersion", schemaVersion);
             response.put("parentUri", "nba://scoreboard");
 
+            // Default screen state — boxscore team tabs default to away (first listed)
+            String awayTricode = game.path("awayTeam").path("teamTricode").asText("AWAY");
+            ObjectNode screenState = objectMapper.createObjectNode();
+            screenState.put("gd_boxscore_team", awayTricode);
+            screenState.put("gd_boxscore_away_sortCol", "points");
+            screenState.put("gd_boxscore_away_sortDir", "desc");
+            screenState.put("gd_boxscore_home_sortCol", "points");
+            screenState.put("gd_boxscore_home_sortDir", "desc");
+            response.set("state", screenState);
+
             ArrayNode sections = objectMapper.createArrayNode();
 
             // 1. ScoreboardHeader
@@ -314,6 +324,7 @@ public class GameDetailComposer {
 
         ObjectNode data = objectMapper.createObjectNode();
         data.put("title", teamCity + " " + teamName);
+        data.put("layout", "vertical");
 
         ArrayNode stats = objectMapper.createArrayNode();
         ArrayNode players = (ArrayNode) team.get("players");
@@ -440,6 +451,7 @@ public class GameDetailComposer {
 
         ObjectNode data = objectMapper.createObjectNode();
         data.put("title", "Top Performers");
+        data.put("layout", "vertical");
         data.set("stats", stats);
         section.set("data", data);
 
@@ -489,6 +501,7 @@ public class GameDetailComposer {
 
         ObjectNode data = objectMapper.createObjectNode();
         data.put("title", title);
+        data.put("layout", "vertical");
         data.set("stats", stats);
         section.set("data", data);
         return section;

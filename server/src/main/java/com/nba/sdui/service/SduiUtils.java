@@ -40,6 +40,14 @@ public class SduiUtils {
 
         boolean gamesSelected = "scoreboard".equals(activeScreenId) || "game-detail".equals(activeScreenId);
 
+        ObjectNode forYou = objectMapper.createObjectNode();
+        forYou.put("id", "for-you");
+        forYou.put("label", "For You");
+        forYou.put("icon", "home");
+        forYou.put("targetUri", "nba://for-you");
+        forYou.put("selected", "for-you".equals(activeScreenId));
+        items.add(forYou);
+
         ObjectNode games = objectMapper.createObjectNode();
         games.put("id", "games");
         games.put("label", "Games");
@@ -47,6 +55,22 @@ public class SduiUtils {
         games.put("targetUri", "nba://scoreboard");
         games.put("selected", gamesSelected);
         items.add(games);
+
+        ObjectNode watch = objectMapper.createObjectNode();
+        watch.put("id", "watch");
+        watch.put("label", "Watch");
+        watch.put("icon", "play_circle");
+        watch.put("targetUri", "nba://watch");
+        watch.put("selected", "watch".equals(activeScreenId));
+        items.add(watch);
+
+        ObjectNode live = objectMapper.createObjectNode();
+        live.put("id", "live");
+        live.put("label", "Live");
+        live.put("icon", "sports_basketball");
+        live.put("targetUri", "nba://live");
+        live.put("selected", "live".equals(activeScreenId));
+        items.add(live);
 
         ObjectNode demos = objectMapper.createObjectNode();
         demos.put("id", "demos");
@@ -56,13 +80,13 @@ public class SduiUtils {
         demos.put("selected", "demos".equals(activeScreenId));
         items.add(demos);
 
-        ObjectNode boxscore = objectMapper.createObjectNode();
-        boxscore.put("id", "boxscore");
-        boxscore.put("label", "Box Score");
-        boxscore.put("icon", "table_chart");
-        boxscore.put("targetUri", "nba://boxscore/0042300102");
-        boxscore.put("selected", activeScreenId != null && activeScreenId.startsWith("boxscore"));
-        items.add(boxscore);
+        ObjectNode leaders = objectMapper.createObjectNode();
+        leaders.put("id", "leaders");
+        leaders.put("label", "Leaders");
+        leaders.put("icon", "leaderboard");
+        leaders.put("targetUri", "nba://leaders");
+        leaders.put("selected", "leaders".equals(activeScreenId));
+        items.add(leaders);
 
         navigation.set("items", items);
         return navigation;

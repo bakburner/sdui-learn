@@ -63,20 +63,38 @@ fun GameCardRenderer(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                     }
-                    Text(
-                        text = model.awayTricode,
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Column {
+                        Text(
+                            text = model.awayTricode,
+                            color = Color.White,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        model.awayRecord?.let { record ->
+                            Text(
+                                text = record,
+                                color = Color(0xFF8892A4),
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
+                    }
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = model.homeTricode,
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(
+                            text = model.homeTricode,
+                            color = Color.White,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        model.homeRecord?.let { record ->
+                            Text(
+                                text = record,
+                                color = Color(0xFF8892A4),
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
+                    }
                     model.homeLogoUrl?.let { url ->
                         Spacer(modifier = Modifier.width(6.dp))
                         AsyncImage(
@@ -146,6 +164,14 @@ fun GameCardRenderer(
                     text = line,
                     color = Color.White,
                     style = MaterialTheme.typography.bodySmall
+                )
+            }
+            model.broadcaster?.let { broadcaster ->
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = broadcaster,
+                    color = Color(0xFF8892A4),
+                    style = MaterialTheme.typography.labelSmall
                 )
             }
         }

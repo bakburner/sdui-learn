@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import type React from 'react';
 import type { SduiModels } from '@sdui/models';
 
 interface UseSduiScreenOptions {
@@ -12,6 +13,8 @@ interface UseSduiScreenResult {
   loading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
+  /** Direct setter for surgical section-level updates (e.g. action-triggered refresh). */
+  setScreen: React.Dispatch<React.SetStateAction<SduiModels | null>>;
 }
 
 /**
@@ -67,5 +70,5 @@ export function useSduiScreen(options: UseSduiScreenOptions): UseSduiScreenResul
     fetchScreen();
   }, [fetchScreen]);
 
-  return { screen, loading, error, refetch: fetchScreen };
+  return { screen, loading, error, refetch: fetchScreen, setScreen };
 }

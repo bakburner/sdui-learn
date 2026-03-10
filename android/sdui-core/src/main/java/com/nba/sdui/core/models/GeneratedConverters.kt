@@ -22,7 +22,8 @@ fun actionToSduiAction(action: Action?): SduiAction? {
         sectionId = action.target,
         endpoint = action.endpoint,
         paramBindings = action.paramBindings?.additionalProperties
-            ?.mapValues { (_, v) -> v?.toString() ?: "" }
+            ?.mapValues { (_, v) -> v?.toString() ?: "" },
+        message = action.message
     )
 }
 
@@ -48,6 +49,7 @@ fun actionToSduiAction(map: Map<String, Any?>?): SduiAction? {
         sectionId = map["sectionId"] as? String,
         endpoint = map["endpoint"] as? String,
         paramBindings = (map["paramBindings"] as? Map<String, Any?>)
-            ?.mapValues { (_, v) -> v?.toString() ?: "" }
+            ?.mapValues { (_, v) -> v?.toString() ?: "" },
+        message = map["message"] as? String
     )
 }

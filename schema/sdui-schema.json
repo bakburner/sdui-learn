@@ -39,7 +39,7 @@
     },
     "ActionType": {
       "type": "string",
-      "enum": ["navigate", "analytics", "mutate", "refresh", "dismiss"]
+      "enum": ["navigate", "analytics", "mutate", "refresh", "dismiss", "toast"]
     },
     "RefreshType": {
       "type": "string",
@@ -157,6 +157,10 @@
           "type": "object",
           "description": "For refresh actions: map of query param name to screen state key, resolved at action time",
           "additionalProperties": { "type": "string" }
+        },
+        "message": {
+          "type": "string",
+          "description": "For toast actions: text message to display in the toast"
         }
       }
     },
@@ -319,6 +323,12 @@
       "required": ["stats"],
       "properties": {
         "title": { "type": "string" },
+        "layout": {
+          "type": "string",
+          "enum": ["horizontal", "vertical"],
+          "default": "horizontal",
+          "description": "Row layout: 'horizontal' = image | name | stat inline, 'vertical' = name/image stacked above stat value. Use 'vertical' for narrow viewports."
+        },
         "stats": {
           "type": "array",
           "items": { "$ref": "#/definitions/StatLineData" }
@@ -656,7 +666,7 @@
         "id": { "type": "string" },
         "type": {
           "type": "string",
-          "enum": ["ScoreboardHeader", "StatLine", "ContentCard", "ContentRail", "TabGroup", "PromoBanner", "GameCard", "Row", "BoxscoreTable", "Form", "AdSlot"]
+          "enum": ["ScoreboardHeader", "StatLine", "ContentCard", "ContentRail", "TabGroup", "PromoBanner", "GameCard", "Row", "BoxscoreTable", "Form", "AdSlot", "SeasonLeadersTable", "FollowingRail", "FeaturedGameCard", "SectionHeader"]
         },
         "refreshPolicy": { "$ref": "#/definitions/RefreshPolicy" },
         "dataBindings": { "$ref": "#/definitions/DataBinding" },
@@ -686,8 +696,151 @@
             { "$ref": "#/definitions/RowData" },
             { "$ref": "#/definitions/BoxscoreTableData" },
             { "$ref": "#/definitions/FormData" },
-            { "$ref": "#/definitions/AdSlotData" }
+            { "$ref": "#/definitions/AdSlotData" },
+            { "$ref": "#/definitions/LeadersTableData" },
+            { "$ref": "#/definitions/FollowingRailData" },
+            { "$ref": "#/definitions/FeaturedGameCardData" },
+            { "$ref": "#/definitions/SectionHeaderData" }
           ]
+        }
+      }
+    },
+    "LeadersTableData": {
+      "type": "object",
+      "description": "Sortable, paginated table of season statistical leaders (league-wide)",
+      "required": ["columns", "players"],
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Table heading, e.g. 'Season Leaders'"
+        },
+        "subtitle": {
+          "type": "string",
+          "description": "Secondary text, e.g. '2025-26 Regular Season – Per Game'"
+        },
+        "columns": {
+          "type": "array",
+          "description": "Ordered column definitions; clients render left-to-right",
+          "items": { "$ref": "#/definitions/BoxscoreColumnDefinition" }
+        },
+        "players": {
+          "type": "array",
+          "description": "Player rows, pre-sorted by the server",
+          "items": { "$ref": "#/definitions/LeadersPlayerRow" }
+        },
+        "totalRows": {
+          "type": "integer",
+          "description": "Total number of rows available server-side (for pagination display)"
+        },
+        "page": {
+          "type": "integer",
+          "description": "Current page (1-based)",
+          "default": 1
+        },
+        "pageSize": {
+          "type": "integer",
+          "description": "Number of rows per page",
+          "default": 25
+        },
+        "sortColumn": {
+          "type": "string",
+          "description": "Key of the column the table is currently sorted by"
+        },
+        "sortDirection": {
+          "type": "string",
+          "enum": ["asc", "desc"],
+          "default": "desc"
+        },
+        "emptyMessage": {
+          "type": "string",
+          "description": "Text shown when no player rows are available"
+        }
+      }
+    },
+    "LeadersPlayerRow": {
+      "type": "object",
+      "description": "One ranked player row in a season leaders table",
+      "required": ["rank", "playerId", "name", "team", "stats"],
+      "properties": {
+        "rank": { "type": "integer", "description": "Ranking position (1-based)" },
+        "playerId": { "type": "string" },
+        "name": { "type": "string", "description": "Display name, e.g. 'Luka Dončić'" },
+        "team": { "type": "string", "description": "Team tricode, e.g. 'LAL'" },
+        "imageUrl": { "type": "string" },
+        "stats": {
+          "$ref": "#/definitions/BoxscorePlayerStatistics",
+          "description": "Stat values keyed by column key (gp, min, pts, reb, ast, etc.)"
+        },
+        "actions": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/Action" }
+        }
+      }
+    },
+    "FollowingRailItem": {
+      "type": "object",
+      "description": "One entity (team or player) in a following rail",
+      "required": ["id", "name", "imageUrl", "entityType"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string", "description": "Display name, e.g. 'Lakers' or 'LeBron James'" },
+        "imageUrl": { "type": "string", "description": "Avatar / logo URL" },
+        "entityType": {
+          "type": "string",
+          "enum": ["team", "player"],
+          "description": "Whether this item represents a team or a player"
+        },
+        "action": { "$ref": "#/definitions/Action" }
+      }
+    },
+    "FollowingRailData": {
+      "type": "object",
+      "description": "Horizontal scrolling rail of followed teams/players with circular avatars",
+      "required": ["items"],
+      "properties": {
+        "title": { "type": "string" },
+        "items": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/FollowingRailItem" }
+        }
+      }
+    },
+    "FeaturedGameCardData": {
+      "type": "object",
+      "description": "Hero-sized game card with larger imagery, prominent scores, and optional background",
+      "required": ["gameId", "gameStatus", "homeTeam", "awayTeam"],
+      "properties": {
+        "gameId": { "type": "string" },
+        "gameStatus": { "type": "integer" },
+        "gameStatusText": { "type": "string" },
+        "gameTimeEt": { "type": "string" },
+        "homeTeam": { "$ref": "#/definitions/TeamData" },
+        "awayTeam": { "$ref": "#/definitions/TeamData" },
+        "gameLeaders": { "$ref": "#/definitions/GameLeadersData" },
+        "backgroundImageUrl": {
+          "type": "string",
+          "description": "Background image URL for the hero card"
+        },
+        "badgeText": {
+          "type": "string",
+          "description": "Badge/chip label, e.g. 'LIVE', 'FEATURED'"
+        },
+        "actions": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/Action" }
+        }
+      }
+    },
+    "SectionHeaderData": {
+      "type": "object",
+      "description": "Titled separator/divider between groups of sections, with optional See All action",
+      "required": ["title"],
+      "properties": {
+        "title": { "type": "string" },
+        "subtitle": { "type": "string" },
+        "action": {
+          "$ref": "#/definitions/Action",
+          "description": "Optional 'See All' or navigation action"
         }
       }
     },

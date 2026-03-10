@@ -129,10 +129,11 @@ export function BoxscoreTable({ section, state, onAction, onStateChange }: Secti
                     style={{
                       ...styles.row,
                       opacity: isDnp ? 0.5 : 1,
+                      cursor: player.actions?.length ? 'pointer' : 'default',
                     }}
                     onClick={() => {
-                      const nav = player.actions?.find((a) => a.type === 'navigate');
-                      if (nav) onAction(nav);
+                      const act = player.actions?.find((a) => a.trigger === 'onTap') ?? player.actions?.[0];
+                      if (act) onAction(act);
                     }}
                   >
                     {/* Frozen player cell */}

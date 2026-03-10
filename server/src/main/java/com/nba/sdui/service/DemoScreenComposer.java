@@ -52,28 +52,59 @@ public class DemoScreenComposer {
 
         // 1. ScoreboardHeader
         sections.add(buildDemoScoreboardHeader());
-        // 2. StatLine
-        sections.add(buildDemoStatLine());
-        // 3. PromoBanner
-        sections.add(buildDemoPromoBanner());
-        // 4. ContentCard
-        sections.add(buildDemoContentCard());
-        // 5. ContentRail
-        sections.add(buildDemoContentRail());
-        // 6. GameCard
-        sections.add(buildDemoGameCard());
-        // 7. Row
-        sections.add(buildDemoRow());
-        // 8. TabGroup
-        sections.add(buildDemoTabGroup());
-        // 9. BoxscoreTable
-        sections.add(buildDemoBoxscoreTable());
-        // 10. Form
-        sections.add(buildDemoForm());
-        // 11. AdSlot
+        // 2. AdSlot (between header and top performers)
         sections.add(buildDemoAdSlot());
+        // 3. StatLine
+        sections.add(buildDemoStatLine());
+        // 4. PromoBanner
+        sections.add(buildDemoPromoBanner());
+        // 5. ContentCard
+        sections.add(buildDemoContentCard());
+        // 6. ContentRail
+        sections.add(buildDemoContentRail());
+        // 7. GameCard
+        sections.add(buildDemoGameCard());
+        // 8. Row
+        sections.add(buildDemoRow());
+        // 9. TabGroup
+        sections.add(buildDemoTabGroup());
+        // 10. BoxscoreTable
+        sections.add(buildDemoBoxscoreTable());
 
         screen.set("sections", sections);
+        return screen;
+    }
+
+    /**
+     * Compose the standalone Season Leaders screen (Form + SeasonLeadersTable).
+     */
+    public ObjectNode composeLeaders(String traceId) {
+        ObjectNode screen = objectMapper.createObjectNode();
+        screen.put("id", "leaders");
+        screen.put("schemaVersion", schemaVersion);
+        screen.put("title", "Season Leaders");
+        screen.put("analyticsId", "season-leaders");
+        screen.put("traceId", traceId);
+        screen.put("parentUri", "nba://scoreboard");
+
+        ObjectNode refreshPolicy = objectMapper.createObjectNode();
+        refreshPolicy.put("type", "static");
+        screen.set("defaultRefreshPolicy", refreshPolicy);
+
+        screen.set("navigation", utils.buildNavigation("leaders"));
+
+        ObjectNode state = objectMapper.createObjectNode();
+        state.put("form_season", "2025-26");
+        state.put("form_season_type", "regular");
+        state.put("form_per_mode", "per_game");
+        state.put("form_stat_category", "pts");
+        screen.set("state", state);
+
+        ArrayNode sections = objectMapper.createArrayNode();
+        sections.add(buildDemoForm());
+        sections.add(buildLeadersTable("2025-26", "regular", "per_game", "pts"));
+        screen.set("sections", sections);
+
         return screen;
     }
 
@@ -253,6 +284,7 @@ public class DemoScreenComposer {
 
         ObjectNode data = objectMapper.createObjectNode();
         data.put("title", "Top Performers");
+        data.put("layout", "vertical");
         data.set("stats", stats);
         section.set("data", data);
         return section;
@@ -424,6 +456,7 @@ public class DemoScreenComposer {
         leftChild.put("type", "StatLine");
         ObjectNode leftData = objectMapper.createObjectNode();
         leftData.put("title", "Scoring Leader");
+        leftData.put("layout", "vertical");
         ArrayNode leftStats = objectMapper.createArrayNode();
         leftStats.add(utils.createStatLine(203999, "Nikola Jokić", "DEN", "PTS", "26.4"));
         leftData.set("stats", leftStats);
@@ -435,6 +468,7 @@ public class DemoScreenComposer {
         rightChild.put("type", "StatLine");
         ObjectNode rightData = objectMapper.createObjectNode();
         rightData.put("title", "Assists Leader");
+        rightData.put("layout", "vertical");
         ArrayNode rightStats = objectMapper.createArrayNode();
         rightStats.add(utils.createStatLine(201566, "Trae Young", "ATL", "AST", "11.1"));
         rightData.set("stats", rightStats);

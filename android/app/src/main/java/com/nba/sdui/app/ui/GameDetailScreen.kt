@@ -29,6 +29,7 @@ fun GameDetailScreen(
     config: SduiConfig,
     modifier: Modifier = Modifier,
     onNavigateUri: (String) -> Unit = {},
+    onShowToast: (String) -> Unit = {},
     onVariantChange: (String) -> Unit = {},
     onBack: () -> Unit = {},
     viewModel: GameDetailViewModel = viewModel(
@@ -57,7 +58,8 @@ fun GameDetailScreen(
     }
 
     // Handle action results (app-level side-effects)
-    LaunchedEffect(Unit) {
+    // FIX: Key on viewModel so we collect from the current instance's flow
+    LaunchedEffect(viewModel) {
         viewModel.actionResults.collect { result ->
             when (result) {
                 is ActionHandler.ActionResult.NavigateResult -> {
@@ -72,6 +74,12 @@ fun GameDetailScreen(
                         SduiConfig.ScreenType.GAME_DETAIL -> viewModel.loadGameDetail(config.gameId ?: "", result.sectionId)
                         SduiConfig.ScreenType.GENERIC -> viewModel.loadGenericScreen(config.uri ?: "", result.sectionId)
                     }
+                }
+                is ActionHandler.ActionResult.ParameterizedRefreshResult -> {
+                    viewModel.loadFromEndpoint(result.url)
+                }
+                is ActionHandler.ActionResult.ToastResult -> {
+                    onShowToast(result.message)
                 }
                 else -> {}
             }
@@ -132,7 +140,8 @@ fun GameDetailScreen(
         val currentScreen = (uiState as? SduiScreenUiState.Success)?.screen
         SduiNavigationShell(
             navigation = currentScreen?.navigation,
-            onNavigate = onNavigateUri
+            onNavigate = onNavigateUri,
+            modifier = Modifier.weight(1f) // Ensure it fills remaining space and keeps bottom bar at the bottom
         ) { contentModifier ->
             SduiScreenContent(
                 uiState = uiState,

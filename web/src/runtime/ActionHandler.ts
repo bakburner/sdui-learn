@@ -1,10 +1,12 @@
-import type { Action } from '@sdui/models';
+import type { Action, Section } from '@sdui/models';
 
 export interface ActionContext {
   /** Callback to update screen state */
   onStateChange: (key: string, value: unknown) => void;
   /** Callback to refresh a section or full screen */
   onRefresh: (sectionId?: string) => void;
+  /** Callback to surgically replace a single section by ID */
+  onSectionUpdate: (sectionId: string, section: Section) => void;
   /** Current screen state */
   state: Record<string, unknown>;
 }
@@ -34,6 +36,11 @@ export function executeAction(action: Action, context: ActionContext): void {
 
     case 'dismiss':
       handleDismiss();
+      break;
+
+    case 'toast':
+    case 'showToast':
+      handleToast(action);
       break;
 
     default:
@@ -78,22 +85,52 @@ function handleRefresh(action: Action, context: ActionContext): void {
     console.log('[Action] Parameterized refresh:', url || `params=${params.toString()}`);
 
     if (url) {
-      // Fetch new screen data from the parameterized endpoint
-      fetch(url)
+      // Fetch new data from the parameterized endpoint.
+      // The proxy strips /api, so prefix with /api for the Vite/Express proxy.
+      const fetchUrl = url.startsWith('/sdui/') ? `/api${url}` : url;
+      fetch(fetchUrl)
         .then((res) => {
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           return res.json();
         })
         .then((screen) => {
-          console.log('[Action] Parameterized refresh succeeded, new screen:', screen.id);
-          // Merge new state from refresh response
+          console.log('[Action] Parameterized refresh succeeded, response id:', screen.id);
+
+          // Merge new state from refresh response (e.g. form field values echoed back)
           if (screen.state) {
             for (const [k, v] of Object.entries(screen.state)) {
               context.onStateChange(k, v);
             }
           }
-          // Trigger UI refresh
-          context.onRefresh(action.target);
+
+          // Surgical section-level merge: if the response carries sections and
+          // the action targets a specific section, replace only that section.
+          const targetSectionId = action.target;
+          const responseSections = screen.sections as Section[] | undefined;
+
+          if (targetSectionId && responseSections?.length) {
+            // Find the section in the response that matches the target ID.
+            const updatedSection = responseSections.find(
+              (s: Section) => s.id === targetSectionId,
+            );
+            if (updatedSection) {
+              console.log('[Action] Surgical section update:', targetSectionId);
+              context.onSectionUpdate(targetSectionId, updatedSection);
+              return; // Done — no full-screen refresh needed.
+            }
+          }
+
+          // Fallback: if no targeted section found, replace all sections
+          // by merging each one from the response.
+          if (responseSections?.length) {
+            for (const s of responseSections) {
+              context.onSectionUpdate(s.id, s);
+            }
+            return;
+          }
+
+          // Last resort: full screen refresh
+          context.onRefresh(targetSectionId);
         })
         .catch((err) => {
           console.error('[Action] Parameterized refresh failed:', err);
@@ -114,6 +151,15 @@ function handleAnalytics(action: Action): void {
 
 function handleDismiss(): void {
   console.log('[Action] Dismiss (not implemented in prototype)');
+}
+
+function handleToast(action: Action): void {
+  const message = (action as Record<string, unknown>).message as string | undefined;
+  if (message) {
+    showToast(message);
+  } else {
+    console.warn('[Action] Toast action missing message');
+  }
 }
 
 /**

@@ -145,6 +145,81 @@ public class SduiController {
     // ── Demos Kitchen-Sink Screen ─────────────────────────────────────
 
     /**
+     * Get SDUI screen response for the For You personalised home feed.
+     */
+    @GetMapping(value = "/sdui/for-you", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<JsonNode> getForYou(
+            @RequestHeader(value = "X-Schema-Version", defaultValue = "1.0") String schemaVersion,
+            HttpServletResponse response) {
+
+        String traceId = "trace-" + UUID.randomUUID().toString().substring(0, 8);
+        MDC.put("traceId", traceId);
+        log.info("SDUI for-you request: schemaVersion={}", schemaVersion);
+
+        try {
+            JsonNode screenResponse = compositionService.composeForYou(traceId);
+            response.setHeader("X-Trace-Id", traceId);
+            response.setHeader("X-Schema-Version", "1.0");
+            return ResponseEntity.ok(screenResponse);
+        } catch (Exception e) {
+            log.error("Error composing for-you screen", e);
+            return ResponseEntity.internalServerError().build();
+        } finally {
+            MDC.clear();
+        }
+    }
+
+    /**
+     * Get SDUI screen response for the Watch streaming hub.
+     */
+    @GetMapping(value = "/sdui/watch", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<JsonNode> getWatch(
+            @RequestHeader(value = "X-Schema-Version", defaultValue = "1.0") String schemaVersion,
+            HttpServletResponse response) {
+
+        String traceId = "trace-" + UUID.randomUUID().toString().substring(0, 8);
+        MDC.put("traceId", traceId);
+        log.info("SDUI watch request: schemaVersion={}", schemaVersion);
+
+        try {
+            JsonNode screenResponse = compositionService.composeWatch(traceId);
+            response.setHeader("X-Trace-Id", traceId);
+            response.setHeader("X-Schema-Version", "1.0");
+            return ResponseEntity.ok(screenResponse);
+        } catch (Exception e) {
+            log.error("Error composing watch screen", e);
+            return ResponseEntity.internalServerError().build();
+        } finally {
+            MDC.clear();
+        }
+    }
+
+    /**
+     * Get SDUI screen response for the Live games screen.
+     */
+    @GetMapping(value = "/sdui/live", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<JsonNode> getLive(
+            @RequestHeader(value = "X-Schema-Version", defaultValue = "1.0") String schemaVersion,
+            HttpServletResponse response) {
+
+        String traceId = "trace-" + UUID.randomUUID().toString().substring(0, 8);
+        MDC.put("traceId", traceId);
+        log.info("SDUI live request: schemaVersion={}", schemaVersion);
+
+        try {
+            JsonNode screenResponse = compositionService.composeLive(traceId);
+            response.setHeader("X-Trace-Id", traceId);
+            response.setHeader("X-Schema-Version", "1.0");
+            return ResponseEntity.ok(screenResponse);
+        } catch (Exception e) {
+            log.error("Error composing live screen", e);
+            return ResponseEntity.internalServerError().build();
+        } finally {
+            MDC.clear();
+        }
+    }
+
+    /**
      * Get SDUI screen response for the demos kitchen-sink page.
      * Showcases all 10 semantic section types with static mock data.
      */
@@ -164,6 +239,34 @@ public class SduiController {
             return ResponseEntity.ok(screenResponse);
         } catch (Exception e) {
             log.error("Error composing demos screen", e);
+            return ResponseEntity.internalServerError().build();
+        } finally {
+            MDC.clear();
+        }
+    }
+
+    // ── Season Leaders Screen ──────────────────────────────────────────
+
+    /**
+     * Get SDUI screen response for the Season Leaders page.
+     * Contains a filter Form and a SeasonLeadersTable.
+     */
+    @GetMapping(value = "/sdui/leaders", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<JsonNode> getLeaders(
+            @RequestHeader(value = "X-Schema-Version", defaultValue = "1.0") String schemaVersion,
+            HttpServletResponse response) {
+
+        String traceId = "trace-" + UUID.randomUUID().toString().substring(0, 8);
+        MDC.put("traceId", traceId);
+        log.info("SDUI leaders request: schemaVersion={}", schemaVersion);
+
+        try {
+            JsonNode screenResponse = compositionService.composeLeaders(traceId);
+            response.setHeader("X-Trace-Id", traceId);
+            response.setHeader("X-Schema-Version", "1.0");
+            return ResponseEntity.ok(screenResponse);
+        } catch (Exception e) {
+            log.error("Error composing leaders screen", e);
             return ResponseEntity.internalServerError().build();
         } finally {
             MDC.clear();

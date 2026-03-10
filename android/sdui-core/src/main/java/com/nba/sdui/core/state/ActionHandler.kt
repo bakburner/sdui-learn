@@ -10,7 +10,7 @@ import android.util.Log
  */
 data class SduiAction(
     val trigger: String, // "onTap", "onLongPress", "onVisible", "onSwipe"
-    val type: String, // "navigate", "analytics", "mutate", "refresh", "dismiss"
+    val type: String, // "navigate", "analytics", "mutate", "refresh", "dismiss", "toast"
     val targetUri: String? = null,
     val fallbackUrl: String? = null,
     val eventName: String? = null,
@@ -19,7 +19,8 @@ data class SduiAction(
     val stateValue: Any? = null,
     val sectionId: String? = null,
     val endpoint: String? = null,
-    val paramBindings: Map<String, String>? = null
+    val paramBindings: Map<String, String>? = null,
+    val message: String? = null
 )
 
 /**
@@ -50,6 +51,7 @@ class ActionHandler {
             "mutate" -> handleMutate(action, stateManager)
             "refresh" -> handleRefresh(action, stateManager)
             "dismiss" -> handleDismiss(action)
+            "toast" -> handleToast(action)
             else -> {
                 Log.w(TAG, "Unknown action type: ${action.type}")
                 ActionResult.Unknown(action.type)
@@ -130,6 +132,12 @@ class ActionHandler {
         Log.i(TAG, "Dismiss action triggered")
         return ActionResult.DismissResult
     }
+
+    private fun handleToast(action: SduiAction): ActionResult {
+        val message = action.message ?: "No message"
+        Log.i(TAG, "Toast: $message")
+        return ActionResult.ToastResult(message)
+    }
     
     /**
      * Result of handling an SDUI action.
@@ -141,6 +149,7 @@ class ActionHandler {
         data class RefreshResult(val sectionId: String?) : ActionResult()
         data class ParameterizedRefreshResult(val url: String, val params: Map<String, String>) : ActionResult()
         data object DismissResult : ActionResult()
+        data class ToastResult(val message: String) : ActionResult()
         data class Error(val message: String) : ActionResult()
         data class Unknown(val actionType: String) : ActionResult()
     }

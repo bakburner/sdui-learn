@@ -14,6 +14,9 @@ struct SduiModels: Codable {
     let defaultRefreshPolicy: RefreshPolicy?
     let id: String
     let navigation: Navigation?
+    /// URI the back button should navigate to.  Clients always show a back button; this field
+    /// tells them the target.  Omit for root screens (e.g. scoreboard).
+    let parentURI: String?
     let schemaVersion: String
     let sections: [Section]
     let state: [String: JSONAny]?
@@ -22,7 +25,9 @@ struct SduiModels: Codable {
     enum CodingKeys: String, CodingKey {
         case actions
         case analyticsID = "analyticsId"
-        case defaultRefreshPolicy, id, navigation, schemaVersion, sections, state, title
+        case defaultRefreshPolicy, id, navigation
+        case parentURI = "parentUri"
+        case schemaVersion, sections, state, title
         case traceID = "traceId"
     }
 }
@@ -51,6 +56,7 @@ extension SduiModels {
         defaultRefreshPolicy: RefreshPolicy?? = nil,
         id: String? = nil,
         navigation: Navigation?? = nil,
+        parentURI: String?? = nil,
         schemaVersion: String? = nil,
         sections: [Section]? = nil,
         state: [String: JSONAny]?? = nil,
@@ -63,6 +69,7 @@ extension SduiModels {
             defaultRefreshPolicy: defaultRefreshPolicy ?? self.defaultRefreshPolicy,
             id: id ?? self.id,
             navigation: navigation ?? self.navigation,
+            parentURI: parentURI ?? self.parentURI,
             schemaVersion: schemaVersion ?? self.schemaVersion,
             sections: sections ?? self.sections,
             state: state ?? self.state,
@@ -81,6 +88,8 @@ extension SduiModels {
 }
 
 /// Action fired when the form is submitted
+///
+/// Optional 'See All' or navigation action
 // MARK: - Action
 struct Action: Codable {
     /// For analytics actions: where to send the beacon
@@ -91,6 +100,8 @@ struct Action: Codable {
     let event: String?
     /// For analytics actions with onVisible trigger: impression tracking policy
     let impression: ImpressionPolicy?
+    /// For toast actions: text message to display in the toast
+    let message: String?
     /// For navigate actions with modal presentation: sheet height
     let modalHeight: ModalHeight?
     /// For mutate actions: operation to perform on the state key
@@ -114,7 +125,7 @@ struct Action: Codable {
     let webURL: String?
 
     enum CodingKeys: String, CodingKey {
-        case destinations, endpoint, event, impression, modalHeight, operation, paramBindings, params, presentation, target
+        case destinations, endpoint, event, impression, message, modalHeight, operation, paramBindings, params, presentation, target
         case targetURI = "targetUri"
         case trigger, type, value
         case webURL = "webUrl"
@@ -144,6 +155,7 @@ extension Action {
         endpoint: String?? = nil,
         event: String?? = nil,
         impression: ImpressionPolicy?? = nil,
+        message: String?? = nil,
         modalHeight: ModalHeight?? = nil,
         operation: MutateOperation?? = nil,
         paramBindings: [String: String]?? = nil,
@@ -161,6 +173,7 @@ extension Action {
             endpoint: endpoint ?? self.endpoint,
             event: event ?? self.event,
             impression: impression ?? self.impression,
+            message: message ?? self.message,
             modalHeight: modalHeight ?? self.modalHeight,
             operation: operation ?? self.operation,
             paramBindings: paramBindings ?? self.paramBindings,
@@ -343,6 +356,7 @@ enum ActionType: String, Codable {
     case mutate = "mutate"
     case navigate = "navigate"
     case refresh = "refresh"
+    case toast = "toast"
 }
 
 // MARK: - RefreshPolicy
@@ -528,6 +542,17 @@ extension NavigationItem {
 /// Typed tabular data for an NBA-style boxscore (one per team)
 ///
 /// Server-driven form section with typed fields bound to screen state
+///
+/// Ad placement primitive — carries placement semantics while delegating auction/targeting
+/// to ad-platform SDKs (see ADR-007)
+///
+/// Sortable, paginated table of season statistical leaders (league-wide)
+///
+/// Horizontal scrolling rail of followed teams/players with circular avatars
+///
+/// Hero-sized game card with larger imagery, prominent scores, and optional background
+///
+/// Titled separator/divider between groups of sections, with optional See All action
 // MARK: - DataClass
 struct DataClass: Codable {
     let awayTeam: TeamData?
@@ -536,8 +561,15 @@ struct DataClass: Codable {
     let gameStatusText: String?
     let homeTeam: TeamData?
     let period: Int?
+    /// Row layout: 'horizontal' = image | name | stat inline, 'vertical' = name/image stacked
+    /// above stat value. Use 'vertical' for narrow viewports.
+    ///
+    /// Layout hint for field arrangement
+    let layout: Layout?
     let stats: [StatLineData]?
+    /// Table heading, e.g. 'Season Leaders'
     let title: String?
+    /// Optional 'See All' or navigation action
     let action: Action?
     let contentType: ContentType?
     let duration, headline, id, subhead: String?
@@ -557,11 +589,15 @@ struct DataClass: Codable {
     /// Gap between children in dp/px
     let spacing: Int?
     /// Ordered list of column definitions; clients render left-to-right
+    ///
+    /// Ordered column definitions; clients render left-to-right
     let columns: [BoxscoreColumnDefinition]?
     /// Text shown when no player rows are available
     let emptyMessage: String?
     /// Player rows ordered by server (starters first, then bench)
-    let players: [BoxscorePlayerRow]?
+    ///
+    /// Player rows, pre-sorted by the server
+    let players: [PlayerRow]?
     /// Screen-state key holding the current sort direction (asc/desc)
     let sortDirectionStateKey: String?
     /// Screen-state key holding the current sort column key
@@ -574,21 +610,53 @@ struct DataClass: Codable {
     /// Three-letter team code, e.g. 'BOS'
     let teamTricode: String?
     let fields: [FormField]?
-    /// Layout hint for field arrangement
-    let layout: Layout?
     /// Action fired when the form is submitted
     let submitAction: Action?
     let submitLabel: String?
+    /// Ad unit path used by the ad SDK
+    let adUnitPath: String?
+    /// Whether to collapse the slot when no fill is returned
+    let collapseOnEmpty: Bool?
+    /// Disclosure label displayed above/below the ad
+    let label: String?
+    /// Ad network identifier, e.g. 'gam', 'amazon'
+    let provider: String?
+    /// Optional auto-refresh interval in seconds
+    let refreshIntervalSEC: Int?
+    /// Accepted creative sizes as [width, height] pairs
+    let sizes: [[Int]]?
+    /// Key-value targeting hints passed to ad SDK
+    let targeting: [String: String]?
+    /// Current page (1-based)
+    let page: Int?
+    /// Number of rows per page
+    let pageSize: Int?
+    /// Key of the column the table is currently sorted by
+    let sortColumn: String?
+    let sortDirection: SortDirection?
+    /// Secondary text, e.g. '2025-26 Regular Season – Per Game'
+    let subtitle: String?
+    /// Total number of rows available server-side (for pagination display)
+    let totalRows: Int?
+    let items: [FollowingRailItem]?
+    /// Background image URL for the hero card
+    let backgroundImageURL: String?
+    /// Badge/chip label, e.g. 'LIVE', 'FEATURED'
+    let badgeText: String?
 
     enum CodingKeys: String, CodingKey {
-        case awayTeam, clock, gameStatus, gameStatusText, homeTeam, period, stats, title, action, contentType, duration, headline, id, subhead
+        case awayTeam, clock, gameStatus, gameStatusText, homeTeam, period, layout, stats, title, action, contentType, duration, headline, id, subhead
         case thumbnailURL = "thumbnailUrl"
         case cards, defaultTab, stateKey, tabContents, tabs, actions, description
         case imageURL = "imageUrl"
         case gameID = "gameId"
         case gameLeaders, gameTimeEt, breakpoint, children, spacing, columns, emptyMessage, players, sortDirectionStateKey, sortStateKey, teamColor
         case teamLogoURL = "teamLogoUrl"
-        case teamName, teamTotals, teamTricode, fields, layout, submitAction, submitLabel
+        case teamName, teamTotals, teamTricode, fields, submitAction, submitLabel, adUnitPath, collapseOnEmpty, label, provider
+        case refreshIntervalSEC = "refreshIntervalSec"
+        case sizes, targeting, page, pageSize, sortColumn, sortDirection, subtitle, totalRows, items
+        case backgroundImageURL = "backgroundImageUrl"
+        case badgeText
     }
 }
 
@@ -617,6 +685,7 @@ extension DataClass {
         gameStatusText: String?? = nil,
         homeTeam: TeamData?? = nil,
         period: Int?? = nil,
+        layout: Layout?? = nil,
         stats: [StatLineData]?? = nil,
         title: String?? = nil,
         action: Action?? = nil,
@@ -642,7 +711,7 @@ extension DataClass {
         spacing: Int?? = nil,
         columns: [BoxscoreColumnDefinition]?? = nil,
         emptyMessage: String?? = nil,
-        players: [BoxscorePlayerRow]?? = nil,
+        players: [PlayerRow]?? = nil,
         sortDirectionStateKey: String?? = nil,
         sortStateKey: String?? = nil,
         teamColor: String?? = nil,
@@ -651,9 +720,24 @@ extension DataClass {
         teamTotals: [String: JSONAny]?? = nil,
         teamTricode: String?? = nil,
         fields: [FormField]?? = nil,
-        layout: Layout?? = nil,
         submitAction: Action?? = nil,
-        submitLabel: String?? = nil
+        submitLabel: String?? = nil,
+        adUnitPath: String?? = nil,
+        collapseOnEmpty: Bool?? = nil,
+        label: String?? = nil,
+        provider: String?? = nil,
+        refreshIntervalSEC: Int?? = nil,
+        sizes: [[Int]]?? = nil,
+        targeting: [String: String]?? = nil,
+        page: Int?? = nil,
+        pageSize: Int?? = nil,
+        sortColumn: String?? = nil,
+        sortDirection: SortDirection?? = nil,
+        subtitle: String?? = nil,
+        totalRows: Int?? = nil,
+        items: [FollowingRailItem]?? = nil,
+        backgroundImageURL: String?? = nil,
+        badgeText: String?? = nil
     ) -> DataClass {
         return DataClass(
             awayTeam: awayTeam ?? self.awayTeam,
@@ -662,6 +746,7 @@ extension DataClass {
             gameStatusText: gameStatusText ?? self.gameStatusText,
             homeTeam: homeTeam ?? self.homeTeam,
             period: period ?? self.period,
+            layout: layout ?? self.layout,
             stats: stats ?? self.stats,
             title: title ?? self.title,
             action: action ?? self.action,
@@ -696,9 +781,24 @@ extension DataClass {
             teamTotals: teamTotals ?? self.teamTotals,
             teamTricode: teamTricode ?? self.teamTricode,
             fields: fields ?? self.fields,
-            layout: layout ?? self.layout,
             submitAction: submitAction ?? self.submitAction,
-            submitLabel: submitLabel ?? self.submitLabel
+            submitLabel: submitLabel ?? self.submitLabel,
+            adUnitPath: adUnitPath ?? self.adUnitPath,
+            collapseOnEmpty: collapseOnEmpty ?? self.collapseOnEmpty,
+            label: label ?? self.label,
+            provider: provider ?? self.provider,
+            refreshIntervalSEC: refreshIntervalSEC ?? self.refreshIntervalSEC,
+            sizes: sizes ?? self.sizes,
+            targeting: targeting ?? self.targeting,
+            page: page ?? self.page,
+            pageSize: pageSize ?? self.pageSize,
+            sortColumn: sortColumn ?? self.sortColumn,
+            sortDirection: sortDirection ?? self.sortDirection,
+            subtitle: subtitle ?? self.subtitle,
+            totalRows: totalRows ?? self.totalRows,
+            items: items ?? self.items,
+            backgroundImageURL: backgroundImageURL ?? self.backgroundImageURL,
+            badgeText: badgeText ?? self.badgeText
         )
     }
 
@@ -1198,6 +1298,77 @@ extension GameLeaderData {
     }
 }
 
+/// One entity (team or player) in a following rail
+// MARK: - FollowingRailItem
+struct FollowingRailItem: Codable {
+    let action: Action?
+    /// Whether this item represents a team or a player
+    let entityType: EntityType
+    let id: String
+    /// Avatar / logo URL
+    let imageURL: String
+    /// Display name, e.g. 'Lakers' or 'LeBron James'
+    let name: String
+
+    enum CodingKeys: String, CodingKey {
+        case action, entityType, id
+        case imageURL = "imageUrl"
+        case name
+    }
+}
+
+// MARK: FollowingRailItem convenience initializers and mutators
+
+extension FollowingRailItem {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(FollowingRailItem.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        action: Action?? = nil,
+        entityType: EntityType? = nil,
+        id: String? = nil,
+        imageURL: String? = nil,
+        name: String? = nil
+    ) -> FollowingRailItem {
+        return FollowingRailItem(
+            action: action ?? self.action,
+            entityType: entityType ?? self.entityType,
+            id: id ?? self.id,
+            imageURL: imageURL ?? self.imageURL,
+            name: name ?? self.name
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+/// Whether this item represents a team or a player
+enum EntityType: String, Codable {
+    case player = "player"
+    case team = "team"
+}
+
+/// Row layout: 'horizontal' = image | name | stat inline, 'vertical' = name/image stacked
+/// above stat value. Use 'vertical' for narrow viewports.
+///
 /// Layout hint for field arrangement
 enum Layout: String, Codable {
     case grid = "grid"
@@ -1206,32 +1377,41 @@ enum Layout: String, Codable {
 }
 
 /// One player row inside a boxscore table
-// MARK: - BoxscorePlayerRow
-struct BoxscorePlayerRow: Codable {
+///
+/// One ranked player row in a season leaders table
+// MARK: - PlayerRow
+struct PlayerRow: Codable {
     let actions: [Action]?
     let imageURL, jerseyNumber: String?
     /// Display name (short form, e.g. 'J. Tatum')
+    ///
+    /// Display name, e.g. 'Luka Dončić'
     let name: String
     let playerID: String
     let position: String?
     /// Whether this player was in the starting lineup
     let starter: Bool?
+    /// Stat values keyed by column key (gp, min, pts, reb, ast, etc.)
     let stats: [String: JSONAny]
+    /// Ranking position (1-based)
+    let rank: Int?
+    /// Team tricode, e.g. 'LAL'
+    let team: String?
 
     enum CodingKeys: String, CodingKey {
         case actions
         case imageURL = "imageUrl"
         case jerseyNumber, name
         case playerID = "playerId"
-        case position, starter, stats
+        case position, starter, stats, rank, team
     }
 }
 
-// MARK: BoxscorePlayerRow convenience initializers and mutators
+// MARK: PlayerRow convenience initializers and mutators
 
-extension BoxscorePlayerRow {
+extension PlayerRow {
     init(data: Data) throws {
-        self = try newJSONDecoder().decode(BoxscorePlayerRow.self, from: data)
+        self = try newJSONDecoder().decode(PlayerRow.self, from: data)
     }
 
     init(_ json: String, using encoding: String.Encoding = .utf8) throws {
@@ -1253,9 +1433,11 @@ extension BoxscorePlayerRow {
         playerID: String? = nil,
         position: String?? = nil,
         starter: Bool?? = nil,
-        stats: [String: JSONAny]? = nil
-    ) -> BoxscorePlayerRow {
-        return BoxscorePlayerRow(
+        stats: [String: JSONAny]? = nil,
+        rank: Int?? = nil,
+        team: String?? = nil
+    ) -> PlayerRow {
+        return PlayerRow(
             actions: actions ?? self.actions,
             imageURL: imageURL ?? self.imageURL,
             jerseyNumber: jerseyNumber ?? self.jerseyNumber,
@@ -1263,7 +1445,9 @@ extension BoxscorePlayerRow {
             playerID: playerID ?? self.playerID,
             position: position ?? self.position,
             starter: starter ?? self.starter,
-            stats: stats ?? self.stats
+            stats: stats ?? self.stats,
+            rank: rank ?? self.rank,
+            team: team ?? self.team
         )
     }
 
@@ -1274,6 +1458,11 @@ extension BoxscorePlayerRow {
     func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
         return String(data: try self.jsonData(), encoding: encoding)
     }
+}
+
+enum SortDirection: String, Codable {
+    case asc = "asc"
+    case desc = "desc"
 }
 
 // MARK: - StatLineData
@@ -1567,14 +1756,19 @@ extension Subsection {
 }
 
 enum TypeEnum: String, Codable {
+    case adSlot = "AdSlot"
     case boxscoreTable = "BoxscoreTable"
     case contentCard = "ContentCard"
     case contentRail = "ContentRail"
+    case featuredGameCard = "FeaturedGameCard"
+    case followingRail = "FollowingRail"
     case form = "Form"
     case gameCard = "GameCard"
     case promoBanner = "PromoBanner"
     case row = "Row"
     case scoreboardHeader = "ScoreboardHeader"
+    case seasonLeadersTable = "SeasonLeadersTable"
+    case sectionHeader = "SectionHeader"
     case statLine = "StatLine"
     case tabGroup = "TabGroup"
 }

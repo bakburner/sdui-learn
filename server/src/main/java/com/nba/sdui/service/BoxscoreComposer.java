@@ -284,13 +284,6 @@ public class BoxscoreComposer {
 
         row.set("stats", stats);
 
-        ArrayNode actions = objectMapper.createArrayNode();
-        ObjectNode action = objectMapper.createObjectNode();
-        action.put("trigger", "onTap");
-        action.put("type", "navigate");
-        action.put("targetUri", "nba://player/" + personId);
-        actions.add(action);
-        row.set("actions", actions);
 
         return row;
     }

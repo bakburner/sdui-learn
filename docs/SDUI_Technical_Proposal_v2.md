@@ -14,7 +14,7 @@
 | 2026-02-24 | Added i18n section (9p) with server-resolved default + `stringKeys` on data bindings. Removed `layoutHints` from schema and appendix examples (moved to ADR-008 for evaluation). Added locale transport policy to 9o and 9p. |
 | 2026-02-25 | Added `stringKeys` to binding JSON examples in section 3 and Appendix B. Added JSON snippet with explanation to i18n section (9p). Added revision history. |
 | 2026-02-25 | Established platform-aware composition as settled architectural position: shared schema, shared data pipeline, per-platform-family composition. Renamed `fallbackUrl` → `webUrl` in action contract (section 4). Updated platform coverage (section 8). |
-| 2026-02-27 | Replaced `entitlements` with `userContext` in request envelope (governance, 9o, Appendix A). Aligned analytics field names (`event`/`params`) and mutate field names (`target`/`operation`/`value`) with requirements summary. Moved `schemaVersion` to `meta` object. Added `onBlur` trigger. |
+| 2026-02-27 | Replaced `entitlements` with `device` in request envelope (governance, 9o, Appendix A). Aligned analytics field names (`event`/`params`) and mutate field names (`target`/`operation`/`value`) with requirements summary. Moved `schemaVersion` to `meta` object. Added `onBlur` trigger. |
 | 2026-03-04 | Added tabular data sections and forms. New semantic types (`BoxscoreTable`, `Form`) in schema design (section 2). Parameterized refresh on actions (section 4). Sort and form state patterns (section 5). Platform coverage update (section 8). Gap 9q. Requirement status updates. Appendix C boxscore response example. |
 | 2026-03-04 | Added `parentUri` to Screen response contract and example. Added client URI resolution convention. |
 
@@ -36,7 +36,7 @@ Current decisions reflected here:
 - Transport policy: support GET and POST by route context and cacheability needs.
 - Ad boundary: auction/targeting is delegated; SDUI carries ad placement contract.
 - Caching direction: section-first caching with optional screen snapshot caching.
-- Entitlement/restriction resolution: server-authoritative. The client provides user/device context via `userContext` in the request envelope; the composition service resolves entitlements and restrictions server-side.
+- Entitlement/restriction resolution: server-authoritative. The client provides device context via `device` in the request envelope; the composition service resolves entitlements and restrictions server-side.
 
 ---
 
@@ -624,7 +624,7 @@ Composition must support a typed request envelope:
 - platform/app version/device class
 - locale/region/timezone
 - auth context (`Authorization` header)
-- user context (device ID, ZIP code, country code, region)
+- device context (device ID, ZIP code, country code, region)
 - experiment hints/assignments
 - client capabilities
 - traceId
@@ -753,7 +753,7 @@ The alternative is duplicated platform composition logic and drift in feature be
       "onFocus": false
     }
   },
-  "userContext": {
+  "device": {
     "deviceId": "a1b2c3d4-5678-90ef-ghij-klmnopqrstuv",
     "zipCode": "10001",
     "countryCode": "US",
@@ -764,7 +764,7 @@ The alternative is duplicated platform composition logic and drift in feature be
 }
 ```
 
-The `userContext` object carries user and device signals that the composition service may use for any purpose — entitlement resolution, geo-based content filtering, personalization, restriction checks, or other server-side decisions. The envelope does not prescribe how these inputs are consumed. Content-specific fields (production ID, league ID, content type) are known to the composer from the content being composed and do not need to appear in the client request. Auth identity is carried via the `Authorization` header.
+The `device` object carries device signals that the composition service may use for any purpose — entitlement resolution, geo-based content filtering, personalization, restriction checks, or other server-side decisions. The envelope does not prescribe how these inputs are consumed. Content-specific fields (production ID, league ID, content type) are known to the composer from the content being composed and do not need to appear in the client request. Auth identity is carried via the `Authorization` header.
 
 ---
 

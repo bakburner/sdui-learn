@@ -27,6 +27,8 @@ export interface SduiModels {
  * Action fired when the form is submitted
  *
  * Optional 'See All' or navigation action
+ *
+ * Optional action to retry the failed operation
  */
 export interface Action {
     /**
@@ -247,9 +249,21 @@ export interface NavigationItem {
  *
  * Horizontal scrolling rail of followed teams/players with circular avatars
  *
- * Hero-sized game card with larger imagery, prominent scores, and optional background
+ * Hero-sized game panel with larger imagery, prominent scores, and optional background
  *
  * Titled separator/divider between groups of sections, with optional See All action
+ *
+ * Horizontal scrolling carousel of video thumbnails (landscape 16:9). Mobile shows
+ * swipeable cards; web shows a grid with hover-to-play.
+ *
+ * NBA TV programming schedule with hero promo and time-slot list
+ *
+ * Inline subscription upsell banner with headline, body copy, and CTA
+ *
+ * Full-screen subscription upsell hero with multi-tier pricing and feature list
+ *
+ * Error state displayed when something goes wrong — bad ID, network failure, missing data,
+ * etc.
  */
 export interface Data {
     awayTeam?:       TeamData;
@@ -268,6 +282,8 @@ export interface Data {
     stats?:  StatLineData[];
     /**
      * Table heading, e.g. 'Season Leaders'
+     *
+     * Short error headline, e.g. 'Something went wrong'
      */
     title?: string;
     /**
@@ -280,7 +296,7 @@ export interface Data {
     id?:           string;
     subhead?:      string;
     thumbnailUrl?: string;
-    cards?:        ContentCardData[];
+    cards?:        HeroPanelData[];
     defaultTab?:   string;
     stateKey?:     string;
     tabContents?:  { [key: string]: Section[] };
@@ -405,6 +421,37 @@ export interface Data {
      * Badge/chip label, e.g. 'LIVE', 'FEATURED'
      */
     badgeText?: string;
+    /**
+     * Hero image for the currently airing program
+     */
+    heroImageUrl?: string;
+    heroSubtitle?: string;
+    heroTitle?:    string;
+    liveNow?:      boolean;
+    slots?:        NbaTvSlot[];
+    ctaAction?:    Action;
+    ctaLabel?:     string;
+    logoUrl?:      string;
+    /**
+     * Optional pricing tier highlights
+     */
+    tiers?: SubscriptionTier[];
+    /**
+     * Bullet-point feature list
+     */
+    features?: string[];
+    /**
+     * Optional icon name, e.g. 'error', 'wifi_off'
+     */
+    icon?: string;
+    /**
+     * Longer explanatory text
+     */
+    message?: string;
+    /**
+     * Optional action to retry the failed operation
+     */
+    retryAction?: Action;
     [property: string]: any;
 }
 
@@ -441,7 +488,7 @@ export interface TeamData {
     [property: string]: any;
 }
 
-export interface ContentCardData {
+export interface HeroPanelData {
     action?:       Action;
     contentType?:  ContentType;
     duration?:     string;
@@ -562,16 +609,27 @@ export interface FollowingRailItem {
     /**
      * Whether this item represents a team or a player
      */
-    entityType: EntityType;
-    id:         string;
+    entityType?: EntityType;
+    id:          string;
     /**
      * Avatar / logo URL
      */
-    imageUrl: string;
+    imageUrl?: string;
     /**
      * Display name, e.g. 'Lakers' or 'LeBron James'
      */
-    name: string;
+    name?: string;
+    /**
+     * Overlay badge, e.g. 'LIVE', 'NEW'
+     */
+    badgeText?: string;
+    /**
+     * Human-readable duration, e.g. '2:34'
+     */
+    duration?:     string;
+    subtitle?:     string;
+    thumbnailUrl?: string;
+    title?:        string;
     [property: string]: any;
 }
 
@@ -631,6 +689,24 @@ export interface PlayerRow {
     [property: string]: any;
 }
 
+export interface NbaTvSlot {
+    action?: Action;
+    /**
+     * ISO-8601 end time
+     */
+    endTime?: string;
+    id:       string;
+    isLive?:  boolean;
+    /**
+     * ISO-8601 start time
+     */
+    startTime:     string;
+    subtitle?:     string;
+    thumbnailUrl?: string;
+    title:         string;
+    [property: string]: any;
+}
+
 export enum SortDirection {
     Asc = "asc",
     Desc = "desc",
@@ -652,6 +728,30 @@ export interface TabData {
     label:       string;
     stateKey?:   string;
     stateValue?: string;
+    [property: string]: any;
+}
+
+export interface SubscriptionTier {
+    /**
+     * Badge label, e.g. 'BEST VALUE', 'MOST POPULAR'
+     */
+    badgeText?: string;
+    ctaAction?: Action;
+    ctaLabel?:  string;
+    features?:  string[];
+    id:         string;
+    /**
+     * Tier name, e.g. 'League Pass', 'League Pass Premium'
+     */
+    name: string;
+    /**
+     * Strikethrough price if on sale
+     */
+    originalPrice?: string;
+    /**
+     * Display price, e.g. '$14.99/mo'
+     */
+    price: string;
     [property: string]: any;
 }
 
@@ -697,17 +797,22 @@ export interface Subsection {
 export enum Type {
     AdSlot = "AdSlot",
     BoxscoreTable = "BoxscoreTable",
-    ContentCard = "ContentCard",
+    HeroPanel = "HeroPanel",
     ContentRail = "ContentRail",
-    FeaturedGameCard = "FeaturedGameCard",
+    ErrorState = "ErrorState",
+    FeaturedGamePanel = "FeaturedGamePanel",
     FollowingRail = "FollowingRail",
     Form = "Form",
-    GameCard = "GameCard",
+    GamePanel = "GamePanel",
+    NbaTvSchedule = "NbaTvSchedule",
     PromoBanner = "PromoBanner",
     Row = "Row",
     ScoreboardHeader = "ScoreboardHeader",
     SeasonLeadersTable = "SeasonLeadersTable",
     SectionHeader = "SectionHeader",
     StatLine = "StatLine",
+    SubscribeBanner = "SubscribeBanner",
+    SubscribeHero = "SubscribeHero",
     TabGroup = "TabGroup",
+    VideoCarousel = "VideoCarousel",
 }

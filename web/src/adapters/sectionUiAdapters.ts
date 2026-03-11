@@ -2,7 +2,7 @@ import type {
   Action,
   BoxscoreColumnDefinition,
   BoxscorePlayerRow,
-  ContentCardData,
+  HeroPanelData,
   Data,
   FormField,
   Section,
@@ -26,7 +26,7 @@ export interface StatLineUiModel {
 
 export interface ContentRailUiModel {
   title?: string;
-  cards: ContentCardData[];
+  cards: HeroPanelData[];
 }
 
 export interface TabGroupUiModel {
@@ -49,7 +49,7 @@ export interface PromoBannerUiModel {
   primaryAction?: Action;
 }
 
-export interface GameCardUiModel {
+export interface GamePanelUiModel {
   awayTricode: string;
   homeTricode: string;
   awayScore: string;
@@ -85,6 +85,32 @@ export function mapStatLine(section: Section): StatLineUiModel | null {
   return {
     title: data.title,
     stats: data.stats,
+  };
+}
+
+export interface HeroPanelUiModel {
+  id: string;
+  headline: string;
+  subhead?: string;
+  thumbnailUrl?: string;
+  fallbackThumbnailUrl?: string;
+  contentType?: string;
+  duration?: string;
+  action?: Action;
+}
+
+export function mapHeroPanel(section: Section): HeroPanelUiModel | null {
+  const data = section.data as Record<string, unknown> | undefined;
+  if (!data?.headline) return null;
+  return {
+    id: (data.id as string) ?? section.id,
+    headline: data.headline as string,
+    subhead: data.subhead as string | undefined,
+    thumbnailUrl: data.thumbnailUrl as string | undefined,
+    fallbackThumbnailUrl: data.fallbackThumbnailUrl as string | undefined,
+    contentType: data.contentType as string | undefined,
+    duration: data.duration as string | undefined,
+    action: data.action as Action | undefined,
   };
 }
 
@@ -230,9 +256,9 @@ export function mapFollowingRail(section: Section): FollowingRailUiModel | null 
   };
 }
 
-// ── FeaturedGameCard ───────────────────────────────────────────────
+// ── FeaturedGamePanel ──────────────────────────────────────────────
 
-export interface FeaturedGameCardUiModel {
+export interface FeaturedGamePanelUiModel {
   awayTricode: string;
   homeTricode: string;
   awayScore: string;
@@ -251,7 +277,7 @@ export interface FeaturedGameCardUiModel {
   primaryAction?: Action;
 }
 
-export function mapFeaturedGameCard(section: Section): FeaturedGameCardUiModel | null {
+export function mapFeaturedGamePanel(section: Section): FeaturedGamePanelUiModel | null {
   const data = section.data as Data | undefined;
   if (!data?.homeTeam || !data?.awayTeam) return null;
   const raw = data as Record<string, unknown>;
@@ -299,9 +325,9 @@ export function mapSectionHeader(section: Section): SectionHeaderUiModel | null 
   };
 }
 
-// ── GameCard ───────────────────────────────────────────────────────
+// ── GamePanel ──────────────────────────────────────────────────────
 
-export function mapGameCard(section: Section): GameCardUiModel | null {
+export function mapGamePanel(section: Section): GamePanelUiModel | null {
   const data = section.data as Data | undefined;
   if (!data?.homeTeam || !data?.awayTeam) return null;
   const raw = data as Record<string, unknown>;

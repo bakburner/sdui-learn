@@ -437,4 +437,173 @@ struct BoxscoreTableView: View {
 
 ---
 
+## Image Fallback — Client-Side Implementation
+
+When external image URLs return 404s or fail to load, the server-provided `fallbackThumbnailUrl` field is used as a recovery image. This pattern is used across all image-bearing section types.
+
+### Web (React)
+
+```tsx
+const fallbackUrl = data.fallbackThumbnailUrl;
+
+<img
+  src={item.imageUrl}
+  onError={(e) => {
+    const img = e.currentTarget;
+    if (fallbackUrl && img.src !== fallbackUrl) img.src = fallbackUrl;
+  }}
+/>
+```
+
+The guard `img.src !== fallbackUrl` prevents an infinite error loop if the fallback URL also fails.
+
+### Android (Jetpack Compose / Coil 2.7.0)
+
+```kotlin
+val fallbackUrl = (section.data as? Map<*, *>)
+    ?.get("fallbackThumbnailUrl")?.toString()
+
+SubcomposeAsyncImage(
+    model = imageUrl,
+    contentDescription = null,
+    contentScale = ContentScale.Crop,
+    modifier = Modifier.fillMaxWidth().height(200.dp),
+    error = {
+        if (fallbackUrl != null) {
+            AsyncImage(
+                model = fallbackUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
+    }
+)
+```
+
+`SubcomposeAsyncImage` (from `coil-compose`) provides an `error` composable slot that renders only when the primary image fails. The error slot renders a standard `AsyncImage` with the fallback URL.
+
+### Sections Using This Pattern
+
+VideoCarousel, HeroPanel, ContentRail, NbaTvSchedule, PromoBanner, FollowingRail, SubscribeBanner, SubscribeHero.
+
+---
+
+## Section Merge (Surgical Refresh) — Form Submission Pattern
+
+When a `Form` section submits a parameterized refresh, the server returns a response containing updated sections. Rather than replacing the entire screen (which would reset form state and scroll position), the client performs a **surgical section merge**:
+
+### Android
+
+```kotlin
+fun refreshSections(newSections: List<SduiSection>) {
+    val current = _sections.value.toMutableList()
+    for (incoming in newSections) {
+        val idx = current.indexOfFirst { it.id == incoming.id }
+        if (idx >= 0) current[idx] = incoming else current.add(incoming)
+    }
+    _sections.value = current
+}
+```
+
+Matching sections are replaced by ID; new sections are appended. Non-matching existing sections (including the Form itself) are preserved, maintaining field selections and scroll state.
+
+### Web
+
+```typescript
+const isSectionUpdateRef = useRef(false);
+
+// On form submit response:
+isSectionUpdateRef.current = true;
+setSections(prev => {
+  const merged = [...prev];
+  for (const incoming of newSections) {
+    const idx = merged.findIndex(s => s.id === incoming.id);
+    if (idx >= 0) merged[idx] = incoming;
+    else merged.push(incoming);
+  }
+  return merged;
+});
+```
+
+The `isSectionUpdateRef` flag prevents the merge from being treated as a full screen load (which would re-trigger initial animations or scroll resets).
+
+---
+
+## ErrorState — First-Class Error Rendering
+
+The `ErrorState` section type allows the server to inject a structured error directly into the section stream. This avoids opaque client-side error screens and keeps error presentation server-driven.
+
+### Schema Shape
+
+```json
+{
+  "id": "error-fetch-failed",
+  "sectionType": "ErrorState",
+  "data": {
+    "title": "Something went wrong",
+    "message": "We couldn't load this content. Please try again.",
+    "icon": "error",
+    "retryAction": {
+      "actionType": "refresh",
+      "targetSectionIds": ["error-fetch-failed"]
+    }
+  }
+}
+```
+
+The `icon` and `retryAction` fields are optional. When `retryAction` is present, the renderer shows a retry button that dispatches the action through the standard action handler.
+
+### Server Helper
+
+```java
+// SduiUtils.buildErrorSection(id, title, message)
+SduiSection error = SduiUtils.buildErrorSection(
+    "error-standings",
+    "Standings unavailable",
+    "The standings service is not responding."
+);
+```
+
+### Android (Compose)
+
+`ErrorStateRenderer.kt` renders the section as a centered column with icon, title, message, and optional retry button:
+
+```kotlin
+@Composable
+fun ErrorStateRenderer(section: SduiSection, onAction: (SduiAction) -> Unit) {
+    val data = section.data
+    Column(horizontalAlignment = CenterHorizontally, modifier = Modifier.padding(24.dp)) {
+        data["icon"]?.let { Icon(painterResource(resolveIcon(it)), contentDescription = null) }
+        Text(data["title"], style = MaterialTheme.typography.titleMedium)
+        Text(data["message"], style = MaterialTheme.typography.bodyMedium)
+        data["retryAction"]?.let { action ->
+            Button(onClick = { onAction(action.toSduiAction()) }) { Text("Retry") }
+        }
+    }
+}
+```
+
+### Web (React)
+
+`ErrorState.tsx` mirrors the same structure:
+
+```tsx
+export function ErrorState({ section, onAction }: SectionProps) {
+  const { title, message, icon, retryAction } = section.data;
+  return (
+    <div className="error-state">
+      {icon && <span className={`icon-${icon}`} />}
+      <h3>{title}</h3>
+      <p>{message}</p>
+      {retryAction && (
+        <button onClick={() => onAction(retryAction)}>Retry</button>
+      )}
+    </div>
+  );
+}
+```
+
+---
+
 *Implementation reference for SDUI platform — February 2025*

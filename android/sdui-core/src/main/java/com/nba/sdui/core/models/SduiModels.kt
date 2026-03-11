@@ -19,6 +19,7 @@ data class SduiScreen(
     @JsonProperty("parentUri") val parentUri: String? = null,
     @JsonProperty("defaultRefreshPolicy") val defaultRefreshPolicy: RefreshPolicy? = null,
     @JsonProperty("navigation") val navigation: Navigation? = null,
+    @JsonProperty("variants") val variants: List<SduiVariant> = emptyList(),
     @JsonProperty("state") val state: Map<String, Any>? = null,
     @JsonProperty("sections") val sections: List<SduiSection> = emptyList()
 )
@@ -36,6 +37,16 @@ data class NavigationItem(
     @JsonProperty("targetUri") val targetUri: String? = null,
     @JsonProperty("selected") val selected: Boolean = false,
     @JsonProperty("children") val children: List<NavigationItem> = emptyList()
+)
+
+/**
+ * Variant descriptor provided by the server for A/B experimentation.
+ */
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class SduiVariant(
+    @JsonProperty("id") val id: String,
+    @JsonProperty("label") val label: String,
+    @JsonProperty("description") val description: String? = null
 )
 
 /**

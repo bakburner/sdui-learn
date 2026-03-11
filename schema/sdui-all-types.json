@@ -71,8 +71,8 @@
     "statLineData": {
       "$ref": "sdui-schema.json#/definitions/StatLineData"
     },
-    "contentCardData": {
-      "$ref": "sdui-schema.json#/definitions/ContentCardData"
+    "heroPanelData": {
+      "$ref": "sdui-schema.json#/definitions/HeroPanelData"
     },
     "tabData": {
       "$ref": "sdui-schema.json#/definitions/TabData"
@@ -89,8 +89,8 @@
     "gameLeadersData": {
       "$ref": "sdui-schema.json#/definitions/GameLeadersData"
     },
-    "gameCardData": {
-      "$ref": "sdui-schema.json#/definitions/GameCardData"
+    "gamePanelData": {
+      "$ref": "sdui-schema.json#/definitions/GamePanelData"
     },
     "statLineListData": {
       "$ref": "sdui-schema.json#/definitions/StatLineListData"
@@ -109,6 +109,30 @@
     },
     "subsection": {
       "$ref": "sdui-schema.json#/definitions/Subsection"
+    },
+    "featuredGamePanelData": {
+      "$ref": "sdui-schema.json#/definitions/FeaturedGamePanelData"
+    },
+    "videoCarouselData": {
+      "$ref": "sdui-schema.json#/definitions/VideoCarouselData"
+    },
+    "videoThumbnail": {
+      "$ref": "sdui-schema.json#/definitions/VideoThumbnail"
+    },
+    "nbaTvScheduleData": {
+      "$ref": "sdui-schema.json#/definitions/NbaTvScheduleData"
+    },
+    "nbaTvSlot": {
+      "$ref": "sdui-schema.json#/definitions/NbaTvSlot"
+    },
+    "subscribeBannerData": {
+      "$ref": "sdui-schema.json#/definitions/SubscribeBannerData"
+    },
+    "subscribeHeroData": {
+      "$ref": "sdui-schema.json#/definitions/SubscribeHeroData"
+    },
+    "subscriptionTier": {
+      "$ref": "sdui-schema.json#/definitions/SubscriptionTier"
     }
   }
 }

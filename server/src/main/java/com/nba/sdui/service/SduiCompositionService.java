@@ -78,8 +78,8 @@ public class SduiCompositionService {
         return demoScreenComposer.composeDemos(traceId);
     }
 
-    public JsonNode composeLeaders(String traceId) {
-        return demoScreenComposer.composeLeaders(traceId);
+    public JsonNode composeLeaders(String traceId, String platform) {
+        return demoScreenComposer.composeLeaders(traceId, platform);
     }
 
     public ObjectNode composeLeadersRefresh(String traceId, Map<String, String> params) {

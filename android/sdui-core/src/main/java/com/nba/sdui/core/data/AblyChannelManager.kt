@@ -1,7 +1,6 @@
 package com.nba.sdui.core.data
 
 import android.util.Log
-import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import io.ably.lib.realtime.AblyRealtime
@@ -18,10 +17,14 @@ import kotlinx.coroutines.withContext
 
 /**
  * Ably Channel Manager - Manages real-time connections to Ably for live data.
- * 
+ *
+ * Messages are returned as opaque `Map<String, Any?>` — the client has NO
+ * knowledge of the payload structure.  The server's `dataBindings` on each
+ * section define how individual fields map into section data.
+ *
  * Implements:
  * - JWT token authentication via authUrl (NBA identity server)
- * - Channel subscription for linescore updates
+ * - Channel subscription for real-time updates
  * - Flow-based message delivery to Compose UI
  */
 class AblyChannelManager(
@@ -30,35 +33,30 @@ class AblyChannelManager(
     companion object {
         private const val TAG = "AblyChannelManager"
     }
-    
+
     private val objectMapper = ObjectMapper().registerKotlinModule()
-    
+
     private var ablyClient: AblyRealtime? = null
     private val activeChannels = mutableMapOf<String, Channel>()
-    
+
     /**
      * Initialize the Ably client with JWT token authentication.
-     * 
-     * Uses the NBA identity server to fetch JWT tokens which Ably
-     * accepts directly for authentication.
      */
     suspend fun initialize() = withContext(Dispatchers.IO) {
         if (ablyClient != null) {
             Log.d(TAG, "Ably client already initialized")
             return@withContext
         }
-        
+
         try {
             val options = ClientOptions().apply {
-                // Use authUrl for JWT-based auth
-                // The NBA identity server returns a JWT that Ably accepts directly
                 authUrl = tokenUrl
                 autoConnect = true
                 logLevel = io.ably.lib.util.Log.VERBOSE
             }
-            
+
             ablyClient = AblyRealtime(options)
-            
+
             ablyClient?.connection?.on { state ->
                 Log.d(TAG, "Ably connection state: ${state.current}")
                 when (state.current) {
@@ -68,27 +66,30 @@ class AblyChannelManager(
                     else -> {}
                 }
             }
-            
+
             Log.i(TAG, "Ably client initialized with authUrl: $tokenUrl")
-            
+
         } catch (e: Exception) {
             Log.e(TAG, "Failed to initialize Ably client", e)
             throw e
         }
     }
-    
+
     /**
-     * Subscribe to a channel and receive messages as a Flow.
+     * Subscribe to a channel and receive messages as opaque Maps.
+     *
+     * The returned Flow emits the raw JSON payload as `Map<String, Any?>`.
+     * Callers use [DataBindingResolver.applyBindings] with the section's
+     * `dataBindings` to map fields into section data.
      */
-    fun subscribeToChannel(channelName: String): Flow<LinescoreUpdate> = callbackFlow {
+    fun subscribeToChannel(channelName: String): Flow<Map<String, Any?>> = callbackFlow {
         Log.d(TAG, "Subscribing to channel: $channelName")
-        
+
         val client = ablyClient ?: throw IllegalStateException("Ably client not initialized")
-        
+
         val channel = client.channels.get(channelName)
         activeChannels[channelName] = channel
-        
-        // Listen for channel state changes
+
         channel.on { state ->
             Log.d(TAG, "Channel $channelName state: ${state.current}")
             when (state.current) {
@@ -98,30 +99,29 @@ class AblyChannelManager(
                 else -> {}
             }
         }
-        
-        // Subscribe to messages
+
         val messageListener = Channel.MessageListener { message: Message ->
             Log.d(TAG, "Received message on $channelName: ${message.name}")
-            
+
             try {
-                val update = parseLinescoreMessage(message)
-                if (update != null) {
-                    trySend(update)
+                val parsed = parseMessage(message)
+                if (parsed != null) {
+                    trySend(parsed)
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to parse message", e)
             }
         }
-        
+
         channel.subscribe(messageListener)
-        
+
         awaitClose {
             Log.d(TAG, "Unsubscribing from channel: $channelName")
             channel.unsubscribe(messageListener)
             activeChannels.remove(channelName)
         }
     }
-    
+
     /**
      * Disconnect and clean up.
      */
@@ -131,44 +131,24 @@ class AblyChannelManager(
         ablyClient?.close()
         ablyClient = null
     }
-    
-    private fun parseLinescoreMessage(message: Message): LinescoreUpdate? {
+
+    /**
+     * Parse an Ably message into an opaque Map.
+     * No field-level knowledge of the payload — just raw JSON → Map.
+     */
+    @Suppress("UNCHECKED_CAST")
+    private fun parseMessage(message: Message): Map<String, Any?>? {
         val data = message.data ?: return null
-        
+
         return try {
-            val json: JsonNode = when (data) {
-                is String -> objectMapper.readTree(data)
-                is Map<*, *> -> objectMapper.valueToTree(data)
-                else -> return null
+            when (data) {
+                is String -> objectMapper.readValue(data, Map::class.java) as Map<String, Any?>
+                is Map<*, *> -> data as Map<String, Any?>
+                else -> null
             }
-            
-            LinescoreUpdate(
-                homeTeamScore = json.path("homeTeam").path("score").asInt(),
-                awayTeamScore = json.path("awayTeam").path("score").asInt(),
-                homeTeamTricode = json.path("homeTeam").path("teamTricode").asText(),
-                awayTeamTricode = json.path("awayTeam").path("teamTricode").asText(),
-                period = json.path("period").asInt(),
-                gameStatus = json.path("gameStatus").asInt(),
-                gameStatusText = json.path("gameStatusText").asText(),
-                clock = json.path("clock").asText()
-            )
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to parse linescore message", e)
+            Log.e(TAG, "Failed to parse message payload", e)
             null
         }
     }
 }
-
-/**
- * Parsed linescore update from Ably.
- */
-data class LinescoreUpdate(
-    val homeTeamScore: Int,
-    val awayTeamScore: Int,
-    val homeTeamTricode: String,
-    val awayTeamTricode: String,
-    val period: Int,
-    val gameStatus: Int,
-    val gameStatusText: String,
-    val clock: String?
-)

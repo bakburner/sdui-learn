@@ -38,7 +38,7 @@ public class SduiUtils {
         ObjectNode navigation = objectMapper.createObjectNode();
         ArrayNode items = objectMapper.createArrayNode();
 
-        boolean gamesSelected = "scoreboard".equals(activeScreenId) || "game-detail".equals(activeScreenId);
+        boolean gamesSelected = "games".equals(activeScreenId) || "game-detail".equals(activeScreenId);
 
         ObjectNode forYou = objectMapper.createObjectNode();
         forYou.put("id", "for-you");
@@ -51,8 +51,8 @@ public class SduiUtils {
         ObjectNode games = objectMapper.createObjectNode();
         games.put("id", "games");
         games.put("label", "Games");
-        games.put("icon", "scoreboard");
-        games.put("targetUri", "nba://scoreboard");
+        games.put("icon", "sports_basketball");
+        games.put("targetUri", "nba://games");
         games.put("selected", gamesSelected);
         items.add(games);
 
@@ -64,22 +64,6 @@ public class SduiUtils {
         watch.put("selected", "watch".equals(activeScreenId));
         items.add(watch);
 
-        ObjectNode live = objectMapper.createObjectNode();
-        live.put("id", "live");
-        live.put("label", "Live");
-        live.put("icon", "sports_basketball");
-        live.put("targetUri", "nba://live");
-        live.put("selected", "live".equals(activeScreenId));
-        items.add(live);
-
-        ObjectNode demos = objectMapper.createObjectNode();
-        demos.put("id", "demos");
-        demos.put("label", "Demos");
-        demos.put("icon", "widgets");
-        demos.put("targetUri", "nba://demos");
-        demos.put("selected", "demos".equals(activeScreenId));
-        items.add(demos);
-
         ObjectNode leaders = objectMapper.createObjectNode();
         leaders.put("id", "leaders");
         leaders.put("label", "Leaders");
@@ -87,6 +71,14 @@ public class SduiUtils {
         leaders.put("targetUri", "nba://leaders");
         leaders.put("selected", "leaders".equals(activeScreenId));
         items.add(leaders);
+
+        ObjectNode demos = objectMapper.createObjectNode();
+        demos.put("id", "demos");
+        demos.put("label", "Kitchen");
+        demos.put("icon", "widgets");
+        demos.put("targetUri", "nba://demos");
+        demos.put("selected", "demos".equals(activeScreenId));
+        items.add(demos);
 
         navigation.set("items", items);
         return navigation;
@@ -316,5 +308,39 @@ public class SduiUtils {
 
         log.error("Could not load example file: {}", filename);
         return null;
+    }
+
+    // ── Error State ────────────────────────────────────────────────────
+
+    /**
+     * Build an ErrorState section that clients can render inline.
+     *
+     * @param sectionId  Unique section id (e.g. "error-invalid-game")
+     * @param title      Short headline (e.g. "Game not found")
+     * @param message    Longer explanatory text
+     * @param icon       Optional icon name (e.g. "error", "wifi_off")
+     * @param retryUri   Optional nba:// URI for the retry action
+     */
+    public ObjectNode buildErrorSection(String sectionId, String title, String message,
+                                         String icon, String retryUri) {
+        ObjectNode section = objectMapper.createObjectNode();
+        section.put("id", sectionId);
+        section.put("type", "ErrorState");
+
+        ObjectNode data = objectMapper.createObjectNode();
+        data.put("title", title);
+        data.put("message", message);
+        if (icon != null) {
+            data.put("icon", icon);
+        }
+        if (retryUri != null) {
+            ObjectNode retryAction = objectMapper.createObjectNode();
+            retryAction.put("type", "navigate");
+            retryAction.put("trigger", "tap");
+            retryAction.put("targetUri", retryUri);
+            data.set("retryAction", retryAction);
+        }
+        section.set("data", data);
+        return section;
     }
 }

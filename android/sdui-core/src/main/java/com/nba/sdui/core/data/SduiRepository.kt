@@ -14,6 +14,10 @@ import java.util.concurrent.TimeUnit
 
 /**
  * SDUI Repository - Fetches SDUI responses from the composition service.
+ *
+ * All screen fetches route through [fetchScreen].  There are NO endpoint-specific
+ * helpers — the server path is resolved upstream (by resolveEndpoint or the
+ * server's navigation payload) and passed here as-is.
  */
 class SduiRepository(
     private val baseUrl: String
@@ -21,99 +25,31 @@ class SduiRepository(
     companion object {
         private const val TAG = "SduiRepository"
         private const val SCHEMA_VERSION = "1.0"
-    }
-    
-    private val objectMapper = ObjectMapper()
-        .registerKotlinModule()
-        .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-    
-    private val httpClient = OkHttpClient.Builder()
-        .connectTimeout(10, TimeUnit.SECONDS)
-        .readTimeout(10, TimeUnit.SECONDS)
-        .addInterceptor(HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BASIC
-        })
-        .build()
-    
-    /**
-     * Fetch the game detail SDUI screen.
-     * 
-     * @param gameId The game ID to fetch
-     * @param gameState The game state (live, pre, final)
-     */
-    suspend fun getGameDetail(
-        gameId: String,
-        gameState: String = "live",
-        variant: String = "A"
-    ): SduiScreen = withContext(Dispatchers.IO) {
-        val url = "$baseUrl/sdui/game-detail/$gameId?gameState=$gameState&variant=$variant"
-        
-        Log.d(TAG, "Fetching SDUI response: $url")
-        
-        val request = Request.Builder()
-            .url(url)
-            .header("X-Schema-Version", SCHEMA_VERSION)
-            .build()
-        
-        val response = httpClient.newCall(request).execute()
-        
-        if (!response.isSuccessful) {
-            throw SduiException("Failed to fetch SDUI response: ${response.code}")
-        }
-        
-        val body = response.body?.string()
-            ?: throw SduiException("Empty response body")
-        
-        val traceId = response.header("X-Trace-Id")
-        Log.d(TAG, "SDUI response received: traceId=$traceId")
-        
-        try {
-            objectMapper.readValue(body, SduiScreen::class.java)
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to parse SDUI response", e)
-            throw SduiException("Failed to parse SDUI response: ${e.message}")
-        }
-    }
 
-    /**
-     * Fetch the scoreboard SDUI screen.
-     */
-    suspend fun getScoreboard(
-        variant: String = "A"
-    ): SduiScreen = withContext(Dispatchers.IO) {
-        val url = "$baseUrl/sdui/scoreboard?variant=$variant"
-
-        Log.e(TAG, ">>> Fetching scoreboard: $url")
-
-        val request = Request.Builder()
-            .url(url)
-            .header("X-Schema-Version", SCHEMA_VERSION)
-            .build()
-
-        val response = httpClient.newCall(request).execute()
-
-        if (!response.isSuccessful) {
-            throw SduiException("Failed to fetch scoreboard response: ${response.code}")
+        /** Shared ObjectMapper — registerKotlinModule() is expensive (reflection). */
+        val objectMapper: ObjectMapper by lazy {
+            ObjectMapper()
+                .registerKotlinModule()
+                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
         }
 
-        val body = response.body?.string()
-            ?: throw SduiException("Empty response body")
-
-        val traceId = response.header("X-Trace-Id")
-        Log.d(TAG, "Scoreboard response received: traceId=$traceId")
-
-        try {
-            objectMapper.readValue(body, SduiScreen::class.java)
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to parse scoreboard response", e)
-            throw SduiException("Failed to parse scoreboard response: ${e.message}")
+        /** Shared OkHttpClient — connection pool & thread pool reused across screens. */
+        val httpClient: OkHttpClient by lazy {
+            OkHttpClient.Builder()
+                .connectTimeout(10, TimeUnit.SECONDS)
+                .readTimeout(10, TimeUnit.SECONDS)
+                .addInterceptor(HttpLoggingInterceptor().apply {
+                    level = HttpLoggingInterceptor.Level.BASIC
+                })
+                .build()
         }
     }
     
     /**
      * Fetch any SDUI screen by its resolved server path.
      *
-     * @param path  Path relative to baseUrl, e.g. "/sdui/demos"
+     * @param path  Path relative to baseUrl, e.g. "/sdui/game-detail/00423?gameState=live"
+     * @param variant A/B testing variant
      */
     suspend fun fetchScreen(
         path: String,
@@ -143,32 +79,6 @@ class SduiRepository(
             Log.e(TAG, "Failed to parse screen response", e)
             throw SduiException("Failed to parse screen response: ${e.message}")
         }
-    }
-
-    /**
-     * Fetch player stats for a game.
-     */
-    suspend fun getStats(gameId: String): Map<String, Any> = withContext(Dispatchers.IO) {
-        val url = "$baseUrl/stats/$gameId"
-        
-        Log.d(TAG, "Fetching stats: $url")
-        
-        val request = Request.Builder()
-            .url(url)
-            .header("X-Schema-Version", SCHEMA_VERSION)
-            .build()
-        
-        val response = httpClient.newCall(request).execute()
-        
-        if (!response.isSuccessful) {
-            throw SduiException("Failed to fetch stats: ${response.code}")
-        }
-        
-        val body = response.body?.string()
-            ?: throw SduiException("Empty response body")
-        
-        @Suppress("UNCHECKED_CAST")
-        objectMapper.readValue(body, Map::class.java) as Map<String, Any>
     }
     
     /**
@@ -215,52 +125,7 @@ class SduiRepository(
             else -> mapOf("data" to current)
         }
     }
-    
-    /**
-     * Fetch today's games for selection dropdown.
-     * Returns empty list on error.
-     */
-    suspend fun getTodaysGames(): List<GameOption> = withContext(Dispatchers.IO) {
-        val url = "$baseUrl/api/games/today"
-        
-        Log.d(TAG, "Fetching today's games: $url")
-        
-        try {
-            val request = Request.Builder()
-                .url(url)
-                .build()
-            
-            val response = httpClient.newCall(request).execute()
-            
-            if (!response.isSuccessful) {
-                Log.w(TAG, "Failed to fetch games: ${response.code}")
-                return@withContext emptyList()
-            }
-            
-            val body = response.body?.string()
-            if (body.isNullOrEmpty()) {
-                return@withContext emptyList()
-            }
-            
-            objectMapper.readValue(
-                body,
-                objectMapper.typeFactory.constructCollectionType(List::class.java, GameOption::class.java)
-            )
-        } catch (e: Exception) {
-            Log.e(TAG, "Error fetching today's games", e)
-            emptyList()
-        }
-    }
 }
-
-/**
- * Game option for dropdown selection.
- */
-data class GameOption(
-    val gameId: String,
-    val label: String,
-    val status: String
-)
 
 /**
  * Exception for SDUI-related errors.

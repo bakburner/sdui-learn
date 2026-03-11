@@ -23,6 +23,8 @@ import java.util.Map;
 public class GameDetailComposer {
 
     private static final Logger log = LoggerFactory.getLogger(GameDetailComposer.class);
+    private static final String FALLBACK_THUMB =
+            "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png";
 
     private final ObjectMapper objectMapper;
     private final StatsApiClient statsApiClient;
@@ -71,6 +73,14 @@ public class GameDetailComposer {
         response.put("schemaVersion", schemaVersion);
         response.put("parentUri", "nba://scoreboard");
         response.set("navigation", utils.buildNavigation("game-detail"));
+
+        // Expose available A/B variants so clients never need URI-sniffing (Rule 10).
+        ArrayNode variants = objectMapper.createArrayNode();
+        variants.add(objectMapper.createObjectNode().put("id", "A").put("label", "Default").put("description", "All sections, standard order"));
+        variants.add(objectMapper.createObjectNode().put("id", "B").put("label", "Reorder").put("description", "ContentRail and TabGroup swapped"));
+        variants.add(objectMapper.createObjectNode().put("id", "C").put("label", "Minimal").put("description", "StatLine and PromoBanner removed"));
+        variants.add(objectMapper.createObjectNode().put("id", "D").put("label", "Extra Rail").put("description", "Second ContentRail added"));
+        response.set("variants", variants);
 
         resolveChannelPatterns(response, gameId);
 
@@ -643,12 +653,13 @@ public class GameDetailComposer {
 
         ObjectNode data = objectMapper.createObjectNode();
         data.put("title", "Trending Videos");
+        data.put("fallbackThumbnailUrl", FALLBACK_THUMB);
 
         ArrayNode cards = objectMapper.createArrayNode();
 
         ObjectNode card1 = objectMapper.createObjectNode();
         card1.put("id", "trending-1");
-        card1.put("thumbnailUrl", "https://cdn.nba.com/manage/2024/04/top10-plays.jpg");
+        card1.put("thumbnailUrl", FALLBACK_THUMB);
         card1.put("headline", "Top 10 Plays of the Night");
         card1.put("subhead", "Last night's best moments");
         card1.put("contentType", "video");
@@ -663,7 +674,7 @@ public class GameDetailComposer {
 
         ObjectNode card2 = objectMapper.createObjectNode();
         card2.put("id", "trending-2");
-        card2.put("thumbnailUrl", "https://cdn.nba.com/manage/2024/04/dunk-contest.jpg");
+        card2.put("thumbnailUrl", FALLBACK_THUMB);
         card2.put("headline", "Playoff Intensity");
         card2.put("subhead", "The best of postseason basketball");
         card2.put("contentType", "video");
@@ -678,7 +689,7 @@ public class GameDetailComposer {
 
         ObjectNode card3 = objectMapper.createObjectNode();
         card3.put("id", "trending-3");
-        card3.put("thumbnailUrl", "https://cdn.nba.com/manage/2024/04/press-conference.jpg");
+        card3.put("thumbnailUrl", FALLBACK_THUMB);
         card3.put("headline", "Post-Game Press Conference");
         card3.put("subhead", "Hear from the coaches");
         card3.put("contentType", "video");

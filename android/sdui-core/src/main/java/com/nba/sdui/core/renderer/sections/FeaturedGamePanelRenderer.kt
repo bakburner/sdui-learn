@@ -20,21 +20,21 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.nba.sdui.core.models.SduiSection
-import com.nba.sdui.core.renderer.adapters.GameCardVisualState
-import com.nba.sdui.core.renderer.adapters.mapFeaturedGameCard
+import com.nba.sdui.core.renderer.adapters.GamePanelVisualState
+import com.nba.sdui.core.renderer.adapters.mapFeaturedGamePanel
 import com.nba.sdui.core.state.SduiAction
 
 /**
- * FeaturedGameCard Renderer — large hero-style game card with team logos,
+ * FeaturedGamePanel Renderer — large hero-style game card with team logos,
  * scores, status badge, and optional background image / gradient.
  */
 @Composable
-fun FeaturedGameCardRenderer(
+fun FeaturedGamePanelRenderer(
     section: SduiSection,
     onAction: (SduiAction) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val model = mapFeaturedGameCard(section)
+    val model = mapFeaturedGamePanel(section)
 
     if (model == null) {
         Text(
@@ -69,7 +69,7 @@ fun FeaturedGameCardRenderer(
                 .fillMaxWidth()
                 .height(200.dp)
                 .background(
-                    brush = if (model.visualState == GameCardVisualState.LIVE) liveGradient else defaultGradient,
+                    brush = if (model.visualState == GamePanelVisualState.LIVE) liveGradient else defaultGradient,
                     shape = shape
                 )
                 .clip(shape)
@@ -98,7 +98,7 @@ fun FeaturedGameCardRenderer(
                     } ?: Spacer(Modifier.width(0.dp))
 
                     model.badgeText?.let { badge ->
-                        val badgeColor = if (model.visualState == GameCardVisualState.LIVE)
+                        val badgeColor = if (model.visualState == GamePanelVisualState.LIVE)
                             Color(0xFFC8102E) else Color(0xFF666666)
                         Text(
                             text = badge,
@@ -132,7 +132,7 @@ fun FeaturedGameCardRenderer(
                                 contentScale = ContentScale.Fit
                             )
                         }
-                        if (model.visualState != GameCardVisualState.PRE) {
+                        if (model.visualState != GamePanelVisualState.PRE) {
                             Text(
                                 text = model.awayScore,
                                 color = Color.White,
@@ -176,7 +176,7 @@ fun FeaturedGameCardRenderer(
                                 contentScale = ContentScale.Fit
                             )
                         }
-                        if (model.visualState != GameCardVisualState.PRE) {
+                        if (model.visualState != GamePanelVisualState.PRE) {
                             Text(
                                 text = model.homeScore,
                                 color = Color.White,

@@ -1,6 +1,6 @@
 # SDUI Prototype
 
-Server-Driven UI prototype demonstrating real-time game score updates across Android and Web for NBA Scoreboard and Game Detail screens.
+Server-Driven UI prototype demonstrating server-composed screens with real-time updates across Android and Web. Includes For You, Scoreboard, Game Detail, Watch, Live, Leaders, Boxscore, and demo screens — all driven by a single JSON schema.
 
 ## Architecture
 
@@ -24,13 +24,13 @@ sdui-prototype/
 ├── server/                     # Spring Boot composition service (Java)
 │   └── src/main/java/com/nba/sdui/
 │       ├── controller/         # SduiController, GamesController
-│       └── service/            # SduiCompositionService, StatsApiClient
+│       └── service/            # SduiCompositionService, WatchComposer, ForYouComposer, ScoreboardComposer, DemoScreenComposer, LiveComposer
 ├── android/                    # Android application
 │   ├── app/                    # Thin app shell (navigation, config, theme)
 │   └── sdui-core/              # Reusable SDUI library (renderers, state, data)
 ├── web/                        # React/TypeScript web client
 │   └── src/
-│       ├── components/         # SectionRouter + 7 section renderers
+│       ├── components/         # SectionRouter + 19 section renderers
 │       ├── hooks/              # useSduiScreen, useRefreshPolicy
 │       └── runtime/            # AblyClient, ActionHandler, DataBindingApplier
 ├── docs/                       # Technical proposal & requirements
@@ -65,9 +65,9 @@ npm run dev
 ### Test the API
 
 ```bash
-# Game detail with live data
+# Game detail with live data (use any valid gameId)
 curl -H "X-Schema-Version: 1.0" \
-  "http://localhost:8080/sdui/game-detail/0042300102?gameState=live"
+  "http://localhost:8080/sdui/game-detail/{gameId}?gameState=live"
 
 # Scoreboard (today's games)
 curl -H "X-Schema-Version: 1.0" \
@@ -75,7 +75,7 @@ curl -H "X-Schema-Version: 1.0" \
 
 # Game detail variant B (reordered sections)
 curl -H "X-Schema-Version: 1.0" \
-  "http://localhost:8080/sdui/game-detail/0042300102?gameState=live&variant=B"
+  "http://localhost:8080/sdui/game-detail/{gameId}?gameState=live&variant=B"
 
 # Scoreboard variant E (promo banner)
 curl -H "X-Schema-Version: 1.0" \
@@ -94,19 +94,38 @@ make codegen
 |--------|----------|-------------|
 | Scoreboard | `GET /sdui/scoreboard` | Today's games as tappable rows. Live games update via Ably SSE. |
 | Game Detail | `GET /sdui/game-detail/{gameId}` | Single game: scoreboard header, stats, tabs, editorial content. |
+| For You | `GET /sdui/for-you` | Personalised content feed with games, editorial, and promos. |
+| Watch | `GET /sdui/watch` | Video hub with Featured, NBA TV, and League Pass tabs. |
+| Live / Games | `GET /sdui/live` | Live scoreboard with real-time game panels. |
+| Leaders | `GET /sdui/leaders` | Season leaders table with form-driven season/type filters. |
+| Kitchen Sink | `GET /sdui/demos` | Demo screen showcasing all section types with sample data. |
+| Boxscore | `GET /sdui/boxscore/{gameId}` | Boxscore tables for a specific game (home and away). |
+| Refresh | `GET /sdui/refresh/{screenId}` | Parameterized refresh endpoint for form-driven section updates. |
 
-## Section Types (8)
+## Section Types (20)
 
 | Type | Description | Refresh |
 |------|-------------|---------|
 | ScoreboardHeader | Team logos, tricodes, scores, game status | SSE (live) or static |
 | StatLine | Player stat rows | Poll (30s) or static |
-| ContentCard | Single content item (article/video) | Static |
+| HeroPanel | Single content item (article/video) | Static |
 | ContentRail | Horizontal scrolling content strip | Static |
 | TabGroup | Tabbed navigation with state-driven content | Poll or static |
 | PromoBanner | Promotional banner with CTA | Static |
-| GameCard | Game card with teams, scores, leaders | SSE or static |
+| GamePanel | Game card with teams, scores, leaders | SSE or static |
+| FeaturedGamePanel | Hero-sized game card with enhanced layout | SSE or static |
 | Row | Responsive side-by-side/stacked layout | Inherits from children |
+| SectionHeader | Simple header with optional subtitle and CTA | Static |
+| VideoCarousel | Horizontal scrolling video thumbnails | Static |
+| NbaTvSchedule | NBA TV hero image + time-slot schedule | Static |
+| SubscribeBanner | Inline subscription upsell with CTA | Static |
+| SubscribeHero | Full-screen subscription upsell with pricing tiers | Static |
+| AdSlot | Embedded ad placement (provider, targeting) | Static |
+| BoxscoreTable | Boxscore stats table | Poll or static |
+| Form | Interactive form with typed fields | Static |
+| SeasonLeadersTable | Season leaders stats table | Static |
+| FollowingRail | Horizontal rail of followed items | Static |
+| ErrorState | Server/client error with title, message, optional retry action | Static |
 
 ## Variants
 

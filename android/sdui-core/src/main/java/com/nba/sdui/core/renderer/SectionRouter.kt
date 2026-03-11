@@ -41,8 +41,8 @@ fun SectionRouter(
             )
         }
         
-        "ContentCard" -> {
-            ContentCardRenderer(
+        "HeroPanel" -> {
+            HeroPanelRenderer(
                 section = section,
                 onAction = onAction,
                 modifier = modifier
@@ -75,8 +75,8 @@ fun SectionRouter(
             )
         }
 
-        "GameCard" -> {
-            GameCardRenderer(
+        "GamePanel" -> {
+            GamePanelRenderer(
                 section = section,
                 onAction = onAction,
                 modifier = modifier
@@ -121,8 +121,8 @@ fun SectionRouter(
             )
         }
 
-        "FeaturedGameCard" -> {
-            FeaturedGameCardRenderer(
+        "FeaturedGamePanel" -> {
+            FeaturedGamePanelRenderer(
                 section = section,
                 onAction = onAction,
                 modifier = modifier
@@ -131,6 +131,62 @@ fun SectionRouter(
 
         "SectionHeader" -> {
             SectionHeaderRenderer(
+                section = section,
+                onAction = onAction,
+                modifier = modifier
+            )
+        }
+
+        "VideoCarousel" -> {
+            VideoCarouselRenderer(
+                section = section,
+                onAction = onAction,
+                modifier = modifier
+            )
+        }
+
+        "NbaTvSchedule" -> {
+            NbaTvScheduleRenderer(
+                section = section,
+                onAction = onAction,
+                modifier = modifier
+            )
+        }
+
+        "SubscribeBanner" -> {
+            SubscribeBannerRenderer(
+                section = section,
+                onAction = onAction,
+                modifier = modifier
+            )
+        }
+
+        "SubscribeHero" -> {
+            SubscribeHeroRenderer(
+                section = section,
+                onAction = onAction,
+                modifier = modifier
+            )
+        }
+
+        "AdSlot" -> {
+            AdSlotRenderer(
+                section = section,
+                onAction = onAction,
+                modifier = modifier
+            )
+        }
+
+        "SeasonLeadersTable" -> {
+            SeasonLeadersTableRenderer(
+                section = section,
+                onAction = onAction,
+                modifier = modifier
+            )
+        }
+
+        "ErrorState" -> {
+            ErrorStateRenderer(
                 section = section,
                 onAction = onAction,
                 modifier = modifier
@@ -152,15 +208,22 @@ fun SectionRouter(
 val SUPPORTED_SECTION_TYPES = setOf(
     "ScoreboardHeader",
     "StatLine",
-    "ContentCard",
+    "HeroPanel",
     "ContentRail",
     "TabGroup",
     "PromoBanner",
-    "GameCard",
+    "GamePanel",
     "Row",
     "BoxscoreTable",
     "Form",
     "FollowingRail",
-    "FeaturedGameCard",
-    "SectionHeader"
+    "FeaturedGamePanel",
+    "SectionHeader",
+    "VideoCarousel",
+    "NbaTvSchedule",
+    "SubscribeBanner",
+    "SubscribeHero",
+    "AdSlot",
+    "SeasonLeadersTable",
+    "ErrorState"
 )

@@ -1,6 +1,7 @@
 import React from 'react';
 import type { SectionProps } from '../SectionRouter';
 import { mapPromoBanner } from '../../adapters/sectionUiAdapters';
+import { DEFAULT_FALLBACK_IMAGE } from '../../utils/constants';
 
 /**
  * PromoBanner - promotional banner with image and call-to-action.
@@ -17,23 +18,44 @@ export function PromoBanner({ section, onAction }: SectionProps): React.ReactEle
     }
   };
 
-  const backgroundStyle: React.CSSProperties = model.backgroundImageUrl
-    ? {
-        backgroundImage: `linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.7)), url(${model.backgroundImageUrl})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-      }
-    : {
-        backgroundColor: section.backgroundColor || '#2a2a5e',
-      };
+  const fallbackUrl = ((section.data as Record<string, unknown> | undefined)?.fallbackThumbnailUrl as string | undefined) ?? DEFAULT_FALLBACK_IMAGE;
+
+  const hasBackground = Boolean(model.backgroundImageUrl);
 
   return (
     <div 
-      style={{ ...styles.container, ...backgroundStyle }}
+      style={{
+        ...styles.container,
+        ...(hasBackground ? {} : { backgroundColor: section.backgroundColor || '#2a2a5e' }),
+      }}
       onClick={handleClick}
     >
+      {/* Background image + gradient overlay — no URL concatenation (Rule 5) */}
+      {hasBackground && (
+        <>
+          <img
+            src={model.backgroundImageUrl}
+            alt=""
+            style={styles.backgroundImage}
+            onError={(e) => {
+              const img = e.currentTarget;
+              if (fallbackUrl && img.src !== fallbackUrl) img.src = fallbackUrl;
+            }}
+          />
+          <div style={styles.backgroundOverlay} />
+        </>
+      )}
+
       {model.imageUrl && (
-        <img src={model.imageUrl} alt="" style={styles.image} />
+        <img
+          src={model.imageUrl}
+          alt=""
+          style={styles.image}
+          onError={(e) => {
+            const img = e.currentTarget;
+            if (fallbackUrl && img.src !== fallbackUrl) img.src = fallbackUrl;
+          }}
+        />
       )}
       
       <div style={styles.content}>
@@ -53,6 +75,7 @@ export function PromoBanner({ section, onAction }: SectionProps): React.ReactEle
 
 const styles: Record<string, React.CSSProperties> = {
   container: {
+    position: 'relative',
     display: 'flex',
     alignItems: 'center',
     padding: 20,
@@ -61,14 +84,33 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: 'pointer',
     transition: 'transform 0.2s',
     minHeight: 120,
+    overflow: 'hidden',
+  },
+  backgroundImage: {
+    position: 'absolute',
+    inset: 0,
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover',
+    zIndex: 0,
+  },
+  backgroundOverlay: {
+    position: 'absolute',
+    inset: 0,
+    background: 'linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.7))',
+    zIndex: 1,
   },
   image: {
+    position: 'relative',
+    zIndex: 2,
     width: 80,
     height: 80,
     objectFit: 'contain',
     marginRight: 16,
   },
   content: {
+    position: 'relative',
+    zIndex: 2,
     flex: 1,
     display: 'flex',
     flexDirection: 'column',

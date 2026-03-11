@@ -10,14 +10,14 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
- * Composes the "Live" SDUI screen — all live and upcoming games.
+ * Composes the "Games" SDUI screen — all live, upcoming & final games.
  *
  * Layout:
- *   1. FeaturedGameCard – hero card for the top live game (SSE refresh)
+ *   1. FeaturedGamePanel – hero card for the top live game (SSE refresh)
  *   2. SectionHeader    – "Live Now"
- *   3–N. GameCard       – every live game (gameStatus == 2)
+ *   3–N. GamePanel       – every live game (gameStatus == 2)
  *   N+1. SectionHeader  – "Upcoming Today"
- *   N+2–M. GameCard     – every upcoming game (gameStatus == 1)
+ *   N+2–M. GamePanel     – every upcoming game (gameStatus == 1)
  */
 @Component
 public class LiveComposer {
@@ -40,15 +40,15 @@ public class LiveComposer {
     }
 
     public JsonNode composeLive(String traceId) {
-        log.info("Composing Live screen");
+        log.info("Composing Games screen");
 
         ObjectNode response = objectMapper.createObjectNode();
-        response.put("id", "live");
-        response.put("title", "Live");
-        response.put("analyticsId", "live");
+        response.put("id", "games");
+        response.put("title", "Games");
+        response.put("analyticsId", "games");
         response.put("traceId", traceId);
         response.put("schemaVersion", schemaVersion);
-        response.set("navigation", utils.buildNavigation("live"));
+        response.set("navigation", utils.buildNavigation("games"));
 
         ArrayNode sections = objectMapper.createArrayNode();
 
@@ -75,7 +75,7 @@ public class LiveComposer {
         JsonNode heroGame = liveGames.size() > 0 ? liveGames.get(0)
                 : (upcomingGames.size() > 0 ? upcomingGames.get(0) : null);
         if (heroGame != null) {
-            sections.add(buildFeaturedGameCard(heroGame));
+            sections.add(buildFeaturedGamePanel(heroGame));
         } else {
             sections.add(buildMockFeaturedGame());
         }
@@ -85,7 +85,7 @@ public class LiveComposer {
             sections.add(buildSectionHeader("live-now-header", "Live Now",
                     liveGames.size() + " Games", null));
             for (JsonNode g : liveGames) {
-                sections.add(buildGameCard(g, true));
+                sections.add(buildGamePanel(g, true));
             }
         }
 
@@ -94,7 +94,7 @@ public class LiveComposer {
             sections.add(buildSectionHeader("upcoming-header", "Upcoming Today",
                     null, null));
             for (JsonNode g : upcomingGames) {
-                sections.add(buildGameCard(g, false));
+                sections.add(buildGamePanel(g, false));
             }
         }
 
@@ -102,7 +102,7 @@ public class LiveComposer {
         if (finishedGames.size() > 0) {
             sections.add(buildSectionHeader("final-header", "Final", null, null));
             for (JsonNode g : finishedGames) {
-                sections.add(buildGameCard(g, false));
+                sections.add(buildGamePanel(g, false));
             }
         }
 
@@ -117,13 +117,13 @@ public class LiveComposer {
 
     // ── Section builders ───────────────────────────────────────────────
 
-    private ObjectNode buildFeaturedGameCard(JsonNode game) {
+    private ObjectNode buildFeaturedGamePanel(JsonNode game) {
         String gameId = game.path("gameId").asText("0000000000");
         int gameStatus = game.path("gameStatus").asInt(1);
 
         ObjectNode section = objectMapper.createObjectNode();
         section.put("id", "live-featured-" + gameId);
-        section.put("type", "FeaturedGameCard");
+        section.put("type", "FeaturedGamePanel");
         section.put("analyticsId", "live_featured_game");
 
         if (gameStatus == 2) {
@@ -161,7 +161,7 @@ public class LiveComposer {
     private ObjectNode buildMockFeaturedGame() {
         ObjectNode section = objectMapper.createObjectNode();
         section.put("id", "live-featured-mock");
-        section.put("type", "FeaturedGameCard");
+        section.put("type", "FeaturedGamePanel");
         section.put("analyticsId", "live_featured_game");
         section.set("refreshPolicy", staticPolicy());
 
@@ -227,13 +227,13 @@ public class LiveComposer {
         return section;
     }
 
-    private ObjectNode buildGameCard(JsonNode game, boolean liveRefresh) {
+    private ObjectNode buildGamePanel(JsonNode game, boolean liveRefresh) {
         String gameId = game.path("gameId").asText("0000000000");
         int gameStatus = game.path("gameStatus").asInt(1);
 
         ObjectNode section = objectMapper.createObjectNode();
         section.put("id", "live-game-" + gameId);
-        section.put("type", "GameCard");
+        section.put("type", "GamePanel");
         section.put("analyticsId", "live_game_" + gameId);
 
         if (liveRefresh && gameStatus == 2) {
@@ -282,26 +282,26 @@ public class LiveComposer {
         sections.add(buildSectionHeader("live-now-header", "Live Now", "2 Games", null));
 
         // Mock live games
-        sections.add(mockGameCard("mock-live-1", "BOS", 1610612738, "LAL", 1610612747,
+        sections.add(mockGamePanel("mock-live-1", "BOS", 1610612738, "LAL", 1610612747,
                 "Q3 4:22", 2, true));
-        sections.add(mockGameCard("mock-live-2", "GSW", 1610612744, "PHX", 1610612756,
+        sections.add(mockGamePanel("mock-live-2", "GSW", 1610612744, "PHX", 1610612756,
                 "Q1 9:15", 2, true));
 
         sections.add(buildSectionHeader("upcoming-header", "Upcoming Today", null, null));
 
-        sections.add(mockGameCard("mock-up-1", "MIL", 1610612749, "DEN", 1610612743,
+        sections.add(mockGamePanel("mock-up-1", "MIL", 1610612749, "DEN", 1610612743,
                 "8:00 PM ET", 1, false));
-        sections.add(mockGameCard("mock-up-2", "DAL", 1610612742, "MIA", 1610612748,
+        sections.add(mockGamePanel("mock-up-2", "DAL", 1610612742, "MIA", 1610612748,
                 "10:00 PM ET", 1, false));
     }
 
-    private ObjectNode mockGameCard(String id, String awayTri, int awayId,
+    private ObjectNode mockGamePanel(String id, String awayTri, int awayId,
                                      String homeTri, int homeId,
                                      String statusText, int gameStatus,
                                      boolean liveRefresh) {
         ObjectNode section = objectMapper.createObjectNode();
         section.put("id", id);
-        section.put("type", "GameCard");
+        section.put("type", "GamePanel");
 
         if (liveRefresh) {
             ObjectNode rp = objectMapper.createObjectNode();

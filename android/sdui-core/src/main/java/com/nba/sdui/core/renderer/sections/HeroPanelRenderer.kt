@@ -15,22 +15,24 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
 import com.nba.sdui.core.models.SduiSection
 import com.nba.sdui.core.models.actionToSduiAction
-import com.nba.sdui.core.renderer.adapters.mapContentCard
+import com.nba.sdui.core.config.SduiDefaults
+import com.nba.sdui.core.renderer.adapters.mapHeroPanel
 import com.nba.sdui.core.state.SduiAction
-import com.nba.sdui.models.generated.ContentCardData
+import com.nba.sdui.models.generated.HeroPanelData
 
 /**
- * ContentCard Renderer - Displays a single content card (article, video, etc.)
+ * HeroPanel Renderer - Displays a single content card (article, video, etc.)
  */
 @Composable
-fun ContentCardRenderer(
+fun HeroPanelRenderer(
     section: SduiSection,
     onAction: (SduiAction) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val data = mapContentCard(section)
+    val data = mapHeroPanel(section)
     
     if (data == null) {
         Text(
@@ -41,22 +43,25 @@ fun ContentCardRenderer(
         return
     }
     
-    ContentCardItem(
+    HeroPanelItem(
         card = data,
         onAction = onAction,
-        modifier = modifier.padding(16.dp)
+        modifier = modifier.padding(16.dp),
+        fallbackThumbnailUrl = (section.data as? Map<*, *>)?.get("fallbackThumbnailUrl")?.toString()
+            ?: SduiDefaults.FALLBACK_IMAGE_URL
     )
 }
 
 /**
- * Reusable content card item used by both ContentCard and ContentRail renderers.
+ * Reusable content card item used by both HeroPanel and ContentRail renderers.
  */
 @Composable
-fun ContentCardItem(
-    card: ContentCardData,
+fun HeroPanelItem(
+    card: HeroPanelData,
     onAction: (SduiAction) -> Unit,
     modifier: Modifier = Modifier,
-    width: Int = 280
+    width: Int = 280,
+    fallbackThumbnailUrl: String? = null
 ) {
     Card(
         modifier = modifier
@@ -71,14 +76,27 @@ fun ContentCardItem(
             // Thumbnail
             card.thumbnailUrl?.let { url ->
                 Box {
-                    AsyncImage(
+                    SubcomposeAsyncImage(
                         model = url,
                         contentDescription = card.headline,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(140.dp)
                             .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
-                        contentScale = ContentScale.Crop
+                        contentScale = ContentScale.Crop,
+                        error = {
+                            fallbackThumbnailUrl?.let { fb ->
+                                AsyncImage(
+                                    model = fb,
+                                    contentDescription = card.headline,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(140.dp)
+                                        .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
+                                    contentScale = ContentScale.Crop
+                                )
+                            }
+                        }
                     )
                     
                     // Duration badge for videos

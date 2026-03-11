@@ -90,6 +90,8 @@ extension SduiModels {
 /// Action fired when the form is submitted
 ///
 /// Optional 'See All' or navigation action
+///
+/// Optional action to retry the failed operation
 // MARK: - Action
 struct Action: Codable {
     /// For analytics actions: where to send the beacon
@@ -550,9 +552,21 @@ extension NavigationItem {
 ///
 /// Horizontal scrolling rail of followed teams/players with circular avatars
 ///
-/// Hero-sized game card with larger imagery, prominent scores, and optional background
+/// Hero-sized game panel with larger imagery, prominent scores, and optional background
 ///
 /// Titled separator/divider between groups of sections, with optional See All action
+///
+/// Horizontal scrolling carousel of video thumbnails (landscape 16:9). Mobile shows
+/// swipeable cards; web shows a grid with hover-to-play.
+///
+/// NBA TV programming schedule with hero promo and time-slot list
+///
+/// Inline subscription upsell banner with headline, body copy, and CTA
+///
+/// Full-screen subscription upsell hero with multi-tier pricing and feature list
+///
+/// Error state displayed when something goes wrong — bad ID, network failure, missing data,
+/// etc.
 // MARK: - DataClass
 struct DataClass: Codable {
     let awayTeam: TeamData?
@@ -568,13 +582,15 @@ struct DataClass: Codable {
     let layout: Layout?
     let stats: [StatLineData]?
     /// Table heading, e.g. 'Season Leaders'
+    ///
+    /// Short error headline, e.g. 'Something went wrong'
     let title: String?
     /// Optional 'See All' or navigation action
     let action: Action?
     let contentType: ContentType?
     let duration, headline, id, subhead: String?
     let thumbnailURL: String?
-    let cards: [ContentCardData]?
+    let cards: [HeroPanelData]?
     let defaultTab, stateKey: String?
     let tabContents: [String: [Section]]?
     let tabs: [TabData]?
@@ -643,6 +659,23 @@ struct DataClass: Codable {
     let backgroundImageURL: String?
     /// Badge/chip label, e.g. 'LIVE', 'FEATURED'
     let badgeText: String?
+    /// Hero image for the currently airing program
+    let heroImageURL: String?
+    let heroSubtitle, heroTitle: String?
+    let liveNow: Bool?
+    let slots: [NbaTvSlot]?
+    let ctaAction: Action?
+    let ctaLabel, logoURL: String?
+    /// Optional pricing tier highlights
+    let tiers: [SubscriptionTier]?
+    /// Bullet-point feature list
+    let features: [String]?
+    /// Optional icon name, e.g. 'error', 'wifi_off'
+    let icon: String?
+    /// Longer explanatory text
+    let message: String?
+    /// Optional action to retry the failed operation
+    let retryAction: Action?
 
     enum CodingKeys: String, CodingKey {
         case awayTeam, clock, gameStatus, gameStatusText, homeTeam, period, layout, stats, title, action, contentType, duration, headline, id, subhead
@@ -657,6 +690,10 @@ struct DataClass: Codable {
         case sizes, targeting, page, pageSize, sortColumn, sortDirection, subtitle, totalRows, items
         case backgroundImageURL = "backgroundImageUrl"
         case badgeText
+        case heroImageURL = "heroImageUrl"
+        case heroSubtitle, heroTitle, liveNow, slots, ctaAction, ctaLabel
+        case logoURL = "logoUrl"
+        case tiers, features, icon, message, retryAction
     }
 }
 
@@ -695,7 +732,7 @@ extension DataClass {
         id: String?? = nil,
         subhead: String?? = nil,
         thumbnailURL: String?? = nil,
-        cards: [ContentCardData]?? = nil,
+        cards: [HeroPanelData]?? = nil,
         defaultTab: String?? = nil,
         stateKey: String?? = nil,
         tabContents: [String: [Section]]?? = nil,
@@ -737,7 +774,20 @@ extension DataClass {
         totalRows: Int?? = nil,
         items: [FollowingRailItem]?? = nil,
         backgroundImageURL: String?? = nil,
-        badgeText: String?? = nil
+        badgeText: String?? = nil,
+        heroImageURL: String?? = nil,
+        heroSubtitle: String?? = nil,
+        heroTitle: String?? = nil,
+        liveNow: Bool?? = nil,
+        slots: [NbaTvSlot]?? = nil,
+        ctaAction: Action?? = nil,
+        ctaLabel: String?? = nil,
+        logoURL: String?? = nil,
+        tiers: [SubscriptionTier]?? = nil,
+        features: [String]?? = nil,
+        icon: String?? = nil,
+        message: String?? = nil,
+        retryAction: Action?? = nil
     ) -> DataClass {
         return DataClass(
             awayTeam: awayTeam ?? self.awayTeam,
@@ -798,7 +848,20 @@ extension DataClass {
             totalRows: totalRows ?? self.totalRows,
             items: items ?? self.items,
             backgroundImageURL: backgroundImageURL ?? self.backgroundImageURL,
-            badgeText: badgeText ?? self.badgeText
+            badgeText: badgeText ?? self.badgeText,
+            heroImageURL: heroImageURL ?? self.heroImageURL,
+            heroSubtitle: heroSubtitle ?? self.heroSubtitle,
+            heroTitle: heroTitle ?? self.heroTitle,
+            liveNow: liveNow ?? self.liveNow,
+            slots: slots ?? self.slots,
+            ctaAction: ctaAction ?? self.ctaAction,
+            ctaLabel: ctaLabel ?? self.ctaLabel,
+            logoURL: logoURL ?? self.logoURL,
+            tiers: tiers ?? self.tiers,
+            features: features ?? self.features,
+            icon: icon ?? self.icon,
+            message: message ?? self.message,
+            retryAction: retryAction ?? self.retryAction
         )
     }
 
@@ -947,8 +1010,8 @@ extension TeamData {
     }
 }
 
-// MARK: - ContentCardData
-struct ContentCardData: Codable {
+// MARK: - HeroPanelData
+struct HeroPanelData: Codable {
     let action: Action?
     let contentType: ContentType?
     let duration: String?
@@ -961,11 +1024,11 @@ struct ContentCardData: Codable {
     }
 }
 
-// MARK: ContentCardData convenience initializers and mutators
+// MARK: HeroPanelData convenience initializers and mutators
 
-extension ContentCardData {
+extension HeroPanelData {
     init(data: Data) throws {
-        self = try newJSONDecoder().decode(ContentCardData.self, from: data)
+        self = try newJSONDecoder().decode(HeroPanelData.self, from: data)
     }
 
     init(_ json: String, using encoding: String.Encoding = .utf8) throws {
@@ -987,8 +1050,8 @@ extension ContentCardData {
         id: String? = nil,
         subhead: String?? = nil,
         thumbnailURL: String?? = nil
-    ) -> ContentCardData {
-        return ContentCardData(
+    ) -> HeroPanelData {
+        return HeroPanelData(
             action: action ?? self.action,
             contentType: contentType ?? self.contentType,
             duration: duration ?? self.duration,
@@ -1303,17 +1366,24 @@ extension GameLeaderData {
 struct FollowingRailItem: Codable {
     let action: Action?
     /// Whether this item represents a team or a player
-    let entityType: EntityType
+    let entityType: EntityType?
     let id: String
     /// Avatar / logo URL
-    let imageURL: String
+    let imageURL: String?
     /// Display name, e.g. 'Lakers' or 'LeBron James'
-    let name: String
+    let name: String?
+    /// Overlay badge, e.g. 'LIVE', 'NEW'
+    let badgeText: String?
+    /// Human-readable duration, e.g. '2:34'
+    let duration: String?
+    let subtitle, thumbnailURL, title: String?
 
     enum CodingKeys: String, CodingKey {
         case action, entityType, id
         case imageURL = "imageUrl"
-        case name
+        case name, badgeText, duration, subtitle
+        case thumbnailURL = "thumbnailUrl"
+        case title
     }
 }
 
@@ -1337,17 +1407,27 @@ extension FollowingRailItem {
 
     func with(
         action: Action?? = nil,
-        entityType: EntityType? = nil,
+        entityType: EntityType?? = nil,
         id: String? = nil,
-        imageURL: String? = nil,
-        name: String? = nil
+        imageURL: String?? = nil,
+        name: String?? = nil,
+        badgeText: String?? = nil,
+        duration: String?? = nil,
+        subtitle: String?? = nil,
+        thumbnailURL: String?? = nil,
+        title: String?? = nil
     ) -> FollowingRailItem {
         return FollowingRailItem(
             action: action ?? self.action,
             entityType: entityType ?? self.entityType,
             id: id ?? self.id,
             imageURL: imageURL ?? self.imageURL,
-            name: name ?? self.name
+            name: name ?? self.name,
+            badgeText: badgeText ?? self.badgeText,
+            duration: duration ?? self.duration,
+            subtitle: subtitle ?? self.subtitle,
+            thumbnailURL: thumbnailURL ?? self.thumbnailURL,
+            title: title ?? self.title
         )
     }
 
@@ -1448,6 +1528,74 @@ extension PlayerRow {
             stats: stats ?? self.stats,
             rank: rank ?? self.rank,
             team: team ?? self.team
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+// MARK: - NbaTvSlot
+struct NbaTvSlot: Codable {
+    let action: Action?
+    /// ISO-8601 end time
+    let endTime: String?
+    let id: String
+    let isLive: Bool?
+    /// ISO-8601 start time
+    let startTime: String
+    let subtitle, thumbnailURL: String?
+    let title: String
+
+    enum CodingKeys: String, CodingKey {
+        case action, endTime, id, isLive, startTime, subtitle
+        case thumbnailURL = "thumbnailUrl"
+        case title
+    }
+}
+
+// MARK: NbaTvSlot convenience initializers and mutators
+
+extension NbaTvSlot {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(NbaTvSlot.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        action: Action?? = nil,
+        endTime: String?? = nil,
+        id: String? = nil,
+        isLive: Bool?? = nil,
+        startTime: String? = nil,
+        subtitle: String?? = nil,
+        thumbnailURL: String?? = nil,
+        title: String? = nil
+    ) -> NbaTvSlot {
+        return NbaTvSlot(
+            action: action ?? self.action,
+            endTime: endTime ?? self.endTime,
+            id: id ?? self.id,
+            isLive: isLive ?? self.isLive,
+            startTime: startTime ?? self.startTime,
+            subtitle: subtitle ?? self.subtitle,
+            thumbnailURL: thumbnailURL ?? self.thumbnailURL,
+            title: title ?? self.title
         )
     }
 
@@ -1563,6 +1711,71 @@ extension TabData {
             label: label ?? self.label,
             stateKey: stateKey ?? self.stateKey,
             stateValue: stateValue ?? self.stateValue
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+// MARK: - SubscriptionTier
+struct SubscriptionTier: Codable {
+    /// Badge label, e.g. 'BEST VALUE', 'MOST POPULAR'
+    let badgeText: String?
+    let ctaAction: Action?
+    let ctaLabel: String?
+    let features: [String]?
+    let id: String
+    /// Tier name, e.g. 'League Pass', 'League Pass Premium'
+    let name: String
+    /// Strikethrough price if on sale
+    let originalPrice: String?
+    /// Display price, e.g. '$14.99/mo'
+    let price: String
+}
+
+// MARK: SubscriptionTier convenience initializers and mutators
+
+extension SubscriptionTier {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(SubscriptionTier.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        badgeText: String?? = nil,
+        ctaAction: Action?? = nil,
+        ctaLabel: String?? = nil,
+        features: [String]?? = nil,
+        id: String? = nil,
+        name: String? = nil,
+        originalPrice: String?? = nil,
+        price: String? = nil
+    ) -> SubscriptionTier {
+        return SubscriptionTier(
+            badgeText: badgeText ?? self.badgeText,
+            ctaAction: ctaAction ?? self.ctaAction,
+            ctaLabel: ctaLabel ?? self.ctaLabel,
+            features: features ?? self.features,
+            id: id ?? self.id,
+            name: name ?? self.name,
+            originalPrice: originalPrice ?? self.originalPrice,
+            price: price ?? self.price
         )
     }
 
@@ -1758,19 +1971,24 @@ extension Subsection {
 enum TypeEnum: String, Codable {
     case adSlot = "AdSlot"
     case boxscoreTable = "BoxscoreTable"
-    case contentCard = "ContentCard"
+    case heroPanel = "HeroPanel"
     case contentRail = "ContentRail"
-    case featuredGameCard = "FeaturedGameCard"
+    case errorState = "ErrorState"
+    case featuredGamePanel = "FeaturedGamePanel"
     case followingRail = "FollowingRail"
     case form = "Form"
-    case gameCard = "GameCard"
+    case gamePanel = "GamePanel"
+    case nbaTvSchedule = "NbaTvSchedule"
     case promoBanner = "PromoBanner"
     case row = "Row"
     case scoreboardHeader = "ScoreboardHeader"
     case seasonLeadersTable = "SeasonLeadersTable"
     case sectionHeader = "SectionHeader"
     case statLine = "StatLine"
+    case subscribeBanner = "SubscribeBanner"
+    case subscribeHero = "SubscribeHero"
     case tabGroup = "TabGroup"
+    case videoCarousel = "VideoCarousel"
 }
 
 // MARK: - Helper functions for creating encoders and decoders

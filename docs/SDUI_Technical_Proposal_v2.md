@@ -17,6 +17,7 @@
 | 2026-02-27 | Replaced `entitlements` with `device` in request envelope (governance, 9o, Appendix A). Aligned analytics field names (`event`/`params`) and mutate field names (`target`/`operation`/`value`) with requirements summary. Moved `schemaVersion` to `meta` object. Added `onBlur` trigger. |
 | 2026-03-04 | Added tabular data sections and forms. New semantic types (`BoxscoreTable`, `Form`) in schema design (section 2). Parameterized refresh on actions (section 4). Sort and form state patterns (section 5). Platform coverage update (section 8). Gap 9q. Requirement status updates. Appendix C boxscore response example. |
 | 2026-03-04 | Added `parentUri` to Screen response contract and example. Added client URI resolution convention. |
+| 2026-06-12 | Prototype sync. Renderer table updated — BoxscoreTable, Form, Row, SectionHeader, FollowingRail, SeasonLeadersTable now Built on Web and Android (19 renderers per platform). Added image fallback pattern (section 8a). Updated requirement status for tabular data and forms. |
 
 ---
 
@@ -88,7 +89,7 @@ The SDUI schema is universal — all platforms share the same vocabulary of sect
 - Image dimensions and density parameters
 - Interaction triggers (touch vs. D-pad vs. hover)
 
-The client identifies its platform family via the request envelope (`platform.name`, `platform.deviceClass`). The composition service routes to the appropriate composer. The cost is additional server-side composition logic — this is acceptable and is where the investment should go. The alternative (one response for all platforms) produces a mediocre experience everywhere.
+The client identifies its platform family via the request envelope (`platform.name`, `platform.deviceClass`) or the `X-Platform` header (values: `android`, `ios`, `web`). The composition service routes to the appropriate composer. In the prototype, the `X-Platform` header controls platform-specific field values — for example, Form `layout` is `horizontal` for web (inline controls) and `vertical` for mobile (stacked controls). The cost is additional server-side composition logic — this is acceptable and is where the investment should go. The alternative (one response for all platforms) produces a mediocre experience everywhere.
 
 ---
 
@@ -572,14 +573,81 @@ Each platform family receives a tailored composition from the server while shari
 |---|---|---|---|
 | ScoreboardHeader | Built | Built | Designed |
 | StatLine | Built | Built | Designed |
-| ContentCard | Built | Built | Designed |
+| HeroPanel | Built | Built | Designed |
 | ContentRail | Built | Built | Designed |
 | TabGroup | Built | Built | Designed |
 | PromoBanner | Built | Built | Designed |
-| GameCard | Built | Built | Designed |
-| BoxscoreTable | Gap | Gap | Gap |
-| Form | Gap | Gap | Gap |
+| GamePanel | Built | Built | Designed |
+| FeaturedGamePanel | Built | Built | Designed |
+| VideoCarousel | Built | Built | Gap |
+| NbaTvSchedule | Built | Built | Gap |
+| SubscribeBanner | Built | Built | Gap |
+| SubscribeHero | Built | Built | Gap |
+| AdSlot | Built | Built | Gap |
+| BoxscoreTable | Built | Built | Gap |
+| Form | Built | Built | Gap |
+| Row | Built | Built | Gap |
+| SectionHeader | Built | Built | Gap |
+| FollowingRail | Built | Built | Gap |
+| SeasonLeadersTable | Built | Built | Gap |
 
+
+---
+
+## 8a. Image Fallback Pattern
+
+The composition service may reference external image URLs (CDN thumbnails, editorial images) that can become stale or return 404s. To prevent broken images on screen, SDUI uses a **server-driven fallback** pattern:
+
+1. **Server provides `fallbackThumbnailUrl`** — sections that contain images include an optional `fallbackThumbnailUrl` field in their data payload. This URL points to a known-good generic image.
+2. **Client applies fallback on error** — if the primary image URL fails to load, the client swaps to the fallback URL.
+
+### Web (React)
+
+The `<img>` tag uses an `onError` handler:
+
+```tsx
+const fallbackUrl = data.fallbackThumbnailUrl;
+
+<img
+  src={item.imageUrl}
+  onError={(e) => {
+    const img = e.currentTarget;
+    if (fallbackUrl && img.src !== fallbackUrl) img.src = fallbackUrl;
+  }}
+/>
+```
+
+The `img.src !== fallbackUrl` guard prevents infinite loops if the fallback itself fails.
+
+### Android (Jetpack Compose / Coil)
+
+Coil's `SubcomposeAsyncImage` renders a fallback `AsyncImage` in its `error` slot:
+
+```kotlin
+val fallbackUrl = (section.data as? Map<*, *>)
+    ?.get("fallbackThumbnailUrl")?.toString()
+
+SubcomposeAsyncImage(
+    model = imageUrl,
+    contentDescription = null,
+    error = {
+        if (fallbackUrl != null) {
+            AsyncImage(
+                model = fallbackUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop
+            )
+        }
+    }
+)
+```
+
+### Design Principles
+
+- **Server-driven**: The server decides what the fallback image is — clients never hardcode fallback URLs.
+- **Graceful**: If both primary and fallback fail, the image area remains empty (no crash, no broken icon).
+- **Per-section**: Different sections can specify different fallbacks appropriate to their content type.
+- **Sections using this pattern**: VideoCarousel, ContentRail, HeroPanel, NbaTvSchedule, PromoBanner, FollowingRail, SubscribeBanner, SubscribeHero.
 
 ---
 
@@ -701,9 +769,11 @@ See Section 2 (Schema Design) for data shapes and Section 4 (Action System) for 
 | Impression semantics           | Gap     | ADR-009 | threshold/dwell/dedup governance pending            |
 | Contract testing/observability | Gap     | —       | broader test corpus + dashboards pending            |
 | Internationalization (i18n)    | Gap     | —       | server-resolved default + string keys on bindings   |
-| Tabular data (BoxscoreTable)   | Gap     | —       | semantic table type, domain-typed data, client-side sort |
-| Form section (generic)         | Gap     | —       | extensible field types, parameterized refresh       |
-| Parameterized refresh          | Gap     | —       | `endpoint` + `paramBindings` Action extension       |
+| Tabular data (BoxscoreTable)   | Built   | —       | semantic table type, domain-typed data, client-side sort. Built on Web and Android. |
+| Form section (generic)         | Built   | —       | extensible field types, parameterized refresh. Built on Web and Android. |
+| Parameterized refresh          | Built   | —       | `endpoint` + `paramBindings` Action extension. Working via Form submit. |
+| SeasonLeadersTable             | Built   | —       | domain-typed leaders table with form-driven parameterized refresh |
+| Image fallback                 | Built   | —       | server-driven `fallbackThumbnailUrl` with client-side error handling |
 
 
 ---

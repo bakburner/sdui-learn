@@ -109,7 +109,9 @@ class ActionHandler {
 
         if (!paramBindings.isNullOrEmpty() && endpoint != null) {
             // Parameterized refresh: resolve bindings from screen state → query params
-            val resolvedParams = paramBindings.mapValues { (_, stateKey) ->
+            val resolvedParams = paramBindings.mapValues { (_, template) ->
+                // Strip mustache delimiters: "{{form_season}}" → "form_season"
+                val stateKey = template.removePrefix("{{").removeSuffix("}}")
                 stateManager.getState(stateKey)?.toString() ?: ""
             }
             val queryString = resolvedParams.entries

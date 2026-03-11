@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import type { SectionProps } from '../SectionRouter';
 import { mapBoxscoreTable } from '../../adapters/sectionUiAdapters';
+import { DEFAULT_FALLBACK_IMAGE } from '../../utils/constants';
 
 /**
  * BoxscoreTable — semantic tabular stat section for one team.
@@ -67,7 +68,8 @@ export function BoxscoreTable({ section, state, onAction, onStateChange }: Secti
       {model.teamName && (
         <div style={styles.teamHeader}>
           {model.teamLogoUrl && (
-            <img src={model.teamLogoUrl} alt={model.teamTricode} style={styles.teamLogo} />
+            <img src={model.teamLogoUrl} alt={model.teamTricode} style={styles.teamLogo}
+              onError={(e) => { const img = e.currentTarget; if (img.src !== DEFAULT_FALLBACK_IMAGE) img.src = DEFAULT_FALLBACK_IMAGE; }} />
           )}
           <span>{model.teamName}</span>
         </div>
@@ -145,6 +147,7 @@ export function BoxscoreTable({ section, state, onAction, onStateChange }: Secti
                             alt={player.name}
                             style={styles.headshot}
                             loading="lazy"
+                            onError={(e) => { const img = e.currentTarget; if (img.src !== DEFAULT_FALLBACK_IMAGE) img.src = DEFAULT_FALLBACK_IMAGE; }}
                           />
                         ) : (
                           <div style={styles.headshotPlaceholder}>

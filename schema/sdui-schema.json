@@ -335,7 +335,7 @@
         }
       }
     },
-    "ContentCardData": {
+    "HeroPanelData": {
       "type": "object",
       "required": ["id", "headline"],
       "properties": {
@@ -359,7 +359,7 @@
         "title": { "type": "string" },
         "cards": {
           "type": "array",
-          "items": { "$ref": "#/definitions/ContentCardData" }
+          "items": { "$ref": "#/definitions/HeroPanelData" }
         }
       }
     },
@@ -455,7 +455,7 @@
         }
       }
     },
-    "GameCardData": {
+    "GamePanelData": {
       "type": "object",
       "required": ["gameId", "gameStatus", "homeTeam", "awayTeam"],
       "properties": {
@@ -666,7 +666,7 @@
         "id": { "type": "string" },
         "type": {
           "type": "string",
-          "enum": ["ScoreboardHeader", "StatLine", "ContentCard", "ContentRail", "TabGroup", "PromoBanner", "GameCard", "Row", "BoxscoreTable", "Form", "AdSlot", "SeasonLeadersTable", "FollowingRail", "FeaturedGameCard", "SectionHeader"]
+          "enum": ["ScoreboardHeader", "StatLine", "HeroPanel", "ContentRail", "TabGroup", "PromoBanner", "GamePanel", "Row", "BoxscoreTable", "Form", "AdSlot", "SeasonLeadersTable", "FollowingRail", "FeaturedGamePanel", "SectionHeader", "VideoCarousel", "NbaTvSchedule", "SubscribeBanner", "SubscribeHero", "ErrorState"]
         },
         "refreshPolicy": { "$ref": "#/definitions/RefreshPolicy" },
         "dataBindings": { "$ref": "#/definitions/DataBinding" },
@@ -688,19 +688,24 @@
           "oneOf": [
             { "$ref": "#/definitions/ScoreboardHeaderData" },
             { "$ref": "#/definitions/StatLineListData" },
-            { "$ref": "#/definitions/ContentCardData" },
+            { "$ref": "#/definitions/HeroPanelData" },
             { "$ref": "#/definitions/ContentRailData" },
             { "$ref": "#/definitions/TabGroupData" },
             { "$ref": "#/definitions/PromoBannerData" },
-            { "$ref": "#/definitions/GameCardData" },
+            { "$ref": "#/definitions/GamePanelData" },
             { "$ref": "#/definitions/RowData" },
             { "$ref": "#/definitions/BoxscoreTableData" },
             { "$ref": "#/definitions/FormData" },
             { "$ref": "#/definitions/AdSlotData" },
             { "$ref": "#/definitions/LeadersTableData" },
             { "$ref": "#/definitions/FollowingRailData" },
-            { "$ref": "#/definitions/FeaturedGameCardData" },
-            { "$ref": "#/definitions/SectionHeaderData" }
+            { "$ref": "#/definitions/FeaturedGamePanelData" },
+            { "$ref": "#/definitions/SectionHeaderData" },
+            { "$ref": "#/definitions/VideoCarouselData" },
+            { "$ref": "#/definitions/NbaTvScheduleData" },
+            { "$ref": "#/definitions/SubscribeBannerData" },
+            { "$ref": "#/definitions/SubscribeHeroData" },
+            { "$ref": "#/definitions/ErrorStateData" }
           ]
         }
       }
@@ -805,9 +810,9 @@
         }
       }
     },
-    "FeaturedGameCardData": {
+    "FeaturedGamePanelData": {
       "type": "object",
-      "description": "Hero-sized game card with larger imagery, prominent scores, and optional background",
+      "description": "Hero-sized game panel with larger imagery, prominent scores, and optional background",
       "required": ["gameId", "gameStatus", "homeTeam", "awayTeam"],
       "properties": {
         "gameId": { "type": "string" },
@@ -842,6 +847,116 @@
           "$ref": "#/definitions/Action",
           "description": "Optional 'See All' or navigation action"
         }
+      }
+    },
+    "VideoCarouselData": {
+      "type": "object",
+      "description": "Horizontal scrolling carousel of video thumbnails (landscape 16:9). Mobile shows swipeable cards; web shows a grid with hover-to-play.",
+      "required": ["items"],
+      "properties": {
+        "title": { "type": "string" },
+        "subtitle": { "type": "string" },
+        "items": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/VideoThumbnail" }
+        }
+      }
+    },
+    "VideoThumbnail": {
+      "type": "object",
+      "required": ["id", "title", "thumbnailUrl"],
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "subtitle": { "type": "string" },
+        "thumbnailUrl": { "type": "string" },
+        "duration": { "type": "string", "description": "Human-readable duration, e.g. '2:34'" },
+        "badgeText": { "type": "string", "description": "Overlay badge, e.g. 'LIVE', 'NEW'" },
+        "action": { "$ref": "#/definitions/Action" }
+      }
+    },
+    "NbaTvScheduleData": {
+      "type": "object",
+      "description": "NBA TV programming schedule with hero promo and time-slot list",
+      "required": ["slots"],
+      "properties": {
+        "heroImageUrl": { "type": "string", "description": "Hero image for the currently airing program" },
+        "heroTitle": { "type": "string" },
+        "heroSubtitle": { "type": "string" },
+        "liveNow": { "type": "boolean", "default": false },
+        "slots": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/NbaTvSlot" }
+        }
+      }
+    },
+    "NbaTvSlot": {
+      "type": "object",
+      "required": ["id", "title", "startTime"],
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "subtitle": { "type": "string" },
+        "startTime": { "type": "string", "description": "ISO-8601 start time" },
+        "endTime": { "type": "string", "description": "ISO-8601 end time" },
+        "thumbnailUrl": { "type": "string" },
+        "isLive": { "type": "boolean", "default": false },
+        "action": { "$ref": "#/definitions/Action" }
+      }
+    },
+    "SubscribeBannerData": {
+      "type": "object",
+      "description": "Inline subscription upsell banner with headline, body copy, and CTA",
+      "required": ["title", "ctaLabel"],
+      "properties": {
+        "title": { "type": "string" },
+        "subtitle": { "type": "string" },
+        "backgroundImageUrl": { "type": "string" },
+        "logoUrl": { "type": "string" },
+        "ctaLabel": { "type": "string" },
+        "ctaAction": { "$ref": "#/definitions/Action" },
+        "tiers": {
+          "type": "array",
+          "description": "Optional pricing tier highlights",
+          "items": { "$ref": "#/definitions/SubscriptionTier" }
+        }
+      }
+    },
+    "SubscribeHeroData": {
+      "type": "object",
+      "description": "Full-screen subscription upsell hero with multi-tier pricing and feature list",
+      "required": ["title", "tiers"],
+      "properties": {
+        "title": { "type": "string" },
+        "subtitle": { "type": "string" },
+        "backgroundImageUrl": { "type": "string" },
+        "logoUrl": { "type": "string" },
+        "features": {
+          "type": "array",
+          "description": "Bullet-point feature list",
+          "items": { "type": "string" }
+        },
+        "tiers": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/SubscriptionTier" }
+        }
+      }
+    },
+    "SubscriptionTier": {
+      "type": "object",
+      "required": ["id", "name", "price"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string", "description": "Tier name, e.g. 'League Pass', 'League Pass Premium'" },
+        "price": { "type": "string", "description": "Display price, e.g. '$14.99/mo'" },
+        "originalPrice": { "type": "string", "description": "Strikethrough price if on sale" },
+        "badgeText": { "type": "string", "description": "Badge label, e.g. 'BEST VALUE', 'MOST POPULAR'" },
+        "features": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "ctaLabel": { "type": "string" },
+        "ctaAction": { "$ref": "#/definitions/Action" }
       }
     },
     "AdSlotData": {
@@ -885,6 +1000,29 @@
           "type": "string",
           "default": "Advertisement",
           "description": "Disclosure label displayed above/below the ad"
+        }
+      }
+    },
+    "ErrorStateData": {
+      "type": "object",
+      "description": "Error state displayed when something goes wrong — bad ID, network failure, missing data, etc.",
+      "required": ["title", "message"],
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Short error headline, e.g. 'Something went wrong'"
+        },
+        "message": {
+          "type": "string",
+          "description": "Longer explanatory text"
+        },
+        "icon": {
+          "type": "string",
+          "description": "Optional icon name, e.g. 'error', 'wifi_off'"
+        },
+        "retryAction": {
+          "$ref": "#/definitions/Action",
+          "description": "Optional action to retry the failed operation"
         }
       }
     },

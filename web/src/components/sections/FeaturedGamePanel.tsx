@@ -1,10 +1,11 @@
 import React from 'react';
 import type { SectionProps } from '../SectionRouter';
-import { mapFeaturedGameCard } from '../../adapters/sectionUiAdapters';
+import { mapFeaturedGamePanel } from '../../adapters/sectionUiAdapters';
 import { getPrimarySectionAction } from '../../utils/sectionActions';
+import { DEFAULT_FALLBACK_IMAGE } from '../../utils/constants';
 
-export function FeaturedGameCard({ section, onAction }: SectionProps): React.ReactElement | null {
-  const model = mapFeaturedGameCard(section);
+export function FeaturedGamePanel({ section, onAction }: SectionProps): React.ReactElement | null {
+  const model = mapFeaturedGamePanel(section);
   if (!model) return null;
 
   const primaryAction = getPrimarySectionAction(section, 'onTap');
@@ -31,7 +32,8 @@ export function FeaturedGameCard({ section, onAction }: SectionProps): React.Rea
       <div style={styles.matchup}>
         <div style={styles.teamCol}>
           {model.awayLogoUrl && (
-            <img src={model.awayLogoUrl} alt={model.awayTricode} style={styles.logo} />
+            <img src={model.awayLogoUrl} alt={model.awayTricode} style={styles.logo}
+              onError={(e) => { const img = e.currentTarget; if (img.src !== DEFAULT_FALLBACK_IMAGE) img.src = DEFAULT_FALLBACK_IMAGE; }} />
           )}
           <span style={styles.score}>{model.awayScore}</span>
           <span style={styles.teamName}>{model.awayName || model.awayTricode}</span>
@@ -42,7 +44,8 @@ export function FeaturedGameCard({ section, onAction }: SectionProps): React.Rea
         </div>
         <div style={styles.teamCol}>
           {model.homeLogoUrl && (
-            <img src={model.homeLogoUrl} alt={model.homeTricode} style={styles.logo} />
+            <img src={model.homeLogoUrl} alt={model.homeTricode} style={styles.logo}
+              onError={(e) => { const img = e.currentTarget; if (img.src !== DEFAULT_FALLBACK_IMAGE) img.src = DEFAULT_FALLBACK_IMAGE; }} />
           )}
           <span style={styles.score}>{model.homeScore}</span>
           <span style={styles.teamName}>{model.homeName || model.homeTricode}</span>

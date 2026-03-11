@@ -1,10 +1,12 @@
 import React from 'react';
 import type { SectionProps } from '../SectionRouter';
 import { mapFollowingRail } from '../../adapters/sectionUiAdapters';
+import { DEFAULT_FALLBACK_IMAGE } from '../../utils/constants';
 
 export function FollowingRail({ section, onAction }: SectionProps): React.ReactElement | null {
   const model = mapFollowingRail(section);
   if (!model) return null;
+  const fallbackUrl = ((section.data as Record<string, unknown> | undefined)?.fallbackThumbnailUrl as string | undefined) ?? DEFAULT_FALLBACK_IMAGE;
 
   return (
     <div style={styles.container}>
@@ -18,7 +20,15 @@ export function FollowingRail({ section, onAction }: SectionProps): React.ReactE
           >
             <div style={styles.avatarWrap}>
               {item.imageUrl ? (
-                <img src={item.imageUrl} alt={item.name} style={styles.avatar} />
+                <img
+                  src={item.imageUrl}
+                  alt={item.name}
+                  style={styles.avatar}
+                  onError={(e) => {
+                    const img = e.currentTarget;
+                    if (fallbackUrl && img.src !== fallbackUrl) img.src = fallbackUrl;
+                  }}
+                />
               ) : (
                 <div style={styles.avatarFallback}>
                   {item.name.slice(0, 3).toUpperCase()}

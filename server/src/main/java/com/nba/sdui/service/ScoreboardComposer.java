@@ -20,6 +20,8 @@ import java.io.IOException;
 public class ScoreboardComposer {
 
     private static final Logger log = LoggerFactory.getLogger(ScoreboardComposer.class);
+    private static final String FALLBACK_THUMB =
+            "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png";
 
     private final ObjectMapper objectMapper;
     private final StatsApiClient statsApiClient;
@@ -139,8 +141,8 @@ public class ScoreboardComposer {
         data.put("period", game.path("period").asInt(0));
         data.put("gameClock", game.path("gameClock").asText(""));
 
-        data.set("homeTeam", mapGameCardTeam(game.path("homeTeam")));
-        data.set("awayTeam", mapGameCardTeam(game.path("awayTeam")));
+        data.set("homeTeam", mapGamePanelTeam(game.path("homeTeam")));
+        data.set("awayTeam", mapGamePanelTeam(game.path("awayTeam")));
 
         ArrayNode actions = objectMapper.createArrayNode();
         ObjectNode action = objectMapper.createObjectNode();
@@ -154,7 +156,7 @@ public class ScoreboardComposer {
         return section;
     }
 
-    private ObjectNode mapGameCardTeam(JsonNode team) {
+    private ObjectNode mapGamePanelTeam(JsonNode team) {
         ObjectNode mapped = objectMapper.createObjectNode();
         mapped.put("teamId", team.path("teamId").asInt());
         mapped.put("teamTricode", team.path("teamTricode").asText(""));
@@ -227,7 +229,7 @@ public class ScoreboardComposer {
         ObjectNode data = objectMapper.createObjectNode();
         data.put("title", "NBA League Pass");
         data.put("description", "Watch every out-of-market game live or on demand.");
-        data.put("imageUrl", "https://cdn.nba.com/promo/league-pass-banner.jpg");
+        data.put("imageUrl", FALLBACK_THUMB);
 
         ArrayNode actions = objectMapper.createArrayNode();
         ObjectNode action = objectMapper.createObjectNode();
@@ -251,12 +253,13 @@ public class ScoreboardComposer {
 
         ObjectNode data = objectMapper.createObjectNode();
         data.put("title", "Around the League");
+        data.put("fallbackThumbnailUrl", FALLBACK_THUMB);
 
         ArrayNode cards = objectMapper.createArrayNode();
 
         ObjectNode card1 = objectMapper.createObjectNode();
         card1.put("id", "league-1");
-        card1.put("thumbnailUrl", "https://cdn.nba.com/manage/2024/04/top10-plays.jpg");
+        card1.put("thumbnailUrl", FALLBACK_THUMB);
         card1.put("headline", "Top 10 Plays of the Night");
         card1.put("subhead", "Last night's best moments");
         card1.put("contentType", "video");
@@ -269,7 +272,7 @@ public class ScoreboardComposer {
 
         ObjectNode card2 = objectMapper.createObjectNode();
         card2.put("id", "league-2");
-        card2.put("thumbnailUrl", "https://cdn.nba.com/manage/2024/04/standings.jpg");
+        card2.put("thumbnailUrl", FALLBACK_THUMB);
         card2.put("headline", "Standings Update");
         card2.put("subhead", "Current playoff picture");
         card2.put("contentType", "article");

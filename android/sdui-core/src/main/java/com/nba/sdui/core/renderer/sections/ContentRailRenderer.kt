@@ -12,6 +12,7 @@ import androidx.compose.ui.unit.dp
 import com.nba.sdui.core.models.SduiSection
 import com.nba.sdui.core.renderer.adapters.mapContentRail
 import com.nba.sdui.core.state.SduiAction
+import com.nba.sdui.core.config.SduiDefaults
 
 /**
  * ContentRail Renderer - Displays a horizontal scrolling strip of content cards.
@@ -57,10 +58,12 @@ fun ContentRailRenderer(
                 items = data.cards,
                 key = { it.id }
             ) { card ->
-                ContentCardItem(
+                HeroPanelItem(
                     card = card,
                     onAction = onAction,
-                    width = 260
+                    width = 260,
+                    fallbackThumbnailUrl = (section.data as? Map<*, *>)?.get("fallbackThumbnailUrl")?.toString()
+                        ?: SduiDefaults.FALLBACK_IMAGE_URL
                 )
             }
         }

@@ -20,7 +20,7 @@ export function Form({ section, state, onAction, onStateChange }: SectionProps):
     }
   };
 
-  const isHorizontal = model.layout === 'horizontal';
+  const isHorizontal = model.layout === 'horizontal' || model.layout === 'inline';
 
   return (
     <div style={{ ...styles.container, backgroundColor: section.backgroundColor || '#1a1a2e' }}>

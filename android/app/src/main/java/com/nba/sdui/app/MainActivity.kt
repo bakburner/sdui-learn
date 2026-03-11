@@ -23,6 +23,8 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
     companion object {
         private const val TAG = "SDUI_MainActivity"
+        // TODO(Rule 2): Bootstrap URI should come from a /sdui/init endpoint.
+        private const val BOOTSTRAP_URI = "nba://for-you"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -34,7 +36,7 @@ class MainActivity : ComponentActivity() {
             SduiPrototypeTheme {
                 val snackbarHostState = remember { SnackbarHostState() }
                 val scope = rememberCoroutineScope()
-                var currentConfig by remember { mutableStateOf(SduiConfig.scoreboard()) }
+                var currentConfig by remember { mutableStateOf(SduiConfig.fromUri(BOOTSTRAP_URI)) }
                 
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
@@ -46,35 +48,18 @@ class MainActivity : ComponentActivity() {
                         config = config,
                         modifier = Modifier.padding(innerPadding),
                         onNavigateUri = { targetUri ->
-                            when {
-                                targetUri.startsWith("nba://game/") -> {
-                                    val gameId = targetUri.removePrefix("nba://game/")
-                                    currentConfig = SduiConfig.gameDetail(gameId)
-                                }
-                                targetUri == "nba://scoreboard" -> {
-                                    currentConfig = SduiConfig.scoreboard()
-                                }
-                                else -> {
-                                    // Generic server-driven screen — no client enum needed
-                                    currentConfig = SduiConfig.fromUri(targetUri)
-                                }
-                            }
+                            // All URIs use the same code path — the server
+                            // owns refresh policies, Ably config, and layout.
+                            currentConfig = SduiConfig.fromUri(targetUri)
                         },
                         onShowToast = { message ->
                             scope.launch { snackbarHostState.showSnackbar(message) }
                         },
                         onVariantChange = { nextVariant ->
-                            currentConfig = when (config.screenType) {
-                                SduiConfig.ScreenType.SCOREBOARD -> SduiConfig.scoreboard(variant = nextVariant)
-                                SduiConfig.ScreenType.GAME_DETAIL -> SduiConfig.gameDetail(
-                                    gameId = config.gameId ?: "0042300102",
-                                    variant = nextVariant
-                                )
-                                SduiConfig.ScreenType.GENERIC -> config.copy(variant = nextVariant)
-                            }
+                            currentConfig = config.copy(variant = nextVariant)
                         },
                         onBack = {
-                            currentConfig = SduiConfig.scoreboard()
+                            currentConfig = SduiConfig.fromUri(BOOTSTRAP_URI)
                         }
                     )
                 }

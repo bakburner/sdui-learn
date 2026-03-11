@@ -164,31 +164,4 @@ class DataBindingResolver {
         // Set the final value
         current.set<JsonNode>(parts.last(), value)
     }
-    
-    /**
-     * Convenience method for applying bindings from a LinescoreUpdate.
-     */
-    fun applyLinescoreUpdate(
-        currentData: Map<String, Any?>,
-        update: LinescoreUpdate,
-        dataBinding: DataBinding,
-        traceId: String? = null
-    ): Map<String, Any?> {
-        val messageMap = mapOf(
-            "homeTeam" to mapOf(
-                "score" to update.homeTeamScore,
-                "teamTricode" to update.homeTeamTricode
-            ),
-            "awayTeam" to mapOf(
-                "score" to update.awayTeamScore,
-                "teamTricode" to update.awayTeamTricode
-            ),
-            "period" to update.period,
-            "gameStatus" to update.gameStatus,
-            "gameStatusText" to update.gameStatusText,
-            "clock" to update.clock
-        )
-        
-        return applyBindings(currentData, messageMap, dataBinding, traceId)
-    }
 }

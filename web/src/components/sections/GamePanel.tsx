@@ -1,10 +1,11 @@
 import React from 'react';
 import type { SectionProps } from '../SectionRouter';
-import { mapGameCard } from '../../adapters/sectionUiAdapters';
+import { mapGamePanel } from '../../adapters/sectionUiAdapters';
 import { getPrimarySectionAction } from '../../utils/sectionActions';
+import { DEFAULT_FALLBACK_IMAGE } from '../../utils/constants';
 
-export function GameCard({ section, onAction }: SectionProps): React.ReactElement {
-  const model = mapGameCard(section);
+export function GamePanel({ section, onAction }: SectionProps): React.ReactElement {
+  const model = mapGamePanel(section);
   if (!model) {
     return <div style={styles.container}>No game data</div>;
   }
@@ -20,7 +21,8 @@ export function GameCard({ section, onAction }: SectionProps): React.ReactElemen
       <div style={styles.teamsRow}>
         <div style={styles.teamSide}>
           {model.awayLogoUrl && (
-            <img src={model.awayLogoUrl} alt={model.awayTricode} style={styles.logo} />
+            <img src={model.awayLogoUrl} alt={model.awayTricode} style={styles.logo}
+              onError={(e) => { const img = e.currentTarget; if (img.src !== DEFAULT_FALLBACK_IMAGE) img.src = DEFAULT_FALLBACK_IMAGE; }} />
           )}
           <div style={styles.teamInfo}>
             <span style={styles.tricode}>{model.awayTricode}</span>
@@ -32,7 +34,8 @@ export function GameCard({ section, onAction }: SectionProps): React.ReactElemen
         <span style={styles.score}>{model.homeScore}</span>
         <div style={{ ...styles.teamSide, flexDirection: 'row-reverse' }}>
           {model.homeLogoUrl && (
-            <img src={model.homeLogoUrl} alt={model.homeTricode} style={styles.logo} />
+            <img src={model.homeLogoUrl} alt={model.homeTricode} style={styles.logo}
+              onError={(e) => { const img = e.currentTarget; if (img.src !== DEFAULT_FALLBACK_IMAGE) img.src = DEFAULT_FALLBACK_IMAGE; }} />
           )}
           <div style={{ ...styles.teamInfo, alignItems: 'flex-end' }}>
             <span style={styles.tricode}>{model.homeTricode}</span>

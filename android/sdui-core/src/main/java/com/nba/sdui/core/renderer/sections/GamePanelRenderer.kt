@@ -24,18 +24,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.nba.sdui.core.models.SduiSection
-import com.nba.sdui.core.renderer.adapters.GameCardVisualState
-import com.nba.sdui.core.renderer.adapters.mapGameCard
+import com.nba.sdui.core.renderer.adapters.GamePanelVisualState
+import com.nba.sdui.core.renderer.adapters.mapGamePanel
 import com.nba.sdui.core.renderer.interactions.SectionInteractions
 import com.nba.sdui.core.state.SduiAction
 
 @Composable
-fun GameCardRenderer(
+fun GamePanelRenderer(
     section: SduiSection,
     onAction: (SduiAction) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val model = mapGameCard(section) ?: return
+    val model = mapGamePanel(section) ?: return
     val primaryAction = SectionInteractions.primaryAction(section)
 
     Card(
@@ -110,7 +110,7 @@ fun GameCardRenderer(
             Spacer(modifier = Modifier.height(8.dp))
 
             when (model.visualState) {
-                GameCardVisualState.PRE -> {
+                GamePanelVisualState.PRE -> {
                     Text(
                         text = model.statusText,
                         color = Color(0xFFB4C0D3),
@@ -124,7 +124,7 @@ fun GameCardRenderer(
                         )
                     }
                 }
-                GameCardVisualState.LIVE -> {
+                GamePanelVisualState.LIVE -> {
                     ScoreRow(
                         homeTricode = model.homeTricode,
                         homeScore = model.homeScore,

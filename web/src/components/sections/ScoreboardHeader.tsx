@@ -2,6 +2,7 @@ import React from 'react';
 import type { SectionProps } from '../SectionRouter';
 import { mapScoreboardHeader } from '../../adapters/sectionUiAdapters';
 import { getPrimarySectionAction } from '../../utils/sectionActions';
+import { DEFAULT_FALLBACK_IMAGE } from '../../utils/constants';
 
 /**
  * Scoreboard Header - displays team logos, scores, and game status.
@@ -29,7 +30,8 @@ export function ScoreboardHeader({ section, onAction }: SectionProps): React.Rea
       {/* Away Team */}
       <div style={styles.teamCol}>
         {model.awayTeam?.logoUrl && (
-          <img src={model.awayTeam.logoUrl} alt={model.awayTeam.teamName} style={styles.logo} />
+          <img src={model.awayTeam.logoUrl} alt={model.awayTeam.teamName} style={styles.logo}
+            onError={(e) => { const img = e.currentTarget; if (img.src !== DEFAULT_FALLBACK_IMAGE) img.src = DEFAULT_FALLBACK_IMAGE; }} />
         )}
         <span style={styles.tricode}>{model.awayTeam?.teamTricode}</span>
         <span style={styles.score}>{model.awayTeam?.score ?? '-'}</span>
@@ -48,7 +50,8 @@ export function ScoreboardHeader({ section, onAction }: SectionProps): React.Rea
       {/* Home Team */}
       <div style={styles.teamCol}>
         {model.homeTeam?.logoUrl && (
-          <img src={model.homeTeam.logoUrl} alt={model.homeTeam.teamName} style={styles.logo} />
+          <img src={model.homeTeam.logoUrl} alt={model.homeTeam.teamName} style={styles.logo}
+            onError={(e) => { const img = e.currentTarget; if (img.src !== DEFAULT_FALLBACK_IMAGE) img.src = DEFAULT_FALLBACK_IMAGE; }} />
         )}
         <span style={styles.tricode}>{model.homeTeam?.teamTricode}</span>
         <span style={styles.score}>{model.homeTeam?.score ?? '-'}</span>

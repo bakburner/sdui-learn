@@ -1,4 +1,5 @@
 import type { Action, Section } from '@sdui/models';
+import { SDUI_PATH_PREFIX, API_PROXY_PREFIX } from '../utils/constants';
 
 export interface ActionContext {
   /** Callback to update screen state */
@@ -71,7 +72,9 @@ function handleRefresh(action: Action, context: ActionContext): void {
   // Resolve paramBindings from screen state (Form submit support)
   if (action.paramBindings && Object.keys(action.paramBindings).length > 0) {
     const params = new URLSearchParams();
-    for (const [paramName, stateKey] of Object.entries(action.paramBindings)) {
+    for (const [paramName, rawStateKey] of Object.entries(action.paramBindings)) {
+      // Strip mustache delimiters: "{{form_season}}" → "form_season"
+      const stateKey = rawStateKey.replace(/^\{\{|\}\}$/g, '');
       const value = context.state[stateKey];
       if (value !== undefined && value !== null) {
         params.set(paramName, String(value));
@@ -86,8 +89,8 @@ function handleRefresh(action: Action, context: ActionContext): void {
 
     if (url) {
       // Fetch new data from the parameterized endpoint.
-      // The proxy strips /api, so prefix with /api for the Vite/Express proxy.
-      const fetchUrl = url.startsWith('/sdui/') ? `/api${url}` : url;
+      // The proxy strips /api, so prefix with the proxy prefix for Vite/Express.
+      const fetchUrl = url.startsWith(SDUI_PATH_PREFIX) ? `${API_PROXY_PREFIX}${url}` : url;
       fetch(fetchUrl)
         .then((res) => {
           if (!res.ok) throw new Error(`HTTP ${res.status}`);

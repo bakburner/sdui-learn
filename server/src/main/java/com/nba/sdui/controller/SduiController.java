@@ -47,7 +47,7 @@ public class SduiController {
      * @param response    HTTP response (for adding headers)
      * @return SDUI Screen JSON response
      */
-    @GetMapping(value = "/sdui/game-detail/{gameId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = {"/sdui/game-detail/{gameId}", "/sdui/game/{gameId}"}, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<JsonNode> getGameDetail(
             @PathVariable String gameId,
             @RequestParam(defaultValue = "pre") String gameState,
@@ -195,16 +195,16 @@ public class SduiController {
     }
 
     /**
-     * Get SDUI screen response for the Live games screen.
+     * Get SDUI screen response for the Games screen (live, upcoming & final).
      */
-    @GetMapping(value = "/sdui/live", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<JsonNode> getLive(
+    @GetMapping(value = {"/sdui/games", "/sdui/live"}, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<JsonNode> getGames(
             @RequestHeader(value = "X-Schema-Version", defaultValue = "1.0") String schemaVersion,
             HttpServletResponse response) {
 
         String traceId = "trace-" + UUID.randomUUID().toString().substring(0, 8);
         MDC.put("traceId", traceId);
-        log.info("SDUI live request: schemaVersion={}", schemaVersion);
+        log.info("SDUI games request: schemaVersion={}", schemaVersion);
 
         try {
             JsonNode screenResponse = compositionService.composeLive(traceId);
@@ -212,7 +212,7 @@ public class SduiController {
             response.setHeader("X-Schema-Version", "1.0");
             return ResponseEntity.ok(screenResponse);
         } catch (Exception e) {
-            log.error("Error composing live screen", e);
+            log.error("Error composing games screen", e);
             return ResponseEntity.internalServerError().build();
         } finally {
             MDC.clear();
@@ -254,14 +254,15 @@ public class SduiController {
     @GetMapping(value = "/sdui/leaders", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<JsonNode> getLeaders(
             @RequestHeader(value = "X-Schema-Version", defaultValue = "1.0") String schemaVersion,
+            @RequestHeader(value = "X-Platform", defaultValue = "mobile") String platform,
             HttpServletResponse response) {
 
         String traceId = "trace-" + UUID.randomUUID().toString().substring(0, 8);
         MDC.put("traceId", traceId);
-        log.info("SDUI leaders request: schemaVersion={}", schemaVersion);
+        log.info("SDUI leaders request: schemaVersion={}, platform={}", schemaVersion, platform);
 
         try {
-            JsonNode screenResponse = compositionService.composeLeaders(traceId);
+            JsonNode screenResponse = compositionService.composeLeaders(traceId, platform);
             response.setHeader("X-Trace-Id", traceId);
             response.setHeader("X-Schema-Version", "1.0");
             return ResponseEntity.ok(screenResponse);

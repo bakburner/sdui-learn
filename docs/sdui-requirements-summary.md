@@ -162,7 +162,7 @@ graph LR
 
 ### Key Schema Decisions
 
-- **Semantic section types** (ScoreboardHeader, StatLine, ContentCard, BoxscoreTable, Form) — not atomic primitives (Text, Image, Stack). The design system already handles layout; the schema just names what to render and passes typed data.
+- **Semantic section types** (ScoreboardHeader, StatLine, HeroPanel, GamePanel, FeaturedGamePanel, VideoCarousel, NbaTvSchedule, SubscribeBanner, SubscribeHero, AdSlot, BoxscoreTable, Form, ContentRail, TabGroup, PromoBanner, Row, SectionHeader, FollowingRail, SeasonLeadersTable, ErrorState) — not atomic primitives (Text, Image, Stack). The design system already handles layout; the schema just names what to render and passes typed data.
 - **Codegen produces data models only** — not UI code. Platform teams write a thin renderer layer (~30 lines per section type) that wires generated models to existing design system components.
 - **Schema is versioned** — client sends its schema version, server responds with a compatible payload. Fields can never be removed without a major version bump.
 - **Subsection actions are required** — `actions` must be supported at section and nested component/subsection level (for example, tapping home team area within a game section).
@@ -173,8 +173,8 @@ graph LR
 
 | Concession | Rationale | Migration Path |
 |-----------|-----------|----------------|
-| Android `GENERIC` screen-type enum | Scoreboard and game-detail have pre-existing Ably/polling transport wiring that is coupled to screen type. Making transport fully server-driven (`refreshPolicy` + `realtimeChannel`/`realtimeTopic` fields) doesn't advance the demo goal. | Remove enum entirely; derive all transport behavior from `refreshPolicy` fields in the server response. `GENERIC` branches become the only branches. |
-| `resolveEndpoint()` special case (`nba://game/{id}` → `game-detail/{id}?gameState=live`) | Preserves backward compatibility with the existing game-detail endpoint path and required query parameter. | Server normalizes URIs so the mapping is a straight `nba://` → `/sdui/` prefix swap with no special cases. |
+| ~~Android `GENERIC` screen-type enum~~ | ~~Scoreboard and game-detail have pre-existing Ably/polling transport wiring that is coupled to screen type.~~ | ✅ **Resolved.** `ScreenType` enum removed. All screens use a single URI-driven load path; transport behavior derived from `refreshPolicy` fields. |
+| ~~`resolveEndpoint()` special case (`nba://game/{id}` → `game-detail/{id}?gameState=live`)~~ | ~~Preserves backward compatibility with the existing game-detail endpoint path and required query parameter.~~ | ✅ **Resolved.** `resolveEndpoint()` now performs a straight `nba://` → `/sdui/` prefix swap with no special cases. |
 | Variant selector is a developer tool | Variant chips are hardcoded client-side UI, not server-driven. Real A/B would use experiment assignment. | Remove variant selector; server resolves variant via experiment assignment header. |
 
 ---

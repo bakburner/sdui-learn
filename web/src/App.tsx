@@ -1,60 +1,37 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import type { Action, Section } from '@sdui/models';
 import { useSduiScreen } from './hooks/useSduiScreen';
 import { SectionRouter } from './components/SectionRouter';
 import { TopNavigationBar } from './components/TopNavigationBar';
-import { createActionHandler, showToast } from './runtime/ActionHandler';
+import { createActionHandler } from './runtime/ActionHandler';
 
-const GAME_DETAIL_VARIANTS = [
-  { id: 'A', label: 'Default', description: 'All sections, standard order' },
-  { id: 'B', label: 'Reorder', description: 'ContentRail and TabGroup swapped' },
-  { id: 'C', label: 'Minimal', description: 'StatLine and PromoBanner removed' },
-  { id: 'D', label: 'Extra Rail', description: 'Second ContentRail added' },
-] as const;
-
-const SCOREBOARD_VARIANTS = [
-  { id: 'A', label: 'Default', description: 'Standard scoreboard' },
-  { id: 'E', label: 'Promo', description: 'Promo banner at top' },
-  { id: 'F', label: 'Promo + Rail', description: 'Promo banner + content rail (when >2 games)' },
-] as const;
-
-const VARIANT_PRESETS: Record<string, ReadonlyArray<{ id: string; label: string; description: string }>> = {
-  'nba://scoreboard': SCOREBOARD_VARIANTS,
-};
+// TODO(Rule 2): Bootstrap URI should come from a /sdui/init endpoint.
+//               Hardcoded here only as a temporary prototype bootstrap.
+const BOOTSTRAP_URI = 'nba://for-you';
 
 /**
  * Convert an nba:// URI to a server endpoint path.
  *
+ * Pure prefix swap — no special-casing of individual screens (Rule 10).
+ * The server owns all routing semantics.
+ *
  *   nba://scoreboard        → /sdui/scoreboard
- *   nba://game/0042300102   → /sdui/game-detail/0042300102?gameState=live
+ *   nba://game/0042300102   → /sdui/game/0042300102
  *   nba://boxscore/00423... → /sdui/boxscore/0042300102
  *   nba://demos             → /sdui/demos
  *   nba://anything/else     → /sdui/anything/else
  */
 function resolveEndpoint(uri: string): string {
   const path = uri.replace(/^nba:\/\//, '');
-
-  // Special case: game/{id} → game-detail/{id}?gameState=live
-  const gameMatch = path.match(/^game\/(.+)/);
-  if (gameMatch) {
-    return `/sdui/game-detail/${gameMatch[1]}?gameState=live`;
-  }
-
   return `/sdui/${path}`;
-}
-
-function getVariants(uri: string): ReadonlyArray<{ id: string; label: string; description: string }> {
-  if (uri.startsWith('nba://game/')) {
-    return GAME_DETAIL_VARIANTS;
-  }
-  return VARIANT_PRESETS[uri] ?? [];
 }
 
 export function App(): React.ReactElement {
   const [variant, setVariant] = useState('A');
-  const [currentUri, setCurrentUri] = useState('nba://scoreboard');
+  const [currentUri, setCurrentUri] = useState(BOOTSTRAP_URI);
 
-  const variants = getVariants(currentUri);
+  // Variants come from the server response — no client-side URI sniffing (Rule 10).
+  // We read screen.variants after the first fetch below.
 
   useEffect(() => {
     setVariant('A');
@@ -64,11 +41,26 @@ export function App(): React.ReactElement {
   const endpoint = resolveEndpoint(currentUri);
   const { screen, loading, error, refetch, setScreen } = useSduiScreen({ endpoint, variant });
 
+  // Read available variants from the server response (empty if not provided).
+  const variants: ReadonlyArray<{ id: string; label: string; description: string }> =
+    (screen as Record<string, unknown> | undefined)?.variants as typeof variants ?? [];
+
   // Screen-level state for TabGroup and other stateful sections
   const [screenState, setScreenState] = useState<Record<string, unknown>>({});
 
-  // Initialize screen state from server response when it arrives
+  // Track whether the last screen mutation was a surgical section update
+  // so we can skip re-seeding state from the (stale) screen.state.
+  const isSectionUpdateRef = useRef(false);
+
+  // Initialize screen state from server response when it arrives.
+  // Skip when the screen reference changed due to a section-level merge
+  // (the original screen.state still has defaults that would overwrite
+  // the user's form selections).
   useEffect(() => {
+    if (isSectionUpdateRef.current) {
+      isSectionUpdateRef.current = false;
+      return;
+    }
     if (screen?.state) {
       setScreenState((prev) => ({ ...prev, ...screen.state }));
     }
@@ -86,6 +78,7 @@ export function App(): React.ReactElement {
   // Surgical section replacement — merges a single updated section into the
   // current screen without touching any other section's state or data.
   const handleSectionUpdate = useCallback((sectionId: string, updatedSection: Section) => {
+    isSectionUpdateRef.current = true;
     setScreen((prev) => {
       if (!prev) return prev;
       const idx = prev.sections.findIndex((s) => s.id === sectionId);

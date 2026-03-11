@@ -13,15 +13,27 @@ import org.springframework.stereotype.Component;
  * Composes the "For You" SDUI screen — the personalised home feed.
  *
  * Layout:
- *   1. FollowingRail   – horizontal avatar strip of followed teams
- *   2. FeaturedGameCard – hero live / next-up game
- *   3. SectionHeader    – "Top Stories"
- *   4. ContentRail      – highlights / articles
- *   5. SectionHeader    – "Upcoming Games"
- *   6–8. GameCard       – next few games from the scoreboard
+ *   1.  FollowingRail     – horizontal avatar strip of followed teams
+ *   2.  FeaturedGamePanel  – hero live / next-up game
+ *   3.  SectionHeader      – "Top Stories"
+ *   4.  ContentRail        – highlights / articles
+ *   5.  AdSlot             – mid-feed ad 1
+ *   6.  SectionHeader      – "Trending Now"
+ *   7.  ContentRail        – trending content
+ *   8.  AdSlot             – mid-feed ad 2
+ *   9.  SectionHeader      – "League Pass Picks"
+ *  10.  ContentRail        – League Pass picks
+ *  11.  AdSlot             – mid-feed ad 3
+ *  12.  SectionHeader      – "Around the League"
+ *  13.  ContentRail        – league-wide news
+ *  14.  SectionHeader      – "Upcoming Games"
+ *  15–17. GamePanel        – next few games from the scoreboard
  */
 @Component
 public class ForYouComposer {
+
+    private static final String FALLBACK_THUMB =
+            "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png";
 
     private static final Logger log = LoggerFactory.getLogger(ForYouComposer.class);
 
@@ -56,7 +68,7 @@ public class ForYouComposer {
         // 1. FollowingRail
         sections.add(buildFollowingRail());
 
-        // 2. FeaturedGameCard — try live data, fall back to mock
+        // 2. FeaturedGamePanel — try live data, fall back to mock
         ObjectNode featured = buildFeaturedFromLive();
         if (featured == null) {
             featured = buildMockFeaturedGame();
@@ -69,12 +81,38 @@ public class ForYouComposer {
         // 4. ContentRail — highlights
         sections.add(buildHighlightsRail());
 
-        // 5. SectionHeader "Upcoming Games"
+        // 5. AdSlot — mid-feed 1
+        sections.add(buildAdSlot("for-you-ad-1", "for_you_ad_1",
+                "/21234567/sports/nba/homepage_mid1", "mid_feed_1"));
+
+        // 6. SectionHeader "Trending Now" + ContentRail
+        sections.add(buildSectionHeader("trending-header", "Trending Now", null, null));
+        sections.add(buildTrendingRail());
+
+        // 7. AdSlot — mid-feed 2
+        sections.add(buildAdSlot("for-you-ad-2", "for_you_ad_2",
+                "/21234567/sports/nba/homepage_mid2", "mid_feed_2"));
+
+        // 8. SectionHeader "League Pass Picks" + ContentRail
+        sections.add(buildSectionHeader("lp-picks-header", "League Pass Picks",
+                "Browse League Pass", "nba://leaguepass"));
+        sections.add(buildLeaguePassPicksRail());
+
+        // 9. AdSlot — mid-feed 3
+        sections.add(buildAdSlot("for-you-ad-3", "for_you_ad_3",
+                "/21234567/sports/nba/homepage_mid3", "mid_feed_3"));
+
+        // 10. SectionHeader "Around the League" + ContentRail
+        sections.add(buildSectionHeader("around-league-header", "Around the League",
+                "More Stories", "nba://news"));
+        sections.add(buildAroundTheLeagueRail());
+
+        // 11. SectionHeader "Upcoming Games"
         sections.add(buildSectionHeader("upcoming-header", "Upcoming Games",
                 "See Full Schedule", "nba://scoreboard"));
 
-        // 6–8. GameCards from scoreboard
-        addUpcomingGameCards(sections);
+        // 12–14. GamePanels from scoreboard
+        addUpcomingGamePanels(sections);
 
         response.set("sections", sections);
         return response;
@@ -103,10 +141,10 @@ public class ForYouComposer {
                 "https://cdn.nba.com/headshots/nba/latest/260x190/201939.png",
                 "player", "nba://player/201939"));
         items.add(followingItem("nba-news", "NBA News",
-                "https://cdn.nba.com/manage/2024/04/nba-news-icon.png",
+                "https://loremflickr.com/260/190/basketball,news?lock=20",
                 "channel", "nba://news"));
         items.add(followingItem("twitter", "Twitter",
-                "https://cdn.nba.com/manage/2024/04/twitter-icon.png",
+                "https://loremflickr.com/260/190/basketball,social?lock=21",
                 "social", "nba://social/twitter"));
         data.set("items", items);
 
@@ -163,7 +201,7 @@ public class ForYouComposer {
 
         ObjectNode section = objectMapper.createObjectNode();
         section.put("id", "featured-game-" + gameId);
-        section.put("type", "FeaturedGameCard");
+        section.put("type", "FeaturedGamePanel");
         section.put("analyticsId", "for_you_featured_game");
 
         if (gameStatus == 2) {
@@ -202,7 +240,7 @@ public class ForYouComposer {
     private ObjectNode buildMockFeaturedGame() {
         ObjectNode section = objectMapper.createObjectNode();
         section.put("id", "featured-game-mock");
-        section.put("type", "FeaturedGameCard");
+        section.put("type", "FeaturedGamePanel");
         section.put("analyticsId", "for_you_featured_game");
         section.set("refreshPolicy", staticPolicy());
 
@@ -277,19 +315,20 @@ public class ForYouComposer {
 
         ObjectNode data = objectMapper.createObjectNode();
         data.put("title", "Highlights");
+        data.put("fallbackThumbnailUrl", FALLBACK_THUMB);
 
         ArrayNode cards = objectMapper.createArrayNode();
         cards.add(contentCard("hl-1", "Top 10 Plays of the Night",
                 "Last night's best highlights",
-                "https://cdn.nba.com/manage/2024/04/top10-plays.jpg",
+                "https://loremflickr.com/480/270/basketball,highlights?lock=22",
                 "video", "2:45", "nba://video/top10-plays"));
         cards.add(contentCard("hl-2", "Dunk of the Night",
                 "An incredible poster slam",
-                "https://cdn.nba.com/manage/2024/04/dunk-night.jpg",
+                "https://loremflickr.com/480/270/basketball,dunk?lock=23",
                 "video", "0:32", "nba://video/dunk-night"));
         cards.add(contentCard("hl-3", "Trade Deadline Recap",
                 "All the moves from today",
-                "https://cdn.nba.com/manage/2024/04/trade-deadline.jpg",
+                "https://loremflickr.com/480/270/basketball,trade?lock=24",
                 "article", null, "nba://article/trade-recap"));
         data.set("cards", cards);
 
@@ -317,7 +356,132 @@ public class ForYouComposer {
         return card;
     }
 
-    private void addUpcomingGameCards(ArrayNode sections) {
+    private ObjectNode buildTrendingRail() {
+        ObjectNode section = objectMapper.createObjectNode();
+        section.put("id", "for-you-trending");
+        section.put("type", "ContentRail");
+        section.put("analyticsId", "for_you_trending");
+        section.set("refreshPolicy", staticPolicy());
+
+        ObjectNode data = objectMapper.createObjectNode();
+        data.put("title", "Trending Now");
+        data.put("fallbackThumbnailUrl", FALLBACK_THUMB);
+
+        ArrayNode cards = objectMapper.createArrayNode();
+        cards.add(contentCard("tr-1", "MVP Race Heats Up",
+                "Who's leading the charge?",
+                "https://cdn.nba.com/manage/2025/02/jokic-allstar-iso-752x428.jpg",
+                "article", null, "nba://article/mvp-race"));
+        cards.add(contentCard("tr-2", "Rookie Spotlight: Zaccharie Risacher",
+                "The first overall pick's breakout game",
+                "https://cdn.nba.com/manage/2025/02/risacher-hawks-drives-752x428.jpg",
+                "video", "3:12", "nba://video/rookie-spotlight"));
+        cards.add(contentCard("tr-3", "Playoff Picture Update",
+                "Where every team stands right now",
+                "https://cdn.nba.com/manage/2025/02/nba-standings-graphic-752x428.jpg",
+                "article", null, "nba://article/playoff-picture"));
+        data.set("cards", cards);
+
+        section.set("data", data);
+        return section;
+    }
+
+    private ObjectNode buildLeaguePassPicksRail() {
+        ObjectNode section = objectMapper.createObjectNode();
+        section.put("id", "for-you-lp-picks");
+        section.put("type", "ContentRail");
+        section.put("analyticsId", "for_you_lp_picks");
+        section.set("refreshPolicy", staticPolicy());
+
+        ObjectNode data = objectMapper.createObjectNode();
+        data.put("title", "League Pass Picks");
+        data.put("fallbackThumbnailUrl", FALLBACK_THUMB);
+
+        ArrayNode cards = objectMapper.createArrayNode();
+        cards.add(contentCard("lp-1", "Warriors vs. Thunder Preview",
+                "A must-watch Western Conference clash",
+                "https://cdn.nba.com/manage/2025/02/warriors-thunder-preview-752x428.jpg",
+                "article", null, "nba://article/gsw-okc-preview"));
+        cards.add(contentCard("lp-2", "Best of League Pass: Week 20",
+                "Catch the top moments you missed",
+                "https://cdn.nba.com/manage/2025/02/lp-best-of-week-752x428.jpg",
+                "video", "4:30", "nba://video/lp-week-20"));
+        cards.add(contentCard("lp-3", "Hidden Gem: Pacers vs. Magic",
+                "An under-the-radar rivalry renewed",
+                "https://cdn.nba.com/manage/2025/02/pacers-magic-rivalry-752x428.jpg",
+                "video", "1:58", "nba://video/ind-orl-hidden-gem"));
+        data.set("cards", cards);
+
+        section.set("data", data);
+        return section;
+    }
+
+    private ObjectNode buildAroundTheLeagueRail() {
+        ObjectNode section = objectMapper.createObjectNode();
+        section.put("id", "for-you-around-league");
+        section.put("type", "ContentRail");
+        section.put("analyticsId", "for_you_around_league");
+        section.set("refreshPolicy", staticPolicy());
+
+        ObjectNode data = objectMapper.createObjectNode();
+        data.put("title", "Around the League");
+        data.put("fallbackThumbnailUrl", FALLBACK_THUMB);
+
+        ArrayNode cards = objectMapper.createArrayNode();
+        cards.add(contentCard("al-1", "Injury Report Roundup",
+                "Key players in and out tonight",
+                "https://cdn.nba.com/manage/2025/02/injury-report-graphic-752x428.jpg",
+                "article", null, "nba://article/injury-report"));
+        cards.add(contentCard("al-2", "Power Rankings: March Edition",
+                "Who moved up and who dropped?",
+                "https://cdn.nba.com/manage/2025/02/power-rankings-march-752x428.jpg",
+                "article", null, "nba://article/power-rankings-march"));
+        cards.add(contentCard("al-3", "All-Star Weekend Recap",
+                "Best dunks, assists, and moments",
+                "https://cdn.nba.com/manage/2025/02/allstar-weekend-recap-752x428.jpg",
+                "video", "5:10", "nba://video/allstar-recap"));
+        data.set("cards", cards);
+
+        section.set("data", data);
+        return section;
+    }
+
+    private ObjectNode buildAdSlot(String id, String analyticsId,
+                                    String adUnitPath, String position) {
+        ObjectNode section = objectMapper.createObjectNode();
+        section.put("id", id);
+        section.put("type", "AdSlot");
+        section.put("analyticsId", analyticsId);
+        section.set("refreshPolicy", staticPolicy());
+
+        ObjectNode data = objectMapper.createObjectNode();
+        data.put("provider", "gam");
+        data.put("adUnitPath", adUnitPath);
+
+        ArrayNode sizes = objectMapper.createArrayNode();
+        ArrayNode size320 = objectMapper.createArrayNode();
+        size320.add(320);
+        size320.add(50);
+        sizes.add(size320);
+        ArrayNode size728 = objectMapper.createArrayNode();
+        size728.add(728);
+        size728.add(90);
+        sizes.add(size728);
+        data.set("sizes", sizes);
+
+        ObjectNode targeting = objectMapper.createObjectNode();
+        targeting.put("section", "for_you");
+        targeting.put("position", position);
+        data.set("targeting", targeting);
+
+        data.put("collapseOnEmpty", true);
+        data.put("label", "Advertisement");
+
+        section.set("data", data);
+        return section;
+    }
+
+    private void addUpcomingGamePanels(ArrayNode sections) {
         try {
             JsonNode scoreboard = statsApiClient.getScoreboard();
             if (scoreboard != null) {
@@ -327,7 +491,7 @@ public class ForYouComposer {
                     if (count >= 3) break;
                     String gameId = game.path("gameId").asText(null);
                     if (gameId == null) continue;
-                    sections.add(buildGameCardSection(game, gameId));
+                    sections.add(buildGamePanelSection(game, gameId));
                     count++;
                 }
                 if (count > 0) return;
@@ -337,18 +501,18 @@ public class ForYouComposer {
         }
 
         // Fallback mock
-        sections.add(buildMockGameCard("0022400010", "PHX", 1610612756, "MIL", 1610612749,
+        sections.add(buildMockGamePanel("0022400010", "PHX", 1610612756, "MIL", 1610612749,
                 "7:30 PM ET", 1));
-        sections.add(buildMockGameCard("0022400011", "DAL", 1610612742, "DEN", 1610612743,
+        sections.add(buildMockGamePanel("0022400011", "DAL", 1610612742, "DEN", 1610612743,
                 "10:00 PM ET", 1));
     }
 
-    private ObjectNode buildGameCardSection(JsonNode game, String gameId) {
+    private ObjectNode buildGamePanelSection(JsonNode game, String gameId) {
         int gameStatus = game.path("gameStatus").asInt(1);
 
         ObjectNode section = objectMapper.createObjectNode();
         section.put("id", "game-" + gameId);
-        section.put("type", "GameCard");
+        section.put("type", "GamePanel");
         section.put("analyticsId", "for_you_game_" + gameId);
         section.set("refreshPolicy", staticPolicy());
 
@@ -371,12 +535,12 @@ public class ForYouComposer {
         return section;
     }
 
-    private ObjectNode buildMockGameCard(String gameId, String awayTri, int awayId,
+    private ObjectNode buildMockGamePanel(String gameId, String awayTri, int awayId,
                                           String homeTri, int homeId,
                                           String statusText, int gameStatus) {
         ObjectNode section = objectMapper.createObjectNode();
         section.put("id", "game-" + gameId);
-        section.put("type", "GameCard");
+        section.put("type", "GamePanel");
         section.set("refreshPolicy", staticPolicy());
 
         ObjectNode data = objectMapper.createObjectNode();

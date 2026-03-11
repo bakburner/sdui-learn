@@ -44,7 +44,7 @@ Define a JSON schema that implements the two-tier primitive system from the road
 
 **Atomic primitives:** Container, Text, Image, Button, Spacer, Divider, ScrollContainer, Conditional. Each has typed properties (e.g., Container supports direction/gap/padding/alignment; Text supports content/variant/weight/color/maxLines; Button supports label/variant/action/icon/disabled).
 
-**Semantic section types (8 total):** ScoreboardHeader, StatLine, ContentCard, ContentRail, TabGroup, PromoBanner, GameCard, Row. Each is referenced by type name in the SDUI response — the renderer resolves the semantic type, not the atomic decomposition.
+**Semantic section types (20 total):** ScoreboardHeader, StatLine, HeroPanel, ContentRail, TabGroup, PromoBanner, GamePanel, FeaturedGamePanel, Row, SectionHeader, VideoCarousel, NbaTvSchedule, SubscribeBanner, SubscribeHero, AdSlot, BoxscoreTable, Form, SeasonLeadersTable, FollowingRail, ErrorState. Each is referenced by type name in the SDUI response — the renderer resolves the semantic type, not the atomic decomposition.
 
 **Schema hierarchy — Screen → Section → Component:**
 
@@ -159,30 +159,42 @@ Everything screen-agnostic that could ship as a library:
    - Generated Java POJOs from jsonschema2pojo (referenced as source dependency).
 
 2. **Network layer** (`core/data/`)
-   - `SduiRepository` — Fetches SDUI responses via OkHttp. Supports game detail, scoreboard, stats, raw JSON (for direct URL polling), and today's games endpoints. Sends `X-Schema-Version` header.
-   - `AblyChannelManager` — Manages Ably real-time connections with JWT token authentication via `authUrl` (NBA identity server at `https://identity.nba.com/rttoken`). Delivers linescore updates as Kotlin Flows.
-   - `DataBindingResolver` — Applies incoming real-time messages to section data using the section's binding configuration. Supports JSONPath-like source paths (e.g., `$.homeTeam.score`) and dot-notation target paths. Handles missing paths gracefully (logs warning, preserves previous value). Acknowledges `stringKeys` for future i18n resolution.
+   - `SduiRepository` — Fetches SDUI responses via OkHttp. Exposes `fetchScreen(path, variant)` for all screen loads and `fetchRawJson(url, dataPath)` for direct data polling. There are no dedicated endpoint methods (e.g., no `getGameDetail()` or `getScoreboard()`) — all routing is resolved upstream. Sends `X-Schema-Version` header.
+   - `AblyChannelManager` — Manages Ably real-time connections with JWT token authentication via `authUrl` (NBA identity server at `https://identity.nba.com/rttoken`). Delivers opaque `Map<String, Any?>` messages as Kotlin Flows — no typed data classes like `LinescoreUpdate`.
+   - `DataBindingResolver` — Applies incoming real-time messages to section data using the section's binding configuration via `applyBindings(currentData, incomingMessage, dataBinding, traceId)`. Supports JSONPath-like source paths (e.g., `$.homeTeam.score`) and dot-notation target paths. Handles missing paths gracefully (logs warning, preserves previous value). Acknowledges `stringKeys` for future i18n resolution.
 
 3. **State management** (`core/state/`)
    - `StateManager` — Screen-level state holder backed by `MutableStateFlow<Map<String, Any>>`. Supports initialize, set, get, remove, clear operations. Compose reactivity drives automatic re-rendering.
    - `ActionHandler` — Dispatches SduiAction objects to handlers by type: navigate (returns URI), analytics (logs event), mutate (updates StateManager), refresh (triggers re-fetch), dismiss (closes overlays). Returns sealed `ActionResult` types.
 
 4. **Section renderers** (`core/renderer/`)
-   - `SectionRouter` — A `when` statement mapping section type strings to composable functions. Unknown types are skipped with a warning log. Supports all 8 section types.
+   - `SectionRouter` — A `when` statement mapping section type strings to composable functions. Unknown types are skipped with a warning log. Supports all 20 section types.
    - `sections/` — One composable per section type:
      - `ScoreboardHeaderRenderer` — Team logos (via Coil AsyncImage with SVG support), tricodes, scores, game status. Clickable with primary action.
      - `StatLineRenderer` — Vertical list of player stat rows.
-     - `ContentCardRenderer` — Single content card.
-     - `ContentRailRenderer` — Horizontal scrolling strip of ContentCards.
+     - `HeroPanelRenderer` — Single content item (article/video).
+     - `ContentRailRenderer` — Horizontal scrolling strip of HeroPanels.
      - `TabGroupRenderer` — Tabbed navigation using screen state for active tab. Tab selection fires mutate actions.
      - `PromoBannerRenderer` — Promotional banner with title, description, image, CTA.
-     - `GameCardRenderer` — Game card with team logos, tricodes, scores, leaders, and visual state (PRE/LIVE/FINAL).
+     - `GamePanelRenderer` — Game card with team logos, tricodes, scores, leaders, and visual state (PRE/LIVE/FINAL).
+     - `FeaturedGamePanelRenderer` — Hero-sized game card with enhanced layout.
      - `RowRenderer` — Responsive layout rendering child sections side-by-side or stacked based on breakpoint.
+     - `SectionHeaderRenderer` — Simple header with optional subtitle and CTA.
+     - `VideoCarouselRenderer` — Horizontal scrolling video thumbnails.
+     - `NbaTvScheduleRenderer` — NBA TV hero image + time-slot schedule.
+     - `SubscribeBannerRenderer` — Inline subscription upsell with CTA.
+     - `SubscribeHeroRenderer` — Full-screen subscription upsell with pricing tiers.
+     - `AdSlotRenderer` — Embedded ad placement (provider, targeting).
+     - `BoxscoreTableRenderer` — Boxscore stats table.
+     - `FormRenderer` — Interactive form with typed fields.
+     - `SeasonLeadersTableRenderer` — Season leaders stats table.
+     - `FollowingRailRenderer` — Horizontal rail of followed items.
+     - `ErrorStateRenderer` — Error display with title, message, optional icon, and optional retry action.
    - `adapters/SectionUiAdapters.kt` — Maps raw section data to typed UI models (e.g., `mapScoreboardHeader` deserializes to ScoreboardHeaderUiModel via Jackson ObjectMapper converting to generated Java POJOs). Resolves primary actions from section-level or data-level actions.
    - `interactions/SectionInteractions.kt` — Shared helpers for resolving actions from sections and subsections. Prioritizes schema-level `section.actions` over legacy `section.data.actions`.
 
 5. **Screen orchestration** (`core/screen/`)
-   - `SduiScreenViewModel` — Generic ViewModel handling: fetch (game detail or scoreboard), pull-to-refresh, action dispatch, polling setup (with direct URL support), Ably SSE subscription, linescore data binding application. Manages its own lifecycle cleanup.
+   - `SduiScreenViewModel` — Generic ViewModel handling: fetch via `loadFromUri()` / `loadFromEndpoint()` (single code path for all screens), pull-to-refresh, action dispatch, polling setup (with direct URL support), Ably SSE subscription, data binding application via `DataBindingResolver.applyBindings()`. Manages its own lifecycle cleanup. There is no `loadScreen()` or screen-type dispatch — all screens use the same load path.
    - `SduiScreenContent` — Headless composable rendering Loading/Error/Success states. Success state renders sections in a `LazyColumn` with `PullToRefreshBox`. Does NOT include app chrome.
    - `SduiScreenUiState` — Sealed interface (Loading, Success, Error).
 
@@ -196,10 +208,10 @@ Everything screen-agnostic that could ship as a library:
 Only app-specific code:
 
 - `SduiApplication` — Custom Application class implementing `ImageLoaderFactory` for Coil SVG support.
-- `SduiConfig` — App-level config with presets (`scoreboard()`, `gameDetail(gameId)`) and `toScreenConfig()` converter. Defines `ScreenType` enum (SCOREBOARD, GAME_DETAIL).
-- `MainActivity` — Single-activity navigation. Manages screen type transitions, variant selection, game picker dropdown. Resets variant to "A" when switching between screen types.
-- `GameDetailScreen` — Thin composable wrapper adding TopAppBar, game picker, and screen-specific variant chips around `SduiScreenContent`.
-- `GameDetailViewModel` — Thin ViewModel wrapper mapping `SduiConfig` → `SduiScreenConfig` and delegating to `SduiScreenViewModel`.
+- `SduiConfig` — App-level config wrapping a single `uri: String` with capability presets (`fromUri()`, `gameDetail(gameId)`). No screen-type enum. Converts to library-level `SduiScreenConfig` via `toScreenConfig()`.
+- `MainActivity` — Single-activity navigation. Manages URI-based screen transitions and variant selection. No screen-type dispatch or hardcoded game IDs.
+- `GameDetailScreen` — Thin composable wrapper adding TopAppBar and screen-specific variant chips (gated on `config.isGameDetail`) around `SduiScreenContent`.
+- `GameDetailViewModel` — Thin ViewModel wrapper mapping `SduiConfig` → `SduiScreenConfig` and exposing a single `load(uri)` method that delegates to `SduiScreenViewModel.loadFromUri()`.
 - `Theme.kt` — App-specific Material 3 theming.
 
 **Module boundary rules:**
@@ -224,7 +236,7 @@ Build a React web application that renders the same SDUI responses as the Androi
    - `SectionRouter.tsx` — Routes section types to renderer components. Wraps sections with live data in `LiveSectionWrapper`.
    - `LiveSectionWrapper` — Applies refresh policies and data bindings to sections.
    - `TopNavigationBar` — Navigation chrome.
-   - `sections/` — One component per section type: ScoreboardHeader, StatLine, ContentRail, TabGroup, PromoBanner, GameCard, Row.
+   - `sections/` — One component per section type: ScoreboardHeader, StatLine, HeroPanel, ContentRail, TabGroup, PromoBanner, GamePanel, FeaturedGamePanel, Row, SectionHeader, VideoCarousel, NbaTvSchedule, SubscribeBanner, SubscribeHero, AdSlot, BoxscoreTable, Form, SeasonLeadersTable, FollowingRail, ErrorState.
 
 3. **Runtime** (`runtime/`)
    - `AblyClient.ts` — Ably real-time client integration.
@@ -303,13 +315,8 @@ sdui-prototype/
 │   │       │   ├── interactions/SectionInteractions.kt
 │   │       │   └── sections/
 │   │       │       ├── ScoreboardHeaderRenderer.kt
-│   │       │       ├── StatLineRenderer.kt
-│   │       │       ├── ContentCardRenderer.kt
-│   │       │       ├── ContentRailRenderer.kt
-│   │       │       ├── TabGroupRenderer.kt
-│   │       │       ├── PromoBannerRenderer.kt
-│   │       │       ├── GameCardRenderer.kt
-│   │       │       └── RowRenderer.kt
+│   │       │       ├── ... (20 renderers, one per section type)
+│   │       │       └── ErrorStateRenderer.kt
 │   │       ├── screen/
 │   │       │   ├── SduiScreenViewModel.kt
 │   │       │   ├── SduiScreenContent.kt
@@ -330,12 +337,8 @@ sdui-prototype/
 │       │   ├── TopNavigationBar.tsx
 │       │   └── sections/
 │       │       ├── ScoreboardHeader.tsx
-│       │       ├── StatLine.tsx
-│       │       ├── ContentRail.tsx
-│       │       ├── TabGroup.tsx
-│       │       ├── PromoBanner.tsx
-│       │       ├── GameCard.tsx
-│       │       └── Row.tsx
+│       │       ├── ... (20 components, one per section type)
+│       │       └── ErrorState.tsx
 │       ├── hooks/
 │       │   ├── useSduiScreen.ts
 │       │   └── useRefreshPolicy.ts

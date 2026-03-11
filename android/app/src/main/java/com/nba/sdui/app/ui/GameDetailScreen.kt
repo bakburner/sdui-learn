@@ -17,11 +17,14 @@ import com.nba.sdui.core.screen.SduiScreenUiState
 import com.nba.sdui.core.state.ActionHandler
 
 /**
- * Game Detail Screen — app-level wrapper.
+ * SDUI Screen — app-level wrapper.
  *
  * This Composable adds app-specific chrome (TopAppBar, variant chips,
  * and back navigation when applicable) and then delegates all SDUI
  * rendering to [SduiScreenContent] from sdui-core.
+ *
+ * There is **no ScreenType dispatch** — every screen goes through the
+ * same URI-based load path.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,12 +32,13 @@ fun GameDetailScreen(
     config: SduiConfig,
     modifier: Modifier = Modifier,
     onNavigateUri: (String) -> Unit = {},
+    onShowToast: (String) -> Unit = {},
     onVariantChange: (String) -> Unit = {},
     onBack: () -> Unit = {},
     viewModel: GameDetailViewModel = viewModel(
         // Key on the full config so a NEW ViewModel is created whenever
-        // variant or gameId changes.
-        key = "sdui_${config.gameId}_${config.variant}_${config.screenType}"
+        // variant or URI changes.
+        key = "sdui_${config.uri}_${config.variant}"
     ) {
         GameDetailViewModel(
             baseUrl = BuildConfig.SDUI_BASE_URL,
@@ -49,14 +53,11 @@ fun GameDetailScreen(
 
     // Fetch SDUI response on first composition (keyed on full config)
     LaunchedEffect(config) {
-        when (config.screenType) {
-            SduiConfig.ScreenType.SCOREBOARD -> viewModel.loadScoreboard()
-            SduiConfig.ScreenType.GAME_DETAIL -> viewModel.loadGameDetail(config.gameId ?: "")
-        }
+        viewModel.load(config.uri)
     }
 
     // Handle action results (app-level side-effects)
-    LaunchedEffect(Unit) {
+    LaunchedEffect(viewModel) {
         viewModel.actionResults.collect { result ->
             when (result) {
                 is ActionHandler.ActionResult.NavigateResult -> {
@@ -66,10 +67,13 @@ fun GameDetailScreen(
                     Log.d("SDUI", "Analytics: ${result.eventName} - ${result.params}")
                 }
                 is ActionHandler.ActionResult.RefreshResult -> {
-                    when (config.screenType) {
-                        SduiConfig.ScreenType.SCOREBOARD -> viewModel.loadScoreboard(result.sectionId)
-                        SduiConfig.ScreenType.GAME_DETAIL -> viewModel.loadGameDetail(config.gameId ?: "", result.sectionId)
-                    }
+                    viewModel.load(config.uri, result.sectionId)
+                }
+                is ActionHandler.ActionResult.ParameterizedRefreshResult -> {
+                    viewModel.refreshSections(result.url)
+                }
+                is ActionHandler.ActionResult.ToastResult -> {
+                    onShowToast(result.message)
                 }
                 else -> {}
             }
@@ -81,15 +85,15 @@ fun GameDetailScreen(
         TopAppBar(
             title = {
                 Text(
-                    text = when {
-                        config.screenType == SduiConfig.ScreenType.SCOREBOARD -> "Today's Games"
-                        else -> "Game: ${config.gameId}"
-                    }
+                    text = (uiState as? SduiScreenUiState.Success)?.screen?.title ?: "NBA"
                 )
             },
             navigationIcon = {
-                if (config.screenType == SduiConfig.ScreenType.GAME_DETAIL) {
-                    IconButton(onClick = onBack) {
+                val parentUri = (uiState as? SduiScreenUiState.Success)?.screen?.parentUri
+                if (parentUri != null) {
+                    IconButton(onClick = {
+                        onNavigateUri(parentUri)
+                    }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back"
@@ -99,22 +103,22 @@ fun GameDetailScreen(
             }
         )
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            val variants = when (config.screenType) {
-                SduiConfig.ScreenType.SCOREBOARD -> listOf("A" to "Default", "E" to "Promo", "F" to "Promo + Rail")
-                SduiConfig.ScreenType.GAME_DETAIL -> listOf("A" to "Default", "B" to "Reorder", "C" to "Minimal", "D" to "Extra Rail")
-            }
-            variants.forEach { (id, label) ->
-                FilterChip(
-                    selected = config.variant == id,
-                    onClick = { onVariantChange(id) },
-                    label = { Text(label) }
-                )
+        // Server-driven variant chips (Rule 9 / Rule 10 — no client-side URI sniffing)
+        val serverVariants = (uiState as? SduiScreenUiState.Success)?.screen?.variants ?: emptyList()
+        if (serverVariants.isNotEmpty()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                serverVariants.forEach { v ->
+                    FilterChip(
+                        selected = config.variant == v.id,
+                        onClick = { onVariantChange(v.id) },
+                        label = { Text(v.label) }
+                    )
+                }
             }
         }
 
@@ -122,19 +126,15 @@ fun GameDetailScreen(
         val currentScreen = (uiState as? SduiScreenUiState.Success)?.screen
         SduiNavigationShell(
             navigation = currentScreen?.navigation,
-            onNavigate = onNavigateUri
+            onNavigate = onNavigateUri,
+            modifier = Modifier.weight(1f)
         ) { contentModifier ->
             SduiScreenContent(
                 uiState = uiState,
                 screenState = screenState,
                 isRefreshing = isRefreshing,
                 onRefresh = { viewModel.refresh() },
-                onRetry = {
-                    when (config.screenType) {
-                        SduiConfig.ScreenType.SCOREBOARD -> viewModel.loadScoreboard()
-                        SduiConfig.ScreenType.GAME_DETAIL -> viewModel.loadGameDetail(config.gameId ?: "")
-                    }
-                },
+                onRetry = { viewModel.load(config.uri) },
                 onAction = { viewModel.handleAction(it) },
                 onStateChange = { key, value -> viewModel.updateState(key, value) },
                 modifier = contentModifier

@@ -20,8 +20,4 @@ data class SduiScreenConfig(
     val gameState: String = "live",
     /** Server variant for A/B testing (e.g. "A", "B", "C", "D") */
     val variant: String = "A",
-    /** Whether to enable Ably real-time subscriptions */
-    val enableAbly: Boolean = false,
-    /** Whether to enable per-section polling */
-    val enablePolling: Boolean = true,
 )

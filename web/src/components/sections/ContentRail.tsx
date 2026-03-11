@@ -1,7 +1,8 @@
 import React from 'react';
 import type { SectionProps } from '../SectionRouter';
-import type { ContentCardData } from '@sdui/models';
+import type { HeroPanelData } from '@sdui/models';
 import { mapContentRail } from '../../adapters/sectionUiAdapters';
+import { DEFAULT_FALLBACK_IMAGE } from '../../utils/constants';
 
 /**
  * ContentRail - horizontal scrolling list of content cards.
@@ -12,7 +13,9 @@ export function ContentRail({ section, onAction }: SectionProps): React.ReactEle
     return <div style={styles.container}>No content available</div>;
   }
 
-  const handleCardClick = (card: ContentCardData) => {
+  const fallbackUrl = ((section.data as Record<string, unknown> | undefined)?.fallbackThumbnailUrl as string | undefined) ?? DEFAULT_FALLBACK_IMAGE;
+
+  const handleCardClick = (card: HeroPanelData) => {
     if (card.action) {
       onAction(card.action);
     }
@@ -35,7 +38,11 @@ export function ContentRail({ section, onAction }: SectionProps): React.ReactEle
                 <img 
                   src={card.thumbnailUrl} 
                   alt="" 
-                  style={styles.thumbnail} 
+                  style={styles.thumbnail}
+                  onError={(e) => {
+                    const img = e.currentTarget;
+                    if (fallbackUrl && img.src !== fallbackUrl) img.src = fallbackUrl;
+                  }}
                 />
               ) : (
                 <div style={styles.thumbnailPlaceholder}>

@@ -30,7 +30,7 @@
   "sections": [
     {
       "id": "game-0022500771",
-      "type": "GameCard",
+      "type": "GamePanel",
       "analyticsId": "game_card_0022500771",
       "refreshPolicy": {
         "type": "static"
@@ -71,7 +71,7 @@
     },
     {
       "id": "game-0022500772",
-      "type": "GameCard",
+      "type": "GamePanel",
       "analyticsId": "game_card_0022500772",
       "refreshPolicy": {
         "type": "static"
@@ -107,7 +107,7 @@
     },
     {
       "id": "game-0022500773",
-      "type": "GameCard",
+      "type": "GamePanel",
       "analyticsId": "game_card_0022500773",
       "refreshPolicy": {
         "type": "static"
@@ -143,7 +143,7 @@
     },
     {
       "id": "game-0022500774",
-      "type": "GameCard",
+      "type": "GamePanel",
       "analyticsId": "game_card_0022500774",
       "refreshPolicy": {
         "type": "static"

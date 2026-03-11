@@ -2,11 +2,24 @@ import React from 'react';
 import type { Section, Action, Data, RefreshPolicy } from '@sdui/models';
 import { ScoreboardHeader } from './sections/ScoreboardHeader';
 import { StatLine } from './sections/StatLine';
+import { HeroPanel } from './sections/HeroPanel';
 import { ContentRail } from './sections/ContentRail';
 import { TabGroup } from './sections/TabGroup';
 import { PromoBanner } from './sections/PromoBanner';
-import { GameCard } from './sections/GameCard';
+import { GamePanel } from './sections/GamePanel';
 import { Row } from './sections/Row';
+import { BoxscoreTable } from './sections/BoxscoreTable';
+import { Form } from './sections/Form';
+import { AdSlot } from './sections/AdSlot';
+import { SeasonLeadersTable } from './sections/SeasonLeadersTable';
+import { FollowingRail } from './sections/FollowingRail';
+import { FeaturedGamePanel } from './sections/FeaturedGamePanel';
+import { SectionHeader } from './sections/SectionHeader';
+import { VideoCarousel } from './sections/VideoCarousel';
+import { NbaTvSchedule } from './sections/NbaTvSchedule';
+import { SubscribeBanner } from './sections/SubscribeBanner';
+import { SubscribeHero } from './sections/SubscribeHero';
+import { ErrorState } from './sections/ErrorState';
 import { LiveSectionWrapper } from './LiveSectionWrapper';
 
 export interface SectionProps {
@@ -50,15 +63,50 @@ function SectionRenderer({
     case 'PromoBanner':
       return <PromoBanner {...commonProps} />;
 
-    case 'GameCard':
-      return <GameCard {...commonProps} />;
+    case 'GamePanel':
+      return <GamePanel {...commonProps} />;
 
     case 'Row':
       return <Row {...commonProps} />;
+
+    case 'BoxscoreTable':
+      return <BoxscoreTable {...commonProps} />;
+
+    case 'Form':
+      return <Form {...commonProps} />;
+
+    case 'AdSlot':
+      return <AdSlot {...commonProps} />;
+
+    case 'SeasonLeadersTable':
+      return <SeasonLeadersTable {...commonProps} />;
+
+    case 'FollowingRail':
+      return <FollowingRail {...commonProps} />;
+
+    case 'FeaturedGamePanel':
+      return <FeaturedGamePanel {...commonProps} />;
+
+    case 'SectionHeader':
+      return <SectionHeader {...commonProps} />;
       
-    case 'ContentCard':
-      // Single content card - could be rendered inline
-      return <ContentRail {...commonProps} />;
+    case 'HeroPanel':
+      return <HeroPanel {...commonProps} />;
+
+    case 'VideoCarousel':
+      return <VideoCarousel {...commonProps} />;
+
+    case 'NbaTvSchedule':
+      return <NbaTvSchedule {...commonProps} />;
+
+    case 'SubscribeBanner':
+      return <SubscribeBanner {...commonProps} />;
+
+    case 'SubscribeHero':
+      return <SubscribeHero {...commonProps} />;
+
+    case 'ErrorState':
+      return <ErrorState {...commonProps} />;
       
     default:
       // Ignore unknown section types (forward compatibility)

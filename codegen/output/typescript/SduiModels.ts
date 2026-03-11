@@ -2,16 +2,184 @@
  * Server-Driven UI schema for NBA Game Detail screens
  */
 export interface SduiModels {
+    /**
+     * Screen-level actions (e.g. analytics beacons, lifecycle hooks)
+     */
+    actions?:              Action[];
     analyticsId?:          string;
     defaultRefreshPolicy?: RefreshPolicy;
     id:                    string;
     navigation?:           Navigation;
-    schemaVersion:         string;
-    sections:              Section[];
-    state?:                { [key: string]: any };
-    title?:                string;
-    traceId?:              string;
+    /**
+     * URI the back button should navigate to.  Clients always show a back button; this field
+     * tells them the target.  Omit for root screens (e.g. scoreboard).
+     */
+    parentUri?:    string;
+    schemaVersion: string;
+    sections:      Section[];
+    state?:        { [key: string]: any };
+    title?:        string;
+    traceId?:      string;
     [property: string]: any;
+}
+
+/**
+ * Action fired when the form is submitted
+ *
+ * Optional 'See All' or navigation action
+ *
+ * Optional action to retry the failed operation
+ */
+export interface Action {
+    /**
+     * For analytics actions: where to send the beacon
+     */
+    destinations?: Destination[];
+    /**
+     * For refresh actions: target URL (defaults to current screen endpoint if omitted)
+     */
+    endpoint?: string;
+    /**
+     * For analytics actions: event name
+     */
+    event?: string;
+    /**
+     * For analytics actions with onVisible trigger: impression tracking policy
+     */
+    impression?: ImpressionPolicy;
+    /**
+     * For toast actions: text message to display in the toast
+     */
+    message?: string;
+    /**
+     * For navigate actions with modal presentation: sheet height
+     */
+    modalHeight?: ModalHeight;
+    /**
+     * For mutate actions: operation to perform on the state key
+     */
+    operation?: MutateOperation;
+    /**
+     * For refresh actions: map of query param name to screen state key, resolved at action time
+     */
+    paramBindings?: { [key: string]: string };
+    /**
+     * For analytics actions: event parameters
+     */
+    params?: { [key: string]: any };
+    /**
+     * For navigate actions: how the destination is presented
+     */
+    presentation?: NavigationPresentation;
+    /**
+     * For mutate actions: state key to update. For dismiss actions: what to dismiss
+     * (modal/overlay/screen). For refresh actions: section ID to refresh (omit for full screen)
+     */
+    target?: string;
+    /**
+     * For navigate actions: native deeplink URI
+     */
+    targetUri?: string;
+    trigger:    ActionTrigger;
+    type:       ActionType;
+    /**
+     * For mutate actions: the value to apply with the operation
+     */
+    value?: any;
+    /**
+     * For navigate actions: web-equivalent URL (first-class, not a fallback)
+     */
+    webUrl?: string;
+    [property: string]: any;
+}
+
+export enum Destination {
+    Adobe = "adobe",
+    All = "all",
+    Firebase = "firebase",
+    Internal = "internal",
+}
+
+/**
+ * For analytics actions with onVisible trigger: impression tracking policy
+ *
+ * Impression tracking policy for analytics actions with onVisible trigger
+ */
+export interface ImpressionPolicy {
+    dedup?: ImpressionDedup;
+    /**
+     * Reset interval for once-per-interval strategy (milliseconds)
+     */
+    intervalMs?: number;
+    threshold?:  ImpressionThreshold;
+    [property: string]: any;
+}
+
+export enum ImpressionDedup {
+    None = "none",
+    OncePerInterval = "once-per-interval",
+    OncePerScreen = "once-per-screen",
+    OncePerSession = "once-per-session",
+}
+
+export interface ImpressionThreshold {
+    /**
+     * Milliseconds section must remain visible before impression fires
+     */
+    dwellMs?: number;
+    /**
+     * Fraction of section area that must be visible (0.5 = 50%)
+     */
+    visibility?: number;
+    [property: string]: any;
+}
+
+/**
+ * For navigate actions with modal presentation: sheet height
+ */
+export enum ModalHeight {
+    Compact = "compact",
+    Full = "full",
+    Half = "half",
+}
+
+/**
+ * For mutate actions: operation to perform on the state key
+ */
+export enum MutateOperation {
+    Append = "append",
+    Increment = "increment",
+    Set = "set",
+    Toggle = "toggle",
+}
+
+/**
+ * For navigate actions: how the destination is presented
+ */
+export enum NavigationPresentation {
+    External = "external",
+    Fullscreen = "fullscreen",
+    Modal = "modal",
+    Push = "push",
+    Replace = "replace",
+}
+
+export enum ActionTrigger {
+    OnBlur = "onBlur",
+    OnFocus = "onFocus",
+    OnLongPress = "onLongPress",
+    OnSwipe = "onSwipe",
+    OnTap = "onTap",
+    OnVisible = "onVisible",
+}
+
+export enum ActionType {
+    Analytics = "analytics",
+    Dismiss = "dismiss",
+    Mutate = "mutate",
+    Navigate = "navigate",
+    Refresh = "refresh",
+    Toast = "toast",
 }
 
 export interface RefreshPolicy {
@@ -69,6 +237,33 @@ export interface NavigationItem {
  *
  * Responsive row layout that places children side-by-side above a breakpoint width, and
  * stacks vertically below it
+ *
+ * Typed tabular data for an NBA-style boxscore (one per team)
+ *
+ * Server-driven form section with typed fields bound to screen state
+ *
+ * Ad placement primitive — carries placement semantics while delegating auction/targeting
+ * to ad-platform SDKs (see ADR-007)
+ *
+ * Sortable, paginated table of season statistical leaders (league-wide)
+ *
+ * Horizontal scrolling rail of followed teams/players with circular avatars
+ *
+ * Hero-sized game panel with larger imagery, prominent scores, and optional background
+ *
+ * Titled separator/divider between groups of sections, with optional See All action
+ *
+ * Horizontal scrolling carousel of video thumbnails (landscape 16:9). Mobile shows
+ * swipeable cards; web shows a grid with hover-to-play.
+ *
+ * NBA TV programming schedule with hero promo and time-slot list
+ *
+ * Inline subscription upsell banner with headline, body copy, and CTA
+ *
+ * Full-screen subscription upsell hero with multi-tier pricing and feature list
+ *
+ * Error state displayed when something goes wrong — bad ID, network failure, missing data,
+ * etc.
  */
 export interface Data {
     awayTeam?:       TeamData;
@@ -77,26 +272,41 @@ export interface Data {
     gameStatusText?: string;
     homeTeam?:       TeamData;
     period?:         number;
-    stats?:          StatLineData[];
-    title?:          string;
-    action?:         Action;
-    contentType?:    ContentType;
-    duration?:       string;
-    headline?:       string;
-    id?:             string;
-    subhead?:        string;
-    thumbnailUrl?:   string;
-    cards?:          ContentCardData[];
-    defaultTab?:     string;
-    stateKey?:       string;
-    tabContents?:    { [key: string]: Section[] };
-    tabs?:           TabData[];
-    actions?:        Action[];
-    description?:    string;
-    imageUrl?:       string;
-    gameId?:         string;
-    gameLeaders?:    GameLeadersData;
-    gameTimeEt?:     string;
+    /**
+     * Row layout: 'horizontal' = image | name | stat inline, 'vertical' = name/image stacked
+     * above stat value. Use 'vertical' for narrow viewports.
+     *
+     * Layout hint for field arrangement
+     */
+    layout?: Layout;
+    stats?:  StatLineData[];
+    /**
+     * Table heading, e.g. 'Season Leaders'
+     *
+     * Short error headline, e.g. 'Something went wrong'
+     */
+    title?: string;
+    /**
+     * Optional 'See All' or navigation action
+     */
+    action?:       Action;
+    contentType?:  ContentType;
+    duration?:     string;
+    headline?:     string;
+    id?:           string;
+    subhead?:      string;
+    thumbnailUrl?: string;
+    cards?:        HeroPanelData[];
+    defaultTab?:   string;
+    stateKey?:     string;
+    tabContents?:  { [key: string]: Section[] };
+    tabs?:         TabData[];
+    actions?:      Action[];
+    description?:  string;
+    imageUrl?:     string;
+    gameId?:       string;
+    gameLeaders?:  GameLeadersData;
+    gameTimeEt?:   string;
     /**
      * Screen width (dp) below which children stack vertically
      */
@@ -109,6 +319,139 @@ export interface Data {
      * Gap between children in dp/px
      */
     spacing?: number;
+    /**
+     * Ordered list of column definitions; clients render left-to-right
+     *
+     * Ordered column definitions; clients render left-to-right
+     */
+    columns?: BoxscoreColumnDefinition[];
+    /**
+     * Text shown when no player rows are available
+     */
+    emptyMessage?: string;
+    /**
+     * Player rows ordered by server (starters first, then bench)
+     *
+     * Player rows, pre-sorted by the server
+     */
+    players?: PlayerRow[];
+    /**
+     * Screen-state key holding the current sort direction (asc/desc)
+     */
+    sortDirectionStateKey?: string;
+    /**
+     * Screen-state key holding the current sort column key
+     */
+    sortStateKey?: string;
+    /**
+     * Hex colour for team accent
+     */
+    teamColor?:   string;
+    teamLogoUrl?: string;
+    teamName?:    string;
+    /**
+     * Aggregate row shown at the bottom of the table
+     */
+    teamTotals?: { [key: string]: any };
+    /**
+     * Three-letter team code, e.g. 'BOS'
+     */
+    teamTricode?: string;
+    fields?:      FormField[];
+    /**
+     * Action fired when the form is submitted
+     */
+    submitAction?: Action;
+    submitLabel?:  string;
+    /**
+     * Ad unit path used by the ad SDK
+     */
+    adUnitPath?: string;
+    /**
+     * Whether to collapse the slot when no fill is returned
+     */
+    collapseOnEmpty?: boolean;
+    /**
+     * Disclosure label displayed above/below the ad
+     */
+    label?: string;
+    /**
+     * Ad network identifier, e.g. 'gam', 'amazon'
+     */
+    provider?: string;
+    /**
+     * Optional auto-refresh interval in seconds
+     */
+    refreshIntervalSec?: number;
+    /**
+     * Accepted creative sizes as [width, height] pairs
+     */
+    sizes?: Array<number[]>;
+    /**
+     * Key-value targeting hints passed to ad SDK
+     */
+    targeting?: { [key: string]: string };
+    /**
+     * Current page (1-based)
+     */
+    page?: number;
+    /**
+     * Number of rows per page
+     */
+    pageSize?: number;
+    /**
+     * Key of the column the table is currently sorted by
+     */
+    sortColumn?:    string;
+    sortDirection?: SortDirection;
+    /**
+     * Secondary text, e.g. '2025-26 Regular Season – Per Game'
+     */
+    subtitle?: string;
+    /**
+     * Total number of rows available server-side (for pagination display)
+     */
+    totalRows?: number;
+    items?:     FollowingRailItem[];
+    /**
+     * Background image URL for the hero card
+     */
+    backgroundImageUrl?: string;
+    /**
+     * Badge/chip label, e.g. 'LIVE', 'FEATURED'
+     */
+    badgeText?: string;
+    /**
+     * Hero image for the currently airing program
+     */
+    heroImageUrl?: string;
+    heroSubtitle?: string;
+    heroTitle?:    string;
+    liveNow?:      boolean;
+    slots?:        NbaTvSlot[];
+    ctaAction?:    Action;
+    ctaLabel?:     string;
+    logoUrl?:      string;
+    /**
+     * Optional pricing tier highlights
+     */
+    tiers?: SubscriptionTier[];
+    /**
+     * Bullet-point feature list
+     */
+    features?: string[];
+    /**
+     * Optional icon name, e.g. 'error', 'wifi_off'
+     */
+    icon?: string;
+    /**
+     * Longer explanatory text
+     */
+    message?: string;
+    /**
+     * Optional action to retry the failed operation
+     */
+    retryAction?: Action;
     [property: string]: any;
 }
 
@@ -135,55 +478,6 @@ export interface Section {
     [property: string]: any;
 }
 
-export interface Action {
-    /**
-     * For analytics actions: event name
-     */
-    eventName?: string;
-    /**
-     * For analytics actions: event parameters
-     */
-    eventParams?: { [key: string]: any };
-    /**
-     * For navigate actions: web fallback if deeplink fails
-     */
-    fallbackUrl?: string;
-    /**
-     * For refresh actions: specific section to refresh (null = full screen)
-     */
-    sectionId?: string;
-    /**
-     * For mutate actions: state key to update
-     */
-    stateKey?: string;
-    /**
-     * For mutate actions: new value for the state key
-     */
-    stateValue?: any;
-    /**
-     * For navigate actions: deeplink URI
-     */
-    targetUri?: string;
-    trigger:    ActionTrigger;
-    type:       ActionType;
-    [property: string]: any;
-}
-
-export enum ActionTrigger {
-    OnLongPress = "onLongPress",
-    OnSwipe = "onSwipe",
-    OnTap = "onTap",
-    OnVisible = "onVisible",
-}
-
-export enum ActionType {
-    Analytics = "analytics",
-    Dismiss = "dismiss",
-    Mutate = "mutate",
-    Navigate = "navigate",
-    Refresh = "refresh",
-}
-
 export interface TeamData {
     logoUrl?:    string;
     score:       number;
@@ -194,7 +488,7 @@ export interface TeamData {
     [property: string]: any;
 }
 
-export interface ContentCardData {
+export interface HeroPanelData {
     action?:       Action;
     contentType?:  ContentType;
     duration?:     string;
@@ -211,6 +505,88 @@ export enum ContentType {
     Video = "video",
 }
 
+/**
+ * Defines a single column in the boxscore table
+ */
+export interface BoxscoreColumnDefinition {
+    /**
+     * Whether this column should be visually emphasised (e.g., bold)
+     */
+    highlighted?: boolean;
+    /**
+     * Property key on each player's stats object that supplies this column's value
+     */
+    key: string;
+    /**
+     * Column header text displayed to the user
+     */
+    label: string;
+    /**
+     * Whether this column supports client-side sorting
+     */
+    sortable?: boolean;
+    /**
+     * Optional hint for column width (e.g. 'auto', '64px', '1fr')
+     */
+    width?: string;
+    [property: string]: any;
+}
+
+/**
+ * One input field inside a form section
+ */
+export interface FormField {
+    disabled?: boolean;
+    fieldId:   string;
+    /**
+     * Input type; clients map to platform-native controls
+     */
+    fieldType: FieldType;
+    label:     string;
+    /**
+     * For select/radio/checkbox field types: the available choices
+     */
+    options?:     FormOption[];
+    placeholder?: string;
+    required?:    boolean;
+    /**
+     * Screen-state key that holds this field's current value
+     */
+    stateKey: string;
+    /**
+     * Message to show when validation fails
+     */
+    validationMessage?: string;
+    /**
+     * Optional regex pattern for client-side validation
+     */
+    validationPattern?: string;
+    [property: string]: any;
+}
+
+/**
+ * Input type; clients map to platform-native controls
+ */
+export enum FieldType {
+    Checkbox = "checkbox",
+    Date = "date",
+    Number = "number",
+    Radio = "radio",
+    Select = "select",
+    Text = "text",
+    Textarea = "textarea",
+    Toggle = "toggle",
+}
+
+/**
+ * One selectable option within a select/radio/checkbox form field
+ */
+export interface FormOption {
+    label: string;
+    value: string;
+    [property: string]: any;
+}
+
 export interface GameLeadersData {
     awayLeader?: GameLeaderData;
     homeLeader?: GameLeaderData;
@@ -223,6 +599,117 @@ export interface GameLeaderData {
     points?:   number;
     rebounds?: number;
     [property: string]: any;
+}
+
+/**
+ * One entity (team or player) in a following rail
+ */
+export interface FollowingRailItem {
+    action?: Action;
+    /**
+     * Whether this item represents a team or a player
+     */
+    entityType?: EntityType;
+    id:          string;
+    /**
+     * Avatar / logo URL
+     */
+    imageUrl?: string;
+    /**
+     * Display name, e.g. 'Lakers' or 'LeBron James'
+     */
+    name?: string;
+    /**
+     * Overlay badge, e.g. 'LIVE', 'NEW'
+     */
+    badgeText?: string;
+    /**
+     * Human-readable duration, e.g. '2:34'
+     */
+    duration?:     string;
+    subtitle?:     string;
+    thumbnailUrl?: string;
+    title?:        string;
+    [property: string]: any;
+}
+
+/**
+ * Whether this item represents a team or a player
+ */
+export enum EntityType {
+    Player = "player",
+    Team = "team",
+}
+
+/**
+ * Row layout: 'horizontal' = image | name | stat inline, 'vertical' = name/image stacked
+ * above stat value. Use 'vertical' for narrow viewports.
+ *
+ * Layout hint for field arrangement
+ */
+export enum Layout {
+    Grid = "grid",
+    Horizontal = "horizontal",
+    Vertical = "vertical",
+}
+
+/**
+ * One player row inside a boxscore table
+ *
+ * One ranked player row in a season leaders table
+ */
+export interface PlayerRow {
+    actions?:      Action[];
+    imageUrl?:     string;
+    jerseyNumber?: string;
+    /**
+     * Display name (short form, e.g. 'J. Tatum')
+     *
+     * Display name, e.g. 'Luka Dončić'
+     */
+    name:      string;
+    playerId:  string;
+    position?: string;
+    /**
+     * Whether this player was in the starting lineup
+     */
+    starter?: boolean;
+    /**
+     * Stat values keyed by column key (gp, min, pts, reb, ast, etc.)
+     */
+    stats: { [key: string]: any };
+    /**
+     * Ranking position (1-based)
+     */
+    rank?: number;
+    /**
+     * Team tricode, e.g. 'LAL'
+     */
+    team?: string;
+    [property: string]: any;
+}
+
+export interface NbaTvSlot {
+    action?: Action;
+    /**
+     * ISO-8601 end time
+     */
+    endTime?: string;
+    id:       string;
+    isLive?:  boolean;
+    /**
+     * ISO-8601 start time
+     */
+    startTime:     string;
+    subtitle?:     string;
+    thumbnailUrl?: string;
+    title:         string;
+    [property: string]: any;
+}
+
+export enum SortDirection {
+    Asc = "asc",
+    Desc = "desc",
 }
 
 export interface StatLineData {
@@ -241,6 +728,30 @@ export interface TabData {
     label:       string;
     stateKey?:   string;
     stateValue?: string;
+    [property: string]: any;
+}
+
+export interface SubscriptionTier {
+    /**
+     * Badge label, e.g. 'BEST VALUE', 'MOST POPULAR'
+     */
+    badgeText?: string;
+    ctaAction?: Action;
+    ctaLabel?:  string;
+    features?:  string[];
+    id:         string;
+    /**
+     * Tier name, e.g. 'League Pass', 'League Pass Premium'
+     */
+    name: string;
+    /**
+     * Strikethrough price if on sale
+     */
+    originalPrice?: string;
+    /**
+     * Display price, e.g. '$14.99/mo'
+     */
+    price: string;
     [property: string]: any;
 }
 
@@ -284,12 +795,24 @@ export interface Subsection {
 }
 
 export enum Type {
-    ContentCard = "ContentCard",
+    AdSlot = "AdSlot",
+    BoxscoreTable = "BoxscoreTable",
+    HeroPanel = "HeroPanel",
     ContentRail = "ContentRail",
-    GameCard = "GameCard",
+    ErrorState = "ErrorState",
+    FeaturedGamePanel = "FeaturedGamePanel",
+    FollowingRail = "FollowingRail",
+    Form = "Form",
+    GamePanel = "GamePanel",
+    NbaTvSchedule = "NbaTvSchedule",
     PromoBanner = "PromoBanner",
     Row = "Row",
     ScoreboardHeader = "ScoreboardHeader",
+    SeasonLeadersTable = "SeasonLeadersTable",
+    SectionHeader = "SectionHeader",
     StatLine = "StatLine",
+    SubscribeBanner = "SubscribeBanner",
+    SubscribeHero = "SubscribeHero",
     TabGroup = "TabGroup",
+    VideoCarousel = "VideoCarousel",
 }

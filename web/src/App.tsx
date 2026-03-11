@@ -1,50 +1,66 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import type { Action } from '@sdui/models';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import type { Action, Section } from '@sdui/models';
 import { useSduiScreen } from './hooks/useSduiScreen';
 import { SectionRouter } from './components/SectionRouter';
 import { TopNavigationBar } from './components/TopNavigationBar';
-import { createActionHandler, showToast } from './runtime/ActionHandler';
+import { createActionHandler } from './runtime/ActionHandler';
 
-// Demo game ID - Celtics vs Heat
-const DEMO_GAME_ID = '0042300102';
+// TODO(Rule 2): Bootstrap URI should come from a /sdui/init endpoint.
+//               Hardcoded here only as a temporary prototype bootstrap.
+const BOOTSTRAP_URI = 'nba://for-you';
 
-const GAME_DETAIL_VARIANTS = [
-  { id: 'A', label: 'Default', description: 'All sections, standard order' },
-  { id: 'B', label: 'Reorder', description: 'ContentRail and TabGroup swapped' },
-  { id: 'C', label: 'Minimal', description: 'StatLine and PromoBanner removed' },
-  { id: 'D', label: 'Extra Rail', description: 'Second ContentRail added' },
-] as const;
-
-const SCOREBOARD_VARIANTS = [
-  { id: 'A', label: 'Default', description: 'Standard scoreboard' },
-  { id: 'E', label: 'Promo', description: 'Promo banner at top' },
-  { id: 'F', label: 'Promo + Rail', description: 'Promo banner + content rail (when >2 games)' },
-] as const;
+/**
+ * Convert an nba:// URI to a server endpoint path.
+ *
+ * Pure prefix swap — no special-casing of individual screens (Rule 10).
+ * The server owns all routing semantics.
+ *
+ *   nba://scoreboard        → /sdui/scoreboard
+ *   nba://game/0042300102   → /sdui/game/0042300102
+ *   nba://boxscore/00423... → /sdui/boxscore/0042300102
+ *   nba://demos             → /sdui/demos
+ *   nba://anything/else     → /sdui/anything/else
+ */
+function resolveEndpoint(uri: string): string {
+  const path = uri.replace(/^nba:\/\//, '');
+  return `/sdui/${path}`;
+}
 
 export function App(): React.ReactElement {
   const [variant, setVariant] = useState('A');
-  const [route, setRoute] = useState<{ screenType: 'scoreboard' | 'game-detail'; gameId?: string }>({
-    screenType: 'scoreboard',
-  });
+  const [currentUri, setCurrentUri] = useState(BOOTSTRAP_URI);
 
-  const variants = route.screenType === 'scoreboard' ? SCOREBOARD_VARIANTS : GAME_DETAIL_VARIANTS;
+  // Variants come from the server response — no client-side URI sniffing (Rule 10).
+  // We read screen.variants after the first fetch below.
 
   useEffect(() => {
     setVariant('A');
-  }, [route.screenType]);
+    setScreenState({});
+  }, [currentUri]);
 
-  const { screen, loading, error, refetch } = useSduiScreen({
-    screenType: route.screenType,
-    gameId: route.gameId ?? DEMO_GAME_ID,
-    gameState: 'live',
-    variant,
-  });
+  const endpoint = resolveEndpoint(currentUri);
+  const { screen, loading, error, refetch, setScreen } = useSduiScreen({ endpoint, variant });
+
+  // Read available variants from the server response (empty if not provided).
+  const variants: ReadonlyArray<{ id: string; label: string; description: string }> =
+    (screen as Record<string, unknown> | undefined)?.variants as typeof variants ?? [];
 
   // Screen-level state for TabGroup and other stateful sections
   const [screenState, setScreenState] = useState<Record<string, unknown>>({});
 
-  // Initialize screen state from server response when it arrives
+  // Track whether the last screen mutation was a surgical section update
+  // so we can skip re-seeding state from the (stale) screen.state.
+  const isSectionUpdateRef = useRef(false);
+
+  // Initialize screen state from server response when it arrives.
+  // Skip when the screen reference changed due to a section-level merge
+  // (the original screen.state still has defaults that would overwrite
+  // the user's form selections).
   useEffect(() => {
+    if (isSectionUpdateRef.current) {
+      isSectionUpdateRef.current = false;
+      return;
+    }
     if (screen?.state) {
       setScreenState((prev) => ({ ...prev, ...screen.state }));
     }
@@ -59,24 +75,27 @@ export function App(): React.ReactElement {
     refetch();
   }, [refetch]);
 
+  // Surgical section replacement — merges a single updated section into the
+  // current screen without touching any other section's state or data.
+  const handleSectionUpdate = useCallback((sectionId: string, updatedSection: Section) => {
+    isSectionUpdateRef.current = true;
+    setScreen((prev) => {
+      if (!prev) return prev;
+      const idx = prev.sections.findIndex((s) => s.id === sectionId);
+      if (idx === -1) {
+        // Section not found — append it (server may have added a new section)
+        console.log('[App] Appending new section:', sectionId);
+        return { ...prev, sections: [...prev.sections, updatedSection] };
+      }
+      console.log('[App] Replacing section:', sectionId, 'at index', idx);
+      const next = [...prev.sections];
+      next[idx] = updatedSection;
+      return { ...prev, sections: next };
+    });
+  }, []);
+
   const handleUriNavigate = useCallback((uri: string) => {
-    if (uri.startsWith('nba://game/')) {
-      setRoute({
-        screenType: 'game-detail',
-        gameId: uri.replace('nba://game/', ''),
-      });
-      return;
-    }
-    if (uri === 'nba://scoreboard') {
-      setRoute({ screenType: 'scoreboard' });
-      return;
-    }
-    const name = uri
-      .replace('nba://', '')
-      .replace(/\//g, ' ')
-      .replace(/-/g, ' ')
-      .replace(/^\w/, (c) => c.toUpperCase());
-    showToast(`Navigating to ${name} (not implemented)`);
+    setCurrentUri(uri);
   }, []);
 
   const handleAction = useCallback((action: Action) => {
@@ -88,9 +107,10 @@ export function App(): React.ReactElement {
       state: screenState,
       onStateChange: handleStateChange,
       onRefresh: handleRefresh,
+      onSectionUpdate: handleSectionUpdate,
     });
     handler(action);
-  }, [screenState, handleStateChange, handleRefresh, handleUriNavigate]);
+  }, [screenState, handleStateChange, handleRefresh, handleSectionUpdate, handleUriNavigate]);
 
   // Loading state
   if (loading) {
@@ -130,7 +150,16 @@ export function App(): React.ReactElement {
     <div style={styles.container}>
       {/* Header */}
       <header style={styles.header}>
-        <h1 style={styles.title}>{screen.title || (route.screenType === 'scoreboard' ? "Today's Games" : 'Game Detail')}</h1>
+        {screen.parentUri && (
+          <button
+            style={styles.backButton}
+            onClick={() => handleUriNavigate(screen.parentUri!)}
+            aria-label="Back"
+          >
+            ←
+          </button>
+        )}
+        <h1 style={styles.title}>{screen.title || 'NBA'}</h1>
         <span style={styles.schemaVersion}>Schema v{screen.schemaVersion}</span>
       </header>
 
@@ -140,22 +169,24 @@ export function App(): React.ReactElement {
       />
 
       {/* Variant Selector - proves composability with zero client rendering changes */}
-      <div style={styles.variantBar}>
-        <span style={styles.variantLabel}>Variant:</span>
-        {variants.map((v) => (
-          <button
-            key={v.id}
-            style={{
-              ...styles.variantButton,
-              ...(variant === v.id ? styles.variantButtonActive : {}),
-            }}
-            onClick={() => setVariant(v.id)}
-            title={v.description}
-          >
-            {v.label}
-          </button>
-        ))}
-      </div>
+      {variants.length > 0 && (
+        <div style={styles.variantBar}>
+          <span style={styles.variantLabel}>Variant:</span>
+          {variants.map((v) => (
+            <button
+              key={v.id}
+              style={{
+                ...styles.variantButton,
+                ...(variant === v.id ? styles.variantButtonActive : {}),
+              }}
+              onClick={() => setVariant(v.id)}
+              title={v.description}
+            >
+              {v.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Sections */}
       <main style={styles.main}>
@@ -188,8 +219,9 @@ const styles: Record<string, React.CSSProperties> = {
     minHeight: '100vh',
     display: 'flex',
     flexDirection: 'column',
-    maxWidth: 480,
+    maxWidth: 1200,
     margin: '0 auto',
+    padding: '0 16px',
     backgroundColor: '#0f0f23',
   },
   header: {
@@ -199,6 +231,15 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '16px',
     backgroundColor: '#1a1a2e',
     borderBottom: '1px solid #333',
+  },
+  backButton: {
+    background: 'none',
+    border: 'none',
+    color: '#ffffff',
+    fontSize: 20,
+    cursor: 'pointer',
+    padding: '4px 8px',
+    marginRight: 8,
   },
   title: {
     fontSize: 18,

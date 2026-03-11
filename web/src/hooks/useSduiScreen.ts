@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
+import type React from 'react';
 import type { SduiModels } from '@sdui/models';
 
 interface UseSduiScreenOptions {
-  screenType: 'scoreboard' | 'game-detail';
-  gameId?: string;
-  gameState?: 'pre' | 'live' | 'final';
+  /** Server endpoint path, e.g. "/sdui/scoreboard" or "/sdui/game-detail/0042300102?gameState=live" */
+  endpoint: string;
   variant?: string;
 }
 
@@ -13,6 +13,8 @@ interface UseSduiScreenResult {
   loading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
+  /** Direct setter for surgical section-level updates (e.g. action-triggered refresh). */
+  setScreen: React.Dispatch<React.SetStateAction<SduiModels | null>>;
 }
 
 /**
@@ -20,7 +22,7 @@ interface UseSduiScreenResult {
  * Fetches from the composition service through the proxy.
  */
 export function useSduiScreen(options: UseSduiScreenOptions): UseSduiScreenResult {
-  const { screenType, gameId, gameState = 'live', variant = 'A' } = options;
+  const { endpoint, variant = 'A' } = options;
 
   const [screen, setScreen] = useState<SduiModels | null>(null);
   const [loading, setLoading] = useState(true);
@@ -31,13 +33,15 @@ export function useSduiScreen(options: UseSduiScreenOptions): UseSduiScreenResul
       setLoading(true);
       setError(null);
 
-      const url = screenType === 'scoreboard'
-        ? `/api/sdui/scoreboard?variant=${variant}`
-        : `/api/sdui/game-detail/${gameId ?? ''}?gameState=${gameState}&variant=${variant}`;
+      const separator = endpoint.includes('?') ? '&' : '?';
+      const url = `/api${endpoint}${separator}variant=${variant}`;
       console.log('[SDUI] Fetching:', url);
 
       const response = await fetch(url, {
-        headers: { 'X-Schema-Version': '1.0' },
+        headers: {
+          'X-Schema-Version': '1.0',
+          'X-Platform': 'web',
+        },
       });
 
       if (!response.ok) {
@@ -60,11 +64,11 @@ export function useSduiScreen(options: UseSduiScreenOptions): UseSduiScreenResul
     } finally {
       setLoading(false);
     }
-  }, [screenType, gameId, gameState, variant]);
+  }, [endpoint, variant]);
 
   useEffect(() => {
     fetchScreen();
   }, [fetchScreen]);
 
-  return { screen, loading, error, refetch: fetchScreen };
+  return { screen, loading, error, refetch: fetchScreen, setScreen };
 }

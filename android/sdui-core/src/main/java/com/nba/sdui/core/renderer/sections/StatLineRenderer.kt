@@ -40,6 +40,11 @@ fun StatLineRenderer(
         )
         return
     }
+
+    // Server-driven layout hint: "vertical" stacks name above stat,
+    // "horizontal" (default) renders inline row.
+    val layout = (section.data?.get("layout") as? String) ?: "horizontal"
+    val isVertical = layout == "vertical"
     
     Column(
         modifier = modifier
@@ -58,16 +63,90 @@ fun StatLineRenderer(
         
         // Stat Lines
         data.stats.forEach { stat ->
-            StatLineRow(
-                stat = stat,
-                modifier = Modifier.padding(vertical = 6.dp)
+            if (isVertical) {
+                StatLineRowVertical(
+                    stat = stat,
+                    modifier = Modifier.padding(vertical = 6.dp)
+                )
+            } else {
+                StatLineRowHorizontal(
+                    stat = stat,
+                    modifier = Modifier.padding(vertical = 6.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatLineRowVertical(
+    stat: StatLineData,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+    ) {
+        // Top row: image + player name + team
+        Row(
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Player Image
+            stat.playerImageUrl?.let { imageUrl ->
+                AsyncImage(
+                    model = imageUrl,
+                    contentDescription = stat.playerName,
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape),
+                    contentScale = ContentScale.Crop
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+            }
+
+            Column {
+                Text(
+                    text = stat.playerName,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium
+                )
+                stat.teamTricode?.let { team ->
+                    Text(
+                        text = team,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
+                }
+            }
+        }
+
+        // Bottom row: stat category + stat value, right-aligned
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 4.dp),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = stat.statCategory,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                modifier = Modifier.padding(end = 8.dp)
+            )
+            Text(
+                text = stat.statValue,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
             )
         }
     }
 }
 
 @Composable
-private fun StatLineRow(
+private fun StatLineRowHorizontal(
     stat: StatLineData,
     modifier: Modifier = Modifier
 ) {
@@ -87,7 +166,7 @@ private fun StatLineRow(
             )
             Spacer(modifier = Modifier.width(12.dp))
         }
-        
+
         // Player Name and Team
         Column(modifier = Modifier.weight(1f)) {
             Text(
@@ -103,7 +182,7 @@ private fun StatLineRow(
                 )
             }
         }
-        
+
         // Stat Category
         Text(
             text = stat.statCategory,
@@ -111,7 +190,7 @@ private fun StatLineRow(
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
             modifier = Modifier.padding(horizontal = 8.dp)
         )
-        
+
         // Stat Value
         Text(
             text = stat.statValue,

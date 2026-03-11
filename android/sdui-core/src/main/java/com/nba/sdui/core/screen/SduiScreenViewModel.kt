@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nba.sdui.core.config.SduiScreenConfig
 import com.nba.sdui.core.data.AblyChannelManager
-import com.nba.sdui.core.data.LinescoreUpdate
+import com.nba.sdui.core.data.DataBindingResolver
 import com.nba.sdui.core.data.SduiRepository
 import com.nba.sdui.core.models.SduiScreen
 import com.nba.sdui.core.models.SduiSection
@@ -26,7 +26,12 @@ import kotlinx.coroutines.launch
  *  - Manage screen-level [StateManager] state
  *  - Dispatch / execute actions via [ActionHandler]
  *  - Manage real-time data channels (Ably SSE, per-section polling)
- *  - Apply data bindings from Ably linescore updates
+ *  - Apply server-defined data bindings from real-time messages
+ *
+ * All screen loads go through a single path: [loadFromUri] / [loadFromEndpoint].
+ * There are NO endpoint-specific methods — the server's URL contract is resolved
+ * in [resolveEndpoint] (simple prefix swap) or supplied directly by navigation
+ * payloads.
  *
  * App-level code should either use this ViewModel directly or create
  * a thin subclass/wrapper that maps app-specific config to [SduiScreenConfig].
@@ -37,15 +42,24 @@ open class SduiScreenViewModel(
 
     companion object {
         private const val TAG = "SduiScreenViewModel"
-        private const val MIN_POLL_INTERVAL_MS = 5000L
-        private const val ENDPOINT_GAME_DETAIL = "game-detail"
-        private const val ENDPOINT_SCOREBOARD = "scoreboard"
+
+        /**
+         * Convert nba:// URI to server endpoint path.
+         *
+         * Pure prefix swap — NO special-casing of individual screens.
+         * The server owns all routing semantics.
+         */
+        fun resolveEndpoint(uri: String): String {
+            val path = uri.removePrefix("nba://")
+            return "/sdui/$path"
+        }
     }
 
     // ── Dependencies (all from sdui-core) ────────────────────────────
     protected val repository = SduiRepository(config.baseUrl)
     protected val stateManager = StateManager()
     protected val actionHandler = ActionHandler()
+    private val dataBindingResolver = DataBindingResolver()
 
     // Ably (only initialised when sse is required)
     private var ablyChannelManager: AblyChannelManager? = null
@@ -65,30 +79,30 @@ open class SduiScreenViewModel(
 
     // ── Internal bookkeeping ─────────────────────────────────────────
     private var currentScreen: SduiScreen? = null
-    private var currentScreenId: String? = null
-    private var currentEndpoint: String = ENDPOINT_GAME_DETAIL
+    private var currentEndpoint: String? = null   // resolved server path — used for refresh / polling
     private val pollingJobs = mutableMapOf<String, Job>()
 
     init {
-        Log.i(TAG, "Initialized: screenId=${config.screenId}, ably=${config.enableAbly}, polling=${config.enablePolling}")
+        Log.d(TAG, "ViewModel INIT: screenId=${config.screenId}, baseUrl=${config.baseUrl}")
     }
 
     // ── Load / Refresh ───────────────────────────────────────────────
 
     /**
-     * Fetch (or re-fetch) the SDUI screen.
-     *
-     * @param screenId  The screen identifier (e.g. gameId).
-     * @param sectionId Optional — when non-null, skip the full-screen loading indicator.
-     * @param gameState Game-state hint sent as a query param.
+     * Load a screen from an nba:// URI.
+     * This is the primary entry point for all screen loads.
      */
-    fun loadScreen(
-        screenId: String,
-        sectionId: String? = null,
-        gameState: String = config.gameState
-    ) {
-        currentEndpoint = ENDPOINT_GAME_DETAIL
-        currentScreenId = screenId
+    fun loadFromUri(uri: String, sectionId: String? = null) {
+        val endpoint = resolveEndpoint(uri)
+        loadFromEndpoint(endpoint, sectionId)
+    }
+
+    /**
+     * Load a screen from a pre-resolved server endpoint.
+     * The endpoint already includes path and query parameters.
+     */
+    fun loadFromEndpoint(endpoint: String, sectionId: String? = null) {
+        currentEndpoint = endpoint
 
         viewModelScope.launch {
             if (sectionId == null) {
@@ -96,80 +110,68 @@ open class SduiScreenViewModel(
             }
 
             try {
-                Log.d(TAG, "Loading screen: screenId=$screenId, gameState=$gameState, variant=${config.variant}")
-
-                val screen = repository.getGameDetail(
-                    gameId = screenId,
-                    gameState = gameState,
-                    variant = config.variant
-                )
-                currentScreen = screen
-
-                // Seed state from response defaults
-                screen.state?.forEach { (key, value) ->
-                    stateManager.setState(key, value)
-                }
-
-                Log.d(TAG, "Screen loaded: traceId=${screen.traceId}, sections=${screen.sections.size}")
-                _uiState.value = SduiScreenUiState.Success(screen)
-
-                // Start data channels
-                if (config.enablePolling) setupPolling(screen)
-                if (config.enableAbly) setupAbly(screen)
-
+                Log.d(TAG, "Loading endpoint: $endpoint")
+                val screen = repository.fetchScreen(endpoint, config.variant)
+                applyScreen(screen)
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to load screen", e)
+                Log.e(TAG, "Failed to load: $endpoint", e)
                 _uiState.value = SduiScreenUiState.Error(e.message ?: "Unknown error")
             }
         }
     }
 
-    fun loadScoreboard(sectionId: String? = null) {
-        currentEndpoint = ENDPOINT_SCOREBOARD
-        currentScreenId = "scoreboard"
-
+    /**
+     * Surgical section merge — fetches a refresh endpoint and merges the
+     * returned sections into the current screen, preserving sections that
+     * are not in the response (e.g. the form). State values echoed from
+     * the server are applied to keep form selections consistent.
+     */
+    fun refreshSections(endpoint: String) {
         viewModelScope.launch {
-            if (sectionId == null) {
-                _uiState.value = SduiScreenUiState.Loading
-            }
-
             try {
-                Log.d(TAG, "Loading scoreboard: variant=${config.variant}")
-                val screen = repository.getScoreboard(
-                    variant = config.variant
-                )
-                currentScreen = screen
+                Log.d(TAG, "Surgical section refresh: $endpoint")
+                val refreshScreen = repository.fetchScreen(endpoint, config.variant)
 
-                screen.state?.forEach { (key, value) ->
+                // Merge echoed state from the response
+                refreshScreen.state?.forEach { (key, value) ->
                     stateManager.setState(key, value)
                 }
 
-                Log.d(TAG, "Scoreboard loaded: traceId=${screen.traceId}, sections=${screen.sections.size}")
-                _uiState.value = SduiScreenUiState.Success(screen)
+                val current = currentScreen ?: run {
+                    // No current screen — fall back to full load
+                    applyScreen(refreshScreen)
+                    return@launch
+                }
 
-                if (config.enablePolling) setupPolling(screen)
-                if (config.enableAbly) setupAbly(screen)
+                // Build merged section list: keep existing, replace or append from response
+                val mergedSections = current.sections.toMutableList()
+                for (newSection in refreshScreen.sections) {
+                    val idx = mergedSections.indexOfFirst { it.id == newSection.id }
+                    if (idx >= 0) {
+                        mergedSections[idx] = newSection
+                    } else {
+                        mergedSections.add(newSection)
+                    }
+                }
+
+                val mergedScreen = current.copy(sections = mergedSections)
+                currentScreen = mergedScreen
+                _uiState.value = SduiScreenUiState.Success(mergedScreen)
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to load scoreboard", e)
-                _uiState.value = SduiScreenUiState.Error(e.message ?: "Unknown error")
+                Log.e(TAG, "Surgical section refresh failed: $endpoint", e)
+                // Don't replace screen with error — keep current screen intact
             }
         }
     }
 
-    /** Pull-to-refresh. */
+    /** Pull-to-refresh — re-fetches from the stored endpoint. */
     fun refresh() {
-        val id = currentScreenId ?: return
+        val endpoint = currentEndpoint ?: return
         viewModelScope.launch {
             _isRefreshing.value = true
             try {
-                val screen = if (currentEndpoint == ENDPOINT_SCOREBOARD) {
-                    repository.getScoreboard(config.variant)
-                } else {
-                    repository.getGameDetail(id, "live", config.variant)
-                }
-                currentScreen = screen
-                screen.state?.forEach { (k, v) -> stateManager.setState(k, v) }
-                _uiState.value = SduiScreenUiState.Success(screen)
+                val screen = repository.fetchScreen(endpoint, config.variant)
+                applyScreen(screen)
             } catch (e: Exception) {
                 Log.e(TAG, "Refresh failed", e)
             } finally {
@@ -193,17 +195,37 @@ open class SduiScreenViewModel(
         stateManager.setState(key, value)
     }
 
+    // ── Internal helpers ─────────────────────────────────────────────
+
+    /**
+     * Apply a fetched screen: seed state, emit success, start data channels.
+     */
+    private fun applyScreen(screen: SduiScreen) {
+        currentScreen = screen
+        screen.state?.forEach { (key, value) ->
+            stateManager.setState(key, value)
+        }
+        Log.d(TAG, "Screen loaded: traceId=${screen.traceId}, sections=${screen.sections.size}")
+        _uiState.value = SduiScreenUiState.Success(screen)
+
+        // Defer data-channel bootstrap so the initial render is never blocked.
+        // Polling and Ably are server-driven — always inspect refreshPolicy (Rule 9).
+        viewModelScope.launch {
+            setupPolling(screen)
+            setupAbly(screen)
+        }
+    }
+
     // ── Polling ──────────────────────────────────────────────────────
 
     private fun setupPolling(screen: SduiScreen) {
         stopAllPolling()
-        val id = currentScreenId ?: return
 
         screen.sections.forEach { section ->
             val policy = section.refreshPolicy
             val policyIntervalMs = policy?.intervalMs
             if (policy?.type == "poll" && policyIntervalMs != null) {
-                val intervalMs = maxOf(policyIntervalMs.toLong(), MIN_POLL_INTERVAL_MS)
+                val intervalMs = policyIntervalMs.toLong()
                 val pollUrl = policy.url
                 val dataPath = policy.dataPath
 
@@ -221,13 +243,9 @@ open class SduiScreenViewModel(
                                 val data = repository.fetchRawJson(pollUrl, dataPath)
                                 updateSectionData(section.id, data)
                             } else {
-                                val updated = if (currentEndpoint == ENDPOINT_SCOREBOARD) {
-                                    repository.getScoreboard(config.variant)
-                                } else {
-                                    repository.getGameDetail(id, "live", config.variant)
-                                }
-                                currentScreen = updated
-                                _uiState.value = SduiScreenUiState.Success(updated)
+                                val endpoint = currentEndpoint ?: continue
+                                val updated = repository.fetchScreen(endpoint, config.variant)
+                                applyScreen(updated)
                             }
                         } catch (e: Exception) {
                             Log.e(TAG, "Poll failed for section: ${section.id}", e)
@@ -256,6 +274,12 @@ open class SduiScreenViewModel(
     // ── Ably ─────────────────────────────────────────────────────────
 
     private fun setupAbly(screen: SduiScreen) {
+        // Only initialise Ably when at least one section declares an SSE policy.
+        val sseSections = screen.sections.filter { s ->
+            s.refreshPolicy?.type == "sse" && !s.refreshPolicy?.channel.isNullOrBlank()
+        }
+        if (sseSections.isEmpty()) return
+
         viewModelScope.launch {
             try {
                 if (ablyChannelManager == null) {
@@ -263,12 +287,8 @@ open class SduiScreenViewModel(
                     ablyChannelManager?.initialize()
                     Log.i(TAG, "Ably initialised")
                 }
-                screen.sections.forEach { section ->
-                    val policy = section.refreshPolicy
-                    val channel = policy?.channel
-                    if (policy?.type == "sse" && !channel.isNullOrBlank()) {
-                        subscribeToChannel(section, channel)
-                    }
+                sseSections.forEach { section ->
+                    subscribeToChannel(section, section.refreshPolicy!!.channel!!)
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Ably setup failed", e)
@@ -276,14 +296,29 @@ open class SduiScreenViewModel(
         }
     }
 
+    /**
+     * Subscribe to an Ably channel and apply server-defined data bindings
+     * from opaque incoming messages.  No field-level knowledge of the
+     * message content exists here — DataBindingResolver does the mapping.
+     */
     private fun subscribeToChannel(section: SduiSection, channel: String) {
         ablyJobs[section.id]?.cancel()
         Log.i(TAG, "Subscribe Ably: channel='$channel' section='${section.id}'")
         ablyJobs[section.id] = viewModelScope.launch {
             try {
-                ablyChannelManager?.subscribeToChannel(channel)?.collect { update ->
-                    Log.d(TAG, "Ably update for ${section.id}: home=${update.homeTeamScore} away=${update.awayTeamScore}")
-                    applyLinescoreUpdate(section.id, update)
+                ablyChannelManager?.subscribeToChannel(channel)?.collect { message ->
+                    Log.d(TAG, "Ably update for ${section.id}: keys=${message.keys}")
+                    val dataBinding = section.dataBinding
+                    if (dataBinding != null) {
+                        val currentData = currentScreen?.sections
+                            ?.find { it.id == section.id }?.data ?: return@collect
+                        val updatedData = dataBindingResolver.applyBindings(
+                            currentData, message, dataBinding, currentScreen?.traceId
+                        )
+                        updateSectionInScreen(section.id, updatedData)
+                    } else {
+                        Log.w(TAG, "No dataBinding config for section ${section.id} — message dropped")
+                    }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Ably error for ${section.id}", e)
@@ -291,33 +326,18 @@ open class SduiScreenViewModel(
         }
     }
 
-    @Suppress("UNCHECKED_CAST")
-    private fun applyLinescoreUpdate(sectionId: String, update: LinescoreUpdate) {
+    /**
+     * Replace section data in the current screen and emit a new Success state.
+     */
+    private fun updateSectionInScreen(sectionId: String, updatedData: Map<String, Any?>) {
         val screen = currentScreen ?: return
-        val updatedSections = screen.sections.map { section ->
-            if (section.id == sectionId && section.type == "ScoreboardHeader") {
-                val data = section.data?.toMutableMap() ?: mutableMapOf()
-
-                val home = (data["homeTeam"] as? Map<String, Any?>)?.toMutableMap() ?: mutableMapOf()
-                home["score"] = update.homeTeamScore
-                data["homeTeam"] = home
-
-                val away = (data["awayTeam"] as? Map<String, Any?>)?.toMutableMap() ?: mutableMapOf()
-                away["score"] = update.awayTeamScore
-                data["awayTeam"] = away
-
-                data["gameClock"] = update.clock
-                data["period"] = update.period
-                data["gameStatus"] = update.gameStatus
-                data["gameStatusText"] = update.gameStatusText
-
-                section.copy(data = data)
-            } else section
+        val updatedSections = screen.sections.map { s ->
+            if (s.id == sectionId) s.copy(data = updatedData) else s
         }
         val updated = screen.copy(sections = updatedSections)
         currentScreen = updated
         _uiState.value = SduiScreenUiState.Success(updated)
-        Log.d(TAG, "Linescore applied to $sectionId")
+        Log.d(TAG, "Data binding applied to $sectionId")
     }
 
     private fun stopAbly() {

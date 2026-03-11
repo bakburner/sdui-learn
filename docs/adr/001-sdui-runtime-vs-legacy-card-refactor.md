@@ -4,130 +4,142 @@
 - Date: 2026-02-20
 - Decision owners: 
 
+## Revision History
+
+| Date | Summary |
+|---|---|
+| 2026-02-20 | Initial draft — decision, context, options, and recommendation. |
+| 2026-02-27 | Trimmed evidence to summary table with appendix. Removed "What Requires an App Update" and "Organizational Drivers" sections. Merged defect risk into Option A cons. Added library-vs-inline comparison for new section types. |
+
 ## Decision
 
 Build a new SDUI rendering runtime/library and migrate incrementally via adapters, rather than refactoring existing legacy `module/card` client pipelines in place.
 
 ## Context
 
-CoreAPI `module/card` structures and proposed SDUI `screen/section` are similar in shape, but current clients are tightly coupled to platform-specific card contracts and renderer branching.
+CoreAPI `module/card` and proposed SDUI `screen/section` share a similar containment hierarchy. The structural vocabulary is intentionally similar to reduce migration risk. The difference is not JSON shape — it is replacing platform-specific behavioral interpretation with a shared execution contract.
 
-The key decision is whether to:
+| Aspect | Feed API (`module/card`) | SDUI (`screen/section`) |
+|--------|--------------------------|-------------------------|
+| Containment hierarchy | Feed → Module → Card | Screen → Section → Component |
+| Same structural idea? | **Yes** | **Yes** |
+| Behavioral contract | Absent — each client interprets | Explicit (`actions`, `refreshPolicy`, `dataBindings`, `state`) |
+| Cross-platform governance | None — drift detected at integration | Schema + codegen + contract tests |
 
-- Option A: Refactor existing client pipelines in place
-- Option B: Introduce a new SDUI runtime and migrate by surface
+**Key question:** refactor existing pipelines in place (Option A) or introduce a new runtime and migrate by surface (Option B)?
 
-### Not New Hierarchy, New Runtime Contract
+## Existing Feed API Capabilities
 
-This proposal is intentionally similar in structural vocabulary to reduce migration risk, but materially different in runtime semantics and governance.
+The feed API already handles significant server-side control. Any honest evaluation must acknowledge what is already deployable without an app update today:
 
-- Similar: hierarchical content containers (`module/card` and `screen/section`).
-- Different: SDUI standardizes behavior semantics (refresh, data binding, action/state handling, and versioned contract governance) that are currently interpreted differently per platform.
-- Decision implication: the main change is not JSON shape, it is replacing platform-specific interpretation with a shared execution contract.
+| Capability | Already server-side? | Mechanism |
+|------------|---------------------|-----------|
+| Add / remove / reorder modules | **Yes** | Feed composition in CoreAPI |
+| Swap a module by placement | **Yes** | Playmaker (`placementId`) |
+| Change data payloads (scores, stats, copy) | **Yes** | CoreAPI data layer |
+| Change navigation destinations | **Yes** | `resourceLocator` (`resourceUrl` / `resourceId` / `resourceType`) |
+| Ad slot positioning | **Yes** | `adPlacement` modules in feed response |
+| Tab structure and ordering | **Yes** | Tab config endpoint |
 
-## Evidence: High-Signal Inconsistency and Tight Coupling
+### What the feed API does *not* govern today
 
-### 1) Same card type, different interface contracts by platform
+| Gap | Current state | Impact |
+|-----|---------------|--------|
+| Interaction behavior (tap, swipe, long-press) | Hard-coded per `cardType` in each client | Behavior change = app update on every platform |
+| Refresh / live-data policy | Each client implements its own polling/socket logic | Inconsistent update cadence across platforms |
+| Analytics event contract | Client-defined, diverges silently | Unreliable cross-platform metrics |
+| Field-level data binding | Clients extract fields by convention, not contract | Silent breakage when payload shape changes |
+| Screen state + mutations | No server concept; clients manage locally | Identical state logic reimplemented per platform |
+| Cross-platform behavior governance | None | Same card behaves differently on each platform |
 
-- `dynamicCTA`:
-  - Apple decodes `dynamicCTA` through `CardType.cardData(...)` in `apple/Shared/NBAFeedDomain/Sources/NBAFeedDomain/Base.swift`.
-  - Android uses a dedicated `DynamicCtaPresenter` and card state model in `android/app/src/main/java/com/nba/nextgen/feed/cards/dynamiccta/DynamicCtaPresenter.kt`.
-  - cweb `DynamicCard` union omits `dynamicCTA` in `cweb/src/types/dynamicCards/index.ts`.
-- `leaguePassCard`:
-  - Android includes entitlement checks, SKU/product lookup, A/B variant rendering, and purchase flow in `android/app/src/main/java/com/nba/nextgen/feed/cards/leaguepass/LeaguePassCardView.kt`.
-  - Apple has separate league pass cell/action wiring in `apple/NBA-ios/Features/Feed/FeedViewController.swift` and `apple/NBA-ios/Features/Feed/Cards/LeaguePassCard/LeaguePassCardView.swift`.
-  - Web uses a page-specific league pass preview path in `web/src/views/games/GamesView.js` rather than a shared card semantic runtime.
+## Evidence: Platform Inconsistency and Coupling
 
-### 2) Type-switch rendering architecture across clients
+The same card types produce different behavior on each platform because there is no shared behavioral contract. Representative examples:
 
-- Android uses a `cardType -> FeedItem subtype` registry in `android/libs/base/src/main/java/com/nba/base/json/JsonWrapper.kt`.
-- Apple uses `cardType -> model` switch logic in `apple/Shared/NBAFeedDomain/Sources/NBAFeedDomain/Base.swift`.
-- cweb uses both `switch(module.moduleType)` and `switch(card.cardType)` in `cweb/src/components/DynamicModules/moduleFactory.tsx`.
-- Web uses card-type-specialized branches in dynamic carousel rendering in `web/src/components/DynamicContentCarousel/DynamicContentCarousel/DynamicContentCarousel.js`.
+| Platform | Example | Impact |
+|----------|---------|--------|
+| Apple | `leaguePassCard` — separate cell/action wiring in `FeedViewController` + `LeaguePassCardView` | Entitlement and purchase flow logic reimplemented independently |
+| Android | `leaguePassCard` — entitlement, SKU, A/B variant, purchase flow all in `LeaguePassCardView.kt` | Same card, different behavioral assumptions than Apple |
+| cweb | `dynamicCTA` — `DynamicCard` union **omits** it entirely | Card type silently missing on one platform |
+| Web | Layout/ad logic derived from first-card type in module (`DynamicContentCarousel.js`) | Rendering path coupled to card identity, not contract |
 
-Representative patterns:
+Every client independently maps card/module identity to rendering logic via type-switch architectures (`JsonWrapper.kt`, `Base.swift`, `moduleFactory.tsx`, `DynamicContentCarousel.js`). Clients derive behavior from card identity instead of a semantic contract — for example, `UpsellCtaCardData` is effectively empty server-side yet each platform implements distinct CTA behavior independently.
 
-- `switch (card.cardType) { ... }`
-- `switch (module.moduleType) { ... }`
-- `if (cardType === 'nbaTvCollectionCard') { ... }`
+See [Appendix: Evidence Details](#appendix-evidence-details) for full per-platform breakdowns.
 
-### 3) Server contract gaps force client assumptions
-
-- `UpsellCtaCardData` is effectively empty in server domain modeling (`CoreAPI/src/apps/server/NBA.NextGen.CorePlatform.Domain/Feeds/CardData/UpsellCtaCardData.cs`), while clients still implement distinct CTA behavior and UI assumptions.
-- Multiple clients derive behavior from card identity instead of semantic contract, e.g. filtering for `cardType === 'game'` in `web/src/utils/map-game-cards-to-game-objects.js` and transform logic in `cweb/src/api/core/events/events.ts`.
-
-### 4) Platform-specific API contract branching exists today
-
-- Web defaults `platform: 'web'` in `web/src/api/core-api.js`.
-- cweb defaults `platform = 'ced'` in game details requests in `cweb/src/api/core/events/events.ts`.
-- Web watch pages apply layout and ad logic based on first-card type in a module (e.g., collection-card special handling) in `web/src/views/watch/featured/WatchFeaturedView.js` and `web/src/components/DynamicContentCarousel/DynamicContentCarousel/DynamicContentCarousel.js`.
-
-This already creates contract divergence and test matrix expansion.
-
-## Organizational Drivers and Governance
-
-- Cross-platform visibility gap: most contributors optimize for a single client (Android, iOS/tvOS, web, or cweb), so interface drift for "the same card" is easy to miss until late integration.
-- Governance opportunity: move to a contract-first model where semantic changes are reviewed against a shared SDUI schema and cross-platform conformance checks.
-- Contract stabilization: define one versioned semantic contract for initialization/update behavior instead of platform-specific interpretation of card payloads.
-- Outcome: improved consistency, clearer ownership of breaking vs non-breaking changes, and fewer regressions caused by silent cross-platform divergence.
+**Note on new section types:** Both options use semantic section types, so introducing a wholly new visual component requires a renderer update and app release regardless of approach. The difference is where that renderer code lives and how it is maintained.
 
 ## Options
 
 ### Option A: Refactor existing card pipelines in place
 
-Pros:
+| | |
+|---|---|
+| **Pros** | Lower immediate upfront investment; leverages existing runtime paths |
+| **Cons** | Preserves type-switch coupling; requires distributed edits per behavior change; higher regression risk; continues cross-platform inconsistency. Specific risks: cross-platform contract mismatch (e.g., `dynamicCTA` decoded differently on each platform — high severity), behavior-heavy card divergence (e.g., `leaguePassCard` entitlement logic — high), coupling amplification from synced changes across decoders/unions/mappers (medium). |
 
-- Lower immediate upfront platform investment.
-- Leverages existing runtime paths and components.
-
-Cons:
-
-- Preserves card-type switch architecture and coupling.
-- Requires many distributed edits per new semantic behavior.
-- Higher regression risk across existing surfaces.
-- Continues interface inconsistency for "same card" across platforms.
-
-#### Defect Risk Profile (Option A)
-
-- Cross-platform contract mismatch for the same card:
-  - `dynamicCTA` is decoded/handled differently across Apple, Android, and cweb (`Base.swift`, `DynamicCtaPresenter.kt`, cweb dynamic card union).
-- Behavior-heavy card divergence:
-  - `leaguePassCard` includes entitlement, purchase, and variant logic in different platform-specific implementations (Android vs Apple vs Web page-specific flow).
-- Platform request contract branching:
-  - `platform: 'web'` vs `platform = 'ced'` defaults can return different payload behavior and increase regression/test matrix complexity.
-- Coupling amplification:
-  - Any "align behavior across platforms" refactor requires synchronized changes in decoders, unions/enums, mappers, and render switch points, increasing defect probability.
+New section type renderers are added inline to each platform's existing codebase — mixed with legacy type-switch paths, no shared structure or test patterns across platforms, and no guarantee that the same section type is implemented consistently.
 
 ### Option B: New SDUI runtime + incremental adapters (recommended)
 
-Pros:
+| | |
+|---|---|
+| **Pros** | Centralized behavior semantics; clear contract/versioning; isolated migration risk per surface; cross-platform consistency |
+| **Cons** | Upfront runtime build cost; temporary dual-stack during migration; requires schema governance; adds a library dependency with its own release cycle |
 
-- Centralized semantics (`refreshPolicy`, `dataBindings`, actions, state).
-- Better cohesion and lower coupling.
-- Clear contract/versioning path.
-- Isolated migration risk and rollback per surface.
-- Better long-term cross-platform consistency.
-
-Cons:
-
-- Upfront runtime build cost.
-- Temporary dual-stack complexity during migration.
-- Requires schema governance and conformance testing.
+New section type renderers are added to a dedicated SDUI library per platform — isolated from legacy code, following a consistent pattern (router registration + typed model mapping), and testable against shared contract fixtures. The library boundary enforces that renderers conform to the schema contract rather than ad-hoc platform conventions. The tradeoff is an additional dependency to version and release.
 
 ## Recommendation
 
-Adopt Option B: create a new SDUI runtime/library and migrate incrementally.
+Adopt **Option B**: new SDUI runtime/library with incremental migration.
 
-Suggested rollout:
-
-1. Keep CoreAPI as initial source; add an adapter/composer to emit SDUI `screen/section`, or leverage a new endpoint if needed to satisfy the data and business logic required to initialize and update views.
-2. Migrate low-risk presentational surfaces first (content rails/cards, basic CTA).
-3. Migrate complex semantic surfaces next (`dynamicCTA`, `upsellCTA`, `leaguePassCard`, event/game live states) with explicit SDUI primitive extensions.
-4. Retire legacy card-type rendering paths per surface after stabilization.
+| Phase | Scope |
+|-------|-------|
+| 1 | Adapter/composer layer to emit SDUI `screen/section` from CoreAPI source |
+| 2 | Migrate low-risk presentational surfaces (content rails, basic CTA) |
+| 3 | Migrate complex semantic surfaces (`dynamicCTA`, `leaguePassCard`, live game states) |
+| 4 | Retire legacy card-type rendering paths per surface after stabilization |
 
 ## Consequences
 
-- Short term: dual-stack operational overhead.
-- Medium term: fewer platform-specific card branches and safer feature evolution.
-- Long term: more consistent interface contracts across Android, iOS/tvOS, web, and cweb.
+| Timeframe | Outcome |
+|-----------|---------|
+| Short term | Dual-stack operational overhead |
+| Medium term | Fewer platform-specific branches; safer feature evolution |
+| Long term | Consistent behavioral contracts across Android, iOS/tvOS, web, and cweb |
+
+---
+
+## Appendix: Evidence Details
+
+### Same card type, different behavior per platform
+
+| Card type | Apple | Android | Web / cweb |
+|-----------|-------|---------|------------|
+| `dynamicCTA` | `CardType.cardData(...)` in `Base.swift` | Dedicated `DynamicCtaPresenter` + card state model | cweb `DynamicCard` union **omits** it entirely |
+| `leaguePassCard` | Separate cell/action wiring in `FeedViewController` + `LeaguePassCardView` | Entitlement, SKU, A/B variant, purchase flow in `LeaguePassCardView.kt` | Page-specific preview path in `GamesView.js` |
+
+### Type-switch rendering architecture
+
+Every client independently maps card/module identity to rendering logic:
+
+| Platform | Pattern | Location |
+|----------|---------|----------|
+| Android | `cardType` → `FeedItem` subtype registry | `JsonWrapper.kt` |
+| Apple | `cardType` → model switch | `Base.swift` |
+| cweb | `switch(moduleType)` + `switch(cardType)` | `moduleFactory.tsx` |
+| Web | Card-type-specialized carousel branches | `DynamicContentCarousel.js` |
+
+### Server contract gaps force client assumptions
+
+- `UpsellCtaCardData` is effectively empty server-side; clients still implement distinct CTA behavior and UI assumptions independently.
+- Clients derive behavior from card identity (e.g., `cardType === 'game'`) instead of a semantic contract.
+
+### Platform-specific API contract branching
+
+| Platform | Default | Effect |
+|----------|---------|--------|
+| Web | `platform: 'web'` | Different payload behavior |
+| cweb | `platform: 'ced'` | Different payload behavior |
+| Web watch | Layout/ad logic based on first-card type in module | Platform-specific rendering paths |
 

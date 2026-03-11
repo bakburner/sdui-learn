@@ -13,5 +13,6 @@
     "files.associations": {
         "*.gradle.kts": "kotlin"
     },
-    "java.project.importOnFirstTimeStartup": "automatic"
+    "java.project.importOnFirstTimeStartup": "automatic",
+    "makefile.configureOnOpen": false
 }

@@ -24,18 +24,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.nba.sdui.core.models.SduiSection
-import com.nba.sdui.core.renderer.adapters.GameCardVisualState
-import com.nba.sdui.core.renderer.adapters.mapGameCard
+import com.nba.sdui.core.renderer.adapters.GamePanelVisualState
+import com.nba.sdui.core.renderer.adapters.mapGamePanel
 import com.nba.sdui.core.renderer.interactions.SectionInteractions
 import com.nba.sdui.core.state.SduiAction
 
 @Composable
-fun GameCardRenderer(
+fun GamePanelRenderer(
     section: SduiSection,
     onAction: (SduiAction) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val model = mapGameCard(section) ?: return
+    val model = mapGamePanel(section) ?: return
     val primaryAction = SectionInteractions.primaryAction(section)
 
     Card(
@@ -63,20 +63,38 @@ fun GameCardRenderer(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                     }
-                    Text(
-                        text = model.awayTricode,
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Column {
+                        Text(
+                            text = model.awayTricode,
+                            color = Color.White,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        model.awayRecord?.let { record ->
+                            Text(
+                                text = record,
+                                color = Color(0xFF8892A4),
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
+                    }
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = model.homeTricode,
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(
+                            text = model.homeTricode,
+                            color = Color.White,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        model.homeRecord?.let { record ->
+                            Text(
+                                text = record,
+                                color = Color(0xFF8892A4),
+                                style = MaterialTheme.typography.labelSmall
+                            )
+                        }
+                    }
                     model.homeLogoUrl?.let { url ->
                         Spacer(modifier = Modifier.width(6.dp))
                         AsyncImage(
@@ -92,7 +110,7 @@ fun GameCardRenderer(
             Spacer(modifier = Modifier.height(8.dp))
 
             when (model.visualState) {
-                GameCardVisualState.PRE -> {
+                GamePanelVisualState.PRE -> {
                     Text(
                         text = model.statusText,
                         color = Color(0xFFB4C0D3),
@@ -106,7 +124,7 @@ fun GameCardRenderer(
                         )
                     }
                 }
-                GameCardVisualState.LIVE -> {
+                GamePanelVisualState.LIVE -> {
                     ScoreRow(
                         homeTricode = model.homeTricode,
                         homeScore = model.homeScore,
@@ -146,6 +164,14 @@ fun GameCardRenderer(
                     text = line,
                     color = Color.White,
                     style = MaterialTheme.typography.bodySmall
+                )
+            }
+            model.broadcaster?.let { broadcaster ->
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = broadcaster,
+                    color = Color(0xFF8892A4),
+                    style = MaterialTheme.typography.labelSmall
                 )
             }
         }

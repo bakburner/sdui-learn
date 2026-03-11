@@ -3,11 +3,13 @@ package com.nba.sdui.core.renderer.sections
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -16,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.nba.sdui.core.models.SduiSection
+import com.nba.sdui.core.renderer.SduiImageDefaults
 import com.nba.sdui.core.renderer.adapters.mapScoreboardHeader
 import com.nba.sdui.core.renderer.interactions.SectionInteractions
 import com.nba.sdui.core.state.SduiAction
@@ -52,9 +55,11 @@ fun ScoreboardHeaderRenderer(
     Box(
         modifier = modifier
             .fillMaxWidth()
+            .padding(horizontal = 8.dp)
+            .clip(RoundedCornerShape(12.dp))
             .background(MaterialTheme.colorScheme.primary)
             .clickable(enabled = primaryAction != null) { primaryAction?.let(onAction) }
-            .padding(16.dp)
+            .padding(horizontal = 16.dp, vertical = 24.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -106,9 +111,9 @@ private fun TeamScoreColumn(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier.width(100.dp)
     ) {
-        // Team Logo
+        // Team Logo — URL must come from server; fall back to logoman (Rule 5)
         AsyncImage(
-            model = team.logoUrl ?: "https://cdn.nba.com/logos/nba/${team.teamId}/global/L/logo.svg",
+            model = team.logoUrl ?: SduiImageDefaults.LOGOMAN_URL,
             contentDescription = "${team.teamName} logo",
             modifier = Modifier.size(60.dp),
             contentScale = ContentScale.Fit

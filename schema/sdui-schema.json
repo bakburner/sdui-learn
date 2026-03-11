@@ -35,15 +35,64 @@
     },
     "ActionTrigger": {
       "type": "string",
-      "enum": ["onTap", "onLongPress", "onVisible", "onSwipe"]
+      "enum": ["onTap", "onLongPress", "onVisible", "onSwipe", "onFocus", "onBlur"]
     },
     "ActionType": {
       "type": "string",
-      "enum": ["navigate", "analytics", "mutate", "refresh", "dismiss"]
+      "enum": ["navigate", "analytics", "mutate", "refresh", "dismiss", "toast"]
     },
     "RefreshType": {
       "type": "string",
       "enum": ["static", "poll", "sse"]
+    },
+    "NavigationPresentation": {
+      "type": "string",
+      "enum": ["push", "modal", "fullscreen", "replace", "external"]
+    },
+    "ModalHeight": {
+      "type": "string",
+      "enum": ["compact", "half", "full"]
+    },
+    "MutateOperation": {
+      "type": "string",
+      "enum": ["set", "toggle", "increment", "append"]
+    },
+    "ImpressionDedup": {
+      "type": "string",
+      "enum": ["none", "once-per-screen", "once-per-session", "once-per-interval"]
+    },
+    "ImpressionThreshold": {
+      "type": "object",
+      "properties": {
+        "visibility": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.5,
+          "description": "Fraction of section area that must be visible (0.5 = 50%)"
+        },
+        "dwellMs": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 1000,
+          "description": "Milliseconds section must remain visible before impression fires"
+        }
+      }
+    },
+    "ImpressionPolicy": {
+      "type": "object",
+      "description": "Impression tracking policy for analytics actions with onVisible trigger",
+      "properties": {
+        "dedup": {
+          "$ref": "#/definitions/ImpressionDedup",
+          "default": "once-per-screen"
+        },
+        "threshold": { "$ref": "#/definitions/ImpressionThreshold" },
+        "intervalMs": {
+          "type": "integer",
+          "description": "Reset interval for once-per-interval strategy (milliseconds)"
+        }
+      }
     },
     "Action": {
       "type": "object",
@@ -53,31 +102,65 @@
         "type": { "$ref": "#/definitions/ActionType" },
         "targetUri": {
           "type": "string",
-          "description": "For navigate actions: deeplink URI"
+          "description": "For navigate actions: native deeplink URI"
         },
-        "fallbackUrl": {
+        "webUrl": {
           "type": "string",
-          "description": "For navigate actions: web fallback if deeplink fails"
+          "description": "For navigate actions: web-equivalent URL (first-class, not a fallback)"
         },
-        "eventName": {
+        "presentation": {
+          "$ref": "#/definitions/NavigationPresentation",
+          "description": "For navigate actions: how the destination is presented"
+        },
+        "modalHeight": {
+          "$ref": "#/definitions/ModalHeight",
+          "description": "For navigate actions with modal presentation: sheet height"
+        },
+        "event": {
           "type": "string",
           "description": "For analytics actions: event name"
         },
-        "eventParams": {
+        "params": {
           "type": "object",
           "description": "For analytics actions: event parameters",
           "additionalProperties": true
         },
-        "stateKey": {
-          "type": "string",
-          "description": "For mutate actions: state key to update"
+        "destinations": {
+          "type": "array",
+          "description": "For analytics actions: where to send the beacon",
+          "items": {
+            "type": "string",
+            "enum": ["adobe", "firebase", "internal", "all"]
+          },
+          "default": ["all"]
         },
-        "stateValue": {
-          "description": "For mutate actions: new value for the state key"
+        "impression": {
+          "$ref": "#/definitions/ImpressionPolicy",
+          "description": "For analytics actions with onVisible trigger: impression tracking policy"
         },
-        "sectionId": {
+        "target": {
           "type": "string",
-          "description": "For refresh actions: specific section to refresh (null = full screen)"
+          "description": "For mutate actions: state key to update. For dismiss actions: what to dismiss (modal/overlay/screen). For refresh actions: section ID to refresh (omit for full screen)"
+        },
+        "operation": {
+          "$ref": "#/definitions/MutateOperation",
+          "description": "For mutate actions: operation to perform on the state key"
+        },
+        "value": {
+          "description": "For mutate actions: the value to apply with the operation"
+        },
+        "endpoint": {
+          "type": "string",
+          "description": "For refresh actions: target URL (defaults to current screen endpoint if omitted)"
+        },
+        "paramBindings": {
+          "type": "object",
+          "description": "For refresh actions: map of query param name to screen state key, resolved at action time",
+          "additionalProperties": { "type": "string" }
+        },
+        "message": {
+          "type": "string",
+          "description": "For toast actions: text message to display in the toast"
         }
       }
     },
@@ -237,15 +320,22 @@
     "StatLineListData": {
       "type": "object",
       "description": "Container for a titled list of stat lines",
+      "required": ["stats"],
       "properties": {
         "title": { "type": "string" },
+        "layout": {
+          "type": "string",
+          "enum": ["horizontal", "vertical"],
+          "default": "horizontal",
+          "description": "Row layout: 'horizontal' = image | name | stat inline, 'vertical' = name/image stacked above stat value. Use 'vertical' for narrow viewports."
+        },
         "stats": {
           "type": "array",
           "items": { "$ref": "#/definitions/StatLineData" }
         }
       }
     },
-    "ContentCardData": {
+    "HeroPanelData": {
       "type": "object",
       "required": ["id", "headline"],
       "properties": {
@@ -264,17 +354,19 @@
     "ContentRailData": {
       "type": "object",
       "description": "Horizontal scrolling strip of content cards",
+      "required": ["cards"],
       "properties": {
         "title": { "type": "string" },
         "cards": {
           "type": "array",
-          "items": { "$ref": "#/definitions/ContentCardData" }
+          "items": { "$ref": "#/definitions/HeroPanelData" }
         }
       }
     },
     "TabGroupData": {
       "type": "object",
       "description": "Tabbed navigation with dynamic content sections per tab",
+      "required": ["tabs"],
       "properties": {
         "tabs": {
           "type": "array",
@@ -363,7 +455,7 @@
         }
       }
     },
-    "GameCardData": {
+    "GamePanelData": {
       "type": "object",
       "required": ["gameId", "gameStatus", "homeTeam", "awayTeam"],
       "properties": {
@@ -406,6 +498,167 @@
         }
       }
     },
+    "BoxscoreColumnDefinition": {
+      "type": "object",
+      "description": "Defines a single column in the boxscore table",
+      "required": ["key", "label"],
+      "properties": {
+        "key": {
+          "type": "string",
+          "description": "Property key on each player's stats object that supplies this column's value"
+        },
+        "label": {
+          "type": "string",
+          "description": "Column header text displayed to the user"
+        },
+        "sortable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether this column supports client-side sorting"
+        },
+        "highlighted": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether this column should be visually emphasised (e.g., bold)"
+        },
+        "width": {
+          "type": "string",
+          "description": "Optional hint for column width (e.g. 'auto', '64px', '1fr')"
+        }
+      }
+    },
+    "BoxscorePlayerStatistics": {
+      "type": "object",
+      "description": "Key-value map of stat abbreviation to value for one player row",
+      "additionalProperties": true
+    },
+    "BoxscorePlayerRow": {
+      "type": "object",
+      "description": "One player row inside a boxscore table",
+      "required": ["playerId", "name", "stats"],
+      "properties": {
+        "playerId": { "type": "string" },
+        "name": { "type": "string", "description": "Display name (short form, e.g. 'J. Tatum')" },
+        "position": { "type": "string" },
+        "jerseyNumber": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "starter": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether this player was in the starting lineup"
+        },
+        "stats": { "$ref": "#/definitions/BoxscorePlayerStatistics" },
+        "actions": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/Action" }
+        }
+      }
+    },
+    "BoxscoreTableData": {
+      "type": "object",
+      "description": "Typed tabular data for an NBA-style boxscore (one per team)",
+      "required": ["teamTricode", "teamName", "columns", "players"],
+      "properties": {
+        "teamTricode": { "type": "string", "description": "Three-letter team code, e.g. 'BOS'" },
+        "teamName": { "type": "string" },
+        "teamColor": { "type": "string", "description": "Hex colour for team accent" },
+        "teamLogoUrl": { "type": "string" },
+        "columns": {
+          "type": "array",
+          "description": "Ordered list of column definitions; clients render left-to-right",
+          "items": { "$ref": "#/definitions/BoxscoreColumnDefinition" }
+        },
+        "players": {
+          "type": "array",
+          "description": "Player rows ordered by server (starters first, then bench)",
+          "items": { "$ref": "#/definitions/BoxscorePlayerRow" }
+        },
+        "teamTotals": {
+          "$ref": "#/definitions/BoxscorePlayerStatistics",
+          "description": "Aggregate row shown at the bottom of the table"
+        },
+        "sortStateKey": {
+          "type": "string",
+          "description": "Screen-state key holding the current sort column key"
+        },
+        "sortDirectionStateKey": {
+          "type": "string",
+          "description": "Screen-state key holding the current sort direction (asc/desc)"
+        },
+        "emptyMessage": {
+          "type": "string",
+          "description": "Text shown when no player rows are available"
+        }
+      }
+    },
+    "FormOption": {
+      "type": "object",
+      "description": "One selectable option within a select/radio/checkbox form field",
+      "required": ["label", "value"],
+      "properties": {
+        "label": { "type": "string" },
+        "value": { "type": "string" }
+      }
+    },
+    "FormField": {
+      "type": "object",
+      "description": "One input field inside a form section",
+      "required": ["fieldId", "fieldType", "label", "stateKey"],
+      "properties": {
+        "fieldId": { "type": "string" },
+        "fieldType": {
+          "type": "string",
+          "enum": ["text", "number", "date", "select", "radio", "checkbox", "toggle", "textarea"],
+          "description": "Input type; clients map to platform-native controls"
+        },
+        "label": { "type": "string" },
+        "placeholder": { "type": "string" },
+        "stateKey": {
+          "type": "string",
+          "description": "Screen-state key that holds this field's current value"
+        },
+        "required": { "type": "boolean", "default": false },
+        "disabled": { "type": "boolean", "default": false },
+        "options": {
+          "type": "array",
+          "description": "For select/radio/checkbox field types: the available choices",
+          "items": { "$ref": "#/definitions/FormOption" }
+        },
+        "validationPattern": {
+          "type": "string",
+          "description": "Optional regex pattern for client-side validation"
+        },
+        "validationMessage": {
+          "type": "string",
+          "description": "Message to show when validation fails"
+        }
+      }
+    },
+    "FormData": {
+      "type": "object",
+      "description": "Server-driven form section with typed fields bound to screen state",
+      "required": ["fields", "submitAction"],
+      "properties": {
+        "fields": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/FormField" }
+        },
+        "submitAction": {
+          "$ref": "#/definitions/Action",
+          "description": "Action fired when the form is submitted"
+        },
+        "submitLabel": {
+          "type": "string",
+          "default": "Submit"
+        },
+        "layout": {
+          "type": "string",
+          "enum": ["vertical", "horizontal", "grid"],
+          "default": "vertical",
+          "description": "Layout hint for field arrangement"
+        }
+      }
+    },
     "Section": {
       "type": "object",
       "required": ["id", "type"],
@@ -413,7 +666,7 @@
         "id": { "type": "string" },
         "type": {
           "type": "string",
-          "enum": ["ScoreboardHeader", "StatLine", "ContentCard", "ContentRail", "TabGroup", "PromoBanner", "GameCard", "Row"]
+          "enum": ["ScoreboardHeader", "StatLine", "HeroPanel", "ContentRail", "TabGroup", "PromoBanner", "GamePanel", "Row", "BoxscoreTable", "Form", "AdSlot", "SeasonLeadersTable", "FollowingRail", "FeaturedGamePanel", "SectionHeader", "VideoCarousel", "NbaTvSchedule", "SubscribeBanner", "SubscribeHero", "ErrorState"]
         },
         "refreshPolicy": { "$ref": "#/definitions/RefreshPolicy" },
         "dataBindings": { "$ref": "#/definitions/DataBinding" },
@@ -435,13 +688,341 @@
           "oneOf": [
             { "$ref": "#/definitions/ScoreboardHeaderData" },
             { "$ref": "#/definitions/StatLineListData" },
-            { "$ref": "#/definitions/ContentCardData" },
+            { "$ref": "#/definitions/HeroPanelData" },
             { "$ref": "#/definitions/ContentRailData" },
             { "$ref": "#/definitions/TabGroupData" },
             { "$ref": "#/definitions/PromoBannerData" },
-            { "$ref": "#/definitions/GameCardData" },
-            { "$ref": "#/definitions/RowData" }
+            { "$ref": "#/definitions/GamePanelData" },
+            { "$ref": "#/definitions/RowData" },
+            { "$ref": "#/definitions/BoxscoreTableData" },
+            { "$ref": "#/definitions/FormData" },
+            { "$ref": "#/definitions/AdSlotData" },
+            { "$ref": "#/definitions/LeadersTableData" },
+            { "$ref": "#/definitions/FollowingRailData" },
+            { "$ref": "#/definitions/FeaturedGamePanelData" },
+            { "$ref": "#/definitions/SectionHeaderData" },
+            { "$ref": "#/definitions/VideoCarouselData" },
+            { "$ref": "#/definitions/NbaTvScheduleData" },
+            { "$ref": "#/definitions/SubscribeBannerData" },
+            { "$ref": "#/definitions/SubscribeHeroData" },
+            { "$ref": "#/definitions/ErrorStateData" }
           ]
+        }
+      }
+    },
+    "LeadersTableData": {
+      "type": "object",
+      "description": "Sortable, paginated table of season statistical leaders (league-wide)",
+      "required": ["columns", "players"],
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Table heading, e.g. 'Season Leaders'"
+        },
+        "subtitle": {
+          "type": "string",
+          "description": "Secondary text, e.g. '2025-26 Regular Season – Per Game'"
+        },
+        "columns": {
+          "type": "array",
+          "description": "Ordered column definitions; clients render left-to-right",
+          "items": { "$ref": "#/definitions/BoxscoreColumnDefinition" }
+        },
+        "players": {
+          "type": "array",
+          "description": "Player rows, pre-sorted by the server",
+          "items": { "$ref": "#/definitions/LeadersPlayerRow" }
+        },
+        "totalRows": {
+          "type": "integer",
+          "description": "Total number of rows available server-side (for pagination display)"
+        },
+        "page": {
+          "type": "integer",
+          "description": "Current page (1-based)",
+          "default": 1
+        },
+        "pageSize": {
+          "type": "integer",
+          "description": "Number of rows per page",
+          "default": 25
+        },
+        "sortColumn": {
+          "type": "string",
+          "description": "Key of the column the table is currently sorted by"
+        },
+        "sortDirection": {
+          "type": "string",
+          "enum": ["asc", "desc"],
+          "default": "desc"
+        },
+        "emptyMessage": {
+          "type": "string",
+          "description": "Text shown when no player rows are available"
+        }
+      }
+    },
+    "LeadersPlayerRow": {
+      "type": "object",
+      "description": "One ranked player row in a season leaders table",
+      "required": ["rank", "playerId", "name", "team", "stats"],
+      "properties": {
+        "rank": { "type": "integer", "description": "Ranking position (1-based)" },
+        "playerId": { "type": "string" },
+        "name": { "type": "string", "description": "Display name, e.g. 'Luka Dončić'" },
+        "team": { "type": "string", "description": "Team tricode, e.g. 'LAL'" },
+        "imageUrl": { "type": "string" },
+        "stats": {
+          "$ref": "#/definitions/BoxscorePlayerStatistics",
+          "description": "Stat values keyed by column key (gp, min, pts, reb, ast, etc.)"
+        },
+        "actions": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/Action" }
+        }
+      }
+    },
+    "FollowingRailItem": {
+      "type": "object",
+      "description": "One entity (team or player) in a following rail",
+      "required": ["id", "name", "imageUrl", "entityType"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string", "description": "Display name, e.g. 'Lakers' or 'LeBron James'" },
+        "imageUrl": { "type": "string", "description": "Avatar / logo URL" },
+        "entityType": {
+          "type": "string",
+          "enum": ["team", "player"],
+          "description": "Whether this item represents a team or a player"
+        },
+        "action": { "$ref": "#/definitions/Action" }
+      }
+    },
+    "FollowingRailData": {
+      "type": "object",
+      "description": "Horizontal scrolling rail of followed teams/players with circular avatars",
+      "required": ["items"],
+      "properties": {
+        "title": { "type": "string" },
+        "items": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/FollowingRailItem" }
+        }
+      }
+    },
+    "FeaturedGamePanelData": {
+      "type": "object",
+      "description": "Hero-sized game panel with larger imagery, prominent scores, and optional background",
+      "required": ["gameId", "gameStatus", "homeTeam", "awayTeam"],
+      "properties": {
+        "gameId": { "type": "string" },
+        "gameStatus": { "type": "integer" },
+        "gameStatusText": { "type": "string" },
+        "gameTimeEt": { "type": "string" },
+        "homeTeam": { "$ref": "#/definitions/TeamData" },
+        "awayTeam": { "$ref": "#/definitions/TeamData" },
+        "gameLeaders": { "$ref": "#/definitions/GameLeadersData" },
+        "backgroundImageUrl": {
+          "type": "string",
+          "description": "Background image URL for the hero card"
+        },
+        "badgeText": {
+          "type": "string",
+          "description": "Badge/chip label, e.g. 'LIVE', 'FEATURED'"
+        },
+        "actions": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/Action" }
+        }
+      }
+    },
+    "SectionHeaderData": {
+      "type": "object",
+      "description": "Titled separator/divider between groups of sections, with optional See All action",
+      "required": ["title"],
+      "properties": {
+        "title": { "type": "string" },
+        "subtitle": { "type": "string" },
+        "action": {
+          "$ref": "#/definitions/Action",
+          "description": "Optional 'See All' or navigation action"
+        }
+      }
+    },
+    "VideoCarouselData": {
+      "type": "object",
+      "description": "Horizontal scrolling carousel of video thumbnails (landscape 16:9). Mobile shows swipeable cards; web shows a grid with hover-to-play.",
+      "required": ["items"],
+      "properties": {
+        "title": { "type": "string" },
+        "subtitle": { "type": "string" },
+        "items": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/VideoThumbnail" }
+        }
+      }
+    },
+    "VideoThumbnail": {
+      "type": "object",
+      "required": ["id", "title", "thumbnailUrl"],
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "subtitle": { "type": "string" },
+        "thumbnailUrl": { "type": "string" },
+        "duration": { "type": "string", "description": "Human-readable duration, e.g. '2:34'" },
+        "badgeText": { "type": "string", "description": "Overlay badge, e.g. 'LIVE', 'NEW'" },
+        "action": { "$ref": "#/definitions/Action" }
+      }
+    },
+    "NbaTvScheduleData": {
+      "type": "object",
+      "description": "NBA TV programming schedule with hero promo and time-slot list",
+      "required": ["slots"],
+      "properties": {
+        "heroImageUrl": { "type": "string", "description": "Hero image for the currently airing program" },
+        "heroTitle": { "type": "string" },
+        "heroSubtitle": { "type": "string" },
+        "liveNow": { "type": "boolean", "default": false },
+        "slots": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/NbaTvSlot" }
+        }
+      }
+    },
+    "NbaTvSlot": {
+      "type": "object",
+      "required": ["id", "title", "startTime"],
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "subtitle": { "type": "string" },
+        "startTime": { "type": "string", "description": "ISO-8601 start time" },
+        "endTime": { "type": "string", "description": "ISO-8601 end time" },
+        "thumbnailUrl": { "type": "string" },
+        "isLive": { "type": "boolean", "default": false },
+        "action": { "$ref": "#/definitions/Action" }
+      }
+    },
+    "SubscribeBannerData": {
+      "type": "object",
+      "description": "Inline subscription upsell banner with headline, body copy, and CTA",
+      "required": ["title", "ctaLabel"],
+      "properties": {
+        "title": { "type": "string" },
+        "subtitle": { "type": "string" },
+        "backgroundImageUrl": { "type": "string" },
+        "logoUrl": { "type": "string" },
+        "ctaLabel": { "type": "string" },
+        "ctaAction": { "$ref": "#/definitions/Action" },
+        "tiers": {
+          "type": "array",
+          "description": "Optional pricing tier highlights",
+          "items": { "$ref": "#/definitions/SubscriptionTier" }
+        }
+      }
+    },
+    "SubscribeHeroData": {
+      "type": "object",
+      "description": "Full-screen subscription upsell hero with multi-tier pricing and feature list",
+      "required": ["title", "tiers"],
+      "properties": {
+        "title": { "type": "string" },
+        "subtitle": { "type": "string" },
+        "backgroundImageUrl": { "type": "string" },
+        "logoUrl": { "type": "string" },
+        "features": {
+          "type": "array",
+          "description": "Bullet-point feature list",
+          "items": { "type": "string" }
+        },
+        "tiers": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/SubscriptionTier" }
+        }
+      }
+    },
+    "SubscriptionTier": {
+      "type": "object",
+      "required": ["id", "name", "price"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string", "description": "Tier name, e.g. 'League Pass', 'League Pass Premium'" },
+        "price": { "type": "string", "description": "Display price, e.g. '$14.99/mo'" },
+        "originalPrice": { "type": "string", "description": "Strikethrough price if on sale" },
+        "badgeText": { "type": "string", "description": "Badge label, e.g. 'BEST VALUE', 'MOST POPULAR'" },
+        "features": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "ctaLabel": { "type": "string" },
+        "ctaAction": { "$ref": "#/definitions/Action" }
+      }
+    },
+    "AdSlotData": {
+      "type": "object",
+      "description": "Ad placement primitive — carries placement semantics while delegating auction/targeting to ad-platform SDKs (see ADR-007)",
+      "required": ["provider", "adUnitPath", "sizes"],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "description": "Ad network identifier, e.g. 'gam', 'amazon'"
+        },
+        "adUnitPath": {
+          "type": "string",
+          "description": "Ad unit path used by the ad SDK"
+        },
+        "sizes": {
+          "type": "array",
+          "description": "Accepted creative sizes as [width, height] pairs",
+          "items": {
+            "type": "array",
+            "items": { "type": "integer" },
+            "minItems": 2,
+            "maxItems": 2
+          }
+        },
+        "targeting": {
+          "type": "object",
+          "description": "Key-value targeting hints passed to ad SDK",
+          "additionalProperties": { "type": "string" }
+        },
+        "collapseOnEmpty": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to collapse the slot when no fill is returned"
+        },
+        "refreshIntervalSec": {
+          "type": "integer",
+          "description": "Optional auto-refresh interval in seconds"
+        },
+        "label": {
+          "type": "string",
+          "default": "Advertisement",
+          "description": "Disclosure label displayed above/below the ad"
+        }
+      }
+    },
+    "ErrorStateData": {
+      "type": "object",
+      "description": "Error state displayed when something goes wrong — bad ID, network failure, missing data, etc.",
+      "required": ["title", "message"],
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Short error headline, e.g. 'Something went wrong'"
+        },
+        "message": {
+          "type": "string",
+          "description": "Longer explanatory text"
+        },
+        "icon": {
+          "type": "string",
+          "description": "Optional icon name, e.g. 'error', 'wifi_off'"
+        },
+        "retryAction": {
+          "$ref": "#/definitions/Action",
+          "description": "Optional action to retry the failed operation"
         }
       }
     },
@@ -459,9 +1040,18 @@
         "title": { "type": "string" },
         "analyticsId": { "type": "string" },
         "traceId": { "type": "string" },
+        "parentUri": {
+          "type": "string",
+          "description": "URI the back button should navigate to.  Clients always show a back button; this field tells them the target.  Omit for root screens (e.g. scoreboard)."
+        },
         "defaultRefreshPolicy": { "$ref": "#/definitions/RefreshPolicy" },
         "navigation": { "$ref": "#/definitions/Navigation" },
         "state": { "$ref": "#/definitions/State" },
+        "actions": {
+          "type": "array",
+          "description": "Screen-level actions (e.g. analytics beacons, lifecycle hooks)",
+          "items": { "$ref": "#/definitions/Action" }
+        },
         "sections": {
           "type": "array",
           "items": { "$ref": "#/definitions/Section" }

@@ -1,6 +1,7 @@
 package com.nba.sdui.app
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -20,14 +21,22 @@ import com.nba.sdui.app.ui.theme.SduiPrototypeTheme
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
+    companion object {
+        private const val TAG = "SDUI_MainActivity"
+        // TODO(Rule 2): Bootstrap URI should come from a /sdui/init endpoint.
+        private const val BOOTSTRAP_URI = "nba://for-you"
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Log.e(TAG, ">>> onCreate START")
         enableEdgeToEdge()
+        Log.e(TAG, ">>> setContent about to be called")
         setContent {
             SduiPrototypeTheme {
                 val snackbarHostState = remember { SnackbarHostState() }
                 val scope = rememberCoroutineScope()
-                var currentConfig by remember { mutableStateOf(SduiConfig.scoreboard()) }
+                var currentConfig by remember { mutableStateOf(SduiConfig.fromUri(BOOTSTRAP_URI)) }
                 
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
@@ -39,39 +48,18 @@ class MainActivity : ComponentActivity() {
                         config = config,
                         modifier = Modifier.padding(innerPadding),
                         onNavigateUri = { targetUri ->
-                            when {
-                                targetUri.startsWith("nba://game/") -> {
-                                    val gameId = targetUri.removePrefix("nba://game/")
-                                    currentConfig = SduiConfig.gameDetail(gameId)
-                                }
-                                targetUri == "nba://scoreboard" -> {
-                                    currentConfig = SduiConfig.scoreboard()
-                                }
-                                else -> {
-                                    val name = targetUri
-                                        .removePrefix("nba://")
-                                        .replace("/", " ")
-                                        .replaceFirstChar { it.uppercase() }
-                                        .replace("-", " ")
-                                    scope.launch {
-                                        snackbarHostState.showSnackbar(
-                                            "Navigating to $name (not implemented)"
-                                        )
-                                    }
-                                }
-                            }
+                            // All URIs use the same code path — the server
+                            // owns refresh policies, Ably config, and layout.
+                            currentConfig = SduiConfig.fromUri(targetUri)
+                        },
+                        onShowToast = { message ->
+                            scope.launch { snackbarHostState.showSnackbar(message) }
                         },
                         onVariantChange = { nextVariant ->
-                            currentConfig = when (config.screenType) {
-                                SduiConfig.ScreenType.SCOREBOARD -> SduiConfig.scoreboard(variant = nextVariant)
-                                SduiConfig.ScreenType.GAME_DETAIL -> SduiConfig.gameDetail(
-                                    gameId = config.gameId ?: "0042300102",
-                                    variant = nextVariant
-                                )
-                            }
+                            currentConfig = config.copy(variant = nextVariant)
                         },
                         onBack = {
-                            currentConfig = SduiConfig.scoreboard()
+                            currentConfig = SduiConfig.fromUri(BOOTSTRAP_URI)
                         }
                     )
                 }

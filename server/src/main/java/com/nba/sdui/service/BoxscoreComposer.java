@@ -188,6 +188,10 @@ public class BoxscoreComposer {
                     "https://cdn.nba.com/static/json/liveData/boxscore/boxscore_" + gameId + ".json");
             refreshPolicy.put("dataPath", "game");
             section.set("refreshPolicy", refreshPolicy);
+
+            section.set("sectionStates", utils.buildSectionStates(
+                    "boxscore-table-" + teamTricode.toLowerCase(),
+                    "Unable to load boxscore", "shimmer", 200));
         }
 
         ObjectNode data = objectMapper.createObjectNode();

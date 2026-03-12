@@ -683,6 +683,8 @@
         "analyticsId": { "type": "string" },
         "padding": { "$ref": "#/definitions/Spacing" },
         "backgroundColor": { "type": "string" },
+        "layoutHints": { "$ref": "#/definitions/SectionLayoutHints" },
+        "sectionStates": { "$ref": "#/definitions/SectionStates" },
         "data": {
           "description": "Section-specific data payload",
           "oneOf": [
@@ -707,6 +709,75 @@
             { "$ref": "#/definitions/SubscribeHeroData" },
             { "$ref": "#/definitions/ErrorStateData" }
           ]
+        }
+      }
+    },
+    "SectionLayoutHints": {
+      "type": "object",
+      "description": "Optional layout hints for section placement. Clients apply best-effort; unknown hints are ignored.",
+      "properties": {
+        "marginTop": {
+          "type": "integer",
+          "description": "Top margin in dp/points (0 = flush)"
+        },
+        "marginBottom": {
+          "type": "integer",
+          "description": "Bottom margin in dp/points"
+        },
+        "dividerAbove": {
+          "type": "boolean",
+          "description": "Render a divider line above this section",
+          "default": false
+        },
+        "dividerBelow": {
+          "type": "boolean",
+          "description": "Render a divider line below this section",
+          "default": false
+        },
+        "priority": {
+          "type": "string",
+          "enum": ["high", "normal", "low"],
+          "default": "normal",
+          "description": "Rendering priority hint — clients may use for lazy loading or viewport priority"
+        }
+      }
+    },
+    "SectionStates": {
+      "type": "object",
+      "description": "Server-declared loading and error presentation for a section. Clients render these states when applicable.",
+      "properties": {
+        "loading": {
+          "type": "object",
+          "properties": {
+            "skeleton": {
+              "type": "string",
+              "enum": ["shimmer", "spinner", "placeholder", "none"],
+              "default": "shimmer",
+              "description": "Which loading skeleton style to use"
+            },
+            "minHeightDp": {
+              "type": "integer",
+              "description": "Minimum height to reserve during loading (prevents layout shift)"
+            }
+          }
+        },
+        "error": {
+          "type": "object",
+          "properties": {
+            "message": {
+              "type": "string",
+              "description": "Error message to display (e.g., 'Unable to load scores')"
+            },
+            "retryAction": {
+              "$ref": "#/definitions/Action",
+              "description": "Optional action to trigger on retry tap (typically a refresh action)"
+            },
+            "hideOnError": {
+              "type": "boolean",
+              "default": false,
+              "description": "If true, collapse the section entirely on error instead of showing error UI"
+            }
+          }
         }
       }
     },

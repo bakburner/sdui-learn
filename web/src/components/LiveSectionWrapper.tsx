@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import type { Section, Action, Data } from '@sdui/models';
 import { useRefreshPolicy, getEffectiveRefreshPolicy } from '../hooks/useRefreshPolicy';
 import { applyDataBindings } from '../runtime/DataBindingApplier';
+import { SectionSkeleton } from './SectionSkeleton';
 
 interface LiveSectionWrapperProps {
   section: Section;
@@ -76,7 +77,10 @@ export function LiveSectionWrapper({
     enabled: hasRefreshPolicy,
   });
 
-  // Render children with the live data
+  if (!liveData && hasRefreshPolicy) {
+    return <SectionSkeleton sectionStates={section.sectionStates} />;
+  }
+
   return children(liveData);
 }
 

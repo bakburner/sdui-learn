@@ -1,14 +1,21 @@
 # ADR-008: Form-Factor Layout Manager
 
-- Status: Proposed
+- Status: Accepted (Option C — Hybrid)
 - Date: 2026-02-20
+- Accepted: 2026-03-11
 - Decision owners: Adrian Robinson (interim), platform leads, backend leads
+
+## Decision
+
+**Option C (Hybrid) adopted.** Structural layout uses semantic section types (`Row`, future `Grid`/`SplitPane`) — already validated in the prototype. Inter-section fine-tuning uses `layoutHints` on Section (margins, dividers, priority). This gives the server control over the most impactful layout knobs without over-engineering a full layout system.
+
+Schema additions: `SectionLayoutHints` definition with `marginTop`, `marginBottom`, `dividerAbove`, `dividerBelow`, `priority`. Added as optional `layoutHints` field on `Section`.
 
 ## Context
 
-The same semantic screen must support phone, tablet, web, and TV without duplicating composition logic or over-constraining client rendering systems. Three approaches are under evaluation.
+The same semantic screen must support phone, tablet, web, and TV without duplicating composition logic or over-constraining client rendering systems. Three approaches were evaluated.
 
-## Options Under Evaluation
+## Options Evaluated
 
 ### Option A: Layout Hints on Sections
 
@@ -90,9 +97,9 @@ Server uses semantic layout types for structural composition. Individual section
 - Renderer cost per platform
 - Ability to express section relationships (side-by-side, grid, split-pane)
 
-## Open Questions
+## Resolved Questions
 
-- Which option to adopt (A, B, or C)
-- Canonical set of layout types or hints in schema
-- Fallback rules when layout type or hint is unsupported
-- Validation strategy for cross-platform parity
+- **Which option:** Option C (Hybrid) — structural layout via semantic types, fine-tuning via `layoutHints`.
+- **Canonical hints:** `marginTop`, `marginBottom`, `dividerAbove`, `dividerBelow`, `priority` (high/normal/low).
+- **Fallback rules:** Unknown hints are ignored. Missing `layoutHints` = default behavior (no margins, no dividers, normal priority).
+- **Cross-platform parity:** Clients apply hints best-effort using platform-native layout systems.

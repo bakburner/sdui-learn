@@ -400,6 +400,9 @@ public class GameDetailComposer {
         refreshPolicy.put("channel", gameId + ":linescore");
         section.set("refreshPolicy", refreshPolicy);
 
+        section.set("sectionStates", utils.buildSectionStates(
+                "scoreboard-header", "Unable to load live scores", "shimmer", 180));
+
         ObjectNode data = objectMapper.createObjectNode();
 
         JsonNode homeTeam = game.path("homeTeam");
@@ -446,6 +449,9 @@ public class GameDetailComposer {
         refreshPolicy.put("url", "https://cdn.nba.com/static/json/liveData/boxscore/boxscore_" + gameId + ".json");
         refreshPolicy.put("dataPath", "game");
         section.set("refreshPolicy", refreshPolicy);
+
+        section.set("sectionStates", utils.buildSectionStates(
+                "top-performers", "Unable to load player stats", "placeholder", 120));
 
         ArrayNode stats = objectMapper.createArrayNode();
 

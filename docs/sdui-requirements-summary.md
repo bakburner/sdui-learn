@@ -162,7 +162,7 @@ graph LR
 
 ### Key Schema Decisions
 
-- **Semantic section types** (ScoreboardHeader, StatLine, HeroPanel, GamePanel, FeaturedGamePanel, VideoCarousel, NbaTvSchedule, SubscribeBanner, SubscribeHero, AdSlot, BoxscoreTable, Form, ContentRail, TabGroup, PromoBanner, Row, SectionHeader, FollowingRail, SeasonLeadersTable, ErrorState) — not atomic primitives (Text, Image, Stack). The design system already handles layout; the schema just names what to render and passes typed data.
+- **Semantic section types** (ScoreboardHeader, StatLine, HeroPanel, GamePanel, FeaturedGamePanel, VideoCarousel, NbaTvSchedule, SubscribeBanner, SubscribeHero, AdSlot, BoxscoreTable, Form, ContentRail, TabGroup, PromoBanner, Row, SectionHeader, FollowingRail, SeasonLeadersTable, ErrorState — 20 types) — not atomic primitives (Text, Image, Stack). The design system already handles layout; the schema just names what to render and passes typed data.
 - **Codegen produces data models only** — not UI code. Platform teams write a thin renderer layer (~30 lines per section type) that wires generated models to existing design system components.
 - **Schema is versioned** — client sends its schema version, server responds with a compatible payload. Fields can never be removed without a major version bump.
 - **Subsection actions are required** — `actions` must be supported at section and nested component/subsection level (for example, tapping home team area within a game section).
@@ -570,14 +570,20 @@ Server-driven platforms need to show or hide sections based on conditions that v
 
 **Remaining gap:** Client-side responsive breakpoints within a platform family (e.g., phone vs. tablet within mobile). The `Row` section type with a `breakpoint` field handles simple cases. More complex responsive rules (e.g., hide a section below 768dp) may still need a lightweight client-side visibility mechanism.
 
+**Deferred:** Client-side visibility expressions (a `visibility` field with condition evaluation on sections) were evaluated and rejected. The server already controls which sections appear via composition — feature flags, A/B gating, user-segment filtering, and time-based conditions are all resolved server-side. Adding a client-side condition evaluator would duplicate server responsibility and violate the core SDUI principle that the server owns composition. If a narrow need for state-gated visibility emerges later, it can be revisited.
+
 **Decision required:** Whether within-family responsive rules need a `visibility` field in the schema or can be handled entirely by responsive section types like `Row`.
 
 ### 9c. Error Handling & Fallback Sections
 
 Production SDUI screens need graceful degradation when individual sections fail.
 
-**What's needed:**
-- Per-section `fallback` field: what to render if the section's data binding fails (SSE disconnects, poll returns 500)
+**Built:** `ErrorState` section type (Web and Android). The server can compose an explicit error section at composition time with `title`, `message`, `icon`, and optional `retryAction`. This handles cases where the server knows at composition time that data is unavailable. Server utility `SduiUtils.buildErrorSection()` standardizes error section construction.
+
+**Remaining gap (runtime error/loading states):** When a section's live data fails *after* the initial response (SSE disconnect, poll 500), the client needs per-section error/loading configuration. A `sectionStates` field on Section (with `loading.skeleton`, `error.message`, `error.retryAction`, `error.hideOnError`) is planned to give the server control over runtime failure UX without client releases.
+
+**What's still needed:**
+- Per-section `sectionStates` field: server-declared loading skeleton type and error presentation for runtime data failures
 - Options: `"hide"` (remove section), `"static"` (show last known data), `"placeholder"` (show skeleton), `"retry"` (show retry button)
 - Screen-level error state when the entire SDUI response fails to load
 - Timeout configuration per data binding channel
@@ -871,8 +877,8 @@ Until approved, these remain directional requirements and may be refined.
 | Screen state management (tabs, toggles) | **Built** | StateManager, TabGroup wired |
 | Composition service (server-side) | **Built** | Spring Boot, demo + live mode, A/B variants |
 | Accessibility descriptors | **Gap** | Needs schema fields + live region behavior |
-| Conditional rendering / visibility | **Partial** | Cross-platform: settled (server-side platform-aware composition). Within-family responsive: gap |
-| Error handling & fallbacks | **Gap** | Per-section graceful degradation |
+| Conditional rendering / visibility | **Partial** | Cross-platform: settled (server-side composition). Client-side visibility expressions deferred (server handles show/hide). Within-family responsive: gap |
+| Error handling & fallbacks | **Partial** | `ErrorState` section type built (composition-time errors). Per-section runtime error/loading states (`sectionStates`) planned |
 | Section lifecycle & lazy loading | **Gap** | Viewport-based connection management |
 | Caching & offline | **Gap** | Stale-while-revalidate, cold start optimization |
 | Schema versioning protocol | **Partial** | Version header sent; no multi-version routing yet |
@@ -890,9 +896,10 @@ Until approved, these remain directional requirements and may be refined.
 | Debugging / observability | **Partial** | traceId in responses; structured Logcat; no dashboards |
 | Contract testing | **Gap** | No automated tests yet |
 | Internationalization (i18n) | **Gap** | Server-resolved default + optional string keys on data bindings for external source translations |
-| Tabular data sections (BoxscoreTable) | **Gap** | Semantic table type with domain-typed data, client-side sort, frozen column/totals row |
-| Form section (generic) | **Gap** | Extensible field types (picker, segmented, toggle, datePicker, text), parameterized refresh on submit |
-| Parameterized refresh (Action extension) | **Gap** | `endpoint` + `paramBindings` resolved from screen state at action time |
+| Tabular data sections (BoxscoreTable) | **Built** | Semantic table type with domain-typed data, client-side sort, frozen column/totals row. Built on Web and Android. |
+| Form section (generic) | **Built** | Extensible field types (picker, segmented, toggle, datePicker, text), parameterized refresh on submit. Built on Web and Android. |
+| Parameterized refresh (Action extension) | **Built** | `endpoint` + `paramBindings` resolved from screen state at action time. Working via Form submit. |
+| ErrorState section | **Built** | Server-composed error sections with title, message, icon, retry action. Built on Web and Android. |
 
 ---
 

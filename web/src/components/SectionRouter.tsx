@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import type { Section, Action, Data, RefreshPolicy } from '@sdui/models';
 import { ScoreboardHeader } from './sections/ScoreboardHeader';
 import { StatLine } from './sections/StatLine';
@@ -21,6 +21,8 @@ import { SubscribeBanner } from './sections/SubscribeBanner';
 import { SubscribeHero } from './sections/SubscribeHero';
 import { ErrorState } from './sections/ErrorState';
 import { LiveSectionWrapper } from './LiveSectionWrapper';
+import { SectionErrorBoundary } from './SectionErrorBoundary';
+import { useImpressionTracking } from '../hooks/useImpressionTracking';
 
 export interface SectionProps {
   section: Section;
@@ -118,6 +120,8 @@ function SectionRenderer({
 /**
  * Routes sections to their appropriate renderers based on type.
  * Wraps sections in LiveSectionWrapper to handle refresh policies and data bindings.
+ * Wraps in SectionErrorBoundary for graceful render error handling.
+ * Attaches impression tracking for onVisible analytics actions.
  */
 export function SectionRouter({ 
   section, 
@@ -126,15 +130,25 @@ export function SectionRouter({
   onStateChange,
   defaultRefreshPolicy,
 }: SectionRouterProps): React.ReactElement | null {
-  // Check if this section needs live updates
+  const trackingRef = useRef<HTMLDivElement>(null);
+
+  useImpressionTracking({
+    ref: trackingRef,
+    sectionId: section.id,
+    actions: section.actions ?? [],
+    onAction,
+  });
+
   const needsLiveWrapper = Boolean(
-    section.refreshPolicy?.type && section.refreshPolicy.type !== 'static' ||
-    section.dataBindings?.bindings?.length ||
-    defaultRefreshPolicy?.type && defaultRefreshPolicy.type !== 'static'
+    (section.refreshPolicy?.type && section.refreshPolicy.type !== 'static') ||
+    (section.dataBindings?.bindings?.length) ||
+    (defaultRefreshPolicy?.type && defaultRefreshPolicy.type !== 'static')
   );
 
+  let content: React.ReactElement | null;
+
   if (needsLiveWrapper) {
-    return (
+    content = (
       <LiveSectionWrapper
         section={section}
         state={state}
@@ -143,7 +157,6 @@ export function SectionRouter({
         defaultRefreshPolicy={defaultRefreshPolicy}
       >
         {(liveData: Data | undefined) => {
-          // Create a section with live data substituted
           const liveSection: Section = {
             ...section,
             data: liveData,
@@ -159,16 +172,27 @@ export function SectionRouter({
         }}
       </LiveSectionWrapper>
     );
+  } else {
+    content = (
+      <SectionRenderer
+        section={section}
+        state={state}
+        onAction={onAction}
+        onStateChange={onStateChange}
+      />
+    );
   }
 
-  // No live updates needed, render directly
   return (
-    <SectionRenderer
-      section={section}
-      state={state}
-      onAction={onAction}
-      onStateChange={onStateChange}
-    />
+    <div ref={trackingRef}>
+      <SectionErrorBoundary
+        sectionStates={section.sectionStates}
+        sectionId={section.id}
+        onAction={onAction}
+      >
+        {content}
+      </SectionErrorBoundary>
+    </div>
   );
 }
 
@@ -191,14 +215,23 @@ export function SectionList({
   return (
     <>
       {sections.map((section) => (
-        <SectionRouter
+        <div
           key={section.id}
-          section={section}
-          state={state}
-          onAction={onAction}
-          onStateChange={onStateChange}
-          defaultRefreshPolicy={defaultRefreshPolicy}
-        />
+          style={{
+            marginTop: section.layoutHints?.marginTop ?? 0,
+            marginBottom: section.layoutHints?.marginBottom ?? 0,
+          }}
+        >
+          {section.layoutHints?.dividerAbove && <hr className="sdui-divider" />}
+          <SectionRouter
+            section={section}
+            state={state}
+            onAction={onAction}
+            onStateChange={onStateChange}
+            defaultRefreshPolicy={defaultRefreshPolicy}
+          />
+          {section.layoutHints?.dividerBelow && <hr className="sdui-divider" />}
+        </div>
       ))}
     </>
   );

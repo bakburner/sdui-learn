@@ -29,6 +29,8 @@ export interface SduiModels {
  * Optional 'See All' or navigation action
  *
  * Optional action to retry the failed operation
+ *
+ * Optional action to trigger on retry tap (typically a refresh action)
  */
 export interface Action {
     /**
@@ -468,8 +470,10 @@ export interface Section {
     data?:          Data;
     dataBindings?:  DataBinding;
     id:             string;
+    layoutHints?:   SectionLayoutHints;
     padding?:       Spacing;
     refreshPolicy?: RefreshPolicy;
+    sectionStates?: SectionStates;
     /**
      * Nested interaction targets within the section
      */
@@ -777,12 +781,97 @@ export interface DataBindingPath {
     [property: string]: any;
 }
 
+/**
+ * Optional layout hints for section placement. Clients apply best-effort; unknown hints are
+ * ignored.
+ */
+export interface SectionLayoutHints {
+    /**
+     * Render a divider line above this section
+     */
+    dividerAbove?: boolean;
+    /**
+     * Render a divider line below this section
+     */
+    dividerBelow?: boolean;
+    /**
+     * Bottom margin in dp/points
+     */
+    marginBottom?: number;
+    /**
+     * Top margin in dp/points (0 = flush)
+     */
+    marginTop?: number;
+    /**
+     * Rendering priority hint — clients may use for lazy loading or viewport priority
+     */
+    priority?: Priority;
+    [property: string]: any;
+}
+
+/**
+ * Rendering priority hint — clients may use for lazy loading or viewport priority
+ */
+export enum Priority {
+    High = "high",
+    Low = "low",
+    Normal = "normal",
+}
+
 export interface Spacing {
     bottom?: number;
     end?:    number;
     start?:  number;
     top?:    number;
     [property: string]: any;
+}
+
+/**
+ * Server-declared loading and error presentation for a section. Clients render these states
+ * when applicable.
+ */
+export interface SectionStates {
+    error?:   Error;
+    loading?: Loading;
+    [property: string]: any;
+}
+
+export interface Error {
+    /**
+     * If true, collapse the section entirely on error instead of showing error UI
+     */
+    hideOnError?: boolean;
+    /**
+     * Error message to display (e.g., 'Unable to load scores')
+     */
+    message?: string;
+    /**
+     * Optional action to trigger on retry tap (typically a refresh action)
+     */
+    retryAction?: Action;
+    [property: string]: any;
+}
+
+export interface Loading {
+    /**
+     * Minimum height to reserve during loading (prevents layout shift)
+     */
+    minHeightDp?: number;
+    /**
+     * Which loading skeleton style to use
+     */
+    skeleton?: Skeleton;
+    [property: string]: any;
+}
+
+/**
+ * Which loading skeleton style to use
+ */
+export enum Skeleton {
+    None = "none",
+    Placeholder = "placeholder",
+    Shimmer = "shimmer",
+    Spinner = "spinner",
 }
 
 /**
@@ -797,13 +886,13 @@ export interface Subsection {
 export enum Type {
     AdSlot = "AdSlot",
     BoxscoreTable = "BoxscoreTable",
-    HeroPanel = "HeroPanel",
     ContentRail = "ContentRail",
     ErrorState = "ErrorState",
     FeaturedGamePanel = "FeaturedGamePanel",
     FollowingRail = "FollowingRail",
     Form = "Form",
     GamePanel = "GamePanel",
+    HeroPanel = "HeroPanel",
     NbaTvSchedule = "NbaTvSchedule",
     PromoBanner = "PromoBanner",
     Row = "Row",

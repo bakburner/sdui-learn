@@ -343,4 +343,33 @@ public class SduiUtils {
         section.set("data", data);
         return section;
     }
+
+    // ── Section states (error/loading UX) ────────────────────────────
+
+    /**
+     * Build a sectionStates node for sections with live data (SSE/poll).
+     * Provides server-controlled loading skeleton and error message/retry.
+     */
+    public ObjectNode buildSectionStates(String sectionId, String errorMessage,
+                                          String skeletonType, int minHeightDp) {
+        ObjectNode states = objectMapper.createObjectNode();
+
+        ObjectNode loading = objectMapper.createObjectNode();
+        loading.put("skeleton", skeletonType);
+        loading.put("minHeightDp", minHeightDp);
+        states.set("loading", loading);
+
+        ObjectNode error = objectMapper.createObjectNode();
+        error.put("message", errorMessage);
+        error.put("hideOnError", false);
+
+        ObjectNode retryAction = objectMapper.createObjectNode();
+        retryAction.put("trigger", "onTap");
+        retryAction.put("type", "refresh");
+        retryAction.put("target", sectionId);
+        error.set("retryAction", retryAction);
+
+        states.set("error", error);
+        return states;
+    }
 }

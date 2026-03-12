@@ -44,7 +44,7 @@ Define a JSON schema that implements the two-tier primitive system from the road
 
 **Atomic primitives:** Container, Text, Image, Button, Spacer, Divider, ScrollContainer, Conditional. Each has typed properties (e.g., Container supports direction/gap/padding/alignment; Text supports content/variant/weight/color/maxLines; Button supports label/variant/action/icon/disabled).
 
-**Semantic section types (20 total):** ScoreboardHeader, StatLine, HeroPanel, ContentRail, TabGroup, PromoBanner, GamePanel, FeaturedGamePanel, Row, SectionHeader, VideoCarousel, NbaTvSchedule, SubscribeBanner, SubscribeHero, AdSlot, BoxscoreTable, Form, SeasonLeadersTable, FollowingRail, ErrorState. Each is referenced by type name in the SDUI response — the renderer resolves the semantic type, not the atomic decomposition.
+**Semantic section types (19 total):** ScoreboardHeader, StatLine, HeroPanel, ContentRail, TabGroup, PromoBanner, GamePanel (with `variant: "featured"` for hero treatment), Row, SectionHeader, VideoCarousel, NbaTvSchedule, SubscribeBanner, SubscribeHero, AdSlot, BoxscoreTable, Form, SeasonLeadersTable, FollowingRail, ErrorState. Each is referenced by type name in the SDUI response — the renderer resolves the semantic type, not the atomic decomposition.
 
 **Schema hierarchy — Screen → Section → Component:**
 
@@ -168,7 +168,7 @@ Everything screen-agnostic that could ship as a library:
    - `ActionHandler` — Dispatches SduiAction objects to handlers by type: navigate (returns URI), analytics (logs event), mutate (updates StateManager), refresh (triggers re-fetch), dismiss (closes overlays). Returns sealed `ActionResult` types.
 
 4. **Section renderers** (`core/renderer/`)
-   - `SectionRouter` — A `when` statement mapping section type strings to composable functions. Unknown types are skipped with a warning log. Supports all 20 section types.
+   - `SectionRouter` — A `when` statement mapping section type strings to composable functions. Unknown types are skipped with a warning log. Supports all 19 section types.
    - `sections/` — One composable per section type:
      - `ScoreboardHeaderRenderer` — Team logos (via Coil AsyncImage with SVG support), tricodes, scores, game status. Clickable with primary action.
      - `StatLineRenderer` — Vertical list of player stat rows.
@@ -176,8 +176,7 @@ Everything screen-agnostic that could ship as a library:
      - `ContentRailRenderer` — Horizontal scrolling strip of HeroPanels.
      - `TabGroupRenderer` — Tabbed navigation using screen state for active tab. Tab selection fires mutate actions.
      - `PromoBannerRenderer` — Promotional banner with title, description, image, CTA.
-     - `GamePanelRenderer` — Game card with team logos, tricodes, scores, leaders, and visual state (PRE/LIVE/FINAL).
-     - `FeaturedGamePanelRenderer` — Hero-sized game card with enhanced layout.
+     - `GamePanelRenderer` — Game card with team logos, tricodes, scores, leaders, and visual state (PRE/LIVE/FINAL). Supports `variant: "featured"` for hero-sized cards with gradient background, badge, and visual label.
      - `RowRenderer` — Responsive layout rendering child sections side-by-side or stacked based on breakpoint.
      - `SectionHeaderRenderer` — Simple header with optional subtitle and CTA.
      - `VideoCarouselRenderer` — Horizontal scrolling video thumbnails.
@@ -236,7 +235,7 @@ Build a React web application that renders the same SDUI responses as the Androi
    - `SectionRouter.tsx` — Routes section types to renderer components. Wraps sections with live data in `LiveSectionWrapper`.
    - `LiveSectionWrapper` — Applies refresh policies and data bindings to sections.
    - `TopNavigationBar` — Navigation chrome.
-   - `sections/` — One component per section type: ScoreboardHeader, StatLine, HeroPanel, ContentRail, TabGroup, PromoBanner, GamePanel, FeaturedGamePanel, Row, SectionHeader, VideoCarousel, NbaTvSchedule, SubscribeBanner, SubscribeHero, AdSlot, BoxscoreTable, Form, SeasonLeadersTable, FollowingRail, ErrorState.
+   - `sections/` — One component per section type: ScoreboardHeader, StatLine, HeroPanel, ContentRail, TabGroup, PromoBanner, GamePanel (with `variant: "featured"` for hero treatment), Row, SectionHeader, VideoCarousel, NbaTvSchedule, SubscribeBanner, SubscribeHero, AdSlot, BoxscoreTable, Form, SeasonLeadersTable, FollowingRail, ErrorState.
 
 3. **Runtime** (`runtime/`)
    - `AblyClient.ts` — Ably real-time client integration.
@@ -315,7 +314,7 @@ sdui-prototype/
 │   │       │   ├── interactions/SectionInteractions.kt
 │   │       │   └── sections/
 │   │       │       ├── ScoreboardHeaderRenderer.kt
-│   │       │       ├── ... (20 renderers, one per section type)
+│   │       │       ├── ... (19 renderers, one per section type)
 │   │       │       └── ErrorStateRenderer.kt
 │   │       ├── screen/
 │   │       │   ├── SduiScreenViewModel.kt
@@ -337,7 +336,7 @@ sdui-prototype/
 │       │   ├── TopNavigationBar.tsx
 │       │   └── sections/
 │       │       ├── ScoreboardHeader.tsx
-│       │       ├── ... (20 components, one per section type)
+│       │       ├── ... (19 components, one per section type)
 │       │       └── ErrorState.tsx
 │       ├── hooks/
 │       │   ├── useSduiScreen.ts

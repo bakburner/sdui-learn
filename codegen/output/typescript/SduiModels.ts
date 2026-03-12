@@ -251,8 +251,6 @@ export interface NavigationItem {
  *
  * Horizontal scrolling rail of followed teams/players with circular avatars
  *
- * Hero-sized game panel with larger imagery, prominent scores, and optional background
- *
  * Titled separator/divider between groups of sections, with optional See All action
  *
  * Horizontal scrolling carousel of video thumbnails (landscape 16:9). Mobile shows
@@ -306,9 +304,26 @@ export interface Data {
     actions?:      Action[];
     description?:  string;
     imageUrl?:     string;
-    gameId?:       string;
-    gameLeaders?:  GameLeadersData;
-    gameTimeEt?:   string;
+    /**
+     * Background image URL for featured variant hero card
+     */
+    backgroundImageUrl?: string;
+    /**
+     * Badge/chip label, e.g. 'LIVE', 'FEATURED'
+     */
+    badgeText?:   string;
+    gameId?:      string;
+    gameLeaders?: GameLeadersData;
+    gameTimeEt?:  string;
+    /**
+     * Visual treatment: 'standard' for compact feed cards, 'featured' for hero-sized cards with
+     * gradient/background
+     */
+    variant?: Variant;
+    /**
+     * Secondary label shown above the matchup (e.g. team name, 'Recommended')
+     */
+    visualLabel?: string;
     /**
      * Screen width (dp) below which children stack vertically
      */
@@ -415,14 +430,6 @@ export interface Data {
      */
     totalRows?: number;
     items?:     FollowingRailItem[];
-    /**
-     * Background image URL for the hero card
-     */
-    backgroundImageUrl?: string;
-    /**
-     * Badge/chip label, e.g. 'LIVE', 'FEATURED'
-     */
-    badgeText?: string;
     /**
      * Hero image for the currently airing program
      */
@@ -760,6 +767,15 @@ export interface SubscriptionTier {
     [property: string]: any;
 }
 
+/**
+ * Visual treatment: 'standard' for compact feed cards, 'featured' for hero-sized cards with
+ * gradient/background
+ */
+export enum Variant {
+    Featured = "featured",
+    Standard = "standard",
+}
+
 export interface DataBinding {
     bindings?: DataBindingPath[];
     /**
@@ -889,7 +905,6 @@ export enum Type {
     BoxscoreTable = "BoxscoreTable",
     ContentRail = "ContentRail",
     ErrorState = "ErrorState",
-    FeaturedGamePanel = "FeaturedGamePanel",
     FollowingRail = "FollowingRail",
     Form = "Form",
     GamePanel = "GamePanel",

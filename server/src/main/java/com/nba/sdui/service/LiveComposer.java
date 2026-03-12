@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
  * Composes the "Games" SDUI screen — all live, upcoming & final games.
  *
  * Layout:
- *   1. FeaturedGamePanel – hero card for the top live game (SSE refresh)
+ *   1. GamePanel (featured) – hero card for the top live game (SSE refresh)
  *   2. SectionHeader    – "Live Now"
  *   3–N. GamePanel       – every live game (gameStatus == 2)
  *   N+1. SectionHeader  – "Upcoming Today"
@@ -123,7 +123,7 @@ public class LiveComposer {
 
         ObjectNode section = objectMapper.createObjectNode();
         section.put("id", "live-featured-" + gameId);
-        section.put("type", "FeaturedGamePanel");
+        section.put("type", "GamePanel");
         section.put("analyticsId", "live_featured_game");
 
         if (gameStatus == 2) {
@@ -141,6 +141,7 @@ public class LiveComposer {
         data.put("gameStatus", gameStatus);
         data.put("gameStatusText", game.path("gameStatusText").asText(""));
         data.put("gameTimeEt", game.path("gameTimeEt").asText(""));
+        data.put("variant", "featured");
         data.set("homeTeam", mapTeam(game.path("homeTeam")));
         data.set("awayTeam", mapTeam(game.path("awayTeam")));
         data.put("badgeText", gameStatus == 2 ? "LIVE" : "UP NEXT");
@@ -161,7 +162,7 @@ public class LiveComposer {
     private ObjectNode buildMockFeaturedGame() {
         ObjectNode section = objectMapper.createObjectNode();
         section.put("id", "live-featured-mock");
-        section.put("type", "FeaturedGamePanel");
+        section.put("type", "GamePanel");
         section.put("analyticsId", "live_featured_game");
         section.set("refreshPolicy", staticPolicy());
 
@@ -169,6 +170,7 @@ public class LiveComposer {
         data.put("gameId", "0022400050");
         data.put("gameStatus", 1);
         data.put("gameStatusText", "7:30 PM ET");
+        data.put("variant", "featured");
         data.put("badgeText", "NEXT UP");
         data.put("visualLabel", "Recommended");
 

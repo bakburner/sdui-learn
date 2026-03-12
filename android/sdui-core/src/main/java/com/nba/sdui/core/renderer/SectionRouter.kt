@@ -121,13 +121,6 @@ fun SectionRouter(
             )
         }
 
-        "FeaturedGamePanel" -> {
-            FeaturedGamePanelRenderer(
-                section = section,
-                onAction = onAction,
-                modifier = modifier
-            )
-        }
 
         "SectionHeader" -> {
             SectionHeaderRenderer(
@@ -217,7 +210,7 @@ val SUPPORTED_SECTION_TYPES = setOf(
     "BoxscoreTable",
     "Form",
     "FollowingRail",
-    "FeaturedGamePanel",
+
     "SectionHeader",
     "VideoCarousel",
     "NbaTvSchedule",

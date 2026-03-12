@@ -162,7 +162,7 @@ graph LR
 
 ### Key Schema Decisions
 
-- **Semantic section types** (ScoreboardHeader, StatLine, HeroPanel, GamePanel, FeaturedGamePanel, VideoCarousel, NbaTvSchedule, SubscribeBanner, SubscribeHero, AdSlot, BoxscoreTable, Form, ContentRail, TabGroup, PromoBanner, Row, SectionHeader, FollowingRail, SeasonLeadersTable, ErrorState — 20 types) — not atomic primitives (Text, Image, Stack). The design system already handles layout; the schema just names what to render and passes typed data.
+- **Semantic section types** (ScoreboardHeader, StatLine, HeroPanel, GamePanel (with `variant: "featured"` for hero treatment), VideoCarousel, NbaTvSchedule, SubscribeBanner, SubscribeHero, AdSlot, BoxscoreTable, Form, ContentRail, TabGroup, PromoBanner, Row, SectionHeader, FollowingRail, SeasonLeadersTable, ErrorState — 19 types) — not atomic primitives (Text, Image, Stack). The design system already handles layout; the schema just names what to render and passes typed data.
 - **Codegen produces data models only** — not UI code. Platform teams write a thin renderer layer (~30 lines per section type) that wires generated models to existing design system components.
 - **Schema is versioned** — client sends its schema version, server responds with a compatible payload. Fields can never be removed without a major version bump.
 - **Subsection actions are required** — `actions` must be supported at section and nested component/subsection level (for example, tapping home team area within a game section).

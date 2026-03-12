@@ -89,8 +89,8 @@ public class DemoScreenComposer {
         // 12. SeasonLeadersTable
         sections.add(buildTypeLabel("SeasonLeadersTable"));
         sections.add(buildDemoLeadersTable());
-        // 13. FeaturedGamePanel
-        sections.add(buildTypeLabel("FeaturedGamePanel"));
+        // 13. GamePanel (featured variant)
+        sections.add(buildTypeLabel("GamePanel (featured)"));
         sections.add(buildDemoFeaturedGamePanel());
         // 14. VideoCarousel
         sections.add(buildTypeLabel("VideoCarousel"));
@@ -775,12 +775,12 @@ public class DemoScreenComposer {
     }
 
     /**
-     * 13. FeaturedGamePanel — hero-sized game card with background image and badge.
+     * 13. GamePanel (featured variant) — hero-sized game card with background image and badge.
      */
     private ObjectNode buildDemoFeaturedGamePanel() {
         ObjectNode section = objectMapper.createObjectNode();
         section.put("id", "demo-featured-game-panel");
-        section.put("type", "FeaturedGamePanel");
+        section.put("type", "GamePanel");
         section.put("analyticsId", "demo_featured_game_panel");
         section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
 
@@ -789,6 +789,7 @@ public class DemoScreenComposer {
         data.put("gameStatus", 2);
         data.put("gameStatusText", "Q4 2:15");
         data.put("gameTimeEt", "2025-03-11T19:30:00-04:00");
+        data.put("variant", "featured");
         data.put("backgroundImageUrl", "https://loremflickr.com/1200/600/basketball,arena?lock=9");
         data.put("fallbackThumbnailUrl", FALLBACK_THUMB);
         data.put("badgeText", "LIVE");

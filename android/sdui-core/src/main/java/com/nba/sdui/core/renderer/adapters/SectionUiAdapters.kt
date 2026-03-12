@@ -62,7 +62,11 @@ data class GamePanelUiModel(
     val gameDateEt: String?,
     val leaderLines: List<String>,
     val visualState: GamePanelVisualState,
-    val primaryAction: SduiAction?
+    val primaryAction: SduiAction?,
+    val variant: String,
+    val badgeText: String?,
+    val visualLabel: String?,
+    val backgroundImageUrl: String?
 )
 
 // ============ FollowingRail ============
@@ -78,27 +82,6 @@ data class FollowingRailItemUi(
 data class FollowingRailUiModel(
     val title: String?,
     val items: List<FollowingRailItemUi>
-)
-
-// ============ FeaturedGamePanel ============
-
-data class FeaturedGamePanelUiModel(
-    val awayTricode: String,
-    val homeTricode: String,
-    val awayScore: String,
-    val homeScore: String,
-    val awayLogoUrl: String?,
-    val homeLogoUrl: String?,
-    val awayName: String?,
-    val homeName: String?,
-    val awayRecord: String?,
-    val homeRecord: String?,
-    val statusText: String,
-    val badgeText: String?,
-    val visualLabel: String?,
-    val backgroundImageUrl: String?,
-    val visualState: GamePanelVisualState,
-    val primaryAction: SduiAction?
 )
 
 // ============ SectionHeader ============
@@ -207,7 +190,11 @@ fun mapGamePanel(section: SduiSection): GamePanelUiModel? {
         gameDateEt = data["gameDateEt"] as? String,
         leaderLines = leaderLines,
         visualState = visualState,
-        primaryAction = firstActionFromSection(section)
+        primaryAction = firstActionFromSection(section),
+        variant = (data["variant"] as? String) ?: "standard",
+        badgeText = data["badgeText"] as? String,
+        visualLabel = data["visualLabel"] as? String,
+        backgroundImageUrl = data["backgroundImageUrl"] as? String
     )
 }
 
@@ -227,42 +214,6 @@ fun mapFollowingRail(section: SduiSection): FollowingRailUiModel? {
     return FollowingRailUiModel(
         title = data["title"] as? String,
         items = items
-    )
-}
-
-@Suppress("UNCHECKED_CAST")
-fun mapFeaturedGamePanel(section: SduiSection): FeaturedGamePanelUiModel? {
-    val data = section.data ?: return null
-    val homeTeam = data["homeTeam"] as? Map<String, Any?> ?: return null
-    val awayTeam = data["awayTeam"] as? Map<String, Any?> ?: return null
-    val gameStatus = (data["gameStatus"] as? Number)?.toInt() ?: 1
-    val statusText = (data["gameStatusText"] as? String).orEmpty().ifBlank {
-        if (gameStatus == 1) (data["gameTimeEt"] as? String).orEmpty().ifBlank { "Pregame" }
-        else if (gameStatus == 2) "Live" else "Final"
-    }
-    val visualState = when (gameStatus) {
-        1 -> GamePanelVisualState.PRE
-        2 -> GamePanelVisualState.LIVE
-        else -> GamePanelVisualState.FINAL
-    }
-
-    return FeaturedGamePanelUiModel(
-        awayTricode = (awayTeam["teamTricode"] as? String) ?: "AWY",
-        homeTricode = (homeTeam["teamTricode"] as? String) ?: "HME",
-        awayScore = ((awayTeam["score"] as? Number)?.toInt()?.toString()) ?: "-",
-        homeScore = ((homeTeam["score"] as? Number)?.toInt()?.toString()) ?: "-",
-        awayLogoUrl = awayTeam["logoUrl"] as? String,
-        homeLogoUrl = homeTeam["logoUrl"] as? String,
-        awayName = awayTeam["teamName"] as? String,
-        homeName = homeTeam["teamName"] as? String,
-        awayRecord = awayTeam["record"] as? String,
-        homeRecord = homeTeam["record"] as? String,
-        statusText = statusText,
-        badgeText = data["badgeText"] as? String,
-        visualLabel = data["visualLabel"] as? String,
-        backgroundImageUrl = data["backgroundImageUrl"] as? String,
-        visualState = visualState,
-        primaryAction = firstActionFromSection(section)
     )
 }
 

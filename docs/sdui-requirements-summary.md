@@ -580,13 +580,16 @@ Production SDUI screens need graceful degradation when individual sections fail.
 
 **Built:** `ErrorState` section type (Web and Android). The server can compose an explicit error section at composition time with `title`, `message`, `icon`, and optional `retryAction`. This handles cases where the server knows at composition time that data is unavailable. Server utility `SduiUtils.buildErrorSection()` standardizes error section construction.
 
-**Remaining gap (runtime error/loading states):** When a section's live data fails *after* the initial response (SSE disconnect, poll 500), the client needs per-section error/loading configuration. A `sectionStates` field on Section (with `loading.skeleton`, `error.message`, `error.retryAction`, `error.hideOnError`) is planned to give the server control over runtime failure UX without client releases.
+**Built (runtime error/loading states):** `SectionStates` added to schema and codegen. The server declares `sectionStates` on each section with live data, specifying:
+- `loading.skeleton` (shimmer, spinner, placeholder, none) and `loading.minHeightDp` for loading UX
+- `error.message`, `error.retryAction`, `error.hideOnError` for runtime failure UX
 
-**What's still needed:**
-- Per-section `sectionStates` field: server-declared loading skeleton type and error presentation for runtime data failures
-- Options: `"hide"` (remove section), `"static"` (show last known data), `"placeholder"` (show skeleton), `"retry"` (show retry button)
+Web client implements `SectionErrorBoundary` (React Error Boundary catching render crashes, displaying server-defined error message and retry) and `SectionSkeleton` (renders server-hinted loading skeleton). Server composers (`GameDetailComposer`, `BoxscoreComposer`) emit `sectionStates` on all SSE and poll sections via `SduiUtils.buildSectionStates()`.
+
+**Remaining gaps:**
 - Screen-level error state when the entire SDUI response fails to load
 - Timeout configuration per data binding channel
+- Android `sectionStates` rendering (schema and codegen done; renderer wiring pending)
 
 ```mermaid
 stateDiagram-v2
@@ -669,14 +672,11 @@ sequenceDiagram
 
 ### 9i. Impression Deduplication
 
-**What's needed:**
-- `onVisible` fires every time a section enters the viewport (scroll down, scroll back up = fires twice)
-- Production analytics require impression deduplication: fire once per session, or once per screen visit
-- Impression threshold: how much of the section must be visible (50%? 100%?) and for how long (0ms? 500ms?)
-- This is handled differently by every company — Airbnb tracks 50% visible for 1 second
+**Built (web):** Impression tracking implemented with `useImpressionTracking` hook using `IntersectionObserver` for viewport detection, `AnalyticsProvider` context for deduplication registry, and enhanced `ActionHandler` analytics dispatch. Supports server-defined dedup policies (`once-per-screen`, `once-per-interval`), visibility thresholds, and dwell time. ADR-009 accepted.
 
-**Decision required:** Deduplication strategy (client-side tracking set vs. server-defined policy), visibility threshold, and dwell time.  
-**ADR tracking:** [ADR-009](adr/009-impression-dedup-and-visibility-semantics.md)
+**Remaining gap:** Android impression tracking (architecture defined, client wiring pending). iOS not started.
+
+**ADR tracking:** [ADR-009](adr/009-impression-dedup-and-visibility-semantics.md) — **Accepted**
 
 ### 9j. A/B Testing Integration
 
@@ -717,13 +717,11 @@ sequenceDiagram
 
 **Settled (cross-platform):** Cross-form-factor differences (phone vs. TV vs. web) are handled by platform-aware composition — each platform family receives a response composed for its form factor. The server owns section selection and ordering per platform.
 
-**Remaining gap (within-family):** Within a platform family (e.g., phone vs. tablet within mobile, or narrow vs. wide browser), a lightweight layout mechanism is needed:
-- Section types like `Row` with `breakpoint` handle responsive within-section layout.
-- Layout density hints (e.g., compact vs. regular) may be needed for tablet vs. phone when the section set is the same but spacing/sizing differs.
-- Clear fallback behavior when a layout hint is unsupported on a client.
+**Built (within-family layout hints):** `SectionLayoutHints` added to schema and codegen. Server can specify per-section `marginTop`, `marginBottom`, `dividerAbove`, `dividerBelow`, and `priority` without client releases. Web client reads layout hints in `SectionList` and applies margins/dividers. ADR-008 accepted (Option C — hybrid: server hints + client layout engine).
 
-**Decision required:** Whether within-family layout hints belong in the schema or are handled entirely by client-side responsive logic. ADR-008 scope is now narrowed to within-family layout only.  
-**ADR tracking:** [ADR-008](adr/008-form-factor-layout-manager.md)
+**Remaining gap:** Android layout hints rendering (schema and codegen done; renderer wiring pending). Advanced layout features (multi-column, placement slots) deferred to surface expansion.
+
+**ADR tracking:** [ADR-008](adr/008-form-factor-layout-manager.md) — **Accepted (Option C)**
 
 ### 9n. Ad Support as First-Class Primitive
 
@@ -886,11 +884,11 @@ Until approved, these remain directional requirements and may be refined.
 | Request context envelope for composition | **Gap** | Needs formal schema and server/client conformance |
 | Composition API contract (auth, method, cacheability) | **Partial** | URI convention defined (`nba://{path}` → `GET /sdui/{path}`); auth and cacheability still gap |
 | Actions at subsection level | **Partial** | Supported conceptually; needs explicit schema examples and conformance tests |
-| Form-factor layout manager | **Partial** | Cross-platform: settled (platform-aware composition). Within-family responsive: gap (ADR-008 scoped to within-family only) |
+| Form-factor layout manager | **Partial** | Cross-platform: settled. Within-family: `SectionLayoutHints` built on web (margins, dividers, priority). ADR-008 accepted (Option C). Android wiring pending. |
 | Ad support as first-class primitive | **Gap** | Needs ad primitive definition and fallback behavior |
 | Theming / dark mode | **Gap** | Semantic tokens vs. literal values |
 | Animation hints | **Gap** | Entry/exit + data-change animations |
-| Impression deduplication | **Gap** | Threshold, dwell time, dedup strategy |
+| Impression deduplication | **Partial** | Built on web (IntersectionObserver + dedup registry). Android/iOS pending. ADR-009 accepted. |
 | A/B testing integration | **Partial** | Supports client hint + server-authoritative conflict rule; experiment service integration not finalized |
 | Pagination / infinite scroll | **Gap** | Cursor-based, server-defined |
 | Debugging / observability | **Partial** | traceId in responses; structured Logcat; no dashboards |
@@ -900,6 +898,8 @@ Until approved, these remain directional requirements and may be refined.
 | Form section (generic) | **Built** | Extensible field types (picker, segmented, toggle, datePicker, text), parameterized refresh on submit. Built on Web and Android. |
 | Parameterized refresh (Action extension) | **Built** | `endpoint` + `paramBindings` resolved from screen state at action time. Working via Form submit. |
 | ErrorState section | **Built** | Server-composed error sections with title, message, icon, retry action. Built on Web and Android. |
+| SectionLayoutHints | **Partial** | Schema + codegen done. Web client applies margins/dividers. Android wiring pending. |
+| SectionStates (runtime error/loading) | **Partial** | Schema + codegen done. Web: `SectionErrorBoundary` + `SectionSkeleton` built. Server emits on live sections. Android wiring pending. |
 
 ---
 

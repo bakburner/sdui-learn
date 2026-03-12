@@ -469,6 +469,24 @@
         "actions": {
           "type": "array",
           "items": { "$ref": "#/definitions/Action" }
+        },
+        "variant": {
+          "type": "string",
+          "enum": ["standard", "featured"],
+          "default": "standard",
+          "description": "Visual treatment: 'standard' for compact feed cards, 'featured' for hero-sized cards with gradient/background"
+        },
+        "backgroundImageUrl": {
+          "type": "string",
+          "description": "Background image URL for featured variant hero card"
+        },
+        "badgeText": {
+          "type": "string",
+          "description": "Badge/chip label, e.g. 'LIVE', 'FEATURED'"
+        },
+        "visualLabel": {
+          "type": "string",
+          "description": "Secondary label shown above the matchup (e.g. team name, 'Recommended')"
         }
       }
     },
@@ -666,7 +684,7 @@
         "id": { "type": "string" },
         "type": {
           "type": "string",
-          "enum": ["ScoreboardHeader", "StatLine", "HeroPanel", "ContentRail", "TabGroup", "PromoBanner", "GamePanel", "Row", "BoxscoreTable", "Form", "AdSlot", "SeasonLeadersTable", "FollowingRail", "FeaturedGamePanel", "SectionHeader", "VideoCarousel", "NbaTvSchedule", "SubscribeBanner", "SubscribeHero", "ErrorState"]
+          "enum": ["ScoreboardHeader", "StatLine", "HeroPanel", "ContentRail", "TabGroup", "PromoBanner", "GamePanel", "Row", "BoxscoreTable", "Form", "AdSlot", "SeasonLeadersTable", "FollowingRail", "SectionHeader", "VideoCarousel", "NbaTvSchedule", "SubscribeBanner", "SubscribeHero", "ErrorState"]
         },
         "refreshPolicy": { "$ref": "#/definitions/RefreshPolicy" },
         "dataBindings": { "$ref": "#/definitions/DataBinding" },
@@ -701,7 +719,6 @@
             { "$ref": "#/definitions/AdSlotData" },
             { "$ref": "#/definitions/LeadersTableData" },
             { "$ref": "#/definitions/FollowingRailData" },
-            { "$ref": "#/definitions/FeaturedGamePanelData" },
             { "$ref": "#/definitions/SectionHeaderData" },
             { "$ref": "#/definitions/VideoCarouselData" },
             { "$ref": "#/definitions/NbaTvScheduleData" },
@@ -878,32 +895,6 @@
         "items": {
           "type": "array",
           "items": { "$ref": "#/definitions/FollowingRailItem" }
-        }
-      }
-    },
-    "FeaturedGamePanelData": {
-      "type": "object",
-      "description": "Hero-sized game panel with larger imagery, prominent scores, and optional background",
-      "required": ["gameId", "gameStatus", "homeTeam", "awayTeam"],
-      "properties": {
-        "gameId": { "type": "string" },
-        "gameStatus": { "type": "integer" },
-        "gameStatusText": { "type": "string" },
-        "gameTimeEt": { "type": "string" },
-        "homeTeam": { "$ref": "#/definitions/TeamData" },
-        "awayTeam": { "$ref": "#/definitions/TeamData" },
-        "gameLeaders": { "$ref": "#/definitions/GameLeadersData" },
-        "backgroundImageUrl": {
-          "type": "string",
-          "description": "Background image URL for the hero card"
-        },
-        "badgeText": {
-          "type": "string",
-          "description": "Badge/chip label, e.g. 'LIVE', 'FEATURED'"
-        },
-        "actions": {
-          "type": "array",
-          "items": { "$ref": "#/definitions/Action" }
         }
       }
     },

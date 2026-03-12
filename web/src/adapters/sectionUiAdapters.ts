@@ -64,6 +64,11 @@ export interface GamePanelUiModel {
   broadcaster?: string;
   gameDateEt?: string;
   primaryAction?: Action;
+  variant: string;
+  badgeText?: string;
+  visualLabel?: string;
+  backgroundImageUrl?: string;
+  visualState?: string;
 }
 
 export function mapScoreboardHeader(section: Section): ScoreboardHeaderUiModel | null {
@@ -256,56 +261,6 @@ export function mapFollowingRail(section: Section): FollowingRailUiModel | null 
   };
 }
 
-// ── FeaturedGamePanel ──────────────────────────────────────────────
-
-export interface FeaturedGamePanelUiModel {
-  awayTricode: string;
-  homeTricode: string;
-  awayScore: string;
-  homeScore: string;
-  awayLogoUrl?: string;
-  homeLogoUrl?: string;
-  awayName?: string;
-  homeName?: string;
-  awayRecord?: string;
-  homeRecord?: string;
-  statusText: string;
-  badgeText?: string;
-  visualLabel?: string;
-  backgroundImageUrl?: string;
-  visualState?: string;
-  primaryAction?: Action;
-}
-
-export function mapFeaturedGamePanel(section: Section): FeaturedGamePanelUiModel | null {
-  const data = section.data as Data | undefined;
-  if (!data?.homeTeam || !data?.awayTeam) return null;
-  const raw = data as Record<string, unknown>;
-  const actions = raw.actions as Action[] | undefined;
-  const primaryAction = actions?.find((a) => a.type === 'navigate') ?? actions?.[0];
-  const statusText =
-    data.gameStatusText ||
-    (data.gameStatus === 1 ? ((raw.gameTimeEt as string | undefined) || 'Pregame') : data.gameStatus === 2 ? 'Live' : 'Final');
-  return {
-    awayTricode: data.awayTeam.teamTricode,
-    homeTricode: data.homeTeam.teamTricode,
-    awayScore: String(data.awayTeam.score ?? '-'),
-    homeScore: String(data.homeTeam.score ?? '-'),
-    awayLogoUrl: data.awayTeam.logoUrl,
-    homeLogoUrl: data.homeTeam.logoUrl,
-    awayName: data.awayTeam.teamName || data.awayTeam.teamCity,
-    homeName: data.homeTeam.teamName || data.homeTeam.teamCity,
-    awayRecord: (raw.awayTeam as Record<string, unknown>)?.record as string | undefined,
-    homeRecord: (raw.homeTeam as Record<string, unknown>)?.record as string | undefined,
-    statusText,
-    badgeText: raw.badgeText as string | undefined,
-    visualLabel: raw.visualLabel as string | undefined,
-    backgroundImageUrl: raw.backgroundImageUrl as string | undefined,
-    visualState: raw.visualState as string | undefined,
-    primaryAction,
-  };
-}
-
 // ── SectionHeader ──────────────────────────────────────────────────
 
 export interface SectionHeaderUiModel {
@@ -337,6 +292,9 @@ export function mapGamePanel(section: Section): GamePanelUiModel | null {
     data.gameStatusText ||
     (data.gameStatus === 1 ? ((raw.gameTimeEt as string | undefined) || 'Pregame') : data.gameStatus === 2 ? 'Live' : 'Final');
 
+  const gameStatus = data.gameStatus;
+  const visualState = gameStatus === 2 ? 'LIVE' : gameStatus === 1 ? 'PRE' : 'FINAL';
+
   return {
     awayTricode: data.awayTeam.teamTricode,
     homeTricode: data.homeTeam.teamTricode,
@@ -352,5 +310,10 @@ export function mapGamePanel(section: Section): GamePanelUiModel | null {
     broadcaster: raw.broadcaster as string | undefined,
     gameDateEt: raw.gameDateEt as string | undefined,
     primaryAction,
+    variant: (raw.variant as string | undefined) || 'standard',
+    badgeText: raw.badgeText as string | undefined,
+    visualLabel: raw.visualLabel as string | undefined,
+    backgroundImageUrl: raw.backgroundImageUrl as string | undefined,
+    visualState,
   };
 }

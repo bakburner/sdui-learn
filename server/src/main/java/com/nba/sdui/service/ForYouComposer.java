@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
  *
  * Layout:
  *   1.  FollowingRail     – horizontal avatar strip of followed teams
- *   2.  FeaturedGamePanel  – hero live / next-up game
+ *   2.  GamePanel (featured) – hero live / next-up game
  *   3.  SectionHeader      – "Top Stories"
  *   4.  ContentRail        – highlights / articles
  *   5.  AdSlot             – mid-feed ad 1
@@ -68,7 +68,7 @@ public class ForYouComposer {
         // 1. FollowingRail
         sections.add(buildFollowingRail());
 
-        // 2. FeaturedGamePanel — try live data, fall back to mock
+        // 2. GamePanel (featured) — try live data, fall back to mock
         ObjectNode featured = buildFeaturedFromLive();
         if (featured == null) {
             featured = buildMockFeaturedGame();
@@ -201,7 +201,7 @@ public class ForYouComposer {
 
         ObjectNode section = objectMapper.createObjectNode();
         section.put("id", "featured-game-" + gameId);
-        section.put("type", "FeaturedGamePanel");
+        section.put("type", "GamePanel");
         section.put("analyticsId", "for_you_featured_game");
 
         if (gameStatus == 2) {
@@ -219,10 +219,10 @@ public class ForYouComposer {
         data.put("gameStatus", gameStatus);
         data.put("gameStatusText", game.path("gameStatusText").asText(""));
         data.put("gameTimeEt", game.path("gameTimeEt").asText(""));
+        data.put("variant", "featured");
         data.set("homeTeam", mapTeam(game.path("homeTeam")));
         data.set("awayTeam", mapTeam(game.path("awayTeam")));
         data.put("badgeText", gameStatus == 2 ? "LIVE" : "UP NEXT");
-        // Show home team name prominently (matches mockup)
         data.put("visualLabel", game.path("homeTeam").path("teamName").asText("").toUpperCase());
 
         ArrayNode actions = objectMapper.createArrayNode();
@@ -240,7 +240,7 @@ public class ForYouComposer {
     private ObjectNode buildMockFeaturedGame() {
         ObjectNode section = objectMapper.createObjectNode();
         section.put("id", "featured-game-mock");
-        section.put("type", "FeaturedGamePanel");
+        section.put("type", "GamePanel");
         section.put("analyticsId", "for_you_featured_game");
         section.set("refreshPolicy", staticPolicy());
 
@@ -248,6 +248,7 @@ public class ForYouComposer {
         data.put("gameId", "0022400001");
         data.put("gameStatus", 2);
         data.put("gameStatusText", "Q3 5:42");
+        data.put("variant", "featured");
         data.put("badgeText", "LIVE");
         data.put("visualLabel", "CELTICS");
 

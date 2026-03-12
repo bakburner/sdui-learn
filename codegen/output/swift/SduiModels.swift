@@ -554,8 +554,6 @@ extension NavigationItem {
 ///
 /// Horizontal scrolling rail of followed teams/players with circular avatars
 ///
-/// Hero-sized game panel with larger imagery, prominent scores, and optional background
-///
 /// Titled separator/divider between groups of sections, with optional See All action
 ///
 /// Horizontal scrolling carousel of video thumbnails (landscape 16:9). Mobile shows
@@ -597,9 +595,19 @@ struct DataClass: Codable {
     let tabContents: [String: [Section]]?
     let tabs: [TabData]?
     let actions: [Action]?
-    let description, imageURL, gameID: String?
+    let description, imageURL: String?
+    /// Background image URL for featured variant hero card
+    let backgroundImageURL: String?
+    /// Badge/chip label, e.g. 'LIVE', 'FEATURED'
+    let badgeText: String?
+    let gameID: String?
     let gameLeaders: GameLeadersData?
     let gameTimeEt: String?
+    /// Visual treatment: 'standard' for compact feed cards, 'featured' for hero-sized cards with
+    /// gradient/background
+    let variant: Variant?
+    /// Secondary label shown above the matchup (e.g. team name, 'Recommended')
+    let visualLabel: String?
     /// Screen width (dp) below which children stack vertically
     let breakpoint: Int?
     /// Child sections rendered in a row (or column when collapsed)
@@ -657,10 +665,6 @@ struct DataClass: Codable {
     /// Total number of rows available server-side (for pagination display)
     let totalRows: Int?
     let items: [FollowingRailItem]?
-    /// Background image URL for the hero card
-    let backgroundImageURL: String?
-    /// Badge/chip label, e.g. 'LIVE', 'FEATURED'
-    let badgeText: String?
     /// Hero image for the currently airing program
     let heroImageURL: String?
     let heroSubtitle, heroTitle: String?
@@ -684,14 +688,14 @@ struct DataClass: Codable {
         case thumbnailURL = "thumbnailUrl"
         case cards, defaultTab, stateKey, tabContents, tabs, actions, description
         case imageURL = "imageUrl"
+        case backgroundImageURL = "backgroundImageUrl"
+        case badgeText
         case gameID = "gameId"
-        case gameLeaders, gameTimeEt, breakpoint, children, spacing, columns, emptyMessage, players, sortDirectionStateKey, sortStateKey, teamColor
+        case gameLeaders, gameTimeEt, variant, visualLabel, breakpoint, children, spacing, columns, emptyMessage, players, sortDirectionStateKey, sortStateKey, teamColor
         case teamLogoURL = "teamLogoUrl"
         case teamName, teamTotals, teamTricode, fields, submitAction, submitLabel, adUnitPath, collapseOnEmpty, label, provider
         case refreshIntervalSEC = "refreshIntervalSec"
         case sizes, targeting, page, pageSize, sortColumn, sortDirection, subtitle, totalRows, items
-        case backgroundImageURL = "backgroundImageUrl"
-        case badgeText
         case heroImageURL = "heroImageUrl"
         case heroSubtitle, heroTitle, liveNow, slots, ctaAction, ctaLabel
         case logoURL = "logoUrl"
@@ -742,9 +746,13 @@ extension DataClass {
         actions: [Action]?? = nil,
         description: String?? = nil,
         imageURL: String?? = nil,
+        backgroundImageURL: String?? = nil,
+        badgeText: String?? = nil,
         gameID: String?? = nil,
         gameLeaders: GameLeadersData?? = nil,
         gameTimeEt: String?? = nil,
+        variant: Variant?? = nil,
+        visualLabel: String?? = nil,
         breakpoint: Int?? = nil,
         children: [Section]?? = nil,
         spacing: Int?? = nil,
@@ -775,8 +783,6 @@ extension DataClass {
         subtitle: String?? = nil,
         totalRows: Int?? = nil,
         items: [FollowingRailItem]?? = nil,
-        backgroundImageURL: String?? = nil,
-        badgeText: String?? = nil,
         heroImageURL: String?? = nil,
         heroSubtitle: String?? = nil,
         heroTitle: String?? = nil,
@@ -816,9 +822,13 @@ extension DataClass {
             actions: actions ?? self.actions,
             description: description ?? self.description,
             imageURL: imageURL ?? self.imageURL,
+            backgroundImageURL: backgroundImageURL ?? self.backgroundImageURL,
+            badgeText: badgeText ?? self.badgeText,
             gameID: gameID ?? self.gameID,
             gameLeaders: gameLeaders ?? self.gameLeaders,
             gameTimeEt: gameTimeEt ?? self.gameTimeEt,
+            variant: variant ?? self.variant,
+            visualLabel: visualLabel ?? self.visualLabel,
             breakpoint: breakpoint ?? self.breakpoint,
             children: children ?? self.children,
             spacing: spacing ?? self.spacing,
@@ -849,8 +859,6 @@ extension DataClass {
             subtitle: subtitle ?? self.subtitle,
             totalRows: totalRows ?? self.totalRows,
             items: items ?? self.items,
-            backgroundImageURL: backgroundImageURL ?? self.backgroundImageURL,
-            badgeText: badgeText ?? self.badgeText,
             heroImageURL: heroImageURL ?? self.heroImageURL,
             heroSubtitle: heroSubtitle ?? self.heroSubtitle,
             heroTitle: heroTitle ?? self.heroTitle,
@@ -1797,6 +1805,13 @@ extension SubscriptionTier {
     }
 }
 
+/// Visual treatment: 'standard' for compact feed cards, 'featured' for hero-sized cards with
+/// gradient/background
+enum Variant: String, Codable {
+    case featured = "featured"
+    case standard = "standard"
+}
+
 // MARK: - DataBinding
 struct DataBinding: Codable {
     let bindings: [DataBindingPath]?
@@ -2200,7 +2215,6 @@ enum TypeEnum: String, Codable {
     case boxscoreTable = "BoxscoreTable"
     case contentRail = "ContentRail"
     case errorState = "ErrorState"
-    case featuredGamePanel = "FeaturedGamePanel"
     case followingRail = "FollowingRail"
     case form = "Form"
     case gamePanel = "GamePanel"

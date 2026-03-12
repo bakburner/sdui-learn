@@ -102,7 +102,7 @@ make codegen
 | Boxscore | `GET /sdui/boxscore/{gameId}` | Boxscore tables for a specific game (home and away). |
 | Refresh | `GET /sdui/refresh/{screenId}` | Parameterized refresh endpoint for form-driven section updates. |
 
-## Section Types (20)
+## Section Types (19)
 
 | Type | Description | Refresh |
 |------|-------------|---------|
@@ -112,8 +112,7 @@ make codegen
 | ContentRail | Horizontal scrolling content strip | Static |
 | TabGroup | Tabbed navigation with state-driven content | Poll or static |
 | PromoBanner | Promotional banner with CTA | Static |
-| GamePanel | Game card with teams, scores, leaders | SSE or static |
-| FeaturedGamePanel | Hero-sized game card with enhanced layout | SSE or static |
+| GamePanel | Game card with teams, scores, leaders. `variant: "featured"` enables hero-sized card with gradient background, badge, and visual label | SSE or static |
 | Row | Responsive side-by-side/stacked layout | Inherits from children |
 | SectionHeader | Simple header with optional subtitle and CTA | Static |
 | VideoCarousel | Horizontal scrolling video thumbnails | Static |

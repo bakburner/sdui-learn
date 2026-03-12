@@ -110,9 +110,6 @@
     "subsection": {
       "$ref": "sdui-schema.json#/definitions/Subsection"
     },
-    "featuredGamePanelData": {
-      "$ref": "sdui-schema.json#/definitions/FeaturedGamePanelData"
-    },
     "videoCarouselData": {
       "$ref": "sdui-schema.json#/definitions/VideoCarouselData"
     },

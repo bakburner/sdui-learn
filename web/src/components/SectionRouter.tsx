@@ -13,7 +13,6 @@ import { Form } from './sections/Form';
 import { AdSlot } from './sections/AdSlot';
 import { SeasonLeadersTable } from './sections/SeasonLeadersTable';
 import { FollowingRail } from './sections/FollowingRail';
-import { FeaturedGamePanel } from './sections/FeaturedGamePanel';
 import { SectionHeader } from './sections/SectionHeader';
 import { VideoCarousel } from './sections/VideoCarousel';
 import { NbaTvSchedule } from './sections/NbaTvSchedule';
@@ -86,8 +85,6 @@ function SectionRenderer({
     case 'FollowingRail':
       return <FollowingRail {...commonProps} />;
 
-    case 'FeaturedGamePanel':
-      return <FeaturedGamePanel {...commonProps} />;
 
     case 'SectionHeader':
       return <SectionHeader {...commonProps} />;

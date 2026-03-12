@@ -19,6 +19,7 @@
 | 2026-03-04 | Added `parentUri` to Screen response contract and example. Added client URI resolution convention. |
 | 2026-03-12 | Prototype sync. Renderer table updated — BoxscoreTable, Form, Row, SectionHeader, FollowingRail, SeasonLeadersTable now Built on Web and Android (19 renderers per platform). Added image fallback pattern (section 8a). Updated requirement status for tabular data and forms. |
 | 2026-03-11 | ErrorState added to renderer table (20 renderers per platform). Error handling status updated (Gap → Built for ErrorState, runtime `sectionStates` planned). Client-side visibility expressions evaluated and deferred — server-side composition handles section show/hide. |
+| 2026-03-12 | Server-control gaps closed: `SectionLayoutHints` and `SectionStates` added to schema + codegen. Web client: `SectionErrorBoundary`, `SectionSkeleton`, `useImpressionTracking`, `useAnalyticsContext` built. Server: `sectionStates` emitted on live sections. ADR-008 accepted (Option C), ADR-009 accepted. Bug fixes: `interactive` contentType enum, platform header threading (`X-Platform` required from clients, no server default), silent deserialization failures now logged on Android. |
 
 ---
 

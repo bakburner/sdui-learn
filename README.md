@@ -30,8 +30,8 @@ sdui-prototype/
 │   └── sdui-core/              # Reusable SDUI library (renderers, state, data)
 ├── web/                        # React/TypeScript web client
 │   └── src/
-│       ├── components/         # SectionRouter + 19 section renderers
-│       ├── hooks/              # useSduiScreen, useRefreshPolicy
+│       ├── components/         # SectionRouter + 19 section renderers + SectionErrorBoundary, SectionSkeleton
+│       ├── hooks/              # useSduiScreen, useRefreshPolicy, useImpressionTracking, useAnalyticsContext
 │       └── runtime/            # AblyClient, ActionHandler, DataBindingApplier
 ├── docs/                       # Technical proposal & requirements
 └── prompts/                    # Prototype generation prompt
@@ -127,6 +127,17 @@ make codegen
 | FollowingRail | Horizontal rail of followed items | Static |
 | ErrorState | Server/client error with title, message, optional retry action | Static |
 
+## Recent Changes (2026-03-12)
+
+- **Schema**: `SectionLayoutHints` (margins, dividers, priority) and `SectionStates` (loading skeleton, error message/retry) added to `Section`
+- **Schema**: `interactive` added to `contentType` enum
+- **Web**: `SectionErrorBoundary` (React Error Boundary), `SectionSkeleton` (shimmer/spinner/placeholder), `useImpressionTracking` (IntersectionObserver + dedup), `useAnalyticsContext` (dedup registry)
+- **Web**: Layout hints applied in `SectionList` (margins, dividers)
+- **Server**: `sectionStates` emitted on all live sections; platform header threaded through demos endpoint; no hardcoded platform defaults
+- **Android**: `X-Platform: android` header sent on all requests; deserialization failures now logged; Ably log level reduced to WARN; emulator RAM increased to 2048MB
+- **ADRs**: ADR-008 (layout hints) accepted as Option C; ADR-009 (impression dedup) accepted
+- **Docs**: Executive summary, technical proposal, requirements summary, and `.claude.md` updated
+
 ## Variants
 
 | Screen | Variant | Description |
@@ -165,6 +176,7 @@ make codegen
 
 | Document | Purpose |
 |----------|---------|
+| [Executive Summary](docs/SDUI_Executive_Summary_v2.md) | Business case, prototype status, timeline, resourcing |
 | [Technical Proposal](docs/SDUI_Technical_Proposal_v2.md) | Architecture, schema design, runtime behavior, requirement status |
 | [Requirements Summary](docs/sdui-requirements-summary.md) | Full requirements, gap analysis, ADR tracking |
 | [Implementation Reference](docs/sdui-implementation-reference.md) | Impression tracking code samples (Swift/Kotlin) |

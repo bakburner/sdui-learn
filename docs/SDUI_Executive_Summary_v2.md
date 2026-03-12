@@ -200,7 +200,13 @@ Expand SDUI to a second surface, introducing schema capabilities as the new surf
 > **Update (2026-03-04):** Boxscore table and form sections are now built and functional on Web and Android. BoxscoreTable demonstrates semantic tabular data rendering with client-side sort; Form demonstrates extensible settings pickers with parameterized server refresh. SeasonLeadersTable adds form-driven server refresh with section-level merge. These capabilities feed into M4 surface expansion (standings, roster, stats leaders).
 
 
-> **Update (2026-03-11):** ErrorState section type built on Web and Android. Server can now compose explicit error sections (with title, message, icon, retry action) at composition time — no client release needed to change error messaging. Client-side visibility expressions were evaluated and deferred; the server already controls section show/hide via composition, so a client-side condition evaluator would duplicate server responsibility. Per-section runtime error/loading states (`sectionStates`) and layout hints are planned next.
+> **Update (2026-03-11):** ErrorState section type built on Web and Android. Server can now compose explicit error sections (with title, message, icon, retry action) at composition time — no client release needed to change error messaging. Client-side visibility expressions were evaluated and deferred; the server already controls section show/hide via composition, so a client-side condition evaluator would duplicate server responsibility.
+
+> **Update (2026-03-12):** Four server-control gaps closed in a single iteration:
+> - **Layout hints** (`SectionLayoutHints`) — server-controlled inter-section margins, dividers, and priority. Schema, codegen, and web client wired. ADR-008 accepted (Option C — hybrid: server hints + client layout engine).
+> - **Runtime section states** (`SectionStates`) — server-defined loading skeletons and error messages per section. `SectionErrorBoundary` and `SectionSkeleton` built on web. Server composers emit `sectionStates` on all live (SSE/poll) sections.
+> - **Impression tracking** — `useImpressionTracking` hook with `IntersectionObserver`, `AnalyticsProvider` for deduplication registry, enhanced `ActionHandler` analytics dispatch. ADR-009 accepted.
+> - **Bug fixes and hardening** — `interactive` added to contentType enum (was crashing Android ContentRail). Platform header (`X-Platform`) now sent by Android client and never hardcoded on server. Silent deserialization failures now logged on Android.
 
 **Time to first production surface: ~18 weeks (4.5 months).** Second surface by week 24 (6 months). The original v1 estimate of 32 weeks to production assumed building from scratch; the prototype has already retired that risk. Capabilities identified in the mobile native audit (layout managers, entitlement, grid/table) are introduced when a surface requires them — they do not gate the beachhead.
 

@@ -1082,6 +1082,7 @@ extension HeroPanelData {
 enum ContentType: String, Codable {
     case article = "article"
     case gallery = "gallery"
+    case interactive = "interactive"
     case video = "video"
 }
 

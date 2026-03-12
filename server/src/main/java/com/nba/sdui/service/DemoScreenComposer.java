@@ -36,7 +36,7 @@ public class DemoScreenComposer {
      * Compose a kitchen-sink demo screen showcasing all 11 semantic section types
      * with static mock data.  No external API calls.
      */
-    public ObjectNode composeDemos(String traceId) {
+    public ObjectNode composeDemos(String traceId, String platform) {
         ObjectNode screen = objectMapper.createObjectNode();
         screen.put("id", "demos");
         screen.put("schemaVersion", schemaVersion);
@@ -85,7 +85,7 @@ public class DemoScreenComposer {
         sections.add(buildDemoBoxscoreTable());
         // 11. Form
         sections.add(buildTypeLabel("Form"));
-        sections.add(buildDemoForm("web"));
+        sections.add(buildDemoForm(platform));
         // 12. SeasonLeadersTable
         sections.add(buildTypeLabel("SeasonLeadersTable"));
         sections.add(buildDemoLeadersTable());

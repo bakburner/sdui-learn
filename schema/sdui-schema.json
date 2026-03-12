@@ -345,7 +345,7 @@
         "subhead": { "type": "string" },
         "contentType": {
           "type": "string",
-          "enum": ["article", "video", "gallery"]
+          "enum": ["article", "video", "gallery", "interactive"]
         },
         "duration": { "type": "string" },
         "action": { "$ref": "#/definitions/Action" }

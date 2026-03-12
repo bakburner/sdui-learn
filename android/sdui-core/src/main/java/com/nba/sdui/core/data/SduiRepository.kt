@@ -63,6 +63,7 @@ class SduiRepository(
         val request = Request.Builder()
             .url(url)
             .header("X-Schema-Version", SCHEMA_VERSION)
+            .header("X-Platform", "android")
             .build()
 
         val response = httpClient.newCall(request).execute()

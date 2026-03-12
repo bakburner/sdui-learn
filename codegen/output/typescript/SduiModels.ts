@@ -506,6 +506,7 @@ export interface HeroPanelData {
 export enum ContentType {
     Article = "article",
     Gallery = "gallery",
+    Interactive = "interactive",
     Video = "video",
 }
 

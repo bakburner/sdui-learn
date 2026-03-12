@@ -148,8 +148,36 @@ function handleRefresh(action: Action, context: ActionContext): void {
 }
 
 function handleAnalytics(action: Action): void {
-  console.log('[Analytics]', action.eventName, action.eventParams);
-  // In production, send to analytics service
+  const event = action.event ?? (action as Record<string, unknown>).eventName;
+  const params = action.params ?? (action as Record<string, unknown>).eventParams ?? {};
+  const destinations = action.destinations ?? ['all'];
+
+  const beacon = {
+    event,
+    params,
+    destinations,
+    timestamp: new Date().toISOString(),
+  };
+
+  console.log('[Analytics]', JSON.stringify(beacon, null, 2));
+
+  for (const dest of destinations) {
+    switch (dest) {
+      case 'adobe':
+        console.log('[Analytics:Adobe]', event, params);
+        break;
+      case 'firebase':
+        console.log('[Analytics:Firebase]', event, params);
+        break;
+      case 'internal':
+        console.log('[Analytics:Internal]', event, params);
+        break;
+      case 'all':
+      default:
+        console.log('[Analytics:All]', event, params);
+        break;
+    }
+  }
 }
 
 function handleDismiss(): void {

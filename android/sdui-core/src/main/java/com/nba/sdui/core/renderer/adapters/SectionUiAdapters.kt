@@ -298,7 +298,8 @@ private inline fun <reified T> convert(data: Map<String, Any?>?): T? {
     if (data == null) return null
     return try {
         mapper.convertValue(data, T::class.java)
-    } catch (_: Exception) {
+    } catch (e: Exception) {
+        android.util.Log.e("SectionUiAdapters", "Failed to convert data to ${T::class.java.simpleName}", e)
         null
     }
 }

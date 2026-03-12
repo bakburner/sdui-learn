@@ -74,8 +74,8 @@ public class SduiCompositionService {
         return boxscoreComposer.composeBoxscore(gameId, traceId);
     }
 
-    public JsonNode composeDemos(String traceId) {
-        return demoScreenComposer.composeDemos(traceId);
+    public JsonNode composeDemos(String traceId, String platform) {
+        return demoScreenComposer.composeDemos(traceId, platform);
     }
 
     public JsonNode composeLeaders(String traceId, String platform) {

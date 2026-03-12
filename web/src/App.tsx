@@ -192,13 +192,22 @@ export function App(): React.ReactElement {
       <main style={styles.main}>
         {screen.sections?.length ? (
           screen.sections.map((section) => (
-            <SectionRouter
+            <div
               key={section.id}
-              section={section}
-              state={screenState}
-              onAction={handleAction}
-              onStateChange={handleStateChange}
-            />
+              style={{
+                marginTop: section.layoutHints?.marginTop ?? 0,
+                marginBottom: section.layoutHints?.marginBottom ?? 0,
+              }}
+            >
+              {section.layoutHints?.dividerAbove && <hr className="sdui-divider" />}
+              <SectionRouter
+                section={section}
+                state={screenState}
+                onAction={handleAction}
+                onStateChange={handleStateChange}
+              />
+              {section.layoutHints?.dividerBelow && <hr className="sdui-divider" />}
+            </div>
           ))
         ) : (
           <div style={styles.emptyState}>No games available right now.</div>

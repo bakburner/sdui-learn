@@ -17,7 +17,8 @@
 | 2026-02-27 | Replaced `entitlements` with `device` in request envelope (governance, 9o, Appendix A). Aligned analytics field names (`event`/`params`) and mutate field names (`target`/`operation`/`value`) with requirements summary. Moved `schemaVersion` to `meta` object. Added `onBlur` trigger. |
 | 2026-03-04 | Added tabular data sections and forms. New semantic types (`BoxscoreTable`, `Form`) in schema design (section 2). Parameterized refresh on actions (section 4). Sort and form state patterns (section 5). Platform coverage update (section 8). Gap 9q. Requirement status updates. Appendix C boxscore response example. |
 | 2026-03-04 | Added `parentUri` to Screen response contract and example. Added client URI resolution convention. |
-| 2026-06-12 | Prototype sync. Renderer table updated — BoxscoreTable, Form, Row, SectionHeader, FollowingRail, SeasonLeadersTable now Built on Web and Android (19 renderers per platform). Added image fallback pattern (section 8a). Updated requirement status for tabular data and forms. |
+| 2026-03-12 | Prototype sync. Renderer table updated — BoxscoreTable, Form, Row, SectionHeader, FollowingRail, SeasonLeadersTable now Built on Web and Android (19 renderers per platform). Added image fallback pattern (section 8a). Updated requirement status for tabular data and forms. |
+| 2026-03-11 | ErrorState added to renderer table (20 renderers per platform). Error handling status updated (Gap → Built for ErrorState, runtime `sectionStates` planned). Client-side visibility expressions evaluated and deferred — server-side composition handles section show/hide. |
 
 ---
 
@@ -590,6 +591,7 @@ Each platform family receives a tailored composition from the server while shari
 | SectionHeader | Built | Built | Gap |
 | FollowingRail | Built | Built | Gap |
 | SeasonLeadersTable | Built | Built | Gap |
+| ErrorState | Built | Built | Gap |
 
 
 ---
@@ -767,6 +769,7 @@ See Section 2 (Schema Design) for data shapes and Section 4 (Action System) for 
 | Ad primitive contract          | Gap     | ADR-007 | required field policy + fallback semantics pending  |
 | Layout manager contract        | Gap     | ADR-008 | cross-form-factor hints and fallback policy pending |
 | Impression semantics           | Gap     | ADR-009 | threshold/dwell/dedup governance pending            |
+| Error handling (ErrorState)    | Built   | —       | server-composed `ErrorState` section type built on Web and Android. Per-section runtime error/loading states (`sectionStates`) planned. |
 | Contract testing/observability | Gap     | —       | broader test corpus + dashboards pending            |
 | Internationalization (i18n)    | Gap     | —       | server-resolved default + string keys on bindings   |
 | Tabular data (BoxscoreTable)   | Built   | —       | semantic table type, domain-typed data, client-side sort. Built on Web and Android. |

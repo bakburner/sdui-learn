@@ -92,6 +92,8 @@ extension SduiModels {
 /// Optional 'See All' or navigation action
 ///
 /// Optional action to retry the failed operation
+///
+/// Optional action to trigger on retry tap (typically a refresh action)
 // MARK: - Action
 struct Action: Codable {
     /// For analytics actions: where to send the beacon
@@ -883,8 +885,10 @@ struct Section: Codable {
     let data: DataClass?
     let dataBindings: DataBinding?
     let id: String
+    let layoutHints: SectionLayoutHints?
     let padding: Spacing?
     let refreshPolicy: RefreshPolicy?
+    let sectionStates: SectionStates?
     /// Nested interaction targets within the section
     let subsections: [Subsection]?
     let type: TypeEnum
@@ -892,7 +896,7 @@ struct Section: Codable {
     enum CodingKeys: String, CodingKey {
         case actions
         case analyticsID = "analyticsId"
-        case backgroundColor, data, dataBindings, id, padding, refreshPolicy, subsections, type
+        case backgroundColor, data, dataBindings, id, layoutHints, padding, refreshPolicy, sectionStates, subsections, type
     }
 }
 
@@ -921,8 +925,10 @@ extension Section {
         data: DataClass?? = nil,
         dataBindings: DataBinding?? = nil,
         id: String? = nil,
+        layoutHints: SectionLayoutHints?? = nil,
         padding: Spacing?? = nil,
         refreshPolicy: RefreshPolicy?? = nil,
+        sectionStates: SectionStates?? = nil,
         subsections: [Subsection]?? = nil,
         type: TypeEnum? = nil
     ) -> Section {
@@ -933,8 +939,10 @@ extension Section {
             data: data ?? self.data,
             dataBindings: dataBindings ?? self.dataBindings,
             id: id ?? self.id,
+            layoutHints: layoutHints ?? self.layoutHints,
             padding: padding ?? self.padding,
             refreshPolicy: refreshPolicy ?? self.refreshPolicy,
+            sectionStates: sectionStates ?? self.sectionStates,
             subsections: subsections ?? self.subsections,
             type: type ?? self.type
         )
@@ -1074,6 +1082,7 @@ extension HeroPanelData {
 enum ContentType: String, Codable {
     case article = "article"
     case gallery = "gallery"
+    case interactive = "interactive"
     case video = "video"
 }
 
@@ -1878,6 +1887,72 @@ extension DataBindingPath {
     }
 }
 
+/// Optional layout hints for section placement. Clients apply best-effort; unknown hints are
+/// ignored.
+// MARK: - SectionLayoutHints
+struct SectionLayoutHints: Codable {
+    /// Render a divider line above this section
+    let dividerAbove: Bool?
+    /// Render a divider line below this section
+    let dividerBelow: Bool?
+    /// Bottom margin in dp/points
+    let marginBottom: Int?
+    /// Top margin in dp/points (0 = flush)
+    let marginTop: Int?
+    /// Rendering priority hint — clients may use for lazy loading or viewport priority
+    let priority: Priority?
+}
+
+// MARK: SectionLayoutHints convenience initializers and mutators
+
+extension SectionLayoutHints {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(SectionLayoutHints.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        dividerAbove: Bool?? = nil,
+        dividerBelow: Bool?? = nil,
+        marginBottom: Int?? = nil,
+        marginTop: Int?? = nil,
+        priority: Priority?? = nil
+    ) -> SectionLayoutHints {
+        return SectionLayoutHints(
+            dividerAbove: dividerAbove ?? self.dividerAbove,
+            dividerBelow: dividerBelow ?? self.dividerBelow,
+            marginBottom: marginBottom ?? self.marginBottom,
+            marginTop: marginTop ?? self.marginTop,
+            priority: priority ?? self.priority
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+/// Rendering priority hint — clients may use for lazy loading or viewport priority
+enum Priority: String, Codable {
+    case high = "high"
+    case low = "low"
+    case normal = "normal"
+}
+
 // MARK: - Spacing
 struct Spacing: Codable {
     let bottom, end, start, top: Int?
@@ -1922,6 +1997,158 @@ extension Spacing {
     func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
         return String(data: try self.jsonData(), encoding: encoding)
     }
+}
+
+/// Server-declared loading and error presentation for a section. Clients render these states
+/// when applicable.
+// MARK: - SectionStates
+struct SectionStates: Codable {
+    let error: Error?
+    let loading: Loading?
+}
+
+// MARK: SectionStates convenience initializers and mutators
+
+extension SectionStates {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(SectionStates.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        error: Error?? = nil,
+        loading: Loading?? = nil
+    ) -> SectionStates {
+        return SectionStates(
+            error: error ?? self.error,
+            loading: loading ?? self.loading
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+// MARK: - Error
+struct Error: Codable {
+    /// If true, collapse the section entirely on error instead of showing error UI
+    let hideOnError: Bool?
+    /// Error message to display (e.g., 'Unable to load scores')
+    let message: String?
+    /// Optional action to trigger on retry tap (typically a refresh action)
+    let retryAction: Action?
+}
+
+// MARK: Error convenience initializers and mutators
+
+extension Error {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(Error.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        hideOnError: Bool?? = nil,
+        message: String?? = nil,
+        retryAction: Action?? = nil
+    ) -> Error {
+        return Error(
+            hideOnError: hideOnError ?? self.hideOnError,
+            message: message ?? self.message,
+            retryAction: retryAction ?? self.retryAction
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+// MARK: - Loading
+struct Loading: Codable {
+    /// Minimum height to reserve during loading (prevents layout shift)
+    let minHeightDP: Int?
+    /// Which loading skeleton style to use
+    let skeleton: Skeleton?
+
+    enum CodingKeys: String, CodingKey {
+        case minHeightDP = "minHeightDp"
+        case skeleton
+    }
+}
+
+// MARK: Loading convenience initializers and mutators
+
+extension Loading {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(Loading.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        minHeightDP: Int?? = nil,
+        skeleton: Skeleton?? = nil
+    ) -> Loading {
+        return Loading(
+            minHeightDP: minHeightDP ?? self.minHeightDP,
+            skeleton: skeleton ?? self.skeleton
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+/// Which loading skeleton style to use
+enum Skeleton: String, Codable {
+    case none = "none"
+    case placeholder = "placeholder"
+    case shimmer = "shimmer"
+    case spinner = "spinner"
 }
 
 /// Nested interaction target within a section (e.g., tappable team area inside a scoreboard)
@@ -1971,13 +2198,13 @@ extension Subsection {
 enum TypeEnum: String, Codable {
     case adSlot = "AdSlot"
     case boxscoreTable = "BoxscoreTable"
-    case heroPanel = "HeroPanel"
     case contentRail = "ContentRail"
     case errorState = "ErrorState"
     case featuredGamePanel = "FeaturedGamePanel"
     case followingRail = "FollowingRail"
     case form = "Form"
     case gamePanel = "GamePanel"
+    case heroPanel = "HeroPanel"
     case nbaTvSchedule = "NbaTvSchedule"
     case promoBanner = "PromoBanner"
     case row = "Row"

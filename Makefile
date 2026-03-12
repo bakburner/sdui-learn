@@ -38,7 +38,7 @@ dev-android:
 			exit 1; \
 		fi; \
 		echo "=== Launching emulator: $(AVD_NAME) ==="; \
-		$(EMU) -avd "$(AVD_NAME)" -no-snapshot-load &>/dev/null & \
+		$(EMU) -avd "$(AVD_NAME)" -no-snapshot-load -memory 2048 &>/dev/null & \
 		echo "Waiting for emulator to boot..."; \
 		$(ADB) wait-for-device; \
 		while [ "$$($(ADB) shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" != "1" ]; do sleep 1; done; \

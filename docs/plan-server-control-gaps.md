@@ -1,23 +1,22 @@
-# Plan: Server-Controlled Visibility, Layout, Error States & Analytics
+# Plan: Server-Controlled Layout, Error States & Analytics
 
 **Date:** 2026-03-11  
 **Author:** Adrian Robinson  
 **Status:** Draft  
-**Related ADRs:** [ADR-008](adr/008-form-factor-layout-manager.md), [ADR-009](adr/009-impression-dedup-and-visibility-semantics.md), [ADR-005](adr/005-action-scope-and-precedence.md), [ADR-006](adr/006-experiment-assignment-model.md)
+**Related ADRs:** [ADR-008](adr/008-form-factor-layout-manager.md), [ADR-009](adr/009-impression-dedup-and-visibility-semantics.md), [ADR-005](adr/005-action-scope-and-precedence.md)
 
 ---
 
 ## Summary
 
-Five changes across three layers (schema → codegen → client) to close gaps where the server should control section behavior without requiring store releases. The changes follow the existing SDUI pattern: server declares intent via schema fields, codegen propagates types, clients interpret generically.
+Four changes across three layers (schema → codegen → client) to close gaps where the server should control section behavior without requiring store releases. The changes follow the existing SDUI pattern: server declares intent via schema fields, codegen propagates types, clients interpret generically.
 
 | # | Fix | Priority | Risk Without Fix |
 |---|-----|----------|-----------------|
 | 1 | Fix operator precedence in `needsLiveWrapper` | P1 | Medium — subtle runtime bug |
-| 2 | Add server-controlled visibility/conditions | P0 | High — can't feature-flag sections without release |
-| 3 | Server-controlled layout hints on `SectionList` | P1 | Medium — layout changes force release |
-| 4 | Server-controlled error/loading states per section | P1 | Medium — UX changes per section force release |
-| 5 | Router-level analytics/tracking hook | P2 | Low-Medium — new section types miss tracking |
+| 2 | Server-controlled layout hints on `SectionList` | P1 | Medium — layout changes force release |
+| 3 | Server-controlled error/loading states per section | P1 | Medium — UX changes per section force release |
+| 4 | Router-level analytics/tracking hook | P2 | Low-Medium — new section types miss tracking |
 
 ---
 
@@ -27,9 +26,9 @@ Five changes across three layers (schema → codegen → client) to close gaps w
 
 Structural layout via semantic types (`Row`, future `Grid`/`SplitPane`); inter-section fine-tuning via `layoutHints`. Avoids over-engineering while giving server control over the most impactful layout knobs.
 
-### Visibility: Simple expression syntax
+### Visibility: Server-side composition (no client-side conditions)
 
-Keeps the evaluator small (~100 lines), avoids security concerns of `eval()`, sufficient for feature flags and state-gated sections. If complex boolean logic is needed later, extend to support `&&`/`||`.
+Client-side visibility expressions were considered and rejected. The server already controls which sections appear via composition — feature flags, A/B gating, user-segment filtering, and time-based conditions are all resolvable server-side at composition time. Adding a client-side condition evaluator would duplicate server responsibility and violate the core SDUI principle that the server owns composition. If a narrow need for state-gated visibility emerges (e.g., show/hide based on screen state that changes after delivery), it can be revisited then.
 
 ### Error/Loading: Per-section, not per-component
 
@@ -66,111 +65,13 @@ The `needsLiveWrapper` boolean expression uses `&&` and `||` without explicit pa
 
 ---
 
-## Step 2: Add server-controlled visibility/conditions on sections (P0)
-
-### Why
-
-Today, the server can only show/hide a section by omitting it entirely from the response. Feature flags, A/B gating, user-segment filtering, and time-based conditions all require either a server redeploy or an app release. Adding a `visibility` field lets the server declare conditions that the client evaluates against local state, enabling server-controlled toggles without any release.
-
-### 2a — Schema change
-
-**File:** `schema/sdui-schema.json`
-
-Add a `VisibilityRule` definition:
-
-```json
-"VisibilityRule": {
-  "type": "object",
-  "description": "Server-declared visibility condition evaluated client-side against screen state",
-  "required": ["condition"],
-  "properties": {
-    "condition": {
-      "type": "string",
-      "description": "Expression evaluated against screen state. Section renders when truthy. Supports: state key references (e.g. 'isLoggedIn'), dot paths ('user.tier'), negation ('!isPremium'), equality ('selectedTab == scores'), and inequality ('gameState != final'). Unknown keys evaluate to undefined (falsy)."
-    },
-    "fallbackVisible": {
-      "type": "boolean",
-      "default": true,
-      "description": "If condition evaluation fails (parse error, missing operator), show or hide. Defaults to true for forward-compatibility."
-    }
-  }
-}
-```
-
-Add to `Section.properties`:
-
-```json
-"visibility": { "$ref": "#/definitions/VisibilityRule" }
-```
-
-### 2b — Codegen
-
-Run `codegen/generate.sh` to regenerate TypeScript/Kotlin/Swift models. The `Section` interface in `codegen/output/typescript/SduiModels.ts` will gain an optional `visibility` field.
-
-### 2c — Client: condition evaluator
-
-**New file:** `web/src/runtime/ConditionEvaluator.ts`
-
-Implement a simple, safe expression evaluator that supports:
-
-| Syntax | Example | Behavior |
-|--------|---------|----------|
-| State key lookup | `"isLoggedIn"` | `Boolean(state["isLoggedIn"])` |
-| Dot path | `"user.tier"` | Nested state lookup |
-| Negation | `"!isPremium"` | `!Boolean(state["isPremium"])` |
-| Equality | `"selectedTab == scores"` | `state["selectedTab"] === "scores"` |
-| Inequality | `"gameState != final"` | `state["gameState"] !== "final"` |
-
-- No `eval()`. Use regex parsing into an AST of ~3 node types.
-- Return `boolean`.
-- On parse failure, return the `fallbackVisible` value (default `true`).
-
-### 2d — Client: wire into SectionRouter
-
-**File:** `web/src/components/SectionRouter.tsx`
-
-At the top of `SectionRouter`, before the `needsLiveWrapper` check:
-
-```ts
-if (section.visibility?.condition) {
-  const visible = evaluateCondition(
-    section.visibility.condition,
-    state,
-    section.visibility.fallbackVisible ?? true
-  );
-  if (!visible) return null;
-}
-```
-
-Each `SectionRouter` handles its own visibility, so `SectionList` needs no filtering logic. This keeps `key` stability clean (React won't reorder based on filtering).
-
-### 2e — Server: emit visibility rules
-
-**File:** e.g. `server/src/main/java/com/nba/sdui/service/ForYouComposer.java`
-
-Demonstrate by adding a visibility rule gated on state:
-
-```json
-{
-  "id": "following-rail-001",
-  "type": "FollowingRail",
-  "visibility": {
-    "condition": "isLoggedIn",
-    "fallbackVisible": false
-  },
-  "data": { ... }
-}
-```
-
----
-
-## Step 3: Server-controlled layout hints on `SectionList` (P1)
+## Step 2: Server-controlled layout hints on `SectionList` (P1)
 
 ### Why
 
 Today `SectionList` renders sections in a bare `<>` fragment with no server-controlled spacing, dividers, or layout hints. Any layout change between sections (add a divider, change spacing, switch to 2-column on tablet) requires an app release. ADR-008 is **Proposed** with three options; this plan adopts **Option C (Hybrid)** — semantic layout types already work (`Row` exists), and we add lightweight layout hints for inter-section spacing/dividers.
 
-### 3a — Schema change
+### 2a — Schema change
 
 **File:** `schema/sdui-schema.json`
 
@@ -217,11 +118,11 @@ Add to `Section.properties`:
 
 **Design note:** This is intentionally narrow (spacing + dividers + priority). Structural layout (columns, grids, split-panes) stays with semantic section types like `Row` — per ADR-008 Option B, which is already implemented. This avoids over-engineering the hints while giving the server control over the most common layout changes that currently require releases.
 
-### 3b — Codegen
+### 2b — Codegen
 
 Run `codegen/generate.sh`.
 
-### 3c — Client: `SectionList` wrapper
+### 2c — Client: `SectionList` wrapper
 
 **File:** `web/src/components/SectionRouter.tsx` (L143–L167)
 
@@ -251,19 +152,21 @@ Replace the bare fragment with a layout-aware wrapper per section:
 
 Also apply the same in `App.tsx` where sections are mapped directly (it doesn't use `SectionList`).
 
-### 3d — ADR-008 update
+### 2d — ADR-008 update
 
 Update `docs/adr/008-form-factor-layout-manager.md` status from **Proposed** to **Accepted: Option C (Hybrid)** with the decision that structural layout uses semantic types (`Row`, future `Grid`/`SplitPane`) and inter-section hints use `layoutHints`.
 
 ---
 
-## Step 4: Server-controlled error/loading states per section (P1)
+## Step 3: Server-controlled error/loading states per section (P1)
 
 ### Why
 
 Today, error and loading handling is only at the screen level in `App.tsx`. If a single section's live data fetch fails, there's no per-section error UI — the `LiveSectionWrapper` silently keeps stale data. The server can't customize error messages, retry labels, or skeleton types without an app release. Individual section components all hardcode their own `"No X data"` strings.
 
-### 4a — Schema change
+**Note:** The `ErrorState` section type already exists (built on Web and Android). It handles the case where the server knows at composition time that data is unavailable and explicitly composes an error section. The `sectionStates` proposal here is complementary — it handles what the client should show when a section's *live data* fails at runtime (SSE disconnect, poll 500), which the server can't know at composition time.
+
+### 3a — Schema change
 
 **File:** `schema/sdui-schema.json`
 
@@ -317,11 +220,11 @@ Add to `Section.properties`:
 "sectionStates": { "$ref": "#/definitions/SectionStates" }
 ```
 
-### 4b — Codegen
+### 3b — Codegen
 
 Run `codegen/generate.sh`.
 
-### 4c — Client: `SectionErrorBoundary` component
+### 3c — Client: `SectionErrorBoundary` component
 
 **New file:** `web/src/components/SectionErrorBoundary.tsx`
 
@@ -331,13 +234,13 @@ A React Error Boundary class component that:
 - Falls back to a generic "Something went wrong" if no server-provided message
 - Supports `hideOnError` to collapse the section entirely
 
-### 4d — Client: `SectionSkeleton` component
+### 3d — Client: `SectionSkeleton` component
 
 **New file:** `web/src/components/SectionSkeleton.tsx`
 
 Renders a shimmer/spinner/placeholder based on `sectionStates.loading.skeleton`. Respects `minHeightDp` for layout stability.
 
-### 4e — Client: wire into `SectionRouter`
+### 3e — Client: wire into `SectionRouter`
 
 **File:** `web/src/components/SectionRouter.tsx`
 
@@ -355,7 +258,7 @@ Wrap `SectionRenderer` in `SectionErrorBoundary`:
 
 Wire loading skeleton into `LiveSectionWrapper` — when `liveData` is `undefined` and a refresh is in-flight, render `<SectionSkeleton>` instead of passing `undefined` to children.
 
-### 4f — Server
+### 3f — Server
 
 **File:** `server/src/main/java/com/nba/sdui/service/GameDetailComposer.java`
 
@@ -379,13 +282,13 @@ Add `sectionStates` to sections with live data, e.g.:
 
 ---
 
-## Step 5: Router-level analytics/tracking hook (P2)
+## Step 4: Router-level analytics/tracking hook (P2)
 
 ### Why
 
 Today, `onVisible` actions and `ImpressionPolicy` are defined in the schema but never executed on the client — `handleAnalytics` in `ActionHandler.ts` is a `console.log` stub. Each new section type would need to independently implement impression tracking, which is fragile and will be missed. A router-level hook makes this automatic for all sections. Aligns with ADR-009's direction.
 
-### 5a — Client: `useImpressionTracking` hook
+### 4a — Client: `useImpressionTracking` hook
 
 **New file:** `web/src/hooks/useImpressionTracking.ts`
 
@@ -405,13 +308,13 @@ Uses `IntersectionObserver` to detect when a section's DOM element enters the vi
   - `once-per-interval` — fire, wait `intervalMs`, re-arm
 - Clean up observer on unmount
 
-### 5b — Client: `useAnalyticsContext` hook
+### 4b — Client: `useAnalyticsContext` hook
 
 **New file:** `web/src/hooks/useAnalyticsContext.ts`
 
 Provides a shared dedup registry (`Map<sectionId, lastFiredTimestamp>`) via React context, so `once-per-screen` dedup works across re-renders and `once-per-interval` can reset.
 
-### 5c — Client: wire into `SectionRouter`
+### 4c — Client: wire into `SectionRouter`
 
 **File:** `web/src/components/SectionRouter.tsx`
 
@@ -437,7 +340,7 @@ return (
 
 This happens at the router level, so **every section type — including future unknown types with a fallback renderer — gets impression tracking automatically**.
 
-### 5d — ActionHandler enhancement
+### 4d — ActionHandler enhancement
 
 **File:** `web/src/runtime/ActionHandler.ts`
 
@@ -446,7 +349,7 @@ Replace the `console.log` stub in `handleAnalytics` with proper dispatch logic:
 - Route to the appropriate beacon endpoint
 - For the prototype, log structured JSON; document the integration point for production analytics SDKs
 
-### 5e — ADR-009 update
+### 4e — ADR-009 update
 
 Update `docs/adr/009-impression-dedup-and-visibility-semantics.md` status from **Proposed** to **Accepted** with the implemented decisions:
 - `IntersectionObserver`-based visibility
@@ -461,28 +364,26 @@ Update `docs/adr/009-impression-dedup-and-visibility-semantics.md` status from *
 | Step | Test |
 |------|------|
 | 1. Operator precedence | No functional change. Run existing manual tests; visual diff confirms only grouping added. |
-| 2. Visibility | Add `FollowingRail` with `visibility: { "condition": "isLoggedIn" }`. Verify hides when state `isLoggedIn` is falsy, shows when truthy. Test malformed condition → section still renders (fallback). |
-| 3. Layout hints | Add `layoutHints: { "marginTop": 24, "dividerAbove": true }` to a section. Verify spacing and divider render. Verify omitting `layoutHints` matches current behavior. |
-| 4. Error/loading | Simulate a section render error via malformed data. Verify error boundary shows server message + retry. Stop SSE mid-stream; verify loading skeleton appears. |
-| 5. Analytics | Add `onVisible` analytics action to a section. Scroll into view. Verify event fires after dwell threshold. Scroll away and back — verify `once-per-screen` dedup prevents re-fire. |
+| 2. Layout hints | Add `layoutHints: { "marginTop": 24, "dividerAbove": true }` to a section. Verify spacing and divider render. Verify omitting `layoutHints` matches current behavior. |
+| 3. Error/loading | Simulate a section render error via malformed data. Verify error boundary shows server message + retry. Stop SSE mid-stream; verify loading skeleton appears. |
+| 4. Analytics | Add `onVisible` analytics action to a section. Scroll into view. Verify event fires after dwell threshold. Scroll away and back — verify `once-per-screen` dedup prevents re-fire. |
 
 ---
 
 ## Affected Files Summary
 
 ### Schema & Codegen
-- `schema/sdui-schema.json` — add `VisibilityRule`, `SectionLayoutHints`, `SectionStates` definitions; add `visibility`, `layoutHints`, `sectionStates` to `Section`
+- `schema/sdui-schema.json` — add `SectionLayoutHints`, `SectionStates` definitions; add `layoutHints`, `sectionStates` to `Section`
 - `codegen/generate.sh` — re-run to regenerate all platform models
 - `codegen/output/typescript/SduiModels.ts` — regenerated
 - `codegen/output/kotlin/SduiModels.kt` — regenerated
 - `codegen/output/swift/SduiModels.swift` — regenerated
 
 ### Web Client
-- `web/src/components/SectionRouter.tsx` — parentheses fix, visibility check, error boundary wrapper, tracking ref
+- `web/src/components/SectionRouter.tsx` — parentheses fix, error boundary wrapper, tracking ref
 - `web/src/components/LiveSectionWrapper.tsx` — loading state awareness
 - `web/src/components/SectionErrorBoundary.tsx` — **new**
 - `web/src/components/SectionSkeleton.tsx` — **new**
-- `web/src/runtime/ConditionEvaluator.ts` — **new**
 - `web/src/runtime/ActionHandler.ts` — analytics dispatch enhancement
 - `web/src/hooks/useImpressionTracking.ts` — **new**
 - `web/src/hooks/useAnalyticsContext.ts` — **new**
@@ -490,7 +391,6 @@ Update `docs/adr/009-impression-dedup-and-visibility-semantics.md` status from *
 
 ### Server
 - `server/src/main/java/com/nba/sdui/service/GameDetailComposer.java` — add `sectionStates` to live sections
-- `server/src/main/java/com/nba/sdui/service/ForYouComposer.java` — add `visibility` rules
 
 ### Documentation
 - `docs/adr/008-form-factor-layout-manager.md` — update status to Accepted (Option C)
@@ -502,10 +402,9 @@ Update `docs/adr/009-impression-dedup-and-visibility-semantics.md` status from *
 
 ```
 Step 1 (bug fix)          ─── can ship immediately, no dependencies
-Step 2 (visibility)       ─── schema → codegen → evaluator → SectionRouter → server
-Step 3 (layout hints)     ─── schema → codegen → SectionList/App.tsx → server → ADR-008
-Step 4 (error/loading)    ─── schema → codegen → ErrorBoundary + Skeleton → SectionRouter + LiveWrapper → server
-Step 5 (analytics)        ─── hooks → SectionRouter → ActionHandler → ADR-009
+Step 2 (layout hints)     ─── schema → codegen → SectionList/App.tsx → server → ADR-008
+Step 3 (error/loading)    ─── schema → codegen → ErrorBoundary + Skeleton → SectionRouter + LiveWrapper → server
+Step 4 (analytics)        ─── hooks → SectionRouter → ActionHandler → ADR-009
 ```
 
-Steps 2, 3, and 4 share a schema change + codegen step and can be batched into a single schema update. Step 5 is independent and can proceed in parallel.
+Steps 2 and 3 share a schema change + codegen step and can be batched into a single schema update. Step 4 is independent and can proceed in parallel.

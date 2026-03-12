@@ -226,14 +226,15 @@ public class SduiController {
     @GetMapping(value = "/sdui/demos", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<JsonNode> getDemos(
             @RequestHeader(value = "X-Schema-Version", defaultValue = "1.0") String schemaVersion,
+            @RequestHeader(value = "X-Platform", required = false) String platform,
             HttpServletResponse response) {
 
         String traceId = "trace-" + UUID.randomUUID().toString().substring(0, 8);
         MDC.put("traceId", traceId);
-        log.info("SDUI demos request: schemaVersion={}", schemaVersion);
+        log.info("SDUI demos request: schemaVersion={}, platform={}", schemaVersion, platform);
 
         try {
-            JsonNode screenResponse = compositionService.composeDemos(traceId);
+            JsonNode screenResponse = compositionService.composeDemos(traceId, platform);
             response.setHeader("X-Trace-Id", traceId);
             response.setHeader("X-Schema-Version", "1.0");
             return ResponseEntity.ok(screenResponse);
@@ -254,7 +255,7 @@ public class SduiController {
     @GetMapping(value = "/sdui/leaders", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<JsonNode> getLeaders(
             @RequestHeader(value = "X-Schema-Version", defaultValue = "1.0") String schemaVersion,
-            @RequestHeader(value = "X-Platform", defaultValue = "mobile") String platform,
+            @RequestHeader(value = "X-Platform", required = false) String platform,
             HttpServletResponse response) {
 
         String traceId = "trace-" + UUID.randomUUID().toString().substring(0, 8);

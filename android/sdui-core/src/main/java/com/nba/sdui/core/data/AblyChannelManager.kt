@@ -52,7 +52,7 @@ class AblyChannelManager(
             val options = ClientOptions().apply {
                 authUrl = tokenUrl
                 autoConnect = true
-                logLevel = io.ably.lib.util.Log.VERBOSE
+                logLevel = io.ably.lib.util.Log.WARN
             }
 
             ablyClient = AblyRealtime(options)

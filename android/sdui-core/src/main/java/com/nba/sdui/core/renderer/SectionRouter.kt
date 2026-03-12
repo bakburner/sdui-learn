@@ -22,7 +22,7 @@ fun SectionRouter(
     onStateChange: (String, Any) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Log.v("SectionRouter", "Routing section: id=${section.id}, type=${section.type}")
+    Log.d("SectionRouter", "Routing section: id=${section.id}, type=${section.type}")
     
     when (section.type) {
         "ScoreboardHeader" -> {

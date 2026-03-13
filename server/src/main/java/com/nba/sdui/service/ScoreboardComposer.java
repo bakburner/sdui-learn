@@ -26,6 +26,7 @@ public class ScoreboardComposer {
     private final ObjectMapper objectMapper;
     private final StatsApiClient statsApiClient;
     private final SduiUtils utils;
+    private final AtomicCompositeBuilder atomicBuilder;
 
     @Value("${sdui.schema.version:1.0}")
     private String schemaVersion;
@@ -36,6 +37,7 @@ public class ScoreboardComposer {
         this.objectMapper = objectMapper;
         this.statsApiClient = statsApiClient;
         this.utils = utils;
+        this.atomicBuilder = new AtomicCompositeBuilder(objectMapper);
     }
 
     // ── Public entry point ─────────────────────────────────────────────
@@ -119,7 +121,7 @@ public class ScoreboardComposer {
     private ObjectNode buildScoreboardRowSection(JsonNode game, String gameId) {
         ObjectNode section = objectMapper.createObjectNode();
         section.put("id", "game-" + gameId);
-        section.put("type", "ScoreboardHeader");
+        section.put("type", "GamePanel");
         section.put("analyticsId", "scoreboard_row_" + gameId);
 
         ObjectNode data = objectMapper.createObjectNode();
@@ -140,6 +142,7 @@ public class ScoreboardComposer {
         data.put("gameStatusText", game.path("gameStatusText").asText(""));
         data.put("period", game.path("period").asInt(0));
         data.put("gameClock", game.path("gameClock").asText(""));
+        data.put("variant", "scoreboard");
 
         data.set("homeTeam", mapGamePanelTeam(game.path("homeTeam")));
         data.set("awayTeam", mapGamePanelTeam(game.path("awayTeam")));
@@ -220,71 +223,22 @@ public class ScoreboardComposer {
     }
 
     private ObjectNode buildScoreboardPromoBanner() {
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "scoreboard-promo");
-        section.put("type", "PromoBanner");
-        section.put("analyticsId", "scoreboard_promo_banner");
-        section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
-
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("title", "NBA League Pass");
-        data.put("description", "Watch every out-of-market game live or on demand.");
-        data.put("imageUrl", FALLBACK_THUMB);
-
-        ArrayNode actions = objectMapper.createArrayNode();
-        ObjectNode action = objectMapper.createObjectNode();
-        action.put("trigger", "onTap");
-        action.put("type", "navigate");
-        action.put("targetUri", "nba://leaguepass");
-        action.put("fallbackUrl", "https://www.nba.com/watch/league-pass");
-        actions.add(action);
-        data.set("actions", actions);
-
-        section.set("data", data);
-        return section;
+        return atomicBuilder.buildPromoBanner("scoreboard-promo", "scoreboard_promo_banner",
+                "NBA League Pass", null,
+                "Watch every out-of-market game live or on demand.",
+                FALLBACK_THUMB, null, "Learn More", "nba://leaguepass");
     }
 
     private ObjectNode buildScoreboardContentRail() {
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "scoreboard-content-rail");
-        section.put("type", "ContentRail");
-        section.put("analyticsId", "scoreboard_content_rail");
-        section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
-
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("title", "Around the League");
-        data.put("fallbackThumbnailUrl", FALLBACK_THUMB);
-
-        ArrayNode cards = objectMapper.createArrayNode();
-
-        ObjectNode card1 = objectMapper.createObjectNode();
-        card1.put("id", "league-1");
-        card1.put("thumbnailUrl", FALLBACK_THUMB);
-        card1.put("headline", "Top 10 Plays of the Night");
-        card1.put("subhead", "Last night's best moments");
-        card1.put("contentType", "video");
-        ObjectNode a1 = objectMapper.createObjectNode();
-        a1.put("trigger", "onTap");
-        a1.put("type", "navigate");
-        a1.put("targetUri", "nba://video/top10-plays");
-        card1.set("action", a1);
-        cards.add(card1);
-
-        ObjectNode card2 = objectMapper.createObjectNode();
-        card2.put("id", "league-2");
-        card2.put("thumbnailUrl", FALLBACK_THUMB);
-        card2.put("headline", "Standings Update");
-        card2.put("subhead", "Current playoff picture");
-        card2.put("contentType", "article");
-        ObjectNode a2 = objectMapper.createObjectNode();
-        a2.put("trigger", "onTap");
-        a2.put("type", "navigate");
-        a2.put("targetUri", "nba://standings");
-        card2.set("action", a2);
-        cards.add(card2);
-
-        data.set("cards", cards);
-        section.set("data", data);
-        return section;
+        String[][] cards = {
+                {"league-1", "Top 10 Plays of the Night",
+                        "Last night's best moments", FALLBACK_THUMB,
+                        "video", null, "nba://video/top10-plays"},
+                {"league-2", "Standings Update",
+                        "Current playoff picture", FALLBACK_THUMB,
+                        "article", null, "nba://standings"}
+        };
+        return atomicBuilder.buildContentRail("scoreboard-content-rail",
+                "scoreboard_content_rail", "Around the League", cards);
     }
 }

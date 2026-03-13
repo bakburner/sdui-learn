@@ -13,8 +13,8 @@
   "sections": [
     {
       "id": "scoreboard",
-      "type": "ScoreboardHeader",
-      "analyticsId": "scoreboard_header",
+      "type": "GamePanel",
+      "analyticsId": "game_panel_scoreboard",
       "refreshPolicy": {
         "type": "static"
       },
@@ -38,7 +38,9 @@
         "gameStatus": 1,
         "gameStatusText": "7:00 PM ET",
         "period": 0,
-        "clock": ""
+        "gameClock": "",
+        "gameId": "0042300102",
+        "variant": "scoreboard"
       }
     },
     {
@@ -80,42 +82,73 @@
     },
     {
       "id": "content-rail",
-      "type": "ContentRail",
+      "type": "AtomicComposite",
       "analyticsId": "content_rail",
       "refreshPolicy": {
         "type": "static"
       },
       "data": {
-        "title": "Preview",
-        "cards": [
-          {
-            "id": "content-1",
-            "thumbnailUrl": "https://cdn.nba.com/manage/2024/04/GettyImages-preview.jpg",
-            "headline": "Game 4 Preview",
-            "subhead": "Can the Heat even the series?",
-            "contentType": "article",
-            "action": {
-              "trigger": "onTap",
-              "type": "navigate",
-              "targetUri": "nba://article/game4-preview",
-              "fallbackUrl": "https://www.nba.com/news/game4-preview"
+        "ui": {
+          "type": "Container",
+          "direction": "column",
+          "padding": { "start": 0, "end": 0, "top": 12, "bottom": 12 },
+          "children": [
+            {
+              "type": "Text",
+              "content": "Preview",
+              "variant": "titleMedium",
+              "weight": "bold",
+              "padding": { "start": 16, "end": 16, "top": 8, "bottom": 8 }
+            },
+            {
+              "type": "ScrollContainer",
+              "direction": "row",
+              "gap": 12,
+              "children": [
+                {
+                  "type": "Container",
+                  "id": "content-1",
+                  "direction": "column",
+                  "actions": [{ "trigger": "onTap", "type": "navigate", "targetUri": "nba://article/game4-preview", "fallbackUrl": "https://www.nba.com/news/game4-preview" }],
+                  "children": [
+                    {
+                      "type": "Container",
+                      "direction": "column",
+                      "cornerRadius": 8,
+                      "backgroundColor": "#2A2A4A",
+                      "children": [
+                        { "type": "Image", "src": "https://cdn.nba.com/manage/2024/04/GettyImages-preview.jpg", "width": 200, "height": 112, "fit": "cover" },
+                        { "type": "Text", "content": "ARTICLE", "variant": "labelSmall", "weight": "bold", "color": "#FFFFFF", "backgroundColor": "#FF6B6B" }
+                      ]
+                    },
+                    { "type": "Spacer", "height": 8 },
+                    { "type": "Text", "content": "Game 4 Preview", "variant": "bodySmall", "weight": "semiBold", "color": "#FFFFFF", "maxLines": 2 }
+                  ]
+                },
+                {
+                  "type": "Container",
+                  "id": "content-2",
+                  "direction": "column",
+                  "actions": [{ "trigger": "onTap", "type": "navigate", "targetUri": "nba://video/tatum-pregame", "fallbackUrl": "https://www.nba.com/video/tatum-pregame" }],
+                  "children": [
+                    {
+                      "type": "Container",
+                      "direction": "column",
+                      "cornerRadius": 8,
+                      "backgroundColor": "#2A2A4A",
+                      "children": [
+                        { "type": "Image", "src": "https://cdn.nba.com/manage/2024/04/tatum-interview.jpg", "width": 200, "height": 112, "fit": "cover" },
+                        { "type": "Text", "content": "VIDEO \u00b7 3:45", "variant": "labelSmall", "weight": "bold", "color": "#FFFFFF", "backgroundColor": "#FF6B6B" }
+                      ]
+                    },
+                    { "type": "Spacer", "height": 8 },
+                    { "type": "Text", "content": "Tatum Pre-Game Interview", "variant": "bodySmall", "weight": "semiBold", "color": "#FFFFFF", "maxLines": 2 }
+                  ]
+                }
+              ]
             }
-          },
-          {
-            "id": "content-2",
-            "thumbnailUrl": "https://cdn.nba.com/manage/2024/04/tatum-interview.jpg",
-            "headline": "Tatum Pre-Game Interview",
-            "subhead": "Watch the full interview",
-            "contentType": "video",
-            "duration": "3:45",
-            "action": {
-              "trigger": "onTap",
-              "type": "navigate",
-              "targetUri": "nba://video/tatum-pregame",
-              "fallbackUrl": "https://www.nba.com/video/tatum-pregame"
-            }
-          }
-        ]
+          ]
+        }
       }
     },
     {

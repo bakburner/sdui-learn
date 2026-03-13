@@ -18,8 +18,8 @@
   "sections": [
     {
       "id": "scoreboard",
-      "type": "ScoreboardHeader",
-      "analyticsId": "scoreboard_header",
+      "type": "GamePanel",
+      "analyticsId": "game_panel_scoreboard",
       "data": {
         "homeTeam": {
           "teamId": 1610612738,
@@ -40,7 +40,9 @@
         "gameStatus": 3,
         "gameStatusText": "Final",
         "period": 4,
-        "clock": "PT00M00.00S"
+        "gameClock": "PT00M00.00S",
+        "gameId": "0042300102",
+        "variant": "scoreboard"
       }
     },
     {

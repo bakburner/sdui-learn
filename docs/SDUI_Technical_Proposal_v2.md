@@ -21,6 +21,8 @@
 | 2026-03-11 | ErrorState added to renderer table (20 renderers per platform). Error handling status updated (Gap → Built for ErrorState, runtime `sectionStates` planned). Client-side visibility expressions evaluated and deferred — server-side composition handles section show/hide. |
 | 2026-03-12 | Server-control gaps closed: `SectionLayoutHints` and `SectionStates` added to schema + codegen. Web client: `SectionErrorBoundary`, `SectionSkeleton`, `useImpressionTracking`, `useAnalyticsContext` built. Server: `sectionStates` emitted on live sections. ADR-008 accepted (Option C), ADR-009 accepted. Bug fixes: `interactive` contentType enum, platform header threading (`X-Platform` required from clients, no server default), silent deserialization failures now logged on Android. |
 | 2026-03-12 | Merged `FeaturedGamePanel` into `GamePanel` with `variant` discriminator. `FeaturedGamePanelData` removed from schema; `GamePanelData` gains `variant`, `backgroundImageUrl`, `badgeText`, `visualLabel` fields. Server composers emit `type: "GamePanel"` with `variant: "featured"`. Android and Web renderers branch on variant. `FeaturedGamePanelRenderer` deleted on both platforms. Section type count: 20 → 19. |
+| 2026-03-13 | Added offline/degraded connectivity strategy (9r) with ADR-010 reference. Stale-while-offline approach using platform HTTP cache, staleness UX per `cacheability` class, analytics local queue. |
+| 2026-03-13 | Atomic rendering layer. Updated §2 (dual-layer model: semantic sections + atomic primitives coexisting via AtomicComposite). Added §2a (AtomicElement types, AtomicComposite bridge, Grid vs. Section Decision Tree). Updated §8 (AtomicRouter + 10 atomic renderers per platform). Added §9s (atomic layer performance contract). Updated §10 (atomic rendering layer status). |
 
 ---
 
@@ -81,7 +83,7 @@ The SDUI schema is universal — all platforms share the same vocabulary of sect
 - Schema definitions (JSON Schema) — the universal contract
 - Codegen (typed models per platform from one schema)
 - Upstream data fetching and transformation — one integration pipeline
-- Section-type semantics — a `ScoreboardHeader` means the same thing everywhere
+- Section-type semantics — a `GamePanel` means the same thing everywhere
 - Action and data binding structure
 
 **What differs per platform family:**
@@ -140,8 +142,8 @@ Every response follows `Screen -> Section -> Component`, where each section can 
     "sections": [
       {
         "id": "scoreboard-001",
-        "type": "ScoreboardHeader",
-        "data": { "...": "..." },
+        "type": "GamePanel",
+        "data": { "variant": "scoreboard", "...": "..." },
         "refreshPolicy": { "type": "sse", "channel": "{gameId}:linescore" },
         "dataBindings": { "bindings": [ { "sourcePath": "$.home.score", "targetPath": "home.score" } ] },
         "actions": [ { "trigger": "onTap", "type": "navigate", "targetUri": "nba://game/0022500384/boxscore" } ]
@@ -174,7 +176,7 @@ action targets is sufficient.
 ### Key Schema Decisions
 
 - Schema is the contract source of truth.
-- Schema defines semantic section types, not atomic layout primitives.
+- Schema defines a dual-layer model: **semantic section types** (GamePanel, BoxscoreTable, TabGroup, etc.) for domain-specific rendering with client-owned state, and **atomic element types** (Container, Text, Image, etc.) for server-composed generic layouts. The two layers coexist via the `AtomicComposite` bridge section type. See §2a.
 - Codegen generates typed models only, not UI code.
 - Schema evolution is additive-first and version-aware.
 - Unknown section/action types must degrade gracefully (skip/no-op).
@@ -326,6 +328,56 @@ Tabular stat views (boxscore, roster, standings) share UX patterns — frozen fi
 ```
 
 Field types: `picker` (dropdown), `segmented` (button group), `toggle` (switch), `datePicker`, `text`. Field changes accumulate in `Screen.state`; submit fires the `refresh` action with `paramBindings` resolved from current state values.
+
+### 2a. Atomic Element Layer
+
+The schema defines a second layer of **atomic element types** alongside the semantic section types described above. While semantic sections carry domain-typed data and rely on client-owned renderers (sort state, frozen columns, form submission), atomic elements are **server-composed primitives** rendered generically by an `AtomicRouter` with no client-side business logic.
+
+**AtomicElement types (10 in schema enum — 9 rendering primitives + 1 bridge):**
+
+| Type | Purpose | Key properties |
+|---|---|---|
+| **Container** | Flex layout wrapper | `children`, `direction`, `padding`, `gap`, `alignment`, `backgroundGradient` |
+| **Text** | Styled text | `content`, `variant`, `color`, `maxLines`, `alignment` |
+| **Image** | Remote image | `url`, `altText`, `width`, `height`, `contentScale` |
+| **Button** | Interactive element | `label`, `actions`, `variant` |
+| **Spacer** | Fixed space | `width`, `height` |
+| **Divider** | Line separator | `orientation`, `thickness`, `color` |
+| **ScrollContainer** | Scrollable region | `children`, `direction`, `paging`, `snapAlignment`, `gap` |
+| **Conditional** | State-driven branching | `condition`, `trueChild`, `falseChild` |
+| **DisplayGrid** | Display-only text grid | `columns`, `rows`, `headerVariant`, `cellVariant`, `striped` |
+| **SectionSlot** | Embed a full section | `section` (a complete Section object) |
+
+**Bridge mechanism — `AtomicComposite` section type:**
+
+The `AtomicComposite` section type bridges the section and atomic layers. When `SectionRouter` encounters `type: "AtomicComposite"`, it delegates rendering to `AtomicRouter`. The section's `data` contains:
+
+- `ui` — the root `AtomicElement` tree (rendering instructions)
+- `content` — reserved for domain data used with data-binding support
+
+`SectionSlot` provides the reverse bridge: an atomic tree can embed a full section renderer (e.g., an `AdSlot` inside an atomic layout), enabling bidirectional delegation between the two layers. A recursion guard (`MAX_SECTION_SLOT_DEPTH = 2`) prevents infinite nesting.
+
+**Grid vs. Section Decision Tree:**
+
+> **Why "DisplayGrid" and not "DataTable"?** The Tabular Data section above explicitly rejected a generic `DataTable` at the section level because different tables have genuinely different data shapes. The atomic `DisplayGrid` is a deliberately different primitive: a **display-only, non-interactive, server-ordered grid of text cells**. The name makes the non-interactive boundary self-documenting.
+
+```
+Need tabular data?
+├─ Needs client-side sort?                  → Section (BoxscoreTable / SeasonLeadersTable)
+├─ Needs frozen columns + horizontal scroll → Section
+├─ Needs pagination?                        → Section
+├─ Needs interactive rows (expand/select)?  → Section
+├─ Needs domain-typed row models?           → Section (compile-time safety)
+├─ Needs per-row actions (tap/swipe)?       → Section
+└─ Display-only, server-ordered grid of text
+   with no client interaction?              → DisplayGrid atomic primitive
+```
+
+**DisplayGrid boundary (hard contract)**:
+- ✅ Server decides column order, row order, and display values — client paints them.
+- ✅ Cell values are pre-formatted strings. No client-side formatting or computation.
+- ✅ Zero client interaction — no sort, no filter, no expand, no select, no tap.
+- ❌ The moment ANY of the above constraints break, promote to a semantic section type.
 
 ---
 
@@ -519,7 +571,7 @@ Each client platform builds these systems once:
 @Composable
 fun SectionRouter(section: SduiSection, onAction: (SduiAction) -> Unit) {
     when (section.type) {
-        "ScoreboardHeader" -> ScoreboardHeaderRenderer(section, onAction)
+        "GamePanel" -> GamePanelRenderer(section, onAction)
         "StatLine" -> StatLineRenderer(section, onAction)
         "ContentRail" -> ContentRailRenderer(section, onAction)
         "AdSlot" -> AdSlotRenderer(section, onAction)
@@ -532,12 +584,12 @@ fun SectionRouter(section: SduiSection, onAction: (SduiAction) -> Unit) {
 
 ```kotlin
 @Composable
-fun ScoreboardHeaderRenderer(section: SduiSection, onAction: (SduiAction) -> Unit) {
-    val data = mapScoreboard(section)
-    Row(horizontalArrangement = Arrangement.SpaceBetween) {
-        TeamColumn(team = data.awayTeam, onTap = { onActionTap(section, "awayTeam", onAction) })
-        Text(data.gameStatusText)
-        TeamColumn(team = data.homeTeam, onTap = { onActionTap(section, "homeTeam", onAction) })
+fun GamePanelRenderer(section: SduiSection, onAction: (SduiAction) -> Unit) {
+    val data = mapGamePanel(section)
+    when (data.variant) {
+        "scoreboard" -> ScoreboardRow(data, onAction)
+        "featured" -> FeaturedGameCard(data, onAction)
+        else -> StandardGameCard(data, onAction)
     }
 }
 ```
@@ -574,7 +626,6 @@ Each platform family receives a tailored composition from the server while shari
 
 | Section type | Web (React) | Android (Compose) | iOS (SwiftUI) |
 |---|---|---|---|
-| ScoreboardHeader | Built | Built | Designed |
 | StatLine | Built | Built | Designed |
 | HeroPanel | Built | Built | Designed |
 | ContentRail | Built | Built | Designed |
@@ -593,6 +644,24 @@ Each platform family receives a tailored composition from the server while shari
 | FollowingRail | Built | Built | Gap |
 | SeasonLeadersTable | Built | Built | Gap |
 | ErrorState | Built | Built | Gap |
+
+**Atomic element coverage across platforms:**
+
+| Atomic element type | Web (React) | Android (Compose) | iOS (SwiftUI) |
+|---|---|---|---|
+| Container | Built | Built | Gap |
+| Text | Built | Built | Gap |
+| Image | Built | Built | Gap |
+| Button | Built | Built | Gap |
+| Spacer | Built | Built | Gap |
+| Divider | Built | Built | Gap |
+| ScrollContainer | Built | Built | Gap |
+| Conditional | Built | Built | Gap |
+| DisplayGrid | Built | Built | Gap |
+| SectionSlot | Built | Built | Gap |
+| **AtomicRouter** | **Built** | **Built** | **Gap** |
+
+The `AtomicRouter` dispatches rendering for all 10 element types. `AtomicComposite` is the 19th section type in `SectionRouter` (18 semantic + AtomicComposite).
 
 
 ---
@@ -756,6 +825,36 @@ Key decisions settled (follows established semantic pattern — no ADR needed):
 
 See Section 2 (Schema Design) for data shapes and Section 4 (Action System) for parameterized refresh details.
 
+### 9r. Offline and Degraded Connectivity
+
+SDUI is server-driven by design — when the network is unavailable, there is no server to drive the UI. Without an explicit strategy, cold launch on a disconnected device shows a blank screen or unhandled error.
+
+The recommended approach is **stale-while-offline**: serve the last-known-good SDUI response from platform HTTP cache when the network is unavailable, show a non-blocking connectivity indicator, and allow pull-to-refresh to retry. This leverages existing cache infrastructure (OkHttp on Android, browser HTTP cache on Web) and the `cacheability` classification from ADR-004.
+
+Key principles:
+
+- **Proportional to value.** Sports content degrades quickly — live scores stale in seconds, schedules in hours. A full offline-first database is disproportionate; a cached last-response is sufficient.
+- **`cacheability` governs staleness behavior.** Sections with `cacheability: "live"` show a placeholder ("Live data unavailable") instead of stale data. `public`/`contextual`/`personalized` sections serve stale content with a timestamp indicator.
+- **No new server requirements.** Clients use existing HTTP cache headers per ADR-004. The server does not need an offline-specific API.
+- **Actions degrade gracefully.** Network-dependent actions (navigate, refresh, mutate) show a "No connection" message. Analytics events queue locally and flush when connectivity resumes.
+
+Options evaluated: offline-first local DB (rejected — cost disproportionate to value), stale-while-offline with platform cache (accepted), service worker for Web (deferred to v2), pre-seeded bundled content (optional v2 enhancement).
+
+Reference: ADR-010
+
+### 9s. Atomic Layer Performance Contract
+
+The atomic element layer introduces server-composed UI trees rendered generically by `AtomicRouter`. To prevent unbounded complexity, the following performance limits are enforced:
+
+| Limit | Value | Enforcement |
+|---|---|---|
+| Max tree depth | 6 | Server validation + client defensive depth guard (renderer returns null beyond limit) |
+| Max children per container | 20 | Server validation |
+| Max total nodes per atomic tree | 50 | Server validation |
+| Max SectionSlot nesting depth | 2 | Client recursion guard (`sectionSlotDepth` parameter) |
+
+These limits ensure atomic trees remain a lightweight composition mechanism, not a general-purpose layout engine. If a layout exceeds these constraints, it should be implemented as a semantic section type with a dedicated renderer.
+
 ---
 
 ## 10. Requirement Status
@@ -778,6 +877,8 @@ See Section 2 (Schema Design) for data shapes and Section 4 (Action System) for 
 | Parameterized refresh          | Built   | —       | `endpoint` + `paramBindings` Action extension. Working via Form submit. |
 | SeasonLeadersTable             | Built   | —       | domain-typed leaders table with form-driven parameterized refresh |
 | Image fallback                 | Built   | —       | server-driven `fallbackThumbnailUrl` with client-side error handling |
+| Offline / degraded connectivity| Gap     | ADR-010 | stale-while-offline via platform HTTP cache; staleness UX per cacheability class |
+| Atomic rendering layer         | Built   | —       | AtomicRouter + 9 primitives + SectionSlot bridge on Android and Web. AtomicComposite section type. DisplayGrid for non-interactive grids. Performance contract enforced (depth 6, children 20, nodes 50). |
 
 
 ---
@@ -808,6 +909,7 @@ The alternative is duplicated platform composition logic and drift in feature be
 3. Ship subsection actions + request-envelope schema updates with fixtures.
 4. Introduce ad primitive (ADR-007) and resolve layout strategy (ADR-008).
 5. Finalize impression semantics and enforce analytics/runtime conformance (ADR-009).
+6. Implement offline/degraded connectivity strategy per ADR-010 — platform cache fallback, staleness UX, analytics queue.
 
 ---
 
@@ -871,8 +973,9 @@ The `device` object carries device signals that the composition service may use 
     "sections": [
       {
         "id": "scoreboard-001",
-        "type": "ScoreboardHeader",
+        "type": "GamePanel",
         "data": {
+          "variant": "scoreboard",
           "homeTeam": {
             "teamId": "1610612752",
             "teamTricode": "NYK",

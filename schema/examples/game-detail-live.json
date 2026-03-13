@@ -13,8 +13,8 @@
   "sections": [
     {
       "id": "scoreboard",
-      "type": "ScoreboardHeader",
-      "analyticsId": "scoreboard_header",
+      "type": "GamePanel",
+      "analyticsId": "game_panel_scoreboard",
       "refreshPolicy": {
         "type": "sse",
         "channel": "{gameId}:linescore"
@@ -50,7 +50,9 @@
         "gameStatus": 2,
         "gameStatusText": "Q4 5:32",
         "period": 4,
-        "clock": "PT05M32.00S"
+        "gameClock": "PT05M32.00S",
+        "gameId": "0042300102",
+        "variant": "scoreboard"
       }
     },
     {
@@ -174,69 +176,113 @@
     },
     {
       "id": "content-rail",
-      "type": "ContentRail",
+      "type": "AtomicComposite",
       "analyticsId": "content_rail",
       "refreshPolicy": {
         "type": "static"
       },
       "data": {
-        "title": "Related Content",
-        "cards": [
-          {
-            "id": "content-1",
-            "thumbnailUrl": "https://cdn.nba.com/manage/2024/04/GettyImages-2149876543.jpg",
-            "headline": "Celtics Look to Close Out Series",
-            "subhead": "Boston leads 2-1 heading into Game 4",
-            "contentType": "article",
-            "action": {
-              "trigger": "onTap",
-              "type": "navigate",
-              "targetUri": "nba://article/celtics-close-series",
-              "fallbackUrl": "https://www.nba.com/news/celtics-close-series"
+        "ui": {
+          "type": "Container",
+          "direction": "column",
+          "padding": { "start": 0, "end": 0, "top": 12, "bottom": 12 },
+          "children": [
+            {
+              "type": "Text",
+              "content": "Related Content",
+              "variant": "titleMedium",
+              "weight": "bold",
+              "padding": { "start": 16, "end": 16, "top": 8, "bottom": 8 }
+            },
+            {
+              "type": "ScrollContainer",
+              "direction": "row",
+              "gap": 12,
+              "children": [
+                {
+                  "type": "Container",
+                  "id": "content-1",
+                  "direction": "column",
+                  "actions": [{ "trigger": "onTap", "type": "navigate", "targetUri": "nba://article/celtics-close-series", "fallbackUrl": "https://www.nba.com/news/celtics-close-series" }],
+                  "children": [
+                    {
+                      "type": "Container",
+                      "direction": "column",
+                      "cornerRadius": 8,
+                      "backgroundColor": "#2A2A4A",
+                      "children": [
+                        { "type": "Image", "src": "https://cdn.nba.com/manage/2024/04/GettyImages-2149876543.jpg", "width": 200, "height": 112, "fit": "cover" },
+                        { "type": "Text", "content": "ARTICLE", "variant": "labelSmall", "weight": "bold", "color": "#FFFFFF", "backgroundColor": "#FF6B6B" }
+                      ]
+                    },
+                    { "type": "Spacer", "height": 8 },
+                    { "type": "Text", "content": "Celtics Look to Close Out Series", "variant": "bodySmall", "weight": "semiBold", "color": "#FFFFFF", "maxLines": 2 }
+                  ]
+                },
+                {
+                  "type": "Container",
+                  "id": "content-2",
+                  "direction": "column",
+                  "actions": [{ "trigger": "onTap", "type": "navigate", "targetUri": "nba://video/brown-dunk-2024", "fallbackUrl": "https://www.nba.com/video/brown-dunk-2024" }],
+                  "children": [
+                    {
+                      "type": "Container",
+                      "direction": "column",
+                      "cornerRadius": 8,
+                      "backgroundColor": "#2A2A4A",
+                      "children": [
+                        { "type": "Image", "src": "https://cdn.nba.com/manage/2024/04/jaylen-brown-dunk.jpg", "width": 200, "height": 112, "fit": "cover" },
+                        { "type": "Text", "content": "VIDEO \u00b7 0:45", "variant": "labelSmall", "weight": "bold", "color": "#FFFFFF", "backgroundColor": "#FF6B6B" }
+                      ]
+                    },
+                    { "type": "Spacer", "height": 8 },
+                    { "type": "Text", "content": "Brown's Monster Dunk", "variant": "bodySmall", "weight": "semiBold", "color": "#FFFFFF", "maxLines": 2 }
+                  ]
+                },
+                {
+                  "type": "Container",
+                  "id": "content-3",
+                  "direction": "column",
+                  "actions": [{ "trigger": "onTap", "type": "navigate", "targetUri": "nba://video/butler-clutch-2024", "fallbackUrl": "https://www.nba.com/video/butler-clutch-2024" }],
+                  "children": [
+                    {
+                      "type": "Container",
+                      "direction": "column",
+                      "cornerRadius": 8,
+                      "backgroundColor": "#2A2A4A",
+                      "children": [
+                        { "type": "Image", "src": "https://cdn.nba.com/manage/2024/04/butler-fadeaway.jpg", "width": 200, "height": 112, "fit": "cover" },
+                        { "type": "Text", "content": "VIDEO \u00b7 1:20", "variant": "labelSmall", "weight": "bold", "color": "#FFFFFF", "backgroundColor": "#FF6B6B" }
+                      ]
+                    },
+                    { "type": "Spacer", "height": 8 },
+                    { "type": "Text", "content": "Butler's Clutch Shooting", "variant": "bodySmall", "weight": "semiBold", "color": "#FFFFFF", "maxLines": 2 }
+                  ]
+                },
+                {
+                  "type": "Container",
+                  "id": "content-4",
+                  "direction": "column",
+                  "actions": [{ "trigger": "onTap", "type": "navigate", "targetUri": "nba://article/heat-defense-breakdown", "fallbackUrl": "https://www.nba.com/news/heat-defense-breakdown" }],
+                  "children": [
+                    {
+                      "type": "Container",
+                      "direction": "column",
+                      "cornerRadius": 8,
+                      "backgroundColor": "#2A2A4A",
+                      "children": [
+                        { "type": "Image", "src": "https://cdn.nba.com/manage/2024/04/heat-defense.jpg", "width": 200, "height": 112, "fit": "cover" },
+                        { "type": "Text", "content": "ARTICLE", "variant": "labelSmall", "weight": "bold", "color": "#FFFFFF", "backgroundColor": "#FF6B6B" }
+                      ]
+                    },
+                    { "type": "Spacer", "height": 8 },
+                    { "type": "Text", "content": "Heat's Defensive Strategy", "variant": "bodySmall", "weight": "semiBold", "color": "#FFFFFF", "maxLines": 2 }
+                  ]
+                }
+              ]
             }
-          },
-          {
-            "id": "content-2",
-            "thumbnailUrl": "https://cdn.nba.com/manage/2024/04/jaylen-brown-dunk.jpg",
-            "headline": "Brown's Monster Dunk",
-            "subhead": "Watch the highlight",
-            "contentType": "video",
-            "duration": "0:45",
-            "action": {
-              "trigger": "onTap",
-              "type": "navigate",
-              "targetUri": "nba://video/brown-dunk-2024",
-              "fallbackUrl": "https://www.nba.com/video/brown-dunk-2024"
-            }
-          },
-          {
-            "id": "content-3",
-            "thumbnailUrl": "https://cdn.nba.com/manage/2024/04/butler-fadeaway.jpg",
-            "headline": "Butler's Clutch Shooting",
-            "subhead": "Jimmy buckets in the fourth",
-            "contentType": "video",
-            "duration": "1:20",
-            "action": {
-              "trigger": "onTap",
-              "type": "navigate",
-              "targetUri": "nba://video/butler-clutch-2024",
-              "fallbackUrl": "https://www.nba.com/video/butler-clutch-2024"
-            }
-          },
-          {
-            "id": "content-4",
-            "thumbnailUrl": "https://cdn.nba.com/manage/2024/04/heat-defense.jpg",
-            "headline": "Heat's Defensive Strategy",
-            "subhead": "Breaking down Miami's zone",
-            "contentType": "article",
-            "action": {
-              "trigger": "onTap",
-              "type": "navigate",
-              "targetUri": "nba://article/heat-defense-breakdown",
-              "fallbackUrl": "https://www.nba.com/news/heat-defense-breakdown"
-            }
-          }
-        ]
+          ]
+        }
       }
     },
     {
@@ -319,23 +365,36 @@
     },
     {
       "id": "promo-banner",
-      "type": "PromoBanner",
+      "type": "AtomicComposite",
       "analyticsId": "promo_banner_test",
       "refreshPolicy": {
         "type": "static"
       },
       "data": {
-        "title": "NBA League Pass",
-        "description": "Watch every out-of-market game live or on demand.",
-        "imageUrl": "https://cdn.nba.com/promo/league-pass-banner.jpg",
-        "actions": [
-          {
-            "trigger": "onTap",
-            "type": "navigate",
-            "targetUri": "nba://leaguepass",
-            "fallbackUrl": "https://www.nba.com/watch/league-pass"
-          }
-        ]
+        "ui": {
+          "type": "Container",
+          "direction": "row",
+          "alignment": "center",
+          "crossAlignment": "center",
+          "backgroundColor": "#2A2A5E",
+          "cornerRadius": 12,
+          "padding": { "start": 20, "end": 20, "top": 20, "bottom": 20 },
+          "children": [
+            { "type": "Image", "src": "https://cdn.nba.com/promo/league-pass-banner.jpg", "width": 64, "height": 64, "fit": "contain", "cornerRadius": 8 },
+            { "type": "Spacer", "height": 16 },
+            {
+              "type": "Container",
+              "direction": "column",
+              "children": [
+                { "type": "Text", "content": "NBA LEAGUE PASS", "variant": "labelSmall", "weight": "bold", "color": "#FF6B6B" },
+                { "type": "Spacer", "height": 4 },
+                { "type": "Text", "content": "Watch every out-of-market game live or on demand.", "variant": "bodySmall", "color": "#CCCCCC" },
+                { "type": "Spacer", "height": 12 },
+                { "type": "Button", "label": "Learn More", "buttonVariant": "filled", "actions": [{ "trigger": "onTap", "type": "navigate", "targetUri": "nba://leaguepass", "fallbackUrl": "https://www.nba.com/watch/league-pass" }] }
+              ]
+            }
+          ]
+        }
       }
     },
     {

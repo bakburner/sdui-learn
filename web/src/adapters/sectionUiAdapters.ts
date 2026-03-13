@@ -2,32 +2,12 @@ import type {
   Action,
   BoxscoreColumnDefinition,
   BoxscorePlayerRow,
-  HeroPanelData,
   Data,
   FormField,
   Section,
-  StatLineData,
   TabData,
   TeamData,
 } from '@sdui/models';
-
-export interface ScoreboardHeaderUiModel {
-  awayTeam?: TeamData;
-  homeTeam?: TeamData;
-  statusText: string;
-  isLive: boolean;
-  periodLabel?: string;
-}
-
-export interface StatLineUiModel {
-  title?: string;
-  stats: StatLineData[];
-}
-
-export interface ContentRailUiModel {
-  title?: string;
-  cards: HeroPanelData[];
-}
 
 export interface TabGroupUiModel {
   tabs: Array<{
@@ -38,15 +18,6 @@ export interface TabGroupUiModel {
   }>;
   activeSections: Section[];
   stateKey: string;
-}
-
-export interface PromoBannerUiModel {
-  title?: string;
-  headline?: string;
-  subhead?: string;
-  imageUrl?: string;
-  backgroundImageUrl?: string;
-  primaryAction?: Action;
 }
 
 export interface GamePanelUiModel {
@@ -71,63 +42,6 @@ export interface GamePanelUiModel {
   visualState?: string;
 }
 
-export function mapScoreboardHeader(section: Section): ScoreboardHeaderUiModel | null {
-  const data = section.data as Data | undefined;
-  if (!data) return null;
-  const isLive = data.gameStatus === 2;
-  return {
-    awayTeam: data.awayTeam,
-    homeTeam: data.homeTeam,
-    statusText: data.gameStatusText || 'TBD',
-    isLive,
-    periodLabel: isLive && data.period && data.period > 0 ? `Q${data.period}` : undefined,
-  };
-}
-
-export function mapStatLine(section: Section): StatLineUiModel | null {
-  const data = section.data as Data | undefined;
-  if (!data?.stats?.length) return null;
-  return {
-    title: data.title,
-    stats: data.stats,
-  };
-}
-
-export interface HeroPanelUiModel {
-  id: string;
-  headline: string;
-  subhead?: string;
-  thumbnailUrl?: string;
-  fallbackThumbnailUrl?: string;
-  contentType?: string;
-  duration?: string;
-  action?: Action;
-}
-
-export function mapHeroPanel(section: Section): HeroPanelUiModel | null {
-  const data = section.data as Record<string, unknown> | undefined;
-  if (!data?.headline) return null;
-  return {
-    id: (data.id as string) ?? section.id,
-    headline: data.headline as string,
-    subhead: data.subhead as string | undefined,
-    thumbnailUrl: data.thumbnailUrl as string | undefined,
-    fallbackThumbnailUrl: data.fallbackThumbnailUrl as string | undefined,
-    contentType: data.contentType as string | undefined,
-    duration: data.duration as string | undefined,
-    action: data.action as Action | undefined,
-  };
-}
-
-export function mapContentRail(section: Section): ContentRailUiModel | null {
-  const data = section.data as Data | undefined;
-  if (!data?.cards?.length) return null;
-  return {
-    title: data.title,
-    cards: data.cards,
-  };
-}
-
 export function mapTabGroup(section: Section, state: Record<string, unknown>): TabGroupUiModel | null {
   const data = section.data as Data | undefined;
   if (!data?.tabs?.length) return null;
@@ -149,21 +63,6 @@ export function mapTabGroup(section: Section, state: Record<string, unknown>): T
     tabs,
     activeSections: data.tabContents?.[activeValue] || [],
     stateKey,
-  };
-}
-
-export function mapPromoBanner(section: Section): PromoBannerUiModel | null {
-  const data = section.data as Record<string, unknown> | undefined;
-  if (!data) return null;
-  const actions = data.actions as Action[] | undefined;
-  const singleAction = data.action as Action | undefined;
-  return {
-    title: data.title as string | undefined,
-    headline: data.headline as string | undefined,
-    subhead: (data.subhead as string | undefined) || (data.description as string | undefined),
-    imageUrl: data.imageUrl as string | undefined,
-    backgroundImageUrl: data.backgroundImageUrl as string | undefined,
-    primaryAction: actions?.[0] || singleAction,
   };
 }
 
@@ -226,57 +125,6 @@ export function mapForm(section: Section, _state: Record<string, unknown>): Form
     submitAction: data.submitAction as Action | undefined,
     submitLabel: data.submitLabel as string | undefined,
     layout: (data.layout as string) || 'vertical',
-  };
-}
-
-// ── FollowingRail ──────────────────────────────────────────────────
-
-export interface FollowingRailItemUi {
-  id: string;
-  name: string;
-  imageUrl?: string;
-  entityType?: string;
-  action?: Action;
-}
-
-export interface FollowingRailUiModel {
-  title?: string;
-  items: FollowingRailItemUi[];
-}
-
-export function mapFollowingRail(section: Section): FollowingRailUiModel | null {
-  const data = section.data as Record<string, unknown> | undefined;
-  if (!data) return null;
-  const rawItems = data.items as Array<Record<string, unknown>> | undefined;
-  if (!rawItems?.length) return null;
-  return {
-    title: data.title as string | undefined,
-    items: rawItems.map((item) => ({
-      id: (item.id as string) || '',
-      name: (item.name as string) || '',
-      imageUrl: item.imageUrl as string | undefined,
-      entityType: item.entityType as string | undefined,
-      action: item.action as Action | undefined,
-    })),
-  };
-}
-
-// ── SectionHeader ──────────────────────────────────────────────────
-
-export interface SectionHeaderUiModel {
-  title: string;
-  subtitle?: string;
-  action?: Action;
-}
-
-export function mapSectionHeader(section: Section): SectionHeaderUiModel | null {
-  const data = section.data as Record<string, unknown> | undefined;
-  if (!data) return null;
-  const rawAction = data.action as Record<string, unknown> | undefined;
-  return {
-    title: (data.title as string) || '',
-    subtitle: data.subtitle as string | undefined,
-    action: rawAction ? (rawAction as unknown as Action) : undefined,
   };
 }
 

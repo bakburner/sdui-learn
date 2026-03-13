@@ -30,6 +30,7 @@ public class GameDetailComposer {
     private final StatsApiClient statsApiClient;
     private final BoxscoreComposer boxscoreComposer;
     private final SduiUtils utils;
+    private final AtomicCompositeBuilder atomicBuilder;
 
     @Value("${sdui.schema.version:1.0}")
     private String schemaVersion;
@@ -42,6 +43,7 @@ public class GameDetailComposer {
         this.statsApiClient = statsApiClient;
         this.boxscoreComposer = boxscoreComposer;
         this.utils = utils;
+        this.atomicBuilder = new AtomicCompositeBuilder(objectMapper);
     }
 
     // ── Public entry point ─────────────────────────────────────────────
@@ -77,9 +79,9 @@ public class GameDetailComposer {
         // Expose available A/B variants so clients never need URI-sniffing (Rule 10).
         ArrayNode variants = objectMapper.createArrayNode();
         variants.add(objectMapper.createObjectNode().put("id", "A").put("label", "Default").put("description", "All sections, standard order"));
-        variants.add(objectMapper.createObjectNode().put("id", "B").put("label", "Reorder").put("description", "ContentRail and TabGroup swapped"));
-        variants.add(objectMapper.createObjectNode().put("id", "C").put("label", "Minimal").put("description", "StatLine and PromoBanner removed"));
-        variants.add(objectMapper.createObjectNode().put("id", "D").put("label", "Extra Rail").put("description", "Second ContentRail added"));
+        variants.add(objectMapper.createObjectNode().put("id", "B").put("label", "Reorder").put("description", "Content rail and TabGroup swapped"));
+        variants.add(objectMapper.createObjectNode().put("id", "C").put("label", "Minimal").put("description", "Player stats and promo banner removed"));
+        variants.add(objectMapper.createObjectNode().put("id", "D").put("label", "Extra Rail").put("description", "Trending videos rail added after content rail"));
         response.set("variants", variants);
 
         resolveChannelPatterns(response, gameId);
@@ -134,8 +136,8 @@ public class GameDetailComposer {
 
             ArrayNode sections = objectMapper.createArrayNode();
 
-            // 1. ScoreboardHeader
-            sections.add(buildScoreboardHeaderFromLive(game, gameId));
+            // 1. GamePanel (scoreboard variant)
+            sections.add(buildGamePanelScoreboardFromLive(game, gameId));
 
             // 2. StatLine (top performers)
             ObjectNode statLineSection = buildStatLineSectionFromLive(game, gameId);
@@ -149,14 +151,14 @@ public class GameDetailComposer {
                 sections.add(rowSection);
             }
 
-            // 3. ContentRail from example
-            ObjectNode contentRail = loadSectionFromExample(gameState, "ContentRail");
+            // 3. ContentRail (AtomicComposite) from example
+            ObjectNode contentRail = loadSectionFromExample(gameState, "content-rail");
             if (contentRail != null) {
                 sections.add(contentRail);
             }
 
-            // 4. PromoBanner from example
-            ObjectNode promoBanner = loadSectionFromExample(gameState, "PromoBanner");
+            // 4. PromoBanner (AtomicComposite) from example
+            ObjectNode promoBanner = loadSectionFromExample(gameState, "promo-banner");
             if (promoBanner != null) {
                 sections.add(promoBanner);
             }
@@ -176,7 +178,7 @@ public class GameDetailComposer {
         return null;
     }
 
-    private ObjectNode loadSectionFromExample(String gameState, String sectionType) {
+    private ObjectNode loadSectionFromExample(String gameState, String sectionId) {
         try {
             JsonNode example = utils.loadExampleResponse(gameState);
             if (example == null) return null;
@@ -185,12 +187,12 @@ public class GameDetailComposer {
             if (sections == null) return null;
 
             for (JsonNode section : sections) {
-                if (sectionType.equals(section.path("type").asText())) {
+                if (sectionId.equals(section.path("id").asText())) {
                     return section.deepCopy();
                 }
             }
         } catch (Exception e) {
-            log.warn("Failed to load {} from example: {}", sectionType, e.getMessage());
+            log.warn("Failed to load section id={} from example: {}", sectionId, e.getMessage());
         }
         return null;
     }
@@ -302,14 +304,8 @@ public class GameDetailComposer {
         tabContents.set("boxscore", boxscoreContent);
 
         ArrayNode playByPlayContent = objectMapper.createArrayNode();
-        ObjectNode playByPlayPlaceholder = objectMapper.createObjectNode();
-        playByPlayPlaceholder.put("id", "play-by-play");
-        playByPlayPlaceholder.put("type", "StatLine");
-        ObjectNode pbpData = objectMapper.createObjectNode();
-        pbpData.put("title", "Play-by-Play");
-        pbpData.set("stats", objectMapper.createArrayNode());
-        playByPlayPlaceholder.set("data", pbpData);
-        playByPlayContent.add(playByPlayPlaceholder);
+        playByPlayContent.add(atomicBuilder.buildStatLine(
+                "play-by-play", null, "Play-by-Play", "vertical", new String[][]{}));
         tabContents.set("playbyplay", playByPlayContent);
 
         data.set("tabContents", tabContents);
@@ -327,14 +323,6 @@ public class GameDetailComposer {
         String teamCity = team.path("teamCity").asText();
         String teamTricode = team.path("teamTricode").asText();
         int teamId = team.path("teamId").asInt();
-
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "boxscore-" + teamTricode.toLowerCase());
-        section.put("type", "StatLine");
-
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("title", teamCity + " " + teamName);
-        data.put("layout", "vertical");
 
         ArrayNode stats = objectMapper.createArrayNode();
         ArrayNode players = (ArrayNode) team.get("players");
@@ -358,40 +346,27 @@ public class GameDetailComposer {
             }
             statItem.put("playerName", playerName);
             statItem.put("teamTricode", teamTricode);
-            statItem.put("teamId", teamId);
 
             String formattedMinutes = SduiUtils.formatMinutes(minutes);
             statItem.put("statCategory", "MIN");
             statItem.put("statValue", formattedMinutes);
 
-            ObjectNode additionalStats = objectMapper.createObjectNode();
-            additionalStats.put("points", playerStats.path("points").asInt());
-            additionalStats.put("rebounds", playerStats.path("reboundsTotal").asInt());
-            additionalStats.put("assists", playerStats.path("assists").asInt());
-            additionalStats.put("steals", playerStats.path("steals").asInt());
-            additionalStats.put("blocks", playerStats.path("blocks").asInt());
-            additionalStats.put("fgm", playerStats.path("fieldGoalsMade").asInt());
-            additionalStats.put("fga", playerStats.path("fieldGoalsAttempted").asInt());
-            additionalStats.put("threePm", playerStats.path("threePointersMade").asInt());
-            additionalStats.put("threePa", playerStats.path("threePointersAttempted").asInt());
-            additionalStats.put("ftm", playerStats.path("freeThrowsMade").asInt());
-            additionalStats.put("fta", playerStats.path("freeThrowsAttempted").asInt());
-            additionalStats.put("plusMinus", playerStats.path("plusMinusPoints").asInt());
-            statItem.set("additionalStats", additionalStats);
+            String imgUrl = "https://cdn.nba.com/headshots/nba/latest/1040x760/"
+                    + player.path("personId").asInt() + ".png";
+            statItem.put("playerImageUrl", imgUrl);
 
             stats.add(statItem);
         }
 
-        data.set("stats", stats);
-        section.set("data", data);
-
-        return section;
+        return atomicBuilder.buildStatLineFromNodes(
+                "boxscore-" + teamTricode.toLowerCase(), null,
+                teamCity + " " + teamName, "vertical", stats);
     }
 
-    private ObjectNode buildScoreboardHeaderFromLive(JsonNode game, String gameId) {
+    private ObjectNode buildGamePanelScoreboardFromLive(JsonNode game, String gameId) {
         ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "scoreboard-header");
-        section.put("type", "ScoreboardHeader");
+        section.put("id", "scoreboard");
+        section.put("type", "GamePanel");
 
         section.set("dataBindings", utils.buildLinescoreBindings());
 
@@ -401,7 +376,7 @@ public class GameDetailComposer {
         section.set("refreshPolicy", refreshPolicy);
 
         section.set("sectionStates", utils.buildSectionStates(
-                "scoreboard-header", "Unable to load live scores", "shimmer", 180));
+                "scoreboard", "Unable to load live scores", "shimmer", 180));
 
         ObjectNode data = objectMapper.createObjectNode();
 
@@ -433,26 +408,13 @@ public class GameDetailComposer {
         data.put("period", game.path("period").asInt());
         data.put("gameStatus", game.path("gameStatus").asInt());
         data.put("gameStatusText", game.path("gameStatusText").asText());
+        data.put("variant", "scoreboard");
 
         section.set("data", data);
         return section;
     }
 
     private ObjectNode buildStatLineSectionFromLive(JsonNode game, String gameId) {
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "top-performers");
-        section.put("type", "StatLine");
-
-        ObjectNode refreshPolicy = objectMapper.createObjectNode();
-        refreshPolicy.put("type", "poll");
-        refreshPolicy.put("intervalMs", 30000);
-        refreshPolicy.put("url", "https://cdn.nba.com/static/json/liveData/boxscore/boxscore_" + gameId + ".json");
-        refreshPolicy.put("dataPath", "game");
-        section.set("refreshPolicy", refreshPolicy);
-
-        section.set("sectionStates", utils.buildSectionStates(
-                "top-performers", "Unable to load player stats", "placeholder", 120));
-
         ArrayNode stats = objectMapper.createArrayNode();
 
         List<ObjectNode> homePerformers = getTopPerformersFromTeam(game.path("homeTeam"), 3);
@@ -465,11 +427,18 @@ public class GameDetailComposer {
             return null;
         }
 
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("title", "Top Performers");
-        data.put("layout", "vertical");
-        data.set("stats", stats);
-        section.set("data", data);
+        ObjectNode section = atomicBuilder.buildStatLineFromNodes(
+                "top-performers", null, "Top Performers", "vertical", stats);
+
+        ObjectNode refreshPolicy = objectMapper.createObjectNode();
+        refreshPolicy.put("type", "poll");
+        refreshPolicy.put("intervalMs", 30000);
+        refreshPolicy.put("url", "https://cdn.nba.com/static/json/liveData/boxscore/boxscore_" + gameId + ".json");
+        refreshPolicy.put("dataPath", "game");
+        atomicBuilder.attachRefreshPolicy(section, refreshPolicy);
+
+        atomicBuilder.attachSectionStates(section, utils.buildSectionStates(
+                "top-performers", "Unable to load player stats", "placeholder", 120));
 
         return section;
     }
@@ -508,19 +477,9 @@ public class GameDetailComposer {
     }
 
     private ObjectNode buildStatLineChild(String id, String title, List<ObjectNode> performers) {
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", id);
-        section.put("type", "StatLine");
-
         ArrayNode stats = objectMapper.createArrayNode();
         performers.forEach(stats::add);
-
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("title", title);
-        data.put("layout", "vertical");
-        data.set("stats", stats);
-        section.set("data", data);
-        return section;
+        return atomicBuilder.buildStatLineFromNodes(id, null, title, "vertical", stats);
     }
 
     private List<ObjectNode> getTopPerformersFromTeam(JsonNode team, int maxPlayers) {
@@ -612,9 +571,9 @@ public class GameDetailComposer {
         int tabGroupIndex = -1;
 
         for (int i = 0; i < sections.size(); i++) {
-            String type = sections.get(i).path("type").asText();
-            if ("ContentRail".equals(type)) contentRailIndex = i;
-            if ("TabGroup".equals(type)) tabGroupIndex = i;
+            String id = sections.get(i).path("id").asText();
+            if ("content-rail".equals(id)) contentRailIndex = i;
+            if ("game-tabs".equals(id)) tabGroupIndex = i;
         }
 
         if (contentRailIndex >= 0 && tabGroupIndex >= 0 && contentRailIndex < tabGroupIndex) {
@@ -633,14 +592,14 @@ public class GameDetailComposer {
         ArrayNode filtered = objectMapper.createArrayNode();
 
         for (JsonNode section : sections) {
-            String type = section.path("type").asText();
-            if (!"PromoBanner".equals(type) && !"StatLine".equals(type)) {
+            String id = section.path("id").asText();
+            if (!"promo-banner".equals(id) && !"player-stats".equals(id)) {
                 filtered.add(section);
             }
         }
 
         response.set("sections", filtered);
-        log.debug("Applied variant C: removed PromoBanner and StatLine, {} sections remaining", filtered.size());
+        log.debug("Applied variant C: removed promo-banner and player-stats, {} sections remaining", filtered.size());
     }
 
     private void applyVariantD(ObjectNode response) {
@@ -648,78 +607,22 @@ public class GameDetailComposer {
 
         ArrayNode sections = (ArrayNode) response.get("sections");
 
-        ObjectNode extraRail = objectMapper.createObjectNode();
-        extraRail.put("id", "trending-videos");
-        extraRail.put("type", "ContentRail");
-        extraRail.put("analyticsId", "trending_videos_rail");
-
-        ObjectNode refreshPolicy = objectMapper.createObjectNode();
-        refreshPolicy.put("type", "static");
-        extraRail.set("refreshPolicy", refreshPolicy);
-
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("title", "Trending Videos");
-        data.put("fallbackThumbnailUrl", FALLBACK_THUMB);
-
-        ArrayNode cards = objectMapper.createArrayNode();
-
-        ObjectNode card1 = objectMapper.createObjectNode();
-        card1.put("id", "trending-1");
-        card1.put("thumbnailUrl", FALLBACK_THUMB);
-        card1.put("headline", "Top 10 Plays of the Night");
-        card1.put("subhead", "Last night's best moments");
-        card1.put("contentType", "video");
-        card1.put("duration", "4:30");
-        ObjectNode action1 = objectMapper.createObjectNode();
-        action1.put("trigger", "onTap");
-        action1.put("type", "navigate");
-        action1.put("targetUri", "nba://video/top10-plays");
-        action1.put("fallbackUrl", "https://www.nba.com/video/top10-plays");
-        card1.set("action", action1);
-        cards.add(card1);
-
-        ObjectNode card2 = objectMapper.createObjectNode();
-        card2.put("id", "trending-2");
-        card2.put("thumbnailUrl", FALLBACK_THUMB);
-        card2.put("headline", "Playoff Intensity");
-        card2.put("subhead", "The best of postseason basketball");
-        card2.put("contentType", "video");
-        card2.put("duration", "2:15");
-        ObjectNode action2 = objectMapper.createObjectNode();
-        action2.put("trigger", "onTap");
-        action2.put("type", "navigate");
-        action2.put("targetUri", "nba://video/playoff-intensity");
-        action2.put("fallbackUrl", "https://www.nba.com/video/playoff-intensity");
-        card2.set("action", action2);
-        cards.add(card2);
-
-        ObjectNode card3 = objectMapper.createObjectNode();
-        card3.put("id", "trending-3");
-        card3.put("thumbnailUrl", FALLBACK_THUMB);
-        card3.put("headline", "Post-Game Press Conference");
-        card3.put("subhead", "Hear from the coaches");
-        card3.put("contentType", "video");
-        card3.put("duration", "6:00");
-        ObjectNode action3 = objectMapper.createObjectNode();
-        action3.put("trigger", "onTap");
-        action3.put("type", "navigate");
-        action3.put("targetUri", "nba://video/post-game-presser");
-        action3.put("fallbackUrl", "https://www.nba.com/video/post-game-presser");
-        card3.set("action", action3);
-        cards.add(card3);
-
-        data.set("cards", cards);
-        extraRail.set("data", data);
+        String[][] trendingCards = {
+            {"trending-1", "Top 10 Plays of the Night", "Last night's best moments", FALLBACK_THUMB, "video", "4:30", "nba://video/top10-plays"},
+            {"trending-2", "Playoff Intensity", "The best of postseason basketball", FALLBACK_THUMB, "video", "2:15", "nba://video/playoff-intensity"},
+            {"trending-3", "Post-Game Press Conference", "Hear from the coaches", FALLBACK_THUMB, "video", "6:00", "nba://video/post-game-presser"}
+        };
+        ObjectNode extraRail = atomicBuilder.buildContentRail("trending-videos", "trending_videos_rail", "Trending Videos", trendingCards);
 
         ArrayNode updated = objectMapper.createArrayNode();
         for (JsonNode section : sections) {
             updated.add(section);
-            if ("ContentRail".equals(section.path("type").asText())) {
+            if ("content-rail".equals(section.path("id").asText())) {
                 updated.add(extraRail);
             }
         }
 
         response.set("sections", updated);
-        log.debug("Applied variant D: added Trending Videos ContentRail, {} sections total", updated.size());
+        log.debug("Applied variant D: added Trending Videos rail, {} sections total", updated.size());
     }
 }

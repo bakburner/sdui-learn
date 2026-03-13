@@ -225,18 +225,19 @@
         "end": { "type": "integer" }
       }
     },
-    "Component": {
+    "AtomicElement": {
       "type": "object",
+      "description": "Atomic UI primitive — server-composed building block for the atomic rendering layer",
       "required": ["type"],
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["Container", "Text", "Image", "Button", "Spacer", "Divider", "ScrollContainer", "Conditional"]
+          "enum": ["Container", "Text", "Image", "Button", "Spacer", "Divider", "ScrollContainer", "Conditional", "DisplayGrid", "SectionSlot"]
         },
         "id": { "type": "string" },
         "children": {
           "type": "array",
-          "items": { "$ref": "#/definitions/Component" }
+          "items": { "$ref": "#/definitions/AtomicElement" }
         },
         "direction": { "$ref": "#/definitions/Direction" },
         "alignment": { "$ref": "#/definitions/Alignment" },
@@ -276,8 +277,71 @@
           "enum": ["start", "center", "end"]
         },
         "condition": { "type": "string" },
-        "trueChild": { "$ref": "#/definitions/Component" },
-        "falseChild": { "$ref": "#/definitions/Component" }
+        "trueChild": { "$ref": "#/definitions/AtomicElement" },
+        "falseChild": { "$ref": "#/definitions/AtomicElement" },
+        "columns": {
+          "type": "array",
+          "description": "DisplayGrid column definitions — display-only, non-interactive, server-ordered",
+          "items": {
+            "type": "object",
+            "required": ["key", "label"],
+            "properties": {
+              "key": { "type": "string", "description": "Row data key" },
+              "label": { "type": "string", "description": "Header label" },
+              "align": { "type": "string", "enum": ["start", "center", "end"], "default": "start" },
+              "width": { "description": "Fixed width (integer) or 'flex'", "oneOf": [{ "type": "integer" }, { "type": "string", "enum": ["flex"] }] }
+            }
+          }
+        },
+        "rows": {
+          "type": "array",
+          "description": "DisplayGrid row data — each object maps column keys to pre-formatted display values",
+          "items": {
+            "type": "object",
+            "additionalProperties": { "type": "string" }
+          }
+        },
+        "headerVariant": { "$ref": "#/definitions/TextVariant", "description": "Typography variant for header cells" },
+        "cellVariant": { "$ref": "#/definitions/TextVariant", "description": "Typography variant for data cells" },
+        "striped": { "type": "boolean", "description": "Alternate row background for readability" },
+        "section": {
+          "$ref": "#/definitions/Section",
+          "description": "Full section object to render via SectionRouter. Only used when type is SectionSlot."
+        },
+        "cornerRadius": { "type": "integer", "description": "Corner radius in dp/px. Applied to Container (with overflow clip) and Image elements." },
+        "backgroundGradient": {
+          "type": "object",
+          "description": "Gradient background for Container elements",
+          "properties": {
+            "colors": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Ordered list of color stops (hex or semantic token)"
+            },
+            "direction": {
+              "type": "string",
+              "enum": ["horizontal", "vertical", "diagonal"],
+              "default": "vertical"
+            }
+          },
+          "required": ["colors"]
+        }
+      }
+    },
+    "AtomicCompositeData": {
+      "type": "object",
+      "description": "Data payload for AtomicComposite sections — ui contains rendering instructions, content carries domain data",
+      "required": ["ui"],
+      "properties": {
+        "ui": {
+          "$ref": "#/definitions/AtomicElement",
+          "description": "Root node of the atomic element tree — the rendering instructions"
+        },
+        "content": {
+          "type": "object",
+          "description": "Optional domain data (strings, URLs, flags) to populate the ui tree. Reserved for future data-binding support.",
+          "additionalProperties": true
+        }
       }
     },
     "TeamData": {
@@ -290,18 +354,6 @@
         "teamCity": { "type": "string" },
         "logoUrl": { "type": "string" },
         "score": { "type": "integer" }
-      }
-    },
-    "ScoreboardHeaderData": {
-      "type": "object",
-      "required": ["homeTeam", "awayTeam", "gameStatus"],
-      "properties": {
-        "homeTeam": { "$ref": "#/definitions/TeamData" },
-        "awayTeam": { "$ref": "#/definitions/TeamData" },
-        "gameStatus": { "type": "integer" },
-        "gameStatusText": { "type": "string" },
-        "period": { "type": "integer" },
-        "clock": { "type": "string" }
       }
     },
     "StatLineData": {
@@ -472,9 +524,17 @@
         },
         "variant": {
           "type": "string",
-          "enum": ["standard", "featured"],
+          "enum": ["standard", "featured", "scoreboard"],
           "default": "standard",
-          "description": "Visual treatment: 'standard' for compact feed cards, 'featured' for hero-sized cards with gradient/background"
+          "description": "Visual treatment: 'standard' for compact feed cards, 'featured' for hero-sized cards with gradient/background, 'scoreboard' for compact scoreboard rows"
+        },
+        "period": {
+          "type": "integer",
+          "description": "Current game period (quarter number)"
+        },
+        "gameClock": {
+          "type": "string",
+          "description": "Game clock string (e.g. 'PT05M32.00S' or '5:32')"
         },
         "backgroundImageUrl": {
           "type": "string",
@@ -684,7 +744,7 @@
         "id": { "type": "string" },
         "type": {
           "type": "string",
-          "enum": ["ScoreboardHeader", "StatLine", "HeroPanel", "ContentRail", "TabGroup", "PromoBanner", "GamePanel", "Row", "BoxscoreTable", "Form", "AdSlot", "SeasonLeadersTable", "FollowingRail", "SectionHeader", "VideoCarousel", "NbaTvSchedule", "SubscribeBanner", "SubscribeHero", "ErrorState"]
+          "enum": ["StatLine", "HeroPanel", "ContentRail", "TabGroup", "PromoBanner", "GamePanel", "Row", "BoxscoreTable", "Form", "AdSlot", "SeasonLeadersTable", "FollowingRail", "SectionHeader", "VideoCarousel", "NbaTvSchedule", "SubscribeBanner", "SubscribeHero", "ErrorState", "AtomicComposite"]
         },
         "refreshPolicy": { "$ref": "#/definitions/RefreshPolicy" },
         "dataBindings": { "$ref": "#/definitions/DataBinding" },
@@ -706,7 +766,6 @@
         "data": {
           "description": "Section-specific data payload",
           "oneOf": [
-            { "$ref": "#/definitions/ScoreboardHeaderData" },
             { "$ref": "#/definitions/StatLineListData" },
             { "$ref": "#/definitions/HeroPanelData" },
             { "$ref": "#/definitions/ContentRailData" },
@@ -724,7 +783,8 @@
             { "$ref": "#/definitions/NbaTvScheduleData" },
             { "$ref": "#/definitions/SubscribeBannerData" },
             { "$ref": "#/definitions/SubscribeHeroData" },
-            { "$ref": "#/definitions/ErrorStateData" }
+            { "$ref": "#/definitions/ErrorStateData" },
+            { "$ref": "#/definitions/AtomicCompositeData" }
           ]
         }
       }

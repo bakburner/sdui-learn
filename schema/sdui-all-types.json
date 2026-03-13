@@ -14,8 +14,11 @@
     "action": {
       "$ref": "sdui-schema.json#/definitions/Action"
     },
-    "component": {
-      "$ref": "sdui-schema.json#/definitions/Component"
+    "atomicElement": {
+      "$ref": "sdui-schema.json#/definitions/AtomicElement"
+    },
+    "atomicCompositeData": {
+      "$ref": "sdui-schema.json#/definitions/AtomicCompositeData"
     },
     "refreshPolicy": {
       "$ref": "sdui-schema.json#/definitions/RefreshPolicy"
@@ -64,9 +67,6 @@
     },
     "teamData": {
       "$ref": "sdui-schema.json#/definitions/TeamData"
-    },
-    "scoreboardHeaderData": {
-      "$ref": "sdui-schema.json#/definitions/ScoreboardHeaderData"
     },
     "statLineData": {
       "$ref": "sdui-schema.json#/definitions/StatLineData"

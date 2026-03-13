@@ -1,24 +1,16 @@
 import React, { useRef } from 'react';
 import type { Section, Action, Data, RefreshPolicy } from '@sdui/models';
-import { ScoreboardHeader } from './sections/ScoreboardHeader';
-import { StatLine } from './sections/StatLine';
-import { HeroPanel } from './sections/HeroPanel';
-import { ContentRail } from './sections/ContentRail';
 import { TabGroup } from './sections/TabGroup';
-import { PromoBanner } from './sections/PromoBanner';
 import { GamePanel } from './sections/GamePanel';
 import { Row } from './sections/Row';
 import { BoxscoreTable } from './sections/BoxscoreTable';
 import { Form } from './sections/Form';
 import { AdSlot } from './sections/AdSlot';
 import { SeasonLeadersTable } from './sections/SeasonLeadersTable';
-import { FollowingRail } from './sections/FollowingRail';
-import { SectionHeader } from './sections/SectionHeader';
-import { VideoCarousel } from './sections/VideoCarousel';
-import { NbaTvSchedule } from './sections/NbaTvSchedule';
 import { SubscribeBanner } from './sections/SubscribeBanner';
 import { SubscribeHero } from './sections/SubscribeHero';
-import { ErrorState } from './sections/ErrorState';
+import { AtomicRouter } from './atomic';
+import type { AtomicCompositeData } from './atomic';
 import { LiveSectionWrapper } from './LiveSectionWrapper';
 import { SectionErrorBoundary } from './SectionErrorBoundary';
 import { useImpressionTracking } from '../hooks/useImpressionTracking';
@@ -49,21 +41,9 @@ function SectionRenderer({
   const commonProps = { section, state, onAction, onStateChange };
 
   switch (section.type) {
-    case 'ScoreboardHeader':
-      return <ScoreboardHeader {...commonProps} />;
-      
-    case 'StatLine':
-      return <StatLine {...commonProps} />;
-      
-    case 'ContentRail':
-      return <ContentRail {...commonProps} />;
-      
     case 'TabGroup':
       return <TabGroup {...commonProps} />;
       
-    case 'PromoBanner':
-      return <PromoBanner {...commonProps} />;
-
     case 'GamePanel':
       return <GamePanel {...commonProps} />;
 
@@ -82,30 +62,20 @@ function SectionRenderer({
     case 'SeasonLeadersTable':
       return <SeasonLeadersTable {...commonProps} />;
 
-    case 'FollowingRail':
-      return <FollowingRail {...commonProps} />;
-
-
-    case 'SectionHeader':
-      return <SectionHeader {...commonProps} />;
-      
-    case 'HeroPanel':
-      return <HeroPanel {...commonProps} />;
-
-    case 'VideoCarousel':
-      return <VideoCarousel {...commonProps} />;
-
-    case 'NbaTvSchedule':
-      return <NbaTvSchedule {...commonProps} />;
-
     case 'SubscribeBanner':
       return <SubscribeBanner {...commonProps} />;
 
     case 'SubscribeHero':
       return <SubscribeHero {...commonProps} />;
 
-    case 'ErrorState':
-      return <ErrorState {...commonProps} />;
+    case 'AtomicComposite': {
+      const compositeData = section.data as unknown as AtomicCompositeData | undefined;
+      if (!compositeData?.ui) {
+        console.debug(`[SectionRouter] AtomicComposite section ${section.id} has no ui element`);
+        return null;
+      }
+      return <AtomicRouter element={compositeData.ui} state={state} onAction={onAction} onStateChange={onStateChange} />;
+    }
       
     default:
       // Ignore unknown section types (forward compatibility)

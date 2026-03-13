@@ -2,6 +2,28 @@
 
 Server-Driven UI prototype demonstrating server-composed screens with real-time updates across Android and Web. Includes For You, Scoreboard, Game Detail, Watch, Live, Leaders, Boxscore, and demo screens — all driven by a single JSON schema.
 
+## Design Philosophy
+
+**The server controls _what_ appears and _in what order_. Platform teams control _how_ each component looks, feels, and animates natively.**
+
+Five principles guide every decision:
+
+1. **Schema is source of truth.** `schema/sdui-schema.json` defines the contract. Run `make codegen` after changes. Generated models are never hand-edited.
+2. **Semantic over generic.** Section types name domain concepts (`GamePanel`, `BoxscoreTable`), not layout primitives (`Card`, `Row`). Clients get compile-time safety and rendering freedom. The atomic layer exists for the inverse case — server-composed generic layouts where no client logic is needed.
+3. **No hardcoded URLs or screen-type enums on clients.** Every screen is a generic `fetchScreen(endpoint)`. Endpoints are resolved from server-provided URIs (`nba://` → `/sdui/`). New screens require zero client code.
+4. **Graceful degradation everywhere.** Unknown section types, unknown atomic elements, and unknown action types are skipped with a log — never crash. Stale cached responses are better than blank screens.
+5. **Decision checklist before adding client code:** Can the server compose it? Can a schema/action change solve it? Can it be an `AtomicComposite`? Only if none of those work, add a client renderer.
+
+### Dual-Layer Rendering Model
+
+The architecture uses two complementary rendering layers:
+
+- **Section layer** — Named domain renderers (`BoxscoreTable`, `GamePanel`, `Form`, `TabGroup`, etc.) with client-owned state (sort, scroll position, form input). Routed by `SectionRouter`.
+- **Atomic layer** — 9 server-composed primitives (`Container`, `Text`, `Image`, `Button`, `Spacer`, `Divider`, `ScrollContainer`, `Conditional`, `DisplayGrid`) with zero client business logic. Routed by `AtomicRouter`.
+- **Bridge** — `AtomicComposite` section type: `SectionRouter` delegates to `AtomicRouter`. `SectionSlot` atomic element: `AtomicRouter` delegates back to `SectionRouter` (e.g., embed an `AdSlot` inside an atomic layout).
+
+Use semantic sections when client-side state or interaction is needed. Use atomic composition when the server can fully describe the layout.
+
 ## Architecture
 
 **Shared schema, platform-aware composition.** The SDUI schema is universal — all platforms share the same vocabulary of section types, action types, and data models. The composition service produces per-platform-family responses tailored to each surface's information density, interaction model, and layout.
@@ -102,17 +124,18 @@ make codegen
 | Boxscore | `GET /sdui/boxscore/{gameId}` | Boxscore tables for a specific game (home and away). |
 | Refresh | `GET /sdui/refresh/{screenId}` | Parameterized refresh endpoint for form-driven section updates. |
 
-## Section Types (19)
+## Section Types (19 in schema: 18 semantic + AtomicComposite)
+
+### Semantic Sections (client-owned renderers)
 
 | Type | Description | Refresh |
 |------|-------------|---------|
-| ScoreboardHeader | Team logos, tricodes, scores, game status | SSE (live) or static |
 | StatLine | Player stat rows | Poll (30s) or static |
 | HeroPanel | Single content item (article/video) | Static |
 | ContentRail | Horizontal scrolling content strip | Static |
 | TabGroup | Tabbed navigation with state-driven content | Poll or static |
 | PromoBanner | Promotional banner with CTA | Static |
-| GamePanel | Game card with teams, scores, leaders. `variant: "featured"` enables hero-sized card with gradient background, badge, and visual label | SSE or static |
+| GamePanel | Game card with teams, scores, leaders. `variant: "standard"`, `"featured"` (hero-sized), `"scoreboard"` (compact row with live scores) | SSE or static |
 | Row | Responsive side-by-side/stacked layout | Inherits from children |
 | SectionHeader | Simple header with optional subtitle and CTA | Static |
 | VideoCarousel | Horizontal scrolling video thumbnails | Static |
@@ -126,16 +149,33 @@ make codegen
 | FollowingRail | Horizontal rail of followed items | Static |
 | ErrorState | Server/client error with title, message, optional retry action | Static |
 
-## Recent Changes (2026-03-12)
+### Atomic Primitives (server-composed, rendered by AtomicRouter)
 
-- **Schema**: `SectionLayoutHints` (margins, dividers, priority) and `SectionStates` (loading skeleton, error message/retry) added to `Section`
-- **Schema**: `interactive` added to `contentType` enum
-- **Web**: `SectionErrorBoundary` (React Error Boundary), `SectionSkeleton` (shimmer/spinner/placeholder), `useImpressionTracking` (IntersectionObserver + dedup), `useAnalyticsContext` (dedup registry)
-- **Web**: Layout hints applied in `SectionList` (margins, dividers)
-- **Server**: `sectionStates` emitted on all live sections; platform header threaded through demos endpoint; no hardcoded platform defaults
-- **Android**: `X-Platform: android` header sent on all requests; deserialization failures now logged; Ably log level reduced to WARN; emulator RAM increased to 2048MB
-- **ADRs**: ADR-008 (layout hints) accepted as Option C; ADR-009 (impression dedup) accepted
-- **Docs**: Executive summary, technical proposal, requirements summary, and `.claude.md` updated
+| Element | Purpose |
+|---------|---------|  
+| Container | Flex layout (row/column) with padding, gap, alignment, background gradient |
+| Text | Styled text with variant, color, weight, maxLines |
+| Image | Remote image with alt text, dimensions, content scale |
+| Button | Interactive element with label, actions, variant |
+| Spacer | Fixed-size empty space |
+| Divider | Horizontal/vertical line separator |
+| ScrollContainer | Scrollable region (horizontal/vertical) with paging + snap |
+| Conditional | State-driven if/else branching (`condition` evaluated against screen state) |
+| DisplayGrid | Display-only text grid — zero interactivity (sort/filter/expand → use a section) |
+| SectionSlot | Embed a full section renderer inside an atomic tree (bridge back to SectionRouter) |
+
+**Performance contract:** max depth 6, max children/container 20, max nodes 50. Server validates; clients have defensive depth guards.
+
+## Recent Changes (2026-03-13)
+
+- **Atomic rendering layer** — Dual-layer architecture: 9 atomic primitives + SectionSlot bridge, AtomicRouter on Android and Web, AtomicComposite bridge section type, server-side AtomicCompositeBuilder
+- **Tier 1 migration complete** — ErrorState, SectionHeader, PromoBanner, ContentRail, FollowingRail now served as AtomicComposite
+- **Tier 2 migration complete** — HeroPanel, StatLine, VideoCarousel, NbaTvSchedule migrated (4 of 5; GamePanel kept as semantic)
+- **SectionSlot bidirectional bridge** — Atomic trees can embed full section renderers (recursion guard: depth 2)
+- **ScoreboardHeader consolidated** — Merged into GamePanel as `variant: "scoreboard"`
+- **DisplayGrid** — Non-interactive server-ordered text grid primitive
+- **Governance docs updated** — Executive Summary, Technical Proposal (§2a, §8, §9s, §10), Requirements Summary all reflect dual-layer model
+- **Kitchen sink appendix** — Full 42-section demo response documented
 
 ## Variants
 
@@ -178,5 +218,7 @@ make codegen
 | [Executive Summary](docs/SDUI_Executive_Summary_v2.md) | Business case, prototype status, timeline, resourcing |
 | [Technical Proposal](docs/SDUI_Technical_Proposal_v2.md) | Architecture, schema design, runtime behavior, requirement status |
 | [Requirements Summary](docs/sdui-requirements-summary.md) | Full requirements, gap analysis, ADR tracking |
-| [Implementation Reference](docs/sdui-implementation-reference.md) | Impression tracking code samples (Swift/Kotlin) |
-| [Prototype Prompt](prompts/SDUI_Prototype_Prompt.md) | Full description of what the prototype builds and how |
+| [Atomic Primitives Analysis](docs/atomic-primitives-analysis.md) | Dual-layer architecture plan, tier classification, phase status |
+| [Kitchen Sink Appendix](docs/appendix-kitchen-sink.md) | Full 42-section demo response (Android platform) |
+| [ADR Index](docs/adr/README.md) | Architecture Decision Records (001–010) |
+| [Accessibility Plan](docs/sdui-accessibility-plan.md) | Accessibility strategy and semantic descriptor plan |

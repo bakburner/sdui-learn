@@ -27,6 +27,7 @@ public class LiveComposer {
     private final ObjectMapper objectMapper;
     private final StatsApiClient statsApiClient;
     private final SduiUtils utils;
+    private final AtomicCompositeBuilder atomicBuilder;
 
     @Value("${sdui.schema.version:1.0}")
     private String schemaVersion;
@@ -37,6 +38,7 @@ public class LiveComposer {
         this.objectMapper = objectMapper;
         this.statsApiClient = statsApiClient;
         this.utils = utils;
+        this.atomicBuilder = new AtomicCompositeBuilder(objectMapper);
     }
 
     public JsonNode composeLive(String traceId) {
@@ -208,25 +210,7 @@ public class LiveComposer {
 
     private ObjectNode buildSectionHeader(String id, String title,
                                            String subtitle, String actionUri) {
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", id);
-        section.put("type", "SectionHeader");
-        section.set("refreshPolicy", staticPolicy());
-
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("title", title);
-        if (subtitle != null) data.put("subtitle", subtitle);
-
-        if (actionUri != null) {
-            ObjectNode action = objectMapper.createObjectNode();
-            action.put("trigger", "onTap");
-            action.put("type", "navigate");
-            action.put("targetUri", actionUri);
-            data.set("action", action);
-        }
-
-        section.set("data", data);
-        return section;
+        return atomicBuilder.buildSectionHeader(id, title, subtitle, null, actionUri);
     }
 
     private ObjectNode buildGamePanel(JsonNode game, boolean liveRefresh) {

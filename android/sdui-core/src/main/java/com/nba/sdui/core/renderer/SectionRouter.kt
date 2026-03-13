@@ -4,6 +4,8 @@ import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.nba.sdui.core.models.SduiSection
+import com.nba.sdui.core.models.AtomicElementParser
+import com.nba.sdui.core.renderer.atomic.AtomicRouter
 import com.nba.sdui.core.renderer.sections.*
 import com.nba.sdui.core.state.SduiAction
 
@@ -20,42 +22,13 @@ fun SectionRouter(
     screenState: Map<String, Any>,
     onAction: (SduiAction) -> Unit,
     onStateChange: (String, Any) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    sectionSlotDepth: Int = 0
 ) {
     Log.d("SectionRouter", "Routing section: id=${section.id}, type=${section.type}")
     
     when (section.type) {
-        "ScoreboardHeader" -> {
-            ScoreboardHeaderRenderer(
-                section = section,
-                onAction = onAction,
-                modifier = modifier
-            )
-        }
         
-        "StatLine" -> {
-            StatLineRenderer(
-                section = section,
-                onAction = onAction,
-                modifier = modifier
-            )
-        }
-        
-        "HeroPanel" -> {
-            HeroPanelRenderer(
-                section = section,
-                onAction = onAction,
-                modifier = modifier
-            )
-        }
-        
-        "ContentRail" -> {
-            ContentRailRenderer(
-                section = section,
-                onAction = onAction,
-                modifier = modifier
-            )
-        }
         
         "TabGroup" -> {
             TabGroupRenderer(
@@ -67,14 +40,6 @@ fun SectionRouter(
             )
         }
         
-        "PromoBanner" -> {
-            PromoBannerRenderer(
-                section = section,
-                onAction = onAction,
-                modifier = modifier
-            )
-        }
-
         "GamePanel" -> {
             GamePanelRenderer(
                 section = section,
@@ -113,38 +78,7 @@ fun SectionRouter(
             )
         }
 
-        "FollowingRail" -> {
-            FollowingRailRenderer(
-                section = section,
-                onAction = onAction,
-                modifier = modifier
-            )
-        }
 
-
-        "SectionHeader" -> {
-            SectionHeaderRenderer(
-                section = section,
-                onAction = onAction,
-                modifier = modifier
-            )
-        }
-
-        "VideoCarousel" -> {
-            VideoCarouselRenderer(
-                section = section,
-                onAction = onAction,
-                modifier = modifier
-            )
-        }
-
-        "NbaTvSchedule" -> {
-            NbaTvScheduleRenderer(
-                section = section,
-                onAction = onAction,
-                modifier = modifier
-            )
-        }
 
         "SubscribeBanner" -> {
             SubscribeBannerRenderer(
@@ -178,12 +112,20 @@ fun SectionRouter(
             )
         }
 
-        "ErrorState" -> {
-            ErrorStateRenderer(
-                section = section,
-                onAction = onAction,
-                modifier = modifier
-            )
+        "AtomicComposite" -> {
+            val root = AtomicElementParser.parse(section.data)
+            if (root != null) {
+                AtomicRouter(
+                    element = root,
+                    screenState = screenState,
+                    onAction = onAction,
+                    modifier = modifier,
+                    onStateChange = onStateChange,
+                    sectionSlotDepth = sectionSlotDepth
+                )
+            } else {
+                Log.w("SectionRouter", "AtomicComposite section ${section.id} has no parsable root element")
+            }
         }
         
         else -> {
@@ -199,24 +141,14 @@ fun SectionRouter(
  * Used for contract testing to verify router coverage.
  */
 val SUPPORTED_SECTION_TYPES = setOf(
-    "ScoreboardHeader",
-    "StatLine",
-    "HeroPanel",
-    "ContentRail",
     "TabGroup",
-    "PromoBanner",
     "GamePanel",
     "Row",
     "BoxscoreTable",
     "Form",
-    "FollowingRail",
-
-    "SectionHeader",
-    "VideoCarousel",
-    "NbaTvSchedule",
     "SubscribeBanner",
     "SubscribeHero",
     "AdSlot",
     "SeasonLeadersTable",
-    "ErrorState"
+    "AtomicComposite"
 )

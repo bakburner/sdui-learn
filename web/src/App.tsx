@@ -232,6 +232,7 @@ const styles: Record<string, React.CSSProperties> = {
     margin: '0 auto',
     padding: '0 16px',
     backgroundColor: '#0f0f23',
+    overflowX: 'hidden',
   },
   header: {
     display: 'flex',
@@ -294,6 +295,7 @@ const styles: Record<string, React.CSSProperties> = {
   main: {
     flex: 1,
     overflowY: 'auto',
+    overflowX: 'hidden',
     paddingBottom: 60,
   },
   footer: {

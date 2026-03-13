@@ -13,6 +13,7 @@ This directory stores architecture decisions in chronological order.
 - [ADR-007: Ads Boundary and Contract](./007-ad-boundary-and-contract.md)
 - [ADR-008: Form-Factor Layout Manager](./008-form-factor-layout-manager.md)
 - [ADR-009: Impression Dedup and Visibility Semantics](./009-impression-dedup-and-visibility-semantics.md)
+- [ADR-010: Offline and Degraded Connectivity](./010-offline-and-degraded-connectivity.md)
 
 ## Templates
 

@@ -63,7 +63,21 @@ data class SduiSection(
     @JsonProperty("subsections") val subsections: List<Subsection>? = null,
     @JsonProperty("padding") val padding: Spacing? = null,
     @JsonProperty("backgroundColor") val backgroundColor: String? = null,
+    @JsonProperty("layoutHints") val layoutHints: SectionLayoutHints? = null,
+    @JsonProperty("sectionStates") val sectionStates: Map<String, Any?>? = null,
     @JsonProperty("data") val data: Map<String, Any?>? = null
+)
+
+/**
+ * Layout hints for section placement. Clients apply best-effort; unknown hints are ignored.
+ */
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class SectionLayoutHints(
+    @JsonProperty("marginTop") val marginTop: Int? = null,
+    @JsonProperty("marginBottom") val marginBottom: Int? = null,
+    @JsonProperty("dividerAbove") val dividerAbove: Boolean? = null,
+    @JsonProperty("dividerBelow") val dividerBelow: Boolean? = null,
+    @JsonProperty("priority") val priority: String? = null
 )
 
 /**

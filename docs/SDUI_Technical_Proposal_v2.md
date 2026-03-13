@@ -21,6 +21,7 @@
 | 2026-03-11 | ErrorState added to renderer table (20 renderers per platform). Error handling status updated (Gap → Built for ErrorState, runtime `sectionStates` planned). Client-side visibility expressions evaluated and deferred — server-side composition handles section show/hide. |
 | 2026-03-12 | Server-control gaps closed: `SectionLayoutHints` and `SectionStates` added to schema + codegen. Web client: `SectionErrorBoundary`, `SectionSkeleton`, `useImpressionTracking`, `useAnalyticsContext` built. Server: `sectionStates` emitted on live sections. ADR-008 accepted (Option C), ADR-009 accepted. Bug fixes: `interactive` contentType enum, platform header threading (`X-Platform` required from clients, no server default), silent deserialization failures now logged on Android. |
 | 2026-03-12 | Merged `FeaturedGamePanel` into `GamePanel` with `variant` discriminator. `FeaturedGamePanelData` removed from schema; `GamePanelData` gains `variant`, `backgroundImageUrl`, `badgeText`, `visualLabel` fields. Server composers emit `type: "GamePanel"` with `variant: "featured"`. Android and Web renderers branch on variant. `FeaturedGamePanelRenderer` deleted on both platforms. Section type count: 20 → 19. |
+| 2026-03-13 | Added offline/degraded connectivity strategy (9r) with ADR-010 reference. Stale-while-offline approach using platform HTTP cache, staleness UX per `cacheability` class, analytics local queue. |
 
 ---
 
@@ -756,6 +757,23 @@ Key decisions settled (follows established semantic pattern — no ADR needed):
 
 See Section 2 (Schema Design) for data shapes and Section 4 (Action System) for parameterized refresh details.
 
+### 9r. Offline and Degraded Connectivity
+
+SDUI is server-driven by design — when the network is unavailable, there is no server to drive the UI. Without an explicit strategy, cold launch on a disconnected device shows a blank screen or unhandled error.
+
+The recommended approach is **stale-while-offline**: serve the last-known-good SDUI response from platform HTTP cache when the network is unavailable, show a non-blocking connectivity indicator, and allow pull-to-refresh to retry. This leverages existing cache infrastructure (OkHttp on Android, browser HTTP cache on Web) and the `cacheability` classification from ADR-004.
+
+Key principles:
+
+- **Proportional to value.** Sports content degrades quickly — live scores stale in seconds, schedules in hours. A full offline-first database is disproportionate; a cached last-response is sufficient.
+- **`cacheability` governs staleness behavior.** Sections with `cacheability: "live"` show a placeholder ("Live data unavailable") instead of stale data. `public`/`contextual`/`personalized` sections serve stale content with a timestamp indicator.
+- **No new server requirements.** Clients use existing HTTP cache headers per ADR-004. The server does not need an offline-specific API.
+- **Actions degrade gracefully.** Network-dependent actions (navigate, refresh, mutate) show a "No connection" message. Analytics events queue locally and flush when connectivity resumes.
+
+Options evaluated: offline-first local DB (rejected — cost disproportionate to value), stale-while-offline with platform cache (accepted), service worker for Web (deferred to v2), pre-seeded bundled content (optional v2 enhancement).
+
+Reference: ADR-010
+
 ---
 
 ## 10. Requirement Status
@@ -778,6 +796,7 @@ See Section 2 (Schema Design) for data shapes and Section 4 (Action System) for 
 | Parameterized refresh          | Built   | —       | `endpoint` + `paramBindings` Action extension. Working via Form submit. |
 | SeasonLeadersTable             | Built   | —       | domain-typed leaders table with form-driven parameterized refresh |
 | Image fallback                 | Built   | —       | server-driven `fallbackThumbnailUrl` with client-side error handling |
+| Offline / degraded connectivity| Gap     | ADR-010 | stale-while-offline via platform HTTP cache; staleness UX per cacheability class |
 
 
 ---
@@ -808,6 +827,7 @@ The alternative is duplicated platform composition logic and drift in feature be
 3. Ship subsection actions + request-envelope schema updates with fixtures.
 4. Introduce ad primitive (ADR-007) and resolve layout strategy (ADR-008).
 5. Finalize impression semantics and enforce analytics/runtime conformance (ADR-009).
+6. Implement offline/degraded connectivity strategy per ADR-010 — platform cache fallback, staleness UX, analytics queue.
 
 ---
 

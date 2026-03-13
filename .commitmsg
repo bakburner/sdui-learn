@@ -1,0 +1,26 @@
+docs: atomic primitives plan refinements, ADR-010 offline strategy, supporting plans
+
+Atomic Primitives Plan (atomic-primitives-analysis.md):
+- Rename DataTable to DisplayGrid (disambiguate from rejected section-level pattern)
+- Tighten Grid vs. Section Decision Tree with hard contract boundary
+- Add 3.6 AtomicComposite Performance Contract (depth 6, children 20, nodes 50)
+- Add Phase 4b: Tier 2 Evaluation Gate with entry criteria and checklist
+- Add Phase 6: Governance Document Updates with per-doc checklists
+
+ADR-010: Offline and Degraded Connectivity
+- Option B (stale-while-offline) recommended
+- Leverages ADR-004 cacheability classes and platform HTTP cache
+- Live sections show placeholder; others show stale with timestamp
+
+Technical Proposal updates:
+- Add 9r offline/degraded connectivity requirement
+- Update revision history, requirement status table, next steps
+
+New supporting plans:
+- Accessibility plan (6 phases, cross-cutting atomic + semantic layers)
+- Action failure semantics plan (4 phases, behavior contract)
+
+Phase 1 implementation (atomic renderers):
+- Android: AtomicRouter + 9 primitive renderers, AtomicElement model/parser
+- Web: AtomicRouter + 9 primitive components, types, index
+- Both platforms: SectionRouter updated to delegate AtomicComposite sections

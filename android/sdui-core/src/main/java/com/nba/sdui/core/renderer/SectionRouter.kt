@@ -4,6 +4,8 @@ import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.nba.sdui.core.models.SduiSection
+import com.nba.sdui.core.models.AtomicElementParser
+import com.nba.sdui.core.renderer.atomic.AtomicRouter
 import com.nba.sdui.core.renderer.sections.*
 import com.nba.sdui.core.state.SduiAction
 
@@ -185,6 +187,20 @@ fun SectionRouter(
                 modifier = modifier
             )
         }
+
+        "AtomicComposite" -> {
+            val root = AtomicElementParser.parse(section.data)
+            if (root != null) {
+                AtomicRouter(
+                    element = root,
+                    screenState = screenState,
+                    onAction = onAction,
+                    modifier = modifier
+                )
+            } else {
+                Log.w("SectionRouter", "AtomicComposite section ${section.id} has no parsable root element")
+            }
+        }
         
         else -> {
             // Unknown section type - skip gracefully
@@ -218,5 +234,6 @@ val SUPPORTED_SECTION_TYPES = setOf(
     "SubscribeHero",
     "AdSlot",
     "SeasonLeadersTable",
-    "ErrorState"
+    "ErrorState",
+    "AtomicComposite"
 )

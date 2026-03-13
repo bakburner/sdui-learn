@@ -19,6 +19,8 @@ import { NbaTvSchedule } from './sections/NbaTvSchedule';
 import { SubscribeBanner } from './sections/SubscribeBanner';
 import { SubscribeHero } from './sections/SubscribeHero';
 import { ErrorState } from './sections/ErrorState';
+import { AtomicRouter } from './atomic';
+import type { AtomicCompositeData } from './atomic';
 import { LiveSectionWrapper } from './LiveSectionWrapper';
 import { SectionErrorBoundary } from './SectionErrorBoundary';
 import { useImpressionTracking } from '../hooks/useImpressionTracking';
@@ -106,6 +108,15 @@ function SectionRenderer({
 
     case 'ErrorState':
       return <ErrorState {...commonProps} />;
+
+    case 'AtomicComposite': {
+      const compositeData = section.data as unknown as AtomicCompositeData | undefined;
+      if (!compositeData?.ui) {
+        console.debug(`[SectionRouter] AtomicComposite section ${section.id} has no ui element`);
+        return null;
+      }
+      return <AtomicRouter element={compositeData.ui} state={state} onAction={onAction} />;
+    }
       
     default:
       // Ignore unknown section types (forward compatibility)

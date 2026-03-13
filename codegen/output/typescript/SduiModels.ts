@@ -264,6 +264,9 @@ export interface NavigationItem {
  *
  * Error state displayed when something goes wrong — bad ID, network failure, missing data,
  * etc.
+ *
+ * Data payload for AtomicComposite sections — ui contains rendering instructions, content
+ * carries domain data
  */
 export interface Data {
     awayTeam?:       TeamData;
@@ -461,6 +464,15 @@ export interface Data {
      * Optional action to retry the failed operation
      */
     retryAction?: Action;
+    /**
+     * Optional domain data (strings, URLs, flags) to populate the ui tree. Reserved for future
+     * data-binding support.
+     */
+    content?: { [key: string]: any };
+    /**
+     * Root node of the atomic element tree — the rendering instructions
+     */
+    ui?: AtomicElement;
     [property: string]: any;
 }
 
@@ -485,7 +497,7 @@ export interface Section {
      * Nested interaction targets within the section
      */
     subsections?: Subsection[];
-    type:         Type;
+    type:         SectionType;
     [property: string]: any;
 }
 
@@ -768,6 +780,201 @@ export interface SubscriptionTier {
 }
 
 /**
+ * Root node of the atomic element tree — the rendering instructions
+ *
+ * Atomic UI primitive — server-composed building block for the atomic rendering layer
+ */
+export interface AtomicElement {
+    actions?:         Action[];
+    alignment?:       Alignment;
+    alt?:             string;
+    aspectRatio?:     number;
+    backgroundColor?: string;
+    /**
+     * Gradient background for Container elements
+     */
+    backgroundGradient?: BackgroundGradient;
+    buttonVariant?:      ButtonVariant;
+    /**
+     * Typography variant for data cells
+     */
+    cellVariant?: TextVariant;
+    children?:    AtomicElement[];
+    color?:       string;
+    /**
+     * DisplayGrid column definitions — display-only, non-interactive, server-ordered
+     */
+    columns?:        Column[];
+    condition?:      string;
+    content?:        string;
+    crossAlignment?: CrossAlignment;
+    direction?:      UIDirection;
+    disabled?:       boolean;
+    falseChild?:     AtomicElement;
+    fit?:            ImageFit;
+    gap?:            number;
+    /**
+     * Typography variant for header cells
+     */
+    headerVariant?: TextVariant;
+    height?:        number;
+    icon?:          string;
+    id?:            string;
+    label?:         string;
+    maxLines?:      number;
+    orientation?:   Orientation;
+    padding?:       Spacing;
+    paging?:        boolean;
+    placeholder?:   string;
+    /**
+     * DisplayGrid row data — each object maps column keys to pre-formatted display values
+     */
+    rows?:          { [key: string]: string }[];
+    size?:          number;
+    snapAlignment?: Align;
+    src?:           string;
+    /**
+     * Alternate row background for readability
+     */
+    striped?:   boolean;
+    thickness?: number;
+    trueChild?: AtomicElement;
+    type:       UIType;
+    variant?:   TextVariant;
+    weight?:    TextWeight;
+    width?:     number;
+    [property: string]: any;
+}
+
+export enum Alignment {
+    Center = "center",
+    End = "end",
+    SpaceAround = "spaceAround",
+    SpaceBetween = "spaceBetween",
+    SpaceEvenly = "spaceEvenly",
+    Start = "start",
+}
+
+/**
+ * Gradient background for Container elements
+ */
+export interface BackgroundGradient {
+    /**
+     * Ordered list of color stops (hex or semantic token)
+     */
+    colors:     string[];
+    direction?: Direction;
+    [property: string]: any;
+}
+
+export enum Direction {
+    Diagonal = "diagonal",
+    Horizontal = "horizontal",
+    Vertical = "vertical",
+}
+
+export enum ButtonVariant {
+    Primary = "primary",
+    Secondary = "secondary",
+    Tertiary = "tertiary",
+    Text = "text",
+}
+
+/**
+ * Typography variant for data cells
+ *
+ * Typography variant for header cells
+ */
+export enum TextVariant {
+    Body = "body",
+    BodySmall = "bodySmall",
+    Caption = "caption",
+    Heading1 = "heading1",
+    Heading2 = "heading2",
+    Heading3 = "heading3",
+    Label = "label",
+    Score = "score",
+}
+
+export interface Column {
+    align?: Align;
+    /**
+     * Row data key
+     */
+    key: string;
+    /**
+     * Header label
+     */
+    label: string;
+    /**
+     * Fixed width (integer) or 'flex'
+     */
+    width?: WidthEnum | number;
+    [property: string]: any;
+}
+
+export enum Align {
+    Center = "center",
+    End = "end",
+    Start = "start",
+}
+
+export enum WidthEnum {
+    Flex = "flex",
+}
+
+export enum CrossAlignment {
+    Center = "center",
+    End = "end",
+    Start = "start",
+    Stretch = "stretch",
+}
+
+export enum UIDirection {
+    Column = "column",
+    Row = "row",
+}
+
+export enum ImageFit {
+    Contain = "contain",
+    Cover = "cover",
+    Fill = "fill",
+    None = "none",
+}
+
+export enum Orientation {
+    Horizontal = "horizontal",
+    Vertical = "vertical",
+}
+
+export interface Spacing {
+    bottom?: number;
+    end?:    number;
+    start?:  number;
+    top?:    number;
+    [property: string]: any;
+}
+
+export enum UIType {
+    Button = "Button",
+    Conditional = "Conditional",
+    Container = "Container",
+    DisplayGrid = "DisplayGrid",
+    Divider = "Divider",
+    Image = "Image",
+    ScrollContainer = "ScrollContainer",
+    Spacer = "Spacer",
+    Text = "Text",
+}
+
+export enum TextWeight {
+    Bold = "bold",
+    Medium = "medium",
+    Regular = "regular",
+    Semibold = "semibold",
+}
+
+/**
  * Visual treatment: 'standard' for compact feed cards, 'featured' for hero-sized cards with
  * gradient/background
  */
@@ -835,14 +1042,6 @@ export enum Priority {
     Normal = "normal",
 }
 
-export interface Spacing {
-    bottom?: number;
-    end?:    number;
-    start?:  number;
-    top?:    number;
-    [property: string]: any;
-}
-
 /**
  * Server-declared loading and error presentation for a section. Clients render these states
  * when applicable.
@@ -900,8 +1099,9 @@ export interface Subsection {
     [property: string]: any;
 }
 
-export enum Type {
+export enum SectionType {
     AdSlot = "AdSlot",
+    AtomicComposite = "AtomicComposite",
     BoxscoreTable = "BoxscoreTable",
     ContentRail = "ContentRail",
     ErrorState = "ErrorState",

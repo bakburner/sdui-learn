@@ -92,56 +92,105 @@
     },
     {
       "id": "content-rail",
-      "type": "ContentRail",
+      "type": "AtomicComposite",
       "analyticsId": "content_rail",
       "refreshPolicy": {
         "type": "static"
       },
       "data": {
-        "title": "Highlights & Recap",
-        "cards": [
-          {
-            "id": "content-1",
-            "thumbnailUrl": "https://cdn.nba.com/manage/2024/04/heat-win-celebration.jpg",
-            "headline": "Heat Even Series 2-2",
-            "subhead": "Miami takes Game 4 on the road",
-            "contentType": "article",
-            "action": {
-              "trigger": "onTap",
-              "type": "navigate",
-              "targetUri": "nba://article/heat-even-series",
-              "fallbackUrl": "https://www.nba.com/news/heat-even-series"
+        "ui": {
+          "type": "Container",
+          "direction": "column",
+          "padding": { "start": 0, "end": 0, "top": 12, "bottom": 12 },
+          "children": [
+            {
+              "type": "Text",
+              "content": "Highlights & Recap",
+              "variant": "titleMedium",
+              "weight": "bold",
+              "padding": { "start": 16, "end": 16, "top": 8, "bottom": 8 }
+            },
+            {
+              "type": "ScrollContainer",
+              "direction": "row",
+              "gap": 12,
+              "children": [
+                {
+                  "type": "Container",
+                  "id": "content-1",
+                  "direction": "column",
+                  "actions": [{ "trigger": "onTap", "type": "navigate", "targetUri": "nba://article/heat-even-series", "fallbackUrl": "https://www.nba.com/news/heat-even-series" }],
+                  "children": [
+                    {
+                      "type": "Container", "direction": "column", "cornerRadius": 8, "backgroundColor": "#2A2A4A",
+                      "children": [
+                        { "type": "Image", "src": "https://cdn.nba.com/manage/2024/04/heat-win-celebration.jpg", "width": 200, "height": 112, "fit": "cover" },
+                        {
+                          "type": "Container", "direction": "column",
+                          "padding": { "start": 4, "end": 4, "top": 4, "bottom": 4 },
+                          "children": [
+                            { "type": "Text", "content": "ARTICLE", "variant": "labelSmall", "weight": "bold", "color": "#FFFFFF", "backgroundColor": "#FF6B6B" },
+                            { "type": "Spacer", "height": 16 }
+                          ]
+                        }
+                      ]
+                    },
+                    { "type": "Spacer", "height": 8 },
+                    { "type": "Text", "content": "Heat Even Series 2-2", "variant": "bodySmall", "weight": "semiBold", "color": "#FFFFFF", "maxLines": 2 }
+                  ]
+                },
+                {
+                  "type": "Container",
+                  "id": "content-2",
+                  "direction": "column",
+                  "actions": [{ "trigger": "onTap", "type": "navigate", "targetUri": "nba://video/game4-highlights", "fallbackUrl": "https://www.nba.com/video/game4-highlights" }],
+                  "children": [
+                    {
+                      "type": "Container", "direction": "column", "cornerRadius": 8, "backgroundColor": "#2A2A4A",
+                      "children": [
+                        { "type": "Image", "src": "https://cdn.nba.com/manage/2024/04/full-game-highlights.jpg", "width": 200, "height": 112, "fit": "cover" },
+                        {
+                          "type": "Container", "direction": "column",
+                          "padding": { "start": 4, "end": 4, "top": 4, "bottom": 4 },
+                          "children": [
+                            { "type": "Text", "content": "VIDEO", "variant": "labelSmall", "weight": "bold", "color": "#FFFFFF", "backgroundColor": "#FF6B6B" },
+                            { "type": "Text", "content": "9:45", "variant": "labelSmall", "weight": "semiBold", "color": "#FFFFFF" }
+                          ]
+                        }
+                      ]
+                    },
+                    { "type": "Spacer", "height": 8 },
+                    { "type": "Text", "content": "Full Game Highlights", "variant": "bodySmall", "weight": "semiBold", "color": "#FFFFFF", "maxLines": 2 }
+                  ]
+                },
+                {
+                  "type": "Container",
+                  "id": "content-3",
+                  "direction": "column",
+                  "actions": [{ "trigger": "onTap", "type": "navigate", "targetUri": "nba://video/butler-postgame", "fallbackUrl": "https://www.nba.com/video/butler-postgame" }],
+                  "children": [
+                    {
+                      "type": "Container", "direction": "column", "cornerRadius": 8, "backgroundColor": "#2A2A4A",
+                      "children": [
+                        { "type": "Image", "src": "https://cdn.nba.com/manage/2024/04/butler-postgame.jpg", "width": 200, "height": 112, "fit": "cover" },
+                        {
+                          "type": "Container", "direction": "column",
+                          "padding": { "start": 4, "end": 4, "top": 4, "bottom": 4 },
+                          "children": [
+                            { "type": "Text", "content": "VIDEO", "variant": "labelSmall", "weight": "bold", "color": "#FFFFFF", "backgroundColor": "#FF6B6B" },
+                            { "type": "Text", "content": "4:20", "variant": "labelSmall", "weight": "semiBold", "color": "#FFFFFF" }
+                          ]
+                        }
+                      ]
+                    },
+                    { "type": "Spacer", "height": 8 },
+                    { "type": "Text", "content": "Butler Post-Game Interview", "variant": "bodySmall", "weight": "semiBold", "color": "#FFFFFF", "maxLines": 2 }
+                  ]
+                }
+              ]
             }
-          },
-          {
-            "id": "content-2",
-            "thumbnailUrl": "https://cdn.nba.com/manage/2024/04/full-game-highlights.jpg",
-            "headline": "Full Game Highlights",
-            "subhead": "Watch all the action",
-            "contentType": "video",
-            "duration": "9:45",
-            "action": {
-              "trigger": "onTap",
-              "type": "navigate",
-              "targetUri": "nba://video/game4-highlights",
-              "fallbackUrl": "https://www.nba.com/video/game4-highlights"
-            }
-          },
-          {
-            "id": "content-3",
-            "thumbnailUrl": "https://cdn.nba.com/manage/2024/04/butler-postgame.jpg",
-            "headline": "Butler Post-Game Interview",
-            "subhead": "Hear from Jimmy after the win",
-            "contentType": "video",
-            "duration": "4:20",
-            "action": {
-              "trigger": "onTap",
-              "type": "navigate",
-              "targetUri": "nba://video/butler-postgame",
-              "fallbackUrl": "https://www.nba.com/video/butler-postgame"
-            }
-          }
-        ]
+          ]
+        }
       }
     },
     {

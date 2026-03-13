@@ -40,7 +40,7 @@ fun AtomicText(
  * Map schema variant strings to MaterialTheme typography styles.
  */
 @Composable
-private fun mapTypographyVariant(variant: String?): TextStyle = when (variant) {
+internal fun mapTypographyVariant(variant: String?): TextStyle = when (variant) {
     "displayLarge"  -> MaterialTheme.typography.displayLarge
     "displayMedium" -> MaterialTheme.typography.displayMedium
     "displaySmall"  -> MaterialTheme.typography.displaySmall

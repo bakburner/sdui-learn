@@ -7,7 +7,6 @@ import com.nba.sdui.core.models.TabGroupData
 import com.nba.sdui.core.models.actionToSduiAction
 import com.nba.sdui.core.state.SduiAction
 import com.nba.sdui.models.generated.HeroPanelData
-import com.nba.sdui.models.generated.ContentRailData
 import com.nba.sdui.models.generated.ScoreboardHeaderData
 import com.nba.sdui.models.generated.StatLineListData
 import com.nba.sdui.models.generated.TeamData
@@ -33,14 +32,6 @@ data class TabUiModel(
     val id: String,
     val label: String,
     val stateValue: String
-)
-
-data class PromoBannerUiModel(
-    val title: String?,
-    val headline: String?,
-    val subhead: String?,
-    val imageUrl: String?,
-    val primaryAction: SduiAction?
 )
 
 enum class GamePanelVisualState { PRE, LIVE, FINAL }
@@ -69,29 +60,6 @@ data class GamePanelUiModel(
     val backgroundImageUrl: String?
 )
 
-// ============ FollowingRail ============
-
-data class FollowingRailItemUi(
-    val id: String,
-    val name: String,
-    val imageUrl: String?,
-    val entityType: String?,
-    val action: SduiAction?
-)
-
-data class FollowingRailUiModel(
-    val title: String?,
-    val items: List<FollowingRailItemUi>
-)
-
-// ============ SectionHeader ============
-
-data class SectionHeaderUiModel(
-    val title: String,
-    val subtitle: String?,
-    val action: SduiAction?
-)
-
 fun mapScoreboardHeader(section: SduiSection): ScoreboardHeaderUiModel? {
     val parsed = convert<ScoreboardHeaderData>(section.data) ?: return null
     return ScoreboardHeaderUiModel(
@@ -106,8 +74,6 @@ fun mapScoreboardHeader(section: SduiSection): ScoreboardHeaderUiModel? {
 fun mapStatLineList(section: SduiSection): StatLineListData? = convert(section.data)
 
 fun mapHeroPanel(section: SduiSection): HeroPanelData? = convert(section.data)
-
-fun mapContentRail(section: SduiSection): ContentRailData? = convert(section.data)
 
 fun mapTabGroup(section: SduiSection, screenState: Map<String, Any>): TabGroupUiModel? {
     val parsed = convert<TabGroupData>(section.data) ?: return null
@@ -134,17 +100,6 @@ fun mapTabMutateAction(stateKey: String, stateValue: String): SduiAction =
         stateKey = stateKey,
         stateValue = stateValue
     )
-
-fun mapPromoBanner(section: SduiSection): PromoBannerUiModel? {
-    val data = section.data ?: return null
-    return PromoBannerUiModel(
-        title = data["title"] as? String,
-        headline = data["headline"] as? String,
-        subhead = (data["subhead"] ?: data["description"]) as? String,
-        imageUrl = data["imageUrl"] as? String,
-        primaryAction = firstActionFromSection(section)
-    )
-}
 
 @Suppress("UNCHECKED_CAST")
 fun mapGamePanel(section: SduiSection): GamePanelUiModel? {
@@ -195,41 +150,6 @@ fun mapGamePanel(section: SduiSection): GamePanelUiModel? {
         badgeText = data["badgeText"] as? String,
         visualLabel = data["visualLabel"] as? String,
         backgroundImageUrl = data["backgroundImageUrl"] as? String
-    )
-}
-
-@Suppress("UNCHECKED_CAST")
-fun mapFollowingRail(section: SduiSection): FollowingRailUiModel? {
-    val data = section.data ?: return null
-    val rawItems = data["items"] as? List<Map<String, Any?>> ?: return null
-    val items = rawItems.map { item ->
-        FollowingRailItemUi(
-            id = (item["id"] as? String) ?: "",
-            name = (item["name"] as? String) ?: "",
-            imageUrl = item["imageUrl"] as? String,
-            entityType = item["entityType"] as? String,
-            action = (item["action"] as? Map<String, Any?>)?.let { actionToSduiAction(it) }
-        )
-    }
-    return FollowingRailUiModel(
-        title = data["title"] as? String,
-        items = items
-    )
-}
-
-fun mapSectionHeader(section: SduiSection): SectionHeaderUiModel? {
-    val data = section.data ?: return null
-    val title = (data["title"] as? String) ?: return null
-    val subtitle = data["subtitle"] as? String
-
-    @Suppress("UNCHECKED_CAST")
-    val actionMap = data["action"] as? Map<String, Any?>
-    val action = actionMap?.let { actionToSduiAction(it) }
-
-    return SectionHeaderUiModel(
-        title = title,
-        subtitle = subtitle,
-        action = action
     )
 }
 

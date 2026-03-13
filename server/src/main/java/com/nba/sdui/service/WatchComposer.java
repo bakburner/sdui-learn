@@ -26,6 +26,7 @@ public class WatchComposer {
     private final ObjectMapper objectMapper;
     private final StatsApiClient statsApiClient;
     private final SduiUtils utils;
+    private final AtomicCompositeBuilder atomicBuilder;
 
     @Value("${sdui.schema.version:1.0}")
     private String schemaVersion;
@@ -36,6 +37,7 @@ public class WatchComposer {
         this.objectMapper = objectMapper;
         this.statsApiClient = statsApiClient;
         this.utils = utils;
+        this.atomicBuilder = new AtomicCompositeBuilder(objectMapper);
     }
 
     public JsonNode composeWatch(String traceId) {
@@ -263,84 +265,17 @@ public class WatchComposer {
 
     private ObjectNode buildSectionHeader(String id, String title,
                                            String actionLabel, String actionUri) {
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", id);
-        section.put("type", "SectionHeader");
-        section.set("refreshPolicy", staticPolicy());
-
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("title", title);
-
-        if (actionLabel != null && actionUri != null) {
-            ObjectNode action = objectMapper.createObjectNode();
-            action.put("trigger", "onTap");
-            action.put("type", "navigate");
-            action.put("targetUri", actionUri);
-            action.put("label", actionLabel);
-            data.set("action", action);
-        }
-
-        section.set("data", data);
-        return section;
+        return atomicBuilder.buildSectionHeader(id, title, null, actionLabel, actionUri);
     }
 
     private ObjectNode buildContentRail(String id, String title, String[][] cards) {
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", id);
-        section.put("type", "ContentRail");
-        section.set("refreshPolicy", staticPolicy());
-
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("title", title);
-        data.put("fallbackThumbnailUrl", FALLBACK_THUMB);
-
-        ArrayNode cardsArr = objectMapper.createArrayNode();
-        for (String[] c : cards) {
-            ObjectNode card = objectMapper.createObjectNode();
-            card.put("id", c[0]);
-            card.put("headline", c[1]);
-            card.put("subhead", c[2]);
-            card.put("thumbnailUrl", c[3]);
-            card.put("contentType", c[4]);
-            if (c[5] != null) card.put("duration", c[5]);
-
-            ObjectNode action = objectMapper.createObjectNode();
-            action.put("trigger", "onTap");
-            action.put("type", "navigate");
-            action.put("targetUri", c[6]);
-            card.set("action", action);
-
-            cardsArr.add(card);
-        }
-        data.set("cards", cardsArr);
-
-        section.set("data", data);
-        return section;
+        return atomicBuilder.buildContentRail(id, null, title, cards);
     }
 
     private ObjectNode buildPromoBanner(String id, String headline, String subhead,
                                          String backgroundUrl, String targetUri) {
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", id);
-        section.put("type", "PromoBanner");
-        section.set("refreshPolicy", staticPolicy());
-
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("headline", headline);
-        data.put("subhead", subhead);
-        data.put("backgroundImageUrl", backgroundUrl);
-        data.put("ctaLabel", "Learn More");
-
-        ArrayNode actions = objectMapper.createArrayNode();
-        ObjectNode action = objectMapper.createObjectNode();
-        action.put("trigger", "onTap");
-        action.put("type", "navigate");
-        action.put("targetUri", targetUri);
-        actions.add(action);
-        data.set("actions", actions);
-
-        section.set("data", data);
-        return section;
+        return atomicBuilder.buildPromoBanner(id, null, null, headline, subhead,
+                null, null, "Learn More", targetUri);
     }
 
     private ObjectNode buildGamePanel(JsonNode game) {

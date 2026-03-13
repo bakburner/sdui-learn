@@ -6,7 +6,7 @@ import { AtomicRouter } from './AtomicRouter';
  * AtomicContainer — renders a flex row or column with gap, padding,
  * background color, and optional gradient.
  */
-export function AtomicContainer({ element, state, onAction }: AtomicProps): React.ReactElement {
+export function AtomicContainer({ element, state, onAction, depth = 0 }: AtomicProps): React.ReactElement {
   const isRow = element.direction === 'row';
   const style: React.CSSProperties = {
     display: 'flex',
@@ -38,6 +38,12 @@ export function AtomicContainer({ element, state, onAction }: AtomicProps): Reac
     style.padding = `${top}px ${end}px ${bottom}px ${start}px`;
   }
 
+  // corner radius
+  if (element.cornerRadius != null) {
+    style.borderRadius = element.cornerRadius;
+    style.overflow = 'hidden';
+  }
+
   // background
   if (element.backgroundGradient) {
     const { colors, direction } = element.backgroundGradient;
@@ -52,7 +58,7 @@ export function AtomicContainer({ element, state, onAction }: AtomicProps): Reac
   return (
     <div style={style}>
       {element.children?.map((child, i) => (
-        <AtomicRouter key={child.id ?? i} element={child} state={state} onAction={onAction} />
+        <AtomicRouter key={child.id ?? i} element={child} state={state} onAction={onAction} depth={depth} />
       ))}
     </div>
   );

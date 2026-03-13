@@ -40,6 +40,7 @@ public class ForYouComposer {
     private final ObjectMapper objectMapper;
     private final StatsApiClient statsApiClient;
     private final SduiUtils utils;
+    private final AtomicCompositeBuilder atomicBuilder;
 
     @Value("${sdui.schema.version:1.0}")
     private String schemaVersion;
@@ -50,6 +51,7 @@ public class ForYouComposer {
         this.objectMapper = objectMapper;
         this.statsApiClient = statsApiClient;
         this.utils = utils;
+        this.atomicBuilder = new AtomicCompositeBuilder(objectMapper);
     }
 
     public JsonNode composeForYou(String traceId) {
@@ -121,52 +123,25 @@ public class ForYouComposer {
     // ── Section builders ───────────────────────────────────────────────
 
     private ObjectNode buildFollowingRail() {
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "following-rail");
-        section.put("type", "FollowingRail");
-        section.put("analyticsId", "for_you_following");
-        section.set("refreshPolicy", staticPolicy());
-
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("title", "Following");
-
-        ArrayNode items = objectMapper.createArrayNode();
-        items.add(followingItem("lebron", "L. James",
-                "https://cdn.nba.com/headshots/nba/latest/260x190/2544.png",
-                "player", "nba://player/2544"));
-        items.add(followingItem("cavaliers", "Cavaliers",
-                "https://cdn.nba.com/logos/nba/1610612739/global/L/logo.svg",
-                "team", "nba://team/1610612739"));
-        items.add(followingItem("curry", "S. Curry",
-                "https://cdn.nba.com/headshots/nba/latest/260x190/201939.png",
-                "player", "nba://player/201939"));
-        items.add(followingItem("nba-news", "NBA News",
-                "https://loremflickr.com/260/190/basketball,news?lock=20",
-                "channel", "nba://news"));
-        items.add(followingItem("twitter", "Twitter",
-                "https://loremflickr.com/260/190/basketball,social?lock=21",
-                "social", "nba://social/twitter"));
-        data.set("items", items);
-
-        section.set("data", data);
-        return section;
-    }
-
-    private ObjectNode followingItem(String id, String name, String imageUrl,
-                                      String entityType, String targetUri) {
-        ObjectNode item = objectMapper.createObjectNode();
-        item.put("id", id);
-        item.put("name", name);
-        item.put("imageUrl", imageUrl);
-        item.put("entityType", entityType);
-
-        ObjectNode action = objectMapper.createObjectNode();
-        action.put("trigger", "onTap");
-        action.put("type", "navigate");
-        action.put("targetUri", targetUri);
-        item.set("action", action);
-
-        return item;
+        String[][] items = {
+                {"lebron", "L. James",
+                        "https://cdn.nba.com/headshots/nba/latest/260x190/2544.png",
+                        "player", "nba://player/2544"},
+                {"cavaliers", "Cavaliers",
+                        "https://cdn.nba.com/logos/nba/1610612739/global/L/logo.svg",
+                        "team", "nba://team/1610612739"},
+                {"curry", "S. Curry",
+                        "https://cdn.nba.com/headshots/nba/latest/260x190/201939.png",
+                        "player", "nba://player/201939"},
+                {"nba-news", "NBA News",
+                        "https://loremflickr.com/260/190/basketball,news?lock=20",
+                        "channel", "nba://news"},
+                {"twitter", "Twitter",
+                        "https://loremflickr.com/260/190/basketball,social?lock=21",
+                        "social", "nba://social/twitter"}
+        };
+        return atomicBuilder.buildFollowingRail("following-rail", "for_you_following",
+                "Following", items);
     }
 
     private ObjectNode buildFeaturedFromLive() {
@@ -286,165 +261,83 @@ public class ForYouComposer {
 
     private ObjectNode buildSectionHeader(String id, String title,
                                            String actionLabel, String actionUri) {
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", id);
-        section.put("type", "SectionHeader");
-        section.set("refreshPolicy", staticPolicy());
-
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("title", title);
-
-        if (actionLabel != null && actionUri != null) {
-            ObjectNode action = objectMapper.createObjectNode();
-            action.put("trigger", "onTap");
-            action.put("type", "navigate");
-            action.put("targetUri", actionUri);
-            action.put("label", actionLabel);
-            data.set("action", action);
-        }
-
-        section.set("data", data);
-        return section;
+        return atomicBuilder.buildSectionHeader(id, title, null, actionLabel, actionUri);
     }
 
     private ObjectNode buildHighlightsRail() {
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "for-you-highlights");
-        section.put("type", "ContentRail");
-        section.put("analyticsId", "for_you_highlights");
-        section.set("refreshPolicy", staticPolicy());
-
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("title", "Highlights");
-        data.put("fallbackThumbnailUrl", FALLBACK_THUMB);
-
-        ArrayNode cards = objectMapper.createArrayNode();
-        cards.add(contentCard("hl-1", "Top 10 Plays of the Night",
-                "Last night's best highlights",
-                "https://loremflickr.com/480/270/basketball,highlights?lock=22",
-                "video", "2:45", "nba://video/top10-plays"));
-        cards.add(contentCard("hl-2", "Dunk of the Night",
-                "An incredible poster slam",
-                "https://loremflickr.com/480/270/basketball,dunk?lock=23",
-                "video", "0:32", "nba://video/dunk-night"));
-        cards.add(contentCard("hl-3", "Trade Deadline Recap",
-                "All the moves from today",
-                "https://loremflickr.com/480/270/basketball,trade?lock=24",
-                "article", null, "nba://article/trade-recap"));
-        data.set("cards", cards);
-
-        section.set("data", data);
-        return section;
-    }
-
-    private ObjectNode contentCard(String id, String headline, String subhead,
-                                    String thumbnailUrl, String contentType,
-                                    String duration, String targetUri) {
-        ObjectNode card = objectMapper.createObjectNode();
-        card.put("id", id);
-        card.put("headline", headline);
-        card.put("subhead", subhead);
-        card.put("thumbnailUrl", thumbnailUrl);
-        card.put("contentType", contentType);
-        if (duration != null) card.put("duration", duration);
-
-        ObjectNode action = objectMapper.createObjectNode();
-        action.put("trigger", "onTap");
-        action.put("type", "navigate");
-        action.put("targetUri", targetUri);
-        card.set("action", action);
-
-        return card;
+        String[][] cards = {
+                {"hl-1", "Top 10 Plays of the Night",
+                        "Last night's best highlights",
+                        "https://loremflickr.com/480/270/basketball,highlights?lock=22",
+                        "video", "2:45", "nba://video/top10-plays"},
+                {"hl-2", "Dunk of the Night",
+                        "An incredible poster slam",
+                        "https://loremflickr.com/480/270/basketball,dunk?lock=23",
+                        "video", "0:32", "nba://video/dunk-night"},
+                {"hl-3", "Trade Deadline Recap",
+                        "All the moves from today",
+                        "https://loremflickr.com/480/270/basketball,trade?lock=24",
+                        "article", null, "nba://article/trade-recap"}
+        };
+        return atomicBuilder.buildContentRail("for-you-highlights", "for_you_highlights",
+                "Highlights", cards);
     }
 
     private ObjectNode buildTrendingRail() {
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "for-you-trending");
-        section.put("type", "ContentRail");
-        section.put("analyticsId", "for_you_trending");
-        section.set("refreshPolicy", staticPolicy());
-
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("title", "Trending Now");
-        data.put("fallbackThumbnailUrl", FALLBACK_THUMB);
-
-        ArrayNode cards = objectMapper.createArrayNode();
-        cards.add(contentCard("tr-1", "MVP Race Heats Up",
-                "Who's leading the charge?",
-                "https://cdn.nba.com/manage/2025/02/jokic-allstar-iso-752x428.jpg",
-                "article", null, "nba://article/mvp-race"));
-        cards.add(contentCard("tr-2", "Rookie Spotlight: Zaccharie Risacher",
-                "The first overall pick's breakout game",
-                "https://cdn.nba.com/manage/2025/02/risacher-hawks-drives-752x428.jpg",
-                "video", "3:12", "nba://video/rookie-spotlight"));
-        cards.add(contentCard("tr-3", "Playoff Picture Update",
-                "Where every team stands right now",
-                "https://cdn.nba.com/manage/2025/02/nba-standings-graphic-752x428.jpg",
-                "article", null, "nba://article/playoff-picture"));
-        data.set("cards", cards);
-
-        section.set("data", data);
-        return section;
+        String[][] cards = {
+                {"tr-1", "MVP Race Heats Up",
+                        "Who's leading the charge?",
+                        "https://cdn.nba.com/manage/2025/02/jokic-allstar-iso-752x428.jpg",
+                        "article", null, "nba://article/mvp-race"},
+                {"tr-2", "Rookie Spotlight: Zaccharie Risacher",
+                        "The first overall pick's breakout game",
+                        "https://cdn.nba.com/manage/2025/02/risacher-hawks-drives-752x428.jpg",
+                        "video", "3:12", "nba://video/rookie-spotlight"},
+                {"tr-3", "Playoff Picture Update",
+                        "Where every team stands right now",
+                        "https://cdn.nba.com/manage/2025/02/nba-standings-graphic-752x428.jpg",
+                        "article", null, "nba://article/playoff-picture"}
+        };
+        return atomicBuilder.buildContentRail("for-you-trending", "for_you_trending",
+                "Trending Now", cards);
     }
 
     private ObjectNode buildLeaguePassPicksRail() {
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "for-you-lp-picks");
-        section.put("type", "ContentRail");
-        section.put("analyticsId", "for_you_lp_picks");
-        section.set("refreshPolicy", staticPolicy());
-
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("title", "League Pass Picks");
-        data.put("fallbackThumbnailUrl", FALLBACK_THUMB);
-
-        ArrayNode cards = objectMapper.createArrayNode();
-        cards.add(contentCard("lp-1", "Warriors vs. Thunder Preview",
-                "A must-watch Western Conference clash",
-                "https://cdn.nba.com/manage/2025/02/warriors-thunder-preview-752x428.jpg",
-                "article", null, "nba://article/gsw-okc-preview"));
-        cards.add(contentCard("lp-2", "Best of League Pass: Week 20",
-                "Catch the top moments you missed",
-                "https://cdn.nba.com/manage/2025/02/lp-best-of-week-752x428.jpg",
-                "video", "4:30", "nba://video/lp-week-20"));
-        cards.add(contentCard("lp-3", "Hidden Gem: Pacers vs. Magic",
-                "An under-the-radar rivalry renewed",
-                "https://cdn.nba.com/manage/2025/02/pacers-magic-rivalry-752x428.jpg",
-                "video", "1:58", "nba://video/ind-orl-hidden-gem"));
-        data.set("cards", cards);
-
-        section.set("data", data);
-        return section;
+        String[][] cards = {
+                {"lp-1", "Warriors vs. Thunder Preview",
+                        "A must-watch Western Conference clash",
+                        "https://cdn.nba.com/manage/2025/02/warriors-thunder-preview-752x428.jpg",
+                        "article", null, "nba://article/gsw-okc-preview"},
+                {"lp-2", "Best of League Pass: Week 20",
+                        "Catch the top moments you missed",
+                        "https://cdn.nba.com/manage/2025/02/lp-best-of-week-752x428.jpg",
+                        "video", "4:30", "nba://video/lp-week-20"},
+                {"lp-3", "Hidden Gem: Pacers vs. Magic",
+                        "An under-the-radar rivalry renewed",
+                        "https://cdn.nba.com/manage/2025/02/pacers-magic-rivalry-752x428.jpg",
+                        "video", "1:58", "nba://video/ind-orl-hidden-gem"}
+        };
+        return atomicBuilder.buildContentRail("for-you-lp-picks", "for_you_lp_picks",
+                "League Pass Picks", cards);
     }
 
     private ObjectNode buildAroundTheLeagueRail() {
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "for-you-around-league");
-        section.put("type", "ContentRail");
-        section.put("analyticsId", "for_you_around_league");
-        section.set("refreshPolicy", staticPolicy());
-
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("title", "Around the League");
-        data.put("fallbackThumbnailUrl", FALLBACK_THUMB);
-
-        ArrayNode cards = objectMapper.createArrayNode();
-        cards.add(contentCard("al-1", "Injury Report Roundup",
-                "Key players in and out tonight",
-                "https://cdn.nba.com/manage/2025/02/injury-report-graphic-752x428.jpg",
-                "article", null, "nba://article/injury-report"));
-        cards.add(contentCard("al-2", "Power Rankings: March Edition",
-                "Who moved up and who dropped?",
-                "https://cdn.nba.com/manage/2025/02/power-rankings-march-752x428.jpg",
-                "article", null, "nba://article/power-rankings-march"));
-        cards.add(contentCard("al-3", "All-Star Weekend Recap",
-                "Best dunks, assists, and moments",
-                "https://cdn.nba.com/manage/2025/02/allstar-weekend-recap-752x428.jpg",
-                "video", "5:10", "nba://video/allstar-recap"));
-        data.set("cards", cards);
-
-        section.set("data", data);
-        return section;
+        String[][] cards = {
+                {"al-1", "Injury Report Roundup",
+                        "Key players in and out tonight",
+                        "https://cdn.nba.com/manage/2025/02/injury-report-graphic-752x428.jpg",
+                        "article", null, "nba://article/injury-report"},
+                {"al-2", "Power Rankings: March Edition",
+                        "Who moved up and who dropped?",
+                        "https://cdn.nba.com/manage/2025/02/power-rankings-march-752x428.jpg",
+                        "article", null, "nba://article/power-rankings-march"},
+                {"al-3", "All-Star Weekend Recap",
+                        "Best dunks, assists, and moments",
+                        "https://cdn.nba.com/manage/2025/02/allstar-weekend-recap-752x428.jpg",
+                        "video", "5:10", "nba://video/allstar-recap"}
+        };
+        return atomicBuilder.buildContentRail("for-you-around-league", "for_you_around_league",
+                "Around the League", cards);
     }
 
     private ObjectNode buildAdSlot(String id, String analyticsId,

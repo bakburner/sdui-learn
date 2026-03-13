@@ -14,8 +14,11 @@
     "action": {
       "$ref": "sdui-schema.json#/definitions/Action"
     },
-    "component": {
-      "$ref": "sdui-schema.json#/definitions/Component"
+    "atomicElement": {
+      "$ref": "sdui-schema.json#/definitions/AtomicElement"
+    },
+    "atomicCompositeData": {
+      "$ref": "sdui-schema.json#/definitions/AtomicCompositeData"
     },
     "refreshPolicy": {
       "$ref": "sdui-schema.json#/definitions/RefreshPolicy"

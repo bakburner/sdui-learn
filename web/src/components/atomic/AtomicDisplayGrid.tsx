@@ -1,6 +1,6 @@
 import React from 'react';
 import type { AtomicProps } from './AtomicRouter';
-import type { DataTableColumn } from './AtomicElement';
+import type { DisplayGridColumn } from './AtomicElement';
 
 const variantFontSize: Record<string, number> = {
   labelSmall: 11, labelMedium: 12, labelLarge: 14,
@@ -15,12 +15,15 @@ function alignToCSS(align?: string): React.CSSProperties['textAlign'] {
 }
 
 /**
- * AtomicDataTable — stateless, server-ordered grid.
+ * AtomicDisplayGrid — display-only, non-interactive, server-ordered grid of text cells.
  *
- * Use for simple tabular layouts. For sort, scroll-sync, frozen columns,
- * or row interactivity, use a dedicated section renderer.
+ * Zero client interaction: no sort, no filter, no expand, no select, no tap.
+ * Cell values are pre-formatted strings — no client-side formatting or computation.
+ *
+ * For sort, scroll-sync, frozen columns, pagination, or row interactivity,
+ * use a dedicated section renderer.
  */
-export function AtomicDataTable({ element }: AtomicProps): React.ReactElement | null {
+export function AtomicDisplayGrid({ element }: AtomicProps): React.ReactElement | null {
   const { columns, rows, headerVariant, cellVariant, striped } = element;
   if (!columns || !rows) return null;
 
@@ -32,7 +35,7 @@ export function AtomicDataTable({ element }: AtomicProps): React.ReactElement | 
     borderCollapse: 'collapse',
   };
 
-  const thStyle = (col: DataTableColumn): React.CSSProperties => ({
+  const thStyle = (col: DisplayGridColumn): React.CSSProperties => ({
     fontSize: headerSize,
     fontWeight: 600,
     textAlign: alignToCSS(col.align),
@@ -41,7 +44,7 @@ export function AtomicDataTable({ element }: AtomicProps): React.ReactElement | 
     ...(col.width && col.width !== 'flex' ? { width: col.width } : {}),
   });
 
-  const tdStyle = (col: DataTableColumn): React.CSSProperties => ({
+  const tdStyle = (col: DisplayGridColumn): React.CSSProperties => ({
     fontSize: cellSize,
     textAlign: alignToCSS(col.align),
     padding: '4px 8px',

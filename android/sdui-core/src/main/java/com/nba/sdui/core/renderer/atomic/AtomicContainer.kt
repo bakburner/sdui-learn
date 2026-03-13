@@ -2,9 +2,11 @@ package com.nba.sdui.core.renderer.atomic
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment as ComposeAlignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -21,15 +23,21 @@ fun AtomicContainer(
     element: AtomicElement,
     screenState: Map<String, Any>,
     onAction: (SduiAction) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    depth: Int = 0
 ) {
     val isRow = element.direction == "row"
     val gap = element.gap?.dp ?: 0.dp
-    val bgModifier = element.backgroundGradient?.let { gradient ->
-        modifier.background(gradient.toBrush())
-    } ?: element.backgroundColor?.let { hex ->
-        modifier.background(parseColor(hex))
+
+    val clippedModifier = element.cornerRadius?.let {
+        modifier.clip(RoundedCornerShape(it.dp))
     } ?: modifier
+
+    val bgModifier = element.backgroundGradient?.let { gradient ->
+        clippedModifier.background(gradient.toBrush())
+    } ?: element.backgroundColor?.let { hex ->
+        clippedModifier.background(parseColor(hex))
+    } ?: clippedModifier
 
     val paddedModifier = element.padding?.let {
         bgModifier.padding(
@@ -63,7 +71,7 @@ fun AtomicContainer(
             verticalAlignment = crossAxis as ComposeAlignment.Vertical
         ) {
             element.children?.forEachIndexed { index, child ->
-                AtomicRouter(child, screenState, onAction)
+                AtomicRouter(child, screenState, onAction, depth = depth + 1)
                 if (index < (element.children.size - 1) && gap > 0.dp) {
                     Spacer(modifier = Modifier.width(gap))
                 }
@@ -76,7 +84,7 @@ fun AtomicContainer(
             horizontalAlignment = crossAxis as ComposeAlignment.Horizontal
         ) {
             element.children?.forEachIndexed { index, child ->
-                AtomicRouter(child, screenState, onAction)
+                AtomicRouter(child, screenState, onAction, depth = depth + 1)
                 if (index < (element.children.size - 1) && gap > 0.dp) {
                     Spacer(modifier = Modifier.height(gap))
                 }

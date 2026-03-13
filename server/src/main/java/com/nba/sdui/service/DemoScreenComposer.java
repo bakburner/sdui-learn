@@ -21,6 +21,7 @@ public class DemoScreenComposer {
 
     private final ObjectMapper objectMapper;
     private final SduiUtils utils;
+    private final AtomicCompositeBuilder atomicBuilder;
 
     @Value("${sdui.schema.version:1.0}")
     private String schemaVersion;
@@ -28,13 +29,14 @@ public class DemoScreenComposer {
     public DemoScreenComposer(ObjectMapper objectMapper, SduiUtils utils) {
         this.objectMapper = objectMapper;
         this.utils = utils;
+        this.atomicBuilder = new AtomicCompositeBuilder(objectMapper);
     }
 
     // ── Public entry points ────────────────────────────────────────────
 
     /**
-     * Compose a kitchen-sink demo screen showcasing all 11 semantic section types
-     * with static mock data.  No external API calls.
+     * Compose a kitchen-sink demo screen showcasing all section types (including
+     * atomic primitives like DisplayGrid) with static mock data.  No external API calls.
      */
     public ObjectNode composeDemos(String traceId, String platform) {
         ObjectNode screen = objectMapper.createObjectNode();
@@ -107,7 +109,10 @@ public class DemoScreenComposer {
         // 18. FollowingRail
         sections.add(buildTypeLabel("FollowingRail"));
         sections.add(buildDemoFollowingRail());
-        // 19. ErrorState
+        // 19. DisplayGrid (atomic primitive)
+        sections.add(buildTypeLabel("DisplayGrid"));
+        sections.add(buildDemoDisplayGrid());
+        // 20. ErrorState
         sections.add(buildTypeLabel("ErrorState"));
         sections.add(buildDemoErrorState());
 
@@ -334,29 +339,12 @@ public class DemoScreenComposer {
      * 3. PromoBanner — "Welcome to SDUI" with gradient background.
      */
     private ObjectNode buildDemoPromoBanner() {
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "demo-promo-banner");
-        section.put("type", "PromoBanner");
-        section.put("analyticsId", "demo_promo_banner");
-        section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
-
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("title", "Welcome to SDUI");
-        data.put("description", "All 20 semantic section types rendered from a single server response.");
-        data.put("imageUrl", "https://loremflickr.com/800/200/basketball,nba?lock=1");
-        data.put("backgroundColor", "#17408B");
-        data.put("textColor", "#FFFFFF");
-
-        ArrayNode actions = objectMapper.createArrayNode();
-        ObjectNode action = objectMapper.createObjectNode();
-        action.put("trigger", "onTap");
-        action.put("type", "navigate");
-        action.put("targetUri", "nba://scoreboard");
-        actions.add(action);
-        data.set("actions", actions);
-
-        section.set("data", data);
-        return section;
+        return atomicBuilder.buildPromoBanner(
+                "demo-promo-banner", "demo_promo_banner",
+                "Welcome to SDUI", null,
+                "All 20 semantic section types rendered from a single server response.",
+                "https://loremflickr.com/800/200/basketball,nba?lock=1",
+                "#17408B", "Learn More", "nba://scoreboard");
     }
 
     /**
@@ -392,45 +380,14 @@ public class DemoScreenComposer {
      * 5. ContentRail — 4 cards (Top Plays, Player Spotlight, etc.).
      */
     private ObjectNode buildDemoContentRail() {
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "demo-content-rail");
-        section.put("type", "ContentRail");
-        section.put("analyticsId", "demo_content_rail");
-        section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
-
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("title", "Featured Content");
-        data.put("fallbackThumbnailUrl", FALLBACK_THUMB);
-
-        ArrayNode cards = objectMapper.createArrayNode();
-
-        String[][] cardData = {
-            {"rail-1", "Top 10 Plays", "Last night's best moments", "video", "https://loremflickr.com/480/270/basketball,highlights?lock=3"},
-            {"rail-2", "Player Spotlight", "Jayson Tatum's monster game", "article", "https://loremflickr.com/480/270/basketball,player?lock=4"},
-            {"rail-3", "Draft Preview", "Top prospects for 2025 draft", "article", "https://loremflickr.com/480/270/basketball,draft?lock=5"},
-            {"rail-4", "Playoff Bracket", "Updated bracket after today's results", "interactive", "https://loremflickr.com/480/270/basketball,playoffs?lock=6"}
+        String[][] cards = {
+            {"rail-1", "Top 10 Plays", "Last night's best moments", "https://loremflickr.com/480/270/basketball,highlights?lock=3", "video", null, "nba://content/rail-1"},
+            {"rail-2", "Player Spotlight", "Jayson Tatum's monster game", "https://loremflickr.com/480/270/basketball,player?lock=4", "article", null, "nba://content/rail-2"},
+            {"rail-3", "Draft Preview", "Top prospects for 2025 draft", "https://loremflickr.com/480/270/basketball,draft?lock=5", "article", null, "nba://content/rail-3"},
+            {"rail-4", "Playoff Bracket", "Updated bracket after today's results", "https://loremflickr.com/480/270/basketball,playoffs?lock=6", "interactive", null, "nba://content/rail-4"}
         };
-
-        for (String[] cd : cardData) {
-            ObjectNode card = objectMapper.createObjectNode();
-            card.put("id", cd[0]);
-            card.put("headline", cd[1]);
-            card.put("subhead", cd[2]);
-            card.put("contentType", cd[3]);
-            card.put("thumbnailUrl", cd[4]);
-
-            ObjectNode action = objectMapper.createObjectNode();
-            action.put("trigger", "onTap");
-            action.put("type", "navigate");
-            action.put("targetUri", "nba://content/" + cd[0]);
-            card.set("action", action);
-
-            cards.add(card);
-        }
-
-        data.set("cards", cards);
-        section.set("data", data);
-        return section;
+        return atomicBuilder.buildContentRail(
+                "demo-content-rail", "demo_content_rail", "Featured Content", cards);
     }
 
     /**
@@ -1030,54 +987,56 @@ public class DemoScreenComposer {
      * 18. FollowingRail — horizontal rail of 5 followed teams/players.
      */
     private ObjectNode buildDemoFollowingRail() {
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "demo-following-rail");
-        section.put("type", "FollowingRail");
-        section.put("analyticsId", "demo_following_rail");
-        section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
-
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("title", "Following");
-        data.put("fallbackThumbnailUrl", FALLBACK_THUMB);
-
-        ArrayNode items = objectMapper.createArrayNode();
-        String[][] entities = {
+        String[][] items = {
             {"team-lal", "Lakers", "https://cdn.nba.com/logos/nba/1610612747/primary/L/logo.svg", "team", "nba://team/1610612747"},
             {"team-bos", "Celtics", "https://cdn.nba.com/logos/nba/1610612738/primary/L/logo.svg", "team", "nba://team/1610612738"},
             {"player-luka", "Luka Dončić", "https://cdn.nba.com/headshots/nba/latest/1040x760/203999.png", "player", "nba://player/203999"},
             {"team-gsw", "Warriors", "https://cdn.nba.com/logos/nba/1610612744/primary/L/logo.svg", "team", "nba://team/1610612744"},
             {"player-sga", "Shai Gilgeous-Alexander", "https://cdn.nba.com/headshots/nba/latest/1040x760/1630175.png", "player", "nba://player/1630175"}
         };
-        for (String[] e : entities) {
-            ObjectNode item = objectMapper.createObjectNode();
-            item.put("id", e[0]);
-            item.put("name", e[1]);
-            item.put("imageUrl", e[2]);
-            item.put("entityType", e[3]);
-            ObjectNode action = objectMapper.createObjectNode();
-            action.put("trigger", "onTap");
-            action.put("type", "navigate");
-            action.put("targetUri", e[4]);
-            item.set("action", action);
-            items.add(item);
-        }
-        data.set("items", items);
-
-        section.set("data", data);
-        return section;
+        return atomicBuilder.buildFollowingRail(
+                "demo-following-rail", "demo_following_rail", "Following", items);
     }
 
     /**
-     * 19. ErrorState — server-driven error with retry action.
+     * 19. DisplayGrid — display-only standings table via the atomic DisplayGrid primitive.
+     */
+    private ObjectNode buildDemoDisplayGrid() {
+        String[][] columns = {
+            {"team", "Team", "start"},
+            {"w", "W", "center"},
+            {"l", "L", "center"},
+            {"pct", "PCT", "center"},
+            {"gb", "GB", "center"},
+            {"strk", "STRK", "center"}
+        };
+        String[][] rows = {
+            {"BOS", "52", "14", ".788", "-", "W5"},
+            {"CLE", "49", "17", ".742", "3.0", "W2"},
+            {"NYK", "44", "22", ".667", "8.0", "L1"},
+            {"MIL", "42", "24", ".636", "10.0", "W3"},
+            {"ORL", "39", "27", ".591", "13.0", "L2"},
+            {"IND", "38", "28", ".576", "14.0", "W1"},
+            {"PHI", "35", "31", ".530", "17.0", "L3"},
+            {"MIA", "33", "33", ".500", "19.0", "W1"}
+        };
+        return atomicBuilder.buildDisplayGrid(
+                "demo-display-grid", "demo_display_grid",
+                "Eastern Conference Standings",
+                columns, rows,
+                "labelMedium", "bodySmall", true);
+    }
+
+    /**
+     * 20. ErrorState — server-driven error with retry action.
      */
     private ObjectNode buildDemoErrorState() {
-        return utils.buildErrorSection(
+        return atomicBuilder.buildErrorState(
                 "demo-error-state",
                 "Something went wrong",
                 "We couldn't load this content. This is a demo of the ErrorState section type.",
                 "error",
-                "nba://scoreboard"
-        );
+                "nba://scoreboard");
     }
 
     // ── Private helpers ────────────────────────────────────────────────
@@ -1086,15 +1045,8 @@ public class DemoScreenComposer {
      * Build a SectionHeader labelling the section type for the kitchen-sink demo.
      */
     private ObjectNode buildTypeLabel(String sectionType) {
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "label-" + sectionType.toLowerCase());
-        section.put("type", "SectionHeader");
-        section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
-
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("title", sectionType);
-        section.set("data", data);
-        return section;
+        return atomicBuilder.buildSectionHeader(
+                "label-" + sectionType.toLowerCase(), sectionType, null, null, null);
     }
 
     private ObjectNode demoPlayerRow(String playerId, String name, String position,

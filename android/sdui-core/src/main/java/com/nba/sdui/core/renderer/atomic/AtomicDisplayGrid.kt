@@ -12,22 +12,23 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.nba.sdui.core.models.AtomicElement
-import com.nba.sdui.core.models.DataTableColumn
+import com.nba.sdui.core.models.DisplayGridColumn
 import com.nba.sdui.core.state.SduiAction
 
 /**
- * AtomicDataTable — stateless, server-ordered grid.
+ * AtomicDisplayGrid — display-only, non-interactive, server-ordered grid of text cells.
  *
- * Use for simple tabular layouts where sort, scroll-sync, frozen columns,
- * and row interactivity are NOT required.  For those features, use a
- * dedicated section renderer (BoxscoreTable, SeasonLeadersTable, etc.).
+ * Zero client interaction: no sort, no filter, no expand, no select, no tap.
+ * Cell values are pre-formatted strings — no client-side formatting or computation.
+ *
+ * For sort, scroll-sync, frozen columns, pagination, or row interactivity,
+ * use a dedicated section renderer (BoxscoreTable, SeasonLeadersTable, etc.).
  */
 @Composable
-fun AtomicDataTable(
+fun AtomicDisplayGrid(
     element: AtomicElement,
     screenState: Map<String, Any>,
     onAction: (SduiAction) -> Unit,
@@ -40,7 +41,6 @@ fun AtomicDataTable(
     val striped = element.striped == true
 
     LazyColumn(modifier = modifier.fillMaxWidth()) {
-        // Header row
         item {
             Row(
                 modifier = Modifier
@@ -61,7 +61,6 @@ fun AtomicDataTable(
             }
         }
 
-        // Data rows
         itemsIndexed(rows) { index, row ->
             val rowBg = if (striped && index % 2 == 1) {
                 MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
@@ -90,9 +89,9 @@ fun AtomicDataTable(
 }
 
 @Composable
-private fun RowScope.CellSlot(col: DataTableColumn, content: @Composable () -> Unit) {
-    val widthMod = when (val w = col.width) {
-        is Number -> Modifier.weight(1f).padding(end = 4.dp) // fixed widths treated as flex for now
+private fun RowScope.CellSlot(col: DisplayGridColumn, content: @Composable () -> Unit) {
+    val widthMod = when (col.width) {
+        is Number -> Modifier.weight(1f).padding(end = 4.dp)
         "flex"    -> Modifier.weight(1f).padding(end = 4.dp)
         else      -> Modifier.weight(1f).padding(end = 4.dp)
     }

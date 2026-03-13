@@ -51,14 +51,6 @@ fun SectionRouter(
             )
         }
         
-        "ContentRail" -> {
-            ContentRailRenderer(
-                section = section,
-                onAction = onAction,
-                modifier = modifier
-            )
-        }
-        
         "TabGroup" -> {
             TabGroupRenderer(
                 section = section,
@@ -69,14 +61,6 @@ fun SectionRouter(
             )
         }
         
-        "PromoBanner" -> {
-            PromoBannerRenderer(
-                section = section,
-                onAction = onAction,
-                modifier = modifier
-            )
-        }
-
         "GamePanel" -> {
             GamePanelRenderer(
                 section = section,
@@ -111,23 +95,6 @@ fun SectionRouter(
                 screenState = screenState,
                 onAction = onAction,
                 onStateChange = onStateChange,
-                modifier = modifier
-            )
-        }
-
-        "FollowingRail" -> {
-            FollowingRailRenderer(
-                section = section,
-                onAction = onAction,
-                modifier = modifier
-            )
-        }
-
-
-        "SectionHeader" -> {
-            SectionHeaderRenderer(
-                section = section,
-                onAction = onAction,
                 modifier = modifier
             )
         }
@@ -180,14 +147,6 @@ fun SectionRouter(
             )
         }
 
-        "ErrorState" -> {
-            ErrorStateRenderer(
-                section = section,
-                onAction = onAction,
-                modifier = modifier
-            )
-        }
-
         "AtomicComposite" -> {
             val root = AtomicElementParser.parse(section.data)
             if (root != null) {
@@ -218,22 +177,16 @@ val SUPPORTED_SECTION_TYPES = setOf(
     "ScoreboardHeader",
     "StatLine",
     "HeroPanel",
-    "ContentRail",
     "TabGroup",
-    "PromoBanner",
     "GamePanel",
     "Row",
     "BoxscoreTable",
     "Form",
-    "FollowingRail",
-
-    "SectionHeader",
     "VideoCarousel",
     "NbaTvSchedule",
     "SubscribeBanner",
     "SubscribeHero",
     "AdSlot",
     "SeasonLeadersTable",
-    "ErrorState",
     "AtomicComposite"
 )

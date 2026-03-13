@@ -6,11 +6,11 @@ import { AtomicRouter } from './AtomicRouter';
  * AtomicConditional — evaluates a dot-path condition against state
  * and renders either trueChild or falseChild.
  */
-export function AtomicConditional({ element, state, onAction }: AtomicProps): React.ReactElement | null {
+export function AtomicConditional({ element, state, onAction, depth = 0 }: AtomicProps): React.ReactElement | null {
   const conditionMet = evaluateCondition(element.condition, state);
   const child = conditionMet ? element.trueChild : element.falseChild;
   if (!child) return null;
-  return <AtomicRouter element={child} state={state} onAction={onAction} />;
+  return <AtomicRouter element={child} state={state} onAction={onAction} depth={depth} />;
 }
 
 function evaluateCondition(condition: string | undefined, state: Record<string, unknown>): boolean {

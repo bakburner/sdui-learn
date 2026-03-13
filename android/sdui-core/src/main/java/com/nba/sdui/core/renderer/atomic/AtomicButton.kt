@@ -7,7 +7,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.nba.sdui.core.models.AtomicElement
-import com.nba.sdui.core.models.GeneratedConverters.actionToSduiAction
+import com.nba.sdui.core.models.actionToSduiAction
 import com.nba.sdui.core.state.SduiAction
 
 /**

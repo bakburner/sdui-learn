@@ -11,7 +11,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
  * `AtomicComposite` section. The client's AtomicRouter renders the tree
  * using platform-native primitives.
  *
- * Types: Container, Text, Image, Button, Spacer, Divider, ScrollContainer, Conditional, DataTable
+ * Types: Container, Text, Image, Button, Spacer, Divider, ScrollContainer, Conditional, DisplayGrid
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class AtomicElement(
@@ -27,6 +27,7 @@ data class AtomicElement(
     @JsonProperty("padding") val padding: Spacing? = null,
     @JsonProperty("backgroundColor") val backgroundColor: String? = null,
     @JsonProperty("backgroundGradient") val backgroundGradient: BackgroundGradient? = null,
+    @JsonProperty("cornerRadius") val cornerRadius: Int? = null,
 
     // Text properties
     @JsonProperty("content") val content: String? = null,
@@ -66,8 +67,8 @@ data class AtomicElement(
     @JsonProperty("trueChild") val trueChild: AtomicElement? = null,
     @JsonProperty("falseChild") val falseChild: AtomicElement? = null,
 
-    // DataTable properties
-    @JsonProperty("columns") val columns: List<DataTableColumn>? = null,
+    // DisplayGrid properties
+    @JsonProperty("columns") val columns: List<DisplayGridColumn>? = null,
     @JsonProperty("rows") val rows: List<Map<String, String>>? = null,
     @JsonProperty("headerVariant") val headerVariant: String? = null,
     @JsonProperty("cellVariant") val cellVariant: String? = null,
@@ -84,7 +85,7 @@ data class BackgroundGradient(
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-data class DataTableColumn(
+data class DisplayGridColumn(
     @JsonProperty("key") val key: String,
     @JsonProperty("label") val label: String,
     @JsonProperty("align") val align: String? = "start", // "start" | "center" | "end"

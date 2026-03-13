@@ -24,7 +24,7 @@ export type AtomicElementType =
   | 'Divider'
   | 'ScrollContainer'
   | 'Conditional'
-  | 'DataTable';
+  | 'DisplayGrid';
 
 export interface AtomicElement {
   type: AtomicElementType;
@@ -47,10 +47,14 @@ export interface AtomicElement {
   color?: string;
   maxLines?: number;
 
+  // Shared visual
+  cornerRadius?: number;
+
   // Image
   src?: string;
   aspectRatio?: number;
   fit?: 'cover' | 'contain' | 'fill' | 'fitWidth' | 'fitHeight' | 'none';
+  placeholder?: string;
   width?: number;
   height?: number;
 
@@ -76,8 +80,8 @@ export interface AtomicElement {
   trueChild?: AtomicElement;
   falseChild?: AtomicElement;
 
-  // DataTable
-  columns?: DataTableColumn[];
+  // DisplayGrid
+  columns?: DisplayGridColumn[];
   rows?: Record<string, string>[];
   headerVariant?: string;
   cellVariant?: string;
@@ -87,7 +91,7 @@ export interface AtomicElement {
   actions?: Record<string, unknown>[];
 }
 
-export interface DataTableColumn {
+export interface DisplayGridColumn {
   key: string;
   label: string;
   align?: 'start' | 'center' | 'end';

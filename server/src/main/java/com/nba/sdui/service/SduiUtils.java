@@ -27,9 +27,11 @@ public class SduiUtils {
     private static final Logger log = LoggerFactory.getLogger(SduiUtils.class);
 
     private final ObjectMapper objectMapper;
+    private final AtomicCompositeBuilder atomicBuilder;
 
     public SduiUtils(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
+        this.atomicBuilder = new AtomicCompositeBuilder(objectMapper);
     }
 
     // ── Navigation ─────────────────────────────────────────────────────
@@ -323,25 +325,7 @@ public class SduiUtils {
      */
     public ObjectNode buildErrorSection(String sectionId, String title, String message,
                                          String icon, String retryUri) {
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", sectionId);
-        section.put("type", "ErrorState");
-
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("title", title);
-        data.put("message", message);
-        if (icon != null) {
-            data.put("icon", icon);
-        }
-        if (retryUri != null) {
-            ObjectNode retryAction = objectMapper.createObjectNode();
-            retryAction.put("type", "navigate");
-            retryAction.put("trigger", "tap");
-            retryAction.put("targetUri", retryUri);
-            data.set("retryAction", retryAction);
-        }
-        section.set("data", data);
-        return section;
+        return atomicBuilder.buildErrorState(sectionId, title, message, icon, retryUri);
     }
 
     // ── Section states (error/loading UX) ────────────────────────────

@@ -3,22 +3,17 @@ import type { Section, Action, Data, RefreshPolicy } from '@sdui/models';
 import { ScoreboardHeader } from './sections/ScoreboardHeader';
 import { StatLine } from './sections/StatLine';
 import { HeroPanel } from './sections/HeroPanel';
-import { ContentRail } from './sections/ContentRail';
 import { TabGroup } from './sections/TabGroup';
-import { PromoBanner } from './sections/PromoBanner';
 import { GamePanel } from './sections/GamePanel';
 import { Row } from './sections/Row';
 import { BoxscoreTable } from './sections/BoxscoreTable';
 import { Form } from './sections/Form';
 import { AdSlot } from './sections/AdSlot';
 import { SeasonLeadersTable } from './sections/SeasonLeadersTable';
-import { FollowingRail } from './sections/FollowingRail';
-import { SectionHeader } from './sections/SectionHeader';
 import { VideoCarousel } from './sections/VideoCarousel';
 import { NbaTvSchedule } from './sections/NbaTvSchedule';
 import { SubscribeBanner } from './sections/SubscribeBanner';
 import { SubscribeHero } from './sections/SubscribeHero';
-import { ErrorState } from './sections/ErrorState';
 import { AtomicRouter } from './atomic';
 import type { AtomicCompositeData } from './atomic';
 import { LiveSectionWrapper } from './LiveSectionWrapper';
@@ -57,15 +52,9 @@ function SectionRenderer({
     case 'StatLine':
       return <StatLine {...commonProps} />;
       
-    case 'ContentRail':
-      return <ContentRail {...commonProps} />;
-      
     case 'TabGroup':
       return <TabGroup {...commonProps} />;
       
-    case 'PromoBanner':
-      return <PromoBanner {...commonProps} />;
-
     case 'GamePanel':
       return <GamePanel {...commonProps} />;
 
@@ -84,13 +73,6 @@ function SectionRenderer({
     case 'SeasonLeadersTable':
       return <SeasonLeadersTable {...commonProps} />;
 
-    case 'FollowingRail':
-      return <FollowingRail {...commonProps} />;
-
-
-    case 'SectionHeader':
-      return <SectionHeader {...commonProps} />;
-      
     case 'HeroPanel':
       return <HeroPanel {...commonProps} />;
 
@@ -105,9 +87,6 @@ function SectionRenderer({
 
     case 'SubscribeHero':
       return <SubscribeHero {...commonProps} />;
-
-    case 'ErrorState':
-      return <ErrorState {...commonProps} />;
 
     case 'AtomicComposite': {
       const compositeData = section.data as unknown as AtomicCompositeData | undefined;

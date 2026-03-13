@@ -4,18 +4,28 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.nba.sdui.core.models.AtomicElement
-import com.nba.sdui.core.models.GeneratedConverters.actionToSduiAction
+import com.nba.sdui.core.models.actionToSduiAction
 import com.nba.sdui.core.state.SduiAction
+
+private const val DEFAULT_FALLBACK =
+    "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png"
 
 /**
  * AtomicImage — renders an Image element via Coil AsyncImage with
- * optional sizing, aspect ratio, content scale, and tap actions.
+ * optional sizing, aspect ratio, content scale, corner radius,
+ * and placeholder fallback on load error.
  */
 @Composable
 fun AtomicImage(
@@ -25,6 +35,10 @@ fun AtomicImage(
     modifier: Modifier = Modifier
 ) {
     var imageModifier = modifier
+
+    element.cornerRadius?.let {
+        imageModifier = imageModifier.clip(RoundedCornerShape(it.dp))
+    }
     element.width?.let { imageModifier = imageModifier.width(it.dp) }
     element.height?.let { imageModifier = imageModifier.height(it.dp) }
     element.aspectRatio?.let { imageModifier = imageModifier.aspectRatio(it) }
@@ -39,11 +53,21 @@ fun AtomicImage(
         }
     }
 
+    val fallbackUrl = element.placeholder ?: DEFAULT_FALLBACK
+    var currentSrc by remember(element.src) { mutableStateOf(element.src) }
+    var triedFallback by remember(element.src) { mutableStateOf(false) }
+
     AsyncImage(
-        model = element.src,
+        model = currentSrc,
         contentDescription = element.id,
         contentScale = mapContentScale(element.fit),
-        modifier = imageModifier
+        modifier = imageModifier,
+        onError = {
+            if (!triedFallback) {
+                triedFallback = true
+                currentSrc = fallbackUrl
+            }
+        }
     )
 }
 

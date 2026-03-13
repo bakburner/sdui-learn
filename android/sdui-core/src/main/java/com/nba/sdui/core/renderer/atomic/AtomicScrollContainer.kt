@@ -22,7 +22,8 @@ fun AtomicScrollContainer(
     element: AtomicElement,
     screenState: Map<String, Any>,
     onAction: (SduiAction) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    depth: Int = 0
 ) {
     val children = element.children.orEmpty()
     val gap = element.gap?.dp ?: 0.dp
@@ -35,16 +36,16 @@ fun AtomicScrollContainer(
             modifier = modifier,
             pageSpacing = gap
         ) { page ->
-            AtomicRouter(children[page], screenState, onAction)
+            AtomicRouter(children[page], screenState, onAction, depth = depth + 1)
         }
     } else if (isHorizontal) {
         LazyRow(
             modifier = modifier,
             horizontalArrangement = Arrangement.spacedBy(gap),
-            contentPadding = PaddingValues(horizontal = 0.dp)
+            contentPadding = PaddingValues(horizontal = 16.dp)
         ) {
             itemsIndexed(children) { _, child ->
-                AtomicRouter(child, screenState, onAction)
+                AtomicRouter(child, screenState, onAction, depth = depth + 1)
             }
         }
     } else {
@@ -54,7 +55,7 @@ fun AtomicScrollContainer(
             contentPadding = PaddingValues(vertical = 0.dp)
         ) {
             itemsIndexed(children) { _, child ->
-                AtomicRouter(child, screenState, onAction)
+                AtomicRouter(child, screenState, onAction, depth = depth + 1)
             }
         }
     }

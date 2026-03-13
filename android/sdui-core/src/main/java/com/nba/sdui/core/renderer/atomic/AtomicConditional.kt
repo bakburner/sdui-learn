@@ -17,11 +17,12 @@ fun AtomicConditional(
     element: AtomicElement,
     screenState: Map<String, Any>,
     onAction: (SduiAction) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    depth: Int = 0
 ) {
     val conditionMet = evaluateCondition(element.condition, screenState)
     val child = if (conditionMet) element.trueChild else element.falseChild
-    child?.let { AtomicRouter(it, screenState, onAction, modifier) }
+    child?.let { AtomicRouter(it, screenState, onAction, modifier, depth = depth + 1) }
 }
 
 /**

@@ -22,6 +22,7 @@
 | 2026-03-12 | Server-control gaps closed: `SectionLayoutHints` and `SectionStates` added to schema + codegen. Web client: `SectionErrorBoundary`, `SectionSkeleton`, `useImpressionTracking`, `useAnalyticsContext` built. Server: `sectionStates` emitted on live sections. ADR-008 accepted (Option C), ADR-009 accepted. Bug fixes: `interactive` contentType enum, platform header threading (`X-Platform` required from clients, no server default), silent deserialization failures now logged on Android. |
 | 2026-03-12 | Merged `FeaturedGamePanel` into `GamePanel` with `variant` discriminator. `FeaturedGamePanelData` removed from schema; `GamePanelData` gains `variant`, `backgroundImageUrl`, `badgeText`, `visualLabel` fields. Server composers emit `type: "GamePanel"` with `variant: "featured"`. Android and Web renderers branch on variant. `FeaturedGamePanelRenderer` deleted on both platforms. Section type count: 20 → 19. |
 | 2026-03-13 | Added offline/degraded connectivity strategy (9r) with ADR-010 reference. Stale-while-offline approach using platform HTTP cache, staleness UX per `cacheability` class, analytics local queue. |
+| 2026-03-13 | Atomic rendering layer. Updated §2 (dual-layer model: semantic sections + atomic primitives coexisting via AtomicComposite). Added §2a (AtomicElement types, AtomicComposite bridge, Grid vs. Section Decision Tree). Updated §8 (AtomicRouter + 10 atomic renderers per platform). Added §9s (atomic layer performance contract). Updated §10 (atomic rendering layer status). |
 
 ---
 
@@ -175,7 +176,7 @@ action targets is sufficient.
 ### Key Schema Decisions
 
 - Schema is the contract source of truth.
-- Schema defines semantic section types, not atomic layout primitives.
+- Schema defines a dual-layer model: **semantic section types** (GamePanel, BoxscoreTable, TabGroup, etc.) for domain-specific rendering with client-owned state, and **atomic element types** (Container, Text, Image, etc.) for server-composed generic layouts. The two layers coexist via the `AtomicComposite` bridge section type. See §2a.
 - Codegen generates typed models only, not UI code.
 - Schema evolution is additive-first and version-aware.
 - Unknown section/action types must degrade gracefully (skip/no-op).
@@ -327,6 +328,56 @@ Tabular stat views (boxscore, roster, standings) share UX patterns — frozen fi
 ```
 
 Field types: `picker` (dropdown), `segmented` (button group), `toggle` (switch), `datePicker`, `text`. Field changes accumulate in `Screen.state`; submit fires the `refresh` action with `paramBindings` resolved from current state values.
+
+### 2a. Atomic Element Layer
+
+The schema defines a second layer of **atomic element types** alongside the semantic section types described above. While semantic sections carry domain-typed data and rely on client-owned renderers (sort state, frozen columns, form submission), atomic elements are **server-composed primitives** rendered generically by an `AtomicRouter` with no client-side business logic.
+
+**AtomicElement types (10 in schema enum — 9 rendering primitives + 1 bridge):**
+
+| Type | Purpose | Key properties |
+|---|---|---|
+| **Container** | Flex layout wrapper | `children`, `direction`, `padding`, `gap`, `alignment`, `backgroundGradient` |
+| **Text** | Styled text | `content`, `variant`, `color`, `maxLines`, `alignment` |
+| **Image** | Remote image | `url`, `altText`, `width`, `height`, `contentScale` |
+| **Button** | Interactive element | `label`, `actions`, `variant` |
+| **Spacer** | Fixed space | `width`, `height` |
+| **Divider** | Line separator | `orientation`, `thickness`, `color` |
+| **ScrollContainer** | Scrollable region | `children`, `direction`, `paging`, `snapAlignment`, `gap` |
+| **Conditional** | State-driven branching | `condition`, `trueChild`, `falseChild` |
+| **DisplayGrid** | Display-only text grid | `columns`, `rows`, `headerVariant`, `cellVariant`, `striped` |
+| **SectionSlot** | Embed a full section | `section` (a complete Section object) |
+
+**Bridge mechanism — `AtomicComposite` section type:**
+
+The `AtomicComposite` section type bridges the section and atomic layers. When `SectionRouter` encounters `type: "AtomicComposite"`, it delegates rendering to `AtomicRouter`. The section's `data` contains:
+
+- `ui` — the root `AtomicElement` tree (rendering instructions)
+- `content` — reserved for domain data used with data-binding support
+
+`SectionSlot` provides the reverse bridge: an atomic tree can embed a full section renderer (e.g., an `AdSlot` inside an atomic layout), enabling bidirectional delegation between the two layers. A recursion guard (`MAX_SECTION_SLOT_DEPTH = 2`) prevents infinite nesting.
+
+**Grid vs. Section Decision Tree:**
+
+> **Why "DisplayGrid" and not "DataTable"?** The Tabular Data section above explicitly rejected a generic `DataTable` at the section level because different tables have genuinely different data shapes. The atomic `DisplayGrid` is a deliberately different primitive: a **display-only, non-interactive, server-ordered grid of text cells**. The name makes the non-interactive boundary self-documenting.
+
+```
+Need tabular data?
+├─ Needs client-side sort?                  → Section (BoxscoreTable / SeasonLeadersTable)
+├─ Needs frozen columns + horizontal scroll → Section
+├─ Needs pagination?                        → Section
+├─ Needs interactive rows (expand/select)?  → Section
+├─ Needs domain-typed row models?           → Section (compile-time safety)
+├─ Needs per-row actions (tap/swipe)?       → Section
+└─ Display-only, server-ordered grid of text
+   with no client interaction?              → DisplayGrid atomic primitive
+```
+
+**DisplayGrid boundary (hard contract)**:
+- ✅ Server decides column order, row order, and display values — client paints them.
+- ✅ Cell values are pre-formatted strings. No client-side formatting or computation.
+- ✅ Zero client interaction — no sort, no filter, no expand, no select, no tap.
+- ❌ The moment ANY of the above constraints break, promote to a semantic section type.
 
 ---
 
@@ -594,6 +645,24 @@ Each platform family receives a tailored composition from the server while shari
 | SeasonLeadersTable | Built | Built | Gap |
 | ErrorState | Built | Built | Gap |
 
+**Atomic element coverage across platforms:**
+
+| Atomic element type | Web (React) | Android (Compose) | iOS (SwiftUI) |
+|---|---|---|---|
+| Container | Built | Built | Gap |
+| Text | Built | Built | Gap |
+| Image | Built | Built | Gap |
+| Button | Built | Built | Gap |
+| Spacer | Built | Built | Gap |
+| Divider | Built | Built | Gap |
+| ScrollContainer | Built | Built | Gap |
+| Conditional | Built | Built | Gap |
+| DisplayGrid | Built | Built | Gap |
+| SectionSlot | Built | Built | Gap |
+| **AtomicRouter** | **Built** | **Built** | **Gap** |
+
+The `AtomicRouter` dispatches rendering for all 10 element types. `AtomicComposite` is the 19th section type in `SectionRouter` (18 semantic + AtomicComposite).
+
 
 ---
 
@@ -773,6 +842,19 @@ Options evaluated: offline-first local DB (rejected — cost disproportionate to
 
 Reference: ADR-010
 
+### 9s. Atomic Layer Performance Contract
+
+The atomic element layer introduces server-composed UI trees rendered generically by `AtomicRouter`. To prevent unbounded complexity, the following performance limits are enforced:
+
+| Limit | Value | Enforcement |
+|---|---|---|
+| Max tree depth | 6 | Server validation + client defensive depth guard (renderer returns null beyond limit) |
+| Max children per container | 20 | Server validation |
+| Max total nodes per atomic tree | 50 | Server validation |
+| Max SectionSlot nesting depth | 2 | Client recursion guard (`sectionSlotDepth` parameter) |
+
+These limits ensure atomic trees remain a lightweight composition mechanism, not a general-purpose layout engine. If a layout exceeds these constraints, it should be implemented as a semantic section type with a dedicated renderer.
+
 ---
 
 ## 10. Requirement Status
@@ -796,6 +878,7 @@ Reference: ADR-010
 | SeasonLeadersTable             | Built   | —       | domain-typed leaders table with form-driven parameterized refresh |
 | Image fallback                 | Built   | —       | server-driven `fallbackThumbnailUrl` with client-side error handling |
 | Offline / degraded connectivity| Gap     | ADR-010 | stale-while-offline via platform HTTP cache; staleness UX per cacheability class |
+| Atomic rendering layer         | Built   | —       | AtomicRouter + 9 primitives + SectionSlot bridge on Android and Web. AtomicComposite section type. DisplayGrid for non-interactive grids. Performance contract enforced (depth 6, children 20, nodes 50). |
 
 
 ---

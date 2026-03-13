@@ -19,6 +19,7 @@
 | 2026-02-27 | Cross-document consistency review. Replaced `entitlements` references with `device` in governance, schema decisions, and 9o to align with Technical Proposal. |
 | 2026-03-04 | Added gap section 9q: Tabular Data Sections and Forms. New semantic section types (`BoxscoreTable`, `Form`), parameterized refresh on actions, sort/form state conventions. Updated status matrix. |
 | 2026-03-04 | Added `parentUri` to Screen contract. Updated status matrix for composition API contract (Gap → Partial). Added Prototype Concessions subsection. |
+| 2026-03-13 | Atomic rendering layer. Updated Key Schema Decisions (dual-layer model: 18 semantic section types + 10 atomic element types coexisting via AtomicComposite). Added Grid vs. Section Decision Tree to §9q. Added atomic rendering layer row to requirement status matrix. |
 
 ---
 
@@ -162,7 +163,7 @@ graph LR
 
 ### Key Schema Decisions
 
-- **Semantic section types** (StatLine, HeroPanel, GamePanel (with `variant: "standard"`, `"featured"`, and `"scoreboard"` for compact scoreboard rows), VideoCarousel, NbaTvSchedule, SubscribeBanner, SubscribeHero, AdSlot, BoxscoreTable, Form, ContentRail, TabGroup, PromoBanner, Row, SectionHeader, FollowingRail, SeasonLeadersTable, ErrorState — 18 types) — not atomic primitives (Text, Image, Stack). The design system already handles layout; the schema just names what to render and passes typed data.
+- **Dual-layer type model** — 18 **semantic section types** (StatLine, HeroPanel, GamePanel (with `variant: "standard"`, `"featured"`, and `"scoreboard"` for compact scoreboard rows), VideoCarousel, NbaTvSchedule, SubscribeBanner, SubscribeHero, AdSlot, BoxscoreTable, Form, ContentRail, TabGroup, PromoBanner, Row, SectionHeader, FollowingRail, SeasonLeadersTable, ErrorState) for domain-specific rendering with client-owned state, plus 10 **atomic element types** (Container, Text, Image, Button, Spacer, Divider, ScrollContainer, Conditional, DisplayGrid, SectionSlot) for server-composed generic layouts. The two layers coexist via the `AtomicComposite` bridge section type. Semantic sections handle stateful domain logic (sort, frozen columns, forms); atomic primitives handle server-composed layouts with no client business logic. See *Grid vs. Section Decision Tree* in §9q.
 - **Codegen produces data models only** — not UI code. Platform teams write a thin renderer layer (~30 lines per section type) that wires generated models to existing design system components.
 - **Schema is versioned** — client sends its schema version, server responds with a compatible payload. Fields can never be removed without a major version bump.
 - **Subsection actions are required** — `actions` must be supported at section and nested component/subsection level (for example, tapping home team area within a game section).
@@ -840,6 +841,22 @@ Key factors:
 - `Form` field changes accumulate in `Screen.state`; submit fires a `refresh` action with `paramBindings` resolved from current state
 - Parameterized refresh (`endpoint` + `paramBindings` on Action) must be backward-compatible — existing refresh actions with only `target` continue to work unchanged
 
+**Grid vs. Section Decision Tree** — defines the hard boundary between `DisplayGrid` (atomic primitive) and semantic table sections:
+
+```
+Need tabular data?
+├─ Needs client-side sort?                  → Section (BoxscoreTable / SeasonLeadersTable)
+├─ Needs frozen columns + horizontal scroll → Section
+├─ Needs pagination?                        → Section
+├─ Needs interactive rows (expand/select)?  → Section
+├─ Needs domain-typed row models?           → Section (compile-time safety)
+├─ Needs per-row actions (tap/swipe)?       → Section
+└─ Display-only, server-ordered grid of text
+   with no client interaction?              → DisplayGrid atomic primitive
+```
+
+`DisplayGrid` is a deliberately different primitive from the generic `DataTable` rejected above: a **display-only, non-interactive, server-ordered grid of text cells**. Zero client interaction — no sort, no filter, no expand, no select, no tap. The moment any of those constraints break, promote to a semantic section type. Use for simple stat snapshots, schedule lookups, standings summaries, and any case where the grid is purely cosmetic output.
+
 ---
 
 ## ADR Approvals Pending
@@ -900,6 +917,7 @@ Until approved, these remain directional requirements and may be refined.
 | ErrorState section | **Built** | Server-composed error sections with title, message, icon, retry action. Built on Web and Android. |
 | SectionLayoutHints | **Partial** | Schema + codegen done. Web client applies margins/dividers. Android wiring pending. |
 | SectionStates (runtime error/loading) | **Partial** | Schema + codegen done. Web: `SectionErrorBoundary` + `SectionSkeleton` built. Server emits on live sections. Android wiring pending. |
+| Atomic rendering layer | **Built** | AtomicRouter + 9 rendering primitives + SectionSlot bridge on Android and Web. AtomicComposite section type bridges section and atomic layers. DisplayGrid for non-interactive grids. Server-side AtomicCompositeBuilder migrated Tier 1 + Tier 2 sections. Performance contract: depth 6, children 20, nodes 50. |
 
 ---
 

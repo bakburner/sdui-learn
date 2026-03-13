@@ -33,7 +33,7 @@ The prototype has moved beyond architectural planning into working, demonstrable
 
 | Area                        | What Was Built                                                                                                                                                                                                                                                                                            | Status                 |
 | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
-| **JSON Schema**             | Complete schema defining 8 atomic primitives, 19 semantic section types, 6 action types, 3 refresh policies, field-level data bindings, and screen-level state management                                                                                                                                 | **Done**               |
+| **JSON Schema**             | Complete schema defining 10 atomic element types (9 rendering primitives + SectionSlot bridge), 19 section types (18 semantic + AtomicComposite), 6 action types, 3 refresh policies, field-level data bindings, and screen-level state management | **Done**               |
 | **Code generation**         | Multi-platform pipeline: jsonschema2pojo produces Java POJOs with Jackson annotations; quicktype generates Swift structs and TypeScript types — all from a single schema source                                                                                                                           | **Done**               |
 | **Composition service**     | Spring Boot service assembling SDUI responses from live NBA data (Stats API + CDN). Supports demo/live modes, per-section refresh policies, Ably channel resolution, A/B variant composition, and trace ID observability                                                                                  | **Done**               |
 | **Android renderer**        | Full Kotlin/Compose renderer in a reusable `sdui-core` library module. 18 section renderers (StatLine, HeroPanel, ContentRail, TabGroup, PromoBanner, GamePanel (with `variant: "standard"`, `"featured"`, and `"scoreboard"` for compact scoreboard rows), VideoCarousel, NbaTvSchedule, SubscribeBanner, SubscribeHero, AdSlot, BoxscoreTable, Form, Row, SectionHeader, FollowingRail, SeasonLeadersTable, ErrorState). Real-time Ably integration, polling with direct CDN support, StateFlow-based state management, generic action handler, server-driven image fallback via Coil `SubcomposeAsyncImage` | **Done**               |
@@ -41,6 +41,7 @@ The prototype has moved beyond architectural planning into working, demonstrable
 | **A/B variant composition** | Server-side variant system demonstrated: 4 variants (A/B/C/D) reorder, add, or remove sections from the same screen with no client changes                                                                                                                                                                | **Done**               |
 | **Real-time score updates** | Live scoreboard updating via Ably SSE with JSONPath-based field-level data bindings on Android. Polling fallback for stats sections with configurable intervals                                                                                                                                           | **Done**               |
 | **Graceful degradation**    | Unknown section types skipped without crash. Live data unavailable falls back to static examples                                                                                                                                                                                                          | **Done**               |
+| **Atomic rendering layer**  | Dual-layer architecture: 9 atomic primitives (Container, Text, Image, Button, Spacer, Divider, ScrollContainer, Conditional, DisplayGrid) composed by the server and rendered by `AtomicRouter` on Android and Web. `AtomicComposite` section type bridges the section and atomic layers. `SectionSlot` allows atomic trees to embed full section renderers. Server-side `AtomicCompositeBuilder` migrated Tier 1 sections (ErrorState, SectionHeader, PromoBanner, ContentRail, FollowingRail) + Tier 2 sections (HeroPanel, StatLine, VideoCarousel, NbaTvSchedule) to server-composed atomic layouts | **Done**               |
 | **iOS renderer**            | Architecture validated via Android; not yet built                                                                                                                                                                                                                                                         | **Not started**        |
 | **Test coverage**           | No unit, integration, or contract tests                                                                                                                                                                                                                                                                   | **Gap**                |
 
@@ -49,7 +50,7 @@ The prototype has moved beyond architectural planning into working, demonstrable
 
 Every concept from the original roadmap's prototype validation checklist has been proven in working code:
 
-- **Two-tier primitives** — atomic (Container, Text, Image, Button, etc.) and semantic (GamePanel, StatLine, TabGroup, etc.) both defined in schema and rendered natively
+- **Two-tier primitives** — atomic (Container, Text, Image, Button, Spacer, Divider, ScrollContainer, Conditional, DisplayGrid) and semantic (GamePanel, TabGroup, BoxscoreTable, Form, etc.) coexist via the `AtomicComposite` bridge section type. Atomic primitives are server-composed and rendered by `AtomicRouter`; semantic sections retain client-owned state and domain-specific rendering. `SectionSlot` allows atomic trees to embed full section renderers, enabling bidirectional delegation between the two layers
 - **Single-schema codegen** — one JSON Schema produces typed models for Java, Swift, and TypeScript
 - **Screen → Section → Component hierarchy** — full response walked by section routers on both platforms
 - **Per-section refresh policies** — static, polling (configurable interval + direct CDN URL), and SSE (Ably channels) coexisting on a single screen
@@ -316,6 +317,14 @@ To preserve continuity with the original executive summary, this section explici
 4. **Caching** — Room-backed response cache with stale-while-revalidate for instant re-renders on screen re-entry.
 5. **Staging deployment** — Composition service deployed to staging environment with live NBA data.
 6. **iOS team alignment** — Present working Android prototype to iOS leads, secure commitment for Milestone 2 renderer build.
+
+---
+
+## Revision History
+
+| Date | Summary |
+|---|---|
+| 2026-03-13 | Added atomic rendering layer to "What Was Built" table. Updated JSON Schema row (8 → 10 atomic element types). Expanded Two-tier primitives concept to describe AtomicComposite bridge, SectionSlot bidirectional delegation, and DisplayGrid. Reflects Phases 1–5 of atomic primitives implementation. |
 
 
 

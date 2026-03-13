@@ -856,7 +856,7 @@ Container and Text are universal. Image and Button cover most visual needs. Scro
 
 ## Phase 6: Governance Document Updates
 
-> **Status**: READY TO EXECUTE — Phases 1–4 verified (2026-03-13). Trigger criteria met.
+> **Status**: ✅ COMPLETE — All three governance documents updated (2026-03-13).
 
 The atomic layer is validated (Phases 1–4 verified on both platforms, ForYouComposer actively emitting AtomicComposite sections). Update the three upstream governance documents to reflect the dual-layer model.
 
@@ -868,7 +868,7 @@ The atomic layer is validated (Phases 1–4 verified on both platforms, ForYouCo
 | Phase 2 (Section Classification) | ✅ Complete | Tier 1/2/3 classification documented, ScoreboardHeader consolidated into GamePanel |
 | Phase 3 (Schema Evolution) | ✅ Complete | AtomicElement (10 types incl. SectionSlot), AtomicComposite section type, AtomicCompositeData, DisplayGrid, backgroundGradient — all in schema with codegen passing |
 | Phase 4 (Tier 1 Migration) | ✅ Complete | AtomicCompositeBuilder has all 5 Tier 1 builders + Tier 2 builders. ForYouComposer, DemoScreenComposer, LiveComposer actively emit AtomicComposite sections |
-| Phase 4b (Tier 2 Gate) | ⏳ Not started | Entry criteria now met — awaiting team evaluation |
+| Phase 4b (Tier 2 Gate) | ✅ Complete (4 of 5 migrated, GamePanel kept) | HeroPanel, StatLine, VideoCarousel, NbaTvSchedule migrated to AtomicComposite. GamePanel kept as semantic section (Tier 3 — client-owned state for variant switching and live data). |
 | Phase 5 (SectionSlot) | ✅ Complete | Schema updated (SectionSlot in enum + section property). AtomicSectionSlot renderer on Android + Web. onStateChange + sectionSlotDepth threaded through atomic pipeline. MAX_SECTION_SLOT_DEPTH=2 recursion guard. Server demo with embedded AdSlot. All platforms build clean. |
 
 ### 6.1 Executive Summary (`SDUI_Executive_Summary_v2.md`)

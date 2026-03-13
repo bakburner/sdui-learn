@@ -13,8 +13,8 @@
   "sections": [
     {
       "id": "scoreboard",
-      "type": "ScoreboardHeader",
-      "analyticsId": "scoreboard_header",
+      "type": "GamePanel",
+      "analyticsId": "game_panel_scoreboard",
       "refreshPolicy": {
         "type": "static"
       },
@@ -38,7 +38,9 @@
         "gameStatus": 1,
         "gameStatusText": "7:00 PM ET",
         "period": 0,
-        "clock": ""
+        "gameClock": "",
+        "gameId": "0042300102",
+        "variant": "scoreboard"
       }
     },
     {

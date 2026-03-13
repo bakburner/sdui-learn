@@ -6,18 +6,9 @@ import com.nba.sdui.core.models.SduiSection
 import com.nba.sdui.core.models.TabGroupData
 import com.nba.sdui.core.models.actionToSduiAction
 import com.nba.sdui.core.state.SduiAction
-import com.nba.sdui.models.generated.ScoreboardHeaderData
 import com.nba.sdui.models.generated.TeamData
 
 private val mapper = ObjectMapper().registerKotlinModule()
-
-data class ScoreboardHeaderUiModel(
-    val awayTeam: TeamData,
-    val homeTeam: TeamData,
-    val statusText: String,
-    val isLive: Boolean,
-    val periodLabel: String?
-)
 
 data class TabGroupUiModel(
     val stateKey: String,
@@ -57,17 +48,6 @@ data class GamePanelUiModel(
     val visualLabel: String?,
     val backgroundImageUrl: String?
 )
-
-fun mapScoreboardHeader(section: SduiSection): ScoreboardHeaderUiModel? {
-    val parsed = convert<ScoreboardHeaderData>(section.data) ?: return null
-    return ScoreboardHeaderUiModel(
-        awayTeam = parsed.awayTeam,
-        homeTeam = parsed.homeTeam,
-        statusText = parsed.gameStatusText,
-        isLive = parsed.gameStatus == 2,
-        periodLabel = if (parsed.gameStatus == 2 && parsed.period > 0) "Q${parsed.period}" else null
-    )
-}
 
 fun mapTabGroup(section: SduiSection, screenState: Map<String, Any>): TabGroupUiModel? {
     val parsed = convert<TabGroupData>(section.data) ?: return null

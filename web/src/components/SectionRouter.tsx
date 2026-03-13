@@ -1,6 +1,5 @@
 import React, { useRef } from 'react';
 import type { Section, Action, Data, RefreshPolicy } from '@sdui/models';
-import { ScoreboardHeader } from './sections/ScoreboardHeader';
 import { TabGroup } from './sections/TabGroup';
 import { GamePanel } from './sections/GamePanel';
 import { Row } from './sections/Row';
@@ -42,9 +41,6 @@ function SectionRenderer({
   const commonProps = { section, state, onAction, onStateChange };
 
   switch (section.type) {
-    case 'ScoreboardHeader':
-      return <ScoreboardHeader {...commonProps} />;
-      
     case 'TabGroup':
       return <TabGroup {...commonProps} />;
       
@@ -78,7 +74,7 @@ function SectionRenderer({
         console.debug(`[SectionRouter] AtomicComposite section ${section.id} has no ui element`);
         return null;
       }
-      return <AtomicRouter element={compositeData.ui} state={state} onAction={onAction} />;
+      return <AtomicRouter element={compositeData.ui} state={state} onAction={onAction} onStateChange={onStateChange} />;
     }
       
     default:

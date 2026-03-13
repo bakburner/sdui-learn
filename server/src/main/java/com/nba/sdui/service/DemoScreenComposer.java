@@ -55,9 +55,9 @@ public class DemoScreenComposer {
 
         ArrayNode sections = objectMapper.createArrayNode();
 
-        // 1. ScoreboardHeader
-        sections.add(buildTypeLabel("ScoreboardHeader"));
-        sections.add(buildDemoScoreboardHeader());
+        // 1. GamePanel (scoreboard variant)
+        sections.add(buildTypeLabel("GamePanel (scoreboard)"));
+        sections.add(buildDemoGamePanelScoreboard());
         // 2. AdSlot (between header and top performers)
         sections.add(buildTypeLabel("AdSlot"));
         sections.add(buildDemoAdSlot());
@@ -115,6 +115,9 @@ public class DemoScreenComposer {
         // 20. ErrorState
         sections.add(buildTypeLabel("ErrorState"));
         sections.add(buildDemoErrorState());
+        // 21. SectionSlot (bidirectional bridge demo)
+        sections.add(buildTypeLabel("SectionSlot (AdSlot in atomic tree)"));
+        sections.add(buildDemoSectionSlot());
 
         screen.set("sections", sections);
         return screen;
@@ -274,11 +277,11 @@ public class DemoScreenComposer {
     // ── Demo section builders ──────────────────────────────────────────
 
     /**
-     * 1. ScoreboardHeader — Lakers vs Celtics, period 3, 89-94.
+     * 1. GamePanel (scoreboard variant) — Lakers vs Celtics, period 3, 89-94.
      */
-    private ObjectNode buildDemoScoreboardHeader() {
+    private ObjectNode buildDemoGamePanelScoreboard() {
         return atomicBuilder.buildScoreboardHeader(
-                "demo-scoreboard-header", "demo_scoreboard_header",
+                "demo-game-panel-scoreboard", "demo_game_panel_scoreboard",
                 "LAL", "Lakers",
                 "https://cdn.nba.com/logos/nba/1610612747/primary/L/logo.svg", "89",
                 "BOS", "Celtics",
@@ -889,6 +892,71 @@ public class DemoScreenComposer {
                 "We couldn't load this content. This is a demo of the ErrorState section type.",
                 "error",
                 "nba://scoreboard");
+    }
+
+    /**
+     * Build a demo SectionSlot — an AtomicComposite containing a game card
+     * with an embedded AdSlot section via the SectionSlot element type.
+     * This demonstrates the bidirectional bridge: AtomicRouter → SectionRouter.
+     */
+    private ObjectNode buildDemoSectionSlot() {
+        // Build the embedded AdSlot section
+        ObjectNode adSection = objectMapper.createObjectNode();
+        adSection.put("id", "demo-inline-ad");
+        adSection.put("type", "AdSlot");
+        ObjectNode adData = objectMapper.createObjectNode();
+        adData.put("adUnitPath", "/nba/game-card-inline");
+        adData.put("size", "banner");
+        adSection.set("data", adData);
+        ObjectNode adRefresh = objectMapper.createObjectNode();
+        adRefresh.put("type", "static");
+        adSection.set("refreshPolicy", adRefresh);
+        ObjectNode adStates = objectMapper.createObjectNode();
+        ObjectNode errorState = objectMapper.createObjectNode();
+        errorState.put("hideOnError", true);
+        adStates.set("error", errorState);
+        adSection.set("sectionStates", adStates);
+
+        // Build the atomic tree: game card with inline ad via SectionSlot
+        ObjectNode root = objectMapper.createObjectNode();
+        root.put("type", "Container");
+        root.put("direction", "column");
+        root.put("backgroundColor", "#1A1A2E");
+        root.put("cornerRadius", 12);
+        ObjectNode padding = objectMapper.createObjectNode();
+        padding.put("start", 16); padding.put("end", 16);
+        padding.put("top", 12); padding.put("bottom", 12);
+        root.set("padding", padding);
+
+        ArrayNode children = objectMapper.createArrayNode();
+
+        ObjectNode title = objectMapper.createObjectNode();
+        title.put("type", "Text");
+        title.put("content", "LAL vs BOS");
+        title.put("variant", "titleMedium");
+        title.put("weight", "bold");
+        title.put("color", "#FFFFFF");
+        children.add(title);
+
+        ObjectNode subtitle = objectMapper.createObjectNode();
+        subtitle.put("type", "Text");
+        subtitle.put("content", "Q3 5:42 \u2022 LAL 87 - BOS 82");
+        subtitle.put("variant", "bodySmall");
+        subtitle.put("color", "#7a8baa");
+        children.add(subtitle);
+
+        ObjectNode divider = objectMapper.createObjectNode();
+        divider.put("type", "Divider");
+        divider.put("color", "#333333");
+        divider.put("thickness", 1);
+        children.add(divider);
+
+        // SectionSlot: embed the AdSlot section
+        children.add(atomicBuilder.sectionSlot("inline-ad", adSection));
+
+        root.set("children", children);
+
+        return atomicBuilder.wrapAsComposite("demo-section-slot", "demo-section-slot", root);
     }
 
     // ── Private helpers ────────────────────────────────────────────────

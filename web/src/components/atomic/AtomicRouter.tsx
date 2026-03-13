@@ -11,6 +11,7 @@ import { AtomicDivider } from './AtomicDivider';
 import { AtomicScrollContainer } from './AtomicScrollContainer';
 import { AtomicConditional } from './AtomicConditional';
 import { AtomicDisplayGrid } from './AtomicDisplayGrid';
+import { AtomicSectionSlot } from './AtomicSectionSlot';
 
 const MAX_TREE_DEPTH = 6;
 
@@ -19,6 +20,8 @@ export interface AtomicProps {
   state: Record<string, unknown>;
   onAction: (action: Action) => void;
   depth?: number;
+  onStateChange?: (key: string, value: unknown) => void;
+  sectionSlotDepth?: number;
 }
 
 /**
@@ -28,15 +31,16 @@ export interface AtomicProps {
  * or render loops. Server-side validation is the primary enforcement; this is a
  * safety net for stale caches or manual JSON authoring.
  */
-export function AtomicRouter({ element, state, onAction, depth = 0 }: AtomicProps): React.ReactElement | null {
+export function AtomicRouter({ element, state, onAction, depth = 0, onStateChange, sectionSlotDepth = 0 }: AtomicProps): React.ReactElement | null {
   if (depth > MAX_TREE_DEPTH) {
     console.warn(`[AtomicRouter] Max tree depth (${MAX_TREE_DEPTH}) exceeded — skipping element: ${element.type}`);
     return null;
   }
   const childDepth = depth + 1;
+  const childProps = { state, onAction, onStateChange, sectionSlotDepth };
   switch (element.type) {
     case 'Container':
-      return <AtomicContainer element={element} state={state} onAction={onAction} depth={childDepth} />;
+      return <AtomicContainer element={element} {...childProps} depth={childDepth} />;
     case 'Text':
       return <AtomicText element={element} state={state} onAction={onAction} />;
     case 'Image':
@@ -48,11 +52,13 @@ export function AtomicRouter({ element, state, onAction, depth = 0 }: AtomicProp
     case 'Divider':
       return <AtomicDivider element={element} state={state} onAction={onAction} />;
     case 'ScrollContainer':
-      return <AtomicScrollContainer element={element} state={state} onAction={onAction} depth={childDepth} />;
+      return <AtomicScrollContainer element={element} {...childProps} depth={childDepth} />;
     case 'Conditional':
-      return <AtomicConditional element={element} state={state} onAction={onAction} depth={childDepth} />;
+      return <AtomicConditional element={element} {...childProps} depth={childDepth} />;
     case 'DisplayGrid':
       return <AtomicDisplayGrid element={element} state={state} onAction={onAction} />;
+    case 'SectionSlot':
+      return <AtomicSectionSlot element={element} {...childProps} />;
     default:
       console.debug(`[AtomicRouter] Unknown element type: ${element.type}`);
       return null;

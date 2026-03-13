@@ -18,11 +18,13 @@ fun AtomicConditional(
     screenState: Map<String, Any>,
     onAction: (SduiAction) -> Unit,
     modifier: Modifier = Modifier,
-    depth: Int = 0
+    depth: Int = 0,
+    onStateChange: (String, Any) -> Unit = { _, _ -> },
+    sectionSlotDepth: Int = 0
 ) {
     val conditionMet = evaluateCondition(element.condition, screenState)
     val child = if (conditionMet) element.trueChild else element.falseChild
-    child?.let { AtomicRouter(it, screenState, onAction, modifier, depth = depth + 1) }
+    child?.let { AtomicRouter(it, screenState, onAction, modifier, depth = depth + 1, onStateChange = onStateChange, sectionSlotDepth = sectionSlotDepth) }
 }
 
 /**

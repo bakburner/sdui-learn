@@ -47,7 +47,7 @@ web/src/
     ├── SectionRouter.tsx       # Route sections to appropriate renderers
     ├── LiveSectionWrapper.tsx  # Wire refresh + data bindings to sections
     └── sections/               # Section-specific renderers
-        ├── ScoreboardHeader.tsx
+        ├── GamePanel.tsx
         ├── StatLine.tsx
         ├── ContentRail.tsx
         ├── TabGroup.tsx

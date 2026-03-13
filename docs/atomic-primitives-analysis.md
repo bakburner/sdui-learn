@@ -183,17 +183,16 @@ Stateless, ≤80 lines of UI, expressible entirely as Container/Text/Image/Butto
 
 **Impact**: Eliminates ~280 lines of platform-specific rendering code per platform. These 5 sections are pure layout with zero SDK dependency risk.
 
-### Tier 2 — HYBRID Candidates (6 sections)
+### Tier 2 — HYBRID Candidates (5 sections)
 
 Stateless or nearly stateless, but with moderate structural complexity (multiple visual variants, conditional branches, repeated item patterns). Evaluate after Tier 1 proves out.
 
 | Section | UI Lines | Complexity Factor | Disposition |
 |---|---|---|---|
 | **HeroPanel** | ~95 | Image overlay + duration badge + contentType badge. Used as item delegate inside ContentRail. | Likely pulled into Tier 1 when ContentRail migrates — the items need to be atomic too. |
-| **ScoreboardHeader** | ~85 | Fixed team-vs-team layout. Could be `Container > Row > Image + Text`. | *Could* be atomic, but team-matchup is a core domain pattern. Evaluate whether it's worth keeping as a section for brand consistency. |
 | **StatLine** | ~160 | Layout variant (h/v) + player image + name + stat value. Server already sends `layout` hint. | The horizontal/vertical variant is expressible via `Container(direction)`. Strong candidate if atomic proves reliable. |
 | **VideoCarousel** | ~140 | Structurally identical to ContentRail + HeroPanel. Has rememberScrollState. | Merge candidate with ContentRail via `ScrollContainer(row) > [card children]`. |
-| **GamePanel** | ~380 (incl. adapter) | 2 variants (standard/featured) × 3 visual states (PRE/LIVE/FINAL). **Zero internal state** — no `remember{}`, no `mutableStateOf`. The `mapGamePanel()` adapter computes `visualState` from `gameStatus` (a trivial `when/switch`) and formats leader lines — both movable server-side. Standard variant: Card > team row + conditional score/status + leaders. Featured variant: gradient Box > team columns + scores + badges. All branching is on server-sent data fields (`gameStatus`, `variant`). | **Strong atomic candidate.** The server already knows `gameStatus` and `variant` — it can emit the correct atomic tree directly, eliminating the client-side branching entirely. Conditional element handles remaining edge cases. Deferred to Tier 2 due to tree depth and the need for the server composition layer to support game-state-aware template selection. |
+| **GamePanel** | ~380 (incl. adapter) | 3 variants (standard/featured/scoreboard) × 3 visual states (PRE/LIVE/FINAL). **Zero internal state** — no `remember{}`, no `mutableStateOf`. The `mapGamePanel()` adapter computes `visualState` from `gameStatus` (a trivial `when/switch`) and formats leader lines — both movable server-side. Standard variant: Card > team row + conditional score/status + leaders. Featured variant: gradient Box > team columns + scores + badges. Scoreboard variant: compact row with team logos, tricodes, scores, and game status (formerly ScoreboardHeader — consolidated into GamePanel as a third variant). All branching is on server-sent data fields (`gameStatus`, `variant`). | **Strong atomic candidate.** The server already knows `gameStatus` and `variant` — it can emit the correct atomic tree directly, eliminating the client-side branching entirely. Conditional element handles remaining edge cases. Deferred to Tier 2 due to tree depth and the need for the server composition layer to support game-state-aware template selection. |
 | **NbaTvSchedule** | ~230 | Hero image with gradient overlay + slot list with LIVE badges. **Zero internal state** — no `remember{}`, no `mutableStateOf`, no scroll state. Only client logic is ISO time parsing (`startTime.substringAfter("T").take(5)`) — trivially moved server-side. Each slot row is Container(row) > Text(time) + Column(title/subtitle) + Conditional(LIVE badge). | **Strong atomic candidate.** Hero section = Container(stack) > Image + gradient Container + Column(badge + title + subtitle). Slot list = Column > repeated slot rows. The `isLive` conditional is a natural fit for the Conditional atomic element. Deferred to Tier 2 because the slot list is an N-item repeating pattern — needs either inline repetition (server sends all slot trees) or atomic template support (future). |
 
 ### Tier 3 — MUST REMAIN Sections (6 sections)
@@ -360,7 +359,9 @@ For each section:
 
 ## Phase 4b: Tier 2 Evaluation Gate
 
-Tier 2 sections (HeroPanel, ScoreboardHeader, StatLine, VideoCarousel, GamePanel, NbaTvSchedule) are deferred until Tier 1 validates. This phase defines the evaluation criteria and process — it is NOT automatic migration.
+Tier 2 sections (HeroPanel, StatLine, VideoCarousel, GamePanel, NbaTvSchedule) are deferred until Tier 1 validates. This phase defines the evaluation criteria and process — it is NOT automatic migration.
+
+> **Note**: ScoreboardHeader was consolidated into GamePanel as `variant: "scoreboard"`. GamePanel now handles all game matchup display — standard feed cards, featured hero cards, and compact scoreboard rows. This reduces the section type count by one and avoids maintaining two separate renderers for the same domain concept.
 
 ### Entry Criteria (all must be true before starting evaluation)
 
@@ -390,8 +391,7 @@ For each Tier 2 candidate, evaluate:
 | **VideoCarousel** | Migrate | Structurally identical to ContentRail + HeroPanel |
 | **StatLine** | Migrate | `direction` variant maps directly to `Container(direction)` |
 | **NbaTvSchedule** | Migrate | Slot list is inline repetition; server sends all slot trees |
-| **ScoreboardHeader** | Evaluate | Could be atomic, but team-matchup is a core brand pattern — may keep for domain identity |
-| **GamePanel** | Evaluate | Strong atomic candidate, but 2 variants × 3 states is a large composition matrix. Depends on server composition layer maturity |
+| **GamePanel** | Evaluate | Strong atomic candidate, but 3 variants × 3 states is a large composition matrix. Depends on server composition layer maturity |
 
 ### Output
 
@@ -856,7 +856,20 @@ Container and Text are universal. Image and Button cover most visual needs. Scro
 
 ## Phase 6: Governance Document Updates
 
-Once the atomic layer is validated (Phases 1–4 verified), update the three upstream governance documents to reflect the dual-layer model. This is deferred until after implementation stabilizes so the documents describe proven behavior, not aspirational design.
+> **Status**: READY TO EXECUTE — Phases 1–4 verified (2026-03-13). Trigger criteria met.
+
+The atomic layer is validated (Phases 1–4 verified on both platforms, ForYouComposer actively emitting AtomicComposite sections). Update the three upstream governance documents to reflect the dual-layer model.
+
+### Implementation Status (verified 2026-03-13)
+
+| Phase | Status | Evidence |
+|-------|--------|----------|
+| Phase 1 (Activate Renderers) | ✅ Complete | AtomicRouter + 9 renderers on Android and Web, depth guard (MAX_TREE_DEPTH=6), SectionRouter integration via AtomicComposite case |
+| Phase 2 (Section Classification) | ✅ Complete | Tier 1/2/3 classification documented, ScoreboardHeader consolidated into GamePanel |
+| Phase 3 (Schema Evolution) | ✅ Complete | AtomicElement (10 types incl. SectionSlot), AtomicComposite section type, AtomicCompositeData, DisplayGrid, backgroundGradient — all in schema with codegen passing |
+| Phase 4 (Tier 1 Migration) | ✅ Complete | AtomicCompositeBuilder has all 5 Tier 1 builders + Tier 2 builders. ForYouComposer, DemoScreenComposer, LiveComposer actively emit AtomicComposite sections |
+| Phase 4b (Tier 2 Gate) | ⏳ Not started | Entry criteria now met — awaiting team evaluation |
+| Phase 5 (SectionSlot) | ✅ Complete | Schema updated (SectionSlot in enum + section property). AtomicSectionSlot renderer on Android + Web. onStateChange + sectionSlotDepth threaded through atomic pipeline. MAX_SECTION_SLOT_DEPTH=2 recursion guard. Server demo with embedded AdSlot. All platforms build clean. |
 
 ### 6.1 Executive Summary (`SDUI_Executive_Summary_v2.md`)
 
@@ -869,7 +882,7 @@ Once the atomic layer is validated (Phases 1–4 verified), update the three ups
 
 - **§2 Schema Design**: Remove or qualify "Schema defines semantic section types, not atomic layout primitives" — the schema now defines both. Add subsection documenting `AtomicElement` (9 types), `AtomicComposite` section type, `AtomicCompositeData` (ui + content), and the `DisplayGrid` primitive with its non-interactive boundary.
 - **§2 Schema Design (Grid vs. Section Decision Tree)**: Include the Grid vs. Section Decision Tree from this plan as a normative reference. It defines the hard boundary between `DisplayGrid` (atomic) and semantic table sections — this is a schema-level contract, not just a plan-level guideline.
-- **§8 Platform Coverage / Renderer table**: Add `AtomicRouter` and 9 atomic renderers per platform. Note `AtomicComposite` as the 20th section type in the router.
+- **§8 Platform Coverage / Renderer table**: Add `AtomicRouter` and 9 atomic renderers per platform. Note `AtomicComposite` as the 19th section type in the router (18 semantic + AtomicComposite).
 - **§9 Gaps**: Add atomic layer performance contract (tree depth 6, child count 20, node count 50) as a documented constraint.
 - **§10 Requirement Status table**: Add row for "Atomic rendering layer / AtomicComposite" with status "Built."
 - **Revision History**: Add entry for atomic layer addition.
@@ -882,12 +895,12 @@ Once the atomic layer is validated (Phases 1–4 verified), update the three ups
 
 ### 6.4 Trigger
 
-Execute Phase 6 when:
-- Phase 1 (activate renderers) is verified on both platforms.
-- Phase 3 (schema evolution) changes are committed and codegen passes.
-- Phase 4 (Tier 1 migration) has at least one section migrated end-to-end with visual parity confirmed.
+~~Execute Phase 6 when:~~
+~~- Phase 1 (activate renderers) is verified on both platforms.~~
+~~- Phase 3 (schema evolution) changes are committed and codegen passes.~~
+~~- Phase 4 (Tier 1 migration) has at least one section migrated end-to-end with visual parity confirmed.~~
 
-Do NOT update governance documents during active iteration — only after the design has stabilized through implementation.
+**All trigger criteria met as of 2026-03-13.** Phase 6 governance updates can proceed.
 
 ---
 
@@ -898,9 +911,10 @@ Do NOT update governance documents during active iteration — only after the de
 | **Naming** | `Atomic` prefix for new layer; `Section` stays as-is | Atomic is net-new code (easy to name correctly from scratch). Section naming is deeply ingrained — renaming adds churn with no functional benefit. |
 | **Primitive set** | 9 elements | Container, Text, Image, Button, Spacer, Divider, ScrollContainer, Conditional, DisplayGrid. DisplayGrid (formerly DataTable) added for display-only, non-interactive, server-ordered grids (see Grid vs. Section Decision Tree). Name explicitly disambiguates from the generic DataTable pattern rejected at the section level. `backgroundGradient` added on Container for PromoBanner. |
 | **Bridge mechanism** | New `AtomicComposite` section type | Explicit intent, no ambiguity (vs. optional `components` field on all sections). `SectionRouter` delegates to `AtomicRouter`. |
-| **Migration scope** | Tier 1 only (7 sections) | Tier 2 deferred until Tier 1 validates. Tier 3 stays as sections permanently. |
+| **Migration scope** | Tier 1 only (5 sections) | Tier 2 deferred until Tier 1 validates. Tier 3 stays as sections permanently. |
 | **iOS renderers** | Out of scope | Swift models auto-generate. SwiftUI `AtomicRouter` follows the same `switch` pattern as Compose/React — separate work item. |
 | **Router rename** | `SectionRouter` stays as-is | No rename — existing name is well-understood and deeply referenced. Only the new `AtomicRouter` gets the `Atomic` prefix. |
+| **ScoreboardHeader consolidation** | Merged into GamePanel as `variant: "scoreboard"` | ScoreboardHeader and GamePanel displayed the same domain concept (game matchup with teams, scores, game states) with different visual density. Adding a third variant to GamePanel eliminates a redundant section type, server builder, and per-platform renderer. GamePanel already handled all 3 game states (PRE/LIVE/FINAL) with variant switching — ScoreboardHeader was a subset. `period` and `gameClock` fields added to `GamePanelData`. |
 
 ---
 
@@ -928,7 +942,7 @@ The `game-detail-live.json` example shows the pattern:
 ```json
 {
   "id": "scoreboard",
-  "type": "ScoreboardHeader",
+  "type": "GamePanel",
   "refreshPolicy": { "type": "sse", "channel": "{gameId}:linescore" },
   "dataBindings": {
     "bindings": [
@@ -1000,7 +1014,7 @@ The client resolves `stringKey` → localized string at render time, falling bac
 |---|---|---|
 | **Static content** (PromoBanner, SectionHeader) | `"type": "static"` — no refresh | Yes — section envelope carries the policy. |
 | **Periodic content** (ContentRail editorial picks, FollowingRail) | `"type": "poll", "intervalMs": 60000` | Yes — poll response replaces the entire atomic tree. |
-| **Live data** (ScoreboardHeader during game) | `"type": "sse", "channel": "{gameId}:linescore"` | Yes — SSE messages are applied via data bindings to specific atomic properties (score text, status text). The tree structure stays stable; only bound values change. |
+| **Live data** (GamePanel scoreboard during game) | `"type": "sse", "channel": "{gameId}:linescore"` | Yes — SSE messages are applied via data bindings to specific atomic properties (score text, status text). The tree structure stays stable; only bound values change. |
 | **Partial section refresh** (refresh action targeting a section ID) | `refresh` action with `target: "section-id"` | Yes — the composition service re-serves the `AtomicComposite` JSON and the client replaces the tree. |
 
 **Key insight**: For Tier 1 sections (stateless, no live data), refresh policy is either `static` or slow `poll`. No Tier 1 section currently uses SSE. Data binding complexity is a Tier 2+ concern. This means the atomic migration path is unblocked for Tier 1 without any data binding changes.

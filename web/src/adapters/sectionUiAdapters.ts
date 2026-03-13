@@ -9,14 +9,6 @@ import type {
   TeamData,
 } from '@sdui/models';
 
-export interface ScoreboardHeaderUiModel {
-  awayTeam?: TeamData;
-  homeTeam?: TeamData;
-  statusText: string;
-  isLive: boolean;
-  periodLabel?: string;
-}
-
 export interface TabGroupUiModel {
   tabs: Array<{
     id: string;
@@ -48,19 +40,6 @@ export interface GamePanelUiModel {
   visualLabel?: string;
   backgroundImageUrl?: string;
   visualState?: string;
-}
-
-export function mapScoreboardHeader(section: Section): ScoreboardHeaderUiModel | null {
-  const data = section.data as Data | undefined;
-  if (!data) return null;
-  const isLive = data.gameStatus === 2;
-  return {
-    awayTeam: data.awayTeam,
-    homeTeam: data.homeTeam,
-    statusText: data.gameStatusText || 'TBD',
-    isLive,
-    periodLabel: isLive && data.period && data.period > 0 ? `Q${data.period}` : undefined,
-  };
 }
 
 export function mapTabGroup(section: Section, state: Record<string, unknown>): TabGroupUiModel | null {

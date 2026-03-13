@@ -68,9 +68,6 @@
     "teamData": {
       "$ref": "sdui-schema.json#/definitions/TeamData"
     },
-    "scoreboardHeaderData": {
-      "$ref": "sdui-schema.json#/definitions/ScoreboardHeaderData"
-    },
     "statLineData": {
       "$ref": "sdui-schema.json#/definitions/StatLineData"
     },

@@ -90,7 +90,7 @@ What is shared across all platforms:
 - Schema definitions (JSON Schema) — the universal contract
 - Codegen (typed models per platform from one schema)
 - Upstream data fetching and transformation — one integration pipeline
-- Section-type semantics — a `ScoreboardHeader` means the same thing everywhere
+- Section-type semantics — a `GamePanel` means the same thing everywhere
 
 What differs per platform family:
 - Which sections are composed and in what order
@@ -162,7 +162,7 @@ graph LR
 
 ### Key Schema Decisions
 
-- **Semantic section types** (ScoreboardHeader, StatLine, HeroPanel, GamePanel (with `variant: "featured"` for hero treatment), VideoCarousel, NbaTvSchedule, SubscribeBanner, SubscribeHero, AdSlot, BoxscoreTable, Form, ContentRail, TabGroup, PromoBanner, Row, SectionHeader, FollowingRail, SeasonLeadersTable, ErrorState — 19 types) — not atomic primitives (Text, Image, Stack). The design system already handles layout; the schema just names what to render and passes typed data.
+- **Semantic section types** (StatLine, HeroPanel, GamePanel (with `variant: "standard"`, `"featured"`, and `"scoreboard"` for compact scoreboard rows), VideoCarousel, NbaTvSchedule, SubscribeBanner, SubscribeHero, AdSlot, BoxscoreTable, Form, ContentRail, TabGroup, PromoBanner, Row, SectionHeader, FollowingRail, SeasonLeadersTable, ErrorState — 18 types) — not atomic primitives (Text, Image, Stack). The design system already handles layout; the schema just names what to render and passes typed data.
 - **Codegen produces data models only** — not UI code. Platform teams write a thin renderer layer (~30 lines per section type) that wires generated models to existing design system components.
 - **Schema is versioned** — client sends its schema version, server responds with a compatible payload. Fields can never be removed without a major version bump.
 - **Subsection actions are required** — `actions` must be supported at section and nested component/subsection level (for example, tapping home team area within a game section).
@@ -280,7 +280,7 @@ sequenceDiagram
     participant Analytics
     participant Navigator
 
-    User->>Renderer: Taps ScoreboardHeader
+    User->>Renderer: Taps GamePanel (scoreboard)
     Renderer->>ActionExecutor: execute(onTap actions)
     ActionExecutor->>Analytics: fire("scoreboard_tapped", {gameId, status})
     Analytics-->>ActionExecutor: ack
@@ -361,7 +361,7 @@ The server defines the complete analytics payload. The client never assembles be
   "event": "section_impressed",
   "params": {
     "sectionId": "scoreboard-001",
-    "sectionType": "ScoreboardHeader",
+    "sectionType": "GamePanel",
     "gameId": "0022500384",
     "gameStatus": "live",
     "variant": "live-game-v2",
@@ -518,7 +518,7 @@ The action executor and state manager **do not replace** existing app infrastruc
 ```mermaid
 graph LR
     SCHEMA[sdui-schema.json] -->|jsonschema2pojo| JAVA[Java POJOs<br/>Jackson annotations]
-    SCHEMA -->|quicktype| SWIFT[Swift Models<br/>ScoreboardHeaderData.swift]
+    SCHEMA -->|quicktype| SWIFT[Swift Models<br/>GamePanelData.swift]
     SCHEMA -->|quicktype| TS[TypeScript Models<br/>SduiModels.ts]
     
     JAVA --> ANDROID[Android/Fire TV Renderer]

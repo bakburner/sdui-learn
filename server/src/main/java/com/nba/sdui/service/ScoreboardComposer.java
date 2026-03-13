@@ -121,7 +121,7 @@ public class ScoreboardComposer {
     private ObjectNode buildScoreboardRowSection(JsonNode game, String gameId) {
         ObjectNode section = objectMapper.createObjectNode();
         section.put("id", "game-" + gameId);
-        section.put("type", "ScoreboardHeader");
+        section.put("type", "GamePanel");
         section.put("analyticsId", "scoreboard_row_" + gameId);
 
         ObjectNode data = objectMapper.createObjectNode();
@@ -142,6 +142,7 @@ public class ScoreboardComposer {
         data.put("gameStatusText", game.path("gameStatusText").asText(""));
         data.put("period", game.path("period").asInt(0));
         data.put("gameClock", game.path("gameClock").asText(""));
+        data.put("variant", "scoreboard");
 
         data.set("homeTeam", mapGamePanelTeam(game.path("homeTeam")));
         data.set("awayTeam", mapGamePanelTeam(game.path("awayTeam")));

@@ -232,7 +232,7 @@
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["Container", "Text", "Image", "Button", "Spacer", "Divider", "ScrollContainer", "Conditional", "DisplayGrid"]
+          "enum": ["Container", "Text", "Image", "Button", "Spacer", "Divider", "ScrollContainer", "Conditional", "DisplayGrid", "SectionSlot"]
         },
         "id": { "type": "string" },
         "children": {
@@ -304,6 +304,10 @@
         "headerVariant": { "$ref": "#/definitions/TextVariant", "description": "Typography variant for header cells" },
         "cellVariant": { "$ref": "#/definitions/TextVariant", "description": "Typography variant for data cells" },
         "striped": { "type": "boolean", "description": "Alternate row background for readability" },
+        "section": {
+          "$ref": "#/definitions/Section",
+          "description": "Full section object to render via SectionRouter. Only used when type is SectionSlot."
+        },
         "cornerRadius": { "type": "integer", "description": "Corner radius in dp/px. Applied to Container (with overflow clip) and Image elements." },
         "backgroundGradient": {
           "type": "object",
@@ -350,18 +354,6 @@
         "teamCity": { "type": "string" },
         "logoUrl": { "type": "string" },
         "score": { "type": "integer" }
-      }
-    },
-    "ScoreboardHeaderData": {
-      "type": "object",
-      "required": ["homeTeam", "awayTeam", "gameStatus"],
-      "properties": {
-        "homeTeam": { "$ref": "#/definitions/TeamData" },
-        "awayTeam": { "$ref": "#/definitions/TeamData" },
-        "gameStatus": { "type": "integer" },
-        "gameStatusText": { "type": "string" },
-        "period": { "type": "integer" },
-        "clock": { "type": "string" }
       }
     },
     "StatLineData": {
@@ -532,9 +524,17 @@
         },
         "variant": {
           "type": "string",
-          "enum": ["standard", "featured"],
+          "enum": ["standard", "featured", "scoreboard"],
           "default": "standard",
-          "description": "Visual treatment: 'standard' for compact feed cards, 'featured' for hero-sized cards with gradient/background"
+          "description": "Visual treatment: 'standard' for compact feed cards, 'featured' for hero-sized cards with gradient/background, 'scoreboard' for compact scoreboard rows"
+        },
+        "period": {
+          "type": "integer",
+          "description": "Current game period (quarter number)"
+        },
+        "gameClock": {
+          "type": "string",
+          "description": "Game clock string (e.g. 'PT05M32.00S' or '5:32')"
         },
         "backgroundImageUrl": {
           "type": "string",
@@ -744,7 +744,7 @@
         "id": { "type": "string" },
         "type": {
           "type": "string",
-          "enum": ["ScoreboardHeader", "StatLine", "HeroPanel", "ContentRail", "TabGroup", "PromoBanner", "GamePanel", "Row", "BoxscoreTable", "Form", "AdSlot", "SeasonLeadersTable", "FollowingRail", "SectionHeader", "VideoCarousel", "NbaTvSchedule", "SubscribeBanner", "SubscribeHero", "ErrorState", "AtomicComposite"]
+          "enum": ["StatLine", "HeroPanel", "ContentRail", "TabGroup", "PromoBanner", "GamePanel", "Row", "BoxscoreTable", "Form", "AdSlot", "SeasonLeadersTable", "FollowingRail", "SectionHeader", "VideoCarousel", "NbaTvSchedule", "SubscribeBanner", "SubscribeHero", "ErrorState", "AtomicComposite"]
         },
         "refreshPolicy": { "$ref": "#/definitions/RefreshPolicy" },
         "dataBindings": { "$ref": "#/definitions/DataBinding" },
@@ -766,7 +766,6 @@
         "data": {
           "description": "Section-specific data payload",
           "oneOf": [
-            { "$ref": "#/definitions/ScoreboardHeaderData" },
             { "$ref": "#/definitions/StatLineListData" },
             { "$ref": "#/definitions/HeroPanelData" },
             { "$ref": "#/definitions/ContentRailData" },

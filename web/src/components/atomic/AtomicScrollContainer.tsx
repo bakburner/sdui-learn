@@ -6,7 +6,7 @@ import { AtomicRouter } from './AtomicRouter';
  * AtomicScrollContainer — renders children in a scrollable row or column.
  * Uses native CSS overflow scroll; paging via CSS scroll-snap when enabled.
  */
-export function AtomicScrollContainer({ element, state, onAction, depth = 0 }: AtomicProps): React.ReactElement {
+export function AtomicScrollContainer({ element, state, onAction, depth = 0, onStateChange, sectionSlotDepth }: AtomicProps): React.ReactElement {
   const isHorizontal = element.direction !== 'column';
   const children = element.children ?? [];
 
@@ -36,7 +36,7 @@ export function AtomicScrollContainer({ element, state, onAction, depth = 0 }: A
     <div style={style}>
       {children.map((child, i) => (
         <div key={child.id ?? i} style={childStyle}>
-          <AtomicRouter element={child} state={state} onAction={onAction} depth={depth} />
+          <AtomicRouter element={child} state={state} onAction={onAction} depth={depth} onStateChange={onStateChange} sectionSlotDepth={sectionSlotDepth} />
         </div>
       ))}
     </div>

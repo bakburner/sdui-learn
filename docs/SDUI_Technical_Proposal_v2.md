@@ -82,7 +82,7 @@ The SDUI schema is universal — all platforms share the same vocabulary of sect
 - Schema definitions (JSON Schema) — the universal contract
 - Codegen (typed models per platform from one schema)
 - Upstream data fetching and transformation — one integration pipeline
-- Section-type semantics — a `ScoreboardHeader` means the same thing everywhere
+- Section-type semantics — a `GamePanel` means the same thing everywhere
 - Action and data binding structure
 
 **What differs per platform family:**
@@ -141,8 +141,8 @@ Every response follows `Screen -> Section -> Component`, where each section can 
     "sections": [
       {
         "id": "scoreboard-001",
-        "type": "ScoreboardHeader",
-        "data": { "...": "..." },
+        "type": "GamePanel",
+        "data": { "variant": "scoreboard", "...": "..." },
         "refreshPolicy": { "type": "sse", "channel": "{gameId}:linescore" },
         "dataBindings": { "bindings": [ { "sourcePath": "$.home.score", "targetPath": "home.score" } ] },
         "actions": [ { "trigger": "onTap", "type": "navigate", "targetUri": "nba://game/0022500384/boxscore" } ]
@@ -520,7 +520,7 @@ Each client platform builds these systems once:
 @Composable
 fun SectionRouter(section: SduiSection, onAction: (SduiAction) -> Unit) {
     when (section.type) {
-        "ScoreboardHeader" -> ScoreboardHeaderRenderer(section, onAction)
+        "GamePanel" -> GamePanelRenderer(section, onAction)
         "StatLine" -> StatLineRenderer(section, onAction)
         "ContentRail" -> ContentRailRenderer(section, onAction)
         "AdSlot" -> AdSlotRenderer(section, onAction)
@@ -533,12 +533,12 @@ fun SectionRouter(section: SduiSection, onAction: (SduiAction) -> Unit) {
 
 ```kotlin
 @Composable
-fun ScoreboardHeaderRenderer(section: SduiSection, onAction: (SduiAction) -> Unit) {
-    val data = mapScoreboard(section)
-    Row(horizontalArrangement = Arrangement.SpaceBetween) {
-        TeamColumn(team = data.awayTeam, onTap = { onActionTap(section, "awayTeam", onAction) })
-        Text(data.gameStatusText)
-        TeamColumn(team = data.homeTeam, onTap = { onActionTap(section, "homeTeam", onAction) })
+fun GamePanelRenderer(section: SduiSection, onAction: (SduiAction) -> Unit) {
+    val data = mapGamePanel(section)
+    when (data.variant) {
+        "scoreboard" -> ScoreboardRow(data, onAction)
+        "featured" -> FeaturedGameCard(data, onAction)
+        else -> StandardGameCard(data, onAction)
     }
 }
 ```
@@ -575,7 +575,6 @@ Each platform family receives a tailored composition from the server while shari
 
 | Section type | Web (React) | Android (Compose) | iOS (SwiftUI) |
 |---|---|---|---|
-| ScoreboardHeader | Built | Built | Designed |
 | StatLine | Built | Built | Designed |
 | HeroPanel | Built | Built | Designed |
 | ContentRail | Built | Built | Designed |
@@ -891,8 +890,9 @@ The `device` object carries device signals that the composition service may use 
     "sections": [
       {
         "id": "scoreboard-001",
-        "type": "ScoreboardHeader",
+        "type": "GamePanel",
         "data": {
+          "variant": "scoreboard",
           "homeTeam": {
             "teamId": "1610612752",
             "teamTricode": "NYK",

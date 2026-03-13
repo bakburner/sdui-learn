@@ -24,7 +24,8 @@ export type AtomicElementType =
   | 'Divider'
   | 'ScrollContainer'
   | 'Conditional'
-  | 'DisplayGrid';
+  | 'DisplayGrid'
+  | 'SectionSlot';
 
 export interface AtomicElement {
   type: AtomicElementType;
@@ -87,6 +88,9 @@ export interface AtomicElement {
   headerVariant?: string;
   cellVariant?: string;
   striped?: boolean;
+
+  // SectionSlot — embedded section delegated back to SectionRouter
+  section?: Record<string, unknown>;
 
   // Actions
   actions?: Record<string, unknown>[];

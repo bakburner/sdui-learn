@@ -6,7 +6,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 /**
  * Section data types that are not yet fully replaced by codegen due to
  * nested SduiSection references (tab contents). All other section data
- * types (ScoreboardHeaderData, StatLineListData, ContentRailData, etc.)
+ * types (GamePanelData, StatLineListData, etc.)
  * come from codegen: com.nba.sdui.models.generated.*
  */
 

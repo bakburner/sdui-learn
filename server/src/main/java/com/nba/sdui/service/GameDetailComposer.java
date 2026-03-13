@@ -136,8 +136,8 @@ public class GameDetailComposer {
 
             ArrayNode sections = objectMapper.createArrayNode();
 
-            // 1. ScoreboardHeader
-            sections.add(buildScoreboardHeaderFromLive(game, gameId));
+            // 1. GamePanel (scoreboard variant)
+            sections.add(buildGamePanelScoreboardFromLive(game, gameId));
 
             // 2. StatLine (top performers)
             ObjectNode statLineSection = buildStatLineSectionFromLive(game, gameId);
@@ -363,10 +363,10 @@ public class GameDetailComposer {
                 teamCity + " " + teamName, "vertical", stats);
     }
 
-    private ObjectNode buildScoreboardHeaderFromLive(JsonNode game, String gameId) {
+    private ObjectNode buildGamePanelScoreboardFromLive(JsonNode game, String gameId) {
         ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "scoreboard-header");
-        section.put("type", "ScoreboardHeader");
+        section.put("id", "scoreboard");
+        section.put("type", "GamePanel");
 
         section.set("dataBindings", utils.buildLinescoreBindings());
 
@@ -376,7 +376,7 @@ public class GameDetailComposer {
         section.set("refreshPolicy", refreshPolicy);
 
         section.set("sectionStates", utils.buildSectionStates(
-                "scoreboard-header", "Unable to load live scores", "shimmer", 180));
+                "scoreboard", "Unable to load live scores", "shimmer", 180));
 
         ObjectNode data = objectMapper.createObjectNode();
 
@@ -408,6 +408,7 @@ public class GameDetailComposer {
         data.put("period", game.path("period").asInt());
         data.put("gameStatus", game.path("gameStatus").asInt());
         data.put("gameStatusText", game.path("gameStatusText").asText());
+        data.put("variant", "scoreboard");
 
         section.set("data", data);
         return section;

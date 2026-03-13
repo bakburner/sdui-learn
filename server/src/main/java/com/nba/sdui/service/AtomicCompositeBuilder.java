@@ -11,7 +11,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  * with {@code type: "AtomicComposite"} and {@code data.ui} containing the rendering tree.
  *
  * Tier 1: ErrorState, SectionHeader, PromoBanner, ContentRail, FollowingRail.
- * Tier 2: HeroPanel, VideoCarousel, StatLine, NbaTvSchedule, ScoreboardHeader.
+ * Tier 2: HeroPanel, VideoCarousel, StatLine, NbaTvSchedule, GamePanel (scoreboard variant).
  */
 public class AtomicCompositeBuilder {
 
@@ -678,10 +678,10 @@ public class AtomicCompositeBuilder {
         return col;
     }
 
-    // ── ScoreboardHeader ─────────────────────────────────────────────────
+    // ── GamePanel (scoreboard variant) ───────────────────────────────────────────────
 
     /**
-     * Build a ScoreboardHeader as an AtomicComposite.
+     * Build a GamePanel (scoreboard variant) as an AtomicComposite.
      * Away team | Status | Home team layout.
      */
     public ObjectNode buildScoreboardHeader(String id, String analyticsId,
@@ -863,6 +863,29 @@ public class AtomicCompositeBuilder {
     }
 
     // ── Atomic element helpers ──────────────────────────────────────────
+
+    /**
+     * Build a SectionSlot element that embeds a full section object inside
+     * an atomic tree. At render time the client delegates this back to
+     * SectionRouter, completing the bidirectional bridge.
+     */
+    public ObjectNode sectionSlot(String id, ObjectNode section) {
+        ObjectNode node = om.createObjectNode();
+        node.put("type", "SectionSlot");
+        if (id != null) node.put("id", id);
+        node.set("section", section);
+        return node;
+    }
+
+    /**
+     * Public convenience: wrap a root element as a full AtomicComposite section.
+     */
+    public ObjectNode wrapAsComposite(String sectionId, String analyticsId,
+                                       ObjectNode rootElement) {
+        ObjectNode section = sectionEnvelope(sectionId, analyticsId);
+        wrapUi(section, rootElement);
+        return section;
+    }
 
     private ObjectNode sectionEnvelope(String id, String analyticsId) {
         return sectionEnvelope(id, analyticsId, null);

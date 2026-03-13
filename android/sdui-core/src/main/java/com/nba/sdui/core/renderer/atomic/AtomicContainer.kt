@@ -24,7 +24,9 @@ fun AtomicContainer(
     screenState: Map<String, Any>,
     onAction: (SduiAction) -> Unit,
     modifier: Modifier = Modifier,
-    depth: Int = 0
+    depth: Int = 0,
+    onStateChange: (String, Any) -> Unit = { _, _ -> },
+    sectionSlotDepth: Int = 0
 ) {
     val isRow = element.direction == "row"
     val gap = element.gap?.dp ?: 0.dp
@@ -73,7 +75,7 @@ fun AtomicContainer(
             verticalAlignment = crossAxis as ComposeAlignment.Vertical
         ) {
             element.children?.forEachIndexed { index, child ->
-                AtomicRouter(child, screenState, onAction, depth = depth + 1)
+                AtomicRouter(child, screenState, onAction, depth = depth + 1, onStateChange = onStateChange, sectionSlotDepth = sectionSlotDepth)
                 if (index < (element.children.size - 1) && gap > 0.dp) {
                     Spacer(modifier = Modifier.width(gap))
                 }
@@ -86,7 +88,7 @@ fun AtomicContainer(
             horizontalAlignment = crossAxis as ComposeAlignment.Horizontal
         ) {
             element.children?.forEachIndexed { index, child ->
-                AtomicRouter(child, screenState, onAction, depth = depth + 1)
+                AtomicRouter(child, screenState, onAction, depth = depth + 1, onStateChange = onStateChange, sectionSlotDepth = sectionSlotDepth)
                 if (index < (element.children.size - 1) && gap > 0.dp) {
                     Spacer(modifier = Modifier.height(gap))
                 }

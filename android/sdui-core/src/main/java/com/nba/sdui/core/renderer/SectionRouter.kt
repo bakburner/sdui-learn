@@ -22,18 +22,12 @@ fun SectionRouter(
     screenState: Map<String, Any>,
     onAction: (SduiAction) -> Unit,
     onStateChange: (String, Any) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    sectionSlotDepth: Int = 0
 ) {
     Log.d("SectionRouter", "Routing section: id=${section.id}, type=${section.type}")
     
     when (section.type) {
-        "ScoreboardHeader" -> {
-            ScoreboardHeaderRenderer(
-                section = section,
-                onAction = onAction,
-                modifier = modifier
-            )
-        }
         
         
         "TabGroup" -> {
@@ -125,7 +119,9 @@ fun SectionRouter(
                     element = root,
                     screenState = screenState,
                     onAction = onAction,
-                    modifier = modifier
+                    modifier = modifier,
+                    onStateChange = onStateChange,
+                    sectionSlotDepth = sectionSlotDepth
                 )
             } else {
                 Log.w("SectionRouter", "AtomicComposite section ${section.id} has no parsable root element")
@@ -145,7 +141,6 @@ fun SectionRouter(
  * Used for contract testing to verify router coverage.
  */
 val SUPPORTED_SECTION_TYPES = setOf(
-    "ScoreboardHeader",
     "TabGroup",
     "GamePanel",
     "Row",

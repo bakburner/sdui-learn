@@ -358,89 +358,23 @@ public class WatchComposer {
 
     private ObjectNode buildVideoCarousel(String id, String title, String subtitle,
                                            String[][] items) {
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", id);
-        section.put("type", "VideoCarousel");
-        section.set("refreshPolicy", staticPolicy());
-
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("title", title);
-        if (subtitle != null) data.put("subtitle", subtitle);
-        data.put("fallbackThumbnailUrl", FALLBACK_THUMB);
-
-        ArrayNode arr = objectMapper.createArrayNode();
-        for (String[] v : items) {
-            ObjectNode thumb = objectMapper.createObjectNode();
-            thumb.put("id", v[0]);
-            thumb.put("title", v[1]);
-            if (v[2] != null) thumb.put("subtitle", v[2]);
-            thumb.put("thumbnailUrl", v[3]);
-            if (v[4] != null) thumb.put("duration", v[4]);
-            if (v[5] != null) thumb.put("badgeText", v[5]);
-
-            ObjectNode action = objectMapper.createObjectNode();
-            action.put("trigger", "onTap");
-            action.put("type", "navigate");
-            action.put("targetUri", v[6]);
-            thumb.set("action", action);
-
-            arr.add(thumb);
-        }
-        data.set("items", arr);
-        section.set("data", data);
-        return section;
+        return atomicBuilder.buildVideoCarousel(id, null, title, subtitle, items);
     }
 
     /** NbaTvSchedule section — hero promo + time-slot list. */
     private ObjectNode buildNbaTvSchedule() {
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "nbatv-schedule");
-        section.put("type", "NbaTvSchedule");
-        section.set("refreshPolicy", staticPolicy());
-
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("heroImageUrl", FALLBACK_THUMB);
-        data.put("fallbackThumbnailUrl", FALLBACK_THUMB);
-        data.put("heroTitle", "NBA GameTime");
-        data.put("heroSubtitle", "LIVE — Nightly highlights & analysis");
-        data.put("liveNow", true);
-
-        ArrayNode slots = objectMapper.createArrayNode();
-        String[][] slotData = {
-                {"slot-1", "NBA GameTime", "Highlights & analysis", "2025-01-15T19:00:00-05:00",
-                        "2025-01-15T20:00:00-05:00", FALLBACK_THUMB,
-                        "true", "nba://watch/nbatv-live"},
-                {"slot-2", "NBA Inside Stuff", "Player features", "2025-01-15T20:00:00-05:00",
-                        "2025-01-15T20:30:00-05:00", FALLBACK_THUMB,
-                        "false", "nba://watch/inside-stuff"},
-                {"slot-3", "CLE vs NYK", "Eastern Conference matchup", "2025-01-15T20:30:00-05:00",
-                        "2025-01-15T23:00:00-05:00", FALLBACK_THUMB,
-                        "false", "nba://game/0022400612"},
-                {"slot-4", "NBA Action", "Weekly highlights show", "2025-01-15T23:00:00-05:00",
-                        "2025-01-15T23:30:00-05:00", FALLBACK_THUMB,
-                        "false", "nba://watch/nba-action"}
+        String[][] slots = {
+                {"slot-1", "NBA GameTime", "Highlights & analysis", "19:00", "true", "nba://watch/nbatv-live"},
+                {"slot-2", "NBA Inside Stuff", "Player features", "20:00", "false", "nba://watch/inside-stuff"},
+                {"slot-3", "CLE vs NYK", "Eastern Conference matchup", "20:30", "false", "nba://game/0022400612"},
+                {"slot-4", "NBA Action", "Weekly highlights show", "23:00", "false", "nba://watch/nba-action"}
         };
-        for (String[] s : slotData) {
-            ObjectNode slot = objectMapper.createObjectNode();
-            slot.put("id", s[0]);
-            slot.put("title", s[1]);
-            slot.put("subtitle", s[2]);
-            slot.put("startTime", s[3]);
-            slot.put("endTime", s[4]);
-            slot.put("thumbnailUrl", s[5]);
-            slot.put("isLive", "true".equals(s[6]));
-
-            ObjectNode action = objectMapper.createObjectNode();
-            action.put("trigger", "onTap");
-            action.put("type", "navigate");
-            action.put("targetUri", s[7]);
-            slot.set("action", action);
-
-            slots.add(slot);
-        }
-        data.set("slots", slots);
-        section.set("data", data);
-        return section;
+        return atomicBuilder.buildNbaTvSchedule(
+                "nbatv-schedule", null,
+                FALLBACK_THUMB,
+                "NBA GameTime",
+                "LIVE — Nightly highlights & analysis",
+                true, slots);
     }
 
     /**

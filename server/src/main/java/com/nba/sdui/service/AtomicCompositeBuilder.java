@@ -5,13 +5,13 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
- * Builds AtomicComposite sections using atomic element trees for Tier 1 sections.
+ * Builds AtomicComposite sections using atomic element trees.
  *
  * Each method returns a complete section envelope (id, type, analyticsId, refreshPolicy, data)
  * with {@code type: "AtomicComposite"} and {@code data.ui} containing the rendering tree.
  *
- * Replaces the dedicated section types: ErrorState, SectionHeader, PromoBanner,
- * ContentRail, FollowingRail.
+ * Tier 1: ErrorState, SectionHeader, PromoBanner, ContentRail, FollowingRail.
+ * Tier 2: HeroPanel, VideoCarousel, StatLine, NbaTvSchedule, ScoreboardHeader.
  */
 public class AtomicCompositeBuilder {
 
@@ -362,15 +362,534 @@ public class AtomicCompositeBuilder {
         return section;
     }
 
+    // ══════════════════════════════════════════════════════════════════════
+    // TIER 2 SECTIONS
+    // ══════════════════════════════════════════════════════════════════════
+
+    // ── HeroPanel ────────────────────────────────────────────────────────
+
+    /**
+     * Build a HeroPanel as an AtomicComposite.
+     * Single content card: thumbnail + optional duration badge + content type + headline + subhead.
+     */
+    public ObjectNode buildHeroPanel(String id, String analyticsId,
+                                      String headline, String subhead,
+                                      String thumbnailUrl, String contentType,
+                                      String duration, String targetUri) {
+        ObjectNode section = sectionEnvelope(id, analyticsId);
+
+        ObjectNode card = container("column", null, null);
+        card.put("cornerRadius", 12);
+        card.put("backgroundColor", "#1A1F2E");
+        if (targetUri != null) {
+            card.set("actions", singleActionArray(tapNavigate(targetUri)));
+        }
+        ArrayNode children = om.createArrayNode();
+
+        if (thumbnailUrl != null) {
+            ObjectNode imgContainer = container("column", null, null);
+            ArrayNode imgChildren = om.createArrayNode();
+            ObjectNode img = image(thumbnailUrl, 280, 140, "cover");
+            imgChildren.add(img);
+            if (duration != null) {
+                ObjectNode dur = text(duration, "labelSmall", null, "#FFFFFF", null);
+                dur.set("padding", padding(8, 8, 0, 0));
+                imgChildren.add(dur);
+            }
+            imgContainer.set("children", imgChildren);
+            children.add(imgContainer);
+        }
+
+        ObjectNode textCol = container("column", null, null);
+        textCol.set("padding", padding(12, 12, 12, 12));
+        ArrayNode textChildren = om.createArrayNode();
+
+        if (contentType != null) {
+            ObjectNode badge = text(contentType.toUpperCase(), "labelSmall", "bold", "#FF6B6B", null);
+            ObjectNode badgePad = padding(0, 0, 0, 4);
+            badge.set("padding", badgePad);
+            textChildren.add(badge);
+        }
+
+        textChildren.add(text(headline, "titleSmall", "bold", "#FFFFFF", 2));
+
+        if (subhead != null) {
+            ObjectNode sub = text(subhead, "bodySmall", null, "#AAAAAA", 2);
+            sub.set("padding", padding(0, 0, 4, 0));
+            textChildren.add(sub);
+        }
+
+        textCol.set("children", textChildren);
+        children.add(textCol);
+        card.set("children", children);
+
+        ObjectNode root = container("column", null, null);
+        root.set("padding", padding(16, 16, 8, 8));
+        ArrayNode rootChildren = om.createArrayNode();
+        rootChildren.add(card);
+        root.set("children", rootChildren);
+        wrapUi(section, root);
+        return section;
+    }
+
+    // ── VideoCarousel ────────────────────────────────────────────────────
+
+    /**
+     * Build a VideoCarousel as an AtomicComposite.
+     * Title + subtitle + horizontal scroll of video thumbnail cards.
+     *
+     * @param items  Array of [id, title, subtitle, thumbnailUrl, duration, badgeText, targetUri]
+     */
+    public ObjectNode buildVideoCarousel(String id, String analyticsId,
+                                          String title, String subtitle,
+                                          String[][] items) {
+        ObjectNode section = sectionEnvelope(id, analyticsId);
+
+        ObjectNode root = container("column", null, null);
+        root.set("padding", padding(0, 0, 8, 8));
+        ArrayNode rootChildren = om.createArrayNode();
+
+        if (title != null) {
+            ObjectNode titleEl = text(title, "titleMedium", "bold", "#FFFFFF", null);
+            titleEl.set("padding", padding(16, 16, 4, 4));
+            rootChildren.add(titleEl);
+        }
+        if (subtitle != null) {
+            ObjectNode subEl = text(subtitle, "bodySmall", null, "#AAAAAA", null);
+            subEl.set("padding", padding(16, 16, 2, 2));
+            rootChildren.add(subEl);
+        }
+
+        ObjectNode scroll = om.createObjectNode();
+        scroll.put("type", "ScrollContainer");
+        scroll.put("direction", "row");
+        scroll.put("gap", 12);
+        ArrayNode scrollChildren = om.createArrayNode();
+
+        for (String[] item : items) {
+            scrollChildren.add(buildVideoCard(item[0], item[1], item[2],
+                    item[3], item[4], item[5], item[6]));
+        }
+
+        scroll.set("children", scrollChildren);
+        rootChildren.add(scroll);
+        root.set("children", rootChildren);
+        wrapUi(section, root);
+        return section;
+    }
+
+    private ObjectNode buildVideoCard(String id, String title, String subtitle,
+                                        String thumbnailUrl, String duration,
+                                        String badgeText, String targetUri) {
+        ObjectNode card = container("column", null, null);
+        card.put("id", id);
+        card.put("cornerRadius", 12);
+        card.put("backgroundColor", "#1A1F2E");
+        if (targetUri != null) {
+            card.set("actions", singleActionArray(tapNavigate(targetUri)));
+        }
+        ArrayNode children = om.createArrayNode();
+
+        ObjectNode thumbContainer = container("column", null, null);
+        ArrayNode thumbChildren = om.createArrayNode();
+
+        if (thumbnailUrl != null) {
+            thumbChildren.add(image(thumbnailUrl, 240, 135, "cover"));
+        }
+
+        ObjectNode metaContainer = container("row", "spaceBetween", "center");
+        metaContainer.set("padding", padding(6, 6, 6, 6));
+        ArrayNode metaChildren = om.createArrayNode();
+
+        if (badgeText != null) {
+            ObjectNode badge = text(badgeText, "labelSmall", "bold", "#FFFFFF", null);
+            badge.put("backgroundColor", "#C8102E");
+            metaChildren.add(badge);
+        } else {
+            metaChildren.add(spacer(1));
+        }
+
+        if (duration != null) {
+            ObjectNode dur = text(duration, "labelSmall", null, "#FFFFFF", null);
+            dur.put("backgroundColor", "#000000B3");
+            metaChildren.add(dur);
+        }
+
+        metaContainer.set("children", metaChildren);
+        thumbChildren.add(metaContainer);
+        thumbContainer.set("children", thumbChildren);
+        children.add(thumbContainer);
+
+        ObjectNode textCol = container("column", null, null);
+        textCol.set("padding", padding(10, 10, 10, 10));
+        ArrayNode textChildren = om.createArrayNode();
+        textChildren.add(text(title, "bodyMedium", "semiBold", "#FFFFFF", 2));
+        if (subtitle != null) {
+            ObjectNode sub = text(subtitle, "bodySmall", null, "#999999", 1);
+            sub.set("padding", padding(0, 0, 2, 0));
+            textChildren.add(sub);
+        }
+        textCol.set("children", textChildren);
+        children.add(textCol);
+
+        card.set("children", children);
+        return card;
+    }
+
+    // ── StatLine ─────────────────────────────────────────────────────────
+
+    /**
+     * Build a StatLine section as an AtomicComposite.
+     * Supports horizontal (inline row) and vertical (stacked) layout.
+     *
+     * @param layout  "horizontal" or "vertical"
+     * @param stats   Array of [playerId, playerName, teamTricode, statCategory, statValue, playerImageUrl]
+     */
+    public ObjectNode buildStatLine(String id, String analyticsId,
+                                     String title, String layout,
+                                     String[][] stats) {
+        ObjectNode section = sectionEnvelope(id, analyticsId);
+
+        ObjectNode root = container("column", null, null);
+        root.set("padding", padding(16, 16, 8, 8));
+        ArrayNode rootChildren = om.createArrayNode();
+
+        if (title != null) {
+            ObjectNode titleEl = text(title, "titleMedium", "bold", null, null);
+            titleEl.set("padding", padding(0, 0, 0, 12));
+            rootChildren.add(titleEl);
+        }
+
+        boolean isVertical = "vertical".equals(layout);
+        for (String[] stat : stats) {
+            rootChildren.add(buildStatRow(stat[0], stat[1], stat[2], stat[3], stat[4],
+                    stat.length > 5 ? stat[5] : null, isVertical));
+        }
+
+        root.set("children", rootChildren);
+        wrapUi(section, root);
+        return section;
+    }
+
+    /**
+     * Overload that accepts pre-built stat ObjectNodes from dynamic API data.
+     * Each node should have: playerName, teamTricode, statCategory, statValue, playerImageUrl (optional).
+     */
+    public ObjectNode buildStatLineFromNodes(String id, String analyticsId,
+                                              String title, String layout,
+                                              ArrayNode statsNodes) {
+        int count = statsNodes != null ? statsNodes.size() : 0;
+        String[][] stats = new String[count][];
+        for (int i = 0; i < count; i++) {
+            var node = statsNodes.get(i);
+            stats[i] = new String[]{
+                String.valueOf(node.path("playerId").asInt()),
+                node.path("playerName").asText(""),
+                node.path("teamTricode").asText(""),
+                node.path("statCategory").asText(""),
+                node.path("statValue").asText(""),
+                node.has("playerImageUrl") ? node.path("playerImageUrl").asText() : null
+            };
+        }
+        return buildStatLine(id, analyticsId, title, layout, stats);
+    }
+
+    private ObjectNode buildStatRow(String playerId, String playerName, String teamTricode,
+                                      String statCategory, String statValue,
+                                      String playerImageUrl, boolean isVertical) {
+        if (isVertical) {
+            return buildStatRowVertical(playerId, playerName, teamTricode,
+                    statCategory, statValue, playerImageUrl);
+        }
+        return buildStatRowHorizontal(playerId, playerName, teamTricode,
+                statCategory, statValue, playerImageUrl);
+    }
+
+    private ObjectNode buildStatRowHorizontal(String playerId, String playerName,
+                                                String teamTricode, String statCategory,
+                                                String statValue, String playerImageUrl) {
+        ObjectNode row = container("row", null, "center");
+        row.set("padding", padding(0, 0, 6, 6));
+        ArrayNode children = om.createArrayNode();
+
+        if (playerImageUrl != null) {
+            ObjectNode img = image(playerImageUrl, 40, 40, "cover");
+            img.put("cornerRadius", 20);
+            children.add(img);
+            children.add(spacer(12));
+        }
+
+        ObjectNode nameCol = container("column", null, null);
+        ArrayNode nameChildren = om.createArrayNode();
+        nameChildren.add(text(playerName, "bodyLarge", "medium", null, null));
+        if (teamTricode != null) {
+            nameChildren.add(text(teamTricode, "bodySmall", null, "#999999", null));
+        }
+        nameCol.set("children", nameChildren);
+        children.add(nameCol);
+
+        children.add(spacer(8));
+        children.add(text(statCategory, "bodyMedium", null, "#AAAAAA", null));
+        children.add(spacer(8));
+        children.add(text(statValue, "titleMedium", "bold", "#FF6B6B", null));
+
+        row.set("children", children);
+        return row;
+    }
+
+    private ObjectNode buildStatRowVertical(String playerId, String playerName,
+                                              String teamTricode, String statCategory,
+                                              String statValue, String playerImageUrl) {
+        ObjectNode col = container("column", null, null);
+        col.set("padding", padding(0, 0, 6, 6));
+        ArrayNode children = om.createArrayNode();
+
+        ObjectNode topRow = container("row", null, "center");
+        ArrayNode topChildren = om.createArrayNode();
+
+        if (playerImageUrl != null) {
+            ObjectNode img = image(playerImageUrl, 40, 40, "cover");
+            img.put("cornerRadius", 20);
+            topChildren.add(img);
+            topChildren.add(spacer(12));
+        }
+
+        ObjectNode nameCol = container("column", null, null);
+        ArrayNode nameChildren = om.createArrayNode();
+        nameChildren.add(text(playerName, "bodyLarge", "medium", null, null));
+        if (teamTricode != null) {
+            nameChildren.add(text(teamTricode, "bodySmall", null, "#999999", null));
+        }
+        nameCol.set("children", nameChildren);
+        topChildren.add(nameCol);
+        topRow.set("children", topChildren);
+        children.add(topRow);
+
+        ObjectNode bottomRow = container("row", "end", "center");
+        bottomRow.set("padding", padding(0, 0, 4, 0));
+        ArrayNode bottomChildren = om.createArrayNode();
+        bottomChildren.add(text(statCategory, "bodyMedium", null, "#AAAAAA", null));
+        bottomChildren.add(spacer(8));
+        bottomChildren.add(text(statValue, "titleMedium", "bold", "#FF6B6B", null));
+        bottomRow.set("children", bottomChildren);
+        children.add(bottomRow);
+
+        col.set("children", children);
+        return col;
+    }
+
+    // ── ScoreboardHeader ─────────────────────────────────────────────────
+
+    /**
+     * Build a ScoreboardHeader as an AtomicComposite.
+     * Away team | Status | Home team layout.
+     */
+    public ObjectNode buildScoreboardHeader(String id, String analyticsId,
+                                             String awayTricode, String awayName,
+                                             String awayLogoUrl, String awayScore,
+                                             String homeTricode, String homeName,
+                                             String homeLogoUrl, String homeScore,
+                                             String statusText, String periodLabel,
+                                             String bgColor, String targetUri) {
+        ObjectNode section = sectionEnvelope(id, analyticsId);
+
+        String bg = bgColor != null ? bgColor : "#17408B";
+
+        ObjectNode root = container("row", "spaceEvenly", "center");
+        root.put("cornerRadius", 12);
+        root.put("backgroundColor", bg);
+        root.set("padding", padding(16, 16, 24, 24));
+        if (targetUri != null) {
+            root.set("actions", singleActionArray(tapNavigate(targetUri)));
+        }
+        ArrayNode rootChildren = om.createArrayNode();
+
+        rootChildren.add(buildTeamColumn(awayTricode, awayLogoUrl, awayScore));
+
+        ObjectNode statusCol = container("column", "center", "center");
+        ArrayNode statusChildren = om.createArrayNode();
+        statusChildren.add(text(statusText, "bodyMedium", "medium", "#FFFFFF", null));
+        if (periodLabel != null) {
+            statusChildren.add(text(periodLabel, "bodySmall", null, "#CCCCCC", null));
+        }
+        statusCol.set("children", statusChildren);
+        rootChildren.add(statusCol);
+
+        rootChildren.add(buildTeamColumn(homeTricode, homeLogoUrl, homeScore));
+
+        root.set("children", rootChildren);
+
+        ObjectNode wrapper = container("column", null, null);
+        wrapper.set("padding", padding(8, 8, 0, 0));
+        ArrayNode wrapChildren = om.createArrayNode();
+        wrapChildren.add(root);
+        wrapper.set("children", wrapChildren);
+        wrapUi(section, wrapper);
+        return section;
+    }
+
+    private ObjectNode buildTeamColumn(String tricode, String logoUrl, String score) {
+        ObjectNode col = container("column", "center", "center");
+        ArrayNode children = om.createArrayNode();
+
+        String logo = logoUrl != null ? logoUrl : DEFAULT_PLACEHOLDER;
+        ObjectNode img = image(logo, 60, 60, "contain");
+        children.add(img);
+        children.add(spacer(4));
+        children.add(text(tricode, "bodyMedium", "bold", "#FFFFFF", null));
+        children.add(text(score, "headlineLarge", "bold", "#FFFFFF", null));
+
+        col.set("children", children);
+        return col;
+    }
+
+    // ── NbaTvSchedule ────────────────────────────────────────────────────
+
+    /**
+     * Build an NbaTvSchedule as an AtomicComposite.
+     * Hero banner with gradient overlay + time-slot list.
+     *
+     * @param slots  Array of [id, title, subtitle, displayTime, isLive, targetUri]
+     */
+    public ObjectNode buildNbaTvSchedule(String id, String analyticsId,
+                                          String heroImageUrl, String heroTitle,
+                                          String heroSubtitle, boolean liveNow,
+                                          String[][] slots) {
+        ObjectNode section = sectionEnvelope(id, analyticsId);
+
+        ObjectNode root = container("column", null, null);
+        ArrayNode rootChildren = om.createArrayNode();
+
+        ObjectNode heroContainer = container("column", "end", null);
+        heroContainer.put("cornerRadius", 12);
+        heroContainer.set("padding", padding(16, 16, 8, 8));
+        ArrayNode heroChildren = om.createArrayNode();
+
+        if (heroImageUrl != null) {
+            ObjectNode heroImg = image(heroImageUrl, 0, 200, "cover");
+            heroImg.put("fillWidth", true);
+            heroImg.put("cornerRadius", 12);
+            heroChildren.add(heroImg);
+        }
+
+        ObjectNode overlay = container("column", null, null);
+        overlay.set("padding", padding(16, 16, 16, 16));
+        overlay.put("backgroundGradient", 0);
+        ObjectNode grad = om.createObjectNode();
+        ArrayNode gradColors = om.createArrayNode();
+        gradColors.add("#00000000");
+        gradColors.add("#000000CC");
+        grad.set("colors", gradColors);
+        grad.put("direction", "vertical");
+        overlay.set("backgroundGradient", grad);
+        ArrayNode overlayChildren = om.createArrayNode();
+
+        if (liveNow) {
+            ObjectNode liveBadge = text("LIVE", "labelSmall", "bold", "#FFFFFF", null);
+            liveBadge.put("backgroundColor", "#C8102E");
+            overlayChildren.add(liveBadge);
+            overlayChildren.add(spacer(6));
+        }
+        if (heroTitle != null) {
+            overlayChildren.add(text(heroTitle, "titleLarge", "bold", "#FFFFFF", null));
+        }
+        if (heroSubtitle != null) {
+            overlayChildren.add(text(heroSubtitle, "bodyMedium", null, "#CCCCCC", null));
+        }
+        overlay.set("children", overlayChildren);
+        heroChildren.add(overlay);
+        heroContainer.set("children", heroChildren);
+        rootChildren.add(heroContainer);
+
+        rootChildren.add(spacer(8));
+
+        ObjectNode heading = text("Today's Schedule", "titleSmall", "bold", "#FFFFFF", null);
+        heading.set("padding", padding(16, 16, 4, 4));
+        rootChildren.add(heading);
+
+        ObjectNode slotList = container("column", null, null);
+        slotList.put("gap", 8);
+        slotList.set("padding", padding(16, 16, 0, 0));
+        ArrayNode slotChildren = om.createArrayNode();
+
+        for (String[] slot : slots) {
+            slotChildren.add(buildNbaTvSlot(slot[0], slot[1], slot[2],
+                    slot[3], "true".equals(slot[4]), slot[5]));
+        }
+
+        slotList.set("children", slotChildren);
+        rootChildren.add(slotList);
+        root.set("children", rootChildren);
+        wrapUi(section, root);
+        return section;
+    }
+
+    private ObjectNode buildNbaTvSlot(String id, String title, String subtitle,
+                                        String displayTime, boolean isLive,
+                                        String targetUri) {
+        ObjectNode row = container("row", null, "center");
+        row.put("id", id);
+        row.put("fillWidth", true);
+        row.put("cornerRadius", 8);
+        row.put("backgroundColor", "#1A1F2E");
+        row.set("padding", padding(12, 12, 12, 12));
+        if (targetUri != null) {
+            row.set("actions", singleActionArray(tapNavigate(targetUri)));
+        }
+        ArrayNode children = om.createArrayNode();
+
+        ObjectNode timeText = text(displayTime, "bodyMedium", "semiBold", "#999999", null);
+        children.add(timeText);
+        children.add(spacer(12));
+
+        ObjectNode contentCol = container("column", null, null);
+        ArrayNode contentChildren = om.createArrayNode();
+        contentChildren.add(text(title, "bodyMedium", "semiBold", "#FFFFFF", 1));
+        if (subtitle != null) {
+            contentChildren.add(text(subtitle, "bodySmall", null, "#999999", 1));
+        }
+        contentCol.set("children", contentChildren);
+        children.add(contentCol);
+
+        if (isLive) {
+            children.add(spacer(8));
+            ObjectNode badge = text("LIVE", "labelSmall", "bold", "#FFFFFF", null);
+            badge.put("backgroundColor", "#C8102E");
+            children.add(badge);
+        }
+
+        row.set("children", children);
+        return row;
+    }
+
     // ── Atomic element helpers ──────────────────────────────────────────
 
     private ObjectNode sectionEnvelope(String id, String analyticsId) {
+        return sectionEnvelope(id, analyticsId, null);
+    }
+
+    /**
+     * Overload that accepts a custom refreshPolicy node (for poll, sse, etc.).
+     * Falls back to static if refreshPolicy is null.
+     */
+    ObjectNode sectionEnvelope(String id, String analyticsId, ObjectNode refreshPolicy) {
         ObjectNode section = om.createObjectNode();
         section.put("id", id);
         section.put("type", "AtomicComposite");
         if (analyticsId != null) section.put("analyticsId", analyticsId);
-        section.set("refreshPolicy", om.createObjectNode().put("type", "static"));
+        section.set("refreshPolicy", refreshPolicy != null ? refreshPolicy
+                : om.createObjectNode().put("type", "static"));
         return section;
+    }
+
+    /** Attach sectionStates metadata to a section built by this builder. */
+    public void attachSectionStates(ObjectNode section, ObjectNode sectionStates) {
+        if (sectionStates != null) section.set("sectionStates", sectionStates);
+    }
+
+    /** Attach a refreshPolicy to an already-built section. */
+    public void attachRefreshPolicy(ObjectNode section, ObjectNode refreshPolicy) {
+        if (refreshPolicy != null) section.set("refreshPolicy", refreshPolicy);
     }
 
     private void wrapUi(ObjectNode section, ObjectNode rootElement) {
@@ -411,8 +930,8 @@ public class AtomicCompositeBuilder {
         ObjectNode node = om.createObjectNode();
         node.put("type", "Image");
         node.put("src", src);
-        node.put("width", width);
-        node.put("height", height);
+        if (width > 0) node.put("width", width);
+        if (height > 0) node.put("height", height);
         if (fit != null) node.put("fit", fit);
         if (placeholder != null) node.put("placeholder", placeholder);
         return node;

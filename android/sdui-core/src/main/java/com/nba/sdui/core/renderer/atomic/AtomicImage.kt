@@ -2,6 +2,7 @@ package com.nba.sdui.core.renderer.atomic
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -36,6 +37,9 @@ fun AtomicImage(
 ) {
     var imageModifier = modifier
 
+    if (element.fillWidth == true) {
+        imageModifier = imageModifier.fillMaxWidth()
+    }
     element.cornerRadius?.let {
         imageModifier = imageModifier.clip(RoundedCornerShape(it.dp))
     }

@@ -35,21 +35,6 @@ fun SectionRouter(
             )
         }
         
-        "StatLine" -> {
-            StatLineRenderer(
-                section = section,
-                onAction = onAction,
-                modifier = modifier
-            )
-        }
-        
-        "HeroPanel" -> {
-            HeroPanelRenderer(
-                section = section,
-                onAction = onAction,
-                modifier = modifier
-            )
-        }
         
         "TabGroup" -> {
             TabGroupRenderer(
@@ -99,21 +84,7 @@ fun SectionRouter(
             )
         }
 
-        "VideoCarousel" -> {
-            VideoCarouselRenderer(
-                section = section,
-                onAction = onAction,
-                modifier = modifier
-            )
-        }
 
-        "NbaTvSchedule" -> {
-            NbaTvScheduleRenderer(
-                section = section,
-                onAction = onAction,
-                modifier = modifier
-            )
-        }
 
         "SubscribeBanner" -> {
             SubscribeBannerRenderer(
@@ -175,15 +146,11 @@ fun SectionRouter(
  */
 val SUPPORTED_SECTION_TYPES = setOf(
     "ScoreboardHeader",
-    "StatLine",
-    "HeroPanel",
     "TabGroup",
     "GamePanel",
     "Row",
     "BoxscoreTable",
     "Form",
-    "VideoCarousel",
-    "NbaTvSchedule",
     "SubscribeBanner",
     "SubscribeHero",
     "AdSlot",

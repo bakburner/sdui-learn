@@ -1,12 +1,11 @@
 package com.nba.sdui.core.renderer.atomic
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -40,28 +39,26 @@ fun AtomicDisplayGrid(
     val cellStyle = mapTypographyVariant(element.cellVariant ?: "bodyMedium")
     val striped = element.striped == true
 
-    LazyColumn(modifier = modifier.fillMaxWidth()) {
-        item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
-            ) {
-                columns.forEach { col ->
-                    CellSlot(col) {
-                        Text(
-                            text = col.label,
-                            style = headerStyle,
-                            textAlign = mapAlign(col.align),
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
+    Column(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .padding(horizontal = 8.dp, vertical = 4.dp)
+        ) {
+            columns.forEach { col ->
+                CellSlot(col) {
+                    Text(
+                        text = col.label,
+                        style = headerStyle,
+                        textAlign = mapAlign(col.align),
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             }
         }
 
-        itemsIndexed(rows) { index, row ->
+        rows.forEachIndexed { index, row ->
             val rowBg = if (striped && index % 2 == 1) {
                 MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f)
             } else {

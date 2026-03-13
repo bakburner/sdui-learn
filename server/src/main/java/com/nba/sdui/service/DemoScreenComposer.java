@@ -277,62 +277,26 @@ public class DemoScreenComposer {
      * 1. ScoreboardHeader — Lakers vs Celtics, period 3, 89-94.
      */
     private ObjectNode buildDemoScoreboardHeader() {
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "demo-scoreboard-header");
-        section.put("type", "ScoreboardHeader");
-        section.put("analyticsId", "demo_scoreboard_header");
-        section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
-
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("gameId", "0022400999");
-        data.put("gameStatus", 2);
-        data.put("gameStatusText", "Q3 4:32");
-        data.put("period", 3);
-        data.put("gameClock", "PT04M32.00S");
-
-        ObjectNode home = objectMapper.createObjectNode();
-        home.put("teamId", 1610612738);
-        home.put("teamTricode", "BOS");
-        home.put("teamName", "Celtics");
-        home.put("teamCity", "Boston");
-        home.put("score", 94);
-        home.put("logoUrl", "https://cdn.nba.com/logos/nba/1610612738/primary/L/logo.svg");
-        data.set("homeTeam", home);
-
-        ObjectNode away = objectMapper.createObjectNode();
-        away.put("teamId", 1610612747);
-        away.put("teamTricode", "LAL");
-        away.put("teamName", "Lakers");
-        away.put("teamCity", "Los Angeles");
-        away.put("score", 89);
-        away.put("logoUrl", "https://cdn.nba.com/logos/nba/1610612747/primary/L/logo.svg");
-        data.set("awayTeam", away);
-
-        section.set("data", data);
-        return section;
+        return atomicBuilder.buildScoreboardHeader(
+                "demo-scoreboard-header", "demo_scoreboard_header",
+                "LAL", "Lakers",
+                "https://cdn.nba.com/logos/nba/1610612747/primary/L/logo.svg", "89",
+                "BOS", "Celtics",
+                "https://cdn.nba.com/logos/nba/1610612738/primary/L/logo.svg", "94",
+                "Q3 4:32", "Period 3", null, null);
     }
 
     /**
      * 2. StatLine — 3 mock players with PTS/REB/AST.
      */
     private ObjectNode buildDemoStatLine() {
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "demo-stat-line");
-        section.put("type", "StatLine");
-        section.put("analyticsId", "demo_stat_line");
-        section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
-
-        ArrayNode stats = objectMapper.createArrayNode();
-        stats.add(utils.createStatLine(1628369, "Jayson Tatum", "BOS", "PTS", "32"));
-        stats.add(utils.createStatLine(203507, "LeBron James", "LAL", "PTS", "28"));
-        stats.add(utils.createStatLine(203076, "Anthony Davis", "LAL", "REB", "14"));
-
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("title", "Top Performers");
-        data.put("layout", "vertical");
-        data.set("stats", stats);
-        section.set("data", data);
-        return section;
+        String[][] stats = {
+            {"1628369", "Jayson Tatum", "BOS", "PTS", "32", "https://cdn.nba.com/headshots/nba/latest/1040x760/1628369.png"},
+            {"203507", "LeBron James", "LAL", "PTS", "28", "https://cdn.nba.com/headshots/nba/latest/1040x760/203507.png"},
+            {"203076", "Anthony Davis", "LAL", "REB", "14", "https://cdn.nba.com/headshots/nba/latest/1040x760/203076.png"}
+        };
+        return atomicBuilder.buildStatLine(
+                "demo-stat-line", "demo_stat_line", "Top Performers", "vertical", stats);
     }
 
     /**
@@ -351,29 +315,12 @@ public class DemoScreenComposer {
      * 4. HeroPanel — single highlight card with thumbnail.
      */
     private ObjectNode buildDemoHeroPanel() {
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "demo-content-card");
-        section.put("type", "HeroPanel");
-        section.put("analyticsId", "demo_content_card");
-        section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
-
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("id", "card-highlight");
-        data.put("thumbnailUrl", "https://loremflickr.com/480/270/basketball,celtics?lock=2");
-        data.put("fallbackThumbnailUrl", FALLBACK_THUMB);
-        data.put("headline", "Celtics Lead Series 3-1");
-        data.put("subhead", "Boston takes commanding lead after Game 4 victory");
-        data.put("contentType", "article");
-
-        ObjectNode action = objectMapper.createObjectNode();
-        action.put("trigger", "onTap");
-        action.put("type", "navigate");
-        action.put("targetUri", "nba://article/celtics-lead-series");
-        action.put("fallbackUrl", "https://www.nba.com/news");
-        data.set("action", action);
-
-        section.set("data", data);
-        return section;
+        return atomicBuilder.buildHeroPanel(
+                "demo-content-card", "demo_content_card",
+                "Celtics Lead Series 3-1",
+                "Boston takes commanding lead after Game 4 victory",
+                "https://loremflickr.com/480/270/basketball,celtics?lock=2",
+                "article", null, "nba://article/celtics-lead-series");
     }
 
     /**
@@ -450,29 +397,15 @@ public class DemoScreenComposer {
 
         ArrayNode children = objectMapper.createArrayNode();
 
-        ObjectNode leftChild = objectMapper.createObjectNode();
-        leftChild.put("id", "row-scoring-leader");
-        leftChild.put("type", "StatLine");
-        ObjectNode leftData = objectMapper.createObjectNode();
-        leftData.put("title", "Scoring Leader");
-        leftData.put("layout", "vertical");
-        ArrayNode leftStats = objectMapper.createArrayNode();
-        leftStats.add(utils.createStatLine(203999, "Nikola Jokić", "DEN", "PTS", "26.4"));
-        leftData.set("stats", leftStats);
-        leftChild.set("data", leftData);
-        children.add(leftChild);
+        children.add(atomicBuilder.buildStatLine(
+                "row-scoring-leader", null, "Scoring Leader", "vertical",
+                new String[][]{{"203999", "Nikola Jokić", "DEN", "PTS", "26.4",
+                        "https://cdn.nba.com/headshots/nba/latest/1040x760/203999.png"}}));
 
-        ObjectNode rightChild = objectMapper.createObjectNode();
-        rightChild.put("id", "row-assists-leader");
-        rightChild.put("type", "StatLine");
-        ObjectNode rightData = objectMapper.createObjectNode();
-        rightData.put("title", "Assists Leader");
-        rightData.put("layout", "vertical");
-        ArrayNode rightStats = objectMapper.createArrayNode();
-        rightStats.add(utils.createStatLine(201566, "Trae Young", "ATL", "AST", "11.1"));
-        rightData.set("stats", rightStats);
-        rightChild.set("data", rightData);
-        children.add(rightChild);
+        children.add(atomicBuilder.buildStatLine(
+                "row-assists-leader", null, "Assists Leader", "vertical",
+                new String[][]{{"201566", "Trae Young", "ATL", "AST", "11.1",
+                        "https://cdn.nba.com/headshots/nba/latest/1040x760/201566.png"}}));
 
         data.set("children", children);
         section.set("data", data);
@@ -513,31 +446,21 @@ public class DemoScreenComposer {
         ObjectNode tabContents = objectMapper.createObjectNode();
 
         ArrayNode overviewContent = objectMapper.createArrayNode();
-        ObjectNode overviewCard = objectMapper.createObjectNode();
-        overviewCard.put("id", "tab-overview-card");
-        overviewCard.put("type", "HeroPanel");
-        ObjectNode overviewCardData = objectMapper.createObjectNode();
-        overviewCardData.put("id", "overview-highlight");
-        overviewCardData.put("headline", "Season Overview");
-        overviewCardData.put("subhead", "The 2024-25 season has been full of surprises");
-        overviewCardData.put("contentType", "article");
-        overviewCardData.put("thumbnailUrl", "https://loremflickr.com/480/270/basketball,season?lock=7");
-        overviewCard.set("data", overviewCardData);
-        overviewContent.add(overviewCard);
+        overviewContent.add(atomicBuilder.buildHeroPanel(
+                "tab-overview-card", null,
+                "Season Overview",
+                "The 2024-25 season has been full of surprises",
+                "https://loremflickr.com/480/270/basketball,season?lock=7",
+                "article", null, null));
         tabContents.set("overview", overviewContent);
 
         ArrayNode statsContent = objectMapper.createArrayNode();
-        ObjectNode statsCard = objectMapper.createObjectNode();
-        statsCard.put("id", "tab-stats-card");
-        statsCard.put("type", "HeroPanel");
-        ObjectNode statsCardData = objectMapper.createObjectNode();
-        statsCardData.put("id", "stats-summary");
-        statsCardData.put("headline", "League Statistical Leaders");
-        statsCardData.put("subhead", "Points, rebounds, assists and more");
-        statsCardData.put("contentType", "interactive");
-        statsCardData.put("thumbnailUrl", "https://loremflickr.com/480/270/basketball,stats?lock=8");
-        statsCard.set("data", statsCardData);
-        statsContent.add(statsCard);
+        statsContent.add(atomicBuilder.buildHeroPanel(
+                "tab-stats-card", null,
+                "League Statistical Leaders",
+                "Points, rebounds, assists and more",
+                "https://loremflickr.com/480/270/basketball,stats?lock=8",
+                "interactive", null, null));
         tabContents.set("stats", statsContent);
 
         data.set("tabContents", tabContents);
@@ -785,103 +708,32 @@ public class DemoScreenComposer {
      * 14. VideoCarousel — 4 video thumbnails in a horizontal carousel.
      */
     private ObjectNode buildDemoVideoCarousel() {
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "demo-video-carousel");
-        section.put("type", "VideoCarousel");
-        section.put("analyticsId", "demo_video_carousel");
-        section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
-
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("title", "Top Highlights");
-        data.put("subtitle", "Today's best plays");
-        data.put("fallbackThumbnailUrl", FALLBACK_THUMB);
-
-        ArrayNode items = objectMapper.createArrayNode();
-        String[][] videos = {
-            {"vid-1", "Dončić No-Look Dime", "Lakers vs Celtics", "https://loremflickr.com/480/270/basketball,pass?lock=10", "1:24", "NEW"},
-            {"vid-2", "SGA Crossover & Finish", "Thunder vs Nuggets", "https://loremflickr.com/480/270/basketball,crossover?lock=11", "0:48", null},
-            {"vid-3", "Edwards Poster Dunk", "Timberwolves vs Suns", "https://loremflickr.com/480/270/basketball,dunk?lock=12", "0:32", "NEW"},
-            {"vid-4", "Jokić Triple-Double Recap", "Full highlights", "https://loremflickr.com/480/270/basketball,triple+double?lock=13", "3:15", null}
+        String[][] items = {
+            {"vid-1", "Dončić No-Look Dime", "Lakers vs Celtics", "https://loremflickr.com/480/270/basketball,pass?lock=10", "1:24", "NEW", "nba://video/vid-1"},
+            {"vid-2", "SGA Crossover & Finish", "Thunder vs Nuggets", "https://loremflickr.com/480/270/basketball,crossover?lock=11", "0:48", null, "nba://video/vid-2"},
+            {"vid-3", "Edwards Poster Dunk", "Timberwolves vs Suns", "https://loremflickr.com/480/270/basketball,dunk?lock=12", "0:32", "NEW", "nba://video/vid-3"},
+            {"vid-4", "Jokić Triple-Double Recap", "Full highlights", "https://loremflickr.com/480/270/basketball,triple+double?lock=13", "3:15", null, "nba://video/vid-4"}
         };
-        for (String[] v : videos) {
-            ObjectNode item = objectMapper.createObjectNode();
-            item.put("id", v[0]);
-            item.put("title", v[1]);
-            item.put("subtitle", v[2]);
-            item.put("thumbnailUrl", v[3]);
-            item.put("duration", v[4]);
-            if (v[5] != null) item.put("badgeText", v[5]);
-            ObjectNode action = objectMapper.createObjectNode();
-            action.put("trigger", "onTap");
-            action.put("type", "navigate");
-            action.put("targetUri", "nba://video/" + v[0]);
-            item.set("action", action);
-            items.add(item);
-        }
-        data.set("items", items);
-
-        section.set("data", data);
-        return section;
+        return atomicBuilder.buildVideoCarousel(
+                "demo-video-carousel", "demo_video_carousel",
+                "Top Highlights", "Today's best plays", items);
     }
 
     /**
      * 15. NbaTvSchedule — hero promo + 3 time slots.
      */
     private ObjectNode buildDemoNbaTvSchedule() {
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "demo-nbatv-schedule");
-        section.put("type", "NbaTvSchedule");
-        section.put("analyticsId", "demo_nbatv_schedule");
-        section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
-
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("heroImageUrl", "https://loremflickr.com/800/400/basketball,arena?lock=14");
-        data.put("fallbackThumbnailUrl", FALLBACK_THUMB);
-        data.put("heroTitle", "NBA TV Live");
-        data.put("heroSubtitle", "Lakers vs Celtics — Coverage begins at 7:00 PM ET");
-        data.put("liveNow", true);
-
-        ArrayNode slots = objectMapper.createArrayNode();
-
-        ObjectNode slot1 = objectMapper.createObjectNode();
-        slot1.put("id", "slot-1");
-        slot1.put("title", "NBA GameTime");
-        slot1.put("subtitle", "Pre-game analysis and predictions");
-        slot1.put("startTime", "2025-03-11T18:00:00-04:00");
-        slot1.put("endTime", "2025-03-11T19:00:00-04:00");
-        slot1.put("thumbnailUrl", "https://loremflickr.com/160/90/basketball,pregame?lock=15");
-        slot1.put("isLive", false);
-        slots.add(slot1);
-
-        ObjectNode slot2 = objectMapper.createObjectNode();
-        slot2.put("id", "slot-2");
-        slot2.put("title", "LAL @ BOS");
-        slot2.put("subtitle", "Live game broadcast");
-        slot2.put("startTime", "2025-03-11T19:30:00-04:00");
-        slot2.put("endTime", "2025-03-11T22:00:00-04:00");
-        slot2.put("thumbnailUrl", "https://loremflickr.com/160/90/basketball,lakers?lock=16");
-        slot2.put("isLive", true);
-        ObjectNode slot2Action = objectMapper.createObjectNode();
-        slot2Action.put("trigger", "onTap");
-        slot2Action.put("type", "navigate");
-        slot2Action.put("targetUri", "nba://game/0022400999");
-        slot2.set("action", slot2Action);
-        slots.add(slot2);
-
-        ObjectNode slot3 = objectMapper.createObjectNode();
-        slot3.put("id", "slot-3");
-        slot3.put("title", "NBA Inside Stuff");
-        slot3.put("subtitle", "Post-game interviews and highlights");
-        slot3.put("startTime", "2025-03-11T22:00:00-04:00");
-        slot3.put("endTime", "2025-03-11T23:00:00-04:00");
-        slot3.put("thumbnailUrl", "https://loremflickr.com/160/90/basketball,interview?lock=17");
-        slot3.put("isLive", false);
-        slots.add(slot3);
-
-        data.set("slots", slots);
-
-        section.set("data", data);
-        return section;
+        String[][] slots = {
+            {"slot-1", "NBA GameTime", "Pre-game analysis and predictions", "18:00", "false", null},
+            {"slot-2", "LAL @ BOS", "Live game broadcast", "19:30", "true", "nba://game/0022400999"},
+            {"slot-3", "NBA Inside Stuff", "Post-game interviews and highlights", "22:00", "false", null}
+        };
+        return atomicBuilder.buildNbaTvSchedule(
+                "demo-nbatv-schedule", "demo_nbatv_schedule",
+                "https://loremflickr.com/800/400/basketball,arena?lock=14",
+                "NBA TV Live",
+                "Lakers vs Celtics — Coverage begins at 7:00 PM ET",
+                true, slots);
     }
 
     /**
@@ -1024,7 +876,7 @@ public class DemoScreenComposer {
                 "demo-display-grid", "demo_display_grid",
                 "Eastern Conference Standings",
                 columns, rows,
-                "labelMedium", "bodySmall", true);
+                "labelMedium", "bodySmall", false);
     }
 
     /**

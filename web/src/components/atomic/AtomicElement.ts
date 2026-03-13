@@ -49,6 +49,7 @@ export interface AtomicElement {
 
   // Shared visual
   cornerRadius?: number;
+  fillWidth?: boolean;
 
   // Image
   src?: string;

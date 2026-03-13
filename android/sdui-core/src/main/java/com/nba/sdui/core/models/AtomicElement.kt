@@ -11,7 +11,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
  * `AtomicComposite` section. The client's AtomicRouter renders the tree
  * using platform-native primitives.
  *
- * Types: Container, Text, Image, Button, Spacer, Divider, ScrollContainer, Conditional, DisplayGrid
+ * Types: Container, Text, Image, Button, Spacer, Divider, ScrollContainer, Conditional, DisplayGrid, SectionSlot
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class AtomicElement(
@@ -28,6 +28,7 @@ data class AtomicElement(
     @JsonProperty("backgroundColor") val backgroundColor: String? = null,
     @JsonProperty("backgroundGradient") val backgroundGradient: BackgroundGradient? = null,
     @JsonProperty("cornerRadius") val cornerRadius: Int? = null,
+    @JsonProperty("fillWidth") val fillWidth: Boolean? = null,
 
     // Text properties
     @JsonProperty("content") val content: String? = null,
@@ -73,6 +74,9 @@ data class AtomicElement(
     @JsonProperty("headerVariant") val headerVariant: String? = null,
     @JsonProperty("cellVariant") val cellVariant: String? = null,
     @JsonProperty("striped") val striped: Boolean? = null,
+
+    // SectionSlot — embedded section delegated back to SectionRouter
+    @JsonProperty("section") val section: Map<String, Any?>? = null,
 
     // Actions (applicable to any interactive element)
     @JsonProperty("actions") val actions: List<Map<String, Any?>>? = null

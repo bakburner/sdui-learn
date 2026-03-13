@@ -20,7 +20,7 @@ const fitToObjectFit: Record<string, React.CSSProperties['objectFit']> = {
 export function AtomicImage({ element, onAction }: AtomicProps): React.ReactElement {
   const style: React.CSSProperties = {
     objectFit: fitToObjectFit[element.fit ?? ''] ?? 'contain',
-    ...(element.width != null ? { width: element.width } : {}),
+    ...(element.fillWidth ? { width: '100%' } : element.width != null ? { width: element.width } : {}),
     ...(element.height != null ? { height: element.height } : {}),
     ...(element.aspectRatio != null ? { aspectRatio: String(element.aspectRatio) } : {}),
     ...(element.cornerRadius != null ? { borderRadius: element.cornerRadius, overflow: 'hidden' } : {}),

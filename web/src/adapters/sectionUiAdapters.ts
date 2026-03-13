@@ -5,7 +5,6 @@ import type {
   Data,
   FormField,
   Section,
-  StatLineData,
   TabData,
   TeamData,
 } from '@sdui/models';
@@ -16,11 +15,6 @@ export interface ScoreboardHeaderUiModel {
   statusText: string;
   isLive: boolean;
   periodLabel?: string;
-}
-
-export interface StatLineUiModel {
-  title?: string;
-  stats: StatLineData[];
 }
 
 export interface TabGroupUiModel {
@@ -66,41 +60,6 @@ export function mapScoreboardHeader(section: Section): ScoreboardHeaderUiModel |
     statusText: data.gameStatusText || 'TBD',
     isLive,
     periodLabel: isLive && data.period && data.period > 0 ? `Q${data.period}` : undefined,
-  };
-}
-
-export function mapStatLine(section: Section): StatLineUiModel | null {
-  const data = section.data as Data | undefined;
-  if (!data?.stats?.length) return null;
-  return {
-    title: data.title,
-    stats: data.stats,
-  };
-}
-
-export interface HeroPanelUiModel {
-  id: string;
-  headline: string;
-  subhead?: string;
-  thumbnailUrl?: string;
-  fallbackThumbnailUrl?: string;
-  contentType?: string;
-  duration?: string;
-  action?: Action;
-}
-
-export function mapHeroPanel(section: Section): HeroPanelUiModel | null {
-  const data = section.data as Record<string, unknown> | undefined;
-  if (!data?.headline) return null;
-  return {
-    id: (data.id as string) ?? section.id,
-    headline: data.headline as string,
-    subhead: data.subhead as string | undefined,
-    thumbnailUrl: data.thumbnailUrl as string | undefined,
-    fallbackThumbnailUrl: data.fallbackThumbnailUrl as string | undefined,
-    contentType: data.contentType as string | undefined,
-    duration: data.duration as string | undefined,
-    action: data.action as Action | undefined,
   };
 }
 

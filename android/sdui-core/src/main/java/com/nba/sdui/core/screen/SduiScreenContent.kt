@@ -8,9 +8,9 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.nba.sdui.core.models.SduiScreen
+import com.nba.sdui.core.models.SduiSection
 import com.nba.sdui.core.renderer.SectionRouter
 import com.nba.sdui.core.state.SduiAction
 
@@ -72,6 +72,32 @@ fun SduiScreenContent(
     }
 }
 
+@Composable
+private fun SectionItem(
+    section: SduiSection,
+    screenState: Map<String, Any>,
+    onAction: (SduiAction) -> Unit,
+    onStateChange: (String, Any) -> Unit
+) {
+    val hints = section.layoutHints
+    Column {
+        if (hints?.dividerAbove == true) {
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        }
+        Spacer(modifier = Modifier.height((hints?.marginTop ?: 0).dp))
+        SectionRouter(
+            section = section,
+            screenState = screenState,
+            onAction = onAction,
+            onStateChange = onStateChange
+        )
+        Spacer(modifier = Modifier.height((hints?.marginBottom ?: 0).dp))
+        if (hints?.dividerBelow == true) {
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        }
+    }
+}
+
 // ── Private helpers ──────────────────────────────────────────────────
 
 @Composable
@@ -118,13 +144,13 @@ private fun SuccessContent(
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 16.dp)
+            contentPadding = PaddingValues(start = 12.dp, top = 0.dp, end = 12.dp, bottom = 16.dp)
         ) {
             items(
                 items = screen.sections,
                 key = { it.id }
             ) { section ->
-                SectionRouter(
+                SectionItem(
                     section = section,
                     screenState = screenState,
                     onAction = onAction,

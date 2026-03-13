@@ -1,8 +1,6 @@
 import React, { useRef } from 'react';
 import type { Section, Action, Data, RefreshPolicy } from '@sdui/models';
 import { ScoreboardHeader } from './sections/ScoreboardHeader';
-import { StatLine } from './sections/StatLine';
-import { HeroPanel } from './sections/HeroPanel';
 import { TabGroup } from './sections/TabGroup';
 import { GamePanel } from './sections/GamePanel';
 import { Row } from './sections/Row';
@@ -10,8 +8,6 @@ import { BoxscoreTable } from './sections/BoxscoreTable';
 import { Form } from './sections/Form';
 import { AdSlot } from './sections/AdSlot';
 import { SeasonLeadersTable } from './sections/SeasonLeadersTable';
-import { VideoCarousel } from './sections/VideoCarousel';
-import { NbaTvSchedule } from './sections/NbaTvSchedule';
 import { SubscribeBanner } from './sections/SubscribeBanner';
 import { SubscribeHero } from './sections/SubscribeHero';
 import { AtomicRouter } from './atomic';
@@ -49,9 +45,6 @@ function SectionRenderer({
     case 'ScoreboardHeader':
       return <ScoreboardHeader {...commonProps} />;
       
-    case 'StatLine':
-      return <StatLine {...commonProps} />;
-      
     case 'TabGroup':
       return <TabGroup {...commonProps} />;
       
@@ -72,15 +65,6 @@ function SectionRenderer({
 
     case 'SeasonLeadersTable':
       return <SeasonLeadersTable {...commonProps} />;
-
-    case 'HeroPanel':
-      return <HeroPanel {...commonProps} />;
-
-    case 'VideoCarousel':
-      return <VideoCarousel {...commonProps} />;
-
-    case 'NbaTvSchedule':
-      return <NbaTvSchedule {...commonProps} />;
 
     case 'SubscribeBanner':
       return <SubscribeBanner {...commonProps} />;

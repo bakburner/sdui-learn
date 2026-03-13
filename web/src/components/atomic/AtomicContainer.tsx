@@ -32,6 +32,10 @@ export function AtomicContainer({ element, state, onAction, depth = 0 }: AtomicP
     default:        style.alignItems = 'flex-start'; break;
   }
 
+  if (element.fillWidth) {
+    style.width = '100%';
+  }
+
   // padding
   if (element.padding) {
     const { top, end, bottom, start } = element.padding;

@@ -6,9 +6,7 @@ import com.nba.sdui.core.models.SduiSection
 import com.nba.sdui.core.models.TabGroupData
 import com.nba.sdui.core.models.actionToSduiAction
 import com.nba.sdui.core.state.SduiAction
-import com.nba.sdui.models.generated.HeroPanelData
 import com.nba.sdui.models.generated.ScoreboardHeaderData
-import com.nba.sdui.models.generated.StatLineListData
 import com.nba.sdui.models.generated.TeamData
 
 private val mapper = ObjectMapper().registerKotlinModule()
@@ -70,10 +68,6 @@ fun mapScoreboardHeader(section: SduiSection): ScoreboardHeaderUiModel? {
         periodLabel = if (parsed.gameStatus == 2 && parsed.period > 0) "Q${parsed.period}" else null
     )
 }
-
-fun mapStatLineList(section: SduiSection): StatLineListData? = convert(section.data)
-
-fun mapHeroPanel(section: SduiSection): HeroPanelData? = convert(section.data)
 
 fun mapTabGroup(section: SduiSection, screenState: Map<String, Any>): TabGroupUiModel? {
     val parsed = convert<TabGroupData>(section.data) ?: return null

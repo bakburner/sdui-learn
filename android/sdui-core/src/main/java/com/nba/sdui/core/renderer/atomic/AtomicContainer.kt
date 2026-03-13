@@ -29,9 +29,11 @@ fun AtomicContainer(
     val isRow = element.direction == "row"
     val gap = element.gap?.dp ?: 0.dp
 
+    val fillModifier = if (element.fillWidth == true) modifier.fillMaxWidth() else modifier
+
     val clippedModifier = element.cornerRadius?.let {
-        modifier.clip(RoundedCornerShape(it.dp))
-    } ?: modifier
+        fillModifier.clip(RoundedCornerShape(it.dp))
+    } ?: fillModifier
 
     val bgModifier = element.backgroundGradient?.let { gradient ->
         clippedModifier.background(gradient.toBrush())

@@ -304,14 +304,8 @@ public class GameDetailComposer {
         tabContents.set("boxscore", boxscoreContent);
 
         ArrayNode playByPlayContent = objectMapper.createArrayNode();
-        ObjectNode playByPlayPlaceholder = objectMapper.createObjectNode();
-        playByPlayPlaceholder.put("id", "play-by-play");
-        playByPlayPlaceholder.put("type", "StatLine");
-        ObjectNode pbpData = objectMapper.createObjectNode();
-        pbpData.put("title", "Play-by-Play");
-        pbpData.set("stats", objectMapper.createArrayNode());
-        playByPlayPlaceholder.set("data", pbpData);
-        playByPlayContent.add(playByPlayPlaceholder);
+        playByPlayContent.add(atomicBuilder.buildStatLine(
+                "play-by-play", null, "Play-by-Play", "vertical", new String[][]{}));
         tabContents.set("playbyplay", playByPlayContent);
 
         data.set("tabContents", tabContents);
@@ -329,14 +323,6 @@ public class GameDetailComposer {
         String teamCity = team.path("teamCity").asText();
         String teamTricode = team.path("teamTricode").asText();
         int teamId = team.path("teamId").asInt();
-
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "boxscore-" + teamTricode.toLowerCase());
-        section.put("type", "StatLine");
-
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("title", teamCity + " " + teamName);
-        data.put("layout", "vertical");
 
         ArrayNode stats = objectMapper.createArrayNode();
         ArrayNode players = (ArrayNode) team.get("players");
@@ -360,34 +346,21 @@ public class GameDetailComposer {
             }
             statItem.put("playerName", playerName);
             statItem.put("teamTricode", teamTricode);
-            statItem.put("teamId", teamId);
 
             String formattedMinutes = SduiUtils.formatMinutes(minutes);
             statItem.put("statCategory", "MIN");
             statItem.put("statValue", formattedMinutes);
 
-            ObjectNode additionalStats = objectMapper.createObjectNode();
-            additionalStats.put("points", playerStats.path("points").asInt());
-            additionalStats.put("rebounds", playerStats.path("reboundsTotal").asInt());
-            additionalStats.put("assists", playerStats.path("assists").asInt());
-            additionalStats.put("steals", playerStats.path("steals").asInt());
-            additionalStats.put("blocks", playerStats.path("blocks").asInt());
-            additionalStats.put("fgm", playerStats.path("fieldGoalsMade").asInt());
-            additionalStats.put("fga", playerStats.path("fieldGoalsAttempted").asInt());
-            additionalStats.put("threePm", playerStats.path("threePointersMade").asInt());
-            additionalStats.put("threePa", playerStats.path("threePointersAttempted").asInt());
-            additionalStats.put("ftm", playerStats.path("freeThrowsMade").asInt());
-            additionalStats.put("fta", playerStats.path("freeThrowsAttempted").asInt());
-            additionalStats.put("plusMinus", playerStats.path("plusMinusPoints").asInt());
-            statItem.set("additionalStats", additionalStats);
+            String imgUrl = "https://cdn.nba.com/headshots/nba/latest/1040x760/"
+                    + player.path("personId").asInt() + ".png";
+            statItem.put("playerImageUrl", imgUrl);
 
             stats.add(statItem);
         }
 
-        data.set("stats", stats);
-        section.set("data", data);
-
-        return section;
+        return atomicBuilder.buildStatLineFromNodes(
+                "boxscore-" + teamTricode.toLowerCase(), null,
+                teamCity + " " + teamName, "vertical", stats);
     }
 
     private ObjectNode buildScoreboardHeaderFromLive(JsonNode game, String gameId) {
@@ -441,20 +414,6 @@ public class GameDetailComposer {
     }
 
     private ObjectNode buildStatLineSectionFromLive(JsonNode game, String gameId) {
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "top-performers");
-        section.put("type", "StatLine");
-
-        ObjectNode refreshPolicy = objectMapper.createObjectNode();
-        refreshPolicy.put("type", "poll");
-        refreshPolicy.put("intervalMs", 30000);
-        refreshPolicy.put("url", "https://cdn.nba.com/static/json/liveData/boxscore/boxscore_" + gameId + ".json");
-        refreshPolicy.put("dataPath", "game");
-        section.set("refreshPolicy", refreshPolicy);
-
-        section.set("sectionStates", utils.buildSectionStates(
-                "top-performers", "Unable to load player stats", "placeholder", 120));
-
         ArrayNode stats = objectMapper.createArrayNode();
 
         List<ObjectNode> homePerformers = getTopPerformersFromTeam(game.path("homeTeam"), 3);
@@ -467,11 +426,18 @@ public class GameDetailComposer {
             return null;
         }
 
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("title", "Top Performers");
-        data.put("layout", "vertical");
-        data.set("stats", stats);
-        section.set("data", data);
+        ObjectNode section = atomicBuilder.buildStatLineFromNodes(
+                "top-performers", null, "Top Performers", "vertical", stats);
+
+        ObjectNode refreshPolicy = objectMapper.createObjectNode();
+        refreshPolicy.put("type", "poll");
+        refreshPolicy.put("intervalMs", 30000);
+        refreshPolicy.put("url", "https://cdn.nba.com/static/json/liveData/boxscore/boxscore_" + gameId + ".json");
+        refreshPolicy.put("dataPath", "game");
+        atomicBuilder.attachRefreshPolicy(section, refreshPolicy);
+
+        atomicBuilder.attachSectionStates(section, utils.buildSectionStates(
+                "top-performers", "Unable to load player stats", "placeholder", 120));
 
         return section;
     }
@@ -510,19 +476,9 @@ public class GameDetailComposer {
     }
 
     private ObjectNode buildStatLineChild(String id, String title, List<ObjectNode> performers) {
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", id);
-        section.put("type", "StatLine");
-
         ArrayNode stats = objectMapper.createArrayNode();
         performers.forEach(stats::add);
-
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("title", title);
-        data.put("layout", "vertical");
-        data.set("stats", stats);
-        section.set("data", data);
-        return section;
+        return atomicBuilder.buildStatLineFromNodes(id, null, title, "vertical", stats);
     }
 
     private List<ObjectNode> getTopPerformersFromTeam(JsonNode team, int maxPlayers) {

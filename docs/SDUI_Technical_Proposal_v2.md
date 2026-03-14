@@ -23,6 +23,7 @@
 | 2026-03-12 | Merged `FeaturedGamePanel` into `GamePanel` with `variant` discriminator. `FeaturedGamePanelData` removed from schema; `GamePanelData` gains `variant`, `backgroundImageUrl`, `badgeText`, `visualLabel` fields. Server composers emit `type: "GamePanel"` with `variant: "featured"`. Android and Web renderers branch on variant. `FeaturedGamePanelRenderer` deleted on both platforms. Section type count: 20 → 19. |
 | 2026-03-13 | Added offline/degraded connectivity strategy (9r) with ADR-010 reference. Stale-while-offline approach using platform HTTP cache, staleness UX per `cacheability` class, analytics local queue. |
 | 2026-03-13 | Atomic rendering layer. Updated §2 (dual-layer model: semantic sections + atomic primitives coexisting via AtomicComposite). Added §2a (AtomicElement types, AtomicComposite bridge, Grid vs. Section Decision Tree). Updated §8 (AtomicRouter + 10 atomic renderers per platform). Added §9s (atomic layer performance contract). Updated §10 (atomic rendering layer status). |
+| 2026-03-14 | Added §2b (Section vs. Atomic Decision Framework — decision tree, rationale for lifecycle/SDK/state boundaries, concrete examples: GamePanel, SubscribeHero, AdSlot, BoxscoreTable, TabGroup). Added §2c (Figma Design System Integration — token alignment, three-level CI validation pipeline). |
 
 ---
 
@@ -379,6 +380,65 @@ Need tabular data?
 - ✅ Zero client interaction — no sort, no filter, no expand, no select, no tap.
 - ❌ The moment ANY of the above constraints break, promote to a semantic section type.
 
+### 2b. Section vs. Atomic Decision Framework
+
+The dual-layer architecture requires a principled decision for every UI surface: should it be a server-composed atomic tree or a client-owned semantic section? The decision is driven by three factors: **network-driven lifecycle**, **platform SDK integration**, and **client-owned interaction state**.
+
+**Decision tree — when a section must remain native:**
+
+```
+New UI surface needed?
+├─ Manages network-driven lifecycle?            → Section
+│  (connects to Ably/poll, selects UI variant
+│   based on live data state)
+├─ Integrates a platform-native SDK?            → Section
+│  (billing, ads, auth — SDK owns view lifecycle)
+├─ Has complex client-owned interaction state?   → Section
+│  (sort, frozen scroll sync, form input,
+│   tab selection, pagination)
+├─ Nests other sections as children?             → Section
+│  (TabGroup, Row — section containers)
+└─ None of the above?                            → AtomicComposite
+   (server-composed, no app release needed)
+```
+
+**Why these boundaries exist — concrete examples:**
+
+| Factor | Example | Why it cannot be atomic |
+|---|---|---|
+| **Network-driven lifecycle** | **GamePanel** — as a game progresses, the client connects to Ably SSE or switches to polling, determines the visual variant (pre-game → in-game → post-game) from live `gameStatus` data, and renders the appropriate layout. The variant selection, channel subscription, and reconnection logic are lifecycle concerns the server cannot drive after the initial response. | An atomic tree is a static render instruction. It cannot subscribe to a data source, evaluate state transitions over time, or select among layout variants based on ongoing network events. |
+| **Platform SDK integration** | **SubscribeHero / SubscribeBanner** — target integration is In-App Purchase (Google Play Billing Library on Android, StoreKit 2 on iOS). The purchase flow requires a state machine (loading products → purchasing → verifying → success/failure), entitlement checks before rendering CTA text, and localized pricing from the store — not the server. The billing SDK owns the transaction lifecycle. | The SDK manages its own view lifecycle, authentication, and platform-specific purchase flow. An atomic `Button` cannot host a billing sheet or verify purchase receipts. |
+| **Platform SDK integration** | **AdSlot** — target integration is Google Ad Manager (GAM). `AdManagerAdView` owns its own view lifecycle (load, refresh, destroy), consent management (UMP/TCF), MRC-compliant viewability tracking, fill-rate fallback UI, and timed refresh cadence. | An atomic `Container` cannot host a native ad view or participate in the ad SDK's lifecycle callbacks. |
+| **Client-owned interaction state** | **BoxscoreTable** — frozen column + horizontal scroll sync, client-side sort with `remember{}`, starter/bench divider logic, DNP player handling, totals row. The sort and scroll coordination are tightly coupled local UI state. | Atomic primitives have no `remember{}`/`useState` equivalent. Coordinated scroll positions and sort state require client-owned render logic. |
+| **Section container** | **TabGroup** — tab selection fires `mutate` updating `screenState`, which drives which child sections render. It nests other sections. | Atomic trees cannot contain section children (except via `SectionSlot`, which is the escape hatch for embedding one section inside an atomic layout — not for nesting arbitrary section trees). |
+
+**When a section can migrate to atomic:**
+
+A section is a migration candidate when it is stateless (no `remember{}`, no `mutableStateOf`, no scroll state), has no platform SDK dependencies, does not nest other sections, and its visual variants are deterministic from server-sent data fields alone. The server emits the correct atomic tree directly — the client's `AtomicRouter` paints it without branching.
+
+Migrated sections (Tier 1): ErrorState, SectionHeader, PromoBanner, ContentRail, FollowingRail — ~280 lines of platform-specific rendering eliminated per platform, replaced by server-composed `AtomicComposite` JSON.
+
+### 2c. Figma Design System Integration
+
+The atomic layer creates a natural bridge between the NBA Figma design system and rendered output. The NBA app already has typed design tokens in Figma (e.g., `nba/display-xxl`, `nba/headline-10`) referenced by both native codebases (Android `NbaTypography.kt`, iOS `Font+NBA.swift`). Atomic primitives reference the same token vocabulary.
+
+**Token alignment:**
+
+| Category | Figma Token | Schema Mapping | Alignment Path |
+|---|---|---|---|
+| Typography | `nba/headline-10` | `TextVariant` enum (`heading1`, `body`, etc.) | Expand `TextVariant` to match Figma taxonomy; publish shared mapping file |
+| Colors | `text.primary`, `surface.primary` | Literal hex or semantic token (`"color": "text.primary"`) | Clients resolve semantic tokens via existing theme map; Figma variables map 1:1 |
+| Spacing | 4/8/16/20/32 dp cluster | Integer dp values (`gap`, `padding`) | Keep integers; optionally accept named tokens (`"gap": "md"` → 16dp) later |
+| Corners | 12dp sheets, 4dp default | `cornerRadius` on Container | Direct match to Figma corner radius |
+
+**Three-level CI validation pipeline:**
+
+1. **Token contract** — export Figma design tokens as JSON; validate every `TextVariant`, `ButtonVariant`, color, and spacing value in the schema and examples exists in the export. Catches variant drift.
+2. **Component structure** — export Figma component auto-layout trees via REST API; compare direction, padding, gap, child count, and text styles against the corresponding `AtomicComposite` template JSON. Catches layout drift.
+3. **Visual regression** — render `AtomicComposite` JSON through platform renderers (Compose Preview, web Storybook); compare screenshots against Figma frame image exports. Catches rendering differences that structural checks miss.
+
+This pipeline means a designer can change a Figma component and CI detects whether the `AtomicComposite` template (or vice versa) needs updating — closing the design-to-code gap that atomic primitives are uniquely positioned to bridge.
+
 ---
 
 ## 3. Data Binding System
@@ -479,6 +539,42 @@ This enables Form submit buttons to say "refresh the screen with `season={state.
 - Analytics-first is recommended before navigation/dismiss
 
 Reference: ADR-005
+
+### Failure Behavior
+
+Each action carries two optional fields governing failure semantics:
+
+- **`onFailure`** (`halt` | `continue` | `silent`) — sequence behavior on failure. Clients apply per-type defaults when absent (navigate → halt, analytics/dismiss/toast → silent, mutate/refresh → continue).
+- **`failureFeedback`** (`{ message?: string, style?: "snackbar" | "toast" | "inline" }`) — server-provided error message. Client falls back to generic localized string when absent.
+
+The executor resolves failure policy per action:
+
+```
+policy = action.onFailure ?? default_for(action.type)
+```
+
+| Policy | Behavior |
+|---|---|
+| `silent` | Swallow — no user feedback, sequence continues |
+| `continue` | Log warning, apply side effect (e.g., stale indicator), proceed |
+| `halt` | Show error feedback (server message or fallback), stop sequence |
+
+Navigate success also halts — navigation takes over the screen. Already-fired actions are committed (no rollback).
+
+```
+trigger fires → execute actions[0..N] in order
+  │
+  for each action[i]:
+    resolve policy = action.onFailure ?? default_for(action.type)
+    execute action[i]
+    │
+    ├─ success + navigate → HALT (navigation takes over)
+    ├─ success + other   → continue to [i+1]
+    └─ failure:
+         ├─ silent   → swallow → continue
+         ├─ continue → log, side-effect → continue
+         └─ halt     → show feedback → HALT
+```
 
 ### Precedence Example
 

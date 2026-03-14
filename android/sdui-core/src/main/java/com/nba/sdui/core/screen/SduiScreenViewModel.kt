@@ -77,6 +77,14 @@ open class SduiScreenViewModel(
     private val _actionResults = MutableSharedFlow<ActionHandler.ActionResult>()
     val actionResults: SharedFlow<ActionHandler.ActionResult> = _actionResults.asSharedFlow()
 
+    /** Emits a one-shot message for Snackbar/toast display (navigate error feedback). */
+    private val _userMessage = MutableSharedFlow<String>()
+    val userMessage: SharedFlow<String> = _userMessage.asSharedFlow()
+
+    /** Set of section IDs currently marked as stale (refresh failure). */
+    private val _staleSections = MutableStateFlow<Set<String>>(emptySet())
+    val staleSections: StateFlow<Set<String>> = _staleSections.asStateFlow()
+
     // ── Internal bookkeeping ─────────────────────────────────────────
     private var currentScreen: SduiScreen? = null
     private var currentEndpoint: String? = null   // resolved server path — used for refresh / polling
@@ -183,10 +191,32 @@ open class SduiScreenViewModel(
     // ── Actions & State ──────────────────────────────────────────────
 
     fun handleAction(action: SduiAction) {
+        handleActions(listOf(action))
+    }
+
+    fun handleActions(actions: List<SduiAction>) {
         viewModelScope.launch {
-            Log.d(TAG, "Action: type=${action.type}, trigger=${action.trigger}")
-            val result = actionHandler.handle(action, stateManager)
-            _actionResults.emit(result)
+            Log.d(TAG, "Executing action sequence: ${actions.size} action(s)")
+            val seqResult = actionHandler.executeSequence(actions, stateManager)
+
+            for (result in seqResult.results) {
+                _actionResults.emit(result)
+
+                when (result) {
+                    is ActionHandler.ActionResult.NavigateError -> {
+                        // Show server-provided message or generic fallback
+                        val msg = result.feedback?.message ?: "Unable to open page"
+                        _userMessage.emit(msg)
+                    }
+                    is ActionHandler.ActionResult.RefreshStale -> {
+                        val id = result.sectionId
+                        if (id != null) {
+                            _staleSections.value = _staleSections.value + id
+                        }
+                    }
+                    else -> { /* no additional UI side effects */ }
+                }
+            }
         }
     }
 

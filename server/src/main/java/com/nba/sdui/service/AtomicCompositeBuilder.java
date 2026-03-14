@@ -993,6 +993,29 @@ public class AtomicCompositeBuilder {
         return action;
     }
 
+    /** Navigate action with explicit failure policy and optional feedback. */
+    private ObjectNode tapNavigate(String targetUri, String onFailure, ObjectNode failureFeedback) {
+        ObjectNode action = tapNavigate(targetUri);
+        if (onFailure != null) action.put("onFailure", onFailure);
+        if (failureFeedback != null) action.set("failureFeedback", failureFeedback);
+        return action;
+    }
+
+    /** Apply failure semantics to any action node. */
+    private ObjectNode withFailurePolicy(ObjectNode action, String onFailure, ObjectNode failureFeedback) {
+        if (onFailure != null) action.put("onFailure", onFailure);
+        if (failureFeedback != null) action.set("failureFeedback", failureFeedback);
+        return action;
+    }
+
+    /** Build a failureFeedback object. */
+    private ObjectNode failureFeedback(String message, String style) {
+        ObjectNode fb = om.createObjectNode();
+        if (message != null) fb.put("message", message);
+        if (style != null) fb.put("style", style);
+        return fb;
+    }
+
     private ArrayNode singleActionArray(ObjectNode action) {
         ArrayNode arr = om.createArrayNode();
         arr.add(action);

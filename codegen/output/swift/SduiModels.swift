@@ -102,12 +102,18 @@ struct Action: Codable {
     let endpoint: String?
     /// For analytics actions: event name
     let event: String?
+    /// Optional server-provided error message and presentation style. Client falls back to
+    /// generic localized string when absent
+    let failureFeedback: FailureFeedback?
     /// For analytics actions with onVisible trigger: impression tracking policy
     let impression: ImpressionPolicy?
     /// For toast actions: text message to display in the toast
     let message: String?
     /// For navigate actions with modal presentation: sheet height
     let modalHeight: ModalHeight?
+    /// Sequence behavior when this action fails. Client applies per-type default when absent
+    /// (navigate=halt, analytics/dismiss/toast=silent, mutate/refresh=continue)
+    let onFailure: FailurePolicy?
     /// For mutate actions: operation to perform on the state key
     let operation: MutateOperation?
     /// For refresh actions: map of query param name to screen state key, resolved at action time
@@ -129,7 +135,7 @@ struct Action: Codable {
     let webURL: String?
 
     enum CodingKeys: String, CodingKey {
-        case destinations, endpoint, event, impression, message, modalHeight, operation, paramBindings, params, presentation, target
+        case destinations, endpoint, event, failureFeedback, impression, message, modalHeight, onFailure, operation, paramBindings, params, presentation, target
         case targetURI = "targetUri"
         case trigger, type, value
         case webURL = "webUrl"
@@ -158,9 +164,11 @@ extension Action {
         destinations: [Destination]?? = nil,
         endpoint: String?? = nil,
         event: String?? = nil,
+        failureFeedback: FailureFeedback?? = nil,
         impression: ImpressionPolicy?? = nil,
         message: String?? = nil,
         modalHeight: ModalHeight?? = nil,
+        onFailure: FailurePolicy?? = nil,
         operation: MutateOperation?? = nil,
         paramBindings: [String: String]?? = nil,
         params: [String: JSONAny]?? = nil,
@@ -176,9 +184,11 @@ extension Action {
             destinations: destinations ?? self.destinations,
             endpoint: endpoint ?? self.endpoint,
             event: event ?? self.event,
+            failureFeedback: failureFeedback ?? self.failureFeedback,
             impression: impression ?? self.impression,
             message: message ?? self.message,
             modalHeight: modalHeight ?? self.modalHeight,
+            onFailure: onFailure ?? self.onFailure,
             operation: operation ?? self.operation,
             paramBindings: paramBindings ?? self.paramBindings,
             params: params ?? self.params,
@@ -206,6 +216,65 @@ enum Destination: String, Codable {
     case all = "all"
     case destinationInternal = "internal"
     case firebase = "firebase"
+}
+
+/// Optional server-provided error message and presentation style. Client falls back to
+/// generic localized string when absent
+///
+/// Optional server-provided error message and presentation style for action failures. Client
+/// falls back to generic localized string when absent.
+// MARK: - FailureFeedback
+struct FailureFeedback: Codable {
+    /// Localized error message to display on failure
+    let message: String?
+    /// Presentation hint — clients map to closest platform-native mechanism
+    let style: FailureFeedbackStyle?
+}
+
+// MARK: FailureFeedback convenience initializers and mutators
+
+extension FailureFeedback {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(FailureFeedback.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        message: String?? = nil,
+        style: FailureFeedbackStyle?? = nil
+    ) -> FailureFeedback {
+        return FailureFeedback(
+            message: message ?? self.message,
+            style: style ?? self.style
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+/// Presentation hint — clients map to closest platform-native mechanism
+///
+/// Presentation hint for failure feedback. Clients map to closest platform-native mechanism.
+enum FailureFeedbackStyle: String, Codable {
+    case inline = "inline"
+    case snackbar = "snackbar"
+    case toast = "toast"
 }
 
 /// For analytics actions with onVisible trigger: impression tracking policy
@@ -326,6 +395,17 @@ enum ModalHeight: String, Codable {
     case compact = "compact"
     case full = "full"
     case half = "half"
+}
+
+/// Sequence behavior when this action fails. Client applies per-type default when absent
+/// (navigate=halt, analytics/dismiss/toast=silent, mutate/refresh=continue)
+///
+/// Sequence behavior when an action fails. Clients apply per-type defaults when absent:
+/// navigate=halt, analytics/dismiss/toast=silent, mutate/refresh=continue.
+enum FailurePolicy: String, Codable {
+    case failurePolicyContinue = "continue"
+    case halt = "halt"
+    case silent = "silent"
 }
 
 /// For mutate actions: operation to perform on the state key

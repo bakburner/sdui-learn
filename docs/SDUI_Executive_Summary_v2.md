@@ -22,6 +22,7 @@ Today, changing the layout or content arrangement on any app screen requires a c
 | A/B test a layout variant                      | Requires client code per variant + release | Server selects variant per user, no client change             |
 | Mix real-time and static content on one screen | Custom per-screen engineering              | Declarative per-section refresh policies in the schema        |
 | Add a new section type to a screen             | Engineering sprint per platform            | Schema update + thin renderer wiring (~30 lines per platform) |
+| Ship a new promotional layout matching Figma   | Design → code → release per platform      | Designer builds in Figma, server composes matching atomic tree — no app release |
 
 
 ---
@@ -50,7 +51,8 @@ The prototype has moved beyond architectural planning into working, demonstrable
 
 Every concept from the original roadmap's prototype validation checklist has been proven in working code:
 
-- **Two-tier primitives** — atomic (Container, Text, Image, Button, Spacer, Divider, ScrollContainer, Conditional, DisplayGrid) and semantic (GamePanel, TabGroup, BoxscoreTable, Form, etc.) coexist via the `AtomicComposite` bridge section type. Atomic primitives are server-composed and rendered by `AtomicRouter`; semantic sections retain client-owned state and domain-specific rendering. `SectionSlot` allows atomic trees to embed full section renderers, enabling bidirectional delegation between the two layers
+- **Two-tier primitives with clear decision criteria** — atomic primitives (Container, Text, Image, Button, Spacer, Divider, ScrollContainer, Conditional, DisplayGrid) and semantic sections (GamePanel, TabGroup, BoxscoreTable, Form, etc.) coexist via the `AtomicComposite` bridge. The boundary is principled: sections that manage network-driven lifecycle (e.g., GamePanel connecting to Ably/polling as a game progresses through pre-game → in-game → post-game) or integrate platform SDKs (e.g., SubscribeHero/SubscribeBanner with In-App Purchase, AdSlot with ad SDKs) remain native sections. Stateless layout surfaces migrate to server-composed atomic trees — enabling new layouts without app releases
+- **Figma design system alignment** — atomic primitives map directly to Figma design tokens (typography variants, semantic colors, spacing, corner radius). This enables a validation pipeline: Figma token exports are checked against schema values in CI, Figma component structures are compared against `AtomicComposite` templates, and rendered output is compared against Figma frame screenshots. The dual-layer architecture creates a natural bridge between Figma components and rendered output — designers can build new compositions in Figma and the server can produce matching atomic trees without waiting for client code
 - **Single-schema codegen** — one JSON Schema produces typed models for Java, Swift, and TypeScript
 - **Screen → Section → Component hierarchy** — full response walked by section routers on both platforms
 - **Per-section refresh policies** — static, polling (configurable interval + direct CDN URL), and SSE (Ably channels) coexisting on a single screen

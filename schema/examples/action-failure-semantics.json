@@ -1,0 +1,77 @@
+{
+  "description": "Examples demonstrating action failure semantics — onFailure overrides and failureFeedback",
+  "examples": [
+    {
+      "note": "Navigate with default failure behavior (halt) — onFailure absent, client applies default",
+      "action": {
+        "trigger": "onTap",
+        "type": "navigate",
+        "targetUri": "nba://game/0022500384"
+      }
+    },
+    {
+      "note": "Navigate with explicit halt and server-provided error message",
+      "action": {
+        "trigger": "onTap",
+        "type": "navigate",
+        "targetUri": "nba://game/0022500384",
+        "onFailure": "halt",
+        "failureFeedback": {
+          "message": "This game is not available yet",
+          "style": "snackbar"
+        }
+      }
+    },
+    {
+      "note": "Navigate overridden to continue — useful for optional deep links that should not block the sequence",
+      "action": {
+        "trigger": "onTap",
+        "type": "navigate",
+        "targetUri": "nba://promo/summer-league",
+        "onFailure": "continue"
+      }
+    },
+    {
+      "note": "Refresh with default failure behavior (continue) — shows stale indicator",
+      "action": {
+        "trigger": "onTap",
+        "type": "refresh",
+        "target": "live-scores",
+        "endpoint": "/sdui/scoreboard"
+      }
+    },
+    {
+      "note": "Refresh overridden to halt — critical live-game section where stale data is unacceptable",
+      "action": {
+        "trigger": "onTap",
+        "type": "refresh",
+        "target": "live-play-by-play",
+        "endpoint": "/sdui/game/0022500384/pbp",
+        "onFailure": "halt",
+        "failureFeedback": {
+          "message": "Unable to load live play-by-play",
+          "style": "toast"
+        }
+      }
+    },
+    {
+      "note": "Multi-action sequence: analytics → navigate (demonstrates analytics-before-navigation pattern)",
+      "actions": [
+        {
+          "trigger": "onTap",
+          "type": "analytics",
+          "event": "game_card_tapped",
+          "params": { "gameId": "0022500384", "source": "scoreboard" }
+        },
+        {
+          "trigger": "onTap",
+          "type": "navigate",
+          "targetUri": "nba://game/0022500384/boxscore",
+          "failureFeedback": {
+            "message": "Game detail is temporarily unavailable"
+          }
+        }
+      ]
+    }
+  ]
+}

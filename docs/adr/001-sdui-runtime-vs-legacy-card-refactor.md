@@ -10,6 +10,7 @@
 |---|---|
 | 2026-02-20 | Initial draft — decision, context, options, and recommendation. |
 | 2026-02-27 | Trimmed evidence to summary table with appendix. Removed "What Requires an App Update" and "Organizational Drivers" sections. Merged defect risk into Option A cons. Added library-vs-inline comparison for new section types. |
+| 2026-03-13 | Qualified "new section types" cost model; added atomic composition layer as Option B advantage (reflects implemented AtomicComposite + 10-element atomic primitives). |
 
 ## Decision
 
@@ -67,7 +68,9 @@ Every client independently maps card/module identity to rendering logic via type
 
 See [Appendix: Evidence Details](#appendix-evidence-details) for full per-platform breakdowns.
 
-**Note on new section types:** Both options use semantic section types, so introducing a wholly new visual component requires a renderer update and app release regardless of approach. The difference is where that renderer code lives and how it is maintained.
+**Note on new section types:** Both options use semantic section types, so introducing a wholly new visual component *with client-owned state* (e.g., sort controls, form input, frozen-column tables) requires a renderer update and app release regardless of approach. The difference is where that renderer code lives and how it is maintained.
+
+However, the SDUI runtime (Option B) enables a second path: **AtomicComposite** sections composed entirely from server-defined primitives (`Container`, `Text`, `Image`, `Button`, `Spacer`, `Divider`, `ScrollContainer`, `Conditional`, `DisplayGrid`). These require zero client code — the server describes layout and content using a fixed set of atomic elements, and the client renders them generically. New visual components that are primarily presentational (promo banners, content rails, stat lines, hero panels) can ship without an app release. Only sections that need truly native interaction patterns remain in the semantic tier.
 
 ## Options
 
@@ -84,10 +87,10 @@ New section type renderers are added inline to each platform's existing codebase
 
 | | |
 |---|---|
-| **Pros** | Centralized behavior semantics; clear contract/versioning; isolated migration risk per surface; cross-platform consistency |
+| **Pros** | Centralized behavior semantics; clear contract/versioning; isolated migration risk per surface; cross-platform consistency; atomic composition layer enables new visual components without app release |
 | **Cons** | Upfront runtime build cost; temporary dual-stack during migration; requires schema governance; adds a library dependency with its own release cycle |
 
-New section type renderers are added to a dedicated SDUI library per platform — isolated from legacy code, following a consistent pattern (router registration + typed model mapping), and testable against shared contract fixtures. The library boundary enforces that renderers conform to the schema contract rather than ad-hoc platform conventions. The tradeoff is an additional dependency to version and release.
+New section type renderers are added to a dedicated SDUI library per platform — isolated from legacy code, following a consistent pattern (router registration + typed model mapping), and testable against shared contract fixtures. The library boundary enforces that renderers conform to the schema contract rather than ad-hoc platform conventions. Additionally, the library's atomic rendering layer lets the server compose entirely new layouts from a fixed set of primitives — no renderer code or app release required. The tradeoff is an additional dependency to version and release.
 
 ## Recommendation
 
@@ -100,13 +103,15 @@ Adopt **Option B**: new SDUI runtime/library with incremental migration.
 | 3 | Migrate complex semantic surfaces (`dynamicCTA`, `leaguePassCard`, live game states) |
 | 4 | Retire legacy card-type rendering paths per surface after stabilization |
 
+Phases 2–3 are accelerated by the atomic primitives layer: presentational sections (Tier 1/2) can be migrated to server-composed `AtomicComposite` rather than requiring per-section client renderers, keeping the client surface area stable while the server gains full compositional freedom.
+
 ## Consequences
 
 | Timeframe | Outcome |
 |-----------|---------|
 | Short term | Dual-stack operational overhead |
 | Medium term | Fewer platform-specific branches; safer feature evolution |
-| Long term | Consistent behavioral contracts across Android, iOS/tvOS, web, and cweb |
+| Long term | Consistent behavioral contracts across all platforms; server-composed atomic layouts eliminate app releases for presentational changes |
 
 ---
 

@@ -20,6 +20,7 @@
 | 2026-03-04 | Added gap section 9q: Tabular Data Sections and Forms. New semantic section types (`BoxscoreTable`, `Form`), parameterized refresh on actions, sort/form state conventions. Updated status matrix. |
 | 2026-03-04 | Added `parentUri` to Screen contract. Updated status matrix for composition API contract (Gap → Partial). Added Prototype Concessions subsection. |
 | 2026-03-13 | Atomic rendering layer. Updated Key Schema Decisions (dual-layer model: 18 semantic section types + 10 atomic element types coexisting via AtomicComposite). Added Grid vs. Section Decision Tree to §9q. Added atomic rendering layer row to requirement status matrix. |
+| 2026-03-14 | Added §9r (Section vs. Atomic Classification — implementation-level criteria: network-driven lifecycle, platform SDK integration, client-owned interaction state. Full classification inventory with concrete examples: GamePanel Ably/poll lifecycle, SubscribeHero/SubscribeBanner billing SDK, AdSlot ad SDK, BoxscoreTable scroll/sort state). Added §9s (Figma Design Token Integration — token mapping file, client-side resolution, three-level CI validation pipeline). |
 
 ---
 
@@ -290,6 +291,37 @@ sequenceDiagram
 ```
 
 Actions fire in order. Analytics always fires before navigation so the beacon is guaranteed to send even if navigation takes over the UI.
+
+### Action Failure Semantics
+
+Each action carries an optional `onFailure` field (`halt` | `continue` | `silent`) that tells the client what to do when the action fails. If absent, the client applies a per-type default:
+
+| Action Type | Default `onFailure` | User Feedback | Sequence Effect |
+|---|---|---|---|
+| **analytics** | `silent` | None | Continue |
+| **mutate** | `continue` | None (log warning) | Continue |
+| **navigate** | `halt` | Platform-native error with server message or generic localized fallback | Halt |
+| **refresh** | `continue` | Stale indicator on affected section | Continue |
+| **dismiss** | `silent` | None | Continue |
+| **toast** | `silent` | None | Continue |
+
+Actions may also carry an optional `failureFeedback` object with a server-provided `message` and presentation `style` hint (`snackbar` | `toast` | `inline`). Clients fall back to a generic localized string (e.g., "Unable to open page") when this field is absent.
+
+### Sequence Execution Contract
+
+Actions on a single trigger execute **in declared order**. The executor resolves failure policy for each action as:
+
+```
+policy = action.onFailure ?? default_for(action.type)
+```
+
+Rules:
+
+1. **`silent`** failures are swallowed — no user feedback, sequence continues.
+2. **`halt`** failures stop the sequence — user feedback is shown (server `failureFeedback.message` if present, else generic localized fallback). No subsequent actions fire.
+3. **`continue`** failures log a warning, apply any type-specific side effect (e.g., stale indicator for refresh), and proceed to the next action.
+4. **Already-fired actions are committed.** There is no rollback. Analytics captures what the user *attempted*, not what succeeded.
+5. **Navigate success also halts** — navigation takes over the screen, so subsequent actions are moot regardless of `onFailure` value.
 
 ---
 
@@ -856,6 +888,81 @@ Need tabular data?
 ```
 
 `DisplayGrid` is a deliberately different primitive from the generic `DataTable` rejected above: a **display-only, non-interactive, server-ordered grid of text cells**. Zero client interaction — no sort, no filter, no expand, no select, no tap. The moment any of those constraints break, promote to a semantic section type. Use for simple stat snapshots, schedule lookups, standings summaries, and any case where the grid is purely cosmetic output.
+
+### 9r. Section vs. Atomic Classification — Implementation Details
+
+Every section renderer must be classified as either a semantic section (client-owned native renderer) or an `AtomicComposite` (server-composed atomic tree). The classification is based on three implementation-level criteria that determine whether the server can fully describe the surface at composition time.
+
+**Classification criteria:**
+
+| Criterion | What it means | Section examples | Implementation impact |
+|---|---|---|---|
+| **Network-driven lifecycle** | Client subscribes to a live data source (Ably SSE, polling) after initial render and selects a UI variant or triggers re-composition based on incoming data state | **GamePanel** — connects to Ably channel `{gameId}:linescore` or polls CDN endpoint. As `gameStatus` transitions from `1` (pre-game) to `2` (in-game) to `3` (final), the client selects the appropriate visual variant (`standard` pre/post, `featured` live, `scoreboard` compact). The channel subscription, reconnection on network change, and variant selection are runtime lifecycle concerns. | Client owns `refreshPolicy` execution. `LiveSectionWrapper` (web) or `SduiStateManager` (Android) manages channel lifecycle per section. Atomic trees cannot subscribe to channels or evaluate state transitions over time. |
+| **Platform SDK integration** | Section delegates rendering or transaction flow to a platform-native SDK that owns its own view lifecycle, authentication, and state machine | **SubscribeHero / SubscribeBanner** — Google Play Billing Library (Android) / StoreKit 2 (iOS). SDK manages: product loading, purchase initiation, receipt verification, entitlement caching, localized price formatting. CTA text depends on entitlement state (`Subscribe` vs `Subscribed` vs `Upgrade`). **AdSlot** — Google Ad Manager. SDK manages: ad request, fill/no-fill, viewability tracking (MRC-compliant), consent (UMP/TCF), timed refresh, and creative rendering. | Client section renderer instantiates SDK views, wires lifecycle callbacks, handles SDK-specific error states. Atomic `Button`/`Container` cannot host native SDK views or participate in SDK lifecycle callbacks. `SectionSlot` is the escape hatch when an SDK-dependent section must be embedded inside an atomic layout. |
+| **Client-owned interaction state** | Section manages `remember{}`/`useState` for coordinated scroll, sort, selection, form input, or nested section orchestration | **BoxscoreTable** — frozen column position + horizontal scroll offset synchronized via `ScrollState`. Sort column/direction in `remember{mutableStateOf()}`. Starter/bench divider insertion. **FormRenderer** — per-field expansion state, dropdown open/close, field validation. **TabGroup** — `mutate` action updates `screenState`, drives child section list. | Atomic elements have no local state primitive. All state lives in `screenState`, which covers simple key-value cases (tab selection, toggle). Coordinated multi-axis scroll and per-field form state require client render logic. |
+
+**Section classification inventory:**
+
+| Tier | Sections | Criterion | Disposition |
+|---|---|---|---|
+| **Tier 1 — Migrated to atomic** | ErrorState, SectionHeader, PromoBanner, ContentRail, FollowingRail | None — stateless, no SDK deps, no lifecycle | Server-composed `AtomicComposite`. ~280 LOC eliminated per platform. |
+| **Tier 2 — Migrated to atomic** | HeroPanel, StatLine, VideoCarousel, NbaTvSchedule | None — stateless (zero `remember{}`), variants deterministic from server data | Server-composed `AtomicComposite`. GamePanel scoreboard variant also migrated. |
+| **Tier 3 — Permanent sections** | GamePanel | Network-driven lifecycle (Ably/poll → variant selection) | Client manages channel subscription and pre→in→post game transitions. |
+| **Tier 3 — Permanent sections** | BoxscoreTable, SeasonLeadersTable | Client-owned interaction state (frozen scroll sync, sort) | Client manages coordinated scroll and sort state. |
+| **Tier 3 — Permanent sections** | FormRenderer | Client-owned interaction state (field expansion, validation, submit) | Client manages per-field state. |
+| **Tier 3 — Permanent sections** | TabGroup | Client-owned interaction state (nests child sections) | Section container — orchestrates child section rendering. |
+| **Tier 3 — Permanent sections** | SubscribeHero, SubscribeBanner | Platform SDK (Play Billing / StoreKit 2) | Client section integrates billing SDK lifecycle. |
+| **Tier 3 — Permanent sections** | AdSlot | Platform SDK (Google Ad Manager) | Client section integrates ad SDK lifecycle. |
+| **Thin shell** | Row | Nests child sections | Kept as section (~50 LOC) — breakpoint-responsive container for child sections. |
+
+**Implementation contract for new sections:**
+
+When adding a new section type, apply the classification criteria above. If all three criteria are absent (no lifecycle, no SDK, no local state), implement as an `AtomicComposite` template in the server composition layer — no client code needed. If any criterion is present, implement a semantic section renderer on each platform.
+
+### 9s. Figma Design Token Integration — Implementation Details
+
+The atomic layer maps directly to the NBA Figma design system's token taxonomy. Implementation requires three integration points:
+
+**1. Token mapping file (shared artifact):**
+
+A JSON file mapping Figma token names to schema enum values, maintained alongside the schema:
+
+```json
+{
+  "typography": {
+    "heading1": "nba/display-xxl",
+    "heading2": "nba/display-lg",
+    "heading3": "nba/headline-10",
+    "body": "nba/body-md",
+    "bodySmall": "nba/body-sm",
+    "caption": "nba/caption",
+    "label": "nba/label-md",
+    "score": "nba/display-xxl"
+  },
+  "colors": {
+    "text.primary": { "light": "#1A1A2E", "dark": "#F5F5F5" },
+    "text.secondary": { "light": "#666666", "dark": "#AAAAAA" },
+    "surface.primary": { "light": "#FFFFFF", "dark": "#0F0F23" },
+    "live": { "light": "#FF6B6B", "dark": "#FF6B6B" },
+    "positive": { "light": "#4CAF50", "dark": "#66BB6A" },
+    "negative": { "light": "#F44336", "dark": "#EF5350" }
+  }
+}
+```
+
+**2. Client-side token resolution:**
+
+Atomic element color values can be either literal hex (`"#FF6B6B"`) or semantic tokens (`"text.primary"`). Client renderers resolve semantic tokens through the existing platform theme:
+
+- **Android**: `AtomicText` maps `"text.primary"` → `NbaColors.textPrimary` via a `resolveColor()` utility checking the token map before falling back to `Color.parse(hex)`
+- **Web**: `AtomicText` maps `"text.primary"` → CSS custom property `var(--text-primary)` or direct hex
+- **iOS** (future): `AtomicText` maps `"text.primary"` → `Color.textPrimary` via `Color+Extensions.swift`
+
+**3. CI validation (three levels):**
+
+- **Level 1 — Token contract**: Export Figma tokens via Variables API or Tokens Studio plugin. For each `AtomicComposite` example JSON, assert every `TextVariant` exists in `tokens.typography` and every color reference exists in `tokens.colors` or is valid hex. Runs on every schema PR.
+- **Level 2 — Component structure**: Export Figma component layout trees via Figma REST API. Compare auto-layout direction, padding, gap, and child structure against the `AtomicComposite` template for the same pattern (e.g., Figma "SectionHeader" vs `AtomicComposite` SectionHeader template). Catches layout drift between design and implementation.
+- **Level 3 — Visual regression**: Render `AtomicComposite` JSON through platform renderers (Android Compose Preview, web Storybook/Chromatic). Compare screenshots against Figma frame image exports using pixel-diff tools (Percy, Chromatic). Catches font metric, padding rounding, and image sizing differences.
 
 ---
 

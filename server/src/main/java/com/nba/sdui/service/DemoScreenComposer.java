@@ -599,6 +599,11 @@ public class DemoScreenComposer {
         submitAction.put("type", "refresh");
         submitAction.put("target", "leaders-table");
         submitAction.put("endpoint", "/sdui/refresh/stats-leaders");
+        submitAction.put("onFailure", "halt");
+        ObjectNode submitFeedback = objectMapper.createObjectNode();
+        submitFeedback.put("message", "Stats lookup failed — please try again");
+        submitFeedback.put("style", "snackbar");
+        submitAction.set("failureFeedback", submitFeedback);
         ObjectNode paramBindings = objectMapper.createObjectNode();
         paramBindings.put("season", "{{form_season}}");
         paramBindings.put("seasonType", "{{form_season_type}}");

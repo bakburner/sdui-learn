@@ -3,7 +3,7 @@ import type { Action, Section } from '@sdui/models';
 import { useSduiScreen } from './hooks/useSduiScreen';
 import { SectionRouter } from './components/SectionRouter';
 import { TopNavigationBar } from './components/TopNavigationBar';
-import { createActionHandler } from './runtime/ActionHandler';
+import { executeActionSequence } from './runtime/ActionHandler';
 
 // TODO(Rule 2): Bootstrap URI should come from a /sdui/init endpoint.
 //               Hardcoded here only as a temporary prototype bootstrap.
@@ -47,6 +47,9 @@ export function App(): React.ReactElement {
 
   // Screen-level state for TabGroup and other stateful sections
   const [screenState, setScreenState] = useState<Record<string, unknown>>({});
+
+  // Track sections that failed to refresh (stale indicator)
+  const [staleSections, setStaleSections] = useState<Set<string>>(new Set());
 
   // Track whether the last screen mutation was a surgical section update
   // so we can skip re-seeding state from the (stale) screen.state.
@@ -98,19 +101,24 @@ export function App(): React.ReactElement {
     setCurrentUri(uri);
   }, []);
 
+  const handleSectionStale = useCallback((sectionId: string) => {
+    setStaleSections((prev) => new Set(prev).add(sectionId));
+  }, []);
+
   const handleAction = useCallback((action: Action) => {
     if (action.type === 'navigate' && action.targetUri) {
       handleUriNavigate(action.targetUri);
       return;
     }
-    const handler = createActionHandler({
+    const context = {
       state: screenState,
       onStateChange: handleStateChange,
       onRefresh: handleRefresh,
       onSectionUpdate: handleSectionUpdate,
-    });
-    handler(action);
-  }, [screenState, handleStateChange, handleRefresh, handleSectionUpdate, handleUriNavigate]);
+      onSectionStale: handleSectionStale,
+    };
+    executeActionSequence([action], context);
+  }, [screenState, handleStateChange, handleRefresh, handleSectionUpdate, handleUriNavigate, handleSectionStale]);
 
   // Loading state
   if (loading) {
@@ -200,6 +208,9 @@ export function App(): React.ReactElement {
               }}
             >
               {section.layoutHints?.dividerAbove && <hr className="sdui-divider" />}
+              {staleSections.has(section.id) && (
+                <div style={styles.staleBanner}>⚠ This section may be out of date</div>
+              )}
               <SectionRouter
                 section={section}
                 state={screenState}
@@ -313,6 +324,15 @@ const styles: Record<string, React.CSSProperties> = {
     color: '#9aa6ba',
     textAlign: 'center',
     fontSize: 14,
+  },
+  staleBanner: {
+    padding: '6px 12px',
+    backgroundColor: '#3a2a00',
+    color: '#ffcc00',
+    fontSize: 12,
+    textAlign: 'center',
+    borderRadius: 4,
+    marginBottom: 4,
   },
   centered: {
     display: 'flex',

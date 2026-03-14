@@ -3,6 +3,31 @@ package com.nba.sdui.core.state
 import android.util.Log
 
 /**
+ * Sequence behavior when an action fails.
+ * Clients apply per-type defaults when the server omits onFailure.
+ */
+enum class FailurePolicy {
+    HALT, CONTINUE, SILENT;
+
+    companion object {
+        fun fromString(value: String?): FailurePolicy? = when (value) {
+            "halt" -> HALT
+            "continue" -> CONTINUE
+            "silent" -> SILENT
+            else -> null
+        }
+    }
+}
+
+/**
+ * Server-provided error message and presentation hint for action failures.
+ */
+data class FailureFeedback(
+    val message: String? = null,
+    val style: String? = null // "snackbar", "toast", "inline"
+)
+
+/**
  * SDUI Action - Declarative action attached to components.
  * 
  * Actions are triggered by user interaction (onTap, onVisible, etc.)
@@ -20,7 +45,9 @@ data class SduiAction(
     val sectionId: String? = null,
     val endpoint: String? = null,
     val paramBindings: Map<String, String>? = null,
-    val message: String? = null
+    val message: String? = null,
+    val onFailure: String? = null,
+    val failureFeedback: FailureFeedback? = null
 )
 
 /**
@@ -37,6 +64,68 @@ class ActionHandler {
     
     companion object {
         private const val TAG = "ActionHandler"
+
+        /** Per-type default failure policy when onFailure is absent from the action. */
+        private val DEFAULT_FAILURE_POLICY = mapOf(
+            "navigate" to FailurePolicy.HALT,
+            "analytics" to FailurePolicy.SILENT,
+            "mutate" to FailurePolicy.CONTINUE,
+            "refresh" to FailurePolicy.CONTINUE,
+            "dismiss" to FailurePolicy.SILENT,
+            "toast" to FailurePolicy.SILENT
+        )
+    }
+
+    /**
+     * Resolve the failure policy for an action.
+     * Uses action.onFailure if present, otherwise falls back to per-type default.
+     */
+    fun resolveFailurePolicy(action: SduiAction): FailurePolicy {
+        return FailurePolicy.fromString(action.onFailure)
+            ?: DEFAULT_FAILURE_POLICY[action.type]
+            ?: FailurePolicy.CONTINUE
+    }
+
+    /**
+     * Execute a sequence of actions in declared order.
+     *
+     * - On failure, consults resolveFailurePolicy() to determine halt/continue/silent.
+     * - Navigate success always halts (navigation takes over the UI).
+     * - Already-fired actions are committed — there is no rollback.
+     *
+     * @return list of results for actions that executed (may be shorter than input if halted)
+     */
+    fun executeSequence(actions: List<SduiAction>, stateManager: StateManager): SequenceResult {
+        val results = mutableListOf<ActionResult>()
+
+        for (action in actions) {
+            val result = handle(action, stateManager)
+            results.add(result)
+
+            // Navigate success always halts — navigation takes over the screen
+            if (result is ActionResult.NavigateResult) {
+                return SequenceResult(results, halted = true)
+            }
+
+            // Check if this was a failure result
+            if (result.isFailure()) {
+                val policy = resolveFailurePolicy(action)
+                when (policy) {
+                    FailurePolicy.HALT -> {
+                        Log.w(TAG, "Action ${action.type} failed with halt policy — stopping sequence")
+                        return SequenceResult(results, halted = true, failedAction = action)
+                    }
+                    FailurePolicy.CONTINUE -> {
+                        Log.w(TAG, "Action ${action.type} failed with continue policy — proceeding")
+                    }
+                    FailurePolicy.SILENT -> {
+                        // Swallow silently
+                    }
+                }
+            }
+        }
+
+        return SequenceResult(results, halted = false)
     }
     
     /**
@@ -64,7 +153,7 @@ class ActionHandler {
         
         if (uri == null) {
             Log.w(TAG, "Navigate action missing targetUri and fallbackUrl")
-            return ActionResult.Error("No navigation target specified")
+            return ActionResult.NavigateError("", "No navigation target specified", action.failureFeedback)
         }
         
         Log.i(TAG, "Navigate to: $uri")
@@ -88,7 +177,7 @@ class ActionHandler {
         
         if (key == null) {
             Log.w(TAG, "Mutate action missing stateKey")
-            return ActionResult.Error("No state key specified")
+            return ActionResult.MutateNoOp("", "No state key specified")
         }
         
         if (value != null) {
@@ -145,14 +234,29 @@ class ActionHandler {
      * Result of handling an SDUI action.
      */
     sealed class ActionResult {
+        /** Whether this result represents a failure. */
+        fun isFailure(): Boolean = this is NavigateError || this is MutateNoOp || this is RefreshStale || this is Error
+
         data class NavigateResult(val uri: String, val fallbackUrl: String?) : ActionResult()
+        data class NavigateError(val uri: String, val reason: String, val feedback: FailureFeedback?) : ActionResult()
         data class AnalyticsResult(val eventName: String, val params: Map<String, Any>) : ActionResult()
         data class MutateResult(val key: String, val value: Any?) : ActionResult()
+        data class MutateNoOp(val key: String, val reason: String) : ActionResult()
         data class RefreshResult(val sectionId: String?) : ActionResult()
+        data class RefreshStale(val sectionId: String?, val reason: String) : ActionResult()
         data class ParameterizedRefreshResult(val url: String, val params: Map<String, String>) : ActionResult()
         data object DismissResult : ActionResult()
         data class ToastResult(val message: String) : ActionResult()
         data class Error(val message: String) : ActionResult()
         data class Unknown(val actionType: String) : ActionResult()
     }
+
+    /**
+     * Result of executing a sequence of actions.
+     */
+    data class SequenceResult(
+        val results: List<ActionResult>,
+        val halted: Boolean,
+        val failedAction: SduiAction? = null
+    )
 }

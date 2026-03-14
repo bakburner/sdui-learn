@@ -94,6 +94,30 @@
         }
       }
     },
+    "FailurePolicy": {
+      "type": "string",
+      "description": "Sequence behavior when an action fails. Clients apply per-type defaults when absent: navigate=halt, analytics/dismiss/toast=silent, mutate/refresh=continue.",
+      "enum": ["halt", "continue", "silent"]
+    },
+    "FailureFeedbackStyle": {
+      "type": "string",
+      "description": "Presentation hint for failure feedback. Clients map to closest platform-native mechanism.",
+      "enum": ["snackbar", "toast", "inline"]
+    },
+    "FailureFeedback": {
+      "type": "object",
+      "description": "Optional server-provided error message and presentation style for action failures. Client falls back to generic localized string when absent.",
+      "properties": {
+        "message": {
+          "type": "string",
+          "description": "Localized error message to display on failure"
+        },
+        "style": {
+          "$ref": "#/definitions/FailureFeedbackStyle",
+          "description": "Presentation hint — clients map to closest platform-native mechanism"
+        }
+      }
+    },
     "Action": {
       "type": "object",
       "required": ["trigger", "type"],
@@ -161,6 +185,14 @@
         "message": {
           "type": "string",
           "description": "For toast actions: text message to display in the toast"
+        },
+        "onFailure": {
+          "$ref": "#/definitions/FailurePolicy",
+          "description": "Sequence behavior when this action fails. Client applies per-type default when absent (navigate=halt, analytics/dismiss/toast=silent, mutate/refresh=continue)"
+        },
+        "failureFeedback": {
+          "$ref": "#/definitions/FailureFeedback",
+          "description": "Optional server-provided error message and presentation style. Client falls back to generic localized string when absent"
         }
       }
     },

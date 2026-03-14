@@ -46,6 +46,11 @@ export interface Action {
      */
     event?: string;
     /**
+     * Optional server-provided error message and presentation style. Client falls back to
+     * generic localized string when absent
+     */
+    failureFeedback?: FailureFeedback;
+    /**
      * For analytics actions with onVisible trigger: impression tracking policy
      */
     impression?: ImpressionPolicy;
@@ -57,6 +62,11 @@ export interface Action {
      * For navigate actions with modal presentation: sheet height
      */
     modalHeight?: ModalHeight;
+    /**
+     * Sequence behavior when this action fails. Client applies per-type default when absent
+     * (navigate=halt, analytics/dismiss/toast=silent, mutate/refresh=continue)
+     */
+    onFailure?: FailurePolicy;
     /**
      * For mutate actions: operation to perform on the state key
      */
@@ -103,6 +113,36 @@ export enum Destination {
 }
 
 /**
+ * Optional server-provided error message and presentation style. Client falls back to
+ * generic localized string when absent
+ *
+ * Optional server-provided error message and presentation style for action failures. Client
+ * falls back to generic localized string when absent.
+ */
+export interface FailureFeedback {
+    /**
+     * Localized error message to display on failure
+     */
+    message?: string;
+    /**
+     * Presentation hint — clients map to closest platform-native mechanism
+     */
+    style?: FailureFeedbackStyle;
+    [property: string]: any;
+}
+
+/**
+ * Presentation hint — clients map to closest platform-native mechanism
+ *
+ * Presentation hint for failure feedback. Clients map to closest platform-native mechanism.
+ */
+export enum FailureFeedbackStyle {
+    Inline = "inline",
+    Snackbar = "snackbar",
+    Toast = "toast",
+}
+
+/**
  * For analytics actions with onVisible trigger: impression tracking policy
  *
  * Impression tracking policy for analytics actions with onVisible trigger
@@ -143,6 +183,19 @@ export enum ModalHeight {
     Compact = "compact",
     Full = "full",
     Half = "half",
+}
+
+/**
+ * Sequence behavior when this action fails. Client applies per-type default when absent
+ * (navigate=halt, analytics/dismiss/toast=silent, mutate/refresh=continue)
+ *
+ * Sequence behavior when an action fails. Clients apply per-type defaults when absent:
+ * navigate=halt, analytics/dismiss/toast=silent, mutate/refresh=continue.
+ */
+export enum FailurePolicy {
+    Continue = "continue",
+    Halt = "halt",
+    Silent = "silent",
 }
 
 /**

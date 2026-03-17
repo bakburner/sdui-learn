@@ -42,7 +42,11 @@
         "period": 4,
         "gameClock": "PT00M00.00S",
         "gameId": "0042300102",
-        "variant": "scoreboard"
+        "displayConfig": {
+          "logoSize": 60,
+          "scoreTextStyle": "prominent",
+          "background": "#17408B"
+        }
       }
     },
     {

@@ -12,7 +12,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import com.nba.sdui.core.models.AtomicElement
+import com.nba.sdui.core.models.Background
 import com.nba.sdui.core.models.BackgroundGradient
+import com.nba.sdui.core.models.parseBackground
 import com.nba.sdui.core.state.SduiAction
 
 /**
@@ -53,11 +55,13 @@ fun AtomicContainer(
         fillModifier.clip(RoundedCornerShape(it.dp))
     } ?: fillModifier
 
-    val bgModifier = element.backgroundGradient?.let { gradient ->
-        clippedModifier.background(gradient.toBrush())
-    } ?: element.backgroundColor?.let { hex ->
-        clippedModifier.background(parseColor(hex))
-    } ?: clippedModifier
+    val bg = parseBackground(element.background)
+    val bgModifier = when (bg) {
+        is Background.Gradient -> clippedModifier.background(bg.gradient.toBrush())
+        is Background.Solid -> clippedModifier.background(parseColor(bg.color))
+        is Background.Image -> clippedModifier
+        null -> clippedModifier
+    }
 
     val paddedModifier = element.padding?.let {
         bgModifier.padding(

@@ -615,9 +615,7 @@ class AtomicElement: Codable {
     let alignment: Alignment?
     let alt: String?
     let aspectRatio: Double?
-    let backgroundColor: String?
-    /// Gradient background for Container elements
-    let backgroundGradient: BackgroundGradient?
+    let background: BackgroundUnion?
     /// Responsive breakpoint in dp/px. For Container: below this screen width, direction flips
     /// from row to column. Enables responsive layouts without client logic.
     let breakpoint: Int?
@@ -665,13 +663,12 @@ class AtomicElement: Codable {
     let weight: TextWeight?
     let width: Int?
 
-    init(actions: [Action]?, alignment: Alignment?, alt: String?, aspectRatio: Double?, backgroundColor: String?, backgroundGradient: BackgroundGradient?, breakpoint: Int?, buttonVariant: ButtonVariant?, cellVariant: TextVariant?, children: [AtomicElement]?, color: String?, columns: [Column]?, condition: String?, content: String?, cornerRadius: Int?, crossAlignment: CrossAlignment?, direction: UIDirection?, disabled: Bool?, falseChild: AtomicElement?, fit: ImageFit?, flex: Double?, gap: Int?, headerVariant: TextVariant?, height: Int?, icon: String?, id: String?, label: String?, maxLines: Int?, orientation: Orientation?, padding: Spacing?, paging: Bool?, placeholder: String?, rows: [[String: String]]?, section: Section?, size: Int?, snapAlignment: Align?, src: String?, striped: Bool?, thickness: Int?, trueChild: AtomicElement?, type: UIType, variant: TextVariant?, weight: TextWeight?, width: Int?) {
+    init(actions: [Action]?, alignment: Alignment?, alt: String?, aspectRatio: Double?, background: BackgroundUnion?, breakpoint: Int?, buttonVariant: ButtonVariant?, cellVariant: TextVariant?, children: [AtomicElement]?, color: String?, columns: [Column]?, condition: String?, content: String?, cornerRadius: Int?, crossAlignment: CrossAlignment?, direction: UIDirection?, disabled: Bool?, falseChild: AtomicElement?, fit: ImageFit?, flex: Double?, gap: Int?, headerVariant: TextVariant?, height: Int?, icon: String?, id: String?, label: String?, maxLines: Int?, orientation: Orientation?, padding: Spacing?, paging: Bool?, placeholder: String?, rows: [[String: String]]?, section: Section?, size: Int?, snapAlignment: Align?, src: String?, striped: Bool?, thickness: Int?, trueChild: AtomicElement?, type: UIType, variant: TextVariant?, weight: TextWeight?, width: Int?) {
         self.actions = actions
         self.alignment = alignment
         self.alt = alt
         self.aspectRatio = aspectRatio
-        self.backgroundColor = backgroundColor
-        self.backgroundGradient = backgroundGradient
+        self.background = background
         self.breakpoint = breakpoint
         self.buttonVariant = buttonVariant
         self.cellVariant = cellVariant
@@ -718,7 +715,7 @@ class AtomicElement: Codable {
 extension AtomicElement {
     convenience init(data: Data) throws {
         let me = try newJSONDecoder().decode(AtomicElement.self, from: data)
-        self.init(actions: me.actions, alignment: me.alignment, alt: me.alt, aspectRatio: me.aspectRatio, backgroundColor: me.backgroundColor, backgroundGradient: me.backgroundGradient, breakpoint: me.breakpoint, buttonVariant: me.buttonVariant, cellVariant: me.cellVariant, children: me.children, color: me.color, columns: me.columns, condition: me.condition, content: me.content, cornerRadius: me.cornerRadius, crossAlignment: me.crossAlignment, direction: me.direction, disabled: me.disabled, falseChild: me.falseChild, fit: me.fit, flex: me.flex, gap: me.gap, headerVariant: me.headerVariant, height: me.height, icon: me.icon, id: me.id, label: me.label, maxLines: me.maxLines, orientation: me.orientation, padding: me.padding, paging: me.paging, placeholder: me.placeholder, rows: me.rows, section: me.section, size: me.size, snapAlignment: me.snapAlignment, src: me.src, striped: me.striped, thickness: me.thickness, trueChild: me.trueChild, type: me.type, variant: me.variant, weight: me.weight, width: me.width)
+        self.init(actions: me.actions, alignment: me.alignment, alt: me.alt, aspectRatio: me.aspectRatio, background: me.background, breakpoint: me.breakpoint, buttonVariant: me.buttonVariant, cellVariant: me.cellVariant, children: me.children, color: me.color, columns: me.columns, condition: me.condition, content: me.content, cornerRadius: me.cornerRadius, crossAlignment: me.crossAlignment, direction: me.direction, disabled: me.disabled, falseChild: me.falseChild, fit: me.fit, flex: me.flex, gap: me.gap, headerVariant: me.headerVariant, height: me.height, icon: me.icon, id: me.id, label: me.label, maxLines: me.maxLines, orientation: me.orientation, padding: me.padding, paging: me.paging, placeholder: me.placeholder, rows: me.rows, section: me.section, size: me.size, snapAlignment: me.snapAlignment, src: me.src, striped: me.striped, thickness: me.thickness, trueChild: me.trueChild, type: me.type, variant: me.variant, weight: me.weight, width: me.width)
     }
 
     convenience init(_ json: String, using encoding: String.Encoding = .utf8) throws {
@@ -737,8 +734,7 @@ extension AtomicElement {
         alignment: Alignment?? = nil,
         alt: String?? = nil,
         aspectRatio: Double?? = nil,
-        backgroundColor: String?? = nil,
-        backgroundGradient: BackgroundGradient?? = nil,
+        background: BackgroundUnion?? = nil,
         breakpoint: Int?? = nil,
         buttonVariant: ButtonVariant?? = nil,
         cellVariant: TextVariant?? = nil,
@@ -783,8 +779,7 @@ extension AtomicElement {
             alignment: alignment ?? self.alignment,
             alt: alt ?? self.alt,
             aspectRatio: aspectRatio ?? self.aspectRatio,
-            backgroundColor: backgroundColor ?? self.backgroundColor,
-            backgroundGradient: backgroundGradient ?? self.backgroundGradient,
+            background: background ?? self.background,
             breakpoint: breakpoint ?? self.breakpoint,
             buttonVariant: buttonVariant ?? self.buttonVariant,
             cellVariant: cellVariant ?? self.cellVariant,
@@ -861,10 +856,10 @@ struct DataClass: Codable {
     let tabs: [TabData]?
     let actions: [Action]?
     let awayTeam: TeamData?
-    /// Background image URL for featured variant hero card
-    let backgroundImageURL: String?
     /// Badge/chip label, e.g. 'LIVE', 'FEATURED'
     let badgeText: String?
+    /// Server-driven visual configuration — controls all layout and styling knobs
+    let displayConfig: GamePanelDisplayConfig?
     /// Game clock string (e.g. 'PT05M32.00S' or '5:32')
     let gameClock: String?
     let gameID: String?
@@ -874,9 +869,6 @@ struct DataClass: Codable {
     let homeTeam: TeamData?
     /// Current game period (quarter number)
     let period: Int?
-    /// Visual treatment: 'standard' for compact feed cards, 'featured' for hero-sized cards with
-    /// gradient/background, 'scoreboard' for compact scoreboard rows
-    let variant: Variant?
     /// Secondary label shown above the matchup (e.g. team name, 'Recommended')
     let visualLabel: String?
     /// Ordered list of column definitions; clients render left-to-right
@@ -933,6 +925,7 @@ struct DataClass: Codable {
     let title: String?
     /// Total number of rows available server-side (for pagination display)
     let totalRows: Int?
+    let background: BackgroundUnion?
     let ctaAction: Action?
     let ctaLabel, logoURL: String?
     /// Optional pricing tier highlights
@@ -946,15 +939,13 @@ struct DataClass: Codable {
     let ui: AtomicElement?
 
     enum CodingKeys: String, CodingKey {
-        case defaultTab, stateKey, tabContents, tabs, actions, awayTeam
-        case backgroundImageURL = "backgroundImageUrl"
-        case badgeText, gameClock
+        case defaultTab, stateKey, tabContents, tabs, actions, awayTeam, badgeText, displayConfig, gameClock
         case gameID = "gameId"
-        case gameLeaders, gameStatus, gameStatusText, gameTimeEt, homeTeam, period, variant, visualLabel, columns, emptyMessage, players, sortDirectionStateKey, sortStateKey, teamColor
+        case gameLeaders, gameStatus, gameStatusText, gameTimeEt, homeTeam, period, visualLabel, columns, emptyMessage, players, sortDirectionStateKey, sortStateKey, teamColor
         case teamLogoURL = "teamLogoUrl"
         case teamName, teamTotals, teamTricode, fields, layout, submitAction, submitLabel, adUnitPath, collapseOnEmpty, label, provider
         case refreshIntervalSEC = "refreshIntervalSec"
-        case sizes, targeting, page, pageSize, sortColumn, sortDirection, subtitle, title, totalRows, ctaAction, ctaLabel
+        case sizes, targeting, page, pageSize, sortColumn, sortDirection, subtitle, title, totalRows, background, ctaAction, ctaLabel
         case logoURL = "logoUrl"
         case tiers, features, content, ui
     }
@@ -985,8 +976,8 @@ extension DataClass {
         tabs: [TabData]?? = nil,
         actions: [Action]?? = nil,
         awayTeam: TeamData?? = nil,
-        backgroundImageURL: String?? = nil,
         badgeText: String?? = nil,
+        displayConfig: GamePanelDisplayConfig?? = nil,
         gameClock: String?? = nil,
         gameID: String?? = nil,
         gameLeaders: GameLeadersData?? = nil,
@@ -995,7 +986,6 @@ extension DataClass {
         gameTimeEt: String?? = nil,
         homeTeam: TeamData?? = nil,
         period: Int?? = nil,
-        variant: Variant?? = nil,
         visualLabel: String?? = nil,
         columns: [BoxscoreColumnDefinition]?? = nil,
         emptyMessage: String?? = nil,
@@ -1025,6 +1015,7 @@ extension DataClass {
         subtitle: String?? = nil,
         title: String?? = nil,
         totalRows: Int?? = nil,
+        background: BackgroundUnion?? = nil,
         ctaAction: Action?? = nil,
         ctaLabel: String?? = nil,
         logoURL: String?? = nil,
@@ -1040,8 +1031,8 @@ extension DataClass {
             tabs: tabs ?? self.tabs,
             actions: actions ?? self.actions,
             awayTeam: awayTeam ?? self.awayTeam,
-            backgroundImageURL: backgroundImageURL ?? self.backgroundImageURL,
             badgeText: badgeText ?? self.badgeText,
+            displayConfig: displayConfig ?? self.displayConfig,
             gameClock: gameClock ?? self.gameClock,
             gameID: gameID ?? self.gameID,
             gameLeaders: gameLeaders ?? self.gameLeaders,
@@ -1050,7 +1041,6 @@ extension DataClass {
             gameTimeEt: gameTimeEt ?? self.gameTimeEt,
             homeTeam: homeTeam ?? self.homeTeam,
             period: period ?? self.period,
-            variant: variant ?? self.variant,
             visualLabel: visualLabel ?? self.visualLabel,
             columns: columns ?? self.columns,
             emptyMessage: emptyMessage ?? self.emptyMessage,
@@ -1080,6 +1070,7 @@ extension DataClass {
             subtitle: subtitle ?? self.subtitle,
             title: title ?? self.title,
             totalRows: totalRows ?? self.totalRows,
+            background: background ?? self.background,
             ctaAction: ctaAction ?? self.ctaAction,
             ctaLabel: ctaLabel ?? self.ctaLabel,
             logoURL: logoURL ?? self.logoURL,
@@ -1206,7 +1197,139 @@ enum Alignment: String, Codable {
     case start = "start"
 }
 
-/// Gradient background for Container elements
+/// Default background (pre-game, final)
+///
+/// Shared background type — solid color, gradient, or image with overlay
+///
+/// Background override when game is LIVE
+enum BackgroundUnion: Codable {
+    case background(Background)
+    case string(String)
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if let x = try? container.decode(String.self) {
+            self = .string(x)
+            return
+        }
+        if let x = try? container.decode(Background.self) {
+            self = .background(x)
+            return
+        }
+        throw DecodingError.typeMismatch(BackgroundUnion.self, DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Wrong type for BackgroundUnion"))
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self {
+        case .background(let x):
+            try container.encode(x)
+        case .string(let x):
+            try container.encode(x)
+        }
+    }
+}
+
+/// Gradient background with ordered color stops
+///
+/// Image background with optional scale and overlay
+// MARK: - Background
+struct Background: Codable {
+    /// Ordered list of color stops (hex or semantic token)
+    let colors: [String]?
+    let direction: Direction?
+    /// URL of the background image
+    let imageURL: String?
+    /// Optional overlay applied on top of the image
+    let overlay: Overlay?
+    let scaleType: ScaleType?
+
+    enum CodingKeys: String, CodingKey {
+        case colors, direction
+        case imageURL = "imageUrl"
+        case overlay, scaleType
+    }
+}
+
+// MARK: Background convenience initializers and mutators
+
+extension Background {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(Background.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        colors: [String]?? = nil,
+        direction: Direction?? = nil,
+        imageURL: String?? = nil,
+        overlay: Overlay?? = nil,
+        scaleType: ScaleType?? = nil
+    ) -> Background {
+        return Background(
+            colors: colors ?? self.colors,
+            direction: direction ?? self.direction,
+            imageURL: imageURL ?? self.imageURL,
+            overlay: overlay ?? self.overlay,
+            scaleType: scaleType ?? self.scaleType
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+enum Direction: String, Codable {
+    case diagonal = "diagonal"
+    case horizontal = "horizontal"
+    case vertical = "vertical"
+}
+
+/// Optional overlay applied on top of the image
+enum Overlay: Codable {
+    case backgroundGradient(BackgroundGradient)
+    case string(String)
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if let x = try? container.decode(String.self) {
+            self = .string(x)
+            return
+        }
+        if let x = try? container.decode(BackgroundGradient.self) {
+            self = .backgroundGradient(x)
+            return
+        }
+        throw DecodingError.typeMismatch(Overlay.self, DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Wrong type for Overlay"))
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self {
+        case .backgroundGradient(let x):
+            try container.encode(x)
+        case .string(let x):
+            try container.encode(x)
+        }
+    }
+}
+
+/// Gradient background with ordered color stops
 // MARK: - BackgroundGradient
 struct BackgroundGradient: Codable {
     /// Ordered list of color stops (hex or semantic token)
@@ -1251,10 +1374,10 @@ extension BackgroundGradient {
     }
 }
 
-enum Direction: String, Codable {
-    case diagonal = "diagonal"
-    case horizontal = "horizontal"
-    case vertical = "vertical"
+enum ScaleType: String, Codable {
+    case contain = "contain"
+    case cover = "cover"
+    case fill = "fill"
 }
 
 enum ButtonVariant: String, Codable {
@@ -1576,6 +1699,96 @@ extension BoxscoreColumnDefinition {
     func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
         return String(data: try self.jsonData(), encoding: encoding)
     }
+}
+
+/// Server-driven visual configuration — controls all layout and styling knobs
+///
+/// Server-driven visual configuration for GamePanel — replaces the hardcoded variant branch
+// MARK: - GamePanelDisplayConfig
+struct GamePanelDisplayConfig: Codable {
+    /// Default background (pre-game, final)
+    let background: BackgroundUnion?
+    /// Badge/chip background color (hex)
+    let badgeColor: String?
+    /// Fixed card height in dp/px. Null/absent = auto-size
+    let cardHeight: Int?
+    /// Card corner radius in dp/px
+    let cornerRadius: Int?
+    /// Card elevation/shadow in dp/px
+    let elevation: Int?
+    /// Background override when game is LIVE
+    let liveBackground: BackgroundUnion?
+    /// Team logo width/height in dp/px
+    let logoSize: Int?
+    /// Score typography: compact = bodyLarge+Bold, prominent = headlineMedium+ExtraBold
+    let scoreTextStyle: ScoreTextStyle?
+    /// Show broadcaster label
+    let showBroadcaster: Bool?
+    /// Show game leaders section
+    let showLeaders: Bool?
+    /// Show full team names below logos
+    let showTeamNames: Bool?
+}
+
+// MARK: GamePanelDisplayConfig convenience initializers and mutators
+
+extension GamePanelDisplayConfig {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(GamePanelDisplayConfig.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        background: BackgroundUnion?? = nil,
+        badgeColor: String?? = nil,
+        cardHeight: Int?? = nil,
+        cornerRadius: Int?? = nil,
+        elevation: Int?? = nil,
+        liveBackground: BackgroundUnion?? = nil,
+        logoSize: Int?? = nil,
+        scoreTextStyle: ScoreTextStyle?? = nil,
+        showBroadcaster: Bool?? = nil,
+        showLeaders: Bool?? = nil,
+        showTeamNames: Bool?? = nil
+    ) -> GamePanelDisplayConfig {
+        return GamePanelDisplayConfig(
+            background: background ?? self.background,
+            badgeColor: badgeColor ?? self.badgeColor,
+            cardHeight: cardHeight ?? self.cardHeight,
+            cornerRadius: cornerRadius ?? self.cornerRadius,
+            elevation: elevation ?? self.elevation,
+            liveBackground: liveBackground ?? self.liveBackground,
+            logoSize: logoSize ?? self.logoSize,
+            scoreTextStyle: scoreTextStyle ?? self.scoreTextStyle,
+            showBroadcaster: showBroadcaster ?? self.showBroadcaster,
+            showLeaders: showLeaders ?? self.showLeaders,
+            showTeamNames: showTeamNames ?? self.showTeamNames
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+/// Score typography: compact = bodyLarge+Bold, prominent = headlineMedium+ExtraBold
+enum ScoreTextStyle: String, Codable {
+    case compact = "compact"
+    case prominent = "prominent"
 }
 
 /// One input field inside a form section
@@ -2010,14 +2223,6 @@ extension SubscriptionTier {
     func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
         return String(data: try self.jsonData(), encoding: encoding)
     }
-}
-
-/// Visual treatment: 'standard' for compact feed cards, 'featured' for hero-sized cards with
-/// gradient/background, 'scoreboard' for compact scoreboard rows
-enum Variant: String, Codable {
-    case featured = "featured"
-    case scoreboard = "scoreboard"
-    case standard = "standard"
 }
 
 // MARK: - DataBinding

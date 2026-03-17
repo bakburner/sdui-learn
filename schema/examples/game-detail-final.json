@@ -40,7 +40,11 @@
         "period": 4,
         "gameClock": "PT00M00.00S",
         "gameId": "0042300102",
-        "variant": "scoreboard"
+        "displayConfig": {
+          "logoSize": 60,
+          "scoreTextStyle": "prominent",
+          "background": "#17408B"
+        }
       }
     },
     {
@@ -385,7 +389,7 @@
                       "type": "Container",
                       "direction": "column",
                       "cornerRadius": 8,
-                      "backgroundColor": "#2A2A4A",
+                      "background": "#2A2A4A",
                       "children": [
                         {
                           "type": "Image",
@@ -410,7 +414,7 @@
                               "variant": "labelSmall",
                               "weight": "bold",
                               "color": "#FFFFFF",
-                              "backgroundColor": "#FF6B6B"
+                              "background": "#FF6B6B"
                             },
                             {
                               "type": "Spacer",
@@ -451,7 +455,7 @@
                       "type": "Container",
                       "direction": "column",
                       "cornerRadius": 8,
-                      "backgroundColor": "#2A2A4A",
+                      "background": "#2A2A4A",
                       "children": [
                         {
                           "type": "Image",
@@ -476,7 +480,7 @@
                               "variant": "labelSmall",
                               "weight": "bold",
                               "color": "#FFFFFF",
-                              "backgroundColor": "#FF6B6B"
+                              "background": "#FF6B6B"
                             },
                             {
                               "type": "Text",
@@ -520,7 +524,7 @@
                       "type": "Container",
                       "direction": "column",
                       "cornerRadius": 8,
-                      "backgroundColor": "#2A2A4A",
+                      "background": "#2A2A4A",
                       "children": [
                         {
                           "type": "Image",
@@ -545,7 +549,7 @@
                               "variant": "labelSmall",
                               "weight": "bold",
                               "color": "#FFFFFF",
-                              "backgroundColor": "#FF6B6B"
+                              "background": "#FF6B6B"
                             },
                             {
                               "type": "Text",

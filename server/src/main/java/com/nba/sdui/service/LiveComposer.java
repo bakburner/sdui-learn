@@ -143,7 +143,7 @@ public class LiveComposer {
         data.put("gameStatus", gameStatus);
         data.put("gameStatusText", game.path("gameStatusText").asText(""));
         data.put("gameTimeEt", game.path("gameTimeEt").asText(""));
-        data.put("variant", "featured");
+        data.set("displayConfig", atomicBuilder.featuredConfig(null, new String[]{"#1D428A", "#C8102E"}));
         data.set("homeTeam", mapTeam(game.path("homeTeam")));
         data.set("awayTeam", mapTeam(game.path("awayTeam")));
         data.put("badgeText", gameStatus == 2 ? "LIVE" : "UP NEXT");
@@ -172,7 +172,7 @@ public class LiveComposer {
         data.put("gameId", "0022400050");
         data.put("gameStatus", 1);
         data.put("gameStatusText", "7:30 PM ET");
-        data.put("variant", "featured");
+        data.set("displayConfig", atomicBuilder.featuredConfig(null, new String[]{"#1D428A", "#C8102E"}));
         data.put("badgeText", "NEXT UP");
         data.put("visualLabel", "Recommended");
 

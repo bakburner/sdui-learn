@@ -73,7 +73,11 @@
         "period": 4,
         "gameClock": "PT05M32.00S",
         "gameId": "0042300102",
-        "variant": "scoreboard"
+        "displayConfig": {
+          "logoSize": 60,
+          "scoreTextStyle": "prominent",
+          "background": "#17408B"
+        }
       }
     },
     {
@@ -765,7 +769,7 @@
                       "type": "Container",
                       "direction": "column",
                       "cornerRadius": 8,
-                      "backgroundColor": "#2A2A4A",
+                      "background": "#2A2A4A",
                       "children": [
                         {
                           "type": "Image",
@@ -780,7 +784,7 @@
                           "variant": "labelSmall",
                           "weight": "bold",
                           "color": "#FFFFFF",
-                          "backgroundColor": "#FF6B6B"
+                          "background": "#FF6B6B"
                         }
                       ]
                     },
@@ -815,7 +819,7 @@
                       "type": "Container",
                       "direction": "column",
                       "cornerRadius": 8,
-                      "backgroundColor": "#2A2A4A",
+                      "background": "#2A2A4A",
                       "children": [
                         {
                           "type": "Image",
@@ -830,7 +834,7 @@
                           "variant": "labelSmall",
                           "weight": "bold",
                           "color": "#FFFFFF",
-                          "backgroundColor": "#FF6B6B"
+                          "background": "#FF6B6B"
                         }
                       ]
                     },
@@ -865,7 +869,7 @@
                       "type": "Container",
                       "direction": "column",
                       "cornerRadius": 8,
-                      "backgroundColor": "#2A2A4A",
+                      "background": "#2A2A4A",
                       "children": [
                         {
                           "type": "Image",
@@ -880,7 +884,7 @@
                           "variant": "labelSmall",
                           "weight": "bold",
                           "color": "#FFFFFF",
-                          "backgroundColor": "#FF6B6B"
+                          "background": "#FF6B6B"
                         }
                       ]
                     },
@@ -915,7 +919,7 @@
                       "type": "Container",
                       "direction": "column",
                       "cornerRadius": 8,
-                      "backgroundColor": "#2A2A4A",
+                      "background": "#2A2A4A",
                       "children": [
                         {
                           "type": "Image",
@@ -930,7 +934,7 @@
                           "variant": "labelSmall",
                           "weight": "bold",
                           "color": "#FFFFFF",
-                          "backgroundColor": "#FF6B6B"
+                          "background": "#FF6B6B"
                         }
                       ]
                     },
@@ -1267,7 +1271,7 @@
           "direction": "row",
           "alignment": "center",
           "crossAlignment": "center",
-          "backgroundColor": "#2A2A5E",
+          "background": "#2A2A5E",
           "cornerRadius": 12,
           "padding": {
             "start": 20,

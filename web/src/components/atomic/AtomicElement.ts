@@ -10,11 +10,6 @@ export interface AtomicPadding {
   start: number;
 }
 
-export interface BackgroundGradient {
-  colors: string[];
-  direction?: 'vertical' | 'horizontal' | 'diagonal';
-}
-
 export type AtomicElementType =
   | 'Container'
   | 'Text'
@@ -38,8 +33,7 @@ export interface AtomicElement {
   crossAlignment?: 'start' | 'center' | 'end' | 'stretch';
   gap?: number;
   padding?: AtomicPadding;
-  backgroundColor?: string;
-  backgroundGradient?: BackgroundGradient;
+  background?: any;
 
   // Text
   content?: string;

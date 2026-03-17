@@ -1,6 +1,7 @@
 import React from 'react';
 import type { AtomicProps } from './AtomicRouter';
 import { AtomicRouter } from './AtomicRouter';
+import { resolveBackgroundCSS } from '../../utils/background';
 
 /**
  * AtomicContainer — renders a flex row or column with gap, padding,
@@ -62,14 +63,8 @@ export function AtomicContainer({ element, state, onAction, depth = 0, onStateCh
   }
 
   // background
-  if (element.backgroundGradient) {
-    const { colors, direction } = element.backgroundGradient;
-    const dir = direction === 'horizontal' ? 'to right'
-              : direction === 'diagonal' ? 'to bottom right'
-              : 'to bottom';
-    style.background = `linear-gradient(${dir}, ${colors.join(', ')})`;
-  } else if (element.backgroundColor) {
-    style.backgroundColor = element.backgroundColor;
+  if (element.background) {
+    Object.assign(style, resolveBackgroundCSS(element.background));
   }
 
   return (

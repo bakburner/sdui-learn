@@ -2,9 +2,11 @@ package com.nba.sdui.core.renderer.adapters
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
+import com.nba.sdui.core.models.Background
 import com.nba.sdui.core.models.SduiSection
 import com.nba.sdui.core.models.TabGroupData
 import com.nba.sdui.core.models.actionToSduiAction
+import com.nba.sdui.core.models.parseBackground
 import com.nba.sdui.core.state.SduiAction
 import com.nba.sdui.models.generated.TeamData
 
@@ -25,6 +27,17 @@ data class TabUiModel(
 
 enum class GamePanelVisualState { PRE, LIVE, FINAL }
 
+data class GamePanelDisplayConfig(
+    val logoSize: Int = 32,
+    val cardHeight: Int? = null,
+    val cornerRadius: Int = 12,
+    val elevation: Int = 0,
+    val scoreTextStyle: String = "compact",
+    val background: Background? = null,
+    val liveBackground: Background? = null,
+    val badgeColor: String? = null
+)
+
 data class GamePanelUiModel(
     val awayTricode: String,
     val homeTricode: String,
@@ -43,10 +56,9 @@ data class GamePanelUiModel(
     val leaderLines: List<String>,
     val visualState: GamePanelVisualState,
     val primaryAction: SduiAction?,
-    val variant: String,
+    val displayConfig: GamePanelDisplayConfig,
     val badgeText: String?,
-    val visualLabel: String?,
-    val backgroundImageUrl: String?
+    val visualLabel: String?
 )
 
 fun mapTabGroup(section: SduiSection, screenState: Map<String, Any>): TabGroupUiModel? {
@@ -120,10 +132,9 @@ fun mapGamePanel(section: SduiSection): GamePanelUiModel? {
         leaderLines = leaderLines,
         visualState = visualState,
         primaryAction = firstActionFromSection(section),
-        variant = (data["variant"] as? String) ?: "standard",
+        displayConfig = parseDisplayConfig(data["displayConfig"]),
         badgeText = data["badgeText"] as? String,
-        visualLabel = data["visualLabel"] as? String,
-        backgroundImageUrl = data["backgroundImageUrl"] as? String
+        visualLabel = data["visualLabel"] as? String
     )
 }
 
@@ -137,6 +148,22 @@ private fun firstActionFromSection(section: SduiSection): SduiAction? {
         ?.let(::actionToSduiAction)
     if (sectionAction != null) return sectionAction
     return section.data?.let(::firstActionFrom)
+}
+
+@Suppress("UNCHECKED_CAST")
+private fun parseDisplayConfig(raw: Any?): GamePanelDisplayConfig {
+    if (raw == null || raw !is Map<*, *>) return GamePanelDisplayConfig()
+    val map = raw as Map<String, Any?>
+    return GamePanelDisplayConfig(
+        logoSize = (map["logoSize"] as? Number)?.toInt() ?: 32,
+        cardHeight = (map["cardHeight"] as? Number)?.toInt(),
+        cornerRadius = (map["cornerRadius"] as? Number)?.toInt() ?: 12,
+        elevation = (map["elevation"] as? Number)?.toInt() ?: 0,
+        scoreTextStyle = (map["scoreTextStyle"] as? String) ?: "compact",
+        background = parseBackground(map["background"]),
+        liveBackground = parseBackground(map["liveBackground"]),
+        badgeColor = map["badgeColor"] as? String
+    )
 }
 
 private inline fun <reified T> convert(data: Map<String, Any?>?): T? {

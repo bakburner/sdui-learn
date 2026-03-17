@@ -281,15 +281,11 @@ export interface NavigationItem {
  * Atomic UI primitive — server-composed building block for the atomic rendering layer
  */
 export interface AtomicElement {
-    actions?:         Action[];
-    alignment?:       Alignment;
-    alt?:             string;
-    aspectRatio?:     number;
-    backgroundColor?: string;
-    /**
-     * Gradient background for Container elements
-     */
-    backgroundGradient?: BackgroundGradient;
+    actions?:     Action[];
+    alignment?:   Alignment;
+    alt?:         string;
+    aspectRatio?: number;
+    background?:  Background | string;
     /**
      * Responsive breakpoint in dp/px. For Container: below this screen width, direction flips
      * from row to column. Enables responsive layouts without client logic.
@@ -389,13 +385,13 @@ export interface Data {
     actions?:     Action[];
     awayTeam?:    TeamData;
     /**
-     * Background image URL for featured variant hero card
-     */
-    backgroundImageUrl?: string;
-    /**
      * Badge/chip label, e.g. 'LIVE', 'FEATURED'
      */
     badgeText?: string;
+    /**
+     * Server-driven visual configuration — controls all layout and styling knobs
+     */
+    displayConfig?: GamePanelDisplayConfig;
     /**
      * Game clock string (e.g. 'PT05M32.00S' or '5:32')
      */
@@ -410,11 +406,6 @@ export interface Data {
      * Current game period (quarter number)
      */
     period?: number;
-    /**
-     * Visual treatment: 'standard' for compact feed cards, 'featured' for hero-sized cards with
-     * gradient/background, 'scoreboard' for compact scoreboard rows
-     */
-    variant?: Variant;
     /**
      * Secondary label shown above the matchup (e.g. team name, 'Recommended')
      */
@@ -519,10 +510,11 @@ export interface Data {
     /**
      * Total number of rows available server-side (for pagination display)
      */
-    totalRows?: number;
-    ctaAction?: Action;
-    ctaLabel?:  string;
-    logoUrl?:   string;
+    totalRows?:  number;
+    background?: Background | string;
+    ctaAction?:  Action;
+    ctaLabel?:   string;
+    logoUrl?:    string;
     /**
      * Optional pricing tier highlights
      */
@@ -581,7 +573,36 @@ export enum Alignment {
 }
 
 /**
- * Gradient background for Container elements
+ * Gradient background with ordered color stops
+ *
+ * Image background with optional scale and overlay
+ */
+export interface Background {
+    /**
+     * Ordered list of color stops (hex or semantic token)
+     */
+    colors?:    string[];
+    direction?: Direction;
+    /**
+     * URL of the background image
+     */
+    imageUrl?: string;
+    /**
+     * Optional overlay applied on top of the image
+     */
+    overlay?:   BackgroundGradient | string;
+    scaleType?: ScaleType;
+    [property: string]: any;
+}
+
+export enum Direction {
+    Diagonal = "diagonal",
+    Horizontal = "horizontal",
+    Vertical = "vertical",
+}
+
+/**
+ * Gradient background with ordered color stops
  */
 export interface BackgroundGradient {
     /**
@@ -592,10 +613,10 @@ export interface BackgroundGradient {
     [property: string]: any;
 }
 
-export enum Direction {
-    Diagonal = "diagonal",
-    Horizontal = "horizontal",
-    Vertical = "vertical",
+export enum ScaleType {
+    Contain = "contain",
+    Cover = "cover",
+    Fill = "fill",
 }
 
 export enum ButtonVariant {
@@ -735,6 +756,67 @@ export interface BoxscoreColumnDefinition {
      */
     width?: string;
     [property: string]: any;
+}
+
+/**
+ * Server-driven visual configuration — controls all layout and styling knobs
+ *
+ * Server-driven visual configuration for GamePanel — replaces the hardcoded variant branch
+ */
+export interface GamePanelDisplayConfig {
+    /**
+     * Default background (pre-game, final)
+     */
+    background?: Background | string;
+    /**
+     * Badge/chip background color (hex)
+     */
+    badgeColor?: string;
+    /**
+     * Fixed card height in dp/px. Null/absent = auto-size
+     */
+    cardHeight?: number;
+    /**
+     * Card corner radius in dp/px
+     */
+    cornerRadius?: number;
+    /**
+     * Card elevation/shadow in dp/px
+     */
+    elevation?: number;
+    /**
+     * Background override when game is LIVE
+     */
+    liveBackground?: Background | string;
+    /**
+     * Team logo width/height in dp/px
+     */
+    logoSize?: number;
+    /**
+     * Score typography: compact = bodyLarge+Bold, prominent = headlineMedium+ExtraBold
+     */
+    scoreTextStyle?: ScoreTextStyle;
+    /**
+     * Show broadcaster label
+     */
+    showBroadcaster?: boolean;
+    /**
+     * Show game leaders section
+     */
+    showLeaders?: boolean;
+    /**
+     * Show full team names below logos
+     */
+    showTeamNames?: boolean;
+    [property: string]: any;
+}
+
+/**
+ * Score typography: compact = bodyLarge+Bold, prominent = headlineMedium+ExtraBold
+ */
+export enum ScoreTextStyle {
+    Compact = "compact",
+    Prominent = "prominent",
 }
 
 /**
@@ -886,16 +968,6 @@ export interface SubscriptionTier {
      */
     price: string;
     [property: string]: any;
-}
-
-/**
- * Visual treatment: 'standard' for compact feed cards, 'featured' for hero-sized cards with
- * gradient/background, 'scoreboard' for compact scoreboard rows
- */
-export enum Variant {
-    Featured = "featured",
-    Scoreboard = "scoreboard",
-    Standard = "standard",
 }
 
 export interface DataBinding {

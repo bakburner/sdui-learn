@@ -257,6 +257,54 @@
         "end": { "type": "integer" }
       }
     },
+    "BackgroundGradient": {
+      "type": "object",
+      "description": "Gradient background with ordered color stops",
+      "required": ["colors"],
+      "properties": {
+        "colors": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Ordered list of color stops (hex or semantic token)"
+        },
+        "direction": {
+          "type": "string",
+          "enum": ["horizontal", "vertical", "diagonal"],
+          "default": "vertical"
+        }
+      }
+    },
+    "BackgroundImage": {
+      "type": "object",
+      "description": "Image background with optional scale and overlay",
+      "required": ["imageUrl"],
+      "properties": {
+        "imageUrl": {
+          "type": "string",
+          "description": "URL of the background image"
+        },
+        "scaleType": {
+          "type": "string",
+          "enum": ["cover", "fill", "contain"],
+          "default": "cover"
+        },
+        "overlay": {
+          "oneOf": [
+            { "type": "string", "description": "Solid hex color overlay (e.g. #00000080)" },
+            { "$ref": "#/definitions/BackgroundGradient" }
+          ],
+          "description": "Optional overlay applied on top of the image"
+        }
+      }
+    },
+    "Background": {
+      "oneOf": [
+        { "type": "string", "description": "Solid hex color (e.g. #1A1F2E)" },
+        { "$ref": "#/definitions/BackgroundGradient" },
+        { "$ref": "#/definitions/BackgroundImage" }
+      ],
+      "description": "Shared background type — solid color, gradient, or image with overlay"
+    },
     "AtomicElement": {
       "type": "object",
       "description": "Atomic UI primitive — server-composed building block for the atomic rendering layer",
@@ -276,7 +324,7 @@
         "crossAlignment": { "$ref": "#/definitions/CrossAlignment" },
         "gap": { "type": "integer" },
         "padding": { "$ref": "#/definitions/Spacing" },
-        "backgroundColor": { "type": "string" },
+        "background": { "$ref": "#/definitions/Background" },
         "content": { "type": "string" },
         "variant": { "$ref": "#/definitions/TextVariant" },
         "weight": { "$ref": "#/definitions/TextWeight" },
@@ -342,24 +390,7 @@
         },
         "flex": { "type": "number", "description": "Flex grow factor. When set on a child of a Container, the child claims proportional space along the main axis (like CSS flex or Compose weight). Default 0 (size to content)." },
         "breakpoint": { "type": "integer", "description": "Responsive breakpoint in dp/px. For Container: below this screen width, direction flips from row to column. Enables responsive layouts without client logic." },
-        "cornerRadius": { "type": "integer", "description": "Corner radius in dp/px. Applied to Container (with overflow clip) and Image elements." },
-        "backgroundGradient": {
-          "type": "object",
-          "description": "Gradient background for Container elements",
-          "properties": {
-            "colors": {
-              "type": "array",
-              "items": { "type": "string" },
-              "description": "Ordered list of color stops (hex or semantic token)"
-            },
-            "direction": {
-              "type": "string",
-              "enum": ["horizontal", "vertical", "diagonal"],
-              "default": "vertical"
-            }
-          },
-          "required": ["colors"]
-        }
+        "cornerRadius": { "type": "integer", "description": "Corner radius in dp/px. Applied to Container (with overflow clip) and Image elements." }
       }
     },
     "AtomicCompositeData": {
@@ -460,6 +491,25 @@
         "awayLeader": { "$ref": "#/definitions/GameLeaderData" }
       }
     },
+    "GamePanelDisplayConfig": {
+      "type": "object",
+      "description": "Server-driven visual configuration for GamePanel — replaces the hardcoded variant branch",
+      "properties": {
+        "logoSize": { "type": "integer", "default": 32, "description": "Team logo width/height in dp/px" },
+        "cardHeight": { "type": "integer", "description": "Fixed card height in dp/px. Null/absent = auto-size" },
+        "cornerRadius": { "type": "integer", "default": 12, "description": "Card corner radius in dp/px" },
+        "elevation": { "type": "integer", "default": 0, "description": "Card elevation/shadow in dp/px" },
+        "scoreTextStyle": {
+          "type": "string",
+          "enum": ["compact", "prominent"],
+          "default": "compact",
+          "description": "Score typography: compact = bodyLarge+Bold, prominent = headlineMedium+ExtraBold"
+        },
+        "background": { "$ref": "#/definitions/Background", "description": "Default background (pre-game, final)" },
+        "liveBackground": { "$ref": "#/definitions/Background", "description": "Background override when game is LIVE" },
+        "badgeColor": { "type": "string", "description": "Badge/chip background color (hex)" }
+      }
+    },
     "GamePanelData": {
       "type": "object",
       "required": ["gameId", "gameStatus", "homeTeam", "awayTeam"],
@@ -475,11 +525,9 @@
           "type": "array",
           "items": { "$ref": "#/definitions/Action" }
         },
-        "variant": {
-          "type": "string",
-          "enum": ["standard", "featured", "scoreboard"],
-          "default": "standard",
-          "description": "Visual treatment: 'standard' for compact feed cards, 'featured' for hero-sized cards with gradient/background, 'scoreboard' for compact scoreboard rows"
+        "displayConfig": {
+          "$ref": "#/definitions/GamePanelDisplayConfig",
+          "description": "Server-driven visual configuration — controls all layout and styling knobs"
         },
         "period": {
           "type": "integer",
@@ -488,10 +536,6 @@
         "gameClock": {
           "type": "string",
           "description": "Game clock string (e.g. 'PT05M32.00S' or '5:32')"
-        },
-        "backgroundImageUrl": {
-          "type": "string",
-          "description": "Background image URL for featured variant hero card"
         },
         "badgeText": {
           "type": "string",
@@ -866,7 +910,7 @@
       "properties": {
         "title": { "type": "string" },
         "subtitle": { "type": "string" },
-        "backgroundImageUrl": { "type": "string" },
+        "background": { "$ref": "#/definitions/Background" },
         "logoUrl": { "type": "string" },
         "ctaLabel": { "type": "string" },
         "ctaAction": { "$ref": "#/definitions/Action" },
@@ -884,7 +928,7 @@
       "properties": {
         "title": { "type": "string" },
         "subtitle": { "type": "string" },
-        "backgroundImageUrl": { "type": "string" },
+        "background": { "$ref": "#/definitions/Background" },
         "logoUrl": { "type": "string" },
         "features": {
           "type": "array",

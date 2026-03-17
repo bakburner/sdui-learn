@@ -20,6 +20,17 @@ export interface TabGroupUiModel {
   stateKey: string;
 }
 
+export interface GamePanelDisplayConfig {
+  logoSize: number;
+  cardHeight?: number;
+  cornerRadius: number;
+  elevation: number;
+  scoreTextStyle: 'compact' | 'prominent';
+  background?: any;
+  liveBackground?: any;
+  badgeColor?: string;
+}
+
 export interface GamePanelUiModel {
   awayTricode: string;
   homeTricode: string;
@@ -35,10 +46,9 @@ export interface GamePanelUiModel {
   broadcaster?: string;
   gameDateEt?: string;
   primaryAction?: Action;
-  variant: string;
+  displayConfig: GamePanelDisplayConfig;
   badgeText?: string;
   visualLabel?: string;
-  backgroundImageUrl?: string;
   visualState?: string;
 }
 
@@ -158,10 +168,25 @@ export function mapGamePanel(section: Section): GamePanelUiModel | null {
     broadcaster: raw.broadcaster as string | undefined,
     gameDateEt: raw.gameDateEt as string | undefined,
     primaryAction,
-    variant: (raw.variant as string | undefined) || 'standard',
+    displayConfig: parseDisplayConfig(raw.displayConfig),
     badgeText: raw.badgeText as string | undefined,
     visualLabel: raw.visualLabel as string | undefined,
-    backgroundImageUrl: raw.backgroundImageUrl as string | undefined,
     visualState,
+  };
+}
+
+function parseDisplayConfig(raw: any): GamePanelDisplayConfig {
+  if (!raw || typeof raw !== 'object') {
+    return { logoSize: 32, cornerRadius: 12, elevation: 0, scoreTextStyle: 'compact' };
+  }
+  return {
+    logoSize: raw.logoSize ?? 32,
+    cardHeight: raw.cardHeight ?? undefined,
+    cornerRadius: raw.cornerRadius ?? 12,
+    elevation: raw.elevation ?? 0,
+    scoreTextStyle: raw.scoreTextStyle ?? 'compact',
+    background: raw.background,
+    liveBackground: raw.liveBackground,
+    badgeColor: raw.badgeColor,
   };
 }

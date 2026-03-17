@@ -391,7 +391,11 @@ public class WatchComposer {
         ObjectNode data = objectMapper.createObjectNode();
         data.put("title", title);
         if (subtitle != null) data.put("subtitle", subtitle);
-        if (backgroundUrl != null) data.put("backgroundImageUrl", backgroundUrl);
+        if (backgroundUrl != null) {
+            ObjectNode bgImage = objectMapper.createObjectNode();
+            bgImage.put("imageUrl", backgroundUrl);
+            data.set("background", bgImage);
+        }
 
         data.put("ctaLabel", ctaLabel);
 
@@ -415,7 +419,9 @@ public class WatchComposer {
         ObjectNode data = objectMapper.createObjectNode();
         data.put("title", "NBA League Pass");
         data.put("subtitle", "Your courtside seat to every game");
-        data.put("backgroundImageUrl", FALLBACK_THUMB);
+        ObjectNode heroBg = objectMapper.createObjectNode();
+        heroBg.put("imageUrl", FALLBACK_THUMB);
+        data.set("background", heroBg);
         data.put("logoUrl", FALLBACK_THUMB);
 
         ArrayNode features = objectMapper.createArrayNode();

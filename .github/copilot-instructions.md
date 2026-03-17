@@ -53,8 +53,6 @@ Server-Driven UI prototype: JSON schema → server composition → multi-platfor
 
 ## Key Docs
 
-- `docs/atomic-primitives-analysis.md` — hybrid architecture plan
 - `docs/adr/` — architecture decision records (010 = offline strategy)
 - `docs/SDUI_Technical_Proposal_v2.md` — technical proposal
-- `docs/sdui-accessibility-plan.md` — accessibility plan
-- `docs/action-failure-semantics-plan.md` — action failure contract
+- `docs/plan-accessibility.md` — accessibility plan

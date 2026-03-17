@@ -697,6 +697,7 @@ public class AtomicCompositeBuilder {
         String bg = bgColor != null ? bgColor : "#17408B";
 
         ObjectNode root = container("row", "spaceEvenly", "center");
+        root.put("fillWidth", true);
         root.put("cornerRadius", 12);
         root.put("backgroundColor", bg);
         root.set("padding", padding(16, 16, 24, 24));
@@ -721,6 +722,7 @@ public class AtomicCompositeBuilder {
         root.set("children", rootChildren);
 
         ObjectNode wrapper = container("column", null, null);
+        wrapper.put("fillWidth", true);
         wrapper.set("padding", padding(8, 8, 0, 0));
         ArrayNode wrapChildren = om.createArrayNode();
         wrapChildren.add(root);
@@ -759,6 +761,8 @@ public class AtomicCompositeBuilder {
         ObjectNode section = sectionEnvelope(id, analyticsId);
 
         ObjectNode root = container("column", null, null);
+        root.put("backgroundColor", "#0C1022");
+        root.put("cornerRadius", 12);
         ArrayNode rootChildren = om.createArrayNode();
 
         ObjectNode heroContainer = container("column", "end", null);

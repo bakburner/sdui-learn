@@ -36,7 +36,7 @@ Extract current facts from code before auditing docs. These files define reality
 
 Audit these files in order (highest-visibility first):
 
-1. `.github/copilot-instructions.md` — tier classification, section/atomic counts, architecture summary
+1. `AGENTS.md` — tier classification, section/atomic counts, architecture summary, development rules
 2. `README.md` — renderer counts, recent changes, migration status
 3. `docs/SDUI_Executive_Summary_v2.md` — renderer counts, atomic layer description, feature table
 4. `docs/SDUI_Technical_Proposal_v2.md` — tier classification, migration status, architecture details
@@ -53,7 +53,7 @@ Audit these files in order (highest-visibility first):
 Run the extraction script from the project root:
 
 ```bash
-python3 .github/skills/doc-consistency-audit/extract-facts.py
+python3 prompts/skills/doc-consistency-audit/extract-facts.py
 ```
 
 This prints section types, action types, atomic element types, data oneOf refs, all definitions, sdui-all-types.json keys, and checks for dangling refs.

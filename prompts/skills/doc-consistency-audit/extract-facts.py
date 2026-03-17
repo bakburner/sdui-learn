@@ -2,7 +2,7 @@
 """Extract SDUI schema facts for doc-consistency-audit.
 
 Run from project root:
-    python3 .github/skills/doc-consistency-audit/extract-facts.py
+    python3 prompts/skills/doc-consistency-audit/extract-facts.py
 """
 import json
 import sys

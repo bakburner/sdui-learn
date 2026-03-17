@@ -23,7 +23,7 @@ Review updated requirement documents, technical proposals, and ADRs to identify 
 | `docs/SDUI_Technical_Proposal_v2.md` | New architecture sections, revised technical approaches, new sequence diagrams |
 | `docs/SDUI_Executive_Summary_v2.md` | New feature rows, changed scope or timeline signals |
 | `docs/adr/*.md` | Newly accepted ADRs that imply implementation work |
-| `.github/copilot-instructions.md` | Tier classification changes, new key rules, architecture shifts |
+| `AGENTS.md` | Tier classification changes, new key rules, architecture shifts |
 
 ## Output
 

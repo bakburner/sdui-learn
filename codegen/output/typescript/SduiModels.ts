@@ -26,15 +26,11 @@ export interface SduiModels {
 /**
  * Action fired when the form is submitted
  *
- * Optional 'See All' or navigation action
- *
- * Optional action to retry the failed operation
- *
  * Optional action to trigger on retry tap (typically a refresh action)
  */
 export interface Action {
     /**
-     * For analytics actions: where to send the beacon
+     * For fireAndForget actions: where to send the beacon
      */
     destinations?: Destination[];
     /**
@@ -42,7 +38,7 @@ export interface Action {
      */
     endpoint?: string;
     /**
-     * For analytics actions: event name
+     * For fireAndForget actions: event name
      */
     event?: string;
     /**
@@ -51,7 +47,7 @@ export interface Action {
      */
     failureFeedback?: FailureFeedback;
     /**
-     * For analytics actions with onVisible trigger: impression tracking policy
+     * For fireAndForget actions with onVisible trigger: impression tracking policy
      */
     impression?: ImpressionPolicy;
     /**
@@ -64,7 +60,7 @@ export interface Action {
     modalHeight?: ModalHeight;
     /**
      * Sequence behavior when this action fails. Client applies per-type default when absent
-     * (navigate=halt, analytics/dismiss/toast=silent, mutate/refresh=continue)
+     * (navigate=halt, fireAndForget/dismiss/toast=silent, mutate/refresh=continue)
      */
     onFailure?: FailurePolicy;
     /**
@@ -76,7 +72,7 @@ export interface Action {
      */
     paramBindings?: { [key: string]: string };
     /**
-     * For analytics actions: event parameters
+     * For fireAndForget actions: event parameters
      */
     params?: { [key: string]: any };
     /**
@@ -143,7 +139,7 @@ export enum FailureFeedbackStyle {
 }
 
 /**
- * For analytics actions with onVisible trigger: impression tracking policy
+ * For fireAndForget actions with onVisible trigger: impression tracking policy
  *
  * Impression tracking policy for analytics actions with onVisible trigger
  */
@@ -187,10 +183,10 @@ export enum ModalHeight {
 
 /**
  * Sequence behavior when this action fails. Client applies per-type default when absent
- * (navigate=halt, analytics/dismiss/toast=silent, mutate/refresh=continue)
+ * (navigate=halt, fireAndForget/dismiss/toast=silent, mutate/refresh=continue)
  *
  * Sequence behavior when an action fails. Clients apply per-type defaults when absent:
- * navigate=halt, analytics/dismiss/toast=silent, mutate/refresh=continue.
+ * navigate=halt, fireAndForget/dismiss/toast=silent, mutate/refresh=continue.
  */
 export enum FailurePolicy {
     Continue = "continue",
@@ -229,8 +225,8 @@ export enum ActionTrigger {
 }
 
 export enum ActionType {
-    Analytics = "analytics",
     Dismiss = "dismiss",
+    FireAndForget = "fireAndForget",
     Mutate = "mutate",
     Navigate = "navigate",
     Refresh = "refresh",
@@ -294,7 +290,12 @@ export interface AtomicElement {
      * Gradient background for Container elements
      */
     backgroundGradient?: BackgroundGradient;
-    buttonVariant?:      ButtonVariant;
+    /**
+     * Responsive breakpoint in dp/px. For Container: below this screen width, direction flips
+     * from row to column. Enables responsive layouts without client logic.
+     */
+    breakpoint?:    number;
+    buttonVariant?: ButtonVariant;
     /**
      * Typography variant for data cells
      */
@@ -316,7 +317,12 @@ export interface AtomicElement {
     disabled?:       boolean;
     falseChild?:     AtomicElement;
     fit?:            ImageFit;
-    gap?:            number;
+    /**
+     * Flex grow factor. When set on a child of a Container, the child claims proportional space
+     * along the main axis (like CSS flex or Compose weight). Default 0 (size to content).
+     */
+    flex?: number;
+    gap?:  number;
     /**
      * Typography variant for header cells
      */
@@ -357,16 +363,7 @@ export interface AtomicElement {
 /**
  * Section-specific data payload
  *
- * Container for a titled list of stat lines
- *
- * Horizontal scrolling strip of content cards
- *
  * Tabbed navigation with dynamic content sections per tab
- *
- * Promotional banner with optional image and call-to-action
- *
- * Responsive row layout that places children side-by-side above a breakpoint width, and
- * stacks vertically below it
  *
  * Typed tabular data for an NBA-style boxscore (one per team)
  *
@@ -377,59 +374,20 @@ export interface AtomicElement {
  *
  * Sortable, paginated table of season statistical leaders (league-wide)
  *
- * Horizontal scrolling rail of followed teams/players with circular avatars
- *
- * Titled separator/divider between groups of sections, with optional See All action
- *
- * Horizontal scrolling carousel of video thumbnails (landscape 16:9). Mobile shows
- * swipeable cards; web shows a grid with hover-to-play.
- *
- * NBA TV programming schedule with hero promo and time-slot list
- *
  * Inline subscription upsell banner with headline, body copy, and CTA
  *
  * Full-screen subscription upsell hero with multi-tier pricing and feature list
- *
- * Error state displayed when something goes wrong — bad ID, network failure, missing data,
- * etc.
  *
  * Data payload for AtomicComposite sections — ui contains rendering instructions, content
  * carries domain data
  */
 export interface Data {
-    /**
-     * Row layout: 'horizontal' = image | name | stat inline, 'vertical' = name/image stacked
-     * above stat value. Use 'vertical' for narrow viewports.
-     *
-     * Layout hint for field arrangement
-     */
-    layout?: Layout;
-    stats?:  StatLineData[];
-    /**
-     * Table heading, e.g. 'Season Leaders'
-     *
-     * Short error headline, e.g. 'Something went wrong'
-     */
-    title?: string;
-    /**
-     * Optional 'See All' or navigation action
-     */
-    action?:       Action;
-    contentType?:  ContentType;
-    duration?:     string;
-    headline?:     string;
-    id?:           string;
-    subhead?:      string;
-    thumbnailUrl?: string;
-    cards?:        HeroPanelData[];
-    defaultTab?:   string;
-    stateKey?:     string;
-    tabContents?:  { [key: string]: Section[] };
-    tabs?:         TabData[];
-    actions?:      Action[];
-    description?:  string;
-    imageUrl?:     string;
-    awayTeam?:     TeamData;
+    defaultTab?:  string;
+    stateKey?:    string;
+    tabContents?: { [key: string]: Section[] };
+    tabs?:        TabData[];
+    actions?:     Action[];
+    awayTeam?:    TeamData;
     /**
      * Background image URL for featured variant hero card
      */
@@ -461,18 +419,6 @@ export interface Data {
      * Secondary label shown above the matchup (e.g. team name, 'Recommended')
      */
     visualLabel?: string;
-    /**
-     * Screen width (dp) below which children stack vertically
-     */
-    breakpoint?: number;
-    /**
-     * Child sections rendered in a row (or column when collapsed)
-     */
-    children?: Section[];
-    /**
-     * Gap between children in dp/px
-     */
-    spacing?: number;
     /**
      * Ordered list of column definitions; clients render left-to-right
      *
@@ -512,6 +458,10 @@ export interface Data {
      */
     teamTricode?: string;
     fields?:      FormField[];
+    /**
+     * Layout hint for field arrangement
+     */
+    layout?: Layout;
     /**
      * Action fired when the form is submitted
      */
@@ -563,21 +513,16 @@ export interface Data {
      */
     subtitle?: string;
     /**
+     * Table heading, e.g. 'Season Leaders'
+     */
+    title?: string;
+    /**
      * Total number of rows available server-side (for pagination display)
      */
     totalRows?: number;
-    items?:     FollowingRailItem[];
-    /**
-     * Hero image for the currently airing program
-     */
-    heroImageUrl?: string;
-    heroSubtitle?: string;
-    heroTitle?:    string;
-    liveNow?:      boolean;
-    slots?:        NbaTvSlot[];
-    ctaAction?:    Action;
-    ctaLabel?:     string;
-    logoUrl?:      string;
+    ctaAction?: Action;
+    ctaLabel?:  string;
+    logoUrl?:   string;
     /**
      * Optional pricing tier highlights
      */
@@ -586,18 +531,6 @@ export interface Data {
      * Bullet-point feature list
      */
     features?: string[];
-    /**
-     * Optional icon name, e.g. 'error', 'wifi_off'
-     */
-    icon?: string;
-    /**
-     * Longer explanatory text
-     */
-    message?: string;
-    /**
-     * Optional action to retry the failed operation
-     */
-    retryAction?: Action;
     /**
      * Optional domain data (strings, URLs, flags) to populate the ui tree. Reserved for future
      * data-binding support.
@@ -777,24 +710,6 @@ export interface TeamData {
     [property: string]: any;
 }
 
-export interface HeroPanelData {
-    action?:       Action;
-    contentType?:  ContentType;
-    duration?:     string;
-    headline:      string;
-    id:            string;
-    subhead?:      string;
-    thumbnailUrl?: string;
-    [property: string]: any;
-}
-
-export enum ContentType {
-    Article = "article",
-    Gallery = "gallery",
-    Interactive = "interactive",
-    Video = "video",
-}
-
 /**
  * Defines a single column in the boxscore table
  */
@@ -892,49 +807,6 @@ export interface GameLeaderData {
 }
 
 /**
- * One entity (team or player) in a following rail
- */
-export interface FollowingRailItem {
-    action?: Action;
-    /**
-     * Whether this item represents a team or a player
-     */
-    entityType?: EntityType;
-    id:          string;
-    /**
-     * Avatar / logo URL
-     */
-    imageUrl?: string;
-    /**
-     * Display name, e.g. 'Lakers' or 'LeBron James'
-     */
-    name?: string;
-    /**
-     * Overlay badge, e.g. 'LIVE', 'NEW'
-     */
-    badgeText?: string;
-    /**
-     * Human-readable duration, e.g. '2:34'
-     */
-    duration?:     string;
-    subtitle?:     string;
-    thumbnailUrl?: string;
-    title?:        string;
-    [property: string]: any;
-}
-
-/**
- * Whether this item represents a team or a player
- */
-export enum EntityType {
-    Player = "player",
-    Team = "team",
-}
-
-/**
- * Row layout: 'horizontal' = image | name | stat inline, 'vertical' = name/image stacked
- * above stat value. Use 'vertical' for narrow viewports.
- *
  * Layout hint for field arrangement
  */
 export enum Layout {
@@ -979,38 +851,9 @@ export interface PlayerRow {
     [property: string]: any;
 }
 
-export interface NbaTvSlot {
-    action?: Action;
-    /**
-     * ISO-8601 end time
-     */
-    endTime?: string;
-    id:       string;
-    isLive?:  boolean;
-    /**
-     * ISO-8601 start time
-     */
-    startTime:     string;
-    subtitle?:     string;
-    thumbnailUrl?: string;
-    title:         string;
-    [property: string]: any;
-}
-
 export enum SortDirection {
     Asc = "asc",
     Desc = "desc",
-}
-
-export interface StatLineData {
-    playerId:        number;
-    playerImageUrl?: string;
-    playerName:      string;
-    statCategory:    string;
-    statLabel?:      string;
-    statValue:       string;
-    teamTricode?:    string;
-    [property: string]: any;
 }
 
 export interface TabData {
@@ -1175,20 +1018,10 @@ export enum SectionType {
     AdSlot = "AdSlot",
     AtomicComposite = "AtomicComposite",
     BoxscoreTable = "BoxscoreTable",
-    ContentRail = "ContentRail",
-    ErrorState = "ErrorState",
-    FollowingRail = "FollowingRail",
     Form = "Form",
     GamePanel = "GamePanel",
-    HeroPanel = "HeroPanel",
-    NbaTvSchedule = "NbaTvSchedule",
-    PromoBanner = "PromoBanner",
-    Row = "Row",
     SeasonLeadersTable = "SeasonLeadersTable",
-    SectionHeader = "SectionHeader",
-    StatLine = "StatLine",
     SubscribeBanner = "SubscribeBanner",
     SubscribeHero = "SubscribeHero",
     TabGroup = "TabGroup",
-    VideoCarousel = "VideoCarousel",
 }

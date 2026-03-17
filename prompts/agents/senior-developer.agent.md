@@ -99,7 +99,7 @@ Then: codegen → verify all 3 outputs (Java, TypeScript, Swift) → update rend
 3. Android renderer update (Kotlin/Compose in `sdui-core`)
 4. Web renderer update (React/TypeScript)
 5. Example payload update (`schema/examples/`)
-6. Documentation update (docs/, copilot-instructions.md)
+6. Documentation update (docs/, AGENTS.md)
 
 ### Codegen Pipeline
 ```bash
@@ -116,7 +116,7 @@ cd ../web && npm run build
 2. **Schema first** — if the contract changes, update schema and run codegen before touching any code.
 3. **Server next** — composers and controllers.
 4. **Clients in parallel** — Android (Kotlin/Compose) and web (React/TypeScript) can be done simultaneously.
-5. **Docs last** — update copilot-instructions.md, relevant ADRs, and example payloads.
+5. **Docs last** — update AGENTS.md, relevant ADRs, and example payloads.
 6. **Validate** — full pipeline build, no dangling refs, codegen clean, no stale types.
 
 ## File Map
@@ -134,5 +134,5 @@ cd ../web && npm run build
 | Requirements | `docs/sdui-requirements-summary.md` |
 | Technical proposal | `docs/SDUI_Technical_Proposal_v2.md` |
 | Executive summary | `docs/SDUI_Executive_Summary_v2.md` |
-| Copilot instructions | `.github/copilot-instructions.md` |
+| Development rules | `AGENTS.md` |
 | Example payloads | `schema/examples/` |

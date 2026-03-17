@@ -54,7 +54,7 @@ One-paragraph description of what this workstream delivers and why it matters.
 
 ### Phase 5: Documentation & Tests
 - [ ] Update `docs/sdui-requirements-summary.md` status matrix
-- [ ] Update `.github/copilot-instructions.md` if architecture changed
+- [ ] Update `AGENTS.md` if architecture changed
 - [ ] Add/update ADR if decision was made
 - [ ] Contract tests / unit tests / integration tests
 

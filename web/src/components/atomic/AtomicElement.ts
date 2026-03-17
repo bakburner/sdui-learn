@@ -48,6 +48,10 @@ export interface AtomicElement {
   color?: string;
   maxLines?: number;
 
+  // Container layout
+  flex?: number;
+  breakpoint?: number;
+
   // Shared visual
   cornerRadius?: number;
   fillWidth?: boolean;

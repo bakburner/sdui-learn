@@ -19,7 +19,7 @@ export function useImpressionTracking({
   const dwellTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const onVisibleActions = actions.filter(
-    (a) => a.trigger === 'onVisible' && a.type === 'analytics',
+    (a) => a.trigger === 'onVisible' && a.type === 'fireAndForget',
   );
 
   const fireAction = useCallback(

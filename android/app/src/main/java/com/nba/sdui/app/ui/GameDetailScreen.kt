@@ -63,8 +63,8 @@ fun GameDetailScreen(
                 is ActionHandler.ActionResult.NavigateResult -> {
                     onNavigateUri(result.uri)
                 }
-                is ActionHandler.ActionResult.AnalyticsResult -> {
-                    Log.d("SDUI", "Analytics: ${result.eventName} - ${result.params}")
+                is ActionHandler.ActionResult.FireAndForgetResult -> {
+                    Log.d("SDUI", "FireAndForget: ${result.eventName} - ${result.params}")
                 }
                 is ActionHandler.ActionResult.RefreshResult -> {
                     viewModel.load(config.uri, result.sectionId)

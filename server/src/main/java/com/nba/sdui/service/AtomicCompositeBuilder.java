@@ -10,8 +10,9 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  * Each method returns a complete section envelope (id, type, analyticsId, refreshPolicy, data)
  * with {@code type: "AtomicComposite"} and {@code data.ui} containing the rendering tree.
  *
- * Tier 1: ErrorState, SectionHeader, PromoBanner, ContentRail, FollowingRail.
- * Tier 2: HeroPanel, VideoCarousel, StatLine, NbaTvSchedule, GamePanel (scoreboard variant).
+ * Migrated section types (server-composed, no client renderers):
+ * ErrorState, SectionHeader, PromoBanner, ContentRail, FollowingRail,
+ * HeroPanel, VideoCarousel, StatLine, NbaTvSchedule, GamePanel (scoreboard variant).
  */
 public class AtomicCompositeBuilder {
 
@@ -363,7 +364,7 @@ public class AtomicCompositeBuilder {
     }
 
     // ══════════════════════════════════════════════════════════════════════
-    // TIER 2 SECTIONS
+    // ADDITIONAL MIGRATED SECTIONS
     // ══════════════════════════════════════════════════════════════════════
 
     // ── HeroPanel ────────────────────────────────────────────────────────
@@ -928,6 +929,24 @@ public class AtomicCompositeBuilder {
         if (alignment != null) node.put("alignment", alignment);
         if (crossAlignment != null) node.put("crossAlignment", crossAlignment);
         return node;
+    }
+
+    /**
+     * Build a responsive row Container that replaces the old Row section type.
+     * Children are flexed equally (flex=1) and the direction flips row→column at the breakpoint.
+     * fillWidth is true by default to maintain parity with the old Row renderer.
+     */
+    ObjectNode responsiveRow(int gap, int breakpoint) {
+        ObjectNode node = container("row", null, null);
+        node.put("gap", gap);
+        node.put("breakpoint", breakpoint);
+        node.put("fillWidth", true);
+        return node;
+    }
+
+    /** Set flex on an element node (used on children of a Container for proportional sizing). */
+    void setFlex(ObjectNode element, double flex) {
+        element.put("flex", flex);
     }
 
     private ObjectNode text(String content, String variant, String weight,

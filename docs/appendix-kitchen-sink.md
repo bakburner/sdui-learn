@@ -11,9 +11,9 @@ This is the full server response for the kitchen-sink demo screen — a single S
 - **Dual-layer rendering** — 32 `AtomicComposite` sections (server-composed atomic trees rendered by `AtomicRouter`) alongside 10 semantic sections rendered by dedicated client components
 - **All 9 atomic primitives** — Container, Text, Image, Button, Spacer, Divider, ScrollContainer, Conditional, DisplayGrid — composed into AtomicComposite trees
 - **SectionSlot bridge** — atomic trees embedding full section renderers (AdSlot inside an atomic layout)
-- **All semantic section types still using dedicated renderers** — GamePanel (2), BoxscoreTable, Form, TabGroup, Row, SeasonLeadersTable, SubscribeBanner, SubscribeHero, AdSlot
+- **All semantic section types still using dedicated renderers** — GamePanel (2), BoxscoreTable, Form, TabGroup, SeasonLeadersTable, SubscribeBanner, SubscribeHero, AdSlot
 - **Mixed refresh policies** — static, polling (with `intervalSec` + direct CDN `url`), and SSE (Ably channel) coexisting on the same screen
-- **Action system** — navigate, analytics, mutate, dismiss, refresh actions at screen, section, and subsection scopes
+- **Action system** — navigate, fireAndForget, mutate, dismiss, refresh actions at screen, section, and subsection scopes
 - **Data bindings** — field-level JSONPath bindings with `stringKeys` for i18n on SSE-updated fields
 - **Screen state** — `state` object with default values, mutated by actions (tab selection, sort column/direction)
 - **Navigation** — bottom navigation bar with 5 items, server-driven
@@ -1259,7 +1259,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
                     "children": [
                         {
                             "type": "Text",
-                            "content": "Row",
+                            "content": "Responsive Row (Container + breakpoint)",
                             "variant": "titleMedium",
                             "weight": "bold"
                         }
@@ -1269,7 +1269,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
         },
         {
             "id": "demo-row",
-            "type": "Row",
+            "type": "AtomicComposite",
             "analyticsId": "demo_row",
             "data": {
                 "spacing": 16,

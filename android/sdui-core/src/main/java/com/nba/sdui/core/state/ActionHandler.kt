@@ -35,7 +35,7 @@ data class FailureFeedback(
  */
 data class SduiAction(
     val trigger: String, // "onTap", "onLongPress", "onVisible", "onSwipe"
-    val type: String, // "navigate", "analytics", "mutate", "refresh", "dismiss", "toast"
+    val type: String, // "navigate", "fireAndForget", "mutate", "refresh", "dismiss", "toast"
     val targetUri: String? = null,
     val fallbackUrl: String? = null,
     val eventName: String? = null,
@@ -55,7 +55,7 @@ data class SduiAction(
  * 
  * The handler receives Action objects from component interactions and executes them:
  * - navigate: Open a deeplink URI or log the navigation target
- * - analytics: Log the event name and parameters
+ * - fireAndForget: Forward event payload to registered backends (analytics, logging, etc.)
  * - mutate: Update the state manager with the specified key/value
  * - refresh: Trigger a re-fetch of a section or the entire screen
  * - dismiss: Close modals/overlays
@@ -68,7 +68,7 @@ class ActionHandler {
         /** Per-type default failure policy when onFailure is absent from the action. */
         private val DEFAULT_FAILURE_POLICY = mapOf(
             "navigate" to FailurePolicy.HALT,
-            "analytics" to FailurePolicy.SILENT,
+            "fireAndForget" to FailurePolicy.SILENT,
             "mutate" to FailurePolicy.CONTINUE,
             "refresh" to FailurePolicy.CONTINUE,
             "dismiss" to FailurePolicy.SILENT,
@@ -136,7 +136,7 @@ class ActionHandler {
         
         return when (action.type) {
             "navigate" -> handleNavigate(action)
-            "analytics" -> handleAnalytics(action)
+            "fireAndForget" -> handleFireAndForget(action)
             "mutate" -> handleMutate(action, stateManager)
             "refresh" -> handleRefresh(action, stateManager)
             "dismiss" -> handleDismiss(action)
@@ -162,13 +162,13 @@ class ActionHandler {
         return ActionResult.NavigateResult(uri, action.fallbackUrl)
     }
     
-    private fun handleAnalytics(action: SduiAction): ActionResult {
+    private fun handleFireAndForget(action: SduiAction): ActionResult {
         val eventName = action.eventName ?: "unnamed_event"
         val params = action.eventParams ?: emptyMap()
         
-        Log.i(TAG, "Analytics event: $eventName, params=$params")
-        // In a real implementation, this would fire to analytics backends
-        return ActionResult.AnalyticsResult(eventName, params)
+        Log.i(TAG, "FireAndForget event: $eventName, params=$params")
+        // In a real implementation, this would forward to registered backends (analytics, logging, etc.)
+        return ActionResult.FireAndForgetResult(eventName, params)
     }
     
     private fun handleMutate(action: SduiAction, stateManager: StateManager): ActionResult {
@@ -239,7 +239,7 @@ class ActionHandler {
 
         data class NavigateResult(val uri: String, val fallbackUrl: String?) : ActionResult()
         data class NavigateError(val uri: String, val reason: String, val feedback: FailureFeedback?) : ActionResult()
-        data class AnalyticsResult(val eventName: String, val params: Map<String, Any>) : ActionResult()
+        data class FireAndForgetResult(val eventName: String, val params: Map<String, Any>) : ActionResult()
         data class MutateResult(val key: String, val value: Any?) : ActionResult()
         data class MutateNoOp(val key: String, val reason: String) : ActionResult()
         data class RefreshResult(val sectionId: String?) : ActionResult()

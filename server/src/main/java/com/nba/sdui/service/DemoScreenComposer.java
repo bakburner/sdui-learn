@@ -76,9 +76,9 @@ public class DemoScreenComposer {
         // 7. GamePanel
         sections.add(buildTypeLabel("GamePanel"));
         sections.add(buildDemoGamePanel());
-        // 8. Row
-        sections.add(buildTypeLabel("Row"));
-        sections.add(buildDemoRow());
+        // 8. Responsive Row (AtomicComposite with breakpoint)
+        sections.add(buildTypeLabel("Responsive Row (Container + breakpoint)"));
+        sections.add(buildDemoResponsiveRow());
         // 9. TabGroup
         sections.add(buildTypeLabel("TabGroup"));
         sections.add(buildDemoTabGroup());
@@ -386,33 +386,35 @@ public class DemoScreenComposer {
     }
 
     /**
-     * 7. Row — league leader row (label/value pair with children).
+     * 8. Responsive Row — two stat lines side-by-side above 600dp, stacked below.
+     * Uses AtomicComposite with Container(direction=row, breakpoint=600) + SectionSlots
+     * to replace the old Row section type.
      */
-    private ObjectNode buildDemoRow() {
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "demo-row");
-        section.put("type", "Row");
-        section.put("analyticsId", "demo_row");
-
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("spacing", 16);
-        data.put("breakpoint", 600);
-
-        ArrayNode children = objectMapper.createArrayNode();
-
-        children.add(atomicBuilder.buildStatLine(
+    private ObjectNode buildDemoResponsiveRow() {
+        ObjectNode scoringLeader = atomicBuilder.buildStatLine(
                 "row-scoring-leader", null, "Scoring Leader", "vertical",
                 new String[][]{{"203999", "Nikola Jokić", "DEN", "PTS", "26.4",
-                        "https://cdn.nba.com/headshots/nba/latest/1040x760/203999.png"}}));
+                        "https://cdn.nba.com/headshots/nba/latest/1040x760/203999.png"}});
 
-        children.add(atomicBuilder.buildStatLine(
+        ObjectNode assistsLeader = atomicBuilder.buildStatLine(
                 "row-assists-leader", null, "Assists Leader", "vertical",
                 new String[][]{{"201566", "Trae Young", "ATL", "AST", "11.1",
-                        "https://cdn.nba.com/headshots/nba/latest/1040x760/201566.png"}}));
+                        "https://cdn.nba.com/headshots/nba/latest/1040x760/201566.png"}});
 
-        data.set("children", children);
-        section.set("data", data);
-        return section;
+        ObjectNode root = atomicBuilder.responsiveRow(16, 600);
+        root.put("id", "demo-row-container");
+        ArrayNode children = objectMapper.createArrayNode();
+
+        ObjectNode leftSlot = atomicBuilder.sectionSlot("row-left", scoringLeader);
+        atomicBuilder.setFlex(leftSlot, 1);
+        children.add(leftSlot);
+
+        ObjectNode rightSlot = atomicBuilder.sectionSlot("row-right", assistsLeader);
+        atomicBuilder.setFlex(rightSlot, 1);
+        children.add(rightSlot);
+
+        root.set("children", children);
+        return atomicBuilder.wrapAsComposite("demo-row", "demo_row", root);
     }
 
     /**

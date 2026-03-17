@@ -55,11 +55,11 @@
       }
     },
     {
-      "note": "Multi-action sequence: analytics → navigate (demonstrates analytics-before-navigation pattern)",
+      "note": "Multi-action sequence: fireAndForget → navigate (demonstrates fire-and-forget-before-navigation pattern)",
       "actions": [
         {
           "trigger": "onTap",
-          "type": "analytics",
+          "type": "fireAndForget",
           "event": "game_card_tapped",
           "params": { "gameId": "0022500384", "source": "scoreboard" }
         },

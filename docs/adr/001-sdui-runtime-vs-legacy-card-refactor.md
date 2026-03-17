@@ -103,7 +103,7 @@ Adopt **Option B**: new SDUI runtime/library with incremental migration.
 | 3 | Migrate complex semantic surfaces (`dynamicCTA`, `leaguePassCard`, live game states) |
 | 4 | Retire legacy card-type rendering paths per surface after stabilization |
 
-Phases 2–3 are accelerated by the atomic primitives layer: presentational sections (Tier 1/2) can be migrated to server-composed `AtomicComposite` rather than requiring per-section client renderers, keeping the client surface area stable while the server gains full compositional freedom.
+Phases 2–3 are accelerated by the atomic primitives layer: presentational sections can be migrated to server-composed `AtomicComposite` rather than requiring per-section client renderers, keeping the client surface area stable while the server gains full compositional freedom.
 
 ## Consequences
 

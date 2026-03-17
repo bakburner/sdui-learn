@@ -9,7 +9,7 @@ Server-Driven UI prototype demonstrating server-composed screens with real-time 
 Five principles guide every decision:
 
 1. **Schema is source of truth.** `schema/sdui-schema.json` defines the contract. Run `make codegen` after changes. Generated models are never hand-edited.
-2. **Semantic over generic.** Section types name domain concepts (`GamePanel`, `BoxscoreTable`), not layout primitives (`Card`, `Row`). Clients get compile-time safety and rendering freedom. The atomic layer exists for the inverse case — server-composed generic layouts where no client logic is needed.
+2. **Atomic for layout, semantic for domain logic.** Atomic primitives (`Container`, `Text`, `Image`, etc.) handle server-composed layout with zero client logic. Semantic section types (`GamePanel`, `BoxscoreTable`) exist only when client-owned state or complex interaction is required. Default to atomic; promote to semantic only when you must.
 3. **No hardcoded URLs or screen-type enums on clients.** Every screen is a generic `fetchScreen(endpoint)`. Endpoints are resolved from server-provided URIs (`nba://` → `/sdui/`). New screens require zero client code.
 4. **Graceful degradation everywhere.** Unknown section types, unknown atomic elements, and unknown action types are skipped with a log — never crash. Stale cached responses are better than blank screens.
 5. **Decision checklist before adding client code:** Can the server compose it? Can a schema/action change solve it? Can it be an `AtomicComposite`? Only if none of those work, add a client renderer.
@@ -52,7 +52,7 @@ sdui-prototype/
 │   └── sdui-core/              # Reusable SDUI library (renderers, state, data)
 ├── web/                        # React/TypeScript web client
 │   └── src/
-│       ├── components/         # SectionRouter + 19 section renderers + SectionErrorBoundary, SectionSkeleton
+│       ├── components/         # SectionRouter + 18 section renderers + SectionErrorBoundary, SectionSkeleton
 │       ├── hooks/              # useSduiScreen, useRefreshPolicy, useImpressionTracking, useAnalyticsContext
 │       └── runtime/            # AblyClient, ActionHandler, DataBindingApplier
 ├── docs/                       # Technical proposal & requirements
@@ -124,7 +124,7 @@ make codegen
 | Boxscore | `GET /sdui/boxscore/{gameId}` | Boxscore tables for a specific game (home and away). |
 | Refresh | `GET /sdui/refresh/{screenId}` | Parameterized refresh endpoint for form-driven section updates. |
 
-## Section Types (19 in schema: 18 semantic + AtomicComposite)
+## Section Types (18 in schema: 17 semantic + AtomicComposite)
 
 ### Semantic Sections (client-owned renderers)
 
@@ -136,7 +136,6 @@ make codegen
 | TabGroup | Tabbed navigation with state-driven content | Poll or static |
 | PromoBanner | Promotional banner with CTA | Static |
 | GamePanel | Game card with teams, scores, leaders. `variant: "standard"`, `"featured"` (hero-sized), `"scoreboard"` (compact row with live scores) | SSE or static |
-| Row | Responsive side-by-side/stacked layout | Inherits from children |
 | SectionHeader | Simple header with optional subtitle and CTA | Static |
 | VideoCarousel | Horizontal scrolling video thumbnails | Static |
 | NbaTvSchedule | NBA TV hero image + time-slot schedule | Static |
@@ -153,7 +152,7 @@ make codegen
 
 | Element | Purpose |
 |---------|---------|  
-| Container | Flex layout (row/column) with padding, gap, alignment, background gradient |
+| Container | Flex layout (row/column) with padding, gap, alignment, background gradient, `flex` (child weight), `breakpoint` (responsive direction flip) |
 | Text | Styled text with variant, color, weight, maxLines |
 | Image | Remote image with alt text, dimensions, content scale |
 | Button | Interactive element with label, actions, variant |
@@ -169,8 +168,7 @@ make codegen
 ## Recent Changes (2026-03-13)
 
 - **Atomic rendering layer** — Dual-layer architecture: 9 atomic primitives + SectionSlot bridge, AtomicRouter on Android and Web, AtomicComposite bridge section type, server-side AtomicCompositeBuilder
-- **Tier 1 migration complete** — ErrorState, SectionHeader, PromoBanner, ContentRail, FollowingRail now served as AtomicComposite
-- **Tier 2 migration complete** — HeroPanel, StatLine, VideoCarousel, NbaTvSchedule migrated (4 of 5; GamePanel kept as semantic)
+- **9 section types migrated to atomic** — ErrorState, SectionHeader, PromoBanner, ContentRail, FollowingRail, HeroPanel, StatLine, VideoCarousel, NbaTvSchedule now served as AtomicComposite (schema definitions pruned)
 - **SectionSlot bidirectional bridge** — Atomic trees can embed full section renderers (recursion guard: depth 2)
 - **ScoreboardHeader consolidated** — Merged into GamePanel as `variant: "scoreboard"`
 - **DisplayGrid** — Non-interactive server-ordered text grid primitive

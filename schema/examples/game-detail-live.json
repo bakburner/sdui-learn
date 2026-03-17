@@ -107,71 +107,86 @@
     },
     {
       "id": "team-leaders-row",
-      "type": "Row",
+      "type": "AtomicComposite",
       "analyticsId": "team_leaders_row",
       "refreshPolicy": {
         "type": "poll",
         "intervalMs": 30000
       },
       "data": {
-        "children": [
-          {
-            "id": "row-home-stats",
-            "type": "StatLine",
-            "data": {
-              "title": "BOS Leaders",
-              "stats": [
-                {
-                  "playerId": 1627759,
-                  "playerName": "Jaylen Brown",
-                  "playerImageUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1627759.png",
-                  "teamTricode": "BOS",
-                  "statCategory": "PTS",
-                  "statValue": "31",
-                  "statLabel": "Points"
-                },
-                {
-                  "playerId": 1628369,
-                  "playerName": "Jayson Tatum",
-                  "playerImageUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1628369.png",
-                  "teamTricode": "BOS",
-                  "statCategory": "PTS",
-                  "statValue": "26",
-                  "statLabel": "Points"
+        "ui": {
+          "type": "Container",
+          "direction": "row",
+          "gap": 16,
+          "breakpoint": 600,
+          "fillWidth": true,
+          "children": [
+            {
+              "type": "SectionSlot",
+              "id": "row-home",
+              "flex": 1,
+              "section": {
+                "id": "row-home-stats",
+                "type": "StatLine",
+                "data": {
+                  "title": "BOS Leaders",
+                  "stats": [
+                    {
+                      "playerId": 1627759,
+                      "playerName": "Jaylen Brown",
+                      "playerImageUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1627759.png",
+                      "teamTricode": "BOS",
+                      "statCategory": "PTS",
+                      "statValue": "31",
+                      "statLabel": "Points"
+                    },
+                    {
+                      "playerId": 1628369,
+                      "playerName": "Jayson Tatum",
+                      "playerImageUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1628369.png",
+                      "teamTricode": "BOS",
+                      "statCategory": "PTS",
+                      "statValue": "26",
+                      "statLabel": "Points"
+                    }
+                  ]
                 }
-              ]
-            }
-          },
-          {
-            "id": "row-away-stats",
-            "type": "StatLine",
-            "data": {
-              "title": "MIA Leaders",
-              "stats": [
-                {
-                  "playerId": 202710,
-                  "playerName": "Jimmy Butler",
-                  "playerImageUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/202710.png",
-                  "teamTricode": "MIA",
-                  "statCategory": "PTS",
-                  "statValue": "28",
-                  "statLabel": "Points"
-                },
-                {
-                  "playerId": 1629216,
-                  "playerName": "Bam Adebayo",
-                  "playerImageUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1629216.png",
-                  "teamTricode": "MIA",
-                  "statCategory": "REB",
-                  "statValue": "25",
-                  "statLabel": "Rebounds"
+              }
+            },
+            {
+              "type": "SectionSlot",
+              "id": "row-away",
+              "flex": 1,
+              "section": {
+                "id": "row-away-stats",
+                "type": "StatLine",
+                "data": {
+                  "title": "MIA Leaders",
+                  "stats": [
+                    {
+                      "playerId": 202710,
+                      "playerName": "Jimmy Butler",
+                      "playerImageUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/202710.png",
+                      "teamTricode": "MIA",
+                      "statCategory": "PTS",
+                      "statValue": "28",
+                      "statLabel": "Points"
+                    },
+                    {
+                      "playerId": 1629216,
+                      "playerName": "Bam Adebayo",
+                      "playerImageUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1629216.png",
+                      "teamTricode": "MIA",
+                      "statCategory": "REB",
+                      "statValue": "25",
+                      "statLabel": "Rebounds"
+                    }
+                  ]
                 }
-              ]
+              }
             }
-          }
-        ],
-        "spacing": 16,
-        "breakpoint": 600
+          ]
+        }
       }
     },
     {

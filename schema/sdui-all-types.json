@@ -68,12 +68,6 @@
     "teamData": {
       "$ref": "sdui-schema.json#/definitions/TeamData"
     },
-    "statLineData": {
-      "$ref": "sdui-schema.json#/definitions/StatLineData"
-    },
-    "heroPanelData": {
-      "$ref": "sdui-schema.json#/definitions/HeroPanelData"
-    },
     "tabData": {
       "$ref": "sdui-schema.json#/definitions/TabData"
     },
@@ -92,35 +86,11 @@
     "gamePanelData": {
       "$ref": "sdui-schema.json#/definitions/GamePanelData"
     },
-    "statLineListData": {
-      "$ref": "sdui-schema.json#/definitions/StatLineListData"
-    },
-    "contentRailData": {
-      "$ref": "sdui-schema.json#/definitions/ContentRailData"
-    },
     "tabGroupData": {
       "$ref": "sdui-schema.json#/definitions/TabGroupData"
     },
-    "rowData": {
-      "$ref": "sdui-schema.json#/definitions/RowData"
-    },
-    "promoBannerData": {
-      "$ref": "sdui-schema.json#/definitions/PromoBannerData"
-    },
     "subsection": {
       "$ref": "sdui-schema.json#/definitions/Subsection"
-    },
-    "videoCarouselData": {
-      "$ref": "sdui-schema.json#/definitions/VideoCarouselData"
-    },
-    "videoThumbnail": {
-      "$ref": "sdui-schema.json#/definitions/VideoThumbnail"
-    },
-    "nbaTvScheduleData": {
-      "$ref": "sdui-schema.json#/definitions/NbaTvScheduleData"
-    },
-    "nbaTvSlot": {
-      "$ref": "sdui-schema.json#/definitions/NbaTvSlot"
     },
     "subscribeBannerData": {
       "$ref": "sdui-schema.json#/definitions/SubscribeBannerData"

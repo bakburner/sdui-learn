@@ -2,7 +2,6 @@ import React, { useRef } from 'react';
 import type { Section, Action, Data, RefreshPolicy } from '@sdui/models';
 import { TabGroup } from './sections/TabGroup';
 import { GamePanel } from './sections/GamePanel';
-import { Row } from './sections/Row';
 import { BoxscoreTable } from './sections/BoxscoreTable';
 import { Form } from './sections/Form';
 import { AdSlot } from './sections/AdSlot';
@@ -46,9 +45,6 @@ function SectionRenderer({
       
     case 'GamePanel':
       return <GamePanel {...commonProps} />;
-
-    case 'Row':
-      return <Row {...commonProps} />;
 
     case 'BoxscoreTable':
       return <BoxscoreTable {...commonProps} />;

@@ -29,9 +29,8 @@ Server-Driven UI prototype: JSON schema → server composition → multi-platfor
 
 ## Tier Classification
 
-- **Tier 1** (5 → migrate to atomic): ErrorState, SectionHeader, PromoBanner, ContentRail, FollowingRail
-- **Tier 2** (5 → evaluate after Tier 1): HeroPanel, StatLine, VideoCarousel, GamePanel, NbaTvSchedule
-- **Tier 3** (6 → stay native forever): BoxscoreTable, SeasonLeadersTable, FormRenderer, TabGroup, SubscribeHero/SubscribeBanner, AdSlot
+- **Migrated to atomic** (9 types — server-composed `AtomicComposite`, no client renderers): ErrorState, SectionHeader, PromoBanner, ContentRail, FollowingRail, HeroPanel, StatLine, VideoCarousel, NbaTvSchedule
+- **Permanent sections** (8 types — client renderers with owned state or platform SDK integration): BoxscoreTable, SeasonLeadersTable, FormRenderer, TabGroup, GamePanel, SubscribeHero, SubscribeBanner, AdSlot
 
 ## Module Boundary (Android)
 

@@ -48,16 +48,6 @@ fun SectionRouter(
             )
         }
 
-        "Row" -> {
-            RowRenderer(
-                section = section,
-                screenState = screenState,
-                onAction = onAction,
-                onStateChange = onStateChange,
-                modifier = modifier
-            )
-        }
-
         "BoxscoreTable" -> {
             BoxscoreTableRenderer(
                 section = section,
@@ -143,7 +133,6 @@ fun SectionRouter(
 val SUPPORTED_SECTION_TYPES = setOf(
     "TabGroup",
     "GamePanel",
-    "Row",
     "BoxscoreTable",
     "Form",
     "SubscribeBanner",

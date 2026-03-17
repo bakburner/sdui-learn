@@ -19,7 +19,7 @@ const DEFAULT_FAILURE_POLICY: Record<string, FailurePolicy> = {
   navigate: 'halt' as FailurePolicy,
   mutate: 'continue' as FailurePolicy,
   refresh: 'continue' as FailurePolicy,
-  analytics: 'silent' as FailurePolicy,
+  fireAndForget: 'silent' as FailurePolicy,
   dismiss: 'silent' as FailurePolicy,
   toast: 'silent' as FailurePolicy,
 };
@@ -78,8 +78,8 @@ async function dispatchAction(action: Action, context: ActionContext): Promise<b
     case 'refresh':
       return handleRefresh(action, context);
 
-    case 'analytics':
-      handleAnalytics(action);
+    case 'fireAndForget':
+      handleFireAndForget(action);
       return true;
 
     case 'dismiss':
@@ -207,7 +207,7 @@ async function handleRefresh(action: Action, context: ActionContext): Promise<bo
   return true;
 }
 
-function handleAnalytics(action: Action): void {
+function handleFireAndForget(action: Action): void {
   const event = action.event ?? (action as Record<string, unknown>).eventName;
   const params = action.params ?? (action as Record<string, unknown>).eventParams ?? {};
   const destinations = action.destinations ?? ['all'];
@@ -219,22 +219,22 @@ function handleAnalytics(action: Action): void {
     timestamp: new Date().toISOString(),
   };
 
-  console.log('[Analytics]', JSON.stringify(beacon, null, 2));
+  console.log('[FireAndForget]', JSON.stringify(beacon, null, 2));
 
   for (const dest of destinations) {
     switch (dest) {
       case 'adobe':
-        console.log('[Analytics:Adobe]', event, params);
+        console.log('[FireAndForget:Adobe]', event, params);
         break;
       case 'firebase':
-        console.log('[Analytics:Firebase]', event, params);
+        console.log('[FireAndForget:Firebase]', event, params);
         break;
       case 'internal':
-        console.log('[Analytics:Internal]', event, params);
+        console.log('[FireAndForget:Internal]', event, params);
         break;
       case 'all':
       default:
-        console.log('[Analytics:All]', event, params);
+        console.log('[FireAndForget:All]', event, params);
         break;
     }
   }

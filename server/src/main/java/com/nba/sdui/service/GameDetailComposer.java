@@ -145,7 +145,7 @@ public class GameDetailComposer {
                 sections.add(statLineSection);
             }
 
-            // 2b. Row layout – home/away top performers side-by-side
+            // 2b. Responsive row – home/away top performers side-by-side
             ObjectNode rowSection = buildRowSectionFromLive(game, gameId);
             if (rowSection != null) {
                 sections.add(rowSection);
@@ -455,23 +455,21 @@ public class GameDetailComposer {
             ObjectNode homeChild = buildStatLineChild("row-home-stats", homeTricode + " Leaders", homePerformers);
             ObjectNode awayChild = buildStatLineChild("row-away-stats", awayTricode + " Leaders", awayPerformers);
 
+            ObjectNode root = atomicBuilder.responsiveRow(16, 600);
             ArrayNode children = objectMapper.createArrayNode();
-            children.add(homeChild);
-            children.add(awayChild);
 
-            ObjectNode rowData = objectMapper.createObjectNode();
-            rowData.set("children", children);
-            rowData.put("spacing", 16);
-            rowData.put("breakpoint", 600);
+            ObjectNode homeSlot = atomicBuilder.sectionSlot("row-home", homeChild);
+            atomicBuilder.setFlex(homeSlot, 1);
+            children.add(homeSlot);
 
-            ObjectNode section = objectMapper.createObjectNode();
-            section.put("id", "team-leaders-row");
-            section.put("type", "Row");
-            section.set("data", rowData);
+            ObjectNode awaySlot = atomicBuilder.sectionSlot("row-away", awayChild);
+            atomicBuilder.setFlex(awaySlot, 1);
+            children.add(awaySlot);
 
-            return section;
+            root.set("children", children);
+            return atomicBuilder.wrapAsComposite("team-leaders-row", null, root);
         } catch (Exception e) {
-            log.warn("Failed to build Row section from live data: {}", e.getMessage());
+            log.warn("Failed to build responsive row from live data: {}", e.getMessage());
             return null;
         }
     }

@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import com.nba.sdui.core.models.AtomicElement
 import com.nba.sdui.core.models.BackgroundGradient
@@ -16,7 +17,15 @@ import com.nba.sdui.core.state.SduiAction
 
 /**
  * AtomicContainer — renders a Container element as a Column or Row with
- * optional padding, gap, background color, and gradient.
+ * optional padding, gap, background color, gradient, flex children, and responsive breakpoint.
+ *
+ * Flex: When a child has a non-null `flex` value, it receives proportional weight
+ * along the main axis (like CSS flex-grow or Compose weight). Children without
+ * `flex` size to content.
+ *
+ * Breakpoint: When set on this Container, the direction flips from row→column
+ * when the screen width is below the breakpoint (dp). This replaces the old
+ * Row section type with a purely atomic, server-composed primitive.
  */
 @Composable
 fun AtomicContainer(
@@ -28,7 +37,14 @@ fun AtomicContainer(
     onStateChange: (String, Any) -> Unit = { _, _ -> },
     sectionSlotDepth: Int = 0
 ) {
-    val isRow = element.direction == "row"
+    // Responsive breakpoint: flip row→column when screen is narrow
+    val screenWidthDp = LocalConfiguration.current.screenWidthDp
+    val isRow = if (element.breakpoint != null && element.direction == "row") {
+        screenWidthDp >= element.breakpoint
+    } else {
+        element.direction == "row"
+    }
+
     val gap = element.gap?.dp ?: 0.dp
 
     val fillModifier = if (element.fillWidth == true) modifier.fillMaxWidth() else modifier
@@ -75,7 +91,14 @@ fun AtomicContainer(
             verticalAlignment = crossAxis as ComposeAlignment.Vertical
         ) {
             element.children?.forEachIndexed { index, child ->
-                AtomicRouter(child, screenState, onAction, depth = depth + 1, onStateChange = onStateChange, sectionSlotDepth = sectionSlotDepth)
+                val childModifier = if (child.flex != null && child.flex > 0f) {
+                    Modifier.weight(child.flex)
+                } else {
+                    Modifier
+                }
+                Box(modifier = childModifier) {
+                    AtomicRouter(child, screenState, onAction, depth = depth + 1, onStateChange = onStateChange, sectionSlotDepth = sectionSlotDepth)
+                }
                 if (index < (element.children.size - 1) && gap > 0.dp) {
                     Spacer(modifier = Modifier.width(gap))
                 }
@@ -88,7 +111,14 @@ fun AtomicContainer(
             horizontalAlignment = crossAxis as ComposeAlignment.Horizontal
         ) {
             element.children?.forEachIndexed { index, child ->
-                AtomicRouter(child, screenState, onAction, depth = depth + 1, onStateChange = onStateChange, sectionSlotDepth = sectionSlotDepth)
+                val childModifier = if (child.flex != null && child.flex > 0f) {
+                    Modifier.weight(child.flex)
+                } else {
+                    Modifier
+                }
+                Box(modifier = childModifier) {
+                    AtomicRouter(child, screenState, onAction, depth = depth + 1, onStateChange = onStateChange, sectionSlotDepth = sectionSlotDepth)
+                }
                 if (index < (element.children.size - 1) && gap > 0.dp) {
                     Spacer(modifier = Modifier.height(gap))
                 }

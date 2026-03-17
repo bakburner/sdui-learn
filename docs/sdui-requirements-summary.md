@@ -19,7 +19,7 @@
 | 2026-02-27 | Cross-document consistency review. Replaced `entitlements` references with `device` in governance, schema decisions, and 9o to align with Technical Proposal. |
 | 2026-03-04 | Added gap section 9q: Tabular Data Sections and Forms. New semantic section types (`BoxscoreTable`, `Form`), parameterized refresh on actions, sort/form state conventions. Updated status matrix. |
 | 2026-03-04 | Added `parentUri` to Screen contract. Updated status matrix for composition API contract (Gap → Partial). Added Prototype Concessions subsection. |
-| 2026-03-13 | Atomic rendering layer. Updated Key Schema Decisions (dual-layer model: 18 semantic section types + 10 atomic element types coexisting via AtomicComposite). Added Grid vs. Section Decision Tree to §9q. Added atomic rendering layer row to requirement status matrix. |
+| 2026-03-13 | Atomic rendering layer. Updated Key Schema Decisions (dual-layer model: 17 semantic section types + 10 atomic element types coexisting via AtomicComposite). Added Grid vs. Section Decision Tree to §9q. Added atomic rendering layer row to requirement status matrix. |
 | 2026-03-14 | Added §9r (Section vs. Atomic Classification — implementation-level criteria: network-driven lifecycle, platform SDK integration, client-owned interaction state. Full classification inventory with concrete examples: GamePanel Ably/poll lifecycle, SubscribeHero/SubscribeBanner billing SDK, AdSlot ad SDK, BoxscoreTable scroll/sort state). Added §9s (Figma Design Token Integration — token mapping file, client-side resolution, three-level CI validation pipeline). |
 
 ---
@@ -108,7 +108,7 @@ graph TD
     A[Composition Service] -->|SDUI Response JSON| B[Client App]
     B --> C[Section Router]
     C --> D[SDUIStateManager<br/>Data Binding & Refresh]
-    C --> E[SDUIActionExecutor<br/>Navigate / Analytics / Mutate]
+    C --> E[SDUIActionExecutor<br/>Navigate / FireAndForget / Mutate]
     C --> F[SDUIScreenStateManager<br/>Tabs, Toggles, Accordions]
     D --> G[Section Renderer<br/>Thin Wiring Layer]
     E --> G
@@ -164,7 +164,7 @@ graph LR
 
 ### Key Schema Decisions
 
-- **Dual-layer type model** — 18 **semantic section types** (StatLine, HeroPanel, GamePanel (with `variant: "standard"`, `"featured"`, and `"scoreboard"` for compact scoreboard rows), VideoCarousel, NbaTvSchedule, SubscribeBanner, SubscribeHero, AdSlot, BoxscoreTable, Form, ContentRail, TabGroup, PromoBanner, Row, SectionHeader, FollowingRail, SeasonLeadersTable, ErrorState) for domain-specific rendering with client-owned state, plus 10 **atomic element types** (Container, Text, Image, Button, Spacer, Divider, ScrollContainer, Conditional, DisplayGrid, SectionSlot) for server-composed generic layouts. The two layers coexist via the `AtomicComposite` bridge section type. Semantic sections handle stateful domain logic (sort, frozen columns, forms); atomic primitives handle server-composed layouts with no client business logic. See *Grid vs. Section Decision Tree* in §9q.
+- **Dual-layer type model** — 17 **semantic section types** (StatLine, HeroPanel, GamePanel (with `variant: "standard"`, `"featured"`, and `"scoreboard"` for compact scoreboard rows), VideoCarousel, NbaTvSchedule, SubscribeBanner, SubscribeHero, AdSlot, BoxscoreTable, Form, ContentRail, TabGroup, PromoBanner, SectionHeader, FollowingRail, SeasonLeadersTable, ErrorState) for domain-specific rendering with client-owned state, plus 10 **atomic element types** (Container, Text, Image, Button, Spacer, Divider, ScrollContainer, Conditional, DisplayGrid, SectionSlot) for server-composed generic layouts. The two layers coexist via the `AtomicComposite` bridge section type. Semantic sections handle stateful domain logic (sort, frozen columns, forms); atomic primitives handle server-composed layouts with no client business logic. See *Grid vs. Section Decision Tree* in §9q.
 - **Codegen produces data models only** — not UI code. Platform teams write a thin renderer layer (~30 lines per section type) that wires generated models to existing design system components.
 - **Schema is versioned** — client sends its schema version, server responds with a compatible payload. Fields can never be removed without a major version bump.
 - **Subsection actions are required** — `actions` must be supported at section and nested component/subsection level (for example, tapping home team area within a game section).
@@ -262,15 +262,16 @@ graph LR
     style EX fill:#8E44AD,color:#fff
 ```
 
-### Action Types (5 categories)
+### Action Types (6 categories)
 
 | Type | Purpose | Key Fields |
 |---|---|---|
 | **navigate** | Go somewhere | `targetUri` (native deeplink), `webUrl` (web equivalent), `presentation` (push/modal/fullscreen/replace/external), `modalHeight` (compact/half/full) |
-| **analytics** | Fire a beacon | `event` (name), `params` (arbitrary k/v), `destinations` (adobe/firebase/internal/all) |
+| **fireAndForget** | Fire a beacon | `event` (name), `params` (arbitrary k/v), `destinations` (adobe/firebase/internal/all) |
 | **mutate** | Change local UI state | `target` (state key), `operation` (set/toggle/increment/append), `value` |
 | **dismiss** | Close modal/overlay/screen | `target` (modal/overlay/screen) |
 | **refresh** | Force re-fetch | `target` (section ID, or omit for full screen) |
+| **toast** | Show notification | `message`, `duration` |
 
 ### Composability — Single Trigger, Multiple Actions
 
@@ -279,18 +280,18 @@ sequenceDiagram
     participant User
     participant Renderer
     participant ActionExecutor
-    participant Analytics
+    participant BeaconDispatcher
     participant Navigator
 
     User->>Renderer: Taps GamePanel (scoreboard)
     Renderer->>ActionExecutor: execute(onTap actions)
-    ActionExecutor->>Analytics: fire("scoreboard_tapped", {gameId, status})
-    Analytics-->>ActionExecutor: ack
+    ActionExecutor->>BeaconDispatcher: fire("scoreboard_tapped", {gameId, status})
+    BeaconDispatcher-->>ActionExecutor: ack
     ActionExecutor->>Navigator: push("nba://game/0022500384/boxscore")
     Navigator-->>User: Box Score screen
 ```
 
-Actions fire in order. Analytics always fires before navigation so the beacon is guaranteed to send even if navigation takes over the UI.
+Actions fire in order. Fire-and-forget actions execute before navigation so the beacon is guaranteed to send even if navigation takes over the UI.
 
 ### Action Failure Semantics
 
@@ -298,7 +299,7 @@ Each action carries an optional `onFailure` field (`halt` | `continue` | `silent
 
 | Action Type | Default `onFailure` | User Feedback | Sequence Effect |
 |---|---|---|---|
-| **analytics** | `silent` | None | Continue |
+| **fireAndForget** | `silent` | None | Continue |
 | **mutate** | `continue` | None (log warning) | Continue |
 | **navigate** | `halt` | Platform-native error with server message or generic localized fallback | Halt |
 | **refresh** | `continue` | Stale indicator on affected section | Continue |
@@ -320,7 +321,7 @@ Rules:
 1. **`silent`** failures are swallowed — no user feedback, sequence continues.
 2. **`halt`** failures stop the sequence — user feedback is shown (server `failureFeedback.message` if present, else generic localized fallback). No subsequent actions fire.
 3. **`continue`** failures log a warning, apply any type-specific side effect (e.g., stale indicator for refresh), and proceed to the next action.
-4. **Already-fired actions are committed.** There is no rollback. Analytics captures what the user *attempted*, not what succeeded.
+4. **Already-fired actions are committed.** There is no rollback. Fire-and-forget actions capture what the user *attempted*, not what succeeded.
 5. **Navigate success also halts** — navigation takes over the screen, so subsequent actions are moot regardless of `onFailure` value.
 
 ---
@@ -339,7 +340,7 @@ sequenceDiagram
 
     User->>TabRenderer: Taps "Box Score" tab
     TabRenderer->>ActionExecutor: execute(onTap actions)
-    ActionExecutor->>ActionExecutor: fire analytics("tab_selected")
+    ActionExecutor->>ActionExecutor: fire fireAndForget("tab_selected")
     ActionExecutor->>ScreenStateManager: setState("selectedTab", "boxscore")
     ScreenStateManager-->>ContentArea: recompose (SwiftUI @Published / Compose StateFlow)
     ContentArea-->>User: Box Score content appears
@@ -357,11 +358,11 @@ sequenceDiagram
 
 ## How Analytics Beacons Work in the SDUI Platform
 
-Analytics is fully server-driven. The composition service attaches analytics actions to section triggers, the client's generic action executor dispatches them to existing analytics SDKs. No per-section analytics code exists on the client.
+Analytics is fully server-driven. The composition service attaches fireAndForget actions to section triggers, the client's generic action executor dispatches them to existing analytics SDKs. No per-section analytics code exists on the client.
 
 ```mermaid
 graph LR
-    CS[Composition Service] -->|"Attaches analytics actions<br/>to section triggers"| RESP[SDUI Response]
+    CS[Composition Service] -->|"Attaches fireAndForget actions<br/>to section triggers"| RESP[SDUI Response]
     RESP --> REND[Section Renderer]
     REND -->|"onVisible / onTap / onFocus<br/>triggers fire"| EXEC[SDUIActionExecutor]
     EXEC -->|"Reads event, params,<br/>destinations"| DISP[AnalyticsDispatcher]
@@ -378,11 +379,11 @@ graph LR
 
 | Layer | Responsibility |
 |---|---|
-| **Composition Service** | Decides what analytics to attach — event name, every param, which backends receive it. Owns the event taxonomy. |
-| **Action Schema** | Defines the contract — what an analytics action object looks like (type, event, params, destinations). |
-| **SDUIActionExecutor** | Dispatches analytics actions to the existing AnalyticsDispatcher. Does not know what section type fired it. Generic across all sections. |
+| **Composition Service** | Decides what beacons to attach — event name, every param, which backends receive it. Owns the event taxonomy. |
+| **Action Schema** | Defines the contract — what a fireAndForget action object looks like (type, event, params, destinations). |
+| **SDUIActionExecutor** | Dispatches fireAndForget actions to the existing AnalyticsDispatcher. Does not know what section type fired it. Generic across all sections. |
 | **AnalyticsDispatcher** | Existing SDK already in the app. Routes to Adobe, Firebase, internal pipeline based on `destinations` array. Unchanged by SDUI. |
-| **Section Renderer** | Wires triggers (onVisible, onTap, onFocus) to the executor. Does not know the action is analytics — just passes the action array through. |
+| **Section Renderer** | Wires triggers (onVisible, onTap, onFocus) to the executor. Does not know the action is fireAndForget — just passes the action array through. |
 
 ### What the Server Controls
 
@@ -390,7 +391,7 @@ The server defines the complete analytics payload. The client never assembles be
 
 ```json
 {
-  "type": "analytics",
+  "type": "fireAndForget",
   "event": "section_impressed",
   "params": {
     "sectionId": "scoreboard-001",
@@ -429,11 +430,11 @@ Without deduplication, `onVisible` fires every time a section enters the viewpor
 
 ### Server-Defined Dedup Policy
 
-Deduplication policy is defined per analytics action in the server response, not hardcoded in the client. This allows the analytics team to tune behavior without app updates.
+Deduplication policy is defined per fireAndForget action in the server response, not hardcoded in the client. This allows the analytics team to tune behavior without app updates.
 
 ```json
 {
-  "type": "analytics",
+  "type": "fireAndForget",
   "event": "section_impressed",
   "params": { "sectionId": "scoreboard-001" },
   "destinations": ["adobe", "internal"],
@@ -499,7 +500,7 @@ sequenceDiagram
     Note over ImpressionTracker: 1000ms passes, still visible
     ImpressionTracker->>ImpressionTracker: shouldFire? dedup=once-per-screen
     Note over ImpressionTracker: Not yet fired ✓
-    ImpressionTracker->>ActionExecutor: execute(onVisible analytics action)
+    ImpressionTracker->>ActionExecutor: execute(onVisible fireAndForget action)
     ActionExecutor->>AnalyticsSDK: fire("section_impressed", params)
     Note over ImpressionTracker: Mark as fired for this screen visit
 
@@ -516,7 +517,7 @@ sequenceDiagram
 
 | Decision | Choice | Rationale |
 |---|---|---|
-| Where does dedup policy live? | Server-defined per analytics action | Analytics team tunes without app updates |
+| Where does dedup policy live? | Server-defined per fireAndForget action | Analytics team tunes without app updates |
 | Default dedup strategy | `once-per-screen` | Industry standard — Airbnb, DoorDash use similar |
 | Default visibility threshold | 50% area visible | IAB standard for digital ad impressions |
 | Default dwell time | 1000ms | Filters rapid-scroll false positives without losing legitimate impressions |
@@ -538,7 +539,7 @@ Three platform-agnostic systems, each implemented once per platform (iOS/tvOS an
 | System | Responsibility | Inputs |
 |---|---|---|
 | **SDUIStateManager** | Opens SSE/poll channels, patches data fields via bindings | `dataBindings` from section |
-| **SDUIActionExecutor** | Dispatches navigate/analytics/mutate/dismiss/refresh to existing app systems | `actions` from section |
+| **SDUIActionExecutor** | Dispatches navigate/fireAndForget/mutate/dismiss/refresh to existing app systems | `actions` from section |
 | **SDUIScreenStateManager** | Holds mutable screen state for tabs/toggles/accordions | `state` from section |
 | **Section Renderer** | Thin wiring: reads state, maps to design system component, attaches gesture triggers | All of the above |
 
@@ -601,11 +602,11 @@ Server-driven platforms need to show or hide sections based on conditions that v
 
 **Settled:** Platform-level section filtering is handled **server-side** via platform-aware composition (see Core Architecture). The server sends different section sets to different platform families — a tvOS response does not include sections meant for mobile, and vice versa. This eliminates the need for client-side `{ "when": "platform", "is": "tvOS" }` conditional rules for cross-platform differences.
 
-**Remaining gap:** Client-side responsive breakpoints within a platform family (e.g., phone vs. tablet within mobile). The `Row` section type with a `breakpoint` field handles simple cases. More complex responsive rules (e.g., hide a section below 768dp) may still need a lightweight client-side visibility mechanism.
+**Remaining gap:** Client-side responsive breakpoints within a platform family (e.g., phone vs. tablet within mobile). The atomic `Container` with `flex` and `breakpoint` properties handles simple cases. More complex responsive rules (e.g., hide a section below 768dp) may still need a lightweight client-side visibility mechanism.
 
 **Deferred:** Client-side visibility expressions (a `visibility` field with condition evaluation on sections) were evaluated and rejected. The server already controls which sections appear via composition — feature flags, A/B gating, user-segment filtering, and time-based conditions are all resolved server-side. Adding a client-side condition evaluator would duplicate server responsibility and violate the core SDUI principle that the server owns composition. If a narrow need for state-gated visibility emerges later, it can be revisited.
 
-**Decision required:** Whether within-family responsive rules need a `visibility` field in the schema or can be handled entirely by responsive section types like `Row`.
+**Decision required:** Whether within-family responsive rules need a `visibility` field in the schema or can be handled entirely by responsive atomic containers with `flex` and `breakpoint`.
 
 ### 9c. Error Handling & Fallback Sections
 
@@ -715,7 +716,7 @@ sequenceDiagram
 
 **What's needed:**
 - Server includes experiment metadata: `"experiment": { "id": "game-detail-v2", "variant": "treatment-b" }`
-- Analytics actions automatically include experiment context in every beacon
+- FireAndForget actions automatically include experiment context in every beacon
 - Section ordering, content, and even action behavior can vary per variant
 - The composition service is the natural place to resolve experiment assignments since it already controls section composition
 - Conflict resolution rule: when client hint and server assignment differ, server-authoritative assignment wins
@@ -864,7 +865,7 @@ Key factors:
 
 **Requirement statements:**
 
-- New section types (`BoxscoreTable`, `Form`) must follow the existing section anatomy contract (data, actions, refreshPolicy, dataBindings, analytics)
+- New section types (`BoxscoreTable`, `Form`) must follow the existing section anatomy contract (data, actions, refreshPolicy, dataBindings)
 - Sort state must survive live poll refreshes (state lives in `Screen.state`, refresh replaces section data only)
 - Server must pre-populate `Screen.state` with default sort column/direction per table and current form field values
 - State keys must be namespaced per section to avoid collisions when multiple tables appear on the same screen (e.g., `boxscore_home_sortCol`, `boxscore_away_sortCol`)
@@ -905,15 +906,15 @@ Every section renderer must be classified as either a semantic section (client-o
 
 | Tier | Sections | Criterion | Disposition |
 |---|---|---|---|
-| **Tier 1 — Migrated to atomic** | ErrorState, SectionHeader, PromoBanner, ContentRail, FollowingRail | None — stateless, no SDK deps, no lifecycle | Server-composed `AtomicComposite`. ~280 LOC eliminated per platform. |
-| **Tier 2 — Migrated to atomic** | HeroPanel, StatLine, VideoCarousel, NbaTvSchedule | None — stateless (zero `remember{}`), variants deterministic from server data | Server-composed `AtomicComposite`. GamePanel scoreboard variant also migrated. |
-| **Tier 3 — Permanent sections** | GamePanel | Network-driven lifecycle (Ably/poll → variant selection) | Client manages channel subscription and pre→in→post game transitions. |
-| **Tier 3 — Permanent sections** | BoxscoreTable, SeasonLeadersTable | Client-owned interaction state (frozen scroll sync, sort) | Client manages coordinated scroll and sort state. |
-| **Tier 3 — Permanent sections** | FormRenderer | Client-owned interaction state (field expansion, validation, submit) | Client manages per-field state. |
-| **Tier 3 — Permanent sections** | TabGroup | Client-owned interaction state (nests child sections) | Section container — orchestrates child section rendering. |
-| **Tier 3 — Permanent sections** | SubscribeHero, SubscribeBanner | Platform SDK (Play Billing / StoreKit 2) | Client section integrates billing SDK lifecycle. |
-| **Tier 3 — Permanent sections** | AdSlot | Platform SDK (Google Ad Manager) | Client section integrates ad SDK lifecycle. |
-| **Thin shell** | Row | Nests child sections | Kept as section (~50 LOC) — breakpoint-responsive container for child sections. |
+| **Migrated to atomic** | ErrorState, SectionHeader, PromoBanner, ContentRail, FollowingRail, HeroPanel, StatLine, VideoCarousel, NbaTvSchedule | Stateless, no SDK deps, no lifecycle | Server-composed `AtomicComposite`. Schema definitions pruned — these types no longer appear in `Section.type` enum. |
+| **Permanent sections** | GamePanel | Network-driven lifecycle (Ably/poll → variant selection) | Client manages channel subscription and pre→in→post game transitions. |
+| **Permanent sections** | BoxscoreTable, SeasonLeadersTable | Client-owned interaction state (frozen scroll sync, sort) | Client manages coordinated scroll and sort state. |
+| **Permanent sections** | FormRenderer | Client-owned interaction state (field expansion, validation, submit) | Client manages per-field state. |
+| **Permanent sections** | TabGroup | Client-owned interaction state (nests child sections) | Section container — orchestrates child section rendering. |
+| **Permanent sections** | SubscribeHero, SubscribeBanner | Platform SDK (Play Billing / StoreKit 2) | Client section integrates billing SDK lifecycle. |
+| **Permanent sections** | AdSlot | Platform SDK (Google Ad Manager) | Client section integrates ad SDK lifecycle. |
+
+Row’s layout function (breakpoint-responsive horizontal container) is handled by atomic `Container(direction=row)` with `flex` and `breakpoint` properties.
 
 **Implementation contract for new sections:**
 
@@ -991,11 +992,11 @@ Until approved, these remain directional requirements and may be refined.
 |---|---|---|
 | Schema definition (section types, data shapes) | **Built** | JSON Schema with semantic types. Prototype validated. |
 | Codegen pipeline (schema → typed models) | **Built** | jsonschema2pojo (Java/Jackson), quicktype (Swift/TS demo) |
-| Android renderer (Compose) | **Built** | Section router + 5 semantic renderers |
-| Web renderer (React) | **Built** | React section router + live data wrappers |
+| Android renderer (Compose) | **Built** | Section router + 17 semantic renderers + AtomicRouter |
+| Web renderer (React) | **Built** | React section router + 17 semantic renderers + AtomicRouter + live data wrappers |
 | iOS renderer (SwiftUI) | **Designed** | Not built — architecture validated via Android |
 | Data binding (SSE/poll, field-level) | **Built** | Ably for SSE, direct-URL polling, DataBindingResolver class exists but live updates use hardcoded mapping |
-| Action system (navigate, analytics, mutate) | **Built** | ActionHandler dispatches all 5 action types |
+| Action system (navigate, fireAndForget, mutate) | **Built** | ActionHandler dispatches all 6 action types |
 | Screen state management (tabs, toggles) | **Built** | StateManager, TabGroup wired |
 | Composition service (server-side) | **Built** | Spring Boot, demo + live mode, A/B variants |
 | Accessibility descriptors | **Gap** | Needs schema fields + live region behavior |
@@ -1024,7 +1025,7 @@ Until approved, these remain directional requirements and may be refined.
 | ErrorState section | **Built** | Server-composed error sections with title, message, icon, retry action. Built on Web and Android. |
 | SectionLayoutHints | **Partial** | Schema + codegen done. Web client applies margins/dividers. Android wiring pending. |
 | SectionStates (runtime error/loading) | **Partial** | Schema + codegen done. Web: `SectionErrorBoundary` + `SectionSkeleton` built. Server emits on live sections. Android wiring pending. |
-| Atomic rendering layer | **Built** | AtomicRouter + 9 rendering primitives + SectionSlot bridge on Android and Web. AtomicComposite section type bridges section and atomic layers. DisplayGrid for non-interactive grids. Server-side AtomicCompositeBuilder migrated Tier 1 + Tier 2 sections. Performance contract: depth 6, children 20, nodes 50. |
+| Atomic rendering layer | **Built** | AtomicRouter + 9 rendering primitives + SectionSlot bridge on Android and Web. AtomicComposite section type bridges section and atomic layers. DisplayGrid for non-interactive grids. Server-side AtomicCompositeBuilder migrated 9 former section types to server-composed atomic layouts; their schema definitions have been pruned. Performance contract: depth 6, children 20, nodes 50. |
 
 ---
 

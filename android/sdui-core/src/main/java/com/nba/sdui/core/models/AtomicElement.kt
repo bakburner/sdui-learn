@@ -28,7 +28,6 @@ data class AtomicElement(
     @JsonProperty("backgroundColor") val backgroundColor: String? = null,
     @JsonProperty("backgroundGradient") val backgroundGradient: BackgroundGradient? = null,
     @JsonProperty("cornerRadius") val cornerRadius: Int? = null,
-    @JsonProperty("fillWidth") val fillWidth: Boolean? = null,
 
     // Text properties
     @JsonProperty("content") val content: String? = null,
@@ -77,6 +76,11 @@ data class AtomicElement(
 
     // SectionSlot — embedded section delegated back to SectionRouter
     @JsonProperty("section") val section: Map<String, Any?>? = null,
+
+    // Layout properties
+    @JsonProperty("flex") val flex: Float? = null, // flex grow factor for Container children
+    @JsonProperty("breakpoint") val breakpoint: Int? = null, // responsive direction flip threshold (dp)
+    @JsonProperty("fillWidth") val fillWidth: Boolean? = null,
 
     // Actions (applicable to any interactive element)
     @JsonProperty("actions") val actions: List<Map<String, Any?>>? = null

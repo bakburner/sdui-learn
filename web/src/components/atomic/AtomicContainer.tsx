@@ -4,10 +4,23 @@ import { AtomicRouter } from './AtomicRouter';
 
 /**
  * AtomicContainer — renders a flex row or column with gap, padding,
- * background color, and optional gradient.
+ * background color, optional gradient, flex children, and responsive breakpoint.
+ *
+ * Flex: When a child has a non-null `flex` value, it receives proportional
+ * flex-grow along the main axis (like CSS flex-grow). Children without flex
+ * size to content.
+ *
+ * Breakpoint: When set and direction is "row", the container flips to column
+ * below the breakpoint width using a CSS media query. This replaces the old
+ * Row section type with a purely atomic, server-composed primitive.
  */
 export function AtomicContainer({ element, state, onAction, depth = 0, onStateChange, sectionSlotDepth }: AtomicProps): React.ReactElement {
   const isRow = element.direction === 'row';
+  const hasBreakpoint = isRow && element.breakpoint != null;
+
+  // Unique class for scoped responsive CSS
+  const className = hasBreakpoint ? `sdui-ac-${element.id ?? depth}` : undefined;
+
   const style: React.CSSProperties = {
     display: 'flex',
     flexDirection: isRow ? 'row' : 'column',
@@ -60,10 +73,32 @@ export function AtomicContainer({ element, state, onAction, depth = 0, onStateCh
   }
 
   return (
-    <div style={style}>
-      {element.children?.map((child, i) => (
-        <AtomicRouter key={child.id ?? i} element={child} state={state} onAction={onAction} depth={depth} onStateChange={onStateChange} sectionSlotDepth={sectionSlotDepth} />
-      ))}
+    <div className={className} style={style}>
+      {element.children?.map((child, i) => {
+        const childStyle: React.CSSProperties | undefined =
+          child.flex != null && child.flex > 0
+            ? { flex: `${child.flex} 1 0%`, minWidth: 0 }
+            : undefined;
+
+        return childStyle ? (
+          <div key={child.id ?? i} style={childStyle}>
+            <AtomicRouter element={child} state={state} onAction={onAction} depth={depth} onStateChange={onStateChange} sectionSlotDepth={sectionSlotDepth} />
+          </div>
+        ) : (
+          <AtomicRouter key={child.id ?? i} element={child} state={state} onAction={onAction} depth={depth} onStateChange={onStateChange} sectionSlotDepth={sectionSlotDepth} />
+        );
+      })}
+
+      {/* Responsive breakpoint CSS — flip row→column below threshold */}
+      {hasBreakpoint && className && (
+        <style>{`
+          @media (max-width: ${element.breakpoint}px) {
+            .${className} {
+              flex-direction: column !important;
+            }
+          }
+        `}</style>
+      )}
     </div>
   );
 }

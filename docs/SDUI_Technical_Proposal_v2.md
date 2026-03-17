@@ -17,11 +17,11 @@
 | 2026-02-27 | Replaced `entitlements` with `device` in request envelope (governance, 9o, Appendix A). Aligned analytics field names (`event`/`params`) and mutate field names (`target`/`operation`/`value`) with requirements summary. Moved `schemaVersion` to `meta` object. Added `onBlur` trigger. |
 | 2026-03-04 | Added tabular data sections and forms. New semantic types (`BoxscoreTable`, `Form`) in schema design (section 2). Parameterized refresh on actions (section 4). Sort and form state patterns (section 5). Platform coverage update (section 8). Gap 9q. Requirement status updates. Appendix C boxscore response example. |
 | 2026-03-04 | Added `parentUri` to Screen response contract and example. Added client URI resolution convention. |
-| 2026-03-12 | Prototype sync. Renderer table updated — BoxscoreTable, Form, Row, SectionHeader, FollowingRail, SeasonLeadersTable now Built on Web and Android (19 renderers per platform). Added image fallback pattern (section 8a). Updated requirement status for tabular data and forms. |
-| 2026-03-11 | ErrorState added to renderer table (20 renderers per platform). Error handling status updated (Gap → Built for ErrorState, runtime `sectionStates` planned). Client-side visibility expressions evaluated and deferred — server-side composition handles section show/hide. |
+| 2026-03-12 | Prototype sync. Renderer table updated — BoxscoreTable, Form, SectionHeader, FollowingRail, SeasonLeadersTable now Built on Web and Android (18 renderers per platform). Added image fallback pattern (section 8a). Updated requirement status for tabular data and forms. |
+| 2026-03-11 | ErrorState added to renderer table (19 renderers per platform). Error handling status updated (Gap → Built for ErrorState, runtime `sectionStates` planned). Client-side visibility expressions evaluated and deferred — server-side composition handles section show/hide. |
 | 2026-03-12 | Server-control gaps closed: `SectionLayoutHints` and `SectionStates` added to schema + codegen. Web client: `SectionErrorBoundary`, `SectionSkeleton`, `useImpressionTracking`, `useAnalyticsContext` built. Server: `sectionStates` emitted on live sections. ADR-008 accepted (Option C), ADR-009 accepted. Bug fixes: `interactive` contentType enum, platform header threading (`X-Platform` required from clients, no server default), silent deserialization failures now logged on Android. |
-| 2026-03-12 | Merged `FeaturedGamePanel` into `GamePanel` with `variant` discriminator. `FeaturedGamePanelData` removed from schema; `GamePanelData` gains `variant`, `backgroundImageUrl`, `badgeText`, `visualLabel` fields. Server composers emit `type: "GamePanel"` with `variant: "featured"`. Android and Web renderers branch on variant. `FeaturedGamePanelRenderer` deleted on both platforms. Section type count: 20 → 19. |
-| 2026-03-13 | Added offline/degraded connectivity strategy (9r) with ADR-010 reference. Stale-while-offline approach using platform HTTP cache, staleness UX per `cacheability` class, analytics local queue. |
+| 2026-03-12 | Merged `FeaturedGamePanel` into `GamePanel` with `variant` discriminator. `FeaturedGamePanelData` removed from schema; `GamePanelData` gains `variant`, `backgroundImageUrl`, `badgeText`, `visualLabel` fields. Server composers emit `type: "GamePanel"` with `variant: "featured"`. Android and Web renderers branch on variant. `FeaturedGamePanelRenderer` deleted on both platforms. Section type count: 20 → 18. |
+| 2026-03-13 | Added offline/degraded connectivity strategy (9r) with ADR-010 reference. Stale-while-offline approach using platform HTTP cache, staleness UX per `cacheability` class, fire-and-forget local queue. |
 | 2026-03-13 | Atomic rendering layer. Updated §2 (dual-layer model: semantic sections + atomic primitives coexisting via AtomicComposite). Added §2a (AtomicElement types, AtomicComposite bridge, Grid vs. Section Decision Tree). Updated §8 (AtomicRouter + 10 atomic renderers per platform). Added §9s (atomic layer performance contract). Updated §10 (atomic rendering layer status). |
 | 2026-03-14 | Added §2b (Section vs. Atomic Decision Framework — decision tree, rationale for lifecycle/SDK/state boundaries, concrete examples: GamePanel, SubscribeHero, AdSlot, BoxscoreTable, TabGroup). Added §2c (Figma Design System Integration — token alignment, three-level CI validation pipeline). |
 
@@ -225,110 +225,9 @@ Tabular stat views (boxscore, roster, standings) share UX patterns — frozen fi
 - **Client-side sort.** Payloads are small (≤15 rows). Sort via `mutate` action updating screen state. No server round-trip. Sort state survives live poll refreshes.
 - **Clients own rendering reuse internally.** Client teams share a `BaseDataTable` component across `BoxscoreTableRenderer`, future `RosterTableRenderer`, etc. This reuse is a client implementation detail invisible to the schema.
 
-**`BoxscoreTableData` — domain-typed player statistics:**
+**`BoxscoreTableData`** — domain-typed player statistics with `teamTotals` (frozen bottom row excluded from sort), `emptyMessage` (pre-game states), and `additionalStatistics` (forward-compatible escape hatch for new stats without schema changes). See [Appendix C](#appendix-c-boxscore-screen-response-example) for a full composed example.
 
-```json
-{
-  "type": "BoxscoreTable",
-  "data": {
-    "teamId": 1610612752,
-    "teamTricode": "NYK",
-    "teamName": "New York Knicks",
-    "teamLogoUrl": "https://cdn.nba.com/logos/nba/1610612752/global/L/logo.svg",
-    "players": [
-      {
-        "playerId": 1630596,
-        "name": "Jalen Brunson",
-        "nameAbbreviated": "J. Brunson",
-        "headshotUrl": "https://cdn.nba.com/headshots/nba/latest/260x190/1630596.png",
-        "jerseyNum": "11",
-        "position": "G",
-        "starter": true,
-        "played": true,
-        "statistics": {
-          "minutes": "34:22",
-          "points": 28,
-          "rebounds": 3,
-          "assists": 7,
-          "steals": 1,
-          "blocks": 0,
-          "turnovers": 2,
-          "personalFouls": 1,
-          "fieldGoalsMade": 10,
-          "fieldGoalsAttempted": 23,
-          "fieldGoalPercentage": 0.435,
-          "threePointersMade": 3,
-          "threePointersAttempted": 8,
-          "threePointPercentage": 0.375,
-          "freeThrowsMade": 5,
-          "freeThrowsAttempted": 6,
-          "freeThrowPercentage": 0.833,
-          "reboundsOffensive": 0,
-          "reboundsDefensive": 3,
-          "plusMinus": 12
-        }
-      }
-    ],
-    "teamTotals": {
-      "points": 104,
-      "rebounds": 45,
-      "assists": 24
-    },
-    "sortStateKey": "boxscore_home_sortCol",
-    "sortDirectionStateKey": "boxscore_home_sortDir",
-    "emptyMessage": null
-  }
-}
-```
-
-`teamTotals` renders as a frozen bottom row excluded from client-side sorting. `emptyMessage` is used for pre-game states when player data is unavailable. `additionalStatistics` (not shown) provides a forward-compatible escape hatch for new stats without schema changes.
-
-**`FormData` — extensible settings fields:**
-
-```json
-{
-  "type": "Form",
-  "data": {
-    "fields": [
-      {
-        "id": "season",
-        "label": "Season",
-        "stateKey": "season",
-        "defaultValue": "2025-26",
-        "fieldType": "picker",
-        "options": [
-          { "label": "2025-26", "value": "2025-26" },
-          { "label": "2024-25", "value": "2024-25" }
-        ]
-      },
-      {
-        "id": "seasonType",
-        "label": "Season Type",
-        "stateKey": "seasonType",
-        "defaultValue": "Regular Season",
-        "fieldType": "segmented",
-        "options": [
-          { "label": "Regular Season", "value": "Regular Season" },
-          { "label": "Playoffs", "value": "Playoffs" }
-        ]
-      }
-    ],
-    "submitAction": {
-      "trigger": "onTap",
-      "type": "refresh",
-      "endpoint": "/sdui/stats/leaders",
-      "paramBindings": {
-        "season": "season",
-        "seasonType": "seasonType"
-      }
-    },
-    "submitLabel": "Apply",
-    "layout": "inline"
-  }
-}
-```
-
-Field types: `picker` (dropdown), `segmented` (button group), `toggle` (switch), `datePicker`, `text`. Field changes accumulate in `Screen.state`; submit fires the `refresh` action with `paramBindings` resolved from current state values.
+**`FormData`** — extensible settings fields with `picker` (dropdown), `segmented` (button group), `toggle` (switch), `datePicker`, and `text` field types. Field changes accumulate in `Screen.state`; submit fires the `refresh` action with `paramBindings` resolved from current state values. See [Appendix D](#appendix-d-form-section-response-example) for a full example.
 
 ### 2a. Atomic Element Layer
 
@@ -397,7 +296,7 @@ New UI surface needed?
 │  (sort, frozen scroll sync, form input,
 │   tab selection, pagination)
 ├─ Nests other sections as children?             → Section
-│  (TabGroup, Row — section containers)
+│  (TabGroup — section container)
 └─ None of the above?                            → AtomicComposite
    (server-composed, no app release needed)
 ```
@@ -416,7 +315,7 @@ New UI surface needed?
 
 A section is a migration candidate when it is stateless (no `remember{}`, no `mutableStateOf`, no scroll state), has no platform SDK dependencies, does not nest other sections, and its visual variants are deterministic from server-sent data fields alone. The server emits the correct atomic tree directly — the client's `AtomicRouter` paints it without branching.
 
-Migrated sections (Tier 1): ErrorState, SectionHeader, PromoBanner, ContentRail, FollowingRail — ~280 lines of platform-specific rendering eliminated per platform, replaced by server-composed `AtomicComposite` JSON.
+Migrated sections (9 types): ErrorState, SectionHeader, PromoBanner, ContentRail, FollowingRail, HeroPanel, StatLine, VideoCarousel, NbaTvSchedule — server-composed `AtomicComposite` with no client renderers. Schema definitions pruned; only the 8 permanent section types + `AtomicComposite` remain in the `Section.type` enum.
 
 ### 2c. Figma Design System Integration
 
@@ -504,10 +403,11 @@ Actions are supported at three scopes:
 | Type        | Purpose              | Key fields                                 |
 | ----------- | -------------------- | ------------------------------------------ |
 | `navigate`  | route/deeplink       | `targetUri` (native deeplink), `webUrl` (web equivalent) |
-| `analytics` | fire beacon          | `event`, `params`, `destinations`          |
+| `fireAndForget` | fire beacon          | `event`, `params`, `destinations`          |
 | `mutate`    | update screen state  | `target`, `operation`, `value`             |
 | `dismiss`   | close overlay/screen | `target`                                   |
 | `refresh`   | force fetch          | `target`, optional `endpoint`, optional `paramBindings` |
+| `toast`     | show notification    | `message`, `duration`                      |
 
 
 ### Parameterized Refresh
@@ -536,7 +436,7 @@ This enables Form submit buttons to say "refresh the screen with `season={state.
 
 - Precedence rule: nested/subsection > section > screen-default.
 - A single trigger can execute multiple actions in sequence.
-- Analytics-first is recommended before navigation/dismiss
+- Fire-and-forget first is recommended before navigation/dismiss
 
 Reference: ADR-005
 
@@ -544,7 +444,7 @@ Reference: ADR-005
 
 Each action carries two optional fields governing failure semantics:
 
-- **`onFailure`** (`halt` | `continue` | `silent`) — sequence behavior on failure. Clients apply per-type defaults when absent (navigate → halt, analytics/dismiss/toast → silent, mutate/refresh → continue).
+- **`onFailure`** (`halt` | `continue` | `silent`) — sequence behavior on failure. Clients apply per-type defaults when absent (navigate → halt, fireAndForget/dismiss/toast → silent, mutate/refresh → continue).
 - **`failureFeedback`** (`{ message?: string, style?: "snackbar" | "toast" | "inline" }`) — server-provided error message. Client falls back to generic localized string when absent.
 
 The executor resolves failure policy per action:
@@ -581,7 +481,7 @@ trigger fires → execute actions[0..N] in order
 ```json
 {
   "screenDefaults": {
-    "actions": [{ "trigger": "onTap", "type": "analytics", "event": "screen_tap" }]
+    "actions": [{ "trigger": "onTap", "type": "fireAndForget", "event": "screen_tap" }]
   },
   "section": {
     "actions": [{ "trigger": "onTap", "type": "navigate", "targetUri": "nba://game/0022500384" }],
@@ -589,7 +489,7 @@ trigger fires → execute actions[0..N] in order
       {
         "id": "home-team-hotspot",
         "actions": [
-          { "trigger": "onTap", "type": "analytics", "event": "home_team_tap" },
+          { "trigger": "onTap", "type": "fireAndForget", "event": "home_team_tap" },
           { "trigger": "onTap", "type": "navigate", "targetUri": "nba://team/1610612752" }
         ]
       }
@@ -735,7 +635,6 @@ Each platform family receives a tailored composition from the server while shari
 | AdSlot | Built | Built | Gap |
 | BoxscoreTable | Built | Built | Gap |
 | Form | Built | Built | Gap |
-| Row | Built | Built | Gap |
 | SectionHeader | Built | Built | Gap |
 | FollowingRail | Built | Built | Gap |
 | SeasonLeadersTable | Built | Built | Gap |
@@ -757,7 +656,7 @@ Each platform family receives a tailored composition from the server while shari
 | SectionSlot | Built | Built | Gap |
 | **AtomicRouter** | **Built** | **Built** | **Gap** |
 
-The `AtomicRouter` dispatches rendering for all 10 element types. `AtomicComposite` is the 19th section type in `SectionRouter` (18 semantic + AtomicComposite).
+The `AtomicRouter` dispatches rendering for all 10 element types. `AtomicComposite` is the 18th section type in `SectionRouter` (17 semantic + AtomicComposite).
 
 
 ---
@@ -932,7 +831,7 @@ Key principles:
 - **Proportional to value.** Sports content degrades quickly — live scores stale in seconds, schedules in hours. A full offline-first database is disproportionate; a cached last-response is sufficient.
 - **`cacheability` governs staleness behavior.** Sections with `cacheability: "live"` show a placeholder ("Live data unavailable") instead of stale data. `public`/`contextual`/`personalized` sections serve stale content with a timestamp indicator.
 - **No new server requirements.** Clients use existing HTTP cache headers per ADR-004. The server does not need an offline-specific API.
-- **Actions degrade gracefully.** Network-dependent actions (navigate, refresh, mutate) show a "No connection" message. Analytics events queue locally and flush when connectivity resumes.
+- **Actions degrade gracefully.** Network-dependent actions (navigate, refresh, mutate) show a "No connection" message. Fire-and-forget events queue locally and flush when connectivity resumes.
 
 Options evaluated: offline-first local DB (rejected — cost disproportionate to value), stale-while-offline with platform cache (accepted), service worker for Web (deferred to v2), pre-seeded bundled content (optional v2 enhancement).
 
@@ -1004,8 +903,8 @@ The alternative is duplicated platform composition logic and drift in feature be
 2. Lock action scope/precedence and experiment model (ADR-005, ADR-006).
 3. Ship subsection actions + request-envelope schema updates with fixtures.
 4. Introduce ad primitive (ADR-007) and resolve layout strategy (ADR-008).
-5. Finalize impression semantics and enforce analytics/runtime conformance (ADR-009).
-6. Implement offline/degraded connectivity strategy per ADR-010 — platform cache fallback, staleness UX, analytics queue.
+5. Finalize impression semantics and enforce fire-and-forget/runtime conformance (ADR-009).
+6. Implement offline/degraded connectivity strategy per ADR-010 — platform cache fallback, staleness UX, fire-and-forget queue.
 
 ---
 
@@ -1061,7 +960,7 @@ The `device` object carries device signals that the composition service may use 
     "actions": [
       {
         "trigger": "onTap",
-        "type": "analytics",
+        "type": "fireAndForget",
         "event": "screen_tap",
         "params": { "screenId": "game-detail" }
       }
@@ -1108,7 +1007,7 @@ The `device` object carries device signals that the composition service may use 
         "actions": [
           {
             "trigger": "onTap",
-            "type": "analytics",
+            "type": "fireAndForget",
             "event": "scoreboard_tapped",
             "params": {
               "gameId": "0022500384",
@@ -1128,7 +1027,7 @@ The `device` object carries device signals that the composition service may use 
             "actions": [
               {
                 "trigger": "onTap",
-                "type": "analytics",
+                "type": "fireAndForget",
                 "event": "home_team_tapped",
                 "params": { "teamId": "1610612752" }
               },
@@ -1159,7 +1058,7 @@ The `device` object carries device signals that the composition service may use 
         "actions": [
           {
             "trigger": "onVisible",
-            "type": "analytics",
+            "type": "fireAndForget",
             "event": "section_impression",
             "params": { "sectionId": "stats-001", "policy": "once_per_screen" }
           }
@@ -1177,7 +1076,7 @@ The `device` object carries device signals that the composition service may use 
         },
         "actions": [
           { "trigger": "onTap", "type": "mutate", "target": "selectedTab", "operation": "set", "value": "boxscore" },
-          { "trigger": "onTap", "type": "analytics", "event": "tab_selected", "params": { "tabId": "boxscore" } }
+          { "trigger": "onTap", "type": "fireAndForget", "event": "tab_selected", "params": { "tabId": "boxscore" } }
         ]
       },
       {
@@ -1224,7 +1123,7 @@ This expanded example demonstrates:
 - mixed refresh policies (sse, poll, static)
 - field-level data binding patch behavior
 - ad section as explicit primitive
-- screen state mutation with analytics chaining
+- screen state mutation with fireAndForget chaining
 
 ---
 
@@ -1335,7 +1234,7 @@ A composed boxscore screen using `TabGroup` to toggle between teams, each tab co
         "actions": [
           {
             "trigger": "onVisible",
-            "type": "analytics",
+            "type": "fireAndForget",
             "event": "section_impression",
             "params": { "sectionType": "BoxscoreTable", "teamTricode": "BKN" }
           }
@@ -1354,4 +1253,60 @@ This example demonstrates:
 - `teamTotals` as a pre-computed aggregation row (frozen at bottom, excluded from sort)
 - Poll-based refresh for live game updates (sort state in `Screen.state` survives refresh)
 - Semantic analytics (`sectionType: "BoxscoreTable"`) vs. generic "viewed DataTable"
+
+---
+
+## Appendix D: Form Section Response Example
+
+A `Form` section driving a `SeasonLeadersTable` refresh via parameterized server query. Demonstrates extensible field types, screen state accumulation, and `paramBindings`-based refresh.
+
+```json
+{
+  "type": "Form",
+  "data": {
+    "fields": [
+      {
+        "id": "season",
+        "label": "Season",
+        "stateKey": "season",
+        "defaultValue": "2025-26",
+        "fieldType": "picker",
+        "options": [
+          { "label": "2025-26", "value": "2025-26" },
+          { "label": "2024-25", "value": "2024-25" }
+        ]
+      },
+      {
+        "id": "seasonType",
+        "label": "Season Type",
+        "stateKey": "seasonType",
+        "defaultValue": "Regular Season",
+        "fieldType": "segmented",
+        "options": [
+          { "label": "Regular Season", "value": "Regular Season" },
+          { "label": "Playoffs", "value": "Playoffs" }
+        ]
+      }
+    ],
+    "submitAction": {
+      "trigger": "onTap",
+      "type": "refresh",
+      "endpoint": "/sdui/stats/leaders",
+      "paramBindings": {
+        "season": "season",
+        "seasonType": "seasonType"
+      }
+    },
+    "submitLabel": "Apply",
+    "layout": "inline"
+  }
+}
+```
+
+This example demonstrates:
+
+- Extensible field types: `picker` renders as a dropdown, `segmented` as a button group (also supports `toggle`, `datePicker`, `text`)
+- Each field's `stateKey` maps to a `Screen.state` entry — field changes accumulate in screen state without server round-trips
+- `submitAction` uses `paramBindings` to resolve state values at action time: `{"season": "season"}` means "read the current value of `Screen.state["season"]` and send it as the `season` query parameter"
+- The `target` on the refresh action specifies which section receives the updated response (surgical section merge preserves form state)
 

@@ -28,7 +28,7 @@ This defeats the SDUI promise: if the server controls UI composition, it must al
 
 | Renderer | contentDescription | semantics{} blocks | Roles / Grouping |
 |---|---|---|---|
-| GamePanelRenderer | ✅ tricode for logos (4 instances); `"${teamName} logo"` for scoreboard variant | ❌ | ❌ |
+| GamePanelRenderer | ✅ tricode for logos (4 instances); `"${teamName} logo"` for scoreboard-style displayConfig | ❌ | ❌ |
 | BoxscoreTableRenderer | ✅ player name for headshots | ❌ | ❌ |
 | SubscribeBannerRenderer | ⚠️ `contentDescription = null` (decorative) | ❌ | ❌ |
 | TabGroupRenderer | ❌ | ❌ | ❌ |
@@ -57,7 +57,7 @@ This defeats the SDUI promise: if the server controls UI composition, it must al
 
 | Renderer | alt text | ARIA roles | ARIA labels |
 |---|---|---|---|
-| GamePanel | ✅ tricode for logos; teamName for scoreboard variant | ❌ | ❌ |
+| GamePanel | ✅ tricode for logos; teamName for scoreboard-style displayConfig | ❌ | ❌ |
 | BoxscoreTable | ✅ tricode for team logo, player name for headshots | ❌ | ❌ |
 | SubscribeHero | ⚠️ `alt=""` for bg, `"NBA League Pass"` for logo | ❌ | ❌ |
 | SubscribeBanner | ⚠️ `alt=""` for image | ❌ | ❌ |
@@ -157,7 +157,7 @@ In the `AtomicElement` definition, add:
 }
 ```
 
-This goes alongside existing properties like `backgroundColor`, `padding`, etc.
+This goes alongside existing properties like `background`, `padding`, etc.
 
 ### 1.3 Add `accessibility` to `Section`
 
@@ -321,13 +321,13 @@ Section renderers already have typed data (player names, team names, scores). Th
 3. **Add missing `contentDescription` where data exists** but wasn't previously used (ContentRail titles, SectionHeader text, ErrorState messages).
 4. **Add `semantics(mergeDescendants = true)`** to interactive card containers (GamePanel tap target, HeroPanel tap target) so screen readers announce them as a single entity.
 5. **Add `semantics { heading() }`** to SectionHeader titles.
-6. **Add `liveRegion`** to GamePanel scoreboard-variant score text (scores update during live games).
+6. **Add `liveRegion`** to GamePanel scoreboard-style score text (scores update during live games).
 
 **Priority fixes per renderer:**
 
 | Renderer | Fix |
 |---|---|
-| GamePanelRenderer | Wrap tappable card in `semantics(mergeDescendants = true) { contentDescription = "$away vs $home" }`; add `liveRegion = LiveRegionMode.Polite` to score text for scoreboard variant |
+| GamePanelRenderer | Wrap tappable card in `semantics(mergeDescendants = true) { contentDescription = "$away vs $home" }`; add `liveRegion = LiveRegionMode.Polite` to score text for scoreboard-style displayConfig |
 | HeroPanelRenderer | Add `mergeDescendants = true` to card; role = Button when action present |
 | ContentRailRenderer | Add `contentDescription` to rail item images (use item title) |
 | TabGroupRenderer | Compose `TabRow` supports accessibility natively — verify `selected` state is announced |
@@ -495,7 +495,7 @@ Strategy mirrors Android:
 
 | Renderer | Fix |
 |---|---|
-| GamePanel | `role="button"` on clickable cards; `aria-label="${away} vs ${home}"`; `aria-live="polite"` on score region for scoreboard variant |
+| GamePanel | `role="button"` on clickable cards; `aria-label="${away} vs ${home}"`; `aria-live="polite"` on score region for scoreboard-style displayConfig |
 | HeroPanel | Already has `role="button"` — add `aria-label={model.headline}` |
 | ContentRail | Change `alt=""` to `alt={item.title}` for thumbnails |
 | TabGroup | Add `role="tablist"`, `role="tab"`, `aria-selected` |
@@ -696,7 +696,7 @@ Subsections are nested interaction targets (e.g., tappable team area). The serve
 | Server teams don't populate `accessibility` fields | Atomic layer remains inaccessible | Fallback chain (accessibility.label → alt → "") + linting rule in server to flag missing labels on Image elements |
 | `headingLevel` doesn't map cleanly to Android Compose | Compose `heading()` is boolean, no levels | Accept limitation; Android screen readers treat all headings equally. Document in ADR if this becomes a problem. |
 | `sortOrder` conflicts with natural reading flow | Confusing screen reader navigation | Server composition guidelines strongly discourage `sortOrder` except for skip-to-content patterns |
-| `liveRegion` overuse causes announcement fatigue | Screen reader users overwhelmed | Server guidelines limit `liveRegion` to GamePanel scoreboard-variant scores and ErrorState messages only |
+| `liveRegion` overuse causes announcement fatigue | Screen reader users overwhelmed | Server guidelines limit `liveRegion` to GamePanel scoreboard-style scores and ErrorState messages only |
 | AdSlot accessibility not controllable | 3rd party SDK owns rendering | Document as out-of-scope; ad SDK compliance is vendor responsibility. Wrap with `aria-label="Advertisement"` / `semantics { contentDescription = "Advertisement" }` on the container. |
 
 ---

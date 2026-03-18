@@ -19,7 +19,7 @@
         "type": "sse",
         "channel": "{gameId}:linescore"
       },
-      "dataBindings": {
+      "dataBinding": {
         "bindings": [
           {
             "sourcePath": "$.homeTeam.score",

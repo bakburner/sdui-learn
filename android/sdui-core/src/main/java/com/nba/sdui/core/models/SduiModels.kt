@@ -58,7 +58,7 @@ data class SduiSection(
     @JsonProperty("type") val type: String,
     @JsonProperty("analyticsId") val analyticsId: String? = null,
     @JsonProperty("refreshPolicy") val refreshPolicy: RefreshPolicy? = null,
-    @JsonProperty("dataBindings") val dataBinding: DataBinding? = null,
+    @JsonProperty("dataBinding") val dataBinding: DataBinding? = null,
     @JsonProperty("actions") val actions: List<Map<String, Any?>>? = null,
     @JsonProperty("subsections") val subsections: List<Subsection>? = null,
     @JsonProperty("padding") val padding: Spacing? = null,

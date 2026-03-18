@@ -133,7 +133,7 @@ public class ScoreboardComposer {
             refreshPolicy.put("channel", gameId + ":linescore");
             section.set("refreshPolicy", refreshPolicy);
 
-            section.set("dataBindings", utils.buildLinescoreBindings());
+            section.set("dataBinding", utils.buildLinescoreBindings());
         } else {
             section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
         }

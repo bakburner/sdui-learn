@@ -184,7 +184,7 @@ public class ForYouComposer {
             rp.put("type", "sse");
             rp.put("channel", gameId + ":linescore");
             section.set("refreshPolicy", rp);
-            section.set("dataBindings", utils.buildLinescoreBindings());
+            section.set("dataBinding", utils.buildLinescoreBindings());
         } else {
             section.set("refreshPolicy", staticPolicy());
         }

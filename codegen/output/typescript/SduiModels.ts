@@ -549,7 +549,7 @@ export interface Section {
      * Section-specific data payload
      */
     data?:          Data;
-    dataBindings?:  DataBinding;
+    dataBinding?:   DataBinding;
     id:             string;
     layoutHints?:   SectionLayoutHints;
     padding?:       Spacing;
@@ -796,18 +796,6 @@ export interface GamePanelDisplayConfig {
      * Score typography: compact = bodyLarge+Bold, prominent = headlineMedium+ExtraBold
      */
     scoreTextStyle?: ScoreTextStyle;
-    /**
-     * Show broadcaster label
-     */
-    showBroadcaster?: boolean;
-    /**
-     * Show game leaders section
-     */
-    showLeaders?: boolean;
-    /**
-     * Show full team names below logos
-     */
-    showTeamNames?: boolean;
     [property: string]: any;
 }
 

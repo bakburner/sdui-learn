@@ -1098,7 +1098,7 @@ class Section: Codable {
     let analyticsID, backgroundColor: String?
     /// Section-specific data payload
     let data: DataClass?
-    let dataBindings: DataBinding?
+    let dataBinding: DataBinding?
     let id: String
     let layoutHints: SectionLayoutHints?
     let padding: Spacing?
@@ -1111,15 +1111,15 @@ class Section: Codable {
     enum CodingKeys: String, CodingKey {
         case actions
         case analyticsID = "analyticsId"
-        case backgroundColor, data, dataBindings, id, layoutHints, padding, refreshPolicy, sectionStates, subsections, type
+        case backgroundColor, data, dataBinding, id, layoutHints, padding, refreshPolicy, sectionStates, subsections, type
     }
 
-    init(actions: [Action]?, analyticsID: String?, backgroundColor: String?, data: DataClass?, dataBindings: DataBinding?, id: String, layoutHints: SectionLayoutHints?, padding: Spacing?, refreshPolicy: RefreshPolicy?, sectionStates: SectionStates?, subsections: [Subsection]?, type: SectionType) {
+    init(actions: [Action]?, analyticsID: String?, backgroundColor: String?, data: DataClass?, dataBinding: DataBinding?, id: String, layoutHints: SectionLayoutHints?, padding: Spacing?, refreshPolicy: RefreshPolicy?, sectionStates: SectionStates?, subsections: [Subsection]?, type: SectionType) {
         self.actions = actions
         self.analyticsID = analyticsID
         self.backgroundColor = backgroundColor
         self.data = data
-        self.dataBindings = dataBindings
+        self.dataBinding = dataBinding
         self.id = id
         self.layoutHints = layoutHints
         self.padding = padding
@@ -1135,7 +1135,7 @@ class Section: Codable {
 extension Section {
     convenience init(data: Data) throws {
         let me = try newJSONDecoder().decode(Section.self, from: data)
-        self.init(actions: me.actions, analyticsID: me.analyticsID, backgroundColor: me.backgroundColor, data: me.data, dataBindings: me.dataBindings, id: me.id, layoutHints: me.layoutHints, padding: me.padding, refreshPolicy: me.refreshPolicy, sectionStates: me.sectionStates, subsections: me.subsections, type: me.type)
+        self.init(actions: me.actions, analyticsID: me.analyticsID, backgroundColor: me.backgroundColor, data: me.data, dataBinding: me.dataBinding, id: me.id, layoutHints: me.layoutHints, padding: me.padding, refreshPolicy: me.refreshPolicy, sectionStates: me.sectionStates, subsections: me.subsections, type: me.type)
     }
 
     convenience init(_ json: String, using encoding: String.Encoding = .utf8) throws {
@@ -1154,7 +1154,7 @@ extension Section {
         analyticsID: String?? = nil,
         backgroundColor: String?? = nil,
         data: DataClass?? = nil,
-        dataBindings: DataBinding?? = nil,
+        dataBinding: DataBinding?? = nil,
         id: String? = nil,
         layoutHints: SectionLayoutHints?? = nil,
         padding: Spacing?? = nil,
@@ -1168,7 +1168,7 @@ extension Section {
             analyticsID: analyticsID ?? self.analyticsID,
             backgroundColor: backgroundColor ?? self.backgroundColor,
             data: data ?? self.data,
-            dataBindings: dataBindings ?? self.dataBindings,
+            dataBinding: dataBinding ?? self.dataBinding,
             id: id ?? self.id,
             layoutHints: layoutHints ?? self.layoutHints,
             padding: padding ?? self.padding,
@@ -1722,12 +1722,6 @@ struct GamePanelDisplayConfig: Codable {
     let logoSize: Int?
     /// Score typography: compact = bodyLarge+Bold, prominent = headlineMedium+ExtraBold
     let scoreTextStyle: ScoreTextStyle?
-    /// Show broadcaster label
-    let showBroadcaster: Bool?
-    /// Show game leaders section
-    let showLeaders: Bool?
-    /// Show full team names below logos
-    let showTeamNames: Bool?
 }
 
 // MARK: GamePanelDisplayConfig convenience initializers and mutators
@@ -1756,10 +1750,7 @@ extension GamePanelDisplayConfig {
         elevation: Int?? = nil,
         liveBackground: BackgroundUnion?? = nil,
         logoSize: Int?? = nil,
-        scoreTextStyle: ScoreTextStyle?? = nil,
-        showBroadcaster: Bool?? = nil,
-        showLeaders: Bool?? = nil,
-        showTeamNames: Bool?? = nil
+        scoreTextStyle: ScoreTextStyle?? = nil
     ) -> GamePanelDisplayConfig {
         return GamePanelDisplayConfig(
             background: background ?? self.background,
@@ -1769,10 +1760,7 @@ extension GamePanelDisplayConfig {
             elevation: elevation ?? self.elevation,
             liveBackground: liveBackground ?? self.liveBackground,
             logoSize: logoSize ?? self.logoSize,
-            scoreTextStyle: scoreTextStyle ?? self.scoreTextStyle,
-            showBroadcaster: showBroadcaster ?? self.showBroadcaster,
-            showLeaders: showLeaders ?? self.showLeaders,
-            showTeamNames: showTeamNames ?? self.showTeamNames
+            scoreTextStyle: scoreTextStyle ?? self.scoreTextStyle
         )
     }
 

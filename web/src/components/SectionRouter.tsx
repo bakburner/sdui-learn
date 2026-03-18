@@ -104,7 +104,7 @@ export function SectionRouter({
 
   const needsLiveWrapper = Boolean(
     (section.refreshPolicy?.type && section.refreshPolicy.type !== 'static') ||
-    (section.dataBindings?.bindings?.length) ||
+    (section.dataBinding?.bindings?.length) ||
     (defaultRefreshPolicy?.type && defaultRefreshPolicy.type !== 'static')
   );
 

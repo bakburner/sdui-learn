@@ -368,7 +368,7 @@ public class GameDetailComposer {
         section.put("id", "scoreboard");
         section.put("type", "GamePanel");
 
-        section.set("dataBindings", utils.buildLinescoreBindings());
+        section.set("dataBinding", utils.buildLinescoreBindings());
 
         ObjectNode refreshPolicy = objectMapper.createObjectNode();
         refreshPolicy.put("type", "sse");

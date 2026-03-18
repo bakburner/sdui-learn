@@ -730,7 +730,7 @@
           "enum": ["TabGroup", "GamePanel", "BoxscoreTable", "Form", "AdSlot", "SeasonLeadersTable", "SubscribeBanner", "SubscribeHero", "AtomicComposite"]
         },
         "refreshPolicy": { "$ref": "#/definitions/RefreshPolicy" },
-        "dataBindings": { "$ref": "#/definitions/DataBinding" },
+        "dataBinding": { "$ref": "#/definitions/DataBinding" },
         "actions": {
           "type": "array",
           "description": "Section-level interaction actions",

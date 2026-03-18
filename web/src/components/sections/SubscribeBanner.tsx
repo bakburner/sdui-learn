@@ -1,6 +1,7 @@
 import React from 'react';
 import type { SectionProps } from '../SectionRouter';
 import { DEFAULT_FALLBACK_IMAGE } from '../../utils/constants';
+import { accessibilityProps } from '../../utils/accessibility';
 
 /**
  * SubscribeBanner — inline subscription upsell with gradient + CTA button.
@@ -27,7 +28,7 @@ export function SubscribeBanner({ section, onAction }: SectionProps): React.Reac
   const fallbackUrl = (data.fallbackThumbnailUrl as string | undefined) ?? DEFAULT_FALLBACK_IMAGE;
 
   return (
-    <div style={styles.wrapper}>
+    <div style={styles.wrapper} {...accessibilityProps(section.accessibility)}>
       <div style={styles.banner}>
         {bgUrl && (
           <img
@@ -45,6 +46,7 @@ export function SubscribeBanner({ section, onAction }: SectionProps): React.Reac
           {subtitle && <p style={styles.subtitle}>{subtitle}</p>}
           <button
             style={styles.cta}
+            aria-label={`Subscribe: ${title}`}
             onClick={() => ctaAction && onAction(ctaAction as any)}
           >
             {ctaLabel}

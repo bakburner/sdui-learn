@@ -5,6 +5,45 @@
   "description": "Server-Driven UI schema for NBA Game Detail screens",
   "type": "object",
   "definitions": {
+    "AccessibilityProperties": {
+      "type": "object",
+      "description": "Server-provided accessibility metadata applied natively per platform",
+      "properties": {
+        "label": {
+          "type": "string",
+          "description": "Human-readable label announced by screen readers. Omit for elements whose text content is self-describing."
+        },
+        "role": {
+          "type": "string",
+          "enum": ["button", "image", "heading", "link", "tab", "tabpanel", "list", "listitem", "table", "row", "cell", "none"],
+          "description": "Semantic role override. 'none' suppresses the element's intrinsic role."
+        },
+        "hidden": {
+          "type": "boolean",
+          "default": false,
+          "description": "When true, element and its descendants are hidden from the accessibility tree (decorative content)."
+        },
+        "headingLevel": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 6,
+          "description": "Heading level (1-6) for role=heading elements. Maps to aria-level (Web), accessibilityAddTraits .isHeader (iOS), semantics { heading() } (Android)."
+        },
+        "liveRegion": {
+          "type": "string",
+          "enum": ["polite", "assertive", "off"],
+          "description": "Announces content changes. 'polite' waits for idle; 'assertive' interrupts. Maps to aria-live (Web), accessibilityLiveRegion (Android), .accessibilityAddTraits (iOS)."
+        },
+        "sortOrder": {
+          "type": "integer",
+          "description": "Override default accessibility traversal order. Lower values are visited first. Omit to use natural DOM/view order."
+        },
+        "hint": {
+          "type": "string",
+          "description": "Additional context announced after the label. Maps to accessibilityHint (iOS), contentDescription suffix (Android), aria-describedby text (Web)."
+        }
+      }
+    },
     "TextVariant": {
       "type": "string",
       "enum": ["heading1", "heading2", "heading3", "body", "bodySmall", "caption", "label", "score"]
@@ -315,6 +354,10 @@
           "enum": ["Container", "Text", "Image", "Button", "Spacer", "Divider", "ScrollContainer", "Conditional", "DisplayGrid", "SectionSlot"]
         },
         "id": { "type": "string" },
+        "accessibility": {
+          "$ref": "#/definitions/AccessibilityProperties",
+          "description": "Server-provided accessibility metadata for this atomic element"
+        },
         "children": {
           "type": "array",
           "items": { "$ref": "#/definitions/AtomicElement" }
@@ -334,7 +377,7 @@
         "aspectRatio": { "type": "number" },
         "fit": { "$ref": "#/definitions/ImageFit" },
         "placeholder": { "type": "string" },
-        "alt": { "type": "string" },
+        "alt": { "type": "string", "description": "Deprecated: use accessibility.label instead. Retained for backward compatibility; clients prefer accessibility.label when present." },
         "width": { "type": "integer" },
         "height": { "type": "integer" },
         "label": { "type": "string" },
@@ -553,6 +596,10 @@
       "required": ["id"],
       "properties": {
         "id": { "type": "string" },
+        "accessibility": {
+          "$ref": "#/definitions/AccessibilityProperties",
+          "description": "Subsection-level accessibility metadata"
+        },
         "actions": {
           "type": "array",
           "items": { "$ref": "#/definitions/Action" }
@@ -742,6 +789,10 @@
           "items": { "$ref": "#/definitions/Subsection" }
         },
         "analyticsId": { "type": "string" },
+        "accessibility": {
+          "$ref": "#/definitions/AccessibilityProperties",
+          "description": "Section-level accessibility metadata (landmark role, live region, heading)"
+        },
         "padding": { "$ref": "#/definitions/Spacing" },
         "backgroundColor": { "type": "string" },
         "layoutHints": { "$ref": "#/definitions/SectionLayoutHints" },

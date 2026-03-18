@@ -1,5 +1,6 @@
 import React from 'react';
 import type { SectionProps } from '../SectionRouter';
+import { accessibilityProps } from '../../utils/accessibility';
 
 /**
  * AdSlot — placeholder renderer for ad placements.
@@ -24,7 +25,7 @@ export function AdSlot({ section }: SectionProps): React.ReactElement {
     : [728, 90];
 
   return (
-    <div style={styles.wrapper}>
+    <div style={styles.wrapper} aria-label={label} role="complementary" {...accessibilityProps(section.accessibility)}>
       <span style={styles.label}>{label}</span>
       <div
         style={{

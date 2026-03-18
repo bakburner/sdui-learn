@@ -569,9 +569,10 @@ Each client platform builds these systems once:
 fun SectionRouter(section: SduiSection, onAction: (SduiAction) -> Unit) {
     when (section.type) {
         "GamePanel" -> GamePanelRenderer(section, onAction)
-        "StatLine" -> StatLineRenderer(section, onAction)
-        "ContentRail" -> ContentRailRenderer(section, onAction)
+        "BoxscoreTable" -> BoxscoreTableRenderer(section, onAction)
+        "TabGroup" -> TabGroupRenderer(section, onAction)
         "AdSlot" -> AdSlotRenderer(section, onAction)
+        "AtomicComposite" -> AtomicCompositeRenderer(section, onAction)
         else -> Unit // Unknown type -> graceful skip
     }
 }
@@ -583,11 +584,9 @@ fun SectionRouter(section: SduiSection, onAction: (SduiAction) -> Unit) {
 @Composable
 fun GamePanelRenderer(section: SduiSection, onAction: (SduiAction) -> Unit) {
     val data = mapGamePanel(section)
-    when (data.variant) {
-        "scoreboard" -> ScoreboardRow(data, onAction)
-        "featured" -> FeaturedGameCard(data, onAction)
-        else -> StandardGameCard(data, onAction)
-    }
+    val config = data.displayConfig
+    // displayConfig drives layout: logo size, card height, score style, background
+    GameCard(data, config, onAction)
 }
 ```
 
@@ -623,23 +622,17 @@ Each platform family receives a tailored composition from the server while shari
 
 | Section type | Web (React) | Android (Compose) | iOS (SwiftUI) |
 |---|---|---|---|
-| StatLine | Built | Built | Designed |
-| HeroPanel | Built | Built | Designed |
-| ContentRail | Built | Built | Designed |
-| TabGroup | Built | Built | Designed |
-| PromoBanner | Built | Built | Designed |
 | GamePanel (server-driven `displayConfig` for standard, featured, scoreboard layouts) | Built | Built | Designed |
-| VideoCarousel | Built | Built | Gap |
-| NbaTvSchedule | Built | Built | Gap |
+| TabGroup | Built | Built | Designed |
+| BoxscoreTable | Built | Built | Gap |
+| Form | Built | Built | Gap |
+| SeasonLeadersTable | Built | Built | Gap |
 | SubscribeBanner | Built | Built | Gap |
 | SubscribeHero | Built | Built | Gap |
 | AdSlot | Built | Built | Gap |
-| BoxscoreTable | Built | Built | Gap |
-| Form | Built | Built | Gap |
-| SectionHeader | Built | Built | Gap |
-| FollowingRail | Built | Built | Gap |
-| SeasonLeadersTable | Built | Built | Gap |
-| ErrorState | Built | Built | Gap |
+| AtomicComposite (server-composed atomic trees; bridges section + atomic layers) | Built | Built | Gap |
+
+> **Note:** 9 former section types (ErrorState, SectionHeader, PromoBanner, ContentRail, FollowingRail, HeroPanel, StatLine, VideoCarousel, NbaTvSchedule) have been migrated to server-composed AtomicComposite. They no longer appear in the `Section.type` schema enum and require no dedicated client renderers.
 
 **Atomic element coverage across platforms:**
 
@@ -1043,13 +1036,17 @@ The `device` object carries device signals that the composition service may use 
       },
       {
         "id": "stats-001",
-        "type": "StatLine",
+        "type": "AtomicComposite",
         "data": {
-          "title": "Top Performers",
-          "players": [
-            { "name": "Jalen Brunson", "team": "NYK", "stats": { "points": 28, "assists": 7, "rebounds": 3 } },
-            { "name": "Mikal Bridges", "team": "BKN", "stats": { "points": 22, "assists": 4, "rebounds": 5 } }
-          ]
+          "root": {
+            "type": "Container",
+            "direction": "vertical",
+            "children": [
+              { "type": "Text", "content": "Top Performers", "variant": "titleMedium" },
+              { "type": "Text", "content": "Jalen Brunson — NYK — 28 PTS, 7 AST, 3 REB", "variant": "bodyMedium" },
+              { "type": "Text", "content": "Mikal Bridges — BKN — 22 PTS, 4 AST, 5 REB", "variant": "bodyMedium" }
+            ]
+          }
         },
         "refreshPolicy": {
           "type": "poll",
@@ -1097,13 +1094,22 @@ The `device` object carries device signals that the composition service may use 
       },
       {
         "id": "content-rail-001",
-        "type": "ContentRail",
+        "type": "AtomicComposite",
         "data": {
-          "title": "More Games Tonight",
-          "items": [
-            { "id": "game-1", "title": "LAL vs GSW", "subtitle": "7:30 PM ET" },
-            { "id": "game-2", "title": "BOS vs MIA", "subtitle": "8:00 PM ET" }
-          ]
+          "root": {
+            "type": "ScrollContainer",
+            "direction": "horizontal",
+            "children": [
+              { "type": "Container", "direction": "vertical", "children": [
+                { "type": "Text", "content": "LAL vs GSW", "variant": "titleSmall" },
+                { "type": "Text", "content": "7:30 PM ET", "variant": "bodySmall" }
+              ]},
+              { "type": "Container", "direction": "vertical", "children": [
+                { "type": "Text", "content": "BOS vs MIA", "variant": "titleSmall" },
+                { "type": "Text", "content": "8:00 PM ET", "variant": "bodySmall" }
+              ]}
+            ]
+          }
         },
         "refreshPolicy": { "type": "static" },
         "actions": [

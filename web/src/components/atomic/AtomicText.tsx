@@ -1,5 +1,6 @@
 import React from 'react';
 import type { AtomicProps } from './AtomicRouter';
+import { accessibilityProps } from '../../utils/accessibility';
 
 /** Map schema variant strings to CSS font sizes / weights. */
 const variantStyles: Record<string, React.CSSProperties> = {
@@ -42,5 +43,10 @@ export function AtomicText({ element }: AtomicProps): React.ReactElement {
     } : {}),
   };
 
-  return <span style={style}>{element.content ?? ''}</span>;
+  const a11y = element.accessibility;
+  if (a11y?.role === 'heading' && a11y.headingLevel) {
+    const Tag = `h${a11y.headingLevel}` as keyof React.JSX.IntrinsicElements;
+    return <Tag style={style} {...accessibilityProps(a11y)}>{element.content ?? ''}</Tag>;
+  }
+  return <span style={style} {...accessibilityProps(a11y)}>{element.content ?? ''}</span>;
 }

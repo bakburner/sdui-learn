@@ -7,6 +7,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.nba.sdui.core.models.SduiSection
+import com.nba.sdui.core.renderer.applyAccessibility
 import com.nba.sdui.core.renderer.adapters.mapTabGroup
 import com.nba.sdui.core.renderer.adapters.mapTabMutateAction
 import com.nba.sdui.core.renderer.SectionRouter
@@ -42,7 +43,7 @@ fun TabGroupRenderer(
     val activeTabIndex = data.tabs.indexOfFirst { it.stateValue == data.activeTabValue }
         .takeIf { it >= 0 } ?: 0
     
-    Column(modifier = modifier.fillMaxWidth()) {
+    Column(modifier = modifier.fillMaxWidth().applyAccessibility(section.accessibility)) {
         // Tab Row
         TabRow(
             selectedTabIndex = activeTabIndex,

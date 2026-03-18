@@ -1,6 +1,7 @@
 import React from 'react';
 import type { AtomicProps } from './AtomicRouter';
 import type { DisplayGridColumn } from './AtomicElement';
+import { accessibilityProps } from '../../utils/accessibility';
 
 const variantFontSize: Record<string, number> = {
   labelSmall: 11, labelMedium: 12, labelLarge: 14,
@@ -52,11 +53,11 @@ export function AtomicDisplayGrid({ element }: AtomicProps): React.ReactElement 
   });
 
   return (
-    <table style={tableStyle}>
+    <table style={tableStyle} {...accessibilityProps(element.accessibility)}>
       <thead>
         <tr>
           {columns.map((col) => (
-            <th key={col.key} style={thStyle(col)}>{col.label}</th>
+            <th key={col.key} style={thStyle(col)} scope="col">{col.label}</th>
           ))}
         </tr>
       </thead>

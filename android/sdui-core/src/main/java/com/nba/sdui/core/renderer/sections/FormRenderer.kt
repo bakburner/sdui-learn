@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.nba.sdui.core.models.SduiSection
+import com.nba.sdui.core.renderer.applyAccessibility
 import com.nba.sdui.core.renderer.adapters.FormFieldUi
 import com.nba.sdui.core.renderer.adapters.FormUiModel
 import com.nba.sdui.core.renderer.adapters.mapForm
@@ -43,6 +44,7 @@ fun FormRenderer(
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .applyAccessibility(section.accessibility)
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {

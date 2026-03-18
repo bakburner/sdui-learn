@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.nba.sdui.core.models.AtomicElement
+import com.nba.sdui.core.renderer.applyAccessibility
 import com.nba.sdui.core.state.SduiAction
 
 /**
@@ -35,14 +36,14 @@ fun AtomicScrollContainer(
         val pagerState = rememberPagerState(pageCount = { children.size })
         HorizontalPager(
             state = pagerState,
-            modifier = modifier,
+            modifier = modifier.applyAccessibility(element.accessibility),
             pageSpacing = gap
         ) { page ->
             AtomicRouter(children[page], screenState, onAction, depth = depth + 1, onStateChange = onStateChange, sectionSlotDepth = sectionSlotDepth)
         }
     } else if (isHorizontal) {
         LazyRow(
-            modifier = modifier,
+            modifier = modifier.applyAccessibility(element.accessibility),
             horizontalArrangement = Arrangement.spacedBy(gap),
             contentPadding = PaddingValues(horizontal = 16.dp)
         ) {
@@ -52,7 +53,7 @@ fun AtomicScrollContainer(
         }
     } else {
         LazyColumn(
-            modifier = modifier,
+            modifier = modifier.applyAccessibility(element.accessibility),
             verticalArrangement = Arrangement.spacedBy(gap),
             contentPadding = PaddingValues(vertical = 0.dp)
         ) {

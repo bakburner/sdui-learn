@@ -57,6 +57,7 @@ data class SduiSection(
     @JsonProperty("id") val id: String,
     @JsonProperty("type") val type: String,
     @JsonProperty("analyticsId") val analyticsId: String? = null,
+    @JsonProperty("accessibility") val accessibility: AccessibilityProperties? = null,
     @JsonProperty("refreshPolicy") val refreshPolicy: RefreshPolicy? = null,
     @JsonProperty("dataBinding") val dataBinding: DataBinding? = null,
     @JsonProperty("actions") val actions: List<Map<String, Any?>>? = null,
@@ -118,6 +119,7 @@ data class DataBindingPath(
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class Subsection(
     @JsonProperty("id") val id: String,
+    @JsonProperty("accessibility") val accessibility: AccessibilityProperties? = null,
     @JsonProperty("actions") val actions: List<Map<String, Any?>>? = null
 )
 

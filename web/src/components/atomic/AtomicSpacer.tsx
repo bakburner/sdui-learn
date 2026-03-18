@@ -10,5 +10,5 @@ export function AtomicSpacer({ element }: AtomicProps): React.ReactElement {
     ...(element.width != null ? { width: element.width } : {}),
     ...(element.height != null ? { height: element.height } : {}),
   };
-  return <div style={style} />;
+  return <div style={style} aria-hidden="true" />;
 }

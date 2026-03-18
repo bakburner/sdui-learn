@@ -17,7 +17,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import com.nba.sdui.core.models.SduiSection
+import com.nba.sdui.core.renderer.applyAccessibility
 import com.nba.sdui.core.renderer.adapters.SeasonLeadersTableUiModel
 import com.nba.sdui.core.renderer.adapters.mapSeasonLeadersTable
 import com.nba.sdui.core.state.SduiAction
@@ -70,6 +73,7 @@ fun SeasonLeadersTableRenderer(
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .applyAccessibility(section.accessibility)
             .padding(horizontal = 8.dp)
             .background(bgColor, shape = MaterialTheme.shapes.medium)
     ) {
@@ -120,7 +124,7 @@ fun SeasonLeadersTableRenderer(
         }
 
         // ── Column headers ───────────────────────────────────────────
-        Row(modifier = Modifier.fillMaxWidth()) {
+        Row(modifier = Modifier.fillMaxWidth().semantics { heading() }) {
             // Frozen header: Rank
             Box(
                 modifier = Modifier.width(RANK_COL_WIDTH),

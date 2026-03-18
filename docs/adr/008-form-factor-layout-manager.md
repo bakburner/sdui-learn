@@ -15,6 +15,8 @@ Schema additions: `SectionLayoutHints` definition with `marginTop`, `marginBotto
 
 The same semantic screen must support phone, tablet, web, and TV without duplicating composition logic or over-constraining client rendering systems. Three approaches were evaluated.
 
+> **Editorial note (2026-03-17):** The JSON examples below use section types (`ContentRail`, `StatLine`, `Row`) that have since been migrated to server-composed `AtomicComposite`. The examples are preserved as-is to reflect the architectural options evaluated at the time; the layout patterns they illustrate remain valid under the current architecture using `AtomicComposite` with `Container` flex/breakpoint primitives.
+
 ## Options Evaluated
 
 ### Option A: Layout Hints on Sections

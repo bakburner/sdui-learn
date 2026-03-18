@@ -10,10 +10,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.nba.sdui.core.models.AtomicElement
+import com.nba.sdui.core.renderer.applyAccessibility
 import com.nba.sdui.core.models.DisplayGridColumn
 import com.nba.sdui.core.state.SduiAction
 
@@ -39,12 +42,13 @@ fun AtomicDisplayGrid(
     val cellStyle = mapTypographyVariant(element.cellVariant ?: "bodyMedium")
     val striped = element.striped == true
 
-    Column(modifier = modifier.fillMaxWidth()) {
+    Column(modifier = modifier.fillMaxWidth().applyAccessibility(element.accessibility)) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.surfaceVariant)
                 .padding(horizontal = 8.dp, vertical = 4.dp)
+                .semantics { heading() }
         ) {
             columns.forEach { col ->
                 CellSlot(col) {

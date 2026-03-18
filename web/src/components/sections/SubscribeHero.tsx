@@ -1,6 +1,7 @@
 import React from 'react';
 import type { SectionProps } from '../SectionRouter';
 import { DEFAULT_FALLBACK_IMAGE } from '../../utils/constants';
+import { accessibilityProps } from '../../utils/accessibility';
 
 /**
  * SubscribeHero — full-screen subscription upsell with feature list and pricing tiers.
@@ -29,7 +30,7 @@ export function SubscribeHero({ section, onAction }: SectionProps): React.ReactE
   const fallbackUrl = (data.fallbackThumbnailUrl as string | undefined) ?? DEFAULT_FALLBACK_IMAGE;
 
   return (
-    <div style={styles.wrapper}>
+    <div style={styles.wrapper} {...accessibilityProps(section.accessibility)}>
       <div style={styles.hero}>
         {bgUrl && (
           <img
@@ -88,6 +89,7 @@ export function SubscribeHero({ section, onAction }: SectionProps): React.ReactE
                   )}
                   <button
                     style={styles.tierCta}
+                    aria-label={`Subscribe to ${name}`}
                     onClick={() => ctaAction && onAction(ctaAction as any)}
                   >
                     {ctaLabel}

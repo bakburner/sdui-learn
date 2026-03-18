@@ -589,12 +589,12 @@ The following are important inclusions and decisions that production SDUI platfo
 Airbnb's Ghost Platform and Lyft both embed accessibility metadata in the server response so screen readers, VoiceOver, and TalkBack receive correct labels without client-side hardcoding.
 
 **What's needed:**
-- `accessibilityLabel`, `accessibilityHint`, `accessibilityRole` fields on every section
+- `AccessibilityProperties` definition in schema with `label`, `role`, `hidden`, `headingLevel`, `liveRegion`, `sortOrder`, `hint` — referenced via `accessibility` field on `Section`, `Subsection`, and `AtomicElement`
 - Server controls announcement text (e.g., "Nets 98, Knicks 104, 4:32 remaining in the third quarter") instead of relying on clients to assemble it from data fields
-- Live region behavior for real-time sections (score updates should announce without user interaction)
-- Focus ordering hints for TV platforms
+- Live region behavior for real-time sections (`liveRegion: "polite"` / `"assertive"` — score updates announce without user interaction)
+- Focus ordering hints for TV platforms (`sortOrder` overrides default traversal order)
 
-**Decision required:** Define whether accessibility text is a top-level section field or nested under a dedicated `a11y` object.
+**Settled:** Accessibility metadata is nested under a dedicated `accessibility` field (type `AccessibilityProperties`) on `Section`, `Subsection`, and `AtomicElement`. Implemented in schema, Android (Compose `semantics {}`), and Web (ARIA attributes). See `plan-accessibility.md`.
 
 ### 9b. Conditional Rendering / Visibility Rules
 

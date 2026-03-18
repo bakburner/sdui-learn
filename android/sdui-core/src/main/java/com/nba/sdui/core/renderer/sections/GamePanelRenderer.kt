@@ -26,9 +26,14 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.nba.sdui.core.renderer.applyAccessibility
 import com.nba.sdui.core.models.Background
 import com.nba.sdui.core.models.SduiSection
 import com.nba.sdui.core.renderer.adapters.GamePanelUiModel
@@ -97,7 +102,9 @@ private fun GamePanelContent(
         shape = shape,
         elevation = CardDefaults.cardElevation(defaultElevation = config.elevation.dp),
         modifier = modifier
+            .applyAccessibility(section.accessibility)
             .fillMaxWidth()
+            .semantics(mergeDescendants = true) { contentDescription = "${model.awayTricode} vs ${model.homeTricode}" }
             .padding(horizontal = 16.dp, vertical = 8.dp)
             .let { mod ->
                 if (model.primaryAction != null) mod.clickable { onAction(model.primaryAction) }
@@ -176,7 +183,8 @@ private fun GamePanelContent(
                                 text = model.awayScore,
                                 color = Color.White,
                                 style = scoreStyle,
-                                fontWeight = scoreWeight
+                                fontWeight = scoreWeight,
+                                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
                             )
                         }
                         model.awayName?.let { name ->
@@ -227,7 +235,8 @@ private fun GamePanelContent(
                                 text = model.homeScore,
                                 color = Color.White,
                                 style = scoreStyle,
-                                fontWeight = scoreWeight
+                                fontWeight = scoreWeight,
+                                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
                             )
                         }
                         model.homeName?.let { name ->

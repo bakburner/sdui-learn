@@ -134,7 +134,7 @@ Harden what exists into a staging-deployable vertical slice.
 
 | Deliverable                                                                                        | Owner               |
 | -------------------------------------------------------------------------------------------------- | ------------------- |
-| Contract tests for all 7 section types (golden SDUI response fixtures + assertions)                | Core team           |
+| Contract tests for all 9 section types (golden SDUI response fixtures + assertions)                | Core team           |
 | Data binding hardened end-to-end through `DataBindingResolver` (remove hardcoded live score paths) | Core team           |
 | Performance baseline: measure SDUI render time vs. native on Android                               | Core team + Android |
 | Composition service deployed to staging with live NBA data                                         | Core team           |

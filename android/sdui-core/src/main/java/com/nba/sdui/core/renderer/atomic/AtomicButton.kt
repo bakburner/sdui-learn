@@ -7,6 +7,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.nba.sdui.core.models.AtomicElement
+import com.nba.sdui.core.renderer.applyAccessibility
 import com.nba.sdui.core.models.actionToSduiAction
 import com.nba.sdui.core.state.SduiAction
 
@@ -30,13 +31,13 @@ fun AtomicButton(
     val enabled = element.disabled != true
 
     when (element.buttonVariant) {
-        "outlined" -> OutlinedButton(onClick = onClick, enabled = enabled, modifier = modifier) {
+        "outlined" -> OutlinedButton(onClick = onClick, enabled = enabled, modifier = modifier.applyAccessibility(element.accessibility)) {
             Text(text = element.label.orEmpty())
         }
-        "text" -> TextButton(onClick = onClick, enabled = enabled, modifier = modifier) {
+        "text" -> TextButton(onClick = onClick, enabled = enabled, modifier = modifier.applyAccessibility(element.accessibility)) {
             Text(text = element.label.orEmpty())
         }
-        else -> Button(onClick = onClick, enabled = enabled, modifier = modifier) {
+        else -> Button(onClick = onClick, enabled = enabled, modifier = modifier.applyAccessibility(element.accessibility)) {
             Text(text = element.label.orEmpty())
         }
     }

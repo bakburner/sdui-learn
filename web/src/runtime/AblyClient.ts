@@ -5,9 +5,28 @@ const ABLY_TOKEN_URL = '/ably-token';
 let client: Ably.Realtime | null = null;
 const activeChannels = new Map<string, Ably.RealtimeChannel>();
 
+async function fetchAblyToken(): Promise<string> {
+  const res = await fetch(ABLY_TOKEN_URL, { headers: { Accept: 'application/json' } });
+  if (!res.ok) throw new Error(`Token endpoint returned ${res.status}`);
+  const json = await res.json();
+  const jwt = json?.data?.accessToken;
+  if (typeof jwt === 'string' && jwt.length > 0) return jwt;
+  throw new Error('No accessToken found in token response');
+}
+
 function getClient(): Ably.Realtime {
   if (!client) {
-    client = new Ably.Realtime({ authUrl: ABLY_TOKEN_URL, autoConnect: true });
+    client = new Ably.Realtime({
+      authCallback: async (_data, callback) => {
+        try {
+          const token = await fetchAblyToken();
+          callback(null, token);
+        } catch (err) {
+          callback(err as Error, null);
+        }
+      },
+      autoConnect: true,
+    });
 
     client.connection.on('connected', () => console.log('[Ably] Connected'));
     client.connection.on('disconnected', () => console.warn('[Ably] Disconnected'));

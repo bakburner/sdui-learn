@@ -21,6 +21,7 @@ import coil.compose.AsyncImage
 import coil.compose.SubcomposeAsyncImage
 import com.nba.sdui.core.models.Background
 import com.nba.sdui.core.models.SduiSection
+import com.nba.sdui.core.renderer.applyAccessibility
 import com.nba.sdui.core.models.actionToSduiAction
 import com.nba.sdui.core.models.parseBackground
 import com.nba.sdui.core.state.SduiAction
@@ -56,6 +57,7 @@ fun SubscribeHeroRenderer(
 
     Box(
         modifier = modifier
+            .applyAccessibility(section.accessibility)
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
@@ -101,7 +103,7 @@ fun SubscribeHeroRenderer(
                 logoUrl?.let { url ->
                     AsyncImage(
                         model = url,
-                        contentDescription = "NBA League Pass",
+                        contentDescription = title,
                         modifier = Modifier.height(40.dp)
                     )
                     Spacer(modifier = Modifier.height(16.dp))

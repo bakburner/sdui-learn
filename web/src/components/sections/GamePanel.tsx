@@ -5,6 +5,7 @@ import { mapGamePanel } from '../../adapters/sectionUiAdapters';
 import { getPrimarySectionAction } from '../../utils/sectionActions';
 import { resolveBackgroundCSS } from '../../utils/background';
 import { DEFAULT_FALLBACK_IMAGE } from '../../utils/constants';
+import { accessibilityProps } from '../../utils/accessibility';
 
 export function GamePanel({ section, onAction }: SectionProps): React.ReactElement {
   const model = mapGamePanel(section);
@@ -29,7 +30,7 @@ function GamePanelView({
   const styles = buildStyles(config, isLive);
 
   return (
-    <button style={styles.container} onClick={() => primaryAction && onAction(primaryAction)}>
+    <button style={styles.container} onClick={() => primaryAction && onAction(primaryAction)} aria-label={`${model.awayName || model.awayTricode} vs ${model.homeName || model.homeTricode}`} {...accessibilityProps(section.accessibility)}>
       <div style={styles.topRow}>
         {model.visualLabel && <span style={styles.visualLabel}>{model.visualLabel}</span>}
         {model.badgeText && <span style={styles.badge}>{model.badgeText}</span>}
@@ -45,7 +46,7 @@ function GamePanelView({
               onError={(e) => { const img = e.currentTarget; if (img.src !== DEFAULT_FALLBACK_IMAGE) img.src = DEFAULT_FALLBACK_IMAGE; }}
             />
           )}
-          <span style={styles.score}>{model.awayScore}</span>
+          <span style={styles.score} aria-live="polite">{model.awayScore}</span>
           <span style={styles.teamName}>{model.awayName || model.awayTricode}</span>
           {model.awayRecord && <span style={styles.record}>{model.awayRecord}</span>}
         </div>
@@ -64,7 +65,7 @@ function GamePanelView({
               onError={(e) => { const img = e.currentTarget; if (img.src !== DEFAULT_FALLBACK_IMAGE) img.src = DEFAULT_FALLBACK_IMAGE; }}
             />
           )}
-          <span style={styles.score}>{model.homeScore}</span>
+          <span style={styles.score} aria-live="polite">{model.homeScore}</span>
           <span style={styles.teamName}>{model.homeName || model.homeTricode}</span>
           {model.homeRecord && <span style={styles.record}>{model.homeRecord}</span>}
         </div>

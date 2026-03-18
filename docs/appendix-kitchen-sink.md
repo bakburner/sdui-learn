@@ -2,40 +2,10 @@
 
 > **Source**: `GET /sdui/demos` with `X-Platform: android`
 >
-> **Generated**: 2026-03-13 from the running composition service (DemoScreenComposer)
+> **Generated**: 2026-03-17 from the running composition service (DemoScreenComposer)
 
 This is the full server response for the kitchen-sink demo screen — a single SDUI payload that exercises every section type and atomic primitive the prototype supports. It is the canonical reference for what a complete SDUI response looks like in production shape.
 
-### What this response demonstrates
-
-- **Dual-layer rendering** — 32 `AtomicComposite` sections (server-composed atomic trees rendered by `AtomicRouter`) alongside 10 semantic sections rendered by dedicated client components
-- **All 9 atomic primitives** — Container, Text, Image, Button, Spacer, Divider, ScrollContainer, Conditional, DisplayGrid — composed into AtomicComposite trees
-- **SectionSlot bridge** — atomic trees embedding full section renderers (AdSlot inside an atomic layout)
-- **All semantic section types still using dedicated renderers** — GamePanel (2), BoxscoreTable, Form, TabGroup, SeasonLeadersTable, SubscribeBanner, SubscribeHero, AdSlot
-- **Mixed refresh policies** — static, polling (with `intervalSec` + direct CDN `url`), and SSE (Ably channel) coexisting on the same screen
-- **Action system** — navigate, fireAndForget, mutate, dismiss, refresh actions at screen, section, and subsection scopes
-- **Data bindings** — field-level JSONPath bindings with `stringKeys` for i18n on SSE-updated fields
-- **Screen state** — `state` object with default values, mutated by actions (tab selection, sort column/direction)
-- **Navigation** — bottom navigation bar with 5 items, server-driven
-
-### Section inventory (42 sections)
-
-| Section type | Count | Rendering layer |
-|---|---|---|
-| AtomicComposite | 32 | Atomic (AtomicRouter) |
-| GamePanel | 2 | Semantic (dedicated renderer) |
-| BoxscoreTable | 1 | Semantic |
-| Form | 1 | Semantic |
-| TabGroup | 1 | Semantic |
-| AtomicComposite (responsive row) | 1 | Atomic (AtomicRouter) |
-| SeasonLeadersTable | 1 | Semantic |
-| SubscribeBanner | 1 | Semantic |
-| SubscribeHero | 1 | Semantic |
-| AdSlot | 1 | Semantic |
-
----
-
-## Kitchen Sink Json Example
 
 ```json
 {
@@ -43,7 +13,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
     "schemaVersion": "1.0",
     "title": "SDUI Section Types",
     "analyticsId": "demos-kitchen-sink",
-    "traceId": "trace-f2797e0c",
+    "traceId": "trace-b02b6655",
     "parentUri": "nba://scoreboard",
     "defaultRefreshPolicy": {
         "type": "static"
@@ -1268,7 +1238,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
                                                                 "children": [
                                                                     {
                                                                         "type": "Text",
-                                                                        "content": "Nikola Jokić",
+                                                                        "content": "Nikola Joki\u0107",
                                                                         "variant": "bodyLarge",
                                                                         "weight": "medium"
                                                                     },
@@ -1759,11 +1729,11 @@ This is the full server response for the kitchen-sink demo screen — a single S
                         "imageUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1628369.png",
                         "starter": true,
                         "stats": {
-                            "reb": 8,
                             "min": "38:12",
-                            "pts": 32,
+                            "reb": 8,
+                            "ast": 5,
                             "fgPct": ".545",
-                            "ast": 5
+                            "pts": 32
                         }
                     },
                     {
@@ -1774,11 +1744,11 @@ This is the full server response for the kitchen-sink demo screen — a single S
                         "imageUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1627759.png",
                         "starter": true,
                         "stats": {
-                            "reb": 5,
                             "min": "36:45",
-                            "pts": 26,
+                            "reb": 5,
+                            "ast": 3,
                             "fgPct": ".480",
-                            "ast": 3
+                            "pts": 26
                         }
                     },
                     {
@@ -1789,11 +1759,11 @@ This is the full server response for the kitchen-sink demo screen — a single S
                         "imageUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1629684.png",
                         "starter": false,
                         "stats": {
-                            "reb": 4,
                             "min": "32:10",
-                            "pts": 18,
+                            "reb": 4,
+                            "ast": 6,
                             "fgPct": ".500",
-                            "ast": 6
+                            "pts": 18
                         }
                     }
                 ],
@@ -1838,7 +1808,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
                 "type": "static"
             },
             "data": {
-                "layout": "horizontal",
+                "layout": "vertical",
                 "fields": [
                     {
                         "fieldId": "season",
@@ -1952,7 +1922,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
                     "endpoint": "/sdui/refresh/stats-leaders",
                     "onFailure": "halt",
                     "failureFeedback": {
-                        "message": "Stats lookup failed — please try again",
+                        "message": "Stats lookup failed \u2014 please try again",
                         "style": "snackbar"
                     },
                     "paramBindings": {
@@ -2003,7 +1973,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
             },
             "data": {
                 "title": "Season Leaders",
-                "subtitle": "2025-26 Regular Season — Per Game — sorted by PTS",
+                "subtitle": "2025-26 Regular Season \u2014 Per Game \u2014 sorted by PTS",
                 "sortColumn": "pts",
                 "sortDirection": "desc",
                 "totalRows": 30,
@@ -2123,7 +2093,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
                     {
                         "rank": 1,
                         "playerId": "203999",
-                        "name": "Luka Dončić",
+                        "name": "Luka Don\u010di\u0107",
                         "team": "LAL",
                         "stats": {
                             "gp": 49,
@@ -2253,7 +2223,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
                     {
                         "rank": 6,
                         "playerId": "203999b",
-                        "name": "Nikola Jokić",
+                        "name": "Nikola Joki\u0107",
                         "team": "DEN",
                         "stats": {
                             "gp": 46,
@@ -2746,7 +2716,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
                                             "children": [
                                                 {
                                                     "type": "Text",
-                                                    "content": "Dončić No-Look Dime",
+                                                    "content": "Don\u010di\u0107 No-Look Dime",
                                                     "variant": "bodyMedium",
                                                     "weight": "semiBold",
                                                     "color": "#FFFFFF",
@@ -3014,7 +2984,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
                                             "children": [
                                                 {
                                                     "type": "Text",
-                                                    "content": "Jokić Triple-Double Recap",
+                                                    "content": "Joki\u0107 Triple-Double Recap",
                                                     "variant": "bodyMedium",
                                                     "weight": "semiBold",
                                                     "color": "#FFFFFF",
@@ -3145,7 +3115,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
                                         },
                                         {
                                             "type": "Text",
-                                            "content": "Lakers vs Celtics — Coverage begins at 7:00 PM ET",
+                                            "content": "Lakers vs Celtics \u2014 Coverage begins at 7:00 PM ET",
                                             "variant": "bodyMedium",
                                             "color": "#CCCCCC"
                                         }
@@ -3659,7 +3629,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
                                         },
                                         {
                                             "type": "Text",
-                                            "content": "Luka Dončić",
+                                            "content": "Luka Don\u010di\u0107",
                                             "variant": "labelSmall",
                                             "maxLines": 1
                                         }
@@ -3959,7 +3929,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
                     "children": [
                         {
                             "type": "Text",
-                            "content": "⚠️",
+                            "content": "\u26a0\ufe0f",
                             "variant": "titleLarge"
                         },
                         {
@@ -4060,7 +4030,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
                         },
                         {
                             "type": "Text",
-                            "content": "Q3 5:42 • LAL 87 - BOS 82",
+                            "content": "Q3 5:42 \u2022 LAL 87 - BOS 82",
                             "variant": "bodySmall",
                             "color": "#7a8baa"
                         },

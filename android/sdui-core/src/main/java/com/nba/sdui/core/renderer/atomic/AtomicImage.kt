@@ -17,6 +17,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.nba.sdui.core.models.AtomicElement
+import com.nba.sdui.core.renderer.applyAccessibility
 import com.nba.sdui.core.models.actionToSduiAction
 import com.nba.sdui.core.state.SduiAction
 
@@ -63,9 +64,9 @@ fun AtomicImage(
 
     AsyncImage(
         model = currentSrc,
-        contentDescription = element.id,
+        contentDescription = element.accessibility?.label ?: element.alt ?: "",
         contentScale = mapContentScale(element.fit),
-        modifier = imageModifier,
+        modifier = imageModifier.applyAccessibility(element.accessibility),
         onError = {
             if (!triedFallback) {
                 triedFallback = true

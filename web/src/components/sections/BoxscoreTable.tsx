@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import type { SectionProps } from '../SectionRouter';
 import { mapBoxscoreTable } from '../../adapters/sectionUiAdapters';
 import { DEFAULT_FALLBACK_IMAGE } from '../../utils/constants';
+import { accessibilityProps } from '../../utils/accessibility';
 
 /**
  * BoxscoreTable — semantic tabular stat section for one team.
@@ -63,7 +64,7 @@ export function BoxscoreTable({ section, state, onAction, onStateChange }: Secti
   const teamAccent = model.teamColor || '#3a3a5e';
 
   return (
-    <div style={{ ...styles.container, backgroundColor: section.backgroundColor || '#1a1a2e' }}>
+    <div style={{ ...styles.container, backgroundColor: section.backgroundColor || '#1a1a2e' }} {...accessibilityProps(section.accessibility)}>
       {/* Team header */}
       {model.teamName && (
         <div style={styles.teamHeader}>
@@ -82,13 +83,14 @@ export function BoxscoreTable({ section, state, onAction, onStateChange }: Secti
           <thead>
             <tr>
               {/* Frozen player column header */}
-              <th style={{ ...styles.th, ...styles.frozenCol, ...styles.headerFrozen, borderBottom: `2px solid ${teamAccent}` }}>
+              <th scope="col" style={{ ...styles.th, ...styles.frozenCol, ...styles.headerFrozen, borderBottom: `2px solid ${teamAccent}` }}>
                 PLAYER
               </th>
               {model.columns.map((col) => {
                 const isActive = sortCol === col.key;
                 return (
                   <th
+                    scope="col"
                     key={col.key}
                     style={{
                       ...styles.th,

@@ -14,9 +14,21 @@ import com.fasterxml.jackson.annotation.JsonProperty
  * Types: Container, Text, Image, Button, Spacer, Divider, ScrollContainer, Conditional, DisplayGrid, SectionSlot
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
+data class AccessibilityProperties(
+    @JsonProperty("label") val label: String? = null,
+    @JsonProperty("role") val role: String? = null,
+    @JsonProperty("hidden") val hidden: Boolean? = null,
+    @JsonProperty("headingLevel") val headingLevel: Int? = null,
+    @JsonProperty("liveRegion") val liveRegion: String? = null,
+    @JsonProperty("sortOrder") val sortOrder: Int? = null,
+    @JsonProperty("hint") val hint: String? = null
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 data class AtomicElement(
     @JsonProperty("type") val type: String,
     @JsonProperty("id") val id: String? = null,
+    @JsonProperty("accessibility") val accessibility: AccessibilityProperties? = null,
 
     // Container properties
     @JsonProperty("children") val children: List<AtomicElement>? = null,

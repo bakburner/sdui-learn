@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Action } from '@sdui/models';
 import type { AtomicProps } from './AtomicRouter';
+import { accessibilityProps } from '../../utils/accessibility';
 
 const baseButtonStyle: React.CSSProperties = {
   cursor: 'pointer',
@@ -35,6 +36,8 @@ export function AtomicButton({ element, onAction }: AtomicProps): React.ReactEle
       style={style}
       disabled={element.disabled}
       onClick={handleClick}
+      aria-label={element.accessibility?.label ?? element.label}
+      {...accessibilityProps(element.accessibility)}
     >
       {element.label ?? ''}
     </button>

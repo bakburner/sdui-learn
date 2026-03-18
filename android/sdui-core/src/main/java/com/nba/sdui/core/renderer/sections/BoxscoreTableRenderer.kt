@@ -24,7 +24,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import com.nba.sdui.core.models.SduiSection
+import com.nba.sdui.core.renderer.applyAccessibility
 import com.nba.sdui.core.renderer.adapters.BoxscoreTableUiModel
 import com.nba.sdui.core.renderer.adapters.BoxscoreColumnDef
 import com.nba.sdui.core.renderer.adapters.BoxscorePlayerRowUi
@@ -88,9 +91,9 @@ fun BoxscoreTableRenderer(
     val teamColor = model.teamColor?.let { parseHexColor(it) }
     val scrollState = rememberScrollState()
 
-    Column(modifier = modifier.fillMaxWidth()) {
+    Column(modifier = modifier.fillMaxWidth().applyAccessibility(section.accessibility)) {
         // Header row
-        Row(modifier = Modifier.fillMaxWidth()) {
+        Row(modifier = Modifier.fillMaxWidth().semantics { heading() }) {
             // Player column header
             Box(
                 modifier = Modifier

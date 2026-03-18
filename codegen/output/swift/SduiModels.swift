@@ -611,8 +611,12 @@ extension NavigationItem {
 /// Atomic UI primitive — server-composed building block for the atomic rendering layer
 // MARK: - AtomicElement
 class AtomicElement: Codable {
+    /// Server-provided accessibility metadata for this atomic element
+    let accessibility: AccessibilityProperties?
     let actions: [Action]?
     let alignment: Alignment?
+    /// Deprecated: use accessibility.label instead. Retained for backward compatibility; clients
+    /// prefer accessibility.label when present.
     let alt: String?
     let aspectRatio: Double?
     let background: BackgroundUnion?
@@ -663,7 +667,8 @@ class AtomicElement: Codable {
     let weight: TextWeight?
     let width: Int?
 
-    init(actions: [Action]?, alignment: Alignment?, alt: String?, aspectRatio: Double?, background: BackgroundUnion?, breakpoint: Int?, buttonVariant: ButtonVariant?, cellVariant: TextVariant?, children: [AtomicElement]?, color: String?, columns: [Column]?, condition: String?, content: String?, cornerRadius: Int?, crossAlignment: CrossAlignment?, direction: UIDirection?, disabled: Bool?, falseChild: AtomicElement?, fit: ImageFit?, flex: Double?, gap: Int?, headerVariant: TextVariant?, height: Int?, icon: String?, id: String?, label: String?, maxLines: Int?, orientation: Orientation?, padding: Spacing?, paging: Bool?, placeholder: String?, rows: [[String: String]]?, section: Section?, size: Int?, snapAlignment: Align?, src: String?, striped: Bool?, thickness: Int?, trueChild: AtomicElement?, type: UIType, variant: TextVariant?, weight: TextWeight?, width: Int?) {
+    init(accessibility: AccessibilityProperties?, actions: [Action]?, alignment: Alignment?, alt: String?, aspectRatio: Double?, background: BackgroundUnion?, breakpoint: Int?, buttonVariant: ButtonVariant?, cellVariant: TextVariant?, children: [AtomicElement]?, color: String?, columns: [Column]?, condition: String?, content: String?, cornerRadius: Int?, crossAlignment: CrossAlignment?, direction: UIDirection?, disabled: Bool?, falseChild: AtomicElement?, fit: ImageFit?, flex: Double?, gap: Int?, headerVariant: TextVariant?, height: Int?, icon: String?, id: String?, label: String?, maxLines: Int?, orientation: Orientation?, padding: Spacing?, paging: Bool?, placeholder: String?, rows: [[String: String]]?, section: Section?, size: Int?, snapAlignment: Align?, src: String?, striped: Bool?, thickness: Int?, trueChild: AtomicElement?, type: UIType, variant: TextVariant?, weight: TextWeight?, width: Int?) {
+        self.accessibility = accessibility
         self.actions = actions
         self.alignment = alignment
         self.alt = alt
@@ -715,7 +720,7 @@ class AtomicElement: Codable {
 extension AtomicElement {
     convenience init(data: Data) throws {
         let me = try newJSONDecoder().decode(AtomicElement.self, from: data)
-        self.init(actions: me.actions, alignment: me.alignment, alt: me.alt, aspectRatio: me.aspectRatio, background: me.background, breakpoint: me.breakpoint, buttonVariant: me.buttonVariant, cellVariant: me.cellVariant, children: me.children, color: me.color, columns: me.columns, condition: me.condition, content: me.content, cornerRadius: me.cornerRadius, crossAlignment: me.crossAlignment, direction: me.direction, disabled: me.disabled, falseChild: me.falseChild, fit: me.fit, flex: me.flex, gap: me.gap, headerVariant: me.headerVariant, height: me.height, icon: me.icon, id: me.id, label: me.label, maxLines: me.maxLines, orientation: me.orientation, padding: me.padding, paging: me.paging, placeholder: me.placeholder, rows: me.rows, section: me.section, size: me.size, snapAlignment: me.snapAlignment, src: me.src, striped: me.striped, thickness: me.thickness, trueChild: me.trueChild, type: me.type, variant: me.variant, weight: me.weight, width: me.width)
+        self.init(accessibility: me.accessibility, actions: me.actions, alignment: me.alignment, alt: me.alt, aspectRatio: me.aspectRatio, background: me.background, breakpoint: me.breakpoint, buttonVariant: me.buttonVariant, cellVariant: me.cellVariant, children: me.children, color: me.color, columns: me.columns, condition: me.condition, content: me.content, cornerRadius: me.cornerRadius, crossAlignment: me.crossAlignment, direction: me.direction, disabled: me.disabled, falseChild: me.falseChild, fit: me.fit, flex: me.flex, gap: me.gap, headerVariant: me.headerVariant, height: me.height, icon: me.icon, id: me.id, label: me.label, maxLines: me.maxLines, orientation: me.orientation, padding: me.padding, paging: me.paging, placeholder: me.placeholder, rows: me.rows, section: me.section, size: me.size, snapAlignment: me.snapAlignment, src: me.src, striped: me.striped, thickness: me.thickness, trueChild: me.trueChild, type: me.type, variant: me.variant, weight: me.weight, width: me.width)
     }
 
     convenience init(_ json: String, using encoding: String.Encoding = .utf8) throws {
@@ -730,6 +735,7 @@ extension AtomicElement {
     }
 
     func with(
+        accessibility: AccessibilityProperties?? = nil,
         actions: [Action]?? = nil,
         alignment: Alignment?? = nil,
         alt: String?? = nil,
@@ -775,6 +781,7 @@ extension AtomicElement {
         width: Int?? = nil
     ) -> AtomicElement {
         return AtomicElement(
+            accessibility: accessibility ?? self.accessibility,
             actions: actions ?? self.actions,
             alignment: alignment ?? self.alignment,
             alt: alt ?? self.alt,
@@ -1093,6 +1100,8 @@ extension DataClass {
 /// Full section object to render via SectionRouter. Only used when type is SectionSlot.
 // MARK: - Section
 class Section: Codable {
+    /// Section-level accessibility metadata (landmark role, live region, heading)
+    let accessibility: AccessibilityProperties?
     /// Section-level interaction actions
     let actions: [Action]?
     let analyticsID, backgroundColor: String?
@@ -1109,12 +1118,13 @@ class Section: Codable {
     let type: SectionType
 
     enum CodingKeys: String, CodingKey {
-        case actions
+        case accessibility, actions
         case analyticsID = "analyticsId"
         case backgroundColor, data, dataBinding, id, layoutHints, padding, refreshPolicy, sectionStates, subsections, type
     }
 
-    init(actions: [Action]?, analyticsID: String?, backgroundColor: String?, data: DataClass?, dataBinding: DataBinding?, id: String, layoutHints: SectionLayoutHints?, padding: Spacing?, refreshPolicy: RefreshPolicy?, sectionStates: SectionStates?, subsections: [Subsection]?, type: SectionType) {
+    init(accessibility: AccessibilityProperties?, actions: [Action]?, analyticsID: String?, backgroundColor: String?, data: DataClass?, dataBinding: DataBinding?, id: String, layoutHints: SectionLayoutHints?, padding: Spacing?, refreshPolicy: RefreshPolicy?, sectionStates: SectionStates?, subsections: [Subsection]?, type: SectionType) {
+        self.accessibility = accessibility
         self.actions = actions
         self.analyticsID = analyticsID
         self.backgroundColor = backgroundColor
@@ -1135,7 +1145,7 @@ class Section: Codable {
 extension Section {
     convenience init(data: Data) throws {
         let me = try newJSONDecoder().decode(Section.self, from: data)
-        self.init(actions: me.actions, analyticsID: me.analyticsID, backgroundColor: me.backgroundColor, data: me.data, dataBinding: me.dataBinding, id: me.id, layoutHints: me.layoutHints, padding: me.padding, refreshPolicy: me.refreshPolicy, sectionStates: me.sectionStates, subsections: me.subsections, type: me.type)
+        self.init(accessibility: me.accessibility, actions: me.actions, analyticsID: me.analyticsID, backgroundColor: me.backgroundColor, data: me.data, dataBinding: me.dataBinding, id: me.id, layoutHints: me.layoutHints, padding: me.padding, refreshPolicy: me.refreshPolicy, sectionStates: me.sectionStates, subsections: me.subsections, type: me.type)
     }
 
     convenience init(_ json: String, using encoding: String.Encoding = .utf8) throws {
@@ -1150,6 +1160,7 @@ extension Section {
     }
 
     func with(
+        accessibility: AccessibilityProperties?? = nil,
         actions: [Action]?? = nil,
         analyticsID: String?? = nil,
         backgroundColor: String?? = nil,
@@ -1164,6 +1175,7 @@ extension Section {
         type: SectionType? = nil
     ) -> Section {
         return Section(
+            accessibility: accessibility ?? self.accessibility,
             actions: actions ?? self.actions,
             analyticsID: analyticsID ?? self.analyticsID,
             backgroundColor: backgroundColor ?? self.backgroundColor,
@@ -1186,6 +1198,108 @@ extension Section {
     func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
         return String(data: try self.jsonData(), encoding: encoding)
     }
+}
+
+/// Section-level accessibility metadata (landmark role, live region, heading)
+///
+/// Server-provided accessibility metadata applied natively per platform
+///
+/// Server-provided accessibility metadata for this atomic element
+///
+/// Subsection-level accessibility metadata
+// MARK: - AccessibilityProperties
+struct AccessibilityProperties: Codable {
+    /// Heading level (1-6) for role=heading elements. Maps to aria-level (Web),
+    /// accessibilityAddTraits .isHeader (iOS), semantics { heading() } (Android).
+    let headingLevel: Int?
+    /// When true, element and its descendants are hidden from the accessibility tree (decorative
+    /// content).
+    let hidden: Bool?
+    /// Additional context announced after the label. Maps to accessibilityHint (iOS),
+    /// contentDescription suffix (Android), aria-describedby text (Web).
+    let hint: String?
+    /// Human-readable label announced by screen readers. Omit for elements whose text content is
+    /// self-describing.
+    let label: String?
+    /// Announces content changes. 'polite' waits for idle; 'assertive' interrupts. Maps to
+    /// aria-live (Web), accessibilityLiveRegion (Android), .accessibilityAddTraits (iOS).
+    let liveRegion: LiveRegion?
+    /// Semantic role override. 'none' suppresses the element's intrinsic role.
+    let role: Role?
+    /// Override default accessibility traversal order. Lower values are visited first. Omit to
+    /// use natural DOM/view order.
+    let sortOrder: Int?
+}
+
+// MARK: AccessibilityProperties convenience initializers and mutators
+
+extension AccessibilityProperties {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(AccessibilityProperties.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        headingLevel: Int?? = nil,
+        hidden: Bool?? = nil,
+        hint: String?? = nil,
+        label: String?? = nil,
+        liveRegion: LiveRegion?? = nil,
+        role: Role?? = nil,
+        sortOrder: Int?? = nil
+    ) -> AccessibilityProperties {
+        return AccessibilityProperties(
+            headingLevel: headingLevel ?? self.headingLevel,
+            hidden: hidden ?? self.hidden,
+            hint: hint ?? self.hint,
+            label: label ?? self.label,
+            liveRegion: liveRegion ?? self.liveRegion,
+            role: role ?? self.role,
+            sortOrder: sortOrder ?? self.sortOrder
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+/// Announces content changes. 'polite' waits for idle; 'assertive' interrupts. Maps to
+/// aria-live (Web), accessibilityLiveRegion (Android), .accessibilityAddTraits (iOS).
+enum LiveRegion: String, Codable {
+    case assertive = "assertive"
+    case off = "off"
+    case polite = "polite"
+}
+
+/// Semantic role override. 'none' suppresses the element's intrinsic role.
+enum Role: String, Codable {
+    case button = "button"
+    case cell = "cell"
+    case heading = "heading"
+    case image = "image"
+    case link = "link"
+    case list = "list"
+    case listitem = "listitem"
+    case none = "none"
+    case row = "row"
+    case tab = "tab"
+    case table = "table"
+    case tabpanel = "tabpanel"
 }
 
 enum Alignment: String, Codable {
@@ -2524,6 +2638,8 @@ enum Skeleton: String, Codable {
 /// Nested interaction target within a section (e.g., tappable team area inside a scoreboard)
 // MARK: - Subsection
 struct Subsection: Codable {
+    /// Subsection-level accessibility metadata
+    let accessibility: AccessibilityProperties?
     let actions: [Action]?
     let id: String
 }
@@ -2547,10 +2663,12 @@ extension Subsection {
     }
 
     func with(
+        accessibility: AccessibilityProperties?? = nil,
         actions: [Action]?? = nil,
         id: String? = nil
     ) -> Subsection {
         return Subsection(
+            accessibility: accessibility ?? self.accessibility,
             actions: actions ?? self.actions,
             id: id ?? self.id
         )

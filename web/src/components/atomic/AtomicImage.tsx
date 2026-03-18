@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Action } from '@sdui/models';
 import type { AtomicProps } from './AtomicRouter';
+import { accessibilityProps } from '../../utils/accessibility';
 
 const DEFAULT_FALLBACK = 'https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png';
 
@@ -47,10 +48,11 @@ export function AtomicImage({ element, onAction }: AtomicProps): React.ReactElem
   return (
     <img
       src={element.src}
-      alt={element.id ?? ''}
+      alt={element.accessibility?.label ?? element.alt ?? ''}
       style={{ ...style, ...(hasActions ? { cursor: 'pointer' } : {}) }}
       onClick={handleClick}
       onError={handleError}
+      {...(element.accessibility?.hidden ? { 'aria-hidden': true } : {})}
     />
   );
 }

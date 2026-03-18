@@ -9,6 +9,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import com.nba.sdui.core.models.AtomicElement
+import com.nba.sdui.core.renderer.applyAccessibility
 import com.nba.sdui.core.state.SduiAction
 
 /**
@@ -32,7 +33,7 @@ fun AtomicText(
         color = textColor,
         maxLines = element.maxLines ?: Int.MAX_VALUE,
         overflow = TextOverflow.Ellipsis,
-        modifier = modifier
+        modifier = modifier.applyAccessibility(element.accessibility)
     )
 }
 

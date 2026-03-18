@@ -2,6 +2,7 @@ import React from 'react';
 import type { AtomicProps } from './AtomicRouter';
 import { AtomicRouter } from './AtomicRouter';
 import { resolveBackgroundCSS } from '../../utils/background';
+import { accessibilityProps } from '../../utils/accessibility';
 
 /**
  * AtomicContainer — renders a flex row or column with gap, padding,
@@ -68,7 +69,7 @@ export function AtomicContainer({ element, state, onAction, depth = 0, onStateCh
   }
 
   return (
-    <div className={className} style={style}>
+    <div className={className} style={style} {...accessibilityProps(element.accessibility)}>
       {element.children?.map((child, i) => {
         const childStyle: React.CSSProperties | undefined =
           child.flex != null && child.flex > 0

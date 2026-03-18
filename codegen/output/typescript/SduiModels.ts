@@ -281,8 +281,16 @@ export interface NavigationItem {
  * Atomic UI primitive — server-composed building block for the atomic rendering layer
  */
 export interface AtomicElement {
-    actions?:     Action[];
-    alignment?:   Alignment;
+    /**
+     * Server-provided accessibility metadata for this atomic element
+     */
+    accessibility?: AccessibilityProperties;
+    actions?:       Action[];
+    alignment?:     Alignment;
+    /**
+     * Deprecated: use accessibility.label instead. Retained for backward compatibility; clients
+     * prefer accessibility.label when present.
+     */
     alt?:         string;
     aspectRatio?: number;
     background?:  Background | string;
@@ -540,6 +548,10 @@ export interface Data {
  */
 export interface Section {
     /**
+     * Section-level accessibility metadata (landmark role, live region, heading)
+     */
+    accessibility?: AccessibilityProperties;
+    /**
      * Section-level interaction actions
      */
     actions?:         Action[];
@@ -561,6 +573,81 @@ export interface Section {
     subsections?: Subsection[];
     type:         SectionType;
     [property: string]: any;
+}
+
+/**
+ * Section-level accessibility metadata (landmark role, live region, heading)
+ *
+ * Server-provided accessibility metadata applied natively per platform
+ *
+ * Server-provided accessibility metadata for this atomic element
+ *
+ * Subsection-level accessibility metadata
+ */
+export interface AccessibilityProperties {
+    /**
+     * Heading level (1-6) for role=heading elements. Maps to aria-level (Web),
+     * accessibilityAddTraits .isHeader (iOS), semantics { heading() } (Android).
+     */
+    headingLevel?: number;
+    /**
+     * When true, element and its descendants are hidden from the accessibility tree (decorative
+     * content).
+     */
+    hidden?: boolean;
+    /**
+     * Additional context announced after the label. Maps to accessibilityHint (iOS),
+     * contentDescription suffix (Android), aria-describedby text (Web).
+     */
+    hint?: string;
+    /**
+     * Human-readable label announced by screen readers. Omit for elements whose text content is
+     * self-describing.
+     */
+    label?: string;
+    /**
+     * Announces content changes. 'polite' waits for idle; 'assertive' interrupts. Maps to
+     * aria-live (Web), accessibilityLiveRegion (Android), .accessibilityAddTraits (iOS).
+     */
+    liveRegion?: LiveRegion;
+    /**
+     * Semantic role override. 'none' suppresses the element's intrinsic role.
+     */
+    role?: Role;
+    /**
+     * Override default accessibility traversal order. Lower values are visited first. Omit to
+     * use natural DOM/view order.
+     */
+    sortOrder?: number;
+    [property: string]: any;
+}
+
+/**
+ * Announces content changes. 'polite' waits for idle; 'assertive' interrupts. Maps to
+ * aria-live (Web), accessibilityLiveRegion (Android), .accessibilityAddTraits (iOS).
+ */
+export enum LiveRegion {
+    Assertive = "assertive",
+    Off = "off",
+    Polite = "polite",
+}
+
+/**
+ * Semantic role override. 'none' suppresses the element's intrinsic role.
+ */
+export enum Role {
+    Button = "button",
+    Cell = "cell",
+    Heading = "heading",
+    Image = "image",
+    Link = "link",
+    List = "list",
+    Listitem = "listitem",
+    None = "none",
+    Row = "row",
+    Tab = "tab",
+    Table = "table",
+    Tabpanel = "tabpanel",
 }
 
 export enum Alignment {
@@ -1069,8 +1156,12 @@ export enum Skeleton {
  * Nested interaction target within a section (e.g., tappable team area inside a scoreboard)
  */
 export interface Subsection {
-    actions?: Action[];
-    id:       string;
+    /**
+     * Subsection-level accessibility metadata
+     */
+    accessibility?: AccessibilityProperties;
+    actions?:       Action[];
+    id:             string;
     [property: string]: any;
 }
 

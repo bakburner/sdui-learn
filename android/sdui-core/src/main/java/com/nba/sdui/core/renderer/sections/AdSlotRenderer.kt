@@ -13,7 +13,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import com.nba.sdui.core.models.SduiSection
+import com.nba.sdui.core.renderer.applyAccessibility
 import com.nba.sdui.core.state.SduiAction
 
 /**
@@ -44,6 +47,8 @@ fun AdSlotRenderer(
 
     Box(
         modifier = modifier
+            .semantics { contentDescription = "Advertisement" }
+            .applyAccessibility(section.accessibility)
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
             .clip(RoundedCornerShape(8.dp))

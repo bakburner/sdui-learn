@@ -6,12 +6,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment as ComposeAlignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import com.nba.sdui.core.models.AtomicElement
+import com.nba.sdui.core.renderer.applyAccessibility
 import com.nba.sdui.core.models.Background
 import com.nba.sdui.core.models.BackgroundGradient
 import com.nba.sdui.core.models.parseBackground
@@ -72,6 +74,10 @@ fun AtomicContainer(
         )
     } ?: bgModifier
 
+    val a11y = element.accessibility
+    val a11yModifier = paddedModifier.applyAccessibility(a11y)
+    val finalModifier = if (a11y?.label != null) a11yModifier.semantics(mergeDescendants = true) {} else a11yModifier
+
     val mainAxisArrangement = when (element.alignment) {
         "center"       -> if (isRow) Arrangement.Center else Arrangement.Center
         "end"          -> if (isRow) Arrangement.End else Arrangement.Bottom
@@ -90,7 +96,7 @@ fun AtomicContainer(
 
     if (isRow) {
         Row(
-            modifier = paddedModifier,
+            modifier = finalModifier,
             horizontalArrangement = mainAxisArrangement as Arrangement.Horizontal,
             verticalAlignment = crossAxis as ComposeAlignment.Vertical
         ) {
@@ -110,7 +116,7 @@ fun AtomicContainer(
         }
     } else {
         Column(
-            modifier = paddedModifier,
+            modifier = finalModifier,
             verticalArrangement = mainAxisArrangement as Arrangement.Vertical,
             horizontalAlignment = crossAxis as ComposeAlignment.Horizontal
         ) {

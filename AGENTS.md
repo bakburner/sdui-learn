@@ -49,8 +49,9 @@ required for layout, content, or data-flow changes.
 
 ## 6. Error States Are First-Class Sections
 
-- `ErrorState` is a section type in the schema, just like
-  `GamePanel` or `ContentRail`.
+- `ErrorState` is a server-composed `AtomicComposite` section
+  (built by `AtomicCompositeBuilder.buildErrorState()`). It is a
+  first-class section in every response, just like `GamePanel`.
 - When an error occurs (bad game ID, network failure, missing data),
   the server **or** client should produce an `ErrorState` section rather
   than showing a blank screen or falling back to a hardcoded default.

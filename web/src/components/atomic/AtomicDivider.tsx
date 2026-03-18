@@ -13,5 +13,5 @@ export function AtomicDivider({ element }: AtomicProps): React.ReactElement {
     ? { width: thickness, alignSelf: 'stretch', backgroundColor: color }
     : { height: thickness, width: '100%', backgroundColor: color };
 
-  return <div style={style} />;
+  return <div style={style} aria-hidden="true" />;
 }

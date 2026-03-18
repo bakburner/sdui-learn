@@ -1,5 +1,6 @@
 import React from 'react';
 import type { SectionProps } from '../SectionRouter';
+import { accessibilityProps } from '../../utils/accessibility';
 
 interface Column {
   key: string;
@@ -49,7 +50,7 @@ export function SeasonLeadersTable({ section }: SectionProps): React.ReactElemen
   const { columns, players, title, subtitle, totalRows, page, pageSize, sortColumn, sortDirection } = data;
 
   return (
-    <div style={{ ...styles.container, backgroundColor: section.backgroundColor || '#1a1a2e' }}>
+    <div style={{ ...styles.container, backgroundColor: section.backgroundColor || '#1a1a2e' }} {...accessibilityProps(section.accessibility)}>
       {/* Header */}
       {(title || subtitle) && (
         <div style={styles.header}>
@@ -75,9 +76,9 @@ export function SeasonLeadersTable({ section }: SectionProps): React.ReactElemen
         <table style={styles.table}>
           <thead>
             <tr>
-              <th style={{ ...styles.th, ...styles.rankCol }}>#</th>
-              <th style={{ ...styles.th, ...styles.playerCol }}>PLAYER</th>
-              <th style={{ ...styles.th, ...styles.teamCol }}>TEAM</th>
+              <th scope="col" style={{ ...styles.th, ...styles.rankCol }}>#</th>
+              <th scope="col" style={{ ...styles.th, ...styles.playerCol }}>PLAYER</th>
+              <th scope="col" style={{ ...styles.th, ...styles.teamCol }}>TEAM</th>
               {columns.map((col) => (
                 <th
                   key={col.key}

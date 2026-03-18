@@ -1,6 +1,7 @@
 import React from 'react';
 import type { AtomicProps } from './AtomicRouter';
 import { AtomicRouter } from './AtomicRouter';
+import { accessibilityProps } from '../../utils/accessibility';
 
 /**
  * AtomicScrollContainer — renders children in a scrollable row or column.
@@ -33,9 +34,9 @@ export function AtomicScrollContainer({ element, state, onAction, depth = 0, onS
   };
 
   return (
-    <div style={style}>
+    <div style={style} role="list" aria-label={element.accessibility?.label ?? 'Scrollable content'} {...accessibilityProps(element.accessibility)}>
       {children.map((child, i) => (
-        <div key={child.id ?? i} style={childStyle}>
+        <div key={child.id ?? i} style={childStyle} role="listitem">
           <AtomicRouter element={child} state={state} onAction={onAction} depth={depth} onStateChange={onStateChange} sectionSlotDepth={sectionSlotDepth} />
         </div>
       ))}

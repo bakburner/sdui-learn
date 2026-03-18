@@ -1,6 +1,7 @@
 import React from 'react';
 import type { SectionProps } from '../SectionRouter';
 import { mapForm } from '../../adapters/sectionUiAdapters';
+import { accessibilityProps } from '../../utils/accessibility';
 
 /**
  * Form — generic server-driven form section.
@@ -23,7 +24,7 @@ export function Form({ section, state, onAction, onStateChange }: SectionProps):
   const isHorizontal = model.layout === 'horizontal' || model.layout === 'inline';
 
   return (
-    <div style={{ ...styles.container, backgroundColor: section.backgroundColor || '#1a1a2e' }}>
+    <div role="form" style={{ ...styles.container, backgroundColor: section.backgroundColor || '#1a1a2e' }} {...accessibilityProps(section.accessibility)}>
       <div style={{ ...styles.fields, flexDirection: isHorizontal ? 'row' : 'column' }}>
         {model.fields.map((field) => {
           const value = (state[field.stateKey] as string) ?? '';

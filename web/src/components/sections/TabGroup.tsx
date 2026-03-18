@@ -2,6 +2,7 @@ import React from 'react';
 import type { SectionProps } from '../SectionRouter';
 import { SectionList } from '../SectionRouter';
 import { mapTabGroup } from '../../adapters/sectionUiAdapters';
+import { accessibilityProps } from '../../utils/accessibility';
 
 /**
  * TabGroup - tabbed container with nested sections per tab.
@@ -17,12 +18,14 @@ export function TabGroup({ section, state, onAction, onStateChange }: SectionPro
   };
 
   return (
-    <div style={{ ...styles.container, backgroundColor: section.backgroundColor || 'transparent' }}>
+    <div style={{ ...styles.container, backgroundColor: section.backgroundColor || 'transparent' }} {...accessibilityProps(section.accessibility)}>
       {/* Tab Bar */}
-      <div style={styles.tabBar}>
+      <div style={styles.tabBar} role="tablist">
         {model.tabs.map((tab) => (
           <button
             key={tab.id}
+            role="tab"
+            aria-selected={tab.isActive}
             style={{
               ...styles.tab,
               ...(tab.isActive ? styles.activeTab : {}),
@@ -35,7 +38,7 @@ export function TabGroup({ section, state, onAction, onStateChange }: SectionPro
       </div>
 
       {/* Tab Content */}
-      <div style={styles.tabContent}>
+      <div style={styles.tabContent} role="tabpanel">
         {model.activeSections.length > 0 ? (
           <SectionList
             sections={model.activeSections}

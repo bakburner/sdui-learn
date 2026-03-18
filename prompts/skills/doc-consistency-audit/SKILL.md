@@ -13,6 +13,7 @@ Sync all SDUI governance documentation against the schema and code as the single
 - After migrating section types to/from atomic
 - After renaming action types or other schema enums
 - Periodic consistency review ("review the docs", "sync docs", "dedup docs")
+- After server composition changes (the kitchen sink appendix JSON is refreshed from the live server)
 
 ## Source of Truth (code reads first)
 
@@ -31,6 +32,7 @@ Extract current facts from code before auditing docs. These files define reality
 | Web routed atomics | `web/src/components/atomic/AtomicRouter.tsx` → switch cases |
 | Migrated types (server-composed) | `server/.../AtomicCompositeBuilder.java` → public `build*` methods |
 | Action handler types | `android/sdui-core/.../state/ActionHandler.kt` + `web/src/runtime/ActionHandler.ts` |
+| Kitchen sink live response | `GET http://localhost:8080/sdui/demos` with `X-Platform: android` (requires running server) |
 
 ## Documents to Audit
 
@@ -97,10 +99,75 @@ This gives the user visibility into what will change before edits are applied.
 
 After presenting the report, apply all fixes. Group edits per file for efficiency.
 
-### Step 6 — Validate
+### Step 6 — Refresh kitchen sink appendix from live server
+
+The JSON in `docs/appendix-kitchen-sink.md` must match the actual server output. This step starts the server, fetches the demo response, and replaces the JSON block in-place.
+
+#### 6a — Start the server
+
+```bash
+cd server && ./gradlew bootRun
+```
+
+Run this in the background (`block_until_ms: 0`). It is a long-running process.
+
+#### 6b — Wait for the server to be healthy
+
+Poll until the server responds:
+
+```bash
+until curl -sf http://localhost:8080/sdui/demos > /dev/null 2>&1; do sleep 2; done
+echo "Server ready"
+```
+
+If the server doesn't become healthy within 60 seconds, check the terminal output for errors.
+
+#### 6c — Fetch the demo response
+
+```bash
+curl -s -H "X-Platform: android" http://localhost:8080/sdui/demos | python3 -m json.tool > /tmp/sdui-kitchen-sink.json
+```
+
+Verify the response is valid JSON and contains the expected top-level keys (`id`, `schemaVersion`, `sections`):
+
+```bash
+python3 -c "
+import json
+data = json.load(open('/tmp/sdui-kitchen-sink.json'))
+assert 'sections' in data, 'Missing sections key'
+print(f'OK: {len(data[\"sections\"])} sections')
+"
+```
+
+#### 6d — Replace the JSON block in the appendix
+
+Read the fetched JSON from `/tmp/sdui-kitchen-sink.json` and replace the entire content between the ` ```json ` fence and the closing ` ``` ` in `docs/appendix-kitchen-sink.md`.
+
+**Important**: The markdown header is lines 1–9; the ` ```json ` fence is line 10. Replace only the JSON body (line 11 through the line before the closing ` ``` `) and preserve the closing fence. Then update the `> **Generated**:` line (line 5) with today's date.
+
+#### 6e — Stop the server
+
+Kill the `bootRun` process using the PID from the terminal header:
+
+```bash
+kill <pid>
+```
+
+### Step 7 — Validate
 
 - Confirm all JSON files are valid (`python3 -c "import json; json.load(open('file'))"`)
 - Confirm no dangling `$ref` in schema files
+- Confirm the kitchen sink JSON in the appendix is valid:
+  ```bash
+  python3 -c "
+  import re, json
+  md = open('docs/appendix-kitchen-sink.md').read()
+  match = re.search(r'\`\`\`json\n(.*?)\n\`\`\`', md, re.DOTALL)
+  assert match, 'No JSON block found'
+  data = json.loads(match.group(1))
+  print(f'Kitchen sink JSON valid: {len(data[\"sections\"])} sections')
+  "
+  ```
 - Run a final grep for any remaining stale type names across the project
 
 ## Key Terminology Rules

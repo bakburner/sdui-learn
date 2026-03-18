@@ -19,8 +19,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.compose.SubcomposeAsyncImage
+import com.nba.sdui.core.models.Background
 import com.nba.sdui.core.models.SduiSection
 import com.nba.sdui.core.models.actionToSduiAction
+import com.nba.sdui.core.models.parseBackground
 import com.nba.sdui.core.state.SduiAction
 import com.nba.sdui.core.config.SduiDefaults
 
@@ -30,7 +32,7 @@ import com.nba.sdui.core.config.SduiDefaults
  * Expected data:
  *   title             – heading text
  *   subtitle          – supporting text
- *   backgroundImageUrl – optional background
+ *   background – optional background (BackgroundImage object)
  *   ctaLabel          – button label
  *   ctaAction         – Action for the CTA button
  */
@@ -43,7 +45,8 @@ fun SubscribeBannerRenderer(
     val data = section.data ?: return
     val title = data["title"]?.toString()?.removeSurrounding("\"") ?: return
     val subtitle = data["subtitle"]?.toString()?.removeSurrounding("\"")
-    val backgroundUrl = data["backgroundImageUrl"]?.toString()?.removeSurrounding("\"")
+    val bg = parseBackground(data["background"])
+    val backgroundUrl = (bg as? Background.Image)?.imageUrl
     val ctaLabel = data["ctaLabel"]?.toString()?.removeSurrounding("\"") ?: "Subscribe"
     val ctaAction = data["ctaAction"] as? Map<String, Any?>
     val fallbackThumbnailUrl = data["fallbackThumbnailUrl"]?.toString()?.removeSurrounding("\"")

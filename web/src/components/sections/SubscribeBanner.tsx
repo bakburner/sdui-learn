@@ -8,7 +8,7 @@ import { DEFAULT_FALLBACK_IMAGE } from '../../utils/constants';
  * Expected data:
  *   title              – heading text
  *   subtitle           – supporting text
- *   backgroundImageUrl – optional background
+ *   background – optional background (BackgroundImage object)
  *   ctaLabel           – button text
  *   ctaAction          – Action on CTA tap
  */
@@ -18,7 +18,10 @@ export function SubscribeBanner({ section, onAction }: SectionProps): React.Reac
 
   const title = data.title as string | undefined;
   const subtitle = data.subtitle as string | undefined;
-  const bgUrl = data.backgroundImageUrl as string | undefined;
+  const bgRaw = data.background;
+  const bgUrl = (bgRaw && typeof bgRaw === 'object' && 'imageUrl' in bgRaw)
+    ? (bgRaw as any).imageUrl as string
+    : undefined;
   const ctaLabel = (data.ctaLabel as string) ?? 'Subscribe';
   const ctaAction = data.ctaAction as Record<string, unknown> | undefined;
   const fallbackUrl = (data.fallbackThumbnailUrl as string | undefined) ?? DEFAULT_FALLBACK_IMAGE;

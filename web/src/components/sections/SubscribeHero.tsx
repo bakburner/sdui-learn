@@ -8,7 +8,7 @@ import { DEFAULT_FALLBACK_IMAGE } from '../../utils/constants';
  * Expected data:
  *   title              – main heading
  *   subtitle           – supporting tagline
- *   backgroundImageUrl – hero background
+ *   background – hero background (BackgroundImage object)
  *   logoUrl            – brand logo
  *   features[]         – bullet-point strings
  *   tiers[]            – SubscriptionTier objects { id, name, price, originalPrice, badgeText, features[], ctaLabel, ctaAction }
@@ -19,7 +19,10 @@ export function SubscribeHero({ section, onAction }: SectionProps): React.ReactE
 
   const title = data.title as string | undefined;
   const subtitle = data.subtitle as string | undefined;
-  const bgUrl = data.backgroundImageUrl as string | undefined;
+  const bgRaw = data.background;
+  const bgUrl = (bgRaw && typeof bgRaw === 'object' && 'imageUrl' in bgRaw)
+    ? (bgRaw as any).imageUrl as string
+    : undefined;
   const logoUrl = data.logoUrl as string | undefined;
   const features = (data.features as string[]) ?? [];
   const tiers = (data.tiers as Array<Record<string, unknown>>) ?? [];

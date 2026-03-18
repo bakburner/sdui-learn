@@ -1,38 +1,13 @@
 package com.nba.sdui.core.models
 
 import com.nba.sdui.core.state.SduiAction
-import com.nba.sdui.models.generated.Action
-
-/**
- * Converts generated Java Action to Kotlin SduiAction for use by ActionHandler.
- */
-fun actionToSduiAction(action: Action?): SduiAction? {
-    if (action == null) return null
-    val eventParams = action.params?.additionalProperties?.mapValues { (_, v) -> v as Any }
-        ?: emptyMap<String, Any>()
-    return SduiAction(
-        trigger = action.trigger?.name?.lowercase() ?: "onTap",
-        type = action.type?.name?.lowercase() ?: "navigate",
-        targetUri = action.targetUri,
-        fallbackUrl = action.webUrl,
-        eventName = action.event,
-        eventParams = if (eventParams.isEmpty()) null else eventParams,
-        stateKey = action.target,
-        stateValue = action.value,
-        sectionId = action.target,
-        endpoint = action.endpoint,
-        paramBindings = action.paramBindings?.additionalProperties
-            ?.mapValues { (_, v) -> v?.toString() ?: "" },
-        message = action.message
-    )
-}
 
 /**
  * Converts a raw Map (from deserialized section data) to SduiAction.
  *
- * This overload handles actions embedded in section data maps where
- * Jackson has already deserialized them as Map<String, Any?> rather
- * than typed [Action] objects.
+ * Jackson deserializes actions as Map<String, Any?> since section.actions
+ * is typed as List<Map<String, Any?>> in [SduiSection]. This converter
+ * bridges to the typed [SduiAction] used by ActionHandler.
  */
 @Suppress("UNCHECKED_CAST")
 fun actionToSduiAction(map: Map<String, Any?>?): SduiAction? {

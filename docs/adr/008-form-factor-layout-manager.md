@@ -103,3 +103,7 @@ Server uses semantic layout types for structural composition. Individual section
 - **Canonical hints:** `marginTop`, `marginBottom`, `dividerAbove`, `dividerBelow`, `priority` (high/normal/low).
 - **Fallback rules:** Unknown hints are ignored. Missing `layoutHints` = default behavior (no margins, no dividers, normal priority).
 - **Cross-platform parity:** Clients apply hints best-effort using platform-native layout systems.
+
+## Addendum: Row → Container Migration (2026-03-13)
+
+The `Row` section type referenced in Options B and C above was subsequently replaced by `Container` in the atomic rendering layer (see `AtomicElement` in `sdui-schema.json`). `Container` supports flex layout with `direction`, `justify`, `align`, `wrap`, and `breakpoint` properties, serving the same structural composition role with richer primitives. The `layoutHints` mechanism from this ADR remains valid and is orthogonal to this change.

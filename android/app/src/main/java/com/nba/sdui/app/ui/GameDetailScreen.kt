@@ -35,11 +35,7 @@ fun GameDetailScreen(
     onShowToast: (String) -> Unit = {},
     onVariantChange: (String) -> Unit = {},
     onBack: () -> Unit = {},
-    viewModel: GameDetailViewModel = viewModel(
-        // Key on the full config so a NEW ViewModel is created whenever
-        // variant or URI changes.
-        key = "sdui_${config.uri}_${config.variant}"
-    ) {
+    viewModel: GameDetailViewModel = viewModel {
         GameDetailViewModel(
             baseUrl = BuildConfig.SDUI_BASE_URL,
             ablyTokenUrl = BuildConfig.ABLY_TOKEN_URL,

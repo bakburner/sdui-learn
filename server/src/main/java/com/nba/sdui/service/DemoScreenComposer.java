@@ -55,8 +55,8 @@ public class DemoScreenComposer {
 
         ArrayNode sections = objectMapper.createArrayNode();
 
-        // 1. GamePanel (scoreboard variant)
-        sections.add(buildTypeLabel("GamePanel (scoreboard)"));
+        // 1. GamePanel (scoreboard displayConfig)
+        sections.add(buildTypeLabel("GamePanel (scoreboard config)"));
         sections.add(buildDemoGamePanelScoreboard());
         // 2. AdSlot (between header and top performers)
         sections.add(buildTypeLabel("AdSlot"));
@@ -91,8 +91,8 @@ public class DemoScreenComposer {
         // 12. SeasonLeadersTable
         sections.add(buildTypeLabel("SeasonLeadersTable"));
         sections.add(buildDemoLeadersTable());
-        // 13. GamePanel (featured variant)
-        sections.add(buildTypeLabel("GamePanel (featured)"));
+        // 13. GamePanel (featured displayConfig)
+        sections.add(buildTypeLabel("GamePanel (featured config)"));
         sections.add(buildDemoFeaturedGamePanel());
         // 14. VideoCarousel
         sections.add(buildTypeLabel("VideoCarousel"));
@@ -277,16 +277,51 @@ public class DemoScreenComposer {
     // ── Demo section builders ──────────────────────────────────────────
 
     /**
-     * 1. GamePanel (scoreboard variant) — Lakers vs Celtics, period 3, 89-94.
+     * 1. GamePanel (scoreboard displayConfig) — Lakers vs Celtics, period 3, 89-94.
      */
     private ObjectNode buildDemoGamePanelScoreboard() {
-        return atomicBuilder.buildScoreboardHeader(
-                "demo-game-panel-scoreboard", "demo_game_panel_scoreboard",
-                "LAL", "Lakers",
-                "https://cdn.nba.com/logos/nba/1610612747/primary/L/logo.svg", "89",
-                "BOS", "Celtics",
-                "https://cdn.nba.com/logos/nba/1610612738/primary/L/logo.svg", "94",
-                "Q3 4:32", "Period 3", null, null);
+        ObjectNode section = objectMapper.createObjectNode();
+        section.put("id", "demo-game-panel-scoreboard");
+        section.put("type", "GamePanel");
+        section.put("analyticsId", "demo_game_panel_scoreboard");
+        section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
+
+        ObjectNode data = objectMapper.createObjectNode();
+        data.put("gameId", "0022400999");
+        data.put("gameStatus", 2);
+        data.put("gameStatusText", "Q3 4:32");
+        data.put("period", 3);
+        data.put("gameClock", "PT04M32.00S");
+        data.set("displayConfig", atomicBuilder.scoreboardConfig(null));
+
+        ObjectNode home = objectMapper.createObjectNode();
+        home.put("teamId", 1610612738);
+        home.put("teamTricode", "BOS");
+        home.put("teamName", "Celtics");
+        home.put("teamCity", "Boston");
+        home.put("score", 94);
+        home.put("logoUrl", "https://cdn.nba.com/logos/nba/1610612738/primary/L/logo.svg");
+        data.set("homeTeam", home);
+
+        ObjectNode away = objectMapper.createObjectNode();
+        away.put("teamId", 1610612747);
+        away.put("teamTricode", "LAL");
+        away.put("teamName", "Lakers");
+        away.put("teamCity", "Los Angeles");
+        away.put("score", 89);
+        away.put("logoUrl", "https://cdn.nba.com/logos/nba/1610612747/primary/L/logo.svg");
+        data.set("awayTeam", away);
+
+        ArrayNode actions = objectMapper.createArrayNode();
+        ObjectNode action = objectMapper.createObjectNode();
+        action.put("trigger", "onTap");
+        action.put("type", "navigate");
+        action.put("targetUri", "nba://game/0022400999");
+        actions.add(action);
+        data.set("actions", actions);
+
+        section.set("data", data);
+        return section;
     }
 
     /**
@@ -354,6 +389,7 @@ public class DemoScreenComposer {
         data.put("gameId", "0022400888");
         data.put("gameStatus", 3);
         data.put("gameStatusText", "Final");
+        data.set("displayConfig", atomicBuilder.standardConfig());
 
         ObjectNode home = objectMapper.createObjectNode();
         home.put("teamId", 1610612744);
@@ -665,7 +701,7 @@ public class DemoScreenComposer {
     }
 
     /**
-     * 13. GamePanel (featured variant) — hero-sized game card with background image and badge.
+     * 13. GamePanel (featured displayConfig) — hero-sized game card with background image and badge.
      */
     private ObjectNode buildDemoFeaturedGamePanel() {
         ObjectNode section = objectMapper.createObjectNode();
@@ -679,8 +715,9 @@ public class DemoScreenComposer {
         data.put("gameStatus", 2);
         data.put("gameStatusText", "Q4 2:15");
         data.put("gameTimeEt", "2025-03-11T19:30:00-04:00");
-        data.put("variant", "featured");
-        data.put("backgroundImageUrl", "https://loremflickr.com/1200/600/basketball,arena?lock=9");
+        data.set("displayConfig", atomicBuilder.featuredConfig(
+                "https://loremflickr.com/1200/600/basketball,arena?lock=9",
+                new String[]{"#1D428A", "#C8102E"}));
         data.put("fallbackThumbnailUrl", FALLBACK_THUMB);
         data.put("badgeText", "LIVE");
 
@@ -759,7 +796,9 @@ public class DemoScreenComposer {
         ObjectNode data = objectMapper.createObjectNode();
         data.put("title", "Never Miss a Game");
         data.put("subtitle", "Stream every out-of-market game live with NBA League Pass.");
-        data.put("backgroundImageUrl", "https://loremflickr.com/800/200/basketball,court?lock=18");
+        ObjectNode bannerBg = objectMapper.createObjectNode();
+        bannerBg.put("imageUrl", "https://loremflickr.com/800/200/basketball,court?lock=18");
+        data.set("background", bannerBg);
         data.put("logoUrl", "https://cdn.nba.com/manage/2025/01/league-pass-logo.png");
         data.put("fallbackThumbnailUrl", FALLBACK_THUMB);
         data.put("ctaLabel", "Subscribe Now");
@@ -788,7 +827,9 @@ public class DemoScreenComposer {
         ObjectNode data = objectMapper.createObjectNode();
         data.put("title", "NBA League Pass");
         data.put("subtitle", "Watch every game. Your way.");
-        data.put("backgroundImageUrl", "https://loremflickr.com/1200/600/basketball,court?lock=19");
+        ObjectNode heroBg = objectMapper.createObjectNode();
+        heroBg.put("imageUrl", "https://loremflickr.com/1200/600/basketball,court?lock=19");
+        data.set("background", heroBg);
         data.put("logoUrl", "https://cdn.nba.com/manage/2025/01/league-pass-logo.png");
         data.put("fallbackThumbnailUrl", FALLBACK_THUMB);
 
@@ -928,7 +969,7 @@ public class DemoScreenComposer {
         ObjectNode root = objectMapper.createObjectNode();
         root.put("type", "Container");
         root.put("direction", "column");
-        root.put("backgroundColor", "#1A1A2E");
+        root.put("background", "#1A1A2E");
         root.put("cornerRadius", 12);
         ObjectNode padding = objectMapper.createObjectNode();
         padding.put("start", 16); padding.put("end", 16);

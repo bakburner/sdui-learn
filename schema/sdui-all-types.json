@@ -23,7 +23,7 @@
     "refreshPolicy": {
       "$ref": "sdui-schema.json#/definitions/RefreshPolicy"
     },
-    "dataBindings": {
+    "dataBinding": {
       "$ref": "sdui-schema.json#/definitions/DataBinding"
     },
     "dataBindingPath": {

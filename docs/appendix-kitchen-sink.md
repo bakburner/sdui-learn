@@ -27,7 +27,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
 | BoxscoreTable | 1 | Semantic |
 | Form | 1 | Semantic |
 | TabGroup | 1 | Semantic |
-| Row | 1 | Semantic |
+| AtomicComposite (responsive row) | 1 | Atomic (AtomicRouter) |
 | SeasonLeadersTable | 1 | Semantic |
 | SubscribeBanner | 1 | Semantic |
 | SubscribeHero | 1 | Semantic |
@@ -687,7 +687,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
                                 },
                                 {
                                     "type": "Text",
-                                    "content": "All 20 semantic section types rendered from a single server response.",
+                                    "content": "All 9 section types and 32 AtomicComposite trees rendered from a single server response.",
                                     "variant": "bodySmall",
                                     "color": "#CCCCCC"
                                 },

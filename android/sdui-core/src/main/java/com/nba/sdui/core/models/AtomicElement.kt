@@ -25,8 +25,7 @@ data class AtomicElement(
     @JsonProperty("crossAlignment") val crossAlignment: String? = null, // "start" | "center" | "end" | "stretch"
     @JsonProperty("gap") val gap: Int? = null,
     @JsonProperty("padding") val padding: Spacing? = null,
-    @JsonProperty("backgroundColor") val backgroundColor: String? = null,
-    @JsonProperty("backgroundGradient") val backgroundGradient: BackgroundGradient? = null,
+    @JsonProperty("background") val background: Any? = null,
     @JsonProperty("cornerRadius") val cornerRadius: Int? = null,
 
     // Text properties
@@ -91,6 +90,35 @@ data class BackgroundGradient(
     @JsonProperty("colors") val colors: List<String>,
     @JsonProperty("direction") val direction: String? = "vertical" // "horizontal" | "vertical" | "diagonal"
 )
+
+sealed class Background {
+    data class Solid(val color: String) : Background()
+    data class Gradient(val gradient: BackgroundGradient) : Background()
+    data class Image(val imageUrl: String, val scaleType: String = "cover",
+                     val overlay: Background? = null) : Background()
+}
+
+@Suppress("UNCHECKED_CAST")
+fun parseBackground(raw: Any?): Background? {
+    if (raw == null) return null
+    if (raw is String) return Background.Solid(raw)
+    if (raw is Map<*, *>) {
+        val map = raw as Map<String, Any?>
+        if (map.containsKey("imageUrl")) {
+            return Background.Image(
+                imageUrl = map["imageUrl"] as String,
+                scaleType = (map["scaleType"] as? String) ?: "cover",
+                overlay = parseBackground(map["overlay"])
+            )
+        }
+        if (map.containsKey("colors")) {
+            val colors = (map["colors"] as? List<*>)?.filterIsInstance<String>() ?: return null
+            val direction = (map["direction"] as? String) ?: "vertical"
+            return Background.Gradient(BackgroundGradient(colors, direction))
+        }
+    }
+    return null
+}
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class DisplayGridColumn(

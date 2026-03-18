@@ -136,7 +136,7 @@ public class GameDetailComposer {
 
             ArrayNode sections = objectMapper.createArrayNode();
 
-            // 1. GamePanel (scoreboard variant)
+            // 1. GamePanel (scoreboard displayConfig)
             sections.add(buildGamePanelScoreboardFromLive(game, gameId));
 
             // 2. StatLine (top performers)
@@ -368,7 +368,7 @@ public class GameDetailComposer {
         section.put("id", "scoreboard");
         section.put("type", "GamePanel");
 
-        section.set("dataBindings", utils.buildLinescoreBindings());
+        section.set("dataBinding", utils.buildLinescoreBindings());
 
         ObjectNode refreshPolicy = objectMapper.createObjectNode();
         refreshPolicy.put("type", "sse");
@@ -408,7 +408,7 @@ public class GameDetailComposer {
         data.put("period", game.path("period").asInt());
         data.put("gameStatus", game.path("gameStatus").asInt());
         data.put("gameStatusText", game.path("gameStatusText").asText());
-        data.put("variant", "scoreboard");
+        data.set("displayConfig", atomicBuilder.scoreboardConfig(null));
 
         section.set("data", data);
         return section;

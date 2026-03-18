@@ -217,7 +217,7 @@ public class SduiUtils {
     // ── Linescore bindings ─────────────────────────────────────────────
 
     public ObjectNode buildLinescoreBindings() {
-        ObjectNode dataBindings = objectMapper.createObjectNode();
+        ObjectNode dataBinding = objectMapper.createObjectNode();
         ArrayNode bindings = objectMapper.createArrayNode();
 
         bindings.add(bindingPath("$.homeTeam.score", "homeTeam.score"));
@@ -225,8 +225,8 @@ public class SduiUtils {
         bindings.add(bindingPath("$.gameStatusText", "gameStatusText"));
         bindings.add(bindingPath("$.period", "period"));
 
-        dataBindings.set("bindings", bindings);
-        return dataBindings;
+        dataBinding.set("bindings", bindings);
+        return dataBinding;
     }
 
     public ObjectNode bindingPath(String sourcePath, String targetPath) {

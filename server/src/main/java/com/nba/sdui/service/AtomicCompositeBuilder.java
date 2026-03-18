@@ -12,7 +12,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  *
  * Migrated section types (server-composed, no client renderers):
  * ErrorState, SectionHeader, PromoBanner, ContentRail, FollowingRail,
- * HeroPanel, VideoCarousel, StatLine, NbaTvSchedule, GamePanel (scoreboard variant).
+ * HeroPanel, VideoCarousel, StatLine, NbaTvSchedule.
  */
 public class AtomicCompositeBuilder {
 
@@ -99,10 +99,10 @@ public class AtomicCompositeBuilder {
                                         String targetUri) {
         ObjectNode section = sectionEnvelope(id, analyticsId);
 
-        String backgroundColor = bgColor != null ? bgColor : "#2A2A5E";
+        String bg = bgColor != null ? bgColor : "#2A2A5E";
 
         ObjectNode root = container("row", null, "center");
-        root.put("backgroundColor", backgroundColor);
+        root.put("background", bg);
         root.put("cornerRadius", 12);
         root.set("padding", padding(20, 20, 20, 20));
         ArrayNode rootChildren = om.createArrayNode();
@@ -195,7 +195,7 @@ public class AtomicCompositeBuilder {
 
         ObjectNode thumbContainer = container("column", null, null);
         thumbContainer.put("cornerRadius", 8);
-        thumbContainer.put("backgroundColor", "#2A2A4A");
+        thumbContainer.put("background", "#2A2A4A");
         ArrayNode thumbChildren = om.createArrayNode();
 
         if (thumbnailUrl != null) {
@@ -208,7 +208,7 @@ public class AtomicCompositeBuilder {
 
         if (contentType != null) {
             ObjectNode badge = text(contentType.toUpperCase(), "labelSmall", "bold", "#FFFFFF", null);
-            badge.put("backgroundColor", "#FF6B6B");
+            badge.put("background", "#FF6B6B");
             metaChildren.add(badge);
         }
 
@@ -381,7 +381,7 @@ public class AtomicCompositeBuilder {
 
         ObjectNode card = container("column", null, null);
         card.put("cornerRadius", 12);
-        card.put("backgroundColor", "#1A1F2E");
+        card.put("background", "#1A1F2E");
         if (targetUri != null) {
             card.set("actions", singleActionArray(tapNavigate(targetUri)));
         }
@@ -485,7 +485,7 @@ public class AtomicCompositeBuilder {
         ObjectNode card = container("column", null, null);
         card.put("id", id);
         card.put("cornerRadius", 12);
-        card.put("backgroundColor", "#1A1F2E");
+        card.put("background", "#1A1F2E");
         if (targetUri != null) {
             card.set("actions", singleActionArray(tapNavigate(targetUri)));
         }
@@ -504,7 +504,7 @@ public class AtomicCompositeBuilder {
 
         if (badgeText != null) {
             ObjectNode badge = text(badgeText, "labelSmall", "bold", "#FFFFFF", null);
-            badge.put("backgroundColor", "#C8102E");
+            badge.put("background", "#C8102E");
             metaChildren.add(badge);
         } else {
             metaChildren.add(spacer(1));
@@ -512,7 +512,7 @@ public class AtomicCompositeBuilder {
 
         if (duration != null) {
             ObjectNode dur = text(duration, "labelSmall", null, "#FFFFFF", null);
-            dur.put("backgroundColor", "#000000B3");
+            dur.put("background", "#000000B3");
             metaChildren.add(dur);
         }
 
@@ -679,69 +679,46 @@ public class AtomicCompositeBuilder {
         return col;
     }
 
-    // ── GamePanel (scoreboard variant) ───────────────────────────────────────────────
+    // ── GamePanelDisplayConfig presets ────────────────────────────────
 
-    /**
-     * Build a GamePanel (scoreboard variant) as an AtomicComposite.
-     * Away team | Status | Home team layout.
-     */
-    public ObjectNode buildScoreboardHeader(String id, String analyticsId,
-                                             String awayTricode, String awayName,
-                                             String awayLogoUrl, String awayScore,
-                                             String homeTricode, String homeName,
-                                             String homeLogoUrl, String homeScore,
-                                             String statusText, String periodLabel,
-                                             String bgColor, String targetUri) {
-        ObjectNode section = sectionEnvelope(id, analyticsId);
-
-        String bg = bgColor != null ? bgColor : "#17408B";
-
-        ObjectNode root = container("row", "spaceEvenly", "center");
-        root.put("cornerRadius", 12);
-        root.put("backgroundColor", bg);
-        root.set("padding", padding(16, 16, 24, 24));
-        if (targetUri != null) {
-            root.set("actions", singleActionArray(tapNavigate(targetUri)));
-        }
-        ArrayNode rootChildren = om.createArrayNode();
-
-        rootChildren.add(buildTeamColumn(awayTricode, awayLogoUrl, awayScore));
-
-        ObjectNode statusCol = container("column", "center", "center");
-        ArrayNode statusChildren = om.createArrayNode();
-        statusChildren.add(text(statusText, "bodyMedium", "medium", "#FFFFFF", null));
-        if (periodLabel != null) {
-            statusChildren.add(text(periodLabel, "bodySmall", null, "#CCCCCC", null));
-        }
-        statusCol.set("children", statusChildren);
-        rootChildren.add(statusCol);
-
-        rootChildren.add(buildTeamColumn(homeTricode, homeLogoUrl, homeScore));
-
-        root.set("children", rootChildren);
-
-        ObjectNode wrapper = container("column", null, null);
-        wrapper.set("padding", padding(8, 8, 0, 0));
-        ArrayNode wrapChildren = om.createArrayNode();
-        wrapChildren.add(root);
-        wrapper.set("children", wrapChildren);
-        wrapUi(section, wrapper);
-        return section;
+    public ObjectNode standardConfig() {
+        ObjectNode config = om.createObjectNode();
+        config.put("background", "#1A1F2E");
+        return config;
     }
 
-    private ObjectNode buildTeamColumn(String tricode, String logoUrl, String score) {
-        ObjectNode col = container("column", "center", "center");
-        ArrayNode children = om.createArrayNode();
+    public ObjectNode featuredConfig(String bgImageUrl, String[] liveBgGradientColors) {
+        ObjectNode config = om.createObjectNode();
+        config.put("logoSize", 56);
+        config.put("cardHeight", 200);
+        config.put("cornerRadius", 16);
+        config.put("elevation", 6);
+        config.put("scoreTextStyle", "prominent");
+        if (bgImageUrl != null) {
+            ObjectNode bgImage = om.createObjectNode();
+            bgImage.put("imageUrl", bgImageUrl);
+            config.set("background", bgImage);
+        } else {
+            config.put("background", "#1D428A");
+        }
+        if (liveBgGradientColors != null) {
+            ObjectNode grad = om.createObjectNode();
+            ArrayNode colors = om.createArrayNode();
+            for (String c : liveBgGradientColors) colors.add(c);
+            grad.set("colors", colors);
+            grad.put("direction", "horizontal");
+            config.set("liveBackground", grad);
+        }
+        config.put("badgeColor", "#C8102E");
+        return config;
+    }
 
-        String logo = logoUrl != null ? logoUrl : DEFAULT_PLACEHOLDER;
-        ObjectNode img = image(logo, 60, 60, "contain");
-        children.add(img);
-        children.add(spacer(4));
-        children.add(text(tricode, "bodyMedium", "bold", "#FFFFFF", null));
-        children.add(text(score, "headlineLarge", "bold", "#FFFFFF", null));
-
-        col.set("children", children);
-        return col;
+    public ObjectNode scoreboardConfig(String bgColor) {
+        ObjectNode config = om.createObjectNode();
+        config.put("logoSize", 60);
+        config.put("scoreTextStyle", "prominent");
+        config.put("background", bgColor != null ? bgColor : "#17408B");
+        return config;
     }
 
     // ── NbaTvSchedule ────────────────────────────────────────────────────
@@ -759,6 +736,8 @@ public class AtomicCompositeBuilder {
         ObjectNode section = sectionEnvelope(id, analyticsId);
 
         ObjectNode root = container("column", null, null);
+        root.put("background", "#0C1022");
+        root.put("cornerRadius", 12);
         ArrayNode rootChildren = om.createArrayNode();
 
         ObjectNode heroContainer = container("column", "end", null);
@@ -775,19 +754,18 @@ public class AtomicCompositeBuilder {
 
         ObjectNode overlay = container("column", null, null);
         overlay.set("padding", padding(16, 16, 16, 16));
-        overlay.put("backgroundGradient", 0);
         ObjectNode grad = om.createObjectNode();
         ArrayNode gradColors = om.createArrayNode();
         gradColors.add("#00000000");
         gradColors.add("#000000CC");
         grad.set("colors", gradColors);
         grad.put("direction", "vertical");
-        overlay.set("backgroundGradient", grad);
+        overlay.set("background", grad);
         ArrayNode overlayChildren = om.createArrayNode();
 
         if (liveNow) {
             ObjectNode liveBadge = text("LIVE", "labelSmall", "bold", "#FFFFFF", null);
-            liveBadge.put("backgroundColor", "#C8102E");
+            liveBadge.put("background", "#C8102E");
             overlayChildren.add(liveBadge);
             overlayChildren.add(spacer(6));
         }
@@ -832,7 +810,7 @@ public class AtomicCompositeBuilder {
         row.put("id", id);
         row.put("fillWidth", true);
         row.put("cornerRadius", 8);
-        row.put("backgroundColor", "#1A1F2E");
+        row.put("background", "#1A1F2E");
         row.set("padding", padding(12, 12, 12, 12));
         if (targetUri != null) {
             row.set("actions", singleActionArray(tapNavigate(targetUri)));
@@ -855,7 +833,7 @@ public class AtomicCompositeBuilder {
         if (isLive) {
             children.add(spacer(8));
             ObjectNode badge = text("LIVE", "labelSmall", "bold", "#FFFFFF", null);
-            badge.put("backgroundColor", "#C8102E");
+            badge.put("background", "#C8102E");
             children.add(badge);
         }
 

@@ -40,56 +40,301 @@
         "period": 4,
         "gameClock": "PT00M00.00S",
         "gameId": "0042300102",
-        "variant": "scoreboard"
+        "displayConfig": {
+          "logoSize": 60,
+          "scoreTextStyle": "prominent",
+          "background": "#17408B"
+        }
       }
     },
     {
       "id": "player-stats",
-      "type": "StatLine",
+      "type": "AtomicComposite",
       "analyticsId": "player_stats_section",
       "refreshPolicy": {
         "type": "static"
       },
       "data": {
-        "title": "Top Performers",
-        "stats": [
-          {
-            "playerId": 1627759,
-            "playerName": "Jaylen Brown",
-            "playerImageUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1627759.png",
-            "teamTricode": "BOS",
-            "statCategory": "PTS",
-            "statValue": "33",
-            "statLabel": "Points"
+        "ui": {
+          "type": "Container",
+          "direction": "column",
+          "padding": {
+            "start": 16,
+            "end": 16,
+            "top": 8,
+            "bottom": 8
           },
-          {
-            "playerId": 1628369,
-            "playerName": "Jayson Tatum",
-            "playerImageUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1628369.png",
-            "teamTricode": "BOS",
-            "statCategory": "PTS",
-            "statValue": "28",
-            "statLabel": "Points"
-          },
-          {
-            "playerId": 202710,
-            "playerName": "Jimmy Butler",
-            "playerImageUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/202710.png",
-            "teamTricode": "MIA",
-            "statCategory": "PTS",
-            "statValue": "29",
-            "statLabel": "Points"
-          },
-          {
-            "playerId": 1629216,
-            "playerName": "Bam Adebayo",
-            "playerImageUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1629216.png",
-            "teamTricode": "MIA",
-            "statCategory": "REB",
-            "statValue": "14",
-            "statLabel": "Rebounds"
-          }
-        ]
+          "children": [
+            {
+              "type": "Text",
+              "content": "Top Performers",
+              "variant": "titleMedium",
+              "weight": "bold",
+              "padding": {
+                "start": 0,
+                "end": 0,
+                "top": 0,
+                "bottom": 12
+              }
+            },
+            {
+              "type": "Container",
+              "direction": "row",
+              "crossAlignment": "center",
+              "padding": {
+                "start": 0,
+                "end": 0,
+                "top": 6,
+                "bottom": 6
+              },
+              "children": [
+                {
+                  "type": "Image",
+                  "src": "https://cdn.nba.com/headshots/nba/latest/1040x760/1627759.png",
+                  "width": 40,
+                  "height": 40,
+                  "fit": "cover",
+                  "cornerRadius": 20
+                },
+                {
+                  "type": "Spacer",
+                  "height": 12
+                },
+                {
+                  "type": "Container",
+                  "direction": "column",
+                  "children": [
+                    {
+                      "type": "Text",
+                      "content": "Jaylen Brown",
+                      "variant": "bodyLarge",
+                      "weight": "medium"
+                    },
+                    {
+                      "type": "Text",
+                      "content": "BOS",
+                      "variant": "bodySmall",
+                      "color": "#999999"
+                    }
+                  ]
+                },
+                {
+                  "type": "Spacer",
+                  "height": 8
+                },
+                {
+                  "type": "Text",
+                  "content": "PTS",
+                  "variant": "bodyMedium",
+                  "color": "#AAAAAA"
+                },
+                {
+                  "type": "Spacer",
+                  "height": 8
+                },
+                {
+                  "type": "Text",
+                  "content": "33",
+                  "variant": "titleMedium",
+                  "weight": "bold",
+                  "color": "#FF6B6B"
+                }
+              ]
+            },
+            {
+              "type": "Container",
+              "direction": "row",
+              "crossAlignment": "center",
+              "padding": {
+                "start": 0,
+                "end": 0,
+                "top": 6,
+                "bottom": 6
+              },
+              "children": [
+                {
+                  "type": "Image",
+                  "src": "https://cdn.nba.com/headshots/nba/latest/1040x760/1628369.png",
+                  "width": 40,
+                  "height": 40,
+                  "fit": "cover",
+                  "cornerRadius": 20
+                },
+                {
+                  "type": "Spacer",
+                  "height": 12
+                },
+                {
+                  "type": "Container",
+                  "direction": "column",
+                  "children": [
+                    {
+                      "type": "Text",
+                      "content": "Jayson Tatum",
+                      "variant": "bodyLarge",
+                      "weight": "medium"
+                    },
+                    {
+                      "type": "Text",
+                      "content": "BOS",
+                      "variant": "bodySmall",
+                      "color": "#999999"
+                    }
+                  ]
+                },
+                {
+                  "type": "Spacer",
+                  "height": 8
+                },
+                {
+                  "type": "Text",
+                  "content": "PTS",
+                  "variant": "bodyMedium",
+                  "color": "#AAAAAA"
+                },
+                {
+                  "type": "Spacer",
+                  "height": 8
+                },
+                {
+                  "type": "Text",
+                  "content": "28",
+                  "variant": "titleMedium",
+                  "weight": "bold",
+                  "color": "#FF6B6B"
+                }
+              ]
+            },
+            {
+              "type": "Container",
+              "direction": "row",
+              "crossAlignment": "center",
+              "padding": {
+                "start": 0,
+                "end": 0,
+                "top": 6,
+                "bottom": 6
+              },
+              "children": [
+                {
+                  "type": "Image",
+                  "src": "https://cdn.nba.com/headshots/nba/latest/1040x760/202710.png",
+                  "width": 40,
+                  "height": 40,
+                  "fit": "cover",
+                  "cornerRadius": 20
+                },
+                {
+                  "type": "Spacer",
+                  "height": 12
+                },
+                {
+                  "type": "Container",
+                  "direction": "column",
+                  "children": [
+                    {
+                      "type": "Text",
+                      "content": "Jimmy Butler",
+                      "variant": "bodyLarge",
+                      "weight": "medium"
+                    },
+                    {
+                      "type": "Text",
+                      "content": "MIA",
+                      "variant": "bodySmall",
+                      "color": "#999999"
+                    }
+                  ]
+                },
+                {
+                  "type": "Spacer",
+                  "height": 8
+                },
+                {
+                  "type": "Text",
+                  "content": "PTS",
+                  "variant": "bodyMedium",
+                  "color": "#AAAAAA"
+                },
+                {
+                  "type": "Spacer",
+                  "height": 8
+                },
+                {
+                  "type": "Text",
+                  "content": "29",
+                  "variant": "titleMedium",
+                  "weight": "bold",
+                  "color": "#FF6B6B"
+                }
+              ]
+            },
+            {
+              "type": "Container",
+              "direction": "row",
+              "crossAlignment": "center",
+              "padding": {
+                "start": 0,
+                "end": 0,
+                "top": 6,
+                "bottom": 6
+              },
+              "children": [
+                {
+                  "type": "Image",
+                  "src": "https://cdn.nba.com/headshots/nba/latest/1040x760/1629216.png",
+                  "width": 40,
+                  "height": 40,
+                  "fit": "cover",
+                  "cornerRadius": 20
+                },
+                {
+                  "type": "Spacer",
+                  "height": 12
+                },
+                {
+                  "type": "Container",
+                  "direction": "column",
+                  "children": [
+                    {
+                      "type": "Text",
+                      "content": "Bam Adebayo",
+                      "variant": "bodyLarge",
+                      "weight": "medium"
+                    },
+                    {
+                      "type": "Text",
+                      "content": "MIA",
+                      "variant": "bodySmall",
+                      "color": "#999999"
+                    }
+                  ]
+                },
+                {
+                  "type": "Spacer",
+                  "height": 8
+                },
+                {
+                  "type": "Text",
+                  "content": "REB",
+                  "variant": "bodyMedium",
+                  "color": "#AAAAAA"
+                },
+                {
+                  "type": "Spacer",
+                  "height": 8
+                },
+                {
+                  "type": "Text",
+                  "content": "14",
+                  "variant": "titleMedium",
+                  "weight": "bold",
+                  "color": "#FF6B6B"
+                }
+              ]
+            }
+          ]
+        }
       }
     },
     {
@@ -103,14 +348,24 @@
         "ui": {
           "type": "Container",
           "direction": "column",
-          "padding": { "start": 0, "end": 0, "top": 12, "bottom": 12 },
+          "padding": {
+            "start": 0,
+            "end": 0,
+            "top": 12,
+            "bottom": 12
+          },
           "children": [
             {
               "type": "Text",
               "content": "Highlights & Recap",
               "variant": "titleMedium",
               "weight": "bold",
-              "padding": { "start": 16, "end": 16, "top": 8, "bottom": 8 }
+              "padding": {
+                "start": 16,
+                "end": 16,
+                "top": 8,
+                "bottom": 8
+              }
             },
             {
               "type": "ScrollContainer",
@@ -121,72 +376,204 @@
                   "type": "Container",
                   "id": "content-1",
                   "direction": "column",
-                  "actions": [{ "trigger": "onTap", "type": "navigate", "targetUri": "nba://article/heat-even-series", "fallbackUrl": "https://www.nba.com/news/heat-even-series" }],
+                  "actions": [
+                    {
+                      "trigger": "onTap",
+                      "type": "navigate",
+                      "targetUri": "nba://article/heat-even-series",
+                      "fallbackUrl": "https://www.nba.com/news/heat-even-series"
+                    }
+                  ],
                   "children": [
                     {
-                      "type": "Container", "direction": "column", "cornerRadius": 8, "backgroundColor": "#2A2A4A",
+                      "type": "Container",
+                      "direction": "column",
+                      "cornerRadius": 8,
+                      "background": "#2A2A4A",
                       "children": [
-                        { "type": "Image", "src": "https://cdn.nba.com/manage/2024/04/heat-win-celebration.jpg", "width": 200, "height": 112, "fit": "cover" },
                         {
-                          "type": "Container", "direction": "column",
-                          "padding": { "start": 4, "end": 4, "top": 4, "bottom": 4 },
+                          "type": "Image",
+                          "src": "https://cdn.nba.com/manage/2024/04/heat-win-celebration.jpg",
+                          "width": 200,
+                          "height": 112,
+                          "fit": "cover"
+                        },
+                        {
+                          "type": "Container",
+                          "direction": "column",
+                          "padding": {
+                            "start": 4,
+                            "end": 4,
+                            "top": 4,
+                            "bottom": 4
+                          },
                           "children": [
-                            { "type": "Text", "content": "ARTICLE", "variant": "labelSmall", "weight": "bold", "color": "#FFFFFF", "backgroundColor": "#FF6B6B" },
-                            { "type": "Spacer", "height": 16 }
+                            {
+                              "type": "Text",
+                              "content": "ARTICLE",
+                              "variant": "labelSmall",
+                              "weight": "bold",
+                              "color": "#FFFFFF",
+                              "background": "#FF6B6B"
+                            },
+                            {
+                              "type": "Spacer",
+                              "height": 16
+                            }
                           ]
                         }
                       ]
                     },
-                    { "type": "Spacer", "height": 8 },
-                    { "type": "Text", "content": "Heat Even Series 2-2", "variant": "bodySmall", "weight": "semiBold", "color": "#FFFFFF", "maxLines": 2 }
+                    {
+                      "type": "Spacer",
+                      "height": 8
+                    },
+                    {
+                      "type": "Text",
+                      "content": "Heat Even Series 2-2",
+                      "variant": "bodySmall",
+                      "weight": "semiBold",
+                      "color": "#FFFFFF",
+                      "maxLines": 2
+                    }
                   ]
                 },
                 {
                   "type": "Container",
                   "id": "content-2",
                   "direction": "column",
-                  "actions": [{ "trigger": "onTap", "type": "navigate", "targetUri": "nba://video/game4-highlights", "fallbackUrl": "https://www.nba.com/video/game4-highlights" }],
+                  "actions": [
+                    {
+                      "trigger": "onTap",
+                      "type": "navigate",
+                      "targetUri": "nba://video/game4-highlights",
+                      "fallbackUrl": "https://www.nba.com/video/game4-highlights"
+                    }
+                  ],
                   "children": [
                     {
-                      "type": "Container", "direction": "column", "cornerRadius": 8, "backgroundColor": "#2A2A4A",
+                      "type": "Container",
+                      "direction": "column",
+                      "cornerRadius": 8,
+                      "background": "#2A2A4A",
                       "children": [
-                        { "type": "Image", "src": "https://cdn.nba.com/manage/2024/04/full-game-highlights.jpg", "width": 200, "height": 112, "fit": "cover" },
                         {
-                          "type": "Container", "direction": "column",
-                          "padding": { "start": 4, "end": 4, "top": 4, "bottom": 4 },
+                          "type": "Image",
+                          "src": "https://cdn.nba.com/manage/2024/04/full-game-highlights.jpg",
+                          "width": 200,
+                          "height": 112,
+                          "fit": "cover"
+                        },
+                        {
+                          "type": "Container",
+                          "direction": "column",
+                          "padding": {
+                            "start": 4,
+                            "end": 4,
+                            "top": 4,
+                            "bottom": 4
+                          },
                           "children": [
-                            { "type": "Text", "content": "VIDEO", "variant": "labelSmall", "weight": "bold", "color": "#FFFFFF", "backgroundColor": "#FF6B6B" },
-                            { "type": "Text", "content": "9:45", "variant": "labelSmall", "weight": "semiBold", "color": "#FFFFFF" }
+                            {
+                              "type": "Text",
+                              "content": "VIDEO",
+                              "variant": "labelSmall",
+                              "weight": "bold",
+                              "color": "#FFFFFF",
+                              "background": "#FF6B6B"
+                            },
+                            {
+                              "type": "Text",
+                              "content": "9:45",
+                              "variant": "labelSmall",
+                              "weight": "semiBold",
+                              "color": "#FFFFFF"
+                            }
                           ]
                         }
                       ]
                     },
-                    { "type": "Spacer", "height": 8 },
-                    { "type": "Text", "content": "Full Game Highlights", "variant": "bodySmall", "weight": "semiBold", "color": "#FFFFFF", "maxLines": 2 }
+                    {
+                      "type": "Spacer",
+                      "height": 8
+                    },
+                    {
+                      "type": "Text",
+                      "content": "Full Game Highlights",
+                      "variant": "bodySmall",
+                      "weight": "semiBold",
+                      "color": "#FFFFFF",
+                      "maxLines": 2
+                    }
                   ]
                 },
                 {
                   "type": "Container",
                   "id": "content-3",
                   "direction": "column",
-                  "actions": [{ "trigger": "onTap", "type": "navigate", "targetUri": "nba://video/butler-postgame", "fallbackUrl": "https://www.nba.com/video/butler-postgame" }],
+                  "actions": [
+                    {
+                      "trigger": "onTap",
+                      "type": "navigate",
+                      "targetUri": "nba://video/butler-postgame",
+                      "fallbackUrl": "https://www.nba.com/video/butler-postgame"
+                    }
+                  ],
                   "children": [
                     {
-                      "type": "Container", "direction": "column", "cornerRadius": 8, "backgroundColor": "#2A2A4A",
+                      "type": "Container",
+                      "direction": "column",
+                      "cornerRadius": 8,
+                      "background": "#2A2A4A",
                       "children": [
-                        { "type": "Image", "src": "https://cdn.nba.com/manage/2024/04/butler-postgame.jpg", "width": 200, "height": 112, "fit": "cover" },
                         {
-                          "type": "Container", "direction": "column",
-                          "padding": { "start": 4, "end": 4, "top": 4, "bottom": 4 },
+                          "type": "Image",
+                          "src": "https://cdn.nba.com/manage/2024/04/butler-postgame.jpg",
+                          "width": 200,
+                          "height": 112,
+                          "fit": "cover"
+                        },
+                        {
+                          "type": "Container",
+                          "direction": "column",
+                          "padding": {
+                            "start": 4,
+                            "end": 4,
+                            "top": 4,
+                            "bottom": 4
+                          },
                           "children": [
-                            { "type": "Text", "content": "VIDEO", "variant": "labelSmall", "weight": "bold", "color": "#FFFFFF", "backgroundColor": "#FF6B6B" },
-                            { "type": "Text", "content": "4:20", "variant": "labelSmall", "weight": "semiBold", "color": "#FFFFFF" }
+                            {
+                              "type": "Text",
+                              "content": "VIDEO",
+                              "variant": "labelSmall",
+                              "weight": "bold",
+                              "color": "#FFFFFF",
+                              "background": "#FF6B6B"
+                            },
+                            {
+                              "type": "Text",
+                              "content": "4:20",
+                              "variant": "labelSmall",
+                              "weight": "semiBold",
+                              "color": "#FFFFFF"
+                            }
                           ]
                         }
                       ]
                     },
-                    { "type": "Spacer", "height": 8 },
-                    { "type": "Text", "content": "Butler Post-Game Interview", "variant": "bodySmall", "weight": "semiBold", "color": "#FFFFFF", "maxLines": 2 }
+                    {
+                      "type": "Spacer",
+                      "height": 8
+                    },
+                    {
+                      "type": "Text",
+                      "content": "Butler Post-Game Interview",
+                      "variant": "bodySmall",
+                      "weight": "semiBold",
+                      "color": "#FFFFFF",
+                      "maxLines": 2
+                    }
                   ]
                 }
               ]
@@ -223,87 +610,510 @@
           "boxscore": [
             {
               "id": "boxscore-home",
-              "type": "StatLine",
+              "type": "AtomicComposite",
               "data": {
-                "title": "Boston Celtics",
-                "stats": [
-                  {
-                    "playerId": 1627759,
-                    "playerName": "Jaylen Brown",
-                    "teamTricode": "BOS",
-                    "statCategory": "33 PTS",
-                    "statValue": "13-23 FG, 4-9 3PT"
+                "ui": {
+                  "type": "Container",
+                  "direction": "column",
+                  "padding": {
+                    "start": 16,
+                    "end": 16,
+                    "top": 8,
+                    "bottom": 8
                   },
-                  {
-                    "playerId": 1628369,
-                    "playerName": "Jayson Tatum",
-                    "teamTricode": "BOS",
-                    "statCategory": "28 PTS",
-                    "statValue": "10-20 FG, 2-6 3PT"
-                  },
-                  {
-                    "playerId": 204001,
-                    "playerName": "Kristaps Porzingis",
-                    "teamTricode": "BOS",
-                    "statCategory": "6 PTS",
-                    "statValue": "1-9 FG, 0-4 3PT"
-                  }
-                ]
+                  "children": [
+                    {
+                      "type": "Text",
+                      "content": "Boston Celtics",
+                      "variant": "titleMedium",
+                      "weight": "bold",
+                      "padding": {
+                        "start": 0,
+                        "end": 0,
+                        "top": 0,
+                        "bottom": 12
+                      }
+                    },
+                    {
+                      "type": "Container",
+                      "direction": "row",
+                      "crossAlignment": "center",
+                      "padding": {
+                        "start": 0,
+                        "end": 0,
+                        "top": 6,
+                        "bottom": 6
+                      },
+                      "children": [
+                        {
+                          "type": "Container",
+                          "direction": "column",
+                          "children": [
+                            {
+                              "type": "Text",
+                              "content": "Jaylen Brown",
+                              "variant": "bodyLarge",
+                              "weight": "medium"
+                            },
+                            {
+                              "type": "Text",
+                              "content": "BOS",
+                              "variant": "bodySmall",
+                              "color": "#999999"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "Spacer",
+                          "height": 8
+                        },
+                        {
+                          "type": "Text",
+                          "content": "33 PTS",
+                          "variant": "bodyMedium",
+                          "color": "#AAAAAA"
+                        },
+                        {
+                          "type": "Spacer",
+                          "height": 8
+                        },
+                        {
+                          "type": "Text",
+                          "content": "13-23 FG, 4-9 3PT",
+                          "variant": "titleMedium",
+                          "weight": "bold",
+                          "color": "#FF6B6B"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "Container",
+                      "direction": "row",
+                      "crossAlignment": "center",
+                      "padding": {
+                        "start": 0,
+                        "end": 0,
+                        "top": 6,
+                        "bottom": 6
+                      },
+                      "children": [
+                        {
+                          "type": "Container",
+                          "direction": "column",
+                          "children": [
+                            {
+                              "type": "Text",
+                              "content": "Jayson Tatum",
+                              "variant": "bodyLarge",
+                              "weight": "medium"
+                            },
+                            {
+                              "type": "Text",
+                              "content": "BOS",
+                              "variant": "bodySmall",
+                              "color": "#999999"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "Spacer",
+                          "height": 8
+                        },
+                        {
+                          "type": "Text",
+                          "content": "28 PTS",
+                          "variant": "bodyMedium",
+                          "color": "#AAAAAA"
+                        },
+                        {
+                          "type": "Spacer",
+                          "height": 8
+                        },
+                        {
+                          "type": "Text",
+                          "content": "10-20 FG, 2-6 3PT",
+                          "variant": "titleMedium",
+                          "weight": "bold",
+                          "color": "#FF6B6B"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "Container",
+                      "direction": "row",
+                      "crossAlignment": "center",
+                      "padding": {
+                        "start": 0,
+                        "end": 0,
+                        "top": 6,
+                        "bottom": 6
+                      },
+                      "children": [
+                        {
+                          "type": "Container",
+                          "direction": "column",
+                          "children": [
+                            {
+                              "type": "Text",
+                              "content": "Kristaps Porzingis",
+                              "variant": "bodyLarge",
+                              "weight": "medium"
+                            },
+                            {
+                              "type": "Text",
+                              "content": "BOS",
+                              "variant": "bodySmall",
+                              "color": "#999999"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "Spacer",
+                          "height": 8
+                        },
+                        {
+                          "type": "Text",
+                          "content": "6 PTS",
+                          "variant": "bodyMedium",
+                          "color": "#AAAAAA"
+                        },
+                        {
+                          "type": "Spacer",
+                          "height": 8
+                        },
+                        {
+                          "type": "Text",
+                          "content": "1-9 FG, 0-4 3PT",
+                          "variant": "titleMedium",
+                          "weight": "bold",
+                          "color": "#FF6B6B"
+                        }
+                      ]
+                    }
+                  ]
+                }
               }
             },
             {
               "id": "boxscore-away",
-              "type": "StatLine",
+              "type": "AtomicComposite",
               "data": {
-                "title": "Miami Heat",
-                "stats": [
-                  {
-                    "playerId": 202710,
-                    "playerName": "Jimmy Butler",
-                    "teamTricode": "MIA",
-                    "statCategory": "29 PTS",
-                    "statValue": "10-18 FG, 9-10 FT"
+                "ui": {
+                  "type": "Container",
+                  "direction": "column",
+                  "padding": {
+                    "start": 16,
+                    "end": 16,
+                    "top": 8,
+                    "bottom": 8
                   },
-                  {
-                    "playerId": 1629216,
-                    "playerName": "Bam Adebayo",
-                    "teamTricode": "MIA",
-                    "statCategory": "21 PTS",
-                    "statValue": "9-14 FG, 14 REB"
-                  }
-                ]
+                  "children": [
+                    {
+                      "type": "Text",
+                      "content": "Miami Heat",
+                      "variant": "titleMedium",
+                      "weight": "bold",
+                      "padding": {
+                        "start": 0,
+                        "end": 0,
+                        "top": 0,
+                        "bottom": 12
+                      }
+                    },
+                    {
+                      "type": "Container",
+                      "direction": "row",
+                      "crossAlignment": "center",
+                      "padding": {
+                        "start": 0,
+                        "end": 0,
+                        "top": 6,
+                        "bottom": 6
+                      },
+                      "children": [
+                        {
+                          "type": "Container",
+                          "direction": "column",
+                          "children": [
+                            {
+                              "type": "Text",
+                              "content": "Jimmy Butler",
+                              "variant": "bodyLarge",
+                              "weight": "medium"
+                            },
+                            {
+                              "type": "Text",
+                              "content": "MIA",
+                              "variant": "bodySmall",
+                              "color": "#999999"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "Spacer",
+                          "height": 8
+                        },
+                        {
+                          "type": "Text",
+                          "content": "29 PTS",
+                          "variant": "bodyMedium",
+                          "color": "#AAAAAA"
+                        },
+                        {
+                          "type": "Spacer",
+                          "height": 8
+                        },
+                        {
+                          "type": "Text",
+                          "content": "10-18 FG, 9-10 FT",
+                          "variant": "titleMedium",
+                          "weight": "bold",
+                          "color": "#FF6B6B"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "Container",
+                      "direction": "row",
+                      "crossAlignment": "center",
+                      "padding": {
+                        "start": 0,
+                        "end": 0,
+                        "top": 6,
+                        "bottom": 6
+                      },
+                      "children": [
+                        {
+                          "type": "Container",
+                          "direction": "column",
+                          "children": [
+                            {
+                              "type": "Text",
+                              "content": "Bam Adebayo",
+                              "variant": "bodyLarge",
+                              "weight": "medium"
+                            },
+                            {
+                              "type": "Text",
+                              "content": "MIA",
+                              "variant": "bodySmall",
+                              "color": "#999999"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "Spacer",
+                          "height": 8
+                        },
+                        {
+                          "type": "Text",
+                          "content": "21 PTS",
+                          "variant": "bodyMedium",
+                          "color": "#AAAAAA"
+                        },
+                        {
+                          "type": "Spacer",
+                          "height": 8
+                        },
+                        {
+                          "type": "Text",
+                          "content": "9-14 FG, 14 REB",
+                          "variant": "titleMedium",
+                          "weight": "bold",
+                          "color": "#FF6B6B"
+                        }
+                      ]
+                    }
+                  ]
+                }
               }
             }
           ],
           "playbyplay": [
             {
               "id": "play-q4",
-              "type": "StatLine",
+              "type": "AtomicComposite",
               "data": {
-                "title": "4th Quarter - Final Plays",
-                "stats": [
-                  {
-                    "playerId": 202710,
-                    "playerName": "J. Butler",
-                    "teamTricode": "MIA",
-                    "statCategory": "0:08",
-                    "statValue": "Made Free Throw"
+                "ui": {
+                  "type": "Container",
+                  "direction": "column",
+                  "padding": {
+                    "start": 16,
+                    "end": 16,
+                    "top": 8,
+                    "bottom": 8
                   },
-                  {
-                    "playerId": 202710,
-                    "playerName": "J. Butler",
-                    "teamTricode": "MIA",
-                    "statCategory": "0:08",
-                    "statValue": "Made Free Throw"
-                  },
-                  {
-                    "playerId": 1627759,
-                    "playerName": "J. Brown",
-                    "teamTricode": "BOS",
-                    "statCategory": "0:00.7",
-                    "statValue": "Missed 3PT"
-                  }
-                ]
+                  "children": [
+                    {
+                      "type": "Text",
+                      "content": "4th Quarter - Final Plays",
+                      "variant": "titleMedium",
+                      "weight": "bold",
+                      "padding": {
+                        "start": 0,
+                        "end": 0,
+                        "top": 0,
+                        "bottom": 12
+                      }
+                    },
+                    {
+                      "type": "Container",
+                      "direction": "row",
+                      "crossAlignment": "center",
+                      "padding": {
+                        "start": 0,
+                        "end": 0,
+                        "top": 6,
+                        "bottom": 6
+                      },
+                      "children": [
+                        {
+                          "type": "Container",
+                          "direction": "column",
+                          "children": [
+                            {
+                              "type": "Text",
+                              "content": "J. Butler",
+                              "variant": "bodyLarge",
+                              "weight": "medium"
+                            },
+                            {
+                              "type": "Text",
+                              "content": "MIA",
+                              "variant": "bodySmall",
+                              "color": "#999999"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "Spacer",
+                          "height": 8
+                        },
+                        {
+                          "type": "Text",
+                          "content": "0:08",
+                          "variant": "bodyMedium",
+                          "color": "#AAAAAA"
+                        },
+                        {
+                          "type": "Spacer",
+                          "height": 8
+                        },
+                        {
+                          "type": "Text",
+                          "content": "Made Free Throw",
+                          "variant": "titleMedium",
+                          "weight": "bold",
+                          "color": "#FF6B6B"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "Container",
+                      "direction": "row",
+                      "crossAlignment": "center",
+                      "padding": {
+                        "start": 0,
+                        "end": 0,
+                        "top": 6,
+                        "bottom": 6
+                      },
+                      "children": [
+                        {
+                          "type": "Container",
+                          "direction": "column",
+                          "children": [
+                            {
+                              "type": "Text",
+                              "content": "J. Butler",
+                              "variant": "bodyLarge",
+                              "weight": "medium"
+                            },
+                            {
+                              "type": "Text",
+                              "content": "MIA",
+                              "variant": "bodySmall",
+                              "color": "#999999"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "Spacer",
+                          "height": 8
+                        },
+                        {
+                          "type": "Text",
+                          "content": "0:08",
+                          "variant": "bodyMedium",
+                          "color": "#AAAAAA"
+                        },
+                        {
+                          "type": "Spacer",
+                          "height": 8
+                        },
+                        {
+                          "type": "Text",
+                          "content": "Made Free Throw",
+                          "variant": "titleMedium",
+                          "weight": "bold",
+                          "color": "#FF6B6B"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "Container",
+                      "direction": "row",
+                      "crossAlignment": "center",
+                      "padding": {
+                        "start": 0,
+                        "end": 0,
+                        "top": 6,
+                        "bottom": 6
+                      },
+                      "children": [
+                        {
+                          "type": "Container",
+                          "direction": "column",
+                          "children": [
+                            {
+                              "type": "Text",
+                              "content": "J. Brown",
+                              "variant": "bodyLarge",
+                              "weight": "medium"
+                            },
+                            {
+                              "type": "Text",
+                              "content": "BOS",
+                              "variant": "bodySmall",
+                              "color": "#999999"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "Spacer",
+                          "height": 8
+                        },
+                        {
+                          "type": "Text",
+                          "content": "0:00.7",
+                          "variant": "bodyMedium",
+                          "color": "#AAAAAA"
+                        },
+                        {
+                          "type": "Spacer",
+                          "height": 8
+                        },
+                        {
+                          "type": "Text",
+                          "content": "Missed 3PT",
+                          "variant": "titleMedium",
+                          "weight": "bold",
+                          "color": "#FF6B6B"
+                        }
+                      ]
+                    }
+                  ]
+                }
               }
             }
           ]

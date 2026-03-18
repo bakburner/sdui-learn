@@ -19,8 +19,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.compose.SubcomposeAsyncImage
+import com.nba.sdui.core.models.Background
 import com.nba.sdui.core.models.SduiSection
 import com.nba.sdui.core.models.actionToSduiAction
+import com.nba.sdui.core.models.parseBackground
 import com.nba.sdui.core.state.SduiAction
 import com.nba.sdui.core.config.SduiDefaults
 
@@ -30,7 +32,7 @@ import com.nba.sdui.core.config.SduiDefaults
  * Expected data:
  *   title             – main heading
  *   subtitle          – supporting tagline
- *   backgroundImageUrl – hero background
+ *   background – hero background (BackgroundImage object)
  *   logoUrl           – brand logo
  *   features[]        – list of bullet-point strings
  *   tiers[]           – SubscriptionTier objects (id, name, price, badgeText, features[], ctaLabel, ctaAction)
@@ -44,7 +46,8 @@ fun SubscribeHeroRenderer(
     val data = section.data ?: return
     val title = data["title"]?.toString()?.removeSurrounding("\"") ?: return
     val subtitle = data["subtitle"]?.toString()?.removeSurrounding("\"")
-    val backgroundUrl = data["backgroundImageUrl"]?.toString()?.removeSurrounding("\"")
+    val bg = parseBackground(data["background"])
+    val backgroundUrl = (bg as? Background.Image)?.imageUrl
     val logoUrl = data["logoUrl"]?.toString()?.removeSurrounding("\"")
     val features = data["features"] as? List<*> ?: emptyList<Any>()
     val tiers = data["tiers"] as? List<*> ?: emptyList<Any>()

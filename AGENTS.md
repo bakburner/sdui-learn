@@ -113,3 +113,91 @@ required for layout, content, or data-flow changes.
   unknown values, which cascades into silent section render failures.
 - Before adding a new enum value to server composition, add it to the
   schema first, then run `make codegen`.
+
+## 14. Renderers Are Presentation-Only
+
+- Renderers map server data to native views — layout and visual styling.
+  They must **not** contain business logic, behaviour branching, or
+  conditional flows that could be expressed server-side.
+- Prefer **composition-only changes** on the server over touching a
+  renderer when reusing an existing section type.
+- Resolve interaction behaviour through **shared action infrastructure**
+  (router / executor / helpers), not per-section custom parsing.
+- Reuse shared action helpers for `onTap`, `onVisible`, and similar
+  triggers across section types.
+
+### Decision Checklist Before Editing a Renderer
+
+1. Can this be solved by **server composition only**?
+2. Can this be solved by **schema / action payload changes** only?
+3. If client code is required, can it go in **shared infrastructure**
+   rather than a specific section renderer?
+4. For simple/stateless UI, can it be expressed as a server-composed
+   **`AtomicComposite`** instead of a new section type?
+
+If (1), (2), or (4) is true → do **not** add section-specific client
+behaviour.
+
+## 15. Section vs AtomicComposite — When Client Code Is Justified
+
+The default is **server-composed `AtomicComposite`**. A dedicated client
+section renderer is the exception, justified only when the client must
+own state or integrate a platform SDK that cannot be abstracted into the
+server contract.
+
+### Decision Tree
+
+```
+Is the UI stateless and ≤80 LOC with no platform SDK dependency?
+ ├─ YES → AtomicComposite (server-composed)
+ └─ NO
+      Does it require client-owned state or a platform SDK?
+       ├─ YES → Section renderer (permanent section)
+       │    Examples of justified reasons:
+       │    • Platform SDK integration (IAP → SubscribeHero/SubscribeBanner,
+       │      ad SDK → AdSlot)
+       │    • Network-driven real-time state (Ably SSE subscriptions →
+       │      GamePanel, BoxscoreTable)
+       │    • Complex client interaction state (tab selection → TabGroup,
+       │      form validation → FormRenderer, sort/filter → SeasonLeadersTable)
+       └─ NO → AtomicComposite — push it server-side
+```
+
+### Rationale
+
+Nine section types were migrated to `AtomicComposite` because they had
+**zero client-owned state** — the server fully controlled their layout and
+content. The eight permanent sections remain because each one requires
+behaviour the server cannot own:
+
+| Section            | Why it stays client-side                        |
+|--------------------|--------------------------------------------------|
+| GamePanel          | Ably SSE subscription, live score state machine  |
+| BoxscoreTable      | Real-time data binding, expandable rows          |
+| SeasonLeadersTable | Sort/filter interaction state                    |
+| TabGroup           | Tab selection state, nested section hosting      |
+| FormRenderer       | Validation state, platform keyboard integration  |
+| SubscribeHero      | Platform IAP SDK integration                     |
+| SubscribeBanner    | Platform IAP SDK integration                     |
+| AdSlot             | Platform ad SDK lifecycle                        |
+
+Even for permanent sections, **visual configuration must be server-driven**.
+The renderer reads styling knobs (colors, sizes, layout flags) from the
+server payload — it never hardcodes visual variants. The section exists
+only because it owns client-side *behaviour*, not because it owns *appearance*.
+
+### AtomicComposite Limits
+
+- Max depth: **6**
+- Max children per container: **20**
+- Max total nodes: **50**
+
+Server validates these limits at composition time; clients have a
+defensive depth guard.
+
+### DisplayGrid Special Case
+
+- Tabular data that is **display-only, server-ordered** → `DisplayGrid`
+  atomic primitive.
+- Tabular data with **any interactivity** (sort / filter / expand) →
+  section renderer, not DisplayGrid.

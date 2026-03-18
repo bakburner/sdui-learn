@@ -110,7 +110,13 @@ open class SduiScreenViewModel(
      * The endpoint already includes path and query parameters.
      */
     fun loadFromEndpoint(endpoint: String, sectionId: String? = null) {
+        val isNewScreen = endpoint != currentEndpoint
         currentEndpoint = endpoint
+
+        if (isNewScreen) {
+            stopAbly()
+            stopAllPolling()
+        }
 
         viewModelScope.launch {
             if (sectionId == null) {
@@ -304,25 +310,19 @@ open class SduiScreenViewModel(
     // ── Ably ─────────────────────────────────────────────────────────
 
     private fun setupAbly(screen: SduiScreen) {
-        // Only initialise Ably when at least one section declares an SSE policy.
         val sseSections = screen.sections.filter { s ->
             s.refreshPolicy?.type == "sse" && !s.refreshPolicy?.channel.isNullOrBlank()
         }
         if (sseSections.isEmpty()) return
 
-        viewModelScope.launch {
-            try {
-                if (ablyChannelManager == null) {
-                    ablyChannelManager = AblyChannelManager(config.ablyTokenUrl)
-                    ablyChannelManager?.initialize()
-                    Log.i(TAG, "Ably initialised")
-                }
-                sseSections.forEach { section ->
-                    subscribeToChannel(section, section.refreshPolicy!!.channel!!)
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Ably setup failed", e)
-            }
+        if (ablyChannelManager == null) {
+            ablyChannelManager = AblyChannelManager(config.ablyTokenUrl)
+            ablyChannelManager?.initialize()
+        }
+
+        sseSections.forEach { section ->
+            if (ablyJobs[section.id]?.isActive == true) return@forEach
+            subscribeToChannel(section, section.refreshPolicy!!.channel!!)
         }
     }
 

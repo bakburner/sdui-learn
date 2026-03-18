@@ -16,7 +16,7 @@ The SDUI platform currently has **no systematic accessibility strategy**. Access
 - **Inconsistent** — the same semantic concept (team logo) gets an accessibility label in one renderer and `alt=""` in another.
 - **ID-as-label** — the atomic layer uses `element.id` as the accessibility label for images (`AtomicImage.kt` line 44: `contentDescription = element.id`, `AtomicImage.tsx` line 38: `alt={element.id ?? ''}`), which produces meaningless labels like `"hero-bg-image"`.
 - **Missing at the schema level** — no accessibility properties exist on `AtomicElement`, `Section`, or `Subsection`. Accessibility metadata cannot be server-driven.
-- **Platform-divergent** — Android section renderers apply `contentDescription` to ~12 of 19 renderers; Web uses `alt` on images but only one renderer applies `role="button"`; iOS hasn't been built yet and will inherit whatever exists.
+- **Platform-divergent** — Android permanent section renderers apply `contentDescription` to some renderers; Web uses `alt` on images but only one renderer applies `role="button"`; iOS hasn't been built yet and will inherit whatever exists. (9 former section types are now server-composed AtomicComposite — their accessibility is handled at the atomic layer.)
 
 This defeats the SDUI promise: if the server controls UI composition, it must also control accessibility semantics. A screen reader user on Android, iOS, and Web should encounter equivalent experiences for the same server payload.
 
@@ -24,30 +24,20 @@ This defeats the SDUI promise: if the server controls UI composition, it must al
 
 ## Current State Audit
 
-### Android — Section Renderers (19 files)
+### Android — Permanent Section Renderers (8 renderers)
 
 | Renderer | contentDescription | semantics{} blocks | Roles / Grouping |
 |---|---|---|---|
 | GamePanelRenderer | ✅ tricode for logos (4 instances); `"${teamName} logo"` for scoreboard variant | ❌ | ❌ |
-| StatLineRenderer | ✅ playerName for headshots (2 instances) | ❌ | ❌ |
-| HeroPanelRenderer | ✅ headline for images (2 instances) | ❌ | ❌ |
 | BoxscoreTableRenderer | ✅ player name for headshots | ❌ | ❌ |
-| FollowingRailRenderer | ✅ item.name for team logos | ❌ | ❌ |
-| PromoBannerRenderer | ✅ model.title for banner image | ❌ | ❌ |
-| VideoCarouselRenderer | ✅ title for thumbnails (2 instances) | ❌ | ❌ |
-| NbaTvScheduleRenderer | ✅ heroTitle for images (2 instances) | ❌ | ❌ |
 | SubscribeBannerRenderer | ⚠️ `contentDescription = null` (decorative) | ❌ | ❌ |
-| ContentRailRenderer | ❌ | ❌ | ❌ |
 | TabGroupRenderer | ❌ | ❌ | ❌ |
-| RowRenderer | ❌ | ❌ | ❌ |
 | AdSlotRenderer | ❌ (3rd party SDK) | ❌ | ❌ |
 | SeasonLeadersTableRenderer | ❌ | ❌ | ❌ |
-| SectionHeaderRenderer | ❌ | ❌ | ❌ |
 | FormRenderer | ❌ | ❌ | ❌ |
 | SubscribeHeroRenderer | ❌ | ❌ | ❌ |
-| ErrorStateRenderer | ❌ | ❌ | ❌ |
 
-**Summary**: 10 of 19 renderers provide image descriptions. Zero use Compose `semantics {}` blocks for roles, headings, or grouping. No traversal ordering. No live-region support.
+**Summary**: 2 of 8 permanent section renderers provide image descriptions. Zero use Compose `semantics {}` blocks for roles, headings, or grouping. No traversal ordering. No live-region support. (9 former section renderers — StatLine, HeroPanel, ContentRail, PromoBanner, SectionHeader, VideoCarousel, NbaTvSchedule, FollowingRail, ErrorState — have been removed; those types are now server-composed AtomicComposite and their accessibility is handled at the atomic layer.)
 
 ### Android — Atomic Primitives (9 renderers)
 
@@ -63,30 +53,20 @@ This defeats the SDUI promise: if the server controls UI composition, it must al
 | AtomicScrollContainer | No scroll semantics announcement |
 | AtomicConditional | Pass-through — delegates to child |
 
-### Web — Section Renderers (19 files)
+### Web — Permanent Section Renderers (8 renderers)
 
 | Renderer | alt text | ARIA roles | ARIA labels |
 |---|---|---|---|
 | GamePanel | ✅ tricode for logos; teamName for scoreboard variant | ❌ | ❌ |
-| StatLine | ✅ playerName for headshots | ❌ | ❌ |
 | BoxscoreTable | ✅ tricode for team logo, player name for headshots | ❌ | ❌ |
-| FollowingRail | ✅ item.name for avatars | ❌ | ❌ |
 | SubscribeHero | ⚠️ `alt=""` for bg, `"NBA League Pass"` for logo | ❌ | ❌ |
-| HeroPanel | ⚠️ `alt=""` for images | ✅ `role="button"` when action | ❌ |
-| ContentRail | ⚠️ `alt=""` for thumbnails | ❌ | ❌ |
-| PromoBanner | ⚠️ `alt=""` for images | ❌ | ❌ |
-| VideoCarousel | ⚠️ `alt=""` for thumbnails | ❌ | ❌ |
-| NbaTvSchedule | ⚠️ `alt=""` for hero image | ❌ | ❌ |
 | SubscribeBanner | ⚠️ `alt=""` for image | ❌ | ❌ |
 | SeasonLeadersTable | ❌ | ❌ | ❌ |
-| SectionHeader | ❌ | ❌ | ❌ |
 | TabGroup | ❌ | ❌ | ❌ |
-| RowRenderer | ❌ | ❌ | ❌ |
 | AdSlot | ❌ (3rd party SDK) | ❌ | ❌ |
 | FormRenderer | ❌ | ❌ | ❌ |
-| ErrorState | ❌ | ❌ | ❌ |
 
-**Summary**: 6 renderers provide meaningful alt text. 7 renderers use `alt=""` (decorative treatment) but some of those images are NOT decorative (PromoBanner hero, VideoCarousel thumbs). Only HeroPanel uses an ARIA role. No `aria-live`, no `aria-expanded`, no landmark roles.
+**Summary**: 2 renderers provide meaningful alt text. 2 renderers use `alt=""` (decorative treatment). No `aria-live`, no `aria-expanded`, no landmark roles. (9 former section renderers have been removed — those types are now server-composed AtomicComposite and their accessibility is handled at the atomic layer.)
 
 ### Web — Atomic Primitives (9 renderers)
 

@@ -133,7 +133,7 @@ public class ScoreboardComposer {
             refreshPolicy.put("channel", gameId + ":linescore");
             section.set("refreshPolicy", refreshPolicy);
 
-            section.set("dataBindings", utils.buildLinescoreBindings());
+            section.set("dataBinding", utils.buildLinescoreBindings());
         } else {
             section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
         }
@@ -142,7 +142,7 @@ public class ScoreboardComposer {
         data.put("gameStatusText", game.path("gameStatusText").asText(""));
         data.put("period", game.path("period").asInt(0));
         data.put("gameClock", game.path("gameClock").asText(""));
-        data.put("variant", "scoreboard");
+        data.set("displayConfig", atomicBuilder.scoreboardConfig(null));
 
         data.set("homeTeam", mapGamePanelTeam(game.path("homeTeam")));
         data.set("awayTeam", mapGamePanelTeam(game.path("awayTeam")));

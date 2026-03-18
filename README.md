@@ -52,7 +52,7 @@ sdui-prototype/
 │   └── sdui-core/              # Reusable SDUI library (renderers, state, data)
 ├── web/                        # React/TypeScript web client
 │   └── src/
-│       ├── components/         # SectionRouter + 18 section renderers + SectionErrorBoundary, SectionSkeleton
+│       ├── components/         # SectionRouter + 8 permanent section renderers + AtomicRouter + SectionErrorBoundary, SectionSkeleton
 │       ├── hooks/              # useSduiScreen, useRefreshPolicy, useImpressionTracking, useAnalyticsContext
 │       └── runtime/            # AblyClient, ActionHandler, DataBindingApplier
 ├── docs/                       # Technical proposal & requirements
@@ -124,29 +124,34 @@ make codegen
 | Boxscore | `GET /sdui/boxscore/{gameId}` | Boxscore tables for a specific game (home and away). |
 | Refresh | `GET /sdui/refresh/{screenId}` | Parameterized refresh endpoint for form-driven section updates. |
 
-## Section Types (18 in schema: 17 semantic + AtomicComposite)
+## Section Types (9 in schema: 8 permanent + AtomicComposite)
 
-### Semantic Sections (client-owned renderers)
+### Permanent Sections (client-owned renderers)
 
 | Type | Description | Refresh |
 |------|-------------|---------|
-| StatLine | Player stat rows | Poll (30s) or static |
-| HeroPanel | Single content item (article/video) | Static |
-| ContentRail | Horizontal scrolling content strip | Static |
 | TabGroup | Tabbed navigation with state-driven content | Poll or static |
-| PromoBanner | Promotional banner with CTA | Static |
 | GamePanel | Game card with teams, scores, leaders. `variant: "standard"`, `"featured"` (hero-sized), `"scoreboard"` (compact row with live scores) | SSE or static |
-| SectionHeader | Simple header with optional subtitle and CTA | Static |
-| VideoCarousel | Horizontal scrolling video thumbnails | Static |
-| NbaTvSchedule | NBA TV hero image + time-slot schedule | Static |
-| SubscribeBanner | Inline subscription upsell with CTA | Static |
-| SubscribeHero | Full-screen subscription upsell with pricing tiers | Static |
-| AdSlot | Embedded ad placement (provider, targeting) | Static |
 | BoxscoreTable | Boxscore stats table | Poll or static |
 | Form | Interactive form with typed fields | Static |
 | SeasonLeadersTable | Season leaders stats table | Static |
-| FollowingRail | Horizontal rail of followed items | Static |
-| ErrorState | Server/client error with title, message, optional retry action | Static |
+| SubscribeBanner | Inline subscription upsell with CTA | Static |
+| SubscribeHero | Full-screen subscription upsell with pricing tiers | Static |
+| AdSlot | Embedded ad placement (provider, targeting) | Static |
+
+### Migrated to Atomic (server-composed AtomicComposite — no client renderers)
+
+| Type | Description |
+|------|-------------|
+| StatLine | Player stat rows |
+| HeroPanel | Single content item (article/video) |
+| ContentRail | Horizontal scrolling content strip |
+| PromoBanner | Promotional banner with CTA |
+| SectionHeader | Simple header with optional subtitle and CTA |
+| VideoCarousel | Horizontal scrolling video thumbnails |
+| NbaTvSchedule | NBA TV hero image + time-slot schedule |
+| FollowingRail | Horizontal rail of followed items |
+| ErrorState | Server/client error with title, message, optional retry action |
 
 ### Atomic Primitives (server-composed, rendered by AtomicRouter)
 
@@ -216,7 +221,6 @@ make codegen
 | [Executive Summary](docs/SDUI_Executive_Summary_v2.md) | Business case, prototype status, timeline, resourcing |
 | [Technical Proposal](docs/SDUI_Technical_Proposal_v2.md) | Architecture, schema design, runtime behavior, requirement status |
 | [Requirements Summary](docs/sdui-requirements-summary.md) | Full requirements, gap analysis, ADR tracking |
-| [Atomic Primitives Analysis](docs/atomic-primitives-analysis.md) | Dual-layer architecture plan, tier classification, phase status |
 | [Kitchen Sink Appendix](docs/appendix-kitchen-sink.md) | Full 42-section demo response (Android platform) |
 | [ADR Index](docs/adr/README.md) | Architecture Decision Records (001–010) |
-| [Accessibility Plan](docs/sdui-accessibility-plan.md) | Accessibility strategy and semantic descriptor plan |
+| [Accessibility Plan](docs/plan-accessibility.md) | Accessibility strategy and implementation plan |

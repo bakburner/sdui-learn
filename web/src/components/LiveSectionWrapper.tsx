@@ -40,7 +40,7 @@ export function LiveSectionWrapper({
 
   // Determine if this section has refresh/binding capabilities
   const hasRefreshPolicy = Boolean(effectivePolicy?.type && effectivePolicy.type !== 'static');
-  const hasDataBindings = Boolean(section.dataBindings?.bindings?.length);
+  const hasDataBindings = Boolean(section.dataBinding?.bindings?.length);
 
   // Handle incoming data from poll/SSE
   const handleUpdate = useCallback((incomingPayload: unknown) => {
@@ -50,10 +50,10 @@ export function LiveSectionWrapper({
       if (!currentData) return currentData;
 
       // If we have data bindings, apply them to map incoming -> section data
-      if (hasDataBindings && section.dataBindings) {
+      if (hasDataBindings && section.dataBinding) {
         const updated = applyDataBindings(
           currentData as Record<string, unknown>,
-          section.dataBindings,
+          section.dataBinding,
           incomingPayload as Record<string, unknown>
         );
         return updated as Data;
@@ -67,7 +67,7 @@ export function LiveSectionWrapper({
 
       return currentData;
     });
-  }, [section.id, section.dataBindings, hasDataBindings]);
+  }, [section.id, section.dataBinding, hasDataBindings]);
   useRefreshPolicy({
     section: {
       ...section,
@@ -100,7 +100,7 @@ export function useLiveData(
 
   const effectivePolicy = getEffectiveRefreshPolicy(section, defaultRefreshPolicy);
   const hasRefreshPolicy = Boolean(effectivePolicy?.type && effectivePolicy.type !== 'static');
-  const hasDataBindings = Boolean(section.dataBindings?.bindings?.length);
+  const hasDataBindings = Boolean(section.dataBinding?.bindings?.length);
 
   const handleUpdate = useCallback((incomingPayload: unknown) => {
     console.log(`[useLiveData] Received update for ${section.id}:`, incomingPayload);
@@ -108,10 +108,10 @@ export function useLiveData(
     setLiveData((currentData) => {
       if (!currentData) return currentData;
 
-      if (hasDataBindings && section.dataBindings) {
+      if (hasDataBindings && section.dataBinding) {
         const updated = applyDataBindings(
           currentData as Record<string, unknown>,
-          section.dataBindings,
+          section.dataBinding,
           incomingPayload as Record<string, unknown>
         );
         return updated as Data;
@@ -123,7 +123,7 @@ export function useLiveData(
 
       return currentData;
     });
-  }, [section.id, section.dataBindings, hasDataBindings]);
+  }, [section.id, section.dataBinding, hasDataBindings]);
 
   useRefreshPolicy({
     section: {

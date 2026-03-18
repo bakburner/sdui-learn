@@ -29,11 +29,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.nba.sdui.core.models.Background
 import com.nba.sdui.core.models.SduiSection
 import com.nba.sdui.core.renderer.adapters.GamePanelUiModel
 import com.nba.sdui.core.renderer.adapters.GamePanelVisualState
 import com.nba.sdui.core.renderer.adapters.mapGamePanel
-import com.nba.sdui.core.renderer.interactions.SectionInteractions
+import com.nba.sdui.core.renderer.atomic.parseColor
 import com.nba.sdui.core.state.SduiAction
 
 @Composable
@@ -43,179 +44,58 @@ fun GamePanelRenderer(
     modifier: Modifier = Modifier
 ) {
     val model = mapGamePanel(section) ?: return
-    if (model.variant == "featured") {
-        FeaturedGamePanelContent(model, onAction, modifier)
-    } else {
-        StandardGamePanelContent(section, model, onAction, modifier)
-    }
+    GamePanelContent(section, model, onAction, modifier)
 }
 
 @Composable
-private fun StandardGamePanelContent(
+private fun GamePanelContent(
     section: SduiSection,
     model: GamePanelUiModel,
     onAction: (SduiAction) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val primaryAction = SectionInteractions.primaryAction(section)
+    val config = model.displayConfig
+    val shape = RoundedCornerShape(config.cornerRadius.dp)
 
-    Card(
-        modifier = modifier
-            .padding(horizontal = 12.dp, vertical = 6.dp)
-            .fillMaxWidth()
-            .clickable(enabled = primaryAction != null) { primaryAction?.let(onAction) },
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF1A1F2E)
-        )
-    ) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    model.awayLogoUrl?.let { url ->
-                        AsyncImage(
-                            model = url,
-                            contentDescription = "${model.awayTricode} logo",
-                            modifier = Modifier.size(32.dp),
-                            contentScale = ContentScale.Fit
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                    }
-                    Column {
-                        Text(
-                            text = model.awayTricode,
-                            color = Color.White,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        model.awayRecord?.let { record ->
-                            Text(
-                                text = record,
-                                color = Color(0xFF8892A4),
-                                style = MaterialTheme.typography.labelSmall
-                            )
-                        }
-                    }
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Column(horizontalAlignment = Alignment.End) {
-                        Text(
-                            text = model.homeTricode,
-                            color = Color.White,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        model.homeRecord?.let { record ->
-                            Text(
-                                text = record,
-                                color = Color(0xFF8892A4),
-                                style = MaterialTheme.typography.labelSmall
-                            )
-                        }
-                    }
-                    model.homeLogoUrl?.let { url ->
-                        Spacer(modifier = Modifier.width(6.dp))
-                        AsyncImage(
-                            model = url,
-                            contentDescription = "${model.homeTricode} logo",
-                            modifier = Modifier.size(32.dp),
-                            contentScale = ContentScale.Fit
-                        )
-                    }
-                }
-            }
+    val isLive = model.visualState == GamePanelVisualState.LIVE
+    val activeBg = if (isLive) (config.liveBackground ?: config.background) else config.background
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            when (model.visualState) {
-                GamePanelVisualState.PRE -> {
-                    Text(
-                        text = model.statusText,
-                        color = Color(0xFFB4C0D3),
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                    model.recordsText?.let { records ->
-                        Text(
-                            text = records,
-                            color = Color(0xFF96A2B5),
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-                }
-                GamePanelVisualState.LIVE -> {
-                    ScoreRow(
-                        homeTricode = model.homeTricode,
-                        homeScore = model.homeScore,
-                        awayTricode = model.awayTricode,
-                        awayScore = model.awayScore
-                    )
-                    Text(
-                        text = model.statusText,
-                        color = Color(0xFFFF6B6B),
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-                else -> {
-                    ScoreRow(
-                        homeTricode = model.homeTricode,
-                        homeScore = model.homeScore,
-                        awayTricode = model.awayTricode,
-                        awayScore = model.awayScore
-                    )
-                    Text(
-                        text = model.statusText,
-                        color = Color(0xFFB4C0D3),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-            Text(
-                text = "Leaders",
-                color = Color(0xFF96A2B5),
-                style = MaterialTheme.typography.labelSmall
-            )
-            model.leaderLines.forEach { line ->
-                Text(
-                    text = line,
-                    color = Color.White,
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-            model.broadcaster?.let { broadcaster ->
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    text = broadcaster,
-                    color = Color(0xFF8892A4),
-                    style = MaterialTheme.typography.labelSmall
-                )
+    val backgroundBrush: Brush? = when (activeBg) {
+        is Background.Gradient -> {
+            val colors = activeBg.gradient.colors.map { parseColor(it) }
+            when (activeBg.gradient.direction) {
+                "horizontal" -> Brush.horizontalGradient(colors)
+                "diagonal" -> Brush.linearGradient(colors)
+                else -> Brush.verticalGradient(colors)
             }
         }
+        is Background.Image -> {
+            Brush.horizontalGradient(listOf(Color(0xFF1D428A), Color(0xFF1D428A)))
+        }
+        else -> null
     }
-}
+    val backgroundSolid: Color? = when (activeBg) {
+        is Background.Solid -> parseColor(activeBg.color)
+        else -> null
+    }
 
-@Composable
-private fun FeaturedGamePanelContent(
-    model: GamePanelUiModel,
-    onAction: (SduiAction) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val shape = RoundedCornerShape(16.dp)
-    val liveGradient = Brush.horizontalGradient(
-        colors = listOf(Color(0xFF1D428A), Color(0xFFC8102E))
-    )
-    val defaultGradient = Brush.horizontalGradient(
-        colors = listOf(Color(0xFF1D428A), Color(0xFF1D428A))
-    )
+    val badgeColor = config.badgeColor?.let { parseColor(it) }
+        ?: if (isLive) Color(0xFFC8102E) else Color(0xFF666666)
+
+    val scoreStyle = if (config.scoreTextStyle == "prominent") {
+        MaterialTheme.typography.headlineMedium
+    } else {
+        MaterialTheme.typography.bodyLarge
+    }
+    val scoreWeight = if (config.scoreTextStyle == "prominent") {
+        FontWeight.ExtraBold
+    } else {
+        FontWeight.Bold
+    }
 
     Card(
         shape = shape,
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = config.elevation.dp),
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
@@ -227,11 +107,16 @@ private fun FeaturedGamePanelContent(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(200.dp)
-                .background(
-                    brush = if (model.visualState == GamePanelVisualState.LIVE) liveGradient else defaultGradient,
-                    shape = shape
-                )
+                .let { mod ->
+                    if (config.cardHeight != null) mod.height(config.cardHeight.dp) else mod
+                }
+                .let { mod ->
+                    when {
+                        backgroundBrush != null -> mod.background(brush = backgroundBrush, shape = shape)
+                        backgroundSolid != null -> mod.background(color = backgroundSolid, shape = shape)
+                        else -> mod.background(color = Color(0xFF1A1F2E), shape = shape)
+                    }
+                }
                 .clip(shape)
         ) {
             Column(
@@ -256,8 +141,6 @@ private fun FeaturedGamePanelContent(
                     } ?: Spacer(Modifier.width(0.dp))
 
                     model.badgeText?.let { badge ->
-                        val badgeColor = if (model.visualState == GamePanelVisualState.LIVE)
-                            Color(0xFFC8102E) else Color(0xFF666666)
                         Text(
                             text = badge,
                             color = Color.White,
@@ -280,11 +163,11 @@ private fun FeaturedGamePanelContent(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        if (model.awayLogoUrl != null) {
+                        model.awayLogoUrl?.let { url ->
                             AsyncImage(
-                                model = model.awayLogoUrl,
+                                model = url,
                                 contentDescription = model.awayTricode,
-                                modifier = Modifier.size(56.dp),
+                                modifier = Modifier.size(config.logoSize.dp),
                                 contentScale = ContentScale.Fit
                             )
                         }
@@ -292,8 +175,8 @@ private fun FeaturedGamePanelContent(
                             Text(
                                 text = model.awayScore,
                                 color = Color.White,
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.ExtraBold
+                                style = scoreStyle,
+                                fontWeight = scoreWeight
                             )
                         }
                         model.awayName?.let { name ->
@@ -319,14 +202,23 @@ private fun FeaturedGamePanelContent(
                             color = Color.White.copy(alpha = 0.8f),
                             style = MaterialTheme.typography.bodySmall
                         )
+                        if (model.visualState == GamePanelVisualState.PRE) {
+                            model.broadcaster?.let { broadcaster ->
+                                Text(
+                                    text = broadcaster,
+                                    color = Color.White.copy(alpha = 0.6f),
+                                    style = MaterialTheme.typography.labelSmall
+                                )
+                            }
+                        }
                     }
 
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        if (model.homeLogoUrl != null) {
+                        model.homeLogoUrl?.let { url ->
                             AsyncImage(
-                                model = model.homeLogoUrl,
+                                model = url,
                                 contentDescription = model.homeTricode,
-                                modifier = Modifier.size(56.dp),
+                                modifier = Modifier.size(config.logoSize.dp),
                                 contentScale = ContentScale.Fit
                             )
                         }
@@ -334,8 +226,8 @@ private fun FeaturedGamePanelContent(
                             Text(
                                 text = model.homeScore,
                                 color = Color.White,
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.ExtraBold
+                                style = scoreStyle,
+                                fontWeight = scoreWeight
                             )
                         }
                         model.homeName?.let { name ->
@@ -355,36 +247,32 @@ private fun FeaturedGamePanelContent(
                         }
                     }
                 }
+
+                if (model.leaderLines.isNotEmpty()) {
+                    Column {
+                        Text(
+                            text = "Leaders",
+                            color = Color.White.copy(alpha = 0.6f),
+                            style = MaterialTheme.typography.labelSmall
+                        )
+                        model.leaderLines.forEach { line ->
+                            Text(
+                                text = line,
+                                color = Color.White,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                }
+
+                if (model.visualState != GamePanelVisualState.PRE && model.broadcaster != null) {
+                    Text(
+                        text = model.broadcaster,
+                        color = Color.White.copy(alpha = 0.6f),
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
             }
         }
-    }
-}
-
-@Composable
-private fun ScoreRow(
-    homeTricode: String,
-    homeScore: String,
-    awayTricode: String,
-    awayScore: String
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color(0xFF101521))
-            .padding(horizontal = 8.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(
-            text = "$awayTricode $awayScore",
-            color = Color.White,
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.Bold
-        )
-        Text(
-            text = "$homeTricode $homeScore",
-            color = Color.White,
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.Bold
-        )
     }
 }

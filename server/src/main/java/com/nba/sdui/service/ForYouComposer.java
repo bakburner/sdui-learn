@@ -184,7 +184,7 @@ public class ForYouComposer {
             rp.put("type", "sse");
             rp.put("channel", gameId + ":linescore");
             section.set("refreshPolicy", rp);
-            section.set("dataBindings", utils.buildLinescoreBindings());
+            section.set("dataBinding", utils.buildLinescoreBindings());
         } else {
             section.set("refreshPolicy", staticPolicy());
         }
@@ -194,7 +194,7 @@ public class ForYouComposer {
         data.put("gameStatus", gameStatus);
         data.put("gameStatusText", game.path("gameStatusText").asText(""));
         data.put("gameTimeEt", game.path("gameTimeEt").asText(""));
-        data.put("variant", "featured");
+        data.set("displayConfig", atomicBuilder.featuredConfig(null, new String[]{"#1D428A", "#C8102E"}));
         data.set("homeTeam", mapTeam(game.path("homeTeam")));
         data.set("awayTeam", mapTeam(game.path("awayTeam")));
         data.put("badgeText", gameStatus == 2 ? "LIVE" : "UP NEXT");
@@ -223,7 +223,7 @@ public class ForYouComposer {
         data.put("gameId", "0022400001");
         data.put("gameStatus", 2);
         data.put("gameStatusText", "Q3 5:42");
-        data.put("variant", "featured");
+        data.set("displayConfig", atomicBuilder.featuredConfig(null, new String[]{"#1D428A", "#C8102E"}));
         data.put("badgeText", "LIVE");
         data.put("visualLabel", "CELTICS");
 

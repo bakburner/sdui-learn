@@ -50,7 +50,7 @@ dev-android:
 	@$(ADB) shell am force-stop com.nba.sdui.app 2>/dev/null || true
 	@$(ADB) shell am start -n com.nba.sdui.app/.MainActivity
 	@echo "=== Tailing logs (Ctrl-C to stop) ==="
-	@sleep 3 && $(ADB) logcat --pid=$$($(ADB) shell pidof com.nba.sdui.app) -s SduiScreenVM:* SectionRouter:* ActionHandler:* FormRenderer:* SDUI:* AndroidRuntime:E *:F
+	@sleep 3 && $(ADB) logcat --pid=$$($(ADB) shell pidof com.nba.sdui.app) -s SduiScreenViewModel:* SectionRouter:* ActionHandler:* FormRenderer:* AblyChannelManager:* DataBindingResolver:* SduiRepository:* SDUI:* AndroidRuntime:E *:F
 
 # ── Stop targets ─────────────────────────────────────────────
 stop: stop-server stop-web stop-android

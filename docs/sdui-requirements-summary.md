@@ -19,7 +19,7 @@
 | 2026-02-27 | Cross-document consistency review. Replaced `entitlements` references with `device` in governance, schema decisions, and 9o to align with Technical Proposal. |
 | 2026-03-04 | Added gap section 9q: Tabular Data Sections and Forms. New semantic section types (`BoxscoreTable`, `Form`), parameterized refresh on actions, sort/form state conventions. Updated status matrix. |
 | 2026-03-04 | Added `parentUri` to Screen contract. Updated status matrix for composition API contract (Gap → Partial). Added Prototype Concessions subsection. |
-| 2026-03-13 | Atomic rendering layer. Updated Key Schema Decisions (dual-layer model: 17 semantic section types + 10 atomic element types coexisting via AtomicComposite). Added Grid vs. Section Decision Tree to §9q. Added atomic rendering layer row to requirement status matrix. |
+| 2026-03-13 | Atomic rendering layer. Updated Key Schema Decisions (dual-layer model: 9 section types in schema (8 permanent + AtomicComposite) + 10 atomic element types; 9 former types migrated to server-composed AtomicComposite). Added Grid vs. Section Decision Tree to §9q. Added atomic rendering layer row to requirement status matrix. |
 | 2026-03-14 | Added §9r (Section vs. Atomic Classification — implementation-level criteria: network-driven lifecycle, platform SDK integration, client-owned interaction state. Full classification inventory with concrete examples: GamePanel Ably/poll lifecycle, SubscribeHero/SubscribeBanner billing SDK, AdSlot ad SDK, BoxscoreTable scroll/sort state). Added §9s (Figma Design Token Integration — token mapping file, client-side resolution, three-level CI validation pipeline). |
 
 ---
@@ -164,7 +164,7 @@ graph LR
 
 ### Key Schema Decisions
 
-- **Dual-layer type model** — 17 **semantic section types** (StatLine, HeroPanel, GamePanel (with `variant: "standard"`, `"featured"`, and `"scoreboard"` for compact scoreboard rows), VideoCarousel, NbaTvSchedule, SubscribeBanner, SubscribeHero, AdSlot, BoxscoreTable, Form, ContentRail, TabGroup, PromoBanner, SectionHeader, FollowingRail, SeasonLeadersTable, ErrorState) for domain-specific rendering with client-owned state, plus 10 **atomic element types** (Container, Text, Image, Button, Spacer, Divider, ScrollContainer, Conditional, DisplayGrid, SectionSlot) for server-composed generic layouts. The two layers coexist via the `AtomicComposite` bridge section type. Semantic sections handle stateful domain logic (sort, frozen columns, forms); atomic primitives handle server-composed layouts with no client business logic. See *Grid vs. Section Decision Tree* in §9q.
+- **Dual-layer type model** — 9 **section types in schema** (8 permanent with client renderers: BoxscoreTable, SeasonLeadersTable, Form, TabGroup, GamePanel (with `variant: "standard"`, `"featured"`, and `"scoreboard"` for compact scoreboard rows), SubscribeBanner, SubscribeHero, AdSlot — plus the `AtomicComposite` bridge), plus 10 **atomic element types** (Container, Text, Image, Button, Spacer, Divider, ScrollContainer, Conditional, DisplayGrid, SectionSlot) for server-composed generic layouts. 9 former section types (ErrorState, SectionHeader, PromoBanner, ContentRail, FollowingRail, HeroPanel, StatLine, VideoCarousel, NbaTvSchedule) have been **migrated to atomic** — server-composed as `AtomicComposite` with zero client renderers and their schema definitions pruned. Permanent sections handle stateful domain logic (sort, frozen columns, forms, platform SDK integration); atomic primitives handle server-composed layouts with no client business logic. See *Grid vs. Section Decision Tree* in §9q.
 - **Codegen produces data models only** — not UI code. Platform teams write a thin renderer layer (~30 lines per section type) that wires generated models to existing design system components.
 - **Schema is versioned** — client sends its schema version, server responds with a compatible payload. Fields can never be removed without a major version bump.
 - **Subsection actions are required** — `actions` must be supported at section and nested component/subsection level (for example, tapping home team area within a game section).
@@ -992,8 +992,8 @@ Until approved, these remain directional requirements and may be refined.
 |---|---|---|
 | Schema definition (section types, data shapes) | **Built** | JSON Schema with semantic types. Prototype validated. |
 | Codegen pipeline (schema → typed models) | **Built** | jsonschema2pojo (Java/Jackson), quicktype (Swift/TS demo) |
-| Android renderer (Compose) | **Built** | Section router + 17 semantic renderers + AtomicRouter |
-| Web renderer (React) | **Built** | React section router + 17 semantic renderers + AtomicRouter + live data wrappers |
+| Android renderer (Compose) | **Built** | Section router + 8 permanent section renderers + AtomicRouter (9 migrated types served as AtomicComposite) |
+| Web renderer (React) | **Built** | React section router + 8 permanent section renderers + AtomicRouter + live data wrappers (9 migrated types served as AtomicComposite) |
 | iOS renderer (SwiftUI) | **Designed** | Not built — architecture validated via Android |
 | Data binding (SSE/poll, field-level) | **Built** | Ably for SSE, direct-URL polling, DataBindingResolver class exists but live updates use hardcoded mapping |
 | Action system (navigate, fireAndForget, mutate) | **Built** | ActionHandler dispatches all 6 action types |

@@ -7,19 +7,20 @@ import io.ably.lib.realtime.AblyRealtime
 import io.ably.lib.realtime.Channel
 import io.ably.lib.realtime.ChannelState
 import io.ably.lib.realtime.ConnectionState
+import io.ably.lib.rest.Auth
 import io.ably.lib.types.ClientOptions
 import io.ably.lib.types.Message
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.withContext
+import java.net.HttpURLConnection
+import java.net.URL
 
 /**
  * Ably Channel Manager - Manages real-time connections to Ably for live data.
  *
  * Messages are returned as opaque `Map<String, Any?>` — the client has NO
- * knowledge of the payload structure.  The server's `dataBindings` on each
+ * knowledge of the payload structure.  The server's `dataBinding` on each
  * section define how individual fields map into section data.
  *
  * Implements:
@@ -40,19 +41,29 @@ class AblyChannelManager(
     private val activeChannels = mutableMapOf<String, Channel>()
 
     /**
-     * Initialize the Ably client with JWT token authentication.
+     * Initialize the Ably client with token authentication.
+     *
+     * Connection is non-blocking — the SDK connects in the background and
+     * handles retries automatically. Channels can be subscribed immediately;
+     * they attach once the connection is ready.
+     *
+     * Uses an authCallback instead of authUrl so we control the HTTP request
+     * and can log the raw response for diagnostics.
      */
-    suspend fun initialize() = withContext(Dispatchers.IO) {
+    fun initialize() {
         if (ablyClient != null) {
             Log.d(TAG, "Ably client already initialized")
-            return@withContext
+            return
         }
 
         try {
             val options = ClientOptions().apply {
-                authUrl = tokenUrl
                 autoConnect = true
                 logLevel = io.ably.lib.util.Log.WARN
+
+                authCallback = Auth.TokenCallback { _ ->
+                    fetchTokenFromUrl(tokenUrl)
+                }
             }
 
             ablyClient = AblyRealtime(options)
@@ -67,11 +78,52 @@ class AblyChannelManager(
                 }
             }
 
-            Log.i(TAG, "Ably client initialized with authUrl: $tokenUrl")
+            Log.i(TAG, "Ably client created (tokenUrl: $tokenUrl)")
 
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to initialize Ably client", e)
-            throw e
+            Log.e(TAG, "Failed to create Ably client", e)
+            ablyClient = null
+        }
+    }
+
+    /**
+     * Fetch token from the auth URL and extract the JWT.
+     *
+     * The NBA identity endpoint wraps the token:
+     *   {"status":"success","data":{"accessToken":"<JWT>"}}
+     *
+     * The Ably SDK expects the raw JWT string, not the wrapper.
+     */
+    private fun fetchTokenFromUrl(url: String): Any {
+        val conn = URL(url).openConnection() as HttpURLConnection
+        try {
+            conn.requestMethod = "GET"
+            conn.connectTimeout = 10_000
+            conn.readTimeout = 10_000
+            conn.setRequestProperty("Accept", "application/json")
+
+            val code = conn.responseCode
+            val body = if (code in 200..299) {
+                conn.inputStream.bufferedReader().readText()
+            } else {
+                val err = conn.errorStream?.bufferedReader()?.readText() ?: "(no body)"
+                Log.e(TAG, "Token request failed: HTTP $code — $err")
+                throw RuntimeException("Token endpoint returned HTTP $code")
+            }
+
+            Log.d(TAG, "Token response (HTTP $code, ${body.length} chars): ${body.take(200)}")
+
+            val json = objectMapper.readTree(body)
+            val jwt = json.path("data").path("accessToken").asText(null)
+            if (!jwt.isNullOrBlank()) {
+                Log.d(TAG, "Extracted JWT (${jwt.length} chars)")
+                return jwt
+            }
+
+            Log.d(TAG, "No wrapper detected, returning raw body to SDK")
+            return body
+        } finally {
+            conn.disconnect()
         }
     }
 
@@ -80,7 +132,7 @@ class AblyChannelManager(
      *
      * The returned Flow emits the raw JSON payload as `Map<String, Any?>`.
      * Callers use [DataBindingResolver.applyBindings] with the section's
-     * `dataBindings` to map fields into section data.
+     * `dataBinding` to map fields into section data.
      */
     fun subscribeToChannel(channelName: String): Flow<Map<String, Any?>> = callbackFlow {
         Log.d(TAG, "Subscribing to channel: $channelName")

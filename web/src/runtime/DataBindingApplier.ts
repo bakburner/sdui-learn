@@ -116,5 +116,5 @@ function setValueByPath(obj: Record<string, unknown>, path: string, value: unkno
  * Check if a section has active data bindings.
  */
 export function hasDataBindings(section: Section): boolean {
-  return Boolean(section.dataBindings?.bindings?.length);
+  return Boolean(section.dataBinding?.bindings?.length);
 }

@@ -17,8 +17,8 @@
 | 2026-02-27 | Replaced `entitlements` with `device` in request envelope (governance, 9o, Appendix A). Aligned analytics field names (`event`/`params`) and mutate field names (`target`/`operation`/`value`) with requirements summary. Moved `schemaVersion` to `meta` object. Added `onBlur` trigger. |
 | 2026-03-04 | Added tabular data sections and forms. New semantic types (`BoxscoreTable`, `Form`) in schema design (section 2). Parameterized refresh on actions (section 4). Sort and form state patterns (section 5). Platform coverage update (section 8). Gap 9q. Requirement status updates. Appendix C boxscore response example. |
 | 2026-03-04 | Added `parentUri` to Screen response contract and example. Added client URI resolution convention. |
-| 2026-03-12 | Prototype sync. Renderer table updated — BoxscoreTable, Form, SectionHeader, FollowingRail, SeasonLeadersTable now Built on Web and Android (18 renderers per platform). Added image fallback pattern (section 8a). Updated requirement status for tabular data and forms. |
-| 2026-03-11 | ErrorState added to renderer table (19 renderers per platform). Error handling status updated (Gap → Built for ErrorState, runtime `sectionStates` planned). Client-side visibility expressions evaluated and deferred — server-side composition handles section show/hide. |
+| 2026-03-12 | Prototype sync. Renderer table updated — BoxscoreTable, Form, SectionHeader, FollowingRail, SeasonLeadersTable now Built on Web and Android. Added image fallback pattern (section 8a). Updated requirement status for tabular data and forms. |
+| 2026-03-11 | ErrorState added to renderer table. Error handling status updated (Gap → Built for ErrorState, runtime `sectionStates` planned). Client-side visibility expressions evaluated and deferred — server-side composition handles section show/hide. |
 | 2026-03-12 | Server-control gaps closed: `SectionLayoutHints` and `SectionStates` added to schema + codegen. Web client: `SectionErrorBoundary`, `SectionSkeleton`, `useImpressionTracking`, `useAnalyticsContext` built. Server: `sectionStates` emitted on live sections. ADR-008 accepted (Option C), ADR-009 accepted. Bug fixes: `interactive` contentType enum, platform header threading (`X-Platform` required from clients, no server default), silent deserialization failures now logged on Android. |
 | 2026-03-12 | Merged `FeaturedGamePanel` into `GamePanel` with `variant` discriminator. `FeaturedGamePanelData` removed from schema; `GamePanelData` gains `variant`, `backgroundImageUrl`, `badgeText`, `visualLabel` fields. Server composers emit `type: "GamePanel"` with `variant: "featured"`. Android and Web renderers branch on variant. `FeaturedGamePanelRenderer` deleted on both platforms. Section type count: 20 → 18. |
 | 2026-03-13 | Added offline/degraded connectivity strategy (9r) with ADR-010 reference. Stale-while-offline approach using platform HTTP cache, staleness UX per `cacheability` class, fire-and-forget local queue. |
@@ -656,7 +656,7 @@ Each platform family receives a tailored composition from the server while shari
 | SectionSlot | Built | Built | Gap |
 | **AtomicRouter** | **Built** | **Built** | **Gap** |
 
-The `AtomicRouter` dispatches rendering for all 10 element types. `AtomicComposite` is the 18th section type in `SectionRouter` (17 semantic + AtomicComposite).
+The `AtomicRouter` dispatches rendering for all 10 element types. `AtomicComposite` is the 9th section type in `SectionRouter` (8 permanent + AtomicComposite). 9 former section types have been migrated to server-composed AtomicComposite layouts with no client renderers.
 
 
 ---

@@ -19,8 +19,8 @@ Five principles guide every decision:
 The architecture uses two complementary rendering layers:
 
 - **Section layer** — Named domain renderers (`BoxscoreTable`, `GamePanel`, `Form`, `TabGroup`, etc.) with client-owned state (sort, scroll position, form input). Routed by `SectionRouter`.
-- **Atomic layer** — 9 server-composed primitives (`Container`, `Text`, `Image`, `Button`, `Spacer`, `Divider`, `ScrollContainer`, `Conditional`, `DisplayGrid`) with zero client business logic. Routed by `AtomicRouter`.
-- **Bridge** — `AtomicComposite` section type: `SectionRouter` delegates to `AtomicRouter`. `SectionSlot` atomic element: `AtomicRouter` delegates back to `SectionRouter` (e.g., embed an `AdSlot` inside an atomic layout).
+- **Atomic layer** — 10 atomic element types (`Container`, `Text`, `Image`, `Button`, `Spacer`, `Divider`, `ScrollContainer`, `Conditional`, `DisplayGrid`, `SectionSlot`) with zero client business logic. Routed by `AtomicRouter`.
+- **Bridge** — `AtomicComposite` section type: `SectionRouter` delegates to `AtomicRouter`. `SectionSlot` element: `AtomicRouter` delegates back to `SectionRouter` (e.g., embed an `AdSlot` inside an atomic layout).
 
 Use semantic sections when client-side state or interaction is needed. Use atomic composition when the server can fully describe the layout.
 
@@ -131,7 +131,7 @@ make codegen
 | Type | Description | Refresh |
 |------|-------------|---------|
 | TabGroup | Tabbed navigation with state-driven content | Poll or static |
-| GamePanel | Game card with teams, scores, leaders. `variant: "standard"`, `"featured"` (hero-sized), `"scoreboard"` (compact row with live scores) | SSE or static |
+| GamePanel | Game card with teams, scores, leaders. Server-driven `displayConfig` controls layout (logo size, card height, score style, background). Scoreboard rows, featured hero cards, and standard cards are all composed via `displayConfig` — no client branching. | SSE or static |
 | BoxscoreTable | Boxscore stats table | Poll or static |
 | Form | Interactive form with typed fields | Static |
 | SeasonLeadersTable | Season leaders stats table | Static |
@@ -172,10 +172,10 @@ make codegen
 
 ## Recent Changes (2026-03-13)
 
-- **Atomic rendering layer** — Dual-layer architecture: 9 atomic primitives + SectionSlot bridge, AtomicRouter on Android and Web, AtomicComposite bridge section type, server-side AtomicCompositeBuilder
+- **Atomic rendering layer** — Dual-layer architecture: 10 atomic element types (9 rendering primitives + SectionSlot bridge), AtomicRouter on Android and Web, AtomicComposite bridge section type, server-side AtomicCompositeBuilder
 - **9 section types migrated to atomic** — ErrorState, SectionHeader, PromoBanner, ContentRail, FollowingRail, HeroPanel, StatLine, VideoCarousel, NbaTvSchedule now served as AtomicComposite (schema definitions pruned)
 - **SectionSlot bidirectional bridge** — Atomic trees can embed full section renderers (recursion guard: depth 2)
-- **ScoreboardHeader consolidated** — Merged into GamePanel as `variant: "scoreboard"`
+- **ScoreboardHeader consolidated** — Merged into GamePanel; compact scoreboard row is now driven by `displayConfig` (no variant branching)
 - **DisplayGrid** — Non-interactive server-ordered text grid primitive
 - **Governance docs updated** — Executive Summary, Technical Proposal (§2a, §8, §9s, §10), Requirements Summary all reflect dual-layer model
 - **Kitchen sink appendix** — Full 42-section demo response documented

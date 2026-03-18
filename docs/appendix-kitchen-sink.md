@@ -43,7 +43,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
     "schemaVersion": "1.0",
     "title": "SDUI Section Types",
     "analyticsId": "demos-kitchen-sink",
-    "traceId": "trace-3b5e8c9e",
+    "traceId": "trace-f2797e0c",
     "parentUri": "nba://scoreboard",
     "defaultRefreshPolicy": {
         "type": "static"
@@ -89,7 +89,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
     },
     "sections": [
         {
-            "id": "label-gamepanel (scoreboard)",
+            "id": "label-gamepanel (scoreboard config)",
             "type": "AtomicComposite",
             "refreshPolicy": {
                 "type": "static"
@@ -109,7 +109,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
                     "children": [
                         {
                             "type": "Text",
-                            "content": "GamePanel (scoreboard)",
+                            "content": "GamePanel (scoreboard config)",
                             "variant": "titleMedium",
                             "weight": "bold"
                         }
@@ -119,129 +119,45 @@ This is the full server response for the kitchen-sink demo screen — a single S
         },
         {
             "id": "demo-game-panel-scoreboard",
-            "type": "AtomicComposite",
+            "type": "GamePanel",
             "analyticsId": "demo_game_panel_scoreboard",
             "refreshPolicy": {
                 "type": "static"
             },
             "data": {
-                "ui": {
-                    "type": "Container",
-                    "direction": "column",
-                    "padding": {
-                        "start": 8,
-                        "end": 8,
-                        "top": 0,
-                        "bottom": 0
-                    },
-                    "children": [
-                        {
-                            "type": "Container",
-                            "direction": "row",
-                            "alignment": "spaceEvenly",
-                            "crossAlignment": "center",
-                            "cornerRadius": 12,
-                            "backgroundColor": "#17408B",
-                            "padding": {
-                                "start": 16,
-                                "end": 16,
-                                "top": 24,
-                                "bottom": 24
-                            },
-                            "children": [
-                                {
-                                    "type": "Container",
-                                    "direction": "column",
-                                    "alignment": "center",
-                                    "crossAlignment": "center",
-                                    "children": [
-                                        {
-                                            "type": "Image",
-                                            "src": "https://cdn.nba.com/logos/nba/1610612747/primary/L/logo.svg",
-                                            "width": 60,
-                                            "height": 60,
-                                            "fit": "contain",
-                                            "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png"
-                                        },
-                                        {
-                                            "type": "Spacer",
-                                            "height": 4
-                                        },
-                                        {
-                                            "type": "Text",
-                                            "content": "LAL",
-                                            "variant": "bodyMedium",
-                                            "weight": "bold",
-                                            "color": "#FFFFFF"
-                                        },
-                                        {
-                                            "type": "Text",
-                                            "content": "89",
-                                            "variant": "headlineLarge",
-                                            "weight": "bold",
-                                            "color": "#FFFFFF"
-                                        }
-                                    ]
-                                },
-                                {
-                                    "type": "Container",
-                                    "direction": "column",
-                                    "alignment": "center",
-                                    "crossAlignment": "center",
-                                    "children": [
-                                        {
-                                            "type": "Text",
-                                            "content": "Q3 4:32",
-                                            "variant": "bodyMedium",
-                                            "weight": "medium",
-                                            "color": "#FFFFFF"
-                                        },
-                                        {
-                                            "type": "Text",
-                                            "content": "Period 3",
-                                            "variant": "bodySmall",
-                                            "color": "#CCCCCC"
-                                        }
-                                    ]
-                                },
-                                {
-                                    "type": "Container",
-                                    "direction": "column",
-                                    "alignment": "center",
-                                    "crossAlignment": "center",
-                                    "children": [
-                                        {
-                                            "type": "Image",
-                                            "src": "https://cdn.nba.com/logos/nba/1610612738/primary/L/logo.svg",
-                                            "width": 60,
-                                            "height": 60,
-                                            "fit": "contain",
-                                            "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png"
-                                        },
-                                        {
-                                            "type": "Spacer",
-                                            "height": 4
-                                        },
-                                        {
-                                            "type": "Text",
-                                            "content": "BOS",
-                                            "variant": "bodyMedium",
-                                            "weight": "bold",
-                                            "color": "#FFFFFF"
-                                        },
-                                        {
-                                            "type": "Text",
-                                            "content": "94",
-                                            "variant": "headlineLarge",
-                                            "weight": "bold",
-                                            "color": "#FFFFFF"
-                                        }
-                                    ]
-                                }
-                            ]
-                        }
-                    ]
-                }
+                "gameId": "0022400999",
+                "gameStatus": 2,
+                "gameStatusText": "Q3 4:32",
+                "period": 3,
+                "gameClock": "PT04M32.00S",
+                "displayConfig": {
+                    "logoSize": 60,
+                    "scoreTextStyle": "prominent",
+                    "background": "#17408B"
+                },
+                "homeTeam": {
+                    "teamId": 1610612738,
+                    "teamTricode": "BOS",
+                    "teamName": "Celtics",
+                    "teamCity": "Boston",
+                    "score": 94,
+                    "logoUrl": "https://cdn.nba.com/logos/nba/1610612738/primary/L/logo.svg"
+                },
+                "awayTeam": {
+                    "teamId": 1610612747,
+                    "teamTricode": "LAL",
+                    "teamName": "Lakers",
+                    "teamCity": "Los Angeles",
+                    "score": 89,
+                    "logoUrl": "https://cdn.nba.com/logos/nba/1610612747/primary/L/logo.svg"
+                },
+                "actions": [
+                    {
+                        "trigger": "onTap",
+                        "type": "navigate",
+                        "targetUri": "nba://game/0022400999"
+                    }
+                ]
             }
         },
         {
@@ -648,7 +564,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
                     "type": "Container",
                     "direction": "row",
                     "crossAlignment": "center",
-                    "backgroundColor": "#17408B",
+                    "background": "#17408B",
                     "cornerRadius": 12,
                     "padding": {
                         "start": 20,
@@ -687,7 +603,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
                                 },
                                 {
                                     "type": "Text",
-                                    "content": "All 9 section types and 32 AtomicComposite trees rendered from a single server response.",
+                                    "content": "All 20 semantic section types rendered from a single server response.",
                                     "variant": "bodySmall",
                                     "color": "#CCCCCC"
                                 },
@@ -764,7 +680,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
                             "type": "Container",
                             "direction": "column",
                             "cornerRadius": 12,
-                            "backgroundColor": "#1A1F2E",
+                            "background": "#1A1F2E",
                             "actions": [
                                 {
                                     "trigger": "onTap",
@@ -919,7 +835,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
                                             "type": "Container",
                                             "direction": "column",
                                             "cornerRadius": 8,
-                                            "backgroundColor": "#2A2A4A",
+                                            "background": "#2A2A4A",
                                             "children": [
                                                 {
                                                     "type": "Image",
@@ -945,7 +861,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
                                                             "variant": "labelSmall",
                                                             "weight": "bold",
                                                             "color": "#FFFFFF",
-                                                            "backgroundColor": "#FF6B6B"
+                                                            "background": "#FF6B6B"
                                                         },
                                                         {
                                                             "type": "Spacer",
@@ -985,7 +901,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
                                             "type": "Container",
                                             "direction": "column",
                                             "cornerRadius": 8,
-                                            "backgroundColor": "#2A2A4A",
+                                            "background": "#2A2A4A",
                                             "children": [
                                                 {
                                                     "type": "Image",
@@ -1011,7 +927,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
                                                             "variant": "labelSmall",
                                                             "weight": "bold",
                                                             "color": "#FFFFFF",
-                                                            "backgroundColor": "#FF6B6B"
+                                                            "background": "#FF6B6B"
                                                         },
                                                         {
                                                             "type": "Spacer",
@@ -1051,7 +967,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
                                             "type": "Container",
                                             "direction": "column",
                                             "cornerRadius": 8,
-                                            "backgroundColor": "#2A2A4A",
+                                            "background": "#2A2A4A",
                                             "children": [
                                                 {
                                                     "type": "Image",
@@ -1077,7 +993,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
                                                             "variant": "labelSmall",
                                                             "weight": "bold",
                                                             "color": "#FFFFFF",
-                                                            "backgroundColor": "#FF6B6B"
+                                                            "background": "#FF6B6B"
                                                         },
                                                         {
                                                             "type": "Spacer",
@@ -1117,7 +1033,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
                                             "type": "Container",
                                             "direction": "column",
                                             "cornerRadius": 8,
-                                            "backgroundColor": "#2A2A4A",
+                                            "background": "#2A2A4A",
                                             "children": [
                                                 {
                                                     "type": "Image",
@@ -1143,7 +1059,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
                                                             "variant": "labelSmall",
                                                             "weight": "bold",
                                                             "color": "#FFFFFF",
-                                                            "backgroundColor": "#FF6B6B"
+                                                            "background": "#FF6B6B"
                                                         },
                                                         {
                                                             "type": "Spacer",
@@ -1213,6 +1129,9 @@ This is the full server response for the kitchen-sink demo screen — a single S
                 "gameId": "0022400888",
                 "gameStatus": 3,
                 "gameStatusText": "Final",
+                "displayConfig": {
+                    "background": "#1A1F2E"
+                },
                 "homeTeam": {
                     "teamId": 1610612744,
                     "teamTricode": "GSW",
@@ -1239,7 +1158,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
             }
         },
         {
-            "id": "label-row",
+            "id": "label-responsive row (container + breakpoint)",
             "type": "AtomicComposite",
             "refreshPolicy": {
                 "type": "static"
@@ -1271,239 +1190,258 @@ This is the full server response for the kitchen-sink demo screen — a single S
             "id": "demo-row",
             "type": "AtomicComposite",
             "analyticsId": "demo_row",
+            "refreshPolicy": {
+                "type": "static"
+            },
             "data": {
-                "spacing": 16,
-                "breakpoint": 600,
-                "children": [
-                    {
-                        "id": "row-scoring-leader",
-                        "type": "AtomicComposite",
-                        "refreshPolicy": {
-                            "type": "static"
-                        },
-                        "data": {
-                            "ui": {
-                                "type": "Container",
-                                "direction": "column",
-                                "padding": {
-                                    "start": 16,
-                                    "end": 16,
-                                    "top": 8,
-                                    "bottom": 8
+                "ui": {
+                    "type": "Container",
+                    "direction": "row",
+                    "gap": 16,
+                    "breakpoint": 600,
+                    "fillWidth": true,
+                    "id": "demo-row-container",
+                    "children": [
+                        {
+                            "type": "SectionSlot",
+                            "id": "row-left",
+                            "section": {
+                                "id": "row-scoring-leader",
+                                "type": "AtomicComposite",
+                                "refreshPolicy": {
+                                    "type": "static"
                                 },
-                                "children": [
-                                    {
-                                        "type": "Text",
-                                        "content": "Scoring Leader",
-                                        "variant": "titleMedium",
-                                        "weight": "bold",
-                                        "padding": {
-                                            "start": 0,
-                                            "end": 0,
-                                            "top": 0,
-                                            "bottom": 12
-                                        }
-                                    },
-                                    {
+                                "data": {
+                                    "ui": {
                                         "type": "Container",
                                         "direction": "column",
                                         "padding": {
-                                            "start": 0,
-                                            "end": 0,
-                                            "top": 6,
-                                            "bottom": 6
+                                            "start": 16,
+                                            "end": 16,
+                                            "top": 8,
+                                            "bottom": 8
                                         },
                                         "children": [
                                             {
-                                                "type": "Container",
-                                                "direction": "row",
-                                                "crossAlignment": "center",
-                                                "children": [
-                                                    {
-                                                        "type": "Image",
-                                                        "src": "https://cdn.nba.com/headshots/nba/latest/1040x760/203999.png",
-                                                        "width": 40,
-                                                        "height": 40,
-                                                        "fit": "cover",
-                                                        "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
-                                                        "cornerRadius": 20
-                                                    },
-                                                    {
-                                                        "type": "Spacer",
-                                                        "height": 12
-                                                    },
-                                                    {
-                                                        "type": "Container",
-                                                        "direction": "column",
-                                                        "children": [
-                                                            {
-                                                                "type": "Text",
-                                                                "content": "Nikola Jokić",
-                                                                "variant": "bodyLarge",
-                                                                "weight": "medium"
-                                                            },
-                                                            {
-                                                                "type": "Text",
-                                                                "content": "DEN",
-                                                                "variant": "bodySmall",
-                                                                "color": "#999999"
-                                                            }
-                                                        ]
-                                                    }
-                                                ]
-                                            },
-                                            {
-                                                "type": "Container",
-                                                "direction": "row",
-                                                "alignment": "end",
-                                                "crossAlignment": "center",
+                                                "type": "Text",
+                                                "content": "Scoring Leader",
+                                                "variant": "titleMedium",
+                                                "weight": "bold",
                                                 "padding": {
                                                     "start": 0,
                                                     "end": 0,
-                                                    "top": 4,
-                                                    "bottom": 0
+                                                    "top": 0,
+                                                    "bottom": 12
+                                                }
+                                            },
+                                            {
+                                                "type": "Container",
+                                                "direction": "column",
+                                                "padding": {
+                                                    "start": 0,
+                                                    "end": 0,
+                                                    "top": 6,
+                                                    "bottom": 6
                                                 },
                                                 "children": [
                                                     {
-                                                        "type": "Text",
-                                                        "content": "PTS",
-                                                        "variant": "bodyMedium",
-                                                        "color": "#AAAAAA"
+                                                        "type": "Container",
+                                                        "direction": "row",
+                                                        "crossAlignment": "center",
+                                                        "children": [
+                                                            {
+                                                                "type": "Image",
+                                                                "src": "https://cdn.nba.com/headshots/nba/latest/1040x760/203999.png",
+                                                                "width": 40,
+                                                                "height": 40,
+                                                                "fit": "cover",
+                                                                "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
+                                                                "cornerRadius": 20
+                                                            },
+                                                            {
+                                                                "type": "Spacer",
+                                                                "height": 12
+                                                            },
+                                                            {
+                                                                "type": "Container",
+                                                                "direction": "column",
+                                                                "children": [
+                                                                    {
+                                                                        "type": "Text",
+                                                                        "content": "Nikola Jokić",
+                                                                        "variant": "bodyLarge",
+                                                                        "weight": "medium"
+                                                                    },
+                                                                    {
+                                                                        "type": "Text",
+                                                                        "content": "DEN",
+                                                                        "variant": "bodySmall",
+                                                                        "color": "#999999"
+                                                                    }
+                                                                ]
+                                                            }
+                                                        ]
                                                     },
                                                     {
-                                                        "type": "Spacer",
-                                                        "height": 8
-                                                    },
-                                                    {
-                                                        "type": "Text",
-                                                        "content": "26.4",
-                                                        "variant": "titleMedium",
-                                                        "weight": "bold",
-                                                        "color": "#FF6B6B"
+                                                        "type": "Container",
+                                                        "direction": "row",
+                                                        "alignment": "end",
+                                                        "crossAlignment": "center",
+                                                        "padding": {
+                                                            "start": 0,
+                                                            "end": 0,
+                                                            "top": 4,
+                                                            "bottom": 0
+                                                        },
+                                                        "children": [
+                                                            {
+                                                                "type": "Text",
+                                                                "content": "PTS",
+                                                                "variant": "bodyMedium",
+                                                                "color": "#AAAAAA"
+                                                            },
+                                                            {
+                                                                "type": "Spacer",
+                                                                "height": 8
+                                                            },
+                                                            {
+                                                                "type": "Text",
+                                                                "content": "26.4",
+                                                                "variant": "titleMedium",
+                                                                "weight": "bold",
+                                                                "color": "#FF6B6B"
+                                                            }
+                                                        ]
                                                     }
                                                 ]
                                             }
                                         ]
                                     }
-                                ]
-                            }
-                        }
-                    },
-                    {
-                        "id": "row-assists-leader",
-                        "type": "AtomicComposite",
-                        "refreshPolicy": {
-                            "type": "static"
+                                }
+                            },
+                            "flex": 1.0
                         },
-                        "data": {
-                            "ui": {
-                                "type": "Container",
-                                "direction": "column",
-                                "padding": {
-                                    "start": 16,
-                                    "end": 16,
-                                    "top": 8,
-                                    "bottom": 8
+                        {
+                            "type": "SectionSlot",
+                            "id": "row-right",
+                            "section": {
+                                "id": "row-assists-leader",
+                                "type": "AtomicComposite",
+                                "refreshPolicy": {
+                                    "type": "static"
                                 },
-                                "children": [
-                                    {
-                                        "type": "Text",
-                                        "content": "Assists Leader",
-                                        "variant": "titleMedium",
-                                        "weight": "bold",
-                                        "padding": {
-                                            "start": 0,
-                                            "end": 0,
-                                            "top": 0,
-                                            "bottom": 12
-                                        }
-                                    },
-                                    {
+                                "data": {
+                                    "ui": {
                                         "type": "Container",
                                         "direction": "column",
                                         "padding": {
-                                            "start": 0,
-                                            "end": 0,
-                                            "top": 6,
-                                            "bottom": 6
+                                            "start": 16,
+                                            "end": 16,
+                                            "top": 8,
+                                            "bottom": 8
                                         },
                                         "children": [
                                             {
-                                                "type": "Container",
-                                                "direction": "row",
-                                                "crossAlignment": "center",
-                                                "children": [
-                                                    {
-                                                        "type": "Image",
-                                                        "src": "https://cdn.nba.com/headshots/nba/latest/1040x760/201566.png",
-                                                        "width": 40,
-                                                        "height": 40,
-                                                        "fit": "cover",
-                                                        "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
-                                                        "cornerRadius": 20
-                                                    },
-                                                    {
-                                                        "type": "Spacer",
-                                                        "height": 12
-                                                    },
-                                                    {
-                                                        "type": "Container",
-                                                        "direction": "column",
-                                                        "children": [
-                                                            {
-                                                                "type": "Text",
-                                                                "content": "Trae Young",
-                                                                "variant": "bodyLarge",
-                                                                "weight": "medium"
-                                                            },
-                                                            {
-                                                                "type": "Text",
-                                                                "content": "ATL",
-                                                                "variant": "bodySmall",
-                                                                "color": "#999999"
-                                                            }
-                                                        ]
-                                                    }
-                                                ]
-                                            },
-                                            {
-                                                "type": "Container",
-                                                "direction": "row",
-                                                "alignment": "end",
-                                                "crossAlignment": "center",
+                                                "type": "Text",
+                                                "content": "Assists Leader",
+                                                "variant": "titleMedium",
+                                                "weight": "bold",
                                                 "padding": {
                                                     "start": 0,
                                                     "end": 0,
-                                                    "top": 4,
-                                                    "bottom": 0
+                                                    "top": 0,
+                                                    "bottom": 12
+                                                }
+                                            },
+                                            {
+                                                "type": "Container",
+                                                "direction": "column",
+                                                "padding": {
+                                                    "start": 0,
+                                                    "end": 0,
+                                                    "top": 6,
+                                                    "bottom": 6
                                                 },
                                                 "children": [
                                                     {
-                                                        "type": "Text",
-                                                        "content": "AST",
-                                                        "variant": "bodyMedium",
-                                                        "color": "#AAAAAA"
+                                                        "type": "Container",
+                                                        "direction": "row",
+                                                        "crossAlignment": "center",
+                                                        "children": [
+                                                            {
+                                                                "type": "Image",
+                                                                "src": "https://cdn.nba.com/headshots/nba/latest/1040x760/201566.png",
+                                                                "width": 40,
+                                                                "height": 40,
+                                                                "fit": "cover",
+                                                                "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
+                                                                "cornerRadius": 20
+                                                            },
+                                                            {
+                                                                "type": "Spacer",
+                                                                "height": 12
+                                                            },
+                                                            {
+                                                                "type": "Container",
+                                                                "direction": "column",
+                                                                "children": [
+                                                                    {
+                                                                        "type": "Text",
+                                                                        "content": "Trae Young",
+                                                                        "variant": "bodyLarge",
+                                                                        "weight": "medium"
+                                                                    },
+                                                                    {
+                                                                        "type": "Text",
+                                                                        "content": "ATL",
+                                                                        "variant": "bodySmall",
+                                                                        "color": "#999999"
+                                                                    }
+                                                                ]
+                                                            }
+                                                        ]
                                                     },
                                                     {
-                                                        "type": "Spacer",
-                                                        "height": 8
-                                                    },
-                                                    {
-                                                        "type": "Text",
-                                                        "content": "11.1",
-                                                        "variant": "titleMedium",
-                                                        "weight": "bold",
-                                                        "color": "#FF6B6B"
+                                                        "type": "Container",
+                                                        "direction": "row",
+                                                        "alignment": "end",
+                                                        "crossAlignment": "center",
+                                                        "padding": {
+                                                            "start": 0,
+                                                            "end": 0,
+                                                            "top": 4,
+                                                            "bottom": 0
+                                                        },
+                                                        "children": [
+                                                            {
+                                                                "type": "Text",
+                                                                "content": "AST",
+                                                                "variant": "bodyMedium",
+                                                                "color": "#AAAAAA"
+                                                            },
+                                                            {
+                                                                "type": "Spacer",
+                                                                "height": 8
+                                                            },
+                                                            {
+                                                                "type": "Text",
+                                                                "content": "11.1",
+                                                                "variant": "titleMedium",
+                                                                "weight": "bold",
+                                                                "color": "#FF6B6B"
+                                                            }
+                                                        ]
                                                     }
                                                 ]
                                             }
                                         ]
                                     }
-                                ]
-                            }
+                                }
+                            },
+                            "flex": 1.0
                         }
-                    }
-                ]
+                    ]
+                }
             }
         },
         {
@@ -1579,7 +1517,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
                                             "type": "Container",
                                             "direction": "column",
                                             "cornerRadius": 12,
-                                            "backgroundColor": "#1A1F2E",
+                                            "background": "#1A1F2E",
                                             "children": [
                                                 {
                                                     "type": "Container",
@@ -1670,7 +1608,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
                                             "type": "Container",
                                             "direction": "column",
                                             "cornerRadius": 12,
-                                            "backgroundColor": "#1A1F2E",
+                                            "background": "#1A1F2E",
                                             "children": [
                                                 {
                                                     "type": "Container",
@@ -1821,11 +1759,11 @@ This is the full server response for the kitchen-sink demo screen — a single S
                         "imageUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1628369.png",
                         "starter": true,
                         "stats": {
-                            "ast": 5,
                             "reb": 8,
                             "min": "38:12",
                             "pts": 32,
-                            "fgPct": ".545"
+                            "fgPct": ".545",
+                            "ast": 5
                         }
                     },
                     {
@@ -1836,11 +1774,11 @@ This is the full server response for the kitchen-sink demo screen — a single S
                         "imageUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1627759.png",
                         "starter": true,
                         "stats": {
-                            "ast": 3,
                             "reb": 5,
                             "min": "36:45",
                             "pts": 26,
-                            "fgPct": ".480"
+                            "fgPct": ".480",
+                            "ast": 3
                         }
                     },
                     {
@@ -1851,11 +1789,11 @@ This is the full server response for the kitchen-sink demo screen — a single S
                         "imageUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1629684.png",
                         "starter": false,
                         "stats": {
-                            "ast": 6,
                             "reb": 4,
                             "min": "32:10",
                             "pts": 18,
-                            "fgPct": ".500"
+                            "fgPct": ".500",
+                            "ast": 6
                         }
                     }
                 ],
@@ -1900,7 +1838,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
                 "type": "static"
             },
             "data": {
-                "layout": "vertical",
+                "layout": "horizontal",
                 "fields": [
                     {
                         "fieldId": "season",
@@ -2012,6 +1950,11 @@ This is the full server response for the kitchen-sink demo screen — a single S
                     "type": "refresh",
                     "target": "leaders-table",
                     "endpoint": "/sdui/refresh/stats-leaders",
+                    "onFailure": "halt",
+                    "failureFeedback": {
+                        "message": "Stats lookup failed — please try again",
+                        "style": "snackbar"
+                    },
                     "paramBindings": {
                         "season": "{{form_season}}",
                         "seasonType": "{{form_season_type}}",
@@ -2572,7 +2515,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
             }
         },
         {
-            "id": "label-gamepanel (featured)",
+            "id": "label-gamepanel (featured config)",
             "type": "AtomicComposite",
             "refreshPolicy": {
                 "type": "static"
@@ -2592,7 +2535,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
                     "children": [
                         {
                             "type": "Text",
-                            "content": "GamePanel (featured)",
+                            "content": "GamePanel (featured config)",
                             "variant": "titleMedium",
                             "weight": "bold"
                         }
@@ -2612,8 +2555,24 @@ This is the full server response for the kitchen-sink demo screen — a single S
                 "gameStatus": 2,
                 "gameStatusText": "Q4 2:15",
                 "gameTimeEt": "2025-03-11T19:30:00-04:00",
-                "variant": "featured",
-                "backgroundImageUrl": "https://loremflickr.com/1200/600/basketball,arena?lock=9",
+                "displayConfig": {
+                    "logoSize": 56,
+                    "cardHeight": 200,
+                    "cornerRadius": 16,
+                    "elevation": 6,
+                    "scoreTextStyle": "prominent",
+                    "background": {
+                        "imageUrl": "https://loremflickr.com/1200/600/basketball,arena?lock=9"
+                    },
+                    "liveBackground": {
+                        "colors": [
+                            "#1D428A",
+                            "#C8102E"
+                        ],
+                        "direction": "horizontal"
+                    },
+                    "badgeColor": "#C8102E"
+                },
                 "fallbackThumbnailUrl": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
                 "badgeText": "LIVE",
                 "homeTeam": {
@@ -2723,7 +2682,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
                                     "direction": "column",
                                     "id": "vid-1",
                                     "cornerRadius": 12,
-                                    "backgroundColor": "#1A1F2E",
+                                    "background": "#1A1F2E",
                                     "actions": [
                                         {
                                             "trigger": "onTap",
@@ -2762,14 +2721,14 @@ This is the full server response for the kitchen-sink demo screen — a single S
                                                             "variant": "labelSmall",
                                                             "weight": "bold",
                                                             "color": "#FFFFFF",
-                                                            "backgroundColor": "#C8102E"
+                                                            "background": "#C8102E"
                                                         },
                                                         {
                                                             "type": "Text",
                                                             "content": "1:24",
                                                             "variant": "labelSmall",
                                                             "color": "#FFFFFF",
-                                                            "backgroundColor": "#000000B3"
+                                                            "background": "#000000B3"
                                                         }
                                                     ]
                                                 }
@@ -2815,7 +2774,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
                                     "direction": "column",
                                     "id": "vid-2",
                                     "cornerRadius": 12,
-                                    "backgroundColor": "#1A1F2E",
+                                    "background": "#1A1F2E",
                                     "actions": [
                                         {
                                             "trigger": "onTap",
@@ -2857,7 +2816,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
                                                             "content": "0:48",
                                                             "variant": "labelSmall",
                                                             "color": "#FFFFFF",
-                                                            "backgroundColor": "#000000B3"
+                                                            "background": "#000000B3"
                                                         }
                                                     ]
                                                 }
@@ -2903,7 +2862,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
                                     "direction": "column",
                                     "id": "vid-3",
                                     "cornerRadius": 12,
-                                    "backgroundColor": "#1A1F2E",
+                                    "background": "#1A1F2E",
                                     "actions": [
                                         {
                                             "trigger": "onTap",
@@ -2942,14 +2901,14 @@ This is the full server response for the kitchen-sink demo screen — a single S
                                                             "variant": "labelSmall",
                                                             "weight": "bold",
                                                             "color": "#FFFFFF",
-                                                            "backgroundColor": "#C8102E"
+                                                            "background": "#C8102E"
                                                         },
                                                         {
                                                             "type": "Text",
                                                             "content": "0:32",
                                                             "variant": "labelSmall",
                                                             "color": "#FFFFFF",
-                                                            "backgroundColor": "#000000B3"
+                                                            "background": "#000000B3"
                                                         }
                                                     ]
                                                 }
@@ -2995,7 +2954,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
                                     "direction": "column",
                                     "id": "vid-4",
                                     "cornerRadius": 12,
-                                    "backgroundColor": "#1A1F2E",
+                                    "background": "#1A1F2E",
                                     "actions": [
                                         {
                                             "trigger": "onTap",
@@ -3037,7 +2996,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
                                                             "content": "3:15",
                                                             "variant": "labelSmall",
                                                             "color": "#FFFFFF",
-                                                            "backgroundColor": "#000000B3"
+                                                            "background": "#000000B3"
                                                         }
                                                     ]
                                                 }
@@ -3124,6 +3083,8 @@ This is the full server response for the kitchen-sink demo screen — a single S
                 "ui": {
                     "type": "Container",
                     "direction": "column",
+                    "background": "#0C1022",
+                    "cornerRadius": 12,
                     "children": [
                         {
                             "type": "Container",
@@ -3155,7 +3116,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
                                         "top": 16,
                                         "bottom": 16
                                     },
-                                    "backgroundGradient": {
+                                    "background": {
                                         "colors": [
                                             "#00000000",
                                             "#000000CC"
@@ -3169,7 +3130,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
                                             "variant": "labelSmall",
                                             "weight": "bold",
                                             "color": "#FFFFFF",
-                                            "backgroundColor": "#C8102E"
+                                            "background": "#C8102E"
                                         },
                                         {
                                             "type": "Spacer",
@@ -3227,7 +3188,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
                                     "id": "slot-1",
                                     "fillWidth": true,
                                     "cornerRadius": 8,
-                                    "backgroundColor": "#1A1F2E",
+                                    "background": "#1A1F2E",
                                     "padding": {
                                         "start": 12,
                                         "end": 12,
@@ -3276,7 +3237,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
                                     "id": "slot-2",
                                     "fillWidth": true,
                                     "cornerRadius": 8,
-                                    "backgroundColor": "#1A1F2E",
+                                    "background": "#1A1F2E",
                                     "padding": {
                                         "start": 12,
                                         "end": 12,
@@ -3333,7 +3294,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
                                             "variant": "labelSmall",
                                             "weight": "bold",
                                             "color": "#FFFFFF",
-                                            "backgroundColor": "#C8102E"
+                                            "background": "#C8102E"
                                         }
                                     ]
                                 },
@@ -3344,7 +3305,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
                                     "id": "slot-3",
                                     "fillWidth": true,
                                     "cornerRadius": 8,
-                                    "backgroundColor": "#1A1F2E",
+                                    "background": "#1A1F2E",
                                     "padding": {
                                         "start": 12,
                                         "end": 12,
@@ -3431,7 +3392,9 @@ This is the full server response for the kitchen-sink demo screen — a single S
             "data": {
                 "title": "Never Miss a Game",
                 "subtitle": "Stream every out-of-market game live with NBA League Pass.",
-                "backgroundImageUrl": "https://loremflickr.com/800/200/basketball,court?lock=18",
+                "background": {
+                    "imageUrl": "https://loremflickr.com/800/200/basketball,court?lock=18"
+                },
                 "logoUrl": "https://cdn.nba.com/manage/2025/01/league-pass-logo.png",
                 "fallbackThumbnailUrl": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
                 "ctaLabel": "Subscribe Now",
@@ -3482,7 +3445,9 @@ This is the full server response for the kitchen-sink demo screen — a single S
             "data": {
                 "title": "NBA League Pass",
                 "subtitle": "Watch every game. Your way.",
-                "backgroundImageUrl": "https://loremflickr.com/1200/600/basketball,court?lock=19",
+                "background": {
+                    "imageUrl": "https://loremflickr.com/1200/600/basketball,court?lock=19"
+                },
                 "logoUrl": "https://cdn.nba.com/manage/2025/01/league-pass-logo.png",
                 "fallbackThumbnailUrl": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
                 "features": [
@@ -4077,7 +4042,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
                 "ui": {
                     "type": "Container",
                     "direction": "column",
-                    "backgroundColor": "#1A1A2E",
+                    "background": "#1A1A2E",
                     "cornerRadius": 12,
                     "padding": {
                         "start": 16,

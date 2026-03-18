@@ -21,6 +21,7 @@
 | 2026-03-11 | ErrorState added to renderer table. Error handling status updated (Gap → Built for ErrorState, runtime `sectionStates` planned). Client-side visibility expressions evaluated and deferred — server-side composition handles section show/hide. |
 | 2026-03-12 | Server-control gaps closed: `SectionLayoutHints` and `SectionStates` added to schema + codegen. Web client: `SectionErrorBoundary`, `SectionSkeleton`, `useImpressionTracking`, `useAnalyticsContext` built. Server: `sectionStates` emitted on live sections. ADR-008 accepted (Option C), ADR-009 accepted. Bug fixes: `interactive` contentType enum, platform header threading (`X-Platform` required from clients, no server default), silent deserialization failures now logged on Android. |
 | 2026-03-12 | Merged `FeaturedGamePanel` into `GamePanel` with `variant` discriminator. `FeaturedGamePanelData` removed from schema; `GamePanelData` gains `variant`, `backgroundImageUrl`, `badgeText`, `visualLabel` fields. Server composers emit `type: "GamePanel"` with `variant: "featured"`. Android and Web renderers branch on variant. `FeaturedGamePanelRenderer` deleted on both platforms. Section type count: 20 → 18. |
+| 2026-03-13 | Replaced `variant`/`backgroundImageUrl` on `GamePanelData` with server-driven `displayConfig` (`GamePanelDisplayConfig`). Introduced shared `Background` union type (solid/gradient/image) reused by `AtomicElement`, `SubscribeHeroData`, `SubscribeBannerData`. Three layout presets (`standardConfig`, `featuredConfig`, `scoreboardConfig`) replace client-side variant branching. |
 | 2026-03-13 | Added offline/degraded connectivity strategy (9r) with ADR-010 reference. Stale-while-offline approach using platform HTTP cache, staleness UX per `cacheability` class, fire-and-forget local queue. |
 | 2026-03-13 | Atomic rendering layer. Updated §2 (dual-layer model: semantic sections + atomic primitives coexisting via AtomicComposite). Added §2a (AtomicElement types, AtomicComposite bridge, Grid vs. Section Decision Tree). Updated §8 (AtomicRouter + 10 atomic renderers per platform). Added §9s (atomic layer performance contract). Updated §10 (atomic rendering layer status). |
 | 2026-03-14 | Added §2b (Section vs. Atomic Decision Framework — decision tree, rationale for lifecycle/SDK/state boundaries, concrete examples: GamePanel, SubscribeHero, AdSlot, BoxscoreTable, TabGroup). Added §2c (Figma Design System Integration — token alignment, three-level CI validation pipeline). |
@@ -144,7 +145,7 @@ Every response follows `Screen -> Section -> Component`, where each section can 
       {
         "id": "scoreboard-001",
         "type": "GamePanel",
-        "data": { "variant": "scoreboard", "...": "..." },
+        "data": { "displayConfig": { "scoreTextStyle": "compact" }, "gameId": "0022500384", "...": "..." },
         "refreshPolicy": { "type": "sse", "channel": "{gameId}:linescore" },
         "dataBindings": { "bindings": [ { "sourcePath": "$.home.score", "targetPath": "home.score" } ] },
         "actions": [ { "trigger": "onTap", "type": "navigate", "targetUri": "nba://game/0022500384/boxscore" } ]
@@ -237,9 +238,9 @@ The schema defines a second layer of **atomic element types** alongside the sema
 
 | Type | Purpose | Key properties |
 |---|---|---|
-| **Container** | Flex layout wrapper | `children`, `direction`, `padding`, `gap`, `alignment`, `backgroundGradient` |
+| **Container** | Flex layout wrapper | `children`, `direction`, `padding`, `gap`, `alignment`, `background` |
 | **Text** | Styled text | `content`, `variant`, `color`, `maxLines`, `alignment` |
-| **Image** | Remote image | `url`, `altText`, `width`, `height`, `contentScale` |
+| **Image** | Remote image | `src`, `alt`, `width`, `height`, `fit` |
 | **Button** | Interactive element | `label`, `actions`, `variant` |
 | **Spacer** | Fixed space | `width`, `height` |
 | **Divider** | Line separator | `orientation`, `thickness`, `color` |
@@ -627,7 +628,7 @@ Each platform family receives a tailored composition from the server while shari
 | ContentRail | Built | Built | Designed |
 | TabGroup | Built | Built | Designed |
 | PromoBanner | Built | Built | Designed |
-| GamePanel (includes `variant: "featured"` for hero treatment) | Built | Built | Designed |
+| GamePanel (server-driven `displayConfig` for standard, featured, scoreboard layouts) | Built | Built | Designed |
 | VideoCarousel | Built | Built | Gap |
 | NbaTvSchedule | Built | Built | Gap |
 | SubscribeBanner | Built | Built | Gap |
@@ -970,7 +971,7 @@ The `device` object carries device signals that the composition service may use 
         "id": "scoreboard-001",
         "type": "GamePanel",
         "data": {
-          "variant": "scoreboard",
+          "displayConfig": { "scoreTextStyle": "compact" },
           "homeTeam": {
             "teamId": "1610612752",
             "teamTricode": "NYK",

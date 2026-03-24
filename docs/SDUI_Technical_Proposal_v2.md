@@ -25,6 +25,7 @@
 | 2026-03-13 | Added offline/degraded connectivity strategy (9r) with ADR-010 reference. Stale-while-offline approach using platform HTTP cache, staleness UX per `cacheability` class, fire-and-forget local queue. |
 | 2026-03-13 | Atomic rendering layer. Updated §2 (dual-layer model: semantic sections + atomic primitives coexisting via AtomicComposite). Added §2a (AtomicElement types, AtomicComposite bridge, Grid vs. Section Decision Tree). Updated §8 (AtomicRouter + 10 atomic renderers per platform). Added §9s (atomic layer performance contract). Updated §10 (atomic rendering layer status). |
 | 2026-03-14 | Added §2b (Section vs. Atomic Decision Framework — decision tree, rationale for lifecycle/SDK/state boundaries, concrete examples: GamePanel, SubscribeHero, AdSlot, BoxscoreTable, TabGroup). Added §2c (Figma Design System Integration — token alignment, three-level CI validation pipeline). |
+| 2026-03-24 | Doc consistency audit. §2c token alignment table expanded (4 → 8 categories: added font weight, backgrounds, elevation, button variants). Requirement status updated: Layout manager Gap → Partial (ADR-008 accepted), Impression semantics Gap → Partial (ADR-009 accepted). `FormRenderer` → `Form` aligned with schema enum across AGENTS.md and requirements summary. |
 
 ---
 
@@ -327,9 +328,13 @@ The atomic layer creates a natural bridge between the NBA Figma design system an
 | Category | Figma Token | Schema Mapping | Alignment Path |
 |---|---|---|---|
 | Typography | `nba/headline-10` | `TextVariant` enum (`heading1`, `body`, etc.) | Expand `TextVariant` to match Figma taxonomy; publish shared mapping file |
+| Font weight | `nba/weight-bold` | `TextWeight` enum (`regular`, `medium`, `semibold`, `bold`) | Direct match to Figma font weight tokens |
 | Colors | `text.primary`, `surface.primary` | Literal hex or semantic token (`"color": "text.primary"`) | Clients resolve semantic tokens via existing theme map; Figma variables map 1:1 |
+| Backgrounds | `surface.card`, `surface.overlay` | `Background` union (solid color, `BackgroundGradient`, `BackgroundImage`) | Gradient stops and image overlays map to Figma fill layers |
 | Spacing | 4/8/16/20/32 dp cluster | Integer dp values (`gap`, `padding`) | Keep integers; optionally accept named tokens (`"gap": "md"` → 16dp) later |
-| Corners | 12dp sheets, 4dp default | `cornerRadius` on Container | Direct match to Figma corner radius |
+| Corners | 12dp sheets, 4dp default | `cornerRadius` on Container and Image | Direct match to Figma corner radius |
+| Elevation | `shadow/sm`, `shadow/md` | `elevation` on `GamePanelDisplayConfig` | Map Figma shadow tokens to integer dp elevation values |
+| Button variants | `button/primary`, `button/secondary` | `ButtonVariant` enum (`primary`, `secondary`, `tertiary`, `text`) | Figma component variants map 1:1 to schema enum; CI validates fill, border, text color per variant |
 
 **Three-level CI validation pipeline:**
 
@@ -856,8 +861,8 @@ These limits ensure atomic trees remain a lightweight composition mechanism, not
 | Action scope and precedence    | Partial | ADR-005 | rule set clear; needs broader fixtures              |
 | Experiment conflict handling   | Partial | ADR-006 | rule defined; integration shape pending             |
 | Ad primitive contract          | Gap     | ADR-007 | required field policy + fallback semantics pending  |
-| Layout manager contract        | Gap     | ADR-008 | cross-form-factor hints and fallback policy pending |
-| Impression semantics           | Gap     | ADR-009 | threshold/dwell/dedup governance pending            |
+| Layout manager contract        | Partial | ADR-008 | SectionLayoutHints built on Web (margins, dividers, priority). ADR-008 accepted (Option C). Android wiring pending. |
+| Impression semantics           | Partial | ADR-009 | Built on web (IntersectionObserver + dedup registry). ADR-009 accepted. Android/iOS pending. |
 | Error handling (ErrorState)    | Built   | —       | server-composed `ErrorState` section type built on Web and Android. Per-section runtime error/loading states (`sectionStates`) planned. |
 | Contract testing/observability | Gap     | —       | broader test corpus + dashboards pending            |
 | Internationalization (i18n)    | Gap     | —       | server-resolved default + string keys on bindings   |

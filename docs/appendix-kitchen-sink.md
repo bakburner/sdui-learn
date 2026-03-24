@@ -2,7 +2,7 @@
 
 > **Source**: `GET /sdui/demos` with `X-Platform: android`
 >
-> **Generated**: 2026-03-17 from the running composition service (DemoScreenComposer)
+> **Generated**: 2026-03-24 from the running composition service (DemoScreenComposer)
 
 This is the full server response for the kitchen-sink demo screen — a single SDUI payload that exercises every section type and atomic primitive the prototype supports. It is the canonical reference for what a complete SDUI response looks like in production shape.
 
@@ -13,7 +13,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
     "schemaVersion": "1.0",
     "title": "SDUI Section Types",
     "analyticsId": "demos-kitchen-sink",
-    "traceId": "trace-b02b6655",
+    "traceId": "trace-f832efc9",
     "parentUri": "nba://scoreboard",
     "defaultRefreshPolicy": {
         "type": "static"
@@ -1729,11 +1729,11 @@ This is the full server response for the kitchen-sink demo screen — a single S
                         "imageUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1628369.png",
                         "starter": true,
                         "stats": {
-                            "min": "38:12",
-                            "reb": 8,
                             "ast": 5,
                             "fgPct": ".545",
-                            "pts": 32
+                            "pts": 32,
+                            "min": "38:12",
+                            "reb": 8
                         }
                     },
                     {
@@ -1744,11 +1744,11 @@ This is the full server response for the kitchen-sink demo screen — a single S
                         "imageUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1627759.png",
                         "starter": true,
                         "stats": {
-                            "min": "36:45",
-                            "reb": 5,
                             "ast": 3,
                             "fgPct": ".480",
-                            "pts": 26
+                            "pts": 26,
+                            "min": "36:45",
+                            "reb": 5
                         }
                     },
                     {
@@ -1759,11 +1759,11 @@ This is the full server response for the kitchen-sink demo screen — a single S
                         "imageUrl": "https://cdn.nba.com/headshots/nba/latest/1040x760/1629684.png",
                         "starter": false,
                         "stats": {
-                            "min": "32:10",
-                            "reb": 4,
                             "ast": 6,
                             "fgPct": ".500",
-                            "pts": 18
+                            "pts": 18,
+                            "min": "32:10",
+                            "reb": 4
                         }
                     }
                 ],

@@ -40,11 +40,13 @@ Audit these files in order (highest-visibility first):
 
 1. `AGENTS.md` — tier classification, section/atomic counts, architecture summary, development rules
 2. `README.md` — renderer counts, recent changes, migration status
-3. `docs/SDUI_Executive_Summary_v2.md` — renderer counts, atomic layer description, feature table
-4. `docs/SDUI_Technical_Proposal_v2.md` — tier classification, migration status, architecture details
-5. `docs/sdui-requirements-summary.md` — section inventory table, renderer counts, atomic layer row
-6. `docs/appendix-kitchen-sink.md` — section type labels, demo section list
-7. `docs/adr/*.md` — architecture decision records (check for stale type names, deprecated terminology)
+3. `docs/client-implementors-contract.md` — build checklist, pseudocode algorithms, section/atomic type lists, conformance checklist
+4. `docs/SDUI_Executive_Summary_v2.md` — renderer counts, atomic layer description, feature table
+5. `docs/SDUI_Technical_Proposal_v2.md` — tier classification, migration status, architecture details
+6. `docs/sdui-requirements-summary.md` — section inventory table, renderer counts, atomic layer row
+7. `docs/appendix-kitchen-sink.md` — section type labels, demo section list
+8. `docs/adr/*.md` — architecture decision records (check for stale type names, deprecated terminology)
+9. `prompts/agents/client-builder.agent.md` — platform adaptation table, type inventory, conformance rules
 
 **Out of scope:** `prompts/agency-agents/` (unrelated to SDUI architecture).
 
@@ -99,76 +101,21 @@ This gives the user visibility into what will change before edits are applied.
 
 After presenting the report, apply all fixes. Group edits per file for efficiency.
 
-### Step 6 — Refresh kitchen sink appendix from live server
+### Step 5a — Update revision tables
 
-The JSON in `docs/appendix-kitchen-sink.md` must match the actual server output. This step starts the server, fetches the demo response, and replaces the JSON block in-place.
+For every audited document that was **modified** and has a `## Revision History` table, add a new row summarizing today's changes. The entry should list the specific fixes applied (e.g., terminology corrections, status updates, count changes). Do not add revision entries to documents that were not modified — that is unnecessary noise.
 
-#### 6a — Start the server
-
-```bash
-cd server && ./gradlew bootRun
-```
-
-Run this in the background (`block_until_ms: 0`). It is a long-running process.
-
-#### 6b — Wait for the server to be healthy
-
-Poll until the server responds:
-
-```bash
-until curl -sf http://localhost:8080/sdui/demos > /dev/null 2>&1; do sleep 2; done
-echo "Server ready"
-```
-
-If the server doesn't become healthy within 60 seconds, check the terminal output for errors.
-
-#### 6c — Fetch the demo response
-
-```bash
-curl -s -H "X-Platform: android" http://localhost:8080/sdui/demos | python3 -m json.tool > /tmp/sdui-kitchen-sink.json
-```
-
-Verify the response is valid JSON and contains the expected top-level keys (`id`, `schemaVersion`, `sections`):
-
-```bash
-python3 -c "
-import json
-data = json.load(open('/tmp/sdui-kitchen-sink.json'))
-assert 'sections' in data, 'Missing sections key'
-print(f'OK: {len(data[\"sections\"])} sections')
-"
-```
-
-#### 6d — Replace the JSON block in the appendix
-
-Read the fetched JSON from `/tmp/sdui-kitchen-sink.json` and replace the entire content between the ` ```json ` fence and the closing ` ``` ` in `docs/appendix-kitchen-sink.md`.
-
-**Important**: The markdown header is lines 1–9; the ` ```json ` fence is line 10. Replace only the JSON body (line 11 through the line before the closing ` ``` `) and preserve the closing fence. Then update the `> **Generated**:` line (line 5) with today's date.
-
-#### 6e — Stop the server
-
-Kill the `bootRun` process using the PID from the terminal header:
-
-```bash
-kill <pid>
-```
-
-### Step 7 — Validate
+### Step 6 — Validate
 
 - Confirm all JSON files are valid (`python3 -c "import json; json.load(open('file'))"`)
 - Confirm no dangling `$ref` in schema files
-- Confirm the kitchen sink JSON in the appendix is valid:
-  ```bash
-  python3 -c "
-  import re, json
-  md = open('docs/appendix-kitchen-sink.md').read()
-  match = re.search(r'\`\`\`json\n(.*?)\n\`\`\`', md, re.DOTALL)
-  assert match, 'No JSON block found'
-  data = json.loads(match.group(1))
-  print(f'Kitchen sink JSON valid: {len(data[\"sections\"])} sections')
-  "
-  ```
 - Run a final grep for any remaining stale type names across the project
+
+> **Kitchen sink refresh** is out of scope for this skill — the `docs/appendix-kitchen-sink.md`
+> JSON body is large (~4000 lines) and requires a running server. Refresh it manually:
+> `cd server && ./gradlew bootRun`, then
+> `curl -s -H "X-Platform: android" http://localhost:8080/sdui/demos | python3 -m json.tool`
+> and paste into the appendix.
 
 ## Key Terminology Rules
 
@@ -179,6 +126,3 @@ These terms have specific meanings — do not interchange:
 | `fireAndForget` | `analytics`, `fire-and-forget`, `beacon` |
 | `AtomicComposite` | `Composite`, `atomic composite` (always PascalCase) |
 | `SectionSlot` | `section slot`, `slot` (always PascalCase when referring to the type) |
-| `Migrated to atomic` | `Tier 1`, `Tier 2` (these labels are retired) |
-| `Permanent sections` | `Tier 3` (this label is retired) |
-| `Container` (with flex/breakpoint) | `Row` (Row was removed; its function is now Container) |

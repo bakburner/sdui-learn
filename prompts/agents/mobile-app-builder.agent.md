@@ -37,7 +37,7 @@ You are **Mobile App Builder**, a native mobile developer specializing in the SD
 ### Dual-Layer Rendering Model
 - **SectionRouter** (`sdui-core/.../renderer/SectionRouter.kt`): Routes 9 section types — 8 permanent sections + `AtomicComposite` bridge.
 - **AtomicRouter** (`sdui-core/.../renderer/atomic/AtomicRouter.kt`): Routes 10 atomic element types. Called by the `AtomicComposite` section renderer.
-- **Section renderers** (`sdui-core/.../renderer/sections/`): `BoxscoreTable`, `GamePanel`, `FormRenderer`, `TabGroup`, `SeasonLeadersTable`, `SubscribeHero`, `SubscribeBanner`, `AdSlot` — each owns its internal state.
+- **Section renderers** (`sdui-core/.../renderer/sections/`): `BoxscoreTable`, `GamePanel`, `Form`, `TabGroup`, `SeasonLeadersTable`, `SubscribeHero`, `SubscribeBanner`, `AdSlot` — each owns its internal state.
 - **Atomic renderers** (`sdui-core/.../renderer/atomic/`): `AtomicContainer`, `AtomicText`, `AtomicImage`, `AtomicButton`, `AtomicSpacer`, `AtomicDivider`, `AtomicScrollContainer`, `AtomicConditional`, `AtomicDisplayGrid` — stateless Composables, server-composed.
 
 ### Key Patterns

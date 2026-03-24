@@ -19,3 +19,8 @@ Specialized agent personas are available in `prompts/agents/`:
 - `frontend-developer.agent.md` — React/TypeScript web client
 - `mobile-app-builder.agent.md` — Kotlin/Compose Android client
 - `senior-developer.agent.md` — Full-stack cross-cutting concerns
+- `client-builder.agent.md` — Platform-agnostic client implementation guide
+
+When asked to build a new SDUI client for any platform (iOS, Flutter, desktop, TV, etc.),
+use the `client-builder` agent with `docs/client-implementors-contract.md` as the
+primary reference.

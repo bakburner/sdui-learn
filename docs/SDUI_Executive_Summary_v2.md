@@ -6,7 +6,7 @@
 
 ## The Opportunity
 
-Today, changing the layout or content arrangement on any app screen requires a code change, PR review, QA cycle, and app store release — a process that takes days to weeks. This means every layout experiment requires engineering capacity and a release cycle, making it impractical to test whether surfacing stats above editorial, or highlighting a promo banner for League Pass subscribers, actually moves engagement. The missed opportunity is not layout control itself — it is the ability to run rapid experiments with UI variants across different user cohorts and measure what drives engagement, conversion, and retention. During the NBA season, the inability to rearrange game detail experiences in near real time is a competitive disadvantage.
+Today, changing the layout or content arrangement on any app screen requires a code change, PR review, QA cycle, and app store release — a process that takes days to weeks. This means every layout experiment requires engineering capacity and a release cycle, making it impractical to test whether surfacing stats above editorial, or highlighting a promo banner for League Pass subscribers, actually moves engagement. The missed opportunity is not layout control itself — it is the ability to run rapid experiments with UI variants across different user cohorts and measure what drives engagement, conversion, and retention. During the NBA season, the inability to rearrange live game experiences in near real time is a competitive disadvantage.
 
 **Server-Driven UI (SDUI)** moves layout and composition control to the server. The server decides what appears on screen and in what order. The client apps render those instructions using platform-native components and the existing design system. The result: variant experiments ship in hours instead of sprints, targeted to specific cohorts, measured in real time, and iterated without app store releases.
 
@@ -24,6 +24,18 @@ Today, changing the layout or content arrangement on any app screen requires a c
 | Add a new section type to a screen             | Engineering sprint per platform            | Schema update + thin renderer wiring (~30 lines per platform) |
 | Ship a new promotional layout matching Figma   | Design → code → release per platform      | Designer builds in Figma, server composes matching atomic tree — no app release |
 
+
+---
+
+## Revision History
+
+| Date | Summary |
+|---|---|
+| 2026-03-18 | Beachhead surface generalized — milestones no longer assume Game Detail (remains TBD per Decision Continuity). Caching strategy made platform-agnostic (removed Room dependency). Capabilities table updated: Grid/table and Form/input marked as Done. Revision history moved to top and consolidated from intermittent update notes. |
+| 2026-03-13 | Added atomic rendering layer to "What Was Built" table. Updated JSON Schema row (8 → 10 atomic element types). Expanded Two-tier primitives concept to describe AtomicComposite bridge, SectionSlot bidirectional delegation, and DisplayGrid. Reflects Phases 1–5 of atomic primitives implementation. |
+| 2026-03-12 | Four server-control gaps closed: `SectionLayoutHints` (server-controlled inter-section margins, dividers, priority; ADR-008 accepted Option C), `SectionStates` (loading skeletons and error messages per section), impression tracking (`useImpressionTracking` with `IntersectionObserver`; ADR-009 accepted), bug fixes (`interactive` contentType enum, `X-Platform` header threading, deserialization failure logging on Android). |
+| 2026-03-11 | ErrorState section type built on Web and Android. Server composes explicit error sections (title, message, icon, retry action) at composition time. Client-side visibility expressions evaluated and deferred — server-side composition handles section show/hide. |
+| 2026-03-04 | Grid/table and Form/input capabilities designed and implemented. `BoxscoreTable` (semantic tabular data with client-side sort), `Form` (extensible settings pickers with parameterized server refresh), `SeasonLeadersTable` (form-driven refresh with surgical section merge) built on Web and Android. |
 
 ---
 
@@ -67,31 +79,15 @@ Every concept from the original roadmap's prototype validation checklist has bee
 
 ---
 
-## Discovery Phase Findings
-
-### Mobile Native Audit
-
-A reverse-engineering audit of the production Android and iOS codebases compared native patterns against prototype capabilities. The audit confirms the prototype covers what is needed for the Game Detail beachhead and identifies capabilities required for future surface expansion.
-
-**Prototype covers the beachhead:**
-
-- Typed schema with semantic section types
-- Section routing and render dispatch
-- Action system (navigate, fireAndForget, mutate, dismiss, refresh, toast)
-- Mixed refresh policies (static, polling, SSE) on a single screen
-- Server-driven composition with variant support
-
-**Capabilities needed for surface expansion (not blockers for Game Detail):**
+**Capabilities needed for surface expansion :**
 
 
 | Capability                                          | Needed When                                                 | Effort      |
 | --------------------------------------------------- | ----------------------------------------------------------- | ----------- |
 | **Layout managers** (placement slots, multi-column) | Tablet-optimized surfaces, surfaces with sidebar navigation | Medium      |
-| **Grid/table with pinned rows and columns**         | Standings, full box score surface                           | Medium–High |
+| **Grid/table with pinned rows and columns**         | Standings, full box score surface                           | **Done** — `BoxscoreTable`, `SeasonLeadersTable` built on Web and Android |
 | **Entitlement/paywall awareness**                   | Surfaces with premium content gating                        | Medium      |
-| **Form/input/search primitives**                    | Search surfaces, settings, profile editing                  | Low–Medium  |
-
-> **Update (2026-03-04):** Grid/table and Form/input capabilities are now designed and implemented. `BoxscoreTable` demonstrates semantic tabular data rendering with client-side sort; `Form` demonstrates extensible settings pickers with parameterized server refresh; `SeasonLeadersTable` demonstrates form-driven parameterized refresh with surgical section merge. These capabilities feed into M4 surface expansion (standings, roster, stats leaders).
+| **Form/input/search primitives**                    | Search surfaces, settings, profile editing                  | **Done** — `Form` built on Web and Android |
 | **Responsive/form-factor layouts**                  | Tablet and desktop surface variants                         | Medium      |
 
 
@@ -103,7 +99,7 @@ Each of these is additive to the current schema — they are introduced when a n
 
 We evaluated off-the-shelf SDUI platforms (DivKit by Yandex, Nativeblocks) and concluded they don't meet our requirements:
 
-- **No mixed refresh strategies.** Our game detail screen needs the scoreboard updating in real time (SSE) while editorial content below it is cached for hours. Off-the-shelf platforms treat the entire screen as one data unit.
+- **No mixed refresh strategies.** Our game screens needs the scoreboard updating in real time (SSE) while editorial content below it is cached for hours. Off-the-shelf platforms treat the entire screen as one data unit.
 - **No data binding to our services.** Vendor platforms serve layout from their backend, but live game data lives in our infrastructure. This creates a dual-source-of-truth problem.
 - **Limited design system integration.** Vendor rendering engines replace native components rather than wrapping them, breaking design system consistency.
 
@@ -115,7 +111,7 @@ We evaluated off-the-shelf SDUI platforms (DivKit by Yandex, Nativeblocks) and c
 
 **Client App → API Aggregation / Composition Layer → Data Services + Targeting + Personalization**
 
-1. The client requests a screen (e.g., game detail for a specific game).
+1. The client requests a screen (e.g., a scoreboard or game detail).
 2. The **aggregation/composition layer** assembles the response — fetching content from NBA data services, applying targeting and personalization decisions (including experiment variants), and assigning per-section refresh policies (static, poll with interval + URL, or SSE with Ably channel).
 3. The client **renderer** interprets the response — mapping each section type to a native design system component, establishing real-time data channels where needed, and rendering the screen.
 
@@ -127,7 +123,7 @@ The server controls *what* appears and *in what order*. Platform teams control *
 
 The prototype has already completed the equivalent of the original Phase 0 (Foundation) and most of Phase 1 (Single-Platform PoC) — roughly 14 weeks of planned work. The timeline below starts from today and is organized around **vertical slices**, each delivering a shippable, end-to-end outcome. Testing and hardening are built into each slice, not gated as a separate phase.
 
-### Milestone 1: Game Detail on Android — Staging Ready (Weeks 1–4)
+### Milestone 1: Beachhead Surface on Android — Staging Ready (Weeks 1–4)
 
 Harden what exists into a staging-deployable vertical slice.
 
@@ -138,12 +134,12 @@ Harden what exists into a staging-deployable vertical slice.
 | Data binding hardened end-to-end through `DataBindingResolver` (remove hardcoded live score paths) | Core team           |
 | Performance baseline: measure SDUI render time vs. native on Android                               | Core team + Android |
 | Composition service deployed to staging with live NBA data                                         | Core team           |
-| Caching layer: Room-backed response cache with stale-while-revalidate                              | Core team           |
+| Caching layer: platform-appropriate response cache with stale-while-revalidate                     | Core team           |
 
 
-**Exit: Game Detail rendering from SDUI on Android in staging with live scores, contract tests passing, performance baselined.**
+**Exit: Beachhead surface rendering from SDUI on Android in staging with live scores, contract tests passing, performance baselined.**
 
-### Milestone 2: Game Detail — All Platforms in Staging (Weeks 5–12)
+### Milestone 2: Beachhead Surface — All Platforms in Staging (Weeks 5–12)
 
 Expand to iOS and complete web. Each platform renderer is a vertical deliverable — iOS and web can be built in parallel.
 
@@ -157,11 +153,11 @@ Expand to iOS and complete web. Each platform renderer is a vertical deliverable
 | Observability: render timing dashboards, data channel health monitoring                  | Core team                 |
 
 
-**Exit: Game Detail rendering from SDUI on all three platforms in staging. A/B variants verified. Contract tests passing on all platforms.**
+**Exit: Beachhead surface rendering from SDUI on all three platforms in staging. A/B variants verified. Contract tests passing on all platforms.**
 
-### Milestone 3: Game Detail — Production (Weeks 13–18)
+### Milestone 3: Beachhead Surface — Production (Weeks 13–18)
 
-Ship Game Detail as the first SDUI-powered production surface.
+Ship the beachhead surface as the first SDUI-powered production surface.
 
 
 | Deliverable                                                          | Owner              |
@@ -173,7 +169,7 @@ Ship Game Detail as the first SDUI-powered production surface.
 | Schema v1.0: formalized, versioned, backward-compatible              | Core team          |
 
 
-**Exit: Game Detail fully SDUI-powered in production on all platforms. Error rates within SLA. Real-time channels stable under live event load.**
+**Exit: Beachhead surface fully SDUI-powered in production on all platforms. Error rates within SLA. Real-time channels stable under live event load.**
 
 ### Milestone 4: Second Surface + Schema Evolution (Weeks 19–24)
 
@@ -195,21 +191,10 @@ Expand SDUI to a second surface, introducing schema capabilities as the new surf
 
 | Milestone                     | Timeline | What Ships                                                       |
 | ----------------------------- | -------- | ---------------------------------------------------------------- |
-| **M1: Android Staging**       | Week 4   | Game Detail on Android in staging, tested, performance baselined |
-| **M2: All Platforms Staging** | Week 12  | Game Detail on Android + iOS + Web in staging with A/B variants  |
-| **M3: Production**            | Week 18  | Game Detail in production on all platforms                       |
-| **M4: Second Surface**        | Week 24  | Second SDUI-powered surface in production                        |
-
-> **Update (2026-03-04):** Boxscore table and form sections are now built and functional on Web and Android. BoxscoreTable demonstrates semantic tabular data rendering with client-side sort; Form demonstrates extensible settings pickers with parameterized server refresh. SeasonLeadersTable adds form-driven server refresh with section-level merge. These capabilities feed into M4 surface expansion (standings, roster, stats leaders).
-
-
-> **Update (2026-03-11):** ErrorState section type built on Web and Android. Server can now compose explicit error sections (with title, message, icon, retry action) at composition time — no client release needed to change error messaging. Client-side visibility expressions were evaluated and deferred; the server already controls section show/hide via composition, so a client-side condition evaluator would duplicate server responsibility.
-
-> **Update (2026-03-12):** Four server-control gaps closed in a single iteration:
-> - **Layout hints** (`SectionLayoutHints`) — server-controlled inter-section margins, dividers, and priority. Schema, codegen, and web client wired. ADR-008 accepted (Option C — hybrid: server hints + client layout engine).
-> - **Runtime section states** (`SectionStates`) — server-defined loading skeletons and error messages per section. `SectionErrorBoundary` and `SectionSkeleton` built on web. Server composers emit `sectionStates` on all live (SSE/poll) sections.
-> - **Impression tracking** — `useImpressionTracking` hook with `IntersectionObserver`, `AnalyticsProvider` for deduplication registry, enhanced `ActionHandler` analytics dispatch. ADR-009 accepted.
-> - **Bug fixes and hardening** — `interactive` added to contentType enum (was crashing Android ContentRail). Platform header (`X-Platform`) now sent by Android client and never hardcoded on server. Silent deserialization failures now logged on Android.
+| **M1: Android Staging**       | Week 4   | Beachhead surface on Android in staging, tested, performance baselined |
+| **M2: All Platforms Staging** | Week 12  | Beachhead surface on Android + iOS + Web in staging with A/B variants  |
+| **M3: Production**            | Week 18  | Beachhead surface in production on all platforms                       |
+| **M4: Second Surface**        | Week 24  | Second SDUI-powered surface in production                             |
 
 **Time to first production surface: ~18 weeks (4.5 months).** Second surface by week 24 (6 months). The original v1 estimate of 32 weeks to production assumed building from scratch; the prototype has already retired that risk. Capabilities identified in the mobile native audit (layout managers, entitlement, grid/table) are introduced when a surface requires them — they do not gate the beachhead.
 
@@ -316,17 +301,9 @@ To preserve continuity with the original executive summary, this section explici
 1. **Contract tests** — Define golden SDUI response fixtures for all section types. Build assertions validating schema-renderer agreement on Android. Integrate into CI.
 2. **Data binding hardening** — Route all live score updates through `DataBindingResolver` end-to-end, eliminating hardcoded mapping paths.
 3. **Performance baseline** — Measure SDUI render time vs. native on Android. Establish performance budget.
-4. **Caching** — Room-backed response cache with stale-while-revalidate for instant re-renders on screen re-entry.
+4. **Caching** — Platform-appropriate response cache with stale-while-revalidate for instant re-renders on screen re-entry.
 5. **Staging deployment** — Composition service deployed to staging environment with live NBA data.
 6. **iOS team alignment** — Present working Android prototype to iOS leads, secure commitment for Milestone 2 renderer build.
-
----
-
-## Revision History
-
-| Date | Summary |
-|---|---|
-| 2026-03-13 | Added atomic rendering layer to "What Was Built" table. Updated JSON Schema row (8 → 10 atomic element types). Expanded Two-tier primitives concept to describe AtomicComposite bridge, SectionSlot bidirectional delegation, and DisplayGrid. Reflects Phases 1–5 of atomic primitives implementation. |
 
 
 

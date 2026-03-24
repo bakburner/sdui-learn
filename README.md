@@ -222,5 +222,6 @@ make codegen
 | [Technical Proposal](docs/SDUI_Technical_Proposal_v2.md) | Architecture, schema design, runtime behavior, requirement status |
 | [Requirements Summary](docs/sdui-requirements-summary.md) | Full requirements, gap analysis, ADR tracking |
 | [Kitchen Sink Appendix](docs/appendix-kitchen-sink.md) | Full 42-section demo response (Android platform) |
+| [Client Implementor's Contract](docs/client-implementors-contract.md) | Platform-agnostic build guide for new clients (any language/framework) |
 | [ADR Index](docs/adr/README.md) | Architecture Decision Records (001–010) |
 | [Accessibility Plan](docs/plan-accessibility.md) | Accessibility strategy and implementation plan |

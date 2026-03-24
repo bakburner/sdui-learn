@@ -21,8 +21,7 @@ Review updated requirement documents, technical proposals, and ADRs to identify 
 |----------|-----------------|
 | `docs/sdui-requirements-summary.md` | New `§9x` gap sections, status matrix changes (Gap/Partial → needs plan), revised requirement text |
 | `docs/SDUI_Technical_Proposal_v2.md` | New architecture sections, revised technical approaches, new sequence diagrams |
-| `docs/SDUI_Executive_Summary_v2.md` | New feature rows, changed scope or timeline signals |
-| `docs/adr/*.md` | Newly accepted ADRs that imply implementation work |
+| `docs/SDUI_Executive_Summary_v2.md` | New feature rows, changed scope or timeline signals || `docs/client-implementors-contract.md` | New algorithm specs, updated build checklist phases, revised conformance requirements, new runtime contracts || `docs/adr/*.md` | Newly accepted ADRs that imply implementation work |
 | `AGENTS.md` | Tier classification changes, new key rules, architecture shifts |
 
 ## Output
@@ -88,6 +87,8 @@ Verify:
 - Every newly accepted ADR has its implementation work captured in a plan
 - No plan references types, patterns, or terminology that conflicts with the schema source of truth
 - Plans use correct terminology (see doc-consistency-audit skill for terminology rules)
+- Any new runtime contracts or algorithms in `docs/client-implementors-contract.md` that imply implementation work are captured in platform-specific plans
+- Plans that affect client architecture are consistent with the build phases and conformance checklist in the contract doc
 
 ## Architecture Context (for accurate planning)
 
@@ -96,7 +97,7 @@ Verify:
 - **10 atomic element types**: Container, Text, Image, Button, Spacer, Divider, ScrollContainer, Conditional, DisplayGrid, SectionSlot
 - **6 action types**: navigate, fireAndForget, mutate, refresh, dismiss, toast
 - **9 migrated types** (server-composed AtomicComposite, no client renderers): ErrorState, SectionHeader, PromoBanner, ContentRail, FollowingRail, HeroPanel, StatLine, VideoCarousel, NbaTvSchedule
-- **8 permanent sections** (client renderers with owned state): BoxscoreTable, SeasonLeadersTable, FormRenderer, TabGroup, GamePanel, SubscribeHero, SubscribeBanner, AdSlot
+- **8 permanent sections** (client renderers with owned state): BoxscoreTable, SeasonLeadersTable, Form, TabGroup, GamePanel, SubscribeHero, SubscribeBanner, AdSlot
 
 ### Decision Checklist (apply when planning tasks)
 1. Can this be solved by server composition only?

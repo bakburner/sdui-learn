@@ -1,0 +1,913 @@
+# SDUI Client Implementor's Contract
+
+Platform-agnostic specification for building a conforming SDUI client in any
+language or framework. This document describes **what to build** and **in what
+order**. For invariant rules that every client must obey, see `AGENTS.md`.
+
+---
+
+## 1. Architecture Blueprint
+
+Every conforming client implements five layers. Each layer has a single
+responsibility and a well-defined interface to the layers above and below it.
+
+```
+┌─────────────────────────────────────────────┐
+│                  Screen Shell                │  App lifecycle, navigation host
+├─────────────────────────────────────────────┤
+│            Screen ViewModel / Store          │  Fetch, state, refresh orchestration
+├──────────────┬──────────────────────────────┤
+│ SectionRouter│→ AtomicRouter (recursive)    │  Type dispatch
+├──────────────┴──────────────────────────────┤
+│   Section Renderers (8) + Atomic Renderers (10)  │  Platform-native UI
+├─────────────────────────────────────────────┤
+│  Runtime Services                           │  ActionDispatcher, DataBindingResolver,
+│  (cross-cutting)                            │  RealTimeManager, RefreshOrchestrator,
+│                                             │  ImpressionTracker, OfflineCache
+└─────────────────────────────────────────────┘
+```
+
+**Data flow:**
+
+```
+Server  ─── HTTP GET ───→  ScreenViewModel
+                              │
+                    sections[] with refreshPolicy
+                              │
+            ┌─────────────────┼──────────────────┐
+            ▼                 ▼                  ▼
+      SectionRouter     RefreshOrchestrator  RealTimeManager
+            │                 │                  │
+            ▼                 ▼                  ▼
+     Renderer(section)   poll / fetch      Ably channel
+            │                 │                  │
+            └─────────────────┼──────────────────┘
+                              ▼
+                    DataBindingResolver
+                    (merge into section data)
+                              │
+                              ▼
+                       Re-render section
+```
+
+---
+
+## 2. Build Checklist
+
+Implement in this order. Each phase produces a testable artifact. The server
+at `localhost:8080` is the reference implementation; hit it with
+`curl -H "X-Schema-Version: 1.0" http://localhost:8080/sdui/demos` to get a
+42-section kitchen-sink response.
+
+### Phase 1 — Static Rendering (render a screen from JSON)
+
+| # | Component | What it does |
+|---|-----------|--------------|
+| 1 | **Models** | Use (or port) generated models from `codegen/output/{lang}/`. Deserialize `SduiScreen`, `Section`, `AtomicElement`, `Action`, `RefreshPolicy`, `DataBinding`. |
+| 2 | **SduiRepository.fetchScreen** | Single HTTP method: `GET {baseUrl}{endpoint}?variant={v}` with headers `X-Platform: {platform}`, `X-Schema-Version: 1.0`. Returns `SduiScreen`. |
+| 3 | **UriResolver.resolveEndpoint** | Convert `nba://{path}` → `/sdui/{path}`. Pure string prefix swap, no branching. |
+| 4 | **SectionRouter** | Switch on `section.type` → dispatch to renderer. Unknown types → log + skip. |
+| 5 | **AtomicRouter** | Switch on `element.type` → dispatch to atomic renderer. Depth guard at 6. |
+| 6 | **AtomicComposite bridge** | When SectionRouter sees `type: "AtomicComposite"`, parse `section.data.ui` and hand to AtomicRouter. |
+| 7 | **10 atomic renderers** | Container, Text, Image, Button, Spacer, Divider, ScrollContainer, Conditional, DisplayGrid, SectionSlot. |
+| 8 | **ScreenShell** | Fetch screen via repository, iterate `sections[]`, pass each to SectionRouter. |
+
+**Milestone:** You can render the kitchen-sink demo screen as a scrollable page
+of styled content. No interactivity yet.
+
+### Phase 2 — Actions & State (make things tappable)
+
+| # | Component | What it does |
+|---|-----------|--------------|
+| 9 | **StateManager** | Key-value store for screen state. `setState(key, value)`, `getState(key)`, `removeState(key)`. Observable/reactive. |
+| 10 | **ActionDispatcher** | Execute a list of actions in sequence. Six types: `navigate`, `fireAndForget`, `mutate`, `refresh`, `dismiss`, `toast`. |
+| 11 | **Failure policies** | Per-action `onFailure`: `halt` (stop sequence), `continue` (log + proceed), `silent` (swallow). Navigate success always halts. |
+| 12 | **Conditional element** | Evaluate `condition` string against screen state to select `thenElement` or `elseElement`. |
+
+**Milestone:** Tapping buttons triggers navigation or state changes.
+Conditional elements show/hide based on state.
+
+### Phase 3 — Live Data (polling & real-time)
+
+| # | Component | What it does |
+|---|-----------|--------------|
+| 13 | **RefreshOrchestrator** | For each section with `refreshPolicy.type == "poll"`: schedule interval, fetch from `refreshPolicy.url` (or re-fetch screen), merge result. |
+| 14 | **fetchRawJson** | Fetch arbitrary JSON URL, optionally extract nested data via `refreshPolicy.dataPath` dot-notation. |
+| 15 | **RealTimeManager** | Connect to Ably. Token-based auth via `authUrl`. Subscribe to channels from `refreshPolicy.channel`. Parse messages as opaque `Map<String, Any>`. |
+| 16 | **DataBindingResolver** | Apply bindings from real-time or poll messages to section data. Algorithm in §4. |
+| 17 | **Surgical section merge** | When refreshing, replace only the affected section's data — don't re-render the entire screen. |
+
+**Milestone:** Live scores update in GamePanel. Boxscore stats poll and
+refresh. Sections with `refreshPolicy.type == "static"` never refresh.
+
+### Phase 4 — Section Renderers (domain-specific)
+
+| # | Component | Why it needs client code |
+|---|-----------|------------------------|
+| 18 | **GamePanel** | Ably SSE subscription, live score state machine |
+| 19 | **BoxscoreTable** | Real-time data binding, expandable rows |
+| 20 | **SeasonLeadersTable** | Sort/filter interaction state |
+| 21 | **TabGroup** | Tab selection state, nested section hosting |
+| 22 | **Form** | Validation state, platform keyboard integration |
+| 23 | **SubscribeHero** | Platform IAP SDK integration |
+| 24 | **SubscribeBanner** | Platform IAP SDK integration |
+| 25 | **AdSlot** | Platform ad SDK lifecycle |
+
+**Milestone:** All 8 permanent sections render with full interactivity.
+
+### Phase 5 — Production Hardening
+
+| # | Component | What it does |
+|---|-----------|--------------|
+| 26 | **OfflineCache** | Cache screen responses keyed by endpoint. Serve stale on network failure. |
+| 27 | **ImpressionTracker** | Fire `onVisible` + `fireAndForget` actions with dedup. Algorithm in §7. |
+| 28 | **ErrorState handling** | Server composes `ErrorState` as an `AtomicComposite`. Client renders it like any section. On network failure, client may compose its own. |
+| 29 | **Accessibility** | Map `accessibilityLabel`, `accessibilityRole`, `accessibilityHint` from schema to platform APIs. |
+| 30 | **SectionSlot bridge** | AtomicRouter encounters `SectionSlot` → delegates back to SectionRouter. Recursion guard at depth 2. |
+
+---
+
+## 3. Section Router Algorithm
+
+```
+FUNCTION SectionRouter(section, screenState, onAction, onStateChange):
+    SWITCH section.type:
+        "TabGroup"           → TabGroupRenderer(section, screenState, onAction, onStateChange)
+        "GamePanel"          → GamePanelRenderer(section, onAction)
+        "BoxscoreTable"      → BoxscoreTableRenderer(section, onAction)
+        "Form"               → FormRenderer(section, screenState, onAction, onStateChange)
+        "SubscribeBanner"    → SubscribeBannerRenderer(section, onAction)
+        "SubscribeHero"      → SubscribeHeroRenderer(section, onAction)
+        "AdSlot"             → AdSlotRenderer(section, onAction)
+        "SeasonLeadersTable" → SeasonLeadersTableRenderer(section, onAction)
+        "AtomicComposite"    →
+            compositeData = section.data
+            IF compositeData.ui IS NULL:
+                RETURN null
+            AtomicRouter(compositeData.ui, screenState, onAction, onStateChange, depth=0)
+        DEFAULT →
+            LOG_WARNING("Unknown section type: " + section.type)
+            RETURN null   // Skip gracefully — never crash
+```
+
+**Supported section types (9):**
+`TabGroup`, `GamePanel`, `BoxscoreTable`, `Form`, `SubscribeBanner`,
+`SubscribeHero`, `AdSlot`, `SeasonLeadersTable`, `AtomicComposite`
+
+---
+
+## 4. Atomic Router Algorithm
+
+```
+CONSTANT MAX_DEPTH = 6
+
+FUNCTION AtomicRouter(element, screenState, onAction, onStateChange, depth):
+    IF depth > MAX_DEPTH:
+        LOG_WARNING("Max tree depth exceeded — skipping element")
+        RETURN null
+
+    childDepth = depth + 1
+
+    SWITCH element.type:
+        "Container"       → AtomicContainer(element, screenState, onAction, onStateChange, childDepth)
+        "Text"            → AtomicText(element)
+        "Image"           → AtomicImage(element)
+        "Button"          → AtomicButton(element, screenState, onAction)
+        "Spacer"          → AtomicSpacer(element)
+        "Divider"         → AtomicDivider(element)
+        "ScrollContainer" → AtomicScrollContainer(element, screenState, onAction, onStateChange, childDepth)
+        "Conditional"     → AtomicConditional(element, screenState, onAction, onStateChange, childDepth)
+        "DisplayGrid"     → AtomicDisplayGrid(element)
+        "SectionSlot"     → AtomicSectionSlot(element, screenState, onAction, onStateChange)
+        DEFAULT →
+            LOG_WARNING("Unknown atomic type: " + element.type)
+            RETURN null
+```
+
+**Container children rendering:**
+```
+FUNCTION AtomicContainer(element, state, onAction, onStateChange, depth):
+    // element.direction = "row" | "column"
+    // element.children = list of AtomicElement
+    // element.padding, element.gap, element.alignment, element.background
+    // element.flex (layout weight), element.breakpoint (responsive direction flip)
+
+    FOR child IN element.children:
+        AtomicRouter(child, state, onAction, onStateChange, depth)
+```
+
+**SectionSlot bridge (atomic → section):**
+```
+CONSTANT MAX_SLOT_DEPTH = 2
+
+FUNCTION AtomicSectionSlot(element, state, onAction, onStateChange):
+    IF element.slotDepth > MAX_SLOT_DEPTH:
+        LOG_WARNING("SectionSlot recursion limit — skipping")
+        RETURN null
+
+    embeddedSection = element.section
+    SectionRouter(embeddedSection, state, onAction, onStateChange)
+```
+
+**Performance limits (server-enforced, client-guarded):**
+- Max depth: 6
+- Max children per container: 20
+- Max total nodes per AtomicComposite: 50
+
+---
+
+## 5. Data Binding Algorithm
+
+Data bindings apply real-time or polled data into section state. This is the
+**only** code path for merging live updates — no duplicate logic elsewhere.
+
+### Binding Model
+
+```
+DataBinding:
+    bindings: list of BindingPath
+    stringKeys: map<targetPath, i18nKey>  (optional)
+
+BindingPath:
+    sourcePath: string   // JSONPath-like: "$.homeTeam.score" or "homeTeam.score"
+    targetPath: string   // Dot-notation: "homeTeam.score"
+```
+
+### Apply Bindings
+
+```
+FUNCTION applyBindings(currentData, incomingMessage, dataBinding):
+    result = DEEP_CLONE(currentData)
+
+    FOR binding IN dataBinding.bindings:
+        TRY:
+            sourceValue = resolveSourcePath(incomingMessage, binding.sourcePath)
+
+            IF sourceValue IS NULL:
+                CONTINUE   // Keep previous value — do not overwrite with null
+
+            setTargetPath(result, binding.targetPath, sourceValue)
+            LOG_DEBUG("Applied: " + binding.sourcePath + " → " + binding.targetPath)
+        CATCH error:
+            LOG_WARNING("Failed to apply binding: " + binding.sourcePath +
+                        " → " + binding.targetPath + ": " + error)
+            CONTINUE   // Never halt on a single binding failure
+
+    RETURN result
+```
+
+### Source Path Resolution
+
+Source paths use JSONPath-like dot-notation with optional `$.` prefix and
+array index syntax.
+
+```
+FUNCTION resolveSourcePath(data, path):
+    cleanPath = REMOVE_PREFIX(path, "$.")
+    RETURN navigatePath(data, cleanPath)
+
+FUNCTION navigatePath(node, path):
+    IF path IS EMPTY:
+        RETURN node
+
+    segments = SPLIT(path, ".")
+    current = node
+
+    FOR segment IN segments:
+        IF current IS NULL:
+            RETURN null
+
+        IF segment MATCHES pattern "(\w+)\[(\d+)\]":
+            // Array index: "items[0]"
+            fieldName = match.group(1)
+            index = match.group(2) AS INTEGER
+            current = current[fieldName]
+            IF current IS NOT ARRAY OR index >= LENGTH(current):
+                RETURN null
+            current = current[index]
+        ELSE:
+            current = current[segment]
+            IF current IS MISSING:
+                RETURN null
+
+    RETURN current
+```
+
+### Target Path Setting
+
+Target paths use dot-notation. Intermediate objects are auto-created when
+missing.
+
+```
+FUNCTION setTargetPath(root, path, value):
+    segments = SPLIT(path, ".")
+
+    IF LENGTH(segments) == 1:
+        root[segments[0]] = value
+        RETURN
+
+    current = root
+    FOR i = 0 TO LENGTH(segments) - 2:
+        child = current[segments[i]]
+        IF child IS MISSING OR child IS NOT OBJECT:
+            child = NEW_EMPTY_OBJECT()
+            current[segments[i]] = child
+        current = child
+
+    current[LAST(segments)] = value
+```
+
+### Key Decisions
+
+| Decision | Behavior |
+|----------|----------|
+| Null source value | Keep previous — do not overwrite |
+| Missing intermediate target | Auto-create empty object |
+| Array indexing | `"items[0].name"` supported in source paths |
+| Single binding failure | Log warning, continue to next binding |
+| i18n stringKeys | Optional map per binding; resolution deferred to renderer |
+
+---
+
+## 6. Action Dispatch Algorithm
+
+Actions are attached to sections and elements. They execute in declared order
+with failure-policy semantics.
+
+### Action Model
+
+```
+Action:
+    type: "navigate" | "fireAndForget" | "mutate" | "refresh" | "dismiss" | "toast"
+    trigger: "onTap" | "onLongPress" | "onVisible" | "onSwipe" | "onFocus" | "onBlur"
+    targetUri: string?          // For navigate
+    webUrl: string?             // Fallback URL for navigate
+    event: string?              // For fireAndForget (analytics event name)
+    params: map<string, any>?   // For fireAndForget (analytics params)
+    stateKey: string?           // For mutate
+    stateValue: any?            // For mutate (null = remove key)
+    sectionId: string?          // For refresh (which section to refresh)
+    endpoint: string?           // For parameterized refresh
+    paramBindings: map?         // For refresh: key → "{{stateKey}}" template
+    onFailure: "halt" | "continue" | "silent"?
+    impression: ImpressionPolicy?
+```
+
+### Sequence Execution
+
+```
+FUNCTION executeActionSequence(actions, stateManager):
+    results = []
+
+    FOR action IN actions:
+        result = dispatchSingleAction(action, stateManager)
+        APPEND result TO results
+
+        // Navigate success always halts the sequence
+        IF result.type == "navigate" AND result.success:
+            RETURN SequenceResult(results, halted=true)
+
+        IF result.isFailure:
+            policy = action.onFailure
+                     OR DEFAULT_FAILURE_POLICY[action.type]
+                     OR "continue"
+
+            SWITCH policy:
+                "halt"     → RETURN SequenceResult(results, halted=true)
+                "continue" → LOG_WARNING(action.type + " failed, continuing")
+                "silent"   → // No log
+```
+
+### Default Failure Policies
+
+| Action Type | Default Policy |
+|-------------|---------------|
+| navigate | halt |
+| fireAndForget | silent |
+| mutate | continue |
+| refresh | continue |
+| dismiss | silent |
+| toast | silent |
+
+### Single Action Dispatch
+
+```
+FUNCTION dispatchSingleAction(action, stateManager):
+    SWITCH action.type:
+        "navigate":
+            uri = action.targetUri OR action.webUrl
+            IF uri IS NULL:
+                RETURN failure("No target URI")
+            // Hand to platform navigation system
+            RETURN NavigateResult(uri)
+
+        "fireAndForget":
+            event = action.event OR "unnamed_event"
+            params = action.params OR {}
+            // Hand to analytics dispatcher
+            RETURN FireAndForgetResult(event, params)
+
+        "mutate":
+            IF action.stateKey IS NULL:
+                RETURN failure("No state key")
+            IF action.stateValue IS NOT NULL:
+                stateManager.setState(action.stateKey, action.stateValue)
+            ELSE:
+                stateManager.removeState(action.stateKey)
+            RETURN MutateResult(action.stateKey, action.stateValue)
+
+        "refresh":
+            IF action.paramBindings IS NOT EMPTY AND action.endpoint IS NOT NULL:
+                // Resolve param templates from screen state
+                resolvedParams = {}
+                FOR key, template IN action.paramBindings:
+                    stateKey = STRIP_DELIMITERS(template, "{{", "}}")
+                    resolvedParams[key] = stateManager.getState(stateKey) OR ""
+                queryString = URL_ENCODE(resolvedParams)
+                url = action.endpoint + "?" + queryString
+                RETURN ParameterizedRefreshResult(url, resolvedParams)
+            RETURN RefreshResult(action.sectionId)
+
+        "dismiss":
+            RETURN DismissResult()
+
+        "toast":
+            RETURN ToastResult(action.message)
+
+        DEFAULT:
+            LOG_WARNING("Unknown action type: " + action.type)
+            RETURN UnknownResult(action.type)
+```
+
+---
+
+## 7. Refresh & Polling Algorithm
+
+Each section carries a `refreshPolicy` that tells the client how and when
+to update its data. The client must not hardcode intervals or decide which
+sections to poll.
+
+### RefreshPolicy Model
+
+```
+RefreshPolicy:
+    type: "static" | "poll" | "sse"
+    intervalMs: integer?       // Poll interval in milliseconds
+    url: string?               // Direct poll URL (bypass SDUI endpoint)
+    dataPath: string?          // Dot-path to extract nested data from poll response
+    channel: string?           // Ably channel name for SSE
+```
+
+### Polling Orchestration
+
+```
+FUNCTION setupPolling(screen):
+    stopAllActivePolls()
+
+    FOR section IN screen.sections:
+        policy = section.refreshPolicy
+        IF policy IS NULL OR policy.type != "poll" OR policy.intervalMs IS NULL:
+            CONTINUE
+
+        // Schedule repeating poll
+        SCHEDULE_REPEATING(intervalMs = policy.intervalMs):
+            TRY:
+                IF policy.url IS NOT NULL:
+                    // Direct URL poll (e.g., CDN feed)
+                    data = fetchRawJson(policy.url, policy.dataPath)
+                    updateSectionData(section.id, data)
+                ELSE:
+                    // Re-fetch entire screen, merge surgically
+                    updatedScreen = fetchScreen(currentEndpoint)
+                    mergeSections(updatedScreen)
+            CATCH error:
+                LOG_ERROR("Poll failed for section " + section.id + ": " + error)
+                // Do NOT remove the section or stop polling on transient failure
+```
+
+### fetchRawJson (Direct Data Poll)
+
+```
+FUNCTION fetchRawJson(url, dataPath):
+    response = HTTP_GET(url)
+
+    IF NOT response.ok:
+        THROW "HTTP " + response.status
+
+    json = PARSE_JSON(response.body)
+
+    IF dataPath IS NULL OR dataPath IS EMPTY:
+        RETURN json
+
+    // Navigate dot-path to extract nested data
+    current = json
+    FOR segment IN SPLIT(dataPath, "."):
+        IF current IS MAP:
+            current = current[segment]
+            IF current IS NULL:
+                THROW "Path segment '" + segment + "' not found"
+        ELSE:
+            THROW "Cannot navigate '" + segment + "' — not an object"
+
+    RETURN current
+```
+
+### Surgical Section Merge
+
+When a poll response arrives (either from `fetchRawJson` or a full screen
+re-fetch), update **only** the affected section's data — do not re-render
+the entire screen.
+
+```
+FUNCTION updateSectionData(sectionId, newData):
+    existingSections = currentScreen.sections
+    FOR i IN 0..LENGTH(existingSections) - 1:
+        IF existingSections[i].id == sectionId:
+            existingSections[i].data = MERGE(existingSections[i].data, newData)
+            TRIGGER_RE_RENDER(existingSections[i])
+            RETURN
+    LOG_WARNING("Section not found for update: " + sectionId)
+```
+
+---
+
+## 8. Real-Time (Ably SSE) Algorithm
+
+Sections with `refreshPolicy.type == "sse"` receive live updates via Ably
+channels.
+
+### Connection Lifecycle
+
+```
+FUNCTION initializeRealTime(tokenUrl):
+    IF client IS ALREADY_INITIALIZED:
+        RETURN
+
+    client = NEW AblyClient(
+        authCallback = () → fetchToken(tokenUrl),
+        autoConnect = true
+    )
+
+    client.onConnectionStateChange(state):
+        SWITCH state:
+            connected    → LOG_INFO("Ably connected")
+            disconnected → LOG_WARNING("Ably disconnected — SDK will auto-reconnect")
+            failed       → LOG_ERROR("Ably connection failed: " + state.reason)
+
+FUNCTION fetchToken(tokenUrl):
+    response = HTTP_GET(tokenUrl, timeout=10s)
+    IF NOT response.ok:
+        THROW "Token fetch failed: HTTP " + response.status
+
+    json = PARSE_JSON(response.body)
+
+    // Token may be wrapped: {"data": {"accessToken": "..."}}
+    jwt = json["data"]["accessToken"]
+    IF jwt IS NOT NULL AND jwt IS NOT EMPTY:
+        RETURN jwt
+
+    // Or raw token string
+    RETURN response.body
+```
+
+### Channel Subscription
+
+```
+FUNCTION subscribeToChannel(channelName, onMessage):
+    channel = client.channels.get(channelName)
+    activeChannels[channelName] = channel
+
+    channel.subscribe(message):
+        data = message.data
+        parsed = NULL
+
+        IF data IS STRING:
+            parsed = PARSE_JSON(data) AS Map<String, Any>
+        ELSE IF data IS MAP:
+            parsed = data
+        ELSE:
+            LOG_WARNING("Unexpected message format — skipping")
+            RETURN
+
+        IF parsed IS NOT NULL:
+            onMessage(parsed)
+
+    ON_CLEANUP:
+        channel.unsubscribe()
+        REMOVE activeChannels[channelName]
+```
+
+### Wiring SSE to Data Bindings
+
+```
+FUNCTION setupRealTimeForScreen(screen):
+    FOR section IN screen.sections:
+        policy = section.refreshPolicy
+        IF policy IS NULL OR policy.type != "sse" OR policy.channel IS NULL:
+            CONTINUE
+
+        subscribeToChannel(policy.channel, message):
+            IF section.dataBindings IS NOT NULL:
+                updatedData = applyBindings(section.data, message, section.dataBindings)
+                updateSectionData(section.id, updatedData)
+            ELSE:
+                LOG_WARNING("SSE message received but no dataBindings for section " + section.id)
+```
+
+### Key Decisions
+
+| Decision | Behavior |
+|----------|----------|
+| Auth mechanism | Token callback via `authUrl` — SDK handles refresh |
+| Message format | Always parse as opaque `Map<String, Any>` — never as typed models |
+| Reconnection | Ably SDK handles automatic reconnection; client logs state changes |
+| Channel cleanup | Unsubscribe on screen exit or section removal |
+| Missing bindings | Log warning; do not crash or discard message |
+
+---
+
+## 9. Impression Tracking Algorithm
+
+Fire analytics events when sections become visible, with configurable
+deduplication.
+
+### ImpressionPolicy Model
+
+```
+ImpressionPolicy:
+    dedup: "once-per-screen" | "once-per-session" | "once-per-interval" | "none"
+    intervalMs: integer?              // For once-per-interval only
+    visibilityThreshold: float = 0.5  // 50% of element visible
+    dwellMs: integer = 1000           // Must be visible for 1 second
+```
+
+### Algorithm
+
+```
+FUNCTION trackImpression(sectionId, actions, isVisible, visibilityRatio):
+    // Filter to onVisible + fireAndForget actions
+    impressionActions = FILTER actions WHERE
+        trigger == "onVisible" AND type == "fireAndForget"
+
+    IF impressionActions IS EMPTY:
+        RETURN
+
+    IF NOT isVisible OR visibilityRatio < VISIBILITY_THRESHOLD (0.5):
+        cancelDwellTimer(sectionId)
+        RETURN
+
+    // Start dwell timer
+    startDwellTimer(sectionId, DWELL_MS (1000)):
+        FOR action IN impressionActions:
+            dedupKey = sectionId + ":" + action.event
+            policy = action.impression.dedup OR "once-per-screen"
+
+            SWITCH policy:
+                "once-per-screen":
+                    IF hasFired(dedupKey): CONTINUE
+                    markFired(dedupKey)
+
+                "once-per-session":
+                    IF hasFiredSession(dedupKey): CONTINUE
+                    markFiredSession(dedupKey)
+
+                "once-per-interval":
+                    IF NOT canFireInterval(dedupKey, action.impression.intervalMs): CONTINUE
+                    markFiredInterval(dedupKey)
+
+                "none":
+                    // Always fire
+
+            dispatchSingleAction(action, stateManager)
+```
+
+---
+
+## 10. Screen Fetch Lifecycle
+
+The complete lifecycle for loading and maintaining a screen.
+
+```
+FUNCTION loadScreen(uri):
+    // 1. Resolve URI
+    endpoint = resolveEndpoint(uri)    // "nba://for-you" → "/sdui/for-you"
+
+    // 2. Check offline cache
+    cached = offlineCache.get(endpoint)
+    IF cached IS NOT NULL:
+        renderScreen(cached)           // Show stale data immediately
+
+    // 3. Fetch from server
+    TRY:
+        screen = repository.fetchScreen(endpoint, variant)
+        offlineCache.put(endpoint, screen)
+        renderScreen(screen)
+    CATCH networkError:
+        LOG_ERROR("Screen fetch failed: " + networkError)
+        IF cached IS NULL:
+            renderErrorState(networkError)   // Compose client-side ErrorState
+        // If cached was shown, keep it visible
+
+    // 4. Setup live data channels
+    setupPolling(screen)
+    setupRealTimeForScreen(screen)
+
+    // 5. Initialize screen state
+    IF screen.state IS NOT NULL:
+        FOR key, value IN screen.state:
+            stateManager.setState(key, value)
+
+FUNCTION resolveEndpoint(uri):
+    // Pure prefix swap — no special-case branching
+    IF uri STARTS_WITH "nba://":
+        RETURN "/sdui/" + REMOVE_PREFIX(uri, "nba://")
+    RETURN uri    // Already a path
+```
+
+---
+
+## 11. Request Envelope
+
+Every HTTP request to the SDUI server must include:
+
+| Header | Value | Required |
+|--------|-------|----------|
+| `X-Platform` | Platform identifier (e.g., `ios`, `android`, `web`, `tvos`, `roku`) | Yes |
+| `X-Schema-Version` | `"1.0"` | Yes |
+
+Query parameters:
+
+| Param | Purpose |
+|-------|---------|
+| `variant` | A/B test variant (default `"A"`) |
+
+The server uses `X-Platform` for platform-specific composition decisions
+(layout direction, section density). It must never be hardcoded on the server
+side via `defaultValue`.
+
+---
+
+## 12. Offline Cache Strategy
+
+Cache complete screen responses keyed by endpoint. Serve stale data on
+network failure.
+
+```
+FUNCTION cacheGet(endpoint):
+    entry = cache[endpoint]
+    IF entry IS NULL:
+        RETURN null
+    RETURN entry.payload    // Return regardless of age — stale is better than blank
+
+FUNCTION cachePut(endpoint, screen):
+    cache[endpoint] = CacheEntry(
+        payload = screen,
+        cachedAt = NOW()
+    )
+```
+
+### Key Decisions
+
+| Decision | Behavior |
+|----------|----------|
+| Cache key | Endpoint path (e.g., `/sdui/scoreboard?variant=A`) |
+| Stale policy | Always serve stale — a stale screen is better than a blank screen |
+| Invalidation | Overwrite on successful fetch |
+| Storage | Platform-appropriate: SQLite/Room, Core Data, IndexedDB, file system |
+| TTL | No explicit expiry — server controls freshness via `refreshPolicy` |
+
+---
+
+## 13. Error Handling
+
+### Network Errors
+
+```
+IF fetchScreen fails:
+    IF offlineCache HAS cached response:
+        Show cached response (stale data)
+    ELSE:
+        Render client-composed ErrorState:
+            title: "Unable to Load"
+            message: error.localizedMessage
+            retryAction: action(type="refresh", trigger="onTap")
+```
+
+### Parse Errors
+
+```
+IF JSON deserialization fails:
+    LOG_ERROR("Parse failed for endpoint: " + endpoint + " — " + error)
+    Render ErrorState with diagnostic info
+```
+
+### Section-Level Errors
+
+```
+IF a single section fails to render:
+    LOG_ERROR("Section render failed: " + section.id + " type=" + section.type)
+    Skip section — do NOT crash the entire screen
+    // Other sections continue rendering normally
+```
+
+### Invariant: Never Swallow Exceptions
+
+Every catch block must log with enough context to diagnose:
+- Class/component name
+- Section ID (if applicable)
+- Error message and stack trace
+
+Silent `catch { null }` patterns are prohibited.
+
+---
+
+## 14. Accessibility Contract
+
+The schema includes accessibility properties on sections and atomic elements.
+Map them to platform-native accessibility APIs.
+
+```
+AccessibilityProperties:
+    label: string?        // Screen reader text
+    role: string?         // Semantic role ("button", "heading", "image", "link", "tab")
+    hint: string?         // Additional context for screen reader
+    hidden: boolean?      // Hide from accessibility tree
+```
+
+Map to:
+- **Android**: Compose `Modifier.semantics { }`, `contentDescription`, `role`
+- **iOS**: `.accessibilityLabel()`, `.accessibilityAddTraits()`, `.accessibilityHint()`
+- **Web**: `aria-label`, `role`, `aria-hidden`, `aria-describedby`
+- **Other platforms**: Equivalent accessibility APIs
+
+---
+
+## 15. Image Loading Contract
+
+All image URLs come from the server response. Clients must never construct
+image URLs from patterns.
+
+```
+FUNCTION loadImage(imageElement):
+    url = imageElement.url                     // Primary URL from server
+    fallbackUrl = imageElement.fallbackUrl     // Optional fallback
+    alt = imageElement.alt                      // Accessibility text
+
+    TRY:
+        LOAD_AND_DISPLAY(url)
+    CATCH:
+        IF fallbackUrl IS NOT NULL:
+            TRY:
+                LOAD_AND_DISPLAY(fallbackUrl)
+            CATCH:
+                DISPLAY_PLACEHOLDER(alt)
+        ELSE:
+            DISPLAY_PLACEHOLDER(alt)
+```
+
+Platform SDK recommendations (not mandated):
+- **Android**: Coil, Glide
+- **iOS**: Kingfisher, SDWebImage, Nuke
+- **Web**: Native `<img>` with `onError` handler
+- **Other**: Any async image loader with caching
+
+---
+
+## 16. Codegen Quick Reference
+
+Generated models are available in `codegen/output/`:
+
+| Language | Output | Regenerate |
+|----------|--------|------------|
+| Kotlin | `codegen/output/kotlin/` | `cd codegen && ./generate.sh` |
+| TypeScript | `codegen/output/typescript/SduiModels.ts` | `cd codegen && ./generate.sh` |
+| Swift | `codegen/output/swift/SduiModels.swift` | `cd codegen && ./generate.sh` |
+
+For other languages, use [quicktype](https://quicktype.io) to generate models
+from `schema/sdui-schema.json`. Or write your own deserializer — the JSON
+schema is the contract, not the generated code.
+
+---
+
+## 17. Conformance Checklist
+
+A conforming client satisfies all of the following. This maps directly to
+the rules in `AGENTS.md`.
+
+| # | Requirement | AGENTS.md Rule |
+|---|-------------|----------------|
+| C1 | Models derived from schema (generated or hand-matched) | Rule 1 |
+| C2 | No hardcoded server paths — all from server response or URI resolution | Rule 2 |
+| C3 | No `ScreenType` enum — generic `fetchScreen(endpoint)` | Rule 3 |
+| C4 | Ably messages treated as opaque maps — never typed data classes | Rule 4 |
+| C5 | All image URLs from server — no client-constructed URLs | Rule 5 |
+| C6 | ErrorState rendered as a first-class section | Rule 6 |
+| C7 | Unknown section/atomic types skipped with log | Rule 7 |
+| C8 | Single generic fetch method — no `getGameDetail()` | Rule 8 |
+| C9 | Refresh driven by `refreshPolicy` — no hardcoded intervals | Rule 9 |
+| C10 | URI resolution is a simple prefix swap | Rule 10 |
+| C11 | `X-Platform` header on every request | Rule 11 |
+| C12 | Exceptions logged with context — never silently swallowed | Rule 12 |
+| C13 | All schema enum values handled (or gracefully skipped) | Rule 13 |
+| C14 | Renderers are presentation-only — no business logic | Rule 14 |
+| C15 | Prefer AtomicComposite over new section type for stateless UI | Rule 15 |

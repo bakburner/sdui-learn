@@ -4,6 +4,12 @@ These rules govern all SDUI work in this repository. They exist to ensure the
 server retains full control of the UI and that client releases are never
 required for layout, content, or data-flow changes.
 
+> **Building a new client?** See
+> [`docs/client-implementors-contract.md`](docs/client-implementors-contract.md)
+> for the platform-agnostic architecture blueprint, build checklist, and
+> pseudocode algorithms. The rules below are the constraints; the contract
+> is the construction guide.
+
 ---
 
 ## 1. Schema Is the Single Source of Truth
@@ -160,7 +166,7 @@ Is the UI stateless and ≤80 LOC with no platform SDK dependency?
        │    • Network-driven real-time state (Ably SSE subscriptions →
        │      GamePanel, BoxscoreTable)
        │    • Complex client interaction state (tab selection → TabGroup,
-       │      form validation → FormRenderer, sort/filter → SeasonLeadersTable)
+       │      form validation → Form, sort/filter → SeasonLeadersTable)
        └─ NO → AtomicComposite — push it server-side
 ```
 
@@ -177,7 +183,7 @@ behaviour the server cannot own:
 | BoxscoreTable      | Real-time data binding, expandable rows          |
 | SeasonLeadersTable | Sort/filter interaction state                    |
 | TabGroup           | Tab selection state, nested section hosting      |
-| FormRenderer       | Validation state, platform keyboard integration  |
+| Form               | Validation state, platform keyboard integration  |
 | SubscribeHero      | Platform IAP SDK integration                     |
 | SubscribeBanner    | Platform IAP SDK integration                     |
 | AdSlot             | Platform ad SDK lifecycle                        |

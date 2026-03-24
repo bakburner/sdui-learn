@@ -18,7 +18,7 @@ For each document in the audit list, verify every item below. Mark any inconsist
 - [ ] Every atomic element type name listed matches schema enum exactly (PascalCase)
 - [ ] No pruned/deleted types appear (ErrorState, SectionHeader, PromoBanner, ContentRail, FollowingRail, HeroPanel, StatLine, VideoCarousel, NbaTvSchedule, Row, RowData)
 - [ ] Migrated types list is complete: ErrorState, SectionHeader, PromoBanner, ContentRail, FollowingRail, HeroPanel, StatLine, VideoCarousel, NbaTvSchedule
-- [ ] Permanent types list is complete: BoxscoreTable, SeasonLeadersTable, FormRenderer, TabGroup, GamePanel, SubscribeHero, SubscribeBanner, AdSlot
+- [ ] Permanent types list is complete: BoxscoreTable, SeasonLeadersTable, Form, TabGroup, GamePanel, SubscribeHero, SubscribeBanner, AdSlot
 
 ## Terminology
 

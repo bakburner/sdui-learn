@@ -2,6 +2,19 @@
 
 Server-Driven UI prototype demonstrating server-composed screens with real-time updates across Android and Web. Includes For You, Scoreboard, Game Detail, Watch, Live, Leaders, Boxscore, and demo screens — all driven by a single JSON schema.
 
+## Start Here
+
+| I want to… | Start with |
+|------------|------------|
+| **Build a new client** (iOS, Flutter, TV, desktop) | [Client Implementor's Contract](docs/plans/client-implementors-contract.md) — platform-agnostic blueprint with build phases, pseudocode algorithms, and conformance checklist |
+| **Extend the Android client** | [android/sdui-core/](android/sdui-core/) — renderers, state, data binding. See [Section Types](#section-types-9-in-schema-8-permanent--atomiccomposite) below for what exists |
+| **Extend the Web client** | [web/src/](web/src/) — React components, hooks, runtime. Same section types reference |
+| **Add a new server-composed screen** | [server/src/](server/src/) — add a composer, register an endpoint. Zero client changes needed |
+| **Add a new section type** | Read [AGENTS.md](AGENTS.md) §14-15 first — most things should be `AtomicComposite`. Only add a section renderer if client-owned state is required |
+| **Understand the schema** | [schema/sdui-schema.json](schema/sdui-schema.json) — the contract. Hit `curl http://localhost:8080/sdui/demos` for a live 42-section example |
+| **Understand the rules** | [AGENTS.md](AGENTS.md) — 15 development rules that govern all SDUI work |
+| **See what's built vs. what's gap** | [Requirements Summary §10](docs/sdui-requirements-summary.md) — status matrix |
+
 ## Design Philosophy
 
 **The server controls _what_ appears and _in what order_. Platform teams control _how_ each component looks, feels, and animates natively.**

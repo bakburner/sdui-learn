@@ -58,11 +58,15 @@
         "ui": {
           "type": "Container",
           "direction": "column",
+          "fillWidth": true,
+          "background": "#1E1E2E",
+          "cornerRadius": 12,
+          "gap": 4,
           "padding": {
             "start": 16,
             "end": 16,
-            "top": 8,
-            "bottom": 8
+            "top": 12,
+            "bottom": 12
           },
           "children": [
             {
@@ -70,16 +74,18 @@
               "content": "Game Info",
               "variant": "titleMedium",
               "weight": "bold",
-              "padding": {
-                "start": 0,
-                "end": 0,
-                "top": 0,
-                "bottom": 12
-              }
+              "color": "#FFFFFF"
+            },
+            {
+              "type": "Divider",
+              "orientation": "horizontal",
+              "color": "#333348"
             },
             {
               "type": "Container",
               "direction": "row",
+              "fillWidth": true,
+              "alignment": "spaceBetween",
               "crossAlignment": "center",
               "padding": {
                 "start": 0,
@@ -89,33 +95,25 @@
               },
               "children": [
                 {
-                  "type": "Container",
-                  "direction": "column",
-                  "children": [
-                    {
-                      "type": "Text",
-                      "content": "Venue",
-                      "variant": "bodyLarge",
-                      "weight": "medium"
-                    }
-                  ]
-                },
-                {
-                  "type": "Spacer",
-                  "height": 8
+                  "type": "Text",
+                  "content": "Venue",
+                  "variant": "bodyMedium",
+                  "color": "#A0A0B0"
                 },
                 {
                   "type": "Text",
                   "content": "TD Garden",
-                  "variant": "titleMedium",
-                  "weight": "bold",
-                  "color": "#FF6B6B"
+                  "variant": "bodyMedium",
+                  "weight": "semiBold",
+                  "color": "#FFFFFF"
                 }
               ]
             },
             {
               "type": "Container",
               "direction": "row",
+              "fillWidth": true,
+              "alignment": "spaceBetween",
               "crossAlignment": "center",
               "padding": {
                 "start": 0,
@@ -125,33 +123,25 @@
               },
               "children": [
                 {
-                  "type": "Container",
-                  "direction": "column",
-                  "children": [
-                    {
-                      "type": "Text",
-                      "content": "Broadcast",
-                      "variant": "bodyLarge",
-                      "weight": "medium"
-                    }
-                  ]
-                },
-                {
-                  "type": "Spacer",
-                  "height": 8
+                  "type": "Text",
+                  "content": "Broadcast",
+                  "variant": "bodyMedium",
+                  "color": "#A0A0B0"
                 },
                 {
                   "type": "Text",
                   "content": "ESPN",
-                  "variant": "titleMedium",
-                  "weight": "bold",
-                  "color": "#FF6B6B"
+                  "variant": "bodyMedium",
+                  "weight": "semiBold",
+                  "color": "#FFFFFF"
                 }
               ]
             },
             {
               "type": "Container",
               "direction": "row",
+              "fillWidth": true,
+              "alignment": "spaceBetween",
               "crossAlignment": "center",
               "padding": {
                 "start": 0,
@@ -161,27 +151,17 @@
               },
               "children": [
                 {
-                  "type": "Container",
-                  "direction": "column",
-                  "children": [
-                    {
-                      "type": "Text",
-                      "content": "Series",
-                      "variant": "bodyLarge",
-                      "weight": "medium"
-                    }
-                  ]
-                },
-                {
-                  "type": "Spacer",
-                  "height": 8
+                  "type": "Text",
+                  "content": "Series",
+                  "variant": "bodyMedium",
+                  "color": "#A0A0B0"
                 },
                 {
                   "type": "Text",
                   "content": "BOS leads 2-1",
-                  "variant": "titleMedium",
-                  "weight": "bold",
-                  "color": "#FF6B6B"
+                  "variant": "bodyMedium",
+                  "weight": "semiBold",
+                  "color": "#FFFFFF"
                 }
               ]
             }

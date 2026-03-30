@@ -46,8 +46,8 @@ public class ScoreboardComposer {
      * Compose a Scoreboard SDUI screen response.
      */
     public JsonNode composeScoreboard(String variant, String clientSchemaVersion,
-                                      String traceId) throws IOException {
-        log.info("Composing scoreboard: variant={}", variant);
+                                      String traceId, String locale) throws IOException {
+        log.info("Composing scoreboard: variant={}, locale={}", variant, locale);
 
         ObjectNode response = composeScoreboardFromLiveData();
         if (response == null) {
@@ -65,6 +65,7 @@ public class ScoreboardComposer {
         response.put("traceId", traceId);
         response.put("schemaVersion", schemaVersion);
         response.set("navigation", utils.buildNavigation("scoreboard"));
+        response.set("stringTable", utils.buildStringTable(locale));
 
         if (variant != null) {
             switch (variant.toUpperCase()) {

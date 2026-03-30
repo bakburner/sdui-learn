@@ -18,6 +18,19 @@ data class SduiScreenConfig(
     val screenId: String,
     /** Game state hint sent as query param (e.g. "live", "pre", "final") */
     val gameState: String = "live",
-    /** Server variant for A/B testing (e.g. "A", "B", "C", "D") */
-    val variant: String = "A",
-)
+    /** Experiment assignments from Amplitude (experimentId → variant). */
+    val experiments: Map<String, String> = emptyMap(),
+    /** App version string (semver), e.g. "8.3.0" */
+    val appVersion: String? = null,
+    /** Device class: "phone", "tablet", "tv" */
+    val deviceClass: String = "phone",
+) {
+    /**
+     * Backwards-compatible variant accessor.
+     * Resolves from the experiments map using a well-known experiment ID,
+     * defaulting to "A" if no experiment assignment is present.
+     */
+    @Deprecated("Use experiments map directly", replaceWith = ReplaceWith("experiments"))
+    val variant: String
+        get() = experiments.values.firstOrNull() ?: "A"
+}

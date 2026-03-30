@@ -54,8 +54,8 @@ public class BoxscoreComposer {
      *
      * Source data: NBA CDN boxscore endpoint → {@code game.homeTeam / game.awayTeam}.
      */
-    public JsonNode composeBoxscore(String gameId, String traceId) throws IOException {
-        log.info("Composing boxscore screen: gameId={}", gameId);
+    public JsonNode composeBoxscore(String gameId, String traceId, String locale) throws IOException {
+        log.info("Composing boxscore screen: gameId={}, locale={}", gameId, locale);
 
         JsonNode boxscore = statsApiClient.getBoxscore(gameId);
         JsonNode game = boxscore != null ? boxscore.path("game") : null;
@@ -69,6 +69,7 @@ public class BoxscoreComposer {
         response.put("schemaVersion", schemaVersion);
         response.put("parentUri", "nba://scoreboard");
         response.set("navigation", utils.buildNavigation("game-detail"));
+        response.set("stringTable", utils.buildStringTable(locale));
 
         if (!hasLiveData) {
             log.warn("No boxscore data available for gameId={}, returning empty screen", gameId);

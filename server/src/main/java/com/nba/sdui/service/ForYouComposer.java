@@ -54,8 +54,8 @@ public class ForYouComposer {
         this.atomicBuilder = new AtomicCompositeBuilder(objectMapper);
     }
 
-    public JsonNode composeForYou(String traceId) {
-        log.info("Composing For You screen");
+    public JsonNode composeForYou(String traceId, String locale) {
+        log.info("Composing For You screen, locale={}", locale);
 
         ObjectNode response = objectMapper.createObjectNode();
         response.put("id", "for-you");
@@ -64,6 +64,7 @@ public class ForYouComposer {
         response.put("traceId", traceId);
         response.put("schemaVersion", schemaVersion);
         response.set("navigation", utils.buildNavigation("for-you"));
+        response.set("stringTable", utils.buildStringTable(locale));
 
         ArrayNode sections = objectMapper.createArrayNode();
 

@@ -1074,6 +1074,11 @@
         "defaultRefreshPolicy": { "$ref": "#/definitions/RefreshPolicy" },
         "navigation": { "$ref": "#/definitions/Navigation" },
         "state": { "$ref": "#/definitions/State" },
+        "stringTable": {
+          "type": "object",
+          "description": "Screen-level map of translation key to localized string. Used by DataBindingResolver to resolve stringKeys on real-time updates.",
+          "additionalProperties": { "type": "string" }
+        },
         "actions": {
           "type": "array",
           "description": "Screen-level actions (e.g. analytics beacons, lifecycle hooks)",

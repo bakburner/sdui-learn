@@ -20,6 +20,9 @@ struct SduiModels: Codable {
     let schemaVersion: String
     let sections: [Section]
     let state: [String: JSONAny]?
+    /// Screen-level map of translation key to localized string. Used by DataBindingResolver to
+    /// resolve stringKeys on real-time updates.
+    let stringTable: [String: String]?
     let title, traceID: String?
 
     enum CodingKeys: String, CodingKey {
@@ -27,7 +30,7 @@ struct SduiModels: Codable {
         case analyticsID = "analyticsId"
         case defaultRefreshPolicy, id, navigation
         case parentURI = "parentUri"
-        case schemaVersion, sections, state, title
+        case schemaVersion, sections, state, stringTable, title
         case traceID = "traceId"
     }
 }
@@ -60,6 +63,7 @@ extension SduiModels {
         schemaVersion: String? = nil,
         sections: [Section]? = nil,
         state: [String: JSONAny]?? = nil,
+        stringTable: [String: String]?? = nil,
         title: String?? = nil,
         traceID: String?? = nil
     ) -> SduiModels {
@@ -73,6 +77,7 @@ extension SduiModels {
             schemaVersion: schemaVersion ?? self.schemaVersion,
             sections: sections ?? self.sections,
             state: state ?? self.state,
+            stringTable: stringTable ?? self.stringTable,
             title: title ?? self.title,
             traceID: traceID ?? self.traceID
         )

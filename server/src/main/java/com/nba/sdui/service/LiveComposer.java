@@ -41,8 +41,8 @@ public class LiveComposer {
         this.atomicBuilder = new AtomicCompositeBuilder(objectMapper);
     }
 
-    public JsonNode composeLive(String traceId) {
-        log.info("Composing Games screen");
+    public JsonNode composeLive(String traceId, String locale) {
+        log.info("Composing Games screen, locale={}", locale);
 
         ObjectNode response = objectMapper.createObjectNode();
         response.put("id", "games");
@@ -51,6 +51,7 @@ public class LiveComposer {
         response.put("traceId", traceId);
         response.put("schemaVersion", schemaVersion);
         response.set("navigation", utils.buildNavigation("games"));
+        response.set("stringTable", utils.buildStringTable(locale));
 
         ArrayNode sections = objectMapper.createArrayNode();
 

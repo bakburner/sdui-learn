@@ -53,8 +53,8 @@ public class GameDetailComposer {
      */
     public JsonNode composeGameDetail(String gameId, String gameState,
                                       String variant, String clientSchemaVersion,
-                                      String traceId) throws IOException {
-        log.info("Composing game detail: gameId={}, gameState={}, variant={}", gameId, gameState, variant);
+                                      String traceId, String locale) throws IOException {
+        log.info("Composing game detail: gameId={}, gameState={}, variant={}, locale={}", gameId, gameState, variant, locale);
 
         JsonNode baseResponse;
         baseResponse = composeFromLiveData(gameId, gameState);
@@ -75,6 +75,7 @@ public class GameDetailComposer {
         response.put("schemaVersion", schemaVersion);
         response.put("parentUri", "nba://scoreboard");
         response.set("navigation", utils.buildNavigation("game-detail"));
+        response.set("stringTable", utils.buildStringTable(locale));
 
         // Expose available A/B variants so clients never need URI-sniffing (Rule 10).
         ArrayNode variants = objectMapper.createArrayNode();

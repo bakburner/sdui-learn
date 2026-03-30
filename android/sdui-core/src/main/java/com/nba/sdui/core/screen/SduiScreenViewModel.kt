@@ -9,6 +9,7 @@ import com.nba.sdui.core.data.DataBindingResolver
 import com.nba.sdui.core.data.SduiRepository
 import com.nba.sdui.core.models.SduiScreen
 import com.nba.sdui.core.models.SduiSection
+import com.nba.sdui.core.request.RequestEnvelopeBuilder
 import com.nba.sdui.core.state.ActionHandler
 import com.nba.sdui.core.state.SduiAction
 import com.nba.sdui.core.state.StateManager
@@ -60,6 +61,16 @@ open class SduiScreenViewModel(
     protected val stateManager = StateManager()
     protected val actionHandler = ActionHandler()
     private val dataBindingResolver = DataBindingResolver()
+
+    /**
+     * Build the request envelope from config.
+     * Called before every fetchScreen to include current platform/device/experiment context.
+     */
+    private fun buildEnvelope(): RequestEnvelopeBuilder =
+        RequestEnvelopeBuilder()
+            .experiments(config.experiments)
+            .appVersion(config.appVersion ?: "1.0.0")
+            .deviceClass(config.deviceClass)
 
     // Ably (only initialised when sse is required)
     private var ablyChannelManager: AblyChannelManager? = null
@@ -125,7 +136,7 @@ open class SduiScreenViewModel(
 
             try {
                 Log.d(TAG, "Loading endpoint: $endpoint")
-                val screen = repository.fetchScreen(endpoint, config.variant)
+                val screen = repository.fetchScreen(endpoint, buildEnvelope())
                 applyScreen(screen)
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to load: $endpoint", e)
@@ -144,7 +155,7 @@ open class SduiScreenViewModel(
         viewModelScope.launch {
             try {
                 Log.d(TAG, "Surgical section refresh: $endpoint")
-                val refreshScreen = repository.fetchScreen(endpoint, config.variant)
+                val refreshScreen = repository.fetchScreen(endpoint, buildEnvelope())
 
                 // Merge echoed state from the response
                 refreshScreen.state?.forEach { (key, value) ->
@@ -184,7 +195,7 @@ open class SduiScreenViewModel(
         viewModelScope.launch {
             _isRefreshing.value = true
             try {
-                val screen = repository.fetchScreen(endpoint, config.variant)
+                val screen = repository.fetchScreen(endpoint, buildEnvelope())
                 applyScreen(screen)
             } catch (e: Exception) {
                 Log.e(TAG, "Refresh failed", e)
@@ -280,7 +291,7 @@ open class SduiScreenViewModel(
                                 updateSectionData(section.id, data)
                             } else {
                                 val endpoint = currentEndpoint ?: continue
-                                val updated = repository.fetchScreen(endpoint, config.variant)
+                                val updated = repository.fetchScreen(endpoint, buildEnvelope())
                                 applyScreen(updated)
                             }
                         } catch (e: Exception) {
@@ -343,7 +354,8 @@ open class SduiScreenViewModel(
                         val currentData = currentScreen?.sections
                             ?.find { it.id == section.id }?.data ?: return@collect
                         val updatedData = dataBindingResolver.applyBindings(
-                            currentData, message, dataBinding, currentScreen?.traceId
+                            currentData, message, dataBinding, currentScreen?.traceId,
+                            currentScreen?.stringTable
                         )
                         updateSectionInScreen(section.id, updatedData)
                     } else {

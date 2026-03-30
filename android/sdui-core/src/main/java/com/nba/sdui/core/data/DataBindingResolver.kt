@@ -36,13 +36,15 @@ class DataBindingResolver {
      * @param incomingMessage The incoming real-time message
      * @param dataBinding The data binding configuration
      * @param traceId Optional trace ID for logging
+     * @param stringTable Optional screen-level string table for stringKey resolution
      * @return Updated section data with bound values applied
      */
     fun applyBindings(
         currentData: Map<String, Any?>,
         incomingMessage: Map<String, Any?>,
         dataBinding: DataBinding,
-        traceId: String? = null
+        traceId: String? = null,
+        stringTable: Map<String, String>? = null
     ): Map<String, Any?> {
         
         Log.d(TAG, "Applying ${dataBinding.bindings.size} bindings, traceId=$traceId")
@@ -55,9 +57,20 @@ class DataBindingResolver {
             try {
                 applyBinding(dataNode, messageNode, binding, traceId)
 
+                // Resolve stringKey: if the binding target has a stringKey, replace the
+                // bound value with the corresponding localized string from the string table.
                 val stringKey = dataBinding.stringKeys?.get(binding.targetPath)
-                if (stringKey != null) {
-                    Log.d(TAG, "stringKey available for ${binding.targetPath}: $stringKey (i18n resolution deferred)")
+                if (stringKey != null && stringTable != null) {
+                    val resolved = stringTable[stringKey]
+                    if (resolved != null) {
+                        setTargetPath(dataNode, binding.targetPath,
+                            objectMapper.valueToTree(resolved))
+                        Log.d(TAG, "stringKey resolved: ${binding.targetPath} -> $stringKey = $resolved")
+                    } else {
+                        Log.w(TAG, "stringKey lookup failed for key '$stringKey' on ${binding.targetPath}, keeping raw value, traceId=$traceId")
+                    }
+                } else if (stringKey != null) {
+                    Log.w(TAG, "stringKey '$stringKey' present but no stringTable provided, keeping raw value, traceId=$traceId")
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "Failed to apply binding: ${binding.sourcePath} -> ${binding.targetPath}, traceId=$traceId", e)

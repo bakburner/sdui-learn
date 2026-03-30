@@ -55,7 +55,7 @@ required_inputs:
   backend: true
 locked_decisions:
   action_precedence: "nested > section > screen-default"
-  experiment_assignment: "support client-hint and server-authoritative resolution"
+  experiment_assignment: "client-authoritative via Amplitude; server trusts assignments, kill switch for disabled variants"
   request_method_policy: "GET or POST based on section/screen cacheability and context"
   ad_boundary: "ad auction/targeting delegated; SDUI carries placement contract"
   cache_policy_owner: "platform + backend"
@@ -69,8 +69,8 @@ locked_decisions:
 - **Platform-aware composition (settled):** shared schema and data pipeline; per-platform-family composition responses. Not an ADR — the only practical architecture for phone, tablet, web, and TV. Server-side composition cost is acceptable.
 - **Navigate action URIs (settled):** `targetUri` for native deeplinks, `webUrl` for web — both are first-class platform-appropriate targets, not primary/fallback.
 - **Action precedence:** nested > section > screen-default
-- **Experiment strategy:** support both client-hint and server-authoritative assignment
-- **Experiment conflict rule:** server-authoritative assignment wins; response echoes final variant used
+- **Experiment strategy:** client-authoritative assignment via Amplitude SDK; server trusts and uses assignments for composition
+- **Experiment conflict rule:** client assignment is authoritative; server may reject disabled variants via kill switch; response echoes final variant used
 - **Request method:** support both GET and POST depending on section/screen needs
 - **Ads boundary:** delegated ad auction/targeting, SDUI provides placement contract
 - **Cache policy ownership:** platform + backend input required
@@ -719,12 +719,20 @@ sequenceDiagram
 - Server includes experiment metadata: `"experiment": { "id": "game-detail-v2", "variant": "treatment-b" }`
 - FireAndForget actions automatically include experiment context in every beacon
 - Section ordering, content, and even action behavior can vary per variant
-- The composition service is the natural place to resolve experiment assignments since it already controls section composition
-- Conflict resolution rule: when client hint and server assignment differ, server-authoritative assignment wins
-- Response must echo the final assignment used for composition for analytics/reporting consistency
+- The composition service resolves experiment assignments from the request envelope and uses them for composition branching
 
-**Decision required:** Final integration shape (direct in composer vs upstream experimentation service) and assignment cache location (server session vs client storage).  
-**ADR tracking:** [ADR-006](adr/006-experiment-assignment-model.md)
+**Resolved decisions (see [ADR-006](adr/006-experiment-assignment-model.md), [plan-experimentation.md](plans/plan-experimentation.md) D1–D4):**
+
+- **Client is fully authoritative.** Clients resolve assignments via experiment SDK (Amplitude) at app start (per-session) and send them as `experiments[experimentId]=variantName` in the request envelope.
+- **Server trusts assignments.** `resolveVariant(experimentId, default)` reads the experiments map and branches composition. No server-side experiment resolution service.
+- **Kill switch is client-side.** To disable a variant, the client stops sending that experiment. Server never sees it, falls back to default.
+- **No response echo.** The client already knows its assignments — the server does not echo them back.
+- **Exposure tracking is client-side** via fire-and-forget actions. No server-side exposure logging — tracking once is sufficient.
+- **Experiments are natural cache keys.** Assignments travel as query parameters, so different variants produce different cache entries.
+- **`variant` param removed.** Replaced by `experiments[variant]` placeholder that exercises the real experiment code path.
+- **Amplitude SDK integration deferred** — not part of this plan. Experiments are manually set for now.
+
+**ADR tracking:** [ADR-006](adr/006-experiment-assignment-model.md) — **Accepted**
 
 ### 9k. Pagination & Infinite Scroll
 
@@ -796,7 +804,17 @@ sequenceDiagram
   - section-first caching as primary strategy
   - optional screen snapshot caching for fast first paint/fallback
 
-**Decision required:** final request schema ownership, backward compatibility policy for request fields, and route-level GET/POST + cache policy governance.  
+**Resolved decisions (see [plan-request-transport.md](plans/plan-request-transport.md) D1–D7):**
+
+- GET-first with bracket-notation nested params (`platform[name]=android`, `device[countryCode]=US`, `experiments[exp_id]=variant_b`). All composition context travels as query parameters — naturally part of the CDN cache key.
+- POST fallback on the same URL with a JSON body of the same shape, when query string exceeds 8192 characters.
+- `Authorization` is the only required header. `X-Trace-Id` is the only other header (generated by API gateway or first service if absent).
+- `X-Platform` and `X-Schema-Version` headers are deprecated — replaced by `platform[name]` and `schemaVersion` query params. Server accepts both during transition.
+- All device context fields are optional — server tolerates missing fields gracefully with sensible defaults.
+- All timestamps in UTC — no timezone in the request envelope. Timezone-aware formatting is a client presentation concern.
+- `variant` query param removed — all variant resolution uses the `experiments` map exclusively.
+- Cache-Control headers set per route cacheability class: `public` (shared screens), `contextual` (locale-varying), `personalized` (user-specific), `live` (real-time, `no-cache`). See D7 route→cacheability mapping.
+
 **ADR tracking:** [ADR-003](adr/003-composition-api-contract.md), [ADR-004](adr/004-transport-and-caching-policy.md)
 
 ### 9p. Internationalization (i18n)
@@ -1007,18 +1025,18 @@ Until approved, these remain directional requirements and may be refined.
 | Caching & offline | **Gap** | Stale-while-revalidate, cold start optimization |
 | Schema versioning protocol | **Partial** | Version header sent; no multi-version routing yet |
 | Composition ownership model (SDUI composer as source of truth) | **Partial** | Architecture intent clear; transitional CoreAPI-derived composition still in use |
-| Request context envelope for composition | **Gap** | Needs formal schema and server/client conformance |
-| Composition API contract (auth, method, cacheability) | **Partial** | URI convention defined (`nba://{path}` → `GET /sdui/{path}`); auth and cacheability still gap |
+| Request context envelope for composition | **Built** | `SduiRequestContext` POJO + `BracketParamResolver` (bracket-notation GET, POST fallback). Android & web `RequestEnvelopeBuilder`. All fields optional with defaults. |
+| Composition API contract (auth, method, cacheability) | **Built** | GET-first with bracket-notation params; POST fallback >8192 chars; `Authorization` header only; Cache-Control per D7 route mapping; `X-Trace-Id` header for observability |
 | Actions at subsection level | **Partial** | Supported conceptually; needs explicit schema examples and conformance tests |
 | Form-factor layout manager | **Partial** | Cross-platform: settled. Within-family: `SectionLayoutHints` built on web (margins, dividers, priority). ADR-008 accepted (Option C). Android wiring pending. |
 | Ad support as first-class primitive | **Gap** | Needs ad primitive definition and fallback behavior |
 | Theming / dark mode | **Gap** | Semantic tokens vs. literal values |
 | Animation hints | **Gap** | Entry/exit + data-change animations |
 | Impression deduplication | **Partial** | Built on web (IntersectionObserver + dedup registry). Android/iOS pending. ADR-009 accepted. |
-| A/B testing integration | **Partial** | Supports client hint + server-authoritative conflict rule; experiment service integration not finalized |
+| A/B testing integration | **Built** | Fully client-authoritative (ADR-006 Accepted). `experiments` map replaces `variant` param. Kill switch is client-side. Exposure tracking via fire-and-forget actions. Amplitude SDK integration deferred. |
 | Pagination / infinite scroll | **Gap** | Cursor-based, server-defined |
 | Debugging / observability | **Partial** | traceId in responses; structured Logcat; no dashboards |
-| Contract testing | **Gap** | No automated tests yet |
+| Contract testing | **Gap** | No automated contract tests yet. Contract tests verify cross-platform conformance (schema ↔ server ↔ clients) and are distinct from per-requirement unit tests. All other requirements should have appropriate unit and integration tests when productionized. |
 | Internationalization (i18n) | **Gap** | Server-resolved default + optional string keys on data bindings for external source translations |
 | Tabular data sections (BoxscoreTable) | **Built** | Semantic table type with domain-typed data, client-side sort, frozen column/totals row. Built on Web and Android. |
 | Form section (generic) | **Built** | Extensible field types (picker, segmented, toggle, datePicker, text), parameterized refresh on submit. Built on Web and Android. |

@@ -11,39 +11,41 @@ The current SDUI pipeline resolves all strings server-side — the server compos
 | Aspect | Status | Notes |
 |--------|--------|-------|
 | Server-resolved strings | Built | All text in server responses is pre-localized |
-| Client string resolution | Gap | `stringKeys` field on data bindings not implemented |
-| Schema support | Gap | No `stringKeys` field in DataBinding schema |
-| Android support | Gap | DataBindingResolver applies raw values only |
-| Web support | Gap | DataBindingResolver applies raw values only |
+| Locale query parameter | Built | `?locale=es` on GET, defaults to `en` |
+| Screen-level stringTable | Built | Server populates per-locale stringTable on every screen response |
+| Client string resolution | Built | DataBindingResolver resolves stringKeys via stringTable |
+| Schema support | Built | `stringKeys` on DataBinding, `stringTable` on Screen |
+| Android support | Built | DataBindingResolver.applyBindings() resolves stringKeys |
+| Web support | Built | applyDataBindings() resolves stringKeys |
 | Documentation | Partial | Contract doc §6 mentions server-resolved strings; no stringKeys spec |
 
 ## Requirements Addressed
 
-- [ ] **REQ-1**: `stringKeys` mapping on data bindings (real-time value → localized string) — §9p
-- [ ] **REQ-2**: Client-side string resolution from a string table — §9p
-- [ ] **REQ-3**: Fallback chain (stringKey → server-resolved default → raw value) — §9p
+- [x] **REQ-1**: `stringKeys` mapping on data bindings (real-time value → localized string) — §9p
+- [x] **REQ-2**: Client-side string resolution from a string table — §9p
+- [x] **REQ-3**: Fallback chain (stringKey → server-resolved default → raw value) — §9p
 - [ ] **REQ-4**: RTL layout support where applicable — §9p
 
 ## Tasks
 
 ### Phase 1: Schema & Codegen
-- [ ] Add `stringKeys: Map<String, String>` to `DataBinding` (maps target path → string key)
-- [ ] Add `stringTable: Map<String, String>` to screen-level response (localized string map)
+- [x] Add `stringKeys: Map<String, String>` to `DataBinding` (maps target path → string key)
+- [x] Add `stringTable: Map<String, String>` to screen-level response (localized string map)
 - [ ] Run codegen
 
 ### Phase 2: Server
-- [ ] Populate `stringTable` with localized strings for dynamic statuses (e.g., `"status.final" → "Final"`)
+- [x] Populate `stringTable` with localized strings for dynamic statuses (e.g., `"status.final" → "Final"`)
 - [ ] Set `stringKeys` on data bindings where real-time messages send status codes, not display strings
-- [ ] Accept `Accept-Language` header and compose `stringTable` in the requested locale
+- [x] Accept `locale` query parameter (e.g. `?locale=es`) and compose `stringTable` in the requested locale
 
 ### Phase 3: Android
-- [ ] Extend `DataBindingResolver.applyBindings()` to check `stringKeys` for each target path
-- [ ] If stringKey exists: look up value in `stringTable`, fall back to raw value if not found
-- [ ] Log warning when stringKey lookup fails (per AGENTS.md §12)
+- [x] Extend `DataBindingResolver.applyBindings()` to check `stringKeys` for each target path
+- [x] If stringKey exists: look up value in `stringTable`, fall back to raw value if not found
+- [x] Log warning when stringKey lookup fails (per AGENTS.md §12)
 
 ### Phase 4: Web
-- [ ] Extend `DataBindingResolver.applyBindings()` with same stringKey lookup logic
-- [ ] Wire `stringTable` from screen response into resolver context
+- [x] Extend `DataBindingResolver.applyBindings()` with same stringKey lookup logic
+- [x] Wire `stringTable` from screen response into resolver context
 
 ### Phase 5: Documentation & Tests
 - [ ] Update Client Implementor's Contract with stringKey resolution algorithm
@@ -54,7 +56,7 @@ The current SDUI pipeline resolves all strings server-side — the server compos
 ## Dependencies
 
 - Depends on DataBindingResolver (already implemented on both platforms)
-- Depends on server locale detection (Accept-Language header parsing)
+- ~~Depends on server locale detection (Accept-Language header parsing)~~ → Uses `locale` query parameter per §9o requirements
 
 ## Open Questions
 

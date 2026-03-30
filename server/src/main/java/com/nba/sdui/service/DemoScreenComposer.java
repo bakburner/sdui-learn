@@ -38,7 +38,7 @@ public class DemoScreenComposer {
      * Compose a kitchen-sink demo screen showcasing all section types (including
      * atomic primitives like DisplayGrid) with static mock data.  No external API calls.
      */
-    public ObjectNode composeDemos(String traceId, String platform) {
+    public ObjectNode composeDemos(String traceId, String platform, String locale) {
         ObjectNode screen = objectMapper.createObjectNode();
         screen.put("id", "demos");
         screen.put("schemaVersion", schemaVersion);
@@ -52,6 +52,7 @@ public class DemoScreenComposer {
         screen.set("defaultRefreshPolicy", refreshPolicy);
 
         screen.set("navigation", utils.buildNavigation("demos"));
+        screen.set("stringTable", utils.buildStringTable(locale));
 
         ArrayNode sections = objectMapper.createArrayNode();
 
@@ -126,7 +127,7 @@ public class DemoScreenComposer {
     /**
      * Compose the standalone Season Leaders screen (Form + SeasonLeadersTable).
      */
-    public ObjectNode composeLeaders(String traceId, String platform) {
+    public ObjectNode composeLeaders(String traceId, String platform, String locale) {
         ObjectNode screen = objectMapper.createObjectNode();
         screen.put("id", "leaders");
         screen.put("schemaVersion", schemaVersion);
@@ -140,6 +141,7 @@ public class DemoScreenComposer {
         screen.set("defaultRefreshPolicy", refreshPolicy);
 
         screen.set("navigation", utils.buildNavigation("leaders"));
+        screen.set("stringTable", utils.buildStringTable(locale));
 
         ObjectNode state = objectMapper.createObjectNode();
         state.put("form_season", "2025-26");

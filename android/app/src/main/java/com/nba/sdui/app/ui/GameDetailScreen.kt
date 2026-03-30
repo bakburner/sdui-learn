@@ -110,7 +110,7 @@ fun GameDetailScreen(
             ) {
                 serverVariants.forEach { v ->
                     FilterChip(
-                        selected = config.variant == v.id,
+                        selected = config.experiments.values.contains(v.id),
                         onClick = { onVariantChange(v.id) },
                         label = { Text(v.label) }
                     )

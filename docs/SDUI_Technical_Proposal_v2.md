@@ -41,7 +41,7 @@ Current decisions reflected here:
 - **Platform-aware composition: shared schema and data pipeline; per-platform-family composition. Not an ADR — the only practical architecture for phone, tablet, web, and TV.**
 - Action precedence: nested/subsection > section > screen-default.
 - Navigate actions: `targetUri` for native deeplinks, `webUrl` for web — both are first-class, not primary/fallback.
-- Experiment model: support client hint and server-authoritative assignment; server assignment wins on conflict.
+- Experiment model: client-authoritative assignment via Amplitude SDK; server trusts assignments and uses for composition. Server kill switch can reject disabled variants.
 - Transport policy: support GET and POST by route context and cacheability needs.
 - Ad boundary: auction/targeting is delegated; SDUI carries ad placement contract.
 - Caching direction: section-first caching with optional screen snapshot caching.
@@ -728,8 +728,9 @@ Reference: ADR-009
 
 ### 9j. A/B Testing Integration
 
-- Support client hint and server-authoritative assignment.
-- On conflict, server-authoritative assignment wins.
+- Client-authoritative assignment via Amplitude SDK.
+- Server trusts assignments and uses them for composition branching.
+- Server kill switch can reject disabled variants (fallback to control).
 - Response must echo final assignment used.
 
 Reference: ADR-006
@@ -759,7 +760,7 @@ Composition must support a typed request envelope:
 - locale/region/timezone
 - auth context (`Authorization` header)
 - device context (device ID, ZIP code, country code, region)
-- experiment hints/assignments
+- experiment assignments
 - client capabilities
 - traceId
 

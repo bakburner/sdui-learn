@@ -21,6 +21,7 @@ data class SduiScreen(
     @JsonProperty("navigation") val navigation: Navigation? = null,
     @JsonProperty("variants") val variants: List<SduiVariant> = emptyList(),
     @JsonProperty("state") val state: Map<String, Any>? = null,
+    @JsonProperty("stringTable") val stringTable: Map<String, String>? = null,
     @JsonProperty("sections") val sections: List<SduiSection> = emptyList()
 )
 

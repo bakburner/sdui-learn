@@ -7,8 +7,8 @@ import com.nba.sdui.core.config.SduiScreenConfig
  *
  * Every screen is URI-driven — there is **no ScreenType enum**.
  * The server entirely owns layout, refresh policies (polling, Ably),
- * and variant definitions.  The client only needs the URI and a
- * variant selector.
+ * and variant definitions.  The client only needs the URI and
+ * experiment assignments from Amplitude.
  *
  * Use [toScreenConfig] to convert to the library-level [SduiScreenConfig]
  * that sdui-core consumes.
@@ -16,8 +16,8 @@ import com.nba.sdui.core.config.SduiScreenConfig
 data class SduiConfig(
     /** The nba:// URI that identifies this screen. */
     val uri: String,
-    /** A/B variant for server-side experimentation. */
-    val variant: String = "A"
+    /** Experiment assignments from Amplitude (experimentId → variant). */
+    val experiments: Map<String, String> = emptyMap()
 ) {
     companion object {
         /**
@@ -25,9 +25,9 @@ data class SduiConfig(
          * All refresh policy / real-time configuration comes from the
          * server response — see Rule 9.
          */
-        fun fromUri(uri: String, variant: String = "A") = SduiConfig(
+        fun fromUri(uri: String, experiments: Map<String, String> = emptyMap()) = SduiConfig(
             uri = uri,
-            variant = variant
+            experiments = experiments
         )
     }
 
@@ -43,6 +43,6 @@ data class SduiConfig(
             ablyTokenUrl = ablyTokenUrl,
             screenId = uri,
             gameState = "live",
-            variant = variant
+            experiments = experiments
         )
 }

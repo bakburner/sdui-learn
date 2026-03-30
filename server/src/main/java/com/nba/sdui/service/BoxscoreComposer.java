@@ -54,8 +54,8 @@ public class BoxscoreComposer {
      *
      * Source data: NBA CDN boxscore endpoint → {@code game.homeTeam / game.awayTeam}.
      */
-    public JsonNode composeBoxscore(String gameId, String traceId) throws IOException {
-        log.info("Composing boxscore screen: gameId={}", gameId);
+    public JsonNode composeBoxscore(String gameId, String traceId, String locale) throws IOException {
+        log.info("Composing boxscore screen: gameId={}, locale={}", gameId, locale);
 
         JsonNode boxscore = statsApiClient.getBoxscore(gameId);
         JsonNode game = boxscore != null ? boxscore.path("game") : null;
@@ -86,6 +86,7 @@ public class BoxscoreComposer {
             emptySection.set("data", emptyData);
             sections.add(emptySection);
             response.set("sections", sections);
+            utils.stampStringTableOnSections(response, locale);
             return response;
         }
 
@@ -159,6 +160,7 @@ public class BoxscoreComposer {
                 awayTricode, homeTricode, gameStatus,
                 awayTeam.path("players").size(), homeTeam.path("players").size());
 
+        utils.stampStringTableOnSections(response, locale);
         return response;
     }
 

@@ -27,23 +27,25 @@ function resolveEndpoint(uri: string): string {
 }
 
 export function App(): React.ReactElement {
-  const [variant, setVariant] = useState('A');
+  const [experiments, setExperiments] = useState<Record<string, string>>({});
   const [currentUri, setCurrentUri] = useState(BOOTSTRAP_URI);
 
   // Variants come from the server response — no client-side URI sniffing (Rule 10).
   // We read screen.variants after the first fetch below.
 
   useEffect(() => {
-    setVariant('A');
+    setExperiments({});
     setScreenState({});
   }, [currentUri]);
 
   const endpoint = resolveEndpoint(currentUri);
-  const { screen, loading, error, refetch, setScreen } = useSduiScreen({ endpoint, variant });
+  const { screen, loading, error, refetch, setScreen } = useSduiScreen({ endpoint, experiments });
 
   // Read available variants from the server response (empty if not provided).
-  const variants: ReadonlyArray<{ id: string; label: string; description: string }> =
-    (screen as Record<string, unknown> | undefined)?.variants as typeof variants ?? [];
+  const variantsData = (screen as Record<string, unknown> | undefined)?.variants as
+    { experimentId?: string; options?: ReadonlyArray<{ id: string; label: string; description: string }> } | undefined;
+  const variantOptions = variantsData?.options ?? [];
+  const variantExperimentId = variantsData?.experimentId ?? 'variant';
 
   // Screen-level state for TabGroup and other stateful sections
   const [screenState, setScreenState] = useState<Record<string, unknown>>({});
@@ -177,17 +179,22 @@ export function App(): React.ReactElement {
       />
 
       {/* Variant Selector - proves composability with zero client rendering changes */}
-      {variants.length > 0 && (
+      {variantOptions.length > 0 && (
         <div style={styles.variantBar}>
           <span style={styles.variantLabel}>Variant:</span>
-          {variants.map((v) => (
+          {variantOptions.map((v) => (
             <button
               key={v.id}
               style={{
                 ...styles.variantButton,
-                ...(variant === v.id ? styles.variantButtonActive : {}),
+                ...(experiments[variantExperimentId] === v.id ? styles.variantButtonActive : {}),
               }}
-              onClick={() => setVariant(v.id)}
+              onClick={() =>
+                setExperiments((prev) => ({
+                  ...prev,
+                  [variantExperimentId]: v.id,
+                }))
+              }
               title={v.description}
             >
               {v.label}

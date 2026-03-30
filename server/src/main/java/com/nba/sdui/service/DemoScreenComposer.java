@@ -38,7 +38,7 @@ public class DemoScreenComposer {
      * Compose a kitchen-sink demo screen showcasing all section types (including
      * atomic primitives like DisplayGrid) with static mock data.  No external API calls.
      */
-    public ObjectNode composeDemos(String traceId, String platform) {
+    public ObjectNode composeDemos(String traceId, String platform, String locale) {
         ObjectNode screen = objectMapper.createObjectNode();
         screen.put("id", "demos");
         screen.put("schemaVersion", schemaVersion);
@@ -120,13 +120,14 @@ public class DemoScreenComposer {
         sections.add(buildDemoSectionSlot());
 
         screen.set("sections", sections);
+        utils.stampStringTableOnSections(screen, locale);
         return screen;
     }
 
     /**
      * Compose the standalone Season Leaders screen (Form + SeasonLeadersTable).
      */
-    public ObjectNode composeLeaders(String traceId, String platform) {
+    public ObjectNode composeLeaders(String traceId, String platform, String locale) {
         ObjectNode screen = objectMapper.createObjectNode();
         screen.put("id", "leaders");
         screen.put("schemaVersion", schemaVersion);
@@ -160,7 +161,7 @@ public class DemoScreenComposer {
      * Compose only the leaders-table section for a parameterised refresh.
      * Called from the controller when the form submits.
      */
-    public ObjectNode composeLeadersRefresh(String traceId, Map<String, String> params) {
+    public ObjectNode composeLeadersRefresh(String traceId, Map<String, String> params, String locale) {
         String season = params.getOrDefault("season", "2025-26");
         String seasonType = params.getOrDefault("seasonType", "regular");
         String perMode = params.getOrDefault("perMode", "per_game");
@@ -182,6 +183,7 @@ public class DemoScreenComposer {
         sections.add(buildLeadersTable(season, seasonType, perMode, statCategory));
         screen.set("sections", sections);
 
+        utils.stampStringTableOnSections(screen, locale);
         return screen;
     }
 

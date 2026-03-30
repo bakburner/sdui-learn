@@ -3,33 +3,37 @@ package com.nba.sdui.controller;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.nba.sdui.request.SduiRequestContext;
 import com.nba.sdui.service.SduiCompositionService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
+import org.springframework.http.CacheControl;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.LinkedHashMap;
+import java.time.Duration;
 import java.util.Map;
 import java.util.UUID;
 
 /**
  * Controller for SDUI endpoints.
- * 
- * Endpoints:
- * - GET /sdui/scoreboard - Returns SDUI screen response for Today's Games
- * - GET /sdui/game-detail/{gameId} - Returns SDUI screen response for game detail
- * - GET /stats/{gameId} - Returns player stats for polling section
+ *
+ * <p>All composition endpoints accept {@link SduiRequestContext}, resolved from
+ * bracket-notation query params (GET) or JSON body (POST) by
+ * {@link com.nba.sdui.request.BracketParamResolver}.
+ *
+ * <p>Headers retained: {@code Authorization} (auth), {@code X-Trace-Id} (observability).
+ * All other context travels as query parameters per plan-request-transport.md D3.
  */
 @RestController
 public class SduiController {
 
     private static final Logger log = LoggerFactory.getLogger(SduiController.class);
-    
+
     private final SduiCompositionService compositionService;
     private final ObjectMapper objectMapper;
 
@@ -38,41 +42,30 @@ public class SduiController {
         this.objectMapper = objectMapper;
     }
 
-    /**
-     * Get SDUI screen response for game detail page.
-     *
-     * @param gameId      The game ID (e.g., "0042300102")
-     * @param gameState   Game state hint: "pre", "live", or "final" (default: "pre")
-     * @param schemaVersion Client's supported schema version (from header)
-     * @param response    HTTP response (for adding headers)
-     * @return SDUI Screen JSON response
-     */
+    // ── Game Detail ────────────────────────────────────────────────────
+
     @GetMapping(value = {"/sdui/game-detail/{gameId}", "/sdui/game/{gameId}"}, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<JsonNode> getGameDetail(
             @PathVariable String gameId,
-            @RequestParam(defaultValue = "pre") String gameState,
-            @RequestParam(defaultValue = "A") String variant,
-            @RequestHeader(value = "X-Schema-Version", defaultValue = "1.0") String schemaVersion,
+            SduiRequestContext ctx,
             HttpServletResponse response) {
-        
-        // Generate trace ID
-        String traceId = "trace-" + UUID.randomUUID().toString().substring(0, 8);
-        MDC.put("traceId", traceId);
-        
-        log.info("SDUI request: gameId={}, gameState={}, variant={}, schemaVersion={}",
-                gameId, gameState, variant, schemaVersion);
-        
+
+        ensureTraceId(ctx);
+        MDC.put("traceId", ctx.getTraceId());
+
+        log.info("SDUI request: gameId={}, gameState={}, locale={}, schemaVersion={}, platform={}",
+                gameId, ctx.getGameState(), ctx.getLocale(), ctx.getSchemaVersion(), ctx.getPlatformName());
+
         try {
-            JsonNode screenResponse = compositionService.composeGameDetail(
-                    gameId, gameState, variant, schemaVersion, traceId);
-            
-            // Add response headers
-            response.setHeader("X-Trace-Id", traceId);
-            response.setHeader("X-Schema-Version", "1.0");
-            
+            JsonNode screenResponse = compositionService.composeGameDetail(gameId, ctx);
+
+            setResponseHeaders(response, ctx);
             log.info("SDUI response composed successfully");
-            return ResponseEntity.ok(screenResponse);
-            
+
+            // D7: gameState determines cacheability
+            CacheControl cache = resolveCacheControl(ctx.getGameState(), "pre");
+            return ResponseEntity.ok().cacheControl(cache).body(screenResponse);
+
         } catch (Exception e) {
             log.error("Error composing SDUI response", e);
             return ResponseEntity.internalServerError().build();
@@ -81,30 +74,33 @@ public class SduiController {
         }
     }
 
-    /**
-     * Get SDUI screen response for today's games scoreboard.
-     */
+    @PostMapping(value = {"/sdui/game-detail/{gameId}", "/sdui/game/{gameId}"}, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<JsonNode> postGameDetail(
+            @PathVariable String gameId,
+            SduiRequestContext ctx,
+            HttpServletResponse response) {
+        return getGameDetail(gameId, ctx, response);
+    }
+
+    // ── Scoreboard ─────────────────────────────────────────────────────
+
     @GetMapping(value = "/sdui/scoreboard", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<JsonNode> getScoreboard(
-            @RequestParam(defaultValue = "A") String variant,
-            @RequestHeader(value = "X-Schema-Version", defaultValue = "1.0") String schemaVersion,
+            SduiRequestContext ctx,
             HttpServletResponse response) {
 
-        String traceId = "trace-" + UUID.randomUUID().toString().substring(0, 8);
-        MDC.put("traceId", traceId);
+        ensureTraceId(ctx);
+        MDC.put("traceId", ctx.getTraceId());
 
-        log.info("SDUI scoreboard request: variant={}, schemaVersion={}",
-                variant, schemaVersion);
+        log.info("SDUI scoreboard request: locale={}, schemaVersion={}", ctx.getLocale(), ctx.getSchemaVersion());
 
         try {
-            JsonNode screenResponse = compositionService.composeScoreboard(
-                    variant, schemaVersion, traceId);
-
-            response.setHeader("X-Trace-Id", traceId);
-            response.setHeader("X-Schema-Version", "1.0");
-
+            JsonNode screenResponse = compositionService.composeScoreboard(ctx);
+            setResponseHeaders(response, ctx);
             log.info("SDUI scoreboard response composed successfully");
-            return ResponseEntity.ok(screenResponse);
+            return ResponseEntity.ok()
+                    .cacheControl(CacheControl.maxAge(Duration.ofSeconds(60)).cachePublic())
+                    .body(screenResponse);
         } catch (Exception e) {
             log.error("Error composing SDUI scoreboard response", e);
             return ResponseEntity.internalServerError().build();
@@ -113,27 +109,28 @@ public class SduiController {
         }
     }
 
-    /**
-     * Get player stats for polling section.
-     *
-     * @param gameId The game ID
-     * @return Stats response suitable for StatLine section
-     */
+    @PostMapping(value = "/sdui/scoreboard", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<JsonNode> postScoreboard(SduiRequestContext ctx, HttpServletResponse response) {
+        return getScoreboard(ctx, response);
+    }
+
+    // ── Stats (polling endpoint — not a composition endpoint) ──────────
+
     @GetMapping(value = "/stats/{gameId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<JsonNode> getStats(
-            @PathVariable String gameId,
-            @RequestHeader(value = "X-Schema-Version", defaultValue = "1.0") String schemaVersion) {
-        
+            @PathVariable String gameId) {
+
         String traceId = "trace-" + UUID.randomUUID().toString().substring(0, 8);
         MDC.put("traceId", traceId);
-        
+
         log.info("Stats request: gameId={}", gameId);
-        
+
         try {
             JsonNode statsResponse = compositionService.getPlayerStats(gameId);
             log.info("Stats response composed successfully");
-            return ResponseEntity.ok(statsResponse);
-            
+            return ResponseEntity.ok()
+                    .cacheControl(CacheControl.noCache())
+                    .body(statsResponse);
         } catch (Exception e) {
             log.error("Error fetching stats", e);
             return ResponseEntity.internalServerError().build();
@@ -142,25 +139,23 @@ public class SduiController {
         }
     }
 
-    // ── Demos Kitchen-Sink Screen ─────────────────────────────────────
+    // ── For You ────────────────────────────────────────────────────────
 
-    /**
-     * Get SDUI screen response for the For You personalised home feed.
-     */
     @GetMapping(value = "/sdui/for-you", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<JsonNode> getForYou(
-            @RequestHeader(value = "X-Schema-Version", defaultValue = "1.0") String schemaVersion,
+            SduiRequestContext ctx,
             HttpServletResponse response) {
 
-        String traceId = "trace-" + UUID.randomUUID().toString().substring(0, 8);
-        MDC.put("traceId", traceId);
-        log.info("SDUI for-you request: schemaVersion={}", schemaVersion);
+        ensureTraceId(ctx);
+        MDC.put("traceId", ctx.getTraceId());
+        log.info("SDUI for-you request: locale={}, schemaVersion={}", ctx.getLocale(), ctx.getSchemaVersion());
 
         try {
-            JsonNode screenResponse = compositionService.composeForYou(traceId);
-            response.setHeader("X-Trace-Id", traceId);
-            response.setHeader("X-Schema-Version", "1.0");
-            return ResponseEntity.ok(screenResponse);
+            JsonNode screenResponse = compositionService.composeForYou(ctx);
+            setResponseHeaders(response, ctx);
+            return ResponseEntity.ok()
+                    .cacheControl(CacheControl.maxAge(Duration.ofSeconds(120)).cachePrivate())
+                    .body(screenResponse);
         } catch (Exception e) {
             log.error("Error composing for-you screen", e);
             return ResponseEntity.internalServerError().build();
@@ -169,23 +164,28 @@ public class SduiController {
         }
     }
 
-    /**
-     * Get SDUI screen response for the Watch streaming hub.
-     */
+    @PostMapping(value = "/sdui/for-you", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<JsonNode> postForYou(SduiRequestContext ctx, HttpServletResponse response) {
+        return getForYou(ctx, response);
+    }
+
+    // ── Watch ──────────────────────────────────────────────────────────
+
     @GetMapping(value = "/sdui/watch", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<JsonNode> getWatch(
-            @RequestHeader(value = "X-Schema-Version", defaultValue = "1.0") String schemaVersion,
+            SduiRequestContext ctx,
             HttpServletResponse response) {
 
-        String traceId = "trace-" + UUID.randomUUID().toString().substring(0, 8);
-        MDC.put("traceId", traceId);
-        log.info("SDUI watch request: schemaVersion={}", schemaVersion);
+        ensureTraceId(ctx);
+        MDC.put("traceId", ctx.getTraceId());
+        log.info("SDUI watch request: locale={}, schemaVersion={}", ctx.getLocale(), ctx.getSchemaVersion());
 
         try {
-            JsonNode screenResponse = compositionService.composeWatch(traceId);
-            response.setHeader("X-Trace-Id", traceId);
-            response.setHeader("X-Schema-Version", "1.0");
-            return ResponseEntity.ok(screenResponse);
+            JsonNode screenResponse = compositionService.composeWatch(ctx);
+            setResponseHeaders(response, ctx);
+            return ResponseEntity.ok()
+                    .cacheControl(CacheControl.maxAge(Duration.ofSeconds(120)).cachePublic())
+                    .body(screenResponse);
         } catch (Exception e) {
             log.error("Error composing watch screen", e);
             return ResponseEntity.internalServerError().build();
@@ -194,23 +194,28 @@ public class SduiController {
         }
     }
 
-    /**
-     * Get SDUI screen response for the Games screen (live, upcoming & final).
-     */
+    @PostMapping(value = "/sdui/watch", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<JsonNode> postWatch(SduiRequestContext ctx, HttpServletResponse response) {
+        return getWatch(ctx, response);
+    }
+
+    // ── Games / Live ───────────────────────────────────────────────────
+
     @GetMapping(value = {"/sdui/games", "/sdui/live"}, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<JsonNode> getGames(
-            @RequestHeader(value = "X-Schema-Version", defaultValue = "1.0") String schemaVersion,
+            SduiRequestContext ctx,
             HttpServletResponse response) {
 
-        String traceId = "trace-" + UUID.randomUUID().toString().substring(0, 8);
-        MDC.put("traceId", traceId);
-        log.info("SDUI games request: schemaVersion={}", schemaVersion);
+        ensureTraceId(ctx);
+        MDC.put("traceId", ctx.getTraceId());
+        log.info("SDUI games request: locale={}, schemaVersion={}", ctx.getLocale(), ctx.getSchemaVersion());
 
         try {
-            JsonNode screenResponse = compositionService.composeLive(traceId);
-            response.setHeader("X-Trace-Id", traceId);
-            response.setHeader("X-Schema-Version", "1.0");
-            return ResponseEntity.ok(screenResponse);
+            JsonNode screenResponse = compositionService.composeLive(ctx);
+            setResponseHeaders(response, ctx);
+            return ResponseEntity.ok()
+                    .cacheControl(CacheControl.noCache())
+                    .body(screenResponse);
         } catch (Exception e) {
             log.error("Error composing games screen", e);
             return ResponseEntity.internalServerError().build();
@@ -219,25 +224,29 @@ public class SduiController {
         }
     }
 
-    /**
-     * Get SDUI screen response for the demos kitchen-sink page.
-     * Showcases all 10 semantic section types with static mock data.
-     */
+    @PostMapping(value = {"/sdui/games", "/sdui/live"}, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<JsonNode> postGames(SduiRequestContext ctx, HttpServletResponse response) {
+        return getGames(ctx, response);
+    }
+
+    // ── Demos ──────────────────────────────────────────────────────────
+
     @GetMapping(value = "/sdui/demos", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<JsonNode> getDemos(
-            @RequestHeader(value = "X-Schema-Version", defaultValue = "1.0") String schemaVersion,
-            @RequestHeader(value = "X-Platform", required = false) String platform,
+            SduiRequestContext ctx,
             HttpServletResponse response) {
 
-        String traceId = "trace-" + UUID.randomUUID().toString().substring(0, 8);
-        MDC.put("traceId", traceId);
-        log.info("SDUI demos request: schemaVersion={}, platform={}", schemaVersion, platform);
+        ensureTraceId(ctx);
+        MDC.put("traceId", ctx.getTraceId());
+        log.info("SDUI demos request: locale={}, schemaVersion={}, platform={}",
+                ctx.getLocale(), ctx.getSchemaVersion(), ctx.getPlatformName());
 
         try {
-            JsonNode screenResponse = compositionService.composeDemos(traceId, platform);
-            response.setHeader("X-Trace-Id", traceId);
-            response.setHeader("X-Schema-Version", "1.0");
-            return ResponseEntity.ok(screenResponse);
+            JsonNode screenResponse = compositionService.composeDemos(ctx);
+            setResponseHeaders(response, ctx);
+            return ResponseEntity.ok()
+                    .cacheControl(CacheControl.maxAge(Duration.ofSeconds(60)).cachePublic())
+                    .body(screenResponse);
         } catch (Exception e) {
             log.error("Error composing demos screen", e);
             return ResponseEntity.internalServerError().build();
@@ -246,27 +255,29 @@ public class SduiController {
         }
     }
 
-    // ── Season Leaders Screen ──────────────────────────────────────────
+    @PostMapping(value = "/sdui/demos", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<JsonNode> postDemos(SduiRequestContext ctx, HttpServletResponse response) {
+        return getDemos(ctx, response);
+    }
 
-    /**
-     * Get SDUI screen response for the Season Leaders page.
-     * Contains a filter Form and a SeasonLeadersTable.
-     */
+    // ── Leaders ────────────────────────────────────────────────────────
+
     @GetMapping(value = "/sdui/leaders", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<JsonNode> getLeaders(
-            @RequestHeader(value = "X-Schema-Version", defaultValue = "1.0") String schemaVersion,
-            @RequestHeader(value = "X-Platform", required = false) String platform,
+            SduiRequestContext ctx,
             HttpServletResponse response) {
 
-        String traceId = "trace-" + UUID.randomUUID().toString().substring(0, 8);
-        MDC.put("traceId", traceId);
-        log.info("SDUI leaders request: schemaVersion={}, platform={}", schemaVersion, platform);
+        ensureTraceId(ctx);
+        MDC.put("traceId", ctx.getTraceId());
+        log.info("SDUI leaders request: locale={}, schemaVersion={}, platform={}",
+                ctx.getLocale(), ctx.getSchemaVersion(), ctx.getPlatformName());
 
         try {
-            JsonNode screenResponse = compositionService.composeLeaders(traceId, platform);
-            response.setHeader("X-Trace-Id", traceId);
-            response.setHeader("X-Schema-Version", "1.0");
-            return ResponseEntity.ok(screenResponse);
+            JsonNode screenResponse = compositionService.composeLeaders(ctx);
+            setResponseHeaders(response, ctx);
+            return ResponseEntity.ok()
+                    .cacheControl(CacheControl.maxAge(Duration.ofSeconds(300)).cachePublic())
+                    .body(screenResponse);
         } catch (Exception e) {
             log.error("Error composing leaders screen", e);
             return ResponseEntity.internalServerError().build();
@@ -275,34 +286,30 @@ public class SduiController {
         }
     }
 
-    // ── Boxscore Screen ────────────────────────────────────────────────
+    @PostMapping(value = "/sdui/leaders", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<JsonNode> postLeaders(SduiRequestContext ctx, HttpServletResponse response) {
+        return getLeaders(ctx, response);
+    }
 
-    /**
-     * Get SDUI screen response for the boxscore view.
-     *
-     * <p>Returns a {@code Screen} containing a {@code TabGroup} that wraps two
-     * {@code BoxscoreTable} sections (away / home).  Screen-level state is
-     * pre-populated with default sort column, direction, and active team tab.
-     *
-     * @param gameId Game ID (e.g. "0042300102")
-     */
+    // ── Boxscore ───────────────────────────────────────────────────────
+
     @GetMapping(value = "/sdui/boxscore/{gameId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<JsonNode> getBoxscore(
             @PathVariable String gameId,
-            @RequestHeader(value = "X-Schema-Version", defaultValue = "1.0") String schemaVersion,
+            SduiRequestContext ctx,
             HttpServletResponse response) {
 
-        String traceId = "trace-" + UUID.randomUUID().toString().substring(0, 8);
-        MDC.put("traceId", traceId);
-        log.info("SDUI boxscore request: gameId={}, schemaVersion={}", gameId, schemaVersion);
+        ensureTraceId(ctx);
+        MDC.put("traceId", ctx.getTraceId());
+        log.info("SDUI boxscore request: gameId={}, locale={}, schemaVersion={}", gameId, ctx.getLocale(), ctx.getSchemaVersion());
 
         try {
-            JsonNode screenResponse = compositionService.composeBoxscore(gameId, traceId);
-
-            response.setHeader("X-Trace-Id", traceId);
-            response.setHeader("X-Schema-Version", "1.0");
+            JsonNode screenResponse = compositionService.composeBoxscore(gameId, ctx);
+            setResponseHeaders(response, ctx);
             log.info("SDUI boxscore response composed successfully");
-            return ResponseEntity.ok(screenResponse);
+            return ResponseEntity.ok()
+                    .cacheControl(CacheControl.noCache())
+                    .body(screenResponse);
         } catch (Exception e) {
             log.error("Error composing SDUI boxscore response", e);
             return ResponseEntity.internalServerError().build();
@@ -311,33 +318,25 @@ public class SduiController {
         }
     }
 
+    @PostMapping(value = "/sdui/boxscore/{gameId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<JsonNode> postBoxscore(
+            @PathVariable String gameId, SduiRequestContext ctx, HttpServletResponse response) {
+        return getBoxscore(gameId, ctx, response);
+    }
+
     // ── Parameterized Refresh (Form submit support) ────────────────────
 
-    /**
-     * Generic SDUI screen refresh endpoint that accepts arbitrary query parameters.
-     *
-     * <p>Clients call this when a {@code Form} submit action fires with
-     * {@code paramBindings} resolved from screen state.  The controller passes
-     * all query parameters through to the composition service so the server
-     * can return an updated screen reflecting the submitted values.
-     *
-     * <p>Example:
-     * <pre>
-     *   GET /sdui/refresh/stats-leaders?season=2025-26&seasonType=Regular+Season
-     * </pre>
-     *
-     * @param screenId  Logical screen identifier (e.g. "stats-leaders", "roster")
-     * @param request   The HTTP request — all query params are extracted and forwarded
-     */
     @GetMapping(value = "/sdui/refresh/{screenId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<JsonNode> refreshScreen(
             @PathVariable String screenId,
             @RequestParam Map<String, String> allParams,
-            @RequestHeader(value = "X-Schema-Version", defaultValue = "1.0") String schemaVersion,
             HttpServletRequest request,
             HttpServletResponse response) {
 
-        String traceId = "trace-" + UUID.randomUUID().toString().substring(0, 8);
+        String traceId = request.getHeader("X-Trace-Id");
+        if (traceId == null) {
+            traceId = "trace-" + UUID.randomUUID().toString().substring(0, 8);
+        }
         MDC.put("traceId", traceId);
         log.info("SDUI parameterized refresh: screenId={}, params={}", screenId, allParams);
 
@@ -345,10 +344,9 @@ public class SduiController {
             JsonNode screenResponse;
 
             if ("stats-leaders".equals(screenId)) {
-                // Delegate to the composition service for leaders-table refresh
-                screenResponse = compositionService.composeLeadersRefresh(traceId, allParams);
+                String locale = allParams.getOrDefault("locale", "en");
+                screenResponse = compositionService.composeLeadersRefresh(traceId, allParams, locale);
             } else {
-                // Generic placeholder for screens without a dedicated composer
                 ObjectNode placeholder = objectMapper.createObjectNode();
                 placeholder.put("id", screenId);
                 placeholder.put("traceId", traceId);
@@ -364,7 +362,9 @@ public class SduiController {
             response.setHeader("X-Trace-Id", traceId);
             response.setHeader("X-Schema-Version", "1.0");
             log.info("SDUI refresh response composed: screenId={}", screenId);
-            return ResponseEntity.ok(screenResponse);
+            return ResponseEntity.ok()
+                    .cacheControl(CacheControl.noCache())
+                    .body(screenResponse);
         } catch (Exception e) {
             log.error("Error composing SDUI refresh response for screenId={}", screenId, e);
             return ResponseEntity.internalServerError().build();
@@ -373,11 +373,40 @@ public class SduiController {
         }
     }
 
-    /**
-     * Health check endpoint.
-     */
+    // ── Health ──────────────────────────────────────────────────────────
+
     @GetMapping("/health")
     public ResponseEntity<String> health() {
         return ResponseEntity.ok("OK");
+    }
+
+    // ── Private helpers ────────────────────────────────────────────────
+
+    /**
+     * Ensure the request context has a trace ID.
+     * If the client didn't send X-Trace-Id, generate one.
+     */
+    private void ensureTraceId(SduiRequestContext ctx) {
+        if (ctx.getTraceId() == null || ctx.getTraceId().isBlank()) {
+            ctx.setTraceId("trace-" + UUID.randomUUID().toString().substring(0, 8));
+        }
+    }
+
+    /** Set standard response headers from the request context. */
+    private void setResponseHeaders(HttpServletResponse response, SduiRequestContext ctx) {
+        response.setHeader("X-Trace-Id", ctx.getTraceId());
+        response.setHeader("X-Schema-Version", ctx.getSchemaVersion());
+    }
+
+    /**
+     * Resolve Cache-Control based on game state (D7 mapping).
+     */
+    private CacheControl resolveCacheControl(String gameState, String defaultState) {
+        String state = gameState != null ? gameState : defaultState;
+        return switch (state) {
+            case "live" -> CacheControl.noCache();
+            case "post", "final" -> CacheControl.maxAge(Duration.ofSeconds(3600)).cachePublic();
+            default -> CacheControl.maxAge(Duration.ofSeconds(300)).cachePublic(); // pre
+        };
     }
 }

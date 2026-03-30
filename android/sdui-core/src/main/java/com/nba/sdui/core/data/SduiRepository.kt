@@ -5,10 +5,13 @@ import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import com.nba.sdui.core.models.SduiScreen
+import com.nba.sdui.core.request.RequestEnvelopeBuilder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.logging.HttpLoggingInterceptor
 import java.util.concurrent.TimeUnit
 
@@ -18,13 +21,17 @@ import java.util.concurrent.TimeUnit
  * All screen fetches route through [fetchScreen].  There are NO endpoint-specific
  * helpers — the server path is resolved upstream (by resolveEndpoint or the
  * server's navigation payload) and passed here as-is.
+ *
+ * Request context (platform, locale, device, experiments) is sent as
+ * bracket-notation query parameters per plan-request-transport.md D1.
+ * If the query string exceeds 8192 chars, falls back to POST with JSON body.
  */
 class SduiRepository(
     private val baseUrl: String
 ) {
     companion object {
         private const val TAG = "SduiRepository"
-        private const val SCHEMA_VERSION = "1.0"
+        private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
 
         /** Shared ObjectMapper — registerKotlinModule() is expensive (reflection). */
         val objectMapper: ObjectMapper by lazy {
@@ -44,27 +51,39 @@ class SduiRepository(
                 .build()
         }
     }
-    
+
     /**
      * Fetch any SDUI screen by its resolved server path.
      *
-     * @param path  Path relative to baseUrl, e.g. "/sdui/game-detail/00423?gameState=live"
-     * @param variant A/B testing variant
+     * @param path    Path relative to baseUrl, e.g. "/sdui/game-detail/00423"
+     * @param envelope  Request envelope builder with platform/device/experiment context
      */
     suspend fun fetchScreen(
         path: String,
-        variant: String = "A"
+        envelope: RequestEnvelopeBuilder
     ): SduiScreen = withContext(Dispatchers.IO) {
-        val separator = if (path.contains("?")) "&" else "?"
-        val url = "$baseUrl$path${separator}variant=$variant"
+        val traceId = envelope.generateTraceId()
+        val queryString = envelope.buildQueryString()
 
-        Log.d(TAG, "Fetching screen: $url")
-
-        val request = Request.Builder()
-            .url(url)
-            .header("X-Schema-Version", SCHEMA_VERSION)
-            .header("X-Platform", "android")
-            .build()
+        val request = if (envelope.exceedsGetThreshold()) {
+            // POST fallback for oversized query strings
+            val url = "$baseUrl$path"
+            Log.d(TAG, "Fetching screen (POST fallback): $url")
+            Request.Builder()
+                .url(url)
+                .header("X-Trace-Id", traceId)
+                .post(queryString.toRequestBody(JSON_MEDIA_TYPE))
+                .build()
+        } else {
+            // Standard GET with bracket-notation query params
+            val separator = if (path.contains("?")) "&" else "?"
+            val url = "$baseUrl$path${separator}$queryString"
+            Log.d(TAG, "Fetching screen: $url")
+            Request.Builder()
+                .url(url)
+                .header("X-Trace-Id", traceId)
+                .build()
+        }
 
         val response = httpClient.newCall(request).execute()
         if (!response.isSuccessful) {
@@ -81,37 +100,37 @@ class SduiRepository(
             throw SduiException("Failed to parse screen response: ${e.message}")
         }
     }
-    
+
     /**
      * Fetch raw JSON from any URL (for direct data polling).
-     * 
+     *
      * @param url The full URL to fetch from
      * @param dataPath Optional JSONPath-like path to extract data (e.g., "game" or "sections[0].data")
      */
     suspend fun fetchRawJson(url: String, dataPath: String? = null): Map<String, Any> = withContext(Dispatchers.IO) {
         Log.d(TAG, "Fetching raw JSON from: $url")
-        
+
         val request = Request.Builder()
             .url(url)
             .build()
-        
+
         val response = httpClient.newCall(request).execute()
-        
+
         if (!response.isSuccessful) {
             throw SduiException("Failed to fetch from $url: ${response.code}")
         }
-        
+
         val body = response.body?.string()
             ?: throw SduiException("Empty response body from $url")
-        
+
         @Suppress("UNCHECKED_CAST")
         val json = objectMapper.readValue(body, Map::class.java) as Map<String, Any>
-        
+
         // Extract nested path if specified (simple dot notation)
         if (dataPath.isNullOrEmpty()) {
             return@withContext json
         }
-        
+
         var current: Any = json
         for (segment in dataPath.split(".")) {
             current = when (current) {
@@ -119,7 +138,7 @@ class SduiRepository(
                 else -> throw SduiException("Cannot navigate path '$segment' - current value is not a map")
             }
         }
-        
+
         @Suppress("UNCHECKED_CAST")
         when (current) {
             is Map<*, *> -> current as Map<String, Any>

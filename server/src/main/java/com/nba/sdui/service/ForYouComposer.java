@@ -54,8 +54,8 @@ public class ForYouComposer {
         this.atomicBuilder = new AtomicCompositeBuilder(objectMapper);
     }
 
-    public JsonNode composeForYou(String traceId) {
-        log.info("Composing For You screen");
+    public JsonNode composeForYou(String traceId, String locale) {
+        log.info("Composing For You screen, locale={}", locale);
 
         ObjectNode response = objectMapper.createObjectNode();
         response.put("id", "for-you");
@@ -117,6 +117,7 @@ public class ForYouComposer {
         addUpcomingGamePanels(sections);
 
         response.set("sections", sections);
+        utils.stampStringTableOnSections(response, locale);
         return response;
     }
 

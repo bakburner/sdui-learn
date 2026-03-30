@@ -568,6 +568,11 @@ export interface Section {
     refreshPolicy?: RefreshPolicy;
     sectionStates?: SectionStates;
     /**
+     * Section-level map of translation key to localized string. Used by DataBindingResolver to
+     * resolve stringKeys on real-time updates.
+     */
+    stringTable?: { [key: string]: string };
+    /**
      * Nested interaction targets within the section
      */
     subsections?: Subsection[];

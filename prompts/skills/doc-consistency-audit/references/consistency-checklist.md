@@ -40,5 +40,34 @@ For each document in the audit list, verify every item below. Mark any inconsist
 ## Cross-Document Dedup
 
 - [ ] No two documents contradict each other on the same fact
-- [ ] Feature status (Built/Gap/Partial) is consistent across Executive Summary and Requirements Summary
+- [ ] Feature status (Built/Gap/Partial) is consistent across Executive Summary, Technical Proposal, and Requirements Summary
 - [ ] ADRs reference current type names, not stale ones
+
+## Feature Status (most commonly missed category)
+
+Compare every status table entry against actual code state. Recent commits frequently close gaps without updating docs.
+
+- [ ] Every requirement marked **Gap** is actually unimplemented (no code exists)
+- [ ] Every requirement marked **Partial** has incomplete implementation (not fully built)
+- [ ] Every requirement marked **Built** has working code on at least the platforms claimed
+- [ ] Request context envelope status matches code reality (`SduiRequestContext.java`, `RequestEnvelopeBuilder.kt/.ts`)
+- [ ] Internationalization (i18n) status matches code reality (`stringTable` in schema, `stampStringTableOnSections` in server, client consumption)
+- [ ] Experiment/A/B testing status matches code reality (ADR-006 status, server experiment resolution, client assignment transport)
+- [ ] Composition API contract status matches code reality (`BracketParamResolver`, GET/POST support)
+- [ ] Status is consistent across **all three** status tables: Executive Summary feature table, Technical Proposal §10, Requirements Summary §10
+- [ ] New features implemented since last audit are reflected in the feature tables (check `git log` for recent `feat:` commits)
+
+## ADR Status Tracking
+
+- [ ] Every ADR's status in doc tables matches the actual status in the ADR file header
+- [ ] ADRs marked "Proposed" in docs are actually still proposed (not silently accepted)
+- [ ] ADRs marked "Accepted" in docs are actually accepted
+- [ ] The Executive Summary "Decision Continuity" table reflects current ADR statuses (not stale "ADR pending")
+- [ ] The Requirements Summary "ADR Approvals Pending" table reflects current ADR statuses
+
+## Revision History
+
+- [ ] Modified documents have updated revision history entries
+- [ ] Revision entries accurately describe the changes made
+- [ ] All revision history tables are sorted **newest-first** (descending date order)
+- [ ] New entries are inserted at the top of the table (after the header row), not appended at the bottom

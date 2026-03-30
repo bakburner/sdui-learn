@@ -12,6 +12,25 @@ Today, changing the layout or content arrangement on any app screen requires a c
 
 ---
 
+## Key Results
+
+### **Objective 1: Deliver changes at NBA season pace**
+- KR1: Ship UI layout changes to production in < 1 hour (vs. current days-to-weeks)
+- KR2: Enable server-side rollbacks and hotfixes without app releases
+- KR3: Majority of UI changes ship without client releases by end of M4
+
+### **Objective 2: Eliminate cross-platform drift and coordination overhead**
+- KR1: Zero behavioral drift on SDUI surfaces (single schema = single source of truth)
+- KR2: Measurably reduce client PRs and cross-platform coordination overhead per sprint
+- KR3: Consolidate business logic from 3 platform implementations to 1 server implementation for SDUI surfaces
+
+### **Objective 3: Accelerate from design to production**
+- KR1: Increase A/B experimentation velocity 3x on SDUI surfaces vs. current throughput
+- KR2: Ship new layout variants using existing atomic building blocks without client development
+- KR3: Reduce change failure rate through centralized, testable server-side composition
+
+---
+
 ## What It Enables
 
 
@@ -31,6 +50,8 @@ Today, changing the layout or content arrangement on any app screen requires a c
 
 | Date | Summary |
 |---|---|
+| 2026-03-30 | Doc consistency audit. Added feature rows for request context envelope, experiment assignment (ADR-006 Accepted), and i18n (section-level stringTable). Updated composition service description. Updated Decision Continuity table (experiment assignment: ADR pending → ADR-006 Accepted). |
+| 2026-03-26 | Added Key Results section (OKRs) positioned after "The Opportunity" for executive visibility. Three objectives covering delivery velocity, cross-platform coordination, and design-to-production acceleration. Removed redundant "Success Metrics" section. |
 | 2026-03-18 | Beachhead surface generalized — milestones no longer assume Game Detail (remains TBD per Decision Continuity). Caching strategy made platform-agnostic (removed Room dependency). Capabilities table updated: Grid/table and Form/input marked as Done. Revision history moved to top and consolidated from intermittent update notes. |
 | 2026-03-13 | Added atomic rendering layer to "What Was Built" table. Updated JSON Schema row (8 → 10 atomic element types). Expanded Two-tier primitives concept to describe AtomicComposite bridge, SectionSlot bidirectional delegation, and DisplayGrid. Reflects Phases 1–5 of atomic primitives implementation. |
 | 2026-03-12 | Four server-control gaps closed: `SectionLayoutHints` (server-controlled inter-section margins, dividers, priority; ADR-008 accepted Option C), `SectionStates` (loading skeletons and error messages per section), impression tracking (`useImpressionTracking` with `IntersectionObserver`; ADR-009 accepted), bug fixes (`interactive` contentType enum, `X-Platform` header threading, deserialization failure logging on Android). |
@@ -48,13 +69,16 @@ The prototype has moved beyond architectural planning into working, demonstrable
 | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
 | **JSON Schema**             | Complete schema defining 10 atomic element types (9 rendering primitives + SectionSlot bridge), 9 section types (8 permanent + AtomicComposite), 6 action types, 3 refresh policies, field-level data bindings, and screen-level state management. 9 former section types migrated to server-composed AtomicComposite (no client renderers). | **Done**               |
 | **Code generation**         | Multi-platform pipeline: jsonschema2pojo produces Java POJOs with Jackson annotations; quicktype generates Swift structs and TypeScript types — all from a single schema source                                                                                                                           | **Done**               |
-| **Composition service**     | Spring Boot service assembling SDUI responses from live NBA data (Stats API + CDN). Supports demo/live modes, per-section refresh policies, Ably channel resolution, A/B variant composition, and trace ID observability                                                                                  | **Done**               |
+| **Composition service**     | Spring Boot service assembling SDUI responses from live NBA data (Stats API + CDN). Supports demo/live modes, per-section refresh policies, Ably channel resolution, A/B variant composition, request context envelope (`SduiRequestContext`), section-level i18n (`stringTable`), and trace ID observability | **Done**               |
 | **Android renderer**        | Full Kotlin/Compose renderer in a reusable `sdui-core` library module. 8 permanent section renderers (TabGroup, GamePanel (with server-driven `displayConfig` controlling layout: logo size, card height, score style, background), BoxscoreTable, Form, SeasonLeadersTable, SubscribeBanner, SubscribeHero, AdSlot) plus `AtomicComposite` routing to the atomic layer. Real-time Ably integration, polling with direct CDN support, StateFlow-based state management, generic action handler, server-driven image fallback via Coil `SubcomposeAsyncImage` | **Done**               |
 | **Web renderer**            | React/TypeScript renderer with 8 permanent section renderers plus `AtomicComposite` routing, refresh policy hooks, action handler, data binding applier, and server-driven image fallback via `onError` handlers. Polling works; Ably SSE partially integrated                                                                                                                                         | **Done** (partial SSE) |
 | **A/B variant composition** | Server-side variant system demonstrated: 4 variants (A/B/C/D) reorder, add, or remove sections from the same screen with no client changes                                                                                                                                                                | **Done**               |
 | **Real-time score updates** | Live scoreboard updating via Ably SSE with JSONPath-based field-level data bindings on Android. Polling fallback for stats sections with configurable intervals                                                                                                                                           | **Done**               |
 | **Graceful degradation**    | Unknown section types skipped without crash. Live data unavailable falls back to static examples                                                                                                                                                                                                          | **Done**               |
 | **Atomic rendering layer**  | Dual-layer architecture: 9 atomic primitives (Container, Text, Image, Button, Spacer, Divider, ScrollContainer, Conditional, DisplayGrid) composed by the server and rendered by `AtomicRouter` on Android and Web. `AtomicComposite` section type bridges the section and atomic layers. `SectionSlot` allows atomic trees to embed full section renderers. Server-side `AtomicCompositeBuilder` migrated 9 former section types (ErrorState, SectionHeader, PromoBanner, ContentRail, FollowingRail, HeroPanel, StatLine, VideoCarousel, NbaTvSchedule) to server-composed atomic layouts. Their schema definitions have been pruned — only the 8 permanent section types + `AtomicComposite` remain in the `Section.type` enum | **Done**               |
+| **Request context envelope** | Typed request context (`SduiRequestContext`) with bracket-notation GET params and POST fallback. Client-side `RequestEnvelopeBuilder` on Android and web. Fields: platform, appVersion, locale, deviceClass, experiments, traceId — all optional with defaults | **Done**               |
+| **Experiment assignment**   | Client-authoritative experiment model (ADR-006 accepted). Clients send `experiments` map in request envelope; server resolves via `resolveVariant()` for composition branching. Kill switch is client-side. Exposure tracking via fireAndForget actions | **Done**               |
+| **Internationalization (i18n)** | Section-level `stringTable` stamped by server per locale. Server pre-translates all initial text. Clients consume `stringTable` from each section for binding-time resolution. Parameterized strings via server-side atomic decomposition (~1% of strings) | **Done**               |
 | **iOS renderer**            | Architecture validated via Android; not yet built                                                                                                                                                                                                                                                         | **Not started**        |
 | **Test coverage**           | No unit, integration, or contract tests                                                                                                                                                                                                                                                                   | **Gap**                |
 
@@ -121,25 +145,25 @@ The server controls *what* appears and *in what order*. Platform teams control *
 
 ## Timeline: Vertical Slices to Production
 
-The prototype has already completed the equivalent of the original Phase 0 (Foundation) and most of Phase 1 (Single-Platform PoC) — roughly 14 weeks of planned work. The timeline below starts from today and is organized around **vertical slices**, each delivering a shippable, end-to-end outcome. Testing and hardening are built into each slice, not gated as a separate phase.
+The prototype has already completed the equivalent of the original Phase 0 (Foundation) and most of Phase 1 (Single-Platform PoC). The timeline below is organized around **vertical slices**, each delivering a shippable, end-to-end outcome. Testing and hardening are built into each slice, not gated as a separate phase.
 
-### Milestone 1: Beachhead Surface on Android — Staging Ready (Weeks 1–4)
+### Milestone 1: Beachhead Surface on Android — Staging Ready
 
 Harden what exists into a staging-deployable vertical slice.
 
 
 | Deliverable                                                                                        | Owner               |
 | -------------------------------------------------------------------------------------------------- | ------------------- |
-| Contract tests for all 9 section types (golden SDUI response fixtures + assertions)                | Core team           |
-| Data binding hardened end-to-end through `DataBindingResolver` (remove hardcoded live score paths) | Core team           |
-| Performance baseline: measure SDUI render time vs. native on Android                               | Core team + Android |
-| Composition service deployed to staging with live NBA data                                         | Core team           |
-| Caching layer: platform-appropriate response cache with stale-while-revalidate                     | Core team           |
+| Contract tests for all 9 section types (golden SDUI response fixtures + assertions)                | SDUI Engineering Team           |
+| Data binding hardened end-to-end through `DataBindingResolver` (remove hardcoded live score paths) | SDUI Engineering Team           |
+| Performance baseline: measure SDUI render time vs. native on Android                               | SDUI Engineering Team + Android |
+| Composition service deployed to staging with live NBA data                                         | SDUI Engineering Team           |
+| Caching layer: platform-appropriate response cache with stale-while-revalidate                     | SDUI Engineering Team           |
 
 
 **Exit: Beachhead surface rendering from SDUI on Android in staging with live scores, contract tests passing, performance baselined.**
 
-### Milestone 2: Beachhead Surface — All Platforms in Staging (Weeks 5–12)
+### Milestone 2: Beachhead Surface — All Platforms in Staging
 
 Expand to iOS and complete web. Each platform renderer is a vertical deliverable — iOS and web can be built in parallel.
 
@@ -148,14 +172,14 @@ Expand to iOS and complete web. Each platform renderer is a vertical deliverable
 | ---------------------------------------------------------------------------------------- | ------------------------- |
 | iOS renderer: SwiftUI component registry + Ably integration (using Android as reference) | iOS team (1–2 engineers)  |
 | Web renderer: complete Ably SSE integration, match Android real-time capabilities        | Web team (1 engineer)     |
-| Per-platform contract tests using shared golden fixtures                                 | Each platform team + Core |
-| A/B targeting: composition service queries targeting service for variant resolution      | Core team                 |
-| Observability: render timing dashboards, data channel health monitoring                  | Core team                 |
+| Per-platform contract tests using shared golden fixtures                                 | Each platform team + SDUI Engineering Team |
+| A/B targeting: composition service queries targeting service for variant resolution      | SDUI Engineering Team                 |
+| Observability: render timing dashboards, data channel health monitoring                  | SDUI Engineering Team                 |
 
 
 **Exit: Beachhead surface rendering from SDUI on all three platforms in staging. A/B variants verified. Contract tests passing on all platforms.**
 
-### Milestone 3: Beachhead Surface — Production (Weeks 13–18)
+### Milestone 3: Beachhead Surface — Production
 
 Ship the beachhead surface as the first SDUI-powered production surface.
 
@@ -163,25 +187,25 @@ Ship the beachhead surface as the first SDUI-powered production surface.
 | Deliverable                                                          | Owner              |
 | -------------------------------------------------------------------- | ------------------ |
 | Progressive rollout: feature-flagged 5% → 25% → 100% with monitoring | Cross-functional   |
-| Automated rollback triggers on error rate thresholds                 | Core team + DevOps |
-| CDN caching for static sections, real-time bypass for live sections  | Core team          |
-| On-call runbook: SDUI-specific debugging with trace ID lookup        | Core team          |
-| Schema v1.0: formalized, versioned, backward-compatible              | Core team          |
+| Automated rollback triggers on error rate thresholds                 | SDUI Engineering Team + DevOps |
+| CDN caching for static sections, real-time bypass for live sections  | SDUI Engineering Team          |
+| On-call runbook: SDUI-specific debugging with trace ID lookup        | SDUI Engineering Team          |
+| Schema v1.0: formalized, versioned, backward-compatible              | SDUI Engineering Team          |
 
 
 **Exit: Beachhead surface fully SDUI-powered in production on all platforms. Error rates within SLA. Real-time channels stable under live event load.**
 
-### Milestone 4: Second Surface + Schema Evolution (Weeks 19–24)
+### Milestone 4: Second Surface + Schema Evolution
 
 Expand SDUI to a second surface, introducing schema capabilities as the new surface demands them.
 
 
 | Deliverable                                                                                           | Owner               |
 | ----------------------------------------------------------------------------------------------------- | ------------------- |
-| Second surface selected and scoped (e.g., Scoreboard, Home Feed, or Player Profile)                   | Product + Core team |
-| Schema additions driven by surface needs (layout primitives, new section types, grid/table if needed) | Core team           |
+| Second surface selected and scoped (e.g., Scoreboard, Home Feed, or Player Profile)                   | Product + SDUI Engineering Team |
+| Schema additions driven by surface needs (layout primitives, new section types, grid/table if needed) | SDUI Engineering Team           |
 | Renderers extended for new section types (~30 lines per type per platform)                            | Platform teams      |
-| Design system token integration (semantic color/typography/spacing references in schema)              | Core team + Design  |
+| Design system token integration (semantic color/typography/spacing references in schema)              | SDUI Engineering Team + Design  |
 
 
 **Exit: Second surface in production. Schema proven extensible beyond a single surface.**
@@ -189,20 +213,20 @@ Expand SDUI to a second surface, introducing schema capabilities as the new surf
 ### Summary
 
 
-| Milestone                     | Timeline | What Ships                                                       |
-| ----------------------------- | -------- | ---------------------------------------------------------------- |
-| **M1: Android Staging**       | Week 4   | Beachhead surface on Android in staging, tested, performance baselined |
-| **M2: All Platforms Staging** | Week 12  | Beachhead surface on Android + iOS + Web in staging with A/B variants  |
-| **M3: Production**            | Week 18  | Beachhead surface in production on all platforms                       |
-| **M4: Second Surface**        | Week 24  | Second SDUI-powered surface in production                             |
+| Milestone                     | What Ships                                                       |
+| ----------------------------- | ---------------------------------------------------------------- |
+| **M1: Android Staging**       | Beachhead surface on Android in staging, tested, performance baselined |
+| **M2: All Platforms Staging** | Beachhead surface on Android + iOS + Web in staging with A/B variants  |
+| **M3: Production**            | Beachhead surface in production on all platforms                       |
+| **M4: Second Surface**        | Second SDUI-powered surface in production                             |
 
-**Time to first production surface: ~18 weeks (4.5 months).** Second surface by week 24 (6 months). The original v1 estimate of 32 weeks to production assumed building from scratch; the prototype has already retired that risk. Capabilities identified in the mobile native audit (layout managers, entitlement, grid/table) are introduced when a surface requires them — they do not gate the beachhead.
+The prototype has already retired the foundational technical risk. Capabilities identified in the mobile native audit (layout managers, entitlement, grid/table) are introduced when a surface requires them — they do not gate the beachhead.
 
 ---
 
 ## Resourcing
 
-### Core SDUI Team (M1–M4)
+### SDUI Engineering Team (M1–M4)
 
 
 | Role                       | Count | Focus                                                       |
@@ -218,12 +242,12 @@ Expand SDUI to a second surface, introducing schema capabilities as the new surf
 ### Platform Team Commitment
 
 
-| Milestone                  | Platform Commitment                             | Duration |
-| -------------------------- | ----------------------------------------------- | -------- |
-| M1 (Android Staging)       | Core team only — Android renderer already built | 4 weeks  |
-| M2 (All Platforms Staging) | iOS: 1–2 engineers. Web: 1 engineer.            | 8 weeks  |
-| M3 (Production)            | 1 engineer per platform for rollout support     | 6 weeks  |
-| M4 (Second Surface)        | 1 engineer per platform for new section types   | 6 weeks  |
+| Milestone                  | Platform Commitment                             |
+| -------------------------- | ----------------------------------------------- |
+| M1 (Android Staging)       | SDUI Engineering Team only — Android renderer already built |
+| M2 (All Platforms Staging) | iOS: 1–2 engineers. Web: 1 engineer.            |
+| M3 (Production)            | 1 engineer per platform for rollout support     |
+| M4 (Second Surface)        | 1 engineer per platform for new section types   |
 
 
 The prototype demonstrates that the renderer is thin wiring (~30 lines per section type) mapping SDUI data to existing design system components. Platform teams own their renderer code and quality — the core team provides the schema contract, reference implementation, and tooling.
@@ -241,22 +265,6 @@ The prototype demonstrates that the renderer is thin wiring (~30 lines per secti
 | **Real-time channel reliability**     | Stale scores during live events                       | Fallback cascade: SSE → polling → last-known data with staleness indicator.                                                                                                          | Ably SSE working on Android; fallback cascade needed by M3      |
 | **Testing gaps**                      | Regressions ship undetected across platforms          | Contract tests built into each milestone using shared golden fixtures. Not a separate phase — each slice ships with its own tests.                                                   | Contract tests in M1                                            |
 | **Debugging across layers**           | Longer mean-time-to-resolution for UI bugs            | End-to-end trace IDs from composition through rendering. On-call runbook by M3.                                                                                                      | Trace IDs implemented; dashboards in M2, runbook in M3          |
-
-
----
-
-## Success Metrics
-
-
-| Metric                                      | Target                   |
-| ------------------------------------------- | ------------------------ |
-| Time from UI change decision to production  | < 1 hour                 |
-| Cross-platform parity for identical changes | < 24 hours               |
-| SDUI render performance vs. native          | Within 10%               |
-| SDUI error/fallback rate                    | < 0.1% of page loads     |
-| Real-time data freshness during live events | Updates within 2 seconds |
-| A/B test velocity on SDUI surfaces          | 3x current throughput    |
-| Developer satisfaction (renderer teams)     | > 4/5 quarterly          |
 
 
 ---
@@ -289,7 +297,7 @@ To preserve continuity with the original executive summary, this section explici
 | Request/contract model               | **ADR pending**                   |
 | GET/POST + caching policy            | **ADR pending**                   |
 | Action scope and precedence          | **ADR pending**                   |
-| Experiment assignment strategy       | **ADR pending**                   |
+| Experiment assignment strategy       | **ADR-006 Accepted** (2026-03-30) |
 | Ads boundary and contract            | **ADR pending**                   |
 | Form-factor layout manager           | **ADR pending**                   |
 

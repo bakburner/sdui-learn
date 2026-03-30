@@ -10,7 +10,8 @@ import type { DataBinding, Section } from '@sdui/models';
 export function applyDataBindings<T extends Record<string, unknown>>(
   sectionData: T,
   bindings: DataBinding | undefined,
-  incomingMessage: Record<string, unknown>
+  incomingMessage: Record<string, unknown>,
+  stringTable?: Record<string, string>
 ): T {
   if (!bindings?.bindings?.length) {
     return sectionData;
@@ -23,8 +24,22 @@ export function applyDataBindings<T extends Record<string, unknown>>(
     try {
       const value = getValueByPath(incomingMessage, binding.sourcePath);
       if (value !== undefined) {
-        setValueByPath(updated, binding.targetPath, value);
-        console.log(`[DataBinding] ${binding.sourcePath} -> ${binding.targetPath}:`, value);
+        // Check if there's a stringKey for this target path
+        const stringKey = bindings.stringKeys?.[binding.targetPath];
+        if (stringKey && stringTable) {
+          const resolved = stringTable[stringKey];
+          if (resolved !== undefined) {
+            setValueByPath(updated, binding.targetPath, resolved);
+            console.log(`[DataBinding] ${binding.sourcePath} -> ${binding.targetPath}: stringKey '${stringKey}' resolved to '${resolved}'`);
+          } else {
+            // Fall back to raw value when stringKey not found in table
+            setValueByPath(updated, binding.targetPath, value);
+            console.warn(`[DataBinding] stringKey '${stringKey}' not found in stringTable for ${binding.targetPath}, using raw value:`, value);
+          }
+        } else {
+          setValueByPath(updated, binding.targetPath, value);
+          console.log(`[DataBinding] ${binding.sourcePath} -> ${binding.targetPath}:`, value);
+        }
       }
     } catch (err) {
       console.warn(`[DataBinding] Failed to apply binding:`, binding, err);

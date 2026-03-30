@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.nba.sdui.request.SduiRequestContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -14,7 +15,11 @@ import java.util.Map;
 /**
  * SDUI Composition Service — thin façade.
  *
- * Delegates screen assembly to purpose-built composers while keeping the
+ * <p>Accepts {@link SduiRequestContext} from the controller and extracts the
+ * parameters each composer needs. Composers retain their existing signatures
+ * to minimise churn.
+ *
+ * <p>Delegates screen assembly to purpose-built composers while keeping the
  * stats-polling helpers (getPlayerStats / createMockStats) co-located with
  * the StatsApiClient dependency they need.
  */
@@ -33,6 +38,11 @@ public class SduiCompositionService {
     private final ForYouComposer forYouComposer;
     private final WatchComposer watchComposer;
     private final LiveComposer liveComposer;
+
+    /** Default experiment ID used for game-detail variant resolution. */
+    private static final String GAME_DETAIL_EXPERIMENT = "game_detail_variant";
+    /** Default experiment ID used for scoreboard variant resolution. */
+    private static final String SCOREBOARD_EXPERIMENT = "scoreboard_variant";
 
     public SduiCompositionService(ObjectMapper objectMapper,
                                    StatsApiClient statsApiClient,
@@ -58,44 +68,45 @@ public class SduiCompositionService {
 
     // ── Screen delegation ──────────────────────────────────────────────
 
-    public JsonNode composeGameDetail(String gameId, String gameState,
-                                      String variant, String clientSchemaVersion,
-                                      String traceId) throws IOException {
+    public JsonNode composeGameDetail(String gameId, SduiRequestContext ctx) throws IOException {
+        String gameState = ctx.getGameState() != null ? ctx.getGameState() : "pre";
+        String variant = ctx.resolveVariant(GAME_DETAIL_EXPERIMENT, "A");
         return gameDetailComposer.composeGameDetail(gameId, gameState, variant,
-                clientSchemaVersion, traceId);
+                ctx.getSchemaVersion(), ctx.getTraceId(), ctx.getLocale());
     }
 
-    public JsonNode composeScoreboard(String variant, String clientSchemaVersion,
-                                      String traceId) throws IOException {
-        return scoreboardComposer.composeScoreboard(variant, clientSchemaVersion, traceId);
+    public JsonNode composeScoreboard(SduiRequestContext ctx) throws IOException {
+        String variant = ctx.resolveVariant(SCOREBOARD_EXPERIMENT, "A");
+        return scoreboardComposer.composeScoreboard(variant,
+                ctx.getSchemaVersion(), ctx.getTraceId(), ctx.getLocale());
     }
 
-    public JsonNode composeBoxscore(String gameId, String traceId) throws IOException {
-        return boxscoreComposer.composeBoxscore(gameId, traceId);
+    public JsonNode composeBoxscore(String gameId, SduiRequestContext ctx) throws IOException {
+        return boxscoreComposer.composeBoxscore(gameId, ctx.getTraceId(), ctx.getLocale());
     }
 
-    public JsonNode composeDemos(String traceId, String platform) {
-        return demoScreenComposer.composeDemos(traceId, platform);
+    public JsonNode composeDemos(SduiRequestContext ctx) {
+        return demoScreenComposer.composeDemos(ctx.getTraceId(), ctx.getPlatformName(), ctx.getLocale());
     }
 
-    public JsonNode composeLeaders(String traceId, String platform) {
-        return demoScreenComposer.composeLeaders(traceId, platform);
+    public JsonNode composeLeaders(SduiRequestContext ctx) {
+        return demoScreenComposer.composeLeaders(ctx.getTraceId(), ctx.getPlatformName(), ctx.getLocale());
     }
 
-    public ObjectNode composeLeadersRefresh(String traceId, Map<String, String> params) {
-        return demoScreenComposer.composeLeadersRefresh(traceId, params);
+    public ObjectNode composeLeadersRefresh(String traceId, Map<String, String> params, String locale) {
+        return demoScreenComposer.composeLeadersRefresh(traceId, params, locale);
     }
 
-    public JsonNode composeForYou(String traceId) {
-        return forYouComposer.composeForYou(traceId);
+    public JsonNode composeForYou(SduiRequestContext ctx) {
+        return forYouComposer.composeForYou(ctx.getTraceId(), ctx.getLocale());
     }
 
-    public JsonNode composeWatch(String traceId) {
-        return watchComposer.composeWatch(traceId);
+    public JsonNode composeWatch(SduiRequestContext ctx) {
+        return watchComposer.composeWatch(ctx.getTraceId(), ctx.getLocale());
     }
 
-    public JsonNode composeLive(String traceId) {
-        return liveComposer.composeLive(traceId);
+    public JsonNode composeLive(SduiRequestContext ctx) {
+        return liveComposer.composeLive(ctx.getTraceId(), ctx.getLocale());
     }
 
     // ── Stats-polling helpers (kept here — they need StatsApiClient) ──

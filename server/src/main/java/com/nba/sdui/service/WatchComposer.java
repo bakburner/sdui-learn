@@ -40,8 +40,8 @@ public class WatchComposer {
         this.atomicBuilder = new AtomicCompositeBuilder(objectMapper);
     }
 
-    public JsonNode composeWatch(String traceId) {
-        log.info("Composing Watch screen");
+    public JsonNode composeWatch(String traceId, String locale) {
+        log.info("Composing Watch screen, locale={}", locale);
 
         ObjectNode response = objectMapper.createObjectNode();
         response.put("id", "watch");
@@ -57,6 +57,7 @@ public class WatchComposer {
         sections.add(buildTabGroup());
 
         response.set("sections", sections);
+        utils.stampStringTableOnSections(response, locale);
         return response;
     }
 

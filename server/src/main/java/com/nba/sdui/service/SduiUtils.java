@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 
 /**
  * Shared SDUI utilities used by all composer classes.
@@ -355,5 +356,76 @@ public class SduiUtils {
 
         states.set("error", error);
         return states;
+    }
+
+    // ── String table (i18n) ────────────────────────────────────────────
+
+    /**
+     * Locale-keyed string tables for data-binding string key resolution.
+     * In production this would be backed by a resource bundle or translation service.
+     */
+    private static final Map<String, Map<String, String>> STRING_TABLES = Map.of(
+            "en", Map.ofEntries(
+                    Map.entry("status.pre", "Upcoming"),
+                    Map.entry("status.live", "Live"),
+                    Map.entry("status.final", "Final"),
+                    Map.entry("status.halftime", "Halftime"),
+                    Map.entry("period.q1", "Q1"),
+                    Map.entry("period.q2", "Q2"),
+                    Map.entry("period.q3", "Q3"),
+                    Map.entry("period.q4", "Q4"),
+                    Map.entry("period.ot", "OT")
+            ),
+            "es", Map.ofEntries(
+                    Map.entry("status.pre", "Próximo"),
+                    Map.entry("status.live", "En Vivo"),
+                    Map.entry("status.final", "Final"),
+                    Map.entry("status.halftime", "Medio Tiempo"),
+                    Map.entry("period.q1", "Q1"),
+                    Map.entry("period.q2", "Q2"),
+                    Map.entry("period.q3", "Q3"),
+                    Map.entry("period.q4", "Q4"),
+                    Map.entry("period.ot", "TE")
+            ),
+            "fr", Map.ofEntries(
+                    Map.entry("status.pre", "À venir"),
+                    Map.entry("status.live", "En Direct"),
+                    Map.entry("status.final", "Terminé"),
+                    Map.entry("status.halftime", "Mi-temps"),
+                    Map.entry("period.q1", "Q1"),
+                    Map.entry("period.q2", "Q2"),
+                    Map.entry("period.q3", "Q3"),
+                    Map.entry("period.q4", "Q4"),
+                    Map.entry("period.ot", "Prol.")
+            )
+    );
+
+    /**
+     * Build a string table node for the given locale.
+     * Falls back to English when the locale is unknown.
+     */
+    public ObjectNode buildStringTable(String locale) {
+        Map<String, String> table = STRING_TABLES.getOrDefault(
+                locale != null ? locale.toLowerCase() : "en",
+                STRING_TABLES.get("en")
+        );
+        ObjectNode node = objectMapper.createObjectNode();
+        table.forEach(node::put);
+        return node;
+    }
+
+    /**
+     * Stamp a stringTable onto every section in the response's sections array.
+     * Sections that already have a stringTable are left unchanged.
+     */
+    public void stampStringTableOnSections(ObjectNode response, String locale) {
+        JsonNode sections = response.get("sections");
+        if (sections == null || !sections.isArray()) return;
+        ObjectNode table = buildStringTable(locale);
+        for (JsonNode section : sections) {
+            if (section.isObject() && !section.has("stringTable")) {
+                ((ObjectNode) section).set("stringTable", table.deepCopy());
+            }
+        }
     }
 }

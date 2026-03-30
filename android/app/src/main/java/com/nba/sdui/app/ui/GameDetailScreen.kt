@@ -100,7 +100,9 @@ fun GameDetailScreen(
         )
 
         // Server-driven variant chips (Rule 9 / Rule 10 — no client-side URI sniffing)
-        val serverVariants = (uiState as? SduiScreenUiState.Success)?.screen?.variants ?: emptyList()
+        val variantsData = (uiState as? SduiScreenUiState.Success)?.screen?.variants
+        val serverVariants = variantsData?.options ?: emptyList()
+        val experimentId = variantsData?.experimentId ?: "variant"
         if (serverVariants.isNotEmpty()) {
             Row(
                 modifier = Modifier
@@ -110,7 +112,7 @@ fun GameDetailScreen(
             ) {
                 serverVariants.forEach { v ->
                     FilterChip(
-                        selected = config.variant == v.id,
+                        selected = config.experiments[experimentId] == v.id,
                         onClick = { onVariantChange(v.id) },
                         label = { Text(v.label) }
                     )

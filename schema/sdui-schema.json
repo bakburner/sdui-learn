@@ -797,6 +797,11 @@
         "backgroundColor": { "type": "string" },
         "layoutHints": { "$ref": "#/definitions/SectionLayoutHints" },
         "sectionStates": { "$ref": "#/definitions/SectionStates" },
+        "stringTable": {
+          "type": "object",
+          "description": "Section-level map of translation key to localized string. Used by DataBindingResolver to resolve stringKeys on real-time updates.",
+          "additionalProperties": { "type": "string" }
+        },
         "data": {
           "description": "Section-specific data payload",
           "oneOf": [

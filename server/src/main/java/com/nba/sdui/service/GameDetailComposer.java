@@ -53,8 +53,8 @@ public class GameDetailComposer {
      */
     public JsonNode composeGameDetail(String gameId, String gameState,
                                       String variant, String clientSchemaVersion,
-                                      String traceId) throws IOException {
-        log.info("Composing game detail: gameId={}, gameState={}, variant={}", gameId, gameState, variant);
+                                      String traceId, String locale) throws IOException {
+        log.info("Composing game detail: gameId={}, gameState={}, variant={}, locale={}", gameId, gameState, variant, locale);
 
         JsonNode baseResponse;
         baseResponse = composeFromLiveData(gameId, gameState);
@@ -82,7 +82,10 @@ public class GameDetailComposer {
         variants.add(objectMapper.createObjectNode().put("id", "B").put("label", "Reorder").put("description", "Content rail and TabGroup swapped"));
         variants.add(objectMapper.createObjectNode().put("id", "C").put("label", "Minimal").put("description", "Player stats and promo banner removed"));
         variants.add(objectMapper.createObjectNode().put("id", "D").put("label", "Extra Rail").put("description", "Trending videos rail added after content rail"));
-        response.set("variants", variants);
+        ObjectNode variantsWrapper = objectMapper.createObjectNode();
+        variantsWrapper.put("experimentId", "game_detail_variant");
+        variantsWrapper.set("options", variants);
+        response.set("variants", variantsWrapper);
 
         resolveChannelPatterns(response, gameId);
 
@@ -98,6 +101,7 @@ public class GameDetailComposer {
         log.debug("SDUI response composed: variant={}, sections={}",
                 variant, response.has("sections") ? response.get("sections").size() : 0);
 
+        utils.stampStringTableOnSections(response, locale);
         return response;
     }
 

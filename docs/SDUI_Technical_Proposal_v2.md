@@ -10,22 +10,23 @@
 
 | Date | Summary |
 |---|---|
-| 2026-02-20 | Initial v2 — full technical proposal aligned with requirements baseline and ADR-driven decisions. Covers schema, data binding, action system, screen state, codegen, platform coverage, and gap analysis (9i–9o). Appendix A/B with typed request envelope and expanded response examples. |
-| 2026-02-24 | Added i18n section (9p) with server-resolved default + `stringKeys` on data bindings. Removed `layoutHints` from schema and appendix examples (moved to ADR-008 for evaluation). Added locale transport policy to 9o and 9p. |
-| 2026-02-25 | Added `stringKeys` to binding JSON examples in section 3 and Appendix B. Added JSON snippet with explanation to i18n section (9p). Added revision history. |
-| 2026-02-25 | Established platform-aware composition as settled architectural position: shared schema, shared data pipeline, per-platform-family composition. Renamed `fallbackUrl` → `webUrl` in action contract (section 4). Updated platform coverage (section 8). |
-| 2026-02-27 | Replaced `entitlements` with `device` in request envelope (governance, 9o, Appendix A). Aligned analytics field names (`event`/`params`) and mutate field names (`target`/`operation`/`value`) with requirements summary. Moved `schemaVersion` to `meta` object. Added `onBlur` trigger. |
-| 2026-03-04 | Added tabular data sections and forms. New semantic types (`BoxscoreTable`, `Form`) in schema design (section 2). Parameterized refresh on actions (section 4). Sort and form state patterns (section 5). Platform coverage update (section 8). Gap 9q. Requirement status updates. Appendix C boxscore response example. |
-| 2026-03-04 | Added `parentUri` to Screen response contract and example. Added client URI resolution convention. |
+| 2026-03-30 | Doc consistency audit. §10 requirement status updated: Request context envelope Gap → Built, Experiment conflict handling Partial → Built (ADR-006 Accepted), Internationalization Gap → Built (section-level stringTable). |
+| 2026-03-24 | Doc consistency audit. §2c token alignment table expanded (4 → 8 categories: added font weight, backgrounds, elevation, button variants). Requirement status updated: Layout manager Gap → Partial (ADR-008 accepted), Impression semantics Gap → Partial (ADR-009 accepted). `FormRenderer` → `Form` aligned with schema enum across AGENTS.md and requirements summary. |
+| 2026-03-14 | Added §2b (Section vs. Atomic Decision Framework — decision tree, rationale for lifecycle/SDK/state boundaries, concrete examples: GamePanel, SubscribeHero, AdSlot, BoxscoreTable, TabGroup). Added §2c (Figma Design System Integration — token alignment, three-level CI validation pipeline). |
+| 2026-03-13 | Atomic rendering layer. Updated §2 (dual-layer model: semantic sections + atomic primitives coexisting via AtomicComposite). Added §2a (AtomicElement types, AtomicComposite bridge, Grid vs. Section Decision Tree). Updated §8 (AtomicRouter + 10 atomic renderers per platform). Added §9s (atomic layer performance contract). Updated §10 (atomic rendering layer status). |
+| 2026-03-13 | Added offline/degraded connectivity strategy (9r) with ADR-010 reference. Stale-while-offline approach using platform HTTP cache, staleness UX per `cacheability` class, fire-and-forget local queue. |
+| 2026-03-13 | Replaced `variant`/`backgroundImageUrl` on `GamePanelData` with server-driven `displayConfig` (`GamePanelDisplayConfig`). Introduced shared `Background` union type (solid/gradient/image) reused by `AtomicElement`, `SubscribeHeroData`, `SubscribeBannerData`. Three layout presets (`standardConfig`, `featuredConfig`, `scoreboardConfig`) replace client-side variant branching. |
+| 2026-03-12 | Merged `FeaturedGamePanel` into `GamePanel` with `variant` discriminator. `FeaturedGamePanelData` removed from schema; `GamePanelData` gains `variant`, `backgroundImageUrl`, `badgeText`, `visualLabel` fields. Server composers emit `type: "GamePanel"` with `variant: "featured"`. Android and Web renderers branch on variant. `FeaturedGamePanelRenderer` deleted on both platforms. Section type count: 20 → 18. |
+| 2026-03-12 | Server-control gaps closed: `SectionLayoutHints` and `SectionStates` added to schema + codegen. Web client: `SectionErrorBoundary`, `SectionSkeleton`, `useImpressionTracking`, `useAnalyticsContext` built. Server: `sectionStates` emitted on live sections. ADR-008 accepted (Option C), ADR-009 accepted. Bug fixes: `interactive` contentType enum, platform header threading (`X-Platform` required from clients, no server default), silent deserialization failures now logged on Android. |
 | 2026-03-12 | Prototype sync. Renderer table updated — BoxscoreTable, Form, SectionHeader, FollowingRail, SeasonLeadersTable now Built on Web and Android. Added image fallback pattern (section 8a). Updated requirement status for tabular data and forms. |
 | 2026-03-11 | ErrorState added to renderer table. Error handling status updated (Gap → Built for ErrorState, runtime `sectionStates` planned). Client-side visibility expressions evaluated and deferred — server-side composition handles section show/hide. |
-| 2026-03-12 | Server-control gaps closed: `SectionLayoutHints` and `SectionStates` added to schema + codegen. Web client: `SectionErrorBoundary`, `SectionSkeleton`, `useImpressionTracking`, `useAnalyticsContext` built. Server: `sectionStates` emitted on live sections. ADR-008 accepted (Option C), ADR-009 accepted. Bug fixes: `interactive` contentType enum, platform header threading (`X-Platform` required from clients, no server default), silent deserialization failures now logged on Android. |
-| 2026-03-12 | Merged `FeaturedGamePanel` into `GamePanel` with `variant` discriminator. `FeaturedGamePanelData` removed from schema; `GamePanelData` gains `variant`, `backgroundImageUrl`, `badgeText`, `visualLabel` fields. Server composers emit `type: "GamePanel"` with `variant: "featured"`. Android and Web renderers branch on variant. `FeaturedGamePanelRenderer` deleted on both platforms. Section type count: 20 → 18. |
-| 2026-03-13 | Replaced `variant`/`backgroundImageUrl` on `GamePanelData` with server-driven `displayConfig` (`GamePanelDisplayConfig`). Introduced shared `Background` union type (solid/gradient/image) reused by `AtomicElement`, `SubscribeHeroData`, `SubscribeBannerData`. Three layout presets (`standardConfig`, `featuredConfig`, `scoreboardConfig`) replace client-side variant branching. |
-| 2026-03-13 | Added offline/degraded connectivity strategy (9r) with ADR-010 reference. Stale-while-offline approach using platform HTTP cache, staleness UX per `cacheability` class, fire-and-forget local queue. |
-| 2026-03-13 | Atomic rendering layer. Updated §2 (dual-layer model: semantic sections + atomic primitives coexisting via AtomicComposite). Added §2a (AtomicElement types, AtomicComposite bridge, Grid vs. Section Decision Tree). Updated §8 (AtomicRouter + 10 atomic renderers per platform). Added §9s (atomic layer performance contract). Updated §10 (atomic rendering layer status). |
-| 2026-03-14 | Added §2b (Section vs. Atomic Decision Framework — decision tree, rationale for lifecycle/SDK/state boundaries, concrete examples: GamePanel, SubscribeHero, AdSlot, BoxscoreTable, TabGroup). Added §2c (Figma Design System Integration — token alignment, three-level CI validation pipeline). |
-| 2026-03-24 | Doc consistency audit. §2c token alignment table expanded (4 → 8 categories: added font weight, backgrounds, elevation, button variants). Requirement status updated: Layout manager Gap → Partial (ADR-008 accepted), Impression semantics Gap → Partial (ADR-009 accepted). `FormRenderer` → `Form` aligned with schema enum across AGENTS.md and requirements summary. |
+| 2026-03-04 | Added `parentUri` to Screen response contract and example. Added client URI resolution convention. |
+| 2026-03-04 | Added tabular data sections and forms. New semantic types (`BoxscoreTable`, `Form`) in schema design (section 2). Parameterized refresh on actions (section 4). Sort and form state patterns (section 5). Platform coverage update (section 8). Gap 9q. Requirement status updates. Appendix C boxscore response example. |
+| 2026-02-27 | Replaced `entitlements` with `device` in request envelope (governance, 9o, Appendix A). Aligned analytics field names (`event`/`params`) and mutate field names (`target`/`operation`/`value`) with requirements summary. Moved `schemaVersion` to `meta` object. Added `onBlur` trigger. |
+| 2026-02-25 | Established platform-aware composition as settled architectural position: shared schema, shared data pipeline, per-platform-family composition. Renamed `fallbackUrl` → `webUrl` in action contract (section 4). Updated platform coverage (section 8). |
+| 2026-02-25 | Added `stringKeys` to binding JSON examples in section 3 and Appendix B. Added JSON snippet with explanation to i18n section (9p). Added revision history. |
+| 2026-02-24 | Added i18n section (9p) with server-resolved default + `stringKeys` on data bindings. Removed `layoutHints` from schema and appendix examples (moved to ADR-008 for evaluation). Added locale transport policy to 9o and 9p. |
+| 2026-02-20 | Initial v2 — full technical proposal aligned with requirements baseline and ADR-driven decisions. Covers schema, data binding, action system, screen state, codegen, platform coverage, and gap analysis (9i–9o). Appendix A/B with typed request envelope and expanded response examples. |
 
 ---
 
@@ -41,7 +42,7 @@ Current decisions reflected here:
 - **Platform-aware composition: shared schema and data pipeline; per-platform-family composition. Not an ADR — the only practical architecture for phone, tablet, web, and TV.**
 - Action precedence: nested/subsection > section > screen-default.
 - Navigate actions: `targetUri` for native deeplinks, `webUrl` for web — both are first-class, not primary/fallback.
-- Experiment model: support client hint and server-authoritative assignment; server assignment wins on conflict.
+- Experiment model: client-authoritative assignment via Amplitude SDK; server trusts assignments and uses for composition. Server kill switch can reject disabled variants.
 - Transport policy: support GET and POST by route context and cacheability needs.
 - Ad boundary: auction/targeting is delegated; SDUI carries ad placement contract.
 - Caching direction: section-first caching with optional screen snapshot caching.
@@ -728,8 +729,9 @@ Reference: ADR-009
 
 ### 9j. A/B Testing Integration
 
-- Support client hint and server-authoritative assignment.
-- On conflict, server-authoritative assignment wins.
+- Client-authoritative assignment via Amplitude SDK.
+- Server trusts assignments and uses them for composition branching.
+- Server kill switch can reject disabled variants (fallback to control).
 - Response must echo final assignment used.
 
 Reference: ADR-006
@@ -759,7 +761,7 @@ Composition must support a typed request envelope:
 - locale/region/timezone
 - auth context (`Authorization` header)
 - device context (device ID, ZIP code, country code, region)
-- experiment hints/assignments
+- experiment assignments
 - client capabilities
 - traceId
 
@@ -857,15 +859,15 @@ These limits ensure atomic trees remain a lightweight composition mechanism, not
 | Requirement                    | Status  | ADR     | Notes                                               |
 | ------------------------------ | ------- | ------- | --------------------------------------------------- |
 | Core composition model         | Partial | ADR-002 | implemented directionally, transition still active  |
-| Request context envelope       | Gap     | ADR-003, ADR-004 | final schema and compatibility policy pending |
+| Request context envelope       | Built   | ADR-003, ADR-004 | `SduiRequestContext` POJO + `BracketParamResolver` (bracket-notation GET, POST fallback). Android & web `RequestEnvelopeBuilder`. All fields optional with defaults. |
 | Action scope and precedence    | Partial | ADR-005 | rule set clear; needs broader fixtures              |
-| Experiment conflict handling   | Partial | ADR-006 | rule defined; integration shape pending             |
+| Experiment conflict handling   | Built   | ADR-006 | ADR-006 Accepted. Client-authoritative assignment via experiment SDK. Server trusts `experiments` map from request envelope. Kill switch is client-side. Exposure tracking via fireAndForget actions. |
 | Ad primitive contract          | Gap     | ADR-007 | required field policy + fallback semantics pending  |
 | Layout manager contract        | Partial | ADR-008 | SectionLayoutHints built on Web (margins, dividers, priority). ADR-008 accepted (Option C). Android wiring pending. |
 | Impression semantics           | Partial | ADR-009 | Built on web (IntersectionObserver + dedup registry). ADR-009 accepted. Android/iOS pending. |
 | Error handling (ErrorState)    | Built   | —       | server-composed `ErrorState` section type built on Web and Android. Per-section runtime error/loading states (`sectionStates`) planned. |
 | Contract testing/observability | Gap     | —       | broader test corpus + dashboards pending            |
-| Internationalization (i18n)    | Gap     | —       | server-resolved default + string keys on bindings   |
+| Internationalization (i18n)    | Built   | —       | Section-level `stringTable` stamped by server per locale. Server pre-translates initial text. Clients consume `stringTable` from each section. Parameterized strings via atomic decomposition. |
 | Tabular data (BoxscoreTable)   | Built   | —       | semantic table type, domain-typed data, client-side sort. Built on Web and Android. |
 | Form section (generic)         | Built   | —       | extensible field types, parameterized refresh. Built on Web and Android. |
 | Parameterized refresh          | Built   | —       | `endpoint` + `paramBindings` Action extension. Working via Form submit. |

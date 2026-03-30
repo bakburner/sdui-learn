@@ -10,18 +10,19 @@
 
 | Date | Summary |
 |---|---|
-| 2026-02-12 | Initial version — consolidated from design sessions. Separated implementation code into reference document. Core architecture, schema, data binding, action system, screen state, codegen, platform coverage, and gap analysis (9a–9l). |
-| 2026-02-16 | Aligned with latest platform direction. Updated schema/runtime/model touchpoints, removed outdated references. |
-| 2026-02-20 | Added gap sections 9m (form-factor layout manager), 9n (ad support), 9o (composition input and request model). Aligned governance and locked decisions with ADR-driven approach. |
-| 2026-02-24 | Added i18n requirement (9p) with two-layer strategy (server-resolved default + `stringKeys` on data bindings). Added locale transport policy to 9o (`locale` query param on GET, body on POST; `Accept-Language` rejected). |
-| 2026-02-25 | Added `stringKeys` to binding contract JSON example in section 3. Added JSON snippet with explanation to i18n section (9p). Added revision history. |
-| 2026-02-25 | Established platform-aware composition as settled architectural position: shared schema, shared data pipeline, per-platform-family composition responses. Renamed `fallbackUrl` → `webUrl` in action contract. Updated platform coverage, 9b, 9m. |
-| 2026-02-27 | Cross-document consistency review. Replaced `entitlements` references with `device` in governance, schema decisions, and 9o to align with Technical Proposal. |
-| 2026-03-04 | Added gap section 9q: Tabular Data Sections and Forms. New semantic section types (`BoxscoreTable`, `Form`), parameterized refresh on actions, sort/form state conventions. Updated status matrix. |
-| 2026-03-04 | Added `parentUri` to Screen contract. Updated status matrix for composition API contract (Gap → Partial). Added Prototype Concessions subsection. |
-| 2026-03-13 | Atomic rendering layer. Updated Key Schema Decisions (dual-layer model: 9 section types in schema (8 permanent + AtomicComposite) + 10 atomic element types; 9 former types migrated to server-composed AtomicComposite). Added Grid vs. Section Decision Tree to §9q. Added atomic rendering layer row to requirement status matrix. |
-| 2026-03-14 | Added §9r (Section vs. Atomic Classification — implementation-level criteria: network-driven lifecycle, platform SDK integration, client-owned interaction state. Full classification inventory with concrete examples: GamePanel Ably/poll lifecycle, SubscribeHero/SubscribeBanner billing SDK, AdSlot ad SDK, BoxscoreTable scroll/sort state). Added §9s (Figma Design Token Integration — token mapping file, client-side resolution, three-level CI validation pipeline). |
+| 2026-03-30 | Doc consistency audit. ADR Approvals table: ADR-006 Proposed → Accepted. §10 status updated: Internationalization Gap → Built (section-level stringTable). |
 | 2026-03-24 | Doc consistency audit. `FormRenderer` → `Form` aligned with schema enum in §9r classification table. ADR Approvals table: ADR-008 Proposed → Accepted (Option C), ADR-009 Proposed → Accepted. |
+| 2026-03-14 | Added §9r (Section vs. Atomic Classification — implementation-level criteria: network-driven lifecycle, platform SDK integration, client-owned interaction state. Full classification inventory with concrete examples: GamePanel Ably/poll lifecycle, SubscribeHero/SubscribeBanner billing SDK, AdSlot ad SDK, BoxscoreTable scroll/sort state). Added §9s (Figma Design Token Integration — token mapping file, client-side resolution, three-level CI validation pipeline). |
+| 2026-03-13 | Atomic rendering layer. Updated Key Schema Decisions (dual-layer model: 9 section types in schema (8 permanent + AtomicComposite) + 10 atomic element types; 9 former types migrated to server-composed AtomicComposite). Added Grid vs. Section Decision Tree to §9q. Added atomic rendering layer row to requirement status matrix. |
+| 2026-03-04 | Added `parentUri` to Screen contract. Updated status matrix for composition API contract (Gap → Partial). Added Prototype Concessions subsection. |
+| 2026-03-04 | Added gap section 9q: Tabular Data Sections and Forms. New semantic section types (`BoxscoreTable`, `Form`), parameterized refresh on actions, sort/form state conventions. Updated status matrix. |
+| 2026-02-27 | Cross-document consistency review. Replaced `entitlements` references with `device` in governance, schema decisions, and 9o to align with Technical Proposal. |
+| 2026-02-25 | Established platform-aware composition as settled architectural position: shared schema, shared data pipeline, per-platform-family composition responses. Renamed `fallbackUrl` → `webUrl` in action contract. Updated platform coverage, 9b, 9m. |
+| 2026-02-25 | Added `stringKeys` to binding contract JSON example in section 3. Added JSON snippet with explanation to i18n section (9p). Added revision history. |
+| 2026-02-24 | Added i18n requirement (9p) with two-layer strategy (server-resolved default + `stringKeys` on data bindings). Added locale transport policy to 9o (`locale` query param on GET, body on POST; `Accept-Language` rejected). |
+| 2026-02-20 | Added gap sections 9m (form-factor layout manager), 9n (ad support), 9o (composition input and request model). Aligned governance and locked decisions with ADR-driven approach. |
+| 2026-02-16 | Aligned with latest platform direction. Updated schema/runtime/model touchpoints, removed outdated references. |
+| 2026-02-12 | Initial version — consolidated from design sessions. Separated implementation code into reference document. Core architecture, schema, data binding, action system, screen state, codegen, platform coverage, and gap analysis (9a–9l). |
 
 ---
 
@@ -55,7 +56,7 @@ required_inputs:
   backend: true
 locked_decisions:
   action_precedence: "nested > section > screen-default"
-  experiment_assignment: "support client-hint and server-authoritative resolution"
+  experiment_assignment: "client-authoritative via Amplitude; server trusts assignments, kill switch for disabled variants"
   request_method_policy: "GET or POST based on section/screen cacheability and context"
   ad_boundary: "ad auction/targeting delegated; SDUI carries placement contract"
   cache_policy_owner: "platform + backend"
@@ -69,8 +70,8 @@ locked_decisions:
 - **Platform-aware composition (settled):** shared schema and data pipeline; per-platform-family composition responses. Not an ADR — the only practical architecture for phone, tablet, web, and TV. Server-side composition cost is acceptable.
 - **Navigate action URIs (settled):** `targetUri` for native deeplinks, `webUrl` for web — both are first-class platform-appropriate targets, not primary/fallback.
 - **Action precedence:** nested > section > screen-default
-- **Experiment strategy:** support both client-hint and server-authoritative assignment
-- **Experiment conflict rule:** server-authoritative assignment wins; response echoes final variant used
+- **Experiment strategy:** client-authoritative assignment via Amplitude SDK; server trusts and uses assignments for composition
+- **Experiment conflict rule:** client assignment is authoritative; server may reject disabled variants via kill switch; response echoes final variant used
 - **Request method:** support both GET and POST depending on section/screen needs
 - **Ads boundary:** delegated ad auction/targeting, SDUI provides placement contract
 - **Cache policy ownership:** platform + backend input required
@@ -719,12 +720,20 @@ sequenceDiagram
 - Server includes experiment metadata: `"experiment": { "id": "game-detail-v2", "variant": "treatment-b" }`
 - FireAndForget actions automatically include experiment context in every beacon
 - Section ordering, content, and even action behavior can vary per variant
-- The composition service is the natural place to resolve experiment assignments since it already controls section composition
-- Conflict resolution rule: when client hint and server assignment differ, server-authoritative assignment wins
-- Response must echo the final assignment used for composition for analytics/reporting consistency
+- The composition service resolves experiment assignments from the request envelope and uses them for composition branching
 
-**Decision required:** Final integration shape (direct in composer vs upstream experimentation service) and assignment cache location (server session vs client storage).  
-**ADR tracking:** [ADR-006](adr/006-experiment-assignment-model.md)
+**Resolved decisions (see [ADR-006](adr/006-experiment-assignment-model.md), [plan-experimentation.md](plans/plan-experimentation.md) D1–D4):**
+
+- **Client is fully authoritative.** Clients resolve assignments via experiment SDK (Amplitude) at app start (per-session) and send them as `experiments[experimentId]=variantName` in the request envelope.
+- **Server trusts assignments.** `resolveVariant(experimentId, default)` reads the experiments map and branches composition. No server-side experiment resolution service.
+- **Kill switch is client-side.** To disable a variant, the client stops sending that experiment. Server never sees it, falls back to default.
+- **No response echo.** The client already knows its assignments — the server does not echo them back.
+- **Exposure tracking is client-side** via fire-and-forget actions. No server-side exposure logging — tracking once is sufficient.
+- **Experiments are natural cache keys.** Assignments travel as query parameters, so different variants produce different cache entries.
+- **`variant` param removed.** Replaced by `experiments[variant]` placeholder that exercises the real experiment code path.
+- **Amplitude SDK integration deferred** — not part of this plan. Experiments are manually set for now.
+
+**ADR tracking:** [ADR-006](adr/006-experiment-assignment-model.md) — **Accepted**
 
 ### 9k. Pagination & Infinite Scroll
 
@@ -796,7 +805,17 @@ sequenceDiagram
   - section-first caching as primary strategy
   - optional screen snapshot caching for fast first paint/fallback
 
-**Decision required:** final request schema ownership, backward compatibility policy for request fields, and route-level GET/POST + cache policy governance.  
+**Resolved decisions (see [plan-request-transport.md](plans/plan-request-transport.md) D1–D7):**
+
+- GET-first with bracket-notation nested params (`platform[name]=android`, `device[countryCode]=US`, `experiments[exp_id]=variant_b`). All composition context travels as query parameters — naturally part of the CDN cache key.
+- POST fallback on the same URL with a JSON body of the same shape, when query string exceeds 8192 characters.
+- `Authorization` is the only required header. `X-Trace-Id` is the only other header (generated by API gateway or first service if absent).
+- `X-Platform` and `X-Schema-Version` headers are deprecated — replaced by `platform[name]` and `schemaVersion` query params. Server accepts both during transition.
+- All device context fields are optional — server tolerates missing fields gracefully with sensible defaults.
+- All timestamps in UTC — no timezone in the request envelope. Timezone-aware formatting is a client presentation concern.
+- `variant` query param removed — all variant resolution uses the `experiments` map exclusively.
+- Cache-Control headers set per route cacheability class: `public` (shared screens), `contextual` (locale-varying), `personalized` (user-specific), `live` (real-time, `no-cache`). See D7 route→cacheability mapping.
+
 **ADR tracking:** [ADR-003](adr/003-composition-api-contract.md), [ADR-004](adr/004-transport-and-caching-policy.md)
 
 ### 9p. Internationalization (i18n)
@@ -836,13 +855,17 @@ In this example, `homeTeam.score` is numeric and needs no translation. `gameStat
 **Client responsibility:**
 
 - On initial load: render server-provided strings directly (no i18n work)
-- On binding update: after applying a binding, check if the target path has a corresponding `stringKeys` entry. If so, resolve using platform-native i18n (Android `strings.xml`, iOS `Localizable.strings`, web i18n). Fall back to the raw value if no local translation exists.
+- On binding update: after applying a binding, check if the target path has a corresponding `stringKeys` entry. If so, resolve using the section-level `stringTable` (server-provided per-locale string map). Fall back to the raw value if no local translation exists.
+- For parameterized strings: if the stringTable value contains `{0}`, substitute the raw bound value into the template. Single-value `{0}` templates only; multi-value deferred.
 
 **Server responsibility:**
 
 - Resolve locale from the `locale` query parameter (default: `en`) and send pre-translated text in all string fields
-- Attach `stringKeys` entries to data bindings for any bound fields where the external data source may deliver untranslated strings
+- Populate section-level `stringTable` with localized strings for any fields that need client-side resolution
+- Attach `stringKeys` entries to data bindings for any bound fields where the external data source may deliver untranslated strings — **deferred** (schema + client support built; no composer sets stringKeys yet)
+- Ensure all section-level refresh endpoints (direct-URL polling) include `locale` so refreshed sections carry the correct string table
 - Locale is part of the URL and naturally part of the CDN cache key
+- Parameterized strings (~1% of total) handled by server-side atomic decomposition — no client interpolation code needed
 
 **Decision required:** Governance for string key taxonomy, ownership of server-side translation bundles, and which platform i18n libraries are standard per client.
 
@@ -978,7 +1001,7 @@ The following requirements are represented by ADRs and remain pending final cros
 | Composition API contract (request/response) | [ADR-003](adr/003-composition-api-contract.md) | Proposed |
 | Transport and caching policy | [ADR-004](adr/004-transport-and-caching-policy.md) | Proposed |
 | Action scope and precedence | [ADR-005](adr/005-action-scope-and-precedence.md) | Proposed |
-| Experiment assignment model | [ADR-006](adr/006-experiment-assignment-model.md) | Proposed |
+| Experiment assignment model | [ADR-006](adr/006-experiment-assignment-model.md) | Accepted |
 | Ads boundary and contract | [ADR-007](adr/007-ad-boundary-and-contract.md) | Proposed |
 | Form-factor layout manager | [ADR-008](adr/008-form-factor-layout-manager.md) | Accepted (Option C) |
 | Impression dedup and visibility semantics | [ADR-009](adr/009-impression-dedup-and-visibility-semantics.md) | Accepted |
@@ -1007,19 +1030,19 @@ Until approved, these remain directional requirements and may be refined.
 | Caching & offline | **Gap** | Stale-while-revalidate, cold start optimization |
 | Schema versioning protocol | **Partial** | Version header sent; no multi-version routing yet |
 | Composition ownership model (SDUI composer as source of truth) | **Partial** | Architecture intent clear; transitional CoreAPI-derived composition still in use |
-| Request context envelope for composition | **Gap** | Needs formal schema and server/client conformance |
-| Composition API contract (auth, method, cacheability) | **Partial** | URI convention defined (`nba://{path}` → `GET /sdui/{path}`); auth and cacheability still gap |
+| Request context envelope for composition | **Built** | `SduiRequestContext` POJO + `BracketParamResolver` (bracket-notation GET, POST fallback). Android & web `RequestEnvelopeBuilder`. All fields optional with defaults. |
+| Composition API contract (auth, method, cacheability) | **Built** | GET-first with bracket-notation params; POST fallback >8192 chars; `Authorization` header only; Cache-Control per D7 route mapping; `X-Trace-Id` header for observability |
 | Actions at subsection level | **Partial** | Supported conceptually; needs explicit schema examples and conformance tests |
 | Form-factor layout manager | **Partial** | Cross-platform: settled. Within-family: `SectionLayoutHints` built on web (margins, dividers, priority). ADR-008 accepted (Option C). Android wiring pending. |
 | Ad support as first-class primitive | **Gap** | Needs ad primitive definition and fallback behavior |
 | Theming / dark mode | **Gap** | Semantic tokens vs. literal values |
 | Animation hints | **Gap** | Entry/exit + data-change animations |
 | Impression deduplication | **Partial** | Built on web (IntersectionObserver + dedup registry). Android/iOS pending. ADR-009 accepted. |
-| A/B testing integration | **Partial** | Supports client hint + server-authoritative conflict rule; experiment service integration not finalized |
+| A/B testing integration | **Built** | Fully client-authoritative (ADR-006 Accepted). `experiments` map replaces `variant` param. Kill switch is client-side. Exposure tracking via fire-and-forget actions. Amplitude SDK integration deferred. |
 | Pagination / infinite scroll | **Gap** | Cursor-based, server-defined |
 | Debugging / observability | **Partial** | traceId in responses; structured Logcat; no dashboards |
-| Contract testing | **Gap** | No automated tests yet |
-| Internationalization (i18n) | **Gap** | Server-resolved default + optional string keys on data bindings for external source translations |
+| Contract testing | **Gap** | No automated contract tests yet. Contract tests verify cross-platform conformance (schema ↔ server ↔ clients) and are distinct from per-requirement unit tests. All other requirements should have appropriate unit and integration tests when productionized. |
+| Internationalization (i18n) | **Built** | Section-level `stringTable` stamped by server per locale. Server pre-translates initial text. Clients consume `stringTable` from each section. Parameterized strings via atomic decomposition. `stringKeys` on data bindings deferred to production server requirements. |
 | Tabular data sections (BoxscoreTable) | **Built** | Semantic table type with domain-typed data, client-side sort, frozen column/totals row. Built on Web and Android. |
 | Form section (generic) | **Built** | Extensible field types (picker, segmented, toggle, datePicker, text), parameterized refresh on submit. Built on Web and Android. |
 | Parameterized refresh (Action extension) | **Built** | `endpoint` + `paramBindings` resolved from screen state at action time. Working via Form submit. |

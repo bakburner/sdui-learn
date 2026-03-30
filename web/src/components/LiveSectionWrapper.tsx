@@ -54,7 +54,8 @@ export function LiveSectionWrapper({
         const updated = applyDataBindings(
           currentData as Record<string, unknown>,
           section.dataBinding,
-          incomingPayload as Record<string, unknown>
+          incomingPayload as Record<string, unknown>,
+          (section as Record<string, unknown>).stringTable as Record<string, string> | undefined
         );
         return updated as Data;
       }
@@ -67,7 +68,7 @@ export function LiveSectionWrapper({
 
       return currentData;
     });
-  }, [section.id, section.dataBinding, hasDataBindings]);
+  }, [section.id, section.dataBinding, hasDataBindings, section.stringTable]);
   useRefreshPolicy({
     section: {
       ...section,
@@ -90,7 +91,7 @@ export function LiveSectionWrapper({
  */
 export function useLiveData(
   section: Section,
-  defaultRefreshPolicy?: Section['refreshPolicy']
+  defaultRefreshPolicy?: Section['refreshPolicy'],
 ): Data | undefined {
   const [liveData, setLiveData] = useState<Data | undefined>(section.data as Data | undefined);
 
@@ -112,7 +113,8 @@ export function useLiveData(
         const updated = applyDataBindings(
           currentData as Record<string, unknown>,
           section.dataBinding,
-          incomingPayload as Record<string, unknown>
+          incomingPayload as Record<string, unknown>,
+          (section as Record<string, unknown>).stringTable as Record<string, string> | undefined
         );
         return updated as Data;
       }
@@ -123,7 +125,7 @@ export function useLiveData(
 
       return currentData;
     });
-  }, [section.id, section.dataBinding, hasDataBindings]);
+  }, [section.id, section.dataBinding, hasDataBindings, section.stringTable]);
 
   useRefreshPolicy({
     section: {

@@ -68,3 +68,84 @@ if dangling:
     sys.exit(1)
 else:
     print("\nNo dangling refs in sdui-all-types.json ✓")
+
+# --- Feature status evidence ---
+
+print("\n=== ADR STATUSES ===")
+adr_dir = root / "docs" / "adr"
+import re
+for adr_file in sorted(adr_dir.glob("0*.md")):
+    text = adr_file.read_text()
+    # Look for Status line in header (format: "- Status: Accepted" or "**Status**: Accepted")
+    status_match = re.search(r'(?:^|\n)-?\s*\**Status\**[:\s]*(.+)', text, re.IGNORECASE)
+    status = status_match.group(1).strip().rstrip('*').strip() if status_match else "UNKNOWN"
+    print(f"  {adr_file.name}: {status}")
+
+print("\n=== KEY IMPLEMENTATION FILES ===")
+impl_checks = {
+    "Request envelope (server)": "server/src/main/java/com/nba/sdui/request/SduiRequestContext.java",
+    "Request envelope (Android)": "android/sdui-core/src/main/java/com/nba/sdui/core/request/RequestEnvelopeBuilder.kt",
+    "Request envelope (web)": "web/src/request/RequestEnvelopeBuilder.ts",
+    "i18n stringTable (schema)": None,  # checked differently
+    "i18n stampStringTable (server)": None,  # checked differently
+}
+
+for label, rel_path in impl_checks.items():
+    if rel_path:
+        full = root / rel_path
+        exists = full.exists() and full.stat().st_size > 100
+        print(f"  {label}: {'EXISTS' if exists else 'MISSING'} ({rel_path})")
+
+# Check stringTable in schema
+section_props = section_def.get("properties", {})
+has_string_table = "stringTable" in section_props
+print(f"  i18n stringTable on Section schema: {'YES' if has_string_table else 'NO'}")
+
+# Check stampStringTableOnSections in SduiUtils
+utils_path = root / "server/src/main/java/com/nba/sdui/service/SduiUtils.java"
+if utils_path.exists():
+    has_stamp = "stampStringTableOnSections" in utils_path.read_text()
+    print(f"  i18n stampStringTableOnSections in SduiUtils: {'YES' if has_stamp else 'NO'}")
+else:
+    print(f"  i18n SduiUtils.java: MISSING")
+
+# Check experiment resolution in composition service
+comp_path = root / "server/src/main/java/com/nba/sdui/service/SduiCompositionService.java"
+if comp_path.exists():
+    comp_text = comp_path.read_text()
+    has_experiment = "experiment" in comp_text.lower()
+    print(f"  Experiment resolution in SduiCompositionService: {'YES' if has_experiment else 'NO'}")
+else:
+    print(f"  SduiCompositionService.java: MISSING")
+
+print("\n=== FEATURE STATUS TRUTH (derived from code) ===")
+# Derive ground truth from above checks
+status_truth = []
+
+# Request envelope
+req_server = (root / impl_checks["Request envelope (server)"]).exists()
+req_android = (root / impl_checks["Request envelope (Android)"]).exists()
+req_web = (root / impl_checks["Request envelope (web)"]).exists()
+if req_server and req_android and req_web:
+    status_truth.append(("Request context envelope", "Built"))
+elif req_server:
+    status_truth.append(("Request context envelope", "Partial"))
+else:
+    status_truth.append(("Request context envelope", "Gap"))
+
+# i18n
+if has_string_table and utils_path.exists() and "stampStringTableOnSections" in utils_path.read_text():
+    status_truth.append(("Internationalization (i18n)", "Built"))
+elif has_string_table:
+    status_truth.append(("Internationalization (i18n)", "Partial"))
+else:
+    status_truth.append(("Internationalization (i18n)", "Gap"))
+
+# Experiments
+if comp_path.exists() and "experiment" in comp_path.read_text().lower():
+    status_truth.append(("Experiment/A/B testing", "Built"))
+else:
+    status_truth.append(("Experiment/A/B testing", "Gap"))
+
+for feature, status in status_truth:
+    print(f"  {feature}: {status}")

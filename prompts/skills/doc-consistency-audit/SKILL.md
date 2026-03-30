@@ -12,6 +12,8 @@ Sync all SDUI governance documentation against the schema and code as the single
 - After schema changes (added/removed section types, action types, atomic elements)
 - After migrating section types to/from atomic
 - After renaming action types or other schema enums
+- After implementing features that close gaps (request transport, i18n, experimentation, etc.)
+- After ADR status changes (Proposed → Accepted)
 - Periodic consistency review ("review the docs", "sync docs", "dedup docs")
 - After server composition changes (the kitchen sink appendix JSON is refreshed from the live server)
 
@@ -32,6 +34,11 @@ Extract current facts from code before auditing docs. These files define reality
 | Web routed atomics | `web/src/components/atomic/AtomicRouter.tsx` → switch cases |
 | Migrated types (server-composed) | `server/.../AtomicCompositeBuilder.java` → public `build*` methods |
 | Action handler types | `android/sdui-core/.../state/ActionHandler.kt` + `web/src/runtime/ActionHandler.ts` |
+| ADR statuses | `docs/adr/*.md` → `Status:` line in YAML/header (Proposed / Accepted / Superseded) |
+| Request envelope implementation | `server/.../SduiRequestContext.java` + `android/.../RequestEnvelopeBuilder.kt` + `web/src/request/RequestEnvelopeBuilder.ts` |
+| i18n implementation | `server/.../SduiUtils.java` → `stampStringTableOnSections` + `schema/sdui-schema.json` → `stringTable` on Section |
+| Experiment implementation | `server/.../SduiCompositionService.java` → experiment resolution + `docs/adr/006-experiment-assignment-model.md` status |
+| Recent commits (feature status) | `git log --oneline -10` — scan for feat/fix commits that close gaps |
 | Kitchen sink live response | `GET http://localhost:8080/sdui/demos` with `X-Platform: android` (requires running server) |
 
 ## Documents to Audit
@@ -66,6 +73,22 @@ Then read the router files to record:
 - Which types the Android/Web SectionRouters route
 - Which types the Android/Web AtomicRouters route
 - What the AtomicCompositeBuilder builds (migrated types)
+
+### Step 1b — Extract feature status facts
+
+The extraction script covers schema structure. Feature status requires additional checks:
+
+1. **ADR statuses** — read the `Status:` line from each ADR in `docs/adr/`. Record which are Proposed vs. Accepted.
+2. **Recent git history** — run `git log --oneline -10` and scan for `feat:` commits that implement capabilities (request transport, experimentation, i18n, etc.).
+3. **Key implementation files** — check whether these exist and contain substantive code:
+   - `server/.../SduiRequestContext.java` (request envelope)
+   - `android/.../RequestEnvelopeBuilder.kt` + `web/src/request/RequestEnvelopeBuilder.ts` (client envelope builders)
+   - `server/.../SduiUtils.java` → `stampStringTableOnSections` (i18n)
+   - `schema/sdui-schema.json` → `stringTable` on Section definition (i18n schema)
+   - ADR-006 status (experiment model)
+4. **Build the status truth table** — for each requirement in the status matrices, determine the ground-truth status (Gap / Partial / Built) based on the code evidence above.
+
+This truth table is then compared against every status matrix in the audited documents.
 
 ### Step 2 — Cross-reference routers against schema
 

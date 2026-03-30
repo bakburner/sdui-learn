@@ -18,13 +18,8 @@ export interface SduiModels {
     schemaVersion: string;
     sections:      Section[];
     state?:        { [key: string]: any };
-    /**
-     * Screen-level map of translation key to localized string. Used by DataBindingResolver to
-     * resolve stringKeys on real-time updates.
-     */
-    stringTable?: { [key: string]: string };
-    title?:       string;
-    traceId?:     string;
+    title?:        string;
+    traceId?:      string;
     [property: string]: any;
 }
 
@@ -572,6 +567,11 @@ export interface Section {
     padding?:       Spacing;
     refreshPolicy?: RefreshPolicy;
     sectionStates?: SectionStates;
+    /**
+     * Section-level map of translation key to localized string. Used by DataBindingResolver to
+     * resolve stringKeys on real-time updates.
+     */
+    stringTable?: { [key: string]: string };
     /**
      * Nested interaction targets within the section
      */

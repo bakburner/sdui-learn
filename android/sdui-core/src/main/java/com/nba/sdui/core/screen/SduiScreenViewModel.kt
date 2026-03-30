@@ -355,7 +355,7 @@ open class SduiScreenViewModel(
                             ?.find { it.id == section.id }?.data ?: return@collect
                         val updatedData = dataBindingResolver.applyBindings(
                             currentData, message, dataBinding, currentScreen?.traceId,
-                            currentScreen?.stringTable
+                            section.stringTable
                         )
                         updateSectionInScreen(section.id, updatedData)
                     } else {

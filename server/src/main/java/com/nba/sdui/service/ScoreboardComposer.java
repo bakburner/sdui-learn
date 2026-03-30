@@ -65,7 +65,6 @@ public class ScoreboardComposer {
         response.put("traceId", traceId);
         response.put("schemaVersion", schemaVersion);
         response.set("navigation", utils.buildNavigation("scoreboard"));
-        response.set("stringTable", utils.buildStringTable(locale));
 
         if (variant != null) {
             switch (variant.toUpperCase()) {
@@ -75,6 +74,7 @@ public class ScoreboardComposer {
             }
         }
 
+        utils.stampStringTableOnSections(response, locale);
         return response;
     }
 

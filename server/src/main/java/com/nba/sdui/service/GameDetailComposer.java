@@ -75,7 +75,6 @@ public class GameDetailComposer {
         response.put("schemaVersion", schemaVersion);
         response.put("parentUri", "nba://scoreboard");
         response.set("navigation", utils.buildNavigation("game-detail"));
-        response.set("stringTable", utils.buildStringTable(locale));
 
         // Expose available A/B variants so clients never need URI-sniffing (Rule 10).
         ArrayNode variants = objectMapper.createArrayNode();
@@ -83,7 +82,10 @@ public class GameDetailComposer {
         variants.add(objectMapper.createObjectNode().put("id", "B").put("label", "Reorder").put("description", "Content rail and TabGroup swapped"));
         variants.add(objectMapper.createObjectNode().put("id", "C").put("label", "Minimal").put("description", "Player stats and promo banner removed"));
         variants.add(objectMapper.createObjectNode().put("id", "D").put("label", "Extra Rail").put("description", "Trending videos rail added after content rail"));
-        response.set("variants", variants);
+        ObjectNode variantsWrapper = objectMapper.createObjectNode();
+        variantsWrapper.put("experimentId", "game_detail_variant");
+        variantsWrapper.set("options", variants);
+        response.set("variants", variantsWrapper);
 
         resolveChannelPatterns(response, gameId);
 
@@ -99,6 +101,7 @@ public class GameDetailComposer {
         log.debug("SDUI response composed: variant={}, sections={}",
                 variant, response.has("sections") ? response.get("sections").size() : 0);
 
+        utils.stampStringTableOnSections(response, locale);
         return response;
     }
 

@@ -401,7 +401,7 @@ public class SduiUtils {
     );
 
     /**
-     * Build a screen-level stringTable node for the given locale.
+     * Build a string table node for the given locale.
      * Falls back to English when the locale is unknown.
      */
     public ObjectNode buildStringTable(String locale) {
@@ -412,5 +412,20 @@ public class SduiUtils {
         ObjectNode node = objectMapper.createObjectNode();
         table.forEach(node::put);
         return node;
+    }
+
+    /**
+     * Stamp a stringTable onto every section in the response's sections array.
+     * Sections that already have a stringTable are left unchanged.
+     */
+    public void stampStringTableOnSections(ObjectNode response, String locale) {
+        JsonNode sections = response.get("sections");
+        if (sections == null || !sections.isArray()) return;
+        ObjectNode table = buildStringTable(locale);
+        for (JsonNode section : sections) {
+            if (section.isObject() && !section.has("stringTable")) {
+                ((ObjectNode) section).set("stringTable", table.deepCopy());
+            }
+        }
     }
 }

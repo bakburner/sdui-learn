@@ -26,8 +26,6 @@ export interface SectionProps {
 export interface SectionRouterProps extends SectionProps {
   /** Optional screen-level default refresh policy */
   defaultRefreshPolicy?: RefreshPolicy;
-  /** Screen-level string table for i18n resolution of data-binding stringKeys */
-  stringTable?: Record<string, string>;
 }
 
 /**
@@ -94,7 +92,6 @@ export function SectionRouter({
   onAction, 
   onStateChange,
   defaultRefreshPolicy,
-  stringTable,
 }: SectionRouterProps): React.ReactElement | null {
   const trackingRef = useRef<HTMLDivElement>(null);
 
@@ -121,7 +118,6 @@ export function SectionRouter({
         onAction={onAction}
         onStateChange={onStateChange}
         defaultRefreshPolicy={defaultRefreshPolicy}
-        stringTable={stringTable}
       >
         {(liveData: Data | undefined) => {
           const liveSection: Section = {
@@ -172,14 +168,12 @@ export function SectionList({
   onAction, 
   onStateChange,
   defaultRefreshPolicy,
-  stringTable,
 }: { 
   sections: Section[]; 
   state: Record<string, unknown>;
   onAction: (action: Action) => void;
   onStateChange: (key: string, value: unknown) => void;
   defaultRefreshPolicy?: RefreshPolicy;
-  stringTable?: Record<string, string>;
 }): React.ReactElement {
   return (
     <>
@@ -198,7 +192,6 @@ export function SectionList({
             onAction={onAction}
             onStateChange={onStateChange}
             defaultRefreshPolicy={defaultRefreshPolicy}
-            stringTable={stringTable}
           />
           {section.layoutHints?.dividerBelow && <hr className="sdui-divider" />}
         </div>

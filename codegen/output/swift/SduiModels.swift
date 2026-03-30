@@ -20,9 +20,6 @@ struct SduiModels: Codable {
     let schemaVersion: String
     let sections: [Section]
     let state: [String: JSONAny]?
-    /// Screen-level map of translation key to localized string. Used by DataBindingResolver to
-    /// resolve stringKeys on real-time updates.
-    let stringTable: [String: String]?
     let title, traceID: String?
 
     enum CodingKeys: String, CodingKey {
@@ -30,7 +27,7 @@ struct SduiModels: Codable {
         case analyticsID = "analyticsId"
         case defaultRefreshPolicy, id, navigation
         case parentURI = "parentUri"
-        case schemaVersion, sections, state, stringTable, title
+        case schemaVersion, sections, state, title
         case traceID = "traceId"
     }
 }
@@ -63,7 +60,6 @@ extension SduiModels {
         schemaVersion: String? = nil,
         sections: [Section]? = nil,
         state: [String: JSONAny]?? = nil,
-        stringTable: [String: String]?? = nil,
         title: String?? = nil,
         traceID: String?? = nil
     ) -> SduiModels {
@@ -77,7 +73,6 @@ extension SduiModels {
             schemaVersion: schemaVersion ?? self.schemaVersion,
             sections: sections ?? self.sections,
             state: state ?? self.state,
-            stringTable: stringTable ?? self.stringTable,
             title: title ?? self.title,
             traceID: traceID ?? self.traceID
         )
@@ -1118,6 +1113,9 @@ class Section: Codable {
     let padding: Spacing?
     let refreshPolicy: RefreshPolicy?
     let sectionStates: SectionStates?
+    /// Section-level map of translation key to localized string. Used by DataBindingResolver to
+    /// resolve stringKeys on real-time updates.
+    let stringTable: [String: String]?
     /// Nested interaction targets within the section
     let subsections: [Subsection]?
     let type: SectionType
@@ -1125,10 +1123,10 @@ class Section: Codable {
     enum CodingKeys: String, CodingKey {
         case accessibility, actions
         case analyticsID = "analyticsId"
-        case backgroundColor, data, dataBinding, id, layoutHints, padding, refreshPolicy, sectionStates, subsections, type
+        case backgroundColor, data, dataBinding, id, layoutHints, padding, refreshPolicy, sectionStates, stringTable, subsections, type
     }
 
-    init(accessibility: AccessibilityProperties?, actions: [Action]?, analyticsID: String?, backgroundColor: String?, data: DataClass?, dataBinding: DataBinding?, id: String, layoutHints: SectionLayoutHints?, padding: Spacing?, refreshPolicy: RefreshPolicy?, sectionStates: SectionStates?, subsections: [Subsection]?, type: SectionType) {
+    init(accessibility: AccessibilityProperties?, actions: [Action]?, analyticsID: String?, backgroundColor: String?, data: DataClass?, dataBinding: DataBinding?, id: String, layoutHints: SectionLayoutHints?, padding: Spacing?, refreshPolicy: RefreshPolicy?, sectionStates: SectionStates?, stringTable: [String: String]?, subsections: [Subsection]?, type: SectionType) {
         self.accessibility = accessibility
         self.actions = actions
         self.analyticsID = analyticsID
@@ -1140,6 +1138,7 @@ class Section: Codable {
         self.padding = padding
         self.refreshPolicy = refreshPolicy
         self.sectionStates = sectionStates
+        self.stringTable = stringTable
         self.subsections = subsections
         self.type = type
     }
@@ -1150,7 +1149,7 @@ class Section: Codable {
 extension Section {
     convenience init(data: Data) throws {
         let me = try newJSONDecoder().decode(Section.self, from: data)
-        self.init(accessibility: me.accessibility, actions: me.actions, analyticsID: me.analyticsID, backgroundColor: me.backgroundColor, data: me.data, dataBinding: me.dataBinding, id: me.id, layoutHints: me.layoutHints, padding: me.padding, refreshPolicy: me.refreshPolicy, sectionStates: me.sectionStates, subsections: me.subsections, type: me.type)
+        self.init(accessibility: me.accessibility, actions: me.actions, analyticsID: me.analyticsID, backgroundColor: me.backgroundColor, data: me.data, dataBinding: me.dataBinding, id: me.id, layoutHints: me.layoutHints, padding: me.padding, refreshPolicy: me.refreshPolicy, sectionStates: me.sectionStates, stringTable: me.stringTable, subsections: me.subsections, type: me.type)
     }
 
     convenience init(_ json: String, using encoding: String.Encoding = .utf8) throws {
@@ -1176,6 +1175,7 @@ extension Section {
         padding: Spacing?? = nil,
         refreshPolicy: RefreshPolicy?? = nil,
         sectionStates: SectionStates?? = nil,
+        stringTable: [String: String]?? = nil,
         subsections: [Subsection]?? = nil,
         type: SectionType? = nil
     ) -> Section {
@@ -1191,6 +1191,7 @@ extension Section {
             padding: padding ?? self.padding,
             refreshPolicy: refreshPolicy ?? self.refreshPolicy,
             sectionStates: sectionStates ?? self.sectionStates,
+            stringTable: stringTable ?? self.stringTable,
             subsections: subsections ?? self.subsections,
             type: type ?? self.type
         )

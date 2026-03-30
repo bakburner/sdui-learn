@@ -52,7 +52,6 @@ public class DemoScreenComposer {
         screen.set("defaultRefreshPolicy", refreshPolicy);
 
         screen.set("navigation", utils.buildNavigation("demos"));
-        screen.set("stringTable", utils.buildStringTable(locale));
 
         ArrayNode sections = objectMapper.createArrayNode();
 
@@ -121,6 +120,7 @@ public class DemoScreenComposer {
         sections.add(buildDemoSectionSlot());
 
         screen.set("sections", sections);
+        utils.stampStringTableOnSections(screen, locale);
         return screen;
     }
 
@@ -141,7 +141,6 @@ public class DemoScreenComposer {
         screen.set("defaultRefreshPolicy", refreshPolicy);
 
         screen.set("navigation", utils.buildNavigation("leaders"));
-        screen.set("stringTable", utils.buildStringTable(locale));
 
         ObjectNode state = objectMapper.createObjectNode();
         state.put("form_season", "2025-26");
@@ -162,7 +161,7 @@ public class DemoScreenComposer {
      * Compose only the leaders-table section for a parameterised refresh.
      * Called from the controller when the form submits.
      */
-    public ObjectNode composeLeadersRefresh(String traceId, Map<String, String> params) {
+    public ObjectNode composeLeadersRefresh(String traceId, Map<String, String> params, String locale) {
         String season = params.getOrDefault("season", "2025-26");
         String seasonType = params.getOrDefault("seasonType", "regular");
         String perMode = params.getOrDefault("perMode", "per_game");
@@ -184,6 +183,7 @@ public class DemoScreenComposer {
         sections.add(buildLeadersTable(season, seasonType, perMode, statCategory));
         screen.set("sections", sections);
 
+        utils.stampStringTableOnSections(screen, locale);
         return screen;
     }
 

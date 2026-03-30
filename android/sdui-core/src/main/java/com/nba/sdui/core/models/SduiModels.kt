@@ -19,9 +19,8 @@ data class SduiScreen(
     @JsonProperty("parentUri") val parentUri: String? = null,
     @JsonProperty("defaultRefreshPolicy") val defaultRefreshPolicy: RefreshPolicy? = null,
     @JsonProperty("navigation") val navigation: Navigation? = null,
-    @JsonProperty("variants") val variants: List<SduiVariant> = emptyList(),
+    @JsonProperty("variants") val variants: SduiVariants? = null,
     @JsonProperty("state") val state: Map<String, Any>? = null,
-    @JsonProperty("stringTable") val stringTable: Map<String, String>? = null,
     @JsonProperty("sections") val sections: List<SduiSection> = emptyList()
 )
 
@@ -38,6 +37,16 @@ data class NavigationItem(
     @JsonProperty("targetUri") val targetUri: String? = null,
     @JsonProperty("selected") val selected: Boolean = false,
     @JsonProperty("children") val children: List<NavigationItem> = emptyList()
+)
+
+/**
+ * Variants wrapper provided by the server for A/B experimentation.
+ * Contains the experiment ID (key for the experiments map) and available options.
+ */
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class SduiVariants(
+    @JsonProperty("experimentId") val experimentId: String,
+    @JsonProperty("options") val options: List<SduiVariant> = emptyList()
 )
 
 /**
@@ -67,6 +76,7 @@ data class SduiSection(
     @JsonProperty("backgroundColor") val backgroundColor: String? = null,
     @JsonProperty("layoutHints") val layoutHints: SectionLayoutHints? = null,
     @JsonProperty("sectionStates") val sectionStates: Map<String, Any?>? = null,
+    @JsonProperty("stringTable") val stringTable: Map<String, String>? = null,
     @JsonProperty("data") val data: Map<String, Any?>? = null
 )
 

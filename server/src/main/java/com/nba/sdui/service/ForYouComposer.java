@@ -64,7 +64,6 @@ public class ForYouComposer {
         response.put("traceId", traceId);
         response.put("schemaVersion", schemaVersion);
         response.set("navigation", utils.buildNavigation("for-you"));
-        response.set("stringTable", utils.buildStringTable(locale));
 
         ArrayNode sections = objectMapper.createArrayNode();
 
@@ -118,6 +117,7 @@ public class ForYouComposer {
         addUpcomingGamePanels(sections);
 
         response.set("sections", sections);
+        utils.stampStringTableOnSections(response, locale);
         return response;
     }
 

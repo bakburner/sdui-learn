@@ -36,7 +36,7 @@ class DataBindingResolver {
      * @param incomingMessage The incoming real-time message
      * @param dataBinding The data binding configuration
      * @param traceId Optional trace ID for logging
-     * @param stringTable Optional screen-level string table for stringKey resolution
+     * @param stringTable Optional section-level string table for stringKey resolution
      * @return Updated section data with bound values applied
      */
     fun applyBindings(

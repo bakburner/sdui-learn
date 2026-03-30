@@ -50,7 +50,6 @@ public class WatchComposer {
         response.put("traceId", traceId);
         response.put("schemaVersion", schemaVersion);
         response.set("navigation", utils.buildNavigation("watch"));
-        response.set("stringTable", utils.buildStringTable(locale));
 
         ArrayNode sections = objectMapper.createArrayNode();
 
@@ -58,6 +57,7 @@ public class WatchComposer {
         sections.add(buildTabGroup());
 
         response.set("sections", sections);
+        utils.stampStringTableOnSections(response, locale);
         return response;
     }
 

@@ -93,8 +93,8 @@ public class SduiCompositionService {
         return demoScreenComposer.composeLeaders(ctx.getTraceId(), ctx.getPlatformName(), ctx.getLocale());
     }
 
-    public ObjectNode composeLeadersRefresh(String traceId, Map<String, String> params) {
-        return demoScreenComposer.composeLeadersRefresh(traceId, params);
+    public ObjectNode composeLeadersRefresh(String traceId, Map<String, String> params, String locale) {
+        return demoScreenComposer.composeLeadersRefresh(traceId, params, locale);
     }
 
     public JsonNode composeForYou(SduiRequestContext ctx) {

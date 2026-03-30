@@ -344,7 +344,8 @@ public class SduiController {
             JsonNode screenResponse;
 
             if ("stats-leaders".equals(screenId)) {
-                screenResponse = compositionService.composeLeadersRefresh(traceId, allParams);
+                String locale = allParams.getOrDefault("locale", "en");
+                screenResponse = compositionService.composeLeadersRefresh(traceId, allParams, locale);
             } else {
                 ObjectNode placeholder = objectMapper.createObjectNode();
                 placeholder.put("id", screenId);

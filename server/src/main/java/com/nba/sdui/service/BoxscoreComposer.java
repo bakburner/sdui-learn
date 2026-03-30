@@ -69,7 +69,6 @@ public class BoxscoreComposer {
         response.put("schemaVersion", schemaVersion);
         response.put("parentUri", "nba://scoreboard");
         response.set("navigation", utils.buildNavigation("game-detail"));
-        response.set("stringTable", utils.buildStringTable(locale));
 
         if (!hasLiveData) {
             log.warn("No boxscore data available for gameId={}, returning empty screen", gameId);
@@ -87,6 +86,7 @@ public class BoxscoreComposer {
             emptySection.set("data", emptyData);
             sections.add(emptySection);
             response.set("sections", sections);
+            utils.stampStringTableOnSections(response, locale);
             return response;
         }
 
@@ -160,6 +160,7 @@ public class BoxscoreComposer {
                 awayTricode, homeTricode, gameStatus,
                 awayTeam.path("players").size(), homeTeam.path("players").size());
 
+        utils.stampStringTableOnSections(response, locale);
         return response;
     }
 

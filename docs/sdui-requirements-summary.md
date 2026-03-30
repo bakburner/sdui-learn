@@ -854,13 +854,17 @@ In this example, `homeTeam.score` is numeric and needs no translation. `gameStat
 **Client responsibility:**
 
 - On initial load: render server-provided strings directly (no i18n work)
-- On binding update: after applying a binding, check if the target path has a corresponding `stringKeys` entry. If so, resolve using platform-native i18n (Android `strings.xml`, iOS `Localizable.strings`, web i18n). Fall back to the raw value if no local translation exists.
+- On binding update: after applying a binding, check if the target path has a corresponding `stringKeys` entry. If so, resolve using the section-level `stringTable` (server-provided per-locale string map). Fall back to the raw value if no local translation exists.
+- For parameterized strings: if the stringTable value contains `{0}`, substitute the raw bound value into the template. Single-value `{0}` templates only; multi-value deferred.
 
 **Server responsibility:**
 
 - Resolve locale from the `locale` query parameter (default: `en`) and send pre-translated text in all string fields
-- Attach `stringKeys` entries to data bindings for any bound fields where the external data source may deliver untranslated strings
+- Populate section-level `stringTable` with localized strings for any fields that need client-side resolution
+- Attach `stringKeys` entries to data bindings for any bound fields where the external data source may deliver untranslated strings — **deferred** (schema + client support built; no composer sets stringKeys yet)
+- Ensure all section-level refresh endpoints (direct-URL polling) include `locale` so refreshed sections carry the correct string table
 - Locale is part of the URL and naturally part of the CDN cache key
+- Parameterized strings (~1% of total) handled by server-side atomic decomposition — no client interpolation code needed
 
 **Decision required:** Governance for string key taxonomy, ownership of server-side translation bundles, and which platform i18n libraries are standard per client.
 

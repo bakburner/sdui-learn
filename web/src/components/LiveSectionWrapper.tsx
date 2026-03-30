@@ -11,8 +11,6 @@ interface LiveSectionWrapperProps {
   onStateChange: (key: string, value: unknown) => void;
   /** Optional screen-level default refresh policy */
   defaultRefreshPolicy?: Section['refreshPolicy'];
-  /** Screen-level string table for i18n resolution of data-binding stringKeys */
-  stringTable?: Record<string, string>;
   children: (effectiveData: Data | undefined) => React.ReactElement | null;
 }
 
@@ -27,7 +25,6 @@ interface LiveSectionWrapperProps {
 export function LiveSectionWrapper({
   section,
   defaultRefreshPolicy,
-  stringTable,
   children,
 }: LiveSectionWrapperProps): React.ReactElement | null {
   // Initialize local data from section.data
@@ -58,7 +55,7 @@ export function LiveSectionWrapper({
           currentData as Record<string, unknown>,
           section.dataBinding,
           incomingPayload as Record<string, unknown>,
-          stringTable
+          (section as Record<string, unknown>).stringTable as Record<string, string> | undefined
         );
         return updated as Data;
       }
@@ -71,7 +68,7 @@ export function LiveSectionWrapper({
 
       return currentData;
     });
-  }, [section.id, section.dataBinding, hasDataBindings, stringTable]);
+  }, [section.id, section.dataBinding, hasDataBindings, section.stringTable]);
   useRefreshPolicy({
     section: {
       ...section,
@@ -95,7 +92,6 @@ export function LiveSectionWrapper({
 export function useLiveData(
   section: Section,
   defaultRefreshPolicy?: Section['refreshPolicy'],
-  stringTable?: Record<string, string>
 ): Data | undefined {
   const [liveData, setLiveData] = useState<Data | undefined>(section.data as Data | undefined);
 
@@ -118,7 +114,7 @@ export function useLiveData(
           currentData as Record<string, unknown>,
           section.dataBinding,
           incomingPayload as Record<string, unknown>,
-          stringTable
+          (section as Record<string, unknown>).stringTable as Record<string, string> | undefined
         );
         return updated as Data;
       }
@@ -129,7 +125,7 @@ export function useLiveData(
 
       return currentData;
     });
-  }, [section.id, section.dataBinding, hasDataBindings, stringTable]);
+  }, [section.id, section.dataBinding, hasDataBindings, section.stringTable]);
 
   useRefreshPolicy({
     section: {

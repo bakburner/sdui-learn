@@ -50,6 +50,7 @@ Today, changing the layout or content arrangement on any app screen requires a c
 
 | Date | Summary |
 |---|---|
+| 2026-04-01 | Doc consistency audit. Decision Continuity table: form-factor layout manager ADR pending → ADR-008 Accepted (Option C); added ADR-009 Accepted row (impression dedup). |
 | 2026-03-30 | Doc consistency audit. Added feature rows for request context envelope, experiment assignment (ADR-006 Accepted), and i18n (section-level stringTable). Updated composition service description. Updated Decision Continuity table (experiment assignment: ADR pending → ADR-006 Accepted). |
 | 2026-03-26 | Added Key Results section (OKRs) positioned after "The Opportunity" for executive visibility. Three objectives covering delivery velocity, cross-platform coordination, and design-to-production acceleration. Removed redundant "Success Metrics" section. |
 | 2026-03-18 | Beachhead surface generalized — milestones no longer assume Game Detail (remains TBD per Decision Continuity). Caching strategy made platform-agnostic (removed Room dependency). Capabilities table updated: Grid/table and Form/input marked as Done. Revision history moved to top and consolidated from intermittent update notes. |
@@ -299,7 +300,8 @@ To preserve continuity with the original executive summary, this section explici
 | Action scope and precedence          | **ADR pending**                   |
 | Experiment assignment strategy       | **ADR-006 Accepted** (2026-03-30) |
 | Ads boundary and contract            | **ADR pending**                   |
-| Form-factor layout manager           | **ADR pending**                   |
+| Form-factor layout manager           | **ADR-008 Accepted** (Option C — Hybrid) |
+| Impression dedup and visibility      | **ADR-009 Accepted** (2026-03-11) |
 
 
 ---

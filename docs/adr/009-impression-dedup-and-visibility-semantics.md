@@ -11,7 +11,7 @@ Impression tracking implemented at the router level using `IntersectionObserver`
 
 - **Visibility detection:** `IntersectionObserver` with 50% threshold (browser-native, parent-relative)
 - **Dwell time:** 1000ms default before impression fires
-- **Dedup strategies:** `once-per-screen` (default), `once-per-interval`, `none` — server-defined per analytics action
+- **Dedup strategies:** `once-per-screen` (default), `once-per-interval`, `none` — server-defined per `fireAndForget` action
 - **Dispatch:** Individual beacons per section (no batching in v1)
 - **Scope:** Router-level — every section type (including future/unknown) gets tracking automatically
 

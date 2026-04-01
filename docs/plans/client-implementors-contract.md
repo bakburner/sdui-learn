@@ -200,13 +200,15 @@ FUNCTION AtomicContainer(element, state, onAction, onStateChange, depth):
 ```
 CONSTANT MAX_SLOT_DEPTH = 2
 
-FUNCTION AtomicSectionSlot(element, state, onAction, onStateChange):
-    IF element.slotDepth > MAX_SLOT_DEPTH:
+FUNCTION AtomicSectionSlot(element, state, onAction, onStateChange, currentSlotDepth):
+    // slotDepth is a runtime counter tracked by the client, not a schema field.
+    // Increment on each SectionSlot → Section → AtomicComposite → SectionSlot cycle.
+    IF currentSlotDepth >= MAX_SLOT_DEPTH:
         LOG_WARNING("SectionSlot recursion limit — skipping")
         RETURN null
 
     embeddedSection = element.section
-    SectionRouter(embeddedSection, state, onAction, onStateChange)
+    SectionRouter(embeddedSection, state, onAction, onStateChange, currentSlotDepth + 1)
 ```
 
 **Performance limits (server-enforced, client-guarded):**
@@ -342,15 +344,23 @@ Action:
     trigger: "onTap" | "onLongPress" | "onVisible" | "onSwipe" | "onFocus" | "onBlur"
     targetUri: string?          // For navigate
     webUrl: string?             // Fallback URL for navigate
+    presentation: "push" | "modal" | "fullscreen" | "replace" | "external"?
+    modalHeight: "compact" | "half" | "full"?     // For modal presentation
     event: string?              // For fireAndForget (analytics event name)
     params: map<string, any>?   // For fireAndForget (analytics params)
     stateKey: string?           // For mutate
     stateValue: any?            // For mutate (null = remove key)
+    mutateOperation: "set" | "toggle" | "increment" | "append"?  // Default: "set"
     sectionId: string?          // For refresh (which section to refresh)
     endpoint: string?           // For parameterized refresh
     paramBindings: map?         // For refresh: key → "{{stateKey}}" template
     onFailure: "halt" | "continue" | "silent"?
+    failureFeedback: FailureFeedback?  // UI feedback on failure
     impression: ImpressionPolicy?
+
+FailureFeedback:
+    message: string             // User-facing error message
+    style: "snackbar" | "toast" | "inline"
 ```
 
 ### Sequence Execution
@@ -398,8 +408,9 @@ FUNCTION dispatchSingleAction(action, stateManager):
             uri = action.targetUri OR action.webUrl
             IF uri IS NULL:
                 RETURN failure("No target URI")
+            presentation = action.presentation OR "push"
             // Hand to platform navigation system
-            RETURN NavigateResult(uri)
+            RETURN NavigateResult(uri, presentation, action.modalHeight)
 
         "fireAndForget":
             event = action.event OR "unnamed_event"
@@ -410,11 +421,24 @@ FUNCTION dispatchSingleAction(action, stateManager):
         "mutate":
             IF action.stateKey IS NULL:
                 RETURN failure("No state key")
-            IF action.stateValue IS NOT NULL:
-                stateManager.setState(action.stateKey, action.stateValue)
-            ELSE:
-                stateManager.removeState(action.stateKey)
-            RETURN MutateResult(action.stateKey, action.stateValue)
+            operation = action.mutateOperation OR "set"
+            SWITCH operation:
+                "set":
+                    IF action.stateValue IS NOT NULL:
+                        stateManager.setState(action.stateKey, action.stateValue)
+                    ELSE:
+                        stateManager.removeState(action.stateKey)
+                "toggle":
+                    current = stateManager.getState(action.stateKey)
+                    stateManager.setState(action.stateKey, NOT current)
+                "increment":
+                    current = stateManager.getState(action.stateKey) AS NUMBER OR 0
+                    delta = action.stateValue AS NUMBER OR 1
+                    stateManager.setState(action.stateKey, current + delta)
+                "append":
+                    current = stateManager.getState(action.stateKey) AS LIST OR []
+                    stateManager.setState(action.stateKey, APPEND(current, action.stateValue))
+            RETURN MutateResult(action.stateKey, stateManager.getState(action.stateKey))
 
         "refresh":
             IF action.paramBindings IS NOT EMPTY AND action.endpoint IS NOT NULL:
@@ -618,7 +642,7 @@ FUNCTION setupRealTimeForScreen(screen):
 
 | Decision | Behavior |
 |----------|----------|
-| Auth mechanism | Token callback via `authUrl` — SDK handles refresh |
+| Auth mechanism | Token callback via app-level `tokenUrl` config — SDK handles refresh |
 | Message format | Always parse as opaque `Map<String, Any>` — never as typed models |
 | Reconnection | Ably SDK handles automatic reconnection; client logs state changes |
 | Channel cleanup | Unsubscribe on screen exit or section removal |
@@ -637,8 +661,11 @@ deduplication.
 ImpressionPolicy:
     dedup: "once-per-screen" | "once-per-session" | "once-per-interval" | "none"
     intervalMs: integer?              // For once-per-interval only
-    visibilityThreshold: float = 0.5  // 50% of element visible
-    dwellMs: integer = 1000           // Must be visible for 1 second
+    threshold: ImpressionThreshold?
+
+ImpressionThreshold:
+    visibility: float = 0.5           // 50% of element visible (0.0–1.0)
+    dwellMs: integer = 1000           // Must be visible for this duration
 ```
 
 ### Algorithm
@@ -652,12 +679,13 @@ FUNCTION trackImpression(sectionId, actions, isVisible, visibilityRatio):
     IF impressionActions IS EMPTY:
         RETURN
 
-    IF NOT isVisible OR visibilityRatio < VISIBILITY_THRESHOLD (0.5):
+    threshold = action.impression.threshold OR DEFAULT_THRESHOLD
+    IF NOT isVisible OR visibilityRatio < (threshold.visibility OR 0.5):
         cancelDwellTimer(sectionId)
         RETURN
 
     // Start dwell timer
-    startDwellTimer(sectionId, DWELL_MS (1000)):
+    startDwellTimer(sectionId, threshold.dwellMs OR 1000):
         FOR action IN impressionActions:
             dedupKey = sectionId + ":" + action.event
             policy = action.impression.dedup OR "once-per-screen"
@@ -735,15 +763,29 @@ Every HTTP request to the SDUI server must include:
 | `X-Platform` | Platform identifier (e.g., `ios`, `android`, `web`, `tvos`, `roku`) | Yes |
 | `X-Schema-Version` | `"1.0"` | Yes |
 
-Query parameters:
+**Query parameter alternative:** The server also accepts bracket-notation
+query parameters as an alternative to headers (both are accepted during
+transition):
+
+| Query Param | Equivalent Header |
+|-------------|-------------------|
+| `platform[name]=android` | `X-Platform: android` |
+| `schemaVersion=1.0` | `X-Schema-Version: 1.0` |
+| `platform[capabilities][sse]=true` | (capability declaration) |
+| `device[countryCode]=US` | (device context) |
+| `experiments[gd_tab_order_v2]=variant_b` | (experiment assignment) |
+
+Additional query parameters:
 
 | Param | Purpose |
 |-------|---------|
 | `variant` | A/B test variant (default `"A"`) |
+| `locale` | Locale for i18n (e.g., `en-US`) |
+| `gameState` | Filter by game state (e.g., `live`, `pre`, `post`) |
 
-The server uses `X-Platform` for platform-specific composition decisions
-(layout direction, section density). It must never be hardcoded on the server
-side via `defaultValue`.
+The server uses `X-Platform` (or `platform[name]`) for platform-specific
+composition decisions (layout direction, section density). It must never be
+hardcoded on the server side via `defaultValue`.
 
 ---
 
@@ -780,6 +822,15 @@ FUNCTION cachePut(endpoint, screen):
 
 ## 13. Error Handling
 
+### Two Error Surfaces
+
+Every client must support two distinct error surfaces:
+
+| Surface | Origin | When |
+|---------|--------|------|
+| **Server-composed ErrorState** | Server response (`AtomicComposite`) | Anticipated failures: bad game ID, missing data, upstream timeout. Rendered like any other section. |
+| **Client-composed error card** | Client render pipeline | Unanticipated failures: renderer crash, data validation failure, deserialization failure after response accepted. |
+
 ### Network Errors
 
 ```
@@ -801,20 +852,88 @@ IF JSON deserialization fails:
     Render ErrorState with diagnostic info
 ```
 
-### Section-Level Errors
+### Section-Level Errors — Catch-at-Dispatch + Pre-Validation
+
+The isolation pattern for section render failures. This catches ~95% of real-world
+failures (data problems: unexpected nulls, type mismatches, missing nested objects).
+True rendering engine crashes (framework-level) are handled by app-level crash
+telemetry (e.g., New Relic), not per-section isolation.
 
 ```
-IF a single section fails to render:
-    LOG_ERROR("Section render failed: " + section.id + " type=" + section.type)
-    Skip section — do NOT crash the entire screen
-    // Other sections continue rendering normally
+FOR each section in screen.sections:
+    // Pre-validation: check section data before rendering
+    validationError = validateSection(section)
+    IF validationError:
+        LOG_ERROR("Section validation failed: id=" + section.id
+                  + " type=" + section.type + " error=" + validationError)
+        reportToObservability(validationError, section.id, section.type)
+        IF section.sectionStates.error.hideOnError:
+            SKIP section (render nothing)
+        ELSE:
+            renderErrorCard(section.sectionStates, validationError)
+        CONTINUE to next section
+
+    // Dispatch to renderer (platform-specific isolation where available)
+    TRY:
+        renderSection(section)
+    CATCH error:
+        LOG_ERROR("Section render failed: id=" + section.id
+                  + " type=" + section.type, error)
+        reportToObservability(error, section.id, section.type)
+        IF section.sectionStates.error.hideOnError:
+            SKIP section (render nothing)
+        ELSE:
+            renderErrorCard(section.sectionStates, error)
+        // Other sections continue rendering normally
 ```
+
+**Full-skip policy**: When a section fails, replace the **entire section** with the
+error card (or collapse it if `hideOnError`). Never show partial render output.
+
+### Error Card Rendering
+
+```
+FUNCTION renderErrorCard(sectionStates, error):
+    message = sectionStates?.error?.message ?? error.localizedMessage ?? "Something went wrong"
+    retryAction = sectionStates?.error?.retryAction
+
+    RENDER:
+        icon: "⚠"
+        text: message
+        IF retryAction AND retryCount < maxRetries:
+            button: "Try Again" → fire retryAction through action handler, increment retryCount
+        // After maxRetries exhausted, show permanent error card (no retry button)
+```
+
+### Retry Budget
+
+Max retry count is a **client-side configuration** (default: 5), not a schema or
+server field. Per-section, per-screen-visit — navigating away and back resets the
+counter. After exhausting retries, the error card becomes permanent (retry button
+removed).
+
+### Error Telemetry
+
+Section render failures must be reported as **non-fatal errors** to the app's
+observability platform (e.g., New Relic) using existing instrumentation. This does
+NOT use SDUI `fireAndForget` actions — client-side crash telemetry is a client
+infrastructure concern, not server-driven composition. The error report must include:
+section ID, section type, platform, app version, and stack trace.
+
+### Platform-Specific Isolation Notes
+
+| Platform | Technology | Isolation Mechanism |
+|---|---|---|
+| Web (React) | `ErrorBoundary` / `getDerivedStateFromError()` | Built-in framework support — catches recomposition crashes |
+| Android / Fire TV (Compose) | Catch-at-dispatch + pre-validation | `try/catch` around `SectionRouter` dispatch. Compose does not support `try/catch` around `@Composable` invocations, so pre-validation catches data problems before rendering. |
+| iOS / tvOS (SwiftUI) | Catch-at-dispatch + pre-validation | Same pattern as Compose — SwiftUI has no `ErrorBoundary` equivalent. |
 
 ### Invariant: Never Swallow Exceptions
 
-Every catch block must log with enough context to diagnose:
+Every catch block must log with enough context to diagnose (§12-compliant):
 - Class/component name
-- Section ID (if applicable)
+- Section ID
+- Section type
 - Error message and stack trace
 
 Silent `catch { null }` patterns are prohibited.

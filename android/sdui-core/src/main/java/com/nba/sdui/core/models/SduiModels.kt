@@ -75,7 +75,7 @@ data class SduiSection(
     @JsonProperty("padding") val padding: Spacing? = null,
     @JsonProperty("backgroundColor") val backgroundColor: String? = null,
     @JsonProperty("layoutHints") val layoutHints: SectionLayoutHints? = null,
-    @JsonProperty("sectionStates") val sectionStates: Map<String, Any?>? = null,
+    @JsonProperty("sectionStates") val sectionStates: SectionStates? = null,
     @JsonProperty("stringTable") val stringTable: Map<String, String>? = null,
     @JsonProperty("data") val data: Map<String, Any?>? = null
 )
@@ -155,3 +155,26 @@ enum class TextVariant {
 enum class ButtonVariant {
     PRIMARY, SECONDARY, TERTIARY, TEXT
 }
+
+/**
+ * Section States — server-declared loading and error presentation.
+ * Clients render these states when applicable.
+ */
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class SectionStates(
+    @JsonProperty("loading") val loading: SectionLoading? = null,
+    @JsonProperty("error") val error: SectionError? = null
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class SectionLoading(
+    @JsonProperty("skeleton") val skeleton: String? = null, // "shimmer", "spinner", "placeholder", "none"
+    @JsonProperty("minHeightDp") val minHeightDp: Int? = null
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class SectionError(
+    @JsonProperty("message") val message: String? = null,
+    @JsonProperty("retryAction") val retryAction: Map<String, Any?>? = null,
+    @JsonProperty("hideOnError") val hideOnError: Boolean? = false
+)

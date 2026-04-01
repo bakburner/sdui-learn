@@ -1025,7 +1025,7 @@ Until approved, these remain directional requirements and may be refined.
 | Composition service (server-side) | **Built** | Spring Boot, demo + live mode, A/B variants |
 | Accessibility descriptors | **Gap** | Needs schema fields + live region behavior |
 | Conditional rendering / visibility | **Partial** | Cross-platform: settled (server-side composition). Client-side visibility expressions deferred (server handles show/hide). Within-family responsive: gap |
-| Error handling & fallbacks | **Partial** | `ErrorState` section type built (composition-time errors). Per-section runtime error/loading states (`sectionStates`) planned |
+| Error handling & fallbacks | **Partial** | Server `ErrorState` (AtomicComposite) built. Client `SectionErrorBoundary` built on Android and web (catch-at-dispatch + pre-validation). `SectionSkeleton` built on Android and web. `hideOnError`, `retryAction`, retry budget (client-side, default 5) implemented. §12-compliant logging. Contract §13 updated. Gap: iOS/tvOS/Fire TV not started. |
 | Section lifecycle & lazy loading | **Gap** | Viewport-based connection management |
 | Caching & offline | **Gap** | Stale-while-revalidate, cold start optimization |
 | Schema versioning protocol | **Partial** | Version header sent; no multi-version routing yet |

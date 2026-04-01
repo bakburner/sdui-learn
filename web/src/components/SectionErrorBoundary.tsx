@@ -4,6 +4,7 @@ import type { Action, SectionStates } from '@sdui/models';
 interface SectionErrorBoundaryProps {
   sectionStates?: SectionStates;
   sectionId: string;
+  sectionType: string;
   onAction: (action: Action) => void;
   children: React.ReactNode;
 }
@@ -28,7 +29,7 @@ export class SectionErrorBoundary extends React.Component<
 
   componentDidCatch(error: Error, info: React.ErrorInfo): void {
     console.error(
-      `[SectionErrorBoundary] Section "${this.props.sectionId}" crashed:`,
+      `[SectionErrorBoundary] Section render failed: id="${this.props.sectionId}" type="${this.props.sectionType}"`,
       error,
       info.componentStack,
     );

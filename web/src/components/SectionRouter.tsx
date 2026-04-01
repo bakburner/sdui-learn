@@ -151,6 +151,7 @@ export function SectionRouter({
       <SectionErrorBoundary
         sectionStates={section.sectionStates}
         sectionId={section.id}
+        sectionType={section.type}
         onAction={onAction}
       >
         {content}

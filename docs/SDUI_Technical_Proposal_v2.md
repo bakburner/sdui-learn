@@ -10,6 +10,7 @@
 
 | Date | Summary |
 |---|---|
+| 2026-04-01 | Doc consistency audit. §8a image fallback: stale migrated type names updated to AtomicComposite layouts. §11b next steps updated to reflect built features (request envelope, ADR-006, ADR-008, ADR-009). URI resolution special case flagged as legacy exception per Rule 10. |
 | 2026-03-30 | Doc consistency audit. §10 requirement status updated: Request context envelope Gap → Built, Experiment conflict handling Partial → Built (ADR-006 Accepted), Internationalization Gap → Built (section-level stringTable). |
 | 2026-03-24 | Doc consistency audit. §2c token alignment table expanded (4 → 8 categories: added font weight, backgrounds, elevation, button variants). Requirement status updated: Layout manager Gap → Partial (ADR-008 accepted), Impression semantics Gap → Partial (ADR-009 accepted). `FormRenderer` → `Form` aligned with schema enum across AGENTS.md and requirements summary. |
 | 2026-03-14 | Added §2b (Section vs. Atomic Decision Framework — decision tree, rationale for lifecycle/SDK/state boundaries, concrete examples: GamePanel, SubscribeHero, AdSlot, BoxscoreTable, TabGroup). Added §2c (Figma Design System Integration — token alignment, three-level CI validation pipeline). |
@@ -166,8 +167,9 @@ server endpoints using a simple convention:
 nba://{path}  →  GET /sdui/{path}
 ```
 
-Special case: `nba://game/{id}` → `GET /sdui/game-detail/{id}?gameState=live`
-(preserves backward compatibility with the existing game-detail endpoint).
+> **Legacy exception:** `nba://game/{id}` → `GET /sdui/game-detail/{id}?gameState=live`
+> preserves backward compatibility with the existing game-detail endpoint.
+> Per Rule 10, new screens must use the simple prefix swap only.
 
 This convention means new screens require **no client code changes** —
 adding a server endpoint and including its URI in navigation items or
@@ -714,7 +716,7 @@ SubcomposeAsyncImage(
 - **Server-driven**: The server decides what the fallback image is — clients never hardcode fallback URLs.
 - **Graceful**: If both primary and fallback fail, the image area remains empty (no crash, no broken icon).
 - **Per-section**: Different sections can specify different fallbacks appropriate to their content type.
-- **Sections using this pattern**: VideoCarousel, ContentRail, HeroPanel, NbaTvSchedule, PromoBanner, FollowingRail, SubscribeBanner, SubscribeHero.
+- **Sections using this pattern**: AtomicComposite layouts (formerly VideoCarousel, ContentRail, HeroPanel, NbaTvSchedule, PromoBanner, FollowingRail), SubscribeBanner, SubscribeHero.
 
 ---
 
@@ -879,9 +881,9 @@ These limits ensure atomic trees remain a lightweight composition mechanism, not
 
 ---
 
-## ADR Approvals Pending
+## ADR Status Summary
 
-All pending ADRs are tracked in the Requirement Status table above. Until approved, those requirements remain directional and may be refined.
+All ADR statuses are tracked in the Requirement Status table above and in the Requirements Summary. ADRs 006, 008, and 009 are accepted; the remainder are proposed and may be refined.
 
 
 ---
@@ -900,11 +902,11 @@ The alternative is duplicated platform composition logic and drift in feature be
 
 ### 11b. Recommended Next Steps
 
-1. Lock request envelope and transport/cache policy (ADR-003, ADR-004).
-2. Lock action scope/precedence and experiment model (ADR-005, ADR-006).
-3. Ship subsection actions + request-envelope schema updates with fixtures.
-4. Introduce ad primitive (ADR-007) and resolve layout strategy (ADR-008).
-5. Finalize impression semantics and enforce fire-and-forget/runtime conformance (ADR-009).
+1. Lock transport/cache policy (ADR-003, ADR-004). Request envelope already built.
+2. Lock action scope/precedence (ADR-005). Experiment model already accepted (ADR-006) and built.
+3. Ship subsection actions with broader fixtures.
+4. Introduce ad primitive (ADR-007). Layout strategy already accepted (ADR-008, Option C).
+5. Implement impression tracking per ADR-009 (accepted). Android/iOS pending.
 6. Implement offline/degraded connectivity strategy per ADR-010 — platform cache fallback, staleness UX, fire-and-forget queue.
 
 ---

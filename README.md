@@ -183,14 +183,17 @@ make codegen
 
 **Performance contract:** max depth 6, max children/container 20, max nodes 50. Server validates; clients have defensive depth guards.
 
-## Recent Changes (2026-03-13)
+## Recent Changes
 
-- **Atomic rendering layer** — Dual-layer architecture: 10 atomic element types (9 rendering primitives + SectionSlot bridge), AtomicRouter on Android and Web, AtomicComposite bridge section type, server-side AtomicCompositeBuilder
-- **9 section types migrated to atomic** — ErrorState, SectionHeader, PromoBanner, ContentRail, FollowingRail, HeroPanel, StatLine, VideoCarousel, NbaTvSchedule now served as AtomicComposite (schema definitions pruned)
+- **Per-section error handling** (2026-04-01) — `SectionErrorBoundary` on Android (catch-at-dispatch + pre-validation) and web (React ErrorBoundary). `SectionSkeleton` with 4 generic styles. Typed `SectionStates` model. Retry budget (client-side, default 5). `hideOnError` support. Contract §13 rewritten.
+- **Accessibility** (2026-03-26) — `AccessibilityProperties` on Section, Subsection, AtomicElement. Android Compose `semantics{}`, web ARIA attributes. All 8 section renderers and 10 atomic primitives wired on both platforms.
+- **Request transport envelope** (2026-03-24) — `SduiRequestContext` POJO + `BracketParamResolver` on server. `RequestEnvelopeBuilder` on Android and web. GET-first with bracket-notation params, POST fallback.
+- **i18n** (2026-03-24) — Section-level `stringTable` stamped by server per locale. Clients consume from each section.
+- **Experiments / A/B testing** (2026-03-24) — ADR-006 Accepted. Client-authoritative `experiments` map in request envelope. Server resolves at composition time.
+- **Atomic rendering layer** (2026-03-13) — Dual-layer architecture: 10 atomic element types (9 rendering primitives + SectionSlot bridge), AtomicRouter on Android and Web, AtomicComposite bridge section type, server-side AtomicCompositeBuilder
+- **9 section types migrated to atomic** (2026-03-13) — ErrorState, SectionHeader, PromoBanner, ContentRail, FollowingRail, HeroPanel, StatLine, VideoCarousel, NbaTvSchedule now served as AtomicComposite (schema definitions pruned)
 - **SectionSlot bidirectional bridge** — Atomic trees can embed full section renderers (recursion guard: depth 2)
-- **ScoreboardHeader consolidated** — Merged into GamePanel; compact scoreboard row is now driven by `displayConfig` (no variant branching)
 - **DisplayGrid** — Non-interactive server-ordered text grid primitive
-- **Governance docs updated** — Executive Summary, Technical Proposal (§2a, §8, §9s, §10), Requirements Summary all reflect dual-layer model
 - **Kitchen sink appendix** — Full 42-section demo response documented
 
 ## Variants
@@ -235,6 +238,6 @@ make codegen
 | [Technical Proposal](docs/SDUI_Technical_Proposal_v2.md) | Architecture, schema design, runtime behavior, requirement status |
 | [Requirements Summary](docs/sdui-requirements-summary.md) | Full requirements, gap analysis, ADR tracking |
 | [Kitchen Sink Appendix](docs/appendix-kitchen-sink.md) | Full 42-section demo response (Android platform) |
-| [Client Implementor's Contract](docs/client-implementors-contract.md) | Platform-agnostic build guide for new clients (any language/framework) |
+| [Client Implementor's Contract](docs/plans/client-implementors-contract.md) | Platform-agnostic build guide for new clients (any language/framework) |
 | [ADR Index](docs/adr/README.md) | Architecture Decision Records (001–010) |
-| [Accessibility Plan](docs/plan-accessibility.md) | Accessibility strategy and implementation plan |
+| [Accessibility Plan](docs/plans/plan-accessibility.md) | Accessibility strategy and implementation plan |

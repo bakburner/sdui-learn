@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.nba.sdui.core.models.SduiScreen
 import com.nba.sdui.core.models.SduiSection
+import com.nba.sdui.core.renderer.SectionErrorBoundary
 import com.nba.sdui.core.renderer.SectionRouter
 import com.nba.sdui.core.state.SduiAction
 
@@ -85,12 +86,20 @@ private fun SectionItem(
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         }
         Spacer(modifier = Modifier.height((hints?.marginTop ?: 0).dp))
-        SectionRouter(
-            section = section,
-            screenState = screenState,
-            onAction = onAction,
-            onStateChange = onStateChange
-        )
+        SectionErrorBoundary(
+            sectionId = section.id,
+            sectionType = section.type,
+            sectionStates = section.sectionStates,
+            data = section.data,
+            onAction = onAction
+        ) {
+            SectionRouter(
+                section = section,
+                screenState = screenState,
+                onAction = onAction,
+                onStateChange = onStateChange
+            )
+        }
         Spacer(modifier = Modifier.height((hints?.marginBottom ?: 0).dp))
         if (hints?.dividerBelow == true) {
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)

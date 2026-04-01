@@ -10,6 +10,7 @@
 
 | Date | Summary |
 |---|---|
+| 2026-04-01 | Doc consistency audit. ADR Status Summary: renamed from "ADR Approvals Pending", added ADR-001 (Proposed) and ADR-010 (Proposed). §10 status: Accessibility descriptors Gap → Built. |
 | 2026-03-30 | Doc consistency audit. ADR Approvals table: ADR-006 Proposed → Accepted. §10 status updated: Internationalization Gap → Built (section-level stringTable). |
 | 2026-03-24 | Doc consistency audit. `FormRenderer` → `Form` aligned with schema enum in §9r classification table. ADR Approvals table: ADR-008 Proposed → Accepted (Option C), ADR-009 Proposed → Accepted. |
 | 2026-03-14 | Added §9r (Section vs. Atomic Classification — implementation-level criteria: network-driven lifecycle, platform SDK integration, client-owned interaction state. Full classification inventory with concrete examples: GamePanel Ably/poll lifecycle, SubscribeHero/SubscribeBanner billing SDK, AdSlot ad SDK, BoxscoreTable scroll/sort state). Added §9s (Figma Design Token Integration — token mapping file, client-side resolution, three-level CI validation pipeline). |
@@ -31,7 +32,7 @@
 - Start here for current commitments: `Current Governance (This Document)`
 - Architecture requirements: `1. Core Architecture` and `2. Schema Design`
 - Runtime behavior requirements: `3. Data Binding`, `4. Action System`, `5. Screen-Level State`
-- Open decision approvals: `ADR Approvals Pending`
+- Open decision approvals: `ADR Status Summary`
 - Implementation status at a glance: `10. Requirement Status Matrix`
 
 ## Governance Header Template
@@ -991,12 +992,13 @@ Atomic element color values can be either literal hex (`"#FF6B6B"`) or semantic 
 
 ---
 
-## ADR Approvals Pending
+## ADR Status Summary
 
-The following requirements are represented by ADRs and remain pending final cross-functional approval:
+The following requirements are tracked via ADRs. Some remain pending final cross-functional approval; others have been accepted.
 
 | Topic | ADR | Current State |
 |---|---|---|
+| SDUI runtime vs legacy card refactor | [ADR-001](adr/001-sdui-runtime-vs-legacy-card-refactor.md) | Proposed |
 | Composition ownership and transition | [ADR-002](adr/002-composition-ownership-and-transition.md) | Proposed |
 | Composition API contract (request/response) | [ADR-003](adr/003-composition-api-contract.md) | Proposed |
 | Transport and caching policy | [ADR-004](adr/004-transport-and-caching-policy.md) | Proposed |
@@ -1005,6 +1007,7 @@ The following requirements are represented by ADRs and remain pending final cros
 | Ads boundary and contract | [ADR-007](adr/007-ad-boundary-and-contract.md) | Proposed |
 | Form-factor layout manager | [ADR-008](adr/008-form-factor-layout-manager.md) | Accepted (Option C) |
 | Impression dedup and visibility semantics | [ADR-009](adr/009-impression-dedup-and-visibility-semantics.md) | Accepted |
+| Offline and degraded connectivity | [ADR-010](adr/010-offline-and-degraded-connectivity.md) | Proposed |
 
 Until approved, these remain directional requirements and may be refined.
 
@@ -1023,9 +1026,9 @@ Until approved, these remain directional requirements and may be refined.
 | Action system (navigate, fireAndForget, mutate) | **Built** | ActionHandler dispatches all 6 action types |
 | Screen state management (tabs, toggles) | **Built** | StateManager, TabGroup wired |
 | Composition service (server-side) | **Built** | Spring Boot, demo + live mode, A/B variants |
-| Accessibility descriptors | **Gap** | Needs schema fields + live region behavior |
+| Accessibility descriptors | **Built** | Schema `accessibility` field on Section, Subsection, AtomicElement. Android Compose `semantics{}`, web ARIA attributes. All renderers wired. |
 | Conditional rendering / visibility | **Partial** | Cross-platform: settled (server-side composition). Client-side visibility expressions deferred (server handles show/hide). Within-family responsive: gap |
-| Error handling & fallbacks | **Partial** | `ErrorState` section type built (composition-time errors). Per-section runtime error/loading states (`sectionStates`) planned |
+| Error handling & fallbacks | **Partial** | Server `ErrorState` (AtomicComposite) built. Client `SectionErrorBoundary` built on Android and web (catch-at-dispatch + pre-validation). `SectionSkeleton` built on Android and web. `hideOnError`, `retryAction`, retry budget (client-side, default 5) implemented. §12-compliant logging. Contract §13 updated. Gap: iOS/tvOS/Fire TV not started. |
 | Section lifecycle & lazy loading | **Gap** | Viewport-based connection management |
 | Caching & offline | **Gap** | Stale-while-revalidate, cold start optimization |
 | Schema versioning protocol | **Partial** | Version header sent; no multi-version routing yet |

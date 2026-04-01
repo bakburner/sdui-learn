@@ -28,7 +28,7 @@ Stakeholder feedback requires interaction on subsection elements (for example ta
 ## Sequence Behavior
 
 - Multiple actions for one trigger execute in declared order.
-- Analytics-before-navigation is recommended default sequencing.
+- `fireAndForget`-before-`navigate` is recommended default sequencing.
 
 ## Open Questions
 

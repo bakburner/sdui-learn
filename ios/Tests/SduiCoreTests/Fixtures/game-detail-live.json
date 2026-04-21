@@ -17,7 +17,8 @@
       "analyticsId": "game_panel_scoreboard",
       "refreshPolicy": {
         "type": "sse",
-        "channel": "{gameId}:linescore"
+        "channel": "{gameId}:linescore",
+        "pauseWhenOffScreen": false
       },
       "dataBinding": {
         "bindings": [

@@ -1,6 +1,11 @@
 # Plan: Lifecycle, Animation & Pagination
 
 > Source requirements: §9d, §9h, §9k from sdui-requirements-summary.md
+> **Cross-reference:** Visibility-gated refresh (the §9d runtime portion) is now built.
+> See [`plan-visibility-gated-refresh.md`](plan-visibility-gated-refresh.md) for the
+> poll/SSE pause-on-off-screen implementation. What remains here for §9d is the
+> **eager/lazy initial-load trigger** — deferring the first data fetch until
+> a section enters the viewport.
 
 ## Summary
 
@@ -10,16 +15,17 @@ Three related gaps that govern how sections appear, update, and extend over time
 
 | Aspect | Status | Notes |
 |--------|--------|-------|
-| Schema support | Gap | No lazy-load threshold, animation hint, or pagination cursor fields |
-| Server support | Gap | All sections active immediately; no pagination cursor in responses |
-| Android support | Gap | All SSE/poll channels open on screen load regardless of viewport |
-| Web support | Gap | All SSE/poll channels open on screen load regardless of viewport |
-| Documentation | Gap | Contract doc describes refresh but not lazy/animation/pagination |
-| Tests | Gap | No lifecycle or pagination tests |
+| Schema support | Partial | `pauseWhenOffScreen` built (see visibility-gated-refresh plan). No lazy-load threshold, animation hint, or pagination cursor fields yet. |
+| Server support | Partial | Ongoing refresh visibility-gated. No lazy initial-load; no pagination cursor in responses. |
+| Android support | Partial | Poll/SSE visibility gating built. No lazy initial-load or pagination. |
+| Web support | Partial | Poll/SSE visibility gating built. No lazy initial-load or pagination. |
+| Documentation | Partial | Contract doc §8a covers visibility-gated refresh. Lazy/animation/pagination not yet documented. |
+| Tests | Partial | Visibility-gated refresh tests written. No lifecycle or pagination tests. |
 
 ## Requirements Addressed
 
-- [ ] **REQ-1**: Viewport-driven section activation (lazy SSE/poll connection) — §9d
+- [x] **REQ-1a**: Visibility-gated refresh (pause poll/SSE for off-screen sections) — §9d — see `plan-visibility-gated-refresh.md`
+- [ ] **REQ-1b**: Lazy initial-load (defer first fetch until section enters viewport) — §9d
 - [ ] **REQ-2**: Section-level animation hints (entry, exit, data-change transitions) — §9h
 - [ ] **REQ-3**: Cursor-based pagination contract (nextCursor, hasMore) — §9k
 - [ ] **REQ-4**: Load-more trigger pattern (scroll threshold or explicit button) — §9k

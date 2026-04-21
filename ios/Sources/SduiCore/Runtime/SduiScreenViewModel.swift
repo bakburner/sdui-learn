@@ -75,6 +75,10 @@ public final class SduiScreenViewModel {
     /// Used to forward visibility events to `AblyChannelManager`.
     private var sectionAblyChannels: [String: String] = [:]
 
+    /// Sections that should never have their refresh paused on scroll-out.
+    /// Set from `refreshPolicy.pauseWhenOffScreen == false`.
+    private var alwaysRefreshSections: Set<String> = []
+
     public init(
         endpoint: String,
         config: SduiConfig,
@@ -117,12 +121,14 @@ public final class SduiScreenViewModel {
                 switch event {
                 case .entered(let sectionID):
                     await self.polling.setVisible(sectionID, visible: true)
-                    if let channel = self.sectionAblyChannels[sectionID] {
+                    if let channel = self.sectionAblyChannels[sectionID],
+                       !self.alwaysRefreshSections.contains(sectionID) {
                         await self.ably.setChannelVisible(channel, visible: true)
                     }
                 case .exited(let sectionID):
                     await self.polling.setVisible(sectionID, visible: false)
-                    if let channel = self.sectionAblyChannels[sectionID] {
+                    if let channel = self.sectionAblyChannels[sectionID],
+                       !self.alwaysRefreshSections.contains(sectionID) {
                         await self.ably.setChannelVisible(channel, visible: false)
                     }
                 }
@@ -275,6 +281,7 @@ public final class SduiScreenViewModel {
         let screenEndpoint = self.endpoint
         let sectionID = section.id
         let dataPath = policy.dataPath
+        let shouldPause = policy.pauseWhenOffScreen ?? true
         let initiallyVisible = visibility.isVisible(sectionID)
 
         Task {
@@ -288,7 +295,7 @@ public final class SduiScreenViewModel {
                 directURL: directURL,
                 screenEndpoint: directURL == nil ? screenEndpoint : nil,
                 dataPath: dataPath,
-                pauseWhenOffScreen: true
+                pauseWhenOffScreen: shouldPause
             )
         }
     }
@@ -296,10 +303,17 @@ public final class SduiScreenViewModel {
     private func startSSE(section: Section, policy: RefreshPolicy) {
         guard let channelName = policy.channel else { return }
         let sectionID = section.id
+        let shouldPause = policy.pauseWhenOffScreen ?? true
         sectionAblyChannels[sectionID] = channelName
 
+        if !shouldPause {
+            alwaysRefreshSections.insert(sectionID)
+        }
+
         // Respect the pre-existing visibility state when (re)attaching.
-        let isVisible = visibility.isVisible(sectionID)
+        // Sections with pauseWhenOffScreen=false are always "visible" for
+        // SSE purposes — they never gate on scroll position.
+        let isVisible = shouldPause ? visibility.isVisible(sectionID) : true
         Task { [weak self] in
             await self?.ably.setChannelVisible(channelName, visible: isVisible)
         }

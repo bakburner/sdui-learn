@@ -704,6 +704,8 @@ stateDiagram-v2
 
 ### 9d. Section Lifecycle & Lazy Loading
 
+> **Status: Built** (visibility-gated refresh). See `docs/plans/plan-visibility-gated-refresh.md`.
+
 Airbnb and DoorDash implement section-level lazy loading for long scrolling screens.
 
 **What's needed:**
@@ -712,7 +714,15 @@ Airbnb and DoorDash implement section-level lazy loading for long scrolling scre
 - This is critical for the game detail page which could have 10+ sections — you don't want to open 10 SSE connections simultaneously on screen load
 - Section lifecycle management: connect data binding when visible, disconnect when scrolled far out of viewport
 
-**Decision required:** Define viewport proximity threshold for lazy loading triggers and whether to disconnect bindings for off-screen sections.
+**What's built:**
+- `pauseWhenOffScreen` field on `RefreshPolicy` (boolean, default `true`) — server controls which sections pause when off-screen
+- App background/foreground lifecycle pause (Phase 0): all refresh activity stops when the app/tab is backgrounded
+- Viewport visibility detection: 1.5× viewport lookahead with 500ms exit debounce (web `IntersectionObserver`, Android `LazyListState`, iOS `LazyVStack`)
+- Poll gating: poll loops suspend when section leaves viewport, resume with immediate fetch on re-entry
+- SSE gating: messages are buffered (latest only) when section is off-screen; applied on re-entry
+- Server sets `pauseWhenOffScreen: false` on critical live GamePanel sections
+
+**Remaining:** Eager/lazy initial-load trigger (§9d original `loading` field) is not yet built — the current implementation gates ongoing refresh but does not defer initial data fetch.
 
 ### 9e. Caching & Offline Support
 
@@ -1097,7 +1107,7 @@ Until approved, these remain directional requirements and may be refined.
 | Accessibility descriptors | **Built** | Schema `accessibility` field on Section, Subsection, AtomicElement. Android Compose `semantics{}`, web ARIA attributes. All renderers wired. |
 | Conditional rendering / visibility | **Partial** | Cross-platform: settled (server-side composition). Client-side visibility expressions deferred (server handles show/hide). Within-family responsive: gap |
 | Error handling & fallbacks | **Partial** | Server `ErrorState` (AtomicComposite) built. Client `SectionErrorBoundary` built on Android, web, and iOS (catch-at-dispatch + pre-validation). `SectionSkeleton` built on Android, web, and iOS. `hideOnError`, `retryAction`, retry budget (client-side, default 5) implemented. §12-compliant logging. Contract §13 updated. Gap: tvOS/Fire TV not started. |
-| Section lifecycle & lazy loading | **Gap** | Viewport-based connection management |
+| Section lifecycle & lazy loading | **Partial** | Visibility-gated refresh built (poll/SSE pause when off-screen, app background pause, `pauseWhenOffScreen` schema field). Eager/lazy initial-load trigger still gap. See `plan-visibility-gated-refresh.md`. |
 | Caching & offline | **Gap** | Stale-while-revalidate, cold start optimization |
 | Schema versioning protocol | **Partial** | Version header sent; no multi-version routing yet |
 | Composition ownership model (SDUI composer as source of truth) | **Partial** | Architecture intent clear; transitional CoreAPI-derived composition still in use |

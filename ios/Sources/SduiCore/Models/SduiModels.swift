@@ -455,6 +455,10 @@ struct RefreshPolicy: Codable {
     let dataPath: String?
     /// For poll type: interval in milliseconds
     let intervalMS: Int?
+    /// Whether the client should pause this section's refresh when it scrolls
+    /// out of the viewport. Default true. Set false for critical live sections
+    /// (e.g., GamePanel scores) that should refresh continuously.
+    let pauseWhenOffScreen: Bool?
     let type: RefreshType
     /// For poll/sse type: URL to poll or connect to. If omitted, polls the SDUI endpoint.
     let url: String?
@@ -462,7 +466,7 @@ struct RefreshPolicy: Codable {
     enum CodingKeys: String, CodingKey {
         case channel, dataPath
         case intervalMS = "intervalMs"
-        case type, url
+        case pauseWhenOffScreen, type, url
     }
 }
 
@@ -488,6 +492,7 @@ extension RefreshPolicy {
         channel: String?? = nil,
         dataPath: String?? = nil,
         intervalMS: Int?? = nil,
+        pauseWhenOffScreen: Bool?? = nil,
         type: RefreshType? = nil,
         url: String?? = nil
     ) -> RefreshPolicy {
@@ -495,6 +500,7 @@ extension RefreshPolicy {
             channel: channel ?? self.channel,
             dataPath: dataPath ?? self.dataPath,
             intervalMS: intervalMS ?? self.intervalMS,
+            pauseWhenOffScreen: pauseWhenOffScreen ?? self.pauseWhenOffScreen,
             type: type ?? self.type,
             url: url ?? self.url
         )

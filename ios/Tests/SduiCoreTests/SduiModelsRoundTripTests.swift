@@ -54,4 +54,25 @@ final class SduiModelsRoundTripTests: XCTestCase {
         XCTAssertNotNil(gamePanel.refreshPolicy, "GamePanel must declare a refresh policy")
         XCTAssertNotNil(gamePanel.dataBinding, "GamePanel must declare data bindings")
     }
-}
+
+    func testPauseWhenOffScreenDecodesFromFixture() throws {
+        let data = try loadFixture("game-detail-live")
+        let screen = try SduiModels(data: data)
+        let gamePanel = try XCTUnwrap(screen.sections.first(where: { $0.type == .gamePanel }))
+        let policy = try XCTUnwrap(gamePanel.refreshPolicy)
+        XCTAssertEqual(policy.pauseWhenOffScreen, false,
+                       "GamePanel SSE section should have pauseWhenOffScreen=false")
+    }
+
+    func testPauseWhenOffScreenDefaultsToNilWhenAbsent() throws {
+        let data = try loadFixture("game-detail-live")
+        let screen = try SduiModels(data: data)
+        // Find a section whose refreshPolicy does NOT include pauseWhenOffScreen
+        let pollSection = screen.sections.first(where: {
+            $0.refreshPolicy?.type == .poll
+        })
+        if let pollPolicy = pollSection?.refreshPolicy {
+            XCTAssertNil(pollPolicy.pauseWhenOffScreen,
+                         "Sections without explicit pauseWhenOffScreen should decode as nil (client defaults to true)")
+        }
+    }

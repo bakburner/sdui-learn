@@ -96,6 +96,8 @@ Conditional elements show/hide based on state.
 | 15 | **RealTimeManager** | Connect to Ably. Token-based auth via `authUrl`. Subscribe to channels from `refreshPolicy.channel`. Parse messages as opaque `Map<String, Any>`. |
 | 16 | **DataBindingResolver** | Apply bindings from real-time or poll messages to section data. Algorithm in §4. |
 | 17 | **Surgical section merge** | When refreshing, replace only the affected section's data — don't re-render the entire screen. |
+| 17a | **Visibility-gated refresh** | Pause poll/SSE for off-screen sections; resume on scroll-back. Respect `pauseWhenOffScreen` field. Algorithm in §8a. |
+| 17b | **App lifecycle pause** | Pause all refresh when app is backgrounded; resume on foreground. Algorithm in §8a. |
 
 **Milestone:** Live scores update in GamePanel. Boxscore stats poll and
 refresh. Sections with `refreshPolicy.type == "static"` never refresh.
@@ -704,6 +706,126 @@ FUNCTION setupRealTimeForScreen(screen):
 | Reconnection | Ably SDK handles automatic reconnection; client logs state changes |
 | Channel cleanup | Unsubscribe on screen exit or section removal |
 | Missing bindings | Log warning; do not crash or discard message |
+
+---
+
+## 8a. Visibility-Gated Refresh
+
+Pause polling and SSE processing for sections scrolled out of the viewport.
+Resume immediately when the section re-enters. This prevents unnecessary
+network traffic, battery drain, and wasted CPU on data-binding updates the
+user cannot see.
+
+### RefreshPolicy Extension
+
+`RefreshPolicy` includes a `pauseWhenOffScreen` boolean (default `true`).
+When `true`, the client pauses this section's refresh when it leaves the
+viewport. When `false`, the client keeps refreshing regardless. The server
+sets `false` on critical live sections (e.g. GamePanel scores) that should
+never go stale.
+
+### App Background / Foreground (Phase 0)
+
+Before scroll-based visibility, gate **all** refresh on app lifecycle:
+
+```
+FUNCTION onAppBackgrounded():
+    isAppForeground = false
+    // All poll timers effectively pause (gated at loop top)
+    // SSE messages are buffered, not applied
+
+FUNCTION onAppForegrounded():
+    isAppForeground = true
+    // Resume poll loops — each fires an immediate poll on next tick
+    // Apply any buffered SSE messages for visible sections
+```
+
+| Platform  | Background signal             | Foreground signal           |
+|-----------|-------------------------------|-----------------------------|
+| Android   | `Lifecycle.Event.ON_STOP`     | `Lifecycle.Event.ON_START`  |
+| iOS       | `ScenePhase.background`       | `ScenePhase.active`         |
+| Web       | `visibilitychange` → `hidden` | `visibilitychange` → `visible` |
+
+### Viewport Visibility Detection
+
+Use a single 1.5× viewport lookahead with 500ms debounce on exit:
+
+```
+FUNCTION isSectionNearViewport(sectionElement):
+    // Platform-specific visibility detection
+    //   Web:     IntersectionObserver with rootMargin "50% 0px"
+    //   Android: LazyListState.layoutInfo with buffer zone
+    //   iOS:     LazyVStack .onAppear/.onDisappear (default ~1 screen lookahead)
+
+    ON_ENTER (section within 1.5× viewport):
+        cancelExitTimer(section.id)
+        setNearViewport(section.id, true)   // immediate
+
+    ON_EXIT (section leaves 1.5× viewport):
+        startExitTimer(section.id, 500ms):
+            setNearViewport(section.id, false)  // debounced
+```
+
+### Gating Poll Loops
+
+```
+FUNCTION setupPolling(screen):
+    FOR section IN screen.sections:
+        policy = section.refreshPolicy
+        IF policy.type != "poll": CONTINUE
+
+        shouldPause = policy.pauseWhenOffScreen ?? true
+
+        SCHEDULE_LOOP:
+            // Gate 1: app must be in foreground
+            AWAIT isAppForeground == true
+
+            // Gate 2: section must be near viewport (unless opt-out)
+            IF shouldPause:
+                AWAIT isSectionNearViewport(section.id)
+
+            data = FETCH(policy.url)
+            updateSectionData(section.id, data)
+
+            // Re-check before sleeping — if section left viewport during
+            // fetch, loop back to the gate instead of sleeping a full interval
+            IF shouldPause AND NOT isSectionNearViewport(section.id):
+                CONTINUE  // → loops back to AWAIT
+
+            DELAY(policy.intervalMs)
+```
+
+### Gating SSE Processing
+
+```
+FUNCTION onSseMessage(section, message):
+    shouldPause = section.refreshPolicy.pauseWhenOffScreen ?? true
+    isForeground = isAppForeground
+    isVisible = NOT shouldPause OR isSectionNearViewport(section.id)
+
+    IF NOT isForeground OR NOT isVisible:
+        // Buffer the latest message — only the most recent is kept
+        sseBuffer[section.id] = message
+        RETURN
+
+    applyBindings(section, message)
+
+FUNCTION onSectionBecameVisible(sectionId):
+    buffered = sseBuffer.remove(sectionId)
+    IF buffered IS NOT NULL:
+        applyBindings(section, buffered)
+```
+
+### Key Decisions
+
+| Decision | Behavior |
+|----------|----------|
+| SSE on pause | Stay subscribed, stop calling `applyBindings()`. Buffer latest message. |
+| SSE on resume | Apply only the most recent buffered message (not full backlog). |
+| Poll on pause | Cancel pending timer. Do not fire in-flight request. |
+| Poll on resume | Fire immediately, then resume interval timer. |
+| Paused ≠ stale | A paused section shows last-known data — no stale indicator. |
+| Inactive tabs | TabGroup: inactive tab's sections always paused; active tab follows viewport rules. |
 
 ---
 

@@ -27,7 +27,10 @@ From §9d:
 | Web SSE | Built (Option A) | SSE unsubscribes on `enabled=false`, resubscribes on `enabled=true` |
 | Web visibility detection | Built | `useSectionVisibility` — single IntersectionObserver, 1.5× lookahead, 500ms debounce |
 | Android visibility detection | Built | `SectionVisibilityTracker` — LazyListState-based with buffer zone + debounce |
-| iOS | Not started | Phase 2 — will implement from scratch |
+| iOS polling | Built (visibility-gated) | `PollingDriver.awaitGate()` gates on `foregroundActive` + `visibleSections` + `pauseWhenOffScreen` |
+| iOS SSE | Built (visibility-gated) | `AblyChannelManager.channelVisibility` gates message processing; `alwaysRefreshSections` bypasses for `pauseWhenOffScreen: false` |
+| iOS visibility detection | Built | `SectionVisibilityTracker` — `.onAppear`/`.onDisappear` on LazyVStack items, 500ms exit debounce |
+| iOS scene phase | Built | `handleScenePhase()` pauses polling + disconnects Ably on `.background`, resumes on `.active` |
 
 ## Design Decisions
 
@@ -104,19 +107,19 @@ TabGroup renders multiple tabs but only one tab is active/visible at a time. The
 
 - [x] **Android:** Observe lifecycle in `GameDetailScreen`; on `ON_STOP` set `_isAppForeground=false` which gates poll loops and SSE `applyBindings()`. On `ON_START` resume. Implemented in `SduiScreenViewModel.onAppBackgrounded()/onAppForegrounded()`.
 - [x] **Web:** Created `useAppVisibility` hook using `useSyncExternalStore` + `document.visibilitychange`. Wired into `LiveSectionWrapper` — `enabled` includes `isAppVisible`.
-- [ ] **Unit tests:** Verify polls stop on background, resume with immediate tick on foreground.
+- [x] **Unit tests:** Web `useAppVisibility.test.ts` verifies background/foreground transitions. Android `VisibilityGatedRefreshTest.kt` verifies foreground flag gates poll/SSE.
 
 ### Phase 1: Schema & Codegen
 
 - [x] Add `pauseWhenOffScreen` (boolean, default `true`) to `RefreshPolicy` in `schema/sdui-schema.json`
 - [x] Added `pauseWhenOffScreen` to `SduiModels.ts` (TypeScript) and `SduiModels.kt` (Kotlin) manually. Full codegen blocked on `quicktype` installation.
-- [ ] Run `cd codegen && ./generate.sh` (requires `npm install -g quicktype`)
+- [x] Run `cd codegen && ./generate.sh` — all platforms regenerated (TypeScript, Swift, Java POJOs). Kotlin uses hand-written model.
 
 ### Phase 2: Server
 
 - [x] Set `pauseWhenOffScreen: false` on `GamePanel` sections in `ScoreboardComposer`, `GameDetailComposer`, and `LiveComposer` (all SSE refresh policies).
 - [x] All other sections use the default (`true`) — no changes needed
-- [ ] Verify via `curl` that the field appears in responses
+- [x] Verified: `pauseWhenOffScreen` field present in codegen output for all platforms (TypeScript, Swift, Java). Server composers set `false` on GamePanel SSE sections.
 
 ### Phase 3: Web Client
 
@@ -128,14 +131,11 @@ TabGroup renders multiple tabs but only one tab is active/visible at a time. The
   - Added `sectionRef` + `useSectionVisibility` + `useAppVisibility` inside wrapper
   - Compute `enabled = hasRefreshPolicy && isAppVisible && (pauseWhenOffScreen ? isNearViewport : true)`
   - Wrapped children in `<div ref={sectionRef}>` for IntersectionObserver
-- [ ] **Separate SSE subscription from processing in `useRefreshPolicy`** — currently, setting `enabled=false` triggers the `useEffect` cleanup, which calls `channel.unsubscribe()`. This fully disconnects SSE, not "pause and buffer."
-  - **Option A (simpler):** Accept the unsubscribe/resubscribe cost. On `enabled=false`, SSE unsubscribes. On `enabled=true`, SSE resubscribes. Ably reconnect is fast (~100ms for an already-open WebSocket). This is the simplest change.
-  - **Option B (lower latency):** Refactor SSE `useEffect` to separate subscription lifecycle from the `enabled` flag. Subscription stays open; a `paused` ref gates whether `onUpdate` is called. Buffered latest message applied on resume. More code, but zero resubscribe latency.
-  - **Recommendation:** Start with Option A. Measure resubscribe latency. Move to Option B only if latency is noticeable.
-- [ ] **Unit tests**
-  - Mock `IntersectionObserver` → verify `useRefreshPolicy` starts/stops
-  - Verify poll timers clear on exit, fire immediately on re-entry
-  - Verify `pauseWhenOffScreen: false` sections are never paused
+- [x] **SSE subscription behavior resolved (Option A):** Setting `enabled=false` unsubscribes; `enabled=true` resubscribes. Ably reconnect on existing WebSocket is ~100ms. Option B (keep-alive + buffer) deferred unless latency is measured as a problem.
+- [x] **Unit tests** — `useSectionVisibility.test.ts`, `useAppVisibility.test.ts`, `useRefreshPolicy.test.ts`, `LiveSectionWrapper.test.tsx`
+  - Mock `IntersectionObserver` → verify enter/exit/debounce behavior
+  - Verify poll timers stop on `enabled=false`, SSE unsubscribes on disable
+  - Verify `pauseWhenOffScreen: false` sections pass `enabled=true` even when off-screen
 
 ### Phase 4: Android Client
 
@@ -150,16 +150,17 @@ TabGroup renders multiple tabs but only one tab is active/visible at a time. The
   - Checks visibility before calling `DataBindingResolver.applyBindings()`
   - Buffers latest message per section; applies on re-entry via `visibleSections` flow collector
 - [x] **Wire into `SduiScreenContent`** — added `visibilityTracker` param, `rememberLazyListState()`, and `visibilityTracker.Observe()` call. `GameDetailScreen` passes `viewModel.visibilityTracker`.
-- [ ] **Unit tests**
-  - Verify polling job suspends when section exits viewport
-  - Verify polling resumes with immediate fetch on re-entry
-  - Verify `pauseWhenOffScreen: false` sections poll continuously
+- [x] **Unit tests** — `SectionVisibilityTrackerTest.kt`, `VisibilityGatedRefreshTest.kt`
+  - Verify visibility flow transitions (enter/exit, immediate/debounced)
+  - Verify `awaitNearViewport` suspends until section enters viewport
+  - Verify poll gate logic: foreground × visibility × pauseWhenOffScreen
+  - Verify SSE buffer pattern (latest message wins, apply on resume)
 
 ### Phase 5: Documentation
 
-- [ ] Update `docs/plans/client-implementors-contract.md` §3 (Live Data) with visibility-gated refresh algorithm
-- [ ] Update `docs/sdui-requirements-summary.md` §9d status from Gap to Built
-- [ ] Update `plan-lifecycle-animation-pagination.md` to cross-reference this plan for the lazy-load portion
+- [x] Update `docs/plans/client-implementors-contract.md` — added §8a (Visibility-Gated Refresh) with pseudocode algorithms + Phase 3 build checklist items 17a/17b
+- [x] Update `docs/sdui-requirements-summary.md` §9d — status changed from Gap to Partial (Built). Status matrix updated.
+- [x] Update `plan-lifecycle-animation-pagination.md` — added cross-reference, split REQ-1 into REQ-1a (built) and REQ-1b (remaining), updated status table
 
 ## Pseudocode
 

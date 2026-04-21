@@ -40,6 +40,9 @@ class AblyChannelManager(
     private var ablyClient: AblyRealtime? = null
     private val activeChannels = mutableMapOf<String, Channel>()
 
+    /** External listener for connection state changes (connected, disconnected, failed, etc.) */
+    var onConnectionStateChange: ((ConnectionState) -> Unit)? = null
+
     /**
      * Initialize the Ably client with token authentication.
      *
@@ -70,6 +73,7 @@ class AblyChannelManager(
 
             ablyClient?.connection?.on { state ->
                 Log.d(TAG, "Ably connection state: ${state.current}")
+                onConnectionStateChange?.invoke(state.current)
                 when (state.current) {
                     ConnectionState.connected -> Log.i(TAG, "Ably connected")
                     ConnectionState.disconnected -> Log.w(TAG, "Ably disconnected")

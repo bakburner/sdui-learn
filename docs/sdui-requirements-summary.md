@@ -10,6 +10,8 @@
 
 | Date | Summary |
 |---|---|
+| 2026-04-21 | Doc consistency audit. Section count 9 → 10 (added `VideoPlayer` as a permanent section — platform video SDK lifecycle: AVPlayer / ExoPlayer / HLS.js, PiP, AirPlay / Chromecast, background audio). Permanent-section inventory updated. ADR Status Summary adds ADR-011 (data classification and freshness, Proposed draft), ADR-012 (client data architecture, Proposed draft), ADR-013 (style tokens for atomic primitives, Proposed draft). §10 renderer rows updated to describe `IconTokenResolver` + server-declared navigation shells on Android, iOS, and web. |
+| 2026-04-20 | iOS runtime parity with Android landed. §10 status updates: iOS renderer (SwiftUI) Designed → Built; Error handling & fallbacks (iOS `SectionErrorBoundary` + `SectionSkeleton`); Impression deduplication (iOS `ImpressionTracker` actor); Atomic rendering layer (iOS AtomicRouter + 9 primitives). |
 | 2026-04-01 | Doc consistency audit. ADR Status Summary: renamed from "ADR Approvals Pending", added ADR-001 (Proposed) and ADR-010 (Proposed). §10 status: Accessibility descriptors Gap → Built. |
 | 2026-03-30 | Doc consistency audit. ADR Approvals table: ADR-006 Proposed → Accepted. §10 status updated: Internationalization Gap → Built (section-level stringTable). |
 | 2026-03-24 | Doc consistency audit. `FormRenderer` → `Form` aligned with schema enum in §9r classification table. ADR Approvals table: ADR-008 Proposed → Accepted (Option C), ADR-009 Proposed → Accepted. |
@@ -167,7 +169,7 @@ graph LR
 
 ### Key Schema Decisions
 
-- **Dual-layer type model** — 9 **section types in schema** (8 permanent with client renderers: BoxscoreTable, SeasonLeadersTable, Form, TabGroup, GamePanel (with server-driven `displayConfig` controlling layout: logo size, card height, score style, background — scoreboard rows, featured hero cards, and standard cards are all `displayConfig` presets), SubscribeBanner, SubscribeHero, AdSlot — plus the `AtomicComposite` bridge), plus 10 **atomic element types** (Container, Text, Image, Button, Spacer, Divider, ScrollContainer, Conditional, DisplayGrid, SectionSlot) for server-composed generic layouts. 9 former section types (ErrorState, SectionHeader, PromoBanner, ContentRail, FollowingRail, HeroPanel, StatLine, VideoCarousel, NbaTvSchedule) have been **migrated to atomic** — server-composed as `AtomicComposite` with zero client renderers and their schema definitions pruned. Permanent sections handle stateful domain logic (sort, frozen columns, forms, platform SDK integration); atomic primitives handle server-composed layouts with no client business logic. See *Grid vs. Section Decision Tree* in §9q.
+- **Dual-layer type model** — 10 **section types in schema** (9 permanent with client renderers: BoxscoreTable, SeasonLeadersTable, Form, TabGroup, GamePanel (with server-driven `displayConfig` controlling layout: logo size, card height, score style, background — scoreboard rows, featured hero cards, and standard cards are all `displayConfig` presets), SubscribeBanner, SubscribeHero, AdSlot, VideoPlayer — plus the `AtomicComposite` bridge), plus 10 **atomic element types** (Container, Text, Image, Button, Spacer, Divider, ScrollContainer, Conditional, DisplayGrid, SectionSlot) for server-composed generic layouts. 9 former section types (ErrorState, SectionHeader, PromoBanner, ContentRail, FollowingRail, HeroPanel, StatLine, VideoCarousel, NbaTvSchedule) have been **migrated to atomic** — server-composed as `AtomicComposite` with zero client renderers and their schema definitions pruned. Permanent sections handle stateful domain logic (sort, frozen columns, forms, platform SDK integration — IAP, ads, video); atomic primitives handle server-composed layouts with no client business logic. See *Grid vs. Section Decision Tree* in §9q.
 - **Codegen produces data models only** — not UI code. Platform teams write a thin renderer layer (~30 lines per section type) that wires generated models to existing design system components.
 - **Schema is versioned** — client sends its schema version, server responds with a compatible payload. Fields can never be removed without a major version bump.
 - **Subsection actions are required** — `actions` must be supported at section and nested component/subsection level (for example, tapping home team area within a game section).
@@ -226,6 +228,64 @@ The refresh policy defines the channel separately:
 ```
 
 **Key decisions:** The SDUIStateManager on each platform opens the channel, receives messages, resolves JSONPath sources, and patches the corresponding fields in section data. Bindings also support transforms (e.g., format a timestamp). Initial data is always included so there is **no loading spinner on first paint**.
+
+### 3a. Binding Path Resilience
+
+Schema evolution is additive-first, but bindings may reference paths that disappear from the data shape over time — either because the server stops sending a field, because a schema migration removes it, or because a cached layout targets a path that no longer exists in live messages. The binding runtime must handle all three cases gracefully.
+
+#### Missing-Path Scenarios
+
+| # | Scenario | Example | Normative Behavior |
+|---|----------|---------|-------------------|
+| MP-1 | Source path absent in incoming message | Server SSE message omits `$.period` for a post-game state | **Keep previous value.** Do not overwrite the target with null or a zero-value. Log a structured warning: `{ sectionId, sourcePath, traceId, reason: "source_absent" }`. |
+| MP-2 | Source path removed by schema evolution | Server v2 renames `$.gameStatusText` to `$.statusLabel`; cached layouts still bind to the old path | **Keep previous value.** Binding is silently stale. The consecutive-miss counter (below) detects this condition in production. |
+| MP-3 | Target path absent in cached section data | A cached layout references `homeTeam.seed` but the live response no longer includes a `seed` field in the initial data | **Auto-create intermediate objects** and set the value. This is already the behavior of `setTargetPath()`. No special handling needed. |
+
+All three cases MUST be non-destructive: the client MUST NOT crash, show error UI, or clear the field. The keep-previous-value behavior is mandatory across all platforms.
+
+#### Consecutive-Miss Counter
+
+When a binding's source path is absent (MP-1 or MP-2) across multiple consecutive refresh cycles, it indicates a systemic mismatch rather than a transient omission. Clients MUST track consecutive misses per binding per section:
+
+- **Counter key:** `{sectionId}:{sourcePath}`
+- **Increment:** Each time `resolveSourcePath()` returns null/undefined for that binding during a refresh or SSE message
+- **Reset:** When `resolveSourcePath()` successfully returns a non-null value for that binding
+- **Threshold:** After `MISS_THRESHOLD` (default: 3) consecutive misses, log at WARN level with structured fields: `{ sectionId, sourcePath, consecutiveMisses, traceId }`
+- **Analytics (deferred):** When analytics infrastructure is available, emit a `binding_path_missing` event at the threshold so the team can detect stale bindings in production dashboards
+
+The existing `applyBindings()` null-guard (`IF sourceValue IS NULL: CONTINUE`) is the runtime implementation of MP-1 and MP-2. The consecutive-miss counter adds observability on top of that existing behavior.
+
+#### Cleanup
+
+When a section is removed from the screen (e.g., navigation away, screen refresh replaces section list), clients MUST clear the miss counters for that section to prevent memory leaks.
+
+### 3b. Per-Section Staleness Tracking
+
+Each section with a non-static `refreshPolicy` has its own data channel (SSE or poll). These channels can fail independently — one section's Ably subscription may disconnect while another section's poll continues succeeding. Clients MUST track staleness at the section level, not just at the screen level.
+
+This is **orthogonal** to the screen-level `isStale` flag from ADR-010 (which indicates the entire layout was served from HTTP cache). Per-section staleness indicates a specific data channel is degraded while the layout may be fresh.
+
+#### Staleness Rules
+
+| Channel Type | Stale When | Clear When |
+|---|---|---|
+| `sse` | Ably connection enters `disconnected` state for >**10 seconds** | Next successful SSE message received for that section |
+| `poll` | **2 consecutive** poll failures (HTTP error or network timeout) | Next successful poll response |
+| `static` | Never stale (no data channel) | N/A |
+
+#### Client Requirements
+
+- Track a `staleSections: Set<sectionId>` that is the **union** of action-refresh failures (existing behavior) and channel-health failures (new behavior)
+- Render a section-level staleness badge on affected sections (visual treatment is platform-specific)
+- Section staleness badges are **independent** of the screen-level offline banner — both can be shown simultaneously (see ADR-010 Two-Phase Staleness failure mode matrix)
+- When a stale section recovers (channel succeeds), clear its badge immediately — do not wait for a full screen refresh
+
+#### Poll Backoff
+
+When poll failures trigger staleness, apply exponential backoff to the poll interval to avoid hammering a degraded endpoint:
+- On each failure: double the current interval (minimum: original `intervalMs`)
+- Cap at **30 seconds** regardless of original interval
+- On success: restore the original `intervalMs` immediately
 
 ---
 
@@ -711,7 +771,11 @@ sequenceDiagram
 
 **Built (web):** Impression tracking implemented with `useImpressionTracking` hook using `IntersectionObserver` for viewport detection, `AnalyticsProvider` context for deduplication registry, and enhanced `ActionHandler` analytics dispatch. Supports server-defined dedup policies (`once-per-screen`, `once-per-interval`), visibility thresholds, and dwell time. ADR-009 accepted.
 
-**Remaining gap:** Android impression tracking (architecture defined, client wiring pending). iOS not started.
+**Built (Android):** `SectionVisibilityTracker` + `ImpressionTracker` wired through `SduiScreenViewModel`; dedup registry + dwell-time thresholds mirror the web behaviour.
+
+**Built (iOS):** `SectionVisibilityTracker` + `ImpressionTracker` actor in `ios/Sources/SduiCore/State/` wired into the SwiftUI section shell via `.onAppear` / `.onDisappear`; dedup policies aligned with the web and Android implementations.
+
+**Remaining gap:** cross-platform dedup registry and analytics forwarding parity (exposure vs. impression contract, offline buffering).
 
 **ADR tracking:** [ADR-009](adr/009-impression-dedup-and-visibility-semantics.md) — **Accepted**
 
@@ -938,6 +1002,7 @@ Every section renderer must be classified as either a semantic section (client-o
 | **Permanent sections** | TabGroup | Client-owned interaction state (nests child sections) | Section container — orchestrates child section rendering. |
 | **Permanent sections** | SubscribeHero, SubscribeBanner | Platform SDK (Play Billing / StoreKit 2) | Client section integrates billing SDK lifecycle. |
 | **Permanent sections** | AdSlot | Platform SDK (Google Ad Manager) | Client section integrates ad SDK lifecycle. |
+| **Permanent sections** | VideoPlayer | Platform SDK (AVPlayer / ExoPlayer / Media3 / HLS.js) | Client section drives HLS/DASH playback, PiP, AirPlay / Chromecast, background audio, fullscreen rotation. `playerType` discriminator dispatches to the right SDK entry point. |
 
 Row’s layout function (breakpoint-responsive horizontal container) is handled by atomic `Container(direction=row)` with `flex` and `breakpoint` properties.
 
@@ -1008,6 +1073,9 @@ The following requirements are tracked via ADRs. Some remain pending final cross
 | Form-factor layout manager | [ADR-008](adr/008-form-factor-layout-manager.md) | Accepted (Option C) |
 | Impression dedup and visibility semantics | [ADR-009](adr/009-impression-dedup-and-visibility-semantics.md) | Accepted |
 | Offline and degraded connectivity | [ADR-010](adr/010-offline-and-degraded-connectivity.md) | Proposed |
+| Data classification and freshness model | [ADR-011](adr/011-data-classification-and-freshness-model.md) | Proposed (draft) |
+| Client data architecture | [ADR-012](adr/012-client-data-architecture.md) | Proposed (draft) |
+| Style tokens for atomic primitives | [ADR-013](adr/013-style-tokens-for-atomic-primitives.md) | Proposed (draft) |
 
 Until approved, these remain directional requirements and may be refined.
 
@@ -1019,16 +1087,16 @@ Until approved, these remain directional requirements and may be refined.
 |---|---|---|
 | Schema definition (section types, data shapes) | **Built** | JSON Schema with semantic types. Prototype validated. |
 | Codegen pipeline (schema → typed models) | **Built** | jsonschema2pojo (Java/Jackson), quicktype (Swift/TS demo) |
-| Android renderer (Compose) | **Built** | Section router + 8 permanent section renderers + AtomicRouter (9 migrated types served as AtomicComposite) |
-| Web renderer (React) | **Built** | React section router + 8 permanent section renderers + AtomicRouter + live data wrappers (9 migrated types served as AtomicComposite) |
-| iOS renderer (SwiftUI) | **Designed** | Not built — architecture validated via Android |
+| Android renderer (Compose) | **Built** | Section router + 9 permanent section renderers + AtomicRouter (9 migrated types served as AtomicComposite). `IconTokenResolver` + bottom navigation shell resolve `sdui:*` icon tokens to Material Symbols. |
+| Web renderer (React) | **Built** | React section router + 9 permanent section renderers + AtomicRouter + live data wrappers (9 migrated types served as AtomicComposite). `IconTokenResolver` + Material Symbols font for top navigation bar. |
+| iOS renderer (SwiftUI) | **Built** | Swift Package (`ios/`) with SwiftUI section router + 9 permanent section views + AtomicRouter (9 migrated types served as AtomicComposite). Server-declared bottom `SduiNavigationShell` resolves `sdui:*` icon tokens to SF Symbols. Real-time via Ably (`AblyChannelManager` actor) + `PollingDriver`. `SectionVisibilityTracker` + `ImpressionTracker` wired. Demo app (`SduiDemo`, XcodeGen, `make ios-run`) bootstraps `nba://for-you`. |
 | Data binding (SSE/poll, field-level) | **Built** | Ably for SSE, direct-URL polling, DataBindingResolver class exists but live updates use hardcoded mapping |
 | Action system (navigate, fireAndForget, mutate) | **Built** | ActionHandler dispatches all 6 action types |
 | Screen state management (tabs, toggles) | **Built** | StateManager, TabGroup wired |
 | Composition service (server-side) | **Built** | Spring Boot, demo + live mode, A/B variants |
 | Accessibility descriptors | **Built** | Schema `accessibility` field on Section, Subsection, AtomicElement. Android Compose `semantics{}`, web ARIA attributes. All renderers wired. |
 | Conditional rendering / visibility | **Partial** | Cross-platform: settled (server-side composition). Client-side visibility expressions deferred (server handles show/hide). Within-family responsive: gap |
-| Error handling & fallbacks | **Partial** | Server `ErrorState` (AtomicComposite) built. Client `SectionErrorBoundary` built on Android and web (catch-at-dispatch + pre-validation). `SectionSkeleton` built on Android and web. `hideOnError`, `retryAction`, retry budget (client-side, default 5) implemented. §12-compliant logging. Contract §13 updated. Gap: iOS/tvOS/Fire TV not started. |
+| Error handling & fallbacks | **Partial** | Server `ErrorState` (AtomicComposite) built. Client `SectionErrorBoundary` built on Android, web, and iOS (catch-at-dispatch + pre-validation). `SectionSkeleton` built on Android, web, and iOS. `hideOnError`, `retryAction`, retry budget (client-side, default 5) implemented. §12-compliant logging. Contract §13 updated. Gap: tvOS/Fire TV not started. |
 | Section lifecycle & lazy loading | **Gap** | Viewport-based connection management |
 | Caching & offline | **Gap** | Stale-while-revalidate, cold start optimization |
 | Schema versioning protocol | **Partial** | Version header sent; no multi-version routing yet |
@@ -1040,7 +1108,7 @@ Until approved, these remain directional requirements and may be refined.
 | Ad support as first-class primitive | **Gap** | Needs ad primitive definition and fallback behavior |
 | Theming / dark mode | **Gap** | Semantic tokens vs. literal values |
 | Animation hints | **Gap** | Entry/exit + data-change animations |
-| Impression deduplication | **Partial** | Built on web (IntersectionObserver + dedup registry). Android/iOS pending. ADR-009 accepted. |
+| Impression deduplication | **Partial** | Built on web (IntersectionObserver + dedup registry) and iOS (`ImpressionTracker` actor + `SectionVisibilityTracker` via `.onScrollVisibilityChange`). Android pending. ADR-009 accepted. |
 | A/B testing integration | **Built** | Fully client-authoritative (ADR-006 Accepted). `experiments` map replaces `variant` param. Kill switch is client-side. Exposure tracking via fire-and-forget actions. Amplitude SDK integration deferred. |
 | Pagination / infinite scroll | **Gap** | Cursor-based, server-defined |
 | Debugging / observability | **Partial** | traceId in responses; structured Logcat; no dashboards |
@@ -1050,9 +1118,9 @@ Until approved, these remain directional requirements and may be refined.
 | Form section (generic) | **Built** | Extensible field types (picker, segmented, toggle, datePicker, text), parameterized refresh on submit. Built on Web and Android. |
 | Parameterized refresh (Action extension) | **Built** | `endpoint` + `paramBindings` resolved from screen state at action time. Working via Form submit. |
 | ErrorState section | **Built** | Server-composed error sections with title, message, icon, retry action. Built on Web and Android. |
-| SectionLayoutHints | **Partial** | Schema + codegen done. Web client applies margins/dividers. Android wiring pending. |
-| SectionStates (runtime error/loading) | **Partial** | Schema + codegen done. Web: `SectionErrorBoundary` + `SectionSkeleton` built. Server emits on live sections. Android wiring pending. |
-| Atomic rendering layer | **Built** | AtomicRouter + 9 rendering primitives + SectionSlot bridge on Android and Web. AtomicComposite section type bridges section and atomic layers. DisplayGrid for non-interactive grids. Server-side AtomicCompositeBuilder migrated 9 former section types to server-composed atomic layouts; their schema definitions have been pruned. Performance contract: depth 6, children 20, nodes 50. |
+| SectionLayoutHints | **Partial** | Schema + codegen done. Web client applies margins/dividers. Android and iOS wiring pending. |
+| SectionStates (runtime error/loading) | **Partial** | Schema + codegen done. Web and iOS: `SectionErrorBoundary` + `SectionSkeleton` built. Server emits on live sections. Android wiring pending. |
+| Atomic rendering layer | **Built** | AtomicRouter + 9 rendering primitives + SectionSlot bridge on Android, Web, and iOS. AtomicComposite section type bridges section and atomic layers. DisplayGrid for non-interactive grids. Server-side AtomicCompositeBuilder migrated 9 former section types to server-composed atomic layouts; their schema definitions have been pruned. Performance contract: depth 6, children 20, nodes 50. |
 
 ---
 
@@ -1068,7 +1136,7 @@ The following context supports planning and prioritization. It is informative an
 
 4. **Testing surface area** — Every combination of section type × data shape × binding config × action config × platform needs testing. Contract tests are essential, not optional.
 
-5. **DataBinding complexity** — Field-level binding with JSONPath, nested dot-path patching, and transforms is a custom runtime on every client. Edge cases (null values, type mismatches, missing paths) must behave identically across platforms.
+5. **DataBinding complexity** — Field-level binding with JSONPath, nested dot-path patching, and transforms is a custom runtime on every client. Edge cases (null values, type mismatches, missing paths) must behave identically across platforms. §3a (Binding Path Resilience) defines the normative behavior for missing paths, including the consecutive-miss counter for production observability.
 
 6. **Organizational resistance** — Platform teams become execution engines for server-defined layouts. Some engineers embrace it (less bikeshedding), others resist it (less creative control). Requires leadership buy-in before platform teams prioritize renderer work.
 

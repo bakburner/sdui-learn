@@ -1,0 +1,181 @@
+{
+  "id": "scoreboard-live",
+  "schemaVersion": "1.0",
+  "title": "Today's Games",
+  "analyticsId": "scoreboard_live",
+  "traceId": "trace-scoreboard-demo",
+  "navigation": {
+    "items": [
+      {
+        "id": "games",
+        "label": "Games",
+        "icon": "scoreboard",
+        "targetUri": "nba://scoreboard",
+        "selected": true
+      },
+      {
+        "id": "teams",
+        "label": "Teams",
+        "icon": "teams",
+        "targetUri": "nba://teams"
+      },
+      {
+        "id": "standings",
+        "label": "Standings",
+        "icon": "standings",
+        "targetUri": "nba://standings"
+      }
+    ]
+  },
+  "sections": [
+    {
+      "id": "game-0022500771",
+      "type": "GamePanel",
+      "analyticsId": "game_card_0022500771",
+      "refreshPolicy": {
+        "type": "static"
+      },
+      "data": {
+        "gameId": "0022500771",
+        "gameStatus": 1,
+        "gameStatusText": "7:30 PM ET",
+        "gameTimeEt": "2026-02-16T19:30:00Z",
+        "homeTeam": {
+          "teamId": 1610612752,
+          "teamTricode": "NYK",
+          "teamName": "Knicks",
+          "teamCity": "New York",
+          "score": 0,
+          "logoUrl": "https://cdn.nba.com/logos/nba/1610612752/global/L/logo.svg",
+          "wins": 34,
+          "losses": 20
+        },
+        "awayTeam": {
+          "teamId": 1610612761,
+          "teamTricode": "TOR",
+          "teamName": "Raptors",
+          "teamCity": "Toronto",
+          "score": 0,
+          "logoUrl": "https://cdn.nba.com/logos/nba/1610612761/global/L/logo.svg",
+          "wins": 22,
+          "losses": 31
+        },
+        "gameLeaders": {
+          "homeLeader": { "name": "Jalen Brunson", "points": 27, "rebounds": 4, "assists": 7 },
+          "awayLeader": { "name": "Scottie Barnes", "points": 21, "rebounds": 8, "assists": 6 }
+        },
+        "actions": [
+          { "trigger": "onTap", "type": "navigate", "targetUri": "nba://game/0022500771" }
+        ]
+      }
+    },
+    {
+      "id": "game-0022500772",
+      "type": "GamePanel",
+      "analyticsId": "game_card_0022500772",
+      "refreshPolicy": {
+        "type": "static"
+      },
+      "data": {
+        "gameId": "0022500772",
+        "gameStatus": 2,
+        "gameStatusText": "Q3 04:18",
+        "homeTeam": {
+          "teamId": 1610612747,
+          "teamTricode": "LAL",
+          "teamName": "Lakers",
+          "teamCity": "Los Angeles",
+          "score": 87,
+          "logoUrl": "https://cdn.nba.com/logos/nba/1610612747/global/L/logo.svg"
+        },
+        "awayTeam": {
+          "teamId": 1610612756,
+          "teamTricode": "PHX",
+          "teamName": "Suns",
+          "teamCity": "Phoenix",
+          "score": 90,
+          "logoUrl": "https://cdn.nba.com/logos/nba/1610612756/global/L/logo.svg"
+        },
+        "gameLeaders": {
+          "homeLeader": { "name": "LeBron James", "points": 24, "rebounds": 7, "assists": 8 },
+          "awayLeader": { "name": "Devin Booker", "points": 29, "rebounds": 3, "assists": 5 }
+        },
+        "actions": [
+          { "trigger": "onTap", "type": "navigate", "targetUri": "nba://game/0022500772" }
+        ]
+      }
+    },
+    {
+      "id": "game-0022500773",
+      "type": "GamePanel",
+      "analyticsId": "game_card_0022500773",
+      "refreshPolicy": {
+        "type": "static"
+      },
+      "data": {
+        "gameId": "0022500773",
+        "gameStatus": 3,
+        "gameStatusText": "Final",
+        "homeTeam": {
+          "teamId": 1610612738,
+          "teamTricode": "BOS",
+          "teamName": "Celtics",
+          "teamCity": "Boston",
+          "score": 121,
+          "logoUrl": "https://cdn.nba.com/logos/nba/1610612738/global/L/logo.svg"
+        },
+        "awayTeam": {
+          "teamId": 1610612748,
+          "teamTricode": "MIA",
+          "teamName": "Heat",
+          "teamCity": "Miami",
+          "score": 112,
+          "logoUrl": "https://cdn.nba.com/logos/nba/1610612748/global/L/logo.svg"
+        },
+        "gameLeaders": {
+          "homeLeader": { "name": "Jayson Tatum", "points": 33, "rebounds": 9, "assists": 6 },
+          "awayLeader": { "name": "Jimmy Butler", "points": 28, "rebounds": 5, "assists": 4 }
+        },
+        "actions": [
+          { "trigger": "onTap", "type": "navigate", "targetUri": "nba://game/0022500773" }
+        ]
+      }
+    },
+    {
+      "id": "game-0022500774",
+      "type": "GamePanel",
+      "analyticsId": "game_card_0022500774",
+      "refreshPolicy": {
+        "type": "static"
+      },
+      "data": {
+        "gameId": "0022500774",
+        "gameStatus": 3,
+        "gameStatusText": "Final/OT",
+        "homeTeam": {
+          "teamId": 1610612741,
+          "teamTricode": "CHI",
+          "teamName": "Bulls",
+          "teamCity": "Chicago",
+          "score": 134,
+          "logoUrl": "https://cdn.nba.com/logos/nba/1610612741/global/L/logo.svg"
+        },
+        "awayTeam": {
+          "teamId": 1610612754,
+          "teamTricode": "IND",
+          "teamName": "Pacers",
+          "teamCity": "Indiana",
+          "score": 130,
+          "logoUrl": "https://cdn.nba.com/logos/nba/1610612754/global/L/logo.svg"
+        },
+        "gameLeaders": {
+          "homeLeader": { "name": "Coby White", "points": 30, "rebounds": 4, "assists": 8 },
+          "awayLeader": { "name": "Tyrese Haliburton", "points": 27, "rebounds": 5, "assists": 12 }
+        },
+        "actions": [
+          { "trigger": "onTap", "type": "navigate", "targetUri": "nba://game/0022500774" }
+        ]
+      }
+    }
+  ]
+}

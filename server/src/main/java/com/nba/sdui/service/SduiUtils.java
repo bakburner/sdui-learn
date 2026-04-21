@@ -46,7 +46,7 @@ public class SduiUtils {
         ObjectNode forYou = objectMapper.createObjectNode();
         forYou.put("id", "for-you");
         forYou.put("label", "For You");
-        forYou.put("icon", "home");
+        forYou.put("icon", "sdui:home");
         forYou.put("targetUri", "nba://for-you");
         forYou.put("selected", "for-you".equals(activeScreenId));
         items.add(forYou);
@@ -54,7 +54,7 @@ public class SduiUtils {
         ObjectNode games = objectMapper.createObjectNode();
         games.put("id", "games");
         games.put("label", "Games");
-        games.put("icon", "sports_basketball");
+        games.put("icon", "sdui:basketball");
         games.put("targetUri", "nba://games");
         games.put("selected", gamesSelected);
         items.add(games);
@@ -62,7 +62,7 @@ public class SduiUtils {
         ObjectNode watch = objectMapper.createObjectNode();
         watch.put("id", "watch");
         watch.put("label", "Watch");
-        watch.put("icon", "play_circle");
+        watch.put("icon", "sdui:video");
         watch.put("targetUri", "nba://watch");
         watch.put("selected", "watch".equals(activeScreenId));
         items.add(watch);
@@ -70,7 +70,7 @@ public class SduiUtils {
         ObjectNode leaders = objectMapper.createObjectNode();
         leaders.put("id", "leaders");
         leaders.put("label", "Leaders");
-        leaders.put("icon", "leaderboard");
+        leaders.put("icon", "sdui:leaderboard");
         leaders.put("targetUri", "nba://leaders");
         leaders.put("selected", "leaders".equals(activeScreenId));
         items.add(leaders);
@@ -78,7 +78,7 @@ public class SduiUtils {
         ObjectNode demos = objectMapper.createObjectNode();
         demos.put("id", "demos");
         demos.put("label", "Kitchen");
-        demos.put("icon", "widgets");
+        demos.put("icon", "sdui:grid");
         demos.put("targetUri", "nba://demos");
         demos.put("selected", "demos".equals(activeScreenId));
         items.add(demos);

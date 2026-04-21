@@ -229,6 +229,36 @@ public class SduiController {
         return getGames(ctx, response);
     }
 
+    // ── Schedule ───────────────────────────────────────────────────────
+
+    @GetMapping(value = "/sdui/schedule", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<JsonNode> getSchedule(
+            SduiRequestContext ctx,
+            HttpServletResponse response) {
+
+        ensureTraceId(ctx);
+        MDC.put("traceId", ctx.getTraceId());
+        log.info("SDUI schedule request: locale={}, schemaVersion={}", ctx.getLocale(), ctx.getSchemaVersion());
+
+        try {
+            JsonNode screenResponse = compositionService.composeSchedule(ctx);
+            setResponseHeaders(response, ctx);
+            return ResponseEntity.ok()
+                    .cacheControl(CacheControl.maxAge(Duration.ofSeconds(300)).cachePublic())
+                    .body(screenResponse);
+        } catch (Exception e) {
+            log.error("Error composing schedule screen", e);
+            return ResponseEntity.internalServerError().build();
+        } finally {
+            MDC.clear();
+        }
+    }
+
+    @PostMapping(value = "/sdui/schedule", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<JsonNode> postSchedule(SduiRequestContext ctx, HttpServletResponse response) {
+        return getSchedule(ctx, response);
+    }
+
     // ── Demos ──────────────────────────────────────────────────────────
 
     @GetMapping(value = "/sdui/demos", produces = MediaType.APPLICATION_JSON_VALUE)

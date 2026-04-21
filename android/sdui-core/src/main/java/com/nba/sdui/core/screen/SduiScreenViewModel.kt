@@ -12,7 +12,9 @@ import com.nba.sdui.core.models.SduiSection
 import com.nba.sdui.core.request.RequestEnvelopeBuilder
 import com.nba.sdui.core.state.ActionHandler
 import com.nba.sdui.core.state.SduiAction
+import com.nba.sdui.core.state.SectionVisibilityTracker
 import com.nba.sdui.core.state.StateManager
+import io.ably.lib.realtime.ConnectionState
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
@@ -62,6 +64,15 @@ open class SduiScreenViewModel(
     protected val actionHandler = ActionHandler()
     private val dataBindingResolver = DataBindingResolver()
 
+    /** Tracks which sections are near the viewport for visibility-gated refresh. */
+    val visibilityTracker = SectionVisibilityTracker()
+
+    /** True when the app is in the foreground. Gates ALL refresh activity. */
+    private val _isAppForeground = MutableStateFlow(true)
+
+    /** Buffer of latest SSE messages per section, applied on visibility resume. */
+    private val sseMessageBuffer = mutableMapOf<String, Map<String, Any?>>()
+
     /**
      * Build the request envelope from config.
      * Called before every fetchScreen to include current platform/device/experiment context.
@@ -103,6 +114,20 @@ open class SduiScreenViewModel(
 
     init {
         Log.d(TAG, "ViewModel INIT: screenId=${config.screenId}, baseUrl=${config.baseUrl}")
+    }
+
+    // ── Lifecycle ────────────────────────────────────────────────────
+
+    /** Call from ProcessLifecycleOwner ON_STOP — pauses all refresh activity. */
+    fun onAppBackgrounded() {
+        Log.d(TAG, "App backgrounded — pausing all refresh")
+        _isAppForeground.value = false
+    }
+
+    /** Call from ProcessLifecycleOwner ON_START — resumes refresh activity. */
+    fun onAppForegrounded() {
+        Log.d(TAG, "App foregrounded — resuming refresh")
+        _isAppForeground.value = true
     }
 
     // ── Load / Refresh ───────────────────────────────────────────────
@@ -256,7 +281,7 @@ open class SduiScreenViewModel(
         _uiState.value = SduiScreenUiState.Success(screen)
 
         // Defer data-channel bootstrap so the initial render is never blocked.
-        // Polling and Ably are server-driven — always inspect refreshPolicy (Rule 9).
+        // Polling and Ably are server-driven — always inspect refreshPolicy.
         viewModelScope.launch {
             setupPolling(screen)
             setupAbly(screen)
@@ -265,6 +290,14 @@ open class SduiScreenViewModel(
 
     // ── Polling ──────────────────────────────────────────────────────
 
+    companion object {
+        private const val POLL_FAILURE_THRESHOLD = 2
+        private const val MAX_BACKOFF_MS = 30_000L
+        private const val SSE_STALE_DELAY_MS = 10_000L
+    }
+
+    private val pollFailureCounts = mutableMapOf<String, Int>()
+
     private fun setupPolling(screen: SduiScreen) {
         stopAllPolling()
 
@@ -272,19 +305,31 @@ open class SduiScreenViewModel(
             val policy = section.refreshPolicy
             val policyIntervalMs = policy?.intervalMs
             if (policy?.type == "poll" && policyIntervalMs != null) {
-                val intervalMs = policyIntervalMs.toLong()
+                val baseIntervalMs = policyIntervalMs.toLong()
                 val pollUrl = policy.url
                 val dataPath = policy.dataPath
+                val shouldPause = policy.pauseWhenOffScreen
 
                 if (pollUrl != null) {
-                    Log.i(TAG, "DIRECT poll: section='${section.id}' url=$pollUrl every ${intervalMs}ms")
+                    Log.i(TAG, "DIRECT poll: section='${section.id}' url=$pollUrl every ${baseIntervalMs}ms pauseWhenOffScreen=$shouldPause")
                 } else {
-                    Log.i(TAG, "SDUI poll: section='${section.id}' every ${intervalMs}ms")
+                    Log.i(TAG, "SDUI poll: section='${section.id}' every ${baseIntervalMs}ms pauseWhenOffScreen=$shouldPause")
                 }
 
+                pollFailureCounts[section.id] = 0
+
                 pollingJobs[section.id] = viewModelScope.launch {
+                    var currentIntervalMs = baseIntervalMs
                     while (isActive) {
-                        delay(intervalMs)
+                        // Gate: wait for app foreground
+                        _isAppForeground.first { it }
+
+                        // Gate: wait for section to be near viewport (if pauseWhenOffScreen)
+                        if (shouldPause) {
+                            visibilityTracker.awaitNearViewport(section.id)
+                        }
+
+                        delay(currentIntervalMs)
                         try {
                             if (pollUrl != null) {
                                 val data = repository.fetchRawJson(pollUrl, dataPath)
@@ -294,8 +339,19 @@ open class SduiScreenViewModel(
                                 val updated = repository.fetchScreen(endpoint, buildEnvelope())
                                 applyScreen(updated)
                             }
+                            // Success — reset failure count and backoff
+                            pollFailureCounts[section.id] = 0
+                            currentIntervalMs = baseIntervalMs
+                            _staleSections.value = _staleSections.value - section.id
                         } catch (e: Exception) {
                             Log.e(TAG, "Poll failed for section: ${section.id}", e)
+                            val failures = (pollFailureCounts[section.id] ?: 0) + 1
+                            pollFailureCounts[section.id] = failures
+                            // Exponential backoff: double on failure, cap at MAX_BACKOFF_MS
+                            currentIntervalMs = (currentIntervalMs * 2).coerceAtMost(MAX_BACKOFF_MS)
+                            if (failures >= POLL_FAILURE_THRESHOLD) {
+                                _staleSections.value = _staleSections.value + section.id
+                            }
                         }
                     }
                 }
@@ -320,14 +376,38 @@ open class SduiScreenViewModel(
 
     // ── Ably ─────────────────────────────────────────────────────────
 
+    private var sseStaleJob: Job? = null
+
     private fun setupAbly(screen: SduiScreen) {
         val sseSections = screen.sections.filter { s ->
             s.refreshPolicy?.type == "sse" && !s.refreshPolicy?.channel.isNullOrBlank()
         }
         if (sseSections.isEmpty()) return
 
+        val sseSectionIds = sseSections.map { it.id }.toSet()
+
         if (ablyChannelManager == null) {
             ablyChannelManager = AblyChannelManager(config.ablyTokenUrl)
+            ablyChannelManager?.onConnectionStateChange = { connectionState ->
+                when (connectionState) {
+                    ConnectionState.disconnected, ConnectionState.suspended, ConnectionState.failed -> {
+                        // Start countdown — if still disconnected after SSE_STALE_DELAY_MS, mark SSE sections stale
+                        if (sseStaleJob?.isActive != true) {
+                            sseStaleJob = viewModelScope.launch {
+                                delay(SSE_STALE_DELAY_MS)
+                                _staleSections.value = _staleSections.value + sseSectionIds
+                                Log.w(TAG, "Ably disconnected for ${SSE_STALE_DELAY_MS}ms — marking SSE sections stale: $sseSectionIds")
+                            }
+                        }
+                    }
+                    ConnectionState.connected -> {
+                        sseStaleJob?.cancel()
+                        sseStaleJob = null
+                        // Don't clear staleness here — wait for actual message receipt in subscribeToChannel
+                    }
+                    else -> {}
+                }
+            }
             ablyChannelManager?.initialize()
         }
 
@@ -344,27 +424,61 @@ open class SduiScreenViewModel(
      */
     private fun subscribeToChannel(section: SduiSection, channel: String) {
         ablyJobs[section.id]?.cancel()
-        Log.i(TAG, "Subscribe Ably: channel='$channel' section='${section.id}'")
+        val shouldPause = section.refreshPolicy?.pauseWhenOffScreen ?: true
+        Log.i(TAG, "Subscribe Ably: channel='$channel' section='${section.id}' pauseWhenOffScreen=$shouldPause")
         ablyJobs[section.id] = viewModelScope.launch {
             try {
                 ablyChannelManager?.subscribeToChannel(channel)?.collect { message ->
                     Log.d(TAG, "Ably update for ${section.id}: keys=${message.keys}")
-                    val dataBinding = section.dataBinding
-                    if (dataBinding != null) {
-                        val currentData = currentScreen?.sections
-                            ?.find { it.id == section.id }?.data ?: return@collect
-                        val updatedData = dataBindingResolver.applyBindings(
-                            currentData, message, dataBinding, currentScreen?.traceId,
-                            section.stringTable
-                        )
-                        updateSectionInScreen(section.id, updatedData)
-                    } else {
-                        Log.w(TAG, "No dataBinding config for section ${section.id} — message dropped")
+                    // Successful message — clear section staleness
+                    _staleSections.value = _staleSections.value - section.id
+
+                    // Gate: skip applying bindings if app is backgrounded or section is off-screen
+                    val isForeground = _isAppForeground.value
+                    val isVisible = !shouldPause || visibilityTracker.isNearViewport(section.id)
+
+                    if (!isForeground || !isVisible) {
+                        // Buffer the latest message — will be applied on resume
+                        sseMessageBuffer[section.id] = message
+                        Log.d(TAG, "SSE message buffered for ${section.id} (fg=$isForeground, vis=$isVisible)")
+                        return@collect
                     }
+
+                    applyAblyMessage(section, message)
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Ably error for ${section.id}", e)
             }
+        }
+
+        // Launch a coroutine that watches visibility changes and applies buffered messages
+        if (shouldPause) {
+            viewModelScope.launch {
+                visibilityTracker.visibleSections.collect { visibleSet ->
+                    if (section.id in visibleSet) {
+                        val buffered = sseMessageBuffer.remove(section.id)
+                        if (buffered != null) {
+                            Log.d(TAG, "Applying buffered SSE message for ${section.id}")
+                            applyAblyMessage(section, buffered)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun applyAblyMessage(section: SduiSection, message: Map<String, Any?>) {
+        val dataBinding = section.dataBinding
+        if (dataBinding != null) {
+            val currentData = currentScreen?.sections
+                ?.find { it.id == section.id }?.data ?: return
+            val updatedData = dataBindingResolver.applyBindings(
+                currentData, message, dataBinding, currentScreen?.traceId,
+                section.stringTable, section.id
+            )
+            updateSectionInScreen(section.id, updatedData)
+        } else {
+            Log.w(TAG, "No dataBinding config for section ${section.id} — message dropped")
         }
     }
 

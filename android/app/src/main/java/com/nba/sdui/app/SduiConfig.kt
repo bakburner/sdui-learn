@@ -21,9 +21,8 @@ data class SduiConfig(
 ) {
     companion object {
         /**
-         * Generic server-driven screen.
-         * All refresh policy / real-time configuration comes from the
-         * server response — see Rule 9.
+         * Generic server-driven screen. All refresh policy / real-time
+         * configuration comes from the server response.
          */
         fun fromUri(uri: String, experiments: Map<String, String> = emptyMap()) = SduiConfig(
             uri = uri,

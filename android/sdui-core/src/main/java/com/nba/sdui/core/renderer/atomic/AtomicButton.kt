@@ -13,7 +13,7 @@ import com.nba.sdui.core.state.SduiAction
 
 /**
  * AtomicButton — renders a Button element dispatching actions on click.
- * Supports "filled" (default), "outlined", and "text" button variants.
+ * Supports "primary" (default filled), "secondary" (outlined), "tertiary" (text), and "text" variants.
  */
 @Composable
 fun AtomicButton(
@@ -29,15 +29,16 @@ fun AtomicButton(
         }
     }
     val enabled = element.disabled != true
+    val accessibilityModifier = modifier.applyAccessibility(element.accessibility)
 
     when (element.buttonVariant) {
-        "outlined" -> OutlinedButton(onClick = onClick, enabled = enabled, modifier = modifier.applyAccessibility(element.accessibility)) {
+        "secondary" -> OutlinedButton(onClick = onClick, enabled = enabled, modifier = accessibilityModifier) {
             Text(text = element.label.orEmpty())
         }
-        "text" -> TextButton(onClick = onClick, enabled = enabled, modifier = modifier.applyAccessibility(element.accessibility)) {
+        "tertiary", "text" -> TextButton(onClick = onClick, enabled = enabled, modifier = accessibilityModifier) {
             Text(text = element.label.orEmpty())
         }
-        else -> Button(onClick = onClick, enabled = enabled, modifier = modifier.applyAccessibility(element.accessibility)) {
+        else -> Button(onClick = onClick, enabled = enabled, modifier = accessibilityModifier) {
             Text(text = element.label.orEmpty())
         }
     }

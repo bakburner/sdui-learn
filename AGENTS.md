@@ -66,11 +66,13 @@ required for layout, content, or data-flow changes.
 
 ## 7. Section Routers Must Handle Unknown Types Gracefully
 
-- Both `SectionRouter.kt` (Android) and `SectionRouter.tsx` (web) must
+- Each platform's section router — `SectionRouter.kt` (Android),
+  `SectionRouter.tsx` (web), `SectionRouter.swift` (iOS) — must
   silently skip unknown section types with a debug/warning log.
-- The `SUPPORTED_SECTION_TYPES` set on Android and the `switch` in
-  `SectionRenderer` on web are the **accepted** coupling points where
-  new types require a client update — this is by design.
+- The `SUPPORTED_SECTION_TYPES` set on Android, the `switch` in
+  `SectionRenderer` on web, and the `switch section.type` in iOS's
+  `SectionRouter` are the **accepted** coupling points where new
+  types require a client update — this is by design.
 
 ## 8. One Fetch Path, No Dedicated Repo Methods
 
@@ -112,14 +114,57 @@ required for layout, content, or data-flow changes.
   the target type and full stack trace before returning null.
 - Silent `catch (_: Exception) { null }` patterns are prohibited.
 
-## 13. Schema Enums Must Cover Server Output
+## 13. Schema Is the Server-Client Contract
 
-- When the server sends a value for an enum-typed field (e.g.
-  `contentType`), that value **must** exist in the schema's enum list.
-- jsonschema2pojo generates strict enum deserializers that throw on
-  unknown values, which cascades into silent section render failures.
-- Before adding a new enum value to server composition, add it to the
-  schema first, then run `make codegen`.
+The JSON schema at `schema/sdui-schema.json` is the wire-level contract
+between server and clients. Every field, every enum value, every type
+is part of that contract. Clients decode strictly on purpose: if the
+server emits a value the schema does not describe, the client fails
+loudly rather than degrading silently into a blank section or a
+misrendered widget.
+
+### Invariants
+
+- **Server output must conform to the schema.** Before composition code
+  emits a new enum value, a new field, or a new type, it goes into
+  `schema/sdui-schema.json` first. Clients are regenerated
+  (`make codegen`) from the schema; hand-edited client models must be
+  kept in sync.
+- **Strict decoders are intentional.** `jsonschema2pojo` (Java),
+  `quicktype` (Kotlin / TypeScript), and Swift `Codable` all generate
+  strict deserializers that throw on unknown enum values. That
+  behaviour is load-bearing: it converts contract violations into
+  test-visible crashes instead of hard-to-diagnose silent render
+  failures in production.
+- **Unknown values on the wire mean one of two things.** Either the
+  server is emitting something the schema forbids (schema update
+  missing — fix the schema) or the client is older than the schema it
+  is receiving (forward-compatibility case — the render-time fallbacks
+  named in Rule 16 / Rule 18 apply at the renderer layer, not at the
+  decoder).
+- **The schema is documentation of intent.** It is not just a build
+  input — it is what future engineers read to understand what the
+  server can say. Keep descriptions honest, keep enums tight, mark
+  deprecated values explicitly.
+
+### When adding a new enum value
+
+1. Add the value to the schema enum.
+2. Run `make codegen` to regenerate typed models across platforms.
+3. Update each platform's renderer (or add a fallback) so the new
+   value renders something sensible before the server starts emitting
+   it.
+4. Only then update the server to emit the value.
+
+### Relationship to other rules
+
+- **Rule 18** decides *whether* a given semantic lives in the schema
+  at all. Server-driven decisions may not need a schema field;
+  client-realized semantic vocabularies always do.
+- **Rule 16** decides what each client *does* with a known schema
+  value at render time.
+- This rule is the pipe between them: it keeps the vocabulary the
+  server emits aligned with the vocabulary the clients expect.
 
 ## 14. Renderers Are Presentation-Only
 
@@ -174,7 +219,7 @@ Is the UI stateless and ≤80 LOC with no platform SDK dependency?
 
 Nine section types were migrated to `AtomicComposite` because they had
 **zero client-owned state** — the server fully controlled their layout and
-content. The eight permanent sections remain because each one requires
+content. The nine permanent sections remain because each one requires
 behaviour the server cannot own:
 
 | Section            | Why it stays client-side                        |
@@ -187,11 +232,18 @@ behaviour the server cannot own:
 | SubscribeHero      | Platform IAP SDK integration                     |
 | SubscribeBanner    | Platform IAP SDK integration                     |
 | AdSlot             | Platform ad SDK lifecycle                        |
+| VideoPlayer        | Platform video SDK lifecycle (HLS/DASH, PiP, AirPlay / Chromecast, background audio) |
 
 Even for permanent sections, **visual configuration must be server-driven**.
 The renderer reads styling knobs (colors, sizes, layout flags) from the
-server payload — it never hardcodes visual variants. The section exists
-only because it owns client-side *behaviour*, not because it owns *appearance*.
+server payload — it never hardcodes visuals as a function of screen
+identity, section data, or client state (e.g. "`GamePanel` on
+`GameDetail` is always red"). The section exists only because it owns
+client-side *behaviour*, not because it owns *appearance*.
+
+This does **not** prohibit resolving server-emitted semantic tokens
+(`textVariant`, `buttonVariant`, `containerVariant` once ADR-013 lands)
+into platform-native idioms. That mapping is required — see Rule 16.
 
 ### AtomicComposite Limits
 
@@ -208,3 +260,271 @@ defensive depth guard.
   atomic primitive.
 - Tabular data with **any interactivity** (sort / filter / expand) →
   section renderer, not DisplayGrid.
+
+## 16. Platform-Native Realization of Semantic Tokens
+
+The server emits **semantic tokens** — `textVariant: "titleMedium"`,
+`buttonVariant: "primary"`, `iconName: "play"`, and (once ADR-013
+lands) `containerVariant: "heroCard"`, `imageVariant: "hero"`, etc.
+Each client is responsible for resolving those tokens into its
+platform's **current design language**.
+
+- **Expected**: iOS renders `titleMedium` with SF Pro typography and
+  uses platform materials (`.ultraThinMaterial`, Liquid Glass on iOS
+  26+) for surface variants. Android renders it with Roboto/NBA
+  typography and uses Material surfaces (tonal elevation, Material 3
+  Expressive where available). Web uses its own conventions (CSS
+  surface mixins, `backdrop-filter`). An iOS app is expected to look
+  like iOS; an Android app is expected to look like Android.
+- **Cross-platform visual divergence is expected**, not a bug. Pixel
+  parity across platforms is **not** a goal. Cross-platform
+  screenshot diffing is not a meaningful regression signal for token
+  output — use per-platform screenshot tests against that platform's
+  design-system spec.
+- **OS-version tiering is permitted** inside the renderer. Choosing
+  Liquid Glass on iOS 26+ vs. `.ultraThinMaterial` on iOS 17–25 vs.
+  a solid gradient fallback on older OSes is presentation, not
+  business logic. Each tier must provide a reasonable fallback
+  (silent rendering failures on old OSes are not acceptable).
+- **This does not relax Rule 14.** Mapping a semantic token to a
+  platform-native realization is presentation-only. Branching on
+  screen identity, section data, or client runtime state ("if
+  `screenId == GameDetail`, use red card") remains forbidden — that
+  is business logic, not token resolution.
+- **Existing precedents** (the pattern is already validated in
+  production code):
+  - `TextVariant` → `AtomicTextView.font(for:)` (iOS),
+    `AtomicText.mapTypographyVariant` (Android), `variantStyles`
+    (web).
+  - `ButtonVariant` → platform-idiomatic button rendering on each
+    client.
+  - `IconTokenResolver` + `schema/icon-tokens.json` → platform-native
+    icon lookup.
+- **Pixel-parity exceptions** (brand takeover, launch moment,
+  sponsor-locked surface) are expressed as explicit design-system
+  tokens (a `parity` variant family) or intentional inline
+  overrides — not by relaxing this rule.
+
+### Interaction tokens
+
+The same principle applies beyond visual styling. Action triggers
+(`onTap`, `onLongPress`, `onVisible`, `onSwipe`, `onFocus`, `onBlur`,
+`onSubmit`, ...) are **semantic interaction intents** — the server
+declares *what the user did*, and each client realizes that intent
+using its platform's native gesture or event system.
+
+- `onTap` → tap recognizer (iOS), `Modifier.clickable` (Compose),
+  click event (web).
+- `onLongPress` → long-press recognizer (iOS/Compose), `contextmenu`
+  or synthesized long-press (web).
+- `onSubmit` → form submit gesture: keyboard Return / IME "Go"
+  action on iOS and Android, `<form onSubmit>` on web (Enter key
+  *and* submit button).
+- `onVisible` → prefetch / visibility APIs on each platform
+  (`UICollectionView` prefetch, `LazyListState` observers,
+  `IntersectionObserver`).
+
+As with visual tokens:
+
+- **Cross-platform behavioural divergence is expected.** iOS may
+  fire `onSubmit` from the keyboard "Go" button; Android from the
+  IME action; web from Enter key *and* a submit button. That is
+  correct platform-native realization, not a bug.
+- **The schema enumerates the known intents.** Adding a new
+  intent (e.g. `onScrollEnd`, `onPullToRefresh`) is a schema
+  change that every client then maps to its best native
+  equivalent.
+- **Rule 13 still applies.** The schema enum must cover every
+  value the server emits. This subsection does not relax strict
+  decoding — it describes what each client does *after* decode,
+  not how decode behaves.
+
+See `docs/adr/013-style-tokens-for-atomic-primitives.md` for the
+full style-token system, override matrix, OS-version tier map, and
+governance model.
+
+## 17. Code Comments: Describe the Code, Cite Business Constraints Only
+
+Code comments and schema descriptions describe **what the code does**
+and **what invariant it upholds**. They must **not** cite internal
+engineering conventions or AI/agent coding guidelines. They **must**
+cite business, product, legal, or compliance constraints when those
+drive the code — 100% of the time, with enough context for a future
+reader to find the source of truth.
+
+### Do NOT reference in code or schema descriptions
+
+- Rule numbers from this document (e.g. "per Rule 10", "Rule 4 —
+  opaque JSON").
+- Links, citations, or section pointers to `AGENTS.md`, agent
+  personas in `prompts/agents/`, or skills in `prompts/skills/`.
+- ADR numbers used as prose justification ("per ADR-005 this must…").
+  Cross-references to an ADR as documentation of *where* a design is
+  specified are fine in docs; they do not belong in source comments.
+- Internal engineering norms written as rules ("the platform team
+  requires…", "the architecture rules say…").
+
+If the comment's meaning depends on the reader having read this
+document, the explanation is in the wrong place. Explain the *why*
+in the governance document; explain the *what* and the *invariant*
+in the comment.
+
+### DO reference in code (always)
+
+Business-driven constraints must be cited in the code that implements
+them, with enough pointer information that a future reader can find
+the source of truth. Examples of constraints that must carry a
+citation:
+
+- **Contractual constraints.** "Per the broadcaster rights agreement
+  (2026 regional package), blackout games must not expose streaming
+  URLs in this section."
+- **Brand guidelines.** "NBA brand guideline §4.2: team tricodes are
+  always uppercase when rendered next to the team logo."
+- **Legal / compliance.** "COPPA: ad targeting parameters are
+  forbidden when the requester's declared age is < 13." / "GDPR:
+  `deviceId` must be dropped from request envelopes after 90 days of
+  inactivity."
+- **Partner / sponsor constraints.** "Sponsor lock-up: the `presented
+  by` row must render above the fold on game-detail during playoffs
+  (2026 deal, expires 2027-06-30)."
+- **Upstream data quirks.** "Stats API returns `null` team tricode
+  for a 30-minute window around roster moves (ticket STATS-4812);
+  fall back to the logo URL as the identifier."
+- **Product-decision intent** that the code itself cannot convey
+  (why a value is clamped, why a fallback exists, why a sort key is
+  descending, why a refresh is coalesced).
+
+### Rationale
+
+Comments citing internal rule numbers rot: the rules get renumbered,
+reorganized, or replaced, and the code comment drifts from reality.
+Business-constraint citations **do not rot the same way** — they
+point to a durable external source (a contract, a policy, a brand
+document) that the engineering team does not control. Those
+citations are the load-bearing part of the comment; leaving them out
+makes the code unsafe to change.
+
+### Examples
+
+Before / after for rule-citation removal:
+
+| Before | After |
+|---|---|
+| `/// Rule 10: Simple prefix swap, no special-case branching.` | `/// Simple prefix swap, no special-case branching for individual screens.` |
+| `// TODO(Rule 2): bootstrap URI should come from /sdui/init.` | `// TODO: bootstrap URI should come from /sdui/init.` |
+| `/// Values must cover every string the server emits (AGENTS.md Rule 13).` | *(Remove. The strict decoder already enforces this; the schema description should just describe what the enum is.)* |
+
+Before / after for business-constraint citation:
+
+| Before | After |
+|---|---|
+| `// Hide streaming URL for certain games.` | `// Blackout policy (broadcaster rights agreement, 2026 regional package): streaming URLs must be suppressed for games in the viewer's home market. See Product brief "Blackout v3" for the rule set.` |
+| `// Clamp age to 13.` | `// COPPA: targeted advertising is forbidden when declared age < 13. Code path must return the un-targeted creative instead of returning 400. See Legal/Privacy/COPPA-ads.md.` |
+
+## 18. Server-Driven vs Client-Realized Work Split
+
+The default site for any per-platform decision is the **server**. The
+server reads the `X-Platform` header and the request envelope's
+`capabilities`, `osVersion`, and `deviceClass`, and composes a response
+tailored to that platform. This is the position that protects the
+primary KPI of this architecture — **fewer client releases** — by
+keeping per-platform variability in a place we can redeploy in hours
+instead of weeks.
+
+Client-realized platform mapping is a **named exception**, reserved
+for a small, stable set of semantic vocabularies where server-side
+enumeration would force the server to track platform trivia (new SF
+Symbols, new Material icons, new Liquid Glass materials, new IME
+behaviours) that the client owns natively anyway. Rule 16 lists the
+exceptions that exist today. New client-realized vocabularies require
+explicit justification — see "Criteria for adding a new
+client-realized vocabulary" below.
+
+### The decision tree
+
+| The server is choosing… | Decision site | Mechanism | Examples |
+|---|---|---|---|
+| **Content selection** — which sections, copy, or CTAs appear on this screen | **Server** (default) | Compose per-platform using `X-Platform` | Show `SubscribeHero` on iOS/Android, `SubscribeBanner` on web. Show "Download the app" only on web. Hide a `LiveActivity` CTA on non-iOS. |
+| **Capability gating** — does this client's runtime support the delivery mechanism, SDK, or OS feature the section requires | **Server** (default) | Read `capabilities.*` and `osVersion` from the envelope and compose a compatible response | If `capabilities.sse = false`, set `refreshPolicy.type = "interval"`. Omit a section that needs iOS 17 when `osVersion < 17`. |
+| **Asset-format selection** — the client needs a concrete URL or asset and only the server knows which format the platform can consume | **Server** (default) | Server emits the per-platform URL / asset | iOS gets the HLS manifest; Android gets the DASH manifest. iOS gets an APNs push target; Android gets FCM. |
+| **Presentation of a known semantic intent** — how a thing *looks* or *feels* once the client already knows what it is | **Client** (named exception, per Rule 16) | Schema carries a neutral semantic token; each platform resolves to its native idiom | `textVariant`, `buttonVariant`, `iconName` / `sdui:*` icon tokens, `containerVariant` (ADR-013), `ActionTrigger` (Rule 16 "Interaction tokens" subsection) |
+
+### When in doubt: server
+
+If a case does not cleanly fit the "Presentation of a known semantic
+intent" row, it is server-driven. Pushing a decision to the client
+should be a deliberate, argued choice — not a default. More logic in
+the client means more client releases, more drift across platforms,
+and more ways for older app versions to fall out of sync with server
+composition.
+
+### Criteria for adding a new client-realized vocabulary
+
+A new vocabulary may be added to the "Rule 16 exceptions" list only if
+**all** of the following hold:
+
+1. **Pure presentation.** The vocabulary carries no business content,
+   no legal or compliance policy, and no capability gating. It
+   describes *how* something looks or feels, not *what* is shown or
+   *whether* it is shown.
+2. **Platform-owned realization.** The set of valid realizations is
+   owned and versioned by the platform (SF Symbols, Material icons,
+   Material 3 surfaces, SwiftUI `.ultraThinMaterial`, CSS
+   `backdrop-filter`), so server-side enumeration would put the
+   server onto the platform's upgrade treadmill.
+3. **Stable vocabulary.** The neutral semantics change much more
+   slowly than their platform realizations. Typography scales and
+   button roles change rarely; the SF Symbol or Material drawable that
+   realizes them ships with every OS release.
+4. **Documented fallback.** Unknown values fall back to a sensible
+   default at render time — a new token from a newer server must not
+   crash an older client (see Rule 13 on strict decode vs renderer
+   fallback).
+5. **Tier map documented.** Per-OS-version tiers (e.g. Liquid Glass on
+   iOS 26+, `.ultraThinMaterial` on iOS 17–25) are captured in the
+   registry, with current-plus-one-back as the coverage floor (per
+   ADR-013).
+
+### Scaling rationale (N + M vs N × M)
+
+Client-realized tokens cost **N + M**: one shared vocabulary of N
+semantics, one resolver per platform (M platforms). Adding a new token
+is a single addition on each side. Server-per-platform realizations
+cost **N × M**: every new token requires a platform branch in every
+composer that emits it. The multiplicative cost grows with every new
+surface, not just with new tokens.
+
+For *content, capability, and asset* decisions the N × M cost is
+acceptable because those decisions are business or policy decisions
+the server has to make anyway — the only question is how many
+branches. For *presentation* decisions the multiplicative cost is pure
+overhead: the server does not need to be in the loop, and putting it
+there means every new SF Symbol shipped by Apple becomes a server
+deploy instead of a client-local resolver update.
+
+### The same theme, different axis (Rule 15)
+
+Rule 15 expresses the same default-toward-server stance on a different
+axis: **rendering responsibility**. AtomicComposite is the default;
+dedicated client section renderers are the named exception, justified
+only when the section must own state, integrate a platform SDK, manage
+a network-driven lifecycle, or drive animation / IAP / ad / real-time
+concerns the server cannot control at composition time. Both rules
+share the construction: *server by default; client when a concrete,
+documented criterion is met.* Changes that push work toward the client
+in either rule should meet an explicit bar, not happen by drift.
+
+### Relationship to other rules
+
+- **Rule 13** keeps the schema aligned with whatever the server emits
+  under this rule.
+- **Rule 14** still governs the client side: once a neutral semantic
+  arrives, the renderer maps it to native views without branching on
+  screen identity or runtime state. This rule answers *where* the
+  branching happens; Rule 14 answers *what* the client is allowed to
+  do with the result.
+- **Rule 15** is the rendering-responsibility counterpart (above).
+- **Rule 16** is the implementation of the "Client" column of the
+  decision tree — how each platform realizes the neutral semantics it
+  receives.

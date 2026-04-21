@@ -53,14 +53,14 @@ export interface AtomicElement {
   // Image
   src?: string;
   aspectRatio?: number;
-  fit?: 'cover' | 'contain' | 'fill' | 'fitWidth' | 'fitHeight' | 'none';
+  fit?: 'cover' | 'contain' | 'fill' | 'none';
   placeholder?: string;
   width?: number;
   height?: number;
 
   // Button
   label?: string;
-  buttonVariant?: 'filled' | 'outlined' | 'text';
+  buttonVariant?: 'primary' | 'secondary' | 'tertiary' | 'text';
   icon?: string;
   disabled?: boolean;
 
@@ -92,6 +92,26 @@ export interface AtomicElement {
 
   // Actions
   actions?: Record<string, unknown>[];
+
+  // Phase 0.4 styling
+  opacity?: number;
+  shadow?: Shadow;
+  badge?: Badge;
+  textAlign?: 'start' | 'center' | 'end';
+  showIndicators?: boolean;
+  monospacedDigits?: boolean;
+}
+
+export interface Shadow {
+  color?: string;
+  radius?: number;
+  offsetX?: number;
+  offsetY?: number;
+}
+
+export interface Badge {
+  element?: AtomicElement;
+  alignment?: 'topStart' | 'topEnd' | 'bottomStart' | 'bottomEnd';
 }
 
 export interface DisplayGridColumn {

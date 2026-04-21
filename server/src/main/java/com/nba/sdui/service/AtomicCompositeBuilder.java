@@ -50,7 +50,7 @@ public class AtomicCompositeBuilder {
 
         if (retryUri != null) {
             children.add(spacer(16));
-            children.add(button("Try Again", "filled", tapNavigate(retryUri)));
+            children.add(button("Try Again", "primary", tapNavigate(retryUri)));
         }
 
         root.set("children", children);
@@ -131,7 +131,7 @@ public class AtomicCompositeBuilder {
         if (targetUri != null) {
             colChildren.add(spacer(12));
             String label = ctaLabel != null ? ctaLabel : "Learn More";
-            colChildren.add(button(label, "filled", tapNavigate(targetUri)));
+            colChildren.add(button(label, "primary", tapNavigate(targetUri)));
         }
 
         contentCol.set("children", colChildren);
@@ -188,6 +188,7 @@ public class AtomicCompositeBuilder {
                                           String duration, String targetUri) {
         ObjectNode card = container("column", null, null);
         card.put("id", id);
+        shadow(card);
         if (targetUri != null) {
             card.set("actions", singleActionArray(tapNavigate(targetUri)));
         }
@@ -199,27 +200,14 @@ public class AtomicCompositeBuilder {
         ArrayNode thumbChildren = om.createArrayNode();
 
         if (thumbnailUrl != null) {
-            thumbChildren.add(image(thumbnailUrl, 200, 112, "cover"));
+            ObjectNode img = image(thumbnailUrl, 200, 112, "cover");
+            if (duration != null) {
+                badge(img, durationBadge(duration), "bottomEnd");
+            } else if ("video".equalsIgnoreCase(contentType)) {
+                badge(img, liveBadge(), "bottomEnd");
+            }
+            thumbChildren.add(img);
         }
-
-        ObjectNode metaContainer = container("column", null, null);
-        metaContainer.set("padding", padding(4, 4, 4, 4));
-        ArrayNode metaChildren = om.createArrayNode();
-
-        if (contentType != null) {
-            ObjectNode badge = text(contentType.toUpperCase(), "labelSmall", "bold", "#FFFFFF", null);
-            badge.put("background", "#FF6B6B");
-            metaChildren.add(badge);
-        }
-
-        if (duration != null) {
-            metaChildren.add(text(duration, "labelSmall", "semiBold", "#FFFFFF", null));
-        } else {
-            metaChildren.add(spacer(16));
-        }
-
-        metaContainer.set("children", metaChildren);
-        thumbChildren.add(metaContainer);
 
         thumbContainer.set("children", thumbChildren);
         children.add(thumbContainer);
@@ -839,6 +827,82 @@ public class AtomicCompositeBuilder {
 
         row.set("children", children);
         return row;
+    }
+
+    // ── Phase 0.4 styling helpers ───────────────────────────────────────
+
+    /** Attach a drop shadow to any element node. */
+    public ObjectNode shadow(ObjectNode element, String color, double radius, double offsetX, double offsetY) {
+        ObjectNode s = om.createObjectNode();
+        if (color != null) s.put("color", color);
+        s.put("radius", radius);
+        s.put("offsetX", offsetX);
+        s.put("offsetY", offsetY);
+        element.set("shadow", s);
+        return element;
+    }
+
+    /** Attach a shadow with default dark color. */
+    public ObjectNode shadow(ObjectNode element) {
+        return shadow(element, "#00000014", 4, 0, 2);
+    }
+
+    /** Attach a badge overlay to a parent element. */
+    public ObjectNode badge(ObjectNode parent, ObjectNode badgeElement, String alignment) {
+        ObjectNode b = om.createObjectNode();
+        b.set("element", badgeElement);
+        if (alignment != null) b.put("alignment", alignment);
+        parent.set("badge", b);
+        return parent;
+    }
+
+    /** Set opacity on an element (0.0 = transparent, 1.0 = opaque). */
+    public ObjectNode opacity(ObjectNode element, double value) {
+        element.put("opacity", value);
+        return element;
+    }
+
+    /** Set text alignment: "start", "center", or "end". */
+    public ObjectNode textAlign(ObjectNode element, String align) {
+        element.put("textAlign", align);
+        return element;
+    }
+
+    /** Enable monospaced/tabular digit rendering on a text element. */
+    public ObjectNode monospacedDigits(ObjectNode element) {
+        element.put("monospacedDigits", true);
+        return element;
+    }
+
+    /** Set showIndicators flag on a ScrollContainer element. */
+    public ObjectNode showIndicators(ObjectNode element, boolean show) {
+        element.put("showIndicators", show);
+        return element;
+    }
+
+    /** Build a duration badge element (dark background pill with white text). */
+    public ObjectNode durationBadge(String duration) {
+        ObjectNode bg = container("row", "center", "center");
+        bg.put("cornerRadius", 4);
+        bg.put("background", "#000000B3");
+        opacity(bg, 0.85);
+        bg.set("padding", padding(4, 4, 2, 2));
+        ArrayNode children = om.createArrayNode();
+        children.add(text(duration, "labelSmall", "semiBold", "#FFFFFF", null));
+        bg.set("children", children);
+        return bg;
+    }
+
+    /** Build a "LIVE" badge element (red pill with white text). */
+    public ObjectNode liveBadge() {
+        ObjectNode bg = container("row", "center", "center");
+        bg.put("cornerRadius", 4);
+        bg.put("background", "#C8102E");
+        bg.set("padding", padding(6, 6, 2, 2));
+        ArrayNode children = om.createArrayNode();
+        children.add(text("LIVE", "labelSmall", "bold", "#FFFFFF", null));
+        bg.set("children", children);
+        return bg;
     }
 
     // ── Atomic element helpers ──────────────────────────────────────────

@@ -6,13 +6,13 @@
     "java.project.referencedLibraries": [
         "server/build/libs/**/*.jar"
     ],
-    "java.import.gradle.enabled": true,
-    "java.import.gradle.wrapper.enabled": true,
-    "java.configuration.updateBuildConfiguration": "automatic",
+    "java.import.gradle.enabled": false,
+    "java.import.gradle.wrapper.enabled": false,
+    "java.configuration.updateBuildConfiguration": "disabled",
     "java.jdt.ls.java.home": "",
     "files.associations": {
         "*.gradle.kts": "kotlin"
     },
-    "java.project.importOnFirstTimeStartup": "automatic",
+    "java.project.importOnFirstTimeStartup": "disabled",
     "makefile.configureOnOpen": false
 }

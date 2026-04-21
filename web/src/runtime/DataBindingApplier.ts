@@ -1,5 +1,20 @@
 import type { DataBinding, Section } from '@sdui/models';
 
+const MISS_THRESHOLD = 3;
+const consecutiveMissCounts = new Map<string, number>();
+
+/**
+ * Clear all miss counters for a section. Call when a section is removed
+ * from the screen to prevent memory leaks.
+ */
+export function resetBindingCounters(sectionId: string): void {
+  for (const key of consecutiveMissCounts.keys()) {
+    if (key.startsWith(sectionId + ':')) {
+      consecutiveMissCounts.delete(key);
+    }
+  }
+}
+
 /**
  * Apply data bindings from an incoming message to section data.
  * 
@@ -11,7 +26,8 @@ export function applyDataBindings<T extends Record<string, unknown>>(
   sectionData: T,
   bindings: DataBinding | undefined,
   incomingMessage: Record<string, unknown>,
-  stringTable?: Record<string, string>
+  stringTable?: Record<string, string>,
+  sectionId?: string
 ): T {
   if (!bindings?.bindings?.length) {
     return sectionData;
@@ -22,8 +38,13 @@ export function applyDataBindings<T extends Record<string, unknown>>(
 
   for (const binding of bindings.bindings) {
     try {
+      const missKey = sectionId ? `${sectionId}:${binding.sourcePath}` : undefined;
       const value = getValueByPath(incomingMessage, binding.sourcePath);
       if (value !== undefined) {
+        // Source resolved successfully — reset miss counter
+        if (missKey) {
+          consecutiveMissCounts.delete(missKey);
+        }
         // Check if there's a stringKey for this target path
         const stringKey = bindings.stringKeys?.[binding.targetPath];
         if (stringKey && stringTable) {
@@ -40,8 +61,27 @@ export function applyDataBindings<T extends Record<string, unknown>>(
           setValueByPath(updated, binding.targetPath, value);
           console.log(`[DataBinding] ${binding.sourcePath} -> ${binding.targetPath}:`, value);
         }
+      } else {
+        // Source path missing — track consecutive misses
+        if (missKey) {
+          const count = (consecutiveMissCounts.get(missKey) ?? 0) + 1;
+          consecutiveMissCounts.set(missKey, count);
+          if (count >= MISS_THRESHOLD) {
+            console.warn(
+              `[DataBinding] Binding path missing for ${count} consecutive cycles:`,
+              `sectionId=${sectionId}, sourcePath=${binding.sourcePath}`
+            );
+            // TODO: emit binding_path_missing analytics event
+          }
+        }
       }
     } catch (err) {
+      // Track miss on exception as well
+      if (sectionId) {
+        const missKey = `${sectionId}:${binding.sourcePath}`;
+        const count = (consecutiveMissCounts.get(missKey) ?? 0) + 1;
+        consecutiveMissCounts.set(missKey, count);
+      }
       console.warn(`[DataBinding] Failed to apply binding:`, binding, err);
     }
   }

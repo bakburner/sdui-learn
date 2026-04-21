@@ -7,6 +7,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import com.nba.sdui.core.models.AtomicElement
 import com.nba.sdui.core.renderer.applyAccessibility
@@ -22,15 +23,27 @@ fun AtomicText(
     onAction: (SduiAction) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val style = mapTypographyVariant(element.variant)
+    val baseStyle = mapTypographyVariant(element.variant)
+    val style = if (element.monospacedDigits == true) {
+        baseStyle.copy(fontFeatureSettings = "tnum")
+    } else {
+        baseStyle
+    }
     val fontWeight = element.weight?.let { mapFontWeight(it) }
     val textColor = element.color?.let { parseColor(it) } ?: Color.Unspecified
+    val textAlign = when (element.textAlign) {
+        "start" -> TextAlign.Start
+        "center" -> TextAlign.Center
+        "end" -> TextAlign.End
+        else -> null
+    }
 
     Text(
         text = element.content.orEmpty(),
         style = style,
         fontWeight = fontWeight,
         color = textColor,
+        textAlign = textAlign,
         maxLines = element.maxLines ?: Int.MAX_VALUE,
         overflow = TextOverflow.Ellipsis,
         modifier = modifier.applyAccessibility(element.accessibility)

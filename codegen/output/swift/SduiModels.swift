@@ -14,6 +14,11 @@ struct SduiModels: Codable {
     let defaultRefreshPolicy: RefreshPolicy?
     let id: String
     let navigation: Navigation?
+    /// Named overlay sections the client shows when a trigger condition arises. Keys are
+    /// developer-defined state names (e.g. 'couchRightsWarning'). Values are server-composed
+    /// sections (typically AtomicComposite). Client controls trigger timing and presentation
+    /// style; server controls display content.
+    let overlays: [String: Section]?
     /// URI the back button should navigate to.  Clients always show a back button; this field
     /// tells them the target.  Omit for root screens (e.g. scoreboard).
     let parentURI: String?
@@ -25,7 +30,7 @@ struct SduiModels: Codable {
     enum CodingKeys: String, CodingKey {
         case actions
         case analyticsID = "analyticsId"
-        case defaultRefreshPolicy, id, navigation
+        case defaultRefreshPolicy, id, navigation, overlays
         case parentURI = "parentUri"
         case schemaVersion, sections, state, title
         case traceID = "traceId"
@@ -56,6 +61,7 @@ extension SduiModels {
         defaultRefreshPolicy: RefreshPolicy?? = nil,
         id: String? = nil,
         navigation: Navigation?? = nil,
+        overlays: [String: Section]?? = nil,
         parentURI: String?? = nil,
         schemaVersion: String? = nil,
         sections: [Section]? = nil,
@@ -69,6 +75,7 @@ extension SduiModels {
             defaultRefreshPolicy: defaultRefreshPolicy ?? self.defaultRefreshPolicy,
             id: id ?? self.id,
             navigation: navigation ?? self.navigation,
+            overlays: overlays ?? self.overlays,
             parentURI: parentURI ?? self.parentURI,
             schemaVersion: schemaVersion ?? self.schemaVersion,
             sections: sections ?? self.sections,
@@ -425,6 +432,7 @@ enum ActionTrigger: String, Codable {
     case onBlur = "onBlur"
     case onFocus = "onFocus"
     case onLongPress = "onLongPress"
+    case onSubmit = "onSubmit"
     case onSwipe = "onSwipe"
     case onTap = "onTap"
     case onVisible = "onVisible"
@@ -447,6 +455,10 @@ struct RefreshPolicy: Codable {
     let dataPath: String?
     /// For poll type: interval in milliseconds
     let intervalMS: Int?
+    /// Whether the client should pause this section's refresh when it scrolls out of the
+    /// viewport. Default true. Set false for critical live sections (e.g., GamePanel scores)
+    /// that should refresh continuously.
+    let pauseWhenOffScreen: Bool?
     let type: RefreshType
     /// For poll/sse type: URL to poll or connect to. If omitted, polls the SDUI endpoint.
     let url: String?
@@ -454,7 +466,7 @@ struct RefreshPolicy: Codable {
     enum CodingKeys: String, CodingKey {
         case channel, dataPath
         case intervalMS = "intervalMs"
-        case type, url
+        case pauseWhenOffScreen, type, url
     }
 }
 
@@ -480,6 +492,7 @@ extension RefreshPolicy {
         channel: String?? = nil,
         dataPath: String?? = nil,
         intervalMS: Int?? = nil,
+        pauseWhenOffScreen: Bool?? = nil,
         type: RefreshType? = nil,
         url: String?? = nil
     ) -> RefreshPolicy {
@@ -487,6 +500,7 @@ extension RefreshPolicy {
             channel: channel ?? self.channel,
             dataPath: dataPath ?? self.dataPath,
             intervalMS: intervalMS ?? self.intervalMS,
+            pauseWhenOffScreen: pauseWhenOffScreen ?? self.pauseWhenOffScreen,
             type: type ?? self.type,
             url: url ?? self.url
         )
@@ -606,9 +620,61 @@ extension NavigationItem {
     }
 }
 
+/// Z-positioned child element (e.g. 'LIVE' pill, duration label) overlaid on this element.
+///
+/// Z-positioned child element overlaid on a parent (e.g. 'LIVE' pill at bottom-right of a
+/// thumbnail, duration label). Named Badge (not Overlay) to avoid collision with the
+/// screen-level overlays map.
+// MARK: - Badge
+struct Badge: Codable {
+    /// Position of the badge within the parent bounds
+    let alignment: BadgeAlignment?
+    /// The element to render as a badge
+    let element: AtomicElement
+}
+
+// MARK: Badge convenience initializers and mutators
+
+extension Badge {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(Badge.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        alignment: BadgeAlignment?? = nil,
+        element: AtomicElement? = nil
+    ) -> Badge {
+        return Badge(
+            alignment: alignment ?? self.alignment,
+            element: element ?? self.element
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
 /// Root node of the atomic element tree — the rendering instructions
 ///
 /// Atomic UI primitive — server-composed building block for the atomic rendering layer
+///
+/// The element to render as a badge
 // MARK: - AtomicElement
 class AtomicElement: Codable {
     /// Server-provided accessibility metadata for this atomic element
@@ -620,6 +686,8 @@ class AtomicElement: Codable {
     let alt: String?
     let aspectRatio: Double?
     let background: BackgroundUnion?
+    /// Z-positioned child element (e.g. 'LIVE' pill, duration label) overlaid on this element.
+    let badge: Badge?
     /// Responsive breakpoint in dp/px. For Container: below this screen width, direction flips
     /// from row to column. Enables responsive layouts without client logic.
     let breakpoint: Int?
@@ -647,6 +715,12 @@ class AtomicElement: Codable {
     let height: Int?
     let icon, id, label: String?
     let maxLines: Int?
+    /// Use tabular/monospaced digit rendering to prevent layout shift on numeric text changes
+    /// (scores, clocks).
+    let monospacedDigits: Bool?
+    /// Element opacity (0=transparent, 1=opaque). Enables duration badge overlays and faded
+    /// states.
+    let opacity: Double?
     let orientation: Orientation?
     let padding: Spacing?
     let paging: Bool?
@@ -655,11 +729,20 @@ class AtomicElement: Codable {
     let rows: [[String: String]]?
     /// Full section object to render via SectionRouter. Only used when type is SectionSlot.
     let section: Section?
+    /// Drop shadow applied to the element. Replaces elevation with richer CSS/SwiftUI shadow
+    /// semantics.
+    let shadow: Shadow?
+    /// Whether to show scroll indicators on ScrollContainer. Default false for clean carousel
+    /// presentation.
+    let showIndicators: Bool?
     let size: Int?
     let snapAlignment: Align?
     let src: String?
     /// Alternate row background for readability
     let striped: Bool?
+    /// Text alignment within the element. Used for centered headings, right-aligned numeric
+    /// values.
+    let textAlign: Align?
     let thickness: Int?
     let trueChild: AtomicElement?
     let type: UIType
@@ -667,13 +750,14 @@ class AtomicElement: Codable {
     let weight: TextWeight?
     let width: Int?
 
-    init(accessibility: AccessibilityProperties?, actions: [Action]?, alignment: Alignment?, alt: String?, aspectRatio: Double?, background: BackgroundUnion?, breakpoint: Int?, buttonVariant: ButtonVariant?, cellVariant: TextVariant?, children: [AtomicElement]?, color: String?, columns: [Column]?, condition: String?, content: String?, cornerRadius: Int?, crossAlignment: CrossAlignment?, direction: UIDirection?, disabled: Bool?, falseChild: AtomicElement?, fit: ImageFit?, flex: Double?, gap: Int?, headerVariant: TextVariant?, height: Int?, icon: String?, id: String?, label: String?, maxLines: Int?, orientation: Orientation?, padding: Spacing?, paging: Bool?, placeholder: String?, rows: [[String: String]]?, section: Section?, size: Int?, snapAlignment: Align?, src: String?, striped: Bool?, thickness: Int?, trueChild: AtomicElement?, type: UIType, variant: TextVariant?, weight: TextWeight?, width: Int?) {
+    init(accessibility: AccessibilityProperties?, actions: [Action]?, alignment: Alignment?, alt: String?, aspectRatio: Double?, background: BackgroundUnion?, badge: Badge?, breakpoint: Int?, buttonVariant: ButtonVariant?, cellVariant: TextVariant?, children: [AtomicElement]?, color: String?, columns: [Column]?, condition: String?, content: String?, cornerRadius: Int?, crossAlignment: CrossAlignment?, direction: UIDirection?, disabled: Bool?, falseChild: AtomicElement?, fit: ImageFit?, flex: Double?, gap: Int?, headerVariant: TextVariant?, height: Int?, icon: String?, id: String?, label: String?, maxLines: Int?, monospacedDigits: Bool?, opacity: Double?, orientation: Orientation?, padding: Spacing?, paging: Bool?, placeholder: String?, rows: [[String: String]]?, section: Section?, shadow: Shadow?, showIndicators: Bool?, size: Int?, snapAlignment: Align?, src: String?, striped: Bool?, textAlign: Align?, thickness: Int?, trueChild: AtomicElement?, type: UIType, variant: TextVariant?, weight: TextWeight?, width: Int?) {
         self.accessibility = accessibility
         self.actions = actions
         self.alignment = alignment
         self.alt = alt
         self.aspectRatio = aspectRatio
         self.background = background
+        self.badge = badge
         self.breakpoint = breakpoint
         self.buttonVariant = buttonVariant
         self.cellVariant = cellVariant
@@ -696,16 +780,21 @@ class AtomicElement: Codable {
         self.id = id
         self.label = label
         self.maxLines = maxLines
+        self.monospacedDigits = monospacedDigits
+        self.opacity = opacity
         self.orientation = orientation
         self.padding = padding
         self.paging = paging
         self.placeholder = placeholder
         self.rows = rows
         self.section = section
+        self.shadow = shadow
+        self.showIndicators = showIndicators
         self.size = size
         self.snapAlignment = snapAlignment
         self.src = src
         self.striped = striped
+        self.textAlign = textAlign
         self.thickness = thickness
         self.trueChild = trueChild
         self.type = type
@@ -720,7 +809,7 @@ class AtomicElement: Codable {
 extension AtomicElement {
     convenience init(data: Data) throws {
         let me = try newJSONDecoder().decode(AtomicElement.self, from: data)
-        self.init(accessibility: me.accessibility, actions: me.actions, alignment: me.alignment, alt: me.alt, aspectRatio: me.aspectRatio, background: me.background, breakpoint: me.breakpoint, buttonVariant: me.buttonVariant, cellVariant: me.cellVariant, children: me.children, color: me.color, columns: me.columns, condition: me.condition, content: me.content, cornerRadius: me.cornerRadius, crossAlignment: me.crossAlignment, direction: me.direction, disabled: me.disabled, falseChild: me.falseChild, fit: me.fit, flex: me.flex, gap: me.gap, headerVariant: me.headerVariant, height: me.height, icon: me.icon, id: me.id, label: me.label, maxLines: me.maxLines, orientation: me.orientation, padding: me.padding, paging: me.paging, placeholder: me.placeholder, rows: me.rows, section: me.section, size: me.size, snapAlignment: me.snapAlignment, src: me.src, striped: me.striped, thickness: me.thickness, trueChild: me.trueChild, type: me.type, variant: me.variant, weight: me.weight, width: me.width)
+        self.init(accessibility: me.accessibility, actions: me.actions, alignment: me.alignment, alt: me.alt, aspectRatio: me.aspectRatio, background: me.background, badge: me.badge, breakpoint: me.breakpoint, buttonVariant: me.buttonVariant, cellVariant: me.cellVariant, children: me.children, color: me.color, columns: me.columns, condition: me.condition, content: me.content, cornerRadius: me.cornerRadius, crossAlignment: me.crossAlignment, direction: me.direction, disabled: me.disabled, falseChild: me.falseChild, fit: me.fit, flex: me.flex, gap: me.gap, headerVariant: me.headerVariant, height: me.height, icon: me.icon, id: me.id, label: me.label, maxLines: me.maxLines, monospacedDigits: me.monospacedDigits, opacity: me.opacity, orientation: me.orientation, padding: me.padding, paging: me.paging, placeholder: me.placeholder, rows: me.rows, section: me.section, shadow: me.shadow, showIndicators: me.showIndicators, size: me.size, snapAlignment: me.snapAlignment, src: me.src, striped: me.striped, textAlign: me.textAlign, thickness: me.thickness, trueChild: me.trueChild, type: me.type, variant: me.variant, weight: me.weight, width: me.width)
     }
 
     convenience init(_ json: String, using encoding: String.Encoding = .utf8) throws {
@@ -741,6 +830,7 @@ extension AtomicElement {
         alt: String?? = nil,
         aspectRatio: Double?? = nil,
         background: BackgroundUnion?? = nil,
+        badge: Badge?? = nil,
         breakpoint: Int?? = nil,
         buttonVariant: ButtonVariant?? = nil,
         cellVariant: TextVariant?? = nil,
@@ -763,16 +853,21 @@ extension AtomicElement {
         id: String?? = nil,
         label: String?? = nil,
         maxLines: Int?? = nil,
+        monospacedDigits: Bool?? = nil,
+        opacity: Double?? = nil,
         orientation: Orientation?? = nil,
         padding: Spacing?? = nil,
         paging: Bool?? = nil,
         placeholder: String?? = nil,
         rows: [[String: String]]?? = nil,
         section: Section?? = nil,
+        shadow: Shadow?? = nil,
+        showIndicators: Bool?? = nil,
         size: Int?? = nil,
         snapAlignment: Align?? = nil,
         src: String?? = nil,
         striped: Bool?? = nil,
+        textAlign: Align?? = nil,
         thickness: Int?? = nil,
         trueChild: AtomicElement?? = nil,
         type: UIType? = nil,
@@ -787,6 +882,7 @@ extension AtomicElement {
             alt: alt ?? self.alt,
             aspectRatio: aspectRatio ?? self.aspectRatio,
             background: background ?? self.background,
+            badge: badge ?? self.badge,
             breakpoint: breakpoint ?? self.breakpoint,
             buttonVariant: buttonVariant ?? self.buttonVariant,
             cellVariant: cellVariant ?? self.cellVariant,
@@ -809,16 +905,21 @@ extension AtomicElement {
             id: id ?? self.id,
             label: label ?? self.label,
             maxLines: maxLines ?? self.maxLines,
+            monospacedDigits: monospacedDigits ?? self.monospacedDigits,
+            opacity: opacity ?? self.opacity,
             orientation: orientation ?? self.orientation,
             padding: padding ?? self.padding,
             paging: paging ?? self.paging,
             placeholder: placeholder ?? self.placeholder,
             rows: rows ?? self.rows,
             section: section ?? self.section,
+            shadow: shadow ?? self.shadow,
+            showIndicators: showIndicators ?? self.showIndicators,
             size: size ?? self.size,
             snapAlignment: snapAlignment ?? self.snapAlignment,
             src: src ?? self.src,
             striped: striped ?? self.striped,
+            textAlign: textAlign ?? self.textAlign,
             thickness: thickness ?? self.thickness,
             trueChild: trueChild ?? self.trueChild,
             type: type ?? self.type,
@@ -856,6 +957,9 @@ extension AtomicElement {
 ///
 /// Data payload for AtomicComposite sections — ui contains rendering instructions, content
 /// carries domain data
+///
+/// Video player section — platform SDK integration (DRM, HLS, ad insertion). Same
+/// justification as SubscribeHero (StoreKit/Play Billing) and AdSlot (GAM).
 // MARK: - DataClass
 struct DataClass: Codable {
     let defaultTab, stateKey: String?
@@ -865,6 +969,9 @@ struct DataClass: Codable {
     let awayTeam: TeamData?
     /// Badge/chip label, e.g. 'LIVE', 'FEATURED'
     let badgeText: String?
+    /// Whether the game clock is actively ticking. When true, renderers should interpolate the
+    /// clock locally between SSE updates for visual continuity.
+    let clockRunning: Bool?
     /// Server-driven visual configuration — controls all layout and styling knobs
     let displayConfig: GamePanelDisplayConfig?
     /// Game clock string (e.g. 'PT05M32.00S' or '5:32')
@@ -944,9 +1051,18 @@ struct DataClass: Codable {
     let content: [String: JSONAny]?
     /// Root node of the atomic element tree — the rendering instructions
     let ui: AtomicElement?
+    let autoplay: Bool?
+    /// Platform capabilities the player should enable. Server includes only capabilities
+    /// relevant to the requesting platform (via X-Platform header).
+    let capabilities: [Capability]?
+    /// Content identifier — interpreted by playerType (gameId for game, mediaId for vod, eventId
+    /// for event, streamUrl for stream). Single field avoids mutually exclusive optional IDs.
+    let contentID: String?
+    /// Discriminator for SDK player variant. Client passes contentId to the matching SDK method.
+    let playerType: PlayerType?
 
     enum CodingKeys: String, CodingKey {
-        case defaultTab, stateKey, tabContents, tabs, actions, awayTeam, badgeText, displayConfig, gameClock
+        case defaultTab, stateKey, tabContents, tabs, actions, awayTeam, badgeText, clockRunning, displayConfig, gameClock
         case gameID = "gameId"
         case gameLeaders, gameStatus, gameStatusText, gameTimeEt, homeTeam, period, visualLabel, columns, emptyMessage, players, sortDirectionStateKey, sortStateKey, teamColor
         case teamLogoURL = "teamLogoUrl"
@@ -954,7 +1070,9 @@ struct DataClass: Codable {
         case refreshIntervalSEC = "refreshIntervalSec"
         case sizes, targeting, page, pageSize, sortColumn, sortDirection, subtitle, title, totalRows, background, ctaAction, ctaLabel
         case logoURL = "logoUrl"
-        case tiers, features, content, ui
+        case tiers, features, content, ui, autoplay, capabilities
+        case contentID = "contentId"
+        case playerType
     }
 }
 
@@ -984,6 +1102,7 @@ extension DataClass {
         actions: [Action]?? = nil,
         awayTeam: TeamData?? = nil,
         badgeText: String?? = nil,
+        clockRunning: Bool?? = nil,
         displayConfig: GamePanelDisplayConfig?? = nil,
         gameClock: String?? = nil,
         gameID: String?? = nil,
@@ -1029,7 +1148,11 @@ extension DataClass {
         tiers: [SubscriptionTier]?? = nil,
         features: [String]?? = nil,
         content: [String: JSONAny]?? = nil,
-        ui: AtomicElement?? = nil
+        ui: AtomicElement?? = nil,
+        autoplay: Bool?? = nil,
+        capabilities: [Capability]?? = nil,
+        contentID: String?? = nil,
+        playerType: PlayerType?? = nil
     ) -> DataClass {
         return DataClass(
             defaultTab: defaultTab ?? self.defaultTab,
@@ -1039,6 +1162,7 @@ extension DataClass {
             actions: actions ?? self.actions,
             awayTeam: awayTeam ?? self.awayTeam,
             badgeText: badgeText ?? self.badgeText,
+            clockRunning: clockRunning ?? self.clockRunning,
             displayConfig: displayConfig ?? self.displayConfig,
             gameClock: gameClock ?? self.gameClock,
             gameID: gameID ?? self.gameID,
@@ -1084,7 +1208,11 @@ extension DataClass {
             tiers: tiers ?? self.tiers,
             features: features ?? self.features,
             content: content ?? self.content,
-            ui: ui ?? self.ui
+            ui: ui ?? self.ui,
+            autoplay: autoplay ?? self.autoplay,
+            capabilities: capabilities ?? self.capabilities,
+            contentID: contentID ?? self.contentID,
+            playerType: playerType ?? self.playerType
         )
     }
 
@@ -1118,7 +1246,7 @@ class Section: Codable {
     let stringTable: [String: String]?
     /// Nested interaction targets within the section
     let subsections: [Subsection]?
-    let type: SectionType
+    let type: OverlayType
 
     enum CodingKeys: String, CodingKey {
         case accessibility, actions
@@ -1126,7 +1254,7 @@ class Section: Codable {
         case backgroundColor, data, dataBinding, id, layoutHints, padding, refreshPolicy, sectionStates, stringTable, subsections, type
     }
 
-    init(accessibility: AccessibilityProperties?, actions: [Action]?, analyticsID: String?, backgroundColor: String?, data: DataClass?, dataBinding: DataBinding?, id: String, layoutHints: SectionLayoutHints?, padding: Spacing?, refreshPolicy: RefreshPolicy?, sectionStates: SectionStates?, stringTable: [String: String]?, subsections: [Subsection]?, type: SectionType) {
+    init(accessibility: AccessibilityProperties?, actions: [Action]?, analyticsID: String?, backgroundColor: String?, data: DataClass?, dataBinding: DataBinding?, id: String, layoutHints: SectionLayoutHints?, padding: Spacing?, refreshPolicy: RefreshPolicy?, sectionStates: SectionStates?, stringTable: [String: String]?, subsections: [Subsection]?, type: OverlayType) {
         self.accessibility = accessibility
         self.actions = actions
         self.analyticsID = analyticsID
@@ -1177,7 +1305,7 @@ extension Section {
         sectionStates: SectionStates?? = nil,
         stringTable: [String: String]?? = nil,
         subsections: [Subsection]?? = nil,
-        type: SectionType? = nil
+        type: OverlayType? = nil
     ) -> Section {
         return Section(
             accessibility: accessibility ?? self.accessibility,
@@ -1204,6 +1332,19 @@ extension Section {
     func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
         return String(data: try self.jsonData(), encoding: encoding)
     }
+}
+
+/// Position of the badge within the parent bounds
+enum BadgeAlignment: String, Codable {
+    case bottomCenter = "bottomCenter"
+    case bottomEnd = "bottomEnd"
+    case bottomStart = "bottomStart"
+    case center = "center"
+    case centerEnd = "centerEnd"
+    case centerStart = "centerStart"
+    case topCenter = "topCenter"
+    case topEnd = "topEnd"
+    case topStart = "topStart"
 }
 
 /// Section-level accessibility metadata (landmark role, live region, heading)
@@ -1509,16 +1650,33 @@ enum ButtonVariant: String, Codable {
 
 /// Typography variant for data cells
 ///
+/// Material3 typography scale plus legacy semantic variants and the NBA-specific `score`
+/// variant.
+///
 /// Typography variant for header cells
 enum TextVariant: String, Codable {
     case body = "body"
+    case bodyLarge = "bodyLarge"
+    case bodyMedium = "bodyMedium"
     case bodySmall = "bodySmall"
     case caption = "caption"
+    case displayLarge = "displayLarge"
+    case displayMedium = "displayMedium"
+    case displaySmall = "displaySmall"
     case heading1 = "heading1"
     case heading2 = "heading2"
     case heading3 = "heading3"
+    case headlineLarge = "headlineLarge"
+    case headlineMedium = "headlineMedium"
+    case headlineSmall = "headlineSmall"
     case label = "label"
+    case labelLarge = "labelLarge"
+    case labelMedium = "labelMedium"
+    case labelSmall = "labelSmall"
     case score = "score"
+    case titleLarge = "titleLarge"
+    case titleMedium = "titleMedium"
+    case titleSmall = "titleSmall"
 }
 
 // MARK: - Column
@@ -1573,6 +1731,8 @@ extension Column {
     }
 }
 
+/// Text alignment within the element. Used for centered headings, right-aligned numeric
+/// values.
 enum Align: String, Codable {
     case center = "center"
     case end = "end"
@@ -1682,6 +1842,64 @@ extension Spacing {
     }
 }
 
+/// Drop shadow applied to the element. Replaces elevation with richer CSS/SwiftUI shadow
+/// semantics.
+///
+/// Drop shadow with CSS/SwiftUI semantics (radius + offset). Compose approximates via
+/// elevation.
+// MARK: - Shadow
+struct Shadow: Codable {
+    /// Shadow color (hex with alpha)
+    let color: String?
+    /// Horizontal offset in dp/px
+    let offsetX: Double?
+    /// Vertical offset in dp/px
+    let offsetY: Double?
+    /// Blur radius in dp/px
+    let radius: Double?
+}
+
+// MARK: Shadow convenience initializers and mutators
+
+extension Shadow {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(Shadow.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        color: String?? = nil,
+        offsetX: Double?? = nil,
+        offsetY: Double?? = nil,
+        radius: Double?? = nil
+    ) -> Shadow {
+        return Shadow(
+            color: color ?? self.color,
+            offsetX: offsetX ?? self.offsetX,
+            offsetY: offsetY ?? self.offsetY,
+            radius: radius ?? self.radius
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
 enum UIType: String, Codable {
     case button = "Button"
     case conditional = "Conditional"
@@ -1695,11 +1913,12 @@ enum UIType: String, Codable {
     case text = "Text"
 }
 
+/// Font weight tokens for atomic Text elements.
 enum TextWeight: String, Codable {
     case bold = "bold"
     case medium = "medium"
     case regular = "regular"
-    case semibold = "semibold"
+    case semiBold = "semiBold"
 }
 
 // MARK: - TeamData
@@ -1761,6 +1980,14 @@ extension TeamData {
     func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
         return String(data: try self.jsonData(), encoding: encoding)
     }
+}
+
+enum Capability: String, Codable {
+    case airplay = "airplay"
+    case backgroundAudio = "backgroundAudio"
+    case chromecast = "chromecast"
+    case fullscreenRotation = "fullscreenRotation"
+    case pip = "pip"
 }
 
 /// Defines a single column in the boxscore table
@@ -1842,6 +2069,8 @@ struct GamePanelDisplayConfig: Codable {
     let logoSize: Int?
     /// Score typography: compact = bodyLarge+Bold, prominent = headlineMedium+ExtraBold
     let scoreTextStyle: ScoreTextStyle?
+    let aspectRatio: String?
+    let height: Int?
 }
 
 // MARK: GamePanelDisplayConfig convenience initializers and mutators
@@ -1870,7 +2099,9 @@ extension GamePanelDisplayConfig {
         elevation: Int?? = nil,
         liveBackground: BackgroundUnion?? = nil,
         logoSize: Int?? = nil,
-        scoreTextStyle: ScoreTextStyle?? = nil
+        scoreTextStyle: ScoreTextStyle?? = nil,
+        aspectRatio: String?? = nil,
+        height: Int?? = nil
     ) -> GamePanelDisplayConfig {
         return GamePanelDisplayConfig(
             background: background ?? self.background,
@@ -1880,7 +2111,9 @@ extension GamePanelDisplayConfig {
             elevation: elevation ?? self.elevation,
             liveBackground: liveBackground ?? self.liveBackground,
             logoSize: logoSize ?? self.logoSize,
-            scoreTextStyle: scoreTextStyle ?? self.scoreTextStyle
+            scoreTextStyle: scoreTextStyle ?? self.scoreTextStyle,
+            aspectRatio: aspectRatio ?? self.aspectRatio,
+            height: height ?? self.height
         )
     }
 
@@ -2130,6 +2363,15 @@ enum Layout: String, Codable {
     case grid = "grid"
     case horizontal = "horizontal"
     case vertical = "vertical"
+}
+
+/// Discriminator for SDK player variant. Client passes contentId to the matching SDK method.
+enum PlayerType: String, Codable {
+    case event = "event"
+    case game = "game"
+    case nbaTv = "nbaTv"
+    case stream = "stream"
+    case vod = "vod"
 }
 
 /// One player row inside a boxscore table
@@ -2689,7 +2931,7 @@ extension Subsection {
     }
 }
 
-enum SectionType: String, Codable {
+enum OverlayType: String, Codable {
     case adSlot = "AdSlot"
     case atomicComposite = "AtomicComposite"
     case boxscoreTable = "BoxscoreTable"
@@ -2699,6 +2941,7 @@ enum SectionType: String, Codable {
     case subscribeBanner = "SubscribeBanner"
     case subscribeHero = "SubscribeHero"
     case tabGroup = "TabGroup"
+    case videoPlayer = "VideoPlayer"
 }
 
 // MARK: - Helper functions for creating encoders and decoders

@@ -109,7 +109,7 @@ For each doc in the audit list, check the [consistency checklist](./references/c
 ```markdown
 | # | File | Line | Problem | Fix |
 |---|------|------|---------|-----|
-| 1 | README.md | ~127 | "18 section types (17 semantic + AtomicComposite)" | → "9 section types (8 permanent + AtomicComposite)" |
+| 1 | README.md | ~127 | "18 section types (17 semantic + AtomicComposite)" | → "10 section types (9 permanent + AtomicComposite)" |
 | 2 | ... | ... | ... | ... |
 ```
 

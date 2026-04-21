@@ -26,7 +26,10 @@ export function AtomicScrollContainer({ element, state, onAction, depth = 0, onS
     ...(element.paging ? {
       scrollSnapType: isHorizontal ? 'x mandatory' : 'y mandatory',
     } : {}),
+    ...(element.showIndicators === false ? { scrollbarWidth: 'none' as const } : {}),
   };
+
+  const hideScrollbarClass = element.showIndicators === false ? 'sdui-hide-scrollbar' : undefined;
 
   const childStyle: React.CSSProperties = {
     flexShrink: 0,
@@ -34,12 +37,21 @@ export function AtomicScrollContainer({ element, state, onAction, depth = 0, onS
   };
 
   return (
-    <div style={style} role="list" aria-label={element.accessibility?.label ?? 'Scrollable content'} {...accessibilityProps(element.accessibility)}>
+    <div
+      style={style}
+      className={hideScrollbarClass}
+      role="list"
+      aria-label={element.accessibility?.label ?? 'Scrollable content'}
+      {...accessibilityProps(element.accessibility)}
+    >
       {children.map((child, i) => (
         <div key={child.id ?? i} style={childStyle} role="listitem">
           <AtomicRouter element={child} state={state} onAction={onAction} depth={depth} onStateChange={onStateChange} sectionSlotDepth={sectionSlotDepth} />
         </div>
       ))}
+      {hideScrollbarClass && (
+        <style>{`.sdui-hide-scrollbar::-webkit-scrollbar { display: none; }`}</style>
+      )}
     </div>
   );
 }

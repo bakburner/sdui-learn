@@ -1,0 +1,36 @@
+{
+  "streams": [
+    {
+      "id": "stream-home-001",
+      "type": "home",
+      "label": "Home Broadcast",
+      "resolution": "1080p",
+      "language": "en",
+      "streamUrl": "https://streams.nba.com/game/0022400001/home"
+    },
+    {
+      "id": "stream-away-001",
+      "type": "away",
+      "label": "Away Broadcast",
+      "resolution": "1080p",
+      "language": "en",
+      "streamUrl": "https://streams.nba.com/game/0022400001/away"
+    },
+    {
+      "id": "stream-national-001",
+      "type": "national",
+      "label": "ESPN National Broadcast",
+      "resolution": "1080p",
+      "language": "en",
+      "streamUrl": "https://streams.nba.com/game/0022400001/national"
+    },
+    {
+      "id": "stream-spanish-001",
+      "type": "national",
+      "label": "ESPN Deportes",
+      "resolution": "720p",
+      "language": "es",
+      "streamUrl": "https://streams.nba.com/game/0022400001/spanish"
+    }
+  ]
+}

@@ -14,6 +14,9 @@ This directory stores architecture decisions in chronological order.
 - [ADR-008: Form-Factor Layout Manager](./008-form-factor-layout-manager.md)
 - [ADR-009: Impression Dedup and Visibility Semantics](./009-impression-dedup-and-visibility-semantics.md)
 - [ADR-010: Offline and Degraded Connectivity](./010-offline-and-degraded-connectivity.md)
+- [ADR-011: Data Classification and Freshness Model](./011-data-classification-and-freshness-model.md)
+- [ADR-012: Client Data Architecture](./012-client-data-architecture.md)
+- [ADR-013: Style Tokens for Atomic Primitives](./013-style-tokens-for-atomic-primitives.md)
 
 ## Templates
 

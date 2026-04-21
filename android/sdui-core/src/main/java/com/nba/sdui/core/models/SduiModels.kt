@@ -106,7 +106,8 @@ data class RefreshPolicy(
     @JsonProperty("intervalMs") val intervalMs: Int? = null,
     @JsonProperty("url") val url: String? = null, // Direct URL to poll (if null, polls SDUI endpoint)
     @JsonProperty("channel") val channel: String? = null, // Ably channel name
-    @JsonProperty("dataPath") val dataPath: String? = null // JSONPath to extract data from response
+    @JsonProperty("dataPath") val dataPath: String? = null, // JSONPath to extract data from response
+    @JsonProperty("pauseWhenOffScreen") val pauseWhenOffScreen: Boolean = true // Pause refresh when section scrolls off-screen
 )
 
 /**

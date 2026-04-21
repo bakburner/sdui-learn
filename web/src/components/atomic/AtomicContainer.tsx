@@ -1,8 +1,16 @@
 import React from 'react';
 import type { AtomicProps } from './AtomicRouter';
 import { AtomicRouter } from './AtomicRouter';
+import type { Shadow, Badge } from './AtomicElement';
 import { resolveBackgroundCSS } from '../../utils/background';
 import { accessibilityProps } from '../../utils/accessibility';
+
+const badgePositionMap: Record<string, React.CSSProperties> = {
+  topStart:    { position: 'absolute', top: 4, left: 4 },
+  topEnd:      { position: 'absolute', top: 4, right: 4 },
+  bottomStart: { position: 'absolute', bottom: 4, left: 4 },
+  bottomEnd:   { position: 'absolute', bottom: 4, right: 4 },
+};
 
 /**
  * AtomicContainer — renders a flex row or column with gap, padding,
@@ -68,6 +76,18 @@ export function AtomicContainer({ element, state, onAction, depth = 0, onStateCh
     Object.assign(style, resolveBackgroundCSS(element.background));
   }
 
+  // shadow
+  if (element.shadow) {
+    const s: Shadow = element.shadow;
+    style.boxShadow = `${s.offsetX ?? 0}px ${s.offsetY ?? 0}px ${s.radius ?? 0}px ${s.color ?? 'rgba(0,0,0,0.08)'}`;
+  }
+
+  // badge requires relative positioning
+  const badge: Badge | undefined = element.badge;
+  if (badge) {
+    style.position = 'relative';
+  }
+
   return (
     <div className={className} style={style} {...accessibilityProps(element.accessibility)}>
       {element.children?.map((child, i) => {
@@ -84,6 +104,12 @@ export function AtomicContainer({ element, state, onAction, depth = 0, onStateCh
           <AtomicRouter key={child.id ?? i} element={child} state={state} onAction={onAction} depth={depth} onStateChange={onStateChange} sectionSlotDepth={sectionSlotDepth} />
         );
       })}
+
+      {badge?.element && (
+        <div style={badgePositionMap[badge.alignment ?? 'topEnd'] ?? badgePositionMap.topEnd}>
+          <AtomicRouter element={badge.element} state={state} onAction={onAction} depth={depth} onStateChange={onStateChange} sectionSlotDepth={sectionSlotDepth} />
+        </div>
+      )}
 
       {/* Responsive breakpoint CSS — flip row→column below threshold */}
       {hasBreakpoint && className && (

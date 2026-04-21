@@ -25,9 +25,11 @@ class DataBindingResolver {
     
     companion object {
         private const val TAG = "DataBindingResolver"
+        private const val MISS_THRESHOLD = 3
     }
     
     private val objectMapper = ObjectMapper().registerKotlinModule()
+    private val consecutiveMissCounts = mutableMapOf<String, Int>()
     
     /**
      * Apply data bindings to update section data with incoming message values.
@@ -44,7 +46,8 @@ class DataBindingResolver {
         incomingMessage: Map<String, Any?>,
         dataBinding: DataBinding,
         traceId: String? = null,
-        stringTable: Map<String, String>? = null
+        stringTable: Map<String, String>? = null,
+        sectionId: String? = null
     ): Map<String, Any?> {
         
         Log.d(TAG, "Applying ${dataBinding.bindings.size} bindings, traceId=$traceId")
@@ -55,7 +58,7 @@ class DataBindingResolver {
         
         for (binding in dataBinding.bindings) {
             try {
-                applyBinding(dataNode, messageNode, binding, traceId)
+                applyBinding(dataNode, messageNode, binding, traceId, sectionId)
 
                 // Resolve stringKey: if the binding target has a stringKey, replace the
                 // bound value with the corresponding localized string from the string table.
@@ -73,6 +76,12 @@ class DataBindingResolver {
                     Log.w(TAG, "stringKey '$stringKey' present but no stringTable provided, keeping raw value, traceId=$traceId")
                 }
             } catch (e: Exception) {
+                // Track miss on exception as well
+                if (sectionId != null) {
+                    val missKey = "$sectionId:${binding.sourcePath}"
+                    val count = (consecutiveMissCounts[missKey] ?: 0) + 1
+                    consecutiveMissCounts[missKey] = count
+                }
                 Log.w(TAG, "Failed to apply binding: ${binding.sourcePath} -> ${binding.targetPath}, traceId=$traceId", e)
             }
         }
@@ -80,6 +89,14 @@ class DataBindingResolver {
         // Convert back to Map
         @Suppress("UNCHECKED_CAST")
         return objectMapper.convertValue(dataNode, Map::class.java) as Map<String, Any?>
+    }
+
+    /**
+     * Clear all miss counters for a section. Call when a section is removed
+     * from the screen to prevent memory leaks.
+     */
+    fun resetCounters(sectionId: String) {
+        consecutiveMissCounts.keys.removeAll { it.startsWith("$sectionId:") }
     }
     
     /**
@@ -89,14 +106,30 @@ class DataBindingResolver {
         targetData: ObjectNode,
         sourceMessage: JsonNode,
         binding: DataBindingPath,
-        traceId: String?
+        traceId: String?,
+        sectionId: String?
     ) {
+        val missKey = if (sectionId != null) "$sectionId:${binding.sourcePath}" else null
+
         // Resolve source value from message
         val sourceValue = resolveSourcePath(sourceMessage, binding.sourcePath)
         
         if (sourceValue == null || sourceValue.isNull) {
+            if (missKey != null) {
+                val count = (consecutiveMissCounts[missKey] ?: 0) + 1
+                consecutiveMissCounts[missKey] = count
+                if (count >= MISS_THRESHOLD) {
+                    Log.w(TAG, "Binding path missing for $count consecutive cycles: sectionId=$sectionId, sourcePath=${binding.sourcePath}, traceId=$traceId")
+                    // TODO: emit binding_path_missing analytics event
+                }
+            }
             Log.w(TAG, "Source value is null for path: ${binding.sourcePath}, keeping previous value, traceId=$traceId")
             return
+        }
+
+        // Source resolved successfully — reset miss counter
+        if (missKey != null) {
+            consecutiveMissCounts.remove(missKey)
         }
         
         // Set target value in data

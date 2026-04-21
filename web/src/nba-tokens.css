@@ -1,0 +1,128 @@
+/*
+ * NBA Design Tokens — derived from production NBA app design systems.
+ *
+ * These CSS custom properties mirror the token names from the Android
+ * NbaColors.kt and iOS NBAUI color sets so the SDUI prototype reflects
+ * production fidelity. Dark theme is the primary mode (matching the
+ * NBA App's dark-first experience).
+ */
+
+:root {
+  /* ── Brand ─────────────────────────────────────── */
+  --nba-blue:       #1D428A;
+  --nba-red:        #C8102E;
+  --nba-tint:       #FBCD44;   /* gold accent */
+  --nba-on-tint:    #000000;
+
+  /* ── Canvas (page background) ──────────────────── */
+  --canvas:           #000000;
+  --canvas-light:     #F3F4F5;
+  --canvas-inverted:  #F3F4F5;
+
+  /* ── Surface (cards / containers) ──────────────── */
+  --surface:           #191C23;
+  --surface-raised:    #2B2F37;
+  --surface-alt:       #2B2F37;
+  --surface-inverted:  #FFFFFF;
+  --surface-dark:      #191C23;
+
+  /* ── Text ──────────────────────────────────────── */
+  --text-primary:           #FFFFFF;
+  --text-primary-opposite:  #000000;
+  --text-secondary:         #8E9196;
+  --text-on-background:     #FFFFFF;
+  --text-on-background-alt: #8E9196;
+  --text-on-image:          #FFFFFF;
+  --text-on-image-50:       rgba(255,255,255,0.5);
+  --text-selected:          #000000;
+
+  /* ── Buttons ───────────────────────────────────── */
+  --button:            #FFFFFF;
+  --button-opposite:   #191C23;
+  --button-text:       #000000;
+  --button-on-dark:    #FFFFFF;
+  --on-button-on-dark: #000000;
+
+  /* ── Dividers ──────────────────────────────────── */
+  --divider:         #363940;
+  --divider-canvas:  #363940;
+  --divider-surface: #2B2F37;
+
+  /* ── Interactive ───────────────────────────────── */
+  --link:              #69ABF3;
+  --link-on-inverted:  #0268D6;
+  --selection:         #FFFFFF;
+  --icon:              #FFFFFF;
+  --disabled:          #363940;
+
+  /* ── Semantic States ───────────────────────────── */
+  --positive:  #30D158;
+  --negative:  #FF453A;
+  --live:      #C8102E;
+  --warning:   #FBCD44;
+
+  /* ── Surfaces (special purpose) ────────────────── */
+  --game-card-bg:     #13171C;
+  --scrim:            rgba(0,0,0,0.5);
+  --blur:             rgba(25,28,35,0.91);
+  --overlay:          rgba(0,0,0,0.4);
+
+  /* ── Fonts ─────────────────────────────────────── */
+  --font-display:     'Knockout', 'Impact', 'Haettenschweiler', 'Arial Narrow Bold', sans-serif;
+  --font-headline:    'Action NBA Cond Web', 'Impact', 'Arial Narrow Bold', sans-serif;
+  --font-body:        'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-table:       'Roboto Condensed', 'Arial Narrow', sans-serif;
+  --font-mono:        'Roboto Mono', 'SF Mono', 'Menlo', monospace;
+
+  /* ── Font Sizes (Kinetic design system scale) ──── */
+  --text-xxs:    10px;
+  --text-xs:     12px;
+  --text-sm:     14px;
+  --text-base:   16px;
+  --text-lg:     18px;
+  --text-xl:     20px;
+  --text-2xl:    22px;
+  --text-3xl:    24px;
+  --text-4xl:    28px;
+  --text-5xl:    32px;
+  --text-6xl:    36px;
+  --text-7xl:    40px;
+  --text-8xl:    48px;
+
+  /* ── Line Heights ──────────────────────────────── */
+  --leading-headline: 0.85;
+  --leading-tight:    1.1;
+  --leading-snug:     1.25;
+  --leading-normal:   1.5;
+
+  /* ── Spacing ───────────────────────────────────── */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* ── Borders ───────────────────────────────────── */
+  --rounded-none: 0;
+  --rounded-sm:   2px;
+  --rounded-base: 4px;
+  --rounded-md:   6px;
+  --rounded-lg:   8px;
+  --rounded-xl:   12px;
+  --rounded-full: 9999px;
+
+  /* ── Shadows ───────────────────────────────────── */
+  --shadow-sm:  0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md:  0 4px 6px -1px rgba(0,0,0,0.3), 0 2px 4px -1px rgba(0,0,0,0.2);
+  --shadow-lg:  0 10px 15px -3px rgba(0,0,0,0.3), 0 4px 6px -2px rgba(0,0,0,0.15);
+  --shadow-xl:  0 20px 25px -5px rgba(0,0,0,0.3), 0 10px 10px -5px rgba(0,0,0,0.15);
+
+  /* ── Transitions ───────────────────────────────── */
+  --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+}

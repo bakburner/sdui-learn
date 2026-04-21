@@ -2,23 +2,27 @@ import React from 'react';
 import type { AtomicProps } from './AtomicRouter';
 import { accessibilityProps } from '../../utils/accessibility';
 
-/** Map schema variant strings to CSS font sizes / weights. */
+/** Map schema variant strings to CSS font sizes / weights — NBA typography system.
+ *  Display/Headline use Roboto Condensed (approximating Knockout/Action NBA).
+ *  Title/Body/Label use Roboto (matching production body font stack). */
 const variantStyles: Record<string, React.CSSProperties> = {
-  displayLarge:   { fontSize: 57, fontWeight: 400, lineHeight: '64px' },
-  displayMedium:  { fontSize: 45, fontWeight: 400, lineHeight: '52px' },
-  displaySmall:   { fontSize: 36, fontWeight: 400, lineHeight: '44px' },
-  headlineLarge:  { fontSize: 32, fontWeight: 400, lineHeight: '40px' },
-  headlineMedium: { fontSize: 28, fontWeight: 400, lineHeight: '36px' },
-  headlineSmall:  { fontSize: 24, fontWeight: 400, lineHeight: '32px' },
-  titleLarge:     { fontSize: 22, fontWeight: 500, lineHeight: '28px' },
-  titleMedium:    { fontSize: 16, fontWeight: 500, lineHeight: '24px' },
-  titleSmall:     { fontSize: 14, fontWeight: 500, lineHeight: '20px' },
-  bodyLarge:      { fontSize: 16, fontWeight: 400, lineHeight: '24px' },
-  bodyMedium:     { fontSize: 14, fontWeight: 400, lineHeight: '20px' },
-  bodySmall:      { fontSize: 12, fontWeight: 400, lineHeight: '16px' },
-  labelLarge:     { fontSize: 14, fontWeight: 500, lineHeight: '20px' },
-  labelMedium:    { fontSize: 12, fontWeight: 500, lineHeight: '16px' },
-  labelSmall:     { fontSize: 11, fontWeight: 500, lineHeight: '16px' },
+  displayLarge:   { fontSize: 57, fontWeight: 800, lineHeight: '0.85em', fontFamily: 'var(--font-headline)', textTransform: 'uppercase' as const, letterSpacing: '-0.01em' },
+  displayMedium:  { fontSize: 45, fontWeight: 800, lineHeight: '0.85em', fontFamily: 'var(--font-headline)', textTransform: 'uppercase' as const, letterSpacing: '-0.01em' },
+  displaySmall:   { fontSize: 36, fontWeight: 700, lineHeight: '0.9em',  fontFamily: 'var(--font-headline)', textTransform: 'uppercase' as const },
+  headlineLarge:  { fontSize: 32, fontWeight: 700, lineHeight: '1.1em',  fontFamily: 'var(--font-headline)' },
+  headlineMedium: { fontSize: 28, fontWeight: 700, lineHeight: '1.1em',  fontFamily: 'var(--font-headline)' },
+  headlineSmall:  { fontSize: 24, fontWeight: 700, lineHeight: '1.15em', fontFamily: 'var(--font-headline)' },
+  titleLarge:     { fontSize: 22, fontWeight: 500, lineHeight: '28px',   fontFamily: 'var(--font-body)' },
+  titleMedium:    { fontSize: 16, fontWeight: 500, lineHeight: '24px',   fontFamily: 'var(--font-body)' },
+  titleSmall:     { fontSize: 14, fontWeight: 500, lineHeight: '20px',   fontFamily: 'var(--font-body)' },
+  bodyLarge:      { fontSize: 16, fontWeight: 400, lineHeight: '24px',   fontFamily: 'var(--font-body)' },
+  bodyMedium:     { fontSize: 14, fontWeight: 400, lineHeight: '20px',   fontFamily: 'var(--font-body)' },
+  bodySmall:      { fontSize: 12, fontWeight: 400, lineHeight: '16px',   fontFamily: 'var(--font-body)' },
+  labelLarge:     { fontSize: 14, fontWeight: 500, lineHeight: '20px',   fontFamily: 'var(--font-body)', letterSpacing: '0.02em' },
+  labelMedium:    { fontSize: 12, fontWeight: 500, lineHeight: '16px',   fontFamily: 'var(--font-body)', letterSpacing: '0.02em' },
+  labelSmall:     { fontSize: 11, fontWeight: 500, lineHeight: '16px',   fontFamily: 'var(--font-body)', letterSpacing: '0.04em', textTransform: 'uppercase' as const },
+  // Score-specific variant: monospaced numerals for live scores
+  score:          { fontSize: 28, fontWeight: 800, lineHeight: '1em',    fontFamily: 'var(--font-headline)', fontVariantNumeric: 'tabular-nums' },
 };
 
 const weightMap: Record<string, number> = {
@@ -30,6 +34,10 @@ const weightMap: Record<string, number> = {
  * AtomicText — renders a text span with Material-style typography variants.
  */
 export function AtomicText({ element }: AtomicProps): React.ReactElement {
+  const textAlignMap: Record<string, React.CSSProperties['textAlign']> = {
+    start: 'left', center: 'center', end: 'right',
+  };
+
   const baseStyle = element.variant ? variantStyles[element.variant] ?? {} : {};
   const style: React.CSSProperties = {
     ...baseStyle,
@@ -41,6 +49,8 @@ export function AtomicText({ element }: AtomicProps): React.ReactElement {
       WebkitBoxOrient: 'vertical' as const,
       overflow: 'hidden',
     } : {}),
+    ...(element.textAlign ? { textAlign: textAlignMap[element.textAlign] } : {}),
+    ...(element.monospacedDigits ? { fontVariantNumeric: 'tabular-nums' } : {}),
   };
 
   const a11y = element.accessibility;

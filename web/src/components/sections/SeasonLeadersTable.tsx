@@ -50,7 +50,7 @@ export function SeasonLeadersTable({ section }: SectionProps): React.ReactElemen
   const { columns, players, title, subtitle, totalRows, page, pageSize, sortColumn, sortDirection } = data;
 
   return (
-    <div style={{ ...styles.container, backgroundColor: section.backgroundColor || '#1a1a2e' }} {...accessibilityProps(section.accessibility)}>
+    <div style={{ ...styles.container, backgroundColor: section.backgroundColor || 'var(--surface)' }} {...accessibilityProps(section.accessibility)}>
       {/* Header */}
       {(title || subtitle) && (
         <div style={styles.header}>
@@ -137,7 +137,7 @@ export function SeasonLeadersTable({ section }: SectionProps): React.ReactElemen
 const styles: Record<string, React.CSSProperties> = {
   container: {
     margin: 8,
-    borderRadius: 12,
+    borderRadius: 8,
     overflow: 'hidden',
   },
   header: {
@@ -147,11 +147,12 @@ const styles: Record<string, React.CSSProperties> = {
     margin: 0,
     fontSize: 16,
     fontWeight: 700,
-    color: '#ffffff',
+    fontFamily: 'var(--font-body)',
+    color: 'var(--text-primary)',
   },
   subtitle: {
     fontSize: 12,
-    color: '#9aa6ba',
+    color: 'var(--text-secondary)',
     marginTop: 2,
     display: 'block',
   },
@@ -163,11 +164,13 @@ const styles: Record<string, React.CSSProperties> = {
   },
   rowCount: {
     fontSize: 11,
-    color: '#666',
+    color: 'var(--text-secondary)',
+    fontFamily: 'var(--font-mono)',
   },
   pageInfo: {
     fontSize: 11,
-    color: '#666',
+    color: 'var(--text-secondary)',
+    fontFamily: 'var(--font-mono)',
   },
   tableWrapper: {
     overflowX: 'auto',
@@ -178,18 +181,21 @@ const styles: Record<string, React.CSSProperties> = {
     borderCollapse: 'collapse',
     fontSize: 13,
     minWidth: 700,
+    fontFamily: 'var(--font-body)',
   },
   th: {
     padding: '8px 10px',
     textAlign: 'right' as const,
     fontSize: 11,
     fontWeight: 600,
-    color: '#777',
-    borderBottom: '2px solid #333',
+    color: 'var(--text-secondary)',
+    borderBottom: '2px solid var(--divider)',
     whiteSpace: 'nowrap',
     position: 'sticky' as const,
     top: 0,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: 'var(--surface)',
+    letterSpacing: '0.04em',
+    textTransform: 'uppercase' as const,
   },
   rankCol: {
     textAlign: 'center' as const,
@@ -204,46 +210,47 @@ const styles: Record<string, React.CSSProperties> = {
     width: 50,
   },
   highlightedTh: {
-    color: '#ff6b6b',
+    color: 'var(--nba-tint)',
     fontWeight: 700,
   },
   sortedTh: {
-    color: '#4aa3ff',
+    color: 'var(--link)',
   },
   sortArrow: {
     fontSize: 9,
   },
   row: {
-    borderBottom: '1px solid #222',
+    borderBottom: '1px solid var(--divider)',
     transition: 'background-color 0.15s',
   },
   td: {
     padding: '7px 10px',
     textAlign: 'right' as const,
-    color: '#e0e0e0',
+    color: 'var(--text-primary)',
     whiteSpace: 'nowrap',
+    fontVariantNumeric: 'tabular-nums',
   },
   playerName: {
     textAlign: 'left' as const,
     fontWeight: 600,
-    color: '#4aa3ff',
+    color: 'var(--link)',
   },
   teamText: {
     textAlign: 'center' as const,
-    color: '#9aa6ba',
+    color: 'var(--text-secondary)',
     fontSize: 12,
   },
   highlightedTd: {
     fontWeight: 700,
-    color: '#ffffff',
+    color: 'var(--text-primary)',
   },
   sortedTd: {
-    backgroundColor: 'rgba(74, 163, 255, 0.06)',
+    backgroundColor: 'rgba(105,171,243,0.06)',
   },
   empty: {
     padding: 24,
     textAlign: 'center',
-    color: '#9aa6ba',
+    color: 'var(--text-secondary)',
     fontSize: 14,
   },
 };

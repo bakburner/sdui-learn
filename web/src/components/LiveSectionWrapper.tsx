@@ -1,6 +1,8 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import type { Section, Action, Data } from '@sdui/models';
 import { useRefreshPolicy, getEffectiveRefreshPolicy } from '../hooks/useRefreshPolicy';
+import { useSectionVisibility } from '../hooks/useSectionVisibility';
+import { useAppVisibility } from '../hooks/useAppVisibility';
 import { applyDataBindings } from '../runtime/DataBindingApplier';
 import { SectionSkeleton } from './SectionSkeleton';
 
@@ -11,6 +13,8 @@ interface LiveSectionWrapperProps {
   onStateChange: (key: string, value: unknown) => void;
   /** Optional screen-level default refresh policy */
   defaultRefreshPolicy?: Section['refreshPolicy'];
+  /** Callback when section data channel becomes stale or recovers */
+  onStalenessChange?: (sectionId: string, isStale: boolean) => void;
   children: (effectiveData: Data | undefined) => React.ReactElement | null;
 }
 
@@ -25,8 +29,13 @@ interface LiveSectionWrapperProps {
 export function LiveSectionWrapper({
   section,
   defaultRefreshPolicy,
+  onStalenessChange,
   children,
 }: LiveSectionWrapperProps): React.ReactElement | null {
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const isNearViewport = useSectionVisibility(sectionRef);
+  const isAppVisible = useAppVisibility();
+
   // Initialize local data from section.data
   const [liveData, setLiveData] = useState<Data | undefined>(section.data as Data | undefined);
 
@@ -42,6 +51,10 @@ export function LiveSectionWrapper({
   const hasRefreshPolicy = Boolean(effectivePolicy?.type && effectivePolicy.type !== 'static');
   const hasDataBindings = Boolean(section.dataBinding?.bindings?.length);
 
+  // Visibility-gated enabled: respects pauseWhenOffScreen from server + app visibility
+  const pauseWhenOffScreen = effectivePolicy?.pauseWhenOffScreen ?? true;
+  const enabled = hasRefreshPolicy && isAppVisible && (pauseWhenOffScreen ? isNearViewport : true);
+
   // Handle incoming data from poll/SSE
   const handleUpdate = useCallback((incomingPayload: unknown) => {
     console.log(`[LiveSectionWrapper] Received update for ${section.id}:`, incomingPayload);
@@ -55,7 +68,8 @@ export function LiveSectionWrapper({
           currentData as Record<string, unknown>,
           section.dataBinding,
           incomingPayload as Record<string, unknown>,
-          (section as Record<string, unknown>).stringTable as Record<string, string> | undefined
+          (section as Record<string, unknown>).stringTable as Record<string, string> | undefined,
+          section.id
         );
         return updated as Data;
       }
@@ -75,14 +89,14 @@ export function LiveSectionWrapper({
       refreshPolicy: effectivePolicy,
     },
     onUpdate: handleUpdate,
-    enabled: hasRefreshPolicy,
+    enabled,
   });
 
   if (!liveData && hasRefreshPolicy) {
-    return <SectionSkeleton sectionStates={section.sectionStates} />;
+    return <div ref={sectionRef}><SectionSkeleton sectionStates={section.sectionStates} /></div>;
   }
 
-  return children(liveData);
+  return <div ref={sectionRef}>{children(liveData)}</div>;
 }
 
 /**
@@ -114,7 +128,8 @@ export function useLiveData(
           currentData as Record<string, unknown>,
           section.dataBinding,
           incomingPayload as Record<string, unknown>,
-          (section as Record<string, unknown>).stringTable as Record<string, string> | undefined
+          (section as Record<string, unknown>).stringTable as Record<string, string> | undefined,
+          section.id
         );
         return updated as Data;
       }

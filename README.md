@@ -1,18 +1,19 @@
 # SDUI Prototype
 
-Server-Driven UI prototype demonstrating server-composed screens with real-time updates across Android and Web. Includes For You, Scoreboard, Game Detail, Watch, Live, Leaders, Boxscore, and demo screens — all driven by a single JSON schema.
+Server-Driven UI prototype demonstrating server-composed screens with real-time updates across Android, iOS, and Web. Includes For You, Scoreboard, Game Detail, Watch, Live, Leaders, Boxscore, and demo screens — all driven by a single JSON schema.
 
 ## Start Here
 
 | I want to… | Start with |
 |------------|------------|
 | **Build a new client** (iOS, Flutter, TV, desktop) | [Client Implementor's Contract](docs/plans/client-implementors-contract.md) — platform-agnostic blueprint with build phases, pseudocode algorithms, and conformance checklist |
-| **Extend the Android client** | [android/sdui-core/](android/sdui-core/) — renderers, state, data binding. See [Section Types](#section-types-9-in-schema-8-permanent--atomiccomposite) below for what exists |
+| **Extend the Android client** | [android/sdui-core/](android/sdui-core/) — renderers, state, data binding. See [Section Types](#section-types-10-in-schema-9-permanent--atomiccomposite) below for what exists |
 | **Extend the Web client** | [web/src/](web/src/) — React components, hooks, runtime. Same section types reference |
+| **Extend the iOS client** | [ios/Sources/SduiCore/](ios/Sources/SduiCore/) — SwiftUI renderers, state, data binding. Same section types reference |
 | **Add a new server-composed screen** | [server/src/](server/src/) — add a composer, register an endpoint. Zero client changes needed |
 | **Add a new section type** | Read [AGENTS.md](AGENTS.md) §14-15 first — most things should be `AtomicComposite`. Only add a section renderer if client-owned state is required |
 | **Understand the schema** | [schema/sdui-schema.json](schema/sdui-schema.json) — the contract. Hit `curl http://localhost:8080/sdui/demos` for a live 42-section example |
-| **Understand the rules** | [AGENTS.md](AGENTS.md) — 15 development rules that govern all SDUI work |
+| **Understand the rules** | [AGENTS.md](AGENTS.md) — 18 development rules that govern all SDUI work |
 | **See what's built vs. what's gap** | [Requirements Summary §10](docs/sdui-requirements-summary.md) — status matrix |
 
 ## Design Philosophy
@@ -65,9 +66,13 @@ sdui-prototype/
 │   └── sdui-core/              # Reusable SDUI library (renderers, state, data)
 ├── web/                        # React/TypeScript web client
 │   └── src/
-│       ├── components/         # SectionRouter + 8 permanent section renderers + AtomicRouter + SectionErrorBoundary, SectionSkeleton
+│       ├── components/         # SectionRouter + 9 permanent section renderers + AtomicRouter + SectionErrorBoundary, SectionSkeleton
 │       ├── hooks/              # useSduiScreen, useRefreshPolicy, useImpressionTracking, useAnalyticsContext
 │       └── runtime/            # AblyClient, ActionHandler, DataBindingApplier
+├── ios/                        # iOS / SwiftUI client (Swift Package + SduiDemo app)
+│   ├── Sources/SduiCore/       # SectionRouter + 9 permanent section views + AtomicRouter + navigation shell
+│   ├── Tests/SduiCoreTests/    # Model round-trips, fixtures, action dispatcher, impression tracker
+│   └── SduiDemo/               # XcodeGen-based demo host (bootstraps nba://for-you)
 ├── docs/                       # Technical proposal & requirements
 └── prompts/                    # Prototype generation prompt
 ```
@@ -95,6 +100,9 @@ npm run dev
 
 # Android — open android/ in Android Studio, run on emulator
 # (connects to http://10.0.2.2:8080)
+
+# iOS (simulator, CLI-driven)
+make ios-run            # builds SduiDemo with SDUI_DISABLE_ABLY=1 and installs on the configured simulator
 ```
 
 ### Test the API
@@ -137,7 +145,7 @@ make codegen
 | Boxscore | `GET /sdui/boxscore/{gameId}` | Boxscore tables for a specific game (home and away). |
 | Refresh | `GET /sdui/refresh/{screenId}` | Parameterized refresh endpoint for form-driven section updates. |
 
-## Section Types (9 in schema: 8 permanent + AtomicComposite)
+## Section Types (10 in schema: 9 permanent + AtomicComposite)
 
 ### Permanent Sections (client-owned renderers)
 
@@ -151,6 +159,7 @@ make codegen
 | SubscribeBanner | Inline subscription upsell with CTA | Static |
 | SubscribeHero | Full-screen subscription upsell with pricing tiers | Static |
 | AdSlot | Embedded ad placement (provider, targeting) | Static |
+| VideoPlayer | Platform video SDK host with playerType discriminator (game / vod / event / nbaTv / stream) and capability list (pip, chromecast, airplay, backgroundAudio, fullscreenRotation) | Static (player drives its own timeline) |
 
 ### Migrated to Atomic (server-composed AtomicComposite — no client renderers)
 
@@ -186,7 +195,7 @@ make codegen
 ## Recent Changes
 
 - **Per-section error handling** (2026-04-01) — `SectionErrorBoundary` on Android (catch-at-dispatch + pre-validation) and web (React ErrorBoundary). `SectionSkeleton` with 4 generic styles. Typed `SectionStates` model. Retry budget (client-side, default 5). `hideOnError` support. Contract §13 rewritten.
-- **Accessibility** (2026-03-26) — `AccessibilityProperties` on Section, Subsection, AtomicElement. Android Compose `semantics{}`, web ARIA attributes. All 8 section renderers and 10 atomic primitives wired on both platforms.
+- **Accessibility** (2026-03-26) — `AccessibilityProperties` on Section, Subsection, AtomicElement. Android Compose `semantics{}`, web ARIA attributes, iOS `.accessibilityLabel`/traits. All 9 section renderers and 10 atomic primitives wired on every platform.
 - **Request transport envelope** (2026-03-24) — `SduiRequestContext` POJO + `BracketParamResolver` on server. `RequestEnvelopeBuilder` on Android and web. GET-first with bracket-notation params, POST fallback.
 - **i18n** (2026-03-24) — Section-level `stringTable` stamped by server per locale. Clients consume from each section.
 - **Experiments / A/B testing** (2026-03-24) — ADR-006 Accepted. Client-authoritative `experiments` map in request envelope. Server resolves at composition time.
@@ -223,6 +232,7 @@ make codegen
 |-------|------------|
 | Server | Spring Boot 3.x, Java 21, Jackson |
 | Android | Kotlin 2.1.0, Jetpack Compose (BOM 2024.12.01), Min SDK 24 |
+| iOS | Swift 5.9, SwiftUI, Xcode 15.4+ (XcodeGen-managed demo target), Deployment target iOS 17 |
 | Web | React 18, TypeScript, Vite |
 | Real-time | Ably 1.2.40 (JWT auth via authUrl) |
 | Image loading | Coil 2.7.0 + coil-svg |
@@ -239,5 +249,5 @@ make codegen
 | [Requirements Summary](docs/sdui-requirements-summary.md) | Full requirements, gap analysis, ADR tracking |
 | [Kitchen Sink Appendix](docs/appendix-kitchen-sink.md) | Full 42-section demo response (Android platform) |
 | [Client Implementor's Contract](docs/plans/client-implementors-contract.md) | Platform-agnostic build guide for new clients (any language/framework) |
-| [ADR Index](docs/adr/README.md) | Architecture Decision Records (001–010) |
+| [ADR Index](docs/adr/README.md) | Architecture Decision Records (001–013) |
 | [Accessibility Plan](docs/plans/plan-accessibility.md) | Accessibility strategy and implementation plan |

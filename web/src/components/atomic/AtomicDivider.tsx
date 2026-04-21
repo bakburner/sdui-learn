@@ -6,7 +6,7 @@ import type { AtomicProps } from './AtomicRouter';
  */
 export function AtomicDivider({ element }: AtomicProps): React.ReactElement {
   const thickness = element.thickness ?? 1;
-  const color = element.color ?? '#333';
+  const color = element.color ?? 'var(--divider)';
   const isVertical = element.orientation === 'vertical';
 
   const style: React.CSSProperties = isVertical

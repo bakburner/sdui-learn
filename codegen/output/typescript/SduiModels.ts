@@ -11,6 +11,13 @@ export interface SduiModels {
     id:                    string;
     navigation?:           Navigation;
     /**
+     * Named overlay sections the client shows when a trigger condition arises. Keys are
+     * developer-defined state names (e.g. 'couchRightsWarning'). Values are server-composed
+     * sections (typically AtomicComposite). Client controls trigger timing and presentation
+     * style; server controls display content.
+     */
+    overlays?: { [key: string]: Section };
+    /**
      * URI the back button should navigate to.  Clients always show a back button; this field
      * tells them the target.  Omit for root screens (e.g. scoreboard).
      */
@@ -219,6 +226,7 @@ export enum ActionTrigger {
     OnBlur = "onBlur",
     OnFocus = "onFocus",
     OnLongPress = "onLongPress",
+    OnSubmit = "onSubmit",
     OnSwipe = "onSwipe",
     OnTap = "onTap",
     OnVisible = "onVisible",
@@ -246,7 +254,13 @@ export interface RefreshPolicy {
      * For poll type: interval in milliseconds
      */
     intervalMs?: number;
-    type:        RefreshType;
+    /**
+     * Whether the client should pause this section's refresh when it scrolls out of the
+     * viewport. Default true. Set false for critical live sections (e.g., GamePanel scores)
+     * that should refresh continuously.
+     */
+    pauseWhenOffScreen?: boolean;
+    type:                RefreshType;
     /**
      * For poll/sse type: URL to poll or connect to. If omitted, polls the SDUI endpoint.
      */
@@ -276,9 +290,30 @@ export interface NavigationItem {
 }
 
 /**
+ * Z-positioned child element (e.g. 'LIVE' pill, duration label) overlaid on this element.
+ *
+ * Z-positioned child element overlaid on a parent (e.g. 'LIVE' pill at bottom-right of a
+ * thumbnail, duration label). Named Badge (not Overlay) to avoid collision with the
+ * screen-level overlays map.
+ */
+export interface Badge {
+    /**
+     * Position of the badge within the parent bounds
+     */
+    alignment?: BadgeAlignment;
+    /**
+     * The element to render as a badge
+     */
+    element: AtomicElement;
+    [property: string]: any;
+}
+
+/**
  * Root node of the atomic element tree — the rendering instructions
  *
  * Atomic UI primitive — server-composed building block for the atomic rendering layer
+ *
+ * The element to render as a badge
  */
 export interface AtomicElement {
     /**
@@ -294,6 +329,10 @@ export interface AtomicElement {
     alt?:         string;
     aspectRatio?: number;
     background?:  Background | string;
+    /**
+     * Z-positioned child element (e.g. 'LIVE' pill, duration label) overlaid on this element.
+     */
+    badge?: Badge;
     /**
      * Responsive breakpoint in dp/px. For Container: below this screen width, direction flips
      * from row to column. Enables responsive layouts without client logic.
@@ -336,10 +375,20 @@ export interface AtomicElement {
     id?:            string;
     label?:         string;
     maxLines?:      number;
-    orientation?:   Orientation;
-    padding?:       Spacing;
-    paging?:        boolean;
-    placeholder?:   string;
+    /**
+     * Use tabular/monospaced digit rendering to prevent layout shift on numeric text changes
+     * (scores, clocks).
+     */
+    monospacedDigits?: boolean;
+    /**
+     * Element opacity (0=transparent, 1=opaque). Enables duration badge overlays and faded
+     * states.
+     */
+    opacity?:     number;
+    orientation?: Orientation;
+    padding?:     Spacing;
+    paging?:      boolean;
+    placeholder?: string;
     /**
      * DisplayGrid row data — each object maps column keys to pre-formatted display values
      */
@@ -347,14 +396,29 @@ export interface AtomicElement {
     /**
      * Full section object to render via SectionRouter. Only used when type is SectionSlot.
      */
-    section?:       Section;
-    size?:          number;
-    snapAlignment?: Align;
-    src?:           string;
+    section?: Section;
+    /**
+     * Drop shadow applied to the element. Replaces elevation with richer CSS/SwiftUI shadow
+     * semantics.
+     */
+    shadow?: Shadow;
+    /**
+     * Whether to show scroll indicators on ScrollContainer. Default false for clean carousel
+     * presentation.
+     */
+    showIndicators?: boolean;
+    size?:           number;
+    snapAlignment?:  Align;
+    src?:            string;
     /**
      * Alternate row background for readability
      */
-    striped?:   boolean;
+    striped?: boolean;
+    /**
+     * Text alignment within the element. Used for centered headings, right-aligned numeric
+     * values.
+     */
+    textAlign?: Align;
     thickness?: number;
     trueChild?: AtomicElement;
     type:       UIType;
@@ -384,6 +448,9 @@ export interface AtomicElement {
  *
  * Data payload for AtomicComposite sections — ui contains rendering instructions, content
  * carries domain data
+ *
+ * Video player section — platform SDK integration (DRM, HLS, ad insertion). Same
+ * justification as SubscribeHero (StoreKit/Play Billing) and AdSlot (GAM).
  */
 export interface Data {
     defaultTab?:  string;
@@ -396,6 +463,11 @@ export interface Data {
      * Badge/chip label, e.g. 'LIVE', 'FEATURED'
      */
     badgeText?: string;
+    /**
+     * Whether the game clock is actively ticking. When true, renderers should interpolate the
+     * clock locally between SSE updates for visual continuity.
+     */
+    clockRunning?: boolean;
     /**
      * Server-driven visual configuration — controls all layout and styling knobs
      */
@@ -539,7 +611,22 @@ export interface Data {
     /**
      * Root node of the atomic element tree — the rendering instructions
      */
-    ui?: AtomicElement;
+    ui?:       AtomicElement;
+    autoplay?: boolean;
+    /**
+     * Platform capabilities the player should enable. Server includes only capabilities
+     * relevant to the requesting platform (via X-Platform header).
+     */
+    capabilities?: Capability[];
+    /**
+     * Content identifier — interpreted by playerType (gameId for game, mediaId for vod, eventId
+     * for event, streamUrl for stream). Single field avoids mutually exclusive optional IDs.
+     */
+    contentId?: string;
+    /**
+     * Discriminator for SDK player variant. Client passes contentId to the matching SDK method.
+     */
+    playerType?: PlayerType;
     [property: string]: any;
 }
 
@@ -576,8 +663,23 @@ export interface Section {
      * Nested interaction targets within the section
      */
     subsections?: Subsection[];
-    type:         SectionType;
+    type:         OverlayType;
     [property: string]: any;
+}
+
+/**
+ * Position of the badge within the parent bounds
+ */
+export enum BadgeAlignment {
+    BottomCenter = "bottomCenter",
+    BottomEnd = "bottomEnd",
+    BottomStart = "bottomStart",
+    Center = "center",
+    CenterEnd = "centerEnd",
+    CenterStart = "centerStart",
+    TopCenter = "topCenter",
+    TopEnd = "topEnd",
+    TopStart = "topStart",
 }
 
 /**
@@ -721,17 +823,34 @@ export enum ButtonVariant {
 /**
  * Typography variant for data cells
  *
+ * Material3 typography scale plus legacy semantic variants and the NBA-specific `score`
+ * variant.
+ *
  * Typography variant for header cells
  */
 export enum TextVariant {
     Body = "body",
+    BodyLarge = "bodyLarge",
+    BodyMedium = "bodyMedium",
     BodySmall = "bodySmall",
     Caption = "caption",
+    DisplayLarge = "displayLarge",
+    DisplayMedium = "displayMedium",
+    DisplaySmall = "displaySmall",
     Heading1 = "heading1",
     Heading2 = "heading2",
     Heading3 = "heading3",
+    HeadlineLarge = "headlineLarge",
+    HeadlineMedium = "headlineMedium",
+    HeadlineSmall = "headlineSmall",
     Label = "label",
+    LabelLarge = "labelLarge",
+    LabelMedium = "labelMedium",
+    LabelSmall = "labelSmall",
     Score = "score",
+    TitleLarge = "titleLarge",
+    TitleMedium = "titleMedium",
+    TitleSmall = "titleSmall",
 }
 
 export interface Column {
@@ -751,6 +870,10 @@ export interface Column {
     [property: string]: any;
 }
 
+/**
+ * Text alignment within the element. Used for centered headings, right-aligned numeric
+ * values.
+ */
 export enum Align {
     Center = "center",
     End = "end",
@@ -793,6 +916,33 @@ export interface Spacing {
     [property: string]: any;
 }
 
+/**
+ * Drop shadow applied to the element. Replaces elevation with richer CSS/SwiftUI shadow
+ * semantics.
+ *
+ * Drop shadow with CSS/SwiftUI semantics (radius + offset). Compose approximates via
+ * elevation.
+ */
+export interface Shadow {
+    /**
+     * Shadow color (hex with alpha)
+     */
+    color?: string;
+    /**
+     * Horizontal offset in dp/px
+     */
+    offsetX?: number;
+    /**
+     * Vertical offset in dp/px
+     */
+    offsetY?: number;
+    /**
+     * Blur radius in dp/px
+     */
+    radius?: number;
+    [property: string]: any;
+}
+
 export enum UIType {
     Button = "Button",
     Conditional = "Conditional",
@@ -806,11 +956,14 @@ export enum UIType {
     Text = "Text",
 }
 
+/**
+ * Font weight tokens for atomic Text elements.
+ */
 export enum TextWeight {
     Bold = "bold",
     Medium = "medium",
     Regular = "regular",
-    Semibold = "semibold",
+    SemiBold = "semiBold",
 }
 
 export interface TeamData {
@@ -821,6 +974,14 @@ export interface TeamData {
     teamName:    string;
     teamTricode: string;
     [property: string]: any;
+}
+
+export enum Capability {
+    Airplay = "airplay",
+    BackgroundAudio = "backgroundAudio",
+    Chromecast = "chromecast",
+    FullscreenRotation = "fullscreenRotation",
+    Pip = "pip",
 }
 
 /**
@@ -888,6 +1049,8 @@ export interface GamePanelDisplayConfig {
      * Score typography: compact = bodyLarge+Bold, prominent = headlineMedium+ExtraBold
      */
     scoreTextStyle?: ScoreTextStyle;
+    aspectRatio?:    string;
+    height?:         number;
     [property: string]: any;
 }
 
@@ -975,6 +1138,17 @@ export enum Layout {
     Grid = "grid",
     Horizontal = "horizontal",
     Vertical = "vertical",
+}
+
+/**
+ * Discriminator for SDK player variant. Client passes contentId to the matching SDK method.
+ */
+export enum PlayerType {
+    Event = "event",
+    Game = "game",
+    NbaTv = "nbaTv",
+    Stream = "stream",
+    VOD = "vod",
 }
 
 /**
@@ -1170,7 +1344,7 @@ export interface Subsection {
     [property: string]: any;
 }
 
-export enum SectionType {
+export enum OverlayType {
     AdSlot = "AdSlot",
     AtomicComposite = "AtomicComposite",
     BoxscoreTable = "BoxscoreTable",
@@ -1180,4 +1354,5 @@ export enum SectionType {
     SubscribeBanner = "SubscribeBanner",
     SubscribeHero = "SubscribeHero",
     TabGroup = "TabGroup",
+    VideoPlayer = "VideoPlayer",
 }

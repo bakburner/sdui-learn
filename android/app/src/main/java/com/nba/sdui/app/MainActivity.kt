@@ -23,7 +23,7 @@ import kotlinx.coroutines.launch
 class MainActivity : ComponentActivity() {
     companion object {
         private const val TAG = "SDUI_MainActivity"
-        // TODO(Rule 2): Bootstrap URI should come from a /sdui/init endpoint.
+        // TODO: Bootstrap URI should come from a /sdui/init endpoint.
         private const val BOOTSTRAP_URI = "nba://for-you"
     }
 

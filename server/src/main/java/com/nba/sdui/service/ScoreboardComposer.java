@@ -132,6 +132,7 @@ public class ScoreboardComposer {
             ObjectNode refreshPolicy = objectMapper.createObjectNode();
             refreshPolicy.put("type", "sse");
             refreshPolicy.put("channel", gameId + ":linescore");
+            refreshPolicy.put("pauseWhenOffScreen", false);
             section.set("refreshPolicy", refreshPolicy);
 
             section.set("dataBinding", utils.buildLinescoreBindings());

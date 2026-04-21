@@ -195,6 +195,7 @@ public class ForYouComposer {
         data.put("gameStatus", gameStatus);
         data.put("gameStatusText", game.path("gameStatusText").asText(""));
         data.put("gameTimeEt", game.path("gameTimeEt").asText(""));
+        data.put("clockRunning", gameStatus == 2);
         data.set("displayConfig", atomicBuilder.featuredConfig(null, new String[]{"#1D428A", "#C8102E"}));
         data.set("homeTeam", mapTeam(game.path("homeTeam")));
         data.set("awayTeam", mapTeam(game.path("awayTeam")));
@@ -224,6 +225,7 @@ public class ForYouComposer {
         data.put("gameId", "0022400001");
         data.put("gameStatus", 2);
         data.put("gameStatusText", "Q3 5:42");
+        data.put("clockRunning", true);
         data.set("displayConfig", atomicBuilder.featuredConfig(null, new String[]{"#1D428A", "#C8102E"}));
         data.put("badgeText", "LIVE");
         data.put("visualLabel", "CELTICS");

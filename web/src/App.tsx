@@ -5,15 +5,15 @@ import { SectionRouter } from './components/SectionRouter';
 import { TopNavigationBar } from './components/TopNavigationBar';
 import { executeActionSequence } from './runtime/ActionHandler';
 
-// TODO(Rule 2): Bootstrap URI should come from a /sdui/init endpoint.
-//               Hardcoded here only as a temporary prototype bootstrap.
+// TODO: Bootstrap URI should come from a /sdui/init endpoint.
+//       Hardcoded here only as a temporary prototype bootstrap.
 const BOOTSTRAP_URI = 'nba://for-you';
 
 /**
  * Convert an nba:// URI to a server endpoint path.
  *
- * Pure prefix swap — no special-casing of individual screens (Rule 10).
- * The server owns all routing semantics.
+ * Pure prefix swap — no special-casing of individual screens. The server
+ * owns all routing semantics.
  *
  *   nba://scoreboard        → /sdui/scoreboard
  *   nba://game/0042300102   → /sdui/game/0042300102
@@ -30,7 +30,7 @@ export function App(): React.ReactElement {
   const [experiments, setExperiments] = useState<Record<string, string>>({});
   const [currentUri, setCurrentUri] = useState(BOOTSTRAP_URI);
 
-  // Variants come from the server response — no client-side URI sniffing (Rule 10).
+  // Variants come from the server response — no client-side URI sniffing.
   // We read screen.variants after the first fetch below.
 
   useEffect(() => {
@@ -105,6 +105,18 @@ export function App(): React.ReactElement {
 
   const handleSectionStale = useCallback((sectionId: string) => {
     setStaleSections((prev) => new Set(prev).add(sectionId));
+  }, []);
+
+  const handleStalenessChange = useCallback((sectionId: string, isStale: boolean) => {
+    setStaleSections((prev) => {
+      const next = new Set(prev);
+      if (isStale) {
+        next.add(sectionId);
+      } else {
+        next.delete(sectionId);
+      }
+      return next;
+    });
   }, []);
 
   const handleAction = useCallback((action: Action) => {
@@ -223,6 +235,7 @@ export function App(): React.ReactElement {
                 state={screenState}
                 onAction={handleAction}
                 onStateChange={handleStateChange}
+                onStalenessChange={handleStalenessChange}
               />
               {section.layoutHints?.dividerBelow && <hr className="sdui-divider" />}
             </div>
@@ -249,65 +262,75 @@ const styles: Record<string, React.CSSProperties> = {
     maxWidth: 1200,
     margin: '0 auto',
     padding: '0 16px',
-    backgroundColor: '#0f0f23',
+    backgroundColor: 'var(--canvas)',
     overflowX: 'hidden',
   },
   header: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: '16px',
-    backgroundColor: '#1a1a2e',
-    borderBottom: '1px solid #333',
+    padding: '12px 16px',
+    backgroundColor: 'var(--surface)',
+    borderBottom: '1px solid var(--divider)',
   },
   backButton: {
     background: 'none',
     border: 'none',
-    color: '#ffffff',
+    color: 'var(--text-primary)',
     fontSize: 20,
     cursor: 'pointer',
     padding: '4px 8px',
     marginRight: 8,
+    borderRadius: 'var(--rounded-base)',
+    transition: 'background var(--duration-fast) var(--ease-default)',
   },
   title: {
     fontSize: 18,
     fontWeight: 700,
-    color: '#ffffff',
+    fontFamily: 'var(--font-body)',
+    color: 'var(--text-primary)',
     margin: 0,
+    letterSpacing: '-0.01em',
   },
   schemaVersion: {
     fontSize: 11,
-    color: '#666666',
+    color: 'var(--text-secondary)',
+    fontFamily: 'var(--font-mono)',
   },
   variantBar: {
     display: 'flex',
     alignItems: 'center',
     gap: 6,
     padding: '8px 16px',
-    backgroundColor: '#12122a',
-    borderBottom: '1px solid #333',
+    backgroundColor: 'var(--surface)',
+    borderBottom: '1px solid var(--divider)',
     overflowX: 'auto',
   },
   variantLabel: {
     fontSize: 11,
-    color: '#888888',
+    color: 'var(--text-secondary)',
     marginRight: 4,
     whiteSpace: 'nowrap',
+    textTransform: 'uppercase' as const,
+    fontWeight: 600,
+    letterSpacing: '0.05em',
   },
   variantButton: {
     padding: '4px 12px',
-    border: '1px solid #444',
-    borderRadius: 16,
+    border: '1px solid var(--divider)',
+    borderRadius: 'var(--rounded-full)',
     backgroundColor: 'transparent',
-    color: '#aaaaaa',
+    color: 'var(--text-secondary)',
     fontSize: 12,
     cursor: 'pointer',
     whiteSpace: 'nowrap',
+    fontFamily: 'var(--font-body)',
+    transition: 'all var(--duration-fast) var(--ease-default)',
   },
   variantButtonActive: {
-    backgroundColor: '#ff6b6b',
-    borderColor: '#ff6b6b',
-    color: '#ffffff',
+    backgroundColor: 'var(--nba-tint)',
+    borderColor: 'var(--nba-tint)',
+    color: 'var(--nba-on-tint)',
     fontWeight: 600,
   },
   main: {
@@ -321,25 +344,27 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'flex',
     justifyContent: 'space-between',
     padding: '8px 16px',
-    backgroundColor: '#1a1a2e',
-    borderTop: '1px solid #333',
+    backgroundColor: 'var(--surface)',
+    borderTop: '1px solid var(--divider)',
     fontSize: 11,
-    color: '#666666',
+    color: 'var(--text-secondary)',
+    fontFamily: 'var(--font-mono)',
   },
   emptyState: {
     padding: 24,
-    color: '#9aa6ba',
+    color: 'var(--text-secondary)',
     textAlign: 'center',
     fontSize: 14,
   },
   staleBanner: {
     padding: '6px 12px',
-    backgroundColor: '#3a2a00',
-    color: '#ffcc00',
+    backgroundColor: 'rgba(251,205,68,0.15)',
+    color: 'var(--nba-tint)',
     fontSize: 12,
     textAlign: 'center',
-    borderRadius: 4,
+    borderRadius: 'var(--rounded-base)',
     marginBottom: 4,
+    fontWeight: 500,
   },
   centered: {
     display: 'flex',
@@ -348,37 +373,40 @@ const styles: Record<string, React.CSSProperties> = {
     justifyContent: 'center',
     minHeight: '100vh',
     padding: 24,
+    backgroundColor: 'var(--canvas)',
   },
   spinner: {
     width: 40,
     height: 40,
-    border: '3px solid #333',
-    borderTopColor: '#ff6b6b',
+    border: '3px solid var(--divider)',
+    borderTopColor: 'var(--nba-tint)',
     borderRadius: '50%',
     animation: 'spin 1s linear infinite',
   },
   loadingText: {
     marginTop: 16,
-    color: '#888888',
+    color: 'var(--text-secondary)',
   },
   errorText: {
-    color: '#ff6b6b',
+    color: 'var(--negative)',
     marginBottom: 16,
   },
   retryButton: {
     padding: '12px 24px',
     border: 'none',
-    borderRadius: 8,
-    backgroundColor: '#ff6b6b',
-    color: '#ffffff',
+    borderRadius: 'var(--rounded-base)',
+    backgroundColor: 'var(--button)',
+    color: 'var(--button-text)',
     fontSize: 14,
     fontWeight: 600,
     cursor: 'pointer',
+    fontFamily: 'var(--font-body)',
+    transition: 'opacity var(--duration-fast) var(--ease-default)',
   },
   hint: {
     marginTop: 24,
     fontSize: 12,
-    color: '#666666',
+    color: 'var(--text-secondary)',
     textAlign: 'center',
   },
 };

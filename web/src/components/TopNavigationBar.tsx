@@ -1,5 +1,6 @@
 import React from 'react';
 import type { Navigation, NavigationItem } from '@sdui/models';
+import { IconTokenResolver } from '../utils/IconTokenResolver';
 
 interface TopNavigationBarProps {
   navigation?: Navigation;
@@ -12,34 +13,46 @@ export function TopNavigationBar({ navigation, onNavigate }: TopNavigationBarPro
 
   return (
     <nav style={styles.nav}>
-      {items.map((item) => (
-        <div key={item.id} style={styles.itemWrapper}>
-          <button
-            style={{
-              ...styles.itemButton,
-              ...(item.selected ? styles.itemButtonSelected : {}),
-            }}
-            onClick={() => {
-              if (item.targetUri) onNavigate(item.targetUri);
-            }}
-          >
-            {item.label}
-          </button>
-          {item.children?.length ? (
-            <div style={styles.dropdown}>
-              {item.children.map((child: NavigationItem) => (
-                <button
-                  key={child.id}
-                  style={styles.dropdownItem}
-                  onClick={() => child.targetUri && onNavigate(child.targetUri)}
+      {items.map((item) => {
+        const iconName = IconTokenResolver.resolve(item.icon);
+        return (
+          <div key={item.id} style={styles.itemWrapper}>
+            <button
+              style={{
+                ...styles.itemButton,
+                ...(item.selected ? styles.itemButtonSelected : {}),
+              }}
+              onClick={() => {
+                if (item.targetUri) onNavigate(item.targetUri);
+              }}
+            >
+              {iconName ? (
+                <span
+                  className="material-icons"
+                  style={styles.icon}
+                  aria-hidden="true"
                 >
-                  {child.label}
-                </button>
-              ))}
-            </div>
-          ) : null}
-        </div>
-      ))}
+                  {iconName}
+                </span>
+              ) : null}
+              <span>{item.label}</span>
+            </button>
+            {item.children?.length ? (
+              <div style={styles.dropdown}>
+                {item.children.map((child: NavigationItem) => (
+                  <button
+                    key={child.id}
+                    style={styles.dropdownItem}
+                    onClick={() => child.targetUri && onNavigate(child.targetUri)}
+                  >
+                    {child.label}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        );
+      })}
     </nav>
   );
 }
@@ -47,11 +60,11 @@ export function TopNavigationBar({ navigation, onNavigate }: TopNavigationBarPro
 const styles: Record<string, React.CSSProperties> = {
   nav: {
     display: 'flex',
-    gap: 8,
+    gap: 4,
     alignItems: 'center',
     padding: '8px 16px',
-    borderBottom: '1px solid #2a2f45',
-    backgroundColor: '#11172a',
+    borderBottom: '1px solid var(--divider)',
+    backgroundColor: 'var(--surface)',
     position: 'sticky',
     top: 0,
     zIndex: 10,
@@ -62,15 +75,26 @@ const styles: Record<string, React.CSSProperties> = {
   itemButton: {
     border: 'none',
     background: 'transparent',
-    color: '#d0d7e5',
-    padding: '8px 10px',
-    borderRadius: 8,
+    color: 'var(--text-secondary)',
+    padding: '8px 12px',
+    borderRadius: 'var(--rounded-base)',
     cursor: 'pointer',
     fontWeight: 600,
+    fontSize: 14,
+    fontFamily: 'var(--font-body)',
+    transition: 'color 150ms ease, background 150ms ease',
+    letterSpacing: '0.01em',
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 6,
   },
   itemButtonSelected: {
-    background: '#ff6b6b',
-    color: '#fff',
+    background: 'var(--nba-blue)',
+    color: '#FFFFFF',
+  },
+  icon: {
+    fontSize: 18,
+    lineHeight: 1,
   },
   dropdown: {
     display: 'flex',
@@ -78,20 +102,24 @@ const styles: Record<string, React.CSSProperties> = {
     position: 'absolute',
     top: '100%',
     left: 0,
-    background: '#1a1f2e',
-    border: '1px solid #2a2f45',
-    borderRadius: 8,
+    background: 'var(--surface-raised)',
+    border: '1px solid var(--divider)',
+    borderRadius: 'var(--rounded-lg)',
     minWidth: 180,
     padding: 6,
+    boxShadow: 'var(--shadow-lg)',
   },
   dropdownItem: {
     width: '100%',
     border: 'none',
     background: 'transparent',
-    color: '#d0d7e5',
+    color: 'var(--text-primary)',
     textAlign: 'left',
-    padding: '8px',
-    borderRadius: 6,
+    padding: '8px 12px',
+    borderRadius: 'var(--rounded-base)',
     cursor: 'pointer',
+    fontSize: 14,
+    fontFamily: 'var(--font-body)',
+    transition: 'background 150ms ease',
   },
 };

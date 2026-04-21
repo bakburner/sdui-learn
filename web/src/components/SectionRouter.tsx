@@ -8,6 +8,7 @@ import { AdSlot } from './sections/AdSlot';
 import { SeasonLeadersTable } from './sections/SeasonLeadersTable';
 import { SubscribeBanner } from './sections/SubscribeBanner';
 import { SubscribeHero } from './sections/SubscribeHero';
+import { VideoPlayerStub } from './sections/VideoPlayerStub';
 import { AtomicRouter } from './atomic';
 import type { AtomicCompositeData } from './atomic';
 import { LiveSectionWrapper } from './LiveSectionWrapper';
@@ -26,6 +27,8 @@ export interface SectionProps {
 export interface SectionRouterProps extends SectionProps {
   /** Optional screen-level default refresh policy */
   defaultRefreshPolicy?: RefreshPolicy;
+  /** Callback when section data channel becomes stale or recovers */
+  onStalenessChange?: (sectionId: string, isStale: boolean) => void;
 }
 
 /**
@@ -64,6 +67,9 @@ function SectionRenderer({
     case 'SubscribeHero':
       return <SubscribeHero {...commonProps} />;
 
+    case 'VideoPlayer':
+      return <VideoPlayerStub section={section} onAction={onAction} />;
+
     case 'AtomicComposite': {
       const compositeData = section.data as unknown as AtomicCompositeData | undefined;
       if (!compositeData?.ui) {
@@ -92,6 +98,7 @@ export function SectionRouter({
   onAction, 
   onStateChange,
   defaultRefreshPolicy,
+  onStalenessChange,
 }: SectionRouterProps): React.ReactElement | null {
   const trackingRef = useRef<HTMLDivElement>(null);
 
@@ -118,6 +125,7 @@ export function SectionRouter({
         onAction={onAction}
         onStateChange={onStateChange}
         defaultRefreshPolicy={defaultRefreshPolicy}
+        onStalenessChange={onStalenessChange}
       >
         {(liveData: Data | undefined) => {
           const liveSection: Section = {

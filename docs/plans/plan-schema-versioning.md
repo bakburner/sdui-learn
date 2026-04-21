@@ -30,6 +30,7 @@ Implement version negotiation so clients and server can evolve independently. Th
 - [ ] Define version negotiation rules: additive-only changes are backward-compatible
 - [ ] Add `minSchemaVersion` and `maxSchemaVersion` to server config
 - [ ] Document version compatibility matrix
+- [ ] Document binding path resilience rules (§3a of requirements) as part of the compatibility matrix — removed fields must not break existing binding declarations
 
 ### Phase 2: Server
 - [ ] Read `X-Schema-Version` header and route to version-appropriate composer

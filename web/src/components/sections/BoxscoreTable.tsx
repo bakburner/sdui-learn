@@ -24,7 +24,7 @@ export function BoxscoreTable({ section, state, onAction, onStateChange }: Secti
   // ── Empty state ──────────────────────────────────────────────────
   if (model.players.length === 0 && model.emptyMessage) {
     return (
-      <div style={{ ...styles.container, backgroundColor: section.backgroundColor || '#1a1a2e' }}>
+      <div style={{ ...styles.container, backgroundColor: section.backgroundColor || 'var(--surface)' }}>
         {model.teamName && <div style={styles.teamHeader}>{model.teamName}</div>}
         <div style={styles.emptyMessage}>{model.emptyMessage}</div>
       </div>
@@ -61,10 +61,10 @@ export function BoxscoreTable({ section, state, onAction, onStateChange }: Secti
     }
   };
 
-  const teamAccent = model.teamColor || '#3a3a5e';
+  const teamAccent = model.teamColor || 'var(--nba-blue)';
 
   return (
-    <div style={{ ...styles.container, backgroundColor: section.backgroundColor || '#1a1a2e' }} {...accessibilityProps(section.accessibility)}>
+    <div style={{ ...styles.container, backgroundColor: section.backgroundColor || 'var(--surface)' }} {...accessibilityProps(section.accessibility)}>
       {/* Team header */}
       {model.teamName && (
         <div style={styles.teamHeader}>
@@ -96,7 +96,7 @@ export function BoxscoreTable({ section, state, onAction, onStateChange }: Secti
                       ...styles.th,
                       cursor: col.sortable !== false ? 'pointer' : 'default',
                       fontWeight: col.highlighted || isActive ? 700 : 600,
-                      color: isActive ? '#ffffff' : '#9aa6ba',
+                      color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
                       borderBottom: `2px solid ${teamAccent}`,
                     }}
                     onClick={() => col.sortable !== false && handleSort(col.key)}
@@ -224,7 +224,7 @@ export function BoxscoreTable({ section, state, onAction, onStateChange }: Secti
 
 const styles: Record<string, React.CSSProperties> = {
   container: {
-    borderRadius: 12,
+    borderRadius: 8,
     margin: 8,
     overflow: 'hidden',
   },
@@ -235,8 +235,9 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '12px 16px',
     fontSize: 15,
     fontWeight: 700,
-    color: '#ffffff',
-    borderBottom: '1px solid #2a2a4e',
+    fontFamily: 'var(--font-body)',
+    color: 'var(--text-primary)',
+    borderBottom: '1px solid var(--divider)',
   },
   teamLogo: {
     width: 24,
@@ -246,7 +247,7 @@ const styles: Record<string, React.CSSProperties> = {
   emptyMessage: {
     padding: 32,
     textAlign: 'center',
-    color: '#9aa6ba',
+    color: 'var(--text-secondary)',
     fontSize: 14,
   },
   tableWrapper: {
@@ -262,24 +263,27 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '8px 12px',
     fontSize: 11,
     fontWeight: 600,
-    color: '#9aa6ba',
+    color: 'var(--text-secondary)',
     textAlign: 'right',
     whiteSpace: 'nowrap',
     userSelect: 'none',
     position: 'relative',
+    fontFamily: 'var(--font-body)',
+    letterSpacing: '0.04em',
+    textTransform: 'uppercase' as const,
   },
   frozenCol: {
     position: 'sticky',
     left: 0,
     zIndex: 2,
-    backgroundColor: '#1a1a2e',
+    backgroundColor: 'var(--surface)',
     textAlign: 'left',
   },
   headerFrozen: {
     zIndex: 3,
     fontSize: 11,
     fontWeight: 700,
-    color: '#9aa6ba',
+    color: 'var(--text-secondary)',
   },
   sortArrow: {
     fontSize: 9,
@@ -287,9 +291,10 @@ const styles: Record<string, React.CSSProperties> = {
   td: {
     padding: '8px 12px',
     fontSize: 13,
-    color: '#e0e0e0',
+    color: 'var(--text-primary)',
     whiteSpace: 'nowrap',
-    borderBottom: '1px solid #1f1f3a',
+    borderBottom: '1px solid var(--divider)',
+    fontFamily: 'var(--font-body)',
   },
   playerCell: {
     minWidth: 140,
@@ -306,19 +311,19 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 16,
     objectFit: 'cover',
     flexShrink: 0,
-    backgroundColor: '#2a2a4e',
+    backgroundColor: 'var(--surface-raised)',
   },
   headshotPlaceholder: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#2a2a4e',
+    backgroundColor: 'var(--surface-raised)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     fontSize: 14,
     fontWeight: 700,
-    color: '#9aa6ba',
+    color: 'var(--text-secondary)',
     flexShrink: 0,
   },
   playerInfo: {
@@ -329,14 +334,14 @@ const styles: Record<string, React.CSSProperties> = {
   playerName: {
     fontSize: 13,
     fontWeight: 600,
-    color: '#ffffff',
+    color: 'var(--text-primary)',
     textOverflow: 'ellipsis',
     overflow: 'hidden',
     whiteSpace: 'nowrap',
   },
   playerMeta: {
     fontSize: 11,
-    color: '#9aa6ba',
+    color: 'var(--text-secondary)',
   },
   statCell: {
     textAlign: 'right',
@@ -351,17 +356,17 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '4px 16px',
     fontSize: 10,
     fontWeight: 700,
-    color: '#666',
-    backgroundColor: '#12122a',
+    color: 'var(--text-secondary)',
+    backgroundColor: 'var(--surface-alt)',
     letterSpacing: 1,
   },
   totalsRow: {
-    backgroundColor: '#12122a',
+    backgroundColor: 'var(--surface-alt)',
   },
   totalsLabel: {
     fontWeight: 700,
     fontSize: 11,
-    color: '#9aa6ba',
+    color: 'var(--text-secondary)',
     letterSpacing: 1,
   },
 };

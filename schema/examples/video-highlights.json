@@ -1,0 +1,49 @@
+{
+  "highlights": [
+    {
+      "id": "hl-dunk-001",
+      "title": "Monster Dunk by Giannis",
+      "subtitle": "Bucks vs. Celtics — Q3",
+      "thumbnailUrl": "https://cdn.nba.com/manage/2025/02/giannis-dunk-752x428.jpg",
+      "duration": "0:32",
+      "contentId": "media-0029400101",
+      "playerType": "vod"
+    },
+    {
+      "id": "hl-buzzer-002",
+      "title": "Curry Buzzer Beater from Half Court",
+      "subtitle": "Warriors vs. Thunder — Q4",
+      "thumbnailUrl": "https://cdn.nba.com/manage/2025/02/curry-buzzer-752x428.jpg",
+      "duration": "0:45",
+      "contentId": "media-0029400102",
+      "playerType": "vod"
+    },
+    {
+      "id": "hl-block-003",
+      "title": "Anthony Davis Chase-Down Block",
+      "subtitle": "Lakers vs. Nuggets — Q2",
+      "thumbnailUrl": "https://cdn.nba.com/manage/2025/02/ad-block-752x428.jpg",
+      "duration": "0:28",
+      "contentId": "media-0029400103",
+      "playerType": "vod"
+    },
+    {
+      "id": "hl-assist-004",
+      "title": "Jokic No-Look Dime",
+      "subtitle": "Nuggets vs. Lakers — Q1",
+      "thumbnailUrl": "https://cdn.nba.com/manage/2025/02/jokic-assist-752x428.jpg",
+      "duration": "0:22",
+      "contentId": "media-0029400104",
+      "playerType": "vod"
+    },
+    {
+      "id": "hl-recap-005",
+      "title": "Full Game Highlights: BOS vs MIA",
+      "subtitle": "Celtics cruise to a 112-98 victory",
+      "thumbnailUrl": "https://cdn.nba.com/manage/2025/02/bos-mia-recap-752x428.jpg",
+      "duration": "9:45",
+      "contentId": "media-0029400105",
+      "playerType": "vod"
+    }
+  ]
+}

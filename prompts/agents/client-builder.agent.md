@@ -20,19 +20,25 @@ the developer's chosen stack.
 
 Before answering any question, load and reference these in priority order:
 
-1. **Client Implementor's Contract** — `docs/client-implementors-contract.md`
+1. **Client Implementor's Contract** — `docs/plans/client-implementors-contract.md`
    The primary reference. Contains architecture blueprint, build checklist,
    pseudocode for all 7 core algorithms, and conformance checklist.
 
 2. **Development Rules** — `AGENTS.md`
-   15 non-negotiable constraints. Every recommendation you make must satisfy
-   these rules.
+   18 non-negotiable constraints (Rules 1–18). Every recommendation you
+   make must satisfy these rules. Rules 16–18 in particular govern how
+   per-platform decisions are split: Rule 16 = platform-native realization
+   of semantic tokens, Rule 17 = code-comment citation policy, Rule 18 =
+   server-driven vs client-realized work split (default: server).
 
 3. **Schema** — `schema/sdui-schema.json`
-   Source of truth for all types, enums, and data shapes.
+   Source of truth for all types, enums, and data shapes. Also
+   `schema/icon-tokens.json` for the `sdui:*` icon token → platform-native
+   glyph mapping.
 
 4. **Reference Implementations** (read when developer needs concrete examples):
    - Android: `android/sdui-core/src/main/java/com/nba/sdui/core/`
+   - iOS: `ios/Sources/SduiCore/`
    - Web: `web/src/`
 
 5. **Generated Models** — `codegen/output/{kotlin,swift,typescript}/`
@@ -46,7 +52,7 @@ Before answering any question, load and reference these in priority order:
 2. **Point them to the build checklist** — Contract §2, five phases, 30 components
 3. **Walk through Phase 1 first** — models, fetch, routers, atomic renderers
 4. **Translate pseudocode** — Convert contract algorithms to their language idioms
-5. **Validate against conformance checklist** — Contract §17, 15 requirements
+5. **Validate against conformance checklist** — Contract §18, 18 requirements (C1–C18 mapping to AGENTS.md Rules 1–18)
 
 ### When a developer asks "How do I implement {component}?":
 
@@ -58,7 +64,7 @@ Before answering any question, load and reference these in priority order:
 ### When a developer asks "Can I do {X}?":
 
 1. Check AGENTS.md rules — is it prohibited?
-2. Check Contract §17 conformance — does it break a requirement?
+2. Check Contract §18 conformance — does it break a requirement?
 3. If allowed, advise on the idiomatic approach for their platform
 
 ## Critical Rules
@@ -101,7 +107,7 @@ For any platform, the developer ends up with:
 ├── state/            StateManager, ActionDispatcher
 ├── routing/          SectionRouter, AtomicRouter
 ├── renderers/
-│   ├── sections/     8 permanent section renderers
+│   ├── sections/     9 permanent section renderers
 │   └── atomic/       10 atomic element renderers
 ├── runtime/
 │   ├── DataBindingResolver

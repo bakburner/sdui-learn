@@ -1,0 +1,78 @@
+{
+  "seasons": [
+    { "label": "2024-25", "value": "2024-25" },
+    { "label": "2023-24", "value": "2023-24" },
+    { "label": "2022-23", "value": "2022-23" }
+  ],
+  "months": [
+    { "label": "October", "value": "10" },
+    { "label": "November", "value": "11" },
+    { "label": "December", "value": "12" },
+    { "label": "January", "value": "1" },
+    { "label": "February", "value": "2" },
+    { "label": "March", "value": "3" },
+    { "label": "April", "value": "4" }
+  ],
+  "games": [
+    {
+      "gameId": "0022400001",
+      "date": "2024-10-22",
+      "time": "7:30 PM ET",
+      "homeTeam": { "teamTricode": "BOS", "teamName": "Celtics", "teamId": 1610612738 },
+      "awayTeam": { "teamTricode": "NYK", "teamName": "Knicks", "teamId": 1610612752 },
+      "status": "Final",
+      "homeScore": 132,
+      "awayScore": 109
+    },
+    {
+      "gameId": "0022400002",
+      "date": "2024-10-22",
+      "time": "10:00 PM ET",
+      "homeTeam": { "teamTricode": "LAL", "teamName": "Lakers", "teamId": 1610612747 },
+      "awayTeam": { "teamTricode": "MIN", "teamName": "Timberwolves", "teamId": 1610612750 },
+      "status": "Final",
+      "homeScore": 110,
+      "awayScore": 103
+    },
+    {
+      "gameId": "0022400050",
+      "date": "2024-11-15",
+      "time": "7:00 PM ET",
+      "homeTeam": { "teamTricode": "MIL", "teamName": "Bucks", "teamId": 1610612749 },
+      "awayTeam": { "teamTricode": "CLE", "teamName": "Cavaliers", "teamId": 1610612739 },
+      "status": "Final",
+      "homeScore": 99,
+      "awayScore": 115
+    },
+    {
+      "gameId": "0022400120",
+      "date": "2024-12-25",
+      "time": "12:00 PM ET",
+      "homeTeam": { "teamTricode": "GSW", "teamName": "Warriors", "teamId": 1610612744 },
+      "awayTeam": { "teamTricode": "LAL", "teamName": "Lakers", "teamId": 1610612747 },
+      "status": "Final",
+      "homeScore": 113,
+      "awayScore": 118
+    },
+    {
+      "gameId": "0022400200",
+      "date": "2025-01-20",
+      "time": "8:00 PM ET",
+      "homeTeam": { "teamTricode": "PHX", "teamName": "Suns", "teamId": 1610612756 },
+      "awayTeam": { "teamTricode": "DEN", "teamName": "Nuggets", "teamId": 1610612743 },
+      "status": "Final",
+      "homeScore": 121,
+      "awayScore": 119
+    },
+    {
+      "gameId": "0022400350",
+      "date": "2025-03-10",
+      "time": "7:30 PM ET",
+      "homeTeam": { "teamTricode": "BOS", "teamName": "Celtics", "teamId": 1610612738 },
+      "awayTeam": { "teamTricode": "MIA", "teamName": "Heat", "teamId": 1610612748 },
+      "status": "Scheduled",
+      "homeScore": 0,
+      "awayScore": 0
+    }
+  ]
+}

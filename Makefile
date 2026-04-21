@@ -1,4 +1,22 @@
-.PHONY: dev dev-server dev-web dev-android dev-all codegen stop stop-server stop-web stop-android
+.PHONY: dev dev-server dev-web dev-android dev-all codegen stop stop-server stop-web stop-android \
+        ios-test ios-test-clean ios-build ios-demo-project ios-run ios-stop
+
+# ── iOS build / test config ──────────────────────────────────
+IOS_SCHEME        ?= SduiCore
+IOS_DESTINATION   ?= platform=iOS Simulator,name=iPhone 15 Pro Max,OS=latest
+IOS_DEMO_SCHEME   ?= SduiDemo
+IOS_DEMO_BUNDLE   ?= com.nba.sdui.demo
+IOS_SIM_NAME      ?= iPhone 15 Pro Max
+# Set SDUI_DISABLE_ABLY=0 on the command line to re-enable ably-cocoa
+# (only works on arm64 simulators; x86_64 simulators hit the ably module
+# map bug and must keep the default of 1).
+SDUI_DISABLE_ABLY ?= 1
+XCBEAUTIFY        := $(shell command -v xcbeautify 2>/dev/null)
+ifeq ($(XCBEAUTIFY),)
+    IOS_PIPE := cat
+else
+    IOS_PIPE := xcbeautify
+endif
 
 # ── Android SDK paths ────────────────────────────────────────
 ANDROID_SDK ?= $(or $(ANDROID_HOME),$(HOME)/Library/Android/sdk)
@@ -74,3 +92,79 @@ stop-android:
 	@$(ADB) shell am force-stop com.nba.sdui.app 2>/dev/null || true
 	@$(ADB) emu kill 2>/dev/null || true
 	@echo "Android stopped"
+
+# ── iOS ──────────────────────────────────────────────────────
+# `make ios-test` runs the SduiCore XCTest suite on the iOS simulator
+# and pipes output through xcbeautify (if installed) so errors appear as
+# `file:line: error:` instead of Xcode's default noise. `brew install
+# xcbeautify` to enable — without it we fall back to raw xcodebuild.
+ios-test:
+	@if [ -z "$(XCBEAUTIFY)" ]; then \
+		echo "(tip: brew install xcbeautify for human-readable output)"; \
+	fi
+	@cd ios && set -o pipefail && SDUI_DISABLE_ABLY=$(SDUI_DISABLE_ABLY) xcodebuild test \
+		-scheme "$(IOS_SCHEME)" \
+		-destination "$(IOS_DESTINATION)" \
+		-skipMacroValidation | $(IOS_PIPE)
+
+# Clean slate: nuke DerivedData before running. Use when a
+# cached swiftmodule is causing stale diagnostics.
+ios-test-clean:
+	@echo "=== Wiping iOS DerivedData ==="
+	@rm -rf ~/Library/Developer/Xcode/DerivedData/ios-*
+	@$(MAKE) ios-test
+
+# Build only (no tests) — faster signal while iterating on library code.
+ios-build:
+	@cd ios && set -o pipefail && SDUI_DISABLE_ABLY=$(SDUI_DISABLE_ABLY) xcodebuild build \
+		-scheme "$(IOS_SCHEME)" \
+		-destination "$(IOS_DESTINATION)" \
+		-skipMacroValidation | $(IOS_PIPE)
+
+# `make ios-run` builds and launches the SduiDemo host app in the iOS
+# simulator. Mirrors `make dev-android`. Ably stays disabled on the x86_64
+# simulator (Intel hosts) — set SDUI_DISABLE_ABLY=0 on arm64 to enable it.
+#
+# Pre-req: `make dev-server` so the app has something to hit at localhost:8080.
+ios-demo-project:
+	@echo "=== Regenerating SduiDemo.xcodeproj ==="
+	@cd ios/SduiDemo && xcodegen generate --quiet
+
+ios-run: ios-demo-project
+	@if ! curl -sf http://localhost:8080/sdui/demos >/dev/null 2>&1; then \
+		echo "WARNING: server not reachable at http://localhost:8080"; \
+		echo "         run 'make dev-server' in another terminal first"; \
+	fi
+	@echo "=== Cleaning package cache ==="
+	@# Wipe the per-project SPM checkouts. Xcode sometimes leaves them in a
+	@# half-resolved state ("Cannot open X as Swift Package Proxy because it
+	@# is already open as Swift User Managed Package Folder"), which turns
+	@# into "Missing package product 'Kingfisher'" at link time. Resolving
+	@# into a fresh derived-data path avoids that every time.
+	@rm -rf ios/SduiDemo/build/SourcePackages
+	@echo "=== Building $(IOS_DEMO_SCHEME) ==="
+	@cd ios/SduiDemo && set -o pipefail && SDUI_DISABLE_ABLY=$(SDUI_DISABLE_ABLY) xcodebuild build \
+		-project SduiDemo.xcodeproj \
+		-scheme "$(IOS_DEMO_SCHEME)" \
+		-destination "$(IOS_DESTINATION)" \
+		-derivedDataPath build \
+		-clonedSourcePackagesDirPath build/SourcePackages \
+		-skipMacroValidation | $(IOS_PIPE)
+	@echo "=== Booting simulator ==="
+	@xcrun simctl boot "$(IOS_SIM_NAME)" 2>/dev/null || true
+	@open -a Simulator
+	@echo "=== Installing app ==="
+	@APP=$$(find ios/SduiDemo/build/Build/Products -type d -name "$(IOS_DEMO_SCHEME).app" | head -1); \
+	 if [ -z "$$APP" ]; then echo "ERROR: SduiDemo.app not found after build"; exit 1; fi; \
+	 xcrun simctl install booted "$$APP"
+	@echo "=== Launching app ==="
+	@xcrun simctl terminate booted $(IOS_DEMO_BUNDLE) 2>/dev/null || true
+	@xcrun simctl launch booted $(IOS_DEMO_BUNDLE)
+	@echo "=== Tailing logs (Ctrl-C to stop) ==="
+	@xcrun simctl spawn booted log stream --level debug \
+		--predicate 'subsystem == "com.nba.sdui"'
+
+ios-stop:
+	@echo "=== Stopping SduiDemo ==="
+	@xcrun simctl terminate booted $(IOS_DEMO_BUNDLE) 2>/dev/null || true
+	@echo "Stopped"

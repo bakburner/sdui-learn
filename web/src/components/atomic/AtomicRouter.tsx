@@ -38,29 +38,45 @@ export function AtomicRouter({ element, state, onAction, depth = 0, onStateChang
   }
   const childDepth = depth + 1;
   const childProps = { state, onAction, onStateChange, sectionSlotDepth };
+  let rendered: React.ReactElement | null;
   switch (element.type) {
     case 'Container':
-      return <AtomicContainer element={element} {...childProps} depth={childDepth} />;
+      rendered = <AtomicContainer element={element} {...childProps} depth={childDepth} />;
+      break;
     case 'Text':
-      return <AtomicText element={element} state={state} onAction={onAction} />;
+      rendered = <AtomicText element={element} state={state} onAction={onAction} />;
+      break;
     case 'Image':
-      return <AtomicImage element={element} state={state} onAction={onAction} />;
+      rendered = <AtomicImage element={element} state={state} onAction={onAction} />;
+      break;
     case 'Button':
-      return <AtomicButton element={element} state={state} onAction={onAction} />;
+      rendered = <AtomicButton element={element} state={state} onAction={onAction} />;
+      break;
     case 'Spacer':
-      return <AtomicSpacer element={element} state={state} onAction={onAction} />;
+      rendered = <AtomicSpacer element={element} state={state} onAction={onAction} />;
+      break;
     case 'Divider':
-      return <AtomicDivider element={element} state={state} onAction={onAction} />;
+      rendered = <AtomicDivider element={element} state={state} onAction={onAction} />;
+      break;
     case 'ScrollContainer':
-      return <AtomicScrollContainer element={element} {...childProps} depth={childDepth} />;
+      rendered = <AtomicScrollContainer element={element} {...childProps} depth={childDepth} />;
+      break;
     case 'Conditional':
-      return <AtomicConditional element={element} {...childProps} depth={childDepth} />;
+      rendered = <AtomicConditional element={element} {...childProps} depth={childDepth} />;
+      break;
     case 'DisplayGrid':
-      return <AtomicDisplayGrid element={element} state={state} onAction={onAction} />;
+      rendered = <AtomicDisplayGrid element={element} state={state} onAction={onAction} />;
+      break;
     case 'SectionSlot':
-      return <AtomicSectionSlot element={element} {...childProps} />;
+      rendered = <AtomicSectionSlot element={element} {...childProps} />;
+      break;
     default:
       console.debug(`[AtomicRouter] Unknown element type: ${element.type}`);
       return null;
   }
+
+  if (element.opacity !== undefined && rendered) {
+    return <div style={{ opacity: element.opacity }}>{rendered}</div>;
+  }
+  return rendered;
 }

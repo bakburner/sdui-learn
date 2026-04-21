@@ -76,7 +76,7 @@ public class GameDetailComposer {
         response.put("parentUri", "nba://scoreboard");
         response.set("navigation", utils.buildNavigation("game-detail"));
 
-        // Expose available A/B variants so clients never need URI-sniffing (Rule 10).
+        // Expose available A/B variants so clients never need URI-sniffing.
         ArrayNode variants = objectMapper.createArrayNode();
         variants.add(objectMapper.createObjectNode().put("id", "A").put("label", "Default").put("description", "All sections, standard order"));
         variants.add(objectMapper.createObjectNode().put("id", "B").put("label", "Reorder").put("description", "Content rail and TabGroup swapped"));
@@ -140,40 +140,47 @@ public class GameDetailComposer {
 
             ArrayNode sections = objectMapper.createArrayNode();
 
-            // 1. GamePanel (scoreboard displayConfig)
+            // 1. VideoPlayer — inline video for the game (platform SDK integration)
+            sections.add(buildVideoPlayerSection(gameId, game));
+
+            // 2. GamePanel (scoreboard displayConfig)
             sections.add(buildGamePanelScoreboardFromLive(game, gameId));
 
-            // 2. StatLine (top performers)
+            // 3. StatLine (top performers)
             ObjectNode statLineSection = buildStatLineSectionFromLive(game, gameId);
             if (statLineSection != null) {
                 sections.add(statLineSection);
             }
 
-            // 2b. Responsive row – home/away top performers side-by-side
+            // 3b. Responsive row – home/away top performers side-by-side
             ObjectNode rowSection = buildRowSectionFromLive(game, gameId);
             if (rowSection != null) {
                 sections.add(rowSection);
             }
 
-            // 3. ContentRail (AtomicComposite) from example
+            // 4. ContentRail (AtomicComposite) from example
             ObjectNode contentRail = loadSectionFromExample(gameState, "content-rail");
             if (contentRail != null) {
                 sections.add(contentRail);
             }
 
-            // 4. PromoBanner (AtomicComposite) from example
+            // 5. PromoBanner (AtomicComposite) from example
             ObjectNode promoBanner = loadSectionFromExample(gameState, "promo-banner");
             if (promoBanner != null) {
                 sections.add(promoBanner);
             }
 
-            // 5. BoxscoreTable TabGroup at the bottom
-            ObjectNode tabGroup = buildBoxscoreTabGroupFromLive(game, gameId);
+            // 6. TabGroup — Box Score + Highlights tabs
+            ObjectNode tabGroup = buildGameDetailTabGroupFromLive(game, gameId);
             if (tabGroup != null) {
                 sections.add(tabGroup);
             }
 
             response.set("sections", sections);
+
+            // Overlays — server-composed modal content triggered by SDK callbacks
+            response.set("overlays", buildOverlays(gameId));
+
             return response;
 
         } catch (Exception e) {
@@ -377,6 +384,7 @@ public class GameDetailComposer {
         ObjectNode refreshPolicy = objectMapper.createObjectNode();
         refreshPolicy.put("type", "sse");
         refreshPolicy.put("channel", gameId + ":linescore");
+        refreshPolicy.put("pauseWhenOffScreen", false);
         section.set("refreshPolicy", refreshPolicy);
 
         section.set("sectionStates", utils.buildSectionStates(
@@ -412,6 +420,7 @@ public class GameDetailComposer {
         data.put("period", game.path("period").asInt());
         data.put("gameStatus", game.path("gameStatus").asInt());
         data.put("gameStatusText", game.path("gameStatusText").asText());
+        data.put("clockRunning", game.path("gameStatus").asInt() == 2);
         data.set("displayConfig", atomicBuilder.scoreboardConfig(null));
 
         section.set("data", data);
@@ -543,6 +552,343 @@ public class GameDetailComposer {
         }
 
         return performers;
+    }
+
+    // ── VideoPlayer section ─────────────────────────────────────────────
+
+    private ObjectNode buildVideoPlayerSection(String gameId, JsonNode game) {
+        int gameStatus = game.path("gameStatus").asInt(1);
+
+        ObjectNode section = objectMapper.createObjectNode();
+        section.put("id", "video-player-" + gameId);
+        section.put("type", "VideoPlayer");
+        section.put("analyticsId", "game_detail_video_player");
+        section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
+
+        ObjectNode data = objectMapper.createObjectNode();
+        data.put("playerType", "game");
+        data.put("contentId", gameId);
+        data.put("autoplay", gameStatus == 2);
+
+        ArrayNode capabilities = objectMapper.createArrayNode();
+        capabilities.add("pip");
+        capabilities.add("fullscreenRotation");
+        data.set("capabilities", capabilities);
+
+        ObjectNode displayConfig = objectMapper.createObjectNode();
+        displayConfig.put("aspectRatio", "16:9");
+        data.set("displayConfig", displayConfig);
+
+        section.set("data", data);
+        return section;
+    }
+
+    // ── Overlays (server-composed modal content) ─────────────────────
+
+    private ObjectNode buildOverlays(String gameId) {
+        ObjectNode overlays = objectMapper.createObjectNode();
+
+        overlays.set("couchRightsWarning", buildOverlaySection(
+                "couch-rights-warning",
+                "sdui:warning",
+                "Viewing Time Limited",
+                "Your couch rights viewing window is active. You have limited time remaining on this stream.",
+                "Got It",
+                "dismiss"
+        ));
+
+        overlays.set("couchRightsExpired", buildOverlaySection(
+                "couch-rights-expired",
+                "sdui:warning",
+                "Viewing Time Expired",
+                "Your couch rights viewing window has ended. Subscribe to League Pass for unlimited access.",
+                "Subscribe Now",
+                "nba://leaguepass"
+        ));
+
+        overlays.set("unentitled", buildOverlaySection(
+                "unentitled",
+                "sdui:lock",
+                "Subscription Required",
+                "This content requires an active NBA League Pass subscription.",
+                "View Plans",
+                "nba://leaguepass"
+        ));
+
+        return overlays;
+    }
+
+    private ObjectNode buildOverlaySection(String id, String icon, String title,
+                                            String message, String ctaLabel, String ctaTarget) {
+        ObjectNode root = objectMapper.createObjectNode();
+        root.put("type", "Container");
+        root.put("direction", "column");
+        root.put("alignment", "center");
+        root.put("crossAlignment", "center");
+        root.set("padding", padHelper(24, 24, 32, 32));
+        root.put("background", "#1A1F2E");
+        root.put("cornerRadius", 16);
+
+        ArrayNode children = objectMapper.createArrayNode();
+
+        ObjectNode iconEl = objectMapper.createObjectNode();
+        iconEl.put("type", "Text");
+        iconEl.put("content", icon);
+        iconEl.put("variant", "heading1");
+        iconEl.put("textAlign", "center");
+        children.add(iconEl);
+
+        ObjectNode spacer1 = objectMapper.createObjectNode();
+        spacer1.put("type", "Spacer");
+        spacer1.put("height", 16);
+        children.add(spacer1);
+
+        ObjectNode titleEl = objectMapper.createObjectNode();
+        titleEl.put("type", "Text");
+        titleEl.put("content", title);
+        titleEl.put("variant", "heading2");
+        titleEl.put("weight", "bold");
+        titleEl.put("color", "#FFFFFF");
+        titleEl.put("textAlign", "center");
+        children.add(titleEl);
+
+        ObjectNode spacer2 = objectMapper.createObjectNode();
+        spacer2.put("type", "Spacer");
+        spacer2.put("height", 8);
+        children.add(spacer2);
+
+        ObjectNode messageEl = objectMapper.createObjectNode();
+        messageEl.put("type", "Text");
+        messageEl.put("content", message);
+        messageEl.put("variant", "body");
+        messageEl.put("color", "#AAAAAA");
+        messageEl.put("textAlign", "center");
+        children.add(messageEl);
+
+        ObjectNode spacer3 = objectMapper.createObjectNode();
+        spacer3.put("type", "Spacer");
+        spacer3.put("height", 24);
+        children.add(spacer3);
+
+        ObjectNode button = objectMapper.createObjectNode();
+        button.put("type", "Button");
+        button.put("label", ctaLabel);
+        button.put("buttonVariant", "primary");
+        ArrayNode actions = objectMapper.createArrayNode();
+        ObjectNode action = objectMapper.createObjectNode();
+        action.put("trigger", "onTap");
+        if ("dismiss".equals(ctaTarget)) {
+            action.put("type", "dismiss");
+        } else {
+            action.put("type", "navigate");
+            action.put("targetUri", ctaTarget);
+        }
+        actions.add(action);
+        button.set("actions", actions);
+        children.add(button);
+
+        root.set("children", children);
+
+        ObjectNode section = objectMapper.createObjectNode();
+        section.put("id", id);
+        section.put("type", "AtomicComposite");
+        section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
+        ObjectNode data = objectMapper.createObjectNode();
+        data.set("ui", root);
+        section.set("data", data);
+        return section;
+    }
+
+    private ObjectNode padHelper(int start, int end, int top, int bottom) {
+        ObjectNode p = objectMapper.createObjectNode();
+        p.put("start", start);
+        p.put("end", end);
+        p.put("top", top);
+        p.put("bottom", bottom);
+        return p;
+    }
+
+    // ── Extended TabGroup with Highlights tab ─────────────────────────
+
+    private ObjectNode buildGameDetailTabGroupFromLive(JsonNode game, String gameId) {
+        JsonNode homeTeam = game.path("homeTeam");
+        JsonNode awayTeam = game.path("awayTeam");
+        if (homeTeam.isMissingNode() || awayTeam.isMissingNode()) return null;
+
+        String homeTricode = homeTeam.path("teamTricode").asText("HOME");
+        String awayTricode = awayTeam.path("teamTricode").asText("AWAY");
+        int gameStatus = game.path("gameStatus").asInt(1);
+
+        ObjectNode section = objectMapper.createObjectNode();
+        section.put("id", "game-detail-tabs");
+        section.put("type", "TabGroup");
+        section.put("analyticsId", "game_detail_tabs");
+
+        ObjectNode data = objectMapper.createObjectNode();
+        data.put("stateKey", "gd_active_tab");
+        data.put("defaultTab", "boxscore");
+
+        ArrayNode tabs = objectMapper.createArrayNode();
+
+        ObjectNode boxscoreTab = objectMapper.createObjectNode();
+        boxscoreTab.put("id", "tab-boxscore");
+        boxscoreTab.put("label", "Box Score");
+        boxscoreTab.put("stateKey", "gd_active_tab");
+        boxscoreTab.put("stateValue", "boxscore");
+        tabs.add(boxscoreTab);
+
+        ObjectNode highlightsTab = objectMapper.createObjectNode();
+        highlightsTab.put("id", "tab-highlights");
+        highlightsTab.put("label", "Highlights");
+        highlightsTab.put("stateKey", "gd_active_tab");
+        highlightsTab.put("stateValue", "highlights");
+        tabs.add(highlightsTab);
+
+        data.set("tabs", tabs);
+
+        ObjectNode tabContents = objectMapper.createObjectNode();
+
+        // Box Score tab — team sub-tabs with boxscore tables
+        ArrayNode boxscoreContent = objectMapper.createArrayNode();
+        ObjectNode teamTabGroup = buildBoxscoreTabGroupFromLive(game, gameId);
+        if (teamTabGroup != null) {
+            boxscoreContent.add(teamTabGroup);
+        }
+        tabContents.set("boxscore", boxscoreContent);
+
+        // Highlights tab — VOD cards with mutate actions (1.5 player-adjacent content)
+        ArrayNode highlightsContent = objectMapper.createArrayNode();
+        highlightsContent.add(buildHighlightsSection(gameId));
+        tabContents.set("highlights", highlightsContent);
+
+        data.set("tabContents", tabContents);
+        section.set("data", data);
+        return section;
+    }
+
+    /**
+     * Builds a highlights section using mock data. Each VOD card carries a mutate action
+     * that sets screenState.selectedHighlight — the VideoPlayer section's contentId can
+     * be bound to this state key via Conditional, enabling player-adjacent content switching
+     * without navigation (Gap 6 / Phase 1.5).
+     */
+    private ObjectNode buildHighlightsSection(String gameId) {
+        String[][] highlights = {
+                {"hl-1", "Monster Dunk", "https://cdn.nba.com/manage/2025/02/giannis-dunk-752x428.jpg", "0:32", "media-0029400101"},
+                {"hl-2", "Buzzer Beater", "https://cdn.nba.com/manage/2025/02/curry-buzzer-752x428.jpg", "0:45", "media-0029400102"},
+                {"hl-3", "Chase-Down Block", "https://cdn.nba.com/manage/2025/02/ad-block-752x428.jpg", "0:28", "media-0029400103"},
+                {"hl-4", "Full Game Highlights", "https://cdn.nba.com/manage/2025/02/bos-mia-recap-752x428.jpg", "9:45", "media-0029400105"},
+        };
+
+        ObjectNode scroll = objectMapper.createObjectNode();
+        scroll.put("type", "ScrollContainer");
+        scroll.put("direction", "row");
+        scroll.put("gap", 12);
+        scroll.put("showIndicators", false);
+        ArrayNode scrollChildren = objectMapper.createArrayNode();
+
+        for (String[] hl : highlights) {
+            ObjectNode card = objectMapper.createObjectNode();
+            card.put("type", "Container");
+            card.put("direction", "column");
+            card.put("id", hl[0]);
+            card.put("cornerRadius", 8);
+            card.put("background", "#1A1F2E");
+
+            ObjectNode shadowObj = objectMapper.createObjectNode();
+            shadowObj.put("color", "#00000020");
+            shadowObj.put("radius", 4);
+            shadowObj.put("offsetX", 0);
+            shadowObj.put("offsetY", 2);
+            card.set("shadow", shadowObj);
+
+            ArrayNode cardActions = objectMapper.createArrayNode();
+            ObjectNode mutateAction = objectMapper.createObjectNode();
+            mutateAction.put("trigger", "onTap");
+            mutateAction.put("type", "mutate");
+            mutateAction.put("target", "screenState.selectedHighlight");
+            mutateAction.put("operation", "set");
+            mutateAction.put("value", hl[4]);
+            cardActions.add(mutateAction);
+            card.set("actions", cardActions);
+
+            ArrayNode cardChildren = objectMapper.createArrayNode();
+
+            ObjectNode img = objectMapper.createObjectNode();
+            img.put("type", "Image");
+            img.put("src", hl[2]);
+            img.put("width", 200);
+            img.put("height", 112);
+            img.put("fit", "cover");
+            img.put("cornerRadius", 8);
+
+            ObjectNode durationBadgeEl = objectMapper.createObjectNode();
+            durationBadgeEl.put("type", "Container");
+            durationBadgeEl.put("direction", "row");
+            durationBadgeEl.put("cornerRadius", 4);
+            durationBadgeEl.put("background", "#000000B3");
+            durationBadgeEl.put("opacity", 0.85);
+            ObjectNode dbPad = objectMapper.createObjectNode();
+            dbPad.put("start", 4); dbPad.put("end", 4); dbPad.put("top", 2); dbPad.put("bottom", 2);
+            durationBadgeEl.set("padding", dbPad);
+            ArrayNode dbChildren = objectMapper.createArrayNode();
+            ObjectNode dbText = objectMapper.createObjectNode();
+            dbText.put("type", "Text");
+            dbText.put("content", hl[3]);
+            dbText.put("variant", "caption");
+            dbText.put("color", "#FFFFFF");
+            dbChildren.add(dbText);
+            durationBadgeEl.set("children", dbChildren);
+
+            ObjectNode badgeObj = objectMapper.createObjectNode();
+            badgeObj.set("element", durationBadgeEl);
+            badgeObj.put("alignment", "bottomEnd");
+            img.set("badge", badgeObj);
+
+            cardChildren.add(img);
+
+            ObjectNode spacer = objectMapper.createObjectNode();
+            spacer.put("type", "Spacer");
+            spacer.put("height", 6);
+            cardChildren.add(spacer);
+
+            ObjectNode title = objectMapper.createObjectNode();
+            title.put("type", "Text");
+            title.put("content", hl[1]);
+            title.put("variant", "bodySmall");
+            title.put("weight", "semiBold");
+            title.put("color", "#FFFFFF");
+            title.put("maxLines", 2);
+            ObjectNode titlePad = objectMapper.createObjectNode();
+            titlePad.put("start", 8); titlePad.put("end", 8); titlePad.put("top", 0); titlePad.put("bottom", 4);
+            title.set("padding", titlePad);
+            cardChildren.add(title);
+
+            card.set("children", cardChildren);
+            scrollChildren.add(card);
+        }
+
+        scroll.set("children", scrollChildren);
+
+        ObjectNode root = objectMapper.createObjectNode();
+        root.put("type", "Container");
+        root.put("direction", "column");
+        ObjectNode rootPad = objectMapper.createObjectNode();
+        rootPad.put("start", 0); rootPad.put("end", 0); rootPad.put("top", 8); rootPad.put("bottom", 8);
+        root.set("padding", rootPad);
+        ArrayNode rootChildren = objectMapper.createArrayNode();
+        rootChildren.add(scroll);
+        root.set("children", rootChildren);
+
+        ObjectNode section = objectMapper.createObjectNode();
+        section.put("id", "highlights-" + gameId);
+        section.put("type", "AtomicComposite");
+        section.put("analyticsId", "game_detail_highlights");
+        section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
+        ObjectNode data = objectMapper.createObjectNode();
+        data.set("ui", root);
+        section.set("data", data);
+        return section;
     }
 
     // ── Channel resolution ─────────────────────────────────────────────

@@ -45,7 +45,8 @@ fun AtomicScrollContainer(
         LazyRow(
             modifier = modifier.applyAccessibility(element.accessibility),
             horizontalArrangement = Arrangement.spacedBy(gap),
-            contentPadding = PaddingValues(horizontal = 16.dp)
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            userScrollEnabled = element.showIndicators != false
         ) {
             itemsIndexed(children) { _, child ->
                 AtomicRouter(child, screenState, onAction, depth = depth + 1, onStateChange = onStateChange, sectionSlotDepth = sectionSlotDepth)
@@ -55,7 +56,8 @@ fun AtomicScrollContainer(
         LazyColumn(
             modifier = modifier.applyAccessibility(element.accessibility),
             verticalArrangement = Arrangement.spacedBy(gap),
-            contentPadding = PaddingValues(vertical = 0.dp)
+            contentPadding = PaddingValues(vertical = 0.dp),
+            userScrollEnabled = element.showIndicators != false
         ) {
             itemsIndexed(children) { _, child ->
                 AtomicRouter(child, screenState, onAction, depth = depth + 1, onStateChange = onStateChange, sectionSlotDepth = sectionSlotDepth)

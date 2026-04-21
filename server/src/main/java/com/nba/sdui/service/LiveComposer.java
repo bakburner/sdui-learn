@@ -133,6 +133,7 @@ public class LiveComposer {
             ObjectNode rp = objectMapper.createObjectNode();
             rp.put("type", "sse");
             rp.put("channel", gameId + ":linescore");
+            rp.put("pauseWhenOffScreen", false);
             section.set("refreshPolicy", rp);
             section.set("dataBinding", utils.buildLinescoreBindings());
         } else {
@@ -227,6 +228,7 @@ public class LiveComposer {
             ObjectNode rp = objectMapper.createObjectNode();
             rp.put("type", "sse");
             rp.put("channel", gameId + ":linescore");
+            rp.put("pauseWhenOffScreen", false);
             section.set("refreshPolicy", rp);
             section.set("dataBinding", utils.buildLinescoreBindings());
         } else {
@@ -294,6 +296,7 @@ public class LiveComposer {
             ObjectNode rp = objectMapper.createObjectNode();
             rp.put("type", "sse");
             rp.put("channel", id + ":linescore");
+            rp.put("pauseWhenOffScreen", false);
             section.set("refreshPolicy", rp);
         } else {
             section.set("refreshPolicy", staticPolicy());

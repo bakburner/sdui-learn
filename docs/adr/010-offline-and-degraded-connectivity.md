@@ -4,7 +4,7 @@
 - Date: 2026-03-13
 - Decision owners: Adrian Robinson (interim), platform leads, backend leads
 - Related requirements: `docs/sdui-requirements-summary.md`
-- Related ADRs: ADR-004 (Transport and Caching Policy)
+- Related ADRs: ADR-004 (Transport and Caching Policy), ADR-011 (Data Classification & Freshness), ADR-012 (Client Data Architecture)
 
 ## Decision
 
@@ -27,7 +27,7 @@ The challenge is proportionality. An NBA app's content (scores, schedules, video
 - SDUI payloads are JSON trees (10–50 KB typical for a screen). They are small and cheap to cache.
 - Content is highly time-sensitive: live scores stale in seconds, schedules in hours, editorial content in days.
 - The app is consumption-oriented (read-only). There are no offline write/sync conflicts to resolve.
-- The `cacheability` field from ADR-004 (`public`, `contextual`, `personalized`, `live`) already classifies staleness risk per response.
+- The `cacheability` field from ADR-011 (`public`, `contextual`, `personalized`, `live`) classifies staleness risk per response.
 
 ## Decision Drivers
 
@@ -63,7 +63,7 @@ Pros:
 - **Proportional to value.** Users see the last-fetched content (which may be minutes to hours old) rather than nothing. Good enough for schedule lookups, checking yesterday's results, or browsing editorial content.
 - **No schema coupling.** Cached content is opaque JSON — no local schema to maintain, no migrations, no sync logic.
 - **Preserves server authority.** The server remains the single source of truth. Cached content is explicitly marked as stale, not presented as current.
-- **Compatible with ADR-004.** The `cacheability` field on responses already classifies staleness risk. The client can use it to decide what's safe to show stale vs. what should show a "content unavailable" placeholder (e.g., `live` cacheability content is not shown stale — display "Live data unavailable" instead).
+- **Compatible with ADR-004 and ADR-011.** The `cacheability` field (ADR-011) on responses classifies staleness risk. The client uses it to decide what's safe to show stale vs. what should show a "content unavailable" placeholder (e.g., `live` cacheability content is not shown stale — display "Live data unavailable" instead).
 
 Cons:
 - **Not truly offline.** A cold install with no prior cache shows an error/empty state — there's no pre-seeded content.
@@ -101,19 +101,21 @@ Cons:
 ## Evidence
 
 - **SDUI payload sizes**: Typical screen response is 10–50 KB JSON. Full feed with 15 sections averages ~35 KB. These are trivially cacheable in any platform HTTP cache (OkHttp default: 10 MB; browser cache: ~50 MB; URLSession: configurable).
-- **Content half-life**: Live game data stales in seconds. Schedules stale in hours. Editorial/promo content stales in days. The `cacheability` field (ADR-004) captures this gradient.
+- **Content half-life**: Live game data stales in seconds. Schedules stale in hours. Editorial/promo content stales in days. The `cacheability` field (ADR-011) captures this gradient.
 - **Competitive apps**: ESPN, Yahoo Sports, and The Score all use stale-cache approaches with connectivity banners. None offer meaningful offline-first experiences for sports content.
-- **Existing infrastructure**: OkHttp HTTP cache is already configured on Android. ADR-004 defines `Cache-Control` header policy. The client infrastructure for Option B is 80% in place.
+- Existing infrastructure: OkHttp HTTP cache is already configured on Android. ADR-004 defines `Cache-Control` header policy. ADR-011 defines the cacheability classification. The client infrastructure for Option B is 80% in place.
 
 ## Decision Outcome
 
 **Option B** is chosen as the primary strategy, with elements of **Option D** as an optional enhancement.
 
-Option B is proportional to the value of offline sports content. It leverages existing platform cache infrastructure, requires minimal new code, preserves server authority, and provides a meaningfully better experience than a blank screen. The `cacheability` field from ADR-004 provides the staleness classification needed to make per-section decisions about what's safe to show offline.
+Option B is proportional to the value of offline sports content. It leverages existing platform cache infrastructure, requires minimal new code, preserves server authority, and provides a meaningfully better experience than a blank screen. The `cacheability` field from ADR-011 provides the staleness classification needed to make per-section decisions about what's safe to show offline.
 
 Option D (pre-seeded content) is recommended as a low-cost addition for v2 to eliminate the cold-install gap, but is not required for the initial implementation.
 
 Options A and C are deferred. Option A's cost is disproportionate to value for a sports content app. Option C is valuable for the Web platform specifically and may be revisited when Web offline support becomes a priority, but is not justified for the initial rollout.
+
+**Note:** ADR-012 proposes a persistent section-level blob store that would subsume this ADR's cache-fallback mechanism. If ADR-012 is accepted, the store IS the cache — the separate HTTP cache snapshot approach described here becomes unnecessary. This ADR's offline UX decisions (staleness indicators, per-cacheability display rules) remain valid regardless.
 
 ## Consequences
 
@@ -171,12 +173,20 @@ async function fetchScreen(screenId: string): Promise<SduiScreenResponse> {
 
 ### Staleness UX Rules
 
-| Cacheability | Offline Behavior |
+Staleness display rules are driven by the cacheability classification from ADR-011:
+
+| Cacheability (ADR-011) | Offline Behavior |
 |---|---|
 | `public` | Show stale content with timestamp ("Last updated 2h ago") |
 | `contextual` | Show stale content with staleness indicator |
 | `personalized` | Show stale content with staleness indicator (personalization may be outdated) |
 | `live` | Show placeholder: "Live data unavailable — pull to refresh" |
+
+The two-phase freshness model (layout staleness vs. data channel staleness) and the full failure mode matrix are defined in ADR-011. This ADR governs the **user-facing behavior** when those failure modes occur — banners, badges, placeholders, and retry affordances.
+
+3. **SSE → poll escalation (F2)** is a best-effort fallback, not a guarantee. It only activates if the section's `refreshPolicy` includes a `url` field (which direct-poll sections always have). Sections with SSE-only refresh policies remain stale until Ably reconnects.
+
+4. **Per-section staleness is orthogonal to cacheability-based UX rules.** A `live` section can be stale because of channel failure (F2/F3) even when the layout is fresh. The cacheability rules determine *what to show* when stale; the failure mode determines *why it's stale*.
 
 ### Scope
 

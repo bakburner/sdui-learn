@@ -1,6 +1,7 @@
 package com.nba.sdui.core.renderer.atomic
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -11,14 +12,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.nba.sdui.core.models.AtomicElement
-import com.nba.sdui.core.renderer.applyAccessibility
 import com.nba.sdui.core.models.actionToSduiAction
+import com.nba.sdui.core.renderer.applyAccessibility
 import com.nba.sdui.core.state.SduiAction
 
 private const val DEFAULT_FALLBACK =
@@ -62,26 +64,46 @@ fun AtomicImage(
     var currentSrc by remember(element.src) { mutableStateOf(element.src) }
     var triedFallback by remember(element.src) { mutableStateOf(false) }
 
-    AsyncImage(
-        model = currentSrc,
-        contentDescription = element.accessibility?.label ?: element.alt ?: "",
-        contentScale = mapContentScale(element.fit),
-        modifier = imageModifier.applyAccessibility(element.accessibility),
-        onError = {
-            if (!triedFallback) {
-                triedFallback = true
-                currentSrc = fallbackUrl
+    val imageComposable: @Composable () -> Unit = {
+        AsyncImage(
+            model = currentSrc,
+            contentDescription = element.accessibility?.label ?: element.alt ?: "",
+            contentScale = mapContentScale(element.fit),
+            modifier = imageModifier.applyAccessibility(element.accessibility),
+            onError = {
+                if (!triedFallback) {
+                    triedFallback = true
+                    currentSrc = fallbackUrl
+                }
+            }
+        )
+    }
+
+    if (element.badge != null) {
+        val badgeAlignment = when (element.badge.alignment) {
+            "topStart" -> Alignment.TopStart
+            "topEnd" -> Alignment.TopEnd
+            "bottomStart" -> Alignment.BottomStart
+            "bottomEnd" -> Alignment.BottomEnd
+            else -> Alignment.TopEnd
+        }
+        Box {
+            imageComposable()
+            element.badge.element?.let { badgeElement ->
+                Box(modifier = Modifier.align(badgeAlignment)) {
+                    AtomicRouter(badgeElement, screenState, onAction)
+                }
             }
         }
-    )
+    } else {
+        imageComposable()
+    }
 }
 
 private fun mapContentScale(fit: String?): ContentScale = when (fit) {
-    "cover"    -> ContentScale.Crop
-    "contain"  -> ContentScale.Fit
-    "fill"     -> ContentScale.FillBounds
-    "fitWidth" -> ContentScale.FillWidth
-    "fitHeight" -> ContentScale.FillHeight
-    "none"     -> ContentScale.None
-    else       -> ContentScale.Fit
+    "cover"   -> ContentScale.Crop
+    "contain" -> ContentScale.Fit
+    "fill"    -> ContentScale.FillBounds
+    "none"    -> ContentScale.None
+    else      -> ContentScale.Fit
 }

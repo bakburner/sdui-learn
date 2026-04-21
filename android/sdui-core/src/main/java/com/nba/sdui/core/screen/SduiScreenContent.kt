@@ -3,6 +3,7 @@ package com.nba.sdui.core.screen
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
@@ -14,6 +15,7 @@ import com.nba.sdui.core.models.SduiSection
 import com.nba.sdui.core.renderer.SectionErrorBoundary
 import com.nba.sdui.core.renderer.SectionRouter
 import com.nba.sdui.core.state.SduiAction
+import com.nba.sdui.core.state.SectionVisibilityTracker
 
 /**
  * Generic SDUI screen content — renders Loading / Error / Success states.
@@ -40,6 +42,7 @@ fun SduiScreenContent(
     onRetry: () -> Unit,
     onAction: (SduiAction) -> Unit,
     onStateChange: (String, Any) -> Unit,
+    visibilityTracker: SectionVisibilityTracker? = null,
     modifier: Modifier = Modifier
 ) {
     Box(modifier = modifier.fillMaxSize()) {
@@ -66,7 +69,8 @@ fun SduiScreenContent(
                     isRefreshing = isRefreshing,
                     onRefresh = onRefresh,
                     onAction = onAction,
-                    onStateChange = onStateChange
+                    onStateChange = onStateChange,
+                    visibilityTracker = visibilityTracker
                 )
             }
         }
@@ -144,14 +148,24 @@ private fun SuccessContent(
     isRefreshing: Boolean,
     onRefresh: () -> Unit,
     onAction: (SduiAction) -> Unit,
-    onStateChange: (String, Any) -> Unit
+    onStateChange: (String, Any) -> Unit,
+    visibilityTracker: SectionVisibilityTracker? = null
 ) {
+    val lazyListState = rememberLazyListState()
+
+    // Observe scroll position for visibility-gated refresh
+    visibilityTracker?.Observe(
+        lazyListState = lazyListState,
+        sectionIds = screen.sections.map { it.id }
+    )
+
     PullToRefreshBox(
         isRefreshing = isRefreshing,
         onRefresh = onRefresh,
         modifier = Modifier.fillMaxSize()
     ) {
         LazyColumn(
+            state = lazyListState,
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(start = 12.dp, top = 0.dp, end = 12.dp, bottom = 16.dp)
         ) {

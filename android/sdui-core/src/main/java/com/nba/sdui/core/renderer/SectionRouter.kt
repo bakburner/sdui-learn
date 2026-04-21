@@ -102,6 +102,14 @@ fun SectionRouter(
             )
         }
 
+        "VideoPlayer" -> {
+            VideoPlayerStub(
+                section = section,
+                onAction = onAction,
+                modifier = modifier
+            )
+        }
+
         "AtomicComposite" -> {
             val root = AtomicElementParser.parse(section.data)
             if (root != null) {
@@ -139,5 +147,6 @@ val SUPPORTED_SECTION_TYPES = setOf(
     "SubscribeHero",
     "AdSlot",
     "SeasonLeadersTable",
+    "VideoPlayer",
     "AtomicComposite"
 )

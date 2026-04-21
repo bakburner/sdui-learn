@@ -19,7 +19,7 @@ responsibility and a well-defined interface to the layers above and below it.
 ├──────────────┬──────────────────────────────┤
 │ SectionRouter│→ AtomicRouter (recursive)    │  Type dispatch
 ├──────────────┴──────────────────────────────┤
-│   Section Renderers (8) + Atomic Renderers (10)  │  Platform-native UI
+│   Section Renderers (9) + Atomic Renderers (10)  │  Platform-native UI
 ├─────────────────────────────────────────────┤
 │  Runtime Services                           │  ActionDispatcher, DataBindingResolver,
 │  (cross-cutting)                            │  RealTimeManager, RefreshOrchestrator,
@@ -112,8 +112,9 @@ refresh. Sections with `refreshPolicy.type == "static"` never refresh.
 | 23 | **SubscribeHero** | Platform IAP SDK integration |
 | 24 | **SubscribeBanner** | Platform IAP SDK integration |
 | 25 | **AdSlot** | Platform ad SDK lifecycle |
+| 25a | **VideoPlayer** | Platform video SDK (HLS/DASH playback, PiP, AirPlay/Chromecast, background audio, fullscreen rotation). `playerType` discriminator maps to the right SDK entry point. |
 
-**Milestone:** All 8 permanent sections render with full interactivity.
+**Milestone:** All 9 permanent sections render with full interactivity.
 
 ### Phase 5 — Production Hardening
 
@@ -140,6 +141,7 @@ FUNCTION SectionRouter(section, screenState, onAction, onStateChange):
         "SubscribeHero"      → SubscribeHeroRenderer(section, onAction)
         "AdSlot"             → AdSlotRenderer(section, onAction)
         "SeasonLeadersTable" → SeasonLeadersTableRenderer(section, onAction)
+        "VideoPlayer"        → VideoPlayerRenderer(section, onAction)
         "AtomicComposite"    →
             compositeData = section.data
             IF compositeData.ui IS NULL:
@@ -150,9 +152,10 @@ FUNCTION SectionRouter(section, screenState, onAction, onStateChange):
             RETURN null   // Skip gracefully — never crash
 ```
 
-**Supported section types (9):**
+**Supported section types (10):**
 `TabGroup`, `GamePanel`, `BoxscoreTable`, `Form`, `SubscribeBanner`,
-`SubscribeHero`, `AdSlot`, `SeasonLeadersTable`, `AtomicComposite`
+`SubscribeHero`, `AdSlot`, `SeasonLeadersTable`, `VideoPlayer`,
+`AtomicComposite`
 
 ---
 
@@ -329,6 +332,60 @@ FUNCTION setTargetPath(root, path, value):
 | Single binding failure | Log warning, continue to next binding |
 | i18n stringKeys | Optional map per binding; resolution deferred to renderer |
 
+### Binding Path Resilience
+
+Bindings may reference paths that no longer exist in the data shape due to
+schema evolution, message format changes, or cached-layout drift. See §3a
+of `sdui-requirements-summary.md` for the full requirement. The runtime
+behavior is already implemented by the null-guard in `applyBindings()` above
+(`IF sourceValue IS NULL: CONTINUE`). Clients additionally MUST track
+consecutive misses for observability:
+
+```
+// Module-level state — persists across calls, cleared when section is removed
+consecutiveMissCounts: map<string, int>   // key = "{sectionId}:{sourcePath}"
+MISS_THRESHOLD: int = 3
+
+FUNCTION applyBindings(sectionId, currentData, incomingMessage, dataBinding):
+    result = DEEP_CLONE(currentData)
+
+    FOR binding IN dataBinding.bindings:
+        key = sectionId + ":" + binding.sourcePath
+        TRY:
+            sourceValue = resolveSourcePath(incomingMessage, binding.sourcePath)
+
+            IF sourceValue IS NULL:
+                consecutiveMissCounts[key] = (consecutiveMissCounts[key] ?? 0) + 1
+                IF consecutiveMissCounts[key] >= MISS_THRESHOLD:
+                    LOG_WARNING("Binding path missing for " + MISS_THRESHOLD +
+                                " consecutive cycles: sectionId=" + sectionId +
+                                ", sourcePath=" + binding.sourcePath +
+                                ", misses=" + consecutiveMissCounts[key])
+                    // TODO: emit binding_path_missing analytics event
+                CONTINUE   // Keep previous value — do not overwrite with null
+
+            // Source resolved successfully — reset miss counter
+            consecutiveMissCounts[key] = 0
+            setTargetPath(result, binding.targetPath, sourceValue)
+
+        CATCH error:
+            consecutiveMissCounts[key] = (consecutiveMissCounts[key] ?? 0) + 1
+            LOG_WARNING("Failed to apply binding: " + binding.sourcePath +
+                        " → " + binding.targetPath + ": " + error)
+            CONTINUE
+
+    RETURN result
+
+FUNCTION resetBindingCounters(sectionId):
+    REMOVE all keys from consecutiveMissCounts where key starts with sectionId + ":"
+```
+
+**Mandatory rules:**
+- Clients MUST NOT crash, show error UI, or clear a field on a missing
+  binding path. Keep-previous-value is the only acceptable behavior.
+- Clients MUST call `resetBindingCounters(sectionId)` when a section is
+  removed from the screen to prevent counter map memory leaks.
+
 ---
 
 ## 6. Action Dispatch Algorithm
@@ -341,7 +398,7 @@ with failure-policy semantics.
 ```
 Action:
     type: "navigate" | "fireAndForget" | "mutate" | "refresh" | "dismiss" | "toast"
-    trigger: "onTap" | "onLongPress" | "onVisible" | "onSwipe" | "onFocus" | "onBlur"
+    trigger: "onTap" | "onLongPress" | "onVisible" | "onSwipe" | "onFocus" | "onBlur" | "onSubmit"
     targetUri: string?          // For navigate
     webUrl: string?             // Fallback URL for navigate
     presentation: "push" | "modal" | "fullscreen" | "replace" | "external"?
@@ -1008,7 +1065,31 @@ schema is the contract, not the generated code.
 
 ---
 
-## 17. Conformance Checklist
+## 17. Renderer Animation Guidelines
+
+These visual effects are **renderer responsibilities**, not schema properties.
+Implementations should follow platform-native animation patterns.
+
+| Effect | Server Sends | Renderer Does |
+|---|---|---|
+| **Live pulse** | `isLive: true` or `badgeText: "LIVE"` on GamePanel data | Animate opacity 0.3→1.0 on the live indicator element, repeating with autoreversal. **iOS:** `.animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true))`. **Compose:** `infiniteTransition.animateFloat()`. **Web:** CSS `@keyframes pulse`. |
+| **Numeric transitions** | Updated score/clock via SSE data binding | Apply content transition on value change. **iOS:** `.contentTransition(.numericText())`. **Compose:** `AnimatedContent`. **Web:** CSS `transition` on the value container. |
+| **Clock interpolation** | `clockRunning: true` on GamePanelData | Start a 1-second local timer that decrements the displayed game clock. Stop when an SSE update arrives (authoritative value) or when `clockRunning` flips to `false`. Apply platform-appropriate content transition to the clock text. |
+| **Color mixing** | Pre-computed hex colors | Server computes gradient tints from team colors at composition time. No runtime color math on clients. |
+| **Image load states** | `src` + `placeholder` on Image elements | Show loading placeholder → success image, or fall back to `placeholder` URL on failure. **iOS:** `AsyncImage { phase in }`. **Compose:** Coil `AsyncImage`. **Web:** `<img>` with `onError` fallback. |
+| **Pull-to-refresh** | `refreshPolicy: { type: "poll" }` on screen | Add platform pull-to-refresh gesture. **iOS:** `.refreshable {}`. **Compose:** `pullRefresh()`. **Web:** custom gesture or library. |
+| **Opacity-based overlays** | `opacity: 0.7` on a Container element | Apply the opacity value directly. Used for duration badge backgrounds and faded states. |
+| **Shadow rendering** | `shadow: { color, radius, offsetX, offsetY }` on elements | **SwiftUI:** `.shadow(color:radius:x:y:)` — exact match. **Compose:** `Modifier.shadow(elevation = radius * 1.5)` — approximation (offset not supported). **Web:** `box-shadow` — exact match. |
+| **Badge positioning** | `badge: { element, alignment }` on parent | **SwiftUI:** `.overlay(alignment:) { ... }`. **Compose:** `Box { content; Box(Modifier.align(...)) { ... } }`. **Web:** `position: relative` parent + `position: absolute` child. |
+
+**Timing recommendations:**
+- Content transitions: 300ms ease-in-out
+- Pulse animations: 800ms ease-in-out, repeat forever with autoreversal
+- Clock interpolation: 1s tick interval
+
+---
+
+## 18. Conformance Checklist
 
 A conforming client satisfies all of the following. This maps directly to
 the rules in `AGENTS.md`.
@@ -1027,6 +1108,9 @@ the rules in `AGENTS.md`.
 | C10 | URI resolution is a simple prefix swap | Rule 10 |
 | C11 | `X-Platform` header on every request | Rule 11 |
 | C12 | Exceptions logged with context — never silently swallowed | Rule 12 |
-| C13 | All schema enum values handled (or gracefully skipped) | Rule 13 |
+| C13 | Schema is the wire contract — strict decoders; new enum values go into schema first, then regen | Rule 13 |
 | C14 | Renderers are presentation-only — no business logic | Rule 14 |
 | C15 | Prefer AtomicComposite over new section type for stateless UI | Rule 15 |
+| C16 | Platform-native realization of semantic tokens (`textVariant`, `buttonVariant`, `iconName`, `containerVariant`) — map to the platform's current design language; no pixel-parity target | Rule 16 |
+| C17 | Code comments describe invariants and cite business constraints; do not cite internal rule numbers or AI-coding guidelines | Rule 17 |
+| C18 | Per-platform decisions default to the server (content, capability gating, asset-format). Client-realized vocabularies are the named exception (Rule 16 list) and must be pure presentation | Rule 18 |

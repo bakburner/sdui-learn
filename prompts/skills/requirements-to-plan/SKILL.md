@@ -93,11 +93,12 @@ Verify:
 ## Architecture Context (for accurate planning)
 
 ### Current Type Inventory
-- **9 section types** in schema: TabGroup, GamePanel, BoxscoreTable, Form, AdSlot, SeasonLeadersTable, SubscribeBanner, SubscribeHero, AtomicComposite
+- **10 section types** in schema: TabGroup, GamePanel, BoxscoreTable, Form, AdSlot, SeasonLeadersTable, SubscribeBanner, SubscribeHero, VideoPlayer, AtomicComposite
 - **10 atomic element types**: Container, Text, Image, Button, Spacer, Divider, ScrollContainer, Conditional, DisplayGrid, SectionSlot
 - **6 action types**: navigate, fireAndForget, mutate, refresh, dismiss, toast
+- **7 action triggers**: onTap, onLongPress, onVisible, onSwipe, onFocus, onBlur, onSubmit
 - **9 migrated types** (server-composed AtomicComposite, no client renderers): ErrorState, SectionHeader, PromoBanner, ContentRail, FollowingRail, HeroPanel, StatLine, VideoCarousel, NbaTvSchedule
-- **8 permanent sections** (client renderers with owned state): BoxscoreTable, SeasonLeadersTable, Form, TabGroup, GamePanel, SubscribeHero, SubscribeBanner, AdSlot
+- **9 permanent sections** (client renderers with owned state): BoxscoreTable, SeasonLeadersTable, Form, TabGroup, GamePanel, SubscribeHero, SubscribeBanner, AdSlot, VideoPlayer
 
 ### Decision Checklist (apply when planning tasks)
 1. Can this be solved by server composition only?

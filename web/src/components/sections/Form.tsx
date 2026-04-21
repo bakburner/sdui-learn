@@ -24,7 +24,7 @@ export function Form({ section, state, onAction, onStateChange }: SectionProps):
   const isHorizontal = model.layout === 'horizontal' || model.layout === 'inline';
 
   return (
-    <div role="form" style={{ ...styles.container, backgroundColor: section.backgroundColor || '#1a1a2e' }} {...accessibilityProps(section.accessibility)}>
+    <div role="form" style={{ ...styles.container, backgroundColor: section.backgroundColor || 'var(--surface)' }} {...accessibilityProps(section.accessibility)}>
       <div style={{ ...styles.fields, flexDirection: isHorizontal ? 'row' : 'column' }}>
         {model.fields.map((field) => {
           const value = (state[field.stateKey] as string) ?? '';
@@ -176,20 +176,22 @@ const styles: Record<string, React.CSSProperties> = {
   label: {
     fontSize: 12,
     fontWeight: 600,
-    color: '#9aa6ba',
+    color: 'var(--text-secondary)',
     marginBottom: 2,
+    letterSpacing: '0.02em',
   },
   required: {
-    color: '#ff6b6b',
+    color: 'var(--negative)',
     marginLeft: 2,
   },
   select: {
     padding: '8px 12px',
-    borderRadius: 8,
-    border: '1px solid #333',
-    backgroundColor: '#12122a',
-    color: '#e0e0e0',
+    borderRadius: 4,
+    border: '1px solid var(--divider)',
+    backgroundColor: 'var(--surface)',
+    color: 'var(--text-primary)',
     fontSize: 13,
+    fontFamily: 'var(--font-body)',
     appearance: 'auto' as React.CSSProperties['appearance'],
     cursor: 'pointer',
   },
@@ -205,11 +207,11 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: 'pointer',
   },
   radioInput: {
-    accentColor: '#ff6b6b',
+    accentColor: 'var(--nba-tint)',
   },
   radioText: {
     fontSize: 13,
-    color: '#e0e0e0',
+    color: 'var(--text-primary)',
   },
   toggleLabel: {
     display: 'flex',
@@ -218,35 +220,37 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: 'pointer',
   },
   checkbox: {
-    accentColor: '#ff6b6b',
+    accentColor: 'var(--nba-tint)',
     width: 18,
     height: 18,
     cursor: 'pointer',
   },
   toggleText: {
     fontSize: 13,
-    color: '#e0e0e0',
+    color: 'var(--text-primary)',
   },
   textInput: {
     padding: '8px 12px',
-    borderRadius: 8,
-    border: '1px solid #333',
-    backgroundColor: '#12122a',
-    color: '#e0e0e0',
+    borderRadius: 4,
+    border: '1px solid var(--divider)',
+    backgroundColor: 'var(--surface)',
+    color: 'var(--text-primary)',
     fontSize: 13,
+    fontFamily: 'var(--font-body)',
     outline: 'none',
   },
   submitButton: {
     marginTop: 16,
     padding: '10px 24px',
     border: 'none',
-    borderRadius: 8,
-    backgroundColor: '#ff6b6b',
-    color: '#ffffff',
+    borderRadius: 4,
+    backgroundColor: 'var(--button)',
+    color: 'var(--button-text)',
     fontSize: 14,
     fontWeight: 600,
+    fontFamily: 'var(--font-body)',
     cursor: 'pointer',
-    transition: 'background-color 0.2s',
+    transition: 'opacity 0.2s',
     width: '100%',
   },
 };

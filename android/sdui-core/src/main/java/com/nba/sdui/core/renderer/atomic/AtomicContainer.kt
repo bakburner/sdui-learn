@@ -6,17 +6,18 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment as ComposeAlignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.nba.sdui.core.models.AtomicElement
-import com.nba.sdui.core.renderer.applyAccessibility
 import com.nba.sdui.core.models.Background
 import com.nba.sdui.core.models.BackgroundGradient
 import com.nba.sdui.core.models.parseBackground
+import com.nba.sdui.core.renderer.applyAccessibility
 import com.nba.sdui.core.state.SduiAction
 
 /**
@@ -53,9 +54,17 @@ fun AtomicContainer(
 
     val fillModifier = if (element.fillWidth == true) modifier.fillMaxWidth() else modifier
 
-    val clippedModifier = element.cornerRadius?.let {
-        fillModifier.clip(RoundedCornerShape(it.dp))
+    val shape = RoundedCornerShape((element.cornerRadius ?: 0).dp)
+    val shadowModifier = element.shadow?.let { s ->
+        fillModifier.shadow(
+            elevation = (s.radius ?: 0.0).toFloat().dp,
+            shape = shape
+        )
     } ?: fillModifier
+
+    val clippedModifier = element.cornerRadius?.let {
+        shadowModifier.clip(shape)
+    } ?: shadowModifier
 
     val bg = parseBackground(element.background)
     val bgModifier = when (bg) {
@@ -94,46 +103,68 @@ fun AtomicContainer(
         else      -> if (isRow) ComposeAlignment.Top else ComposeAlignment.Start
     }
 
-    if (isRow) {
-        Row(
-            modifier = finalModifier,
-            horizontalArrangement = mainAxisArrangement as Arrangement.Horizontal,
-            verticalAlignment = crossAxis as ComposeAlignment.Vertical
-        ) {
-            element.children?.forEachIndexed { index, child ->
-                val childModifier = if (child.flex != null && child.flex > 0f) {
-                    Modifier.weight(child.flex)
-                } else {
-                    Modifier
+    val containerContent: @Composable () -> Unit = {
+        if (isRow) {
+            Row(
+                modifier = finalModifier,
+                horizontalArrangement = mainAxisArrangement as Arrangement.Horizontal,
+                verticalAlignment = crossAxis as ComposeAlignment.Vertical
+            ) {
+                element.children?.forEachIndexed { index, child ->
+                    val childModifier = if (child.flex != null && child.flex > 0f) {
+                        Modifier.weight(child.flex)
+                    } else {
+                        Modifier
+                    }
+                    Box(modifier = childModifier) {
+                        AtomicRouter(child, screenState, onAction, depth = depth + 1, onStateChange = onStateChange, sectionSlotDepth = sectionSlotDepth)
+                    }
+                    if (index < (element.children.size - 1) && gap > 0.dp) {
+                        Spacer(modifier = Modifier.width(gap))
+                    }
                 }
-                Box(modifier = childModifier) {
-                    AtomicRouter(child, screenState, onAction, depth = depth + 1, onStateChange = onStateChange, sectionSlotDepth = sectionSlotDepth)
+            }
+        } else {
+            Column(
+                modifier = finalModifier,
+                verticalArrangement = mainAxisArrangement as Arrangement.Vertical,
+                horizontalAlignment = crossAxis as ComposeAlignment.Horizontal
+            ) {
+                element.children?.forEachIndexed { index, child ->
+                    val childModifier = if (child.flex != null && child.flex > 0f) {
+                        Modifier.weight(child.flex)
+                    } else {
+                        Modifier
+                    }
+                    Box(modifier = childModifier) {
+                        AtomicRouter(child, screenState, onAction, depth = depth + 1, onStateChange = onStateChange, sectionSlotDepth = sectionSlotDepth)
+                    }
+                    if (index < (element.children.size - 1) && gap > 0.dp) {
+                        Spacer(modifier = Modifier.height(gap))
+                    }
                 }
-                if (index < (element.children.size - 1) && gap > 0.dp) {
-                    Spacer(modifier = Modifier.width(gap))
+            }
+        }
+    }
+
+    if (element.badge != null) {
+        val badgeAlignment = when (element.badge.alignment) {
+            "topStart" -> ComposeAlignment.TopStart
+            "topEnd" -> ComposeAlignment.TopEnd
+            "bottomStart" -> ComposeAlignment.BottomStart
+            "bottomEnd" -> ComposeAlignment.BottomEnd
+            else -> ComposeAlignment.TopEnd
+        }
+        Box {
+            containerContent()
+            element.badge.element?.let { badgeElement ->
+                Box(modifier = Modifier.align(badgeAlignment)) {
+                    AtomicRouter(badgeElement, screenState, onAction, depth = depth + 1, onStateChange = onStateChange, sectionSlotDepth = sectionSlotDepth)
                 }
             }
         }
     } else {
-        Column(
-            modifier = finalModifier,
-            verticalArrangement = mainAxisArrangement as Arrangement.Vertical,
-            horizontalAlignment = crossAxis as ComposeAlignment.Horizontal
-        ) {
-            element.children?.forEachIndexed { index, child ->
-                val childModifier = if (child.flex != null && child.flex > 0f) {
-                    Modifier.weight(child.flex)
-                } else {
-                    Modifier
-                }
-                Box(modifier = childModifier) {
-                    AtomicRouter(child, screenState, onAction, depth = depth + 1, onStateChange = onStateChange, sectionSlotDepth = sectionSlotDepth)
-                }
-                if (index < (element.children.size - 1) && gap > 0.dp) {
-                    Spacer(modifier = Modifier.height(gap))
-                }
-            }
-        }
+        containerContent()
     }
 }
 

@@ -4,6 +4,7 @@ const ABLY_TOKEN_URL = '/ably-token';
 
 let client: Ably.Realtime | null = null;
 const activeChannels = new Map<string, Ably.RealtimeChannel>();
+const connectionListeners = new Set<(state: string) => void>();
 
 async function fetchAblyToken(): Promise<string> {
   const res = await fetch(ABLY_TOKEN_URL, { headers: { Accept: 'application/json' } });
@@ -28,9 +29,22 @@ function getClient(): Ably.Realtime {
       autoConnect: true,
     });
 
-    client.connection.on('connected', () => console.log('[Ably] Connected'));
-    client.connection.on('disconnected', () => console.warn('[Ably] Disconnected'));
-    client.connection.on('failed', (err) => console.error('[Ably] Connection failed', err));
+    client.connection.on('connected', () => {
+      console.log('[Ably] Connected');
+      connectionListeners.forEach((cb) => cb('connected'));
+    });
+    client.connection.on('disconnected', () => {
+      console.warn('[Ably] Disconnected');
+      connectionListeners.forEach((cb) => cb('disconnected'));
+    });
+    client.connection.on('suspended', () => {
+      console.warn('[Ably] Suspended');
+      connectionListeners.forEach((cb) => cb('suspended'));
+    });
+    client.connection.on('failed', (err) => {
+      console.error('[Ably] Connection failed', err);
+      connectionListeners.forEach((cb) => cb('failed'));
+    });
   }
   return client;
 }
@@ -70,6 +84,21 @@ export function subscribeToChannel(channelName: string, onMessage: MessageCallba
 export function disconnect(): void {
   activeChannels.forEach((ch) => ch.unsubscribe());
   activeChannels.clear();
+  connectionListeners.clear();
   client?.close();
   client = null;
+}
+
+/**
+ * Register a listener for Ably connection state changes.
+ * States: 'connected', 'disconnected', 'suspended', 'failed'.
+ * Returns an unsubscribe function.
+ */
+export function onConnectionStateChange(callback: (state: string) => void): () => void {
+  // Ensure client is initialized so connection listeners are wired
+  getClient();
+  connectionListeners.add(callback);
+  return () => {
+    connectionListeners.delete(callback);
+  };
 }

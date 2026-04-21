@@ -10,7 +10,7 @@ import { accessibilityProps } from '../../utils/accessibility';
 export function GamePanel({ section, onAction }: SectionProps): React.ReactElement {
   const model = mapGamePanel(section);
   if (!model) {
-    return <div style={{ color: '#fff', padding: 16 }}>No game data</div>;
+    return <div style={{ color: 'var(--text-primary)', padding: 16, fontFamily: 'var(--font-body)' }}>No game data</div>;
   }
   return <GamePanelView model={model} section={section} onAction={onAction} />;
 }
@@ -79,8 +79,8 @@ function buildStyles(config: GamePanelDisplayConfig, isLive: boolean): Record<st
     ? resolveBackgroundCSS(config.liveBackground)
     : resolveBackgroundCSS(config.background);
 
-  const fallbackBg = Object.keys(bg).length === 0 ? { background: '#161b2b' } : {};
-  const badgeColor = config.badgeColor ?? (isLive ? '#C8102E' : '#666666');
+  const fallbackBg = Object.keys(bg).length === 0 ? { background: 'var(--game-card-bg)' } : {};
+  const badgeColor = config.badgeColor ?? (isLive ? 'var(--live)' : 'var(--text-secondary)');
   const isProminent = config.scoreTextStyle === 'prominent';
 
   return {
@@ -88,9 +88,9 @@ function buildStyles(config: GamePanelDisplayConfig, isLive: boolean): Record<st
       position: 'relative',
       width: '100%',
       minHeight: config.cardHeight ? config.cardHeight : 'auto',
-      borderRadius: config.cornerRadius,
+      borderRadius: config.cornerRadius ?? 4,
       border: 'none',
-      color: '#fff',
+      color: 'var(--text-primary)',
       padding: '16px 20px',
       cursor: 'pointer',
       display: 'flex',
@@ -112,18 +112,20 @@ function buildStyles(config: GamePanelDisplayConfig, isLive: boolean): Record<st
     },
     visualLabel: {
       fontSize: 12,
-      fontWeight: 600,
-      color: 'rgba(255,255,255,0.7)',
+      fontWeight: 700,
+      fontFamily: 'var(--font-body)',
+      color: 'var(--text-on-image-50)',
       textTransform: 'uppercase' as const,
-      letterSpacing: 0.5,
+      letterSpacing: '0.08em',
     },
     badge: {
       fontSize: 11,
       fontWeight: 700,
+      fontFamily: 'var(--font-body)',
       textTransform: 'uppercase' as const,
       padding: '3px 10px',
-      borderRadius: 6,
-      letterSpacing: 0.5,
+      borderRadius: 4,
+      letterSpacing: '0.04em',
       background: badgeColor,
     },
     matchup: {
@@ -143,17 +145,21 @@ function buildStyles(config: GamePanelDisplayConfig, isLive: boolean): Record<st
       objectFit: 'contain' as const,
     },
     score: {
-      fontSize: isProminent ? 28 : 18,
-      fontWeight: isProminent ? 800 : 700,
+      fontSize: isProminent ? 32 : 20,
+      fontWeight: 800,
+      fontFamily: 'var(--font-headline)',
+      fontVariantNumeric: 'tabular-nums',
     },
     teamName: {
       fontSize: 12,
       fontWeight: 600,
+      fontFamily: 'var(--font-body)',
       opacity: 0.85,
     },
     record: {
       fontSize: 11,
-      opacity: 0.6,
+      fontFamily: 'var(--font-body)',
+      color: 'var(--text-on-image-50)',
     },
     centerCol: {
       display: 'flex',
@@ -163,11 +169,13 @@ function buildStyles(config: GamePanelDisplayConfig, isLive: boolean): Record<st
     },
     statusText: {
       fontSize: 13,
-      color: 'rgba(255,255,255,0.75)',
+      fontFamily: 'var(--font-body)',
+      color: 'var(--text-on-image-50)',
     },
     broadcaster: {
       fontSize: 11,
-      color: 'rgba(255,255,255,0.6)',
+      fontFamily: 'var(--font-body)',
+      color: 'var(--text-on-image-50)',
     },
   };
 }

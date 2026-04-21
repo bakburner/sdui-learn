@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "Cross-platform icon vocabulary. Clients resolve sdui: tokens to platform-native icons. Unknown tokens fall back to sdui:warning or are hidden.",
+  "tokens": {
+    "sdui:play":     { "sf": "play.fill",                          "material": "PlayArrow",        "web": "play_arrow" },
+    "sdui:pause":    { "sf": "pause.fill",                         "material": "Pause",            "web": "pause" },
+    "sdui:back":     { "sf": "chevron.left",                       "material": "ArrowBack",        "web": "arrow_back" },
+    "sdui:forward":  { "sf": "chevron.right",                      "material": "ArrowForward",     "web": "arrow_forward" },
+    "sdui:settings": { "sf": "gearshape",                          "material": "Settings",         "web": "settings" },
+    "sdui:home":        { "sf": "house",                           "material": "Home",             "web": "home" },
+    "sdui:basketball":  { "sf": "basketball.fill",                 "material": "SportsBasketball", "web": "sports_basketball" },
+    "sdui:video":       { "sf": "play.rectangle",                  "material": "PlayCircle",       "web": "play_circle" },
+    "sdui:leaderboard": { "sf": "list.number",                     "material": "Leaderboard",      "web": "leaderboard" },
+    "sdui:grid":        { "sf": "square.grid.2x2",                 "material": "Widgets",          "web": "widgets" },
+    "sdui:expand":   { "sf": "chevron.down",                       "material": "KeyboardArrowDown","web": "expand_more" },
+    "sdui:collapse": { "sf": "chevron.up",                         "material": "KeyboardArrowUp",  "web": "expand_less" },
+    "sdui:check":    { "sf": "checkmark",                          "material": "Check",            "web": "check" },
+    "sdui:warning":  { "sf": "exclamationmark.triangle",           "material": "Warning",          "web": "warning" },
+    "sdui:live":     { "sf": "antenna.radiowaves.left.and.right",  "material": "Sensors",          "web": "sensors" },
+    "sdui:person":   { "sf": "person.circle",                      "material": "AccountCircle",    "web": "account_circle" },
+    "sdui:close":    { "sf": "xmark",                              "material": "Close",            "web": "close" },
+    "sdui:search":   { "sf": "magnifyingglass",                    "material": "Search",           "web": "search" },
+    "sdui:share":    { "sf": "square.and.arrow.up",                "material": "Share",            "web": "share" },
+    "sdui:favorite": { "sf": "heart",                              "material": "FavoriteBorder",   "web": "favorite_border" },
+    "sdui:favorited":{ "sf": "heart.fill",                         "material": "Favorite",         "web": "favorite" },
+    "sdui:fullscreen":{"sf": "arrow.up.left.and.arrow.down.right", "material": "Fullscreen",       "web": "fullscreen" },
+    "sdui:pip":      { "sf": "pip",                                "material": "PictureInPicture", "web": "picture_in_picture" },
+    "sdui:cast":     { "sf": "airplayvideo",                       "material": "Cast",             "web": "cast" },
+    "sdui:info":     { "sf": "info.circle",                        "material": "Info",             "web": "info" },
+    "sdui:calendar": { "sf": "calendar",                           "material": "CalendarToday",    "web": "calendar_today" },
+    "sdui:refresh":  { "sf": "arrow.clockwise",                    "material": "Refresh",          "web": "refresh" }
+  }
+}

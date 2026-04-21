@@ -94,7 +94,29 @@ data class AtomicElement(
     @JsonProperty("fillWidth") val fillWidth: Boolean? = null,
 
     // Actions (applicable to any interactive element)
-    @JsonProperty("actions") val actions: List<Map<String, Any?>>? = null
+    @JsonProperty("actions") val actions: List<Map<String, Any?>>? = null,
+
+    // Phase 0.4 styling properties
+    @JsonProperty("opacity") val opacity: Double? = null,
+    @JsonProperty("shadow") val shadow: Shadow? = null,
+    @JsonProperty("badge") val badge: Badge? = null,
+    @JsonProperty("textAlign") val textAlign: String? = null,
+    @JsonProperty("showIndicators") val showIndicators: Boolean? = null,
+    @JsonProperty("monospacedDigits") val monospacedDigits: Boolean? = null
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class Shadow(
+    @JsonProperty("color") val color: String? = null,
+    @JsonProperty("radius") val radius: Double? = null,
+    @JsonProperty("offsetX") val offsetX: Double? = null,
+    @JsonProperty("offsetY") val offsetY: Double? = null
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class Badge(
+    @JsonProperty("element") val element: AtomicElement? = null,
+    @JsonProperty("alignment") val alignment: String? = null
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)

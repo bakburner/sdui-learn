@@ -4,7 +4,9 @@
 >
 > **Generated**: 2026-03-24 from the running composition service (DemoScreenComposer)
 
-This is the full server response for the kitchen-sink demo screen — a single SDUI payload that exercises every section type and atomic primitive the prototype supports. It is the canonical reference for what a complete SDUI response looks like in production shape.
+This is the full server response for the kitchen-sink demo screen — a single SDUI payload that exercises the section types and atomic primitives included in this snapshot. It is the canonical reference for what a complete SDUI response looks like in production shape.
+
+> **Snapshot caveats:** this capture predates the `VideoPlayer` section type and the `sdui:*` icon-token migration, so nav-item `icon` fields here are raw Material names (e.g. `"home"`, `"sports_basketball"`) rather than the neutral tokens (`"sdui:home"`, `"sdui:basketball"`) the live server now emits. Refresh this appendix manually — `cd server && ./gradlew bootRun`, then `curl -s -H "X-Platform: android" http://localhost:8080/sdui/demos | python3 -m json.tool` — when you want the current wire format.
 
 
 ```json
@@ -584,7 +586,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
                                 {
                                     "type": "Button",
                                     "label": "Learn More",
-                                    "buttonVariant": "filled",
+                                    "buttonVariant": "primary",
                                     "actions": [
                                         {
                                             "trigger": "onTap",
@@ -3959,7 +3961,7 @@ This is the full server response for the kitchen-sink demo screen — a single S
                         {
                             "type": "Button",
                             "label": "Try Again",
-                            "buttonVariant": "filled",
+                            "buttonVariant": "primary",
                             "actions": [
                                 {
                                     "trigger": "onTap",

@@ -41,7 +41,8 @@ export function AtomicDisplayGrid({ element }: AtomicProps): React.ReactElement 
     fontWeight: 600,
     textAlign: alignToCSS(col.align),
     padding: '4px 8px',
-    background: 'var(--surface-variant, #e0e0e0)',
+    background: 'var(--surface-raised, #2B2F37)',
+    color: 'var(--text-primary, #FFFFFF)',
     ...(col.width && col.width !== 'flex' ? { width: col.width } : {}),
   });
 
@@ -65,7 +66,7 @@ export function AtomicDisplayGrid({ element }: AtomicProps): React.ReactElement 
         {rows.map((row, idx) => (
           <tr
             key={idx}
-            style={striped && idx % 2 === 1 ? { background: 'var(--surface-variant-dim, #f5f5f5)' } : undefined}
+            style={striped && idx % 2 === 1 ? { background: 'var(--surface-alt, #2B2F37)' } : { background: 'var(--surface, #191C23)' }}
           >
             {columns.map((col) => (
               <td key={col.key} style={tdStyle(col)}>{row[col.key] ?? ''}</td>

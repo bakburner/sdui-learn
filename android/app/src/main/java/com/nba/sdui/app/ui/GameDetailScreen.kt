@@ -8,6 +8,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.nba.sdui.app.BuildConfig
 import com.nba.sdui.app.SduiConfig
@@ -46,6 +49,20 @@ fun GameDetailScreen(
     val uiState by viewModel.uiState.collectAsState()
     val screenState by viewModel.screenState.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
+
+    // Observe app lifecycle for background/foreground pause
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, viewModel) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_STOP -> viewModel.onAppBackgrounded()
+                Lifecycle.Event.ON_START -> viewModel.onAppForegrounded()
+                else -> {}
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     // Fetch SDUI response on first composition (keyed on full config)
     LaunchedEffect(config) {
@@ -99,7 +116,7 @@ fun GameDetailScreen(
             }
         )
 
-        // Server-driven variant chips (Rule 9 / Rule 10 — no client-side URI sniffing)
+        // Server-driven variant chips — no client-side URI sniffing.
         val variantsData = (uiState as? SduiScreenUiState.Success)?.screen?.variants
         val serverVariants = variantsData?.options ?: emptyList()
         val experimentId = variantsData?.experimentId ?: "variant"
@@ -135,6 +152,7 @@ fun GameDetailScreen(
                 onRetry = { viewModel.load(config.uri) },
                 onAction = { viewModel.handleAction(it) },
                 onStateChange = { key, value -> viewModel.updateState(key, value) },
+                visibilityTracker = viewModel.visibilityTracker,
                 modifier = contentModifier
             )
         }

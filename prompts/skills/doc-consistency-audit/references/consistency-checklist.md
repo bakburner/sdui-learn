@@ -4,21 +4,26 @@ For each document in the audit list, verify every item below. Mark any inconsist
 
 ## Counts
 
-- [ ] Section type count matches schema enum length (currently 9)
+- [ ] Section type count matches schema enum length (currently 10)
 - [ ] Atomic element type count matches schema enum length (currently 10)
 - [ ] Action type count matches schema enum length (currently 6)
+- [ ] Action trigger count matches schema enum length (currently 7)
 - [ ] Renderer count matches number of section renderer files per platform
 - [ ] "Migrated to atomic" count matches number of types in AtomicCompositeBuilder (currently 9)
-- [ ] "Permanent sections" count matches schema section enum minus AtomicComposite (currently 8)
+- [ ] "Permanent sections" count matches schema section enum minus AtomicComposite (currently 9)
+- [ ] AGENTS.md rule count matches number of top-level `## N.` headings (currently 18)
 
 ## Type Lists
 
 - [ ] Every section type name listed matches schema enum exactly (PascalCase)
 - [ ] Every action type name listed matches schema enum exactly (camelCase)
+- [ ] Every action trigger listed matches schema enum exactly (camelCase, includes `onSubmit`)
+- [ ] Every `buttonVariant` value listed matches schema enum exactly (`primary`, `secondary`, `tertiary`, `text`); no `filled` appears as an enum value
 - [ ] Every atomic element type name listed matches schema enum exactly (PascalCase)
 - [ ] No pruned/deleted types appear (ErrorState, SectionHeader, PromoBanner, ContentRail, FollowingRail, HeroPanel, StatLine, VideoCarousel, NbaTvSchedule, Row, RowData)
 - [ ] Migrated types list is complete: ErrorState, SectionHeader, PromoBanner, ContentRail, FollowingRail, HeroPanel, StatLine, VideoCarousel, NbaTvSchedule
-- [ ] Permanent types list is complete: BoxscoreTable, SeasonLeadersTable, Form, TabGroup, GamePanel, SubscribeHero, SubscribeBanner, AdSlot
+- [ ] Permanent types list is complete: BoxscoreTable, SeasonLeadersTable, Form, TabGroup, GamePanel, SubscribeHero, SubscribeBanner, AdSlot, VideoPlayer
+- [ ] Icon references in contract-facing docs use neutral `sdui:*` tokens (e.g. `sdui:home`, `sdui:basketball`), not raw Material Symbols names (`home`, `sports_basketball`, `play_circle`)
 
 ## Terminology
 
@@ -63,7 +68,8 @@ Compare every status table entry against actual code state. Recent commits frequ
 - [ ] ADRs marked "Proposed" in docs are actually still proposed (not silently accepted)
 - [ ] ADRs marked "Accepted" in docs are actually accepted
 - [ ] The Executive Summary "Decision Continuity" table reflects current ADR statuses (not stale "ADR pending")
-- [ ] The Requirements Summary "ADR Approvals Pending" table reflects current ADR statuses
+- [ ] The Requirements Summary "ADR Status Summary" table reflects current ADR statuses (note: table was renamed from "ADR Approvals Pending")
+- [ ] Recently added ADRs (ADR-011 data classification, ADR-012 client data architecture, ADR-013 style tokens) appear in every ADR matrix
 
 ## Revision History
 

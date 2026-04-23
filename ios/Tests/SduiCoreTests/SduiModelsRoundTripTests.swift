@@ -35,6 +35,16 @@ final class SduiModelsRoundTripTests: XCTestCase {
         XCTAssertFalse(screen.sections.isEmpty)
     }
 
+    func testGameDetailPreDecodes() throws {
+        let data = try loadFixture("game-detail-pre")
+        let screen = try SduiModels(data: data)
+        XCTAssertFalse(screen.sections.isEmpty, "pre-game screen should contain sections")
+        XCTAssertTrue(
+            screen.sections.contains(where: { $0.type == "GamePanel" }),
+            "pre-game screen must include a GamePanel section"
+        )
+    }
+
     func testScoreboardLiveDecodes() throws {
         let data = try loadFixture("scoreboard-live")
         let screen = try SduiModels(data: data)

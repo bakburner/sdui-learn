@@ -128,6 +128,15 @@ refresh. Sections with `refreshPolicy.type == "static"` never refresh.
 | 29 | **Accessibility** | Map `accessibilityLabel`, `accessibilityRole`, `accessibilityHint` from schema to platform APIs. |
 | 30 | **SectionSlot bridge** | AtomicRouter encounters `SectionSlot` → delegates back to SectionRouter. Recursion guard at depth 2. |
 
+### Contract Drift Test (required for every client)
+
+Every client must ship a round-trip test against `schema/examples/`.
+Failure means wire-contract drift.
+
+- Web: `web/src/__tests__/schemaRoundTrip.test.ts`
+- Android: `android/sdui-core/src/test/java/com/nba/sdui/core/SchemaRoundTripTest.kt`
+- iOS: `ios/Tests/SduiCoreTests/SduiModelsRoundTripTests.swift`
+
 ---
 
 ## 3. Section Router Algorithm

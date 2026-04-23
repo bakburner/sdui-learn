@@ -1,5 +1,5 @@
 .PHONY: dev dev-server dev-web dev-android dev-all codegen stop stop-server stop-web stop-android \
-        ios-test ios-test-clean ios-build ios-demo-project ios-run ios-stop
+	ios-test ios-test-clean ios-build ios-demo-project ios-run ios-stop ios-fixtures-sync
 
 # ── iOS build / test config ──────────────────────────────────
 IOS_SCHEME        ?= SduiCore
@@ -30,6 +30,13 @@ codegen:
 	@cd codegen && bash generate.sh
 	@cd codegen && ./gradlew generateJsonSchema2Pojo
 	@echo "=== Codegen complete ==="
+
+# ── iOS fixtures sync ───────────────────────────────────────
+ios-fixtures-sync:
+	@echo "=== Syncing iOS fixtures from schema/examples ==="
+	@mkdir -p ios/Tests/SduiCoreTests/Fixtures
+	@rsync -a --include '*/' --include '*.json' --exclude '*' schema/examples/ ios/Tests/SduiCoreTests/Fixtures/
+	@echo "=== iOS fixtures synced ==="
 
 # ── Dev helpers (open in separate Terminal tabs) ─────────────
 dev:
@@ -98,7 +105,7 @@ stop-android:
 # and pipes output through xcbeautify (if installed) so errors appear as
 # `file:line: error:` instead of Xcode's default noise. `brew install
 # xcbeautify` to enable — without it we fall back to raw xcodebuild.
-ios-test:
+ios-test: ios-fixtures-sync
 	@if [ -z "$(XCBEAUTIFY)" ]; then \
 		echo "(tip: brew install xcbeautify for human-readable output)"; \
 	fi
@@ -115,7 +122,7 @@ ios-test-clean:
 	@$(MAKE) ios-test
 
 # Build only (no tests) — faster signal while iterating on library code.
-ios-build:
+ios-build: ios-fixtures-sync
 	@cd ios && set -o pipefail && SDUI_DISABLE_ABLY=$(SDUI_DISABLE_ABLY) xcodebuild build \
 		-scheme "$(IOS_SCHEME)" \
 		-destination "$(IOS_DESTINATION)" \

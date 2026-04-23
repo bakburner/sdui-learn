@@ -89,6 +89,7 @@ export function LiveSectionWrapper({
       refreshPolicy: effectivePolicy,
     },
     onUpdate: handleUpdate,
+    onStalenessChange,
     enabled,
   });
 

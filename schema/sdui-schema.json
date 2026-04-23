@@ -900,7 +900,7 @@
         },
         "padding": { "$ref": "#/definitions/Spacing" },
         "backgroundColor": { "type": "string" },
-        "display": { "$ref": "#/definitions/SectionDisplay" },
+        "surface": { "$ref": "#/definitions/SectionSurface" },
         "layoutHints": { "$ref": "#/definitions/SectionLayoutHints" },
         "sectionStates": { "$ref": "#/definitions/SectionStates" },
         "stringTable": {
@@ -925,16 +925,16 @@
         }
       }
     },
-    "SectionDisplay": {
+    "SectionSurface": {
       "type": "object",
-      "description": "Outer-chrome spec applied by the client's SectionRouter to every permanent section. Mirrors the inline-chrome vocabulary on AtomicContainer so permanent sections have schema parity with composed sections. Every client's shared SectionContainer wrapper reads these fields; permanent-section renderers do not set outer padding, margin, corner radius, shadow, border, or background themselves.",
+      "description": "Server-driven surface spec applied by the client's SectionRouter to every permanent section — the visual wrapper beneath the section's content. Mirrors the inline-chrome vocabulary on AtomicContainer so permanent sections have schema parity with composed sections. Every client's shared SectionContainer wrapper reads these fields; permanent-section renderers do not set outer padding, margin, corner radius, shadow, border, or background themselves. The sibling `data` field carries content (including the atomic UI tree); `surface` carries the frame that sits beneath it.",
       "properties": {
-        "margin":       { "$ref": "#/definitions/Spacing", "description": "Outer margin (space between section and its siblings / screen edge)." },
-        "padding":      { "$ref": "#/definitions/Spacing", "description": "Inner padding (space between section wrapper and its content)." },
-        "background":   { "$ref": "#/definitions/Background", "description": "Section wrapper background (solid, gradient, or image)." },
-        "cornerRadius": { "type": "integer", "description": "Corner radius in dp/px applied to the section wrapper (with overflow clip)." },
-        "shadow":       { "$ref": "#/definitions/Shadow", "description": "Drop shadow applied to the section wrapper." },
-        "border":       { "$ref": "#/definitions/Border", "description": "Outer stroke applied around the section wrapper." }
+        "margin":       { "$ref": "#/definitions/Spacing", "description": "Outer margin (space between the surface and its siblings / screen edge)." },
+        "padding":      { "$ref": "#/definitions/Spacing", "description": "Inner padding (space between the surface edge and the content it wraps)." },
+        "background":   { "$ref": "#/definitions/Background", "description": "Surface background (solid, gradient, or image)." },
+        "cornerRadius": { "type": "integer", "description": "Corner radius in dp/px applied to the surface (with overflow clip)." },
+        "shadow":       { "$ref": "#/definitions/Shadow", "description": "Drop shadow applied to the surface." },
+        "border":       { "$ref": "#/definitions/Border", "description": "Outer stroke applied around the surface." }
       }
     },
     "SectionLayoutHints": {
@@ -1080,38 +1080,34 @@
     },
     "SubscribeBannerData": {
       "type": "object",
-      "description": "Inline subscription upsell banner with headline, body copy, and CTA",
-      "required": ["title", "ctaLabel"],
+      "description": "Inline subscription upsell banner. Reserved SDK integration point: the banner's visible chrome is entirely server-composed via `ui` until the platform IAP SDK (StoreKit / Play Billing) lands and starts mounting the purchase flow on CTA tap. `tiers` carries the IAP product identifiers the SDK will later bind to; `ctaAction` is the (pre-SDK) fallback action.",
       "properties": {
-        "title": { "type": "string" },
-        "subtitle": { "type": "string" },
-        "background": { "$ref": "#/definitions/Background" },
-        "logoUrl": { "type": "string" },
-        "ctaLabel": { "type": "string" },
-        "ctaAction": { "$ref": "#/definitions/Action" },
+        "ui": {
+          "$ref": "#/definitions/AtomicElement",
+          "description": "Atomic tree describing the banner's full visible surface. Renderer walks this tree exactly as an AtomicComposite would; no client-side chrome defaults are permitted. See AGENTS.md §15.1."
+        },
+        "ctaAction": {
+          "$ref": "#/definitions/Action",
+          "description": "Top-level fallback action invoked when the IAP SDK is not mounted (today, always)."
+        },
         "tiers": {
           "type": "array",
-          "description": "Optional pricing tier highlights",
+          "description": "IAP product identifiers + server-emitted prices. Consumed by the IAP SDK when it lands; not used by the renderer, which reads the visible price copy out of `ui`.",
           "items": { "$ref": "#/definitions/SubscriptionTier" }
         }
       }
     },
     "SubscribeHeroData": {
       "type": "object",
-      "description": "Full-screen subscription upsell hero with multi-tier pricing and feature list",
-      "required": ["title", "tiers"],
+      "description": "Full-screen subscription upsell hero. Reserved SDK integration point — same contract as SubscribeBannerData: `ui` carries the full visible composition; `tiers` carries IAP product identifiers the SDK will bind to post-landing.",
       "properties": {
-        "title": { "type": "string" },
-        "subtitle": { "type": "string" },
-        "background": { "$ref": "#/definitions/Background" },
-        "logoUrl": { "type": "string" },
-        "features": {
-          "type": "array",
-          "description": "Bullet-point feature list",
-          "items": { "type": "string" }
+        "ui": {
+          "$ref": "#/definitions/AtomicElement",
+          "description": "Atomic tree describing the hero's full visible surface — logo, title, subtitle, feature list, tier cards, CTAs. Renderer walks this tree exactly as an AtomicComposite would."
         },
         "tiers": {
           "type": "array",
+          "description": "IAP product identifiers + server-emitted prices. Consumed by the IAP SDK when it lands; not used by the renderer.",
           "items": { "$ref": "#/definitions/SubscriptionTier" }
         }
       }
@@ -1187,7 +1183,7 @@
     },
     "VideoPlayerData": {
       "type": "object",
-      "description": "Video player section — platform SDK integration (DRM, HLS, ad insertion). Same justification as SubscribeHero (StoreKit/Play Billing) and AdSlot (GAM).",
+      "description": "Video player section — reserved SDK integration point for DRM / HLS / ad insertion. `playerType`, `contentId`, `autoplay`, and `capabilities` are SDK inputs (the video SDK reads them and mounts); `ui` carries the pre-SDK placeholder composition that renders before the SDK is integrated and will serve as the loading/error placeholder afterwards.",
       "required": ["playerType", "contentId"],
       "properties": {
         "playerType": {
@@ -1210,6 +1206,10 @@
             "enum": ["pip", "chromecast", "airplay", "backgroundAudio", "fullscreenRotation"]
           },
           "description": "Platform capabilities the player should enable. Server includes only capabilities relevant to the requesting platform (via X-Platform header)."
+        },
+        "ui": {
+          "$ref": "#/definitions/AtomicElement",
+          "description": "Atomic tree describing the pre-SDK placeholder surface (e.g. play-glyph column framed at the player's aspectRatio). Renderer walks this tree exactly as an AtomicComposite would; no client-side chrome defaults are permitted. Once the video SDK lands this tree becomes the loading/error placeholder the SDK overlays."
         },
         "displayConfig": {
           "type": "object",

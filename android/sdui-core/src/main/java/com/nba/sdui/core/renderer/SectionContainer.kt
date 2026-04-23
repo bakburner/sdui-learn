@@ -17,13 +17,13 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.nba.sdui.core.models.Background
-import com.nba.sdui.core.models.SectionDisplay
+import com.nba.sdui.core.models.SectionSurface
 import com.nba.sdui.core.models.Spacing
 import com.nba.sdui.core.models.parseBackground
 
 /**
- * Shared outer-chrome wrapper applied by [SectionRouter] to every
- * permanent section. Reads [SectionDisplay] (margin, padding,
+ * Shared section-surface wrapper applied by [SectionRouter] to every
+ * permanent section. Reads [SectionSurface] (margin, padding,
  * background, cornerRadius, shadow, border) and applies it
  * platform-natively, so permanent-section renderers never set their
  * own outer chrome.
@@ -32,25 +32,25 @@ import com.nba.sdui.core.models.parseBackground
  * `Background` union:
  *   • string  → token or hex, resolved to a solid [Color]
  *   • object with `colors`    → [Brush] linear gradient with direction
- *   • object with `imageUrl`  → remote [AsyncImage] (chrome layer
+ *   • object with `imageUrl`  → remote [AsyncImage] (surface layer
  *                                sits below the content Box)
  *
  * See AGENTS.md §15.3 for the governance rule this wrapper enforces,
- * and `SduiUtils.defaultSectionDisplay()` on the server for the
- * default chrome values composers emit.
+ * and `SduiUtils.defaultSurface()` on the server for the default
+ * surface values composers emit.
  */
 @Composable
 fun SectionContainer(
-    display: SectionDisplay?,
+    surface: SectionSurface?,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
-    val margin = display?.margin.toPaddingValues()
-    val padding = display?.padding.toPaddingValues()
-    val radius = (display?.cornerRadius ?: 0).dp
-    val shadow = display?.shadow
-    val border = display?.border
-    val bg = parseBackground(display?.background)
+    val margin = surface?.margin.toPaddingValues()
+    val padding = surface?.padding.toPaddingValues()
+    val radius = (surface?.cornerRadius ?: 0).dp
+    val shadow = surface?.shadow
+    val border = surface?.border
+    val bg = parseBackground(surface?.background)
 
     var outer: Modifier = modifier.padding(margin)
 

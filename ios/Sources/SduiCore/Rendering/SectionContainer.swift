@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// Shared outer-chrome wrapper applied by `SectionRouter` to every
-/// permanent section. Reads `section.display` (margin, padding,
+/// Shared section-surface wrapper applied by `SectionRouter` to every
+/// permanent section. Reads `section.surface` (margin, padding,
 /// background, cornerRadius, shadow, border) and applies it
 /// platform-natively, so permanent-section renderers never set
 /// their own outer chrome.
@@ -10,40 +10,40 @@ import SwiftUI
 /// `Background` union:
 ///   • string  → token or hex, resolved to a solid `Color`
 ///   • object with `colors`    → `LinearGradient` with direction
-///   • object with `imageUrl`  → remote `AsyncImage` (chrome layer
+///   • object with `imageUrl`  → remote `AsyncImage` (surface layer
 ///                                sits below `content`)
 ///
 /// See `AGENTS.md` §15.3 for the governance rule this wrapper
-/// enforces, and `SduiUtils.defaultSectionDisplay()` on the
-/// server for the default chrome values composers emit.
+/// enforces, and `SduiUtils.defaultSurface()` on the server for
+/// the default surface values composers emit.
 struct SectionContainer<Content: View>: View {
-    let display: SectionDisplay?
+    let surface: SectionSurface?
     let content: () -> Content
 
     @Environment(\.colorScheme) private var colorScheme
 
-    init(display: SectionDisplay?, @ViewBuilder content: @escaping () -> Content) {
-        self.display = display
+    init(surface: SectionSurface?, @ViewBuilder content: @escaping () -> Content) {
+        self.surface = surface
         self.content = content
     }
 
     var body: some View {
-        let padding = edgeInsets(from: display?.padding)
-        let margin = edgeInsets(from: display?.margin)
-        let radius = CGFloat(display?.cornerRadius ?? 0)
+        let padding = edgeInsets(from: surface?.padding)
+        let margin = edgeInsets(from: surface?.margin)
+        let radius = CGFloat(surface?.cornerRadius ?? 0)
 
         return content()
             .padding(padding)
             .background(backgroundLayer())
             .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
             .overlay(borderOverlay(radius: radius))
-            .applyShadow(display?.shadow)
+            .applyShadow(surface?.shadow)
             .padding(margin)
     }
 
     @ViewBuilder
     private func backgroundLayer() -> some View {
-        switch display?.background {
+        switch surface?.background {
         case .none:
             Color.clear
         case .some(.string(let value)):
@@ -73,7 +73,7 @@ struct SectionContainer<Content: View>: View {
 
     @ViewBuilder
     private func borderOverlay(radius: CGFloat) -> some View {
-        if let border = display?.border,
+        if let border = surface?.border,
            let width = border.width, width > 0,
            let color = ColorTokenResolver.resolve(border.color, colorScheme: colorScheme) {
             RoundedRectangle(cornerRadius: radius, style: .continuous)

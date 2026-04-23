@@ -1,6 +1,5 @@
 import React from 'react';
-import type { Action } from '@sdui/models';
-import type { AtomicElement } from './AtomicElement';
+import type { Action, AtomicElement } from '@sdui/models';
 
 import { AtomicContainer } from './AtomicContainer';
 import { AtomicText } from './AtomicText';

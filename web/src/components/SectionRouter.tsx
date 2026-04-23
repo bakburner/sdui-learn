@@ -44,13 +44,13 @@ function SectionRenderer({
   const commonProps = { section, state, onAction, onStateChange };
   // Every section, permanent or AtomicComposite, is wrapped by
   // SectionContainer so outer chrome is server-driven via
-  // `section.display` (§15.3). `SectionContainer` is a no-op when
-  // `display` is undefined, so AtomicComposites whose root Container
+  // `section.surface` (§15.3). `SectionContainer` is a no-op when
+  // `surface` is undefined, so AtomicComposites whose root Container
   // already carries its own padding/background/shadow are unaffected —
-  // composers opt into outer margin/chrome by emitting a `display`
+  // composers opt into outer margin/chrome by emitting a `surface`
   // block on the section envelope.
   const wrap = (node: React.ReactElement): React.ReactElement => (
-    <SectionContainer display={section.display}>{node}</SectionContainer>
+    <SectionContainer surface={section.surface}>{node}</SectionContainer>
   );
 
   switch (section.type) {
@@ -79,7 +79,7 @@ function SectionRenderer({
       return wrap(<SubscribeHero {...commonProps} />);
 
     case 'VideoPlayer':
-      return wrap(<VideoPlayerStub section={section} onAction={onAction} />);
+      return wrap(<VideoPlayerStub {...commonProps} />);
 
     case 'AtomicComposite': {
       const compositeData = section.data as unknown as AtomicCompositeData | undefined;

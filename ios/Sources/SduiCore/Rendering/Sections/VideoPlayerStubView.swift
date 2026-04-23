@@ -1,39 +1,25 @@
 import SwiftUI
 
-/// Stub renderer for VideoPlayer sections. Will be replaced with the
-/// platform video SDK in a later phase; until then renders a
-/// placeholder play icon. Outer chrome (background, corner radius)
-/// comes from `section.display` via `SectionContainer`. The renderer
-/// only owns the 16:9 content frame and the placeholder glyph —
-/// see AGENTS.md §15.1(2) and §15.3.
+/// VideoPlayerStubView — reserved SDK integration point for the video player.
+///
+/// Today the visible surface is the pre-SDK placeholder composed by the
+/// server as an atomic tree under `section.data.ui`; this view is a thin
+/// walker over that tree via ``AtomicRouter``. Once the platform video
+/// SDK (HLS/DASH, PiP, AirPlay) lands it mounts here using the SDK
+/// inputs at the top of `section.data` (`playerType`, `contentID`,
+/// `autoplay`, `capabilities`, `displayConfig`) and the atomic tree
+/// becomes the SDK's loading / error placeholder.
+///
+/// Outer chrome comes from `section.surface` via ``SectionContainer``.
+/// See AGENTS.md §15.3.
 struct VideoPlayerStubView: View {
     let section: Section
+    let screenState: ScreenState
     let onAction: (Action) -> Void
 
-    private var playerType: String {
-        section.data?.playerType?.rawValue ?? "unknown"
-    }
-
-    private var contentId: String {
-        section.data?.contentID ?? "unknown"
-    }
-
     var body: some View {
-        Color.clear
-            .aspectRatio(16 / 9, contentMode: .fit)
-            .frame(maxWidth: .infinity)
-            .overlay(
-                VStack(spacing: 8) {
-                    Image(systemName: "play.fill")
-                        .font(.system(size: 48))
-                        .foregroundColor(.white)
-                    Text("Video Player")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                    Text("\(playerType) • \(contentId)")
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.6))
-                }
-            )
+        if let ui = section.data?.ui {
+            AtomicRouter(element: ui, screenState: screenState, onAction: onAction, depth: 0)
+        }
     }
 }

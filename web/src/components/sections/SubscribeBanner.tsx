@@ -1,73 +1,43 @@
 import React from 'react';
 import type { SectionProps } from '../SectionRouter';
-import { accessibilityProps } from '../../utils/accessibility';
+import { AtomicRouter } from '../atomic';
+import type { AtomicCompositeData } from '../atomic';
 
 /**
- * SubscribeBanner — inline subscription upsell.
+ * SubscribeBanner — reserved SDK integration point for inline
+ * subscription upsell.
  *
- * Outer chrome (margin, radius, gradient background, inner padding)
- * comes from `section.display` via `SectionContainer` — this renderer
- * only lays out the banner's content (title, subtitle, CTA).
- * See AGENTS.md §15.3.
+ * The entire visible surface is expressed as an atomic tree under
+ * `section.data.ui`; this renderer is a thin walker over that tree via
+ * `AtomicRouter`, identical in behaviour to an AtomicComposite section.
  *
- * Expected data:
- *   title     – heading text
- *   subtitle  – supporting text
- *   ctaLabel  – button text
- *   ctaAction – Action on CTA tap
+ * Outer chrome (margin, radius, gradient background, inner padding) comes
+ * from `section.surface` via `SectionContainer` — this renderer only
+ * walks the inner atomic tree. See AGENTS.md §15.3.
+ *
+ * `section.data.ctaAction` is the pre-SDK fallback action; once the IAP
+ * SDK lands it will take over the CTA button's tap, reading product
+ * identifiers from `section.data.tiers`.
  */
-export function SubscribeBanner({ section, onAction }: SectionProps): React.ReactElement | null {
-  const data = section.data as Record<string, unknown> | undefined;
-  if (!data) return null;
-
-  const title = data.title as string | undefined;
-  const subtitle = data.subtitle as string | undefined;
-  const ctaLabel = (data.ctaLabel as string) ?? 'Subscribe';
-  const ctaAction = data.ctaAction as Record<string, unknown> | undefined;
-
+export function SubscribeBanner({
+  section,
+  state,
+  onAction,
+  onStateChange,
+}: SectionProps): React.ReactElement | null {
+  const data = section.data as unknown as AtomicCompositeData | undefined;
+  if (!data?.ui) {
+    console.debug(
+      `[SubscribeBanner] section ${section.id} has no data.ui atomic tree`,
+    );
+    return null;
+  }
   return (
-    <div style={styles.content} {...accessibilityProps(section.accessibility)}>
-      {title && <h3 style={styles.title}>{title}</h3>}
-      {subtitle && <p style={styles.subtitle}>{subtitle}</p>}
-      <button
-        style={styles.cta}
-        aria-label={`Subscribe: ${title}`}
-        onClick={() => ctaAction && onAction(ctaAction as any)}
-      >
-        {ctaLabel}
-      </button>
-    </div>
+    <AtomicRouter
+      element={data.ui}
+      state={state}
+      onAction={onAction}
+      onStateChange={onStateChange}
+    />
   );
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  content: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 8,
-    alignItems: 'flex-start',
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: 700,
-    color: '#fff',
-    margin: 0,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.85)',
-    margin: 0,
-    lineHeight: '1.4',
-  },
-  cta: {
-    marginTop: 4,
-    padding: '10px 24px',
-    fontSize: 14,
-    fontWeight: 700,
-    color: '#1d428a',
-    backgroundColor: '#fff',
-    border: 'none',
-    borderRadius: 8,
-    cursor: 'pointer',
-  },
-};

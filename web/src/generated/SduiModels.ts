@@ -33,6 +33,8 @@ export interface SduiModels {
 /**
  * Action fired when the form is submitted
  *
+ * Top-level fallback action invoked when the IAP SDK is not mounted (today, always).
+ *
  * Optional action to trigger on retry tap (typically a refresh action)
  */
 export interface Action {
@@ -309,11 +311,23 @@ export interface Badge {
 }
 
 /**
- * Root node of the atomic element tree — the rendering instructions
+ * Atomic tree describing the banner's full visible surface. Renderer walks this tree
+ * exactly as an AtomicComposite would; no client-side chrome defaults are permitted. See
+ * AGENTS.md §15.1.
  *
  * Atomic UI primitive — server-composed building block for the atomic rendering layer
  *
  * The element to render as a badge
+ *
+ * Atomic tree describing the hero's full visible surface — logo, title, subtitle, feature
+ * list, tier cards, CTAs. Renderer walks this tree exactly as an AtomicComposite would.
+ *
+ * Root node of the atomic element tree — the rendering instructions
+ *
+ * Atomic tree describing the pre-SDK placeholder surface (e.g. play-glyph column framed at
+ * the player's aspectRatio). Renderer walks this tree exactly as an AtomicComposite would;
+ * no client-side chrome defaults are permitted. Once the video SDK lands this tree becomes
+ * the loading/error placeholder the SDK overlays.
  */
 export interface AtomicElement {
     /**
@@ -466,15 +480,23 @@ export interface AtomicElement {
  *
  * Sortable, paginated table of season statistical leaders (league-wide)
  *
- * Inline subscription upsell banner with headline, body copy, and CTA
+ * Inline subscription upsell banner. Reserved SDK integration point: the banner's visible
+ * chrome is entirely server-composed via `ui` until the platform IAP SDK (StoreKit / Play
+ * Billing) lands and starts mounting the purchase flow on CTA tap. `tiers` carries the IAP
+ * product identifiers the SDK will later bind to; `ctaAction` is the (pre-SDK) fallback
+ * action.
  *
- * Full-screen subscription upsell hero with multi-tier pricing and feature list
+ * Full-screen subscription upsell hero. Reserved SDK integration point — same contract as
+ * SubscribeBannerData: `ui` carries the full visible composition; `tiers` carries IAP
+ * product identifiers the SDK will bind to post-landing.
  *
  * Data payload for AtomicComposite sections — ui contains rendering instructions, content
  * carries domain data
  *
- * Video player section — platform SDK integration (DRM, HLS, ad insertion). Same
- * justification as SubscribeHero (StoreKit/Play Billing) and AdSlot (GAM).
+ * Video player section — reserved SDK integration point for DRM / HLS / ad insertion.
+ * `playerType`, `contentId`, `autoplay`, and `capabilities` are SDK inputs (the video SDK
+ * reads them and mounts); `ui` carries the pre-SDK placeholder composition that renders
+ * before the SDK is integrated and will serve as the loading/error placeholder afterwards.
  */
 export interface Data {
     defaultTab?:  string;
@@ -624,28 +646,40 @@ export interface Data {
     /**
      * Total number of rows available server-side (for pagination display)
      */
-    totalRows?:  number;
-    background?: Background | string;
-    ctaAction?:  Action;
-    ctaLabel?:   string;
-    logoUrl?:    string;
+    totalRows?: number;
     /**
-     * Optional pricing tier highlights
+     * Top-level fallback action invoked when the IAP SDK is not mounted (today, always).
+     */
+    ctaAction?: Action;
+    /**
+     * IAP product identifiers + server-emitted prices. Consumed by the IAP SDK when it lands;
+     * not used by the renderer, which reads the visible price copy out of `ui`.
+     *
+     * IAP product identifiers + server-emitted prices. Consumed by the IAP SDK when it lands;
+     * not used by the renderer.
      */
     tiers?: SubscriptionTier[];
     /**
-     * Bullet-point feature list
+     * Atomic tree describing the banner's full visible surface. Renderer walks this tree
+     * exactly as an AtomicComposite would; no client-side chrome defaults are permitted. See
+     * AGENTS.md §15.1.
+     *
+     * Atomic tree describing the hero's full visible surface — logo, title, subtitle, feature
+     * list, tier cards, CTAs. Renderer walks this tree exactly as an AtomicComposite would.
+     *
+     * Root node of the atomic element tree — the rendering instructions
+     *
+     * Atomic tree describing the pre-SDK placeholder surface (e.g. play-glyph column framed at
+     * the player's aspectRatio). Renderer walks this tree exactly as an AtomicComposite would;
+     * no client-side chrome defaults are permitted. Once the video SDK lands this tree becomes
+     * the loading/error placeholder the SDK overlays.
      */
-    features?: string[];
+    ui?: AtomicElement;
     /**
      * Optional domain data (strings, URLs, flags) to populate the ui tree. Reserved for future
      * data-binding support.
      */
-    content?: { [key: string]: any };
-    /**
-     * Root node of the atomic element tree — the rendering instructions
-     */
-    ui?:       AtomicElement;
+    content?:  { [key: string]: any };
     autoplay?: boolean;
     /**
      * Platform capabilities the player should enable. Server includes only capabilities
@@ -683,7 +717,6 @@ export interface Section {
      */
     data?:          Data;
     dataBinding?:   DataBinding;
-    display?:       SectionDisplay;
     id:             string;
     layoutHints?:   SectionLayoutHints;
     padding?:       Spacing;
@@ -698,6 +731,7 @@ export interface Section {
      * Nested interaction targets within the section
      */
     subsections?: Subsection[];
+    surface?:     SectionSurface;
     type:         OverlayType;
     [property: string]: any;
 }
@@ -933,9 +967,9 @@ export enum ImageFit {
  *
  * Inner space between the element's own background/border and its content.
  *
- * Outer margin (space between section and its siblings / screen edge).
+ * Outer margin (space between the surface and its siblings / screen edge).
  *
- * Inner padding (space between section wrapper and its content).
+ * Inner padding (space between the surface edge and the content it wraps).
  */
 export interface Spacing {
     bottom?: number;
@@ -957,7 +991,7 @@ export enum Orientation {
  * Drop shadow with CSS/SwiftUI semantics (radius + offset). Compose approximates via
  * elevation.
  *
- * Drop shadow applied to the section wrapper.
+ * Drop shadow applied to the surface.
  */
 export interface Shadow {
     /**
@@ -1332,58 +1366,6 @@ export interface DataBindingPath {
 }
 
 /**
- * Outer-chrome spec applied by the client's SectionRouter to every permanent section.
- * Mirrors the inline-chrome vocabulary on AtomicContainer so permanent sections have schema
- * parity with composed sections. Every client's shared SectionContainer wrapper reads these
- * fields; permanent-section renderers do not set outer padding, margin, corner radius,
- * shadow, border, or background themselves.
- */
-export interface SectionDisplay {
-    /**
-     * Section wrapper background (solid, gradient, or image).
-     */
-    background?: Background | string;
-    /**
-     * Outer stroke applied around the section wrapper.
-     */
-    border?: Border;
-    /**
-     * Corner radius in dp/px applied to the section wrapper (with overflow clip).
-     */
-    cornerRadius?: number;
-    /**
-     * Outer margin (space between section and its siblings / screen edge).
-     */
-    margin?: Spacing;
-    /**
-     * Inner padding (space between section wrapper and its content).
-     */
-    padding?: Spacing;
-    /**
-     * Drop shadow applied to the section wrapper.
-     */
-    shadow?: Shadow;
-    [property: string]: any;
-}
-
-/**
- * Outer stroke applied around the section wrapper.
- *
- * Outer stroke applied around a container or section.
- */
-export interface Border {
-    /**
-     * Stroke color (hex or token)
-     */
-    color?: string;
-    /**
-     * Stroke width in dp/px
-     */
-    width?: number;
-    [property: string]: any;
-}
-
-/**
  * Optional layout hints for section placement. Clients apply best-effort; unknown hints are
  * ignored.
  */
@@ -1478,6 +1460,60 @@ export interface Subsection {
     accessibility?: AccessibilityProperties;
     actions?:       Action[];
     id:             string;
+    [property: string]: any;
+}
+
+/**
+ * Server-driven surface spec applied by the client's SectionRouter to every permanent
+ * section — the visual wrapper beneath the section's content. Mirrors the inline-chrome
+ * vocabulary on AtomicContainer so permanent sections have schema parity with composed
+ * sections. Every client's shared SectionContainer wrapper reads these fields;
+ * permanent-section renderers do not set outer padding, margin, corner radius, shadow,
+ * border, or background themselves. The sibling `data` field carries content (including the
+ * atomic UI tree); `surface` carries the frame that sits beneath it.
+ */
+export interface SectionSurface {
+    /**
+     * Surface background (solid, gradient, or image).
+     */
+    background?: Background | string;
+    /**
+     * Outer stroke applied around the surface.
+     */
+    border?: Border;
+    /**
+     * Corner radius in dp/px applied to the surface (with overflow clip).
+     */
+    cornerRadius?: number;
+    /**
+     * Outer margin (space between the surface and its siblings / screen edge).
+     */
+    margin?: Spacing;
+    /**
+     * Inner padding (space between the surface edge and the content it wraps).
+     */
+    padding?: Spacing;
+    /**
+     * Drop shadow applied to the surface.
+     */
+    shadow?: Shadow;
+    [property: string]: any;
+}
+
+/**
+ * Outer stroke applied around the surface.
+ *
+ * Outer stroke applied around a container or section.
+ */
+export interface Border {
+    /**
+     * Stroke color (hex or token)
+     */
+    color?: string;
+    /**
+     * Stroke width in dp/px
+     */
+    width?: number;
     [property: string]: any;
 }
 

@@ -9,7 +9,7 @@ import { resolveColorToken, usePrefersColorScheme } from '../../utils/ColorToken
  * dimensions, shared by the placeholder and (when the SDK lands)
  * the ad platform itself. Inner placeholder chrome (background
  * color, caption text) comes from `data.placeholder`; outer chrome
- * (margin, padding, shadow, radius) comes from `section.display`
+ * (margin, padding, shadow, radius) comes from `section.surface`
  * via the shared SectionContainer wrapper.
  *
  * This renderer carries no client-side chrome defaults — a payload

@@ -252,10 +252,9 @@ cd codegen && ./generate.sh
 
 Each client's generated model file is written directly into the location it
 is consumed from — there is no intermediate copy step. Verify output at:
-- `codegen/build/generated-sources/jsonschema2pojo/` (Java POJOs — Android + server classpath)
+- `codegen/build/generated-sources/jsonschema2pojo/` (Java POJOs — Spring server + Android classpath)
 - `ios/Sources/SduiCore/Models/SduiModels.swift` (iOS SduiCore SwiftPM target)
 - `web/src/generated/SduiModels.ts` (web client — surfaced as the `@sdui/models` alias)
-- `codegen/output/kotlin/SduiModels.kt` (demonstration only — Android consumes the Java POJOs)
 
 ### 0.7 — Validate Generated Models Against Real Server JSON
 

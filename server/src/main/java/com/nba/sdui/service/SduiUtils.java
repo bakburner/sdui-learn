@@ -351,10 +351,10 @@ public class SduiUtils {
         return null;
     }
 
-    // ── Section display (outer chrome) ─────────────────────────────────
+    // ── Section surface (server-driven wrapper around section content) ─
 
     /**
-     * Build the default outer-chrome block applied by every permanent
+     * Build the default section-surface block applied by every permanent
      * section that does not override it. Clients' shared SectionContainer
      * reads this and applies platform-native equivalents. A single change
      * here retunes the entire app's rhythm (card inset, elevation, corner
@@ -364,67 +364,67 @@ public class SduiUtils {
      * surface background with a 12px corner radius and a soft 6px-radius
      * shadow at y=2. Matches the reference-app feed card treatment.
      */
-    public ObjectNode defaultSectionDisplay() {
-        ObjectNode display = objectMapper.createObjectNode();
-        display.set("margin", spacing(8, 16, 8, 16));
-        display.put("background", "token:color.surface.raised");
-        display.put("cornerRadius", 12);
+    public ObjectNode defaultSurface() {
+        ObjectNode surface = objectMapper.createObjectNode();
+        surface.set("margin", spacing(8, 16, 8, 16));
+        surface.put("background", "token:color.surface.raised");
+        surface.put("cornerRadius", 12);
 
         ObjectNode shadow = objectMapper.createObjectNode();
         shadow.put("color", "#00000014");
         shadow.put("radius", 6);
         shadow.put("offsetX", 0);
         shadow.put("offsetY", 2);
-        display.set("shadow", shadow);
+        surface.set("shadow", shadow);
 
-        return display;
+        return surface;
     }
 
     /**
-     * Build a flush (no outer chrome) display block. Used for sections
+     * Build a flush (no wrapper chrome) surface block. Used for sections
      * that should render edge-to-edge (hero videos, full-bleed images).
      */
-    public ObjectNode flushSectionDisplay() {
+    public ObjectNode flushSurface() {
         return objectMapper.createObjectNode();
     }
 
     /**
-     * Build a display block for subscription upsell cards — card
-     * rhythm + branded gradient background + inner padding so the
-     * caller's content lays out flush against the card chrome.
+     * Build a surface block for subscription upsell sections — standard
+     * section rhythm + branded gradient background + inner padding so
+     * the caller's content lays out flush against the surface edges.
      * Used by SubscribeBanner and SubscribeHero composers.
      */
-    public ObjectNode subscribeCardDisplay(String topColor, String bottomColor, int padding) {
-        ObjectNode display = defaultSectionDisplay();
+    public ObjectNode subscribeSurface(String topColor, String bottomColor, int padding) {
+        ObjectNode surface = defaultSurface();
         ObjectNode gradient = objectMapper.createObjectNode();
         ArrayNode colors = objectMapper.createArrayNode();
         colors.add(topColor);
         colors.add(bottomColor);
         gradient.set("colors", colors);
         gradient.put("direction", "vertical");
-        display.set("background", gradient);
-        display.set("padding", spacingSymmetric(padding, padding));
-        return display;
+        surface.set("background", gradient);
+        surface.set("padding", spacingSymmetric(padding, padding));
+        return surface;
     }
 
     /**
-     * Build a display block for the VideoPlayer section — flush
-     * edge-to-edge rectangle with a dark surface behind the player
+     * Build a surface block for the VideoPlayer section — flush
+     * edge-to-edge rectangle with a dark background behind the player
      * area. No margin (the player hugs its siblings) and no corner
      * radius (a rounded video frame is jarring against square content
      * below and makes the tap target feel like a card instead of an
      * embedded player). The player's content sizing (16:9 aspect) is
      * owned by the renderer and by `data.displayConfig`, not by this
-     * chrome block.
+     * surface block.
      */
-    public ObjectNode videoPlayerDisplay() {
-        ObjectNode display = objectMapper.createObjectNode();
-        display.put("background", "#1A1F2E");
-        return display;
+    public ObjectNode videoPlayerSurface() {
+        ObjectNode surface = objectMapper.createObjectNode();
+        surface.put("background", "#1A1F2E");
+        return surface;
     }
 
     /**
-     * Build a minimal display block that only provides vertical margin
+     * Build a minimal surface block that only provides vertical margin
      * for breathing room between flush-to-the-edge atomic composite
      * sections (content rails, video carousels, section headers). Used
      * where the composite's root Container already owns its own inner
@@ -435,22 +435,22 @@ public class SduiUtils {
      * no corner radius, no shadow. That keeps the composite's internal
      * styling untouched and avoids double-chrome.
      */
-    public ObjectNode railDisplay() {
-        ObjectNode display = objectMapper.createObjectNode();
+    public ObjectNode railSurface() {
+        ObjectNode surface = objectMapper.createObjectNode();
         ObjectNode margin = objectMapper.createObjectNode();
-        // 16pt top/bottom — pairs with the 8pt margin on `defaultSectionDisplay`
+        // 16pt top/bottom — pairs with the 8pt margin on `defaultSurface`
         // (AdSlot, GamePanel, etc.) to give 24pt of air between a rail and the
         // next full-chrome card. 8pt alone left the rail kissing the ad card
         // top edge on iOS; 16pt reads as a deliberate break between feed
         // modules without looking like an orphan row.
         margin.put("top", 16);
         margin.put("bottom", 16);
-        display.set("margin", margin);
-        return display;
+        surface.set("margin", margin);
+        return surface;
     }
 
     /**
-     * Build a display block for GamePanel cards — standard card
+     * Build a surface block for GamePanel cards — standard card
      * chrome (horizontal inset + subtle shadow + rounded corners)
      * with a soft linear gradient background that gives the matchup
      * its own visual weight versus surrounding flat content. Used by
@@ -462,8 +462,8 @@ public class SduiUtils {
      * dominant information, and does not compete with SubscribeHero /
      * SubscribeBanner's strong brand gradient.
      */
-    public ObjectNode gamePanelDisplay() {
-        ObjectNode display = defaultSectionDisplay();
+    public ObjectNode gamePanelSurface() {
+        ObjectNode surface = defaultSurface();
 
         ObjectNode gradient = objectMapper.createObjectNode();
         ArrayNode colors = objectMapper.createArrayNode();
@@ -471,9 +471,9 @@ public class SduiUtils {
         colors.add("#DDE4EE");
         gradient.set("colors", colors);
         gradient.put("direction", "diagonal");
-        display.set("background", gradient);
+        surface.set("background", gradient);
 
-        return display;
+        return surface;
     }
 
     /**

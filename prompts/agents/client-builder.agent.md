@@ -43,10 +43,9 @@ Before answering any question, load and reference these in priority order:
 
 5. **Generated Models** — each client consumes a pre-built model file
    written directly into its source tree by `make codegen`:
-   - Java (Android): `codegen/build/generated-sources/jsonschema2pojo/`
+   - Java (Spring server + Android): `codegen/build/generated-sources/jsonschema2pojo/`
    - Swift (iOS): `ios/Sources/SduiCore/Models/SduiModels.swift`
    - TypeScript (web): `web/src/generated/SduiModels.ts` (consumed via the `@sdui/models` alias)
-   - Kotlin (demo only): `codegen/output/kotlin/SduiModels.kt`
    For other languages, generate from the schema.
 
 ## How You Work

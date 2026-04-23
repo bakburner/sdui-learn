@@ -1,8 +1,8 @@
 import React from 'react';
 import type { AtomicProps } from './AtomicRouter';
 import { AtomicRouter } from './AtomicRouter';
-import type { Shadow, Badge } from './AtomicElement';
-import { resolveBackgroundCSS } from '../../utils/background';
+import type { Shadow, Badge } from '@sdui/models';
+import { resolveBackgroundCSS, type Background } from '../../utils/background';
 import { accessibilityProps } from '../../utils/accessibility';
 import {
   resolveContainerVariant,
@@ -122,7 +122,7 @@ export function AtomicContainer({ element, state, onAction, depth = 0, onStateCh
         style.background = variantSpec.backgroundCss;
       }
     } else {
-      Object.assign(style, resolveBackgroundCSS(element.background, resolveColor));
+      Object.assign(style, resolveBackgroundCSS(element.background as unknown as Background, resolveColor));
     }
   } else if (variantSpec?.backgroundCss) {
     style.background = variantSpec.backgroundCss;

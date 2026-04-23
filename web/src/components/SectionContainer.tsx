@@ -1,52 +1,52 @@
 import React from 'react';
-import type { SectionDisplay, Spacing, Background } from '@sdui/models';
+import type { SectionSurface, Spacing, Background } from '@sdui/models';
 import { resolveColorToken, usePrefersColorScheme } from '../utils/ColorTokenResolver';
 
 export interface SectionContainerProps {
-  display?: SectionDisplay;
+  surface?: SectionSurface;
   children: React.ReactNode;
 }
 
 /**
- * Shared outer-chrome wrapper applied by `SectionRouter` to every
- * permanent section. Reads `section.display` (margin, padding,
+ * Shared section-surface wrapper applied by `SectionRouter` to every
+ * permanent section. Reads `section.surface` (margin, padding,
  * background, cornerRadius, shadow, border) and applies it as
  * CSS, so permanent-section renderers never set their own outer
  * chrome.
  *
  * See AGENTS.md §15.3 for the governance rule this wrapper enforces,
- * and `SduiUtils.defaultSectionDisplay()` on the server for the
- * default chrome values composers emit.
+ * and `SduiUtils.defaultSurface()` on the server for the default
+ * surface values composers emit.
  */
-export function SectionContainer({ display, children }: SectionContainerProps): React.ReactElement {
+export function SectionContainer({ surface, children }: SectionContainerProps): React.ReactElement {
   const scheme = usePrefersColorScheme();
 
-  if (!display) {
+  if (!surface) {
     return <>{children}</>;
   }
 
-  const marginStyle = spacingToCss(display.margin, 'margin');
-  const paddingStyle = spacingToCss(display.padding, 'padding');
-  const background = resolveBackgroundCss(display.background, scheme);
-  const borderColor = resolveColorToken(display.border?.color, scheme);
+  const marginStyle = spacingToCss(surface.margin, 'margin');
+  const paddingStyle = spacingToCss(surface.padding, 'padding');
+  const background = resolveBackgroundCss(surface.background, scheme);
+  const borderColor = resolveColorToken(surface.border?.color, scheme);
   const borderStyle =
-    display.border && borderColor && (display.border.width ?? 1) > 0
-      ? `${display.border.width ?? 1}px solid ${borderColor}`
+    surface.border && borderColor && (surface.border.width ?? 1) > 0
+      ? `${surface.border.width ?? 1}px solid ${borderColor}`
       : undefined;
 
-  const shadowColor = resolveColorToken(display.shadow?.color, scheme) ?? 'rgba(0,0,0,0.08)';
-  const boxShadow = display.shadow
-    ? `${display.shadow.offsetX ?? 0}px ${display.shadow.offsetY ?? 2}px ${display.shadow.radius ?? 4}px 0 ${shadowColor}`
+  const shadowColor = resolveColorToken(surface.shadow?.color, scheme) ?? 'rgba(0,0,0,0.08)';
+  const boxShadow = surface.shadow
+    ? `${surface.shadow.offsetX ?? 0}px ${surface.shadow.offsetY ?? 2}px ${surface.shadow.radius ?? 4}px 0 ${shadowColor}`
     : undefined;
 
   const style: React.CSSProperties = {
     ...marginStyle,
     ...paddingStyle,
     background,
-    borderRadius: display.cornerRadius,
+    borderRadius: surface.cornerRadius,
     border: borderStyle,
     boxShadow,
-    overflow: display.cornerRadius ? 'hidden' : undefined,
+    overflow: surface.cornerRadius ? 'hidden' : undefined,
   };
 
   return <div style={style}>{children}</div>;

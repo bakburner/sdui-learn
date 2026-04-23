@@ -267,13 +267,13 @@ public class WatchComposer {
     private ObjectNode buildSectionHeader(String id, String title,
                                            String actionLabel, String actionUri) {
         ObjectNode section = atomicBuilder.buildSectionHeader(id, title, null, actionLabel, actionUri);
-        section.set("display", utils.railDisplay());
+        section.set("surface", utils.railSurface());
         return section;
     }
 
     private ObjectNode buildContentRail(String id, String title, String[][] cards) {
         ObjectNode section = atomicBuilder.buildContentRail(id, null, title, cards);
-        section.set("display", utils.railDisplay());
+        section.set("surface", utils.railSurface());
         return section;
     }
 
@@ -281,7 +281,7 @@ public class WatchComposer {
                                          String backgroundUrl, String targetUri) {
         ObjectNode section = atomicBuilder.buildPromoBanner(id, null, null, headline, subhead,
                 null, "Learn More", targetUri);
-        section.set("display", utils.subscribeCardDisplay(
+        section.set("surface", utils.subscribeSurface(
                 "#0C1B3A",
                 ColorTokens.BRAND_NBA,
                 20));
@@ -313,7 +313,7 @@ public class WatchComposer {
         data.set("actions", actions);
 
         section.set("data", data);
-        section.set("display", utils.gamePanelDisplay());
+        section.set("surface", utils.gamePanelSurface());
         return section;
     }
 
@@ -357,7 +357,7 @@ public class WatchComposer {
         data.set("actions", actions);
 
         section.set("data", data);
-        section.set("display", utils.gamePanelDisplay());
+        section.set("surface", utils.gamePanelSurface());
         return section;
     }
 
@@ -371,7 +371,7 @@ public class WatchComposer {
     private ObjectNode buildVideoCarousel(String id, String title, String subtitle,
                                            String[][] items) {
         ObjectNode section = atomicBuilder.buildVideoCarousel(id, null, title, subtitle, items);
-        section.set("display", utils.railDisplay());
+        section.set("surface", utils.railSurface());
         return section;
     }
 
@@ -389,12 +389,18 @@ public class WatchComposer {
                 "NBA GameTime",
                 "LIVE — Nightly highlights & analysis",
                 true, slots);
-        section.set("display", utils.railDisplay());
+        section.set("surface", utils.railSurface());
         return section;
     }
 
     /**
      * SubscribeBanner section — inline subscription upsell.
+     *
+     * Reserved SDK integration point: the visible surface is expressed as an
+     * atomic tree under {@code data.ui}. {@code data.ctaAction} is retained as
+     * the pre-SDK fallback action; once the IAP SDK lands, it takes over the
+     * CTA tap and reads the IAP product identifiers from a future
+     * {@code data.tiers} list.
      */
     private ObjectNode buildSubscribeBanner(String id, String title, String subtitle,
                                              String backgroundUrl, String ctaLabel,
@@ -403,98 +409,189 @@ public class WatchComposer {
         section.put("id", id);
         section.put("type", "SubscribeBanner");
         section.set("refreshPolicy", staticPolicy());
-        section.set("display", utils.subscribeCardDisplay(
+        section.set("surface", utils.subscribeSurface(
                 ColorTokens.BRAND_NBA,
                 "#862633",
                 20));
-
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("title", title);
-        if (subtitle != null) data.put("subtitle", subtitle);
-        if (backgroundUrl != null) {
-            ObjectNode bgImage = objectMapper.createObjectNode();
-            bgImage.put("imageUrl", backgroundUrl);
-            data.set("background", bgImage);
-        }
-
-        data.put("ctaLabel", ctaLabel);
 
         ObjectNode ctaAction = objectMapper.createObjectNode();
         ctaAction.put("trigger", "onTap");
         ctaAction.put("type", "navigate");
         ctaAction.put("targetUri", ctaUri);
-        data.set("ctaAction", ctaAction);
 
+        ObjectNode root = atomicBuilder.container("vertical", "start", "start");
+        root.put("gap", 4);
+        ArrayNode children = objectMapper.createArrayNode();
+        children.add(atomicBuilder.text(title, "titleMedium", "bold", "#FFFFFF", null));
+        if (subtitle != null) {
+            children.add(atomicBuilder.text(subtitle, "bodySmall", null, "rgba(255,255,255,0.85)", null));
+        }
+        children.add(atomicBuilder.spacer(8));
+        children.add(atomicBuilder.button(ctaLabel, "primary", ctaAction.deepCopy()));
+        root.set("children", children);
+
+        ObjectNode data = atomicBuilder.wrapUi(root);
+        data.set("ctaAction", ctaAction);
         section.set("data", data);
         return section;
     }
 
-    /** SubscribeHero section — full-screen upsell with pricing tiers. */
+    /**
+     * SubscribeHero section — full-screen upsell with pricing tiers.
+     *
+     * Reserved SDK integration point: the full visible surface (logo, title,
+     * subtitle, feature list, tier cards) is expressed as an atomic tree
+     * under {@code data.ui}. {@code data.tiers} is retained for the future
+     * IAP SDK to bind product identifiers; the renderer reads nothing from
+     * it today.
+     */
     private ObjectNode buildSubscribeHero() {
         ObjectNode section = objectMapper.createObjectNode();
         section.put("id", "lp-subscribe-hero");
         section.put("type", "SubscribeHero");
         section.set("refreshPolicy", staticPolicy());
-        section.set("display", utils.subscribeCardDisplay(
+        section.set("surface", utils.subscribeSurface(
                 "#0C1B3A",
                 ColorTokens.BRAND_NBA,
                 24));
 
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("title", "NBA League Pass");
-        data.put("subtitle", "Your courtside seat to every game");
-        ObjectNode heroBg = objectMapper.createObjectNode();
-        heroBg.put("imageUrl", FALLBACK_THUMB);
-        data.set("background", heroBg);
-        data.put("logoUrl", FALLBACK_THUMB);
-
-        ArrayNode features = objectMapper.createArrayNode();
-        features.add("Watch every out-of-market game live or on demand");
-        features.add("Choose home or away broadcast feeds");
-        features.add("NBA TV included with all plans");
-        features.add("Condensed game replays — full game in ~12 minutes");
-        data.set("features", features);
+        ObjectNode root = buildSubscribeHeroUi(
+                "NBA League Pass",
+                "Your courtside seat to every game",
+                FALLBACK_THUMB,
+                new String[]{
+                        "Watch every out-of-market game live or on demand",
+                        "Choose home or away broadcast feeds",
+                        "NBA TV included with all plans",
+                        "Condensed game replays — full game in ~12 minutes"
+                },
+                new TierSpec[]{
+                        new TierSpec("League Pass", "$14.99/mo", "MOST POPULAR",
+                                new String[]{"Live & on-demand out-of-market games", "NBA TV included"},
+                                "Subscribe", "nba://subscribe/league-pass/standard"),
+                        new TierSpec("League Pass Premium", "$22.99/mo", "BEST VALUE",
+                                new String[]{"Everything in League Pass",
+                                        "No in-game ads on select feeds",
+                                        "Up to 4 simultaneous streams"},
+                                "Subscribe", "nba://subscribe/league-pass/premium")
+                });
 
         ArrayNode tiers = objectMapper.createArrayNode();
+        tiers.add(tierProductId("lp-standard", "League Pass", "$14.99/mo"));
+        tiers.add(tierProductId("lp-premium", "League Pass Premium", "$22.99/mo"));
 
-        ObjectNode standard = objectMapper.createObjectNode();
-        standard.put("id", "lp-standard");
-        standard.put("name", "League Pass");
-        standard.put("price", "$14.99/mo");
-        standard.put("badgeText", "MOST POPULAR");
-        ArrayNode stdFeatures = objectMapper.createArrayNode();
-        stdFeatures.add("Live & on-demand out-of-market games");
-        stdFeatures.add("NBA TV included");
-        standard.set("features", stdFeatures);
-        standard.put("ctaLabel", "Subscribe");
-        ObjectNode stdAction = objectMapper.createObjectNode();
-        stdAction.put("trigger", "onTap");
-        stdAction.put("type", "navigate");
-        stdAction.put("targetUri", "nba://subscribe/league-pass/standard");
-        standard.set("ctaAction", stdAction);
-        tiers.add(standard);
-
-        ObjectNode premium = objectMapper.createObjectNode();
-        premium.put("id", "lp-premium");
-        premium.put("name", "League Pass Premium");
-        premium.put("price", "$22.99/mo");
-        premium.put("badgeText", "BEST VALUE");
-        ArrayNode premFeatures = objectMapper.createArrayNode();
-        premFeatures.add("Everything in League Pass");
-        premFeatures.add("No in-game ads on select feeds");
-        premFeatures.add("Up to 4 simultaneous streams");
-        premium.set("features", premFeatures);
-        premium.put("ctaLabel", "Subscribe");
-        ObjectNode premAction = objectMapper.createObjectNode();
-        premAction.put("trigger", "onTap");
-        premAction.put("type", "navigate");
-        premAction.put("targetUri", "nba://subscribe/league-pass/premium");
-        premium.set("ctaAction", premAction);
-        tiers.add(premium);
-
+        ObjectNode data = atomicBuilder.wrapUi(root);
         data.set("tiers", tiers);
         section.set("data", data);
         return section;
+    }
+
+    /**
+     * Build the atomic tree for a SubscribeHero. Extracted so both the Watch
+     * composer and the demo composer can share the same visual composition.
+     */
+    private ObjectNode buildSubscribeHeroUi(String title, String subtitle, String logoUrl,
+                                             String[] features, TierSpec[] tierSpecs) {
+        ObjectNode root = atomicBuilder.container("vertical", "start", "center");
+        root.put("gap", 6);
+        ArrayNode children = objectMapper.createArrayNode();
+
+        if (logoUrl != null) {
+            children.add(atomicBuilder.image(logoUrl, 0, 48, "contain"));
+            children.add(atomicBuilder.spacer(8));
+        }
+        children.add(atomicBuilder.text(title, "headlineSmall", "bold", "#FFFFFF", null));
+        if (subtitle != null) {
+            children.add(atomicBuilder.text(subtitle, "bodyMedium", null, "rgba(255,255,255,0.8)", null));
+        }
+        children.add(atomicBuilder.spacer(12));
+
+        ObjectNode featuresCol = atomicBuilder.container("vertical", "start", "start");
+        featuresCol.put("gap", 6);
+        ArrayNode featureChildren = objectMapper.createArrayNode();
+        for (String feature : features) {
+            ObjectNode row = atomicBuilder.container("horizontal", "start", "center");
+            row.put("gap", 8);
+            ArrayNode rowChildren = objectMapper.createArrayNode();
+            rowChildren.add(atomicBuilder.text("✓", "bodyMedium", "bold", "#FFFFFF", null));
+            rowChildren.add(atomicBuilder.text(feature, "bodyMedium", null, "rgba(255,255,255,0.85)", null));
+            row.set("children", rowChildren);
+            featureChildren.add(row);
+        }
+        featuresCol.set("children", featureChildren);
+        children.add(featuresCol);
+
+        children.add(atomicBuilder.spacer(16));
+
+        ObjectNode tiersCol = atomicBuilder.container("vertical", "start", "start");
+        tiersCol.put("gap", 12);
+        ArrayNode tierChildren = objectMapper.createArrayNode();
+        for (TierSpec t : tierSpecs) {
+            tierChildren.add(buildTierUi(t));
+        }
+        tiersCol.set("children", tierChildren);
+        children.add(tiersCol);
+
+        root.set("children", children);
+        return root;
+    }
+
+    /** Build an atomic Container that visually represents one subscription tier. */
+    private ObjectNode buildTierUi(TierSpec t) {
+        ObjectNode card = atomicBuilder.container("vertical", "start", "start");
+        card.put("gap", 4);
+        card.put("background", "rgba(255,255,255,0.1)");
+        card.put("cornerRadius", 12);
+        card.set("padding", atomicBuilder.padding(16, 16, 16, 16));
+        card.put("fillWidth", true);
+
+        ArrayNode cardChildren = objectMapper.createArrayNode();
+        if (t.badgeText != null) {
+            cardChildren.add(atomicBuilder.text(t.badgeText, "labelSmall", "bold", "#FFDD00", null));
+        }
+        cardChildren.add(atomicBuilder.text(t.name, "titleMedium", "bold", "#FFFFFF", null));
+        cardChildren.add(atomicBuilder.text(t.price, "titleLarge", "bold", "#FFFFFF", null));
+
+        if (t.features != null) {
+            for (String f : t.features) {
+                cardChildren.add(atomicBuilder.text("• " + f, "bodySmall", null, "rgba(255,255,255,0.85)", null));
+            }
+        }
+        cardChildren.add(atomicBuilder.spacer(8));
+
+        ObjectNode tierAction = objectMapper.createObjectNode();
+        tierAction.put("trigger", "onTap");
+        tierAction.put("type", "navigate");
+        tierAction.put("targetUri", t.ctaUri);
+        cardChildren.add(atomicBuilder.button(t.ctaLabel, "primary", tierAction));
+
+        card.set("children", cardChildren);
+        return card;
+    }
+
+    private ObjectNode tierProductId(String id, String name, String price) {
+        ObjectNode n = objectMapper.createObjectNode();
+        n.put("id", id);
+        n.put("name", name);
+        n.put("price", price);
+        return n;
+    }
+
+    /** Compact value object describing one subscription tier for the hero UI builder. */
+    private static final class TierSpec {
+        final String name, price, badgeText;
+        final String[] features;
+        final String ctaLabel, ctaUri;
+
+        TierSpec(String name, String price, String badgeText,
+                 String[] features, String ctaLabel, String ctaUri) {
+            this.name = name;
+            this.price = price;
+            this.badgeText = badgeText;
+            this.features = features;
+            this.ctaLabel = ctaLabel;
+            this.ctaUri = ctaUri;
+        }
     }
 
     /** AdSlot section — ad placement primitive (ADR-007). */
@@ -503,7 +600,7 @@ public class WatchComposer {
         section.put("id", id);
         section.put("type", "AdSlot");
         section.set("refreshPolicy", staticPolicy());
-        section.set("display", utils.defaultSectionDisplay());
+        section.set("surface", utils.defaultSurface());
 
         ObjectNode data = objectMapper.createObjectNode();
         data.put("provider", "gam");

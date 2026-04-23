@@ -158,7 +158,7 @@ public class ScoreboardComposer {
         data.set("actions", actions);
 
         section.set("data", data);
-        section.set("display", utils.gamePanelDisplay());
+        section.set("surface", utils.gamePanelSurface());
         return section;
     }
 
@@ -231,7 +231,7 @@ public class ScoreboardComposer {
                 "NBA League Pass", null,
                 "Watch every out-of-market game live or on demand.",
                 FALLBACK_THUMB, "Learn More", "nba://leaguepass");
-        section.set("display", utils.subscribeCardDisplay(
+        section.set("surface", utils.subscribeSurface(
                 "#0C1B3A",
                 ColorTokens.BRAND_NBA,
                 20));

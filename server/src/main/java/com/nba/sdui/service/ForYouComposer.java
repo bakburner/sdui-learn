@@ -208,7 +208,7 @@ public class ForYouComposer {
         data.set("actions", actions);
 
         section.set("data", data);
-        section.set("display", utils.gamePanelDisplay());
+        section.set("surface", utils.gamePanelSurface());
         return section;
     }
 
@@ -257,14 +257,14 @@ public class ForYouComposer {
         data.set("actions", actions);
 
         section.set("data", data);
-        section.set("display", utils.gamePanelDisplay());
+        section.set("surface", utils.gamePanelSurface());
         return section;
     }
 
     private ObjectNode buildSectionHeader(String id, String title,
                                            String actionLabel, String actionUri) {
         ObjectNode section = atomicBuilder.buildSectionHeader(id, title, null, actionLabel, actionUri);
-        section.set("display", utils.railDisplay());
+        section.set("surface", utils.railSurface());
         return section;
     }
 
@@ -289,7 +289,7 @@ public class ForYouComposer {
         // future rename drift between the two sites).
         ObjectNode section = atomicBuilder.buildContentRail("for-you-highlights", "for_you_highlights",
                 null, cards);
-        section.set("display", utils.railDisplay());
+        section.set("surface", utils.railSurface());
         return section;
     }
 
@@ -310,7 +310,7 @@ public class ForYouComposer {
         };
         ObjectNode section = atomicBuilder.buildContentRail("for-you-trending", "for_you_trending",
                 null, cards);
-        section.set("display", utils.railDisplay());
+        section.set("surface", utils.railSurface());
         return section;
     }
 
@@ -331,7 +331,7 @@ public class ForYouComposer {
         };
         ObjectNode section = atomicBuilder.buildContentRail("for-you-lp-picks", "for_you_lp_picks",
                 null, cards);
-        section.set("display", utils.railDisplay());
+        section.set("surface", utils.railSurface());
         return section;
     }
 
@@ -378,7 +378,7 @@ public class ForYouComposer {
         };
         ObjectNode section = atomicBuilder.buildContentRail("for-you-around-league", "for_you_around_league",
                 null, cards);
-        section.set("display", utils.railDisplay());
+        section.set("surface", utils.railSurface());
         return section;
     }
 
@@ -389,7 +389,7 @@ public class ForYouComposer {
         section.put("type", "AdSlot");
         section.put("analyticsId", analyticsId);
         section.set("refreshPolicy", staticPolicy());
-        section.set("display", utils.defaultSectionDisplay());
+        section.set("surface", utils.defaultSurface());
 
         ObjectNode data = objectMapper.createObjectNode();
         data.put("provider", "gam");

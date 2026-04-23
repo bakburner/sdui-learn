@@ -100,8 +100,8 @@ public class AtomicCompositeBuilder {
 
         // Emit a bare root container — outer chrome (background, padding,
         // radius, shadow, margin) is owned exclusively by the shared
-        // SectionContainer wrapper via `section.display`. Callers must
-        // supply `section.display` on the returned envelope.
+        // SectionContainer wrapper via `section.surface`. Callers must
+        // supply `section.surface` on the returned envelope.
         ObjectNode root = bannerContainer("row", null, "center");
         ArrayNode rootChildren = om.createArrayNode();
 
@@ -1149,13 +1149,30 @@ public class AtomicCompositeBuilder {
         if (refreshPolicy != null) section.set("refreshPolicy", refreshPolicy);
     }
 
+    /**
+     * Attach an atomic root element to a section as its {@code data.ui}
+     * payload, constructing a fresh {@code data} object. Used by the
+     * AtomicComposite builders above.
+     */
     private void wrapUi(ObjectNode section, ObjectNode rootElement) {
-        ObjectNode data = om.createObjectNode();
-        data.set("ui", rootElement);
-        section.set("data", data);
+        section.set("data", wrapUi(rootElement));
     }
 
-    private ObjectNode container(String direction, String alignment, String crossAlignment) {
+    /**
+     * Build the {@code data} object for a section whose full visible surface
+     * is expressed as an atomic tree under {@code data.ui}. Shared with
+     * permanent-section composers (SubscribeBanner / SubscribeHero /
+     * VideoPlayer) that use the same on-wire shape as AtomicComposite but
+     * additionally expose top-level domain-data fields (ctaAction, tiers,
+     * playerType, ...) the client reads alongside the tree.
+     */
+    ObjectNode wrapUi(ObjectNode rootElement) {
+        ObjectNode data = om.createObjectNode();
+        data.set("ui", rootElement);
+        return data;
+    }
+
+    ObjectNode container(String direction, String alignment, String crossAlignment) {
         ObjectNode node = om.createObjectNode();
         node.put("type", "Container");
         if (direction != null) node.put("direction", direction);
@@ -1222,7 +1239,7 @@ public class AtomicCompositeBuilder {
         element.put("flex", flex);
     }
 
-    private ObjectNode text(String content, String variant, String weight,
+    ObjectNode text(String content, String variant, String weight,
                              String color, Integer maxLines) {
         ObjectNode node = om.createObjectNode();
         node.put("type", "Text");
@@ -1237,11 +1254,11 @@ public class AtomicCompositeBuilder {
     private static final String DEFAULT_PLACEHOLDER =
             "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png";
 
-    private ObjectNode image(String src, int width, int height, String fit) {
+    ObjectNode image(String src, int width, int height, String fit) {
         return image(src, width, height, fit, DEFAULT_PLACEHOLDER);
     }
 
-    private ObjectNode image(String src, int width, int height, String fit, String placeholder) {
+    ObjectNode image(String src, int width, int height, String fit, String placeholder) {
         ObjectNode node = om.createObjectNode();
         node.put("type", "Image");
         node.put("src", src);
@@ -1273,7 +1290,7 @@ public class AtomicCompositeBuilder {
 
     ObjectNode logoImage(String src) { return variantImage("logo", src); }
 
-    private ObjectNode button(String label, String variant, ObjectNode action) {
+    ObjectNode button(String label, String variant, ObjectNode action) {
         ObjectNode node = om.createObjectNode();
         node.put("type", "Button");
         node.put("label", label);
@@ -1282,14 +1299,14 @@ public class AtomicCompositeBuilder {
         return node;
     }
 
-    private ObjectNode spacer(int height) {
+    ObjectNode spacer(int height) {
         ObjectNode node = om.createObjectNode();
         node.put("type", "Spacer");
         node.put("height", height);
         return node;
     }
 
-    private ObjectNode padding(int start, int end, int top, int bottom) {
+    ObjectNode padding(int start, int end, int top, int bottom) {
         ObjectNode p = om.createObjectNode();
         p.put("start", start);
         p.put("end", end);
@@ -1314,7 +1331,7 @@ public class AtomicCompositeBuilder {
         return r;
     }
 
-    private ObjectNode tapNavigate(String targetUri) {
+    ObjectNode tapNavigate(String targetUri) {
         ObjectNode action = om.createObjectNode();
         action.put("trigger", "onTap");
         action.put("type", "navigate");
@@ -1345,7 +1362,7 @@ public class AtomicCompositeBuilder {
         return fb;
     }
 
-    private ArrayNode singleActionArray(ObjectNode action) {
+    ArrayNode singleActionArray(ObjectNode action) {
         ArrayNode arr = om.createArrayNode();
         arr.add(action);
         return arr;

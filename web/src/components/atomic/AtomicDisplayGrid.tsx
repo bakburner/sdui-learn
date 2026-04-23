@@ -1,6 +1,6 @@
 import React from 'react';
 import type { AtomicProps } from './AtomicRouter';
-import type { DisplayGridColumn } from './AtomicElement';
+import type { Column } from '@sdui/models';
 import { accessibilityProps } from '../../utils/accessibility';
 
 const HEADER_FONT_SIZE = 12;
@@ -30,21 +30,24 @@ export function AtomicDisplayGrid({ element }: AtomicProps): React.ReactElement 
     borderCollapse: 'collapse',
   };
 
-  const thStyle = (col: DisplayGridColumn): React.CSSProperties => ({
+  const resolveWidth = (w: Column['width']): number | undefined =>
+    typeof w === 'number' ? w : undefined;
+
+  const thStyle = (col: Column): React.CSSProperties => ({
     fontSize: HEADER_FONT_SIZE,
     fontWeight: 600,
     textAlign: alignToCSS(col.align),
     padding: '4px 8px',
     background: 'var(--surface-raised, #2B2F37)',
     color: 'var(--text-primary, #FFFFFF)',
-    ...(col.width && col.width !== 'flex' ? { width: col.width } : {}),
+    ...(resolveWidth(col.width) != null ? { width: resolveWidth(col.width) } : {}),
   });
 
-  const tdStyle = (col: DisplayGridColumn): React.CSSProperties => ({
+  const tdStyle = (col: Column): React.CSSProperties => ({
     fontSize: CELL_FONT_SIZE,
     textAlign: alignToCSS(col.align),
     padding: '4px 8px',
-    ...(col.width && col.width !== 'flex' ? { width: col.width } : {}),
+    ...(resolveWidth(col.width) != null ? { width: resolveWidth(col.width) } : {}),
   });
 
   return (

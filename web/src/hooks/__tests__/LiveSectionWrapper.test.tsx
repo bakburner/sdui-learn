@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { LiveSectionWrapper } from '../../components/LiveSectionWrapper';
 import type { Section } from '@sdui/models';
+import { RefreshType } from '@sdui/models';
 
 // --- Mocks ---
 let visibilityState = true;
@@ -44,7 +45,7 @@ function makeSection(overrides: Partial<Section> = {}): Section {
     id: 'section-1',
     type: 'AtomicComposite',
     data: { title: 'Hello' },
-    refreshPolicy: { type: 'poll', intervalMs: 5000, url: '/api/poll', pauseWhenOffScreen: true },
+    refreshPolicy: { type: RefreshType.Poll, intervalMs: 5000, url: '/api/poll', pauseWhenOffScreen: true },
     ...overrides,
   } as Section;
 }
@@ -77,7 +78,7 @@ describe('LiveSectionWrapper — visibility gating', () => {
     appVisibilityState = true;
 
     const section = makeSection({
-      refreshPolicy: { type: 'poll', intervalMs: 5000, url: '/api/poll', pauseWhenOffScreen: true },
+      refreshPolicy: { type: RefreshType.Poll, intervalMs: 5000, url: '/api/poll', pauseWhenOffScreen: true },
     });
 
     render(
@@ -101,7 +102,7 @@ describe('LiveSectionWrapper — visibility gating', () => {
     appVisibilityState = true;
 
     const section = makeSection({
-      refreshPolicy: { type: 'sse', channel: 'game:1', pauseWhenOffScreen: false },
+      refreshPolicy: { type: RefreshType.SSE, channel: 'game:1', pauseWhenOffScreen: false },
     });
 
     render(
@@ -147,7 +148,7 @@ describe('LiveSectionWrapper — visibility gating', () => {
     appVisibilityState = false;
 
     const section = makeSection({
-      refreshPolicy: { type: 'sse', channel: 'game:1', pauseWhenOffScreen: false },
+      refreshPolicy: { type: RefreshType.SSE, channel: 'game:1', pauseWhenOffScreen: false },
     });
 
     render(
@@ -171,7 +172,7 @@ describe('LiveSectionWrapper — visibility gating', () => {
     appVisibilityState = true;
 
     const section = makeSection({
-      refreshPolicy: { type: 'poll', intervalMs: 5000, url: '/api/poll' },
+      refreshPolicy: { type: RefreshType.Poll, intervalMs: 5000, url: '/api/poll' },
     });
 
     render(

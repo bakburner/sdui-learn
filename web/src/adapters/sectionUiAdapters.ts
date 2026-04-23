@@ -1,12 +1,11 @@
 import type {
   Action,
   BoxscoreColumnDefinition,
-  BoxscorePlayerRow,
   Data,
   FormField,
+  PlayerRow,
   Section,
   TabData,
-  TeamData,
 } from '@sdui/models';
 
 export interface TabGroupUiModel {
@@ -85,7 +84,7 @@ export interface BoxscoreTableUiModel {
   teamColor?: string;
   teamLogoUrl?: string;
   columns: BoxscoreColumnDefinition[];
-  players: BoxscorePlayerRow[];
+  players: PlayerRow[];
   teamTotals?: Record<string, unknown>;
   sortColumn?: string;
   sortDirection: 'asc' | 'desc';
@@ -109,7 +108,7 @@ export function mapBoxscoreTable(section: Section, state: Record<string, unknown
     teamColor: data.teamColor as string | undefined,
     teamLogoUrl: data.teamLogoUrl as string | undefined,
     columns: (data.columns as BoxscoreColumnDefinition[]) || [],
-    players: (data.players as BoxscorePlayerRow[]) || [],
+    players: (data.players as PlayerRow[]) || [],
     teamTotals: data.teamTotals as Record<string, unknown> | undefined,
     sortColumn,
     sortDirection,

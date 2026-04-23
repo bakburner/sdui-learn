@@ -56,10 +56,9 @@ required for layout, content, or data-flow changes.
   `make codegen` from the repo root.
 - Generated code lives in the following locations — never edit those files
   by hand, regenerate them with `make codegen`:
-  - Java POJOs (Android server + client): `codegen/build/generated-sources/jsonschema2pojo/`
+  - Java POJOs (Spring server + Android client): `codegen/build/generated-sources/jsonschema2pojo/`
   - Swift models (iOS client): `ios/Sources/SduiCore/Models/SduiModels.swift`
   - TypeScript models (web client): `web/src/generated/SduiModels.ts` (consumed via the `@sdui/models` Vite / tsconfig alias)
-  - Kotlin models (demo only — Android uses the Java POJOs): `codegen/output/kotlin/SduiModels.kt`
 
 ## 2. No Hardcoded URLs or Paths on Clients
 
@@ -305,27 +304,34 @@ they size themselves from the composition they carry, as any
 responsive layout does. The "single rectangle" rule applies only
 where the SDK will claim a specific pixel reservation.
 
-### 15.3 Schema parity for permanent-section chrome
+### 15.3 Schema parity for permanent-section surfaces
 
 Permanent sections MUST have schema parity with `AtomicContainer` for
-outer chrome. The `Section.display` block exposes the same
-vocabulary — `margin`, `padding`, `background`, `cornerRadius`,
-`shadow`, `border` — so the server can dictate outer chrome uniformly
-across every permanent section.
+the surface that wraps their content. The `Section.surface` block
+exposes the same vocabulary — `margin`, `padding`, `background`,
+`cornerRadius`, `shadow`, `border` — so the server can dictate the
+section's wrapping surface uniformly across every permanent section.
+
+Naming note: the field is `surface` (not `display`) because `data` —
+its sibling on the section envelope — already carries the section's
+display content (atomic UI tree, table rows, form fields). Calling the
+sibling field "display" would have doubled the semantics; `surface`
+keeps the split clean: `data` = content, `surface` = the visual
+wrapper beneath it.
 
 Every client's `SectionRouter` wraps permanent-section output in a
-shared `SectionContainer` wrapper that reads `section.display.*` and
+shared `SectionContainer` wrapper that reads `section.surface.*` and
 applies it platform-natively. Permanent section renderers MUST NOT
 set their own outer padding, margin, corner radius, shadow, border,
 or background — the wrapper owns all of it. Renderers are responsible
 only for the **inner content** of the section (the slot contents,
 the card grid, the form fields, etc.).
 
-**Default chrome** for sections that do not explicitly set
-`display`: composers call a shared helper (e.g.
-`SduiUtils.defaultSectionDisplay()`) that emits a sensible default
+**Default surface** for sections that do not explicitly set
+`surface`: composers call a shared helper (e.g.
+`SduiUtils.defaultSurface()`) that emits a sensible default
 block. Composers MAY override per-section. Clients MUST NOT invent
-defaults — a section with no `display` payload and no helper-emitted
+defaults — a section with no `surface` payload and no helper-emitted
 default renders flush, without chrome.
 
 This rule exists so the entire app's rhythm (card inset, elevation,
@@ -354,7 +360,7 @@ behaviour the server cannot own:
 Sections under criterion 15.1 (2) render only server-emitted content
 until their SDK lands — see §15.1. All permanent sections are wrapped
 by the shared `SectionContainer` and read outer chrome from
-`section.display` — see §15.3.
+`section.surface` — see §15.3.
 
 Even for permanent sections, **visual configuration must be server-driven**.
 The renderer reads styling knobs (colors, sizes, layout flags) from the

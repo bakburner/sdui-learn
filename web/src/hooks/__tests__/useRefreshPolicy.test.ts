@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useRefreshPolicy } from '../useRefreshPolicy';
+import { subscribeToChannel } from '../../runtime/AblyClient';
 import type { Section } from '@sdui/models';
+import { RefreshType } from '@sdui/models';
 
 // --- Mock AblyClient ---
 const mockUnsubscribeChannel = vi.fn();
@@ -36,7 +38,7 @@ function makeSection(overrides: Partial<Section> = {}): Section {
 describe('useRefreshPolicy — poll', () => {
   it('does not poll when enabled is false', async () => {
     const section = makeSection({
-      refreshPolicy: { type: 'poll', intervalMs: 1000, url: '/api/data' },
+      refreshPolicy: { type: RefreshType.Poll, intervalMs: 1000, url: '/api/data' },
     });
     const onUpdate = vi.fn();
 
@@ -52,7 +54,7 @@ describe('useRefreshPolicy — poll', () => {
 
   it('starts polling when enabled is true and stops when disabled', async () => {
     const section = makeSection({
-      refreshPolicy: { type: 'poll', intervalMs: 1000, url: '/api/data' },
+      refreshPolicy: { type: RefreshType.Poll, intervalMs: 1000, url: '/api/data' },
     });
     const onUpdate = vi.fn();
     (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
@@ -93,7 +95,7 @@ describe('useRefreshPolicy — poll', () => {
 
   it('applies exponential backoff on poll failure', async () => {
     const section = makeSection({
-      refreshPolicy: { type: 'poll', intervalMs: 1000, url: '/api/data' },
+      refreshPolicy: { type: RefreshType.Poll, intervalMs: 1000, url: '/api/data' },
     });
     const onUpdate = vi.fn();
     const onStalenessChange = vi.fn();
@@ -121,7 +123,7 @@ describe('useRefreshPolicy — poll', () => {
 
   it('does not poll static sections', () => {
     const section = makeSection({
-      refreshPolicy: { type: 'static' },
+      refreshPolicy: { type: RefreshType.Static },
     });
     const onUpdate = vi.fn();
 
@@ -132,31 +134,31 @@ describe('useRefreshPolicy — poll', () => {
 });
 
 describe('useRefreshPolicy — SSE', () => {
+  const mockedSubscribeToChannel = vi.mocked(subscribeToChannel);
+
   it('does not subscribe when enabled is false', () => {
-    const { subscribeToChannel } = require('../../runtime/AblyClient');
     const section = makeSection({
-      refreshPolicy: { type: 'sse', channel: 'game:123' },
+      refreshPolicy: { type: RefreshType.SSE, channel: 'game:123' },
     });
 
     renderHook(() => useRefreshPolicy({ section, onUpdate: vi.fn(), enabled: false }));
 
-    expect(subscribeToChannel).not.toHaveBeenCalled();
+    expect(mockedSubscribeToChannel).not.toHaveBeenCalled();
   });
 
   it('subscribes to SSE channel when enabled', () => {
-    const { subscribeToChannel } = require('../../runtime/AblyClient');
     const section = makeSection({
-      refreshPolicy: { type: 'sse', channel: 'game:123' },
+      refreshPolicy: { type: RefreshType.SSE, channel: 'game:123' },
     });
 
     renderHook(() => useRefreshPolicy({ section, onUpdate: vi.fn(), enabled: true }));
 
-    expect(subscribeToChannel).toHaveBeenCalledWith('game:123', expect.any(Function));
+    expect(mockedSubscribeToChannel).toHaveBeenCalledWith('game:123', expect.any(Function));
   });
 
   it('unsubscribes on disable (Option A behavior)', () => {
     const section = makeSection({
-      refreshPolicy: { type: 'sse', channel: 'game:123' },
+      refreshPolicy: { type: RefreshType.SSE, channel: 'game:123' },
     });
 
     const { rerender } = renderHook(

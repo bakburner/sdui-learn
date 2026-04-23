@@ -96,6 +96,8 @@ extension SduiModels {
 
 /// Action fired when the form is submitted
 ///
+/// Top-level fallback action invoked when the IAP SDK is not mounted (today, always).
+///
 /// Optional action to trigger on retry tap (typically a refresh action)
 // MARK: - Action
 struct Action: Codable {
@@ -670,11 +672,23 @@ extension Badge {
     }
 }
 
-/// Root node of the atomic element tree — the rendering instructions
+/// Atomic tree describing the banner's full visible surface. Renderer walks this tree
+/// exactly as an AtomicComposite would; no client-side chrome defaults are permitted. See
+/// AGENTS.md §15.1.
 ///
 /// Atomic UI primitive — server-composed building block for the atomic rendering layer
 ///
 /// The element to render as a badge
+///
+/// Atomic tree describing the hero's full visible surface — logo, title, subtitle, feature
+/// list, tier cards, CTAs. Renderer walks this tree exactly as an AtomicComposite would.
+///
+/// Root node of the atomic element tree — the rendering instructions
+///
+/// Atomic tree describing the pre-SDK placeholder surface (e.g. play-glyph column framed at
+/// the player's aspectRatio). Renderer walks this tree exactly as an AtomicComposite would;
+/// no client-side chrome defaults are permitted. Once the video SDK lands this tree becomes
+/// the loading/error placeholder the SDK overlays.
 // MARK: - AtomicElement
 class AtomicElement: Codable {
     /// Server-provided accessibility metadata for this atomic element
@@ -968,15 +982,23 @@ extension AtomicElement {
 ///
 /// Sortable, paginated table of season statistical leaders (league-wide)
 ///
-/// Inline subscription upsell banner with headline, body copy, and CTA
+/// Inline subscription upsell banner. Reserved SDK integration point: the banner's visible
+/// chrome is entirely server-composed via `ui` until the platform IAP SDK (StoreKit / Play
+/// Billing) lands and starts mounting the purchase flow on CTA tap. `tiers` carries the IAP
+/// product identifiers the SDK will later bind to; `ctaAction` is the (pre-SDK) fallback
+/// action.
 ///
-/// Full-screen subscription upsell hero with multi-tier pricing and feature list
+/// Full-screen subscription upsell hero. Reserved SDK integration point — same contract as
+/// SubscribeBannerData: `ui` carries the full visible composition; `tiers` carries IAP
+/// product identifiers the SDK will bind to post-landing.
 ///
 /// Data payload for AtomicComposite sections — ui contains rendering instructions, content
 /// carries domain data
 ///
-/// Video player section — platform SDK integration (DRM, HLS, ad insertion). Same
-/// justification as SubscribeHero (StoreKit/Play Billing) and AdSlot (GAM).
+/// Video player section — reserved SDK integration point for DRM / HLS / ad insertion.
+/// `playerType`, `contentId`, `autoplay`, and `capabilities` are SDK inputs (the video SDK
+/// reads them and mounts); `ui` carries the pre-SDK placeholder composition that renders
+/// before the SDK is integrated and will serve as the loading/error placeholder afterwards.
 // MARK: - DataClass
 struct DataClass: Codable {
     let defaultTab, stateKey: String?
@@ -1062,18 +1084,31 @@ struct DataClass: Codable {
     let title: String?
     /// Total number of rows available server-side (for pagination display)
     let totalRows: Int?
-    let background: BackgroundUnion?
+    /// Top-level fallback action invoked when the IAP SDK is not mounted (today, always).
     let ctaAction: Action?
-    let ctaLabel, logoURL: String?
-    /// Optional pricing tier highlights
+    /// IAP product identifiers + server-emitted prices. Consumed by the IAP SDK when it lands;
+    /// not used by the renderer, which reads the visible price copy out of `ui`.
+    ///
+    /// IAP product identifiers + server-emitted prices. Consumed by the IAP SDK when it lands;
+    /// not used by the renderer.
     let tiers: [SubscriptionTier]?
-    /// Bullet-point feature list
-    let features: [String]?
+    /// Atomic tree describing the banner's full visible surface. Renderer walks this tree
+    /// exactly as an AtomicComposite would; no client-side chrome defaults are permitted. See
+    /// AGENTS.md §15.1.
+    ///
+    /// Atomic tree describing the hero's full visible surface — logo, title, subtitle, feature
+    /// list, tier cards, CTAs. Renderer walks this tree exactly as an AtomicComposite would.
+    ///
+    /// Root node of the atomic element tree — the rendering instructions
+    ///
+    /// Atomic tree describing the pre-SDK placeholder surface (e.g. play-glyph column framed at
+    /// the player's aspectRatio). Renderer walks this tree exactly as an AtomicComposite would;
+    /// no client-side chrome defaults are permitted. Once the video SDK lands this tree becomes
+    /// the loading/error placeholder the SDK overlays.
+    let ui: AtomicElement?
     /// Optional domain data (strings, URLs, flags) to populate the ui tree. Reserved for future
     /// data-binding support.
     let content: [String: JSONAny]?
-    /// Root node of the atomic element tree — the rendering instructions
-    let ui: AtomicElement?
     let autoplay: Bool?
     /// Platform capabilities the player should enable. Server includes only capabilities
     /// relevant to the requesting platform (via X-Platform header).
@@ -1091,9 +1126,7 @@ struct DataClass: Codable {
         case teamLogoURL = "teamLogoUrl"
         case teamName, teamTotals, teamTricode, fields, layout, submitAction, submitLabel, adUnitPath, collapseOnEmpty, label, placeholder, provider
         case refreshIntervalSEC = "refreshIntervalSec"
-        case sizes, targeting, page, pageSize, sortColumn, sortDirection, subtitle, title, totalRows, background, ctaAction, ctaLabel
-        case logoURL = "logoUrl"
-        case tiers, features, content, ui, autoplay, capabilities
+        case sizes, targeting, page, pageSize, sortColumn, sortDirection, subtitle, title, totalRows, ctaAction, tiers, ui, content, autoplay, capabilities
         case contentID = "contentId"
         case playerType
     }
@@ -1166,14 +1199,10 @@ extension DataClass {
         subtitle: String?? = nil,
         title: String?? = nil,
         totalRows: Int?? = nil,
-        background: BackgroundUnion?? = nil,
         ctaAction: Action?? = nil,
-        ctaLabel: String?? = nil,
-        logoURL: String?? = nil,
         tiers: [SubscriptionTier]?? = nil,
-        features: [String]?? = nil,
-        content: [String: JSONAny]?? = nil,
         ui: AtomicElement?? = nil,
+        content: [String: JSONAny]?? = nil,
         autoplay: Bool?? = nil,
         capabilities: [Capability]?? = nil,
         contentID: String?? = nil,
@@ -1228,14 +1257,10 @@ extension DataClass {
             subtitle: subtitle ?? self.subtitle,
             title: title ?? self.title,
             totalRows: totalRows ?? self.totalRows,
-            background: background ?? self.background,
             ctaAction: ctaAction ?? self.ctaAction,
-            ctaLabel: ctaLabel ?? self.ctaLabel,
-            logoURL: logoURL ?? self.logoURL,
             tiers: tiers ?? self.tiers,
-            features: features ?? self.features,
-            content: content ?? self.content,
             ui: ui ?? self.ui,
+            content: content ?? self.content,
             autoplay: autoplay ?? self.autoplay,
             capabilities: capabilities ?? self.capabilities,
             contentID: contentID ?? self.contentID,
@@ -1263,7 +1288,6 @@ class Section: Codable {
     /// Section-specific data payload
     let data: DataClass?
     let dataBinding: DataBinding?
-    let display: SectionDisplay?
     let id: String
     let layoutHints: SectionLayoutHints?
     let padding: Spacing?
@@ -1274,22 +1298,22 @@ class Section: Codable {
     let stringTable: [String: String]?
     /// Nested interaction targets within the section
     let subsections: [Subsection]?
+    let surface: SectionSurface?
     let type: String
 
     enum CodingKeys: String, CodingKey {
         case accessibility, actions
         case analyticsID = "analyticsId"
-        case backgroundColor, data, dataBinding, display, id, layoutHints, padding, refreshPolicy, sectionStates, stringTable, subsections, type
+        case backgroundColor, data, dataBinding, id, layoutHints, padding, refreshPolicy, sectionStates, stringTable, subsections, surface, type
     }
 
-    init(accessibility: AccessibilityProperties?, actions: [Action]?, analyticsID: String?, backgroundColor: String?, data: DataClass?, dataBinding: DataBinding?, display: SectionDisplay?, id: String, layoutHints: SectionLayoutHints?, padding: Spacing?, refreshPolicy: RefreshPolicy?, sectionStates: SectionStates?, stringTable: [String: String]?, subsections: [Subsection]?, type: String) {
+    init(accessibility: AccessibilityProperties?, actions: [Action]?, analyticsID: String?, backgroundColor: String?, data: DataClass?, dataBinding: DataBinding?, id: String, layoutHints: SectionLayoutHints?, padding: Spacing?, refreshPolicy: RefreshPolicy?, sectionStates: SectionStates?, stringTable: [String: String]?, subsections: [Subsection]?, surface: SectionSurface?, type: String) {
         self.accessibility = accessibility
         self.actions = actions
         self.analyticsID = analyticsID
         self.backgroundColor = backgroundColor
         self.data = data
         self.dataBinding = dataBinding
-        self.display = display
         self.id = id
         self.layoutHints = layoutHints
         self.padding = padding
@@ -1297,6 +1321,7 @@ class Section: Codable {
         self.sectionStates = sectionStates
         self.stringTable = stringTable
         self.subsections = subsections
+        self.surface = surface
         self.type = type
     }
 }
@@ -1306,7 +1331,7 @@ class Section: Codable {
 extension Section {
     convenience init(data: Data) throws {
         let me = try newJSONDecoder().decode(Section.self, from: data)
-        self.init(accessibility: me.accessibility, actions: me.actions, analyticsID: me.analyticsID, backgroundColor: me.backgroundColor, data: me.data, dataBinding: me.dataBinding, display: me.display, id: me.id, layoutHints: me.layoutHints, padding: me.padding, refreshPolicy: me.refreshPolicy, sectionStates: me.sectionStates, stringTable: me.stringTable, subsections: me.subsections, type: me.type)
+        self.init(accessibility: me.accessibility, actions: me.actions, analyticsID: me.analyticsID, backgroundColor: me.backgroundColor, data: me.data, dataBinding: me.dataBinding, id: me.id, layoutHints: me.layoutHints, padding: me.padding, refreshPolicy: me.refreshPolicy, sectionStates: me.sectionStates, stringTable: me.stringTable, subsections: me.subsections, surface: me.surface, type: me.type)
     }
 
     convenience init(_ json: String, using encoding: String.Encoding = .utf8) throws {
@@ -1327,7 +1352,6 @@ extension Section {
         backgroundColor: String?? = nil,
         data: DataClass?? = nil,
         dataBinding: DataBinding?? = nil,
-        display: SectionDisplay?? = nil,
         id: String? = nil,
         layoutHints: SectionLayoutHints?? = nil,
         padding: Spacing?? = nil,
@@ -1335,6 +1359,7 @@ extension Section {
         sectionStates: SectionStates?? = nil,
         stringTable: [String: String]?? = nil,
         subsections: [Subsection]?? = nil,
+        surface: SectionSurface?? = nil,
         type: String? = nil
     ) -> Section {
         return Section(
@@ -1344,7 +1369,6 @@ extension Section {
             backgroundColor: backgroundColor ?? self.backgroundColor,
             data: data ?? self.data,
             dataBinding: dataBinding ?? self.dataBinding,
-            display: display ?? self.display,
             id: id ?? self.id,
             layoutHints: layoutHints ?? self.layoutHints,
             padding: padding ?? self.padding,
@@ -1352,6 +1376,7 @@ extension Section {
             sectionStates: sectionStates ?? self.sectionStates,
             stringTable: stringTable ?? self.stringTable,
             subsections: subsections ?? self.subsections,
+            surface: surface ?? self.surface,
             type: type ?? self.type
         )
     }
@@ -1495,7 +1520,7 @@ enum Alignment: String, Codable {
 ///
 /// Background override when game is LIVE
 ///
-/// Section wrapper background (solid, gradient, or image).
+/// Surface background (solid, gradient, or image).
 enum BackgroundUnion: Codable {
     case background(Background)
     case string(String)
@@ -1852,9 +1877,9 @@ enum ImageFit: String, Codable {
 ///
 /// Inner space between the element's own background/border and its content.
 ///
-/// Outer margin (space between section and its siblings / screen edge).
+/// Outer margin (space between the surface and its siblings / screen edge).
 ///
-/// Inner padding (space between section wrapper and its content).
+/// Inner padding (space between the surface edge and the content it wraps).
 // MARK: - Spacing
 struct Spacing: Codable {
     let bottom, end, start, top: Int?
@@ -1912,7 +1937,7 @@ enum Orientation: String, Codable {
 /// Drop shadow with CSS/SwiftUI semantics (radius + offset). Compose approximates via
 /// elevation.
 ///
-/// Drop shadow applied to the section wrapper.
+/// Drop shadow applied to the surface.
 // MARK: - Shadow
 struct Shadow: Codable {
     /// Shadow color (hex with alpha, or token reference)
@@ -2795,120 +2820,6 @@ extension DataBindingPath {
     }
 }
 
-/// Outer-chrome spec applied by the client's SectionRouter to every permanent section.
-/// Mirrors the inline-chrome vocabulary on AtomicContainer so permanent sections have schema
-/// parity with composed sections. Every client's shared SectionContainer wrapper reads these
-/// fields; permanent-section renderers do not set outer padding, margin, corner radius,
-/// shadow, border, or background themselves.
-// MARK: - SectionDisplay
-struct SectionDisplay: Codable {
-    /// Section wrapper background (solid, gradient, or image).
-    let background: BackgroundUnion?
-    /// Outer stroke applied around the section wrapper.
-    let border: Border?
-    /// Corner radius in dp/px applied to the section wrapper (with overflow clip).
-    let cornerRadius: Int?
-    /// Outer margin (space between section and its siblings / screen edge).
-    let margin: Spacing?
-    /// Inner padding (space between section wrapper and its content).
-    let padding: Spacing?
-    /// Drop shadow applied to the section wrapper.
-    let shadow: Shadow?
-}
-
-// MARK: SectionDisplay convenience initializers and mutators
-
-extension SectionDisplay {
-    init(data: Data) throws {
-        self = try newJSONDecoder().decode(SectionDisplay.self, from: data)
-    }
-
-    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
-        guard let data = json.data(using: encoding) else {
-            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
-        }
-        try self.init(data: data)
-    }
-
-    init(fromURL url: URL) throws {
-        try self.init(data: try Data(contentsOf: url))
-    }
-
-    func with(
-        background: BackgroundUnion?? = nil,
-        border: Border?? = nil,
-        cornerRadius: Int?? = nil,
-        margin: Spacing?? = nil,
-        padding: Spacing?? = nil,
-        shadow: Shadow?? = nil
-    ) -> SectionDisplay {
-        return SectionDisplay(
-            background: background ?? self.background,
-            border: border ?? self.border,
-            cornerRadius: cornerRadius ?? self.cornerRadius,
-            margin: margin ?? self.margin,
-            padding: padding ?? self.padding,
-            shadow: shadow ?? self.shadow
-        )
-    }
-
-    func jsonData() throws -> Data {
-        return try newJSONEncoder().encode(self)
-    }
-
-    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
-        return String(data: try self.jsonData(), encoding: encoding)
-    }
-}
-
-/// Outer stroke applied around the section wrapper.
-///
-/// Outer stroke applied around a container or section.
-// MARK: - Border
-struct Border: Codable {
-    /// Stroke color (hex or token)
-    let color: String?
-    /// Stroke width in dp/px
-    let width: Double?
-}
-
-// MARK: Border convenience initializers and mutators
-
-extension Border {
-    init(data: Data) throws {
-        self = try newJSONDecoder().decode(Border.self, from: data)
-    }
-
-    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
-        guard let data = json.data(using: encoding) else {
-            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
-        }
-        try self.init(data: data)
-    }
-
-    init(fromURL url: URL) throws {
-        try self.init(data: try Data(contentsOf: url))
-    }
-
-    func with(
-        color: String?? = nil,
-        width: Double?? = nil
-    ) -> Border {
-        return Border(
-            color: color ?? self.color,
-            width: width ?? self.width
-        )
-    }
-
-    func jsonData() throws -> Data {
-        return try newJSONEncoder().encode(self)
-    }
-
-    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
-        return String(data: try self.jsonData(), encoding: encoding)
-    }
-}
-
 /// Optional layout hints for section placement. Clients apply best-effort; unknown hints are
 /// ignored.
 // MARK: - SectionLayoutHints
@@ -3163,6 +3074,122 @@ extension Subsection {
             accessibility: accessibility ?? self.accessibility,
             actions: actions ?? self.actions,
             id: id ?? self.id
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+/// Server-driven surface spec applied by the client's SectionRouter to every permanent
+/// section — the visual wrapper beneath the section's content. Mirrors the inline-chrome
+/// vocabulary on AtomicContainer so permanent sections have schema parity with composed
+/// sections. Every client's shared SectionContainer wrapper reads these fields;
+/// permanent-section renderers do not set outer padding, margin, corner radius, shadow,
+/// border, or background themselves. The sibling `data` field carries content (including the
+/// atomic UI tree); `surface` carries the frame that sits beneath it.
+// MARK: - SectionSurface
+struct SectionSurface: Codable {
+    /// Surface background (solid, gradient, or image).
+    let background: BackgroundUnion?
+    /// Outer stroke applied around the surface.
+    let border: Border?
+    /// Corner radius in dp/px applied to the surface (with overflow clip).
+    let cornerRadius: Int?
+    /// Outer margin (space between the surface and its siblings / screen edge).
+    let margin: Spacing?
+    /// Inner padding (space between the surface edge and the content it wraps).
+    let padding: Spacing?
+    /// Drop shadow applied to the surface.
+    let shadow: Shadow?
+}
+
+// MARK: SectionSurface convenience initializers and mutators
+
+extension SectionSurface {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(SectionSurface.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        background: BackgroundUnion?? = nil,
+        border: Border?? = nil,
+        cornerRadius: Int?? = nil,
+        margin: Spacing?? = nil,
+        padding: Spacing?? = nil,
+        shadow: Shadow?? = nil
+    ) -> SectionSurface {
+        return SectionSurface(
+            background: background ?? self.background,
+            border: border ?? self.border,
+            cornerRadius: cornerRadius ?? self.cornerRadius,
+            margin: margin ?? self.margin,
+            padding: padding ?? self.padding,
+            shadow: shadow ?? self.shadow
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+/// Outer stroke applied around the surface.
+///
+/// Outer stroke applied around a container or section.
+// MARK: - Border
+struct Border: Codable {
+    /// Stroke color (hex or token)
+    let color: String?
+    /// Stroke width in dp/px
+    let width: Double?
+}
+
+// MARK: Border convenience initializers and mutators
+
+extension Border {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(Border.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        color: String?? = nil,
+        width: Double?? = nil
+    ) -> Border {
+        return Border(
+            color: color ?? self.color,
+            width: width ?? self.width
         )
     }
 

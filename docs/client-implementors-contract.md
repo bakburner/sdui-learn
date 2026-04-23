@@ -63,7 +63,7 @@ at `localhost:8080` is the reference implementation; hit it with
 
 | # | Component | What it does |
 |---|-----------|--------------|
-| 1 | **Models** | Use (or port) generated models from `codegen/output/{lang}/`. Deserialize `SduiScreen`, `Section`, `AtomicElement`, `Action`, `RefreshPolicy`, `DataBinding`. |
+| 1 | **Models** | Use the generated models from the platform's authoritative output location (see the table in "Shared Infrastructure" above), or regenerate from `schema/sdui-schema.json` for a new language. Deserialize `SduiScreen`, `Section`, `AtomicElement`, `Action`, `RefreshPolicy`, `DataBinding`. |
 | 2 | **SduiRepository.fetchScreen** | Single HTTP method: `GET {baseUrl}{endpoint}?variant={v}` with headers `X-Platform: {platform}`, `X-Schema-Version: 1.0`. Returns `SduiScreen`. |
 | 3 | **UriResolver.resolveEndpoint** | Convert `nba://{path}` → `/sdui/{path}`. Pure string prefix swap, no branching. |
 | 4 | **SectionRouter** | Switch on `section.type` → dispatch to renderer. Unknown types → log + skip. |
@@ -1180,10 +1180,9 @@ client. Regenerate everything with `make codegen` (or
 
 | Language   | Output                                               | Consumer                                                      |
 |------------|------------------------------------------------------|---------------------------------------------------------------|
-| Java       | `codegen/build/generated-sources/jsonschema2pojo/`   | Android client + Spring server (on the classpath)             |
+| Java       | `codegen/build/generated-sources/jsonschema2pojo/`   | Spring server + Android client (on the classpath)             |
 | Swift      | `ios/Sources/SduiCore/Models/SduiModels.swift`       | iOS `SduiCore` SwiftPM target                                 |
 | TypeScript | `web/src/generated/SduiModels.ts`                    | Web client via the `@sdui/models` Vite / tsconfig path alias  |
-| Kotlin     | `codegen/output/kotlin/SduiModels.kt`                | Demonstration only — Android consumes the Java POJOs          |
 
 For other languages, use [quicktype](https://quicktype.io) to generate models
 from `schema/sdui-schema.json`. Or write your own deserializer — the JSON

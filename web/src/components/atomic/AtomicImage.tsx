@@ -2,8 +2,7 @@ import React from 'react';
 import type { Action } from '@sdui/models';
 import type { AtomicProps } from './AtomicRouter';
 import { AtomicRouter } from './AtomicRouter';
-import type { Badge } from './AtomicElement';
-import { accessibilityProps } from '../../utils/accessibility';
+import type { Badge } from '@sdui/models';
 import { resolveImageVariant } from '../../utils/ImageVariantResolver';
 
 const badgePositionMap: Record<string, React.CSSProperties> = {

@@ -23,7 +23,7 @@ function getClient(): Ably.Realtime {
           const token = await fetchAblyToken();
           callback(null, token);
         } catch (err) {
-          callback(err as Error, null);
+          callback(err instanceof Error ? err.message : String(err), null);
         }
       },
       autoConnect: true,

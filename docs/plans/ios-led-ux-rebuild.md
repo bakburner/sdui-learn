@@ -55,7 +55,7 @@ Edit [schema/sdui-schema.json](../../schema/sdui-schema.json):
 
 ### A.3 Codegen + round-trip validation
 
-- Run `make codegen`; verify updated [codegen/output/kotlin/SduiModels.kt](../../codegen/output/kotlin/SduiModels.kt), [ios/Sources/SduiCore/Models/SduiModels.swift](../../ios/Sources/SduiCore/Models/SduiModels.swift), [web/src/generated/SduiModels.ts](../../web/src/generated/SduiModels.ts).
+- Run `make codegen`; verify updated [ios/Sources/SduiCore/Models/SduiModels.swift](../../ios/Sources/SduiCore/Models/SduiModels.swift), [web/src/generated/SduiModels.ts](../../web/src/generated/SduiModels.ts), and the Java POJO tree under `codegen/build/generated-sources/jsonschema2pojo/`.
 - Extend [ios/Tests/SduiCoreTests/SduiModelsRoundTripTests.swift](../../ios/Tests/SduiCoreTests/SduiModelsRoundTripTests.swift) with fixtures exercising both new variants (at least one `featured` GamePanel, one select with each of the three variant values).
 - Equivalent smoke tests on Android / TypeScript if they exist; otherwise defer to Phase B renderer tests.
 

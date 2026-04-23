@@ -74,7 +74,7 @@ data class SduiSection(
     @JsonProperty("subsections") val subsections: List<Subsection>? = null,
     @JsonProperty("padding") val padding: Spacing? = null,
     @JsonProperty("backgroundColor") val backgroundColor: String? = null,
-    @JsonProperty("display") val display: SectionDisplay? = null,
+    @JsonProperty("surface") val surface: SectionSurface? = null,
     @JsonProperty("layoutHints") val layoutHints: SectionLayoutHints? = null,
     @JsonProperty("sectionStates") val sectionStates: SectionStates? = null,
     @JsonProperty("stringTable") val stringTable: Map<String, String>? = null,
@@ -82,15 +82,18 @@ data class SduiSection(
 )
 
 /**
- * Outer-chrome spec applied by SectionRouter to every permanent section.
- * Mirrors AtomicContainer's inline-chrome vocabulary so permanent
- * sections have schema parity with composed sections. The shared
- * `SectionContainer` composable reads these fields; permanent-section
- * renderers never set their own outer padding, margin, corner radius,
- * shadow, border, or background. See AGENTS.md §15.3.
+ * Server-driven surface spec applied by SectionRouter to every permanent
+ * section — the visual wrapper beneath the section's content. Mirrors
+ * AtomicContainer's inline-chrome vocabulary so permanent sections have
+ * schema parity with composed sections. The shared `SectionContainer`
+ * composable reads these fields; permanent-section renderers never set
+ * their own outer padding, margin, corner radius, shadow, border, or
+ * background. The sibling `data` field carries content (including any
+ * atomic UI tree); `surface` carries the frame that sits beneath it.
+ * See AGENTS.md §15.3.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-data class SectionDisplay(
+data class SectionSurface(
     @JsonProperty("margin") val margin: Spacing? = null,
     @JsonProperty("padding") val padding: Spacing? = null,
     // Raw JSON node — may be a string (token/hex) or an object with

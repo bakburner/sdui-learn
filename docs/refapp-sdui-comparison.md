@@ -472,7 +472,7 @@ This is mechanical translation, not architectural decision-making. The architect
 
 | Component | Est. LOC | Dependencies | Android Source Reference |
 |---|---|---|---|
-| `SduiModels.swift` (codegen) | 2,966 | Already generated — add to project | `codegen/output/swift/SduiModels.swift` |
+| `SduiModels.swift` (codegen) | 2,966 | Already generated — in `ios/Sources/SduiCore/Models/` | `ios/Sources/SduiCore/Models/SduiModels.swift` |
 | `SduiRepository.swift` | 60 | URLSession | `SduiRepository.kt` |
 | `UriResolver.swift` | 10 | None | `UriResolver.kt` |
 | `SduiScreenView.swift` | 80 | SwiftUI | `SduiScreenComposable.kt` |

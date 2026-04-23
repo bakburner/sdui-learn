@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import type { Action } from '@sdui/models';
 import type { SectionProps } from '../SectionRouter';
 import { mapBoxscoreTable } from '../../adapters/sectionUiAdapters';
 import { DEFAULT_FALLBACK_IMAGE } from '../../utils/constants';
@@ -136,7 +137,7 @@ export function BoxscoreTable({ section, state, onAction, onStateChange }: Secti
                       cursor: player.actions?.length ? 'pointer' : 'default',
                     }}
                     onClick={() => {
-                      const act = player.actions?.find((a) => a.trigger === 'onTap') ?? player.actions?.[0];
+                      const act = player.actions?.find((a: Action) => a.trigger === 'onTap') ?? player.actions?.[0];
                       if (act) onAction(act);
                     }}
                   >

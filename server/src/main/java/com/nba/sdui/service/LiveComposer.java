@@ -160,7 +160,7 @@ public class LiveComposer {
         data.set("actions", actions);
 
         section.set("data", data);
-        section.set("display", utils.gamePanelDisplay());
+        section.set("surface", utils.gamePanelSurface());
         return section;
     }
 
@@ -208,14 +208,14 @@ public class LiveComposer {
         data.set("actions", actions);
 
         section.set("data", data);
-        section.set("display", utils.gamePanelDisplay());
+        section.set("surface", utils.gamePanelSurface());
         return section;
     }
 
     private ObjectNode buildSectionHeader(String id, String title,
                                            String subtitle, String actionUri) {
         ObjectNode section = atomicBuilder.buildSectionHeader(id, title, subtitle, null, actionUri);
-        section.set("display", utils.railDisplay());
+        section.set("surface", utils.railSurface());
         return section;
     }
 
@@ -268,7 +268,7 @@ public class LiveComposer {
         data.set("actions", actions);
 
         section.set("data", data);
-        section.set("display", utils.gamePanelDisplay());
+        section.set("surface", utils.gamePanelSurface());
         return section;
     }
 
@@ -343,7 +343,7 @@ public class LiveComposer {
         data.set("actions", actions);
 
         section.set("data", data);
-        section.set("display", utils.gamePanelDisplay());
+        section.set("surface", utils.gamePanelSurface());
         return section;
     }
 

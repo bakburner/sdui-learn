@@ -1,11 +1,11 @@
 # TBC — Governance tensions 2–4 and outstanding work
 
 Scratchpad for picking up tomorrow. Tension 1 (Amendment A, "promotion
-readiness" + shared `section.display` / `SectionContainer` wrapper) is
+readiness" + shared `section.surface` / `SectionContainer` wrapper) is
 landed and the four reserved sections (`SubscribeHero`,
 `SubscribeBanner`, `AdSlot`, `VideoPlayer`) all flow their outer chrome
-through the server-driven display block. What remains is the governance
-rewrite and the follow-on code migrations for Tensions 2–4.
+through the server-driven `surface` block. What remains is the
+governance rewrite and the follow-on code migrations for Tensions 2–4.
 
 ---
 
@@ -40,7 +40,7 @@ numbers.
 
 ### Partial progress already landed
 
-- The **section envelope** `section.display` now carries
+- The **section envelope** `section.surface` now carries
   `margin / padding / background / cornerRadius / shadow / border` and
   is applied by `SectionContainer` on all three platforms. This
   covers the **outer** chrome for every permanent section (not just
@@ -269,7 +269,7 @@ and should be finished when we resume:
   for the recent `fillWidth` and `cornerRadii` additions.
 - [ ] **Verify the rail-spacing / card-corner fix visually** on iOS
   after a server restart + iOS rebuild. Today's changes:
-  - `railDisplay()` bumped from 8/8 to 16/16 margin top/bottom.
+  - `railSurface()` bumped from 8/8 to 16/16 margin top/bottom.
   - `buildContentCard` / `buildVideoCard` now emit
     `cornerRadii: {topStart: 12, topEnd: 12, bottomStart: 0,
     bottomEnd: 0}` on the card, so headline text no longer collides
@@ -287,7 +287,7 @@ and should be finished when we resume:
   composed atomically.
 - [ ] **Follow-up: owner sweep of `docs/appendix-kitchen-sink.md`**
   for the schema changes this session (`fillWidth`, `cornerRadii`,
-  bumped `railDisplay` margin).
+  bumped `railSurface` margin).
 - [ ] **Follow-up: `GamePanel` ref-app layout redesign.** Deferred;
   will want to pair this with the Tension 2 + 4 work above since
   both touch the same renderer.

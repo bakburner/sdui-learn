@@ -1,0 +1,614 @@
+{
+  "id": "game-detail-0042300102",
+  "schemaVersion": "1.0",
+  "title": "BOS vs MIA",
+  "analyticsId": "game_detail_0042300102",
+  "traceId": "trace-pre-001",
+  "defaultRefreshPolicy": {
+    "type": "static"
+  },
+  "state": {
+    "activeTab": "boxscore"
+  },
+  "sections": [
+    {
+      "id": "scoreboard",
+      "type": "GamePanel",
+      "analyticsId": "game_panel_scoreboard",
+      "refreshPolicy": {
+        "type": "static"
+      },
+      "data": {
+        "homeTeam": {
+          "teamId": 1610612738,
+          "teamTricode": "BOS",
+          "teamName": "Celtics",
+          "teamCity": "Boston",
+          "logoUrl": "https://cdn.nba.com/logos/nba/1610612738/primary/D/512x512/logo.png",
+          "score": 0
+        },
+        "awayTeam": {
+          "teamId": 1610612748,
+          "teamTricode": "MIA",
+          "teamName": "Heat",
+          "teamCity": "Miami",
+          "logoUrl": "https://cdn.nba.com/logos/nba/1610612748/primary/D/512x512/logo.png",
+          "score": 0
+        },
+        "gameStatus": 1,
+        "gameStatusText": "7:00 PM ET",
+        "period": 0,
+        "gameClock": "",
+        "gameId": "0042300102",
+        "displayConfig": {
+          "logoSize": 60,
+          "scoreTextStyle": "prominent",
+          "background": "#17408B"
+        }
+      }
+    },
+    {
+      "id": "game-info",
+      "type": "AtomicComposite",
+      "analyticsId": "game_info_section",
+      "refreshPolicy": {
+        "type": "static"
+      },
+      "data": {
+        "ui": {
+          "type": "Container",
+          "direction": "column",
+          "fillWidth": true,
+          "background": "#1E1E2E",
+          "cornerRadius": 12,
+          "gap": 4,
+          "padding": {
+            "start": 16,
+            "end": 16,
+            "top": 12,
+            "bottom": 12
+          },
+          "children": [
+            {
+              "type": "Text",
+              "content": "Game Info",
+              "variant": "titleMedium",
+              "weight": "bold",
+              "color": "#FFFFFF"
+            },
+            {
+              "type": "Divider",
+              "orientation": "horizontal",
+              "color": "#333348"
+            },
+            {
+              "type": "Container",
+              "direction": "row",
+              "fillWidth": true,
+              "alignment": "spaceBetween",
+              "crossAlignment": "center",
+              "padding": {
+                "start": 0,
+                "end": 0,
+                "top": 6,
+                "bottom": 6
+              },
+              "children": [
+                {
+                  "type": "Text",
+                  "content": "Venue",
+                  "variant": "bodyMedium",
+                  "color": "#A0A0B0"
+                },
+                {
+                  "type": "Text",
+                  "content": "TD Garden",
+                  "variant": "bodyMedium",
+                  "weight": "semiBold",
+                  "color": "#FFFFFF"
+                }
+              ]
+            },
+            {
+              "type": "Container",
+              "direction": "row",
+              "fillWidth": true,
+              "alignment": "spaceBetween",
+              "crossAlignment": "center",
+              "padding": {
+                "start": 0,
+                "end": 0,
+                "top": 6,
+                "bottom": 6
+              },
+              "children": [
+                {
+                  "type": "Text",
+                  "content": "Broadcast",
+                  "variant": "bodyMedium",
+                  "color": "#A0A0B0"
+                },
+                {
+                  "type": "Text",
+                  "content": "ESPN",
+                  "variant": "bodyMedium",
+                  "weight": "semiBold",
+                  "color": "#FFFFFF"
+                }
+              ]
+            },
+            {
+              "type": "Container",
+              "direction": "row",
+              "fillWidth": true,
+              "alignment": "spaceBetween",
+              "crossAlignment": "center",
+              "padding": {
+                "start": 0,
+                "end": 0,
+                "top": 6,
+                "bottom": 6
+              },
+              "children": [
+                {
+                  "type": "Text",
+                  "content": "Series",
+                  "variant": "bodyMedium",
+                  "color": "#A0A0B0"
+                },
+                {
+                  "type": "Text",
+                  "content": "BOS leads 2-1",
+                  "variant": "bodyMedium",
+                  "weight": "semiBold",
+                  "color": "#FFFFFF"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "content-rail",
+      "type": "AtomicComposite",
+      "analyticsId": "content_rail",
+      "refreshPolicy": {
+        "type": "static"
+      },
+      "data": {
+        "ui": {
+          "type": "Container",
+          "direction": "column",
+          "padding": {
+            "start": 0,
+            "end": 0,
+            "top": 12,
+            "bottom": 12
+          },
+          "children": [
+            {
+              "type": "Text",
+              "content": "Preview",
+              "variant": "titleMedium",
+              "weight": "bold",
+              "padding": {
+                "start": 16,
+                "end": 16,
+                "top": 8,
+                "bottom": 8
+              }
+            },
+            {
+              "type": "ScrollContainer",
+              "direction": "row",
+              "gap": 12,
+              "children": [
+                {
+                  "type": "Container",
+                  "id": "content-1",
+                  "direction": "column",
+                  "actions": [
+                    {
+                      "trigger": "onTap",
+                      "type": "navigate",
+                      "targetUri": "nba://article/game4-preview",
+                      "fallbackUrl": "https://www.nba.com/news/game4-preview"
+                    }
+                  ],
+                  "children": [
+                    {
+                      "type": "Container",
+                      "direction": "column",
+                      "cornerRadius": 8,
+                      "background": "#2A2A4A",
+                      "children": [
+                        {
+                          "type": "Image",
+                          "src": "https://cdn.nba.com/manage/2024/04/GettyImages-preview.jpg",
+                          "width": 200,
+                          "height": 112,
+                          "fit": "cover"
+                        },
+                        {
+                          "type": "Text",
+                          "content": "ARTICLE",
+                          "variant": "labelSmall",
+                          "weight": "bold",
+                          "color": "#FFFFFF",
+                          "background": "#FF6B6B"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "Spacer",
+                      "height": 8
+                    },
+                    {
+                      "type": "Text",
+                      "content": "Game 4 Preview",
+                      "variant": "bodySmall",
+                      "weight": "semiBold",
+                      "color": "#FFFFFF",
+                      "maxLines": 2
+                    }
+                  ]
+                },
+                {
+                  "type": "Container",
+                  "id": "content-2",
+                  "direction": "column",
+                  "actions": [
+                    {
+                      "trigger": "onTap",
+                      "type": "navigate",
+                      "targetUri": "nba://video/tatum-pregame",
+                      "fallbackUrl": "https://www.nba.com/video/tatum-pregame"
+                    }
+                  ],
+                  "children": [
+                    {
+                      "type": "Container",
+                      "direction": "column",
+                      "cornerRadius": 8,
+                      "background": "#2A2A4A",
+                      "children": [
+                        {
+                          "type": "Image",
+                          "src": "https://cdn.nba.com/manage/2024/04/tatum-interview.jpg",
+                          "width": 200,
+                          "height": 112,
+                          "fit": "cover"
+                        },
+                        {
+                          "type": "Text",
+                          "content": "VIDEO · 3:45",
+                          "variant": "labelSmall",
+                          "weight": "bold",
+                          "color": "#FFFFFF",
+                          "background": "#FF6B6B"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "Spacer",
+                      "height": 8
+                    },
+                    {
+                      "type": "Text",
+                      "content": "Tatum Pre-Game Interview",
+                      "variant": "bodySmall",
+                      "weight": "semiBold",
+                      "color": "#FFFFFF",
+                      "maxLines": 2
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "game-tabs",
+      "type": "TabGroup",
+      "analyticsId": "game_tabs",
+      "refreshPolicy": {
+        "type": "static"
+      },
+      "data": {
+        "stateKey": "activeTab",
+        "defaultTab": "boxscore",
+        "tabs": [
+          {
+            "id": "tab-boxscore",
+            "label": "Starters",
+            "stateKey": "activeTab",
+            "stateValue": "boxscore"
+          },
+          {
+            "id": "tab-playbyplay",
+            "label": "Season Stats",
+            "stateKey": "activeTab",
+            "stateValue": "playbyplay"
+          }
+        ],
+        "tabContents": {
+          "boxscore": [
+            {
+              "id": "starters-home",
+              "type": "AtomicComposite",
+              "data": {
+                "ui": {
+                  "type": "Container",
+                  "direction": "column",
+                  "padding": {
+                    "start": 16,
+                    "end": 16,
+                    "top": 8,
+                    "bottom": 8
+                  },
+                  "children": [
+                    {
+                      "type": "Text",
+                      "content": "Boston Celtics Starters",
+                      "variant": "titleMedium",
+                      "weight": "bold",
+                      "padding": {
+                        "start": 0,
+                        "end": 0,
+                        "top": 0,
+                        "bottom": 12
+                      }
+                    },
+                    {
+                      "type": "Container",
+                      "direction": "row",
+                      "crossAlignment": "center",
+                      "padding": {
+                        "start": 0,
+                        "end": 0,
+                        "top": 6,
+                        "bottom": 6
+                      },
+                      "children": [
+                        {
+                          "type": "Container",
+                          "direction": "column",
+                          "children": [
+                            {
+                              "type": "Text",
+                              "content": "Jaylen Brown",
+                              "variant": "bodyLarge",
+                              "weight": "medium"
+                            },
+                            {
+                              "type": "Text",
+                              "content": "BOS",
+                              "variant": "bodySmall",
+                              "color": "#999999"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "Spacer",
+                          "height": 8
+                        },
+                        {
+                          "type": "Text",
+                          "content": "SF",
+                          "variant": "bodyMedium",
+                          "color": "#AAAAAA"
+                        },
+                        {
+                          "type": "Spacer",
+                          "height": 8
+                        },
+                        {
+                          "type": "Text",
+                          "content": "#7",
+                          "variant": "titleMedium",
+                          "weight": "bold",
+                          "color": "#FF6B6B"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "Container",
+                      "direction": "row",
+                      "crossAlignment": "center",
+                      "padding": {
+                        "start": 0,
+                        "end": 0,
+                        "top": 6,
+                        "bottom": 6
+                      },
+                      "children": [
+                        {
+                          "type": "Container",
+                          "direction": "column",
+                          "children": [
+                            {
+                              "type": "Text",
+                              "content": "Jayson Tatum",
+                              "variant": "bodyLarge",
+                              "weight": "medium"
+                            },
+                            {
+                              "type": "Text",
+                              "content": "BOS",
+                              "variant": "bodySmall",
+                              "color": "#999999"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "Spacer",
+                          "height": 8
+                        },
+                        {
+                          "type": "Text",
+                          "content": "PF",
+                          "variant": "bodyMedium",
+                          "color": "#AAAAAA"
+                        },
+                        {
+                          "type": "Spacer",
+                          "height": 8
+                        },
+                        {
+                          "type": "Text",
+                          "content": "#0",
+                          "variant": "titleMedium",
+                          "weight": "bold",
+                          "color": "#FF6B6B"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ],
+          "playbyplay": [
+            {
+              "id": "season-stats",
+              "type": "AtomicComposite",
+              "data": {
+                "ui": {
+                  "type": "Container",
+                  "direction": "column",
+                  "padding": {
+                    "start": 16,
+                    "end": 16,
+                    "top": 8,
+                    "bottom": 8
+                  },
+                  "children": [
+                    {
+                      "type": "Text",
+                      "content": "Season Leaders",
+                      "variant": "titleMedium",
+                      "weight": "bold",
+                      "padding": {
+                        "start": 0,
+                        "end": 0,
+                        "top": 0,
+                        "bottom": 12
+                      }
+                    },
+                    {
+                      "type": "Container",
+                      "direction": "row",
+                      "crossAlignment": "center",
+                      "padding": {
+                        "start": 0,
+                        "end": 0,
+                        "top": 6,
+                        "bottom": 6
+                      },
+                      "children": [
+                        {
+                          "type": "Container",
+                          "direction": "column",
+                          "children": [
+                            {
+                              "type": "Text",
+                              "content": "Jayson Tatum",
+                              "variant": "bodyLarge",
+                              "weight": "medium"
+                            },
+                            {
+                              "type": "Text",
+                              "content": "BOS",
+                              "variant": "bodySmall",
+                              "color": "#999999"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "Spacer",
+                          "height": 8
+                        },
+                        {
+                          "type": "Text",
+                          "content": "PPG",
+                          "variant": "bodyMedium",
+                          "color": "#AAAAAA"
+                        },
+                        {
+                          "type": "Spacer",
+                          "height": 8
+                        },
+                        {
+                          "type": "Text",
+                          "content": "26.9",
+                          "variant": "titleMedium",
+                          "weight": "bold",
+                          "color": "#FF6B6B"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "Container",
+                      "direction": "row",
+                      "crossAlignment": "center",
+                      "padding": {
+                        "start": 0,
+                        "end": 0,
+                        "top": 6,
+                        "bottom": 6
+                      },
+                      "children": [
+                        {
+                          "type": "Container",
+                          "direction": "column",
+                          "children": [
+                            {
+                              "type": "Text",
+                              "content": "Jimmy Butler",
+                              "variant": "bodyLarge",
+                              "weight": "medium"
+                            },
+                            {
+                              "type": "Text",
+                              "content": "MIA",
+                              "variant": "bodySmall",
+                              "color": "#999999"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "Spacer",
+                          "height": 8
+                        },
+                        {
+                          "type": "Text",
+                          "content": "PPG",
+                          "variant": "bodyMedium",
+                          "color": "#AAAAAA"
+                        },
+                        {
+                          "type": "Spacer",
+                          "height": 8
+                        },
+                        {
+                          "type": "Text",
+                          "content": "22.9",
+                          "variant": "titleMedium",
+                          "weight": "bold",
+                          "color": "#FF6B6B"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,2213 @@
+// To parse the JSON, install jackson-module-kotlin and do:
+//
+//   val sduiModels = SduiModels.fromJson(jsonString)
+
+package com.nba.sdui.core.models.generated
+
+import com.fasterxml.jackson.annotation.*
+import com.fasterxml.jackson.core.*
+import com.fasterxml.jackson.databind.*
+import com.fasterxml.jackson.databind.deser.std.StdDeserializer
+import com.fasterxml.jackson.databind.module.SimpleModule
+import com.fasterxml.jackson.databind.node.*
+import com.fasterxml.jackson.databind.ser.std.StdSerializer
+import com.fasterxml.jackson.module.kotlin.*
+
+
+@Suppress("UNCHECKED_CAST")
+private fun <T> ObjectMapper.convert(k: kotlin.reflect.KClass<*>, fromJson: (JsonNode) -> T, toJson: (T) -> String, isUnion: Boolean = false) = registerModule(SimpleModule().apply {
+    addSerializer(k.java as Class<T>, object : StdSerializer<T>(k.java as Class<T>) {
+            override fun serialize(value: T, gen: JsonGenerator, provider: SerializerProvider) = gen.writeRawValue(toJson(value))
+    })
+    addDeserializer(k.java as Class<T>, object : StdDeserializer<T>(k.java as Class<T>) {
+            override fun deserialize(p: JsonParser, ctxt: DeserializationContext) = fromJson(p.readValueAsTree())
+    })
+})
+
+val mapper = jacksonObjectMapper().apply {
+    propertyNamingStrategy = PropertyNamingStrategy.LOWER_CAMEL_CASE
+    setSerializationInclusion(JsonInclude.Include.NON_NULL)
+    convert(Destination::class,            { Destination.fromValue(it.asText()) },            { "\"${it.value}\"" })
+    convert(FailureFeedbackStyle::class,   { FailureFeedbackStyle.fromValue(it.asText()) },   { "\"${it.value}\"" })
+    convert(ImpressionDedup::class,        { ImpressionDedup.fromValue(it.asText()) },        { "\"${it.value}\"" })
+    convert(ModalHeight::class,            { ModalHeight.fromValue(it.asText()) },            { "\"${it.value}\"" })
+    convert(FailurePolicy::class,          { FailurePolicy.fromValue(it.asText()) },          { "\"${it.value}\"" })
+    convert(MutateOperation::class,        { MutateOperation.fromValue(it.asText()) },        { "\"${it.value}\"" })
+    convert(NavigationPresentation::class, { NavigationPresentation.fromValue(it.asText()) }, { "\"${it.value}\"" })
+    convert(ActionTrigger::class,          { ActionTrigger.fromValue(it.asText()) },          { "\"${it.value}\"" })
+    convert(ActionType::class,             { ActionType.fromValue(it.asText()) },             { "\"${it.value}\"" })
+    convert(RefreshType::class,            { RefreshType.fromValue(it.asText()) },            { "\"${it.value}\"" })
+    convert(BadgeAlignment::class,         { BadgeAlignment.fromValue(it.asText()) },         { "\"${it.value}\"" })
+    convert(LiveRegion::class,             { LiveRegion.fromValue(it.asText()) },             { "\"${it.value}\"" })
+    convert(Role::class,                   { Role.fromValue(it.asText()) },                   { "\"${it.value}\"" })
+    convert(Alignment::class,              { Alignment.fromValue(it.asText()) },              { "\"${it.value}\"" })
+    convert(Direction::class,              { Direction.fromValue(it.asText()) },              { "\"${it.value}\"" })
+    convert(ScaleType::class,              { ScaleType.fromValue(it.asText()) },              { "\"${it.value}\"" })
+    convert(Align::class,                  { Align.fromValue(it.asText()) },                  { "\"${it.value}\"" })
+    convert(WidthEnum::class,              { WidthEnum.fromValue(it.asText()) },              { "\"${it.value}\"" })
+    convert(CrossAlignment::class,         { CrossAlignment.fromValue(it.asText()) },         { "\"${it.value}\"" })
+    convert(UIDirection::class,            { UIDirection.fromValue(it.asText()) },            { "\"${it.value}\"" })
+    convert(ImageFit::class,               { ImageFit.fromValue(it.asText()) },               { "\"${it.value}\"" })
+    convert(Orientation::class,            { Orientation.fromValue(it.asText()) },            { "\"${it.value}\"" })
+    convert(TextWeight::class,             { TextWeight.fromValue(it.asText()) },             { "\"${it.value}\"" })
+    convert(Capability::class,             { Capability.fromValue(it.asText()) },             { "\"${it.value}\"" })
+    convert(ScoreTextStyle::class,         { ScoreTextStyle.fromValue(it.asText()) },         { "\"${it.value}\"" })
+    convert(FieldType::class,              { FieldType.fromValue(it.asText()) },              { "\"${it.value}\"" })
+    convert(SelectVariant::class,          { SelectVariant.fromValue(it.asText()) },          { "\"${it.value}\"" })
+    convert(Layout::class,                 { Layout.fromValue(it.asText()) },                 { "\"${it.value}\"" })
+    convert(PlayerType::class,             { PlayerType.fromValue(it.asText()) },             { "\"${it.value}\"" })
+    convert(SortDirection::class,          { SortDirection.fromValue(it.asText()) },          { "\"${it.value}\"" })
+    convert(GamePanelVariant::class,       { GamePanelVariant.fromValue(it.asText()) },       { "\"${it.value}\"" })
+    convert(Priority::class,               { Priority.fromValue(it.asText()) },               { "\"${it.value}\"" })
+    convert(Skeleton::class,               { Skeleton.fromValue(it.asText()) },               { "\"${it.value}\"" })
+    convert(BackgroundUnion::class,        { BackgroundUnion.fromJson(it) },                  { it.toJson() }, true)
+    convert(Overlay::class,                { Overlay.fromJson(it) },                          { it.toJson() }, true)
+    convert(WidthUnion::class,             { WidthUnion.fromJson(it) },                       { it.toJson() }, true)
+}
+
+/**
+ * Server-Driven UI schema for NBA Game Detail screens
+ */
+data class SduiModels (
+    /**
+     * Screen-level actions (e.g. analytics beacons, lifecycle hooks)
+     */
+    val actions: List<Action>? = null,
+
+    @get:JsonProperty("analyticsId")@field:JsonProperty("analyticsId")
+    val analyticsID: String? = null,
+
+    val defaultRefreshPolicy: RefreshPolicy? = null,
+
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
+    val id: String,
+
+    val navigation: Navigation? = null,
+
+    /**
+     * Named overlay sections the client shows when a trigger condition arises. Keys are
+     * developer-defined state names (e.g. 'couchRightsWarning'). Values are server-composed
+     * sections (typically AtomicComposite). Client controls trigger timing and presentation
+     * style; server controls display content.
+     */
+    val overlays: Map<String, Section>? = null,
+
+    /**
+     * URI the back button should navigate to.  Clients always show a back button; this field
+     * tells them the target.  Omit for root screens (e.g. scoreboard).
+     */
+    @get:JsonProperty("parentUri")@field:JsonProperty("parentUri")
+    val parentURI: String? = null,
+
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
+    val schemaVersion: String,
+
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
+    val sections: List<Section>,
+
+    val state: Map<String, Any?>? = null,
+    val title: String? = null,
+
+    @get:JsonProperty("traceId")@field:JsonProperty("traceId")
+    val traceID: String? = null
+) {
+    fun toJson() = mapper.writeValueAsString(this)
+
+    companion object {
+        fun fromJson(json: String) = mapper.readValue<SduiModels>(json)
+    }
+}
+
+/**
+ * Action fired when the form is submitted
+ *
+ * Top-level fallback action invoked when the IAP SDK is not mounted (today, always).
+ *
+ * Optional action to trigger on retry tap (typically a refresh action)
+ */
+data class Action (
+    /**
+     * For fireAndForget actions: where to send the beacon
+     */
+    val destinations: List<Destination>? = null,
+
+    /**
+     * For refresh actions: target URL (defaults to current screen endpoint if omitted)
+     */
+    val endpoint: String? = null,
+
+    /**
+     * For fireAndForget actions: event name
+     */
+    val event: String? = null,
+
+    /**
+     * Optional server-provided error message and presentation style. Client falls back to
+     * generic localized string when absent
+     */
+    val failureFeedback: FailureFeedback? = null,
+
+    /**
+     * For fireAndForget actions with onVisible trigger: impression tracking policy
+     */
+    val impression: ImpressionPolicy? = null,
+
+    /**
+     * For toast actions: text message to display in the toast
+     */
+    val message: String? = null,
+
+    /**
+     * For navigate actions with modal presentation: sheet height
+     */
+    val modalHeight: ModalHeight? = null,
+
+    /**
+     * Sequence behavior when this action fails. Client applies per-type default when absent
+     * (navigate=halt, fireAndForget/dismiss/toast=silent, mutate/refresh=continue)
+     */
+    val onFailure: FailurePolicy? = null,
+
+    /**
+     * For mutate actions: operation to perform on the state key
+     */
+    val operation: MutateOperation? = null,
+
+    /**
+     * For refresh actions: map of query param name to screen state key, resolved at action time
+     */
+    val paramBindings: Map<String, String>? = null,
+
+    /**
+     * For fireAndForget actions: event parameters
+     */
+    val params: Map<String, Any?>? = null,
+
+    /**
+     * For navigate actions: how the destination is presented
+     */
+    val presentation: NavigationPresentation? = null,
+
+    /**
+     * For mutate actions: state key to update. For dismiss actions: what to dismiss
+     * (modal/overlay/screen). For refresh actions: section ID to refresh (omit for full screen)
+     */
+    val target: String? = null,
+
+    /**
+     * For navigate actions: native deeplink URI
+     */
+    @get:JsonProperty("targetUri")@field:JsonProperty("targetUri")
+    val targetURI: String? = null,
+
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
+    val trigger: ActionTrigger,
+
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
+    val type: ActionType,
+
+    /**
+     * For mutate actions: the value to apply with the operation
+     */
+    val value: Any? = null,
+
+    /**
+     * For navigate actions: web-equivalent URL (first-class, not a fallback)
+     */
+    @get:JsonProperty("webUrl")@field:JsonProperty("webUrl")
+    val webURL: String? = null
+)
+
+enum class Destination(val value: String) {
+    Adobe("adobe"),
+    All("all"),
+    Firebase("firebase"),
+    Internal("internal");
+
+    companion object {
+        fun fromValue(value: String): Destination = when (value) {
+            "adobe"    -> Adobe
+            "all"      -> All
+            "firebase" -> Firebase
+            "internal" -> Internal
+            else       -> throw IllegalArgumentException()
+        }
+    }
+}
+
+/**
+ * Optional server-provided error message and presentation style. Client falls back to
+ * generic localized string when absent
+ *
+ * Optional server-provided error message and presentation style for action failures. Client
+ * falls back to generic localized string when absent.
+ */
+data class FailureFeedback (
+    /**
+     * Localized error message to display on failure
+     */
+    val message: String? = null,
+
+    /**
+     * Presentation hint — clients map to closest platform-native mechanism
+     */
+    val style: FailureFeedbackStyle? = null
+)
+
+/**
+ * Presentation hint — clients map to closest platform-native mechanism
+ *
+ * Presentation hint for failure feedback. Clients map to closest platform-native mechanism.
+ */
+enum class FailureFeedbackStyle(val value: String) {
+    Inline("inline"),
+    Snackbar("snackbar"),
+    Toast("toast");
+
+    companion object {
+        fun fromValue(value: String): FailureFeedbackStyle = when (value) {
+            "inline"   -> Inline
+            "snackbar" -> Snackbar
+            "toast"    -> Toast
+            else       -> throw IllegalArgumentException()
+        }
+    }
+}
+
+/**
+ * For fireAndForget actions with onVisible trigger: impression tracking policy
+ *
+ * Impression tracking policy for analytics actions with onVisible trigger
+ */
+data class ImpressionPolicy (
+    val dedup: ImpressionDedup? = null,
+
+    /**
+     * Reset interval for once-per-interval strategy (milliseconds)
+     */
+    @get:JsonProperty("intervalMs")@field:JsonProperty("intervalMs")
+    val intervalMS: Long? = null,
+
+    val threshold: ImpressionThreshold? = null
+)
+
+enum class ImpressionDedup(val value: String) {
+    None("none"),
+    OncePerInterval("once-per-interval"),
+    OncePerScreen("once-per-screen"),
+    OncePerSession("once-per-session");
+
+    companion object {
+        fun fromValue(value: String): ImpressionDedup = when (value) {
+            "none"              -> None
+            "once-per-interval" -> OncePerInterval
+            "once-per-screen"   -> OncePerScreen
+            "once-per-session"  -> OncePerSession
+            else                -> throw IllegalArgumentException()
+        }
+    }
+}
+
+data class ImpressionThreshold (
+    /**
+     * Milliseconds section must remain visible before impression fires
+     */
+    @get:JsonProperty("dwellMs")@field:JsonProperty("dwellMs")
+    val dwellMS: Long? = null,
+
+    /**
+     * Fraction of section area that must be visible (0.5 = 50%)
+     */
+    val visibility: Double? = null
+)
+
+/**
+ * For navigate actions with modal presentation: sheet height
+ */
+enum class ModalHeight(val value: String) {
+    Compact("compact"),
+    Full("full"),
+    Half("half");
+
+    companion object {
+        fun fromValue(value: String): ModalHeight = when (value) {
+            "compact" -> Compact
+            "full"    -> Full
+            "half"    -> Half
+            else      -> throw IllegalArgumentException()
+        }
+    }
+}
+
+/**
+ * Sequence behavior when this action fails. Client applies per-type default when absent
+ * (navigate=halt, fireAndForget/dismiss/toast=silent, mutate/refresh=continue)
+ *
+ * Sequence behavior when an action fails. Clients apply per-type defaults when absent:
+ * navigate=halt, fireAndForget/dismiss/toast=silent, mutate/refresh=continue.
+ */
+enum class FailurePolicy(val value: String) {
+    Continue("continue"),
+    Halt("halt"),
+    Silent("silent");
+
+    companion object {
+        fun fromValue(value: String): FailurePolicy = when (value) {
+            "continue" -> Continue
+            "halt"     -> Halt
+            "silent"   -> Silent
+            else       -> throw IllegalArgumentException()
+        }
+    }
+}
+
+/**
+ * For mutate actions: operation to perform on the state key
+ */
+enum class MutateOperation(val value: String) {
+    Append("append"),
+    Increment("increment"),
+    Set("set"),
+    Toggle("toggle");
+
+    companion object {
+        fun fromValue(value: String): MutateOperation = when (value) {
+            "append"    -> Append
+            "increment" -> Increment
+            "set"       -> Set
+            "toggle"    -> Toggle
+            else        -> throw IllegalArgumentException()
+        }
+    }
+}
+
+/**
+ * For navigate actions: how the destination is presented
+ */
+enum class NavigationPresentation(val value: String) {
+    External("external"),
+    Fullscreen("fullscreen"),
+    Modal("modal"),
+    Push("push"),
+    Replace("replace");
+
+    companion object {
+        fun fromValue(value: String): NavigationPresentation = when (value) {
+            "external"   -> External
+            "fullscreen" -> Fullscreen
+            "modal"      -> Modal
+            "push"       -> Push
+            "replace"    -> Replace
+            else         -> throw IllegalArgumentException()
+        }
+    }
+}
+
+enum class ActionTrigger(val value: String) {
+    OnBlur("onBlur"),
+    OnFocus("onFocus"),
+    OnLongPress("onLongPress"),
+    OnSubmit("onSubmit"),
+    OnSwipe("onSwipe"),
+    OnTap("onTap"),
+    OnVisible("onVisible");
+
+    companion object {
+        fun fromValue(value: String): ActionTrigger = when (value) {
+            "onBlur"      -> OnBlur
+            "onFocus"     -> OnFocus
+            "onLongPress" -> OnLongPress
+            "onSubmit"    -> OnSubmit
+            "onSwipe"     -> OnSwipe
+            "onTap"       -> OnTap
+            "onVisible"   -> OnVisible
+            else          -> throw IllegalArgumentException()
+        }
+    }
+}
+
+enum class ActionType(val value: String) {
+    Dismiss("dismiss"),
+    FireAndForget("fireAndForget"),
+    Mutate("mutate"),
+    Navigate("navigate"),
+    Refresh("refresh"),
+    Toast("toast");
+
+    companion object {
+        fun fromValue(value: String): ActionType = when (value) {
+            "dismiss"       -> Dismiss
+            "fireAndForget" -> FireAndForget
+            "mutate"        -> Mutate
+            "navigate"      -> Navigate
+            "refresh"       -> Refresh
+            "toast"         -> Toast
+            else            -> throw IllegalArgumentException()
+        }
+    }
+}
+
+data class RefreshPolicy (
+    /**
+     * For sse type: Ably channel name pattern (e.g., '{gameId}:linescore')
+     */
+    val channel: String? = null,
+
+    /**
+     * JSONPath to extract section data from response (e.g., '$.game' or '$.sections[0].data')
+     */
+    val dataPath: String? = null,
+
+    /**
+     * For poll type: interval in milliseconds
+     */
+    @get:JsonProperty("intervalMs")@field:JsonProperty("intervalMs")
+    val intervalMS: Long? = null,
+
+    /**
+     * Whether the client should pause this section's refresh when it scrolls out of the
+     * viewport. Default true. Set false for critical live sections (e.g., GamePanel scores)
+     * that should refresh continuously.
+     */
+    val pauseWhenOffScreen: Boolean? = null,
+
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
+    val type: RefreshType,
+
+    /**
+     * For poll/sse type: URL to poll or connect to. If omitted, polls the SDUI endpoint.
+     */
+    val url: String? = null
+)
+
+enum class RefreshType(val value: String) {
+    Poll("poll"),
+    SSE("sse"),
+    Static("static");
+
+    companion object {
+        fun fromValue(value: String): RefreshType = when (value) {
+            "poll"   -> Poll
+            "sse"    -> SSE
+            "static" -> Static
+            else     -> throw IllegalArgumentException()
+        }
+    }
+}
+
+data class Navigation (
+    val items: List<NavigationItem>? = null
+)
+
+data class NavigationItem (
+    val children: List<NavigationItem>? = null,
+    val icon: String? = null,
+
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
+    val id: String,
+
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
+    val label: String,
+
+    val selected: Boolean? = null,
+
+    @get:JsonProperty("targetUri")@field:JsonProperty("targetUri")
+    val targetURI: String? = null
+)
+
+/**
+ * Z-positioned child element (e.g. 'LIVE' pill, duration label) overlaid on this element.
+ *
+ * Z-positioned child element overlaid on a parent (e.g. 'LIVE' pill at bottom-right of a
+ * thumbnail, duration label). Named Badge (not Overlay) to avoid collision with the
+ * screen-level overlays map.
+ */
+data class Badge (
+    /**
+     * Position of the badge within the parent bounds
+     */
+    val alignment: BadgeAlignment? = null,
+
+    /**
+     * The element to render as a badge
+     */
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
+    val element: AtomicElement
+)
+
+/**
+ * Atomic tree describing the banner's full visible surface. Renderer walks this tree
+ * exactly as an AtomicComposite would; no client-side chrome defaults are permitted. See
+ * AGENTS.md §15.1.
+ *
+ * Atomic UI primitive — server-composed building block for the atomic rendering layer
+ *
+ * The element to render as a badge
+ *
+ * Atomic tree describing the hero's full visible surface — logo, title, subtitle, feature
+ * list, tier cards, CTAs. Renderer walks this tree exactly as an AtomicComposite would.
+ *
+ * Root node of the atomic element tree — the rendering instructions
+ *
+ * Atomic tree describing the pre-SDK placeholder surface (e.g. play-glyph column framed at
+ * the player's aspectRatio). Renderer walks this tree exactly as an AtomicComposite would;
+ * no client-side chrome defaults are permitted. Once the video SDK lands this tree becomes
+ * the loading/error placeholder the SDK overlays.
+ */
+data class AtomicElement (
+    /**
+     * Server-provided accessibility metadata for this atomic element
+     */
+    val accessibility: AccessibilityProperties? = null,
+
+    val actions: List<Action>? = null,
+    val alignment: Alignment? = null,
+
+    /**
+     * Deprecated: use accessibility.label instead. Retained for backward compatibility; clients
+     * prefer accessibility.label when present.
+     */
+    val alt: String? = null,
+
+    val aspectRatio: Double? = null,
+    val background: BackgroundUnion? = null,
+
+    /**
+     * Z-positioned child element (e.g. 'LIVE' pill, duration label) overlaid on this element.
+     */
+    val badge: Badge? = null,
+
+    /**
+     * Responsive breakpoint in dp/px. For Container: below this screen width, direction flips
+     * from row to column. Enables responsive layouts without client logic.
+     */
+    val breakpoint: Long? = null,
+
+    val children: List<AtomicElement>? = null,
+    val color: String? = null,
+
+    /**
+     * DisplayGrid column definitions — display-only, non-interactive, server-ordered
+     */
+    val columns: List<Column>? = null,
+
+    val condition: String? = null,
+    val content: String? = null,
+
+    /**
+     * Per-corner cornerRadius override. When present, takes precedence over the single-value
+     * cornerRadius; any corner key omitted falls back to cornerRadius (or 0 if that is also
+     * absent). Used for asymmetric card shapes — e.g. content-rail cards with rounded tops and
+     * square bottoms so headline text does not collide with a bottom-corner curve. iOS maps to
+     * UnevenRoundedRectangle (iOS 16+); Android to RoundedCornerShape's four-corner
+     * constructor; web to borderTopLeftRadius / borderTopRightRadius / borderBottomLeftRadius /
+     * borderBottomRightRadius.
+     */
+    val cornerRadii: CornerRadii? = null,
+
+    /**
+     * Corner radius in dp/px. Applied to Container (with overflow clip) and Image elements.
+     */
+    val cornerRadius: Long? = null,
+
+    val crossAlignment: CrossAlignment? = null,
+    val direction: UIDirection? = null,
+    val disabled: Boolean? = null,
+    val falseChild: AtomicElement? = null,
+
+    /**
+     * When true, the element stretches along its main axis to fill the parent's available
+     * width. On Image this pairs with aspectRatio to derive a height (thumbnails in a
+     * fixed-width card). On Container it stretches the flex box to parent width regardless of
+     * child intrinsic widths. Inline value takes precedence over any variant default; element
+     * width/height, when also set, wins over fillWidth.
+     */
+    val fillWidth: Boolean? = null,
+
+    val fit: ImageFit? = null,
+
+    /**
+     * Flex grow factor. When set on a child of a Container, the child claims proportional space
+     * along the main axis (like CSS flex or Compose weight). Default 0 (size to content).
+     */
+    val flex: Double? = null,
+
+    val gap: Long? = null,
+    val height: Long? = null,
+    val icon: String? = null,
+    val id: String? = null,
+    val label: String? = null,
+
+    /**
+     * Outer space between the element and its siblings or parent edges. Applied outside the
+     * element's background, border, corner radius, and shadow — use this for sibling-to-sibling
+     * spacing instead of Spacer siblings when inhomogeneous gaps are needed.
+     */
+    val margin: Spacing? = null,
+
+    val maxLines: Long? = null,
+
+    /**
+     * Use tabular/monospaced digit rendering to prevent layout shift on numeric text changes
+     * (scores, clocks).
+     */
+    val monospacedDigits: Boolean? = null,
+
+    /**
+     * Element opacity (0=transparent, 1=opaque). Enables duration badge overlays and faded
+     * states.
+     */
+    val opacity: Double? = null,
+
+    val orientation: Orientation? = null,
+
+    /**
+     * Inner space between the element's own background/border and its content.
+     */
+    val padding: Spacing? = null,
+
+    val paging: Boolean? = null,
+    val placeholder: String? = null,
+
+    /**
+     * DisplayGrid row data — each object maps column keys to pre-formatted display values
+     */
+    val rows: List<Map<String, String>>? = null,
+
+    /**
+     * Full section object to render via SectionRouter. Only used when type is SectionSlot.
+     */
+    val section: Section? = null,
+
+    /**
+     * Drop shadow applied to the element. Replaces elevation with richer CSS/SwiftUI shadow
+     * semantics.
+     */
+    val shadow: Shadow? = null,
+
+    /**
+     * Whether to show scroll indicators on ScrollContainer. Default false for clean carousel
+     * presentation.
+     */
+    val showIndicators: Boolean? = null,
+
+    val size: Long? = null,
+    val snapAlignment: Align? = null,
+    val src: String? = null,
+
+    /**
+     * Alternate row background for readability
+     */
+    val striped: Boolean? = null,
+
+    /**
+     * Text alignment within the element. Used for centered headings, right-aligned numeric
+     * values.
+     */
+    val textAlign: Align? = null,
+
+    val thickness: Long? = null,
+    val trueChild: AtomicElement? = null,
+
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
+    val type: String,
+
+    /**
+     * Named variant preset. The vocabulary depends on the element's type: TextVariant for Text,
+     * ButtonVariant for Button, ContainerVariant for Container, ImageVariant for Image.
+     * Renderers parse this string against the primitive's enum and log a diagnostic on
+     * unrecognized values.
+     */
+    val variant: String? = null,
+
+    val weight: TextWeight? = null,
+    val width: Long? = null
+)
+
+/**
+ * Section-specific data payload
+ *
+ * Tabbed navigation with dynamic content sections per tab
+ *
+ * Typed tabular data for an NBA-style boxscore (one per team)
+ *
+ * Server-driven form section with typed fields bound to screen state
+ *
+ * Ad placement primitive — carries placement semantics while delegating auction/targeting
+ * to ad-platform SDKs (see ADR-007)
+ *
+ * Sortable, paginated table of season statistical leaders (league-wide)
+ *
+ * Inline subscription upsell banner. Reserved SDK integration point: the banner's visible
+ * chrome is entirely server-composed via `ui` until the platform IAP SDK (StoreKit / Play
+ * Billing) lands and starts mounting the purchase flow on CTA tap. `tiers` carries the IAP
+ * product identifiers the SDK will later bind to; `ctaAction` is the (pre-SDK) fallback
+ * action.
+ *
+ * Full-screen subscription upsell hero. Reserved SDK integration point — same contract as
+ * SubscribeBannerData: `ui` carries the full visible composition; `tiers` carries IAP
+ * product identifiers the SDK will bind to post-landing.
+ *
+ * Data payload for AtomicComposite sections — ui contains rendering instructions, content
+ * carries domain data
+ *
+ * Video player section — reserved SDK integration point for DRM / HLS / ad insertion.
+ * `playerType`, `contentId`, `autoplay`, and `capabilities` are SDK inputs (the video SDK
+ * reads them and mounts); `ui` carries the pre-SDK placeholder composition that renders
+ * before the SDK is integrated and will serve as the loading/error placeholder afterwards.
+ */
+data class Data (
+    val defaultTab: String? = null,
+    val stateKey: String? = null,
+    val tabContents: Map<String, List<Section>>? = null,
+    val tabs: List<TabData>? = null,
+    val actions: List<Action>? = null,
+    val awayTeam: TeamData? = null,
+
+    /**
+     * Badge/chip label, e.g. 'LIVE', 'FEATURED'
+     */
+    val badgeText: String? = null,
+
+    /**
+     * Whether the game clock is actively ticking. When true, renderers should interpolate the
+     * clock locally between SSE updates for visual continuity.
+     */
+    val clockRunning: Boolean? = null,
+
+    /**
+     * Server-driven visual configuration — controls all layout and styling knobs
+     */
+    val displayConfig: GamePanelDisplayConfig? = null,
+
+    /**
+     * Game clock string (e.g. 'PT05M32.00S' or '5:32')
+     */
+    val gameClock: String? = null,
+
+    @get:JsonProperty("gameId")@field:JsonProperty("gameId")
+    val gameID: String? = null,
+
+    val gameLeaders: GameLeadersData? = null,
+    val gameStatus: Long? = null,
+    val gameStatusText: String? = null,
+    val gameTimeEt: String? = null,
+    val homeTeam: TeamData? = null,
+
+    /**
+     * Current game period (quarter number)
+     */
+    val period: Long? = null,
+
+    /**
+     * Semantic card treatment. Missing value is treated as 'standard' at render time.
+     */
+    val variant: GamePanelVariant? = null,
+
+    /**
+     * Secondary label shown above the matchup (e.g. team name, 'Recommended')
+     */
+    val visualLabel: String? = null,
+
+    /**
+     * Ordered list of column definitions; clients render left-to-right
+     *
+     * Ordered column definitions; clients render left-to-right
+     */
+    val columns: List<BoxscoreColumnDefinition>? = null,
+
+    /**
+     * Text shown when no player rows are available
+     */
+    val emptyMessage: String? = null,
+
+    /**
+     * Player rows ordered by server (starters first, then bench)
+     *
+     * Player rows, pre-sorted by the server
+     */
+    val players: List<PlayerRow>? = null,
+
+    /**
+     * Screen-state key holding the current sort direction (asc/desc)
+     */
+    val sortDirectionStateKey: String? = null,
+
+    /**
+     * Screen-state key holding the current sort column key
+     */
+    val sortStateKey: String? = null,
+
+    /**
+     * Hex colour for team accent
+     */
+    val teamColor: String? = null,
+
+    @get:JsonProperty("teamLogoUrl")@field:JsonProperty("teamLogoUrl")
+    val teamLogoURL: String? = null,
+
+    val teamName: String? = null,
+
+    /**
+     * Aggregate row shown at the bottom of the table
+     */
+    val teamTotals: Map<String, Any?>? = null,
+
+    /**
+     * Three-letter team code, e.g. 'BOS'
+     */
+    val teamTricode: String? = null,
+
+    val fields: List<FormField>? = null,
+
+    /**
+     * Layout hint for field arrangement
+     */
+    val layout: Layout? = null,
+
+    /**
+     * Action fired when the form is submitted
+     */
+    val submitAction: Action? = null,
+
+    val submitLabel: String? = null,
+
+    /**
+     * Ad unit path used by the ad SDK
+     */
+    val adUnitPath: String? = null,
+
+    /**
+     * Whether to collapse the slot when no fill is returned
+     */
+    val collapseOnEmpty: Boolean? = null,
+
+    /**
+     * Disclosure label displayed above/below the ad
+     */
+    val label: String? = null,
+
+    /**
+     * Visual treatment for the reserved rectangle before the ad SDK mounts (and after misses
+     * when collapseOnEmpty is false). Shares dimensions with sizes[0] — never carries its own
+     * width/height. Required so the stub renderer has no client-side chrome defaults.
+     */
+    val placeholder: Placeholder? = null,
+
+    /**
+     * Ad network identifier, e.g. 'gam', 'amazon'
+     */
+    val provider: String? = null,
+
+    /**
+     * Optional auto-refresh interval in seconds
+     */
+    @get:JsonProperty("refreshIntervalSec")@field:JsonProperty("refreshIntervalSec")
+    val refreshIntervalSEC: Long? = null,
+
+    /**
+     * Accepted creative sizes as [width, height] pairs
+     */
+    val sizes: List<List<Long>>? = null,
+
+    /**
+     * Key-value targeting hints passed to ad SDK
+     */
+    val targeting: Map<String, String>? = null,
+
+    /**
+     * Current page (1-based)
+     */
+    val page: Long? = null,
+
+    /**
+     * Number of rows per page
+     */
+    val pageSize: Long? = null,
+
+    /**
+     * Key of the column the table is currently sorted by
+     */
+    val sortColumn: String? = null,
+
+    val sortDirection: SortDirection? = null,
+
+    /**
+     * Secondary text, e.g. '2025-26 Regular Season – Per Game'
+     */
+    val subtitle: String? = null,
+
+    /**
+     * Table heading, e.g. 'Season Leaders'
+     */
+    val title: String? = null,
+
+    /**
+     * Total number of rows available server-side (for pagination display)
+     */
+    val totalRows: Long? = null,
+
+    /**
+     * Top-level fallback action invoked when the IAP SDK is not mounted (today, always).
+     */
+    val ctaAction: Action? = null,
+
+    /**
+     * IAP product identifiers + server-emitted prices. Consumed by the IAP SDK when it lands;
+     * not used by the renderer, which reads the visible price copy out of `ui`.
+     *
+     * IAP product identifiers + server-emitted prices. Consumed by the IAP SDK when it lands;
+     * not used by the renderer.
+     */
+    val tiers: List<SubscriptionTier>? = null,
+
+    /**
+     * Atomic tree describing the banner's full visible surface. Renderer walks this tree
+     * exactly as an AtomicComposite would; no client-side chrome defaults are permitted. See
+     * AGENTS.md §15.1.
+     *
+     * Atomic tree describing the hero's full visible surface — logo, title, subtitle, feature
+     * list, tier cards, CTAs. Renderer walks this tree exactly as an AtomicComposite would.
+     *
+     * Root node of the atomic element tree — the rendering instructions
+     *
+     * Atomic tree describing the pre-SDK placeholder surface (e.g. play-glyph column framed at
+     * the player's aspectRatio). Renderer walks this tree exactly as an AtomicComposite would;
+     * no client-side chrome defaults are permitted. Once the video SDK lands this tree becomes
+     * the loading/error placeholder the SDK overlays.
+     */
+    val ui: AtomicElement? = null,
+
+    /**
+     * Optional domain data (strings, URLs, flags) to populate the ui tree. Reserved for future
+     * data-binding support.
+     */
+    val content: Map<String, Any?>? = null,
+
+    val autoplay: Boolean? = null,
+
+    /**
+     * Platform capabilities the player should enable. Server includes only capabilities
+     * relevant to the requesting platform (via X-Platform header).
+     */
+    val capabilities: List<Capability>? = null,
+
+    /**
+     * Content identifier — interpreted by playerType (gameId for game, mediaId for vod, eventId
+     * for event, streamUrl for stream). Single field avoids mutually exclusive optional IDs.
+     */
+    @get:JsonProperty("contentId")@field:JsonProperty("contentId")
+    val contentID: String? = null,
+
+    /**
+     * Discriminator for SDK player variant. Client passes contentId to the matching SDK method.
+     */
+    val playerType: PlayerType? = null
+)
+
+/**
+ * Full section object to render via SectionRouter. Only used when type is SectionSlot.
+ */
+data class Section (
+    /**
+     * Section-level accessibility metadata (landmark role, live region, heading)
+     */
+    val accessibility: AccessibilityProperties? = null,
+
+    /**
+     * Section-level interaction actions
+     */
+    val actions: List<Action>? = null,
+
+    @get:JsonProperty("analyticsId")@field:JsonProperty("analyticsId")
+    val analyticsID: String? = null,
+
+    val backgroundColor: String? = null,
+
+    /**
+     * Section-specific data payload
+     */
+    val data: Data? = null,
+
+    val dataBinding: DataBinding? = null,
+
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
+    val id: String,
+
+    val layoutHints: SectionLayoutHints? = null,
+    val padding: Spacing? = null,
+    val refreshPolicy: RefreshPolicy? = null,
+    val sectionStates: SectionStates? = null,
+
+    /**
+     * Section-level map of translation key to localized string. Used by DataBindingResolver to
+     * resolve stringKeys on real-time updates.
+     */
+    val stringTable: Map<String, String>? = null,
+
+    /**
+     * Nested interaction targets within the section
+     */
+    val subsections: List<Subsection>? = null,
+
+    val surface: SectionSurface? = null,
+
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
+    val type: String
+)
+
+/**
+ * Position of the badge within the parent bounds
+ */
+enum class BadgeAlignment(val value: String) {
+    BottomCenter("bottomCenter"),
+    BottomEnd("bottomEnd"),
+    BottomStart("bottomStart"),
+    Center("center"),
+    CenterEnd("centerEnd"),
+    CenterStart("centerStart"),
+    TopCenter("topCenter"),
+    TopEnd("topEnd"),
+    TopStart("topStart");
+
+    companion object {
+        fun fromValue(value: String): BadgeAlignment = when (value) {
+            "bottomCenter" -> BottomCenter
+            "bottomEnd"    -> BottomEnd
+            "bottomStart"  -> BottomStart
+            "center"       -> Center
+            "centerEnd"    -> CenterEnd
+            "centerStart"  -> CenterStart
+            "topCenter"    -> TopCenter
+            "topEnd"       -> TopEnd
+            "topStart"     -> TopStart
+            else           -> throw IllegalArgumentException()
+        }
+    }
+}
+
+/**
+ * Section-level accessibility metadata (landmark role, live region, heading)
+ *
+ * Server-provided accessibility metadata applied natively per platform
+ *
+ * Server-provided accessibility metadata for this atomic element
+ *
+ * Subsection-level accessibility metadata
+ */
+data class AccessibilityProperties (
+    /**
+     * Heading level (1-6) for role=heading elements. Maps to aria-level (Web),
+     * accessibilityAddTraits .isHeader (iOS), semantics { heading() } (Android).
+     */
+    val headingLevel: Long? = null,
+
+    /**
+     * When true, element and its descendants are hidden from the accessibility tree (decorative
+     * content).
+     */
+    val hidden: Boolean? = null,
+
+    /**
+     * Additional context announced after the label. Maps to accessibilityHint (iOS),
+     * contentDescription suffix (Android), aria-describedby text (Web).
+     */
+    val hint: String? = null,
+
+    /**
+     * Human-readable label announced by screen readers. Omit for elements whose text content is
+     * self-describing.
+     */
+    val label: String? = null,
+
+    /**
+     * Announces content changes. 'polite' waits for idle; 'assertive' interrupts. Maps to
+     * aria-live (Web), accessibilityLiveRegion (Android), .accessibilityAddTraits (iOS).
+     */
+    val liveRegion: LiveRegion? = null,
+
+    /**
+     * Semantic role override. 'none' suppresses the element's intrinsic role.
+     */
+    val role: Role? = null,
+
+    /**
+     * Override default accessibility traversal order. Lower values are visited first. Omit to
+     * use natural DOM/view order.
+     */
+    val sortOrder: Long? = null
+)
+
+/**
+ * Announces content changes. 'polite' waits for idle; 'assertive' interrupts. Maps to
+ * aria-live (Web), accessibilityLiveRegion (Android), .accessibilityAddTraits (iOS).
+ */
+enum class LiveRegion(val value: String) {
+    Assertive("assertive"),
+    Off("off"),
+    Polite("polite");
+
+    companion object {
+        fun fromValue(value: String): LiveRegion = when (value) {
+            "assertive" -> Assertive
+            "off"       -> Off
+            "polite"    -> Polite
+            else        -> throw IllegalArgumentException()
+        }
+    }
+}
+
+/**
+ * Semantic role override. 'none' suppresses the element's intrinsic role.
+ */
+enum class Role(val value: String) {
+    Button("button"),
+    Cell("cell"),
+    Heading("heading"),
+    Image("image"),
+    Link("link"),
+    Listitem("listitem"),
+    None("none"),
+    RoleList("list"),
+    Row("row"),
+    Tab("tab"),
+    Table("table"),
+    Tabpanel("tabpanel");
+
+    companion object {
+        fun fromValue(value: String): Role = when (value) {
+            "button"   -> Button
+            "cell"     -> Cell
+            "heading"  -> Heading
+            "image"    -> Image
+            "link"     -> Link
+            "listitem" -> Listitem
+            "none"     -> None
+            "list"     -> RoleList
+            "row"      -> Row
+            "tab"      -> Tab
+            "table"    -> Table
+            "tabpanel" -> Tabpanel
+            else       -> throw IllegalArgumentException()
+        }
+    }
+}
+
+enum class Alignment(val value: String) {
+    Center("center"),
+    End("end"),
+    SpaceAround("spaceAround"),
+    SpaceBetween("spaceBetween"),
+    SpaceEvenly("spaceEvenly"),
+    Start("start");
+
+    companion object {
+        fun fromValue(value: String): Alignment = when (value) {
+            "center"       -> Center
+            "end"          -> End
+            "spaceAround"  -> SpaceAround
+            "spaceBetween" -> SpaceBetween
+            "spaceEvenly"  -> SpaceEvenly
+            "start"        -> Start
+            else           -> throw IllegalArgumentException()
+        }
+    }
+}
+
+/**
+ * Default background (pre-game, final)
+ *
+ * Shared background type — solid color, gradient, or image with overlay
+ *
+ * Background override when game is LIVE
+ *
+ * Surface background (solid, gradient, or image).
+ */
+sealed class BackgroundUnion {
+    class BackgroundValue(val value: Background) : BackgroundUnion()
+    class StringValue(val value: String)         : BackgroundUnion()
+
+    fun toJson(): String = mapper.writeValueAsString(when (this) {
+        is BackgroundValue -> this.value
+        is StringValue     -> this.value
+    })
+
+    companion object {
+        fun fromJson(jn: JsonNode): BackgroundUnion = when (jn) {
+            is ObjectNode -> BackgroundValue(mapper.treeToValue(jn))
+            is TextNode   -> StringValue(mapper.treeToValue(jn))
+            else          -> throw IllegalArgumentException()
+        }
+    }
+}
+
+/**
+ * Gradient background with ordered color stops
+ *
+ * Image background with optional scale and overlay
+ */
+data class Background (
+    /**
+     * Ordered list of color stops (hex or semantic token)
+     */
+    val colors: List<String>? = null,
+
+    val direction: Direction? = null,
+
+    /**
+     * URL of the background image
+     */
+    @get:JsonProperty("imageUrl")@field:JsonProperty("imageUrl")
+    val imageURL: String? = null,
+
+    /**
+     * Optional overlay applied on top of the image
+     */
+    val overlay: Overlay? = null,
+
+    val scaleType: ScaleType? = null
+)
+
+enum class Direction(val value: String) {
+    Diagonal("diagonal"),
+    Horizontal("horizontal"),
+    Vertical("vertical");
+
+    companion object {
+        fun fromValue(value: String): Direction = when (value) {
+            "diagonal"   -> Diagonal
+            "horizontal" -> Horizontal
+            "vertical"   -> Vertical
+            else         -> throw IllegalArgumentException()
+        }
+    }
+}
+
+/**
+ * Optional overlay applied on top of the image
+ */
+sealed class Overlay {
+    class BackgroundGradientValue(val value: BackgroundGradient) : Overlay()
+    class StringValue(val value: String)                         : Overlay()
+
+    fun toJson(): String = mapper.writeValueAsString(when (this) {
+        is BackgroundGradientValue -> this.value
+        is StringValue             -> this.value
+    })
+
+    companion object {
+        fun fromJson(jn: JsonNode): Overlay = when (jn) {
+            is ObjectNode -> BackgroundGradientValue(mapper.treeToValue(jn))
+            is TextNode   -> StringValue(mapper.treeToValue(jn))
+            else          -> throw IllegalArgumentException()
+        }
+    }
+}
+
+/**
+ * Gradient background with ordered color stops
+ */
+data class BackgroundGradient (
+    /**
+     * Ordered list of color stops (hex or semantic token)
+     */
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
+    val colors: List<String>,
+
+    val direction: Direction? = null
+)
+
+enum class ScaleType(val value: String) {
+    Contain("contain"),
+    Cover("cover"),
+    Fill("fill");
+
+    companion object {
+        fun fromValue(value: String): ScaleType = when (value) {
+            "contain" -> Contain
+            "cover"   -> Cover
+            "fill"    -> Fill
+            else      -> throw IllegalArgumentException()
+        }
+    }
+}
+
+data class Column (
+    val align: Align? = null,
+
+    /**
+     * Row data key
+     */
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
+    val key: String,
+
+    /**
+     * Header label
+     */
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
+    val label: String,
+
+    /**
+     * Fixed width (integer) or 'flex'
+     */
+    val width: WidthUnion? = null
+)
+
+/**
+ * Text alignment within the element. Used for centered headings, right-aligned numeric
+ * values.
+ */
+enum class Align(val value: String) {
+    Center("center"),
+    End("end"),
+    Start("start");
+
+    companion object {
+        fun fromValue(value: String): Align = when (value) {
+            "center" -> Center
+            "end"    -> End
+            "start"  -> Start
+            else     -> throw IllegalArgumentException()
+        }
+    }
+}
+
+/**
+ * Fixed width (integer) or 'flex'
+ */
+sealed class WidthUnion {
+    class EnumValue(val value: WidthEnum) : WidthUnion()
+    class IntegerValue(val value: Long)   : WidthUnion()
+
+    fun toJson(): String = mapper.writeValueAsString(when (this) {
+        is EnumValue    -> this.value
+        is IntegerValue -> this.value
+    })
+
+    companion object {
+        fun fromJson(jn: JsonNode): WidthUnion = when (jn) {
+            is TextNode             -> EnumValue(mapper.treeToValue(jn))
+            is IntNode, is LongNode -> IntegerValue(mapper.treeToValue(jn))
+            else                    -> throw IllegalArgumentException()
+        }
+    }
+}
+
+enum class WidthEnum(val value: String) {
+    Flex("flex");
+
+    companion object {
+        fun fromValue(value: String): WidthEnum = when (value) {
+            "flex" -> Flex
+            else   -> throw IllegalArgumentException()
+        }
+    }
+}
+
+/**
+ * Per-corner cornerRadius override. When present, takes precedence over the single-value
+ * cornerRadius; any corner key omitted falls back to cornerRadius (or 0 if that is also
+ * absent). Used for asymmetric card shapes — e.g. content-rail cards with rounded tops and
+ * square bottoms so headline text does not collide with a bottom-corner curve. iOS maps to
+ * UnevenRoundedRectangle (iOS 16+); Android to RoundedCornerShape's four-corner
+ * constructor; web to borderTopLeftRadius / borderTopRightRadius / borderBottomLeftRadius /
+ * borderBottomRightRadius.
+ */
+data class CornerRadii (
+    /**
+     * Bottom-trailing corner.
+     */
+    val bottomEnd: Long? = null,
+
+    /**
+     * Bottom-leading corner.
+     */
+    val bottomStart: Long? = null,
+
+    /**
+     * Top-trailing corner (top-right in LTR, top-left in RTL).
+     */
+    val topEnd: Long? = null,
+
+    /**
+     * Top-leading corner (top-left in LTR, top-right in RTL).
+     */
+    val topStart: Long? = null
+)
+
+enum class CrossAlignment(val value: String) {
+    Center("center"),
+    End("end"),
+    Start("start"),
+    Stretch("stretch");
+
+    companion object {
+        fun fromValue(value: String): CrossAlignment = when (value) {
+            "center"  -> Center
+            "end"     -> End
+            "start"   -> Start
+            "stretch" -> Stretch
+            else      -> throw IllegalArgumentException()
+        }
+    }
+}
+
+enum class UIDirection(val value: String) {
+    Column("column"),
+    Row("row");
+
+    companion object {
+        fun fromValue(value: String): UIDirection = when (value) {
+            "column" -> Column
+            "row"    -> Row
+            else     -> throw IllegalArgumentException()
+        }
+    }
+}
+
+enum class ImageFit(val value: String) {
+    Contain("contain"),
+    Cover("cover"),
+    Fill("fill"),
+    None("none");
+
+    companion object {
+        fun fromValue(value: String): ImageFit = when (value) {
+            "contain" -> Contain
+            "cover"   -> Cover
+            "fill"    -> Fill
+            "none"    -> None
+            else      -> throw IllegalArgumentException()
+        }
+    }
+}
+
+/**
+ * Outer space between the element and its siblings or parent edges. Applied outside the
+ * element's background, border, corner radius, and shadow — use this for sibling-to-sibling
+ * spacing instead of Spacer siblings when inhomogeneous gaps are needed.
+ *
+ * Inner space between the element's own background/border and its content.
+ *
+ * Outer margin (space between the surface and its siblings / screen edge).
+ *
+ * Inner padding (space between the surface edge and the content it wraps).
+ */
+data class Spacing (
+    val bottom: Long? = null,
+    val end: Long? = null,
+    val start: Long? = null,
+    val top: Long? = null
+)
+
+enum class Orientation(val value: String) {
+    Horizontal("horizontal"),
+    Vertical("vertical");
+
+    companion object {
+        fun fromValue(value: String): Orientation = when (value) {
+            "horizontal" -> Horizontal
+            "vertical"   -> Vertical
+            else         -> throw IllegalArgumentException()
+        }
+    }
+}
+
+/**
+ * Drop shadow applied to the element. Replaces elevation with richer CSS/SwiftUI shadow
+ * semantics.
+ *
+ * Drop shadow with CSS/SwiftUI semantics (radius + offset). Compose approximates via
+ * elevation.
+ *
+ * Drop shadow applied to the surface.
+ */
+data class Shadow (
+    /**
+     * Shadow color (hex with alpha, or token reference)
+     */
+    val color: String? = null,
+
+    /**
+     * Horizontal offset in dp/px
+     */
+    val offsetX: Double? = null,
+
+    /**
+     * Vertical offset in dp/px
+     */
+    val offsetY: Double? = null,
+
+    /**
+     * Blur radius in dp/px
+     */
+    val radius: Double? = null
+)
+
+
+/**
+ * Font weight tokens for atomic Text elements.
+ */
+enum class TextWeight(val value: String) {
+    Bold("bold"),
+    Medium("medium"),
+    Regular("regular"),
+    SemiBold("semiBold");
+
+    companion object {
+        fun fromValue(value: String): TextWeight = when (value) {
+            "bold"     -> Bold
+            "medium"   -> Medium
+            "regular"  -> Regular
+            "semiBold" -> SemiBold
+            else       -> throw IllegalArgumentException()
+        }
+    }
+}
+
+data class TeamData (
+    @get:JsonProperty("logoUrl")@field:JsonProperty("logoUrl")
+    val logoURL: String? = null,
+
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
+    val score: Long,
+
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
+    val teamCity: String,
+
+    @get:JsonProperty("teamId", required=true)@field:JsonProperty("teamId", required=true)
+    val teamID: Long,
+
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
+    val teamName: String,
+
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
+    val teamTricode: String
+)
+
+enum class Capability(val value: String) {
+    Airplay("airplay"),
+    BackgroundAudio("backgroundAudio"),
+    Chromecast("chromecast"),
+    FullscreenRotation("fullscreenRotation"),
+    Pip("pip");
+
+    companion object {
+        fun fromValue(value: String): Capability = when (value) {
+            "airplay"            -> Airplay
+            "backgroundAudio"    -> BackgroundAudio
+            "chromecast"         -> Chromecast
+            "fullscreenRotation" -> FullscreenRotation
+            "pip"                -> Pip
+            else                 -> throw IllegalArgumentException()
+        }
+    }
+}
+
+/**
+ * Defines a single column in the boxscore table
+ */
+data class BoxscoreColumnDefinition (
+    /**
+     * Whether this column should be visually emphasised (e.g., bold)
+     */
+    val highlighted: Boolean? = null,
+
+    /**
+     * Property key on each player's stats object that supplies this column's value
+     */
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
+    val key: String,
+
+    /**
+     * Column header text displayed to the user
+     */
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
+    val label: String,
+
+    /**
+     * Whether this column supports client-side sorting
+     */
+    val sortable: Boolean? = null,
+
+    /**
+     * Optional hint for column width (e.g. 'auto', '64px', '1fr')
+     */
+    val width: String? = null
+)
+
+/**
+ * Server-driven visual configuration — controls all layout and styling knobs
+ *
+ * Server-driven visual configuration for GamePanel — replaces the hardcoded variant branch
+ */
+data class GamePanelDisplayConfig (
+    /**
+     * Default background (pre-game, final)
+     */
+    val background: BackgroundUnion? = null,
+
+    /**
+     * Badge/chip background color (hex or token)
+     */
+    val badgeColor: String? = null,
+
+    /**
+     * Fixed card height in dp/px. Null/absent = auto-size
+     */
+    val cardHeight: Long? = null,
+
+    /**
+     * Card corner radius in dp/px
+     */
+    val cornerRadius: Long? = null,
+
+    /**
+     * Card elevation/shadow in dp/px
+     */
+    val elevation: Long? = null,
+
+    /**
+     * Background override when game is LIVE
+     */
+    val liveBackground: BackgroundUnion? = null,
+
+    /**
+     * Team logo width/height in dp/px
+     */
+    val logoSize: Long? = null,
+
+    /**
+     * Score typography: compact = bodyLarge+Bold, prominent = headlineMedium+ExtraBold
+     */
+    val scoreTextStyle: ScoreTextStyle? = null,
+
+    val aspectRatio: String? = null,
+    val height: Long? = null
+)
+
+/**
+ * Score typography: compact = bodyLarge+Bold, prominent = headlineMedium+ExtraBold
+ */
+enum class ScoreTextStyle(val value: String) {
+    Compact("compact"),
+    Prominent("prominent");
+
+    companion object {
+        fun fromValue(value: String): ScoreTextStyle = when (value) {
+            "compact"   -> Compact
+            "prominent" -> Prominent
+            else        -> throw IllegalArgumentException()
+        }
+    }
+}
+
+/**
+ * One input field inside a form section
+ */
+data class FormField (
+    val disabled: Boolean? = null,
+
+    @get:JsonProperty("fieldId", required=true)@field:JsonProperty("fieldId", required=true)
+    val fieldID: String,
+
+    /**
+     * Input type; clients map to platform-native controls
+     */
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
+    val fieldType: FieldType,
+
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
+    val label: String,
+
+    /**
+     * For select/radio/checkbox field types: the available choices
+     */
+    val options: List<FormOption>? = null,
+
+    val placeholder: String? = null,
+    val required: Boolean? = null,
+
+    /**
+     * Screen-state key that holds this field's current value
+     */
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
+    val stateKey: String,
+
+    /**
+     * Message to show when validation fails
+     */
+    val validationMessage: String? = null,
+
+    /**
+     * Optional regex pattern for client-side validation
+     */
+    val validationPattern: String? = null,
+
+    /**
+     * How to realize the control. Applies only when fieldType == 'select'. Missing value is
+     * treated as 'dropdown' at render time.
+     */
+    val variant: SelectVariant? = null
+)
+
+/**
+ * Input type; clients map to platform-native controls
+ */
+enum class FieldType(val value: String) {
+    Checkbox("checkbox"),
+    Date("date"),
+    Number("number"),
+    Radio("radio"),
+    Select("select"),
+    Text("text"),
+    Textarea("textarea"),
+    Toggle("toggle");
+
+    companion object {
+        fun fromValue(value: String): FieldType = when (value) {
+            "checkbox" -> Checkbox
+            "date"     -> Date
+            "number"   -> Number
+            "radio"    -> Radio
+            "select"   -> Select
+            "text"     -> Text
+            "textarea" -> Textarea
+            "toggle"   -> Toggle
+            else       -> throw IllegalArgumentException()
+        }
+    }
+}
+
+/**
+ * One selectable option within a select/radio/checkbox form field
+ */
+data class FormOption (
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
+    val label: String,
+
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
+    val value: String
+)
+
+/**
+ * How to realize the control. Applies only when fieldType == 'select'. Missing value is
+ * treated as 'dropdown' at render time.
+ *
+ * How a Form single-select field is realized by the client. 'dropdown' maps to the platform
+ * menu (default). 'chips' is a horizontally-scrollable row of tappable capsules.
+ * 'segmented' is a platform segmented control. Applies only when FormField.fieldType ==
+ * 'select'.
+ */
+enum class SelectVariant(val value: String) {
+    Chips("chips"),
+    Dropdown("dropdown"),
+    Segmented("segmented");
+
+    companion object {
+        fun fromValue(value: String): SelectVariant = when (value) {
+            "chips"     -> Chips
+            "dropdown"  -> Dropdown
+            "segmented" -> Segmented
+            else        -> throw IllegalArgumentException()
+        }
+    }
+}
+
+data class GameLeadersData (
+    val awayLeader: GameLeaderData? = null,
+    val homeLeader: GameLeaderData? = null
+)
+
+data class GameLeaderData (
+    val assists: Long? = null,
+    val name: String? = null,
+    val points: Long? = null,
+    val rebounds: Long? = null
+)
+
+/**
+ * Layout hint for field arrangement
+ */
+enum class Layout(val value: String) {
+    Grid("grid"),
+    Horizontal("horizontal"),
+    Vertical("vertical");
+
+    companion object {
+        fun fromValue(value: String): Layout = when (value) {
+            "grid"       -> Grid
+            "horizontal" -> Horizontal
+            "vertical"   -> Vertical
+            else         -> throw IllegalArgumentException()
+        }
+    }
+}
+
+/**
+ * Visual treatment for the reserved rectangle before the ad SDK mounts (and after misses
+ * when collapseOnEmpty is false). Shares dimensions with sizes[0] — never carries its own
+ * width/height. Required so the stub renderer has no client-side chrome defaults.
+ */
+data class Placeholder (
+    /**
+     * Fill color for the empty rectangle.
+     */
+    val backgroundColor: String? = null,
+
+    /**
+     * Caption rendered inside the empty rectangle (e.g. 'Advertisement').
+     */
+    val text: String? = null
+)
+
+/**
+ * Discriminator for SDK player variant. Client passes contentId to the matching SDK method.
+ */
+enum class PlayerType(val value: String) {
+    Event("event"),
+    Game("game"),
+    NbaTv("nbaTv"),
+    Stream("stream"),
+    VOD("vod");
+
+    companion object {
+        fun fromValue(value: String): PlayerType = when (value) {
+            "event"  -> Event
+            "game"   -> Game
+            "nbaTv"  -> NbaTv
+            "stream" -> Stream
+            "vod"    -> VOD
+            else     -> throw IllegalArgumentException()
+        }
+    }
+}
+
+/**
+ * One player row inside a boxscore table
+ *
+ * One ranked player row in a season leaders table
+ */
+data class PlayerRow (
+    val actions: List<Action>? = null,
+
+    @get:JsonProperty("imageUrl")@field:JsonProperty("imageUrl")
+    val imageURL: String? = null,
+
+    val jerseyNumber: String? = null,
+
+    /**
+     * Display name (short form, e.g. 'J. Tatum')
+     *
+     * Display name, e.g. 'Luka Dončić'
+     */
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
+    val name: String,
+
+    @get:JsonProperty("playerId", required=true)@field:JsonProperty("playerId", required=true)
+    val playerID: String,
+
+    val position: String? = null,
+
+    /**
+     * Whether this player was in the starting lineup
+     */
+    val starter: Boolean? = null,
+
+    /**
+     * Stat values keyed by column key (gp, min, pts, reb, ast, etc.)
+     */
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
+    val stats: Map<String, Any?>,
+
+    /**
+     * Ranking position (1-based)
+     */
+    val rank: Long? = null,
+
+    /**
+     * Team tricode, e.g. 'LAL'
+     */
+    val team: String? = null
+)
+
+enum class SortDirection(val value: String) {
+    Asc("asc"),
+    Desc("desc");
+
+    companion object {
+        fun fromValue(value: String): SortDirection = when (value) {
+            "asc"  -> Asc
+            "desc" -> Desc
+            else   -> throw IllegalArgumentException()
+        }
+    }
+}
+
+data class TabData (
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
+    val id: String,
+
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
+    val label: String,
+
+    val stateKey: String? = null,
+    val stateValue: String? = null
+)
+
+data class SubscriptionTier (
+    /**
+     * Badge label, e.g. 'BEST VALUE', 'MOST POPULAR'
+     */
+    val badgeText: String? = null,
+
+    val ctaAction: Action? = null,
+    val ctaLabel: String? = null,
+    val features: List<String>? = null,
+
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
+    val id: String,
+
+    /**
+     * Tier name, e.g. 'League Pass', 'League Pass Premium'
+     */
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
+    val name: String,
+
+    /**
+     * Strikethrough price if on sale
+     */
+    val originalPrice: String? = null,
+
+    /**
+     * Display price, e.g. '$14.99/mo'
+     */
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
+    val price: String
+)
+
+/**
+ * Semantic card treatment. Missing value is treated as 'standard' at render time.
+ *
+ * Semantic treatment of a GamePanel card. Clients resolve natively (widths, padding,
+ * emphasis). 'standard' is the default card. 'featured' is a heightened card used as a lead
+ * item in a feed or carousel.
+ */
+enum class GamePanelVariant(val value: String) {
+    Featured("featured"),
+    Standard("standard");
+
+    companion object {
+        fun fromValue(value: String): GamePanelVariant = when (value) {
+            "featured" -> Featured
+            "standard" -> Standard
+            else       -> throw IllegalArgumentException()
+        }
+    }
+}
+
+data class DataBinding (
+    val bindings: List<DataBindingPath>? = null,
+
+    /**
+     * Optional map of targetPath to translation key for client-side i18n resolution on bound
+     * fields
+     */
+    val stringKeys: Map<String, String>? = null
+)
+
+data class DataBindingPath (
+    /**
+     * JSONPath in incoming message (e.g., '$.homeTeam.score')
+     */
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
+    val sourcePath: String,
+
+    /**
+     * Dot-path to component property (e.g., 'homeScore.content')
+     */
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
+    val targetPath: String
+)
+
+/**
+ * Optional layout hints for section placement. Clients apply best-effort; unknown hints are
+ * ignored.
+ */
+data class SectionLayoutHints (
+    /**
+     * Render a divider line above this section
+     */
+    val dividerAbove: Boolean? = null,
+
+    /**
+     * Render a divider line below this section
+     */
+    val dividerBelow: Boolean? = null,
+
+    /**
+     * Bottom margin in dp/points
+     */
+    val marginBottom: Long? = null,
+
+    /**
+     * Top margin in dp/points (0 = flush)
+     */
+    val marginTop: Long? = null,
+
+    /**
+     * Rendering priority hint — clients may use for lazy loading or viewport priority
+     */
+    val priority: Priority? = null
+)
+
+/**
+ * Rendering priority hint — clients may use for lazy loading or viewport priority
+ */
+enum class Priority(val value: String) {
+    High("high"),
+    Low("low"),
+    Normal("normal");
+
+    companion object {
+        fun fromValue(value: String): Priority = when (value) {
+            "high"   -> High
+            "low"    -> Low
+            "normal" -> Normal
+            else     -> throw IllegalArgumentException()
+        }
+    }
+}
+
+/**
+ * Server-declared loading and error presentation for a section. Clients render these states
+ * when applicable.
+ */
+data class SectionStates (
+    val error: Error? = null,
+    val loading: Loading? = null
+)
+
+data class Error (
+    /**
+     * If true, collapse the section entirely on error instead of showing error UI
+     */
+    val hideOnError: Boolean? = null,
+
+    /**
+     * Error message to display (e.g., 'Unable to load scores')
+     */
+    val message: String? = null,
+
+    /**
+     * Optional action to trigger on retry tap (typically a refresh action)
+     */
+    val retryAction: Action? = null
+)
+
+data class Loading (
+    /**
+     * Minimum height to reserve during loading (prevents layout shift)
+     */
+    @get:JsonProperty("minHeightDp")@field:JsonProperty("minHeightDp")
+    val minHeightDP: Long? = null,
+
+    /**
+     * Which loading skeleton style to use
+     */
+    val skeleton: Skeleton? = null
+)
+
+/**
+ * Which loading skeleton style to use
+ */
+enum class Skeleton(val value: String) {
+    None("none"),
+    Placeholder("placeholder"),
+    Shimmer("shimmer"),
+    Spinner("spinner");
+
+    companion object {
+        fun fromValue(value: String): Skeleton = when (value) {
+            "none"        -> None
+            "placeholder" -> Placeholder
+            "shimmer"     -> Shimmer
+            "spinner"     -> Spinner
+            else          -> throw IllegalArgumentException()
+        }
+    }
+}
+
+/**
+ * Nested interaction target within a section (e.g., tappable team area inside a scoreboard)
+ */
+data class Subsection (
+    /**
+     * Subsection-level accessibility metadata
+     */
+    val accessibility: AccessibilityProperties? = null,
+
+    val actions: List<Action>? = null,
+
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
+    val id: String
+)
+
+/**
+ * Server-driven surface spec applied by the client's SectionRouter to every permanent
+ * section — the visual wrapper beneath the section's content. Mirrors the inline-chrome
+ * vocabulary on AtomicContainer so permanent sections have schema parity with composed
+ * sections. Every client's shared SectionContainer wrapper reads these fields;
+ * permanent-section renderers do not set outer padding, margin, corner radius, shadow,
+ * border, or background themselves. The sibling `data` field carries content (including the
+ * atomic UI tree); `surface` carries the frame that sits beneath it.
+ */
+data class SectionSurface (
+    /**
+     * Surface background (solid, gradient, or image).
+     */
+    val background: BackgroundUnion? = null,
+
+    /**
+     * Outer stroke applied around the surface.
+     */
+    val border: Border? = null,
+
+    /**
+     * Corner radius in dp/px applied to the surface (with overflow clip).
+     */
+    val cornerRadius: Long? = null,
+
+    /**
+     * Outer margin (space between the surface and its siblings / screen edge).
+     */
+    val margin: Spacing? = null,
+
+    /**
+     * Inner padding (space between the surface edge and the content it wraps).
+     */
+    val padding: Spacing? = null,
+
+    /**
+     * Drop shadow applied to the surface.
+     */
+    val shadow: Shadow? = null
+)
+
+/**
+ * Outer stroke applied around the surface.
+ *
+ * Outer stroke applied around a container or section.
+ */
+data class Border (
+    /**
+     * Stroke color (hex or token)
+     */
+    val color: String? = null,
+
+    /**
+     * Stroke width in dp/px
+     */
+    val width: Double? = null
+)
+

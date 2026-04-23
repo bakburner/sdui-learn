@@ -10,8 +10,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.nba.sdui.core.models.SduiScreen
-import com.nba.sdui.core.models.SduiSection
+import com.nba.sdui.core.models.generated.SduiModels
+import com.nba.sdui.core.models.generated.Section
 import com.nba.sdui.core.renderer.SectionErrorBoundary
 import com.nba.sdui.core.renderer.SectionRouter
 import com.nba.sdui.core.state.SduiAction
@@ -79,7 +79,7 @@ fun SduiScreenContent(
 
 @Composable
 private fun SectionItem(
-    section: SduiSection,
+    section: Section,
     screenState: Map<String, Any>,
     onAction: (SduiAction) -> Unit,
     onStateChange: (String, Any) -> Unit
@@ -89,7 +89,7 @@ private fun SectionItem(
         if (hints?.dividerAbove == true) {
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         }
-        Spacer(modifier = Modifier.height((hints?.marginTop ?: 0).dp))
+        Spacer(modifier = Modifier.height((hints?.marginTop ?: 0L).toInt().dp))
         SectionErrorBoundary(
             sectionId = section.id,
             sectionType = section.type,
@@ -104,7 +104,7 @@ private fun SectionItem(
                 onStateChange = onStateChange
             )
         }
-        Spacer(modifier = Modifier.height((hints?.marginBottom ?: 0).dp))
+        Spacer(modifier = Modifier.height((hints?.marginBottom ?: 0L).toInt().dp))
         if (hints?.dividerBelow == true) {
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         }
@@ -143,7 +143,7 @@ private fun ErrorContent(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SuccessContent(
-    screen: SduiScreen,
+    screen: SduiModels,
     screenState: Map<String, Any>,
     isRefreshing: Boolean,
     onRefresh: () -> Unit,

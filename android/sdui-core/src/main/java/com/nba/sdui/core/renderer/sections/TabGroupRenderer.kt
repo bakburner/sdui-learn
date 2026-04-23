@@ -6,7 +6,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.nba.sdui.core.models.SduiSection
+import com.nba.sdui.core.models.generated.Section
 import com.nba.sdui.core.renderer.applyAccessibility
 import com.nba.sdui.core.renderer.adapters.mapTabGroup
 import com.nba.sdui.core.renderer.adapters.mapTabMutateAction
@@ -22,7 +22,7 @@ import com.nba.sdui.core.state.SduiAction
  */
 @Composable
 fun TabGroupRenderer(
-    section: SduiSection,
+    section: Section,
     screenState: Map<String, Any>,
     onAction: (SduiAction) -> Unit,
     onStateChange: (String, Any) -> Unit,

@@ -7,8 +7,11 @@ import com.nba.sdui.core.config.SduiScreenConfig
 import com.nba.sdui.core.data.AblyChannelManager
 import com.nba.sdui.core.data.DataBindingResolver
 import com.nba.sdui.core.data.SduiRepository
-import com.nba.sdui.core.models.SduiScreen
-import com.nba.sdui.core.models.SduiSection
+import com.nba.sdui.core.models.generated.Data
+import com.nba.sdui.core.models.generated.RefreshType
+import com.nba.sdui.core.models.generated.SduiModels
+import com.nba.sdui.core.models.generated.Section
+import com.nba.sdui.core.models.generated.mapper
 import com.nba.sdui.core.request.RequestEnvelopeBuilder
 import com.nba.sdui.core.state.ActionHandler
 import com.nba.sdui.core.state.SduiAction
@@ -111,7 +114,7 @@ open class SduiScreenViewModel(
     val staleSections: StateFlow<Set<String>> = _staleSections.asStateFlow()
 
     // ── Internal bookkeeping ─────────────────────────────────────────
-    private var currentScreen: SduiScreen? = null
+    private var currentScreen: SduiModels? = null
     private var currentEndpoint: String? = null   // resolved server path — used for refresh / polling
     private val pollingJobs = mutableMapOf<String, Job>()
 
@@ -187,7 +190,11 @@ open class SduiScreenViewModel(
 
                 // Merge echoed state from the response
                 refreshScreen.state?.forEach { (key, value) ->
-                    stateManager.setState(key, value)
+                    if (value != null) {
+                        stateManager.setState(key, value)
+                    } else {
+                        stateManager.removeState(key)
+                    }
                 }
 
                 val current = currentScreen ?: run {
@@ -275,12 +282,16 @@ open class SduiScreenViewModel(
     /**
      * Apply a fetched screen: seed state, emit success, start data channels.
      */
-    private fun applyScreen(screen: SduiScreen) {
+    private fun applyScreen(screen: SduiModels) {
         currentScreen = screen
         screen.state?.forEach { (key, value) ->
-            stateManager.setState(key, value)
+            if (value != null) {
+                stateManager.setState(key, value)
+            } else {
+                stateManager.removeState(key)
+            }
         }
-        Log.d(TAG, "Screen loaded: traceId=${screen.traceId}, sections=${screen.sections.size}")
+        Log.d(TAG, "Screen loaded: traceId=${screen.traceID}, sections=${screen.sections.size}")
         _uiState.value = SduiScreenUiState.Success(screen)
 
         // Defer data-channel bootstrap so the initial render is never blocked.
@@ -295,17 +306,17 @@ open class SduiScreenViewModel(
 
     private val pollFailureCounts = mutableMapOf<String, Int>()
 
-    private fun setupPolling(screen: SduiScreen) {
+    private fun setupPolling(screen: SduiModels) {
         stopAllPolling()
 
         screen.sections.forEach { section ->
             val policy = section.refreshPolicy
-            val policyIntervalMs = policy?.intervalMs
-            if (policy?.type == "poll" && policyIntervalMs != null) {
-                val baseIntervalMs = policyIntervalMs.toLong()
+            val policyIntervalMs = policy?.intervalMS
+            if (policy?.type == RefreshType.Poll && policyIntervalMs != null) {
+                val baseIntervalMs: Long = policyIntervalMs
                 val pollUrl = policy.url
                 val dataPath = policy.dataPath
-                val shouldPause = policy.pauseWhenOffScreen
+                val shouldPause = policy.pauseWhenOffScreen ?: true
 
                 if (pollUrl != null) {
                     Log.i(TAG, "DIRECT poll: section='${section.id}' url=$pollUrl every ${baseIntervalMs}ms pauseWhenOffScreen=$shouldPause")
@@ -316,7 +327,7 @@ open class SduiScreenViewModel(
                 pollFailureCounts[section.id] = 0
 
                 pollingJobs[section.id] = viewModelScope.launch {
-                    var currentIntervalMs = baseIntervalMs
+                    var currentIntervalMs: Long = baseIntervalMs
                     while (isActive) {
                         // Gate: wait for app foreground
                         _isAppForeground.first { it }
@@ -373,17 +384,17 @@ open class SduiScreenViewModel(
     private fun updateSectionData(sectionId: String, newData: Map<String, Any>) {
         val screen = currentScreen ?: return
         val section = screen.sections.find { it.id == sectionId } ?: return
-        val currentData: Map<String, Any?> = section.data ?: emptyMap()
+        val currentData: Map<String, Any?> = toMap(section.data)
         val dataBinding = section.dataBinding
         val merged: Map<String, Any?> = if (dataBinding != null) {
             dataBindingResolver.applyBindings(
-                currentData, newData, dataBinding, screen.traceId,
+                currentData, newData, dataBinding, screen.traceID,
                 section.stringTable, sectionId
             )
         } else {
             currentData + newData
         }
-        updateSectionInScreen(sectionId, merged)
+        updateSectionInScreen(sectionId, toData(merged))
     }
 
     private fun stopAllPolling() {
@@ -398,9 +409,9 @@ open class SduiScreenViewModel(
 
     private var sseStaleJob: Job? = null
 
-    private fun setupAbly(screen: SduiScreen) {
+    private fun setupAbly(screen: SduiModels) {
         val sseSections = screen.sections.filter { s ->
-            s.refreshPolicy?.type == "sse" && !s.refreshPolicy?.channel.isNullOrBlank()
+            s.refreshPolicy?.type == RefreshType.SSE && !s.refreshPolicy?.channel.isNullOrBlank()
         }
         if (sseSections.isEmpty()) return
 
@@ -442,7 +453,7 @@ open class SduiScreenViewModel(
      * from opaque incoming messages.  No field-level knowledge of the
      * message content exists here — DataBindingResolver does the mapping.
      */
-    private fun subscribeToChannel(section: SduiSection, channel: String) {
+    private fun subscribeToChannel(section: Section, channel: String) {
         ablyJobs[section.id]?.cancel()
         val shouldPause = section.refreshPolicy?.pauseWhenOffScreen ?: true
         Log.i(TAG, "Subscribe Ably: channel='$channel' section='${section.id}' pauseWhenOffScreen=$shouldPause")
@@ -487,16 +498,17 @@ open class SduiScreenViewModel(
         }
     }
 
-    private fun applyAblyMessage(section: SduiSection, message: Map<String, Any?>) {
+    private fun applyAblyMessage(section: Section, message: Map<String, Any?>) {
         val dataBinding = section.dataBinding
         if (dataBinding != null) {
             val currentData = currentScreen?.sections
-                ?.find { it.id == section.id }?.data ?: return
+                ?.find { it.id == section.id }?.data
+                ?.let { toMap(it) } ?: return
             val updatedData = dataBindingResolver.applyBindings(
-                currentData, message, dataBinding, currentScreen?.traceId,
+                currentData, message, dataBinding, currentScreen?.traceID,
                 section.stringTable, section.id
             )
-            updateSectionInScreen(section.id, updatedData)
+            updateSectionInScreen(section.id, toData(updatedData))
         } else {
             Log.w(TAG, "No dataBinding config for section ${section.id} — message dropped")
         }
@@ -505,7 +517,7 @@ open class SduiScreenViewModel(
     /**
      * Replace section data in the current screen and emit a new Success state.
      */
-    private fun updateSectionInScreen(sectionId: String, updatedData: Map<String, Any?>) {
+    private fun updateSectionInScreen(sectionId: String, updatedData: Data?) {
         val screen = currentScreen ?: return
         val updatedSections = screen.sections.map { s ->
             if (s.id == sectionId) s.copy(data = updatedData) else s
@@ -514,6 +526,16 @@ open class SduiScreenViewModel(
         currentScreen = updated
         _uiState.value = SduiScreenUiState.Success(updated)
         Log.d(TAG, "Data binding applied to $sectionId")
+    }
+
+    private fun toMap(data: Data?): Map<String, Any?> {
+        if (data == null) return emptyMap()
+        @Suppress("UNCHECKED_CAST")
+        return mapper.convertValue(data, Map::class.java) as Map<String, Any?>
+    }
+
+    private fun toData(data: Map<String, Any?>): Data? {
+        return mapper.convertValue(data, Data::class.java)
     }
 
     private fun stopAbly() {

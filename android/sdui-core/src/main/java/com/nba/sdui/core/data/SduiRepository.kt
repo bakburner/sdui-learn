@@ -1,10 +1,8 @@
 package com.nba.sdui.core.data
 
 import android.util.Log
-import com.fasterxml.jackson.databind.DeserializationFeature
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.registerKotlinModule
-import com.nba.sdui.core.models.SduiScreen
+import com.nba.sdui.core.models.generated.SduiModels
+import com.nba.sdui.core.models.generated.mapper
 import com.nba.sdui.core.request.RequestEnvelopeBuilder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -33,13 +31,6 @@ class SduiRepository(
         private const val TAG = "SduiRepository"
         private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
 
-        /** Shared ObjectMapper — registerKotlinModule() is expensive (reflection). */
-        val objectMapper: ObjectMapper by lazy {
-            ObjectMapper()
-                .registerKotlinModule()
-                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-        }
-
         /** Shared OkHttpClient — connection pool & thread pool reused across screens. */
         val httpClient: OkHttpClient by lazy {
             OkHttpClient.Builder()
@@ -61,7 +52,7 @@ class SduiRepository(
     suspend fun fetchScreen(
         path: String,
         envelope: RequestEnvelopeBuilder
-    ): SduiScreen = withContext(Dispatchers.IO) {
+    ): SduiModels = withContext(Dispatchers.IO) {
         val traceId = envelope.generateTraceId()
         val queryString = envelope.buildQueryString()
 
@@ -94,7 +85,7 @@ class SduiRepository(
             ?: throw SduiException("Empty response body")
 
         try {
-            objectMapper.readValue(body, SduiScreen::class.java)
+            mapper.readValue(body, SduiModels::class.java)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to parse screen response", e)
             throw SduiException("Failed to parse screen response: ${e.message}")
@@ -124,7 +115,7 @@ class SduiRepository(
             ?: throw SduiException("Empty response body from $url")
 
         @Suppress("UNCHECKED_CAST")
-        val json = objectMapper.readValue(body, Map::class.java) as Map<String, Any>
+        val json = mapper.readValue(body, Map::class.java) as Map<String, Any>
 
         // Extract nested path if specified (simple dot notation)
         if (dataPath.isNullOrEmpty()) {

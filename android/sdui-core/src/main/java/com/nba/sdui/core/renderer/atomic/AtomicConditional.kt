@@ -2,7 +2,7 @@ package com.nba.sdui.core.renderer.atomic
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.nba.sdui.core.models.AtomicElement
+import com.nba.sdui.core.models.generated.AtomicElement
 import com.nba.sdui.core.state.SduiAction
 
 /**

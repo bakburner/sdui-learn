@@ -16,10 +16,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.nba.sdui.core.models.Background
-import com.nba.sdui.core.models.SectionSurface
-import com.nba.sdui.core.models.Spacing
-import com.nba.sdui.core.models.parseBackground
+import com.nba.sdui.core.models.generated.SectionSurface
+import com.nba.sdui.core.models.generated.Spacing
+import com.nba.sdui.core.renderer.adapters.BackgroundViewModel
+import com.nba.sdui.core.renderer.adapters.toViewModel
 
 /**
  * Shared section-surface wrapper applied by [SectionRouter] to every
@@ -47,10 +47,10 @@ fun SectionContainer(
 ) {
     val margin = surface?.margin.toPaddingValues()
     val padding = surface?.padding.toPaddingValues()
-    val radius = (surface?.cornerRadius ?: 0).dp
+    val radius = (surface?.cornerRadius ?: 0L).toInt().dp
     val shadow = surface?.shadow
     val border = surface?.border
-    val bg = parseBackground(surface?.background)
+    val bg = surface?.background.toViewModel()
 
     var outer: Modifier = modifier.padding(margin)
 
@@ -65,11 +65,11 @@ fun SectionContainer(
     outer = outer.clip(RoundedCornerShape(radius))
 
     val solidOrGradientBrush: Brush? = when (bg) {
-        is Background.Solid -> {
+        is BackgroundViewModel.Solid -> {
             val c = ColorTokenResolver.resolve(bg.color)
             if (c == Color.Unspecified) null else Brush.linearGradient(listOf(c, c))
         }
-        is Background.Gradient -> gradientBrush(bg)
+        is BackgroundViewModel.Gradient -> gradientBrush(bg)
         else -> null
     }
 
@@ -89,7 +89,7 @@ fun SectionContainer(
     }
 
     Box(modifier = outer) {
-        if (bg is Background.Image) {
+        if (bg is BackgroundViewModel.Image) {
             AsyncImage(
                 model = bg.imageUrl,
                 contentDescription = null,
@@ -104,7 +104,7 @@ fun SectionContainer(
 }
 
 @Composable
-private fun gradientBrush(bg: Background.Gradient): Brush? {
+private fun gradientBrush(bg: BackgroundViewModel.Gradient): Brush? {
     val stops = bg.gradient.colors
         .map { ColorTokenResolver.resolve(it) }
         .filter { it != Color.Unspecified }
@@ -119,9 +119,9 @@ private fun gradientBrush(bg: Background.Gradient): Brush? {
 private fun Spacing?.toPaddingValues(): PaddingValues {
     val s = this ?: return PaddingValues(0.dp)
     return PaddingValues(
-        top = s.top.dp,
-        bottom = s.bottom.dp,
-        start = s.start.dp,
-        end = s.end.dp
+        top = (s.top ?: 0L).toInt().dp,
+        bottom = (s.bottom ?: 0L).toInt().dp,
+        start = (s.start ?: 0L).toInt().dp,
+        end = (s.end ?: 0L).toInt().dp
     )
 }

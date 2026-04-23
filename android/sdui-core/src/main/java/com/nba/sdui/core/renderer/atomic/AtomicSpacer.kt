@@ -8,7 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
-import com.nba.sdui.core.models.AtomicElement
+import com.nba.sdui.core.models.generated.AtomicElement
 import com.nba.sdui.core.state.SduiAction
 
 /**
@@ -22,9 +22,9 @@ fun AtomicSpacer(
     modifier: Modifier = Modifier
 ) {
     var spacerModifier = modifier
-    element.size?.let { spacerModifier = spacerModifier.size(it.dp) }
-    element.width?.let { spacerModifier = spacerModifier.width(it.dp) }
-    element.height?.let { spacerModifier = spacerModifier.height(it.dp) }
+    element.size?.let { spacerModifier = spacerModifier.size(it.toInt().dp) }
+    element.width?.let { spacerModifier = spacerModifier.width(it.toInt().dp) }
+    element.height?.let { spacerModifier = spacerModifier.height(it.toInt().dp) }
 
     Spacer(modifier = spacerModifier.clearAndSetSemantics {})
 }

@@ -26,7 +26,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import com.nba.sdui.core.models.SduiSection
+import com.nba.sdui.core.models.generated.Section
 import com.nba.sdui.core.renderer.applyAccessibility
 import com.nba.sdui.core.renderer.adapters.BoxscoreTableUiModel
 import com.nba.sdui.core.renderer.adapters.BoxscoreColumnDef
@@ -51,7 +51,7 @@ private val ROW_HEIGHT = 44.dp
  */
 @Composable
 fun BoxscoreTableRenderer(
-    section: SduiSection,
+    section: Section,
     screenState: Map<String, Any>,
     onAction: (SduiAction) -> Unit,
     onStateChange: (String, Any) -> Unit,

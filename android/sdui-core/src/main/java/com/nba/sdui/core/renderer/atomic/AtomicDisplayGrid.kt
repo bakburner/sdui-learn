@@ -15,9 +15,13 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.nba.sdui.core.models.AtomicElement
+import androidx.compose.foundation.layout.width
+import com.nba.sdui.core.models.generated.Align
+import com.nba.sdui.core.models.generated.AtomicElement
+import com.nba.sdui.core.models.generated.Column
+import com.nba.sdui.core.models.generated.WidthEnum
+import com.nba.sdui.core.models.generated.WidthUnion
 import com.nba.sdui.core.renderer.applyAccessibility
-import com.nba.sdui.core.models.DisplayGridColumn
 import com.nba.sdui.core.state.SduiAction
 
 /**
@@ -90,17 +94,19 @@ fun AtomicDisplayGrid(
 }
 
 @Composable
-private fun RowScope.CellSlot(col: DisplayGridColumn, content: @Composable () -> Unit) {
-    val widthMod = when (col.width) {
-        is Number -> Modifier.weight(1f).padding(end = 4.dp)
-        "flex"    -> Modifier.weight(1f).padding(end = 4.dp)
-        else      -> Modifier.weight(1f).padding(end = 4.dp)
+private fun RowScope.CellSlot(col: Column, content: @Composable () -> Unit) {
+    val widthMod = when (val width = col.width) {
+        is WidthUnion.IntegerValue -> Modifier.width(width.value.toInt().dp).padding(end = 4.dp)
+        is WidthUnion.EnumValue -> when (width.value) {
+            WidthEnum.Flex -> Modifier.weight(1f).padding(end = 4.dp)
+        }
+        else -> Modifier.weight(1f).padding(end = 4.dp)
     }
     androidx.compose.foundation.layout.Box(modifier = widthMod) { content() }
 }
 
-private fun mapAlign(align: String?): TextAlign = when (align) {
-    "center" -> TextAlign.Center
-    "end"    -> TextAlign.End
-    else     -> TextAlign.Start
+private fun mapAlign(align: Align?): TextAlign = when (align) {
+    Align.Center -> TextAlign.Center
+    Align.End -> TextAlign.End
+    else -> TextAlign.Start
 }

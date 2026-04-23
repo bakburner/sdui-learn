@@ -1187,11 +1187,12 @@ they are actually consumed; there is no intermediate copy step for any
 client. Regenerate everything with `make codegen` (or
 `cd codegen && ./generate.sh`).
 
-| Language   | Output                                               | Consumer                                                      |
-|------------|------------------------------------------------------|---------------------------------------------------------------|
-| Java       | `codegen/build/generated-sources/jsonschema2pojo/`   | Spring server + Android client (on the classpath)             |
-| Swift      | `ios/Sources/SduiCore/Models/SduiModels.swift`       | iOS `SduiCore` SwiftPM target                                 |
-| TypeScript | `web/src/generated/SduiModels.ts`                    | Web client via the `@sdui/models` Vite / tsconfig path alias  |
+| Language   | Output                                                                        | Consumer                                                      |
+|------------|-------------------------------------------------------------------------------|---------------------------------------------------------------|
+| Java       | `codegen/build/generated-sources/jsonschema2pojo/`                            | Spring server (on the classpath)                              |
+| Kotlin     | `android/sdui-core/src/main/java/com/nba/sdui/core/models/generated/SduiModels.kt` | Android `sdui-core` module (quicktype + Jackson)         |
+| Swift      | `ios/Sources/SduiCore/Models/SduiModels.swift`                                | iOS `SduiCore` SwiftPM target                                 |
+| TypeScript | `web/src/generated/SduiModels.ts`                                             | Web client via the `@sdui/models` Vite / tsconfig path alias  |
 
 For other languages, use [quicktype](https://quicktype.io) to generate models
 from `schema/sdui-schema.json`. Or write your own deserializer — the JSON

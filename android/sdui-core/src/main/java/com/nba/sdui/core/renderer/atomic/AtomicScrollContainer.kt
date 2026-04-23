@@ -10,7 +10,8 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.nba.sdui.core.models.AtomicElement
+import com.nba.sdui.core.models.generated.AtomicElement
+import com.nba.sdui.core.models.generated.UIDirection
 import com.nba.sdui.core.renderer.applyAccessibility
 import com.nba.sdui.core.state.SduiAction
 
@@ -29,8 +30,8 @@ fun AtomicScrollContainer(
     sectionSlotDepth: Int = 0
 ) {
     val children = element.children.orEmpty()
-    val gap = element.gap?.dp ?: 0.dp
-    val isHorizontal = element.direction != "column"
+    val gap = element.gap?.toInt()?.dp ?: 0.dp
+    val isHorizontal = element.direction != UIDirection.Column
 
     if (element.paging == true && isHorizontal) {
         val pagerState = rememberPagerState(pageCount = { children.size })

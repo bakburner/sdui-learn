@@ -7,9 +7,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.nba.sdui.core.models.AtomicElement
+import com.nba.sdui.core.models.generated.AtomicElement
 import com.nba.sdui.core.renderer.applyAccessibility
-import com.nba.sdui.core.models.actionToSduiAction
+import com.nba.sdui.core.renderer.adapters.toSduiAction
 import com.nba.sdui.core.state.SduiAction
 
 /**
@@ -24,10 +24,7 @@ fun AtomicButton(
     modifier: Modifier = Modifier
 ) {
     val onClick: () -> Unit = {
-        element.actions?.firstOrNull()?.let { actionMap ->
-            @Suppress("UNCHECKED_CAST")
-            actionToSduiAction(actionMap as? Map<String, Any?>)?.let(onAction)
-        }
+        element.actions?.firstOrNull()?.toSduiAction()?.let(onAction)
     }
     val enabled = element.disabled != true
     val accessibilityModifier = modifier.applyAccessibility(element.accessibility)

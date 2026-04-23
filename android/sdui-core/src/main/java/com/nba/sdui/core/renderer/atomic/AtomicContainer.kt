@@ -15,15 +15,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import com.nba.sdui.core.models.AtomicElement
-import com.nba.sdui.core.models.Background
-import com.nba.sdui.core.models.BackgroundGradient
-import com.nba.sdui.core.models.parseBackground
+import com.nba.sdui.core.models.generated.Alignment
+import com.nba.sdui.core.models.generated.AtomicElement
+import com.nba.sdui.core.models.generated.BadgeAlignment
+import com.nba.sdui.core.models.generated.CrossAlignment
+import com.nba.sdui.core.models.generated.UIDirection
 import com.nba.sdui.core.renderer.ColorTokenResolver
 import com.nba.sdui.core.renderer.ContainerVariantResolver
 import com.nba.sdui.core.renderer.ContainerVariantResolver.OverridePolicy
 import com.nba.sdui.core.renderer.ContainerVariantResolver.SurfaceRole
 import com.nba.sdui.core.renderer.applyAccessibility
+import com.nba.sdui.core.renderer.adapters.BackgroundGradientViewModel
+import com.nba.sdui.core.renderer.adapters.BackgroundViewModel
+import com.nba.sdui.core.renderer.adapters.toViewModel
 import com.nba.sdui.core.state.SduiAction
 
 /**
@@ -50,13 +54,13 @@ fun AtomicContainer(
 ) {
     // Responsive breakpoint: flip row→column when screen is narrow
     val screenWidthDp = LocalConfiguration.current.screenWidthDp
-    val isRow = if (element.breakpoint != null && element.direction == "row") {
-        screenWidthDp >= element.breakpoint
+    val isRow = if (element.breakpoint != null && element.direction == UIDirection.Row) {
+        screenWidthDp >= element.breakpoint.toInt()
     } else {
-        element.direction == "row"
+        element.direction == UIDirection.Row
     }
 
-    val gap = element.gap?.dp ?: 0.dp
+    val gap = element.gap?.toInt()?.dp ?: 0.dp
 
     val variantSpec = ContainerVariantResolver.resolve(element.variant)
 
@@ -65,7 +69,7 @@ fun AtomicContainer(
     // is logged as variant_override_blocked).
     val effectiveCornerRadius: Int? = resolveAxis(
         axis = "cornerRadius",
-        inline = element.cornerRadius,
+        inline = element.cornerRadius?.toInt(),
         variantValue = variantSpec?.cornerRadiusDp,
         overrideMatrix = variantSpec?.overrideMatrix,
         variantName = element.variant
@@ -82,7 +86,7 @@ fun AtomicContainer(
     val effectiveFillWidth: Boolean = element.fillWidth == true ||
         (element.fillWidth == null && variantSpec?.fillWidth == true)
 
-    val inlineBackground = parseBackground(element.background)
+    val inlineBackground = element.background.toViewModel()
     val backgroundLocked = variantSpec?.overrideMatrix?.get("background") == OverridePolicy.LOCK
     val useVariantBackground: Boolean = when {
         variantSpec == null -> false
@@ -105,13 +109,13 @@ fun AtomicContainer(
         val radii = element.cornerRadii
         val fallback = effectiveCornerRadius ?: 0
         if (radii != null &&
-            ((radii.topStart ?: 0) != 0 || (radii.topEnd ?: 0) != 0 ||
-             (radii.bottomStart ?: 0) != 0 || (radii.bottomEnd ?: 0) != 0)) {
+            ((radii.topStart ?: 0) != 0L || (radii.topEnd ?: 0) != 0L ||
+             (radii.bottomStart ?: 0) != 0L || (radii.bottomEnd ?: 0) != 0L)) {
             RoundedCornerShape(
-                topStart = (radii.topStart ?: fallback).dp,
-                topEnd = (radii.topEnd ?: fallback).dp,
-                bottomEnd = (radii.bottomEnd ?: fallback).dp,
-                bottomStart = (radii.bottomStart ?: fallback).dp
+                topStart = (radii.topStart?.toInt() ?: fallback).dp,
+                topEnd = (radii.topEnd?.toInt() ?: fallback).dp,
+                bottomEnd = (radii.bottomEnd?.toInt() ?: fallback).dp,
+                bottomStart = (radii.bottomStart?.toInt() ?: fallback).dp
             )
         } else {
             RoundedCornerShape(fallback.dp)
@@ -132,8 +136,8 @@ fun AtomicContainer(
     // container to their intrinsic size.
     val sizedModifier = run {
         var m = fillModifier
-        element.width?.let { w -> m = m.width(w.dp) }
-        element.height?.let { h -> m = m.height(h.dp) }
+        element.width?.let { w -> m = m.width(w.toInt().dp) }
+        element.height?.let { h -> m = m.height(h.toInt().dp) }
         m
     }
 
@@ -159,8 +163,8 @@ fun AtomicContainer(
 
     val bgModifier = when {
         variantBackgroundColor != null -> clippedModifier.background(variantBackgroundColor)
-        inlineBackground is Background.Gradient -> clippedModifier.background(inlineBackground.gradient.toBrush())
-        inlineBackground is Background.Solid -> clippedModifier.background(ColorTokenResolver.resolve(inlineBackground.color))
+        inlineBackground is BackgroundViewModel.Gradient -> clippedModifier.background(inlineBackground.gradient.toBrush())
+        inlineBackground is BackgroundViewModel.Solid -> clippedModifier.background(ColorTokenResolver.resolve(inlineBackground.color))
         else -> clippedModifier
     }
 
@@ -185,10 +189,10 @@ fun AtomicContainer(
 
     val paddedModifier = element.padding?.let {
         borderedModifier.padding(
-            start = it.start.dp,
-            end = it.end.dp,
-            top = it.top.dp,
-            bottom = it.bottom.dp
+            start = (it.start ?: 0L).toInt().dp,
+            end = (it.end ?: 0L).toInt().dp,
+            top = (it.top ?: 0L).toInt().dp,
+            bottom = (it.bottom ?: 0L).toInt().dp
         )
     } ?: borderedModifier
 
@@ -197,19 +201,19 @@ fun AtomicContainer(
     val finalModifier = if (a11y?.label != null) a11yModifier.semantics(mergeDescendants = true) {} else a11yModifier
 
     val mainAxisArrangement = when (element.alignment) {
-        "center"       -> if (isRow) Arrangement.Center else Arrangement.Center
-        "end"          -> if (isRow) Arrangement.End else Arrangement.Bottom
-        "spaceBetween" -> Arrangement.SpaceBetween
-        "spaceAround"  -> Arrangement.SpaceAround
-        "spaceEvenly"  -> Arrangement.SpaceEvenly
-        else           -> if (isRow) Arrangement.Start else Arrangement.Top
+        Alignment.Center -> if (isRow) Arrangement.Center else Arrangement.Center
+        Alignment.End -> if (isRow) Arrangement.End else Arrangement.Bottom
+        Alignment.SpaceBetween -> Arrangement.SpaceBetween
+        Alignment.SpaceAround -> Arrangement.SpaceAround
+        Alignment.SpaceEvenly -> Arrangement.SpaceEvenly
+        else -> if (isRow) Arrangement.Start else Arrangement.Top
     }
 
     val crossAxis = when (element.crossAlignment) {
-        "center"  -> if (isRow) ComposeAlignment.CenterVertically else ComposeAlignment.CenterHorizontally
-        "end"     -> if (isRow) ComposeAlignment.Bottom else ComposeAlignment.End
-        "stretch" -> if (isRow) ComposeAlignment.CenterVertically else ComposeAlignment.CenterHorizontally
-        else      -> if (isRow) ComposeAlignment.Top else ComposeAlignment.Start
+        CrossAlignment.Center -> if (isRow) ComposeAlignment.CenterVertically else ComposeAlignment.CenterHorizontally
+        CrossAlignment.End -> if (isRow) ComposeAlignment.Bottom else ComposeAlignment.End
+        CrossAlignment.Stretch -> if (isRow) ComposeAlignment.CenterVertically else ComposeAlignment.CenterHorizontally
+        else -> if (isRow) ComposeAlignment.Top else ComposeAlignment.Start
     }
 
     val containerContent: @Composable () -> Unit = {
@@ -221,7 +225,7 @@ fun AtomicContainer(
             ) {
                 element.children?.forEachIndexed { index, child ->
                     val childModifier = if (child.flex != null && child.flex > 0f) {
-                        Modifier.weight(child.flex)
+                        Modifier.weight(child.flex.toFloat())
                     } else {
                         Modifier
                     }
@@ -241,7 +245,7 @@ fun AtomicContainer(
             ) {
                 element.children?.forEachIndexed { index, child ->
                     val childModifier = if (child.flex != null && child.flex > 0f) {
-                        Modifier.weight(child.flex)
+                        Modifier.weight(child.flex.toFloat())
                     } else {
                         Modifier
                     }
@@ -258,10 +262,15 @@ fun AtomicContainer(
 
     if (element.badge != null) {
         val badgeAlignment = when (element.badge.alignment) {
-            "topStart" -> ComposeAlignment.TopStart
-            "topEnd" -> ComposeAlignment.TopEnd
-            "bottomStart" -> ComposeAlignment.BottomStart
-            "bottomEnd" -> ComposeAlignment.BottomEnd
+            BadgeAlignment.TopStart -> ComposeAlignment.TopStart
+            BadgeAlignment.TopEnd -> ComposeAlignment.TopEnd
+            BadgeAlignment.BottomStart -> ComposeAlignment.BottomStart
+            BadgeAlignment.BottomEnd -> ComposeAlignment.BottomEnd
+            BadgeAlignment.TopCenter -> ComposeAlignment.TopCenter
+            BadgeAlignment.BottomCenter -> ComposeAlignment.BottomCenter
+            BadgeAlignment.Center -> ComposeAlignment.Center
+            BadgeAlignment.CenterStart -> ComposeAlignment.CenterStart
+            BadgeAlignment.CenterEnd -> ComposeAlignment.CenterEnd
             else -> ComposeAlignment.TopEnd
         }
         Box {
@@ -294,12 +303,12 @@ internal fun parseColor(value: String): Color {
 }
 
 /**
- * Convert a [BackgroundGradient] to a Compose [Brush]. Each stop is run
+ * Convert a [BackgroundGradientViewModel] to a Compose [Brush]. Each stop is run
  * through the color resolver so tokens (`"token:..."`) and raw hex strings
  * are both supported.
  */
 @Composable
-private fun BackgroundGradient.toBrush(): Brush {
+private fun BackgroundGradientViewModel.toBrush(): Brush {
     val colorList = colors.map { ColorTokenResolver.resolve(it) }
     return when (direction) {
         "horizontal" -> Brush.horizontalGradient(colorList)

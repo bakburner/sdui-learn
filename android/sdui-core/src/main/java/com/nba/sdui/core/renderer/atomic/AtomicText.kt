@@ -9,7 +9,9 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import com.nba.sdui.core.models.AtomicElement
+import com.nba.sdui.core.models.generated.Align
+import com.nba.sdui.core.models.generated.AtomicElement
+import com.nba.sdui.core.models.generated.TextWeight
 import com.nba.sdui.core.renderer.ColorTokenResolver
 import com.nba.sdui.core.renderer.applyAccessibility
 import com.nba.sdui.core.state.SduiAction
@@ -36,9 +38,9 @@ fun AtomicText(
     val fontWeight = element.weight?.let { mapFontWeight(it) }
     val textColor = ColorTokenResolver.resolve(element.color)
     val textAlign = when (element.textAlign) {
-        "start" -> TextAlign.Start
-        "center" -> TextAlign.Center
-        "end" -> TextAlign.End
+        Align.Start -> TextAlign.Start
+        Align.Center -> TextAlign.Center
+        Align.End -> TextAlign.End
         else -> null
     }
 
@@ -48,7 +50,7 @@ fun AtomicText(
         fontWeight = fontWeight,
         color = textColor,
         textAlign = textAlign,
-        maxLines = element.maxLines ?: Int.MAX_VALUE,
+        maxLines = element.maxLines?.toInt() ?: Int.MAX_VALUE,
         overflow = TextOverflow.Ellipsis,
         modifier = modifier.applyAccessibility(element.accessibility)
     )
@@ -87,15 +89,9 @@ private val KNOWN_TEXT_VARIANTS = setOf(
 
 private fun isKnownTextVariant(variant: String): Boolean = variant in KNOWN_TEXT_VARIANTS
 
-private fun mapFontWeight(weight: String): FontWeight = when (weight) {
-    "thin"       -> FontWeight.Thin
-    "extraLight" -> FontWeight.ExtraLight
-    "light"      -> FontWeight.Light
-    "normal"     -> FontWeight.Normal
-    "medium"     -> FontWeight.Medium
-    "semiBold"   -> FontWeight.SemiBold
-    "bold"       -> FontWeight.Bold
-    "extraBold"  -> FontWeight.ExtraBold
-    "black"      -> FontWeight.Black
-    else         -> FontWeight.Normal
+private fun mapFontWeight(weight: TextWeight): FontWeight = when (weight) {
+    TextWeight.Regular -> FontWeight.Normal
+    TextWeight.Medium -> FontWeight.Medium
+    TextWeight.SemiBold -> FontWeight.SemiBold
+    TextWeight.Bold -> FontWeight.Bold
 }

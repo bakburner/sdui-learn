@@ -2,8 +2,7 @@ package com.nba.sdui.core.renderer.sections
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.nba.sdui.core.models.AtomicElementParser
-import com.nba.sdui.core.models.SduiSection
+import com.nba.sdui.core.models.generated.Section
 import com.nba.sdui.core.renderer.atomic.AtomicRouter
 import com.nba.sdui.core.state.SduiAction
 
@@ -25,13 +24,13 @@ import com.nba.sdui.core.state.SduiAction
  */
 @Composable
 fun SubscribeBannerRenderer(
-    section: SduiSection,
+    section: Section,
     screenState: Map<String, Any>,
     onAction: (SduiAction) -> Unit,
     onStateChange: (String, Any) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
-    val root = AtomicElementParser.parse(section.data) ?: return
+    val root = section.data?.ui ?: return
     AtomicRouter(
         element = root,
         screenState = screenState,

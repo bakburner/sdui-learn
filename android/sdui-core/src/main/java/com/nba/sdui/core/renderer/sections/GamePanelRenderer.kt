@@ -34,17 +34,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.nba.sdui.core.renderer.applyAccessibility
-import com.nba.sdui.core.models.Background
-import com.nba.sdui.core.models.SduiSection
+import com.nba.sdui.core.models.generated.Section
 import com.nba.sdui.core.renderer.adapters.GamePanelUiModel
 import com.nba.sdui.core.renderer.adapters.GamePanelVisualState
 import com.nba.sdui.core.renderer.adapters.mapGamePanel
 import com.nba.sdui.core.renderer.atomic.parseColor
+import com.nba.sdui.core.renderer.adapters.BackgroundGradientViewModel
+import com.nba.sdui.core.renderer.adapters.BackgroundViewModel
 import com.nba.sdui.core.state.SduiAction
 
 @Composable
 fun GamePanelRenderer(
-    section: SduiSection,
+    section: Section,
     onAction: (SduiAction) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -54,7 +55,7 @@ fun GamePanelRenderer(
 
 @Composable
 private fun GamePanelContent(
-    section: SduiSection,
+    section: Section,
     model: GamePanelUiModel,
     onAction: (SduiAction) -> Unit,
     modifier: Modifier = Modifier
@@ -73,21 +74,14 @@ private fun GamePanelContent(
     val activeBg = if (isLive) (config.liveBackground ?: config.background) else config.background
 
     val backgroundBrush: Brush? = when (activeBg) {
-        is Background.Gradient -> {
-            val colors = activeBg.gradient.colors.map { parseColor(it) }
-            when (activeBg.gradient.direction) {
-                "horizontal" -> Brush.horizontalGradient(colors)
-                "diagonal" -> Brush.linearGradient(colors)
-                else -> Brush.verticalGradient(colors)
-            }
-        }
-        is Background.Image -> {
+        is BackgroundViewModel.Gradient -> activeBg.gradient.toBrush()
+        is BackgroundViewModel.Image -> {
             Brush.horizontalGradient(listOf(Color(0xFF1D428A), Color(0xFF1D428A)))
         }
         else -> null
     }
     val backgroundSolid: Color? = when (activeBg) {
-        is Background.Solid -> parseColor(activeBg.color)
+        is BackgroundViewModel.Solid -> parseColor(activeBg.color)
         else -> null
     }
 
@@ -290,5 +284,15 @@ private fun GamePanelContent(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun BackgroundGradientViewModel.toBrush(): Brush {
+    val colors = this.colors.map { parseColor(it) }
+    return when (direction) {
+        "horizontal" -> Brush.horizontalGradient(colors)
+        "diagonal" -> Brush.linearGradient(colors)
+        else -> Brush.verticalGradient(colors)
     }
 }

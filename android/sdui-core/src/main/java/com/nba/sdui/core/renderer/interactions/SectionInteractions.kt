@@ -1,7 +1,7 @@
 package com.nba.sdui.core.renderer.interactions
 
-import com.nba.sdui.core.models.SduiSection
-import com.nba.sdui.core.models.actionToSduiAction
+import com.nba.sdui.core.models.generated.Section
+import com.nba.sdui.core.renderer.adapters.toSduiAction
 import com.nba.sdui.core.state.SduiAction
 
 /**
@@ -11,29 +11,27 @@ import com.nba.sdui.core.state.SduiAction
  * falling back to legacy `section.data.actions` for backward compatibility.
  */
 object SectionInteractions {
-    @Suppress("UNCHECKED_CAST")
-    fun actions(section: SduiSection): List<SduiAction> {
+    fun actions(section: Section): List<SduiAction> {
         val sectionLevel = section.actions
-            ?.mapNotNull(::actionToSduiAction)
+            ?.map { it.toSduiAction() }
             ?.takeIf { it.isNotEmpty() }
 
         if (sectionLevel != null) return sectionLevel
 
-        val dataLevel = section.data?.get("actions") as? List<Map<String, Any?>>
-        return dataLevel.orEmpty().mapNotNull(::actionToSduiAction)
+        val dataLevel = section.data?.actions.orEmpty()
+        return dataLevel.map { it.toSduiAction() }
     }
 
-    fun primaryAction(section: SduiSection, trigger: String = "onTap"): SduiAction? =
+    fun primaryAction(section: Section, trigger: String = "onTap"): SduiAction? =
         actions(section).firstOrNull { it.trigger.equals(trigger, ignoreCase = true) }
 
-    @Suppress("UNCHECKED_CAST")
-    fun subsectionActions(section: SduiSection, subsectionId: String): List<SduiAction> {
+    fun subsectionActions(section: Section, subsectionId: String): List<SduiAction> {
         val subsection = section.subsections?.firstOrNull { it.id == subsectionId }
             ?: return emptyList()
-        return subsection.actions.orEmpty().mapNotNull(::actionToSduiAction)
+        return subsection.actions.orEmpty().map { it.toSduiAction() }
     }
 
-    fun subsectionPrimaryAction(section: SduiSection, subsectionId: String, trigger: String = "onTap"): SduiAction? =
+    fun subsectionPrimaryAction(section: Section, subsectionId: String, trigger: String = "onTap"): SduiAction? =
         subsectionActions(section, subsectionId)
             .firstOrNull { it.trigger.equals(trigger, ignoreCase = true) }
 }

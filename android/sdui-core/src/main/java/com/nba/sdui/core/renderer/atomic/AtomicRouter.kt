@@ -6,7 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.dp
-import com.nba.sdui.core.models.AtomicElement
+import com.nba.sdui.core.models.generated.AtomicElement
 import com.nba.sdui.core.state.SduiAction
 
 private const val MAX_TREE_DEPTH = 6
@@ -48,10 +48,10 @@ fun AtomicRouter(
     // CSS and SwiftUI.
     val marginModifier = element.margin?.let {
         modifier.padding(
-            start = it.start.dp,
-            end = it.end.dp,
-            top = it.top.dp,
-            bottom = it.bottom.dp
+            start = (it.start ?: 0L).toInt().dp,
+            end = (it.end ?: 0L).toInt().dp,
+            top = (it.top ?: 0L).toInt().dp,
+            bottom = (it.bottom ?: 0L).toInt().dp
         )
     } ?: modifier
     val opacityModifier = element.opacity?.let { marginModifier.alpha(it.toFloat()) } ?: marginModifier

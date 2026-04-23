@@ -7,8 +7,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.nba.sdui.core.models.SectionStates
-import com.nba.sdui.core.models.actionToSduiAction
+import com.nba.sdui.core.models.generated.Action
+import com.nba.sdui.core.models.generated.Data
+import com.nba.sdui.core.models.generated.SectionStates
+import com.nba.sdui.core.renderer.adapters.toSduiAction
 import com.nba.sdui.core.state.SduiAction
 
 /**
@@ -41,10 +43,10 @@ private const val TAG = "SectionErrorBoundary"
 fun validateSection(
     sectionId: String,
     sectionType: String,
-    data: Map<String, Any?>?
+    data: Data?
 ): String? {
     // AtomicComposite requires a ui element in data
-    if (sectionType == "AtomicComposite" && data?.get("ui") == null) {
+    if (sectionType == "AtomicComposite" && data?.ui == null) {
         return "AtomicComposite section $sectionId has no ui element"
     }
     return null
@@ -55,7 +57,7 @@ fun SectionErrorBoundary(
     sectionId: String,
     sectionType: String,
     sectionStates: SectionStates?,
-    data: Map<String, Any?>?,
+    data: Data?,
     onAction: (SduiAction) -> Unit,
     maxRetries: Int = 5,
     content: @Composable () -> Unit
@@ -98,7 +100,7 @@ fun SectionErrorBoundary(
 @Composable
 private fun SectionErrorCard(
     message: String,
-    retryAction: Map<String, Any?>?,
+    retryAction: Action?,
     canRetry: Boolean,
     onRetry: () -> Unit,
     onAction: (SduiAction) -> Unit
@@ -127,10 +129,7 @@ private fun SectionErrorCard(
             if (canRetry && retryAction != null) {
                 Spacer(modifier = Modifier.height(16.dp))
                 OutlinedButton(onClick = {
-                    val action = actionToSduiAction(retryAction)
-                    if (action != null) {
-                        onAction(action)
-                    }
+                    retryAction?.let { onAction(it.toSduiAction()) }
                     onRetry()
                 }) {
                     Text("Try Again")

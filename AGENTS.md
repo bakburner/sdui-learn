@@ -56,7 +56,8 @@ required for layout, content, or data-flow changes.
   `make codegen` from the repo root.
 - Generated code lives in the following locations — never edit those files
   by hand, regenerate them with `make codegen`:
-  - Java POJOs (Spring server + Android client): `codegen/build/generated-sources/jsonschema2pojo/`
+  - Java POJOs (Spring server only): `codegen/build/generated-sources/jsonschema2pojo/`
+  - Kotlin models (Android client): `android/sdui-core/src/main/java/com/nba/sdui/core/models/generated/SduiModels.kt`
   - Swift models (iOS client): `ios/Sources/SduiCore/Models/SduiModels.swift`
   - TypeScript models (web client): `web/src/generated/SduiModels.ts` (consumed via the `@sdui/models` Vite / tsconfig alias)
 

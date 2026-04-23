@@ -8,6 +8,7 @@
 build/
 out/
 target/
+node_modules/
 
 # Xcode / SwiftPM per-user and per-build state. `.swiftpm/` is Xcode's
 # user-workspace-state directory (never shareable). `Package.resolved`

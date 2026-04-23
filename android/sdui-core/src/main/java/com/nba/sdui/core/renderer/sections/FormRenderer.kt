@@ -10,7 +10,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.nba.sdui.core.models.SduiSection
+import com.nba.sdui.core.models.generated.Section
 import com.nba.sdui.core.renderer.applyAccessibility
 import com.nba.sdui.core.renderer.adapters.FormFieldUi
 import com.nba.sdui.core.renderer.adapters.FormUiModel
@@ -28,7 +28,7 @@ private const val TAG = "FormRenderer"
  */
 @Composable
 fun FormRenderer(
-    section: SduiSection,
+    section: Section,
     screenState: Map<String, Any>,
     onAction: (SduiAction) -> Unit,
     onStateChange: (String, Any) -> Unit,
@@ -161,7 +161,7 @@ private fun SelectField(
                 enabled = !field.disabled,
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                 modifier = Modifier
-                    .menuAnchor()
+                    .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = !field.disabled)
                     .fillMaxWidth()
             )
 

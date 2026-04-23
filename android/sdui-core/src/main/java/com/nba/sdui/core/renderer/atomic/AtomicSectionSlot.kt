@@ -3,17 +3,12 @@ package com.nba.sdui.core.renderer.atomic
 import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.KotlinModule
-import com.nba.sdui.core.models.AtomicElement
-import com.nba.sdui.core.models.SduiSection
+import com.nba.sdui.core.models.generated.AtomicElement
 import com.nba.sdui.core.renderer.SectionRouter
 import com.nba.sdui.core.state.SduiAction
 
 private const val MAX_SECTION_SLOT_DEPTH = 2
 private const val TAG = "AtomicSectionSlot"
-
-private val mapper = ObjectMapper().registerModule(KotlinModule.Builder().build())
 
 /**
  * AtomicSectionSlot — delegates rendering back to [SectionRouter], completing
@@ -42,16 +37,9 @@ fun AtomicSectionSlot(
         return
     }
 
-    val sectionMap = element.section
-    if (sectionMap == null) {
+    val section = element.section
+    if (section == null) {
         Log.w(TAG, "SectionSlot element ${element.id} has no section payload")
-        return
-    }
-
-    val section = try {
-        mapper.convertValue(sectionMap, SduiSection::class.java)
-    } catch (e: Exception) {
-        Log.w(TAG, "Failed to parse SectionSlot section for element ${element.id}", e)
         return
     }
 

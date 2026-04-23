@@ -18,11 +18,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.nba.sdui.core.models.AtomicElement
-import com.nba.sdui.core.models.actionToSduiAction
+import com.nba.sdui.core.models.generated.AtomicElement
+import com.nba.sdui.core.models.generated.BadgeAlignment
+import com.nba.sdui.core.models.generated.ImageFit
 import com.nba.sdui.core.renderer.ImageVariantResolver
 import com.nba.sdui.core.renderer.ImageVariantResolver.ImageContentScaleHint
 import com.nba.sdui.core.renderer.applyAccessibility
+import com.nba.sdui.core.renderer.adapters.toSduiAction
 import com.nba.sdui.core.state.SduiAction
 
 private const val DEFAULT_FALLBACK =
@@ -46,8 +48,8 @@ fun AtomicImage(
     // value is null. The current image variants have all-ALLOW override
     // matrices, so the LOCK branch never triggers — it's kept for parity with
     // the container resolver contract.
-    val effectiveCornerRadius: Int? = element.cornerRadius ?: variantSpec?.cornerRadiusDp
-    val effectiveAspectRatio: Float? = element.aspectRatio ?: variantSpec?.aspectRatio
+    val effectiveCornerRadius: Int? = element.cornerRadius?.toInt() ?: variantSpec?.cornerRadiusDp
+    val effectiveAspectRatio: Float? = element.aspectRatio?.toFloat() ?: variantSpec?.aspectRatio
     val shouldFillWidth: Boolean = element.fillWidth == true ||
         (element.fillWidth == null && variantSpec?.fillWidth == true)
     val shouldClip: Boolean = variantSpec?.clip ?: true
@@ -60,16 +62,16 @@ fun AtomicImage(
     if (shouldClip) {
         val radii = element.cornerRadii
         val hasAnyRadii = radii != null && (
-            (radii.topStart ?: 0) != 0 || (radii.topEnd ?: 0) != 0 ||
-            (radii.bottomStart ?: 0) != 0 || (radii.bottomEnd ?: 0) != 0
+            (radii.topStart ?: 0L) != 0L || (radii.topEnd ?: 0L) != 0L ||
+            (radii.bottomStart ?: 0L) != 0L || (radii.bottomEnd ?: 0L) != 0L
         )
         if (hasAnyRadii) {
             val fallback = effectiveCornerRadius ?: 0
             imageModifier = imageModifier.clip(RoundedCornerShape(
-                topStart = (radii!!.topStart ?: fallback).dp,
-                topEnd = (radii.topEnd ?: fallback).dp,
-                bottomEnd = (radii.bottomEnd ?: fallback).dp,
-                bottomStart = (radii.bottomStart ?: fallback).dp
+                topStart = (radii!!.topStart?.toInt() ?: fallback).dp,
+                topEnd = (radii.topEnd?.toInt() ?: fallback).dp,
+                bottomEnd = (radii.bottomEnd?.toInt() ?: fallback).dp,
+                bottomStart = (radii.bottomStart?.toInt() ?: fallback).dp
             ))
         } else {
             effectiveCornerRadius?.let {
@@ -77,17 +79,14 @@ fun AtomicImage(
             }
         }
     }
-    element.width?.let { imageModifier = imageModifier.width(it.dp) }
-    element.height?.let { imageModifier = imageModifier.height(it.dp) }
+    element.width?.let { imageModifier = imageModifier.width(it.toInt().dp) }
+    element.height?.let { imageModifier = imageModifier.height(it.toInt().dp) }
     effectiveAspectRatio?.let { imageModifier = imageModifier.aspectRatio(it) }
 
     val hasActions = !element.actions.isNullOrEmpty()
     if (hasActions) {
         imageModifier = imageModifier.clickable {
-            element.actions?.firstOrNull()?.let { actionMap ->
-                @Suppress("UNCHECKED_CAST")
-                actionToSduiAction(actionMap as? Map<String, Any?>)?.let(onAction)
-            }
+            element.actions?.firstOrNull()?.toSduiAction()?.let(onAction)
         }
     }
 
@@ -116,10 +115,15 @@ fun AtomicImage(
 
     if (element.badge != null) {
         val badgeAlignment = when (element.badge.alignment) {
-            "topStart" -> Alignment.TopStart
-            "topEnd" -> Alignment.TopEnd
-            "bottomStart" -> Alignment.BottomStart
-            "bottomEnd" -> Alignment.BottomEnd
+            BadgeAlignment.TopStart -> Alignment.TopStart
+            BadgeAlignment.TopEnd -> Alignment.TopEnd
+            BadgeAlignment.BottomStart -> Alignment.BottomStart
+            BadgeAlignment.BottomEnd -> Alignment.BottomEnd
+            BadgeAlignment.TopCenter -> Alignment.TopCenter
+            BadgeAlignment.BottomCenter -> Alignment.BottomCenter
+            BadgeAlignment.Center -> Alignment.Center
+            BadgeAlignment.CenterStart -> Alignment.CenterStart
+            BadgeAlignment.CenterEnd -> Alignment.CenterEnd
             else -> Alignment.TopEnd
         }
         Box {
@@ -135,12 +139,11 @@ fun AtomicImage(
     }
 }
 
-private fun mapContentScale(fit: String?): ContentScale = when (fit) {
-    "cover"   -> ContentScale.Crop
-    "contain" -> ContentScale.Fit
-    "fill"    -> ContentScale.FillBounds
-    "none"    -> ContentScale.None
-    else      -> ContentScale.Fit
+private fun mapContentScale(fit: ImageFit): ContentScale = when (fit) {
+    ImageFit.Cover -> ContentScale.Crop
+    ImageFit.Contain -> ContentScale.Fit
+    ImageFit.Fill -> ContentScale.FillBounds
+    ImageFit.None -> ContentScale.None
 }
 
 private fun mapContentScaleHint(hint: ImageContentScaleHint): ContentScale = when (hint) {

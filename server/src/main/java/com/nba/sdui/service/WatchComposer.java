@@ -266,17 +266,26 @@ public class WatchComposer {
 
     private ObjectNode buildSectionHeader(String id, String title,
                                            String actionLabel, String actionUri) {
-        return atomicBuilder.buildSectionHeader(id, title, null, actionLabel, actionUri);
+        ObjectNode section = atomicBuilder.buildSectionHeader(id, title, null, actionLabel, actionUri);
+        section.set("display", utils.railDisplay());
+        return section;
     }
 
     private ObjectNode buildContentRail(String id, String title, String[][] cards) {
-        return atomicBuilder.buildContentRail(id, null, title, cards);
+        ObjectNode section = atomicBuilder.buildContentRail(id, null, title, cards);
+        section.set("display", utils.railDisplay());
+        return section;
     }
 
     private ObjectNode buildPromoBanner(String id, String headline, String subhead,
                                          String backgroundUrl, String targetUri) {
-        return atomicBuilder.buildPromoBanner(id, null, null, headline, subhead,
-                null, null, "Learn More", targetUri);
+        ObjectNode section = atomicBuilder.buildPromoBanner(id, null, null, headline, subhead,
+                null, "Learn More", targetUri);
+        section.set("display", utils.subscribeCardDisplay(
+                "#0C1B3A",
+                ColorTokens.BRAND_NBA,
+                20));
+        return section;
     }
 
     private ObjectNode buildGamePanel(JsonNode game) {
@@ -304,6 +313,7 @@ public class WatchComposer {
         data.set("actions", actions);
 
         section.set("data", data);
+        section.set("display", utils.gamePanelDisplay());
         return section;
     }
 
@@ -326,7 +336,7 @@ public class WatchComposer {
         away.put("teamName", awayTri);
         away.put("teamCity", awayTri);
         away.put("score", gameStatus == 2 ? 55 : 0);
-        away.put("logoUrl", "https://cdn.nba.com/logos/nba/" + awayTeamId + "/global/L/logo.svg");
+        away.put("logoUrl", SduiUtils.teamLogoUrl(awayTeamId));
         data.set("awayTeam", away);
 
         ObjectNode home = objectMapper.createObjectNode();
@@ -335,7 +345,7 @@ public class WatchComposer {
         home.put("teamName", homeTri);
         home.put("teamCity", homeTri);
         home.put("score", gameStatus == 2 ? 48 : 0);
-        home.put("logoUrl", "https://cdn.nba.com/logos/nba/" + homeTeamId + "/global/L/logo.svg");
+        home.put("logoUrl", SduiUtils.teamLogoUrl(homeTeamId));
         data.set("homeTeam", home);
 
         ArrayNode actions = objectMapper.createArrayNode();
@@ -347,6 +357,7 @@ public class WatchComposer {
         data.set("actions", actions);
 
         section.set("data", data);
+        section.set("display", utils.gamePanelDisplay());
         return section;
     }
 
@@ -359,7 +370,9 @@ public class WatchComposer {
 
     private ObjectNode buildVideoCarousel(String id, String title, String subtitle,
                                            String[][] items) {
-        return atomicBuilder.buildVideoCarousel(id, null, title, subtitle, items);
+        ObjectNode section = atomicBuilder.buildVideoCarousel(id, null, title, subtitle, items);
+        section.set("display", utils.railDisplay());
+        return section;
     }
 
     /** NbaTvSchedule section — hero promo + time-slot list. */
@@ -370,12 +383,14 @@ public class WatchComposer {
                 {"slot-3", "CLE vs NYK", "Eastern Conference matchup", "20:30", "false", "nba://game/0022400612"},
                 {"slot-4", "NBA Action", "Weekly highlights show", "23:00", "false", "nba://watch/nba-action"}
         };
-        return atomicBuilder.buildNbaTvSchedule(
+        ObjectNode section = atomicBuilder.buildNbaTvSchedule(
                 "nbatv-schedule", null,
                 FALLBACK_THUMB,
                 "NBA GameTime",
                 "LIVE — Nightly highlights & analysis",
                 true, slots);
+        section.set("display", utils.railDisplay());
+        return section;
     }
 
     /**
@@ -388,6 +403,10 @@ public class WatchComposer {
         section.put("id", id);
         section.put("type", "SubscribeBanner");
         section.set("refreshPolicy", staticPolicy());
+        section.set("display", utils.subscribeCardDisplay(
+                ColorTokens.BRAND_NBA,
+                "#862633",
+                20));
 
         ObjectNode data = objectMapper.createObjectNode();
         data.put("title", title);
@@ -416,6 +435,10 @@ public class WatchComposer {
         section.put("id", "lp-subscribe-hero");
         section.put("type", "SubscribeHero");
         section.set("refreshPolicy", staticPolicy());
+        section.set("display", utils.subscribeCardDisplay(
+                "#0C1B3A",
+                ColorTokens.BRAND_NBA,
+                24));
 
         ObjectNode data = objectMapper.createObjectNode();
         data.put("title", "NBA League Pass");
@@ -480,6 +503,7 @@ public class WatchComposer {
         section.put("id", id);
         section.put("type", "AdSlot");
         section.set("refreshPolicy", staticPolicy());
+        section.set("display", utils.defaultSectionDisplay());
 
         ObjectNode data = objectMapper.createObjectNode();
         data.put("provider", "gam");
@@ -498,6 +522,14 @@ public class WatchComposer {
         targeting.put("section", "watch");
         data.set("targeting", targeting);
 
+        data.put("collapseOnEmpty", true);
+        data.put("label", "Advertisement");
+
+        ObjectNode placeholder = objectMapper.createObjectNode();
+        placeholder.put("backgroundColor", "token:color.surface.sunken");
+        placeholder.put("text", "Advertisement");
+        data.set("placeholder", placeholder);
+
         section.set("data", data);
         return section;
     }
@@ -514,7 +546,7 @@ public class WatchComposer {
         int wins = team.path("wins").asInt(0);
         int losses = team.path("losses").asInt(0);
         mapped.put("record", wins + "-" + losses);
-        mapped.put("logoUrl", "https://cdn.nba.com/logos/nba/" + team.path("teamId").asText() + "/global/L/logo.svg");
+        mapped.put("logoUrl", SduiUtils.teamLogoUrl(team.path("teamId").asText()));
         return mapped;
     }
 

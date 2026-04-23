@@ -38,8 +38,8 @@ fun AtomicDisplayGrid(
 ) {
     val columns = element.columns ?: return
     val rows = element.rows ?: return
-    val headerStyle = mapTypographyVariant(element.headerVariant ?: "labelMedium")
-    val cellStyle = mapTypographyVariant(element.cellVariant ?: "bodyMedium")
+    val headerStyle = MaterialTheme.typography.labelMedium
+    val cellStyle = MaterialTheme.typography.bodyMedium
     val striped = element.striped == true
 
     Column(modifier = modifier.fillMaxWidth().applyAccessibility(element.accessibility)) {

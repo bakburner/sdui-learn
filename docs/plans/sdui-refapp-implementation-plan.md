@@ -6,6 +6,24 @@
 
 ---
 
+## Status
+
+**Partially superseded by [`ios-led-ux-rebuild.md`](ios-led-ux-rebuild.md)
+for the For You + Schedule composer scope.** That follow-up plan rebuilds
+`/sdui/for-you` and `/sdui/schedule` around the iOS `FeedView` aesthetic,
+introduces `GamePanelVariant` and `SelectVariant` semantic tokens, and
+updates all three prototype client renderers (iOS / Android / web) to
+realize those tokens natively.
+
+**Still open here:** the ref-app integration work itself — replacing
+hardcoded content discovery in `nbavideokitrefapp-ios` and
+`android-video-sdk-ref-app` with SDUI-sourced screens (Phases 3 and 6
+below, and the Phase 0 schema groundwork that feeds them). The
+prototype-only UX rebuild in `ios-led-ux-rebuild.md` does not touch
+either ref app; that integration remains future work.
+
+---
+
 ## Phase 0: Schema & Codegen Foundations
 
 *Resolve schema gaps before any client work begins. All client work depends on these.*
@@ -232,7 +250,12 @@ These visual effects are **renderer responsibilities**, not schema properties. D
 cd codegen && ./generate.sh
 ```
 
-Verify output in `codegen/output/{kotlin,swift,typescript}`.
+Each client's generated model file is written directly into the location it
+is consumed from — there is no intermediate copy step. Verify output at:
+- `codegen/build/generated-sources/jsonschema2pojo/` (Java POJOs — Android + server classpath)
+- `ios/Sources/SduiCore/Models/SduiModels.swift` (iOS SduiCore SwiftPM target)
+- `web/src/generated/SduiModels.ts` (web client — surfaced as the `@sdui/models` alias)
+- `codegen/output/kotlin/SduiModels.kt` (demonstration only — Android consumes the Java POJOs)
 
 ### 0.7 — Validate Generated Models Against Real Server JSON
 
@@ -391,7 +414,7 @@ clients/ios/
     Package.swift
     Sources/SduiCore/
       Models/
-        SduiModels.swift           ← copy from codegen/output/swift/
+        SduiModels.swift           ← written in place by `make codegen`
       Network/
         SduiRepository.swift       ← URLSession, fetchScreen(path:)
         UriResolver.swift          ← nba:// → /sdui/ prefix swap

@@ -1173,13 +1173,17 @@ Platform SDK recommendations (not mandated):
 
 ## 16. Codegen Quick Reference
 
-Generated models are available in `codegen/output/`:
+Generated models are written directly into each client's source tree where
+they are actually consumed; there is no intermediate copy step for any
+client. Regenerate everything with `make codegen` (or
+`cd codegen && ./generate.sh`).
 
-| Language | Output | Regenerate |
-|----------|--------|------------|
-| Kotlin | `codegen/output/kotlin/` | `cd codegen && ./generate.sh` |
-| TypeScript | `codegen/output/typescript/SduiModels.ts` | `cd codegen && ./generate.sh` |
-| Swift | `codegen/output/swift/SduiModels.swift` | `cd codegen && ./generate.sh` |
+| Language   | Output                                               | Consumer                                                      |
+|------------|------------------------------------------------------|---------------------------------------------------------------|
+| Java       | `codegen/build/generated-sources/jsonschema2pojo/`   | Android client + Spring server (on the classpath)             |
+| Swift      | `ios/Sources/SduiCore/Models/SduiModels.swift`       | iOS `SduiCore` SwiftPM target                                 |
+| TypeScript | `web/src/generated/SduiModels.ts`                    | Web client via the `@sdui/models` Vite / tsconfig path alias  |
+| Kotlin     | `codegen/output/kotlin/SduiModels.kt`                | Demonstration only — Android consumes the Java POJOs          |
 
 For other languages, use [quicktype](https://quicktype.io) to generate models
 from `schema/sdui-schema.json`. Or write your own deserializer — the JSON
@@ -1211,6 +1215,53 @@ Implementations should follow platform-native animation patterns.
 
 ---
 
+## 17a. Non-atomic variant tokens (GamePanel, FormField select)
+
+Most variant tokens live on atomic primitives and carry the vocabularies
+documented in `docs/sdui-design-system.md` §3 Layer 2. Two vocabularies
+live on non-atomic carriers — a section (`GamePanel`) and a
+field-data object (`FormField` when `fieldType == "select"`). They obey
+the same rules (strict-decode on the typed field, renderer realizes
+natively per Rule 16, absent value falls through to the default) but
+are exposed to the renderer through the section's data model, not the
+`AtomicElement.variant` string.
+
+### `GamePanelVariant`
+
+Declared on `GamePanelData.variant`. Values: `standard` (default),
+`featured`. Absent value renders as `standard`.
+
+| Platform | `standard` | `featured` |
+|---|---|---|
+| iOS (SwiftUI) | Existing card treatment: surface fill, `cornerRadius`, standard shadow, standard padding | Heightened card: larger corner radius, enhanced shadow, tighter inner padding. Wider width is a parent-container concern (`Container.width` wraps the section slot), not the section itself |
+| Android (Compose) | Existing `Card` treatment: Material surface, default elevation, default inner padding | `Card` with larger `RoundedCornerShape`, elevated `CardDefaults.cardElevation`, adjusted `Modifier.padding` inside the card |
+| Web (React/CSS) | Existing game-panel CSS: surface background, 12px radius, subtle shadow | Larger radius, more prominent `box-shadow`, tighter `padding` / `gap` |
+
+The server drives **carousel card width** at the wrapping
+`Container.width` on the `AtomicSectionSlot` — not inside the
+`GamePanel` renderer. `GamePanelVariant` owns only the card's internal
+visual emphasis.
+
+### `SelectVariant`
+
+Declared on `FormField.variant` and meaningful only when
+`fieldType == "select"`. Values: `dropdown` (default), `chips`,
+`segmented`. Absent value renders as `dropdown`.
+
+| Platform | `dropdown` | `chips` | `segmented` |
+|---|---|---|---|
+| iOS (SwiftUI) | `Menu { Picker(selection:) { ... } }` | Horizontal `ScrollView(.horizontal, showsIndicators: false)` of `Capsule()` `Button`s with selected state styled via color tokens | `Picker(selection:) { ... }.pickerStyle(.segmented)` |
+| Android (Compose) | Material 3 `ExposedDropdownMenuBox` + `DropdownMenu` | `LazyRow` of Material 3 `FilterChip` with correct `selected` state | Material 3 `SingleChoiceSegmentedButtonRow` + `SegmentedButton` |
+| Web (React/CSS) | Native `<select>` | Horizontal scroll container of pill-styled `<button>`s with a `selected` class | Flex row of equal-width `<button>`s styled as a segmented pill group |
+
+**Not a `radio` migration.** `FormField.fieldType: "radio"` coexists
+with `fieldType: "select" + variant: "segmented"`. `radio` is a vertical
+stack of labeled choices (multi-line, all options visible);
+`segmented` is an equal-width horizontal pill chooser (usually 2–4
+options). No migration between them is planned.
+
+---
+
 ## 18. Conformance Checklist
 
 A conforming client satisfies all of the following. This maps directly to
@@ -1233,6 +1284,6 @@ the rules in `AGENTS.md`.
 | C13 | Schema is the wire contract — strict decoders; new enum values go into schema first, then regen | Rule 13 |
 | C14 | Renderers are presentation-only — no business logic | Rule 14 |
 | C15 | Prefer AtomicComposite over new section type for stateless UI | Rule 15 |
-| C16 | Platform-native realization of semantic tokens (`textVariant`, `buttonVariant`, `iconName`, `containerVariant`) — map to the platform's current design language; no pixel-parity target | Rule 16 |
+| C16 | Platform-native realization of semantic variant tokens — `TextVariant`, `ButtonVariant`, `ContainerVariant`, `ImageVariant` on atomic elements, `GamePanelVariant` on the `GamePanel` section, `SelectVariant` on `FormField.select` — emitted on the wire as a `variant` string property; map to the platform's current design language; no pixel-parity target. See §17a for renderer mapping tables | Rule 16 |
 | C17 | Code comments describe invariants and cite business constraints; do not cite internal rule numbers or AI-coding guidelines | Rule 17 |
 | C18 | Per-platform decisions default to the server (content, capability gating, asset-format). Client-realized vocabularies are the named exception (Rule 16 list) and must be pure presentation | Rule 18 |

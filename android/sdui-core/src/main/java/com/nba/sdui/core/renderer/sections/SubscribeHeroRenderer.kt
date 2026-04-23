@@ -1,7 +1,14 @@
 package com.nba.sdui.core.renderer.sections
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ElevatedButton
@@ -11,32 +18,32 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import coil.compose.SubcomposeAsyncImage
-import com.nba.sdui.core.models.Background
 import com.nba.sdui.core.models.SduiSection
 import com.nba.sdui.core.renderer.applyAccessibility
 import com.nba.sdui.core.models.actionToSduiAction
-import com.nba.sdui.core.models.parseBackground
 import com.nba.sdui.core.state.SduiAction
-import com.nba.sdui.core.config.SduiDefaults
 
 /**
- * SubscribeHero Renderer — full-screen subscription upsell with feature list and pricing tiers.
+ * SubscribeHero Renderer — full-card subscription upsell with feature
+ * list and pricing tiers.
+ *
+ * Outer chrome (margin, radius, gradient background, inner padding)
+ * comes from `section.display` via `SectionContainer` — this renderer
+ * only lays out the hero's content (logo, title, subtitle, features,
+ * tier cards, optional CTA). Tier-card surfaces remain client-owned
+ * for now (inner content chrome). See AGENTS.md §15.3.
  *
  * Expected data:
- *   title             – main heading
- *   subtitle          – supporting tagline
- *   background – hero background (BackgroundImage object)
- *   logoUrl           – brand logo
- *   features[]        – list of bullet-point strings
- *   tiers[]           – SubscriptionTier objects (id, name, price, badgeText, features[], ctaLabel, ctaAction)
+ *   title     – main heading
+ *   subtitle  – supporting tagline
+ *   logoUrl   – brand logo
+ *   features[] – list of bullet-point strings
+ *   tiers[]    – SubscriptionTier objects
  */
 @Composable
 fun SubscribeHeroRenderer(
@@ -47,122 +54,74 @@ fun SubscribeHeroRenderer(
     val data = section.data ?: return
     val title = data["title"]?.toString()?.removeSurrounding("\"") ?: return
     val subtitle = data["subtitle"]?.toString()?.removeSurrounding("\"")
-    val bg = parseBackground(data["background"])
-    val backgroundUrl = (bg as? Background.Image)?.imageUrl
     val logoUrl = data["logoUrl"]?.toString()?.removeSurrounding("\"")
     val features = data["features"] as? List<*> ?: emptyList<Any>()
     val tiers = data["tiers"] as? List<*> ?: emptyList<Any>()
-    val fallbackThumbnailUrl = data["fallbackThumbnailUrl"]?.toString()?.removeSurrounding("\"")
-        ?: SduiDefaults.FALLBACK_IMAGE_URL
 
-    Box(
+    Column(
         modifier = modifier
             .applyAccessibility(section.accessibility)
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Background
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(Color(0xFF0C1B3A), Color(0xFF1D428A))
-                    )
-                )
-        ) {
-            backgroundUrl?.let { url ->
-                SubcomposeAsyncImage(
-                    model = url,
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxWidth().height(300.dp),
-                    contentScale = ContentScale.Crop,
-                    alpha = 0.2f,
-                    error = {
-                        fallbackThumbnailUrl?.let { fb ->
-                            AsyncImage(
-                                model = fb,
-                                contentDescription = null,
-                                modifier = Modifier.fillMaxWidth().height(300.dp),
-                                contentScale = ContentScale.Crop,
-                                alpha = 0.2f
-                            )
-                        }
-                    }
-                )
-            }
+        logoUrl?.let { url ->
+            AsyncImage(
+                model = url,
+                contentDescription = title,
+                modifier = Modifier.height(40.dp)
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+        }
 
+        Text(
+            text = title,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = Color.White,
+            textAlign = TextAlign.Center
+        )
+
+        subtitle?.let {
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = it,
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.White.copy(alpha = 0.8f),
+                textAlign = TextAlign.Center
+            )
+        }
+
+        if (features.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(16.dp))
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                // Logo
-                logoUrl?.let { url ->
-                    AsyncImage(
-                        model = url,
-                        contentDescription = title,
-                        modifier = Modifier.height(40.dp)
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                }
-
-                // Title
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                    textAlign = TextAlign.Center
-                )
-
-                subtitle?.let {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = it,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White.copy(alpha = 0.8f),
-                        textAlign = TextAlign.Center
-                    )
-                }
-
-                // Features
-                if (features.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        for (feature in features) {
-                            val text = feature?.toString() ?: continue
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = "✓",
-                                    color = Color(0xFF00C853),
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.width(24.dp)
-                                )
-                                Text(
-                                    text = text,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = Color.White.copy(alpha = 0.9f)
-                                )
-                            }
-                        }
+                for (feature in features) {
+                    val text = feature?.toString() ?: continue
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "✓",
+                            color = Color(0xFF00C853),
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.width(24.dp)
+                        )
+                        Text(
+                            text = text,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(alpha = 0.9f)
+                        )
                     }
                 }
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                // Pricing tiers
-                for (tier in tiers) {
-                    val map = tier as? Map<String, Any?> ?: continue
-                    SubscriptionTierCard(map = map, onAction = onAction)
-                    Spacer(modifier = Modifier.height(12.dp))
-                }
             }
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        for (tier in tiers) {
+            val map = tier as? Map<String, Any?> ?: continue
+            SubscriptionTierCard(map = map, onAction = onAction)
+            Spacer(modifier = Modifier.height(12.dp))
         }
     }
 }
@@ -188,7 +147,6 @@ private fun SubscriptionTierCard(
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Badge
         badgeText?.let { badge ->
             Text(
                 text = badge,

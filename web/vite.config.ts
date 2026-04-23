@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      '@sdui/models': path.resolve(__dirname, '../codegen/output/typescript/SduiModels.ts'),
+      '@sdui/models': path.resolve(__dirname, './src/generated/SduiModels.ts'),
       '@': path.resolve(__dirname, './src'),
     },
   },

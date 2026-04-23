@@ -47,9 +47,15 @@ public class ScheduleComposer {
         response.put("schemaVersion", schemaVersion);
         response.set("navigation", utils.buildNavigation("schedule"));
 
+        // Initial chip selections. See Phase D.1 scope note in
+        // docs/plans/ios-led-ux-rebuild.md — /sdui/schedule does not yet parse
+        // query params, so these values are cosmetic; they drive chip
+        // highlighting on first render only.
         ObjectNode state = objectMapper.createObjectNode();
         state.put("schedule_season", "2024-25");
+        state.put("schedule_year", "2024");
         state.put("schedule_month", "");
+        state.put("schedule_day", "");
         response.set("state", state);
 
         ArrayNode sections = objectMapper.createArrayNode();
@@ -74,34 +80,60 @@ public class ScheduleComposer {
         section.set("refreshPolicy", staticPolicy());
 
         ObjectNode data = objectMapper.createObjectNode();
-        data.put("submitUrl", "/sdui/schedule");
-        data.put("submitMethod", "GET");
-        data.put("direction", "row");
+        data.put("layout", "vertical");
+
+        // Form submit fires on chip change via onChange actions on each
+        // field; keep submitAction present for schema validity. The
+        // controller doesn't parse query params yet — chip taps are
+        // cosmetic until the data-wiring plan lands (Phase D.1 scope note).
+        ObjectNode submitAction = objectMapper.createObjectNode();
+        submitAction.put("trigger", "onSubmit");
+        submitAction.put("type", "refresh");
+        data.set("submitAction", submitAction);
+        data.put("submitLabel", "Apply");
 
         ArrayNode fields = objectMapper.createArrayNode();
 
-        fields.add(buildSelectField("schedule_season", "Season",
-                new String[][]{{"2024-25", "2024-25"}, {"2023-24", "2023-24"}, {"2022-23", "2022-23"}},
-                "2024-25"));
+        fields.add(buildChipsField("schedule_season", "Season",
+                new String[][]{
+                        {"2024-25", "2024-25"}, {"2023-24", "2023-24"},
+                        {"2022-23", "2022-23"}, {"2021-22", "2021-22"}
+                }));
 
-        fields.add(buildSelectField("schedule_month", "Month",
+        fields.add(buildChipsField("schedule_year", "Year",
+                new String[][]{
+                        {"2024", "2024"}, {"2025", "2025"}
+                }));
+
+        fields.add(buildChipsField("schedule_month", "Month",
                 new String[][]{
                         {"", "All"}, {"10", "October"}, {"11", "November"}, {"12", "December"},
                         {"1", "January"}, {"2", "February"}, {"3", "March"}, {"4", "April"}
-                },
-                ""));
+                }));
+
+        fields.add(buildChipsField("schedule_day", "Day",
+                new String[][]{
+                        {"", "All"}, {"1", "1"}, {"5", "5"}, {"10", "10"},
+                        {"15", "15"}, {"20", "20"}, {"25", "25"}, {"30", "30"}
+                }));
 
         data.set("fields", fields);
         section.set("data", data);
         return section;
     }
 
-    private ObjectNode buildSelectField(String name, String label, String[][] options, String defaultValue) {
+    /**
+     * Emits a schema-compliant {@code FormField} with {@code fieldType: "select"}
+     * and {@code variant: "chips"}. Clients resolve chips natively (iOS
+     * capsules, Material {@code FilterChip}, web pill buttons).
+     */
+    private ObjectNode buildChipsField(String stateKey, String label, String[][] options) {
         ObjectNode field = objectMapper.createObjectNode();
-        field.put("name", name);
+        field.put("fieldId", stateKey);
+        field.put("fieldType", "select");
+        field.put("variant", "chips");
         field.put("label", label);
-        field.put("type", "select");
-        field.put("stateKey", name);
+        field.put("stateKey", stateKey);
 
         ArrayNode opts = objectMapper.createArrayNode();
         for (String[] opt : options) {
@@ -111,7 +143,6 @@ public class ScheduleComposer {
             opts.add(o);
         }
         field.set("options", opts);
-        field.put("defaultValue", defaultValue);
         return field;
     }
 
@@ -140,7 +171,7 @@ public class ScheduleComposer {
         root.put("direction", "row");
         root.put("alignment", "center");
         root.put("crossAlignment", "center");
-        root.put("background", "#1A1F2E");
+        root.put("background", ColorTokens.SURFACE_CANVAS);
         root.put("cornerRadius", 12);
 
         ObjectNode shadowObj = objectMapper.createObjectNode();
@@ -184,7 +215,7 @@ public class ScheduleComposer {
             scoreText.put("content", awayScore + " - " + homeScore);
             scoreText.put("variant", "heading2");
             scoreText.put("weight", "bold");
-            scoreText.put("color", "#FFFFFF");
+            scoreText.put("color", ColorTokens.TEXT_PRIMARY);
             scoreText.put("monospacedDigits", true);
             scoreText.put("textAlign", "center");
             centerChildren.add(scoreText);
@@ -193,7 +224,7 @@ public class ScheduleComposer {
             statusEl.put("type", "Text");
             statusEl.put("content", "Final");
             statusEl.put("variant", "caption");
-            statusEl.put("color", "#888888");
+            statusEl.put("color", ColorTokens.TEXT_SECONDARY);
             statusEl.put("textAlign", "center");
             centerChildren.add(statusEl);
         } else {
@@ -202,7 +233,7 @@ public class ScheduleComposer {
             timeEl.put("content", game.path("time").asText("TBD"));
             timeEl.put("variant", "body");
             timeEl.put("weight", "semiBold");
-            timeEl.put("color", "#FFFFFF");
+            timeEl.put("color", ColorTokens.TEXT_PRIMARY);
             timeEl.put("textAlign", "center");
             centerChildren.add(timeEl);
         }
@@ -236,7 +267,7 @@ public class ScheduleComposer {
         int teamId = team.path("teamId").asInt(0);
         ObjectNode logo = objectMapper.createObjectNode();
         logo.put("type", "Image");
-        logo.put("src", "https://cdn.nba.com/logos/nba/" + teamId + "/global/L/logo.svg");
+        logo.put("src", SduiUtils.teamLogoUrl(teamId));
         logo.put("width", 48);
         logo.put("height", 48);
         logo.put("fit", "contain");
@@ -252,7 +283,7 @@ public class ScheduleComposer {
         name.put("content", team.path("teamTricode").asText("???"));
         name.put("variant", "bodySmall");
         name.put("weight", "bold");
-        name.put("color", "#FFFFFF");
+        name.put("color", ColorTokens.TEXT_PRIMARY);
         name.put("textAlign", "center");
         children.add(name);
 

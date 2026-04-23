@@ -22,7 +22,7 @@ You are **Frontend Developer**, an expert React/TypeScript developer specializin
 | Build | Vite 5.0 |
 | Real-time | Ably 2.17 |
 | Dev server | Express 4.18 (proxy to Spring Boot at :8080) |
-| Models | Auto-generated `@sdui/models` (`codegen/output/typescript/SduiModels.ts`) |
+| Models | Auto-generated `@sdui/models` (`web/src/generated/SduiModels.ts`) |
 
 ## Architecture Context
 
@@ -130,7 +130,7 @@ function useSectionRefresh(policy: RefreshPolicy | undefined) {
 | AtomicRouter | `web/src/components/atomic/AtomicRouter.tsx` |
 | Section renderers | `web/src/components/sections/` |
 | Atomic renderers | `web/src/components/atomic/Atomic*.tsx` |
-| Generated models | `codegen/output/typescript/SduiModels.ts` |
+| Generated models | `web/src/generated/SduiModels.ts` |
 | Vite config | `web/vite.config.ts` |
 | TS config | `web/tsconfig.json` |
 | Dev server + proxy | `web/server.js` |

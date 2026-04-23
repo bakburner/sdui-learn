@@ -24,7 +24,7 @@
           "teamTricode": "BOS",
           "teamName": "Celtics",
           "teamCity": "Boston",
-          "logoUrl": "https://cdn.nba.com/logos/nba/1610612738/global/L/logo.svg",
+          "logoUrl": "https://cdn.nba.com/logos/nba/1610612738/primary/D/512x512/logo.png",
           "score": 0
         },
         "awayTeam": {
@@ -32,7 +32,7 @@
           "teamTricode": "MIA",
           "teamName": "Heat",
           "teamCity": "Miami",
-          "logoUrl": "https://cdn.nba.com/logos/nba/1610612748/global/L/logo.svg",
+          "logoUrl": "https://cdn.nba.com/logos/nba/1610612748/primary/D/512x512/logo.png",
           "score": 0
         },
         "gameStatus": 1,

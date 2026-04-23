@@ -177,7 +177,14 @@ public class SduiUtils {
     // ── Team colours ───────────────────────────────────────────────────
 
     /**
-     * Resolve a rough team primary colour by tricode. Clients may override.
+     * Resolve a team primary colour by tricode.
+     *
+     * <p>NBA brand guideline: team primary colors are brand assets owned by
+     * each team, not design-system tokens, so these hex values are
+     * intentionally inline and are not represented in the color-token
+     * registry at {@code schema/color-tokens.json}. Values sourced from the
+     * NBA team style guides; if Rights &amp; Brand changes a primary, update
+     * here — there is no registry lookup to keep in sync.
      */
     public static String getTeamPrimaryColor(String tricode) {
         return switch (tricode) {
@@ -238,6 +245,37 @@ public class SduiUtils {
     }
 
     // ── Stat-line factory ──────────────────────────────────────────────
+
+    // ── Team logo URL ──────────────────────────────────────────────────
+
+    /**
+     * Build the CDN URL for a team primary logo.
+     *
+     * <p>Per Rule 18, asset-format selection is server-driven: the server
+     * decides which URL to emit based on what each client can consume.
+     * Today every client consumes PNG (iOS {@code AsyncImage}, Android
+     * {@code Coil}, and the web {@code <img>} element all decode PNG
+     * natively), so we emit the 512×512 primary-dark PNG — matching the
+     * reference-app shape. Keep all team-logo URL construction funneled
+     * through this helper so a future per-platform branch (e.g. WebP on
+     * Chromium, SVG on clients with an SVG decoder installed) is a
+     * one-file change rather than a composer-wide sweep.
+     *
+     * <p>The legacy {@code /global/L/logo.svg} and {@code /primary/L/logo.svg}
+     * URL shapes this helper replaces were silently failing on iOS
+     * ({@code AsyncImage} has no SVG decoder) — producing infinite
+     * placeholder spinners instead of logos.
+     */
+    public static String teamLogoUrl(String teamId) {
+        return "https://cdn.nba.com/logos/nba/" + teamId + "/primary/D/512x512/logo.png";
+    }
+
+    /**
+     * Convenience: overload that accepts a numeric team id.
+     */
+    public static String teamLogoUrl(long teamId) {
+        return teamLogoUrl(String.valueOf(teamId));
+    }
 
     public ObjectNode createStatLine(int playerId, String name, String team,
                                       String category, String value) {
@@ -311,6 +349,151 @@ public class SduiUtils {
 
         log.error("Could not load example file: {}", filename);
         return null;
+    }
+
+    // ── Section display (outer chrome) ─────────────────────────────────
+
+    /**
+     * Build the default outer-chrome block applied by every permanent
+     * section that does not override it. Clients' shared SectionContainer
+     * reads this and applies platform-native equivalents. A single change
+     * here retunes the entire app's rhythm (card inset, elevation, corner
+     * radius) without a client release.
+     *
+     * <p>Default: 16px horizontal margin, 8px vertical margin, raised
+     * surface background with a 12px corner radius and a soft 6px-radius
+     * shadow at y=2. Matches the reference-app feed card treatment.
+     */
+    public ObjectNode defaultSectionDisplay() {
+        ObjectNode display = objectMapper.createObjectNode();
+        display.set("margin", spacing(8, 16, 8, 16));
+        display.put("background", "token:color.surface.raised");
+        display.put("cornerRadius", 12);
+
+        ObjectNode shadow = objectMapper.createObjectNode();
+        shadow.put("color", "#00000014");
+        shadow.put("radius", 6);
+        shadow.put("offsetX", 0);
+        shadow.put("offsetY", 2);
+        display.set("shadow", shadow);
+
+        return display;
+    }
+
+    /**
+     * Build a flush (no outer chrome) display block. Used for sections
+     * that should render edge-to-edge (hero videos, full-bleed images).
+     */
+    public ObjectNode flushSectionDisplay() {
+        return objectMapper.createObjectNode();
+    }
+
+    /**
+     * Build a display block for subscription upsell cards — card
+     * rhythm + branded gradient background + inner padding so the
+     * caller's content lays out flush against the card chrome.
+     * Used by SubscribeBanner and SubscribeHero composers.
+     */
+    public ObjectNode subscribeCardDisplay(String topColor, String bottomColor, int padding) {
+        ObjectNode display = defaultSectionDisplay();
+        ObjectNode gradient = objectMapper.createObjectNode();
+        ArrayNode colors = objectMapper.createArrayNode();
+        colors.add(topColor);
+        colors.add(bottomColor);
+        gradient.set("colors", colors);
+        gradient.put("direction", "vertical");
+        display.set("background", gradient);
+        display.set("padding", spacingSymmetric(padding, padding));
+        return display;
+    }
+
+    /**
+     * Build a display block for the VideoPlayer section — flush
+     * edge-to-edge rectangle with a dark surface behind the player
+     * area. No margin (the player hugs its siblings) and no corner
+     * radius (a rounded video frame is jarring against square content
+     * below and makes the tap target feel like a card instead of an
+     * embedded player). The player's content sizing (16:9 aspect) is
+     * owned by the renderer and by `data.displayConfig`, not by this
+     * chrome block.
+     */
+    public ObjectNode videoPlayerDisplay() {
+        ObjectNode display = objectMapper.createObjectNode();
+        display.put("background", "#1A1F2E");
+        return display;
+    }
+
+    /**
+     * Build a minimal display block that only provides vertical margin
+     * for breathing room between flush-to-the-edge atomic composite
+     * sections (content rails, video carousels, section headers). Used
+     * where the composite's root Container already owns its own inner
+     * chrome (padding, title treatment) but consecutive rails would
+     * otherwise touch each other vertically.
+     *
+     * <p>Outputs only {@code margin: {top, bottom}} — no background,
+     * no corner radius, no shadow. That keeps the composite's internal
+     * styling untouched and avoids double-chrome.
+     */
+    public ObjectNode railDisplay() {
+        ObjectNode display = objectMapper.createObjectNode();
+        ObjectNode margin = objectMapper.createObjectNode();
+        // 16pt top/bottom — pairs with the 8pt margin on `defaultSectionDisplay`
+        // (AdSlot, GamePanel, etc.) to give 24pt of air between a rail and the
+        // next full-chrome card. 8pt alone left the rail kissing the ad card
+        // top edge on iOS; 16pt reads as a deliberate break between feed
+        // modules without looking like an orphan row.
+        margin.put("top", 16);
+        margin.put("bottom", 16);
+        display.set("margin", margin);
+        return display;
+    }
+
+    /**
+     * Build a display block for GamePanel cards — standard card
+     * chrome (horizontal inset + subtle shadow + rounded corners)
+     * with a soft linear gradient background that gives the matchup
+     * its own visual weight versus surrounding flat content. Used by
+     * every GamePanel composer site (For You hero, live rails,
+     * scoreboard rows, Game Detail scoreboard strip).
+     *
+     * <p>The gradient is intentionally subtle — a near-white top to
+     * a pale tint bottom — so scores and team identity remain the
+     * dominant information, and does not compete with SubscribeHero /
+     * SubscribeBanner's strong brand gradient.
+     */
+    public ObjectNode gamePanelDisplay() {
+        ObjectNode display = defaultSectionDisplay();
+
+        ObjectNode gradient = objectMapper.createObjectNode();
+        ArrayNode colors = objectMapper.createArrayNode();
+        colors.add("#F5F7FA");
+        colors.add("#DDE4EE");
+        gradient.set("colors", colors);
+        gradient.put("direction", "diagonal");
+        display.set("background", gradient);
+
+        return display;
+    }
+
+    /**
+     * Build a Spacing node with the four common edges.
+     * Any argument may be zero to omit that edge.
+     */
+    public ObjectNode spacing(int top, int end, int bottom, int start) {
+        ObjectNode s = objectMapper.createObjectNode();
+        if (top    != 0) s.put("top",    top);
+        if (end    != 0) s.put("end",    end);
+        if (bottom != 0) s.put("bottom", bottom);
+        if (start  != 0) s.put("start",  start);
+        return s;
+    }
+
+    /**
+     * Convenience: symmetric spacing (same vertical, same horizontal).
+     */
+    public ObjectNode spacingSymmetric(int vertical, int horizontal) {
+        return spacing(vertical, horizontal, vertical, horizontal);
     }
 
     // ── Error State ────────────────────────────────────────────────────

@@ -200,8 +200,7 @@ public class BoxscoreComposer {
         data.put("teamTricode", teamTricode);
         data.put("teamName", teamCity + " " + teamName);
         data.put("teamColor", SduiUtils.getTeamPrimaryColor(teamTricode));
-        data.put("teamLogoUrl",
-                "https://cdn.nba.com/logos/nba/" + teamId + "/primary/L/logo.svg");
+        data.put("teamLogoUrl", SduiUtils.teamLogoUrl(teamId));
 
         data.set("columns", utils.buildBoxscoreColumns());
 

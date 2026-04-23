@@ -1,5 +1,6 @@
 package com.nba.sdui.core.renderer.atomic
 
+import android.util.Log
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -31,15 +32,21 @@ fun AtomicButton(
     val enabled = element.disabled != true
     val accessibilityModifier = modifier.applyAccessibility(element.accessibility)
 
-    when (element.buttonVariant) {
+    when (element.variant) {
+        "primary", null -> Button(onClick = onClick, enabled = enabled, modifier = accessibilityModifier) {
+            Text(text = element.label.orEmpty())
+        }
         "secondary" -> OutlinedButton(onClick = onClick, enabled = enabled, modifier = accessibilityModifier) {
             Text(text = element.label.orEmpty())
         }
         "tertiary", "text" -> TextButton(onClick = onClick, enabled = enabled, modifier = accessibilityModifier) {
             Text(text = element.label.orEmpty())
         }
-        else -> Button(onClick = onClick, enabled = enabled, modifier = accessibilityModifier) {
-            Text(text = element.label.orEmpty())
+        else -> {
+            Log.w("AtomicButton", "variant_resolver_missing: variant=\"${element.variant}\" elementId=${element.id}")
+            Button(onClick = onClick, enabled = enabled, modifier = accessibilityModifier) {
+                Text(text = element.label.orEmpty())
+            }
         }
     }
 }

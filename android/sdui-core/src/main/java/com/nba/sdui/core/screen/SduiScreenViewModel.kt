@@ -45,6 +45,9 @@ open class SduiScreenViewModel(
 
     companion object {
         private const val TAG = "SduiScreenViewModel"
+        private const val POLL_FAILURE_THRESHOLD = 2
+        private const val MAX_BACKOFF_MS = 30_000L
+        private const val SSE_STALE_DELAY_MS = 10_000L
 
         /**
          * Convert nba:// URI to server endpoint path.
@@ -290,12 +293,6 @@ open class SduiScreenViewModel(
 
     // ── Polling ──────────────────────────────────────────────────────
 
-    companion object {
-        private const val POLL_FAILURE_THRESHOLD = 2
-        private const val MAX_BACKOFF_MS = 30_000L
-        private const val SSE_STALE_DELAY_MS = 10_000L
-    }
-
     private val pollFailureCounts = mutableMapOf<String, Int>()
 
     private fun setupPolling(screen: SduiScreen) {
@@ -360,10 +357,33 @@ open class SduiScreenViewModel(
         if (pollingJobs.isNotEmpty()) Log.i(TAG, "Active polls: ${pollingJobs.keys}")
     }
 
+    /**
+     * Apply a direct-URL poll payload to a section's data. Mirrors the
+     * Ably handler so the poll and real-time paths are symmetrical, and
+     * matches the web `LiveSectionWrapper` two-step behaviour:
+     *
+     * 1. If the section declares a `dataBinding`, route incoming fields
+     *    through it (preserves every key the binding does not touch,
+     *    including `ui` for AtomicComposite sections).
+     * 2. Otherwise shallow-merge the incoming payload over the current
+     *    data. Keys not present in the incoming payload survive — so
+     *    `data.ui` is preserved for unconfigured AtomicComposite polls
+     *    instead of being wiped out like the old no-op path did.
+     */
     private fun updateSectionData(sectionId: String, newData: Map<String, Any>) {
         val screen = currentScreen ?: return
-        Log.d(TAG, "Section data update '$sectionId': keys=${newData.keys}")
-        _uiState.value = SduiScreenUiState.Success(screen)
+        val section = screen.sections.find { it.id == sectionId } ?: return
+        val currentData: Map<String, Any?> = section.data ?: emptyMap()
+        val dataBinding = section.dataBinding
+        val merged: Map<String, Any?> = if (dataBinding != null) {
+            dataBindingResolver.applyBindings(
+                currentData, newData, dataBinding, screen.traceId,
+                section.stringTable, sectionId
+            )
+        } else {
+            currentData + newData
+        }
+        updateSectionInScreen(sectionId, merged)
     }
 
     private fun stopAllPolling() {

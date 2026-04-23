@@ -1,9 +1,11 @@
 package com.nba.sdui.core.renderer.atomic
 
 import android.util.Log
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.unit.dp
 import com.nba.sdui.core.models.AtomicElement
 import com.nba.sdui.core.state.SduiAction
 
@@ -39,7 +41,20 @@ fun AtomicRouter(
         Log.w("AtomicRouter", "Max tree depth ($MAX_TREE_DEPTH) exceeded — skipping element: ${element.type}")
         return
     }
-    val opacityModifier = element.opacity?.let { modifier.alpha(it.toFloat()) } ?: modifier
+    // Outer margin is applied first in the modifier chain so that it sits
+    // outside the element's own background, corner radius, shadow, and
+    // interior padding (those are applied by each primitive further down
+    // the chain). This matches sibling-to-sibling spacing semantics in
+    // CSS and SwiftUI.
+    val marginModifier = element.margin?.let {
+        modifier.padding(
+            start = it.start.dp,
+            end = it.end.dp,
+            top = it.top.dp,
+            bottom = it.bottom.dp
+        )
+    } ?: modifier
+    val opacityModifier = element.opacity?.let { marginModifier.alpha(it.toFloat()) } ?: marginModifier
     when (element.type) {
         "Container"       -> AtomicContainer(element, screenState, onAction, opacityModifier, depth, onStateChange, sectionSlotDepth)
         "Text"            -> AtomicText(element, screenState, onAction, opacityModifier)

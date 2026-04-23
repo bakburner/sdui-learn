@@ -7,9 +7,12 @@ interface VideoPlayerStubProps {
 }
 
 /**
- * Stub renderer for VideoPlayer sections.
- * Displays a placeholder showing playerType + contentId.
- * Will be replaced with actual video SDK integration.
+ * Stub renderer for VideoPlayer sections. Will be replaced with the
+ * video SDK in a later phase; until then renders a placeholder play
+ * icon. Outer chrome (background, corner radius) comes from
+ * `section.display` via `SectionContainer`. The renderer only owns
+ * the 16:9 content frame and placeholder glyph. See AGENTS.md
+ * §15.1(2) and §15.3.
  */
 export function VideoPlayerStub({ section }: VideoPlayerStubProps): React.ReactElement {
   const data = section.data as Record<string, unknown> | undefined;
@@ -21,8 +24,6 @@ export function VideoPlayerStub({ section }: VideoPlayerStubProps): React.ReactE
       style={{
         width: '100%',
         aspectRatio: '16 / 9',
-        backgroundColor: '#1A1F2E',
-        borderRadius: 8,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -34,7 +35,7 @@ export function VideoPlayerStub({ section }: VideoPlayerStubProps): React.ReactE
         <path d="M8 5v14l11-7z" />
       </svg>
       <div style={{ marginTop: 8, fontSize: 18, fontWeight: 600 }}>Video Player</div>
-      <div style={{ fontSize: 12, color: '#888' }}>
+      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>
         {playerType} • {contentId}
       </div>
     </div>

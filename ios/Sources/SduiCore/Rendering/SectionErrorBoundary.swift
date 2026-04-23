@@ -78,7 +78,7 @@ struct SectionErrorBoundary<Content: View>: View {
     /// Pre-validation rules shared with Android's validateSection. Returns
     /// a human-readable message when rendering should be suppressed.
     static func validate(sectionID: String, sectionType: String, data: [String: Any]?) -> String? {
-        if sectionType == OverlayType.atomicComposite.rawValue, data?["ui"] == nil {
+        if sectionType == "AtomicComposite", data?["ui"] == nil {
             return "AtomicComposite section \(sectionID) has no ui element"
         }
         return nil

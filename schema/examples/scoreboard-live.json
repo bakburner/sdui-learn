@@ -46,7 +46,7 @@
           "teamName": "Knicks",
           "teamCity": "New York",
           "score": 0,
-          "logoUrl": "https://cdn.nba.com/logos/nba/1610612752/global/L/logo.svg",
+          "logoUrl": "https://cdn.nba.com/logos/nba/1610612752/primary/D/512x512/logo.png",
           "wins": 34,
           "losses": 20
         },
@@ -56,7 +56,7 @@
           "teamName": "Raptors",
           "teamCity": "Toronto",
           "score": 0,
-          "logoUrl": "https://cdn.nba.com/logos/nba/1610612761/global/L/logo.svg",
+          "logoUrl": "https://cdn.nba.com/logos/nba/1610612761/primary/D/512x512/logo.png",
           "wins": 22,
           "losses": 31
         },
@@ -86,7 +86,7 @@
           "teamName": "Lakers",
           "teamCity": "Los Angeles",
           "score": 87,
-          "logoUrl": "https://cdn.nba.com/logos/nba/1610612747/global/L/logo.svg"
+          "logoUrl": "https://cdn.nba.com/logos/nba/1610612747/primary/D/512x512/logo.png"
         },
         "awayTeam": {
           "teamId": 1610612756,
@@ -94,7 +94,7 @@
           "teamName": "Suns",
           "teamCity": "Phoenix",
           "score": 90,
-          "logoUrl": "https://cdn.nba.com/logos/nba/1610612756/global/L/logo.svg"
+          "logoUrl": "https://cdn.nba.com/logos/nba/1610612756/primary/D/512x512/logo.png"
         },
         "gameLeaders": {
           "homeLeader": { "name": "LeBron James", "points": 24, "rebounds": 7, "assists": 8 },
@@ -122,7 +122,7 @@
           "teamName": "Celtics",
           "teamCity": "Boston",
           "score": 121,
-          "logoUrl": "https://cdn.nba.com/logos/nba/1610612738/global/L/logo.svg"
+          "logoUrl": "https://cdn.nba.com/logos/nba/1610612738/primary/D/512x512/logo.png"
         },
         "awayTeam": {
           "teamId": 1610612748,
@@ -130,7 +130,7 @@
           "teamName": "Heat",
           "teamCity": "Miami",
           "score": 112,
-          "logoUrl": "https://cdn.nba.com/logos/nba/1610612748/global/L/logo.svg"
+          "logoUrl": "https://cdn.nba.com/logos/nba/1610612748/primary/D/512x512/logo.png"
         },
         "gameLeaders": {
           "homeLeader": { "name": "Jayson Tatum", "points": 33, "rebounds": 9, "assists": 6 },
@@ -158,7 +158,7 @@
           "teamName": "Bulls",
           "teamCity": "Chicago",
           "score": 134,
-          "logoUrl": "https://cdn.nba.com/logos/nba/1610612741/global/L/logo.svg"
+          "logoUrl": "https://cdn.nba.com/logos/nba/1610612741/primary/D/512x512/logo.png"
         },
         "awayTeam": {
           "teamId": 1610612754,
@@ -166,7 +166,7 @@
           "teamName": "Pacers",
           "teamCity": "Indiana",
           "score": 130,
-          "logoUrl": "https://cdn.nba.com/logos/nba/1610612754/global/L/logo.svg"
+          "logoUrl": "https://cdn.nba.com/logos/nba/1610612754/primary/D/512x512/logo.png"
         },
         "gameLeaders": {
           "homeLeader": { "name": "Coby White", "points": 30, "rebounds": 4, "assists": 8 },

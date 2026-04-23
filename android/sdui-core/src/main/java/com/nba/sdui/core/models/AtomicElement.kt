@@ -37,8 +37,10 @@ data class AtomicElement(
     @JsonProperty("crossAlignment") val crossAlignment: String? = null, // "start" | "center" | "end" | "stretch"
     @JsonProperty("gap") val gap: Int? = null,
     @JsonProperty("padding") val padding: Spacing? = null,
+    @JsonProperty("margin") val margin: Spacing? = null,
     @JsonProperty("background") val background: Any? = null,
     @JsonProperty("cornerRadius") val cornerRadius: Int? = null,
+    @JsonProperty("cornerRadii") val cornerRadii: CornerRadii? = null,
 
     // Text properties
     @JsonProperty("content") val content: String? = null,
@@ -58,7 +60,6 @@ data class AtomicElement(
 
     // Button properties
     @JsonProperty("label") val label: String? = null,
-    @JsonProperty("buttonVariant") val buttonVariant: String? = null, // "primary" | "secondary" | "tertiary" | "text"
     @JsonProperty("icon") val icon: String? = null,
     @JsonProperty("disabled") val disabled: Boolean? = null,
 
@@ -81,8 +82,6 @@ data class AtomicElement(
     // DisplayGrid properties
     @JsonProperty("columns") val columns: List<DisplayGridColumn>? = null,
     @JsonProperty("rows") val rows: List<Map<String, String>>? = null,
-    @JsonProperty("headerVariant") val headerVariant: String? = null,
-    @JsonProperty("cellVariant") val cellVariant: String? = null,
     @JsonProperty("striped") val striped: Boolean? = null,
 
     // SectionSlot — embedded section delegated back to SectionRouter
@@ -103,6 +102,20 @@ data class AtomicElement(
     @JsonProperty("textAlign") val textAlign: String? = null,
     @JsonProperty("showIndicators") val showIndicators: Boolean? = null,
     @JsonProperty("monospacedDigits") val monospacedDigits: Boolean? = null
+)
+
+/**
+ * Per-corner cornerRadius override. When present, takes precedence over the
+ * single-value `cornerRadius`; any corner key omitted falls back to `cornerRadius`
+ * (or 0 if that is also absent). Maps to Compose RoundedCornerShape's four-corner
+ * constructor.
+ */
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class CornerRadii(
+    @JsonProperty("topStart") val topStart: Int? = null,
+    @JsonProperty("topEnd") val topEnd: Int? = null,
+    @JsonProperty("bottomStart") val bottomStart: Int? = null,
+    @JsonProperty("bottomEnd") val bottomEnd: Int? = null
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)

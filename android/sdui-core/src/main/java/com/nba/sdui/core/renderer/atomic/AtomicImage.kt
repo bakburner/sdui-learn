@@ -20,6 +20,8 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.nba.sdui.core.models.AtomicElement
 import com.nba.sdui.core.models.actionToSduiAction
+import com.nba.sdui.core.renderer.ImageVariantResolver
+import com.nba.sdui.core.renderer.ImageVariantResolver.ImageContentScaleHint
 import com.nba.sdui.core.renderer.applyAccessibility
 import com.nba.sdui.core.state.SduiAction
 
@@ -38,17 +40,46 @@ fun AtomicImage(
     onAction: (SduiAction) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val variantSpec = ImageVariantResolver.resolve(element.variant)
+
+    // Inline wins when provided; variant supplies the default when the inline
+    // value is null. The current image variants have all-ALLOW override
+    // matrices, so the LOCK branch never triggers — it's kept for parity with
+    // the container resolver contract.
+    val effectiveCornerRadius: Int? = element.cornerRadius ?: variantSpec?.cornerRadiusDp
+    val effectiveAspectRatio: Float? = element.aspectRatio ?: variantSpec?.aspectRatio
+    val shouldFillWidth: Boolean = element.fillWidth == true ||
+        (element.fillWidth == null && variantSpec?.fillWidth == true)
+    val shouldClip: Boolean = variantSpec?.clip ?: true
+
     var imageModifier = modifier
 
-    if (element.fillWidth == true) {
+    if (shouldFillWidth) {
         imageModifier = imageModifier.fillMaxWidth()
     }
-    element.cornerRadius?.let {
-        imageModifier = imageModifier.clip(RoundedCornerShape(it.dp))
+    if (shouldClip) {
+        val radii = element.cornerRadii
+        val hasAnyRadii = radii != null && (
+            (radii.topStart ?: 0) != 0 || (radii.topEnd ?: 0) != 0 ||
+            (radii.bottomStart ?: 0) != 0 || (radii.bottomEnd ?: 0) != 0
+        )
+        if (hasAnyRadii) {
+            val fallback = effectiveCornerRadius ?: 0
+            imageModifier = imageModifier.clip(RoundedCornerShape(
+                topStart = (radii!!.topStart ?: fallback).dp,
+                topEnd = (radii.topEnd ?: fallback).dp,
+                bottomEnd = (radii.bottomEnd ?: fallback).dp,
+                bottomStart = (radii.bottomStart ?: fallback).dp
+            ))
+        } else {
+            effectiveCornerRadius?.let {
+                imageModifier = imageModifier.clip(RoundedCornerShape(it.dp))
+            }
+        }
     }
     element.width?.let { imageModifier = imageModifier.width(it.dp) }
     element.height?.let { imageModifier = imageModifier.height(it.dp) }
-    element.aspectRatio?.let { imageModifier = imageModifier.aspectRatio(it) }
+    effectiveAspectRatio?.let { imageModifier = imageModifier.aspectRatio(it) }
 
     val hasActions = !element.actions.isNullOrEmpty()
     if (hasActions) {
@@ -64,11 +95,15 @@ fun AtomicImage(
     var currentSrc by remember(element.src) { mutableStateOf(element.src) }
     var triedFallback by remember(element.src) { mutableStateOf(false) }
 
+    val contentScale: ContentScale = element.fit?.let { mapContentScale(it) }
+        ?: variantSpec?.contentScaleHint?.let(::mapContentScaleHint)
+        ?: ContentScale.Fit
+
     val imageComposable: @Composable () -> Unit = {
         AsyncImage(
             model = currentSrc,
             contentDescription = element.accessibility?.label ?: element.alt ?: "",
-            contentScale = mapContentScale(element.fit),
+            contentScale = contentScale,
             modifier = imageModifier.applyAccessibility(element.accessibility),
             onError = {
                 if (!triedFallback) {
@@ -106,4 +141,11 @@ private fun mapContentScale(fit: String?): ContentScale = when (fit) {
     "fill"    -> ContentScale.FillBounds
     "none"    -> ContentScale.None
     else      -> ContentScale.Fit
+}
+
+private fun mapContentScaleHint(hint: ImageContentScaleHint): ContentScale = when (hint) {
+    ImageContentScaleHint.Crop       -> ContentScale.Crop
+    ImageContentScaleHint.Fit        -> ContentScale.Fit
+    ImageContentScaleHint.FillBounds -> ContentScale.FillBounds
+    ImageContentScaleHint.None       -> ContentScale.None
 }

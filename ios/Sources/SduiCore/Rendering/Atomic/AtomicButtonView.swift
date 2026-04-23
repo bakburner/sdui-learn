@@ -1,4 +1,7 @@
 import SwiftUI
+import os
+
+private let logger = Logger(subsystem: "com.nba.sdui", category: "AtomicButton")
 
 /// Renders a Button atomic element.
 struct AtomicButtonView: View {
@@ -21,10 +24,17 @@ struct AtomicButtonView: View {
             .padding(.vertical, 10)
             .frame(maxWidth: element.width.map { CGFloat($0) })
         }
-        .buttonStyle(SduiButtonStyle(variant: element.buttonVariant ?? .primary))
+        .buttonStyle(SduiButtonStyle(variant: resolvedVariant))
         .disabled(element.disabled ?? false)
         .modifier(VisibilityActionModifier(actions: element.actions, onAction: onAction))
         .sduiAccessibility(element.accessibility, fallbackLabel: element.label)
+    }
+
+    private var resolvedVariant: ButtonVariant {
+        guard let raw = element.variant else { return .primary }
+        if let parsed = ButtonVariant(rawValue: raw) { return parsed }
+        logger.debug("variant_resolver_missing: variant=\(raw, privacy: .public) elementId=\(element.id ?? "nil", privacy: .public)")
+        return .primary
     }
 
     private func handleTap() {

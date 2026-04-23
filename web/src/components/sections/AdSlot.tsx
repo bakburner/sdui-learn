@@ -1,121 +1,62 @@
 import React from 'react';
 import type { SectionProps } from '../SectionRouter';
 import { accessibilityProps } from '../../utils/accessibility';
+import { resolveColorToken, usePrefersColorScheme } from '../../utils/ColorTokenResolver';
 
 /**
- * AdSlot — placeholder renderer for ad placements.
+ * Stub renderer for AdSlot. Reserves the ad SDK's eventual mount
+ * rectangle — `data.sizes[0]` is the single source of truth for
+ * dimensions, shared by the placeholder and (when the SDK lands)
+ * the ad platform itself. Inner placeholder chrome (background
+ * color, caption text) comes from `data.placeholder`; outer chrome
+ * (margin, padding, shadow, radius) comes from `section.display`
+ * via the shared SectionContainer wrapper.
  *
- * In production this component would delegate to the platform ad SDK
- * (e.g. Google Ad Manager).  For the prototype it renders a clearly-labelled
- * placeholder that shows the slot metadata (provider, sizes, targeting).
+ * This renderer carries no client-side chrome defaults — a payload
+ * missing required `sizes` renders nothing. See AGENTS.md §15.1
+ * and §15.2.
  */
-export function AdSlot({ section }: SectionProps): React.ReactElement {
+export function AdSlot({ section }: SectionProps): React.ReactElement | null {
+  const scheme = usePrefersColorScheme();
   const data = section.data as Record<string, unknown> | undefined;
+  if (!data) return null;
 
-  const provider = (data?.provider as string) ?? 'unknown';
-  const adUnitPath = (data?.adUnitPath as string) ?? '';
-  const sizes = (data?.sizes as number[][]) ?? [];
-  const targeting = (data?.targeting as Record<string, string>) ?? {};
-  const collapseOnEmpty = data?.collapseOnEmpty as boolean | undefined;
-  const label = (data?.label as string) ?? 'Advertisement';
+  const sizes = data.sizes as number[][] | undefined;
+  const first = sizes?.[0];
+  if (!first || first.length < 2) return null;
+  const [width, height] = first;
 
-  // Pick the largest size to set placeholder dimensions
-  const [width, height] = sizes.length > 0
-    ? sizes.reduce((a, b) => (a[0] * a[1] >= b[0] * b[1] ? a : b))
-    : [728, 90];
+  const label = data.label as string | undefined;
+  const placeholder = data.placeholder as { backgroundColor?: string; text?: string } | undefined;
+  const placeholderBg = resolveColorToken(placeholder?.backgroundColor, scheme);
+  const placeholderText = placeholder?.text ?? '';
 
   return (
-    <div style={styles.wrapper} aria-label={label} role="complementary" {...accessibilityProps(section.accessibility)}>
-      <span style={styles.label}>{label}</span>
+    <div
+      aria-label={label ?? 'Advertisement'}
+      role="complementary"
+      {...accessibilityProps(section.accessibility)}
+      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
+    >
+      {label && (
+        <span style={{ fontSize: 10, fontWeight: 600, color: '#888', textTransform: 'uppercase', letterSpacing: 1 }}>
+          {label}
+        </span>
+      )}
       <div
         style={{
-          ...styles.placeholder,
-          width: Math.min(width, 728),
+          width,
           height,
+          backgroundColor: placeholderBg,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
         }}
       >
-        <div style={styles.inner}>
-          <span style={styles.icon}>📢</span>
-          <span style={styles.provider}>{provider.toUpperCase()}</span>
-          <span style={styles.path}>{adUnitPath}</span>
-          <span style={styles.meta}>
-            {sizes.map(s => `${s[0]}×${s[1]}`).join(', ')}
-          </span>
-          {Object.keys(targeting).length > 0 && (
-            <span style={styles.targeting}>
-              {Object.entries(targeting).map(([k, v]) => `${k}=${v}`).join(' · ')}
-            </span>
-          )}
-          {collapseOnEmpty && (
-            <span style={styles.badge}>collapse-on-empty</span>
-          )}
-        </div>
+        {placeholderText && (
+          <span style={{ fontSize: 12, color: '#888' }}>{placeholderText}</span>
+        )}
       </div>
     </div>
   );
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  wrapper: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    margin: '8px 0',
-    gap: 4,
-  },
-  label: {
-    fontSize: 10,
-    fontWeight: 600,
-    color: '#888',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  placeholder: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    border: '2px dashed #555',
-    borderRadius: 8,
-    backgroundColor: '#1a1a2e',
-    overflow: 'hidden',
-  },
-  inner: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: 4,
-    padding: 12,
-  },
-  icon: {
-    fontSize: 24,
-  },
-  provider: {
-    fontSize: 14,
-    fontWeight: 700,
-    color: '#6c63ff',
-    letterSpacing: 2,
-  },
-  path: {
-    fontSize: 11,
-    color: '#aaa',
-    fontFamily: 'monospace',
-  },
-  meta: {
-    fontSize: 11,
-    color: '#ccc',
-  },
-  targeting: {
-    fontSize: 10,
-    color: '#888',
-    fontStyle: 'italic',
-  },
-  badge: {
-    fontSize: 9,
-    fontWeight: 600,
-    color: '#ffa726',
-    border: '1px solid #ffa726',
-    borderRadius: 4,
-    padding: '1px 6px',
-    marginTop: 2,
-  },
-};

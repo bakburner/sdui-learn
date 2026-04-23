@@ -69,23 +69,7 @@ struct FormFieldView: View {
                     set: { screenState.set(field.stateKey, value: $0) }
                 ))
             case .select:
-                Menu {
-                    ForEach(field.options ?? [], id: \.value) { option in
-                        Button(option.label) {
-                            text = option.value
-                            screenState.set(field.stateKey, value: option.value)
-                        }
-                    }
-                } label: {
-                    HStack {
-                        Text(text.isEmpty ? (field.placeholder ?? field.label) : text)
-                            .foregroundColor(text.isEmpty ? .secondary : .primary)
-                        Spacer()
-                        Image(systemName: "chevron.down")
-                    }
-                    .padding(8)
-                    .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.gray.opacity(0.4)))
-                }
+                selectField
             default:
                 TextField(field.placeholder ?? "", text: $text)
                     .textFieldStyle(.roundedBorder)
@@ -112,5 +96,88 @@ struct FormFieldView: View {
         // (`form_<fieldId>_error`). Section-level validators push values
         // there via mutate actions.
         screenState.getString("form_\(field.fieldID)_error")
+    }
+
+    /// Resolves the server-sent SelectVariant into a native SwiftUI control.
+    /// Missing variant falls back to `.dropdown`; unrecognised values decode
+    /// as nil upstream and land here via the same fallback.
+    @ViewBuilder
+    private var selectField: some View {
+        switch field.variant ?? .dropdown {
+        case .dropdown:
+            dropdownSelect
+        case .chips:
+            chipsSelect
+        case .segmented:
+            segmentedSelect
+        }
+    }
+
+    @ViewBuilder
+    private var dropdownSelect: some View {
+        Menu {
+            ForEach(field.options ?? [], id: \.value) { option in
+                Button(option.label) {
+                    text = option.value
+                    screenState.set(field.stateKey, value: option.value)
+                }
+            }
+        } label: {
+            HStack {
+                Text(text.isEmpty ? (field.placeholder ?? field.label) : text)
+                    .foregroundColor(text.isEmpty ? .secondary : .primary)
+                Spacer()
+                Image(systemName: "chevron.down")
+            }
+            .padding(8)
+            .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.gray.opacity(0.4)))
+        }
+    }
+
+    @ViewBuilder
+    private var chipsSelect: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(field.options ?? [], id: \.value) { option in
+                    let isSelected = text == option.value
+                    Button {
+                        text = option.value
+                        screenState.set(field.stateKey, value: option.value)
+                    } label: {
+                        Text(option.label)
+                            .font(.subheadline)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .background(
+                                Capsule()
+                                    .fill(isSelected ? Color.accentColor : Color.gray.opacity(0.12))
+                            )
+                            .foregroundColor(isSelected ? .white : .primary)
+                    }
+                    .disabled(field.disabled ?? false)
+                }
+            }
+            .padding(.vertical, 2)
+        }
+    }
+
+    @ViewBuilder
+    private var segmentedSelect: some View {
+        Picker(
+            field.label,
+            selection: Binding(
+                get: { text },
+                set: { newValue in
+                    text = newValue
+                    screenState.set(field.stateKey, value: newValue)
+                }
+            )
+        ) {
+            ForEach(field.options ?? [], id: \.value) { option in
+                Text(option.label).tag(option.value)
+            }
+        }
+        .pickerStyle(.segmented)
+        .disabled(field.disabled ?? false)
     }
 }

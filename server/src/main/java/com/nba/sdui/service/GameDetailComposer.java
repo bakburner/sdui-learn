@@ -401,8 +401,7 @@ public class GameDetailComposer {
         homeData.put("teamName", homeTeam.path("teamName").asText());
         homeData.put("teamCity", homeTeam.path("teamCity").asText());
         homeData.put("score", homeTeam.path("score").asInt());
-        homeData.put("logoUrl", "https://cdn.nba.com/logos/nba/" +
-                homeTeam.path("teamId").asText() + "/primary/L/logo.svg");
+        homeData.put("logoUrl", SduiUtils.teamLogoUrl(homeTeam.path("teamId").asText()));
         data.set("homeTeam", homeData);
 
         ObjectNode awayData = objectMapper.createObjectNode();
@@ -411,8 +410,7 @@ public class GameDetailComposer {
         awayData.put("teamName", awayTeam.path("teamName").asText());
         awayData.put("teamCity", awayTeam.path("teamCity").asText());
         awayData.put("score", awayTeam.path("score").asInt());
-        awayData.put("logoUrl", "https://cdn.nba.com/logos/nba/" +
-                awayTeam.path("teamId").asText() + "/primary/L/logo.svg");
+        awayData.put("logoUrl", SduiUtils.teamLogoUrl(awayTeam.path("teamId").asText()));
         data.set("awayTeam", awayData);
 
         data.put("gameId", game.path("gameId").asText());
@@ -424,6 +422,7 @@ public class GameDetailComposer {
         data.set("displayConfig", atomicBuilder.scoreboardConfig(null));
 
         section.set("data", data);
+        section.set("display", utils.gamePanelDisplay());
         return section;
     }
 
@@ -443,15 +442,15 @@ public class GameDetailComposer {
         ObjectNode section = atomicBuilder.buildStatLineFromNodes(
                 "top-performers", null, "Top Performers", "vertical", stats);
 
-        ObjectNode refreshPolicy = objectMapper.createObjectNode();
-        refreshPolicy.put("type", "poll");
-        refreshPolicy.put("intervalMs", 30000);
-        refreshPolicy.put("url", "https://cdn.nba.com/static/json/liveData/boxscore/boxscore_" + gameId + ".json");
-        refreshPolicy.put("dataPath", "game");
-        atomicBuilder.attachRefreshPolicy(section, refreshPolicy);
-
-        atomicBuilder.attachSectionStates(section, utils.buildSectionStates(
-                "top-performers", "Unable to load player stats", "placeholder", 120));
+        // No refreshPolicy / sectionStates: this stat line is an
+        // AtomicComposite whose ui tree is composed with literal player
+        // names and stat values baked in at compose time. Attaching a
+        // poll without corresponding `dataBinding` targets would cause
+        // clients to drop the polled payload (correct behaviour on the
+        // symmetrical poll handler) — leaving the section as a ghost
+        // "refreshing" section that never updates. Re-introduce poll +
+        // dataBinding together once the ui tree references stat fields
+        // via templated paths instead of literals.
 
         return section;
     }
@@ -564,6 +563,7 @@ public class GameDetailComposer {
         section.put("type", "VideoPlayer");
         section.put("analyticsId", "game_detail_video_player");
         section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
+        section.set("display", utils.videoPlayerDisplay());
 
         ObjectNode data = objectMapper.createObjectNode();
         data.put("playerType", "game");
@@ -626,7 +626,7 @@ public class GameDetailComposer {
         root.put("alignment", "center");
         root.put("crossAlignment", "center");
         root.set("padding", padHelper(24, 24, 32, 32));
-        root.put("background", "#1A1F2E");
+        root.put("background", ColorTokens.SURFACE_CANVAS);
         root.put("cornerRadius", 16);
 
         ArrayNode children = objectMapper.createArrayNode();
@@ -648,7 +648,7 @@ public class GameDetailComposer {
         titleEl.put("content", title);
         titleEl.put("variant", "heading2");
         titleEl.put("weight", "bold");
-        titleEl.put("color", "#FFFFFF");
+        titleEl.put("color", ColorTokens.TEXT_PRIMARY);
         titleEl.put("textAlign", "center");
         children.add(titleEl);
 
@@ -661,7 +661,7 @@ public class GameDetailComposer {
         messageEl.put("type", "Text");
         messageEl.put("content", message);
         messageEl.put("variant", "body");
-        messageEl.put("color", "#AAAAAA");
+        messageEl.put("color", ColorTokens.TEXT_SECONDARY);
         messageEl.put("textAlign", "center");
         children.add(messageEl);
 
@@ -673,7 +673,7 @@ public class GameDetailComposer {
         ObjectNode button = objectMapper.createObjectNode();
         button.put("type", "Button");
         button.put("label", ctaLabel);
-        button.put("buttonVariant", "primary");
+        button.put("variant", "primary");
         ArrayNode actions = objectMapper.createArrayNode();
         ObjectNode action = objectMapper.createObjectNode();
         action.put("trigger", "onTap");
@@ -793,7 +793,7 @@ public class GameDetailComposer {
             card.put("direction", "column");
             card.put("id", hl[0]);
             card.put("cornerRadius", 8);
-            card.put("background", "#1A1F2E");
+            card.put("background", ColorTokens.SURFACE_CANVAS);
 
             ObjectNode shadowObj = objectMapper.createObjectNode();
             shadowObj.put("color", "#00000020");
@@ -836,7 +836,7 @@ public class GameDetailComposer {
             dbText.put("type", "Text");
             dbText.put("content", hl[3]);
             dbText.put("variant", "caption");
-            dbText.put("color", "#FFFFFF");
+            dbText.put("color", ColorTokens.TEXT_INVERSE);
             dbChildren.add(dbText);
             durationBadgeEl.set("children", dbChildren);
 
@@ -857,7 +857,7 @@ public class GameDetailComposer {
             title.put("content", hl[1]);
             title.put("variant", "bodySmall");
             title.put("weight", "semiBold");
-            title.put("color", "#FFFFFF");
+            title.put("color", ColorTokens.TEXT_PRIMARY);
             title.put("maxLines", 2);
             ObjectNode titlePad = objectMapper.createObjectNode();
             titlePad.put("start", 8); titlePad.put("end", 8); titlePad.put("top", 0); titlePad.put("bottom", 4);

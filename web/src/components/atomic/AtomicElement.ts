@@ -33,6 +33,7 @@ export interface AtomicElement {
   crossAlignment?: 'start' | 'center' | 'end' | 'stretch';
   gap?: number;
   padding?: AtomicPadding;
+  margin?: AtomicPadding;
   background?: any;
 
   // Text
@@ -48,6 +49,7 @@ export interface AtomicElement {
 
   // Shared visual
   cornerRadius?: number;
+  cornerRadii?: CornerRadii;
   fillWidth?: boolean;
 
   // Image
@@ -60,7 +62,6 @@ export interface AtomicElement {
 
   // Button
   label?: string;
-  buttonVariant?: 'primary' | 'secondary' | 'tertiary' | 'text';
   icon?: string;
   disabled?: boolean;
 
@@ -83,8 +84,6 @@ export interface AtomicElement {
   // DisplayGrid
   columns?: DisplayGridColumn[];
   rows?: Record<string, string>[];
-  headerVariant?: string;
-  cellVariant?: string;
   striped?: boolean;
 
   // SectionSlot — embedded section delegated back to SectionRouter
@@ -112,6 +111,19 @@ export interface Shadow {
 export interface Badge {
   element?: AtomicElement;
   alignment?: 'topStart' | 'topEnd' | 'bottomStart' | 'bottomEnd';
+}
+
+/**
+ * Per-corner cornerRadius override. When present, takes precedence over the
+ * single-value `cornerRadius`; any corner key omitted falls back to `cornerRadius`
+ * (or 0 if that is also absent). Maps to border-top-left-radius /
+ * border-top-right-radius / border-bottom-left-radius / border-bottom-right-radius.
+ */
+export interface CornerRadii {
+  topStart?: number;
+  topEnd?: number;
+  bottomStart?: number;
+  bottomEnd?: number;
 }
 
 export interface DisplayGridColumn {

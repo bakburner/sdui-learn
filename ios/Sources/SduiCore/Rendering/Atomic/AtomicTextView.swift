@@ -1,21 +1,33 @@
 import SwiftUI
+import os
+
+private let logger = Logger(subsystem: "com.nba.sdui", category: "AtomicText")
 
 /// Renders a Text atomic element with typography variants.
 struct AtomicTextView: View {
     let element: AtomicElement
 
+    @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
         if let content = element.content {
             Text(content)
-                .font(font(for: element.variant))
+                .font(font(for: resolvedVariant))
                 .fontWeight(weight(for: element.weight))
-                .foregroundColor(color(from: element.color))
+                .foregroundColor(ColorTokenResolver.resolve(element.color, colorScheme: colorScheme))
                 .lineLimit(element.maxLines)
                 .multilineTextAlignment(resolvedTextAlignment)
                 .frame(maxWidth: .infinity, alignment: resolvedFrameAlignment)
                 .applyMonospacedDigits(element.monospacedDigits == true)
                 .sduiAccessibility(element.accessibility, fallbackLabel: content)
         }
+    }
+
+    private var resolvedVariant: TextVariant? {
+        guard let raw = element.variant else { return nil }
+        if let parsed = TextVariant(rawValue: raw) { return parsed }
+        logger.debug("variant_resolver_missing: variant=\(raw, privacy: .public) elementId=\(element.id ?? "nil", privacy: .public)")
+        return nil
     }
 
     private var resolvedTextAlignment: TextAlignment {

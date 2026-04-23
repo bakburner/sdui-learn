@@ -26,101 +26,99 @@ fun SectionRouter(
     sectionSlotDepth: Int = 0
 ) {
     Log.d("SectionRouter", "Routing section: id=${section.id}, type=${section.type}")
-    
+
+    // Every section, permanent or AtomicComposite, is wrapped by
+    // SectionContainer so outer chrome is server-driven via
+    // `section.display` (§15.3). `SectionContainer` is a no-op when
+    // `display` is null, so AtomicComposites whose root Container
+    // already carries its own padding/background/shadow are
+    // unaffected — composers opt into outer margin/chrome by
+    // emitting a `display` block on the section envelope.
     when (section.type) {
-        
-        
-        "TabGroup" -> {
+
+
+        "TabGroup" -> SectionContainer(section.display, modifier) {
             TabGroupRenderer(
                 section = section,
                 screenState = screenState,
                 onAction = onAction,
-                onStateChange = onStateChange,
-                modifier = modifier
-            )
-        }
-        
-        "GamePanel" -> {
-            GamePanelRenderer(
-                section = section,
-                onAction = onAction,
-                modifier = modifier
+                onStateChange = onStateChange
             )
         }
 
-        "BoxscoreTable" -> {
+        "GamePanel" -> SectionContainer(section.display, modifier) {
+            GamePanelRenderer(
+                section = section,
+                onAction = onAction
+            )
+        }
+
+        "BoxscoreTable" -> SectionContainer(section.display, modifier) {
             BoxscoreTableRenderer(
                 section = section,
                 screenState = screenState,
                 onAction = onAction,
-                onStateChange = onStateChange,
-                modifier = modifier
+                onStateChange = onStateChange
             )
         }
 
-        "Form" -> {
+        "Form" -> SectionContainer(section.display, modifier) {
             FormRenderer(
                 section = section,
                 screenState = screenState,
                 onAction = onAction,
-                onStateChange = onStateChange,
-                modifier = modifier
+                onStateChange = onStateChange
             )
         }
 
-
-
-        "SubscribeBanner" -> {
+        "SubscribeBanner" -> SectionContainer(section.display, modifier) {
             SubscribeBannerRenderer(
                 section = section,
-                onAction = onAction,
-                modifier = modifier
+                onAction = onAction
             )
         }
 
-        "SubscribeHero" -> {
+        "SubscribeHero" -> SectionContainer(section.display, modifier) {
             SubscribeHeroRenderer(
                 section = section,
-                onAction = onAction,
-                modifier = modifier
+                onAction = onAction
             )
         }
 
-        "AdSlot" -> {
+        "AdSlot" -> SectionContainer(section.display, modifier) {
             AdSlotRenderer(
                 section = section,
-                onAction = onAction,
-                modifier = modifier
+                onAction = onAction
             )
         }
 
-        "SeasonLeadersTable" -> {
+        "SeasonLeadersTable" -> SectionContainer(section.display, modifier) {
             SeasonLeadersTableRenderer(
                 section = section,
-                onAction = onAction,
-                modifier = modifier
+                onAction = onAction
             )
         }
 
-        "VideoPlayer" -> {
+        "VideoPlayer" -> SectionContainer(section.display, modifier) {
             VideoPlayerStub(
                 section = section,
-                onAction = onAction,
-                modifier = modifier
+                onAction = onAction
             )
         }
 
         "AtomicComposite" -> {
             val root = AtomicElementParser.parse(section.data)
             if (root != null) {
-                AtomicRouter(
-                    element = root,
-                    screenState = screenState,
-                    onAction = onAction,
-                    modifier = modifier,
-                    onStateChange = onStateChange,
-                    sectionSlotDepth = sectionSlotDepth
-                )
+                SectionContainer(section.display, modifier) {
+                    AtomicRouter(
+                        element = root,
+                        screenState = screenState,
+                        onAction = onAction,
+                        modifier = Modifier,
+                        onStateChange = onStateChange,
+                        sectionSlotDepth = sectionSlotDepth
+                    )
+                }
             } else {
                 Log.w("SectionRouter", "AtomicComposite section ${section.id} has no parsable root element")
             }

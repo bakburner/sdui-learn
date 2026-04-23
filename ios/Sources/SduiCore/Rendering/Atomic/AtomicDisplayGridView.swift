@@ -11,7 +11,7 @@ struct AtomicDisplayGridView: View {
                 HStack(spacing: 0) {
                     ForEach(columns, id: \.key) { col in
                         Text(col.label)
-                            .font(font(for: element.headerVariant))
+                            .font(.subheadline)
                             .fontWeight(.semibold)
                             .frame(maxWidth: .infinity, alignment: alignment(for: col.align))
                             .padding(.vertical, 8)
@@ -27,7 +27,7 @@ struct AtomicDisplayGridView: View {
                     HStack(spacing: 0) {
                         ForEach(columns, id: \.key) { col in
                             Text(row[col.key] ?? "")
-                                .font(font(for: element.cellVariant))
+                                .font(.body)
                                 .frame(maxWidth: .infinity, alignment: alignment(for: col.align))
                                 .padding(.vertical, 6)
                                 .padding(.horizontal, 4)
@@ -49,15 +49,6 @@ struct AtomicDisplayGridView: View {
         case .end: return .trailing
         case .start: return .leading
         case .none: return .leading
-        }
-    }
-
-    private func font(for variant: TextVariant?) -> Font {
-        switch variant {
-        case .caption: return .caption
-        case .bodySmall: return .callout
-        case .label: return .subheadline
-        default: return .body
         }
     }
 }

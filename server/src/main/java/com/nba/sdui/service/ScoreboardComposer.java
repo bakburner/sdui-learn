@@ -158,6 +158,7 @@ public class ScoreboardComposer {
         data.set("actions", actions);
 
         section.set("data", data);
+        section.set("display", utils.gamePanelDisplay());
         return section;
     }
 
@@ -168,7 +169,7 @@ public class ScoreboardComposer {
         mapped.put("teamName", team.path("teamName").asText(""));
         mapped.put("teamCity", team.path("teamCity").asText(""));
         mapped.put("score", team.path("score").asInt(0));
-        mapped.put("logoUrl", "https://cdn.nba.com/logos/nba/" + team.path("teamId").asText() + "/global/L/logo.svg");
+        mapped.put("logoUrl", SduiUtils.teamLogoUrl(team.path("teamId").asText()));
 
         if (team.has("wins")) {
             mapped.put("wins", team.path("wins").asInt());
@@ -225,10 +226,16 @@ public class ScoreboardComposer {
     }
 
     private ObjectNode buildScoreboardPromoBanner() {
-        return atomicBuilder.buildPromoBanner("scoreboard-promo", "scoreboard_promo_banner",
+        ObjectNode section = atomicBuilder.buildPromoBanner(
+                "scoreboard-promo", "scoreboard_promo_banner",
                 "NBA League Pass", null,
                 "Watch every out-of-market game live or on demand.",
-                FALLBACK_THUMB, null, "Learn More", "nba://leaguepass");
+                FALLBACK_THUMB, "Learn More", "nba://leaguepass");
+        section.set("display", utils.subscribeCardDisplay(
+                "#0C1B3A",
+                ColorTokens.BRAND_NBA,
+                20));
+        return section;
     }
 
     private ObjectNode buildScoreboardContentRail() {

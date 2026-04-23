@@ -74,10 +74,42 @@ data class SduiSection(
     @JsonProperty("subsections") val subsections: List<Subsection>? = null,
     @JsonProperty("padding") val padding: Spacing? = null,
     @JsonProperty("backgroundColor") val backgroundColor: String? = null,
+    @JsonProperty("display") val display: SectionDisplay? = null,
     @JsonProperty("layoutHints") val layoutHints: SectionLayoutHints? = null,
     @JsonProperty("sectionStates") val sectionStates: SectionStates? = null,
     @JsonProperty("stringTable") val stringTable: Map<String, String>? = null,
     @JsonProperty("data") val data: Map<String, Any?>? = null
+)
+
+/**
+ * Outer-chrome spec applied by SectionRouter to every permanent section.
+ * Mirrors AtomicContainer's inline-chrome vocabulary so permanent
+ * sections have schema parity with composed sections. The shared
+ * `SectionContainer` composable reads these fields; permanent-section
+ * renderers never set their own outer padding, margin, corner radius,
+ * shadow, border, or background. See AGENTS.md §15.3.
+ */
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class SectionDisplay(
+    @JsonProperty("margin") val margin: Spacing? = null,
+    @JsonProperty("padding") val padding: Spacing? = null,
+    // Raw JSON node — may be a string (token/hex) or an object with
+    // `colors` + `direction` (gradient) or `imageUrl` (image). Parse
+    // with `parseBackground(...)` at render time (same helper the
+    // atomic Container uses).
+    @JsonProperty("background") val background: Any? = null,
+    @JsonProperty("cornerRadius") val cornerRadius: Int? = null,
+    @JsonProperty("shadow") val shadow: Shadow? = null,
+    @JsonProperty("border") val border: Border? = null
+)
+
+/**
+ * Outer stroke applied around a container or section.
+ */
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class Border(
+    @JsonProperty("color") val color: String? = null,
+    @JsonProperty("width") val width: Double? = null
 )
 
 /**

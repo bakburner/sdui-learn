@@ -2,6 +2,8 @@ package com.nba.sdui.core.renderer.sections
 
 import android.util.Log
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -100,7 +102,17 @@ private fun FormFieldRenderer(
     onStateChange: (String, Any) -> Unit
 ) {
     when (field.fieldType) {
-        "select", "picker" -> SelectField(field, currentValue, onStateChange)
+        "select", "picker" -> when (field.variant) {
+            "chips" -> ChipsField(field, currentValue, onStateChange)
+            "segmented" -> SegmentedField(field, currentValue, onStateChange)
+            // null/"dropdown" and any unknown variant fall back to the Material 3 dropdown.
+            else -> {
+                if (field.variant != null && field.variant !in knownSelectVariants) {
+                    Log.w(TAG, "Unknown SelectVariant '${field.variant}' for field ${field.fieldId}; falling back to dropdown")
+                }
+                SelectField(field, currentValue, onStateChange)
+            }
+        }
         "segmented" -> SegmentedField(field, currentValue, onStateChange)
         "toggle" -> ToggleField(field, currentValue, onStateChange)
         "radio" -> RadioField(field, currentValue, onStateChange)
@@ -112,6 +124,8 @@ private fun FormFieldRenderer(
         }
     }
 }
+
+private val knownSelectVariants = setOf("dropdown", "chips", "segmented")
 
 // ── Select (Dropdown) ────────────────────────────────────────────────
 
@@ -164,6 +178,43 @@ private fun SelectField(
                         }
                     )
                 }
+            }
+        }
+    }
+}
+
+// ── Chips (horizontally-scrollable FilterChip row) ───────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ChipsField(
+    field: FormFieldUi,
+    currentValue: Any?,
+    onStateChange: (String, Any) -> Unit
+) {
+    val selectedValue = currentValue?.toString() ?: field.defaultValue ?: ""
+
+    Column {
+        field.label?.let { label ->
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.padding(bottom = 4.dp)
+            )
+        }
+
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(horizontal = 2.dp)
+        ) {
+            items(field.options) { option ->
+                FilterChip(
+                    selected = option.value == selectedValue,
+                    onClick = { onStateChange(field.stateKey, option.value) },
+                    label = { Text(option.label, maxLines = 1) },
+                    enabled = !field.disabled
+                )
             }
         }
     }

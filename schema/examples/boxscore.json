@@ -26,7 +26,7 @@
           "teamTricode": "BOS",
           "teamName": "Celtics",
           "teamCity": "Boston",
-          "logoUrl": "https://cdn.nba.com/logos/nba/1610612738/global/L/logo.svg",
+          "logoUrl": "https://cdn.nba.com/logos/nba/1610612738/primary/D/512x512/logo.png",
           "score": 118
         },
         "awayTeam": {
@@ -34,7 +34,7 @@
           "teamTricode": "MIA",
           "teamName": "Heat",
           "teamCity": "Miami",
-          "logoUrl": "https://cdn.nba.com/logos/nba/1610612748/global/L/logo.svg",
+          "logoUrl": "https://cdn.nba.com/logos/nba/1610612748/primary/D/512x512/logo.png",
           "score": 107
         },
         "gameStatus": 3,
@@ -70,7 +70,7 @@
                 "teamTricode": "MIA",
                 "teamName": "Heat",
                 "teamColor": "#98002E",
-                "teamLogoUrl": "https://cdn.nba.com/logos/nba/1610612748/global/L/logo.svg",
+                "teamLogoUrl": "https://cdn.nba.com/logos/nba/1610612748/primary/D/512x512/logo.png",
                 "sortStateKey": "boxscore_away_sortCol",
                 "sortDirectionStateKey": "boxscore_away_sortDir",
                 "emptyMessage": "Box score is not yet available.",
@@ -246,7 +246,7 @@
                 "teamTricode": "BOS",
                 "teamName": "Celtics",
                 "teamColor": "#007A33",
-                "teamLogoUrl": "https://cdn.nba.com/logos/nba/1610612738/global/L/logo.svg",
+                "teamLogoUrl": "https://cdn.nba.com/logos/nba/1610612738/primary/D/512x512/logo.png",
                 "sortStateKey": "boxscore_home_sortCol",
                 "sortDirectionStateKey": "boxscore_home_sortDir",
                 "emptyMessage": "Box score is not yet available.",

@@ -67,6 +67,26 @@
       "type": "string",
       "enum": ["primary", "secondary", "tertiary", "text"]
     },
+    "ContainerVariant": {
+      "type": "string",
+      "description": "Role-based container presets. Each platform resolves to native surface treatments (materials, elevation, backdrop). Inline style properties may be overridden per the variant's override matrix.",
+      "enum": ["hero", "elevated", "subtle", "grouped", "overlay", "banner"]
+    },
+    "ImageVariant": {
+      "type": "string",
+      "description": "Role-based image presets controlling shape, sizing constraints, and load treatment per platform.",
+      "enum": ["hero", "thumbnail", "logo"]
+    },
+    "GamePanelVariant": {
+      "type": "string",
+      "description": "Semantic treatment of a GamePanel card. Clients resolve natively (widths, padding, emphasis). 'standard' is the default card. 'featured' is a heightened card used as a lead item in a feed or carousel.",
+      "enum": ["standard", "featured"]
+    },
+    "SelectVariant": {
+      "type": "string",
+      "description": "How a Form single-select field is realized by the client. 'dropdown' maps to the platform menu (default). 'chips' is a horizontally-scrollable row of tappable capsules. 'segmented' is a platform segmented control. Applies only when FormField.fieldType == 'select'.",
+      "enum": ["dropdown", "chips", "segmented"]
+    },
     "Direction": {
       "type": "string",
       "enum": ["row", "column"]
@@ -312,6 +332,11 @@
         "end": { "type": "integer" }
       }
     },
+    "ColorToken": {
+      "type": "string",
+      "pattern": "^(#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{8}|token:[A-Za-z0-9][A-Za-z0-9_.-]*)$",
+      "description": "A color value on the wire. Either a literal hex color (#RRGGBB or #RRGGBBAA) or a semantic token reference of the form 'token:<dot.separated.path>' (e.g. 'token:color.primary.50', 'token:color.brand.nba'). Clients resolve token references at render time against their bundled color registry, picking a light or dark value based on the OS color scheme. Unknown tokens log 'token_resolver_missing' and fall back to the caller's default."
+    },
     "BackgroundGradient": {
       "type": "object",
       "description": "Gradient background with ordered color stops",
@@ -319,7 +344,7 @@
       "properties": {
         "colors": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": { "$ref": "#/definitions/ColorToken" },
           "description": "Ordered list of color stops (hex or semantic token)"
         },
         "direction": {
@@ -345,7 +370,7 @@
         },
         "overlay": {
           "oneOf": [
-            { "type": "string", "description": "Solid hex color overlay (e.g. #00000080)" },
+            { "$ref": "#/definitions/ColorToken", "description": "Solid color overlay (hex or token)" },
             { "$ref": "#/definitions/BackgroundGradient" }
           ],
           "description": "Optional overlay applied on top of the image"
@@ -354,7 +379,7 @@
     },
     "Background": {
       "oneOf": [
-        { "type": "string", "description": "Solid hex color (e.g. #1A1F2E)" },
+        { "$ref": "#/definitions/ColorToken", "description": "Solid color (hex or token)" },
         { "$ref": "#/definitions/BackgroundGradient" },
         { "$ref": "#/definitions/BackgroundImage" }
       ],
@@ -364,10 +389,18 @@
       "type": "object",
       "description": "Drop shadow with CSS/SwiftUI semantics (radius + offset). Compose approximates via elevation.",
       "properties": {
-        "color":   { "type": "string", "default": "#00000014", "description": "Shadow color (hex with alpha)" },
+        "color":   { "$ref": "#/definitions/ColorToken", "default": "#00000014", "description": "Shadow color (hex with alpha, or token reference)" },
         "radius":  { "type": "number", "default": 4, "description": "Blur radius in dp/px" },
         "offsetX": { "type": "number", "default": 0, "description": "Horizontal offset in dp/px" },
         "offsetY": { "type": "number", "default": 2, "description": "Vertical offset in dp/px" }
+      }
+    },
+    "Border": {
+      "type": "object",
+      "description": "Outer stroke applied around a container or section.",
+      "properties": {
+        "width": { "type": "number", "default": 1, "description": "Stroke width in dp/px" },
+        "color": { "$ref": "#/definitions/ColorToken", "description": "Stroke color (hex or token)" }
       }
     },
     "BadgeAlignment": {
@@ -406,12 +439,13 @@
         "alignment": { "$ref": "#/definitions/Alignment" },
         "crossAlignment": { "$ref": "#/definitions/CrossAlignment" },
         "gap": { "type": "integer" },
-        "padding": { "$ref": "#/definitions/Spacing" },
+        "padding": { "$ref": "#/definitions/Spacing", "description": "Inner space between the element's own background/border and its content." },
+        "margin": { "$ref": "#/definitions/Spacing", "description": "Outer space between the element and its siblings or parent edges. Applied outside the element's background, border, corner radius, and shadow — use this for sibling-to-sibling spacing instead of Spacer siblings when inhomogeneous gaps are needed." },
         "background": { "$ref": "#/definitions/Background" },
         "content": { "type": "string" },
-        "variant": { "$ref": "#/definitions/TextVariant" },
+        "variant": { "type": "string", "description": "Named variant preset. The vocabulary depends on the element's type: TextVariant for Text, ButtonVariant for Button, ContainerVariant for Container, ImageVariant for Image. Renderers parse this string against the primitive's enum and log a diagnostic on unrecognized values." },
         "weight": { "$ref": "#/definitions/TextWeight" },
-        "color": { "type": "string" },
+        "color": { "$ref": "#/definitions/ColorToken" },
         "maxLines": { "type": "integer" },
         "src": { "type": "string" },
         "aspectRatio": { "type": "number" },
@@ -420,8 +454,11 @@
         "alt": { "type": "string", "description": "Deprecated: use accessibility.label instead. Retained for backward compatibility; clients prefer accessibility.label when present." },
         "width": { "type": "integer" },
         "height": { "type": "integer" },
+        "fillWidth": {
+          "type": "boolean",
+          "description": "When true, the element stretches along its main axis to fill the parent's available width. On Image this pairs with aspectRatio to derive a height (thumbnails in a fixed-width card). On Container it stretches the flex box to parent width regardless of child intrinsic widths. Inline value takes precedence over any variant default; element width/height, when also set, wins over fillWidth."
+        },
         "label": { "type": "string" },
-        "buttonVariant": { "$ref": "#/definitions/ButtonVariant" },
         "icon": { "type": "string" },
         "disabled": { "type": "boolean" },
         "actions": {
@@ -464,8 +501,6 @@
             "additionalProperties": { "type": "string" }
           }
         },
-        "headerVariant": { "$ref": "#/definitions/TextVariant", "description": "Typography variant for header cells" },
-        "cellVariant": { "$ref": "#/definitions/TextVariant", "description": "Typography variant for data cells" },
         "striped": { "type": "boolean", "description": "Alternate row background for readability" },
         "section": {
           "$ref": "#/definitions/Section",
@@ -474,6 +509,17 @@
         "flex": { "type": "number", "description": "Flex grow factor. When set on a child of a Container, the child claims proportional space along the main axis (like CSS flex or Compose weight). Default 0 (size to content)." },
         "breakpoint": { "type": "integer", "description": "Responsive breakpoint in dp/px. For Container: below this screen width, direction flips from row to column. Enables responsive layouts without client logic." },
         "cornerRadius": { "type": "integer", "description": "Corner radius in dp/px. Applied to Container (with overflow clip) and Image elements." },
+        "cornerRadii": {
+          "type": "object",
+          "description": "Per-corner cornerRadius override. When present, takes precedence over the single-value cornerRadius; any corner key omitted falls back to cornerRadius (or 0 if that is also absent). Used for asymmetric card shapes — e.g. content-rail cards with rounded tops and square bottoms so headline text does not collide with a bottom-corner curve. iOS maps to UnevenRoundedRectangle (iOS 16+); Android to RoundedCornerShape's four-corner constructor; web to borderTopLeftRadius / borderTopRightRadius / borderBottomLeftRadius / borderBottomRightRadius.",
+          "properties": {
+            "topStart":    { "type": "integer", "description": "Top-leading corner (top-left in LTR, top-right in RTL)." },
+            "topEnd":      { "type": "integer", "description": "Top-trailing corner (top-right in LTR, top-left in RTL)." },
+            "bottomStart": { "type": "integer", "description": "Bottom-leading corner." },
+            "bottomEnd":   { "type": "integer", "description": "Bottom-trailing corner." }
+          },
+          "additionalProperties": false
+        },
         "opacity": { "type": "number", "minimum": 0, "maximum": 1, "default": 1, "description": "Element opacity (0=transparent, 1=opaque). Enables duration badge overlays and faded states." },
         "shadow": { "$ref": "#/definitions/Shadow", "description": "Drop shadow applied to the element. Replaces elevation with richer CSS/SwiftUI shadow semantics." },
         "badge": { "$ref": "#/definitions/Badge", "description": "Z-positioned child element (e.g. 'LIVE' pill, duration label) overlaid on this element." },
@@ -596,7 +642,7 @@
         },
         "background": { "$ref": "#/definitions/Background", "description": "Default background (pre-game, final)" },
         "liveBackground": { "$ref": "#/definitions/Background", "description": "Background override when game is LIVE" },
-        "badgeColor": { "type": "string", "description": "Badge/chip background color (hex)" }
+        "badgeColor": { "$ref": "#/definitions/ColorToken", "description": "Badge/chip background color (hex or token)" }
       }
     },
     "GamePanelData": {
@@ -613,6 +659,10 @@
         "actions": {
           "type": "array",
           "items": { "$ref": "#/definitions/Action" }
+        },
+        "variant": {
+          "$ref": "#/definitions/GamePanelVariant",
+          "description": "Semantic card treatment. Missing value is treated as 'standard' at render time."
         },
         "displayConfig": {
           "$ref": "#/definitions/GamePanelDisplayConfig",
@@ -770,6 +820,10 @@
           "enum": ["text", "number", "date", "select", "radio", "checkbox", "toggle", "textarea"],
           "description": "Input type; clients map to platform-native controls"
         },
+        "variant": {
+          "$ref": "#/definitions/SelectVariant",
+          "description": "How to realize the control. Applies only when fieldType == 'select'. Missing value is treated as 'dropdown' at render time."
+        },
         "label": { "type": "string" },
         "placeholder": { "type": "string" },
         "stateKey": {
@@ -846,6 +900,7 @@
         },
         "padding": { "$ref": "#/definitions/Spacing" },
         "backgroundColor": { "type": "string" },
+        "display": { "$ref": "#/definitions/SectionDisplay" },
         "layoutHints": { "$ref": "#/definitions/SectionLayoutHints" },
         "sectionStates": { "$ref": "#/definitions/SectionStates" },
         "stringTable": {
@@ -868,6 +923,18 @@
             { "$ref": "#/definitions/VideoPlayerData" }
           ]
         }
+      }
+    },
+    "SectionDisplay": {
+      "type": "object",
+      "description": "Outer-chrome spec applied by the client's SectionRouter to every permanent section. Mirrors the inline-chrome vocabulary on AtomicContainer so permanent sections have schema parity with composed sections. Every client's shared SectionContainer wrapper reads these fields; permanent-section renderers do not set outer padding, margin, corner radius, shadow, border, or background themselves.",
+      "properties": {
+        "margin":       { "$ref": "#/definitions/Spacing", "description": "Outer margin (space between section and its siblings / screen edge)." },
+        "padding":      { "$ref": "#/definitions/Spacing", "description": "Inner padding (space between section wrapper and its content)." },
+        "background":   { "$ref": "#/definitions/Background", "description": "Section wrapper background (solid, gradient, or image)." },
+        "cornerRadius": { "type": "integer", "description": "Corner radius in dp/px applied to the section wrapper (with overflow clip)." },
+        "shadow":       { "$ref": "#/definitions/Shadow", "description": "Drop shadow applied to the section wrapper." },
+        "border":       { "$ref": "#/definitions/Border", "description": "Outer stroke applied around the section wrapper." }
       }
     },
     "SectionLayoutHints": {
@@ -1107,6 +1174,14 @@
           "type": "string",
           "default": "Advertisement",
           "description": "Disclosure label displayed above/below the ad"
+        },
+        "placeholder": {
+          "type": "object",
+          "description": "Visual treatment for the reserved rectangle before the ad SDK mounts (and after misses when collapseOnEmpty is false). Shares dimensions with sizes[0] — never carries its own width/height. Required so the stub renderer has no client-side chrome defaults.",
+          "properties": {
+            "backgroundColor": { "$ref": "#/definitions/ColorToken", "description": "Fill color for the empty rectangle." },
+            "text":            { "type": "string", "description": "Caption rendered inside the empty rectangle (e.g. 'Advertisement')." }
+          }
         }
       }
     },

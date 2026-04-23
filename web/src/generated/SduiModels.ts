@@ -337,20 +337,25 @@ export interface AtomicElement {
      * Responsive breakpoint in dp/px. For Container: below this screen width, direction flips
      * from row to column. Enables responsive layouts without client logic.
      */
-    breakpoint?:    number;
-    buttonVariant?: ButtonVariant;
-    /**
-     * Typography variant for data cells
-     */
-    cellVariant?: TextVariant;
-    children?:    AtomicElement[];
-    color?:       string;
+    breakpoint?: number;
+    children?:   AtomicElement[];
+    color?:      string;
     /**
      * DisplayGrid column definitions — display-only, non-interactive, server-ordered
      */
     columns?:   Column[];
     condition?: string;
     content?:   string;
+    /**
+     * Per-corner cornerRadius override. When present, takes precedence over the single-value
+     * cornerRadius; any corner key omitted falls back to cornerRadius (or 0 if that is also
+     * absent). Used for asymmetric card shapes — e.g. content-rail cards with rounded tops and
+     * square bottoms so headline text does not collide with a bottom-corner curve. iOS maps to
+     * UnevenRoundedRectangle (iOS 16+); Android to RoundedCornerShape's four-corner
+     * constructor; web to borderTopLeftRadius / borderTopRightRadius / borderBottomLeftRadius /
+     * borderBottomRightRadius.
+     */
+    cornerRadii?: CornerRadii;
     /**
      * Corner radius in dp/px. Applied to Container (with overflow clip) and Image elements.
      */
@@ -359,22 +364,32 @@ export interface AtomicElement {
     direction?:      UIDirection;
     disabled?:       boolean;
     falseChild?:     AtomicElement;
-    fit?:            ImageFit;
+    /**
+     * When true, the element stretches along its main axis to fill the parent's available
+     * width. On Image this pairs with aspectRatio to derive a height (thumbnails in a
+     * fixed-width card). On Container it stretches the flex box to parent width regardless of
+     * child intrinsic widths. Inline value takes precedence over any variant default; element
+     * width/height, when also set, wins over fillWidth.
+     */
+    fillWidth?: boolean;
+    fit?:       ImageFit;
     /**
      * Flex grow factor. When set on a child of a Container, the child claims proportional space
      * along the main axis (like CSS flex or Compose weight). Default 0 (size to content).
      */
-    flex?: number;
-    gap?:  number;
+    flex?:   number;
+    gap?:    number;
+    height?: number;
+    icon?:   string;
+    id?:     string;
+    label?:  string;
     /**
-     * Typography variant for header cells
+     * Outer space between the element and its siblings or parent edges. Applied outside the
+     * element's background, border, corner radius, and shadow — use this for sibling-to-sibling
+     * spacing instead of Spacer siblings when inhomogeneous gaps are needed.
      */
-    headerVariant?: TextVariant;
-    height?:        number;
-    icon?:          string;
-    id?:            string;
-    label?:         string;
-    maxLines?:      number;
+    margin?:   Spacing;
+    maxLines?: number;
     /**
      * Use tabular/monospaced digit rendering to prevent layout shift on numeric text changes
      * (scores, clocks).
@@ -386,6 +401,9 @@ export interface AtomicElement {
      */
     opacity?:     number;
     orientation?: Orientation;
+    /**
+     * Inner space between the element's own background/border and its content.
+     */
     padding?:     Spacing;
     paging?:      boolean;
     placeholder?: string;
@@ -422,9 +440,15 @@ export interface AtomicElement {
     thickness?: number;
     trueChild?: AtomicElement;
     type:       UIType;
-    variant?:   TextVariant;
-    weight?:    TextWeight;
-    width?:     number;
+    /**
+     * Named variant preset. The vocabulary depends on the element's type: TextVariant for Text,
+     * ButtonVariant for Button, ContainerVariant for Container, ImageVariant for Image.
+     * Renderers parse this string against the primitive's enum and log a diagnostic on
+     * unrecognized values.
+     */
+    variant?: string;
+    weight?:  TextWeight;
+    width?:   number;
     [property: string]: any;
 }
 
@@ -486,6 +510,10 @@ export interface Data {
      * Current game period (quarter number)
      */
     period?: number;
+    /**
+     * Semantic card treatment. Missing value is treated as 'standard' at render time.
+     */
+    variant?: GamePanelVariant;
     /**
      * Secondary label shown above the matchup (e.g. team name, 'Recommended')
      */
@@ -550,6 +578,12 @@ export interface Data {
      * Disclosure label displayed above/below the ad
      */
     label?: string;
+    /**
+     * Visual treatment for the reserved rectangle before the ad SDK mounts (and after misses
+     * when collapseOnEmpty is false). Shares dimensions with sizes[0] — never carries its own
+     * width/height. Required so the stub renderer has no client-side chrome defaults.
+     */
+    placeholder?: Placeholder;
     /**
      * Ad network identifier, e.g. 'gam', 'amazon'
      */
@@ -649,6 +683,7 @@ export interface Section {
      */
     data?:          Data;
     dataBinding?:   DataBinding;
+    display?:       SectionDisplay;
     id:             string;
     layoutHints?:   SectionLayoutHints;
     padding?:       Spacing;
@@ -813,46 +848,6 @@ export enum ScaleType {
     Fill = "fill",
 }
 
-export enum ButtonVariant {
-    Primary = "primary",
-    Secondary = "secondary",
-    Tertiary = "tertiary",
-    Text = "text",
-}
-
-/**
- * Typography variant for data cells
- *
- * Material3 typography scale plus legacy semantic variants and the NBA-specific `score`
- * variant.
- *
- * Typography variant for header cells
- */
-export enum TextVariant {
-    Body = "body",
-    BodyLarge = "bodyLarge",
-    BodyMedium = "bodyMedium",
-    BodySmall = "bodySmall",
-    Caption = "caption",
-    DisplayLarge = "displayLarge",
-    DisplayMedium = "displayMedium",
-    DisplaySmall = "displaySmall",
-    Heading1 = "heading1",
-    Heading2 = "heading2",
-    Heading3 = "heading3",
-    HeadlineLarge = "headlineLarge",
-    HeadlineMedium = "headlineMedium",
-    HeadlineSmall = "headlineSmall",
-    Label = "label",
-    LabelLarge = "labelLarge",
-    LabelMedium = "labelMedium",
-    LabelSmall = "labelSmall",
-    Score = "score",
-    TitleLarge = "titleLarge",
-    TitleMedium = "titleMedium",
-    TitleSmall = "titleSmall",
-}
-
 export interface Column {
     align?: Align;
     /**
@@ -884,6 +879,34 @@ export enum WidthEnum {
     Flex = "flex",
 }
 
+/**
+ * Per-corner cornerRadius override. When present, takes precedence over the single-value
+ * cornerRadius; any corner key omitted falls back to cornerRadius (or 0 if that is also
+ * absent). Used for asymmetric card shapes — e.g. content-rail cards with rounded tops and
+ * square bottoms so headline text does not collide with a bottom-corner curve. iOS maps to
+ * UnevenRoundedRectangle (iOS 16+); Android to RoundedCornerShape's four-corner
+ * constructor; web to borderTopLeftRadius / borderTopRightRadius / borderBottomLeftRadius /
+ * borderBottomRightRadius.
+ */
+export interface CornerRadii {
+    /**
+     * Bottom-trailing corner.
+     */
+    bottomEnd?: number;
+    /**
+     * Bottom-leading corner.
+     */
+    bottomStart?: number;
+    /**
+     * Top-trailing corner (top-right in LTR, top-left in RTL).
+     */
+    topEnd?: number;
+    /**
+     * Top-leading corner (top-left in LTR, top-right in RTL).
+     */
+    topStart?: number;
+}
+
 export enum CrossAlignment {
     Center = "center",
     End = "end",
@@ -903,11 +926,17 @@ export enum ImageFit {
     None = "none",
 }
 
-export enum Orientation {
-    Horizontal = "horizontal",
-    Vertical = "vertical",
-}
-
+/**
+ * Outer space between the element and its siblings or parent edges. Applied outside the
+ * element's background, border, corner radius, and shadow — use this for sibling-to-sibling
+ * spacing instead of Spacer siblings when inhomogeneous gaps are needed.
+ *
+ * Inner space between the element's own background/border and its content.
+ *
+ * Outer margin (space between section and its siblings / screen edge).
+ *
+ * Inner padding (space between section wrapper and its content).
+ */
 export interface Spacing {
     bottom?: number;
     end?:    number;
@@ -916,16 +945,23 @@ export interface Spacing {
     [property: string]: any;
 }
 
+export enum Orientation {
+    Horizontal = "horizontal",
+    Vertical = "vertical",
+}
+
 /**
  * Drop shadow applied to the element. Replaces elevation with richer CSS/SwiftUI shadow
  * semantics.
  *
  * Drop shadow with CSS/SwiftUI semantics (radius + offset). Compose approximates via
  * elevation.
+ *
+ * Drop shadow applied to the section wrapper.
  */
 export interface Shadow {
     /**
-     * Shadow color (hex with alpha)
+     * Shadow color (hex with alpha, or token reference)
      */
     color?: string;
     /**
@@ -1022,7 +1058,7 @@ export interface GamePanelDisplayConfig {
      */
     background?: Background | string;
     /**
-     * Badge/chip background color (hex)
+     * Badge/chip background color (hex or token)
      */
     badgeColor?: string;
     /**
@@ -1091,6 +1127,11 @@ export interface FormField {
      * Optional regex pattern for client-side validation
      */
     validationPattern?: string;
+    /**
+     * How to realize the control. Applies only when fieldType == 'select'. Missing value is
+     * treated as 'dropdown' at render time.
+     */
+    variant?: SelectVariant;
     [property: string]: any;
 }
 
@@ -1117,6 +1158,21 @@ export interface FormOption {
     [property: string]: any;
 }
 
+/**
+ * How to realize the control. Applies only when fieldType == 'select'. Missing value is
+ * treated as 'dropdown' at render time.
+ *
+ * How a Form single-select field is realized by the client. 'dropdown' maps to the platform
+ * menu (default). 'chips' is a horizontally-scrollable row of tappable capsules.
+ * 'segmented' is a platform segmented control. Applies only when FormField.fieldType ==
+ * 'select'.
+ */
+export enum SelectVariant {
+    Chips = "chips",
+    Dropdown = "dropdown",
+    Segmented = "segmented",
+}
+
 export interface GameLeadersData {
     awayLeader?: GameLeaderData;
     homeLeader?: GameLeaderData;
@@ -1138,6 +1194,23 @@ export enum Layout {
     Grid = "grid",
     Horizontal = "horizontal",
     Vertical = "vertical",
+}
+
+/**
+ * Visual treatment for the reserved rectangle before the ad SDK mounts (and after misses
+ * when collapseOnEmpty is false). Shares dimensions with sizes[0] — never carries its own
+ * width/height. Required so the stub renderer has no client-side chrome defaults.
+ */
+export interface Placeholder {
+    /**
+     * Fill color for the empty rectangle.
+     */
+    backgroundColor?: string;
+    /**
+     * Caption rendered inside the empty rectangle (e.g. 'Advertisement').
+     */
+    text?: string;
+    [property: string]: any;
 }
 
 /**
@@ -1224,6 +1297,18 @@ export interface SubscriptionTier {
     [property: string]: any;
 }
 
+/**
+ * Semantic card treatment. Missing value is treated as 'standard' at render time.
+ *
+ * Semantic treatment of a GamePanel card. Clients resolve natively (widths, padding,
+ * emphasis). 'standard' is the default card. 'featured' is a heightened card used as a lead
+ * item in a feed or carousel.
+ */
+export enum GamePanelVariant {
+    Featured = "featured",
+    Standard = "standard",
+}
+
 export interface DataBinding {
     bindings?: DataBindingPath[];
     /**
@@ -1243,6 +1328,58 @@ export interface DataBindingPath {
      * Dot-path to component property (e.g., 'homeScore.content')
      */
     targetPath: string;
+    [property: string]: any;
+}
+
+/**
+ * Outer-chrome spec applied by the client's SectionRouter to every permanent section.
+ * Mirrors the inline-chrome vocabulary on AtomicContainer so permanent sections have schema
+ * parity with composed sections. Every client's shared SectionContainer wrapper reads these
+ * fields; permanent-section renderers do not set outer padding, margin, corner radius,
+ * shadow, border, or background themselves.
+ */
+export interface SectionDisplay {
+    /**
+     * Section wrapper background (solid, gradient, or image).
+     */
+    background?: Background | string;
+    /**
+     * Outer stroke applied around the section wrapper.
+     */
+    border?: Border;
+    /**
+     * Corner radius in dp/px applied to the section wrapper (with overflow clip).
+     */
+    cornerRadius?: number;
+    /**
+     * Outer margin (space between section and its siblings / screen edge).
+     */
+    margin?: Spacing;
+    /**
+     * Inner padding (space between section wrapper and its content).
+     */
+    padding?: Spacing;
+    /**
+     * Drop shadow applied to the section wrapper.
+     */
+    shadow?: Shadow;
+    [property: string]: any;
+}
+
+/**
+ * Outer stroke applied around the section wrapper.
+ *
+ * Outer stroke applied around a container or section.
+ */
+export interface Border {
+    /**
+     * Stroke color (hex or token)
+     */
+    color?: string;
+    /**
+     * Stroke width in dp/px
+     */
+    width?: number;
     [property: string]: any;
 }
 

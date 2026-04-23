@@ -175,6 +175,6 @@ fun subscribeToChannel(channelName: String, jsonPath: String, onUpdate: (Any) ->
 
 iOS client is planned but not yet implemented. When building iOS:
 - Mirror the Android dual-layer pattern (SectionRouter + AtomicRouter)
-- Use codegen Swift output from `codegen/output/swift/`
+- Use codegen Swift output from `ios/Sources/SduiCore/Models/SduiModels.swift` (written directly by `make codegen`)
 - Follow Human Interface Guidelines for platform-native feel
 - Same offline/real-time patterns with platform-appropriate SDKs (URLSession, Ably iOS SDK)

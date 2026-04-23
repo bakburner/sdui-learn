@@ -145,7 +145,7 @@ public class LiveComposer {
         data.put("gameStatus", gameStatus);
         data.put("gameStatusText", game.path("gameStatusText").asText(""));
         data.put("gameTimeEt", game.path("gameTimeEt").asText(""));
-        data.set("displayConfig", atomicBuilder.featuredConfig(null, new String[]{"#1D428A", "#C8102E"}));
+        data.set("displayConfig", atomicBuilder.featuredConfig(null, new String[]{ColorTokens.PALETTE_BLUE_30, ColorTokens.BRAND_LIVE}));
         data.set("homeTeam", mapTeam(game.path("homeTeam")));
         data.set("awayTeam", mapTeam(game.path("awayTeam")));
         data.put("badgeText", gameStatus == 2 ? "LIVE" : "UP NEXT");
@@ -160,6 +160,7 @@ public class LiveComposer {
         data.set("actions", actions);
 
         section.set("data", data);
+        section.set("display", utils.gamePanelDisplay());
         return section;
     }
 
@@ -174,7 +175,7 @@ public class LiveComposer {
         data.put("gameId", "0022400050");
         data.put("gameStatus", 1);
         data.put("gameStatusText", "7:30 PM ET");
-        data.set("displayConfig", atomicBuilder.featuredConfig(null, new String[]{"#1D428A", "#C8102E"}));
+        data.set("displayConfig", atomicBuilder.featuredConfig(null, new String[]{ColorTokens.PALETTE_BLUE_30, ColorTokens.BRAND_LIVE}));
         data.put("badgeText", "NEXT UP");
         data.put("visualLabel", "Recommended");
 
@@ -185,7 +186,7 @@ public class LiveComposer {
         home.put("teamCity", "New York");
         home.put("score", 0);
         home.put("record", "4-2");
-        home.put("logoUrl", "https://cdn.nba.com/logos/nba/1610612752/global/L/logo.svg");
+        home.put("logoUrl", SduiUtils.teamLogoUrl("1610612752"));
         data.set("homeTeam", home);
 
         ObjectNode away = objectMapper.createObjectNode();
@@ -195,7 +196,7 @@ public class LiveComposer {
         away.put("teamCity", "Miami");
         away.put("score", 0);
         away.put("record", "3-3");
-        away.put("logoUrl", "https://cdn.nba.com/logos/nba/1610612748/global/L/logo.svg");
+        away.put("logoUrl", SduiUtils.teamLogoUrl("1610612748"));
         data.set("awayTeam", away);
 
         ArrayNode actions = objectMapper.createArrayNode();
@@ -207,12 +208,15 @@ public class LiveComposer {
         data.set("actions", actions);
 
         section.set("data", data);
+        section.set("display", utils.gamePanelDisplay());
         return section;
     }
 
     private ObjectNode buildSectionHeader(String id, String title,
                                            String subtitle, String actionUri) {
-        return atomicBuilder.buildSectionHeader(id, title, subtitle, null, actionUri);
+        ObjectNode section = atomicBuilder.buildSectionHeader(id, title, subtitle, null, actionUri);
+        section.set("display", utils.railDisplay());
+        return section;
     }
 
     private ObjectNode buildGamePanel(JsonNode game, boolean liveRefresh) {
@@ -264,6 +268,7 @@ public class LiveComposer {
         data.set("actions", actions);
 
         section.set("data", data);
+        section.set("display", utils.gamePanelDisplay());
         return section;
     }
 
@@ -314,7 +319,7 @@ public class LiveComposer {
         away.put("teamCity", awayTri);
         away.put("score", gameStatus == 2 ? 72 : 0);
         away.put("record", "4-2");
-        away.put("logoUrl", "https://cdn.nba.com/logos/nba/" + awayId + "/global/L/logo.svg");
+        away.put("logoUrl", SduiUtils.teamLogoUrl(awayId));
         data.set("awayTeam", away);
 
         ObjectNode home = objectMapper.createObjectNode();
@@ -324,7 +329,7 @@ public class LiveComposer {
         home.put("teamCity", homeTri);
         home.put("score", gameStatus == 2 ? 68 : 0);
         home.put("record", "4-2");
-        home.put("logoUrl", "https://cdn.nba.com/logos/nba/" + homeId + "/global/L/logo.svg");
+        home.put("logoUrl", SduiUtils.teamLogoUrl(homeId));
         data.set("homeTeam", home);
 
         data.put("broadcaster", "Fox Sports Southeast - Atlanta");
@@ -338,6 +343,7 @@ public class LiveComposer {
         data.set("actions", actions);
 
         section.set("data", data);
+        section.set("display", utils.gamePanelDisplay());
         return section;
     }
 
@@ -362,7 +368,7 @@ public class LiveComposer {
         int wins = team.path("wins").asInt(0);
         int losses = team.path("losses").asInt(0);
         mapped.put("record", wins + "-" + losses);
-        mapped.put("logoUrl", "https://cdn.nba.com/logos/nba/" + team.path("teamId").asText() + "/global/L/logo.svg");
+        mapped.put("logoUrl", SduiUtils.teamLogoUrl(team.path("teamId").asText()));
         return mapped;
     }
 

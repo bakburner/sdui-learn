@@ -9,8 +9,11 @@ struct GamePanelView: View {
     let section: Section
     let onAction: (Action) -> Void
 
+    @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
         if let data = section.data {
+            let variant = data.variant ?? .standard
             VStack(spacing: 8) {
                 if let badge = data.badgeText {
                     Text(badge)
@@ -18,7 +21,7 @@ struct GamePanelView: View {
                         .fontWeight(.bold)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 2)
-                        .background(color(from: data.displayConfig?.badgeColor) ?? Color.red)
+                        .background(ColorTokenResolver.resolve(data.displayConfig?.badgeColor, colorScheme: colorScheme) ?? Color.red)
                         .foregroundColor(.white)
                         .cornerRadius(4)
                         .accessibilityAddTraits(isLive(status: data.gameStatus) ? .updatesFrequently : [])
@@ -29,17 +32,24 @@ struct GamePanelView: View {
                     Spacer()
                     if let statusText = data.gameStatusText {
                         Text(statusText)
-                            .font(.caption)
+                            .font(variant == .featured ? .subheadline : .caption)
+                            .fontWeight(variant == .featured ? .semibold : .regular)
                             .foregroundColor(.secondary)
                             .accessibilityAddTraits(isLive(status: data.gameStatus) ? .updatesFrequently : [])
                     }
                     Spacer()
                     teamView(team: data.homeTeam, isLive: isLive(status: data.gameStatus))
                 }
-                .padding()
+                .padding(variant == .featured ? 20 : 16)
             }
-            .background(resolveBackground(data.displayConfig?.background))
-            .cornerRadius(CGFloat(data.displayConfig?.cornerRadius ?? 12))
+            .background(resolveBackground(data.displayConfig?.background, colorScheme: colorScheme))
+            .cornerRadius(CGFloat(data.displayConfig?.cornerRadius ?? (variant == .featured ? 16 : 12)))
+            .shadow(
+                color: Color.black.opacity(variant == .featured ? 0.18 : 0.08),
+                radius: variant == .featured ? 8 : 3,
+                x: 0,
+                y: variant == .featured ? 4 : 2
+            )
             .applyActionTriggers(section.actions, onAction: onAction)
             .onTapGesture {
                 if let action = SectionInteractions.primaryAction(for: section) {

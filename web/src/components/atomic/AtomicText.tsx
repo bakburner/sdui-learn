@@ -1,6 +1,7 @@
 import React from 'react';
 import type { AtomicProps } from './AtomicRouter';
 import { accessibilityProps } from '../../utils/accessibility';
+import { useColorTokenResolver } from '../../utils/ColorTokenResolver';
 
 /** Map schema variant strings to CSS font sizes / weights — NBA typography system.
  *  Display/Headline use Roboto Condensed (approximating Knockout/Action NBA).
@@ -38,11 +39,22 @@ export function AtomicText({ element }: AtomicProps): React.ReactElement {
     start: 'left', center: 'center', end: 'right',
   };
 
-  const baseStyle = element.variant ? variantStyles[element.variant] ?? {} : {};
+  const resolveColor = useColorTokenResolver();
+
+  let baseStyle: React.CSSProperties = {};
+  if (element.variant != null) {
+    const matched = variantStyles[element.variant];
+    if (matched) {
+      baseStyle = matched;
+    } else {
+      console.warn('variant_resolver_missing', { variant: element.variant, elementId: element.id });
+    }
+  }
+  const resolvedColor = resolveColor(element.color);
   const style: React.CSSProperties = {
     ...baseStyle,
     ...(element.weight ? { fontWeight: weightMap[element.weight] ?? 400 } : {}),
-    ...(element.color ? { color: element.color } : {}),
+    ...(resolvedColor ? { color: resolvedColor } : {}),
     ...(element.maxLines ? {
       display: '-webkit-box',
       WebkitLineClamp: element.maxLines,

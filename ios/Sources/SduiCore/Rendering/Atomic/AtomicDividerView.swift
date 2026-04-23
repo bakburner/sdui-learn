@@ -4,17 +4,21 @@ import SwiftUI
 struct AtomicDividerView: View {
     let element: AtomicElement
 
+    @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
         let thickness = CGFloat(element.thickness ?? 1)
         let isVertical = element.orientation == .vertical
+        let fill = ColorTokenResolver.resolve(element.color, colorScheme: colorScheme)
+            ?? Color.gray.opacity(0.3)
 
         if isVertical {
             Rectangle()
-                .fill(color(from: element.color) ?? Color.gray.opacity(0.3))
+                .fill(fill)
                 .frame(width: thickness)
         } else {
             Rectangle()
-                .fill(color(from: element.color) ?? Color.gray.opacity(0.3))
+                .fill(fill)
                 .frame(height: thickness)
         }
     }

@@ -1,8 +1,10 @@
 package com.nba.sdui.core.renderer.atomic
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment as ComposeAlignment
 import androidx.compose.ui.Modifier
@@ -17,6 +19,10 @@ import com.nba.sdui.core.models.AtomicElement
 import com.nba.sdui.core.models.Background
 import com.nba.sdui.core.models.BackgroundGradient
 import com.nba.sdui.core.models.parseBackground
+import com.nba.sdui.core.renderer.ColorTokenResolver
+import com.nba.sdui.core.renderer.ContainerVariantResolver
+import com.nba.sdui.core.renderer.ContainerVariantResolver.OverridePolicy
+import com.nba.sdui.core.renderer.ContainerVariantResolver.SurfaceRole
 import com.nba.sdui.core.renderer.applyAccessibility
 import com.nba.sdui.core.state.SduiAction
 
@@ -52,36 +58,139 @@ fun AtomicContainer(
 
     val gap = element.gap?.dp ?: 0.dp
 
-    val fillModifier = if (element.fillWidth == true) modifier.fillMaxWidth() else modifier
+    val variantSpec = ContainerVariantResolver.resolve(element.variant)
 
-    val shape = RoundedCornerShape((element.cornerRadius ?: 0).dp)
-    val shadowModifier = element.shadow?.let { s ->
-        fillModifier.shadow(
-            elevation = (s.radius ?: 0.0).toFloat().dp,
-            shape = shape
-        )
-    } ?: fillModifier
+    // Resolve effective values by merging inline props with the variant spec.
+    // Inline wins on ALLOW axes; variant wins on LOCK axes (the inline attempt
+    // is logged as variant_override_blocked).
+    val effectiveCornerRadius: Int? = resolveAxis(
+        axis = "cornerRadius",
+        inline = element.cornerRadius,
+        variantValue = variantSpec?.cornerRadiusDp,
+        overrideMatrix = variantSpec?.overrideMatrix,
+        variantName = element.variant
+    )
 
-    val clippedModifier = element.cornerRadius?.let {
-        shadowModifier.clip(shape)
-    } ?: shadowModifier
+    val effectiveShadowElevationDp: Int? = resolveAxis(
+        axis = "shadow",
+        inline = element.shadow?.radius?.toInt(),
+        variantValue = variantSpec?.shadowElevationDp,
+        overrideMatrix = variantSpec?.overrideMatrix,
+        variantName = element.variant
+    )
 
-    val bg = parseBackground(element.background)
-    val bgModifier = when (bg) {
-        is Background.Gradient -> clippedModifier.background(bg.gradient.toBrush())
-        is Background.Solid -> clippedModifier.background(parseColor(bg.color))
-        is Background.Image -> clippedModifier
-        null -> clippedModifier
+    val effectiveFillWidth: Boolean = element.fillWidth == true ||
+        (element.fillWidth == null && variantSpec?.fillWidth == true)
+
+    val inlineBackground = parseBackground(element.background)
+    val backgroundLocked = variantSpec?.overrideMatrix?.get("background") == OverridePolicy.LOCK
+    val useVariantBackground: Boolean = when {
+        variantSpec == null -> false
+        inlineBackground == null -> variantSpec.backgroundColorRole != null
+        backgroundLocked -> {
+            ContainerVariantResolver.logOverrideBlocked(
+                element.variant, "background", element.background
+            )
+            variantSpec.backgroundColorRole != null
+        }
+        else -> false
     }
 
+    // Per-corner `cornerRadii` wins over the single-value `cornerRadius`
+    // when present. Any corner key omitted falls back to `cornerRadius` (or
+    // 0 if that is also absent). Used for content-card cards that want
+    // rounded tops + square bottoms so headline text does not collide with
+    // a bottom-corner curve.
+    val shape = run {
+        val radii = element.cornerRadii
+        val fallback = effectiveCornerRadius ?: 0
+        if (radii != null &&
+            ((radii.topStart ?: 0) != 0 || (radii.topEnd ?: 0) != 0 ||
+             (radii.bottomStart ?: 0) != 0 || (radii.bottomEnd ?: 0) != 0)) {
+            RoundedCornerShape(
+                topStart = (radii.topStart ?: fallback).dp,
+                topEnd = (radii.topEnd ?: fallback).dp,
+                bottomEnd = (radii.bottomEnd ?: fallback).dp,
+                bottomStart = (radii.bottomStart ?: fallback).dp
+            )
+        } else {
+            RoundedCornerShape(fallback.dp)
+        }
+    }
+
+    val hasAnyCorner = (effectiveCornerRadius != null && effectiveCornerRadius > 0) ||
+        element.cornerRadii?.let {
+            (it.topStart ?: 0) > 0 || (it.topEnd ?: 0) > 0 ||
+            (it.bottomStart ?: 0) > 0 || (it.bottomEnd ?: 0) > 0
+        } == true
+
+    val fillModifier = if (effectiveFillWidth) modifier.fillMaxWidth() else modifier
+
+    // Explicit wire-level `width` / `height` take priority over fillWidth —
+    // a fixed-width card in a horizontal rail (content rails, video rails)
+    // needs a deterministic width so the children don't stretch the
+    // container to their intrinsic size.
+    val sizedModifier = run {
+        var m = fillModifier
+        element.width?.let { w -> m = m.width(w.dp) }
+        element.height?.let { h -> m = m.height(h.dp) }
+        m
+    }
+
+    val shadowModifier = effectiveShadowElevationDp?.takeIf { it > 0 }?.let { elev ->
+        sizedModifier.shadow(elevation = elev.dp, shape = shape)
+    } ?: sizedModifier
+
+    val clippedModifier = if (hasAnyCorner) {
+        shadowModifier.clip(shape)
+    } else {
+        shadowModifier
+    }
+
+    // Apply tonal elevation via the semantic surface-color role itself —
+    // surfaceContainer / surfaceContainerLow already carry the tonal shift in
+    // Material 3. The prototype does not use a Surface composable wrapper.
+    val variantBackgroundColor: Color? = if (useVariantBackground) {
+        resolveSurfaceRole(
+            variantSpec?.backgroundColorRole,
+            variantSpec?.customBackgroundArgb
+        )?.let { it.copy(alpha = (variantSpec?.backgroundAlpha ?: 1f).coerceIn(0f, 1f)) }
+    } else null
+
+    val bgModifier = when {
+        variantBackgroundColor != null -> clippedModifier.background(variantBackgroundColor)
+        inlineBackground is Background.Gradient -> clippedModifier.background(inlineBackground.gradient.toBrush())
+        inlineBackground is Background.Solid -> clippedModifier.background(ColorTokenResolver.resolve(inlineBackground.color))
+        else -> clippedModifier
+    }
+
+    // Accent wash painted over the solid surface to give the hero variant a
+    // subtle sense of lift. Layered under content (the modifier still applies
+    // before children are laid out) and inside the corner-radius clip.
+    val overlayModifier = variantSpec?.gradientOverlay?.let { overlay ->
+        val top = resolveSurfaceRole(overlay.topColorRole, null)
+            ?.copy(alpha = overlay.topAlpha.coerceIn(0f, 1f)) ?: Color.Transparent
+        val bottom = resolveSurfaceRole(overlay.bottomColorRole, null)
+            ?.copy(alpha = overlay.bottomAlpha.coerceIn(0f, 1f)) ?: Color.Transparent
+        bgModifier.background(Brush.verticalGradient(listOf(top, bottom)))
+    } ?: bgModifier
+
+    val borderedModifier = variantSpec?.let { spec ->
+        if (spec.borderDp != null && spec.borderDp > 0) {
+            val borderColor = resolveSurfaceRole(spec.borderColorRole, null)
+                ?: MaterialTheme.colorScheme.outline
+            overlayModifier.border(spec.borderDp.dp, borderColor, shape)
+        } else overlayModifier
+    } ?: overlayModifier
+
     val paddedModifier = element.padding?.let {
-        bgModifier.padding(
+        borderedModifier.padding(
             start = it.start.dp,
             end = it.end.dp,
             top = it.top.dp,
             bottom = it.bottom.dp
         )
-    } ?: bgModifier
+    } ?: borderedModifier
 
     val a11y = element.accessibility
     val a11yModifier = paddedModifier.applyAccessibility(a11y)
@@ -184,12 +293,61 @@ internal fun parseColor(value: String): Color {
     }
 }
 
-/** Convert a [BackgroundGradient] to a Compose [Brush]. */
+/**
+ * Convert a [BackgroundGradient] to a Compose [Brush]. Each stop is run
+ * through the color resolver so tokens (`"token:..."`) and raw hex strings
+ * are both supported.
+ */
+@Composable
 private fun BackgroundGradient.toBrush(): Brush {
-    val colorList = colors.map { parseColor(it) }
+    val colorList = colors.map { ColorTokenResolver.resolve(it) }
     return when (direction) {
         "horizontal" -> Brush.horizontalGradient(colorList)
         "diagonal"   -> Brush.linearGradient(colorList)
         else         -> Brush.verticalGradient(colorList)
+    }
+}
+
+/**
+ * Merge an inline numeric axis value against a variant default using the
+ * variant's override-matrix policy. Inline wins on ALLOW; variant wins on
+ * LOCK, and the inline attempt is logged.
+ */
+internal fun <T : Any> resolveAxis(
+    axis: String,
+    inline: T?,
+    variantValue: T?,
+    overrideMatrix: Map<String, OverridePolicy>?,
+    variantName: String?
+): T? {
+    if (overrideMatrix == null) return inline
+    if (inline == null) return variantValue
+    val policy = overrideMatrix[axis] ?: OverridePolicy.ALLOW
+    return if (policy == OverridePolicy.LOCK) {
+        ContainerVariantResolver.logOverrideBlocked(variantName, axis, inline)
+        variantValue
+    } else {
+        inline
+    }
+}
+
+/**
+ * Resolve a [SurfaceRole] token against the ambient Material 3 color scheme.
+ * Returns `null` when [role] is null. `Custom` falls back to [customArgb] or
+ * [Color.Unspecified] when no argb is supplied.
+ */
+@Composable
+internal fun resolveSurfaceRole(role: SurfaceRole?, customArgb: Long?): Color? {
+    if (role == null) return null
+    val scheme = MaterialTheme.colorScheme
+    return when (role) {
+        SurfaceRole.SurfaceContainerLow -> scheme.surfaceContainerLow
+        SurfaceRole.SurfaceContainer    -> scheme.surfaceContainer
+        SurfaceRole.Surface             -> scheme.surface
+        SurfaceRole.Background          -> scheme.background
+        SurfaceRole.PrimaryContainer    -> scheme.primaryContainer
+        SurfaceRole.Primary             -> scheme.primary
+        SurfaceRole.Scrim               -> scheme.scrim
+        SurfaceRole.Custom              -> customArgb?.let { Color(it) } ?: Color.Unspecified
     }
 }

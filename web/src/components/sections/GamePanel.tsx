@@ -27,7 +27,8 @@ function GamePanelView({
   const primaryAction = getPrimarySectionAction(section, 'onTap');
   const config = model.displayConfig;
   const isLive = model.visualState === 'LIVE';
-  const styles = buildStyles(config, isLive);
+  const isFeatured = model.variant === 'featured';
+  const styles = buildStyles(config, isLive, isFeatured);
 
   return (
     <button style={styles.container} onClick={() => primaryAction && onAction(primaryAction)} aria-label={`${model.awayName || model.awayTricode} vs ${model.homeName || model.homeTricode}`} {...accessibilityProps(section.accessibility)}>
@@ -74,7 +75,7 @@ function GamePanelView({
   );
 }
 
-function buildStyles(config: GamePanelDisplayConfig, isLive: boolean): Record<string, React.CSSProperties> {
+function buildStyles(config: GamePanelDisplayConfig, isLive: boolean, isFeatured: boolean): Record<string, React.CSSProperties> {
   const bg = isLive && config.liveBackground
     ? resolveBackgroundCSS(config.liveBackground)
     : resolveBackgroundCSS(config.background);
@@ -82,26 +83,30 @@ function buildStyles(config: GamePanelDisplayConfig, isLive: boolean): Record<st
   const fallbackBg = Object.keys(bg).length === 0 ? { background: 'var(--game-card-bg)' } : {};
   const badgeColor = config.badgeColor ?? (isLive ? 'var(--live)' : 'var(--text-secondary)');
   const isProminent = config.scoreTextStyle === 'prominent';
+  // featured = wider emphasis card (carousel lead); standard/missing keeps the displayConfig-driven defaults.
+  const effectiveRadius = isFeatured && !config.cornerRadius ? 16 : (config.cornerRadius ?? 4);
+  const featuredShadow = '0 6px 20px rgba(0,0,0,0.28), 0 2px 6px rgba(0,0,0,0.16)';
+  const legacyShadow = config.elevation > 0
+    ? `0 ${config.elevation}px ${config.elevation * 2}px rgba(0,0,0,0.3)`
+    : 'none';
 
   return {
     container: {
       position: 'relative',
       width: '100%',
       minHeight: config.cardHeight ? config.cardHeight : 'auto',
-      borderRadius: config.cornerRadius ?? 4,
+      borderRadius: effectiveRadius,
       border: 'none',
       color: 'var(--text-primary)',
-      padding: '16px 20px',
+      padding: isFeatured ? '20px 24px' : '16px 20px',
       cursor: 'pointer',
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'space-between',
-      gap: 8,
+      gap: isFeatured ? 12 : 8,
       margin: '8px 0',
       textAlign: 'center',
-      boxShadow: config.elevation > 0
-        ? `0 ${config.elevation}px ${config.elevation * 2}px rgba(0,0,0,0.3)`
-        : 'none',
+      boxShadow: isFeatured ? featuredShadow : legacyShadow,
       ...fallbackBg,
       ...bg,
     },

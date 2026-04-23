@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.util.ArrayList;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -12,22 +14,29 @@ import org.springframework.stereotype.Component;
 /**
  * Composes the "For You" SDUI screen — the personalised home feed.
  *
- * Layout:
- *   1.  FollowingRail     – horizontal avatar strip of followed teams
- *   2.  GamePanel (featured) – hero live / next-up game
- *   3.  SectionHeader      – "Top Stories"
- *   4.  ContentRail        – highlights / articles
- *   5.  AdSlot             – mid-feed ad 1
- *   6.  SectionHeader      – "Trending Now"
- *   7.  ContentRail        – trending content
- *   8.  AdSlot             – mid-feed ad 2
- *   9.  SectionHeader      – "League Pass Picks"
- *  10.  ContentRail        – League Pass picks
- *  11.  AdSlot             – mid-feed ad 3
- *  12.  SectionHeader      – "Around the League"
- *  13.  ContentRail        – league-wide news
- *  14.  SectionHeader      – "Upcoming Games"
- *  15–17. GamePanel        – next few games from the scoreboard
+ * <p>Section ordering follows the iOS ref app {@code FeedView}: games
+ * carousel first, then featured event, then VOD carousel rails, then a
+ * VOD playlist grouped-list section. Ad slots are woven between major
+ * groups.
+ *
+ * <pre>
+ *   1.  FollowingRail        – horizontal avatar strip
+ *   2.  SectionHeader        – "Upcoming Games"
+ *   3.  AtomicComposite      – horizontal GamePanel carousel (featured lead)
+ *   4.  GamePanel (featured) – hero live / next-up game
+ *   5.  SectionHeader        – "Top Stories"
+ *   6.  ContentRail          – highlights
+ *   7.  AdSlot               – mid-feed 1
+ *   8.  SectionHeader        – "Trending Now"
+ *   9.  ContentRail          – trending content
+ *  10.  AdSlot               – mid-feed 2
+ *  11.  SectionHeader        – "League Pass Picks"
+ *  12.  ContentRail          – LP picks
+ *  13.  AdSlot               – mid-feed 3
+ *  14.  SectionHeader        – "Around the League"
+ *  15.  ContentRail          – league-wide news
+ *  16.  AtomicComposite      – VOD playlist (grouped-list rows)
+ * </pre>
  */
 @Component
 public class ForYouComposer {
@@ -67,54 +76,42 @@ public class ForYouComposer {
 
         ArrayNode sections = objectMapper.createArrayNode();
 
-        // 1. FollowingRail
         sections.add(buildFollowingRail());
 
-        // 2. GamePanel (featured) — try live data, fall back to mock
+        sections.add(buildSectionHeader("upcoming-header", "Upcoming Games",
+                "See Full Schedule", "nba://scoreboard"));
+        addUpcomingGamePanels(sections);
+
         ObjectNode featured = buildFeaturedFromLive();
         if (featured == null) {
             featured = buildMockFeaturedGame();
         }
         sections.add(featured);
 
-        // 3. SectionHeader "Top Stories"
         sections.add(buildSectionHeader("top-stories-header", "Top Stories", null, null));
-
-        // 4. ContentRail — highlights
         sections.add(buildHighlightsRail());
 
-        // 5. AdSlot — mid-feed 1
         sections.add(buildAdSlot("for-you-ad-1", "for_you_ad_1",
                 "/21234567/sports/nba/homepage_mid1", "mid_feed_1"));
 
-        // 6. SectionHeader "Trending Now" + ContentRail
         sections.add(buildSectionHeader("trending-header", "Trending Now", null, null));
         sections.add(buildTrendingRail());
 
-        // 7. AdSlot — mid-feed 2
         sections.add(buildAdSlot("for-you-ad-2", "for_you_ad_2",
                 "/21234567/sports/nba/homepage_mid2", "mid_feed_2"));
 
-        // 8. SectionHeader "League Pass Picks" + ContentRail
         sections.add(buildSectionHeader("lp-picks-header", "League Pass Picks",
                 "Browse League Pass", "nba://leaguepass"));
         sections.add(buildLeaguePassPicksRail());
 
-        // 9. AdSlot — mid-feed 3
         sections.add(buildAdSlot("for-you-ad-3", "for_you_ad_3",
                 "/21234567/sports/nba/homepage_mid3", "mid_feed_3"));
 
-        // 10. SectionHeader "Around the League" + ContentRail
         sections.add(buildSectionHeader("around-league-header", "Around the League",
                 "More Stories", "nba://news"));
         sections.add(buildAroundTheLeagueRail());
 
-        // 11. SectionHeader "Upcoming Games"
-        sections.add(buildSectionHeader("upcoming-header", "Upcoming Games",
-                "See Full Schedule", "nba://scoreboard"));
-
-        // 12–14. GamePanels from scoreboard
-        addUpcomingGamePanels(sections);
+        sections.add(buildVodPlaylistSection());
 
         response.set("sections", sections);
         utils.stampStringTableOnSections(response, locale);
@@ -129,7 +126,7 @@ public class ForYouComposer {
                         "https://cdn.nba.com/headshots/nba/latest/260x190/2544.png",
                         "player", "nba://player/2544"},
                 {"cavaliers", "Cavaliers",
-                        "https://cdn.nba.com/logos/nba/1610612739/global/L/logo.svg",
+                        SduiUtils.teamLogoUrl("1610612739"),
                         "team", "nba://team/1610612739"},
                 {"curry", "S. Curry",
                         "https://cdn.nba.com/headshots/nba/latest/260x190/201939.png",
@@ -196,7 +193,7 @@ public class ForYouComposer {
         data.put("gameStatusText", game.path("gameStatusText").asText(""));
         data.put("gameTimeEt", game.path("gameTimeEt").asText(""));
         data.put("clockRunning", gameStatus == 2);
-        data.set("displayConfig", atomicBuilder.featuredConfig(null, new String[]{"#1D428A", "#C8102E"}));
+        data.set("displayConfig", atomicBuilder.featuredConfig(null, new String[]{ColorTokens.PALETTE_BLUE_30, ColorTokens.BRAND_LIVE}));
         data.set("homeTeam", mapTeam(game.path("homeTeam")));
         data.set("awayTeam", mapTeam(game.path("awayTeam")));
         data.put("badgeText", gameStatus == 2 ? "LIVE" : "UP NEXT");
@@ -211,6 +208,7 @@ public class ForYouComposer {
         data.set("actions", actions);
 
         section.set("data", data);
+        section.set("display", utils.gamePanelDisplay());
         return section;
     }
 
@@ -226,7 +224,7 @@ public class ForYouComposer {
         data.put("gameStatus", 2);
         data.put("gameStatusText", "Q3 5:42");
         data.put("clockRunning", true);
-        data.set("displayConfig", atomicBuilder.featuredConfig(null, new String[]{"#1D428A", "#C8102E"}));
+        data.set("displayConfig", atomicBuilder.featuredConfig(null, new String[]{ColorTokens.PALETTE_BLUE_30, ColorTokens.BRAND_LIVE}));
         data.put("badgeText", "LIVE");
         data.put("visualLabel", "CELTICS");
 
@@ -237,7 +235,7 @@ public class ForYouComposer {
         home.put("teamCity", "Boston");
         home.put("score", 87);
         home.put("record", "4-2");
-        home.put("logoUrl", "https://cdn.nba.com/logos/nba/1610612738/global/L/logo.svg");
+        home.put("logoUrl", SduiUtils.teamLogoUrl("1610612738"));
         data.set("homeTeam", home);
 
         ObjectNode away = objectMapper.createObjectNode();
@@ -247,7 +245,7 @@ public class ForYouComposer {
         away.put("teamCity", "Los Angeles");
         away.put("score", 82);
         away.put("record", "3-3");
-        away.put("logoUrl", "https://cdn.nba.com/logos/nba/1610612747/global/L/logo.svg");
+        away.put("logoUrl", SduiUtils.teamLogoUrl("1610612747"));
         data.set("awayTeam", away);
 
         ArrayNode actions = objectMapper.createArrayNode();
@@ -259,12 +257,15 @@ public class ForYouComposer {
         data.set("actions", actions);
 
         section.set("data", data);
+        section.set("display", utils.gamePanelDisplay());
         return section;
     }
 
     private ObjectNode buildSectionHeader(String id, String title,
                                            String actionLabel, String actionUri) {
-        return atomicBuilder.buildSectionHeader(id, title, null, actionLabel, actionUri);
+        ObjectNode section = atomicBuilder.buildSectionHeader(id, title, null, actionLabel, actionUri);
+        section.set("display", utils.railDisplay());
+        return section;
     }
 
     private ObjectNode buildHighlightsRail() {
@@ -282,8 +283,14 @@ public class ForYouComposer {
                         "https://loremflickr.com/480/270/basketball,trade?lock=24",
                         "article", null, "nba://article/trade-recap"}
         };
-        return atomicBuilder.buildContentRail("for-you-highlights", "for_you_highlights",
-                "Highlights", cards);
+        // Title omitted on the rail itself — the preceding SectionHeader
+        // ("Top Stories") already renders the heading. Emitting a title
+        // here would double up as "Top Stories" + "Highlights" (or any
+        // future rename drift between the two sites).
+        ObjectNode section = atomicBuilder.buildContentRail("for-you-highlights", "for_you_highlights",
+                null, cards);
+        section.set("display", utils.railDisplay());
+        return section;
     }
 
     private ObjectNode buildTrendingRail() {
@@ -301,8 +308,10 @@ public class ForYouComposer {
                         "https://cdn.nba.com/manage/2025/02/nba-standings-graphic-752x428.jpg",
                         "article", null, "nba://article/playoff-picture"}
         };
-        return atomicBuilder.buildContentRail("for-you-trending", "for_you_trending",
-                "Trending Now", cards);
+        ObjectNode section = atomicBuilder.buildContentRail("for-you-trending", "for_you_trending",
+                null, cards);
+        section.set("display", utils.railDisplay());
+        return section;
     }
 
     private ObjectNode buildLeaguePassPicksRail() {
@@ -320,8 +329,36 @@ public class ForYouComposer {
                         "https://cdn.nba.com/manage/2025/02/pacers-magic-rivalry-752x428.jpg",
                         "video", "1:58", "nba://video/ind-orl-hidden-gem"}
         };
-        return atomicBuilder.buildContentRail("for-you-lp-picks", "for_you_lp_picks",
-                "League Pass Picks", cards);
+        ObjectNode section = atomicBuilder.buildContentRail("for-you-lp-picks", "for_you_lp_picks",
+                null, cards);
+        section.set("display", utils.railDisplay());
+        return section;
+    }
+
+    private ObjectNode buildVodPlaylistSection() {
+        // Grouped-list section (iOS `VODPlaylistView`): one surface, N rows
+        // with inset-left dividers. Mix of "live" and on-demand items to
+        // exercise both badge treatments.
+        //   [id, title, subtitle, thumbUrl, duration, isLive, targetUri]
+        String[][] rows = {
+                {"playlist-1", "Giannis goes off for 40", "Last night · Bucks vs Heat",
+                        "https://loremflickr.com/480/270/basketball,giannis?lock=50",
+                        "0:42", "false", "nba://video/giannis-40"},
+                {"playlist-2", "Press conference: Steve Kerr", "Warriors · Postgame",
+                        "https://loremflickr.com/480/270/basketball,press?lock=51",
+                        "6:21", "false", "nba://video/kerr-pressconf"},
+                {"playlist-3", "Lakers vs Nuggets (Live)", "On now · League Pass",
+                        "https://loremflickr.com/480/270/basketball,lakers?lock=52",
+                        null, "true", "nba://video/lakers-nuggets-live"},
+                {"playlist-4", "Top 10 Buzzer Beaters", "Editors' picks",
+                        "https://loremflickr.com/480/270/basketball,buzzer?lock=53",
+                        "4:08", "false", "nba://video/top10-buzzer-beaters"}
+        };
+        return atomicBuilder.buildVodPlaylist(
+                "for-you-vod-playlist",
+                "for_you_vod_playlist",
+                "More to Watch",
+                rows);
     }
 
     private ObjectNode buildAroundTheLeagueRail() {
@@ -339,8 +376,10 @@ public class ForYouComposer {
                         "https://cdn.nba.com/manage/2025/02/allstar-weekend-recap-752x428.jpg",
                         "video", "5:10", "nba://video/allstar-recap"}
         };
-        return atomicBuilder.buildContentRail("for-you-around-league", "for_you_around_league",
-                "Around the League", cards);
+        ObjectNode section = atomicBuilder.buildContentRail("for-you-around-league", "for_you_around_league",
+                null, cards);
+        section.set("display", utils.railDisplay());
+        return section;
     }
 
     private ObjectNode buildAdSlot(String id, String analyticsId,
@@ -350,6 +389,7 @@ public class ForYouComposer {
         section.put("type", "AdSlot");
         section.put("analyticsId", analyticsId);
         section.set("refreshPolicy", staticPolicy());
+        section.set("display", utils.defaultSectionDisplay());
 
         ObjectNode data = objectMapper.createObjectNode();
         data.put("provider", "gam");
@@ -374,34 +414,51 @@ public class ForYouComposer {
         data.put("collapseOnEmpty", true);
         data.put("label", "Advertisement");
 
+        ObjectNode placeholder = objectMapper.createObjectNode();
+        placeholder.put("backgroundColor", "token:color.surface.sunken");
+        placeholder.put("text", "Advertisement");
+        data.set("placeholder", placeholder);
+
         section.set("data", data);
         return section;
     }
 
     private void addUpcomingGamePanels(ArrayNode sections) {
+        List<ObjectNode> carouselGames = new ArrayList<>();
+
         try {
             JsonNode scoreboard = statsApiClient.getScoreboard();
             if (scoreboard != null) {
                 JsonNode games = scoreboard.path("scoreboard").path("games");
                 int count = 0;
                 for (JsonNode game : games) {
-                    if (count >= 3) break;
+                    // iOS ref app shows 5 cards in its upcoming carousel; cap here so the
+                    // composite stays inside the AtomicComposite 20-children budget with
+                    // plenty of headroom.
+                    if (count >= 5) break;
                     String gameId = game.path("gameId").asText(null);
                     if (gameId == null) continue;
-                    sections.add(buildGamePanelSection(game, gameId));
+                    carouselGames.add(buildGamePanelSection(game, gameId));
                     count++;
                 }
-                if (count > 0) return;
             }
         } catch (Exception e) {
             log.warn("Failed to add upcoming games from live data: {}", e.getMessage());
         }
 
-        // Fallback mock
-        sections.add(buildMockGamePanel("0022400010", "PHX", 1610612756, "MIL", 1610612749,
-                "7:30 PM ET", 1));
-        sections.add(buildMockGamePanel("0022400011", "DAL", 1610612742, "DEN", 1610612743,
-                "10:00 PM ET", 1));
+        if (carouselGames.isEmpty()) {
+            carouselGames.add(buildMockGamePanel("0022400010", "PHX", 1610612756, "MIL", 1610612749,
+                    "7:30 PM ET", 1));
+            carouselGames.add(buildMockGamePanel("0022400011", "DAL", 1610612742, "DEN", 1610612743,
+                    "10:00 PM ET", 1));
+            carouselGames.add(buildMockGamePanel("0022400012", "GSW", 1610612744, "OKC", 1610612760,
+                    "10:30 PM ET", 1));
+        }
+
+        sections.add(atomicBuilder.buildGameCarousel(
+                "upcoming-games-carousel",
+                "for_you_upcoming_carousel",
+                carouselGames));
     }
 
     private ObjectNode buildGamePanelSection(JsonNode game, String gameId) {
@@ -451,7 +508,7 @@ public class ForYouComposer {
         away.put("teamName", awayTri);
         away.put("teamCity", awayTri);
         away.put("score", 0);
-        away.put("logoUrl", "https://cdn.nba.com/logos/nba/" + awayId + "/global/L/logo.svg");
+        away.put("logoUrl", SduiUtils.teamLogoUrl(awayId));
         data.set("awayTeam", away);
 
         ObjectNode home = objectMapper.createObjectNode();
@@ -460,7 +517,7 @@ public class ForYouComposer {
         home.put("teamName", homeTri);
         home.put("teamCity", homeTri);
         home.put("score", 0);
-        home.put("logoUrl", "https://cdn.nba.com/logos/nba/" + homeId + "/global/L/logo.svg");
+        home.put("logoUrl", SduiUtils.teamLogoUrl(homeId));
         data.set("homeTeam", home);
 
         ArrayNode actions = objectMapper.createArrayNode();
@@ -487,7 +544,7 @@ public class ForYouComposer {
         int wins = team.path("wins").asInt(0);
         int losses = team.path("losses").asInt(0);
         mapped.put("record", wins + "-" + losses);
-        mapped.put("logoUrl", "https://cdn.nba.com/logos/nba/" + team.path("teamId").asText() + "/global/L/logo.svg");
+        mapped.put("logoUrl", SduiUtils.teamLogoUrl(team.path("teamId").asText()));
         return mapped;
     }
 

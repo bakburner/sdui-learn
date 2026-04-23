@@ -13,6 +13,7 @@ import { AtomicRouter } from './atomic';
 import type { AtomicCompositeData } from './atomic';
 import { LiveSectionWrapper } from './LiveSectionWrapper';
 import { SectionErrorBoundary } from './SectionErrorBoundary';
+import { SectionContainer } from './SectionContainer';
 import { useImpressionTracking } from '../hooks/useImpressionTracking';
 
 export interface SectionProps {
@@ -41,34 +42,44 @@ function SectionRenderer({
   onStateChange 
 }: SectionProps): React.ReactElement | null {
   const commonProps = { section, state, onAction, onStateChange };
+  // Every section, permanent or AtomicComposite, is wrapped by
+  // SectionContainer so outer chrome is server-driven via
+  // `section.display` (§15.3). `SectionContainer` is a no-op when
+  // `display` is undefined, so AtomicComposites whose root Container
+  // already carries its own padding/background/shadow are unaffected —
+  // composers opt into outer margin/chrome by emitting a `display`
+  // block on the section envelope.
+  const wrap = (node: React.ReactElement): React.ReactElement => (
+    <SectionContainer display={section.display}>{node}</SectionContainer>
+  );
 
   switch (section.type) {
     case 'TabGroup':
-      return <TabGroup {...commonProps} />;
-      
+      return wrap(<TabGroup {...commonProps} />);
+
     case 'GamePanel':
-      return <GamePanel {...commonProps} />;
+      return wrap(<GamePanel {...commonProps} />);
 
     case 'BoxscoreTable':
-      return <BoxscoreTable {...commonProps} />;
+      return wrap(<BoxscoreTable {...commonProps} />);
 
     case 'Form':
-      return <Form {...commonProps} />;
+      return wrap(<Form {...commonProps} />);
 
     case 'AdSlot':
-      return <AdSlot {...commonProps} />;
+      return wrap(<AdSlot {...commonProps} />);
 
     case 'SeasonLeadersTable':
-      return <SeasonLeadersTable {...commonProps} />;
+      return wrap(<SeasonLeadersTable {...commonProps} />);
 
     case 'SubscribeBanner':
-      return <SubscribeBanner {...commonProps} />;
+      return wrap(<SubscribeBanner {...commonProps} />);
 
     case 'SubscribeHero':
-      return <SubscribeHero {...commonProps} />;
+      return wrap(<SubscribeHero {...commonProps} />);
 
     case 'VideoPlayer':
-      return <VideoPlayerStub section={section} onAction={onAction} />;
+      return wrap(<VideoPlayerStub section={section} onAction={onAction} />);
 
     case 'AtomicComposite': {
       const compositeData = section.data as unknown as AtomicCompositeData | undefined;
@@ -76,7 +87,7 @@ function SectionRenderer({
         console.debug(`[SectionRouter] AtomicComposite section ${section.id} has no ui element`);
         return null;
       }
-      return <AtomicRouter element={compositeData.ui} state={state} onAction={onAction} onStateChange={onStateChange} />;
+      return wrap(<AtomicRouter element={compositeData.ui} state={state} onAction={onAction} onStateChange={onStateChange} />);
     }
       
     default:

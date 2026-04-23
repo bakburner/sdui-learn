@@ -3,11 +3,8 @@ import type { AtomicProps } from './AtomicRouter';
 import type { DisplayGridColumn } from './AtomicElement';
 import { accessibilityProps } from '../../utils/accessibility';
 
-const variantFontSize: Record<string, number> = {
-  labelSmall: 11, labelMedium: 12, labelLarge: 14,
-  bodySmall: 12, bodyMedium: 14, bodyLarge: 16,
-  titleSmall: 14, titleMedium: 16, titleLarge: 22,
-};
+const HEADER_FONT_SIZE = 12;
+const CELL_FONT_SIZE = 14;
 
 function alignToCSS(align?: string): React.CSSProperties['textAlign'] {
   if (align === 'center') return 'center';
@@ -25,11 +22,8 @@ function alignToCSS(align?: string): React.CSSProperties['textAlign'] {
  * use a dedicated section renderer.
  */
 export function AtomicDisplayGrid({ element }: AtomicProps): React.ReactElement | null {
-  const { columns, rows, headerVariant, cellVariant, striped } = element;
+  const { columns, rows, striped } = element;
   if (!columns || !rows) return null;
-
-  const headerSize = variantFontSize[headerVariant ?? 'labelMedium'] ?? 12;
-  const cellSize = variantFontSize[cellVariant ?? 'bodyMedium'] ?? 14;
 
   const tableStyle: React.CSSProperties = {
     width: '100%',
@@ -37,7 +31,7 @@ export function AtomicDisplayGrid({ element }: AtomicProps): React.ReactElement 
   };
 
   const thStyle = (col: DisplayGridColumn): React.CSSProperties => ({
-    fontSize: headerSize,
+    fontSize: HEADER_FONT_SIZE,
     fontWeight: 600,
     textAlign: alignToCSS(col.align),
     padding: '4px 8px',
@@ -47,7 +41,7 @@ export function AtomicDisplayGrid({ element }: AtomicProps): React.ReactElement 
   });
 
   const tdStyle = (col: DisplayGridColumn): React.CSSProperties => ({
-    fontSize: cellSize,
+    fontSize: CELL_FONT_SIZE,
     textAlign: alignToCSS(col.align),
     padding: '4px 8px',
     ...(col.width && col.width !== 'flex' ? { width: col.width } : {}),

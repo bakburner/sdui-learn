@@ -4,15 +4,21 @@ import { DEFAULT_FALLBACK_IMAGE } from '../../utils/constants';
 import { accessibilityProps } from '../../utils/accessibility';
 
 /**
- * SubscribeHero — full-screen subscription upsell with feature list and pricing tiers.
+ * SubscribeHero — full-card subscription upsell with feature list and
+ * pricing tiers.
+ *
+ * Outer chrome (margin, radius, gradient background, inner padding)
+ * comes from `section.display` via `SectionContainer` — this renderer
+ * only lays out the hero's content (logo, title, subtitle, features,
+ * tier cards). Tier-card surfaces remain client-owned for now (inner
+ * content chrome). See AGENTS.md §15.3.
  *
  * Expected data:
- *   title              – main heading
- *   subtitle           – supporting tagline
- *   background – hero background (BackgroundImage object)
- *   logoUrl            – brand logo
- *   features[]         – bullet-point strings
- *   tiers[]            – SubscriptionTier objects { id, name, price, originalPrice, badgeText, features[], ctaLabel, ctaAction }
+ *   title     – main heading
+ *   subtitle  – supporting tagline
+ *   logoUrl   – brand logo
+ *   features[] – bullet-point strings
+ *   tiers[]    – SubscriptionTier objects
  */
 export function SubscribeHero({ section, onAction }: SectionProps): React.ReactElement | null {
   const data = section.data as Record<string, unknown> | undefined;
@@ -20,112 +26,69 @@ export function SubscribeHero({ section, onAction }: SectionProps): React.ReactE
 
   const title = data.title as string | undefined;
   const subtitle = data.subtitle as string | undefined;
-  const bgRaw = data.background;
-  const bgUrl = (bgRaw && typeof bgRaw === 'object' && 'imageUrl' in bgRaw)
-    ? (bgRaw as any).imageUrl as string
-    : undefined;
   const logoUrl = data.logoUrl as string | undefined;
   const features = (data.features as string[]) ?? [];
   const tiers = (data.tiers as Array<Record<string, unknown>>) ?? [];
-  const fallbackUrl = (data.fallbackThumbnailUrl as string | undefined) ?? DEFAULT_FALLBACK_IMAGE;
 
   return (
-    <div style={styles.wrapper} {...accessibilityProps(section.accessibility)}>
-      <div style={styles.hero}>
-        {bgUrl && (
-          <img
-            src={bgUrl}
-            alt=""
-            style={styles.bgImage}
-            onError={(e) => {
-              const img = e.currentTarget;
-              if (fallbackUrl && img.src !== fallbackUrl) img.src = fallbackUrl;
-            }}
-          />
-        )}
+    <div style={styles.content} {...accessibilityProps(section.accessibility)}>
+      {logoUrl && <img src={logoUrl} alt="NBA League Pass" style={styles.logo}
+        onError={(e) => { const img = e.currentTarget; if (img.src !== DEFAULT_FALLBACK_IMAGE) img.src = DEFAULT_FALLBACK_IMAGE; }} />}
+      {title && <h2 style={styles.title}>{title}</h2>}
+      {subtitle && <p style={styles.subtitle}>{subtitle}</p>}
 
-        <div style={styles.content}>
-          {logoUrl && <img src={logoUrl} alt="NBA League Pass" style={styles.logo}
-            onError={(e) => { const img = e.currentTarget; if (img.src !== DEFAULT_FALLBACK_IMAGE) img.src = DEFAULT_FALLBACK_IMAGE; }} />}
-          {title && <h2 style={styles.title}>{title}</h2>}
-          {subtitle && <p style={styles.subtitle}>{subtitle}</p>}
+      {features.length > 0 && (
+        <ul style={styles.featureList}>
+          {features.map((f, i) => (
+            <li key={i} style={styles.feature}>
+              <span style={styles.check}>✓</span> {f}
+            </li>
+          ))}
+        </ul>
+      )}
 
-          {/* Feature bullets */}
-          {features.length > 0 && (
-            <ul style={styles.featureList}>
-              {features.map((f, i) => (
-                <li key={i} style={styles.feature}>
-                  <span style={styles.check}>✓</span> {f}
-                </li>
-              ))}
-            </ul>
-          )}
+      <div style={styles.tiersRow}>
+        {tiers.map((tier, i) => {
+          const name = tier.name as string ?? '';
+          const price = tier.price as string ?? '';
+          const originalPrice = tier.originalPrice as string | undefined;
+          const badgeText = tier.badgeText as string | undefined;
+          const tierFeatures = (tier.features as string[]) ?? [];
+          const ctaLabel = (tier.ctaLabel as string) ?? 'Subscribe';
+          const ctaAction = tier.ctaAction as Record<string, unknown> | undefined;
 
-          {/* Pricing tiers */}
-          <div style={styles.tiersRow}>
-            {tiers.map((tier, i) => {
-              const name = tier.name as string ?? '';
-              const price = tier.price as string ?? '';
-              const originalPrice = tier.originalPrice as string | undefined;
-              const badgeText = tier.badgeText as string | undefined;
-              const tierFeatures = (tier.features as string[]) ?? [];
-              const ctaLabel = (tier.ctaLabel as string) ?? 'Subscribe';
-              const ctaAction = tier.ctaAction as Record<string, unknown> | undefined;
-
-              return (
-                <div key={(tier.id as string) ?? i} style={styles.tierCard}>
-                  {badgeText && <span style={styles.tierBadge}>{badgeText}</span>}
-                  <span style={styles.tierName}>{name}</span>
-                  <div style={styles.priceRow}>
-                    <span style={styles.tierPrice}>{price}</span>
-                    {originalPrice && <span style={styles.tierOriginal}>{originalPrice}</span>}
-                  </div>
-                  {tierFeatures.length > 0 && (
-                    <ul style={styles.tierFeatures}>
-                      {tierFeatures.map((f, j) => (
-                        <li key={j} style={styles.tierFeatureItem}>• {f}</li>
-                      ))}
-                    </ul>
-                  )}
-                  <button
-                    style={styles.tierCta}
-                    aria-label={`Subscribe to ${name}`}
-                    onClick={() => ctaAction && onAction(ctaAction as any)}
-                  >
-                    {ctaLabel}
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+          return (
+            <div key={(tier.id as string) ?? i} style={styles.tierCard}>
+              {badgeText && <span style={styles.tierBadge}>{badgeText}</span>}
+              <span style={styles.tierName}>{name}</span>
+              <div style={styles.priceRow}>
+                <span style={styles.tierPrice}>{price}</span>
+                {originalPrice && <span style={styles.tierOriginal}>{originalPrice}</span>}
+              </div>
+              {tierFeatures.length > 0 && (
+                <ul style={styles.tierFeatures}>
+                  {tierFeatures.map((f, j) => (
+                    <li key={j} style={styles.tierFeatureItem}>• {f}</li>
+                  ))}
+                </ul>
+              )}
+              <button
+                style={styles.tierCta}
+                aria-label={`Subscribe to ${name}`}
+                onClick={() => ctaAction && onAction(ctaAction as any)}
+              >
+                {ctaLabel}
+              </button>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 }
 
 const styles: Record<string, React.CSSProperties> = {
-  wrapper: {
-    padding: '8px 16px',
-  },
-  hero: {
-    position: 'relative',
-    borderRadius: 16,
-    overflow: 'hidden',
-    background: 'linear-gradient(180deg, #0c1b3a 0%, #1d428a 100%)',
-  },
-  bgImage: {
-    position: 'absolute',
-    inset: 0,
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover',
-    opacity: 0.2,
-    pointerEvents: 'none',
-  },
   content: {
-    position: 'relative',
-    padding: '32px 24px',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',

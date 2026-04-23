@@ -302,7 +302,7 @@ public class DemoScreenComposer {
         home.put("teamName", "Celtics");
         home.put("teamCity", "Boston");
         home.put("score", 94);
-        home.put("logoUrl", "https://cdn.nba.com/logos/nba/1610612738/primary/L/logo.svg");
+        home.put("logoUrl", SduiUtils.teamLogoUrl("1610612738"));
         data.set("homeTeam", home);
 
         ObjectNode away = objectMapper.createObjectNode();
@@ -311,7 +311,7 @@ public class DemoScreenComposer {
         away.put("teamName", "Lakers");
         away.put("teamCity", "Los Angeles");
         away.put("score", 89);
-        away.put("logoUrl", "https://cdn.nba.com/logos/nba/1610612747/primary/L/logo.svg");
+        away.put("logoUrl", SduiUtils.teamLogoUrl("1610612747"));
         data.set("awayTeam", away);
 
         ArrayNode actions = objectMapper.createArrayNode();
@@ -323,6 +323,7 @@ public class DemoScreenComposer {
         data.set("actions", actions);
 
         section.set("data", data);
+        section.set("display", utils.gamePanelDisplay());
         return section;
     }
 
@@ -340,15 +341,24 @@ public class DemoScreenComposer {
     }
 
     /**
-     * 3. PromoBanner — "Welcome to SDUI" with gradient background.
+     * 3. PromoBanner — "Welcome to SDUI" card with the same branded
+     * gradient + outer chrome as the Subscribe-Now card treatment.
+     * Root container carries no background — `section.display`
+     * (subscribeCardDisplay) owns the gradient, rounded corners,
+     * shadow and outer margin via the shared SectionContainer.
      */
     private ObjectNode buildDemoPromoBanner() {
-        return atomicBuilder.buildPromoBanner(
+        ObjectNode section = atomicBuilder.buildPromoBanner(
                 "demo-promo-banner", "demo_promo_banner",
                 "Welcome to SDUI", null,
                 "All 20 semantic section types rendered from a single server response.",
                 "https://loremflickr.com/800/200/basketball,nba?lock=1",
-                "#17408B", "Learn More", "nba://scoreboard");
+                "Learn More", "nba://scoreboard");
+        section.set("display", utils.subscribeCardDisplay(
+                "#0C1B3A",
+                ColorTokens.BRAND_NBA,
+                20));
+        return section;
     }
 
     /**
@@ -399,7 +409,7 @@ public class DemoScreenComposer {
         home.put("teamName", "Warriors");
         home.put("teamCity", "Golden State");
         home.put("score", 112);
-        home.put("logoUrl", "https://cdn.nba.com/logos/nba/1610612744/primary/L/logo.svg");
+        home.put("logoUrl", SduiUtils.teamLogoUrl("1610612744"));
         data.set("homeTeam", home);
 
         ObjectNode away = objectMapper.createObjectNode();
@@ -408,7 +418,7 @@ public class DemoScreenComposer {
         away.put("teamName", "Rockets");
         away.put("teamCity", "Houston");
         away.put("score", 105);
-        away.put("logoUrl", "https://cdn.nba.com/logos/nba/1610612745/primary/L/logo.svg");
+        away.put("logoUrl", SduiUtils.teamLogoUrl("1610612745"));
         data.set("awayTeam", away);
 
         ArrayNode actions = objectMapper.createArrayNode();
@@ -420,6 +430,7 @@ public class DemoScreenComposer {
         data.set("actions", actions);
 
         section.set("data", data);
+        section.set("display", utils.gamePanelDisplay());
         return section;
     }
 
@@ -523,8 +534,12 @@ public class DemoScreenComposer {
         ObjectNode data = objectMapper.createObjectNode();
         data.put("teamTricode", "BOS");
         data.put("teamName", "Boston Celtics");
+        // NBA brand guideline: team primary colors are brand assets owned by the team,
+        // not design-system tokens. BOS primary = PMS 342 (#007A33). If Rights
+        // & Brand ever changes the mapping, update here — the color registry is
+        // not the source of truth for team brand identity.
         data.put("teamColor", "#007A33");
-        data.put("teamLogoUrl", "https://cdn.nba.com/logos/nba/1610612738/primary/L/logo.svg");
+        data.put("teamLogoUrl", SduiUtils.teamLogoUrl("1610612738"));
 
         ArrayNode columns = objectMapper.createArrayNode();
         columns.add(utils.colDef("min", "MIN", true, false, null));
@@ -667,6 +682,7 @@ public class DemoScreenComposer {
         section.put("type", "AdSlot");
         section.put("analyticsId", "demo_ad_slot");
         section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
+        section.set("display", utils.defaultSectionDisplay());
 
         ObjectNode data = objectMapper.createObjectNode();
         data.put("provider", "gam");
@@ -690,6 +706,11 @@ public class DemoScreenComposer {
 
         data.put("collapseOnEmpty", true);
         data.put("label", "Advertisement");
+
+        ObjectNode placeholder = objectMapper.createObjectNode();
+        placeholder.put("backgroundColor", "token:color.surface.sunken");
+        placeholder.put("text", "Advertisement");
+        data.set("placeholder", placeholder);
 
         section.set("data", data);
         return section;
@@ -719,7 +740,7 @@ public class DemoScreenComposer {
         data.put("gameTimeEt", "2025-03-11T19:30:00-04:00");
         data.set("displayConfig", atomicBuilder.featuredConfig(
                 "https://loremflickr.com/1200/600/basketball,arena?lock=9",
-                new String[]{"#1D428A", "#C8102E"}));
+                new String[]{ColorTokens.PALETTE_BLUE_30, ColorTokens.BRAND_LIVE}));
         data.put("fallbackThumbnailUrl", FALLBACK_THUMB);
         data.put("badgeText", "LIVE");
 
@@ -729,7 +750,7 @@ public class DemoScreenComposer {
         home.put("teamName", "Heat");
         home.put("teamCity", "Miami");
         home.put("score", 101);
-        home.put("logoUrl", "https://cdn.nba.com/logos/nba/1610612748/primary/L/logo.svg");
+        home.put("logoUrl", SduiUtils.teamLogoUrl("1610612748"));
         data.set("homeTeam", home);
 
         ObjectNode away = objectMapper.createObjectNode();
@@ -738,7 +759,7 @@ public class DemoScreenComposer {
         away.put("teamName", "Nets");
         away.put("teamCity", "Brooklyn");
         away.put("score", 97);
-        away.put("logoUrl", "https://cdn.nba.com/logos/nba/1610612751/primary/L/logo.svg");
+        away.put("logoUrl", SduiUtils.teamLogoUrl("1610612751"));
         data.set("awayTeam", away);
 
         ArrayNode actions = objectMapper.createArrayNode();
@@ -794,6 +815,10 @@ public class DemoScreenComposer {
         section.put("type", "SubscribeBanner");
         section.put("analyticsId", "demo_subscribe_banner");
         section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
+        section.set("display", utils.subscribeCardDisplay(
+                ColorTokens.BRAND_NBA,
+                "#862633",
+                20));
 
         ObjectNode data = objectMapper.createObjectNode();
         data.put("title", "Never Miss a Game");
@@ -825,6 +850,10 @@ public class DemoScreenComposer {
         section.put("type", "SubscribeHero");
         section.put("analyticsId", "demo_subscribe_hero");
         section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
+        section.set("display", utils.subscribeCardDisplay(
+                "#0C1B3A",
+                ColorTokens.BRAND_NBA,
+                24));
 
         ObjectNode data = objectMapper.createObjectNode();
         data.put("title", "NBA League Pass");
@@ -893,10 +922,10 @@ public class DemoScreenComposer {
      */
     private ObjectNode buildDemoFollowingRail() {
         String[][] items = {
-            {"team-lal", "Lakers", "https://cdn.nba.com/logos/nba/1610612747/primary/L/logo.svg", "team", "nba://team/1610612747"},
-            {"team-bos", "Celtics", "https://cdn.nba.com/logos/nba/1610612738/primary/L/logo.svg", "team", "nba://team/1610612738"},
+            {"team-lal", "Lakers", SduiUtils.teamLogoUrl("1610612747"), "team", "nba://team/1610612747"},
+            {"team-bos", "Celtics", SduiUtils.teamLogoUrl("1610612738"), "team", "nba://team/1610612738"},
             {"player-luka", "Luka Dončić", "https://cdn.nba.com/headshots/nba/latest/1040x760/203999.png", "player", "nba://player/203999"},
-            {"team-gsw", "Warriors", "https://cdn.nba.com/logos/nba/1610612744/primary/L/logo.svg", "team", "nba://team/1610612744"},
+            {"team-gsw", "Warriors", SduiUtils.teamLogoUrl("1610612744"), "team", "nba://team/1610612744"},
             {"player-sga", "Shai Gilgeous-Alexander", "https://cdn.nba.com/headshots/nba/latest/1040x760/1630175.png", "player", "nba://player/1630175"}
         };
         return atomicBuilder.buildFollowingRail(
@@ -929,7 +958,7 @@ public class DemoScreenComposer {
                 "demo-display-grid", "demo_display_grid",
                 "Eastern Conference Standings",
                 columns, rows,
-                "labelMedium", "bodySmall", false);
+                false);
     }
 
     /**
@@ -954,9 +983,21 @@ public class DemoScreenComposer {
         ObjectNode adSection = objectMapper.createObjectNode();
         adSection.put("id", "demo-inline-ad");
         adSection.put("type", "AdSlot");
+        adSection.set("display", utils.defaultSectionDisplay());
         ObjectNode adData = objectMapper.createObjectNode();
+        adData.put("provider", "gam");
         adData.put("adUnitPath", "/nba/game-card-inline");
-        adData.put("size", "banner");
+        ArrayNode adSizes = objectMapper.createArrayNode();
+        ArrayNode adSize = objectMapper.createArrayNode();
+        adSize.add(320); adSize.add(50);
+        adSizes.add(adSize);
+        adData.set("sizes", adSizes);
+        adData.put("collapseOnEmpty", true);
+        adData.put("label", "Advertisement");
+        ObjectNode adPlaceholder = objectMapper.createObjectNode();
+        adPlaceholder.put("backgroundColor", "token:color.surface.sunken");
+        adPlaceholder.put("text", "Advertisement");
+        adData.set("placeholder", adPlaceholder);
         adSection.set("data", adData);
         ObjectNode adRefresh = objectMapper.createObjectNode();
         adRefresh.put("type", "static");
@@ -971,7 +1012,7 @@ public class DemoScreenComposer {
         ObjectNode root = objectMapper.createObjectNode();
         root.put("type", "Container");
         root.put("direction", "column");
-        root.put("background", "#1A1A2E");
+        root.put("background", ColorTokens.SURFACE_CANVAS);
         root.put("cornerRadius", 12);
         ObjectNode padding = objectMapper.createObjectNode();
         padding.put("start", 16); padding.put("end", 16);
@@ -985,19 +1026,19 @@ public class DemoScreenComposer {
         title.put("content", "LAL vs BOS");
         title.put("variant", "titleMedium");
         title.put("weight", "bold");
-        title.put("color", "#FFFFFF");
+        title.put("color", ColorTokens.TEXT_PRIMARY);
         children.add(title);
 
         ObjectNode subtitle = objectMapper.createObjectNode();
         subtitle.put("type", "Text");
         subtitle.put("content", "Q3 5:42 \u2022 LAL 87 - BOS 82");
         subtitle.put("variant", "bodySmall");
-        subtitle.put("color", "#7a8baa");
+        subtitle.put("color", ColorTokens.TEXT_TERTIARY);
         children.add(subtitle);
 
         ObjectNode divider = objectMapper.createObjectNode();
         divider.put("type", "Divider");
-        divider.put("color", "#333333");
+        divider.put("color", ColorTokens.BORDER_DEFAULT);
         divider.put("thickness", 1);
         children.add(divider);
 

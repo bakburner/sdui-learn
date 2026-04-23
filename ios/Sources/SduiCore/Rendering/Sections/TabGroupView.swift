@@ -16,6 +16,7 @@ struct TabGroupView: View {
             let stateKey = data.stateKey ?? "tab"
             let selectedTab = screenState.getString(stateKey)
                 ?? data.defaultTab
+                ?? tabs.first?.stateValue
                 ?? tabs.first?.id
                 ?? ""
 
@@ -25,9 +26,9 @@ struct TabGroupView: View {
                         ForEach(tabs, id: \.id) { tab in
                             tabButton(
                                 tab: tab,
-                                isSelected: tab.id == selectedTab,
+                                isSelected: (tab.stateValue ?? tab.id) == selectedTab,
                                 onSelect: {
-                                    screenState.set(stateKey, value: tab.id)
+                                    screenState.set(stateKey, value: tab.stateValue ?? tab.id)
                                 }
                             )
                         }

@@ -1,8 +1,11 @@
 import SwiftUI
 
-/// Stub renderer for VideoPlayer sections.
-/// Displays a placeholder showing playerType + contentId.
-/// Will be replaced with actual platform video SDK integration.
+/// Stub renderer for VideoPlayer sections. Will be replaced with the
+/// platform video SDK in a later phase; until then renders a
+/// placeholder play icon. Outer chrome (background, corner radius)
+/// comes from `section.display` via `SectionContainer`. The renderer
+/// only owns the 16:9 content frame and the placeholder glyph —
+/// see AGENTS.md §15.1(2) and §15.3.
 struct VideoPlayerStubView: View {
     let section: Section
     let onAction: (Action) -> Void
@@ -16,21 +19,21 @@ struct VideoPlayerStubView: View {
     }
 
     var body: some View {
-        ZStack {
-            color(from: "#1A1F2E") ?? Color.black
-            VStack(spacing: 8) {
-                Image(systemName: "play.fill")
-                    .font(.system(size: 48))
-                    .foregroundColor(.white)
-                Text("Video Player")
-                    .font(.headline)
-                    .foregroundColor(.white)
-                Text("\(playerType) • \(contentId)")
-                    .font(.caption)
-                    .foregroundColor(color(from: "#888888") ?? .gray)
-            }
-        }
-        .aspectRatio(16 / 9, contentMode: .fit)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        Color.clear
+            .aspectRatio(16 / 9, contentMode: .fit)
+            .frame(maxWidth: .infinity)
+            .overlay(
+                VStack(spacing: 8) {
+                    Image(systemName: "play.fill")
+                        .font(.system(size: 48))
+                        .foregroundColor(.white)
+                    Text("Video Player")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                    Text("\(playerType) • \(contentId)")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.6))
+                }
+            )
     }
 }

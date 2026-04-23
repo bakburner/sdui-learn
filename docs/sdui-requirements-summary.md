@@ -704,6 +704,8 @@ stateDiagram-v2
 
 ### 9d. Section Lifecycle & Lazy Loading
 
+> **Status: Built** (visibility-gated refresh). See `docs/plans/plan-visibility-gated-refresh.md`.
+
 Airbnb and DoorDash implement section-level lazy loading for long scrolling screens.
 
 **What's needed:**
@@ -712,7 +714,15 @@ Airbnb and DoorDash implement section-level lazy loading for long scrolling scre
 - This is critical for the game detail page which could have 10+ sections — you don't want to open 10 SSE connections simultaneously on screen load
 - Section lifecycle management: connect data binding when visible, disconnect when scrolled far out of viewport
 
-**Decision required:** Define viewport proximity threshold for lazy loading triggers and whether to disconnect bindings for off-screen sections.
+**What's built:**
+- `pauseWhenOffScreen` field on `RefreshPolicy` (boolean, default `true`) — server controls which sections pause when off-screen
+- App background/foreground lifecycle pause (Phase 0): all refresh activity stops when the app/tab is backgrounded
+- Viewport visibility detection: 1.5× viewport lookahead with 500ms exit debounce (web `IntersectionObserver`, Android `LazyListState`, iOS `LazyVStack`)
+- Poll gating: poll loops suspend when section leaves viewport, resume with immediate fetch on re-entry
+- SSE gating: messages are buffered (latest only) when section is off-screen; applied on re-entry
+- Server sets `pauseWhenOffScreen: false` on critical live GamePanel sections
+
+**Remaining:** Eager/lazy initial-load trigger (§9d original `loading` field) is not yet built — the current implementation gates ongoing refresh but does not defer initial data fetch.
 
 ### 9e. Caching & Offline Support
 
@@ -751,12 +761,17 @@ sequenceDiagram
 
 ### 9g. Theming & Dark Mode
 
-**What's needed:**
-- Server can specify theme-aware values: `"color": { "light": "#1A1A2E", "dark": "#F5F5F5" }`
-- Or the server sends semantic color tokens (e.g., `"textPrimary"`) that resolve to the client's current theme
-- Avoids hardcoding colors in server responses that break in dark mode
+**Built.** Two-layer theming built across the stack, landing as the **three layers** of the SDUI design system. See the full reference at [`sdui-design-system.md`](sdui-design-system.md).
 
-**Decision required:** Whether the server sends literal color values per theme or semantic tokens. Recommendation: semantic tokens that map to your design system, with literal overrides available for special cases (e.g., team colors that don't change with theme).
+**Layer 2 — Variants (platform-native surfaces, `plan-style-token-variants.md`).** The `variant: string` field on `AtomicElement` carries per-primitive semantic presets (`ContainerVariant`, `ImageVariant`, `TextVariant`, `ButtonVariant`). Each platform resolves variants to its native design language with per-OS-tier realization: Liquid Glass / `.ultraThinMaterial` / solid-fallback on iOS (26+, 17–25, <17), Material 3 Expressive / Material You / flat Material on Android (15+, 12–14, <12), and `backdrop-filter` / solid-fallback on web (modern vs. fallback via feature detection). Dark-mode specs are mandatory at every declared tier. Per-variant override matrices (`allow` / `lock` / per-platform object) govern whether inline style properties override variant defaults, with `variant_override_blocked` emitted when an inline prop tries to override a locked axis. Registry: [`schema/style-tokens.json`](../schema/style-tokens.json); CI validator: [`scripts/validate-style-tokens.js`](../scripts/validate-style-tokens.js).
+
+**Layer 3 — Color tokens (`plan-theming-design-tokens.md`).** The `ColorToken` wire type accepts either a literal hex (`#RRGGBB` / `#RRGGBBAA`) or a semantic reference (`token:color.brand.nba`, `token:color.text.primary`). The registry at [`schema/color-tokens.json`](../schema/color-tokens.json) is two-tier — **palette primitives** with literal `{ light, dark }` hex pairs, plus **semantic aliases** that point to palette primitives by name. Clients resolve tokens at render time against their hand-mirrored registry snapshots, picking light or dark from the OS color scheme (`@Environment(\.colorScheme)`, `isSystemInDarkTheme()`, `prefers-color-scheme`). Unknown tokens log `token_resolver_missing` and fall back to the caller's default color. Server composers emit tokens via a `ColorTokens` constants class (`server/src/main/java/com/nba/sdui/service/ColorTokens.java`); a `TokenRegistry` bean loads the JSON registry at startup, and a `TokenRegistryConsistencyCheck` post-construct bean fails Spring boot if any constant references a name not in the registry. Wave 1 migration covers `AtomicCompositeBuilder`, `GameDetailComposer`, `ScheduleComposer`, `LiveComposer`, `ForYouComposer`, and `DemoScreenComposer`. Remaining alpha-bearing hex literals (e.g. `#000000B3` scrims) stay inline — they encode compositing alpha, not design-system colors. Team brand primary colors (`SduiUtils.getTeamPrimaryColor`) also stay inline and cite the NBA team style guide — per NBA brand guidelines, team colors are brand assets owned by each team, not design-system tokens.
+
+**Scope split.** Variant surface colors resolve through the platform's native semantic palette (UIKit semantic colors, `MaterialTheme.colorScheme`, CSS custom properties under `prefers-color-scheme`) and are **not** routed through the color-token registry. Brand and content colors on color-valued `AtomicElement` properties (`color`, `background`, `shadow.color`, `Divider.color`, `Shadow.color`, `GamePanelData.badgeColor`) resolve through `ColorTokenResolver`. No overlap.
+
+**Out of scope (by design, not deferral).** Server-composable dark mode — no `X-Theme` header exists or is planned. Dark mode is OS context owned by the client; the server is not told which mode the user is in. Brand theme takeovers (All-Star, Playoffs, sponsor windows) are intentionally not in the vocabulary; if they become a requirement they compose as variance plus a narrow themeable subset, not as platform-wide theming architecture.
+
+**Figma pipeline.** The current color-token registry is **ref-app-seeded** — values sourced best-guess from the iOS VideoKit and Android VideoKit reference apps plus each platform's own semantic color conventions. The Figma → registry export pipeline is deferred pending design-system tooling readiness; the registry shape is Kinetic-compatible (dot-separated palette / semantic aliases) so a Figma export replaces this file wholesale when the pipeline lands. See §9s for the integration plan.
 
 ### 9h. Animation & Transition Hints
 
@@ -1012,48 +1027,42 @@ When adding a new section type, apply the classification criteria above. If all 
 
 ### 9s. Figma Design Token Integration — Implementation Details
 
-The atomic layer maps directly to the NBA Figma design system's token taxonomy. Implementation requires three integration points:
+**Status.** The atomic layer is token-plumbed on every platform; the Figma export pipeline is deferred pending design-system tooling readiness. The committed registries are **ref-app-seeded** and shaped to be replaceable wholesale by a Figma export when that pipeline lands.
 
-**1. Token mapping file (shared artifact):**
+**1. Registry files (committed artifacts).**
 
-A JSON file mapping Figma token names to schema enum values, maintained alongside the schema:
+Two machine-readable registries sit next to the JSON schema:
 
-```json
-{
-  "typography": {
-    "heading1": "nba/display-xxl",
-    "heading2": "nba/display-lg",
-    "heading3": "nba/headline-10",
-    "body": "nba/body-md",
-    "bodySmall": "nba/body-sm",
-    "caption": "nba/caption",
-    "label": "nba/label-md",
-    "score": "nba/display-xxl"
-  },
-  "colors": {
-    "text.primary": { "light": "#1A1A2E", "dark": "#F5F5F5" },
-    "text.secondary": { "light": "#666666", "dark": "#AAAAAA" },
-    "surface.primary": { "light": "#FFFFFF", "dark": "#0F0F23" },
-    "live": { "light": "#FF6B6B", "dark": "#FF6B6B" },
-    "positive": { "light": "#4CAF50", "dark": "#66BB6A" },
-    "negative": { "light": "#F44336", "dark": "#EF5350" }
-  }
-}
-```
+- [`schema/style-tokens.json`](../schema/style-tokens.json) — variant definitions keyed by primitive (`ContainerVariant.hero`, `ImageVariant.thumbnail`, …). Each entry declares intent, per-platform per-OS-tier realization with `light` / `dark` specs, an override matrix, and evidence (composer patterns or ref-app surfaces that justify the variant).
+- [`schema/color-tokens.json`](../schema/color-tokens.json) — two-tier color registry. `palette` primitives (`color.grey.50`, `color.blue.30`, …) carry `{ light, dark }` hex pairs; `semantic` aliases (`color.brand.nba`, `color.text.primary`, `color.surface.canvas`, `color.feedback.error.50`, …) point to palette primitives by dot-separated name. Kinetic-compatible so a Figma export can replace this file without a shape change.
 
-**2. Client-side token resolution:**
+**2. Server-side token plumbing.**
 
-Atomic element color values can be either literal hex (`"#FF6B6B"`) or semantic tokens (`"text.primary"`). Client renderers resolve semantic tokens through the existing platform theme:
+- `ColorTokens` Java constants class (`server/src/main/java/com/nba/sdui/service/ColorTokens.java`) exposes each semantic token as a wire-form string (`"token:color.brand.nba"`) with IDE auto-completion.
+- `TokenRegistry` `@Service` bean loads `schema/color-tokens.json` from the classpath at startup; `build.gradle.kts`'s `processResources` copies registries from `schema/` into `server/src/main/resources/schema/`.
+- `TokenRegistryConsistencyCheck` `@PostConstruct` fails Spring boot if any `ColorTokens` constant references a name not in the registry — a mismatch surfaces as a boot error, never as a silent `token_resolver_missing` in production.
+- Wave 1 composers (`AtomicCompositeBuilder`, `GameDetailComposer`, `ScheduleComposer`, `LiveComposer`, `ForYouComposer`, `DemoScreenComposer`) emit tokens via the constants class.
 
-- **Android**: `AtomicText` maps `"text.primary"` → `NbaColors.textPrimary` via a `resolveColor()` utility checking the token map before falling back to `Color.parse(hex)`
-- **Web**: `AtomicText` maps `"text.primary"` → CSS custom property `var(--text-primary)` or direct hex
-- **iOS** (future): `AtomicText` maps `"text.primary"` → `Color.textPrimary` via `Color+Extensions.swift`
+**3. Client-side token resolution.**
 
-**3. CI validation (three levels):**
+Each client ships a `ColorTokenResolver` with a hand-mirrored snapshot of the registry. Resolution: strip the `token:` prefix, follow the semantic alias chain to a palette primitive, pick `light` or `dark` based on the OS color scheme, parse the hex.
 
-- **Level 1 — Token contract**: Export Figma tokens via Variables API or Tokens Studio plugin. For each `AtomicComposite` example JSON, assert every `TextVariant` exists in `tokens.typography` and every color reference exists in `tokens.colors` or is valid hex. Runs on every schema PR.
-- **Level 2 — Component structure**: Export Figma component layout trees via Figma REST API. Compare auto-layout direction, padding, gap, and child structure against the `AtomicComposite` template for the same pattern (e.g., Figma "SectionHeader" vs `AtomicComposite` SectionHeader template). Catches layout drift between design and implementation.
-- **Level 3 — Visual regression**: Render `AtomicComposite` JSON through platform renderers (Android Compose Preview, web Storybook/Chromatic). Compare screenshots against Figma frame image exports using pixel-diff tools (Percy, Chromatic). Catches font metric, padding rounding, and image sizing differences.
+- **Android** — `ColorTokenResolver.kt` in `android/sdui-core/.../renderer/`; `@Composable` that reads `isSystemInDarkTheme()` and returns `androidx.compose.ui.graphics.Color`. Atomic text / container / image / divider renderers route `element.color` and variant surface overrides through the resolver.
+- **iOS** — `ColorTokenResolver.swift` in `ios/Sources/SduiCore/Rendering/`; pure enum that takes a `ColorScheme` from `@Environment(\.colorScheme)` and returns `SwiftUI.Color?`. `RenderingHelpers.resolveBackground(_:colorScheme:)` + `ContainerVariantResolver` / `ShadowModifier` pipe the environment through.
+- **Web** — `ColorTokenResolver.ts` in `web/src/utils/`; `resolveColorToken(value, scheme)` plus an SSR-safe `usePrefersColorScheme()` hook and `useColorTokenResolver()` wrapper. `background.ts::resolveBackgroundCSS` accepts an optional `ColorMapper` so gradient stops and overlay colors resolve through the same path.
+
+**4. CI validation (committed).**
+
+- [`scripts/validate-style-tokens.js`](../scripts/validate-style-tokens.js) — asserts `style-tokens.json` structure, required OS tiers, `light` / `dark` coverage, override-matrix shape, and evidence blocks.
+- [`scripts/validate-color-tokens.js`](../scripts/validate-color-tokens.js) — asserts `color-tokens.json` palette hex format, semantic alias integrity, no cycles, no dangling references.
+- Spring `TokenRegistryConsistencyCheck` — asserts the server's `ColorTokens` constants all resolve against the runtime registry.
+
+**5. Figma pipeline (deferred).**
+
+When the design-system team ships a Figma export, it replaces `schema/color-tokens.json` (and, in a follow-on step, `schema/style-tokens.json`) wholesale. The Kinetic-compatible two-tier shape is the contract; the values are currently best-guess-sourced from the iOS and Android VideoKit reference apps plus each platform's own semantic color conventions. Additional CI levels planned when the pipeline exists:
+
+- **Component structure** — Figma REST API → compare auto-layout direction / padding / gap / child structure against `AtomicComposite` templates for the same pattern. Catches layout drift between design and implementation.
+- **Visual regression** — Render `AtomicComposite` JSON through platform renderers (Compose Preview on Android, Storybook/Chromatic on web, Xcode previews on iOS). Compare each platform against its **own** Figma frame export — not cross-platform pixel diffs. Each platform is evaluated against its own design language.
 
 ---
 
@@ -1075,7 +1084,7 @@ The following requirements are tracked via ADRs. Some remain pending final cross
 | Offline and degraded connectivity | [ADR-010](adr/010-offline-and-degraded-connectivity.md) | Proposed |
 | Data classification and freshness model | [ADR-011](adr/011-data-classification-and-freshness-model.md) | Proposed (draft) |
 | Client data architecture | [ADR-012](adr/012-client-data-architecture.md) | Proposed (draft) |
-| Style tokens for atomic primitives | [ADR-013](adr/013-style-tokens-for-atomic-primitives.md) | Proposed (draft) |
+| Style tokens for atomic primitives | [ADR-013](adr/013-style-tokens-for-atomic-primitives.md) | Accepted |
 
 Until approved, these remain directional requirements and may be refined.
 
@@ -1097,7 +1106,7 @@ Until approved, these remain directional requirements and may be refined.
 | Accessibility descriptors | **Built** | Schema `accessibility` field on Section, Subsection, AtomicElement. Android Compose `semantics{}`, web ARIA attributes. All renderers wired. |
 | Conditional rendering / visibility | **Partial** | Cross-platform: settled (server-side composition). Client-side visibility expressions deferred (server handles show/hide). Within-family responsive: gap |
 | Error handling & fallbacks | **Partial** | Server `ErrorState` (AtomicComposite) built. Client `SectionErrorBoundary` built on Android, web, and iOS (catch-at-dispatch + pre-validation). `SectionSkeleton` built on Android, web, and iOS. `hideOnError`, `retryAction`, retry budget (client-side, default 5) implemented. §12-compliant logging. Contract §13 updated. Gap: tvOS/Fire TV not started. |
-| Section lifecycle & lazy loading | **Gap** | Viewport-based connection management |
+| Section lifecycle & lazy loading | **Partial** | Visibility-gated refresh built (poll/SSE pause when off-screen, app background pause, `pauseWhenOffScreen` schema field). Eager/lazy initial-load trigger still gap. See `plan-visibility-gated-refresh.md`. |
 | Caching & offline | **Gap** | Stale-while-revalidate, cold start optimization |
 | Schema versioning protocol | **Partial** | Version header sent; no multi-version routing yet |
 | Composition ownership model (SDUI composer as source of truth) | **Partial** | Architecture intent clear; transitional CoreAPI-derived composition still in use |
@@ -1106,7 +1115,7 @@ Until approved, these remain directional requirements and may be refined.
 | Actions at subsection level | **Partial** | Supported conceptually; needs explicit schema examples and conformance tests |
 | Form-factor layout manager | **Partial** | Cross-platform: settled. Within-family: `SectionLayoutHints` built on web (margins, dividers, priority). ADR-008 accepted (Option C). Android wiring pending. |
 | Ad support as first-class primitive | **Gap** | Needs ad primitive definition and fallback behavior |
-| Theming / dark mode | **Gap** | Semantic tokens vs. literal values |
+| Theming / dark mode | **Built** | Three-layer design system (inline primitives, variants, color tokens). Variants ship per-primitive with per-OS-tier realization and override matrices (`schema/style-tokens.json`); `ColorToken` wire type + two-tier palette/semantic registry (`schema/color-tokens.json`) resolve on each client against the OS color scheme. Server composers emit tokens via `ColorTokens` constants with startup consistency-checked against the registry. Reference doc: `sdui-design-system.md`. Figma export pipeline deferred — registry is ref-app-seeded with a Kinetic-compatible shape. |
 | Animation hints | **Gap** | Entry/exit + data-change animations |
 | Impression deduplication | **Partial** | Built on web (IntersectionObserver + dedup registry) and iOS (`ImpressionTracker` actor + `SectionVisibilityTracker` via `.onScrollVisibilityChange`). Android pending. ADR-009 accepted. |
 | A/B testing integration | **Built** | Fully client-authoritative (ADR-006 Accepted). `experiments` map replaces `variant` param. Kill switch is client-side. Exposure tracking via fire-and-forget actions. Amplitude SDK integration deferred. |

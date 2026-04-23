@@ -75,6 +75,10 @@ public final class SduiScreenViewModel {
     /// Used to forward visibility events to `AblyChannelManager`.
     private var sectionAblyChannels: [String: String] = [:]
 
+    /// Sections that should never have their refresh paused on scroll-out.
+    /// Set from `refreshPolicy.pauseWhenOffScreen == false`.
+    private var alwaysRefreshSections: Set<String> = []
+
     public init(
         endpoint: String,
         config: SduiConfig,
@@ -117,12 +121,14 @@ public final class SduiScreenViewModel {
                 switch event {
                 case .entered(let sectionID):
                     await self.polling.setVisible(sectionID, visible: true)
-                    if let channel = self.sectionAblyChannels[sectionID] {
+                    if let channel = self.sectionAblyChannels[sectionID],
+                       !self.alwaysRefreshSections.contains(sectionID) {
                         await self.ably.setChannelVisible(channel, visible: true)
                     }
                 case .exited(let sectionID):
                     await self.polling.setVisible(sectionID, visible: false)
-                    if let channel = self.sectionAblyChannels[sectionID] {
+                    if let channel = self.sectionAblyChannels[sectionID],
+                       !self.alwaysRefreshSections.contains(sectionID) {
                         await self.ably.setChannelVisible(channel, visible: false)
                     }
                 }
@@ -275,6 +281,7 @@ public final class SduiScreenViewModel {
         let screenEndpoint = self.endpoint
         let sectionID = section.id
         let dataPath = policy.dataPath
+        let shouldPause = policy.pauseWhenOffScreen ?? true
         let initiallyVisible = visibility.isVisible(sectionID)
 
         Task {
@@ -288,7 +295,7 @@ public final class SduiScreenViewModel {
                 directURL: directURL,
                 screenEndpoint: directURL == nil ? screenEndpoint : nil,
                 dataPath: dataPath,
-                pauseWhenOffScreen: true
+                pauseWhenOffScreen: shouldPause
             )
         }
     }
@@ -296,10 +303,17 @@ public final class SduiScreenViewModel {
     private func startSSE(section: Section, policy: RefreshPolicy) {
         guard let channelName = policy.channel else { return }
         let sectionID = section.id
+        let shouldPause = policy.pauseWhenOffScreen ?? true
         sectionAblyChannels[sectionID] = channelName
 
+        if !shouldPause {
+            alwaysRefreshSections.insert(sectionID)
+        }
+
         // Respect the pre-existing visibility state when (re)attaching.
-        let isVisible = visibility.isVisible(sectionID)
+        // Sections with pauseWhenOffScreen=false are always "visible" for
+        // SSE purposes — they never gate on scroll position.
+        let isVisible = shouldPause ? visibility.isVisible(sectionID) : true
         Task { [weak self] in
             await self?.ably.setChannelVisible(channelName, visible: isVisible)
         }
@@ -343,7 +357,7 @@ public final class SduiScreenViewModel {
         case .success(let success):
             stalenessTracker.clear(success.sectionID)
             if success.isDirect, let dict = success.payload as? [String: Any] {
-                updateSectionData(sectionID: success.sectionID, newData: dict)
+                applyPolledData(sectionID: success.sectionID, incoming: dict)
             } else if let newScreen = success.payload as? SduiModels {
                 applyScreen(newScreen)
             }
@@ -352,6 +366,41 @@ public final class SduiScreenViewModel {
                 stalenessTracker.markStale(failure.sectionID)
             }
         }
+    }
+
+    /// Apply a direct-URL poll payload to a section's data. Mirrors
+    /// ``handleAblyMessage`` so the poll and real-time paths are
+    /// symmetrical, and matches the web `LiveSectionWrapper` two-step
+    /// behaviour:
+    ///   1. If the section declares a `dataBinding`, map incoming fields
+    ///      through it (preserves every key the binding does not touch,
+    ///      including `ui` for AtomicComposite sections).
+    ///   2. Otherwise shallow-merge the incoming payload over the current
+    ///      data. Keys not present in the incoming payload survive —
+    ///      which means `data.ui` is preserved even for unconfigured
+    ///      AtomicComposite polls, instead of being wiped out like the
+    ///      old wholesale-replace path did.
+    private func applyPolledData(sectionID: String, incoming: [String: Any]) {
+        guard let screen,
+              let idx = screen.sections.firstIndex(where: { $0.id == sectionID }) else { return }
+        let section = screen.sections[idx]
+        let currentData = Self.dataDict(from: section)
+        let updated: [String: Any]
+        if let dataBinding = section.dataBinding {
+            updated = bindingApplier.applyBindings(
+                currentData: currentData,
+                incomingMessage: incoming,
+                dataBinding: dataBinding,
+                sectionID: sectionID,
+                traceID: screen.traceID,
+                stringTable: section.stringTable
+            )
+        } else {
+            var merged = currentData
+            for (k, v) in incoming { merged[k] = v }
+            updated = merged
+        }
+        updateSectionData(sectionID: sectionID, newData: updated)
     }
 
     private func handleAblyMessage(sectionID: String, message: [String: Any]) async {

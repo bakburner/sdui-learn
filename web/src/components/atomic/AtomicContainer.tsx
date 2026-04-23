@@ -4,6 +4,13 @@ import { AtomicRouter } from './AtomicRouter';
 import type { Shadow, Badge } from './AtomicElement';
 import { resolveBackgroundCSS } from '../../utils/background';
 import { accessibilityProps } from '../../utils/accessibility';
+import {
+  resolveContainerVariant,
+  axisAllowsOverride,
+  logVariantOverrideBlocked,
+  supportsBackdropFilter,
+} from '../../utils/ContainerVariantResolver';
+import { useColorTokenResolver } from '../../utils/ColorTokenResolver';
 
 const badgePositionMap: Record<string, React.CSSProperties> = {
   topStart:    { position: 'absolute', top: 4, left: 4 },
@@ -25,11 +32,15 @@ const badgePositionMap: Record<string, React.CSSProperties> = {
  * Row section type with a purely atomic, server-composed primitive.
  */
 export function AtomicContainer({ element, state, onAction, depth = 0, onStateChange, sectionSlotDepth }: AtomicProps): React.ReactElement {
+  const resolveColor = useColorTokenResolver();
   const isRow = element.direction === 'row';
   const hasBreakpoint = isRow && element.breakpoint != null;
 
   // Unique class for scoped responsive CSS
   const className = hasBreakpoint ? `sdui-ac-${element.id ?? depth}` : undefined;
+
+  const variantSpec = resolveContainerVariant(element.variant);
+  const variantName = variantSpec ? (element.variant as string) : undefined;
 
   const style: React.CSSProperties = {
     display: 'flex',
@@ -57,6 +68,19 @@ export function AtomicContainer({ element, state, onAction, depth = 0, onStateCh
 
   if (element.fillWidth) {
     style.width = '100%';
+  } else if (variantSpec?.fillWidth) {
+    style.width = '100%';
+  }
+
+  // Explicit wire-level width / height win over fillWidth — a fixed-width
+  // card in a horizontal rail needs a deterministic size so its children
+  // don't stretch the container to their intrinsic width.
+  if (element.width != null) {
+    style.width = element.width;
+    style.flexShrink = 0;
+  }
+  if (element.height != null) {
+    style.height = element.height;
   }
 
   // padding
@@ -65,21 +89,71 @@ export function AtomicContainer({ element, state, onAction, depth = 0, onStateCh
     style.padding = `${top}px ${end}px ${bottom}px ${start}px`;
   }
 
-  // corner radius
-  if (element.cornerRadius != null) {
+  // corner radius — `cornerRadii` (per-corner) wins over `cornerRadius` when
+  // present. Any corner key omitted falls back to `cornerRadius` (or the
+  // variant default, or 0). Used for content-card cards with rounded tops +
+  // square bottoms so headline text does not collide with a bottom-corner
+  // curve.
+  const radiiFallback = element.cornerRadius ?? variantSpec?.cornerRadius ?? 0;
+  const radii = element.cornerRadii;
+  const hasAnyRadii = radii != null && (
+    (radii.topStart ?? 0) !== 0 || (radii.topEnd ?? 0) !== 0 ||
+    (radii.bottomStart ?? 0) !== 0 || (radii.bottomEnd ?? 0) !== 0
+  );
+  if (hasAnyRadii && radii) {
+    style.borderTopLeftRadius     = radii.topStart ?? radiiFallback;
+    style.borderTopRightRadius    = radii.topEnd ?? radiiFallback;
+    style.borderBottomRightRadius = radii.bottomEnd ?? radiiFallback;
+    style.borderBottomLeftRadius  = radii.bottomStart ?? radiiFallback;
+    style.overflow = 'hidden';
+  } else if (element.cornerRadius != null) {
     style.borderRadius = element.cornerRadius;
+    style.overflow = 'hidden';
+  } else if (variantSpec?.cornerRadius != null) {
+    style.borderRadius = variantSpec.cornerRadius;
     style.overflow = 'hidden';
   }
 
-  // background
+  // background — inline wins on `allow`; variant wins on `lock` (inline ignored + logged).
   if (element.background) {
-    Object.assign(style, resolveBackgroundCSS(element.background));
+    if (variantSpec && !axisAllowsOverride(variantSpec, 'background')) {
+      logVariantOverrideBlocked(variantName!, 'background', element.background);
+      if (variantSpec.backgroundCss) {
+        style.background = variantSpec.backgroundCss;
+      }
+    } else {
+      Object.assign(style, resolveBackgroundCSS(element.background, resolveColor));
+    }
+  } else if (variantSpec?.backgroundCss) {
+    style.background = variantSpec.backgroundCss;
   }
 
-  // shadow
+  // shadow — inline wins on `allow`; variant wins on `lock`.
   if (element.shadow) {
-    const s: Shadow = element.shadow;
-    style.boxShadow = `${s.offsetX ?? 0}px ${s.offsetY ?? 0}px ${s.radius ?? 0}px ${s.color ?? 'rgba(0,0,0,0.08)'}`;
+    if (variantSpec && !axisAllowsOverride(variantSpec, 'shadow')) {
+      logVariantOverrideBlocked(variantName!, 'shadow', element.shadow);
+      if (variantSpec.boxShadow) {
+        style.boxShadow = variantSpec.boxShadow;
+      }
+    } else {
+      const s: Shadow = element.shadow;
+      const shadowColor = resolveColor(s.color) ?? 'rgba(0,0,0,0.08)';
+      style.boxShadow = `${s.offsetX ?? 0}px ${s.offsetY ?? 0}px ${s.radius ?? 0}px ${shadowColor}`;
+    }
+  } else if (variantSpec?.boxShadow) {
+    style.boxShadow = variantSpec.boxShadow;
+  }
+
+  // border (variant-only; there is no inline `border` prop today, so no conflict).
+  if (variantSpec?.border) {
+    style.border = variantSpec.border;
+  }
+
+  // backdrop-filter — apply only when the browser supports the value.
+  if (variantSpec?.backdropFilter && supportsBackdropFilter(variantSpec.backdropFilter)) {
+    style.backdropFilter = variantSpec.backdropFilter;
+    (style as React.CSSProperties & { WebkitBackdropFilter?: string })
+      .WebkitBackdropFilter = variantSpec.backdropFilter;
   }
 
   // badge requires relative positioning

@@ -75,6 +75,21 @@ export function AtomicRouter({ element, state, onAction, depth = 0, onStateChang
       return null;
   }
 
+  // Outer margin is applied by a wrapper div so it sits outside the
+  // primitive's own background, corner radius, and inner padding —
+  // sibling-to-sibling spacing semantics, matching CSS `margin`.
+  if (element.margin) {
+    const m = element.margin;
+    const marginStyle = {
+      marginTop: m.top,
+      marginRight: m.end,
+      marginBottom: m.bottom,
+      marginLeft: m.start,
+      ...(element.opacity !== undefined ? { opacity: element.opacity } : {}),
+    };
+    return <div style={marginStyle}>{rendered}</div>;
+  }
+
   if (element.opacity !== undefined && rendered) {
     return <div style={{ opacity: element.opacity }}>{rendered}</div>;
   }

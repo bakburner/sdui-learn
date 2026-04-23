@@ -52,3 +52,14 @@ tasks.register<Copy>("copyGeneratedModels") {
     into("${projectDir}/src/main/java")
     include("**/*.java")
 }
+
+// Bundle the schema/ token registries into server resources so the runtime
+// can load them from the classpath. Rebuild when the schema/ files change.
+tasks.named<ProcessResources>("processResources") {
+    from("${projectDir}/../schema") {
+        include("color-tokens.json")
+        include("style-tokens.json")
+        include("icon-tokens.json")
+        into("schema")
+    }
+}

@@ -50,9 +50,6 @@
     "refreshType": {
       "$ref": "sdui-schema.json#/definitions/RefreshType"
     },
-    "buttonVariant": {
-      "$ref": "sdui-schema.json#/definitions/ButtonVariant"
-    },
     "direction": {
       "$ref": "sdui-schema.json#/definitions/Direction"
     },

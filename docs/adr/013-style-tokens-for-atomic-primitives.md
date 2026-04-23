@@ -1,7 +1,7 @@
 # ADR-013: Style Tokens for Atomic Primitives
 
-- Status: Proposed (draft)
-- Date: 2026-04-20
+- Status: Accepted
+- Date: 2026-04-20 (proposed); 2026-04-22 (accepted)
 - Decision owners: Adrian Robinson (interim), platform leads, design systems lead
 - Related requirements: `docs/sdui-requirements-summary.md` (design system alignment)
 - Related ADRs: ADR-005 (Action Scope and Precedence — precedence vocabulary and
@@ -15,6 +15,16 @@ Introduce **typed per-primitive variant enums** on atomic primitives
 (`Container`, `Image`, `Divider`, and — already present — `Text`,
 `Button`) as the carrier for design-system style tokens. A variant is
 a named design-system preset that does **both** of the following:
+
+> **Wire shape.** The wire property is uniformly `variant: string` on
+> every atomic element. The per-primitive enum names (`TextVariant`,
+> `ButtonVariant`, `ContainerVariant`, `ImageVariant`) document the
+> vocabulary — which enum applies is determined by the element's
+> `type`. A `Text` element's `variant` is parsed against `TextVariant`;
+> a `Container`'s against `ContainerVariant`; etc. An unrecognized
+> value logs a `variant_resolver_missing` diagnostic and renders the
+> primitive's default.
+
 
 1. **Aggregates inline-expressible properties** into a single named
    concept (a `card` carries one consistent padding + corner radius +
@@ -257,7 +267,7 @@ Example:
 ```json
 {
   "type": "Container",
-  "containerVariant": "heroCard",
+  "variant": "heroCard",
   "padding": { "all": 32 }
 }
 ```
@@ -275,7 +285,7 @@ Example:
 
 Unlike actions (ADR-005), **style variants do not propagate from a
 parent atomic primitive down to its children**. A `Container` with
-`containerVariant: "heroCard"` does not tint, size, or otherwise style
+`variant: "heroCard"` does not tint, size, or otherwise style
 the `Text` nodes inside it. Each atomic primitive resolves its own
 style independently from its own variant enum (or the absence of one).
 
@@ -428,7 +438,7 @@ These are specific to the variants-with-overrides model and motivate
 the governance rules below.
 
 1. **Override proliferation turns variants into labels.** If the
-   typical instance is `containerVariant: "card"` plus four
+   typical instance is `variant: "card"` on a `Container` plus four
    overrides, the variant stops being a design-system concept and
    becomes a taxonomy field over the exact same bag of inline props.
 2. **Almost-card invisible drift.** Ten composers each use `card`
@@ -489,9 +499,58 @@ the governance rules below.
 3. Implement the three initial tokens on iOS, Android, and web,
    including dark-mode specs and override-blocked diagnostic.
 4. Migrate one composer (`HeroPanel` in `GameDetailComposer`) to emit
-   `containerVariant: "heroCard"` and remove the inline property bag.
+   `variant: "heroCard"` on the hero `Container` and remove the inline
+   property bag.
 5. Capture before/after payload size and visual screenshots per
    platform as ADR acceptance evidence.
+
+### Implementation status (2026-04-22)
+
+The initial rollout landed with a slightly different token set than
+the one proposed above — the ref-app audit pointed at six container
+variants and three image variants as the load-bearing set:
+
+- **`ContainerVariant`** values shipped: `hero`, `elevated`, `banner`,
+  `subtle`, `grouped`, `overlay`.
+- **`ImageVariant`** values shipped: `hero`, `thumbnail`, `logo`.
+- `TextVariant` and `ButtonVariant` were already in flight and
+  continue to resolve through their existing per-platform mappings.
+- `DividerVariant` is deferred — the existing `thickness` + `color`
+  inline props cover every case in the current composers.
+
+Artifacts:
+
+- `schema/style-tokens.json` — the per-variant, per-platform,
+  per-OS-tier spec, including dark-mode treatments and the
+  per-axis override matrix. The JSON file is **non-normative
+  documentation**: no client loads it at runtime. It is the
+  review surface for design + platform engineering when a
+  variant is added, renamed, or restyled.
+- `scripts/validate-style-tokens.js` — structural CI validator.
+  Fails the build when a variant entry omits a required tier,
+  an override-matrix axis, or an evidence block.
+- Client resolvers hand-encode the spec:
+  - iOS: `ios/Sources/SduiCore/Rendering/ContainerVariantResolver.swift`
+    and `ImageVariantResolver.swift` (Liquid Glass / `.thinMaterial` /
+    semantic grouped-background tiers via `#available`).
+  - Android: `android/sdui-core/src/main/java/com/nba/sdui/core/renderer/ContainerVariantResolver.kt`
+    and `ImageVariantResolver.kt` (Material 3 surface roles, tonal
+    elevation via `Build.VERSION.SDK_INT` checks).
+  - Web: `web/src/utils/ContainerVariantResolver.ts` and
+    `ImageVariantResolver.ts` (CSS custom properties with
+    `backdrop-filter` feature detection).
+- Server builder helpers: `AtomicCompositeBuilder` exposes
+  `heroContainer()`, `elevatedContainer()`, `bannerContainer()`,
+  `subtleContainer()`, `groupedContainer()`, `overlayContainer()`
+  and `heroImage()`, `thumbnailImage()`, `logoImage()`.
+- Pilot composer migrations: `HeroPanel`, `PromoBanner`,
+  `ContentRail`'s card, and `VideoCarousel`'s card now emit
+  variants in place of inline background / corner-radius prop
+  bags. The full composer sweep is tracked as follow-up work.
+
+Unknown values on the wire log `variant_resolver_missing` and fall
+through to the primitive default; inline overrides on a locked axis
+log `variant_override_blocked` and the variant default wins.
 
 ### Registry shape
 
@@ -664,8 +723,9 @@ Metrics:
 - [ ] Finalize the initial `ContainerVariant` token set with design.
 - [ ] Create `schema/style-tokens.json` with initial entries,
       cross-platform specs, and per-variant override matrices.
-- [ ] Implement `containerVariant` on the schema and regenerate
-      codegen.
+- [ ] Implement the `ContainerVariant` vocabulary on the schema
+      (emitted on the wire via the uniform `variant` property) and
+      regenerate codegen.
 - [ ] Pilot implementation on iOS, Android, web for the initial
       tokens, including dark-mode and the
       `variant_override_blocked` diagnostic.

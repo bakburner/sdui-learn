@@ -50,6 +50,7 @@ export interface GamePanelUiModel {
   badgeText?: string;
   visualLabel?: string;
   visualState?: string;
+  variant?: string;
 }
 
 export function mapTabGroup(section: Section, state: Record<string, unknown>): TabGroupUiModel | null {
@@ -172,6 +173,7 @@ export function mapGamePanel(section: Section): GamePanelUiModel | null {
     badgeText: raw.badgeText as string | undefined,
     visualLabel: raw.visualLabel as string | undefined,
     visualState,
+    variant: raw.variant as string | undefined,
   };
 }
 

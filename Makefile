@@ -135,13 +135,70 @@ ios-run: ios-demo-project
 		echo "WARNING: server not reachable at http://localhost:8080"; \
 		echo "         run 'make dev-server' in another terminal first"; \
 	fi
-	@echo "=== Cleaning package cache ==="
-	@# Wipe the per-project SPM checkouts. Xcode sometimes leaves them in a
-	@# half-resolved state ("Cannot open X as Swift Package Proxy because it
-	@# is already open as Swift User Managed Package Folder"), which turns
-	@# into "Missing package product 'Kingfisher'" at link time. Resolving
-	@# into a fresh derived-data path avoids that every time.
-	@rm -rf ios/SduiDemo/build/SourcePackages
+	@echo "=== Cleaning package caches ==="
+	@# Wipe every SwiftPM-managed Kingfisher registration in the tree so
+	@# xcodebuild resolves the package graph from a clean state. Xcode
+	@# throws "Cannot open X as Swift Package Proxy because it is already
+	@# open as Swift User Managed Package Folder" — which surfaces as
+	@# "Missing package product 'Kingfisher'" at link time — whenever two
+	@# resolutions coexist within a single xcodebuild run:
+	@#   - ios/.build/          : left behind by a raw `swift build` at
+	@#                            the library root (SwiftPM CLI cache).
+	@#   - ios/.swiftpm/        : left behind by Xcode.app opening
+	@#                            ios/Package.swift as a package project
+	@#                            (user-managed package view).
+	@#   - ios/Package.resolved : written by `make ios-build` /
+	@#                            `make ios-test` when xcodebuild runs
+	@#                            against ios/Package.swift directly.
+	@#                            Its presence next to Package.swift makes
+	@#                            Xcode's IDE layer treat the local
+	@#                            SduiCore package as a "user-managed"
+	@#                            view of its transitive deps, while the
+	@#                            demo's xcworkspace Package.resolved
+	@#                            tries to resolve the same Kingfisher
+	@#                            as a "proxy". Having both is the
+	@#                            specific trigger for the error above.
+	@#   - ios/SduiDemo/build/  : xcodebuild's per-project derived-data.
+	@#                            Full wipe (not just SourcePackages)
+	@#                            because stale entries in Build/ and
+	@#                            Index.noindex/ can retain package
+	@#                            references that survive a checkout
+	@#                            refresh.
+	@# Everything here is rebuild-safe — SwiftPM and Xcode regenerate
+	@# whatever they need on the next xcodebuild invocation. If the
+	@# error still recurs after this, `~/Library/Developer/Xcode/
+	@# DerivedData/SduiDemo-*` is the remaining place Xcode caches a
+	@# user-managed Kingfisher registration; wipe it manually and close
+	@# Xcode.app.
+	@rm -rf ios/.build ios/.swiftpm ios/Package.resolved ios/SduiDemo/build
+	@echo "=== Resolving package graph ==="
+	@# Resolution runs in its own xcodebuild process to sidestep an
+	@# Xcode 15 IDE-container ordering bug. When resolution and build
+	@# share a single xcodebuild invocation, the IDE layer walks into
+	@# the freshly-checked-out Kingfisher directory
+	@# (build/SourcePackages/checkouts/Kingfisher) and opens it as a
+	@# "Swift User Managed Package Folder" (because it's a local
+	@# filesystem path containing Package.swift). The proxy layer then
+	@# fails to open the same path as a "Swift Package Proxy" (its
+	@# view of Kingfisher as a remote-URL dependency) with:
+	@#   Cannot open "Kingfisher" as a "Swift Package Proxy" because
+	@#   it is already open as a "Swift User Managed Package Folder"
+	@# which surfaces at link time as
+	@#   Missing package product 'Kingfisher' (in target 'SduiDemo')
+	@# The first invocation below populates
+	@# build/SourcePackages/{checkouts,workspace-state.json} and exits
+	@# before the proxy/user-managed collision window opens. The
+	@# second invocation (`xcodebuild build`) then reuses those
+	@# pre-resolved artifacts and skips the re-resolution pass via
+	@# `-disableAutomaticPackageResolution`, so the IDE container
+	@# graph only registers Kingfisher once — as a proxy via the
+	@# already-resolved workspace state.
+	@# TODO: drop the split once we're on Xcode 16+, which resolves
+	@# the ordering bug natively.
+	@cd ios/SduiDemo && set -o pipefail && SDUI_DISABLE_ABLY=$(SDUI_DISABLE_ABLY) xcodebuild -resolvePackageDependencies \
+		-project SduiDemo.xcodeproj \
+		-scheme "$(IOS_DEMO_SCHEME)" \
+		-clonedSourcePackagesDirPath build/SourcePackages | $(IOS_PIPE)
 	@echo "=== Building $(IOS_DEMO_SCHEME) ==="
 	@cd ios/SduiDemo && set -o pipefail && SDUI_DISABLE_ABLY=$(SDUI_DISABLE_ABLY) xcodebuild build \
 		-project SduiDemo.xcodeproj \
@@ -149,6 +206,7 @@ ios-run: ios-demo-project
 		-destination "$(IOS_DESTINATION)" \
 		-derivedDataPath build \
 		-clonedSourcePackagesDirPath build/SourcePackages \
+		-disableAutomaticPackageResolution \
 		-skipMacroValidation | $(IOS_PIPE)
 	@echo "=== Booting simulator ==="
 	@xcrun simctl boot "$(IOS_SIM_NAME)" 2>/dev/null || true

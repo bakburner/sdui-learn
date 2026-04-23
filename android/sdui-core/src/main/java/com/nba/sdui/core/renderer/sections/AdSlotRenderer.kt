@@ -1,35 +1,40 @@
 package com.nba.sdui.core.renderer.sections
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import com.nba.sdui.core.models.SduiSection
+import com.nba.sdui.core.renderer.ColorTokenResolver
 import com.nba.sdui.core.renderer.applyAccessibility
 import com.nba.sdui.core.state.SduiAction
 
 /**
- * AdSlot Renderer — placeholder for third-party ad content.
+ * Stub renderer for AdSlot. Reserves the ad SDK's eventual mount
+ * rectangle — `data.sizes[0]` is the single source of truth for
+ * dimensions, shared by the placeholder and (when it lands) the
+ * ad SDK itself. Inner placeholder chrome (background color, label
+ * text) comes from `data.placeholder`; outer chrome (margin,
+ * padding, shadow, radius) comes from `section.display` via the
+ * shared SectionContainer wrapper.
  *
- * In a production app this would integrate with Google Ad Manager or similar SDK.
- * For the prototype, it renders a labeled placeholder box showing the ad-unit path.
- *
- * Expected data:
- *   provider    – e.g. "gam" (Google Ad Manager)
- *   adUnitPath  – the ad-unit identifier string
- *   sizes[][]   – array of [width, height] pairs
- *   targeting{} – key-value targeting map (optional)
+ * This renderer carries no client-side chrome defaults. A payload
+ * missing required `sizes` produces an empty stub — see AGENTS.md
+ * §15.1 and §15.2.
  */
 @Composable
 fun AdSlotRenderer(
@@ -38,44 +43,50 @@ fun AdSlotRenderer(
     modifier: Modifier = Modifier
 ) {
     val data = section.data ?: return
-    val adUnitPath = data["adUnitPath"]?.toString()?.removeSurrounding("\"") ?: "unknown"
-    val sizes = data["sizes"] as? List<*>
-    val sizeLabel = sizes?.firstOrNull()?.let { pair ->
-        val list = pair as? List<*>
-        if (list != null && list.size >= 2) "${list[0]}×${list[1]}" else null
-    } ?: "responsive"
+    val sizes = data["sizes"] as? List<*> ?: return
+    val first = sizes.firstOrNull() as? List<*> ?: return
+    if (first.size < 2) return
+    val width = (first[0] as? Number)?.toInt() ?: return
+    val height = (first[1] as? Number)?.toInt() ?: return
 
-    Box(
+    val label = data["label"]?.toString()?.removeSurrounding("\"")
+    val placeholder = data["placeholder"] as? Map<*, *>
+    val bgToken = placeholder?.get("backgroundColor")?.toString()?.removeSurrounding("\"")
+    val placeholderText = placeholder?.get("text")?.toString()?.removeSurrounding("\"") ?: ""
+    val bgColor = ColorTokenResolver.resolve(bgToken).takeOrElse(Color.Unspecified)
+
+    Column(
         modifier = modifier
-            .semantics { contentDescription = "Advertisement" }
-            .applyAccessibility(section.accessibility)
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .background(Color(0xFF2A2A2A))
-            .border(1.dp, Color(0xFF444444), RoundedCornerShape(8.dp))
-            .height(90.dp),
-        contentAlignment = Alignment.Center
+            .semantics { contentDescription = label ?: "Advertisement" }
+            .applyAccessibility(section.accessibility),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        if (label != null) {
             Text(
-                text = "ADVERTISEMENT",
+                text = label,
                 style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Bold,
-                color = Color.White.copy(alpha = 0.4f),
-                letterSpacing = MaterialTheme.typography.labelSmall.letterSpacing * 1.5
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = adUnitPath,
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.White.copy(alpha = 0.25f)
-            )
-            Text(
-                text = sizeLabel,
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.White.copy(alpha = 0.2f)
-            )
+        }
+        Box(
+            modifier = Modifier
+                .width(width.dp)
+                .height(height.dp)
+                .background(bgColor),
+            contentAlignment = Alignment.Center
+        ) {
+            if (placeholderText.isNotEmpty()) {
+                Text(
+                    text = placeholderText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }
+
+private fun Color.takeOrElse(fallback: Color): Color =
+    if (this == Color.Unspecified) fallback else this

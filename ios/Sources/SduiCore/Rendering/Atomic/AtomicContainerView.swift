@@ -11,7 +11,9 @@ struct AtomicContainerView: View {
         let isRow = element.direction == .row
         let gap = CGFloat(element.gap ?? 0)
         let padding = edgeInsets(from: element.padding)
-        let bg = resolveBackground(element.background)
+        let variantSpec = ContainerVariantResolver.resolve(element.variant)
+        let fixedWidth = element.width.map { CGFloat($0) }
+        let fixedHeight = element.height.map { CGFloat($0) }
 
         Group {
             if isRow {
@@ -25,9 +27,15 @@ struct AtomicContainerView: View {
             }
         }
         .padding(padding)
-        .background(bg)
-        .cornerRadius(CGFloat(element.cornerRadius ?? 0))
-        .applyShadow(element.shadow)
+        .frame(width: fixedWidth, height: fixedHeight)
+        .applyContainerVariant(
+            spec: variantSpec,
+            variantName: element.variant,
+            inlineBackground: element.background,
+            inlineCornerRadius: element.cornerRadius,
+            inlineCornerRadii: element.cornerRadii,
+            inlineShadow: element.shadow
+        )
         .applyBadge(element.badge, screenState: screenState, onAction: onAction)
         .applyActionTriggers(element.actions, onAction: onAction)
         .sduiAccessibility(element.accessibility)

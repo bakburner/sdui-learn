@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
@@ -6,9 +7,14 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      '@sdui/models': path.resolve(__dirname, '../codegen/output/typescript/SduiModels.ts'),
+      '@sdui/models': path.resolve(__dirname, './src/generated/SduiModels.ts'),
       '@': path.resolve(__dirname, './src'),
     },
+  },
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: ['./src/test/setup.ts'],
   },
   server: {
     port: 5173,

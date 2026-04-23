@@ -58,7 +58,8 @@ data class GamePanelUiModel(
     val primaryAction: SduiAction?,
     val displayConfig: GamePanelDisplayConfig,
     val badgeText: String?,
-    val visualLabel: String?
+    val visualLabel: String?,
+    val variant: String? = null
 )
 
 fun mapTabGroup(section: SduiSection, screenState: Map<String, Any>): TabGroupUiModel? {
@@ -134,7 +135,8 @@ fun mapGamePanel(section: SduiSection): GamePanelUiModel? {
         primaryAction = firstActionFromSection(section),
         displayConfig = parseDisplayConfig(data["displayConfig"]),
         badgeText = data["badgeText"] as? String,
-        visualLabel = data["visualLabel"] as? String
+        visualLabel = data["visualLabel"] as? String,
+        variant = data["variant"] as? String
     )
 }
 
@@ -305,7 +307,8 @@ data class FormFieldUi(
     val options: List<FormOptionUi>,
     val required: Boolean,
     val disabled: Boolean,
-    val placeholder: String?
+    val placeholder: String?,
+    val variant: String? = null
 )
 
 data class FormUiModel(
@@ -336,7 +339,8 @@ fun mapForm(section: SduiSection, screenState: Map<String, Any>): FormUiModel? {
             },
             required = (f["required"] as? Boolean) ?: false,
             disabled = (f["disabled"] as? Boolean) ?: false,
-            placeholder = f["placeholder"] as? String
+            placeholder = f["placeholder"] as? String,
+            variant = f["variant"] as? String
         )
     }
 

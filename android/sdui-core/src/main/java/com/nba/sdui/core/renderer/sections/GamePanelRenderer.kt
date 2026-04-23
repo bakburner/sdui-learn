@@ -60,7 +60,14 @@ private fun GamePanelContent(
     modifier: Modifier = Modifier
 ) {
     val config = model.displayConfig
-    val shape = RoundedCornerShape(config.cornerRadius.dp)
+    val isFeatured = model.variant == "featured"
+    // Featured cards bump corner radius + elevation so they read as carousel
+    // leads. Standard (or missing) keeps the displayConfig-driven values,
+    // which match today's non-carousel GamePanel surfaces.
+    val effectiveCornerRadius = if (isFeatured && config.cornerRadius == 12) 16 else config.cornerRadius
+    val effectiveElevation = if (isFeatured) (config.elevation.coerceAtLeast(6)) else config.elevation
+    val innerPadding = if (isFeatured) 24.dp else 20.dp
+    val shape = RoundedCornerShape(effectiveCornerRadius.dp)
 
     val isLive = model.visualState == GamePanelVisualState.LIVE
     val activeBg = if (isLive) (config.liveBackground ?: config.background) else config.background
@@ -100,7 +107,7 @@ private fun GamePanelContent(
 
     Card(
         shape = shape,
-        elevation = CardDefaults.cardElevation(defaultElevation = config.elevation.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = effectiveElevation.dp),
         modifier = modifier
             .applyAccessibility(section.accessibility)
             .fillMaxWidth()
@@ -129,7 +136,7 @@ private fun GamePanelContent(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(20.dp),
+                    .padding(innerPadding),
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(

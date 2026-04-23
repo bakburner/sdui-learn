@@ -62,7 +62,7 @@ The server owns **composition**. Platform teams own **rendering quality** (nativ
 
 This is not a shared runtime or webview wrapper. It is a shared schema + composition contract with native renderers per platform.
 
-**Platform idioms are not negotiable.** An iOS app is expected to use iOS idioms (platform materials, Liquid Glass on supported OS versions, native controls and animations); an Android app is expected to use Material (tonal elevation, ripples, Material 3 Expressive where available); a web app is expected to look like web. The shared schema carries **semantic** intent (`containerVariant: "card"`, `textVariant: "titleMedium"`, `buttonVariant: "primary"`); each client resolves those tokens into its platform's current design language. Cross-platform visual divergence is therefore expected and desirable — pixel parity across platforms is explicitly not a goal of this architecture. See ADR-013 for the style-token system that makes this policy concrete for container surfaces.
+**Platform idioms are not negotiable.** An iOS app is expected to use iOS idioms (platform materials, Liquid Glass on supported OS versions, native controls and animations); an Android app is expected to use Material (tonal elevation, ripples, Material 3 Expressive where available); a web app is expected to look like web. The shared schema carries **semantic** intent via a uniform `variant: string` property on each atomic element — e.g. `variant: "titleMedium"` on a `Text`, `variant: "primary"` on a `Button`, `variant: "card"` on a `Container` — with the per-primitive vocabulary defined by the enums `TextVariant`, `ButtonVariant`, `ContainerVariant`, and `ImageVariant`. Each client parses `variant` against the enum that matches the element's `type` and resolves it into its platform's current design language. Cross-platform visual divergence is therefore expected and desirable — pixel parity across platforms is explicitly not a goal of this architecture. See ADR-013 for the style-token system that makes this policy concrete for container surfaces.
 
 ### Platform-Aware Composition (Settled Position)
 
@@ -148,7 +148,7 @@ that come up during feature work.
 | Which video manifest URL does this platform play back? | **Server** (asset-format selection) | iOS consumes HLS; some web stacks prefer DASH; Android ABIs vary. Only the server knows current CDN routing. Hard-coding platform URL selection in the client ties a CDN migration to a client release. |
 | Can this client receive a live `GamePanel` over SSE, or does it need interval polling? | **Server** (capability gating) | The client advertises `capabilities.sse` in the request envelope; the server sets `refreshPolicy.type` accordingly. Same screen definition, different delivery mechanism, no client branching. |
 | Which concrete glyph renders for `iconName: "sdui:play"`? | **Client** (presentation of a known semantic) | SF Symbols, Material Symbols, and web icon fonts ship new glyphs with every OS / browser release. The server emits a neutral token; each platform resolves natively. Putting the server on the OS-icon-release treadmill would be pure overhead. |
-| How does a `"buttonVariant": "primary"` button look — solid, elevated, outlined, with what corner radius? | **Client** (presentation of a known semantic) | Each platform renders using its own design system (iOS `.borderedProminent`, Material `FilledButton`, web CSS surface tokens). Pixel parity across platforms is not the goal; platform-idiomatic feel is. |
+| How does a `Button` with `variant: "primary"` (a `ButtonVariant` value) look — solid, elevated, outlined, with what corner radius? | **Client** (presentation of a known semantic) | Each platform renders using its own design system (iOS `.borderedProminent`, Material `FilledButton`, web CSS surface tokens). Pixel parity across platforms is not the goal; platform-idiomatic feel is. |
 
 **Rule of thumb when a new question lands:** if the answer is a piece
 of business content, a policy decision, or an asset/URL only the
@@ -281,7 +281,7 @@ The schema defines a second layer of **atomic element types** alongside the sema
 | **Divider** | Line separator | `orientation`, `thickness`, `color` |
 | **ScrollContainer** | Scrollable region | `children`, `direction`, `paging`, `snapAlignment`, `gap` |
 | **Conditional** | State-driven branching | `condition`, `trueChild`, `falseChild` |
-| **DisplayGrid** | Display-only text grid | `columns`, `rows`, `headerVariant`, `cellVariant`, `striped` |
+| **DisplayGrid** | Display-only text grid | `columns`, `rows`, `striped` |
 | **SectionSlot** | Embed a full section | `section` (a complete Section object) |
 
 **Bridge mechanism — `AtomicComposite` section type:**
@@ -362,9 +362,9 @@ The atomic layer creates a natural bridge between the NBA Figma design system an
 
 | Category | Figma Token | Schema Mapping | Alignment Path |
 |---|---|---|---|
-| Typography | `nba/headline-10` | `TextVariant` enum (`heading1`, `body`, etc.) | Expand `TextVariant` to match Figma taxonomy; publish shared mapping file |
+| Typography | `nba/headline-10` | `TextVariant` enum (Material 3 scale: `displayLarge`…`labelSmall`, plus legacy `heading1`/`body`/`caption`/`label` and NBA-specific `score`), emitted via the uniform `variant: string` property on `Text` atomics | Each platform resolves `variant` to SF Pro (iOS), Roboto / NBA brand font (Android), or the web font stack at the tier-appropriate size. |
 | Font weight | `nba/weight-bold` | `TextWeight` enum (`regular`, `medium`, `semiBold`, `bold`) | Direct match to Figma font weight tokens |
-| Colors | `text.primary`, `surface.primary` | Literal hex or semantic token (`"color": "text.primary"`) | Clients resolve semantic tokens via existing theme map; Figma variables map 1:1 |
+| Colors | `text.primary`, `surface.primary` | `ColorToken` wire type: either literal hex (`#RRGGBB` / `#RRGGBBAA`) or `token:color.<dot.path>` (e.g. `token:color.text.primary`, `token:color.brand.nba`). Two-tier registry in `schema/color-tokens.json` (palette primitives + semantic aliases with `{ light, dark }` pairs). | Clients ship a `ColorTokenResolver` that picks light/dark from the OS color scheme. Kinetic-compatible shape; Figma variables map 1:1 when the export pipeline lands. |
 | Backgrounds | `surface.card`, `surface.overlay` | `Background` union (solid color, `BackgroundGradient`, `BackgroundImage`) | Gradient stops and image overlays map to Figma fill layers |
 | Spacing | 4/8/16/20/32 dp cluster | Integer dp values (`gap`, `padding`) | Keep integers; optionally accept named tokens (`"gap": "md"` → 16dp) later |
 | Corners | 12dp sheets, 4dp default | `cornerRadius` on Container and Image | Direct match to Figma corner radius |
@@ -911,7 +911,7 @@ These limits ensure atomic trees remain a lightweight composition mechanism, not
 | Image fallback                 | Built   | —       | server-driven `fallbackThumbnailUrl` with client-side error handling |
 | Offline / degraded connectivity| Gap     | ADR-010 | stale-while-offline via platform HTTP cache; staleness UX per cacheability class |
 | Atomic rendering layer         | Built   | —       | AtomicRouter + 10 primitives (9 rendering + SectionSlot bridge) on Android, iOS, and Web. AtomicComposite section type. DisplayGrid for non-interactive grids. Performance contract enforced (depth 6, children 20, nodes 50). |
-| Style tokens (atomic primitives) | Gap   | ADR-013 | Typed per-primitive variant enums (`ContainerVariant`, `ImageVariant`, …) carrying named design-system presets. Variants both aggregate common inline-expressible properties (consistent `card` padding/radius/background/shadow) and own inexpressibles (gradients, platform materials, multi-layer shadows, theme adaptation, press state). Variants resolve to **platform-native realizations** keyed by OS-version tier (Liquid Glass / `.ultraThinMaterial` on iOS, Material 3 Expressive / Material You on Android, CSS surface mixins on web) — cross-platform visual divergence is expected; an iOS app looks like iOS and an Android app looks like Android. Inline props survive as per-property overrides governed by a per-variant override matrix (`allow` / `lock`, optionally per-platform). Extends the existing `TextVariant` / `ButtonVariant` pattern. ADR-013 proposed (draft). |
+| Style tokens (atomic primitives) | Built | ADR-013 | Three-layer design system shipped. **Layer 1** — inline primitives (`padding`, `cornerRadius`, `shadow`, `gap`, `opacity`, `border`, `background`, `badge`, `aspectRatio`, …) on every atomic element. **Layer 2** — uniform `variant: string` on `AtomicElement` with per-primitive enums (`TextVariant`, `ButtonVariant`, `ContainerVariant`: `hero`/`elevated`/`banner`/`subtle`/`grouped`/`overlay`; `ImageVariant`: `hero`/`thumbnail`/`logo`). Per-platform per-OS-tier realization (Liquid Glass / `.ultraThinMaterial` / solid fallback on iOS 26+/17–25/<17; Material 3 Expressive / Material You / flat Material on Android 15+/12–14/<12; `backdrop-filter` / solid fallback on web modern/fallback) with light and dark specs at every declared tier. Per-variant override matrix (`allow` / `lock` / per-platform object); `variant_override_blocked` diagnostic on locked-axis overrides. **Layer 3** — `ColorToken` wire type + two-tier palette/semantic registry (`schema/color-tokens.json`), resolved on each client against the OS color scheme with `token_resolver_missing` diagnostic for unknown tokens. Server composers emit tokens via `ColorTokens` constants; `TokenRegistry` + `TokenRegistryConsistencyCheck` fail Spring boot if a constant is not registered. Full reference: [`sdui-design-system.md`](sdui-design-system.md). ADR-013 Accepted. Figma export pipeline deferred; registry is ref-app-seeded with Kinetic-compatible shape. |
 
 
 ---
@@ -920,9 +920,9 @@ These limits ensure atomic trees remain a lightweight composition mechanism, not
 
 All ADR statuses are tracked in the Requirement Status table above and in the Requirements Summary.
 
-- **Accepted:** ADR-006 (Experiment Assignment Model), ADR-008 (Form-Factor Layout Manager — Option C Hybrid), ADR-009 (Impression Dedup and Visibility Semantics).
+- **Accepted:** ADR-006 (Experiment Assignment Model), ADR-008 (Form-Factor Layout Manager — Option C Hybrid), ADR-009 (Impression Dedup and Visibility Semantics), ADR-013 (Style Tokens for Atomic Primitives).
 - **Proposed:** ADR-001, ADR-002, ADR-003, ADR-004, ADR-005, ADR-007, ADR-010.
-- **Proposed (draft):** ADR-011 (Data Classification and Freshness Model), ADR-012 (Client Data Architecture), ADR-013 (Style Tokens for Atomic Primitives). ADR-013 is pending the initial `ContainerVariant` token set and pilot composer migration.
+- **Proposed (draft):** ADR-011 (Data Classification and Freshness Model), ADR-012 (Client Data Architecture).
 
 
 ---
@@ -947,7 +947,7 @@ The alternative is duplicated platform composition logic and drift in feature be
 4. Introduce ad primitive (ADR-007). Layout strategy already accepted (ADR-008, Option C).
 5. Implement impression tracking per ADR-009 (accepted). Android/iOS pending.
 6. Implement offline/degraded connectivity strategy per ADR-010 — platform cache fallback, staleness UX, fire-and-forget queue.
-7. Finalize style-token strategy per ADR-013 (draft) — typed per-primitive variant enums as named design-system presets (aggregate inline-expressible props **and** own inexpressibles: gradients, platform materials, theme adaptation, press state). Variants resolve to platform-native realizations per OS-version tier (iOS materials / Liquid Glass, Android Material surfaces, web CSS mixins); cross-platform visual divergence is accepted. Includes per-variant override matrix (optionally per-platform), governance (override-rate SLO, quarterly audit, tier coverage bar, deprecation window). Pilot with `ContainerVariant` on `HeroPanel`.
+7. Style-token strategy per ADR-013 — **shipped and Accepted.** Uniform `variant: string` with per-primitive enums (`TextVariant`, `ButtonVariant`, `ContainerVariant`, `ImageVariant`); per-platform per-OS-tier realization with mandatory dark-mode coverage; per-variant override matrix (including per-platform policies); three diagnostics (`variant_resolver_missing`, `variant_override_blocked`, `token_resolver_missing`); color-token wire encoding with two-tier palette/semantic registry; client `ColorTokenResolver` on every platform; server `ColorTokens` constants with startup consistency check against the registry; pilot composer migrations complete (`AtomicCompositeBuilder`, `GameDetailComposer`, `ScheduleComposer`, `LiveComposer`, `ForYouComposer`, `DemoScreenComposer`). Figma export pipeline deferred — registry is ref-app-seeded with a Kinetic-compatible shape that is replaceable wholesale when the design-system tooling lands. Reference document: [`sdui-design-system.md`](sdui-design-system.md).
 
 ---
 

@@ -10,15 +10,56 @@ required for layout, content, or data-flow changes.
 > pseudocode algorithms. The rules below are the constraints; the contract
 > is the construction guide.
 
+> **Agent file-access conventions (standing instruction):**
+> `docs/appendix-kitchen-sink.md` is **owner-maintained and off-limits to agents**.
+> Do not read, grep, edit, or propose changes to this file. Do not reference its
+> line numbers or contents. When a schema, composer, or variant change would
+> affect appendix snippets, leave a note in the relevant plan or PR saying the
+> appendix needs a manual sweep by the owner — do not attempt the sweep yourself.
+> The file is too large to load into context profitably; the owner updates it
+> out-of-band after related changes land.
+
+> **Build / test commands (standing instruction):**
+> Always prefer the repo-root `Makefile` targets over raw `xcodebuild`,
+> `gradlew`, `npm`, or `swift build` invocations. The Makefile sets
+> environment defaults (`SDUI_DISABLE_ABLY=1` for Intel-Mac / CI iOS
+> builds, scheme / destination / derived-data paths, log filters) that
+> are load-bearing on some hosts — running the underlying tool directly
+> is a common source of spurious failures (e.g. `no such module 'Ably'`
+> on iOS when `SDUI_DISABLE_ABLY` is not set). Known targets:
+>
+> - `make codegen` — regenerate typed models from `schema/sdui-schema.json`.
+> - `make dev-server` / `make dev-web` / `make dev-android` / `make dev` — run
+>   the server, web client, Android client, or all three in dev mode.
+> - `make stop` / `make stop-server` / `make stop-web` / `make stop-android` /
+>   `make ios-stop` — stop running processes started by the `dev-*` targets.
+> - `make ios-build` — compile `SduiCore` against the iPhone 15 Pro Max
+>   simulator with Ably gated out (the default). Use this for compile
+>   checks from agent tasks.
+> - `make ios-test` / `make ios-test-clean` — run the `SduiCore` test
+>   suite; the `-clean` variant wipes `DerivedData` first when a cached
+>   swiftmodule is causing stale diagnostics.
+> - `make ios-demo-project` / `make ios-run` — regenerate the SduiDemo
+>   Xcode project from `project.yml` and launch it in the simulator.
+>
+> If a target you need is missing, add it to the Makefile rather than
+> teaching the agent a bespoke incantation. Override defaults per-invocation
+> with `VAR=value make target` (e.g. `SDUI_DISABLE_ABLY=0 make ios-build` on
+> arm64 hosts).
+
 ---
 
 ## 1. Schema Is the Single Source of Truth
 
 - **All section types** must be defined in `schema/sdui-schema.json`.
 - After modifying the schema, **always regenerate** models by running
-  `cd codegen && ./generate.sh`.
-- Generated code lives in `codegen/output/{kotlin,swift,typescript}` — never
-  edit those files by hand.
+  `make codegen` from the repo root.
+- Generated code lives in the following locations — never edit those files
+  by hand, regenerate them with `make codegen`:
+  - Java POJOs (Android server + client): `codegen/build/generated-sources/jsonschema2pojo/`
+  - Swift models (iOS client): `ios/Sources/SduiCore/Models/SduiModels.swift`
+  - TypeScript models (web client): `web/src/generated/SduiModels.ts` (consumed via the `@sdui/models` Vite / tsconfig alias)
+  - Kotlin models (demo only — Android uses the Java POJOs): `codegen/output/kotlin/SduiModels.kt`
 
 ## 2. No Hardcoded URLs or Paths on Clients
 
@@ -203,17 +244,93 @@ server contract.
 Is the UI stateless and ≤80 LOC with no platform SDK dependency?
  ├─ YES → AtomicComposite (server-composed)
  └─ NO
-      Does it require client-owned state or a platform SDK?
+      Does it require client-owned state, a platform SDK,
+      or is it a reserved SDK integration point (see 15.1)?
        ├─ YES → Section renderer (permanent section)
        │    Examples of justified reasons:
        │    • Platform SDK integration (IAP → SubscribeHero/SubscribeBanner,
-       │      ad SDK → AdSlot)
+       │      ad SDK → AdSlot, video SDK → VideoPlayer)
        │    • Network-driven real-time state (Ably SSE subscriptions →
        │      GamePanel, BoxscoreTable)
        │    • Complex client interaction state (tab selection → TabGroup,
        │      form validation → Form, sort/filter → SeasonLeadersTable)
        └─ NO → AtomicComposite — push it server-side
 ```
+
+### 15.1 Promotion readiness — when a permanent section is justified
+
+A section is promoted to permanent-renderer status when **one** of:
+
+1. **The justifying behavior exists today** — the client already owns
+   state, a platform SDK, or a network-driven lifecycle that cannot
+   be abstracted into the server contract.
+2. **The section is a reserved SDK integration point** — a future
+   platform SDK (IAP, ads, video, ...) is known to require a stable
+   client-owned mount point, and the product has committed to that
+   integration. The section type is pinned in the schema so the
+   server can address it, emit analytics against it, and include it
+   in composition decisions today — even before the SDK lands.
+
+Sections promoted under criterion (2) are subject to an additional
+constraint: **until the SDK lands, the renderer MUST render only
+server-emitted content, exactly as an `AtomicComposite` section would**.
+No client-side chrome defaults — no hardcoded padding, radii, shadows,
+colors, gradients, or copy. The section's visible output is a function
+of the server payload and nothing else. When the SDK lands, the
+renderer grows to host the SDK's content *inside* server-emitted
+chrome, not to replace it.
+
+A permanent section that accumulates client-side chrome defaults
+before its justifying SDK lands has, in effect, been misclassified —
+remediation is to strip the chrome back to server-emitted values,
+not to demote the section type.
+
+### 15.2 Single rectangle for fixed-pixel SDK dimensions
+
+When a speculative-SDK section reserves a **fixed-pixel rectangle**
+(e.g. ad creative sizing), the server emits that rectangle exactly
+once in the payload and both the pre-SDK placeholder and the SDK
+itself read from the same field. The renderer MUST NOT invent
+fallback dimensions.
+
+Canonical case: `AdSlot`. `AdSlotData.sizes[0]` is the reservation
+rectangle. The placeholder shown before fill (or on `collapseOnEmpty:
+false` misses) uses the same `sizes[0]`. Renderer does not define a
+default height. A payload missing `sizes` is a schema violation and
+must fail at the decoder, not render at a client-invented size.
+
+Sections whose dimensions are viewport-dependent (video, subscribe
+surfaces, content-sized cards) are **out of scope** for this clause —
+they size themselves from the composition they carry, as any
+responsive layout does. The "single rectangle" rule applies only
+where the SDK will claim a specific pixel reservation.
+
+### 15.3 Schema parity for permanent-section chrome
+
+Permanent sections MUST have schema parity with `AtomicContainer` for
+outer chrome. The `Section.display` block exposes the same
+vocabulary — `margin`, `padding`, `background`, `cornerRadius`,
+`shadow`, `border` — so the server can dictate outer chrome uniformly
+across every permanent section.
+
+Every client's `SectionRouter` wraps permanent-section output in a
+shared `SectionContainer` wrapper that reads `section.display.*` and
+applies it platform-natively. Permanent section renderers MUST NOT
+set their own outer padding, margin, corner radius, shadow, border,
+or background — the wrapper owns all of it. Renderers are responsible
+only for the **inner content** of the section (the slot contents,
+the card grid, the form fields, etc.).
+
+**Default chrome** for sections that do not explicitly set
+`display`: composers call a shared helper (e.g.
+`SduiUtils.defaultSectionDisplay()`) that emits a sensible default
+block. Composers MAY override per-section. Clients MUST NOT invent
+defaults — a section with no `display` payload and no helper-emitted
+default renders flush, without chrome.
+
+This rule exists so the entire app's rhythm (card inset, elevation,
+corner style) can shift via a single server-side helper change,
+without a client release and without per-renderer drift.
 
 ### Rationale
 
@@ -222,17 +339,22 @@ Nine section types were migrated to `AtomicComposite` because they had
 content. The nine permanent sections remain because each one requires
 behaviour the server cannot own:
 
-| Section            | Why it stays client-side                        |
-|--------------------|--------------------------------------------------|
-| GamePanel          | Ably SSE subscription, live score state machine  |
-| BoxscoreTable      | Real-time data binding, expandable rows          |
-| SeasonLeadersTable | Sort/filter interaction state                    |
-| TabGroup           | Tab selection state, nested section hosting      |
-| Form               | Validation state, platform keyboard integration  |
-| SubscribeHero      | Platform IAP SDK integration                     |
-| SubscribeBanner    | Platform IAP SDK integration                     |
-| AdSlot             | Platform ad SDK lifecycle                        |
-| VideoPlayer        | Platform video SDK lifecycle (HLS/DASH, PiP, AirPlay / Chromecast, background audio) |
+| Section            | Justifying behavior                              | Criterion |
+|--------------------|--------------------------------------------------|-----------|
+| GamePanel          | Ably SSE subscription, live score state machine  | 15.1 (1)  |
+| BoxscoreTable      | Real-time data binding, expandable rows          | 15.1 (1)  |
+| SeasonLeadersTable | Sort/filter interaction state                    | 15.1 (1)  |
+| TabGroup           | Tab selection state, nested section hosting     | 15.1 (1)  |
+| Form               | Validation state, platform keyboard integration  | 15.1 (1)  |
+| SubscribeHero      | Reserved for IAP SDK (StoreKit / Play Billing)   | 15.1 (2)  |
+| SubscribeBanner    | Reserved for IAP SDK                              | 15.1 (2)  |
+| AdSlot             | Reserved for ad SDK (GAM / Amazon); fixed-pixel reservation via `sizes[0]` — see §15.2 | 15.1 (2) |
+| VideoPlayer        | Reserved for video SDK (HLS/DASH, PiP, AirPlay / Chromecast, background audio)         | 15.1 (2) |
+
+Sections under criterion 15.1 (2) render only server-emitted content
+until their SDK lands — see §15.1. All permanent sections are wrapped
+by the shared `SectionContainer` and read outer chrome from
+`section.display` — see §15.3.
 
 Even for permanent sections, **visual configuration must be server-driven**.
 The renderer reads styling knobs (colors, sizes, layout flags) from the
@@ -242,8 +364,10 @@ identity, section data, or client state (e.g. "`GamePanel` on
 client-side *behaviour*, not because it owns *appearance*.
 
 This does **not** prohibit resolving server-emitted semantic tokens
-(`textVariant`, `buttonVariant`, `containerVariant` once ADR-013 lands)
-into platform-native idioms. That mapping is required — see Rule 16.
+(the `variant` wire property, resolved against `TextVariant`,
+`ButtonVariant`, `ContainerVariant`, or `ImageVariant` depending on the
+element's `type`) into platform-native idioms. That mapping is required
+— see Rule 16.
 
 ### AtomicComposite Limits
 
@@ -263,11 +387,15 @@ defensive depth guard.
 
 ## 16. Platform-Native Realization of Semantic Tokens
 
-The server emits **semantic tokens** — `textVariant: "titleMedium"`,
-`buttonVariant: "primary"`, `iconName: "play"`, and (once ADR-013
-lands) `containerVariant: "heroCard"`, `imageVariant: "hero"`, etc.
-Each client is responsible for resolving those tokens into its
-platform's **current design language**.
+The server emits **semantic tokens** on a uniform `variant: string`
+property of each atomic element (e.g. `variant: "titleMedium"` on a
+`Text`, `variant: "primary"` on a `Button`, and — once ADR-013 lands —
+`variant: "heroCard"` on a `Container` or `variant: "hero"` on an
+`Image`), plus parallel token vocabularies such as `iconName: "play"`.
+Which enum the `variant` string is parsed against (`TextVariant`,
+`ButtonVariant`, `ContainerVariant`, `ImageVariant`) is determined by
+the element's `type`. Each client is responsible for resolving those
+tokens into its platform's **current design language**.
 
 - **Expected**: iOS renders `titleMedium` with SF Pro typography and
   uses platform materials (`.ultraThinMaterial`, Liquid Glass on iOS
@@ -448,7 +576,7 @@ client-realized vocabulary" below.
 | **Content selection** — which sections, copy, or CTAs appear on this screen | **Server** (default) | Compose per-platform using `X-Platform` | Show `SubscribeHero` on iOS/Android, `SubscribeBanner` on web. Show "Download the app" only on web. Hide a `LiveActivity` CTA on non-iOS. |
 | **Capability gating** — does this client's runtime support the delivery mechanism, SDK, or OS feature the section requires | **Server** (default) | Read `capabilities.*` and `osVersion` from the envelope and compose a compatible response | If `capabilities.sse = false`, set `refreshPolicy.type = "interval"`. Omit a section that needs iOS 17 when `osVersion < 17`. |
 | **Asset-format selection** — the client needs a concrete URL or asset and only the server knows which format the platform can consume | **Server** (default) | Server emits the per-platform URL / asset | iOS gets the HLS manifest; Android gets the DASH manifest. iOS gets an APNs push target; Android gets FCM. |
-| **Presentation of a known semantic intent** — how a thing *looks* or *feels* once the client already knows what it is | **Client** (named exception, per Rule 16) | Schema carries a neutral semantic token; each platform resolves to its native idiom | `textVariant`, `buttonVariant`, `iconName` / `sdui:*` icon tokens, `containerVariant` (ADR-013), `ActionTrigger` (Rule 16 "Interaction tokens" subsection) |
+| **Presentation of a known semantic intent** — how a thing *looks* or *feels* once the client already knows what it is | **Client** (named exception, per Rule 16) | Schema carries a neutral semantic token; each platform resolves to its native idiom | The uniform `variant` wire property resolved against `TextVariant`, `ButtonVariant`, `ContainerVariant` (ADR-013), `ImageVariant` (ADR-013) per the element's `type`; `iconName` / `sdui:*` icon tokens; `ActionTrigger` (Rule 16 "Interaction tokens" subsection) |
 
 ### When in doubt: server
 
@@ -528,3 +656,107 @@ in either rule should meet an explicit bar, not happen by drift.
 - **Rule 16** is the implementation of the "Client" column of the
   decision tree — how each platform realizes the neutral semantics it
   receives.
+
+## 19. Minimize Variant Proliferation Within Semantic Vocabularies
+
+Once a client-realized vocabulary exists under Rule 18 (`TextVariant`,
+`ContainerVariant`, `ImageVariant`, `ButtonVariant`, icon tokens,
+`ActionTrigger`, ...), new **values** in that vocabulary
+are not free. Each value expands the wire-level contract, requires
+per-platform resolver maintenance, and becomes operationally expensive
+to remove once apps ship — strict decoders (Rule 13) and the
+app-store long tail make removal a deprecation exercise, not a code
+change.
+
+The default posture is therefore: **prefer expressible over named**.
+A design requirement that can be met by existing inline style
+properties on the primitive — or by extending the inline-property
+vocabulary with one additional orthogonal prop — is preferable to a
+new variant value, because inline properties are:
+
+- **Orthogonal.** `padding` and `cornerRadius` combine cleanly; neither
+  needs to know about the other. Variants, by contrast, create a
+  taxonomy that must be audited for overlap.
+- **Composable without combinatorial explosion.** N inline properties
+  express many combinations; N variants express N concepts.
+- **Server-tunable without a client release.** Bumping a padding value
+  is a composer change; renaming a variant is a client release on
+  every platform plus a deprecation window.
+
+### Before adding a new variant value
+
+1. **Expressibility check.** Can the visual treatment be produced by
+   the current inline-property set on the primitive? If yes → use
+   inline props. Do not add a variant value.
+2. **Abstraction check.** If not currently expressible, could **one
+   additional orthogonal inline property** — usable across many
+   primitives, not specific to the one case in front of you — close
+   the gap? If yes → add the inline property; prefer it to a variant
+   value. Example: a schema-level `elevation` number is orthogonal;
+   a `ContainerVariant.elevatedSomething` is not.
+3. **Inexpressibility check.** Only when (1) and (2) both fail —
+   because the treatment requires a platform SDK, an OS-version-
+   specific API, runtime theme resolution, multi-layer compositing,
+   or an interaction state that cannot be serialized as JSON
+   primitives — is a new variant value a candidate.
+4. **Evidence bar.** Whatever survives (3) must still clear the
+   ≥2-site evidence bar documented in the governing ADR (e.g.
+   ADR-013 for style tokens). Aggregation alone (DRY-ing a repeated
+   inline-prop bag) is a weak justification; inexpressibility is the
+   strong one.
+
+### Removing weakly-justified values
+
+Values proposed speculatively, or that fail the expressibility check
+in hindsight, **must be removed before they ship**, not retained
+"just in case." Schema values are asymmetrically expensive: trivial
+to add on day one, operationally costly to remove after apps ship.
+That asymmetry is intentional — it pushes the bar to "do we need
+this now," not "might we need this later." A single-value enum is
+usually a signal to drop the enum entirely until a second evidenced
+value emerges.
+
+### Rationale
+
+This rule protects two invariants the architecture depends on:
+
+- **Composition stays the primary expressiveness mechanism.** Rule 15
+  (AtomicComposite as default) and Rule 18 (server-driven by default)
+  both depend on a small, orthogonal primitive vocabulary being enough
+  to compose most designs server-side. If the primitive's style
+  vocabulary sprawls, the combinatorial base gets fuzzy and
+  composition stops being the cheap path.
+- **Client release cadence stays low.** Every new variant value is a
+  client-release coupling point — Rule 18's whole thesis. Keeping the
+  vocabulary tight keeps the coupling surface tight.
+
+### Examples
+
+- **Good.** "Designers want a 16px horizontal gutter around cards" →
+  extend the composer to emit `padding.horizontal = 16`. No new
+  variant. (This is why `ContainerVariant.inset` does not exist.)
+- **Good.** "Designers want grouped-list chrome with row-aligned
+  dividers" → new `ContainerVariant.grouped`. The SwiftUI
+  `.insetGrouped` / Material `ListItem` grouping behaviour is
+  inexpressible as inline bg + radius + padding, has ≥2 ref-app
+  sites, and is a platform idiom each client realizes natively.
+- **Bad.** "Designers want an `emphasized` divider that is 1pt instead
+  of 0.5pt" → that is inline `thickness`, not a variant. Do not add.
+- **Bad.** "Designers want an `avatar` image variant with a circle
+  clip" → expressible via `cornerRadius` (or a future `shape` prop) +
+  `objectFit`. Do not add unless a platform-native avatar treatment
+  (dynamic content-aware framing, platform placeholder glyphs)
+  cannot be captured inline.
+
+### Relationship to other rules
+
+- **Rule 13** is why removal is hard and therefore why the bar is
+  high: strict decoders reject unknown values, so once a value ships
+  it is part of the forever-contract.
+- **Rule 15** is the same minimization stance at a different layer —
+  composition over new section types.
+- **Rule 16** governs how each shipped value is realized; this rule
+  governs whether a value gets shipped in the first place.
+- **Rule 18** establishes the named-exception model for client-realized
+  vocabularies; this rule keeps those vocabularies honest after they
+  exist.

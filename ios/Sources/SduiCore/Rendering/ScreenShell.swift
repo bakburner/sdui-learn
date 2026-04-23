@@ -106,6 +106,8 @@ private struct SectionLayout: View {
     let dispatcher: ActionDispatcher
     let onVisibilityChange: (Bool) -> Void
 
+    @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
         let hints = section.layoutHints
         let marginTop = CGFloat(hints?.marginTop ?? 0)
@@ -117,7 +119,7 @@ private struct SectionLayout: View {
             ZStack(alignment: .topTrailing) {
                 SectionErrorBoundary(
                     sectionID: section.id,
-                    sectionType: section.type.rawValue,
+                    sectionType: section.type,
                     sectionStates: section.sectionStates,
                     data: sectionDataDict(section),
                     onAction: { dispatcher.dispatch($0) }
@@ -129,7 +131,7 @@ private struct SectionLayout: View {
                     )
                 }
                 .padding(edgeInsets(from: section.padding))
-                .background(color(from: section.backgroundColor) ?? .clear)
+                .background(ColorTokenResolver.resolve(section.backgroundColor, colorScheme: colorScheme) ?? .clear)
                 .sduiAccessibility(section.accessibility)
 
                 StalenessBadge(sectionID: section.id, tracker: staleness)

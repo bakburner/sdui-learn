@@ -17,10 +17,10 @@
     "noFallthroughCasesInSwitch": true,
     "baseUrl": ".",
     "paths": {
-      "@sdui/models": ["../codegen/output/typescript/SduiModels.ts"],
+      "@sdui/models": ["./src/generated/SduiModels.ts"],
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src", "../codegen/output/typescript"],
+  "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

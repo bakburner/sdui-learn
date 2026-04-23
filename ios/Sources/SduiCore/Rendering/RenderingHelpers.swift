@@ -2,31 +2,6 @@ import SwiftUI
 
 // MARK: - Shared helpers used across atomic renderers
 
-/// Parse a hex color string to SwiftUI Color.
-func color(from hex: String?) -> Color? {
-    guard let hex = hex else { return nil }
-    let cleaned = hex.trimmingCharacters(in: CharacterSet(charactersIn: "#"))
-    guard cleaned.count == 6 || cleaned.count == 8 else { return nil }
-
-    var rgbValue: UInt64 = 0
-    Scanner(string: cleaned).scanHexInt64(&rgbValue)
-
-    if cleaned.count == 8 {
-        return Color(
-            red: Double((rgbValue >> 24) & 0xFF) / 255.0,
-            green: Double((rgbValue >> 16) & 0xFF) / 255.0,
-            blue: Double((rgbValue >> 8) & 0xFF) / 255.0,
-            opacity: Double(rgbValue & 0xFF) / 255.0
-        )
-    }
-
-    return Color(
-        red: Double((rgbValue >> 16) & 0xFF) / 255.0,
-        green: Double((rgbValue >> 8) & 0xFF) / 255.0,
-        blue: Double(rgbValue & 0xFF) / 255.0
-    )
-}
-
 /// Convert schema Spacing to EdgeInsets.
 func edgeInsets(from spacing: Spacing?) -> EdgeInsets {
     guard let s = spacing else { return EdgeInsets() }
@@ -38,15 +13,17 @@ func edgeInsets(from spacing: Spacing?) -> EdgeInsets {
     )
 }
 
-/// Resolve a BackgroundUnion to a SwiftUI Color.
-func resolveBackground(_ bg: BackgroundUnion?) -> Color {
+/// Resolve a `BackgroundUnion` to a SwiftUI `Color`. String branches and
+/// gradient stops are routed through the color token resolver so both raw hex
+/// and `token:` references render correctly in the current color scheme.
+func resolveBackground(_ bg: BackgroundUnion?, colorScheme: ColorScheme) -> Color {
     guard let bg = bg else { return .clear }
     switch bg {
-    case .string(let hex):
-        return color(from: hex) ?? .clear
+    case .string(let value):
+        return ColorTokenResolver.resolve(value, colorScheme: colorScheme) ?? .clear
     case .background(let bgObj):
         if let colors = bgObj.colors, let first = colors.first {
-            return color(from: first) ?? .clear
+            return ColorTokenResolver.resolve(first, colorScheme: colorScheme) ?? .clear
         }
         return .clear
     }
@@ -87,10 +64,13 @@ extension View {
 struct ShadowModifier: ViewModifier {
     let shadow: Shadow?
 
+    @Environment(\.colorScheme) private var colorScheme
+
     func body(content: Content) -> some View {
         if let s = shadow {
             content.shadow(
-                color: color(from: s.color) ?? Color.black.opacity(0.08),
+                color: ColorTokenResolver.resolve(s.color, colorScheme: colorScheme)
+                    ?? Color.black.opacity(0.08),
                 radius: CGFloat(s.radius ?? 4),
                 x: CGFloat(s.offsetX ?? 0),
                 y: CGFloat(s.offsetY ?? 2)

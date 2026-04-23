@@ -4,9 +4,11 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
 import com.nba.sdui.core.models.AtomicElement
+import com.nba.sdui.core.renderer.ColorTokenResolver
 import com.nba.sdui.core.state.SduiAction
 
 /**
@@ -20,7 +22,8 @@ fun AtomicDivider(
     modifier: Modifier = Modifier
 ) {
     val thickness = element.thickness?.dp ?: 1.dp
-    val color = element.color?.let { parseColor(it) }
+    val resolved = ColorTokenResolver.resolve(element.color)
+    val color = resolved.takeIf { it != Color.Unspecified }
 
     if (element.orientation == "vertical") {
         if (color != null) {

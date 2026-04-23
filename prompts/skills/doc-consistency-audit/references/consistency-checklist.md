@@ -18,7 +18,11 @@ For each document in the audit list, verify every item below. Mark any inconsist
 - [ ] Every section type name listed matches schema enum exactly (PascalCase)
 - [ ] Every action type name listed matches schema enum exactly (camelCase)
 - [ ] Every action trigger listed matches schema enum exactly (camelCase, includes `onSubmit`)
-- [ ] Every `buttonVariant` value listed matches schema enum exactly (`primary`, `secondary`, `tertiary`, `text`); no `filled` appears as an enum value
+- [ ] Every `variant` value on a `Button`-type element matches the `ButtonVariant` schema enum exactly (`primary`, `secondary`, `tertiary`, `text`); no `filled` appears as an enum value
+- [ ] Every `variant` value on a `Text`-type element matches the `TextVariant` schema enum exactly
+- [ ] Every `variant` value on a `Container`-type element matches the `ContainerVariant` schema enum exactly
+- [ ] Every `variant` value on an `Image`-type element matches the `ImageVariant` schema enum exactly
+- [ ] No document references the old per-primitive property names `buttonVariant`, `containerVariant`, `imageVariant`, `headerVariant`, or `cellVariant` — the wire property is the uniform `variant: string`
 - [ ] Every atomic element type name listed matches schema enum exactly (PascalCase)
 - [ ] No pruned/deleted types appear (ErrorState, SectionHeader, PromoBanner, ContentRail, FollowingRail, HeroPanel, StatLine, VideoCarousel, NbaTvSchedule, Row, RowData)
 - [ ] Migrated types list is complete: ErrorState, SectionHeader, PromoBanner, ContentRail, FollowingRail, HeroPanel, StatLine, VideoCarousel, NbaTvSchedule

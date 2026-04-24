@@ -18,13 +18,9 @@ struct AtomicContainerView: View {
 
         Group {
             if isRow {
-                HStack(alignment: crossAlign, spacing: gap) {
-                    children
-                }
+                rowLayout(gap: gap)
             } else {
-                VStack(alignment: crossHAlign, spacing: gap) {
-                    children
-                }
+                columnLayout(gap: gap)
             }
         }
         .modifier(ContainerAspectRatioModifier(aspectRatio: resolvedAspectRatio))
@@ -34,10 +30,91 @@ struct AtomicContainerView: View {
     }
 
     @ViewBuilder
-    private var children: some View {
-        if let kids = element.children {
-            ForEach(Array(kids.enumerated()), id: \.offset) { _, child in
-                AtomicRouter(element: child, screenState: screenState, onAction: onAction, depth: depth)
+    private func rowLayout(gap: CGFloat) -> some View {
+        switch element.alignment {
+        case .center:
+            HStack(alignment: crossAlign, spacing: gap) {
+                rowChildren()
+            }
+        case .end:
+            HStack(alignment: crossAlign, spacing: gap) {
+                rowChildren()
+            }
+        case .spaceBetween:
+            HStack(alignment: crossAlign, spacing: gap) {
+                rowChildren(insertSpacerBetween: true)
+            }
+        case .spaceAround:
+            HStack(alignment: crossAlign, spacing: gap) {
+                Spacer(minLength: 0)
+                rowChildren(insertSpacerBetween: true)
+                Spacer(minLength: 0)
+            }
+        case .spaceEvenly:
+            HStack(alignment: crossAlign, spacing: gap) {
+                Spacer(minLength: 0)
+                rowChildren(insertSpacerBetween: true)
+                Spacer(minLength: 0)
+            }
+        default:
+            HStack(alignment: crossAlign, spacing: gap) {
+                rowChildren()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func columnLayout(gap: CGFloat) -> some View {
+        switch element.alignment {
+        case .center:
+            VStack(alignment: crossHAlign, spacing: gap) {
+                columnChildren()
+            }
+        case .end:
+            VStack(alignment: crossHAlign, spacing: gap) {
+                columnChildren()
+            }
+        case .spaceBetween:
+            VStack(alignment: crossHAlign, spacing: gap) {
+                columnChildren(insertSpacerBetween: true)
+            }
+        case .spaceAround:
+            VStack(alignment: crossHAlign, spacing: gap) {
+                Spacer(minLength: 0)
+                columnChildren(insertSpacerBetween: true)
+                Spacer(minLength: 0)
+            }
+        case .spaceEvenly:
+            VStack(alignment: crossHAlign, spacing: gap) {
+                Spacer(minLength: 0)
+                columnChildren(insertSpacerBetween: true)
+                Spacer(minLength: 0)
+            }
+        default:
+            VStack(alignment: crossHAlign, spacing: gap) {
+                columnChildren()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func rowChildren(insertSpacerBetween: Bool = false) -> some View {
+        let kids = element.children ?? []
+        ForEach(Array(kids.enumerated()), id: \.offset) { index, child in
+            AtomicRouter(element: child, screenState: screenState, onAction: onAction, depth: depth)
+            if insertSpacerBetween && index < kids.count - 1 {
+                Spacer(minLength: 0)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func columnChildren(insertSpacerBetween: Bool = false) -> some View {
+        let kids = element.children ?? []
+        ForEach(Array(kids.enumerated()), id: \.offset) { index, child in
+            AtomicRouter(element: child, screenState: screenState, onAction: onAction, depth: depth)
+            if insertSpacerBetween && index < kids.count - 1 {
+                Spacer(minLength: 0)
             }
         }
     }

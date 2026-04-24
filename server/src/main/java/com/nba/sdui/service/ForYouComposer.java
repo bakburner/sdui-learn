@@ -446,7 +446,7 @@ public class ForYouComposer {
                 "nba://game/" + gameId,
                 staticPolicy(),
                 null,
-                null);
+                utils.gamePanelSurface());
     }
 
     private ObjectNode buildMockGamePanel(String gameId, String awayTri, int awayId,
@@ -466,7 +466,7 @@ public class ForYouComposer {
                 "nba://game/" + gameId,
                 staticPolicy(),
                 null,
-                null);
+                utils.gamePanelSurface());
     }
 
     // ── Helpers ────────────────────────────────────────────────────────

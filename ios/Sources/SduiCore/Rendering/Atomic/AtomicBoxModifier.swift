@@ -40,7 +40,9 @@ struct AtomicBoxModifier: ViewModifier {
     let onAction: (Action) -> Void
 
     func body(content: Content) -> some View {
-        let spec = ContainerVariantResolver.resolve(element.variant)
+        let spec = element.type == "Container"
+            ? ContainerVariantResolver.resolve(element.variant)
+            : nil
         let fixedWidth = element.width.map { CGFloat($0) }
         let fixedHeight = element.height.map { CGFloat($0) }
         let shouldFillWidth = fixedWidth == nil && element.fillWidth == true

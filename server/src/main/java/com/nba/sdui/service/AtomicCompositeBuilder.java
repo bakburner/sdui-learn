@@ -69,6 +69,7 @@ public class AtomicCompositeBuilder {
         ObjectNode section = sectionEnvelope(id, null);
 
         ObjectNode root = container("row", "spaceBetween", "center");
+        root.put("fillWidth", true);
         // Header internal padding: 12pt top (air above title), 4pt bottom.
         // The vertical rhythm between the header title and the next section
         // is produced by the surface-level margin on the *next* section's
@@ -119,10 +120,10 @@ public class AtomicCompositeBuilder {
         ArrayNode rootChildren = om.createArrayNode();
 
         if (imageUrl != null) {
-            ObjectNode img = image(imageUrl, 64, 64, "contain");
-            img.put("cornerRadius", 8);
+            ObjectNode img = image(imageUrl, 120, 80, "cover");
+            img.put("cornerRadius", 10);
             rootChildren.add(img);
-            rootChildren.add(spacer(16));
+            rootChildren.add(spacer(24));
         }
 
         ObjectNode contentCol = container("column", null, null);
@@ -229,22 +230,26 @@ public class AtomicCompositeBuilder {
         ArrayNode children = om.createArrayNode();
 
         if (thumbnailUrl != null) {
+            ObjectNode imageWrap = container("column", null, null);
+            imageWrap.put("fillWidth", true);
+            // Keep the inset on a wrapper, not the Image, so badges align to
+            // the artwork bounds. The image is flush horizontally with the
+            // card; only top spacing remains between the card edge and media.
+            imageWrap.set("padding", padding(0, 0, 8, 0));
+
             ObjectNode img = thumbnailImage(thumbnailUrl);
-            // Image is inset 8pt on start/end/top so the card face is
-            // visible as an equal-thickness frame above and beside the
-            // thumbnail (matches the 12pt inter-card gap perception on
-            // the left/right). Bottom = 0 so the title owns the vertical
-            // rhythm below the image via its own padding.
-            img.set("padding", padding(8, 8, 8, 0));
             img.put("fillWidth", true);
             img.put("aspectRatio", 16.0 / 9.0);
-            img.put("cornerRadius", 6);
+            img.set("cornerRadii", cornerRadii(6, 6, 0, 0));
             if (duration != null) {
                 badge(img, durationBadge(duration), "bottomEnd");
             } else if ("video".equalsIgnoreCase(contentType)) {
                 badge(img, liveBadge(), "bottomEnd");
             }
-            children.add(img);
+            ArrayNode imageWrapChildren = om.createArrayNode();
+            imageWrapChildren.add(img);
+            imageWrap.set("children", imageWrapChildren);
+            children.add(imageWrap);
         }
 
         children.add(spacer(4));
@@ -417,12 +422,13 @@ public class AtomicCompositeBuilder {
             ObjectNode imgContainer = container("column", null, null);
             ArrayNode imgChildren = om.createArrayNode();
             // Inline hero image treatment: 16:9 artwork that fills card
-            // width, 12pt radius, cover fit. The `hero` ImageVariant was
-            // pruned because this surface is inline-expressible.
+            // width, rounded top corners, square bottom edge, cover fit.
+            // The `hero` ImageVariant was pruned because this surface is
+            // inline-expressible.
             ObjectNode img = image(thumbnailUrl, 0, 0, "cover");
             img.put("aspectRatio", 16.0 / 9.0);
             img.put("fillWidth", true);
-            img.put("cornerRadius", 12);
+            img.set("cornerRadii", cornerRadii(12, 12, 0, 0));
             imgChildren.add(img);
             if (duration != null) {
                 ObjectNode dur = text(duration, "labelSmall", null, ColorTokens.TEXT_INVERSE, null);
@@ -547,6 +553,7 @@ public class AtomicCompositeBuilder {
         // Root vertical container with tap-to-navigate action.
         ObjectNode root = container("column", null, "stretch");
         root.put("id", sectionId + "-root");
+        root.put("fillWidth", true);
         root.put("cornerRadius", cornerRadius);
         root.set("padding", padding(rootPadding, rootPadding, rootPadding, rootPadding));
         if (navigateUri != null) {
@@ -1001,7 +1008,7 @@ public class AtomicCompositeBuilder {
         if (heroImageUrl != null) {
             ObjectNode heroImg = image(heroImageUrl, 0, 200, "cover");
             heroImg.put("fillWidth", true);
-            heroImg.put("cornerRadius", 12);
+            heroImg.set("cornerRadii", cornerRadii(12, 12, 0, 0));
             heroChildren.add(heroImg);
         }
 
@@ -1349,11 +1356,10 @@ public class AtomicCompositeBuilder {
      * Build a horizontally-scrolling carousel of GamePanel sections.
      *
      * <p>The first game is stamped with {@code variant: "featured"} and
-     * given a wider wrapping container; the rest are {@code variant:
-     * "standard"}. The carousel itself hides scroll indicators so cards
-     * read as a curated rail. Width of each wrapper (280 vs 200) is the
-     * server's composition call — {@code variant} controls only internal
-     * emphasis (padding, corner radius, shadow) on each client.
+     * the rest are {@code variant: "standard"}. Every wrapper uses the
+     * same width so the rail reads as a uniform set of game cards; the
+     * {@code variant} controls only internal emphasis (padding, corner
+     * radius, shadow) on each client.
      *
      * @param sectionId      section id for the enclosing AtomicComposite
      * @param analyticsId    analyticsId for the enclosing AtomicComposite
@@ -1380,7 +1386,7 @@ public class AtomicCompositeBuilder {
             }
 
             ObjectNode wrapper = container("column", null, null);
-            wrapper.put("width", isFeatured ? 280 : 200);
+            wrapper.put("width", 280);
             ArrayNode wrapperChildren = om.createArrayNode();
             wrapperChildren.add(sectionSlot("carousel-slot-" + i, game));
             wrapper.set("children", wrapperChildren);

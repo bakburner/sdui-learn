@@ -495,9 +495,9 @@ public class WatchComposer {
             children.add(atomicBuilder.image(logoUrl, 0, 48, "contain"));
             children.add(atomicBuilder.spacer(8));
         }
-        children.add(atomicBuilder.text(title, "headlineSmall", "bold", "#FFFFFF", null));
+        children.add(atomicBuilder.text(title, "headlineSmall", "bold", ColorTokens.TEXT_INVERSE, null));
         if (subtitle != null) {
-            children.add(atomicBuilder.text(subtitle, "bodyMedium", null, "rgba(255,255,255,0.8)", null));
+            children.add(atomicBuilder.text(subtitle, "bodyMedium", null, ColorTokens.TEXT_INVERSE, null));
         }
         children.add(atomicBuilder.spacer(12));
 
@@ -508,8 +508,8 @@ public class WatchComposer {
             ObjectNode row = atomicBuilder.container("row", "start", "center");
             row.put("gap", 8);
             ArrayNode rowChildren = objectMapper.createArrayNode();
-            rowChildren.add(atomicBuilder.text("✓", "bodyMedium", "bold", "#FFFFFF", null));
-            rowChildren.add(atomicBuilder.text(feature, "bodyMedium", null, "rgba(255,255,255,0.85)", null));
+            rowChildren.add(atomicBuilder.text("✓", "bodyMedium", "bold", "token:color.feedback.success.70", null));
+            rowChildren.add(atomicBuilder.text(feature, "bodyMedium", null, ColorTokens.TEXT_INVERSE, null));
             row.set("children", rowChildren);
             featureChildren.add(row);
         }
@@ -542,14 +542,14 @@ public class WatchComposer {
 
         ArrayNode cardChildren = objectMapper.createArrayNode();
         if (t.badgeText != null) {
-            cardChildren.add(atomicBuilder.text(t.badgeText, "labelSmall", "bold", "#FFDD00", null));
+            cardChildren.add(atomicBuilder.text(t.badgeText, "labelSmall", "bold", "token:color.secondary.50", null));
         }
-        cardChildren.add(atomicBuilder.text(t.name, "titleMedium", "bold", "#FFFFFF", null));
-        cardChildren.add(atomicBuilder.text(t.price, "titleLarge", "bold", "#FFFFFF", null));
+        cardChildren.add(atomicBuilder.text(t.name, "titleMedium", "bold", ColorTokens.TEXT_INVERSE, null));
+        cardChildren.add(atomicBuilder.text(t.price, "titleLarge", "bold", ColorTokens.TEXT_INVERSE, null));
 
         if (t.features != null) {
             for (String f : t.features) {
-                cardChildren.add(atomicBuilder.text("• " + f, "bodySmall", null, "rgba(255,255,255,0.85)", null));
+                cardChildren.add(atomicBuilder.text("• " + f, "bodySmall", null, ColorTokens.TEXT_INVERSE, null));
             }
         }
         cardChildren.add(atomicBuilder.spacer(8));

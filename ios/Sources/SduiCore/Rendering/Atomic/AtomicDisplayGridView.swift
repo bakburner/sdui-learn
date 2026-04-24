@@ -1,13 +1,16 @@
 import SwiftUI
 
-/// Renders a DisplayGrid — display-only, non-interactive, server-ordered tabular data.
+/// Renders a DisplayGrid — display-only, non-interactive, server-ordered
+/// tabular data. The table owns its grid layout; margin / padding /
+/// bg / cornerRadius / shadow / opacity come from `AtomicBoxModifier`
+/// via `.atomicBox(...)`.
 struct AtomicDisplayGridView: View {
     let element: AtomicElement
 
     var body: some View {
         if let columns = element.columns, let rows = element.rows {
             gridBody(columns: columns, rows: rows)
-                .padding(edgeInsets(from: element.padding))
+                .atomicBox(element, screenState: ScreenState(), onAction: { _ in })
         }
     }
 

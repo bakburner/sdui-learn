@@ -172,6 +172,14 @@ FUNCTION SectionRouter(section, screenState, onAction, onStateChange):
 
 ## 4. Atomic Router Algorithm
 
+The router is a **pure dispatcher**. It does not apply any styling of its own.
+Every box-model concern — `margin`, `padding`, `background`, `cornerRadius`,
+`cornerRadii`, `shadow`, `border`, `opacity`, `width`, `height`, `fillWidth`,
+variant chrome, and `badge` overlay — is applied by a single helper called
+`AtomicBox` (see §4a) that every primitive routes its output through.
+Primitives own only the content they render (typography, scroll layout,
+image scaling, flex arrangement); they never re-implement box-model logic.
+
 ```
 CONSTANT MAX_DEPTH = 6
 
@@ -202,12 +210,114 @@ FUNCTION AtomicRouter(element, screenState, onAction, onStateChange, depth):
 ```
 FUNCTION AtomicContainer(element, state, onAction, onStateChange, depth):
     // element.direction = "row" | "column"
-    // element.children = list of AtomicElement
-    // element.padding, element.gap, element.alignment, element.background
-    // element.flex (layout weight), element.breakpoint (responsive direction flip)
+    // element.children  = list of AtomicElement
+    // element.gap, element.alignment, element.crossAlignment, element.breakpoint
+    // element.flex (layout weight on children, main-axis only)
+    //
+    // Box-model concerns (margin/padding/bg/cornerRadius/shadow/border/badge)
+    // are handled by AtomicBox — this function only arranges children.
 
-    FOR child IN element.children:
-        AtomicRouter(child, state, onAction, onStateChange, depth)
+    WRAP IN AtomicBox(element):
+        RowOrColumn(direction=element.direction, gap=element.gap, ...):
+            FOR child IN element.children:
+                AtomicRouter(child, state, onAction, onStateChange, depth)
+```
+
+### 4a. AtomicBox — the unified box-model helper
+
+`AtomicBox` is the **single site** on every client where an `AtomicElement`'s
+box model is realized. Every primitive — `Container`, `ScrollContainer`,
+`Text`, `Image`, `Button`, `Divider`, `DisplayGrid` — wraps its rendered
+content through `AtomicBox`. Primitives that are pure layout devices —
+`Spacer`, `Conditional`, `SectionSlot` — bypass it because they render no
+chrome of their own (the chosen child / hosted section carries the box
+model).
+
+**The canonical modifier order (outer → inner):**
+
+```
+margin                ← sibling-to-sibling spacing
+  └─ opacity          ← applied once, affects everything below
+       └─ shadow      ← casts from the bg shape
+            └─ corner clip
+                 └─ background (variant or inline) + optional gradient overlay
+                      └─ border
+                           └─ padding   ← interior padding; bg extends to its edge
+                                └─ sizing (width / height / fillWidth)
+                                     └─ content (what the primitive actually renders)
+```
+
+Invariants this order guarantees:
+
+- `margin` is outside everything — never clipped by the element's own
+  corner clip or tinted by its bg.
+- `padding` lives **inside** the bg + corner clip, so variants like `hero`
+  or `elevated` paint to the padded frame (matches CSS box-model intuition
+  and the historical `Container` semantic).
+- `shadow` renders on the bg shape, not on the padded frame.
+- `fillWidth` is applied to the sized frame (border-box semantics); when
+  `width` is also set, `width` wins.
+
+**Variant integration.** Before applying the stack, `AtomicBox` resolves
+`element.variant` against the platform's `ContainerVariantResolver` / 
+`ImageVariantResolver`. The resolver returns **data** (a spec with
+background role, cornerRadius, shadow, border, fillWidth, gradient overlay,
+and an `overrideMatrix`), never a platform-specific modifier. `AtomicBox`
+then merges the spec with inline `element.*` props per each axis's
+override policy (`allow` → inline wins; `lock` → variant wins, inline
+attempt is logged). This keeps variant realization client-native while
+keeping box-model application uniform.
+
+**Badge overlay.** When `element.badge` is present, `AtomicBox` renders the
+badge element through `AtomicRouter` and positions it according to
+`element.badge.alignment`. The badge uses the same box model as any other
+atomic element.
+
+**What `AtomicBox` deliberately does not own:**
+
+- **Accessibility labels.** Each primitive provides its own semantic
+  fallback (image `alt`, button `label`, text `content`) so the router
+  cannot make a generic choice.
+- **Action triggers (`actions[]`, `onTap`, `onLongPress`, `onVisible`).**
+  Primitives integrate actions into their native control (SwiftUI
+  `Button`, Compose `Modifier.clickable`, `<button>` element) because the
+  gesture surface is primitive-specific.
+- **Layout direction / flex / gap / alignment on `Container`.** These are
+  flex-layout concerns owned by `AtomicContainer`.
+
+**Why this matters for client release cadence.** New box-model schema
+fields (a future `outline`, `elevation`, or `backdrop` property) are
+implemented in `AtomicBox` once per platform and every primitive picks
+them up for free. Variant values added to the catalog (`banner`,
+`grouped`, ...) reach every primitive the same way. A new primitive type
+ships with a complete box model without re-implementing the stack.
+
+**Pseudocode:**
+
+```
+FUNCTION AtomicBox(element, screenState, onAction, content):
+    variantSpec = ContainerVariantResolver.resolve(element.variant)
+
+    // Merge inline + variant per override policy
+    effectiveCornerRadius = resolveAxis("cornerRadius", element.cornerRadius, variantSpec?.cornerRadius, variantSpec?.overrideMatrix)
+    effectiveShadow       = resolveAxis("shadow",       element.shadow,       variantSpec?.shadow,       variantSpec?.overrideMatrix)
+    useVariantBackground  = (element.background == null) OR overrideMatrix["background"] == "lock"
+
+    shape = buildShape(element.cornerRadii, effectiveCornerRadius)
+    fillW = element.fillWidth ?? variantSpec?.fillWidth
+
+    RETURN
+      APPLY margin(element.margin)
+      APPLY opacity(element.opacity)
+      APPLY shadow(effectiveShadow, shape)
+      APPLY clipToShape(shape)
+      APPLY background(useVariantBackground ? variantSpec.background : element.background)
+      APPLY gradientOverlay(variantSpec?.gradientOverlay)   // hero variant only
+      APPLY border(variantSpec?.border, shape)
+      APPLY padding(element.padding)
+      APPLY sizing(element.width, element.height, fillW)
+      WRAP WITH badge(element.badge) IF present
+      CONTAINS content
 ```
 
 **SectionSlot bridge (atomic → section):**
@@ -1292,6 +1402,7 @@ the rules in `AGENTS.md`.
 | C12 | Exceptions logged with context — never silently swallowed | Rule 12 |
 | C13 | Schema is the wire contract — strict decoders; new enum values go into schema first, then regen | Rule 13 |
 | C14 | Renderers are presentation-only — no business logic | Rule 14 |
+| C14a | Every atomic primitive routes its content through a single `AtomicBox` helper that applies `margin → opacity → shadow → corner-clip → background → gradient overlay → border → padding → sizing → badge` in that order. Primitives own only their content (typography, flex layout, scroll behaviour, image scaling). See §4a | Rule 14 |
 | C15 | Prefer AtomicComposite over new section type for stateless UI | Rule 15 |
 | C16 | Platform-native realization of semantic variant tokens — `TextVariant`, `ButtonVariant`, `ContainerVariant`, `ImageVariant` on atomic elements, `GamePanelVariant` on the `GamePanel` section, `SelectVariant` on `FormField.select` — emitted on the wire as a `variant` string property; map to the platform's current design language; no pixel-parity target. See §17a for renderer mapping tables | Rule 16 |
 | C17 | Code comments describe invariants and cite business constraints; do not cite internal rule numbers or AI-coding guidelines | Rule 17 |

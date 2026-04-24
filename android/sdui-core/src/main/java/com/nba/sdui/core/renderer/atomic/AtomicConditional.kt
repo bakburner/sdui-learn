@@ -1,13 +1,16 @@
 package com.nba.sdui.core.renderer.atomic
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
 import com.nba.sdui.core.models.generated.AtomicElement
 import com.nba.sdui.core.state.SduiAction
 
 /**
  * AtomicConditional — evaluates [element.condition] against [screenState]
  * and renders either [element.trueChild] or [element.falseChild].
+ *
+ * The conditional has no visual representation of its own; box-model
+ * chrome belongs to the chosen child (which runs through [AtomicBox]
+ * via [AtomicRouter]).
  *
  * Condition strings are simple dot-path keys looked up in screenState.
  * The value is truthy when non-null, non-false, and non-empty-string.
@@ -17,14 +20,22 @@ fun AtomicConditional(
     element: AtomicElement,
     screenState: Map<String, Any>,
     onAction: (SduiAction) -> Unit,
-    modifier: Modifier = Modifier,
     depth: Int = 0,
     onStateChange: (String, Any) -> Unit = { _, _ -> },
     sectionSlotDepth: Int = 0
 ) {
     val conditionMet = evaluateCondition(element.condition, screenState)
     val child = if (conditionMet) element.trueChild else element.falseChild
-    child?.let { AtomicRouter(it, screenState, onAction, modifier, depth = depth + 1, onStateChange = onStateChange, sectionSlotDepth = sectionSlotDepth) }
+    child?.let {
+        AtomicRouter(
+            it,
+            screenState,
+            onAction,
+            depth = depth + 1,
+            onStateChange = onStateChange,
+            sectionSlotDepth = sectionSlotDepth
+        )
+    }
 }
 
 /**

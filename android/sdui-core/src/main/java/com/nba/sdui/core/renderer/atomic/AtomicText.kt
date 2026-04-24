@@ -17,14 +17,16 @@ import com.nba.sdui.core.renderer.applyAccessibility
 import com.nba.sdui.core.state.SduiAction
 
 /**
- * AtomicText — renders a Text element using MaterialTheme typography variants.
+ * AtomicText — renders a Text element using MaterialTheme typography
+ * variants. The text itself owns typography (font / color / alignment /
+ * line clamp); margin / padding / bg / cornerRadius / shadow / opacity
+ * / fillWidth / badge come from [AtomicBox].
  */
 @Composable
 fun AtomicText(
     element: AtomicElement,
     screenState: Map<String, Any>,
-    onAction: (SduiAction) -> Unit,
-    modifier: Modifier = Modifier
+    onAction: (SduiAction) -> Unit
 ) {
     val baseStyle = mapTypographyVariant(element.variant)
     if (element.variant != null && !isKnownTextVariant(element.variant)) {
@@ -44,21 +46,20 @@ fun AtomicText(
         else -> null
     }
 
-    Text(
-        text = element.content.orEmpty(),
-        style = style,
-        fontWeight = fontWeight,
-        color = textColor,
-        textAlign = textAlign,
-        maxLines = element.maxLines?.toInt() ?: Int.MAX_VALUE,
-        overflow = TextOverflow.Ellipsis,
-        modifier = modifier.applyAccessibility(element.accessibility)
-    )
+    AtomicBox(element, screenState, onAction) { boxModifier ->
+        Text(
+            text = element.content.orEmpty(),
+            style = style,
+            fontWeight = fontWeight,
+            color = textColor,
+            textAlign = textAlign,
+            maxLines = element.maxLines?.toInt() ?: Int.MAX_VALUE,
+            overflow = TextOverflow.Ellipsis,
+            modifier = boxModifier.applyAccessibility(element.accessibility)
+        )
+    }
 }
 
-/**
- * Map schema variant strings to MaterialTheme typography styles.
- */
 @Composable
 internal fun mapTypographyVariant(variant: String?): TextStyle = when (variant) {
     "displayLarge"  -> MaterialTheme.typography.displayLarge

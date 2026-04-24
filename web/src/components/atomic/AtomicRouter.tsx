@@ -24,11 +24,16 @@ export interface AtomicProps {
 }
 
 /**
- * AtomicRouter — routes an AtomicElement to the correct primitive renderer.
+ * AtomicRouter — dispatches an AtomicElement to the correct primitive
+ * renderer. Box-model concerns (margin, padding, background, cornerRadius,
+ * shadow, border, opacity, width, height, fillWidth, badge, variant
+ * chrome, backdrop-filter) are applied uniformly by `AtomicBox` inside
+ * each primitive, so this router does not touch styling itself — it is
+ * dispatch-only.
  *
- * A defensive depth guard prevents malformed payloads from causing deep DOM trees
- * or render loops. Server-side validation is the primary enforcement; this is a
- * safety net for stale caches or manual JSON authoring.
+ * A defensive depth guard prevents malformed payloads from causing deep
+ * DOM trees or render loops. Server-side validation is the primary
+ * enforcement; this is a safety net for stale caches or manual JSON.
  */
 export function AtomicRouter({ element, state, onAction, depth = 0, onStateChange, sectionSlotDepth = 0 }: AtomicProps): React.ReactElement | null {
   if (depth > MAX_TREE_DEPTH) {
@@ -37,80 +42,30 @@ export function AtomicRouter({ element, state, onAction, depth = 0, onStateChang
   }
   const childDepth = depth + 1;
   const childProps = { state, onAction, onStateChange, sectionSlotDepth };
-  let rendered: React.ReactElement | null;
+
   switch (element.type) {
     case 'Container':
-      rendered = <AtomicContainer element={element} {...childProps} depth={childDepth} />;
-      break;
+      return <AtomicContainer element={element} {...childProps} depth={childDepth} />;
     case 'Text':
-      rendered = <AtomicText element={element} state={state} onAction={onAction} />;
-      break;
+      return <AtomicText element={element} state={state} onAction={onAction} />;
     case 'Image':
-      rendered = <AtomicImage element={element} state={state} onAction={onAction} />;
-      break;
+      return <AtomicImage element={element} state={state} onAction={onAction} />;
     case 'Button':
-      rendered = <AtomicButton element={element} state={state} onAction={onAction} />;
-      break;
+      return <AtomicButton element={element} state={state} onAction={onAction} />;
     case 'Spacer':
-      rendered = <AtomicSpacer element={element} state={state} onAction={onAction} />;
-      break;
+      return <AtomicSpacer element={element} state={state} onAction={onAction} />;
     case 'Divider':
-      rendered = <AtomicDivider element={element} state={state} onAction={onAction} />;
-      break;
+      return <AtomicDivider element={element} state={state} onAction={onAction} />;
     case 'ScrollContainer':
-      rendered = <AtomicScrollContainer element={element} {...childProps} depth={childDepth} />;
-      break;
+      return <AtomicScrollContainer element={element} {...childProps} depth={childDepth} />;
     case 'Conditional':
-      rendered = <AtomicConditional element={element} {...childProps} depth={childDepth} />;
-      break;
+      return <AtomicConditional element={element} {...childProps} depth={childDepth} />;
     case 'DisplayGrid':
-      rendered = <AtomicDisplayGrid element={element} state={state} onAction={onAction} />;
-      break;
+      return <AtomicDisplayGrid element={element} state={state} onAction={onAction} />;
     case 'SectionSlot':
-      rendered = <AtomicSectionSlot element={element} {...childProps} />;
-      break;
+      return <AtomicSectionSlot element={element} {...childProps} />;
     default:
       console.debug(`[AtomicRouter] Unknown element type: ${element.type}`);
       return null;
   }
-
-  // element.padding on leaf primitives is applied at the router level via a
-  // wrapper div. Container / ScrollContainer / Conditional / SectionSlot
-  // apply padding internally so it sits inside their own background, border
-  // and corner clip; wrapping those would double-pad and would move padding
-  // outside the bg — deliberately skip them here.
-  const isLeaf = element.type !== 'Container'
-    && element.type !== 'ScrollContainer'
-    && element.type !== 'Conditional'
-    && element.type !== 'SectionSlot';
-  if (isLeaf && element.padding) {
-    const p = element.padding;
-    const paddingStyle: React.CSSProperties = {
-      paddingTop: p.top,
-      paddingRight: p.end,
-      paddingBottom: p.bottom,
-      paddingLeft: p.start,
-    };
-    rendered = <div style={paddingStyle}>{rendered}</div>;
-  }
-
-  // Outer margin is applied by a wrapper div so it sits outside the
-  // primitive's own background, corner radius, and inner padding —
-  // sibling-to-sibling spacing semantics, matching CSS `margin`.
-  if (element.margin) {
-    const m = element.margin;
-    const marginStyle = {
-      marginTop: m.top,
-      marginRight: m.end,
-      marginBottom: m.bottom,
-      marginLeft: m.start,
-      ...(element.opacity !== undefined ? { opacity: element.opacity } : {}),
-    };
-    return <div style={marginStyle}>{rendered}</div>;
-  }
-
-  if (element.opacity !== undefined && rendered) {
-    return <div style={{ opacity: element.opacity }}>{rendered}</div>;
-  }
-  return rendered;
 }

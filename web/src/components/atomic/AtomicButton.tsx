@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Action } from '@sdui/models';
 import type { AtomicProps } from './AtomicRouter';
+import { AtomicBox } from './AtomicBox';
 import { accessibilityProps } from '../../utils/accessibility';
 import { useColorTokenResolver } from '../../utils/ColorTokenResolver';
 
@@ -27,7 +28,19 @@ const variantStyles: Record<KnownButtonVariant, React.CSSProperties> = {
 };
 
 /**
- * AtomicButton — renders a button with variant styling, dispatching actions on click.
+ * AtomicButton — renders a button with variant-driven appearance.
+ *
+ * The button's visual chrome (padding, bg, border, radius, font) comes
+ * from the variant preset. AtomicBox is applied *outside* the <button>
+ * so element-level margin / opacity / width / badge etc. sit on a
+ * wrapper div and don't interfere with the native button's click
+ * surface.
+ *
+ * Inline `padding` / `background` / `cornerRadius` / `border` on a
+ * Button still go to AtomicBox's wrapper (which is rare; typical
+ * usage relies entirely on the variant preset). If the server wants
+ * to tune the button's own chrome, the primitive variant should be
+ * extended rather than using element.padding.
  */
 export function AtomicButton({ element, onAction }: AtomicProps): React.ReactElement {
   const resolveColor = useColorTokenResolver();
@@ -41,7 +54,7 @@ export function AtomicButton({ element, onAction }: AtomicProps): React.ReactEle
     }
   }
   const resolvedColor = resolveColor(element.color);
-  const style: React.CSSProperties = {
+  const buttonStyle: React.CSSProperties = {
     ...variantStyles[resolvedVariant],
     ...(resolvedColor ? { color: resolvedColor } : {}),
   };
@@ -53,9 +66,9 @@ export function AtomicButton({ element, onAction }: AtomicProps): React.ReactEle
     }
   };
 
-  return (
+  const button = (
     <button
-      style={style}
+      style={buttonStyle}
       disabled={element.disabled}
       onClick={handleClick}
       aria-label={element.accessibility?.label ?? element.label}
@@ -64,4 +77,6 @@ export function AtomicButton({ element, onAction }: AtomicProps): React.ReactEle
       {element.label ?? ''}
     </button>
   );
+
+  return <AtomicBox element={element}>{button}</AtomicBox>;
 }

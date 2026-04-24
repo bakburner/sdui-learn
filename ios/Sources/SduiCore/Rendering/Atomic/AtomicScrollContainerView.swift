@@ -1,6 +1,9 @@
 import SwiftUI
 
 /// Renders a ScrollContainer atomic element — scrollable child list.
+/// The scroll viewport owns only its scroll layout (axis, gap, indicator
+/// visibility); margin / padding / bg / cornerRadius / shadow / opacity
+/// live on `AtomicBoxModifier` via `.atomicBox(...)`.
 struct AtomicScrollContainerView: View {
     let element: AtomicElement
     let screenState: ScreenState
@@ -16,14 +19,13 @@ struct AtomicScrollContainerView: View {
                 HStack(spacing: gap) {
                     children
                 }
-                .padding(edgeInsets(from: element.padding))
             } else {
                 VStack(spacing: gap) {
                     children
                 }
-                .padding(edgeInsets(from: element.padding))
             }
         }
+        .atomicBox(element, screenState: screenState, onAction: onAction)
     }
 
     @ViewBuilder

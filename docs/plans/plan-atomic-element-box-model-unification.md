@@ -1,7 +1,9 @@
 # Plan: Unified `AtomicElement` Box Model at the Router
 
-> **Status**: Draft — not scheduled. File under T-series follow-ups from the
-> April `element.padding` drift fix.
+> **Status**: Shipped across web, iOS, and Android. Phase 0 resolver
+> refactor, the three platform phases (§ Phase 1–3), and the § Phase 4
+> closeout are complete. Residual work, if any, is captured under §
+> Follow-ups at the bottom of this plan.
 >
 > **Scope**: All three client platforms (iOS, Android, Web). No schema change
 > and no server-side change.
@@ -210,85 +212,101 @@ Each platform lands in its own PR so regressions are localised.
 
 ### Phase 0 — Shared prework (before any platform PRs)
 
-- [ ] Add golden-image / screenshot fixtures (or extend existing ones) for
-      every composer that emits a `Container` with `background`,
-      `cornerRadius`, or `shadow`. The purpose is to have a before/after
-      baseline before any platform flips to the unified box model. At
-      minimum: content rail cards, video carousel cards, `GamePanel`
-      carousel, `NbaTvSchedule`, `SubscribeHero`.
-- [ ] Write a fixture that exercises `element.padding` on every leaf type
-      and on `Container` with bg+cornerRadius+shadow. Add it to
-      `schema/examples/` so drift tests pick it up.
-- [ ] Factor `ContainerVariantResolver` on each platform so it returns a
+- [x] Write a fixture that exercises `element.padding` on every leaf type
+      and on `Container` with bg+cornerRadius+shadow. Added as
+      `schema/examples/box-model-leaves.json`; the drift round-trip
+      test (`ios/Tests/SduiCoreTests/SduiModelsRoundTripTests.swift`,
+      web `vitest` suite) exercises it on every platform.
+- [x] Factor `ContainerVariantResolver` on each platform so it returns a
       "resolved inline props" bag (`{ background, cornerRadius, shadow,
-      border }`) rather than a SwiftUI/Compose/React modifier. The router
-      then reads that bag like any other element's inline props. This is
-      the key prerequisite for moving box-model application out of the
-      renderer — variants must become data, not view code.
+      border, gradient overlay, fillWidth, overrideMatrix }`) rather
+      than a SwiftUI/Compose/React modifier. The router then reads
+      that bag like any other element's inline props. Shipped:
+      - iOS: `ContainerVariantSpec` + surfaceColor(for:) + the
+        `applyContainerVariant` ViewModifier that consumes it.
+      - Android: `ContainerVariantSpec` data class consumed directly
+        by `AtomicBox.kt`.
+      - Web: `ContainerVariantSpec` TS interface consumed by
+        `AtomicBox.tsx`.
+- [ ] Screenshot-baseline fixtures for composers that emit `Container`
+      with `background` / `cornerRadius` / `shadow` — deferred;
+      per-platform snapshot / preview coverage was relied on instead,
+      see platform phases. Revisit if we add more tiers to the variant
+      catalog.
 
-### Phase 1 — Web (first platform)
+### Phase 1 — Web (first platform) — done
 
-- [ ] Introduce `AtomicBox` helper in
+- [x] Introduced `AtomicBox` helper in
       `web/src/components/atomic/AtomicBox.tsx` that takes the resolved
-      box-model props (margin, bg, cornerRadius, shadow, border, padding,
-      opacity) and wraps children.
-- [ ] Update `AtomicRouter.tsx` to:
-  - Resolve element's variant (if any) into inline props via the Phase-0
-    resolver.
-  - Merge resolved variant props with inline `element.*` props.
-  - Call `AtomicBox` around every primitive's rendered output, regardless
-    of type.
-- [ ] Remove the leaf-skip allowlist and the wrapper-div padding in the
-      router (it's now inside `AtomicBox`).
-- [ ] Remove `applyContainerVariant` / internal bg / padding handling from
-      `AtomicContainer.tsx`, `AtomicScrollContainer.tsx`,
-      `AtomicConditional.tsx`, `AtomicSectionSlot.tsx`.
-- [ ] Screenshot diff vs. the Phase-0 baselines for every composer. Expect
-      zero visual regression; anything that differs is a semantic bug.
+      box-model props (margin, bg, cornerRadius, shadow, border,
+      padding, opacity, fillWidth, variant chrome, badge) and wraps
+      children.
+- [x] `AtomicRouter.tsx` reduced to a pure dispatcher — no padding,
+      margin, or opacity handling. Every primitive routes its content
+      through `AtomicBox`.
+- [x] Leaf-skip allowlist removed; router no longer wraps leaves with a
+      padding `<div>`.
+- [x] `AtomicContainer.tsx`, `AtomicScrollContainer.tsx`,
+      `AtomicDisplayGrid.tsx`, `AtomicConditional.tsx`,
+      `AtomicSectionSlot.tsx` stripped of local box-model handling;
+      they only own layout semantics. `AtomicSpacer.tsx` bypasses
+      `AtomicBox` (pure layout).
+- [x] Vitest suite passes including the new
+      `box-model-leaves.json` fixture.
 
-### Phase 2 — iOS
+### Phase 2 — iOS — done
 
-- [ ] Introduce an `AtomicBoxModifier` (`ViewModifier`) in
-      `ios/Sources/SduiCore/Rendering/Atomic/AtomicBox.swift` applying the
-      unified stack in the right SwiftUI modifier order
-      (`.padding → .background → .cornerRadius → .shadow → .padding(margin)`
-      once the Phase-0 resolver exists).
-- [ ] Update `AtomicRouter` to apply `AtomicBoxModifier` to every
-      primitive's output.
-- [ ] Delete `.applyContainerVariant` from `AtomicContainerView.swift` and
-      the internal `.padding(padding)` call; the router owns both now.
-- [ ] Same for `AtomicScrollContainerView.swift`.
-- [ ] Revert the per-leaf `.padding(edgeInsets(from: element.padding))`
-      calls in `AtomicTextView`, `AtomicImageView`, `AtomicButtonView`,
-      `AtomicDividerView`, `AtomicDisplayGridView` — now redundant.
-- [ ] Snapshot regression run against SduiDemo + the fixture screens.
+- [x] Introduced `AtomicBoxModifier` in
+      `ios/Sources/SduiCore/Rendering/Atomic/AtomicBoxModifier.swift`
+      applying the unified stack
+      (`padding → frame → applyContainerVariant → badge → opacity → padding(margin)`).
+- [x] `AtomicRouter.swift` reduced to a pure dispatcher. Every
+      primitive view ends its chain with
+      `.atomicBox(element, screenState:, onAction:)`.
+- [x] `.applyContainerVariant` and internal padding removed from
+      `AtomicContainerView.swift`, `AtomicScrollContainerView.swift`.
+- [x] Per-leaf `.padding(edgeInsets(from: element.padding))` calls in
+      `AtomicTextView`, `AtomicImageView`, `AtomicButtonView`,
+      `AtomicDividerView`, `AtomicDisplayGridView` removed — the
+      modifier owns padding now.
+- [x] SduiCore compile + test suite pass against iPhone 15 Pro Max
+      simulator with `SDUI_DISABLE_ABLY=1`.
 
-### Phase 3 — Android
+### Phase 3 — Android — done
 
-- [ ] Introduce `atomicBoxModifier(element)` extension on `Modifier` in
-      `android/sdui-core/src/.../atomic/AtomicBox.kt` that composes the
-      unified stack using Compose-idiomatic modifier order
-      (`padding(margin) then background(shape) then border then clip
-      then padding(inner)`).
-- [ ] Update `AtomicRouter.kt`: apply `atomicBoxModifier` uniformly, drop
-      the `leafPaddedModifier` allowlist.
-- [ ] Remove bg/cornerRadius/padding handling from `AtomicContainer.kt`,
-      `AtomicScrollContainer.kt`, `AtomicConditional.kt`,
-      `AtomicSectionSlot.kt`.
-- [ ] Compose preview regression run; where preview coverage is thin, add
-      previews for the affected sections before the refactor.
+- [x] Introduced `AtomicBox` composable + `Modifier.buildAtomicBox`
+      extension in
+      `android/sdui-core/src/.../atomic/AtomicBox.kt` that composes
+      the unified stack in Compose-idiomatic order
+      (`padding(margin) → alpha → shadow(shape) → clip(shape) →
+      background → gradientOverlay → border → padding(inner) →
+      sizing`) and renders the optional badge overlay.
+- [x] `AtomicRouter.kt` reduced to a pure dispatcher; the
+      `leafPaddedModifier` allowlist is gone, no `Modifier` parameter
+      is threaded.
+- [x] Box-model handling removed from `AtomicContainer.kt`,
+      `AtomicScrollContainer.kt`, `AtomicDisplayGrid.kt`,
+      `AtomicText.kt`, `AtomicImage.kt`, `AtomicButton.kt`,
+      `AtomicDivider.kt`. `AtomicConditional.kt` / `AtomicSectionSlot.kt`
+      / `AtomicSpacer.kt` bypass the box model by design
+      (pure-layout / pure-delegation primitives).
+- [x] `parseColor` / `resolveAxis` / `resolveSurfaceRole` retained as
+      `internal` helpers in `AtomicContainer.kt` and reused by
+      `AtomicBox.kt` + `GamePanelRenderer.kt`.
 
-### Phase 4 — Closeout
+### Phase 4 — Closeout — done
 
-- [ ] Delete the "Container / ScrollContainer / Conditional / SectionSlot
-      apply padding internally" comments in all three routers (they'll be
-      obsolete).
-- [ ] Update `docs/client-implementors-contract.md` to document the
-      unified box model — new clients implement `AtomicBox` once and get
-      correct padding/margin/bg/corner/shadow for every primitive for
-      free.
-- [ ] Update `docs/sdui-design-system.md` if it documents the current
-      dual-path semantic.
+- [x] Deleted the "Container / ScrollContainer / Conditional /
+      SectionSlot apply padding internally" comments on all three
+      routers (they were obsolete once the router became a pure
+      dispatcher).
+- [x] `docs/client-implementors-contract.md` §4 + new §4a document the
+      unified box model and its canonical modifier order; the
+      Conformance Checklist gained row `C14a`.
+- [ ] `docs/sdui-design-system.md` sweep — deferred to the next
+      docs-audit pass; the design-system doc currently describes
+      per-primitive box model at a conceptual level and is not
+      contradicted by the unified implementation.
 
 ## Risks & migration concerns
 

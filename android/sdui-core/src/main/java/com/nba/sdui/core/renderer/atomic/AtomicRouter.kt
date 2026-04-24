@@ -1,38 +1,37 @@
 package com.nba.sdui.core.renderer.atomic
 
 import android.util.Log
-import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.unit.dp
 import com.nba.sdui.core.models.generated.AtomicElement
 import com.nba.sdui.core.state.SduiAction
 
 private const val MAX_TREE_DEPTH = 6
 
 /**
- * AtomicRouter — dispatches an [AtomicElement] to the correct atomic primitive composable.
+ * AtomicRouter — dispatches an [AtomicElement] to the correct atomic
+ * primitive composable. The router itself is styling-free: every
+ * box-model concern (margin, padding, background, cornerRadius,
+ * shadow, border, opacity, width / height / fillWidth, variant chrome,
+ * badge overlay) is applied by [AtomicBox] inside each primitive.
  *
- * This is the atomic counterpart to SectionRouter. It renders a tree of server-composed
- * UI primitives using platform-native Compose components.
+ * This is the atomic counterpart to SectionRouter. A defensive [depth]
+ * guard prevents malformed payloads from causing stack overflows or
+ * deep Compose measure-pass issues. Server-side validation is the
+ * primary enforcement; this is a safety net for stale caches or
+ * manual JSON authoring.
  *
- * A defensive [depth] guard prevents malformed payloads from causing stack overflows
- * or deep Compose measure-pass issues. Server-side validation is the primary enforcement;
- * this is a safety net for stale caches or manual JSON authoring.
+ * [onStateChange] is threaded through so that SectionSlot elements can
+ * pass it to SectionRouter for stateful sections (Form, TabGroup).
  *
- * [onStateChange] is threaded through so that SectionSlot elements can pass it to
- * SectionRouter for stateful sections (Form, TabGroup).
- *
- * [sectionSlotDepth] tracks how many SectionSlot→AtomicComposite cycles have occurred.
- * See [AtomicSectionSlot] for the recursion guard.
+ * [sectionSlotDepth] tracks how many SectionSlot → AtomicComposite
+ * cycles have occurred. See [AtomicSectionSlot] for the recursion
+ * guard.
  */
 @Composable
 fun AtomicRouter(
     element: AtomicElement,
     screenState: Map<String, Any>,
     onAction: (SduiAction) -> Unit,
-    modifier: Modifier = Modifier,
     depth: Int = 0,
     onStateChange: (String, Any) -> Unit = { _, _ -> },
     sectionSlotDepth: Int = 0
@@ -41,49 +40,17 @@ fun AtomicRouter(
         Log.w("AtomicRouter", "Max tree depth ($MAX_TREE_DEPTH) exceeded — skipping element: ${element.type}")
         return
     }
-    // Outer margin is applied first in the modifier chain so that it sits
-    // outside the element's own background, corner radius, shadow, and
-    // interior padding (those are applied by each primitive further down
-    // the chain). This matches sibling-to-sibling spacing semantics in
-    // CSS and SwiftUI.
-    val marginModifier = element.margin?.let {
-        modifier.padding(
-            start = (it.start ?: 0L).toInt().dp,
-            end = (it.end ?: 0L).toInt().dp,
-            top = (it.top ?: 0L).toInt().dp,
-            bottom = (it.bottom ?: 0L).toInt().dp
-        )
-    } ?: modifier
-    val opacityModifier = element.opacity?.let { marginModifier.alpha(it.toFloat()) } ?: marginModifier
-
-    // element.padding on leaf primitives. Container / ScrollContainer /
-    // Conditional / SectionSlot apply padding internally (where it sits
-    // inside the element's own background, border, and corner clip), so
-    // we deliberately skip them here to avoid double-padding and to
-    // preserve their bg-extends-to-padding-edge semantics.
-    val leafPaddedModifier = when (element.type) {
-        "Container", "ScrollContainer", "Conditional", "SectionSlot" -> opacityModifier
-        else -> element.padding?.let {
-            opacityModifier.padding(
-                start = (it.start ?: 0L).toInt().dp,
-                end = (it.end ?: 0L).toInt().dp,
-                top = (it.top ?: 0L).toInt().dp,
-                bottom = (it.bottom ?: 0L).toInt().dp
-            )
-        } ?: opacityModifier
-    }
-
     when (element.type) {
-        "Container"       -> AtomicContainer(element, screenState, onAction, opacityModifier, depth, onStateChange, sectionSlotDepth)
-        "Text"            -> AtomicText(element, screenState, onAction, leafPaddedModifier)
-        "Image"           -> AtomicImage(element, screenState, onAction, leafPaddedModifier)
-        "Button"          -> AtomicButton(element, screenState, onAction, leafPaddedModifier)
-        "Spacer"          -> AtomicSpacer(element, screenState, onAction, leafPaddedModifier)
-        "Divider"         -> AtomicDivider(element, screenState, onAction, leafPaddedModifier)
-        "ScrollContainer" -> AtomicScrollContainer(element, screenState, onAction, opacityModifier, depth, onStateChange, sectionSlotDepth)
-        "Conditional"     -> AtomicConditional(element, screenState, onAction, opacityModifier, depth, onStateChange, sectionSlotDepth)
-        "DisplayGrid"     -> AtomicDisplayGrid(element, screenState, onAction, leafPaddedModifier)
-        "SectionSlot"     -> AtomicSectionSlot(element, screenState, onAction, onStateChange, opacityModifier, sectionSlotDepth)
+        "Container"       -> AtomicContainer(element, screenState, onAction, depth, onStateChange, sectionSlotDepth)
+        "Text"            -> AtomicText(element, screenState, onAction)
+        "Image"           -> AtomicImage(element, screenState, onAction)
+        "Button"          -> AtomicButton(element, screenState, onAction)
+        "Spacer"          -> AtomicSpacer(element)
+        "Divider"         -> AtomicDivider(element, screenState, onAction)
+        "ScrollContainer" -> AtomicScrollContainer(element, screenState, onAction, depth, onStateChange, sectionSlotDepth)
+        "Conditional"     -> AtomicConditional(element, screenState, onAction, depth, onStateChange, sectionSlotDepth)
+        "DisplayGrid"     -> AtomicDisplayGrid(element, screenState, onAction)
+        "SectionSlot"     -> AtomicSectionSlot(element, screenState, onAction, onStateChange, sectionSlotDepth)
         else              -> Log.w("AtomicRouter", "Unknown atomic element type: ${element.type}")
     }
 }

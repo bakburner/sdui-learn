@@ -9,19 +9,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
 import com.nba.sdui.core.models.generated.AtomicElement
-import com.nba.sdui.core.state.SduiAction
 
 /**
- * AtomicSpacer — renders a blank Spacer with configurable width, height, or uniform size.
+ * AtomicSpacer — renders a blank Spacer with configurable width,
+ * height, or uniform size. Intentionally bypasses [AtomicBox]: a
+ * spacer is pure layout and has no box-model chrome (no margin,
+ * padding, background, corner radius, border, shadow, opacity, badge).
  */
 @Composable
-fun AtomicSpacer(
-    element: AtomicElement,
-    screenState: Map<String, Any>,
-    onAction: (SduiAction) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    var spacerModifier = modifier
+fun AtomicSpacer(element: AtomicElement) {
+    var spacerModifier: Modifier = Modifier
     element.size?.let { spacerModifier = spacerModifier.size(it.toInt().dp) }
     element.width?.let { spacerModifier = spacerModifier.width(it.toInt().dp) }
     element.height?.let { spacerModifier = spacerModifier.height(it.toInt().dp) }

@@ -1,5 +1,6 @@
 import React from 'react';
 import type { AtomicProps } from './AtomicRouter';
+import { AtomicBox } from './AtomicBox';
 import { accessibilityProps } from '../../utils/accessibility';
 import { useColorTokenResolver } from '../../utils/ColorTokenResolver';
 
@@ -22,7 +23,6 @@ const variantStyles: Record<string, React.CSSProperties> = {
   labelLarge:     { fontSize: 14, fontWeight: 500, lineHeight: '20px',   fontFamily: 'var(--font-body)', letterSpacing: '0.02em' },
   labelMedium:    { fontSize: 12, fontWeight: 500, lineHeight: '16px',   fontFamily: 'var(--font-body)', letterSpacing: '0.02em' },
   labelSmall:     { fontSize: 11, fontWeight: 500, lineHeight: '16px',   fontFamily: 'var(--font-body)', letterSpacing: '0.04em', textTransform: 'uppercase' as const },
-  // Score-specific variant: monospaced numerals for live scores
   score:          { fontSize: 28, fontWeight: 800, lineHeight: '1em',    fontFamily: 'var(--font-headline)', fontVariantNumeric: 'tabular-nums' },
 };
 
@@ -32,7 +32,10 @@ const weightMap: Record<string, number> = {
 };
 
 /**
- * AtomicText — renders a text span with Material-style typography variants.
+ * AtomicText — renders typography-styled text. The text span carries only
+ * typography concerns (font / color / alignment / line clamp); margin,
+ * padding, background, border, shadow, cornerRadius, opacity, and
+ * variant chrome are applied by AtomicBox.
  */
 export function AtomicText({ element }: AtomicProps): React.ReactElement {
   const textAlignMap: Record<string, React.CSSProperties['textAlign']> = {
@@ -51,7 +54,7 @@ export function AtomicText({ element }: AtomicProps): React.ReactElement {
     }
   }
   const resolvedColor = resolveColor(element.color);
-  const style: React.CSSProperties = {
+  const textStyle: React.CSSProperties = {
     ...baseStyle,
     ...(element.weight ? { fontWeight: weightMap[element.weight] ?? 400 } : {}),
     ...(resolvedColor ? { color: resolvedColor } : {}),
@@ -66,9 +69,13 @@ export function AtomicText({ element }: AtomicProps): React.ReactElement {
   };
 
   const a11y = element.accessibility;
+  let inner: React.ReactElement;
   if (a11y?.role === 'heading' && a11y.headingLevel) {
     const Tag = `h${a11y.headingLevel}` as keyof React.JSX.IntrinsicElements;
-    return <Tag style={style} {...accessibilityProps(a11y)}>{element.content ?? ''}</Tag>;
+    inner = <Tag style={textStyle} {...accessibilityProps(a11y)}>{element.content ?? ''}</Tag>;
+  } else {
+    inner = <span style={textStyle} {...accessibilityProps(a11y)}>{element.content ?? ''}</span>;
   }
-  return <span style={style} {...accessibilityProps(a11y)}>{element.content ?? ''}</span>;
+
+  return <AtomicBox element={element}>{inner}</AtomicBox>;
 }

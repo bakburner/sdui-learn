@@ -1,6 +1,8 @@
 import SwiftUI
 
-/// Renders a Divider atomic element.
+/// Renders a Divider atomic element. The rule itself owns only its
+/// orientation / thickness / color; box-model (margin/padding/bg/radius/
+/// shadow/opacity) lives on `AtomicBoxModifier` via `.atomicBox(...)`.
 struct AtomicDividerView: View {
     let element: AtomicElement
 
@@ -23,6 +25,6 @@ struct AtomicDividerView: View {
                     .frame(height: thickness)
             }
         }
-        .padding(edgeInsets(from: element.padding))
+        .atomicBox(element, screenState: ScreenState(), onAction: { _ in })
     }
 }

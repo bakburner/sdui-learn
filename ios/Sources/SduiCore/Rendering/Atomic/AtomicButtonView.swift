@@ -3,7 +3,10 @@ import os
 
 private let logger = Logger(subsystem: "com.nba.sdui", category: "AtomicButton")
 
-/// Renders a Button atomic element.
+/// Renders a Button atomic element. The button's own chrome (padding,
+/// bg, border, radius) is provided by `SduiButtonStyle` per-variant;
+/// element-level margin / opacity / fillWidth / background / shadow /
+/// badge are applied by `AtomicBoxModifier` via `.atomicBox(...)`.
 struct AtomicButtonView: View {
     let element: AtomicElement
     let screenState: ScreenState
@@ -22,13 +25,12 @@ struct AtomicButtonView: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
-            .frame(maxWidth: element.width.map { CGFloat($0) })
         }
         .buttonStyle(SduiButtonStyle(variant: resolvedVariant))
         .disabled(element.disabled ?? false)
         .modifier(VisibilityActionModifier(actions: element.actions, onAction: onAction))
-        .padding(edgeInsets(from: element.padding))
         .sduiAccessibility(element.accessibility, fallbackLabel: element.label)
+        .atomicBox(element, screenState: screenState, onAction: onAction)
     }
 
     private var resolvedVariant: ButtonVariant {

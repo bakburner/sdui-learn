@@ -1,6 +1,7 @@
 import React from 'react';
 import type { AtomicProps } from './AtomicRouter';
 import type { Column } from '@sdui/models';
+import { AtomicBox } from './AtomicBox';
 import { accessibilityProps } from '../../utils/accessibility';
 
 const HEADER_FONT_SIZE = 12;
@@ -20,6 +21,9 @@ function alignToCSS(align?: string): React.CSSProperties['textAlign'] {
  *
  * For sort, scroll-sync, frozen columns, pagination, or row interactivity,
  * use a dedicated section renderer.
+ *
+ * Box-model chrome (margin / padding / background / cornerRadius / shadow /
+ * border) is applied by AtomicBox; the <table> only owns its grid.
  */
 export function AtomicDisplayGrid({ element }: AtomicProps): React.ReactElement | null {
   const { columns, rows, striped } = element;
@@ -51,26 +55,28 @@ export function AtomicDisplayGrid({ element }: AtomicProps): React.ReactElement 
   });
 
   return (
-    <table style={tableStyle} {...accessibilityProps(element.accessibility)}>
-      <thead>
-        <tr>
-          {columns.map((col) => (
-            <th key={col.key} style={thStyle(col)} scope="col">{col.label}</th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((row, idx) => (
-          <tr
-            key={idx}
-            style={striped && idx % 2 === 1 ? { background: 'var(--surface-alt, #2B2F37)' } : { background: 'var(--surface, #191C23)' }}
-          >
+    <AtomicBox element={element}>
+      <table style={tableStyle} {...accessibilityProps(element.accessibility)}>
+        <thead>
+          <tr>
             {columns.map((col) => (
-              <td key={col.key} style={tdStyle(col)}>{row[col.key] ?? ''}</td>
+              <th key={col.key} style={thStyle(col)} scope="col">{col.label}</th>
             ))}
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {rows.map((row, idx) => (
+            <tr
+              key={idx}
+              style={striped && idx % 2 === 1 ? { background: 'var(--surface-alt, #2B2F37)' } : { background: 'var(--surface, #191C23)' }}
+            >
+              {columns.map((col) => (
+                <td key={col.key} style={tdStyle(col)}>{row[col.key] ?? ''}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </AtomicBox>
   );
 }

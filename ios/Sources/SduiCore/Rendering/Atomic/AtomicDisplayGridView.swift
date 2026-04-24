@@ -1,44 +1,51 @@
 import SwiftUI
 
-/// Renders a DisplayGrid — display-only, non-interactive, server-ordered tabular data.
+/// Renders a DisplayGrid — display-only, non-interactive, server-ordered
+/// tabular data. The table owns its grid layout; margin / padding /
+/// bg / cornerRadius / shadow / opacity come from `AtomicBoxModifier`
+/// via `.atomicBox(...)`.
 struct AtomicDisplayGridView: View {
     let element: AtomicElement
 
     var body: some View {
         if let columns = element.columns, let rows = element.rows {
-            VStack(spacing: 0) {
-                // Header row
+            gridBody(columns: columns, rows: rows)
+                .atomicBox(element, screenState: ScreenState(), onAction: { _ in })
+        }
+    }
+
+    @ViewBuilder
+    private func gridBody(columns: [Column], rows: [[String: String]]) -> some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 0) {
+                ForEach(columns, id: \.key) { col in
+                    Text(col.label)
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .frame(maxWidth: .infinity, alignment: alignment(for: col.align))
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 4)
+                }
+            }
+            .background(Color.gray.opacity(0.1))
+
+            Divider()
+
+            ForEach(Array(rows.enumerated()), id: \.offset) { index, row in
                 HStack(spacing: 0) {
                     ForEach(columns, id: \.key) { col in
-                        Text(col.label)
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
+                        Text(row[col.key] ?? "")
+                            .font(.body)
                             .frame(maxWidth: .infinity, alignment: alignment(for: col.align))
-                            .padding(.vertical, 8)
+                            .padding(.vertical, 6)
                             .padding(.horizontal, 4)
                     }
                 }
-                .background(Color.gray.opacity(0.1))
-
-                Divider()
-
-                // Data rows
-                ForEach(Array(rows.enumerated()), id: \.offset) { index, row in
-                    HStack(spacing: 0) {
-                        ForEach(columns, id: \.key) { col in
-                            Text(row[col.key] ?? "")
-                                .font(.body)
-                                .frame(maxWidth: .infinity, alignment: alignment(for: col.align))
-                                .padding(.vertical, 6)
-                                .padding(.horizontal, 4)
-                        }
-                    }
-                    .background(
-                        (element.striped ?? false) && index % 2 == 1
-                            ? Color.gray.opacity(0.05)
-                            : Color.clear
-                    )
-                }
+                .background(
+                    (element.striped ?? false) && index % 2 == 1
+                        ? Color.gray.opacity(0.05)
+                        : Color.clear
+                )
             }
         }
     }

@@ -1,6 +1,6 @@
 package com.nba.sdui.core.screen
 
-import com.nba.sdui.core.models.SduiScreen
+import com.nba.sdui.core.models.generated.SduiModels
 
 /**
  * Generic UI state for any SDUI-powered screen.
@@ -12,7 +12,7 @@ sealed class SduiScreenUiState {
     data object Loading : SduiScreenUiState()
 
     /** Screen data loaded successfully. */
-    data class Success(val screen: SduiScreen) : SduiScreenUiState()
+    data class Success(val screen: SduiModels) : SduiScreenUiState()
 
     /** An error occurred while loading or refreshing. */
     data class Error(val message: String) : SduiScreenUiState()

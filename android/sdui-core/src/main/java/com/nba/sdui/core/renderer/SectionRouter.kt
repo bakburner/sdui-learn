@@ -2,10 +2,11 @@ package com.nba.sdui.core.renderer
 
 import android.util.Log
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
-import com.nba.sdui.core.models.SduiSection
-import com.nba.sdui.core.models.AtomicElementParser
+import com.nba.sdui.core.models.generated.Section
 import com.nba.sdui.core.renderer.atomic.AtomicRouter
+import com.nba.sdui.core.renderer.atomic.LocalCompositeContent
 import com.nba.sdui.core.renderer.sections.*
 import com.nba.sdui.core.state.SduiAction
 
@@ -18,7 +19,7 @@ import com.nba.sdui.core.state.SduiAction
  */
 @Composable
 fun SectionRouter(
-    section: SduiSection,
+    section: Section,
     screenState: Map<String, Any>,
     onAction: (SduiAction) -> Unit,
     onStateChange: (String, Any) -> Unit,
@@ -29,15 +30,15 @@ fun SectionRouter(
 
     // Every section, permanent or AtomicComposite, is wrapped by
     // SectionContainer so outer chrome is server-driven via
-    // `section.display` (§15.3). `SectionContainer` is a no-op when
-    // `display` is null, so AtomicComposites whose root Container
+    // `section.surface`. `SectionContainer` is a no-op when
+    // `surface` is null, so AtomicComposites whose root Container
     // already carries its own padding/background/shadow are
     // unaffected — composers opt into outer margin/chrome by
-    // emitting a `display` block on the section envelope.
+    // emitting a `surface` block on the section envelope.
     when (section.type) {
 
 
-        "TabGroup" -> SectionContainer(section.display, modifier) {
+        "TabGroup" -> SectionContainer(section.surface, modifier) {
             TabGroupRenderer(
                 section = section,
                 screenState = screenState,
@@ -46,14 +47,7 @@ fun SectionRouter(
             )
         }
 
-        "GamePanel" -> SectionContainer(section.display, modifier) {
-            GamePanelRenderer(
-                section = section,
-                onAction = onAction
-            )
-        }
-
-        "BoxscoreTable" -> SectionContainer(section.display, modifier) {
+        "BoxscoreTable" -> SectionContainer(section.surface, modifier) {
             BoxscoreTableRenderer(
                 section = section,
                 screenState = screenState,
@@ -62,7 +56,7 @@ fun SectionRouter(
             )
         }
 
-        "Form" -> SectionContainer(section.display, modifier) {
+        "Form" -> SectionContainer(section.surface, modifier) {
             FormRenderer(
                 section = section,
                 screenState = screenState,
@@ -71,53 +65,60 @@ fun SectionRouter(
             )
         }
 
-        "SubscribeBanner" -> SectionContainer(section.display, modifier) {
+        "SubscribeBanner" -> SectionContainer(section.surface, modifier) {
             SubscribeBannerRenderer(
                 section = section,
-                onAction = onAction
+                screenState = screenState,
+                onAction = onAction,
+                onStateChange = onStateChange
             )
         }
 
-        "SubscribeHero" -> SectionContainer(section.display, modifier) {
+        "SubscribeHero" -> SectionContainer(section.surface, modifier) {
             SubscribeHeroRenderer(
                 section = section,
-                onAction = onAction
+                screenState = screenState,
+                onAction = onAction,
+                onStateChange = onStateChange
             )
         }
 
-        "AdSlot" -> SectionContainer(section.display, modifier) {
+        "AdSlot" -> SectionContainer(section.surface, modifier) {
             AdSlotRenderer(
                 section = section,
                 onAction = onAction
             )
         }
 
-        "SeasonLeadersTable" -> SectionContainer(section.display, modifier) {
+        "SeasonLeadersTable" -> SectionContainer(section.surface, modifier) {
             SeasonLeadersTableRenderer(
                 section = section,
                 onAction = onAction
             )
         }
 
-        "VideoPlayer" -> SectionContainer(section.display, modifier) {
+        "VideoPlayer" -> SectionContainer(section.surface, modifier) {
             VideoPlayerStub(
                 section = section,
-                onAction = onAction
+                screenState = screenState,
+                onAction = onAction,
+                onStateChange = onStateChange
             )
         }
 
         "AtomicComposite" -> {
-            val root = AtomicElementParser.parse(section.data)
+            val root = section.data?.ui
             if (root != null) {
-                SectionContainer(section.display, modifier) {
-                    AtomicRouter(
-                        element = root,
-                        screenState = screenState,
-                        onAction = onAction,
-                        modifier = Modifier,
-                        onStateChange = onStateChange,
-                        sectionSlotDepth = sectionSlotDepth
-                    )
+                SectionContainer(section.surface, modifier) {
+                    CompositionLocalProvider(LocalCompositeContent provides section.data?.content) {
+                        AtomicRouter(
+                            element = root,
+                            screenState = screenState,
+                            onAction = onAction,
+                            onStateChange = onStateChange,
+                            sectionSlotDepth = sectionSlotDepth
+                        )
+                    }
                 }
             } else {
                 Log.w("SectionRouter", "AtomicComposite section ${section.id} has no parsable root element")
@@ -138,7 +139,6 @@ fun SectionRouter(
  */
 val SUPPORTED_SECTION_TYPES = setOf(
     "TabGroup",
-    "GamePanel",
     "BoxscoreTable",
     "Form",
     "SubscribeBanner",

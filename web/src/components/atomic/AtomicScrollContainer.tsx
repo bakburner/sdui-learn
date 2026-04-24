@@ -1,25 +1,30 @@
 import React from 'react';
 import type { AtomicProps } from './AtomicRouter';
 import { AtomicRouter } from './AtomicRouter';
+import { AtomicBox } from './AtomicBox';
 import { accessibilityProps } from '../../utils/accessibility';
 
 /**
  * AtomicScrollContainer — renders children in a scrollable row or column.
  * Uses native CSS overflow scroll; paging via CSS scroll-snap when enabled.
+ *
+ * AtomicBox owns margin / padding / background / cornerRadius / shadow /
+ * border / opacity. This renderer owns only the scroll layout CSS
+ * (display/flex/gap/overflow/scroll-snap), passed to AtomicBox as
+ * layoutStyle so the box-model and scroll viewport live on the same DOM
+ * node.
  */
 export function AtomicScrollContainer({ element, state, onAction, depth = 0, onStateChange, sectionSlotDepth }: AtomicProps): React.ReactElement {
   const isHorizontal = element.direction !== 'column';
   const children = element.children ?? [];
 
-  const style: React.CSSProperties = {
+  const layoutStyle: React.CSSProperties = {
     display: 'flex',
     flexDirection: isHorizontal ? 'row' : 'column',
     flexWrap: 'nowrap',
     gap: element.gap,
     overflowX: isHorizontal ? 'auto' : undefined,
     overflowY: isHorizontal ? undefined : 'auto',
-    marginTop: 8,
-    paddingBottom: isHorizontal ? 8 : undefined,
     maxWidth: isHorizontal ? '100%' : undefined,
     maxHeight: isHorizontal ? undefined : '100%',
     minWidth: 0,
@@ -37,12 +42,13 @@ export function AtomicScrollContainer({ element, state, onAction, depth = 0, onS
   };
 
   return (
-    <div
-      style={style}
+    <AtomicBox
+      element={element}
+      layoutStyle={layoutStyle}
       className={hideScrollbarClass}
       role="list"
-      aria-label={element.accessibility?.label ?? 'Scrollable content'}
-      {...accessibilityProps(element.accessibility)}
+      ariaLabel={element.accessibility?.label ?? 'Scrollable content'}
+      extraProps={accessibilityProps(element.accessibility) as Record<string, unknown>}
     >
       {children.map((child, i) => (
         <div key={child.id ?? i} style={childStyle} role="listitem">
@@ -52,6 +58,6 @@ export function AtomicScrollContainer({ element, state, onAction, depth = 0, onS
       {hideScrollbarClass && (
         <style>{`.sdui-hide-scrollbar::-webkit-scrollbar { display: none; }`}</style>
       )}
-    </div>
+    </AtomicBox>
   );
 }

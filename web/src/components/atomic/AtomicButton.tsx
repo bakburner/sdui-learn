@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import type { Action } from '@sdui/models';
 import type { AtomicProps } from './AtomicRouter';
+import { AtomicBox } from './AtomicBox';
 import { accessibilityProps } from '../../utils/accessibility';
 import { useColorTokenResolver } from '../../utils/ColorTokenResolver';
+import { CompositeContentContext, resolveBindRefString } from '../../utils/BindRefResolver';
 
 const baseButtonStyle: React.CSSProperties = {
   cursor: 'pointer',
@@ -27,7 +29,19 @@ const variantStyles: Record<KnownButtonVariant, React.CSSProperties> = {
 };
 
 /**
- * AtomicButton — renders a button with variant styling, dispatching actions on click.
+ * AtomicButton — renders a button with variant-driven appearance.
+ *
+ * The button's visual chrome (padding, bg, border, radius, font) comes
+ * from the variant preset. AtomicBox is applied *outside* the <button>
+ * so element-level margin / opacity / width / badge etc. sit on a
+ * wrapper div and don't interfere with the native button's click
+ * surface.
+ *
+ * Inline `padding` / `background` / `cornerRadius` / `border` on a
+ * Button still go to AtomicBox's wrapper (which is rare; typical
+ * usage relies entirely on the variant preset). If the server wants
+ * to tune the button's own chrome, the primitive variant should be
+ * extended rather than using element.padding.
  */
 export function AtomicButton({ element, onAction }: AtomicProps): React.ReactElement {
   const resolveColor = useColorTokenResolver();
@@ -41,9 +55,13 @@ export function AtomicButton({ element, onAction }: AtomicProps): React.ReactEle
     }
   }
   const resolvedColor = resolveColor(element.color);
-  const style: React.CSSProperties = {
+  const resolvedBg = element.background && 'color' in (element.background as Record<string, unknown>)
+    ? resolveColor((element.background as Record<string, unknown>).color as string)
+    : undefined;
+  const buttonStyle: React.CSSProperties = {
     ...variantStyles[resolvedVariant],
     ...(resolvedColor ? { color: resolvedColor } : {}),
+    ...(resolvedBg ? { backgroundColor: resolvedBg } : {}),
   };
 
   const handleClick = () => {
@@ -53,15 +71,23 @@ export function AtomicButton({ element, onAction }: AtomicProps): React.ReactEle
     }
   };
 
-  return (
+  // Resolve `label` from `bindRef` when present, falling back to the
+  // inline `label`. Lets composers rebind CTA copy without rewriting
+  // the ui tree.
+  const compositeContent = useContext(CompositeContentContext);
+  const resolvedLabel = resolveBindRefString(element.bindRef, compositeContent) ?? element.label ?? '';
+
+  const button = (
     <button
-      style={style}
+      style={buttonStyle}
       disabled={element.disabled}
       onClick={handleClick}
-      aria-label={element.accessibility?.label ?? element.label}
+      aria-label={element.accessibility?.label ?? resolvedLabel}
       {...accessibilityProps(element.accessibility)}
     >
-      {element.label ?? ''}
+      {resolvedLabel}
     </button>
   );
+
+  return <AtomicBox element={element}>{button}</AtomicBox>;
 }

@@ -375,55 +375,49 @@ public class GameDetailComposer {
     }
 
     private ObjectNode buildGamePanelScoreboardFromLive(JsonNode game, String gameId) {
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "scoreboard");
-        section.put("type", "GamePanel");
-
-        section.set("dataBinding", utils.buildLinescoreBindings());
+        int gameStatus = game.path("gameStatus").asInt();
+        boolean live = gameStatus == 2;
 
         ObjectNode refreshPolicy = objectMapper.createObjectNode();
         refreshPolicy.put("type", "sse");
         refreshPolicy.put("channel", gameId + ":linescore");
         refreshPolicy.put("pauseWhenOffScreen", false);
-        section.set("refreshPolicy", refreshPolicy);
+
+        AtomicCompositeBuilder.GameClockSnapshot clock = live
+                ? new AtomicCompositeBuilder.GameClockSnapshot(
+                        parseGameClockSeconds(game.path("gameClock").asText("")),
+                        java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString(),
+                        true)
+                : null;
+
+        ObjectNode section = atomicBuilder.buildGamePanelComposite(
+                "scoreboard",
+                null,
+                "scoreboard",
+                game.path("gameId").asText(),
+                gameStatus,
+                game.path("gameStatusText").asText(""),
+                null,
+                atomicBuilder.gamePanelTeamFromJson(game.path("awayTeam")),
+                atomicBuilder.gamePanelTeamFromJson(game.path("homeTeam")),
+                clock,
+                null,
+                refreshPolicy,
+                utils.buildCompositeLinescoreBindings(),
+                utils.gamePanelSurface());
 
         section.set("sectionStates", utils.buildSectionStates(
                 "scoreboard", "Unable to load live scores", "shimmer", 180));
-
-        ObjectNode data = objectMapper.createObjectNode();
-
-        JsonNode homeTeam = game.path("homeTeam");
-        JsonNode awayTeam = game.path("awayTeam");
-
-        ObjectNode homeData = objectMapper.createObjectNode();
-        homeData.put("teamId", homeTeam.path("teamId").asInt());
-        homeData.put("teamTricode", homeTeam.path("teamTricode").asText());
-        homeData.put("teamName", homeTeam.path("teamName").asText());
-        homeData.put("teamCity", homeTeam.path("teamCity").asText());
-        homeData.put("score", homeTeam.path("score").asInt());
-        homeData.put("logoUrl", SduiUtils.teamLogoUrl(homeTeam.path("teamId").asText()));
-        data.set("homeTeam", homeData);
-
-        ObjectNode awayData = objectMapper.createObjectNode();
-        awayData.put("teamId", awayTeam.path("teamId").asInt());
-        awayData.put("teamTricode", awayTeam.path("teamTricode").asText());
-        awayData.put("teamName", awayTeam.path("teamName").asText());
-        awayData.put("teamCity", awayTeam.path("teamCity").asText());
-        awayData.put("score", awayTeam.path("score").asInt());
-        awayData.put("logoUrl", SduiUtils.teamLogoUrl(awayTeam.path("teamId").asText()));
-        data.set("awayTeam", awayData);
-
-        data.put("gameId", game.path("gameId").asText());
-        data.put("gameClock", game.path("gameClock").asText(""));
-        data.put("period", game.path("period").asInt());
-        data.put("gameStatus", game.path("gameStatus").asInt());
-        data.put("gameStatusText", game.path("gameStatusText").asText());
-        data.put("clockRunning", game.path("gameStatus").asInt() == 2);
-        data.set("displayConfig", atomicBuilder.scoreboardConfig(null));
-
-        section.set("data", data);
-        section.set("display", utils.gamePanelDisplay());
         return section;
+    }
+
+    private static int parseGameClockSeconds(String iso) {
+        if (iso == null || iso.isEmpty()) return 0;
+        try {
+            return (int) java.time.Duration.parse(iso).getSeconds();
+        } catch (Exception e) {
+            return 0;
+        }
     }
 
     private ObjectNode buildStatLineSectionFromLive(JsonNode game, String gameId) {
@@ -555,6 +549,15 @@ public class GameDetailComposer {
 
     // ── VideoPlayer section ─────────────────────────────────────────────
 
+    /**
+     * VideoPlayer section — reserved SDK integration point for the video
+     * player. Today the visible surface is the pre-SDK placeholder composed
+     * under {@code data.ui}; after the video SDK lands the same tree becomes
+     * the loading / error placeholder the SDK overlays. SDK inputs
+     * ({@code playerType}, {@code contentId}, {@code autoplay},
+     * {@code capabilities}) live at the top of {@code data} so the SDK reads
+     * them without walking the tree.
+     */
     private ObjectNode buildVideoPlayerSection(String gameId, JsonNode game) {
         int gameStatus = game.path("gameStatus").asInt(1);
 
@@ -563,9 +566,21 @@ public class GameDetailComposer {
         section.put("type", "VideoPlayer");
         section.put("analyticsId", "game_detail_video_player");
         section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
-        section.set("display", utils.videoPlayerDisplay());
+        section.set("surface", utils.videoPlayerSurface());
 
-        ObjectNode data = objectMapper.createObjectNode();
+        ObjectNode root = atomicBuilder.container("column", "center", "center");
+        root.put("fillWidth", true);
+        root.put("height", 220);
+        root.put("background", "#000000");
+        ArrayNode rootChildren = objectMapper.createArrayNode();
+        rootChildren.add(atomicBuilder.text("▶", "displayLarge", "bold", "#FFFFFF", null));
+        rootChildren.add(atomicBuilder.spacer(8));
+        rootChildren.add(atomicBuilder.text("Video Player", "titleMedium", null, "#FFFFFF", null));
+        rootChildren.add(atomicBuilder.text("game • " + gameId, "bodySmall", null,
+                "rgba(255,255,255,0.6)", null));
+        root.set("children", rootChildren);
+
+        ObjectNode data = atomicBuilder.wrapUi(root);
         data.put("playerType", "game");
         data.put("contentId", gameId);
         data.put("autoplay", gameStatus == 2);
@@ -634,7 +649,7 @@ public class GameDetailComposer {
         ObjectNode iconEl = objectMapper.createObjectNode();
         iconEl.put("type", "Text");
         iconEl.put("content", icon);
-        iconEl.put("variant", "heading1");
+        iconEl.put("variant", "headlineLarge");
         iconEl.put("textAlign", "center");
         children.add(iconEl);
 
@@ -646,7 +661,7 @@ public class GameDetailComposer {
         ObjectNode titleEl = objectMapper.createObjectNode();
         titleEl.put("type", "Text");
         titleEl.put("content", title);
-        titleEl.put("variant", "heading2");
+        titleEl.put("variant", "headlineMedium");
         titleEl.put("weight", "bold");
         titleEl.put("color", ColorTokens.TEXT_PRIMARY);
         titleEl.put("textAlign", "center");
@@ -660,7 +675,7 @@ public class GameDetailComposer {
         ObjectNode messageEl = objectMapper.createObjectNode();
         messageEl.put("type", "Text");
         messageEl.put("content", message);
-        messageEl.put("variant", "body");
+        messageEl.put("variant", "bodyMedium");
         messageEl.put("color", ColorTokens.TEXT_SECONDARY);
         messageEl.put("textAlign", "center");
         children.add(messageEl);
@@ -835,7 +850,7 @@ public class GameDetailComposer {
             ObjectNode dbText = objectMapper.createObjectNode();
             dbText.put("type", "Text");
             dbText.put("content", hl[3]);
-            dbText.put("variant", "caption");
+            dbText.put("variant", "labelSmall");
             dbText.put("color", ColorTokens.TEXT_INVERSE);
             dbChildren.add(dbText);
             durationBadgeEl.set("children", dbChildren);
@@ -960,12 +975,18 @@ public class GameDetailComposer {
             {"trending-2", "Playoff Intensity", "The best of postseason basketball", FALLBACK_THUMB, "video", "2:15", "nba://video/playoff-intensity"},
             {"trending-3", "Post-Game Press Conference", "Hear from the coaches", FALLBACK_THUMB, "video", "6:00", "nba://video/post-game-presser"}
         };
-        ObjectNode extraRail = atomicBuilder.buildContentRail("trending-videos", "trending_videos_rail", "Trending Videos", trendingCards);
+        ObjectNode extraHeader = atomicBuilder.buildSectionHeader(
+                "trending-videos-header", "Trending Videos", null, null, null);
+        extraHeader.set("surface", utils.sectionHeaderSurface());
+        ObjectNode extraRail = atomicBuilder.buildContentRail("trending-videos",
+                "trending_videos_rail", null, trendingCards);
+        extraRail.set("surface", utils.railSurface());
 
         ArrayNode updated = objectMapper.createArrayNode();
         for (JsonNode section : sections) {
             updated.add(section);
             if ("content-rail".equals(section.path("id").asText())) {
+                updated.add(extraHeader);
                 updated.add(extraRail);
             }
         }

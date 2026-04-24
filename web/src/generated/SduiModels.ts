@@ -27,11 +27,19 @@ export interface SduiModels {
     state?:        { [key: string]: any };
     title?:        string;
     traceId?:      string;
+    /**
+     * Server-exposed A/B / experiment variants available for this screen. Clients read
+     * `options` to render a variant picker (dev UI, QA tooling) and pass the selected id back
+     * to the server on subsequent requests. Omit for screens without active experiments.
+     */
+    variants?: ExperimentVariants;
     [property: string]: any;
 }
 
 /**
  * Action fired when the form is submitted
+ *
+ * Top-level fallback action invoked when the IAP SDK is not mounted (today, always).
  *
  * Optional action to trigger on retry tap (typically a refresh action)
  */
@@ -256,7 +264,7 @@ export interface RefreshPolicy {
     intervalMs?: number;
     /**
      * Whether the client should pause this section's refresh when it scrolls out of the
-     * viewport. Default true. Set false for critical live sections (e.g., GamePanel scores)
+     * viewport. Default true. Set false for critical live sections (e.g., live-score panels)
      * that should refresh continuously.
      */
     pauseWhenOffScreen?: boolean;
@@ -309,11 +317,23 @@ export interface Badge {
 }
 
 /**
- * Root node of the atomic element tree — the rendering instructions
+ * Atomic tree describing the banner's full visible surface. Renderer walks this tree
+ * exactly as an AtomicComposite would; no client-side chrome defaults are permitted. See
+ * AGENTS.md §15.1.
  *
  * Atomic UI primitive — server-composed building block for the atomic rendering layer
  *
  * The element to render as a badge
+ *
+ * Atomic tree describing the hero's full visible surface — logo, title, subtitle, feature
+ * list, tier cards, CTAs. Renderer walks this tree exactly as an AtomicComposite would.
+ *
+ * Root node of the atomic element tree — the rendering instructions
+ *
+ * Atomic tree describing the pre-SDK placeholder surface (e.g. play-glyph column framed at
+ * the player's aspectRatio). Renderer walks this tree exactly as an AtomicComposite would;
+ * no client-side chrome defaults are permitted. Once the video SDK lands this tree becomes
+ * the loading/error placeholder the SDK overlays.
  */
 export interface AtomicElement {
     /**
@@ -333,6 +353,17 @@ export interface AtomicElement {
      * Z-positioned child element (e.g. 'LIVE' pill, duration label) overlaid on this element.
      */
     badge?: Badge;
+    /**
+     * Dot-path into the enclosing AtomicComposite's `data.content` object. When set, renderers
+     * resolve the leaf's canonical live field from `data.content[bindRef]` at render time and
+     * fall back to the inline value when the path is absent. Canonical field per type: Text →
+     * content, Button → label, Image → src, LiveClock → an object with {snapshotSeconds,
+     * snapshotAt, isRunning}. Placing the binding identifier on the consuming node (rather than
+     * in a centrally-declared path-into-tree) lets composers reshape the ui tree without
+     * breaking real-time updates; data-bindings on the section envelope continue to write into
+     * `content.*`.
+     */
+    bindRef?: string;
     /**
      * Responsive breakpoint in dp/px. For Container: below this screen width, direction flips
      * from row to column. Enables responsive layouts without client logic.
@@ -377,12 +408,23 @@ export interface AtomicElement {
      * Flex grow factor. When set on a child of a Container, the child claims proportional space
      * along the main axis (like CSS flex or Compose weight). Default 0 (size to content).
      */
-    flex?:   number;
+    flex?: number;
+    /**
+     * LiveClock display format. Clients realize using their platform's tabular-numerals
+     * typography (equivalent to TextVariant.score).
+     */
+    format?: Format;
     gap?:    number;
     height?: number;
     icon?:   string;
     id?:     string;
-    label?:  string;
+    /**
+     * LiveClock: whether the clock is actively ticking. When true, clients run a local tick
+     * loop at their platform-native refresh cadence (~10Hz) and update the displayed value.
+     * When false, clients render snapshotSeconds verbatim.
+     */
+    isRunning?: boolean;
+    label?:     string;
     /**
      * Outer space between the element and its siblings or parent edges. Applied outside the
      * element's background, border, corner radius, and shadow — use this for sibling-to-sibling
@@ -427,7 +469,23 @@ export interface AtomicElement {
     showIndicators?: boolean;
     size?:           number;
     snapAlignment?:  Align;
-    src?:            string;
+    /**
+     * LiveClock: wall-clock instant (ISO-8601) at which snapshotSeconds was captured. Clients
+     * compute elapsed = now - snapshotAt and derive the displayed value. Required when type ==
+     * 'LiveClock'.
+     */
+    snapshotAt?: Date;
+    /**
+     * LiveClock: clock value in seconds at the moment captured by snapshotAt. Clients
+     * interpolate from this anchor while isRunning == true. Required when type == 'LiveClock'.
+     */
+    snapshotSeconds?: number;
+    src?:             string;
+    /**
+     * LiveClock: optional clamp. For direction 'down', clock holds at this value once reached.
+     * For direction 'up', clock holds once reached. Omit to disable the clamp.
+     */
+    stopAtSeconds?: number;
     /**
      * Alternate row background for readability
      */
@@ -438,8 +496,14 @@ export interface AtomicElement {
      */
     textAlign?: Align;
     thickness?: number;
-    trueChild?: AtomicElement;
-    type:       UIType;
+    /**
+     * LiveClock tick direction. 'down' decrements from snapshotSeconds toward stopAtSeconds
+     * (default 0); 'up' increments from snapshotSeconds with no upper bound unless
+     * stopAtSeconds is set.
+     */
+    tickDirection?: TickDirection;
+    trueChild?:     AtomicElement;
+    type:           UIType;
     /**
      * Named variant preset. The vocabulary depends on the element's type: TextVariant for Text,
      * ButtonVariant for Button, ContainerVariant for Container, ImageVariant for Image.
@@ -466,58 +530,29 @@ export interface AtomicElement {
  *
  * Sortable, paginated table of season statistical leaders (league-wide)
  *
- * Inline subscription upsell banner with headline, body copy, and CTA
+ * Inline subscription upsell banner. Reserved SDK integration point: the banner's visible
+ * chrome is entirely server-composed via `ui` until the platform IAP SDK (StoreKit / Play
+ * Billing) lands and starts mounting the purchase flow on CTA tap. `tiers` carries the IAP
+ * product identifiers the SDK will later bind to; `ctaAction` is the (pre-SDK) fallback
+ * action.
  *
- * Full-screen subscription upsell hero with multi-tier pricing and feature list
+ * Full-screen subscription upsell hero. Reserved SDK integration point — same contract as
+ * SubscribeBannerData: `ui` carries the full visible composition; `tiers` carries IAP
+ * product identifiers the SDK will bind to post-landing.
  *
  * Data payload for AtomicComposite sections — ui contains rendering instructions, content
  * carries domain data
  *
- * Video player section — platform SDK integration (DRM, HLS, ad insertion). Same
- * justification as SubscribeHero (StoreKit/Play Billing) and AdSlot (GAM).
+ * Video player section — reserved SDK integration point for DRM / HLS / ad insertion.
+ * `playerType`, `contentId`, `autoplay`, and `capabilities` are SDK inputs (the video SDK
+ * reads them and mounts); `ui` carries the pre-SDK placeholder composition that renders
+ * before the SDK is integrated and will serve as the loading/error placeholder afterwards.
  */
 export interface Data {
     defaultTab?:  string;
     stateKey?:    string;
     tabContents?: { [key: string]: Section[] };
     tabs?:        TabData[];
-    actions?:     Action[];
-    awayTeam?:    TeamData;
-    /**
-     * Badge/chip label, e.g. 'LIVE', 'FEATURED'
-     */
-    badgeText?: string;
-    /**
-     * Whether the game clock is actively ticking. When true, renderers should interpolate the
-     * clock locally between SSE updates for visual continuity.
-     */
-    clockRunning?: boolean;
-    /**
-     * Server-driven visual configuration — controls all layout and styling knobs
-     */
-    displayConfig?: GamePanelDisplayConfig;
-    /**
-     * Game clock string (e.g. 'PT05M32.00S' or '5:32')
-     */
-    gameClock?:      string;
-    gameId?:         string;
-    gameLeaders?:    GameLeadersData;
-    gameStatus?:     number;
-    gameStatusText?: string;
-    gameTimeEt?:     string;
-    homeTeam?:       TeamData;
-    /**
-     * Current game period (quarter number)
-     */
-    period?: number;
-    /**
-     * Semantic card treatment. Missing value is treated as 'standard' at render time.
-     */
-    variant?: GamePanelVariant;
-    /**
-     * Secondary label shown above the matchup (e.g. team name, 'Recommended')
-     */
-    visualLabel?: string;
     /**
      * Ordered list of column definitions; clients render left-to-right
      *
@@ -624,28 +659,40 @@ export interface Data {
     /**
      * Total number of rows available server-side (for pagination display)
      */
-    totalRows?:  number;
-    background?: Background | string;
-    ctaAction?:  Action;
-    ctaLabel?:   string;
-    logoUrl?:    string;
+    totalRows?: number;
     /**
-     * Optional pricing tier highlights
+     * Top-level fallback action invoked when the IAP SDK is not mounted (today, always).
+     */
+    ctaAction?: Action;
+    /**
+     * IAP product identifiers + server-emitted prices. Consumed by the IAP SDK when it lands;
+     * not used by the renderer, which reads the visible price copy out of `ui`.
+     *
+     * IAP product identifiers + server-emitted prices. Consumed by the IAP SDK when it lands;
+     * not used by the renderer.
      */
     tiers?: SubscriptionTier[];
     /**
-     * Bullet-point feature list
+     * Atomic tree describing the banner's full visible surface. Renderer walks this tree
+     * exactly as an AtomicComposite would; no client-side chrome defaults are permitted. See
+     * AGENTS.md §15.1.
+     *
+     * Atomic tree describing the hero's full visible surface — logo, title, subtitle, feature
+     * list, tier cards, CTAs. Renderer walks this tree exactly as an AtomicComposite would.
+     *
+     * Root node of the atomic element tree — the rendering instructions
+     *
+     * Atomic tree describing the pre-SDK placeholder surface (e.g. play-glyph column framed at
+     * the player's aspectRatio). Renderer walks this tree exactly as an AtomicComposite would;
+     * no client-side chrome defaults are permitted. Once the video SDK lands this tree becomes
+     * the loading/error placeholder the SDK overlays.
      */
-    features?: string[];
+    ui?: AtomicElement;
     /**
      * Optional domain data (strings, URLs, flags) to populate the ui tree. Reserved for future
      * data-binding support.
      */
-    content?: { [key: string]: any };
-    /**
-     * Root node of the atomic element tree — the rendering instructions
-     */
-    ui?:       AtomicElement;
+    content?:  { [key: string]: any };
     autoplay?: boolean;
     /**
      * Platform capabilities the player should enable. Server includes only capabilities
@@ -656,7 +703,8 @@ export interface Data {
      * Content identifier — interpreted by playerType (gameId for game, mediaId for vod, eventId
      * for event, streamUrl for stream). Single field avoids mutually exclusive optional IDs.
      */
-    contentId?: string;
+    contentId?:     string;
+    displayConfig?: DisplayConfig;
     /**
      * Discriminator for SDK player variant. Client passes contentId to the matching SDK method.
      */
@@ -683,7 +731,6 @@ export interface Section {
      */
     data?:          Data;
     dataBinding?:   DataBinding;
-    display?:       SectionDisplay;
     id:             string;
     layoutHints?:   SectionLayoutHints;
     padding?:       Spacing;
@@ -698,6 +745,7 @@ export interface Section {
      * Nested interaction targets within the section
      */
     subsections?: Subsection[];
+    surface?:     SectionSurface;
     type:         OverlayType;
     [property: string]: any;
 }
@@ -927,15 +975,25 @@ export enum ImageFit {
 }
 
 /**
+ * LiveClock display format. Clients realize using their platform's tabular-numerals
+ * typography (equivalent to TextVariant.score).
+ */
+export enum Format {
+    HMmSs = "h:mm:ss",
+    MSs = "m:ss",
+    MmSs = "mm:ss",
+}
+
+/**
  * Outer space between the element and its siblings or parent edges. Applied outside the
  * element's background, border, corner radius, and shadow — use this for sibling-to-sibling
  * spacing instead of Spacer siblings when inhomogeneous gaps are needed.
  *
  * Inner space between the element's own background/border and its content.
  *
- * Outer margin (space between section and its siblings / screen edge).
+ * Outer margin (space between the surface and its siblings / screen edge).
  *
- * Inner padding (space between section wrapper and its content).
+ * Inner padding (space between the surface edge and the content it wraps).
  */
 export interface Spacing {
     bottom?: number;
@@ -957,7 +1015,7 @@ export enum Orientation {
  * Drop shadow with CSS/SwiftUI semantics (radius + offset). Compose approximates via
  * elevation.
  *
- * Drop shadow applied to the section wrapper.
+ * Drop shadow applied to the surface.
  */
 export interface Shadow {
     /**
@@ -979,6 +1037,16 @@ export interface Shadow {
     [property: string]: any;
 }
 
+/**
+ * LiveClock tick direction. 'down' decrements from snapshotSeconds toward stopAtSeconds
+ * (default 0); 'up' increments from snapshotSeconds with no upper bound unless
+ * stopAtSeconds is set.
+ */
+export enum TickDirection {
+    Down = "down",
+    Up = "up",
+}
+
 export enum UIType {
     Button = "Button",
     Conditional = "Conditional",
@@ -986,6 +1054,7 @@ export enum UIType {
     DisplayGrid = "DisplayGrid",
     Divider = "Divider",
     Image = "Image",
+    LiveClock = "LiveClock",
     ScrollContainer = "ScrollContainer",
     SectionSlot = "SectionSlot",
     Spacer = "Spacer",
@@ -1000,16 +1069,6 @@ export enum TextWeight {
     Medium = "medium",
     Regular = "regular",
     SemiBold = "semiBold",
-}
-
-export interface TeamData {
-    logoUrl?:    string;
-    score:       number;
-    teamCity:    string;
-    teamId:      number;
-    teamName:    string;
-    teamTricode: string;
-    [property: string]: any;
 }
 
 export enum Capability {
@@ -1047,55 +1106,10 @@ export interface BoxscoreColumnDefinition {
     [property: string]: any;
 }
 
-/**
- * Server-driven visual configuration — controls all layout and styling knobs
- *
- * Server-driven visual configuration for GamePanel — replaces the hardcoded variant branch
- */
-export interface GamePanelDisplayConfig {
-    /**
-     * Default background (pre-game, final)
-     */
-    background?: Background | string;
-    /**
-     * Badge/chip background color (hex or token)
-     */
-    badgeColor?: string;
-    /**
-     * Fixed card height in dp/px. Null/absent = auto-size
-     */
-    cardHeight?: number;
-    /**
-     * Card corner radius in dp/px
-     */
-    cornerRadius?: number;
-    /**
-     * Card elevation/shadow in dp/px
-     */
-    elevation?: number;
-    /**
-     * Background override when game is LIVE
-     */
-    liveBackground?: Background | string;
-    /**
-     * Team logo width/height in dp/px
-     */
-    logoSize?: number;
-    /**
-     * Score typography: compact = bodyLarge+Bold, prominent = headlineMedium+ExtraBold
-     */
-    scoreTextStyle?: ScoreTextStyle;
-    aspectRatio?:    string;
-    height?:         number;
+export interface DisplayConfig {
+    aspectRatio?: string;
+    height?:      number;
     [property: string]: any;
-}
-
-/**
- * Score typography: compact = bodyLarge+Bold, prominent = headlineMedium+ExtraBold
- */
-export enum ScoreTextStyle {
-    Compact = "compact",
-    Prominent = "prominent",
 }
 
 /**
@@ -1163,28 +1177,12 @@ export interface FormOption {
  * treated as 'dropdown' at render time.
  *
  * How a Form single-select field is realized by the client. 'dropdown' maps to the platform
- * menu (default). 'chips' is a horizontally-scrollable row of tappable capsules.
- * 'segmented' is a platform segmented control. Applies only when FormField.fieldType ==
- * 'select'.
+ * menu (default). 'chips' is a horizontally-scrollable row of tappable capsules. Applies
+ * only when FormField.fieldType == 'select'.
  */
 export enum SelectVariant {
     Chips = "chips",
     Dropdown = "dropdown",
-    Segmented = "segmented",
-}
-
-export interface GameLeadersData {
-    awayLeader?: GameLeaderData;
-    homeLeader?: GameLeaderData;
-    [property: string]: any;
-}
-
-export interface GameLeaderData {
-    assists?:  number;
-    name?:     string;
-    points?:   number;
-    rebounds?: number;
-    [property: string]: any;
 }
 
 /**
@@ -1297,18 +1295,6 @@ export interface SubscriptionTier {
     [property: string]: any;
 }
 
-/**
- * Semantic card treatment. Missing value is treated as 'standard' at render time.
- *
- * Semantic treatment of a GamePanel card. Clients resolve natively (widths, padding,
- * emphasis). 'standard' is the default card. 'featured' is a heightened card used as a lead
- * item in a feed or carousel.
- */
-export enum GamePanelVariant {
-    Featured = "featured",
-    Standard = "standard",
-}
-
 export interface DataBinding {
     bindings?: DataBindingPath[];
     /**
@@ -1328,58 +1314,6 @@ export interface DataBindingPath {
      * Dot-path to component property (e.g., 'homeScore.content')
      */
     targetPath: string;
-    [property: string]: any;
-}
-
-/**
- * Outer-chrome spec applied by the client's SectionRouter to every permanent section.
- * Mirrors the inline-chrome vocabulary on AtomicContainer so permanent sections have schema
- * parity with composed sections. Every client's shared SectionContainer wrapper reads these
- * fields; permanent-section renderers do not set outer padding, margin, corner radius,
- * shadow, border, or background themselves.
- */
-export interface SectionDisplay {
-    /**
-     * Section wrapper background (solid, gradient, or image).
-     */
-    background?: Background | string;
-    /**
-     * Outer stroke applied around the section wrapper.
-     */
-    border?: Border;
-    /**
-     * Corner radius in dp/px applied to the section wrapper (with overflow clip).
-     */
-    cornerRadius?: number;
-    /**
-     * Outer margin (space between section and its siblings / screen edge).
-     */
-    margin?: Spacing;
-    /**
-     * Inner padding (space between section wrapper and its content).
-     */
-    padding?: Spacing;
-    /**
-     * Drop shadow applied to the section wrapper.
-     */
-    shadow?: Shadow;
-    [property: string]: any;
-}
-
-/**
- * Outer stroke applied around the section wrapper.
- *
- * Outer stroke applied around a container or section.
- */
-export interface Border {
-    /**
-     * Stroke color (hex or token)
-     */
-    color?: string;
-    /**
-     * Stroke width in dp/px
-     */
-    width?: number;
     [property: string]: any;
 }
 
@@ -1481,15 +1415,108 @@ export interface Subsection {
     [property: string]: any;
 }
 
+/**
+ * Server-driven surface spec applied by the client's SectionRouter to every permanent
+ * section — the visual wrapper beneath the section's content. Mirrors the inline-chrome
+ * vocabulary on AtomicContainer so permanent sections have schema parity with composed
+ * sections. Every client's shared SectionContainer wrapper reads these fields;
+ * permanent-section renderers do not set outer padding, margin, corner radius, shadow,
+ * border, or background themselves. The sibling `data` field carries content (including the
+ * atomic UI tree); `surface` carries the frame that sits beneath it.
+ */
+export interface SectionSurface {
+    /**
+     * Surface background (solid, gradient, or image).
+     */
+    background?: Background | string;
+    /**
+     * Outer stroke applied around the surface.
+     */
+    border?: Border;
+    /**
+     * Corner radius in dp/px applied to the surface (with overflow clip).
+     */
+    cornerRadius?: number;
+    /**
+     * Outer margin (space between the surface and its siblings / screen edge).
+     */
+    margin?: Spacing;
+    /**
+     * Inner padding (space between the surface edge and the content it wraps).
+     */
+    padding?: Spacing;
+    /**
+     * Drop shadow applied to the surface.
+     */
+    shadow?: Shadow;
+    [property: string]: any;
+}
+
+/**
+ * Outer stroke applied around the surface.
+ *
+ * Outer stroke applied around a container or section.
+ */
+export interface Border {
+    /**
+     * Stroke color (hex or token)
+     */
+    color?: string;
+    /**
+     * Stroke width in dp/px
+     */
+    width?: number;
+    [property: string]: any;
+}
+
 export enum OverlayType {
     AdSlot = "AdSlot",
     AtomicComposite = "AtomicComposite",
     BoxscoreTable = "BoxscoreTable",
     Form = "Form",
-    GamePanel = "GamePanel",
     SeasonLeadersTable = "SeasonLeadersTable",
     SubscribeBanner = "SubscribeBanner",
     SubscribeHero = "SubscribeHero",
     TabGroup = "TabGroup",
     VideoPlayer = "VideoPlayer",
+}
+
+/**
+ * Server-exposed A/B / experiment variants available for this screen. Clients read
+ * `options` to render a variant picker (dev UI, QA tooling) and pass the selected id back
+ * to the server on subsequent requests. Omit for screens without active experiments.
+ *
+ * Wrapper for the set of A/B variants the server is willing to serve for this screen. Lets
+ * clients expose variant selection without hardcoding experiment ids or option vocabularies.
+ */
+export interface ExperimentVariants {
+    /**
+     * Stable identifier for the experiment (e.g. `game_detail_variant`). Clients echo this key
+     * back to the server as part of the experiments map on subsequent requests.
+     */
+    experimentId: string;
+    /**
+     * Ordered list of variants the client may choose from.
+     */
+    options: ExperimentVariantOption[];
+    [property: string]: any;
+}
+
+/**
+ * One variant within an experiment.
+ */
+export interface ExperimentVariantOption {
+    /**
+     * Optional longer description shown alongside the label.
+     */
+    description?: string;
+    /**
+     * Variant identifier (e.g. `A`, `B`). Opaque to clients.
+     */
+    id: string;
+    /**
+     * Human-readable label rendered in variant pickers.
+     */
+    label: string;
+    [property: string]: any;
 }

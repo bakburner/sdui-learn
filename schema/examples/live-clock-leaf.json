@@ -1,0 +1,61 @@
+{
+  "id": "live-clock-leaf",
+  "schemaVersion": "1.0",
+  "layoutVersion": "v1",
+  "analyticsId": "live_clock_leaf",
+  "sections": [
+    {
+      "id": "live-clock-composite",
+      "type": "AtomicComposite",
+      "analyticsId": "live_clock_composite",
+      "refreshPolicy": { "type": "static" },
+      "surface": {
+        "margin": { "top": 16, "bottom": 16, "start": 16, "end": 16 }
+      },
+      "data": {
+        "ui": {
+          "id": "root",
+          "type": "Container",
+          "direction": "column",
+          "gap": 16,
+          "padding": { "top": 16, "bottom": 16, "start": 16, "end": 16 },
+          "children": [
+            {
+              "id": "clock-running-down",
+              "type": "LiveClock",
+              "variant": "score",
+              "snapshotSeconds": 142,
+              "snapshotAt": "2026-01-15T20:30:00Z",
+              "isRunning": true,
+              "tickDirection": "down",
+              "stopAtSeconds": 0,
+              "format": "m:ss",
+              "accessibility": { "label": "Game clock" }
+            },
+            {
+              "id": "clock-paused",
+              "type": "LiveClock",
+              "variant": "score",
+              "snapshotSeconds": 60,
+              "snapshotAt": "2026-01-15T20:30:00Z",
+              "isRunning": false,
+              "tickDirection": "down",
+              "stopAtSeconds": 0,
+              "format": "m:ss"
+            },
+            {
+              "id": "clock-running-up",
+              "type": "LiveClock",
+              "variant": "titleLarge",
+              "snapshotSeconds": 0,
+              "snapshotAt": "2026-01-15T20:30:00Z",
+              "isRunning": true,
+              "tickDirection": "up",
+              "format": "mm:ss"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

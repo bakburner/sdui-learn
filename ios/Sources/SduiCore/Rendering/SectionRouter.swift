@@ -20,62 +20,58 @@ struct SectionRouter: View {
     var body: some View {
         // Every section, permanent or AtomicComposite, is wrapped by
         // SectionContainer so outer chrome is server-driven via
-        // `section.display`. `SectionContainer` is a no-op when
-        // `display` is nil, so AtomicComposites whose root Container
+        // `section.surface`. `SectionContainer` is a no-op when
+        // `surface` is nil, so AtomicComposites whose root Container
         // already carries its own padding/background/shadow are
         // unaffected — composers opt into outer margin/chrome by
-        // emitting a `display` block on the section envelope.
+        // emitting a `surface` block on the section envelope.
         switch section.type {
         case "AtomicComposite":
             if let ui = section.data?.ui {
-                SectionContainer(display: section.display) {
+                SectionContainer(surface: section.surface) {
                     AtomicRouter(element: ui, screenState: screenState, onAction: onAction, depth: 0)
+                        .environment(\.compositeContent, section.data?.content)
                 }
             }
 
-        case "GamePanel":
-            SectionContainer(display: section.display) {
-                GamePanelView(section: section, onAction: onAction)
-            }
-
         case "BoxscoreTable":
-            SectionContainer(display: section.display) {
+            SectionContainer(surface: section.surface) {
                 BoxscoreTableView(section: section, onAction: onAction)
             }
 
         case "SeasonLeadersTable":
-            SectionContainer(display: section.display) {
+            SectionContainer(surface: section.surface) {
                 SeasonLeadersTableView(section: section, onAction: onAction)
             }
 
         case "TabGroup":
-            SectionContainer(display: section.display) {
+            SectionContainer(surface: section.surface) {
                 TabGroupView(section: section, screenState: screenState, onAction: onAction)
             }
 
         case "Form":
-            SectionContainer(display: section.display) {
+            SectionContainer(surface: section.surface) {
                 FormSectionView(section: section, screenState: screenState, onAction: onAction)
             }
 
         case "SubscribeHero":
-            SectionContainer(display: section.display) {
-                SubscribeHeroView(section: section, onAction: onAction)
+            SectionContainer(surface: section.surface) {
+                SubscribeHeroView(section: section, screenState: screenState, onAction: onAction)
             }
 
         case "SubscribeBanner":
-            SectionContainer(display: section.display) {
-                SubscribeBannerView(section: section, onAction: onAction)
+            SectionContainer(surface: section.surface) {
+                SubscribeBannerView(section: section, screenState: screenState, onAction: onAction)
             }
 
         case "AdSlot":
-            SectionContainer(display: section.display) {
+            SectionContainer(surface: section.surface) {
                 AdSlotView(section: section, onAction: onAction)
             }
 
         case "VideoPlayer":
-            SectionContainer(display: section.display) {
-                VideoPlayerStubView(section: section, onAction: onAction)
+            SectionContainer(surface: section.surface) {
+                VideoPlayerStubView(section: section, screenState: screenState, onAction: onAction)
             }
 
         default:

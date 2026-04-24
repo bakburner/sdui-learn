@@ -7,9 +7,7 @@ private let logger = Logger(subsystem: "com.nba.sdui", category: "ImageVariantRe
 /// via `ImageVariantSpec`. Unknown server strings fall through to the
 /// primitive's default rendering.
 enum ImageVariant: String {
-    case hero
     case thumbnail
-    case logo
 }
 
 /// Platform-native realization of an image variant for the iOS client.
@@ -38,23 +36,6 @@ enum ImageVariantResolver {
 
     private static func spec(for variant: ImageVariant) -> ImageVariantSpec {
         switch variant {
-        case .hero:
-            return ImageVariantSpec(
-                cornerRadius: 12,
-                aspectRatio: 16.0 / 9.0,
-                contentMode: .fill,
-                fillWidth: true,
-                clip: true,
-                overrideMatrix: [
-                    "padding": .allow,
-                    "cornerRadius": .allow,
-                    "background": .allow,
-                    "shadow": .allow,
-                    "color": .allow,
-                    "opacity": .allow,
-                    "border": .allow
-                ]
-            )
         case .thumbnail:
             return ImageVariantSpec(
                 cornerRadius: 8,
@@ -62,23 +43,6 @@ enum ImageVariantResolver {
                 contentMode: .fill,
                 fillWidth: false,
                 clip: true,
-                overrideMatrix: [
-                    "padding": .allow,
-                    "cornerRadius": .allow,
-                    "background": .allow,
-                    "shadow": .allow,
-                    "color": .allow,
-                    "opacity": .allow,
-                    "border": .allow
-                ]
-            )
-        case .logo:
-            return ImageVariantSpec(
-                cornerRadius: nil,
-                aspectRatio: nil,
-                contentMode: .fit,
-                fillWidth: false,
-                clip: false,
                 overrideMatrix: [
                     "padding": .allow,
                     "cornerRadius": .allow,

@@ -10,11 +10,10 @@ private let maxDepth = 6
 /// Unknown element types are silently skipped with a warning log — same
 /// shape as the Android and web atomic routers.
 ///
-/// `element.type` is a plain `String` on the wire. The iOS codegen
-/// applies a post-processing step (see `codegen/generate.sh`) that
-/// rewrites quicktype's inline-enum output for `AtomicElement.type` to
-/// `String`, so this switch can use a `default:` branch for forward
-/// compatibility the same way the other clients do.
+/// Box-model concerns (margin, padding, background, cornerRadius, shadow,
+/// border, opacity, width, height, fillWidth, badge, variant chrome) are
+/// applied uniformly by `AtomicBoxModifier` inside each primitive
+/// renderer, so this router is dispatch-only.
 struct AtomicRouter: View {
     let element: AtomicElement
     let screenState: ScreenState
@@ -27,14 +26,6 @@ struct AtomicRouter: View {
             EmptyView()
         } else {
             routeElement()
-                .opacity(element.opacity ?? 1)
-                // Outer margin: applied after the routed element's own
-                // background, padding, corner radius, and shadow, so it
-                // behaves as sibling-to-sibling spacing rather than
-                // interior padding. Padding the outside of an already-
-                // styled view is SwiftUI's canonical way to express
-                // margin (CSS/Compose convention).
-                .padding(edgeInsets(from: element.margin))
         }
     }
 
@@ -70,6 +61,9 @@ struct AtomicRouter: View {
 
         case "SectionSlot":
             AtomicSectionSlotView(element: element, screenState: screenState, onAction: onAction)
+
+        case "LiveClock":
+            AtomicLiveClockView(element: element)
 
         default:
             EmptyView()

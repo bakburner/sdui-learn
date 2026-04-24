@@ -118,8 +118,8 @@ class AblyChannelManager(
             Log.d(TAG, "Token response (HTTP $code, ${body.length} chars): ${body.take(200)}")
 
             val json = objectMapper.readTree(body)
-            val jwt = json.path("data").path("accessToken").asText(null)
-            if (!jwt.isNullOrBlank()) {
+            val jwt = json.path("data").path("accessToken").asText()
+            if (jwt.isNotBlank()) {
                 Log.d(TAG, "Extracted JWT (${jwt.length} chars)")
                 return jwt
             }

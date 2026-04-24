@@ -123,153 +123,81 @@ public class LiveComposer {
     private ObjectNode buildFeaturedGamePanel(JsonNode game) {
         String gameId = game.path("gameId").asText("0000000000");
         int gameStatus = game.path("gameStatus").asInt(1);
+        boolean live = gameStatus == 2;
 
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "live-featured-" + gameId);
-        section.put("type", "GamePanel");
-        section.put("analyticsId", "live_featured_game");
+        ObjectNode refreshPolicy = live ? ssePolicy(gameId) : staticPolicy();
+        ObjectNode bindings = live ? utils.buildCompositeLinescoreBindings() : null;
+        AtomicCompositeBuilder.GameClockSnapshot clock = live ? clockSnapshotFromGame(game) : null;
 
-        if (gameStatus == 2) {
-            ObjectNode rp = objectMapper.createObjectNode();
-            rp.put("type", "sse");
-            rp.put("channel", gameId + ":linescore");
-            rp.put("pauseWhenOffScreen", false);
-            section.set("refreshPolicy", rp);
-            section.set("dataBinding", utils.buildLinescoreBindings());
-        } else {
-            section.set("refreshPolicy", staticPolicy());
-        }
-
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("gameId", gameId);
-        data.put("gameStatus", gameStatus);
-        data.put("gameStatusText", game.path("gameStatusText").asText(""));
-        data.put("gameTimeEt", game.path("gameTimeEt").asText(""));
-        data.set("displayConfig", atomicBuilder.featuredConfig(null, new String[]{ColorTokens.PALETTE_BLUE_30, ColorTokens.BRAND_LIVE}));
-        data.set("homeTeam", mapTeam(game.path("homeTeam")));
-        data.set("awayTeam", mapTeam(game.path("awayTeam")));
-        data.put("badgeText", gameStatus == 2 ? "LIVE" : "UP NEXT");
-        data.put("visualLabel", "Recommended");
-
-        ArrayNode actions = objectMapper.createArrayNode();
-        ObjectNode action = objectMapper.createObjectNode();
-        action.put("trigger", "onTap");
-        action.put("type", "navigate");
-        action.put("targetUri", "nba://game/" + gameId);
-        actions.add(action);
-        data.set("actions", actions);
-
-        section.set("data", data);
-        section.set("display", utils.gamePanelDisplay());
+        ObjectNode section = atomicBuilder.buildGamePanelComposite(
+                "live-featured-" + gameId,
+                "live_featured_game",
+                "featured",
+                gameId,
+                gameStatus,
+                game.path("gameStatusText").asText(""),
+                live ? "LIVE" : "UP NEXT",
+                atomicBuilder.gamePanelTeamFromJson(game.path("awayTeam")),
+                atomicBuilder.gamePanelTeamFromJson(game.path("homeTeam")),
+                clock,
+                "nba://game/" + gameId,
+                refreshPolicy,
+                bindings,
+                utils.gamePanelSurface());
         return section;
     }
 
     private ObjectNode buildMockFeaturedGame() {
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "live-featured-mock");
-        section.put("type", "GamePanel");
-        section.put("analyticsId", "live_featured_game");
-        section.set("refreshPolicy", staticPolicy());
-
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("gameId", "0022400050");
-        data.put("gameStatus", 1);
-        data.put("gameStatusText", "7:30 PM ET");
-        data.set("displayConfig", atomicBuilder.featuredConfig(null, new String[]{ColorTokens.PALETTE_BLUE_30, ColorTokens.BRAND_LIVE}));
-        data.put("badgeText", "NEXT UP");
-        data.put("visualLabel", "Recommended");
-
-        ObjectNode home = objectMapper.createObjectNode();
-        home.put("teamId", 1610612752);
-        home.put("teamTricode", "NYK");
-        home.put("teamName", "Knicks");
-        home.put("teamCity", "New York");
-        home.put("score", 0);
-        home.put("record", "4-2");
-        home.put("logoUrl", SduiUtils.teamLogoUrl("1610612752"));
-        data.set("homeTeam", home);
-
-        ObjectNode away = objectMapper.createObjectNode();
-        away.put("teamId", 1610612748);
-        away.put("teamTricode", "MIA");
-        away.put("teamName", "Heat");
-        away.put("teamCity", "Miami");
-        away.put("score", 0);
-        away.put("record", "3-3");
-        away.put("logoUrl", SduiUtils.teamLogoUrl("1610612748"));
-        data.set("awayTeam", away);
-
-        ArrayNode actions = objectMapper.createArrayNode();
-        ObjectNode action = objectMapper.createObjectNode();
-        action.put("trigger", "onTap");
-        action.put("type", "navigate");
-        action.put("targetUri", "nba://game/0022400050");
-        actions.add(action);
-        data.set("actions", actions);
-
-        section.set("data", data);
-        section.set("display", utils.gamePanelDisplay());
-        return section;
+        return atomicBuilder.buildGamePanelComposite(
+                "live-featured-mock",
+                "live_featured_game",
+                "featured",
+                "0022400050",
+                1,
+                "7:30 PM ET",
+                "NEXT UP",
+                new AtomicCompositeBuilder.GamePanelTeam(
+                        "MIA", 0, SduiUtils.teamLogoUrl("1610612748")),
+                new AtomicCompositeBuilder.GamePanelTeam(
+                        "NYK", 0, SduiUtils.teamLogoUrl("1610612752")),
+                null,
+                "nba://game/0022400050",
+                staticPolicy(),
+                null,
+                utils.gamePanelSurface());
     }
 
     private ObjectNode buildSectionHeader(String id, String title,
                                            String subtitle, String actionUri) {
         ObjectNode section = atomicBuilder.buildSectionHeader(id, title, subtitle, null, actionUri);
-        section.set("display", utils.railDisplay());
+        section.set("surface", utils.sectionHeaderSurface());
         return section;
     }
 
     private ObjectNode buildGamePanel(JsonNode game, boolean liveRefresh) {
         String gameId = game.path("gameId").asText("0000000000");
         int gameStatus = game.path("gameStatus").asInt(1);
+        boolean live = liveRefresh && gameStatus == 2;
 
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "live-game-" + gameId);
-        section.put("type", "GamePanel");
-        section.put("analyticsId", "live_game_" + gameId);
+        ObjectNode refreshPolicy = live ? ssePolicy(gameId) : staticPolicy();
+        ObjectNode bindings = live ? utils.buildCompositeLinescoreBindings() : null;
+        AtomicCompositeBuilder.GameClockSnapshot clock = live ? clockSnapshotFromGame(game) : null;
 
-        if (liveRefresh && gameStatus == 2) {
-            ObjectNode rp = objectMapper.createObjectNode();
-            rp.put("type", "sse");
-            rp.put("channel", gameId + ":linescore");
-            rp.put("pauseWhenOffScreen", false);
-            section.set("refreshPolicy", rp);
-            section.set("dataBinding", utils.buildLinescoreBindings());
-        } else {
-            section.set("refreshPolicy", staticPolicy());
-        }
-
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("gameId", gameId);
-        data.put("gameStatus", gameStatus);
-        data.put("gameStatusText", game.path("gameStatusText").asText(""));
-        data.put("gameTimeEt", game.path("gameTimeEt").asText(""));
-        data.put("gameDateEt", game.path("gameDateEt").asText(""));
-        // Broadcast info
-        JsonNode broadcasters = game.path("broadcasters");
-        if (broadcasters.isObject()) {
-            JsonNode national = broadcasters.path("nationalTvBroadcasters");
-            JsonNode home = broadcasters.path("homeTvBroadcasters");
-            if (national.isArray() && national.size() > 0) {
-                data.put("broadcaster", national.get(0).path("broadcasterDisplay").asText(""));
-            } else if (home.isArray() && home.size() > 0) {
-                data.put("broadcaster", home.get(0).path("broadcasterDisplay").asText(""));
-            }
-        }
-        data.set("homeTeam", mapTeam(game.path("homeTeam")));
-        data.set("awayTeam", mapTeam(game.path("awayTeam")));
-
-        ArrayNode actions = objectMapper.createArrayNode();
-        ObjectNode action = objectMapper.createObjectNode();
-        action.put("trigger", "onTap");
-        action.put("type", "navigate");
-        action.put("targetUri", "nba://game/" + gameId);
-        actions.add(action);
-        data.set("actions", actions);
-
-        section.set("data", data);
-        section.set("display", utils.gamePanelDisplay());
-        return section;
+        return atomicBuilder.buildGamePanelComposite(
+                "live-game-" + gameId,
+                "live_game_" + gameId,
+                "standard",
+                gameId,
+                gameStatus,
+                game.path("gameStatusText").asText(""),
+                null,
+                atomicBuilder.gamePanelTeamFromJson(game.path("awayTeam")),
+                atomicBuilder.gamePanelTeamFromJson(game.path("homeTeam")),
+                clock,
+                "nba://game/" + gameId,
+                refreshPolicy,
+                bindings,
+                utils.gamePanelSurface());
     }
 
     private void addMockSections(ArrayNode sections) {
@@ -293,58 +221,39 @@ public class LiveComposer {
                                      String homeTri, int homeId,
                                      String statusText, int gameStatus,
                                      boolean liveRefresh) {
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", id);
-        section.put("type", "GamePanel");
-
+        ObjectNode refreshPolicy;
         if (liveRefresh) {
-            ObjectNode rp = objectMapper.createObjectNode();
-            rp.put("type", "sse");
-            rp.put("channel", id + ":linescore");
-            rp.put("pauseWhenOffScreen", false);
-            section.set("refreshPolicy", rp);
+            refreshPolicy = objectMapper.createObjectNode();
+            refreshPolicy.put("type", "sse");
+            refreshPolicy.put("channel", id + ":linescore");
+            refreshPolicy.put("pauseWhenOffScreen", false);
         } else {
-            section.set("refreshPolicy", staticPolicy());
+            refreshPolicy = staticPolicy();
         }
 
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("gameId", id);
-        data.put("gameStatus", gameStatus);
-        data.put("gameStatusText", statusText);
+        AtomicCompositeBuilder.GamePanelTeam away = new AtomicCompositeBuilder.GamePanelTeam(
+                awayTri, gameStatus == 2 ? 72 : 0, SduiUtils.teamLogoUrl(awayId));
+        AtomicCompositeBuilder.GamePanelTeam home = new AtomicCompositeBuilder.GamePanelTeam(
+                homeTri, gameStatus == 2 ? 68 : 0, SduiUtils.teamLogoUrl(homeId));
+        AtomicCompositeBuilder.GameClockSnapshot clock = liveRefresh && gameStatus == 2
+                ? mockClockSnapshotFromStatus(statusText)
+                : null;
 
-        ObjectNode away = objectMapper.createObjectNode();
-        away.put("teamId", awayId);
-        away.put("teamTricode", awayTri);
-        away.put("teamName", awayTri);
-        away.put("teamCity", awayTri);
-        away.put("score", gameStatus == 2 ? 72 : 0);
-        away.put("record", "4-2");
-        away.put("logoUrl", SduiUtils.teamLogoUrl(awayId));
-        data.set("awayTeam", away);
-
-        ObjectNode home = objectMapper.createObjectNode();
-        home.put("teamId", homeId);
-        home.put("teamTricode", homeTri);
-        home.put("teamName", homeTri);
-        home.put("teamCity", homeTri);
-        home.put("score", gameStatus == 2 ? 68 : 0);
-        home.put("record", "4-2");
-        home.put("logoUrl", SduiUtils.teamLogoUrl(homeId));
-        data.set("homeTeam", home);
-
-        data.put("broadcaster", "Fox Sports Southeast - Atlanta");
-
-        ArrayNode actions = objectMapper.createArrayNode();
-        ObjectNode action = objectMapper.createObjectNode();
-        action.put("trigger", "onTap");
-        action.put("type", "navigate");
-        action.put("targetUri", "nba://game/" + id);
-        actions.add(action);
-        data.set("actions", actions);
-
-        section.set("data", data);
-        section.set("display", utils.gamePanelDisplay());
-        return section;
+        return atomicBuilder.buildGamePanelComposite(
+                id,
+                null,
+                "standard",
+                id,
+                gameStatus,
+                statusText,
+                null,
+                away,
+                home,
+                clock,
+                "nba://game/" + id,
+                refreshPolicy,
+                null,
+                utils.gamePanelSurface());
     }
 
     // ── Helpers ────────────────────────────────────────────────────────
@@ -358,23 +267,71 @@ public class LiveComposer {
         }
     }
 
-    private ObjectNode mapTeam(JsonNode team) {
-        ObjectNode mapped = objectMapper.createObjectNode();
-        mapped.put("teamId", team.path("teamId").asInt());
-        mapped.put("teamTricode", team.path("teamTricode").asText(""));
-        mapped.put("teamName", team.path("teamName").asText(""));
-        mapped.put("teamCity", team.path("teamCity").asText(""));
-        mapped.put("score", team.path("score").asInt(0));
-        int wins = team.path("wins").asInt(0);
-        int losses = team.path("losses").asInt(0);
-        mapped.put("record", wins + "-" + losses);
-        mapped.put("logoUrl", SduiUtils.teamLogoUrl(team.path("teamId").asText()));
-        return mapped;
-    }
-
     private ObjectNode staticPolicy() {
         ObjectNode rp = objectMapper.createObjectNode();
         rp.put("type", "static");
         return rp;
+    }
+
+    private ObjectNode ssePolicy(String gameId) {
+        ObjectNode rp = objectMapper.createObjectNode();
+        rp.put("type", "sse");
+        rp.put("channel", gameId + ":linescore");
+        rp.put("pauseWhenOffScreen", false);
+        return rp;
+    }
+
+    /**
+     * Build an initial {@code LiveClock} snapshot from upstream stats-api
+     * game JSON. The `gameClock` string is ISO-8601 duration (e.g.
+     * {@code PT04M32.00S}); for the first paint we treat the current
+     * server time as the snapshot anchor so clients interpolate from
+     * "now" until the first Ably frame lands.
+     */
+    private AtomicCompositeBuilder.GameClockSnapshot clockSnapshotFromGame(JsonNode game) {
+        int seconds = parseGameClockSeconds(game.path("gameClock").asText(""));
+        return new AtomicCompositeBuilder.GameClockSnapshot(
+                seconds,
+                java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString(),
+                true);
+    }
+
+    private AtomicCompositeBuilder.GameClockSnapshot mockClockSnapshotFromStatus(String statusText) {
+        int seconds = parseMockClockSeconds(statusText);
+        return new AtomicCompositeBuilder.GameClockSnapshot(
+                seconds,
+                java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString(),
+                true);
+    }
+
+    private static int parseGameClockSeconds(String iso) {
+        if (iso == null || iso.isEmpty()) return 0;
+        try {
+            return (int) java.time.Duration.parse(iso).getSeconds();
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    /**
+     * Parse the M:SS portion of mock status strings such as
+     * {@code "Q3 4:22"} into seconds. Returns 0 when the format does
+     * not match (upcoming / final / mock non-live).
+     */
+    private static int parseMockClockSeconds(String statusText) {
+        if (statusText == null) return 0;
+        int colon = statusText.lastIndexOf(':');
+        if (colon <= 0) return 0;
+        try {
+            int m = Integer.parseInt(statusText.substring(
+                    Math.max(0, colon - 2), colon).trim()
+                    .replaceAll("[^0-9]", ""));
+            int s = Integer.parseInt(statusText.substring(
+                    colon + 1, Math.min(statusText.length(), colon + 3)).trim()
+                    .replaceAll("[^0-9]", ""));
+            return m * 60 + s;
+        } catch (Exception e) {
+            return 0;
+        }
     }
 }

@@ -20,16 +20,17 @@ the developer's chosen stack.
 
 Before answering any question, load and reference these in priority order:
 
-1. **Client Implementor's Contract** — `docs/plans/client-implementors-contract.md`
+1. **Client Implementor's Contract** — `docs/client-implementors-contract.md`
    The primary reference. Contains architecture blueprint, build checklist,
    pseudocode for all 7 core algorithms, and conformance checklist.
 
 2. **Development Rules** — `AGENTS.md`
-   18 non-negotiable constraints (Rules 1–18). Every recommendation you
-   make must satisfy these rules. Rules 16–18 in particular govern how
+   19 non-negotiable constraints (Rules 1–19). Every recommendation you
+   make must satisfy these rules. Rules 16–19 in particular govern how
    per-platform decisions are split: Rule 16 = platform-native realization
    of semantic tokens, Rule 17 = code-comment citation policy, Rule 18 =
-   server-driven vs client-realized work split (default: server).
+   server-driven vs client-realized work split (default: server), Rule 19 =
+   minimize variant proliferation within semantic vocabularies.
 
 3. **Schema** — `schema/sdui-schema.json`
    Source of truth for all types, enums, and data shapes. Also
@@ -43,10 +44,9 @@ Before answering any question, load and reference these in priority order:
 
 5. **Generated Models** — each client consumes a pre-built model file
    written directly into its source tree by `make codegen`:
-   - Java (Android): `codegen/build/generated-sources/jsonschema2pojo/`
+   - Java (Spring server + Android): `codegen/build/generated-sources/jsonschema2pojo/`
    - Swift (iOS): `ios/Sources/SduiCore/Models/SduiModels.swift`
    - TypeScript (web): `web/src/generated/SduiModels.ts` (consumed via the `@sdui/models` alias)
-   - Kotlin (demo only): `codegen/output/kotlin/SduiModels.kt`
    For other languages, generate from the schema.
 
 ## How You Work
@@ -57,7 +57,7 @@ Before answering any question, load and reference these in priority order:
 2. **Point them to the build checklist** — Contract §2, five phases, 30 components
 3. **Walk through Phase 1 first** — models, fetch, routers, atomic renderers
 4. **Translate pseudocode** — Convert contract algorithms to their language idioms
-5. **Validate against conformance checklist** — Contract §18, 18 requirements (C1–C18 mapping to AGENTS.md Rules 1–18)
+5. **Validate against conformance checklist** — Contract §18, 19 checklist rows (`C1–C18` plus `C14a`) and AGENTS.md Rules 1–19
 
 ### When a developer asks "How do I implement {component}?":
 

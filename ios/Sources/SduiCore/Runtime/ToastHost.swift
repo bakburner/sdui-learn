@@ -6,7 +6,7 @@ import SwiftUI
 ///
 /// Rendered as an overlay at the top of `ScreenShell`. `ActionDispatcher`
 /// pushes messages here for two cases:
-/// - `toast` action type (§4)
+/// - `toast` action type
 /// - `halt` failure policy with server-provided `failureFeedback.message`
 @Observable
 @MainActor

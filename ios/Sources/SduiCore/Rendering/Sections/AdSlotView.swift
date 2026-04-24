@@ -5,12 +5,13 @@ import SwiftUI
 /// dimensions, shared by the placeholder and (when it lands) the
 /// ad SDK itself. Inner placeholder chrome (background color, label
 /// text) comes from `data.placeholder`; outer chrome (margin,
-/// padding, shadow, radius) comes from `section.display` via the
+/// padding, shadow, radius) comes from `section.surface` via the
 /// shared `SectionContainer` wrapper.
 ///
 /// This renderer carries no client-side chrome defaults. A payload
 /// missing required `sizes` is a decoder-level failure, not a
-/// render-time one — see `AGENTS.md` §15.1 and §15.2.
+/// render-time one — reservation dimensions and placeholder content
+/// come from the server payload.
 struct AdSlotView: View {
     let section: Section
     let onAction: (Action) -> Void

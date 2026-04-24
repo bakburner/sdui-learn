@@ -6,34 +6,6 @@
 
 > **Scope note (normative):** The requirements summary is the source of truth for commitments. This proposal describes technical implementation direction and examples aligned to those commitments.
 
-## Revision History
-
-| Date | Summary |
-|---|---|
-| 2026-04-21 | Doc consistency audit. Added "Decision Examples" sub-section in §1 (server vs client decision tree with five concrete questions + rule of thumb) — reflects new AGENTS.md Rule 18. Section type count 9 → 10 (VideoPlayer added as permanent section with platform video SDK integration). Triggers table adds `onSubmit`. Platform coverage tables: iOS promoted Gap/Designed → Built across all permanent sections and atomics (reflects `ios/Sources/SduiCore/` shipping with section router, atomic router, navigation shell, envelope, impression tracker). VideoPlayer row flagged Partial (stub views on all platforms). §2b adds VideoPlayer to platform-SDK examples. ADR Status Summary rewritten to list accepted / proposed / proposed-draft explicitly (adds ADR-011 data classification, ADR-012 client data architecture, ADR-013 style tokens). Impression semantics and error handling updated to include iOS. "Filled" wording in Decision Examples reworded to avoid collision with retired `ButtonVariant` enum value. |
-| 2026-04-20 | ADR-013 refinement: formalized **platform-native realization** as the premise — variants resolve to iOS materials (Liquid Glass / `.ultraThinMaterial`), Android Material surfaces (Material 3 Expressive / Material You), and web CSS mixins per OS-version tier. Registry shape updated to carry per-platform OS-version tier maps (e.g. `ios: { "26+": …, "17-25": … }`) and dark-mode specs per tier. Override matrix upgraded to support per-platform granularity (`{ "ios": "lock", "android": "allow" }`) so inline props cannot accidentally flatten platform-idiomatic effects. Governance additions: current + one-back tier coverage per platform as the minimum bar, tier fallback mandatory, per-platform screenshot review (not cross-platform pixel diffs). New open question: pixel-parity escape hatch for brand-takeover / launch moments. Cross-platform visual divergence is accepted and expected — an iOS app should look like iOS, an Android app should look like Android. |
-| 2026-04-20 | Added ADR-013 (Style Tokens for Atomic Primitives, draft) — typed per-primitive variant enums (`ContainerVariant`, `ImageVariant`, …) as named design-system presets. Variants both aggregate inline-expressible properties and own inexpressibles (gradients, materials, theme adaptation, press state). Per-variant override matrix (`allow`/`lock`) resolves background/gradient axis collision and governs override permissions. Governance rules formalized: proof-of-need addition bar, override-rate SLO (>30% flags review), quarterly audit, mandatory dark-mode coverage, two-release deprecation window. Generalizes the existing `TextVariant` / `ButtonVariant` pattern. Added to §10 requirement status and §11b next steps. |
-| 2026-04-01 | Doc consistency audit. §8a image fallback: stale migrated type names updated to AtomicComposite layouts. §11b next steps updated to reflect built features (request envelope, ADR-006, ADR-008, ADR-009). URI resolution special case flagged as legacy exception per Rule 10. |
-| 2026-03-30 | Doc consistency audit. §10 requirement status updated: Request context envelope Gap → Built, Experiment conflict handling Partial → Built (ADR-006 Accepted), Internationalization Gap → Built (section-level stringTable). |
-| 2026-03-24 | Doc consistency audit. §2c token alignment table expanded (4 → 8 categories: added font weight, backgrounds, elevation, button variants). Requirement status updated: Layout manager Gap → Partial (ADR-008 accepted), Impression semantics Gap → Partial (ADR-009 accepted). `FormRenderer` → `Form` aligned with schema enum across AGENTS.md and requirements summary. |
-| 2026-03-14 | Added §2b (Section vs. Atomic Decision Framework — decision tree, rationale for lifecycle/SDK/state boundaries, concrete examples: GamePanel, SubscribeHero, AdSlot, BoxscoreTable, TabGroup). Added §2c (Figma Design System Integration — token alignment, three-level CI validation pipeline). |
-| 2026-03-13 | Atomic rendering layer. Updated §2 (dual-layer model: semantic sections + atomic primitives coexisting via AtomicComposite). Added §2a (AtomicElement types, AtomicComposite bridge, Grid vs. Section Decision Tree). Updated §8 (AtomicRouter + 10 atomic renderers per platform). Added §9s (atomic layer performance contract). Updated §10 (atomic rendering layer status). |
-| 2026-03-13 | Added offline/degraded connectivity strategy (9r) with ADR-010 reference. Stale-while-offline approach using platform HTTP cache, staleness UX per `cacheability` class, fire-and-forget local queue. |
-| 2026-03-13 | Replaced `variant`/`backgroundImageUrl` on `GamePanelData` with server-driven `displayConfig` (`GamePanelDisplayConfig`). Introduced shared `Background` union type (solid/gradient/image) reused by `AtomicElement`, `SubscribeHeroData`, `SubscribeBannerData`. Three layout presets (`standardConfig`, `featuredConfig`, `scoreboardConfig`) replace client-side variant branching. |
-| 2026-03-12 | Merged `FeaturedGamePanel` into `GamePanel` with `variant` discriminator. `FeaturedGamePanelData` removed from schema; `GamePanelData` gains `variant`, `backgroundImageUrl`, `badgeText`, `visualLabel` fields. Server composers emit `type: "GamePanel"` with `variant: "featured"`. Android and Web renderers branch on variant. `FeaturedGamePanelRenderer` deleted on both platforms. Section type count: 20 → 18. |
-| 2026-03-12 | Server-control gaps closed: `SectionLayoutHints` and `SectionStates` added to schema + codegen. Web client: `SectionErrorBoundary`, `SectionSkeleton`, `useImpressionTracking`, `useAnalyticsContext` built. Server: `sectionStates` emitted on live sections. ADR-008 accepted (Option C), ADR-009 accepted. Bug fixes: `interactive` contentType enum, platform header threading (`X-Platform` required from clients, no server default), silent deserialization failures now logged on Android. |
-| 2026-03-12 | Prototype sync. Renderer table updated — BoxscoreTable, Form, SectionHeader, FollowingRail, SeasonLeadersTable now Built on Web and Android. Added image fallback pattern (section 8a). Updated requirement status for tabular data and forms. |
-| 2026-03-11 | ErrorState added to renderer table. Error handling status updated (Gap → Built for ErrorState, runtime `sectionStates` planned). Client-side visibility expressions evaluated and deferred — server-side composition handles section show/hide. |
-| 2026-03-04 | Added `parentUri` to Screen response contract and example. Added client URI resolution convention. |
-| 2026-03-04 | Added tabular data sections and forms. New semantic types (`BoxscoreTable`, `Form`) in schema design (section 2). Parameterized refresh on actions (section 4). Sort and form state patterns (section 5). Platform coverage update (section 8). Gap 9q. Requirement status updates. Appendix C boxscore response example. |
-| 2026-02-27 | Replaced `entitlements` with `device` in request envelope (governance, 9o, Appendix A). Aligned analytics field names (`event`/`params`) and mutate field names (`target`/`operation`/`value`) with requirements summary. Moved `schemaVersion` to `meta` object. Added `onBlur` trigger. |
-| 2026-02-25 | Established platform-aware composition as settled architectural position: shared schema, shared data pipeline, per-platform-family composition. Renamed `fallbackUrl` → `webUrl` in action contract (section 4). Updated platform coverage (section 8). |
-| 2026-02-25 | Added `stringKeys` to binding JSON examples in section 3 and Appendix B. Added JSON snippet with explanation to i18n section (9p). Added revision history. |
-| 2026-02-24 | Added i18n section (9p) with server-resolved default + `stringKeys` on data bindings. Removed `layoutHints` from schema and appendix examples (moved to ADR-008 for evaluation). Added locale transport policy to 9o and 9p. |
-| 2026-02-20 | Initial v2 — full technical proposal aligned with requirements baseline and ADR-driven decisions. Covers schema, data binding, action system, screen state, codegen, platform coverage, and gap analysis (9i–9o). Appendix A/B with typed request envelope and expanded response examples. |
-
----
-
 ## Current Governance (This Document)
 
 - Requirements define **what** must be true. ADRs capture **why** and final cross-functional decisions.
@@ -93,7 +65,7 @@ The SDUI schema is universal — all platforms share the same vocabulary of sect
 - Schema definitions (JSON Schema) — the universal contract
 - Codegen (typed models per platform from one schema)
 - Upstream data fetching and transformation — one integration pipeline
-- Section-type semantics — a `GamePanel` means the same thing everywhere
+- Section-type semantics — a `BoxscoreTable` means the same thing everywhere
 - Action and data binding structure
 
 **What differs per platform family:**
@@ -146,7 +118,7 @@ that come up during feature work.
 | --- | --- | --- |
 | Should the Subscribe CTA appear on this screen for this user? | **Server** (content selection) | Eligibility, experiment cohort, paywall policy, and legal constraints are server-owned. A client release to toggle a CTA is wasted shipping cost and drifts across platforms. |
 | Which video manifest URL does this platform play back? | **Server** (asset-format selection) | iOS consumes HLS; some web stacks prefer DASH; Android ABIs vary. Only the server knows current CDN routing. Hard-coding platform URL selection in the client ties a CDN migration to a client release. |
-| Can this client receive a live `GamePanel` over SSE, or does it need interval polling? | **Server** (capability gating) | The client advertises `capabilities.sse` in the request envelope; the server sets `refreshPolicy.type` accordingly. Same screen definition, different delivery mechanism, no client branching. |
+| Can this client receive a live score update over SSE, or does it need interval polling? | **Server** (capability gating) | The client advertises `capabilities.sse` in the request envelope; the server sets `refreshPolicy.type` accordingly. Same screen definition, different delivery mechanism, no client branching. |
 | Which concrete glyph renders for `iconName: "sdui:play"`? | **Client** (presentation of a known semantic) | SF Symbols, Material Symbols, and web icon fonts ship new glyphs with every OS / browser release. The server emits a neutral token; each platform resolves natively. Putting the server on the OS-icon-release treadmill would be pure overhead. |
 | How does a `Button` with `variant: "primary"` (a `ButtonVariant` value) look — solid, elevated, outlined, with what corner radius? | **Client** (presentation of a known semantic) | Each platform renders using its own design system (iOS `.borderedProminent`, Material `FilledButton`, web CSS surface tokens). Pixel parity across platforms is not the goal; platform-idiomatic feel is. |
 
@@ -178,8 +150,8 @@ Every response follows `Screen -> Section -> Component`, where each section can 
     "sections": [
       {
         "id": "scoreboard-001",
-        "type": "GamePanel",
-        "data": { "displayConfig": { "scoreTextStyle": "compact" }, "gameId": "0022500384", "...": "..." },
+        "type": "AtomicComposite",
+        "data": { "ui": { "...":  "server-composed game card tree" }, "gameId": "0022500384", "...": "..." },
         "refreshPolicy": { "type": "sse", "channel": "{gameId}:linescore" },
         "dataBindings": { "bindings": [ { "sourcePath": "$.home.score", "targetPath": "home.score" } ] },
         "actions": [ { "trigger": "onTap", "type": "navigate", "targetUri": "nba://game/0022500384/boxscore" } ]
@@ -200,7 +172,7 @@ nba://{path}  →  GET /sdui/{path}
 
 > **Legacy exception:** `nba://game/{id}` → `GET /sdui/game-detail/{id}?gameState=live`
 > preserves backward compatibility with the existing game-detail endpoint.
-> Per Rule 10, new screens must use the simple prefix swap only.
+> New screens must use the simple prefix swap only.
 
 This convention means new screens require **no client code changes** —
 adding a server endpoint and including its URI in navigation items or
@@ -213,7 +185,7 @@ action targets is sufficient.
 ### Key Schema Decisions
 
 - Schema is the contract source of truth.
-- Schema defines a dual-layer model: **semantic section types** (GamePanel, BoxscoreTable, TabGroup, etc.) for domain-specific rendering with client-owned state, and **atomic element types** (Container, Text, Image, etc.) for server-composed generic layouts. The two layers coexist via the `AtomicComposite` bridge section type. See §2a.
+- Schema defines a dual-layer model: **semantic section types** (BoxscoreTable, TabGroup, Form, etc.) for domain-specific rendering with client-owned state, and **atomic element types** (Container, Text, Image, Button, etc.) for server-composed generic layouts. The two layers coexist via the `AtomicComposite` bridge section type. See §2a.
 - Codegen generates typed models only, not UI code.
 - Schema evolution is additive-first and version-aware.
 - Unknown section/action types must degrade gracefully (skip/no-op).
@@ -341,7 +313,7 @@ New UI surface needed?
 
 | Factor | Example | Why it cannot be atomic |
 |---|---|---|
-| **Network-driven lifecycle** | **GamePanel** — as a game progresses, the client connects to Ably SSE or switches to polling, determines the visual variant (pre-game → in-game → post-game) from live `gameStatus` data, and renders the appropriate layout. The variant selection, channel subscription, and reconnection logic are lifecycle concerns the server cannot drive after the initial response. | An atomic tree is a static render instruction. It cannot subscribe to a data source, evaluate state transitions over time, or select among layout variants based on ongoing network events. |
+| **Network-driven lifecycle** | **BoxscoreTable** — as a game progresses, the client connects to Ably SSE or switches to polling, receives live stat updates, and re-renders the table. Frozen-column scroll sync, client-side sort, starter/bench dividers, and reconnection logic are lifecycle concerns the server cannot drive after the initial response. | An atomic tree is a static render instruction. It cannot subscribe to a data source, coordinate scroll state, or manage sort state across re-renders. |
 | **Platform SDK integration** | **SubscribeHero / SubscribeBanner** — target integration is In-App Purchase (Google Play Billing Library on Android, StoreKit 2 on iOS). The purchase flow requires a state machine (loading products → purchasing → verifying → success/failure), entitlement checks before rendering CTA text, and localized pricing from the store — not the server. The billing SDK owns the transaction lifecycle. | The SDK manages its own view lifecycle, authentication, and platform-specific purchase flow. An atomic `Button` cannot host a billing sheet or verify purchase receipts. |
 | **Platform SDK integration** | **AdSlot** — target integration is Google Ad Manager (GAM). `AdManagerAdView` owns its own view lifecycle (load, refresh, destroy), consent management (UMP/TCF), MRC-compliant viewability tracking, fill-rate fallback UI, and timed refresh cadence. | An atomic `Container` cannot host a native ad view or participate in the ad SDK's lifecycle callbacks. |
 | **Platform SDK integration** | **VideoPlayer** — target integrations are AVPlayer (iOS), ExoPlayer / Media3 (Android), and Shaka Player / HLS.js (web). The server emits a neutral payload (`playerType`, `contentId`, `capabilities`) and the renderer drives HLS/DASH playback, PiP, AirPlay / Chromecast, background audio, and fullscreen rotation through the platform SDK. | An atomic tree cannot own a video surface, manage buffering, or participate in the player SDK's event callbacks. |
@@ -368,8 +340,10 @@ The atomic layer creates a natural bridge between the NBA Figma design system an
 | Backgrounds | `surface.card`, `surface.overlay` | `Background` union (solid color, `BackgroundGradient`, `BackgroundImage`) | Gradient stops and image overlays map to Figma fill layers |
 | Spacing | 4/8/16/20/32 dp cluster | Integer dp values (`gap`, `padding`) | Keep integers; optionally accept named tokens (`"gap": "md"` → 16dp) later |
 | Corners | 12dp sheets, 4dp default | `cornerRadius` on Container and Image | Direct match to Figma corner radius |
-| Elevation | `shadow/sm`, `shadow/md` | `elevation` on `GamePanelDisplayConfig` | Map Figma shadow tokens to integer dp elevation values |
+| Elevation | `shadow/sm`, `shadow/md` | `shadow` on Container | Map Figma shadow tokens to shadow CSS / elevation dp values |
 | Button variants | `button/primary`, `button/secondary` | `ButtonVariant` enum (`primary`, `secondary`, `tertiary`, `text`) | Figma component variants map 1:1 to schema enum; CI validates fill, border, text color per variant |
+
+For the atomic runtime, those Layer 1 inline primitives are realized through a single per-platform `AtomicBox` execution path rather than renderer-specific wrappers. `AtomicBox` applies the box model in a canonical order (`margin → opacity → shadow → corner-clip → background → gradient overlay → border → padding → sizing → content`, with badge overlay after sizing), so `Container`, `ScrollContainer`, `Text`, `Image`, `Button`, `Divider`, and `DisplayGrid` all share the same border-box semantics. Layer 2 variant resolution then plugs into that path as data-only surface specs (`ContainerVariant`, `ImageVariant`) merged against inline props by the override matrix, instead of each primitive owning its own variant application stack.
 
 **Three-level CI validation pipeline:**
 
@@ -609,7 +583,6 @@ Each client platform builds these systems once:
 @Composable
 fun SectionRouter(section: SduiSection, onAction: (SduiAction) -> Unit) {
     when (section.type) {
-        "GamePanel" -> GamePanelRenderer(section, onAction)
         "BoxscoreTable" -> BoxscoreTableRenderer(section, onAction)
         "TabGroup" -> TabGroupRenderer(section, onAction)
         "AdSlot" -> AdSlotRenderer(section, onAction)
@@ -623,11 +596,10 @@ fun SectionRouter(section: SduiSection, onAction: (SduiAction) -> Unit) {
 
 ```kotlin
 @Composable
-fun GamePanelRenderer(section: SduiSection, onAction: (SduiAction) -> Unit) {
-    val data = mapGamePanel(section)
-    val config = data.displayConfig
-    // displayConfig drives layout: logo size, card height, score style, background
-    GameCard(data, config, onAction)
+fun BoxscoreTableRenderer(section: SduiSection, onAction: (SduiAction) -> Unit) {
+    val data = mapBoxscoreTable(section)
+    // Frozen column + horizontal scroll sync, client-side sort, starter/bench dividers
+    BoxscoreTable(data, onAction)
 }
 ```
 
@@ -663,7 +635,6 @@ Each platform family receives a tailored composition from the server while shari
 
 | Section type | Web (React) | Android (Compose) | iOS (SwiftUI) |
 |---|---|---|---|
-| GamePanel (server-driven `displayConfig` for standard, featured, scoreboard layouts) | Built | Built | Built |
 | TabGroup | Built | Built | Built |
 | BoxscoreTable | Built | Built | Built |
 | Form | Built | Built | Built |
@@ -904,8 +875,8 @@ These limits ensure atomic trees remain a lightweight composition mechanism, not
 | Error handling (ErrorState)    | Built   | —       | server-composed `ErrorState` section type built on Web, Android, and iOS (`SectionErrorBoundary` / skeleton on iOS). Per-section runtime error/loading states (`sectionStates`) planned. |
 | Contract testing/observability | Gap     | —       | broader test corpus + dashboards pending            |
 | Internationalization (i18n)    | Built   | —       | Section-level `stringTable` stamped by server per locale. Server pre-translates initial text. Clients consume `stringTable` from each section. Parameterized strings via atomic decomposition. |
-| Tabular data (BoxscoreTable)   | Built   | —       | semantic table type, domain-typed data, client-side sort. Built on Web and Android. |
-| Form section (generic)         | Built   | —       | extensible field types, parameterized refresh. Built on Web and Android. |
+| Tabular data (BoxscoreTable)   | Built   | —       | semantic table type, domain-typed data, client-side sort. Built on Android, iOS, and web. |
+| Form section (generic)         | Built   | —       | extensible field types, parameterized refresh. Built on Android, iOS, and web. |
 | Parameterized refresh          | Built   | —       | `endpoint` + `paramBindings` Action extension. Working via Form submit. |
 | SeasonLeadersTable             | Built   | —       | domain-typed leaders table with form-driven parameterized refresh |
 | Image fallback                 | Built   | —       | server-driven `fallbackThumbnailUrl` with client-side error handling |
@@ -948,6 +919,36 @@ The alternative is duplicated platform composition logic and drift in feature be
 5. Implement impression tracking per ADR-009 (accepted). Android/iOS pending.
 6. Implement offline/degraded connectivity strategy per ADR-010 — platform cache fallback, staleness UX, fire-and-forget queue.
 7. Style-token strategy per ADR-013 — **shipped and Accepted.** Uniform `variant: string` with per-primitive enums (`TextVariant`, `ButtonVariant`, `ContainerVariant`, `ImageVariant`); per-platform per-OS-tier realization with mandatory dark-mode coverage; per-variant override matrix (including per-platform policies); three diagnostics (`variant_resolver_missing`, `variant_override_blocked`, `token_resolver_missing`); color-token wire encoding with two-tier palette/semantic registry; client `ColorTokenResolver` on every platform; server `ColorTokens` constants with startup consistency check against the registry; pilot composer migrations complete (`AtomicCompositeBuilder`, `GameDetailComposer`, `ScheduleComposer`, `LiveComposer`, `ForYouComposer`, `DemoScreenComposer`). Figma export pipeline deferred — registry is ref-app-seeded with a Kinetic-compatible shape that is replaceable wholesale when the design-system tooling lands. Reference document: [`sdui-design-system.md`](sdui-design-system.md).
+
+---
+
+## Revision History
+
+| Date | Summary |
+|---|---|
+| 2026-04-25 | GamePanel migration to AtomicComposite. Updated §1 decision examples (SSE question no longer GamePanel-specific), §2 dual-layer model (GamePanel removed from semantic list), §2b (BoxscoreTable replaces GamePanel as network-lifecycle example), §2c elevation row (shadow on Container replaces GamePanelDisplayConfig), §6 router/renderer examples (BoxscoreTable), §8 platform coverage table (GamePanel row removed), §10 JSON example (AtomicComposite). Stripped Rule N / AGENTS.md citations per §10.3. |
+| 2026-04-24 | Doc consistency audit. Added the AtomicBox note tying Layer 1 inline primitives to the unified box-model execution path. Updated current status rows so BoxscoreTable and Form reflect Android, iOS, and web parity. |
+| 2026-04-21 | Doc consistency audit. Added "Decision Examples" sub-section in §1 (server vs client decision tree with five concrete questions + rule of thumb) — reflects new AGENTS.md Rule 18. Section type count 9 → 10 (VideoPlayer added as permanent section with platform video SDK integration). Triggers table adds `onSubmit`. Platform coverage tables: iOS promoted Gap/Designed → Built across all permanent sections and atomics (reflects `ios/Sources/SduiCore/` shipping with section router, atomic router, navigation shell, envelope, impression tracker). VideoPlayer row flagged Partial (stub views on all platforms). §2b adds VideoPlayer to platform-SDK examples. ADR Status Summary rewritten to list accepted / proposed / proposed-draft explicitly (adds ADR-011 data classification, ADR-012 client data architecture, ADR-013 style tokens). Impression semantics and error handling updated to include iOS. "Filled" wording in Decision Examples reworded to avoid collision with retired `ButtonVariant` enum value. |
+| 2026-04-20 | ADR-013 refinement: formalized **platform-native realization** as the premise — variants resolve to iOS materials (Liquid Glass / `.ultraThinMaterial`), Android Material surfaces (Material 3 Expressive / Material You), and web CSS mixins per OS-version tier. Registry shape updated to carry per-platform OS-version tier maps (e.g. `ios: { "26+": …, "17-25": … }`) and dark-mode specs per tier. Override matrix upgraded to support per-platform granularity (`{ "ios": "lock", "android": "allow" }`) so inline props cannot accidentally flatten platform-idiomatic effects. Governance additions: current + one-back tier coverage per platform as the minimum bar, tier fallback mandatory, per-platform screenshot review (not cross-platform pixel diffs). New open question: pixel-parity escape hatch for brand-takeover / launch moments. Cross-platform visual divergence is accepted and expected — an iOS app should look like iOS, an Android app should look like Android. |
+| 2026-04-20 | Added ADR-013 (Style Tokens for Atomic Primitives, draft) — typed per-primitive variant enums (`ContainerVariant`, `ImageVariant`, …) as named design-system presets. Variants both aggregate inline-expressible properties and own inexpressibles (gradients, materials, theme adaptation, press state). Per-variant override matrix (`allow`/`lock`) resolves background/gradient axis collision and governs override permissions. Governance rules formalized: proof-of-need addition bar, override-rate SLO (>30% flags review), quarterly audit, mandatory dark-mode coverage, two-release deprecation window. Generalizes the existing `TextVariant` / `ButtonVariant` pattern. Added to §10 requirement status and §11b next steps. |
+| 2026-04-01 | Doc consistency audit. §8a image fallback: stale migrated type names updated to AtomicComposite layouts. §11b next steps updated to reflect built features (request envelope, ADR-006, ADR-008, ADR-009). URI resolution special case flagged as legacy exception per Rule 10. |
+| 2026-03-30 | Doc consistency audit. §10 requirement status updated: Request context envelope Gap → Built, Experiment conflict handling Partial → Built (ADR-006 Accepted), Internationalization Gap → Built (section-level stringTable). |
+| 2026-03-24 | Doc consistency audit. §2c token alignment table expanded (4 → 8 categories: added font weight, backgrounds, elevation, button variants). Requirement status updated: Layout manager Gap → Partial (ADR-008 accepted), Impression semantics Gap → Partial (ADR-009 accepted). `FormRenderer` → `Form` aligned with schema enum across AGENTS.md and requirements summary. |
+| 2026-03-14 | Added §2b (Section vs. Atomic Decision Framework — decision tree, rationale for lifecycle/SDK/state boundaries, concrete examples: GamePanel, SubscribeHero, AdSlot, BoxscoreTable, TabGroup). Added §2c (Figma Design System Integration — token alignment, three-level CI validation pipeline). |
+| 2026-03-13 | Atomic rendering layer. Updated §2 (dual-layer model: semantic sections + atomic primitives coexisting via AtomicComposite). Added §2a (AtomicElement types, AtomicComposite bridge, Grid vs. Section Decision Tree). Updated §8 (AtomicRouter + 10 atomic renderers per platform). Added §9s (atomic layer performance contract). Updated §10 (atomic rendering layer status). |
+| 2026-03-13 | Added offline/degraded connectivity strategy (9r) with ADR-010 reference. Stale-while-offline approach using platform HTTP cache, staleness UX per `cacheability` class, fire-and-forget local queue. |
+| 2026-03-13 | Replaced `variant`/`backgroundImageUrl` on `GamePanelData` with server-driven `displayConfig` (`GamePanelDisplayConfig`). Introduced shared `Background` union type (solid/gradient/image) reused by `AtomicElement`, `SubscribeHeroData`, `SubscribeBannerData`. Three layout presets (`standardConfig`, `featuredConfig`, `scoreboardConfig`) replace client-side variant branching. |
+| 2026-03-12 | Merged `FeaturedGamePanel` into `GamePanel` with `variant` discriminator. `FeaturedGamePanelData` removed from schema; `GamePanelData` gains `variant`, `backgroundImageUrl`, `badgeText`, `visualLabel` fields. Server composers emit `type: "GamePanel"` with `variant: "featured"`. Android and Web renderers branch on variant. `FeaturedGamePanelRenderer` deleted on both platforms. Section type count: 20 → 18. |
+| 2026-03-12 | Server-control gaps closed: `SectionLayoutHints` and `SectionStates` added to schema + codegen. Web client: `SectionErrorBoundary`, `SectionSkeleton`, `useImpressionTracking`, `useAnalyticsContext` built. Server: `sectionStates` emitted on live sections. ADR-008 accepted (Option C), ADR-009 accepted. Bug fixes: `interactive` contentType enum, platform header threading (`X-Platform` required from clients, no server default), silent deserialization failures now logged on Android. |
+| 2026-03-12 | Prototype sync. Renderer table updated — BoxscoreTable, Form, SectionHeader, FollowingRail, SeasonLeadersTable now Built on Web and Android. Added image fallback pattern (section 8a). Updated requirement status for tabular data and forms. |
+| 2026-03-11 | ErrorState added to renderer table. Error handling status updated (Gap → Built for ErrorState, runtime `sectionStates` planned). Client-side visibility expressions evaluated and deferred — server-side composition handles section show/hide. |
+| 2026-03-04 | Added `parentUri` to Screen response contract and example. Added client URI resolution convention. |
+| 2026-03-04 | Added tabular data sections and forms. New semantic types (`BoxscoreTable`, `Form`) in schema design (section 2). Parameterized refresh on actions (section 4). Sort and form state patterns (section 5). Platform coverage update (section 8). Gap 9q. Requirement status updates. Appendix C boxscore response example. |
+| 2026-02-27 | Replaced `entitlements` with `device` in request envelope (governance, 9o, Appendix A). Aligned analytics field names (`event`/`params`) and mutate field names (`target`/`operation`/`value`) with requirements summary. Moved `schemaVersion` to `meta` object. Added `onBlur` trigger. |
+| 2026-02-25 | Established platform-aware composition as settled architectural position: shared schema, shared data pipeline, per-platform-family composition. Renamed `fallbackUrl` → `webUrl` in action contract (section 4). Updated platform coverage (section 8). |
+| 2026-02-25 | Added `stringKeys` to binding JSON examples in section 3 and Appendix B. Added JSON snippet with explanation to i18n section (9p). Added revision history. |
+| 2026-02-24 | Added i18n section (9p) with server-resolved default + `stringKeys` on data bindings. Removed `layoutHints` from schema and appendix examples (moved to ADR-008 for evaluation). Added locale transport policy to 9o and 9p. |
+| 2026-02-20 | Initial v2 — full technical proposal aligned with requirements baseline and ADR-driven decisions. Covers schema, data binding, action system, screen state, codegen, platform coverage, and gap analysis (9i–9o). Appendix A/B with typed request envelope and expanded response examples. |
 
 ---
 
@@ -1011,9 +1012,9 @@ The `device` object carries device signals that the composition service may use 
     "sections": [
       {
         "id": "scoreboard-001",
-        "type": "GamePanel",
+        "type": "AtomicComposite",
         "data": {
-          "displayConfig": { "scoreTextStyle": "compact" },
+          "ui": { "type": "Container", "...": "server-composed game card tree" },
           "homeTeam": {
             "teamId": "1610612752",
             "teamTricode": "NYK",

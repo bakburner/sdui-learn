@@ -18,13 +18,7 @@
  * rendering sensibly when no custom properties are supplied.
  */
 
-export type ContainerVariantName =
-  | 'hero'
-  | 'elevated'
-  | 'banner'
-  | 'subtle'
-  | 'grouped'
-  | 'overlay';
+export type ContainerVariantName = 'hero' | 'grouped';
 
 export type OverridePolicy = 'allow' | 'lock';
 
@@ -65,53 +59,6 @@ const SPECS: Record<ContainerVariantName, ContainerVariantSpec> = {
     },
   },
 
-  elevated: {
-    cornerRadius: 12,
-    backgroundCss: 'var(--sdui-surface-raised, #ffffff)',
-    boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
-    overrideMatrix: {
-      padding: 'allow',
-      cornerRadius: 'allow',
-      background: 'allow',
-      shadow: 'allow',
-      color: 'allow',
-      gap: 'allow',
-      opacity: 'allow',
-      border: 'allow',
-    },
-  },
-
-  banner: {
-    cornerRadius: 0,
-    backgroundCss: 'var(--sdui-surface-alt, #e0eaff)',
-    fillWidth: true,
-    overrideMatrix: {
-      padding: 'allow',
-      cornerRadius: 'allow',
-      background: 'allow',
-      shadow: 'allow',
-      color: 'allow',
-      gap: 'allow',
-      opacity: 'allow',
-      border: 'allow',
-    },
-  },
-
-  subtle: {
-    cornerRadius: 0,
-    backgroundCss: 'var(--sdui-surface, #f4f5f7)',
-    overrideMatrix: {
-      padding: 'allow',
-      cornerRadius: 'allow',
-      background: 'allow',
-      shadow: 'lock',
-      color: 'allow',
-      gap: 'allow',
-      opacity: 'allow',
-      border: 'allow',
-    },
-  },
-
   grouped: {
     cornerRadius: 12,
     backgroundCss: 'var(--sdui-surface-raised, #ffffff)',
@@ -127,31 +74,9 @@ const SPECS: Record<ContainerVariantName, ContainerVariantSpec> = {
       border: 'allow',
     },
   },
-
-  overlay: {
-    backgroundCss: 'rgba(0, 0, 0, 0.4)',
-    backdropFilter: 'blur(10px)',
-    overrideMatrix: {
-      padding: 'allow',
-      cornerRadius: 'allow',
-      background: 'lock',
-      shadow: 'lock',
-      color: 'allow',
-      gap: 'allow',
-      opacity: 'lock',
-      border: 'lock',
-    },
-  },
 };
 
-const KNOWN: ReadonlyArray<ContainerVariantName> = [
-  'hero',
-  'elevated',
-  'banner',
-  'subtle',
-  'grouped',
-  'overlay',
-];
+const KNOWN: ReadonlyArray<ContainerVariantName> = ['hero', 'grouped'];
 
 export function resolveContainerVariant(
   variant?: string | null,

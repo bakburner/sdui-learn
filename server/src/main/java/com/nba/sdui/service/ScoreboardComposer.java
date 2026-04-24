@@ -120,64 +120,50 @@ public class ScoreboardComposer {
     // ── Section builders ───────────────────────────────────────────────
 
     private ObjectNode buildScoreboardRowSection(JsonNode game, String gameId) {
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "game-" + gameId);
-        section.put("type", "GamePanel");
-        section.put("analyticsId", "scoreboard_row_" + gameId);
-
-        ObjectNode data = objectMapper.createObjectNode();
         int gameStatus = game.path("gameStatus").asInt(1);
+        boolean live = gameStatus == 2;
 
-        if (gameStatus == 2) {
-            ObjectNode refreshPolicy = objectMapper.createObjectNode();
+        ObjectNode refreshPolicy;
+        ObjectNode bindings = null;
+        AtomicCompositeBuilder.GameClockSnapshot clock = null;
+        if (live) {
+            refreshPolicy = objectMapper.createObjectNode();
             refreshPolicy.put("type", "sse");
             refreshPolicy.put("channel", gameId + ":linescore");
             refreshPolicy.put("pauseWhenOffScreen", false);
-            section.set("refreshPolicy", refreshPolicy);
-
-            section.set("dataBinding", utils.buildLinescoreBindings());
+            bindings = utils.buildCompositeLinescoreBindings();
+            clock = new AtomicCompositeBuilder.GameClockSnapshot(
+                    parseGameClockSeconds(game.path("gameClock").asText("")),
+                    java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString(),
+                    true);
         } else {
-            section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
+            refreshPolicy = objectMapper.createObjectNode().put("type", "static");
         }
-        data.put("gameId", gameId);
-        data.put("gameStatus", gameStatus);
-        data.put("gameStatusText", game.path("gameStatusText").asText(""));
-        data.put("period", game.path("period").asInt(0));
-        data.put("gameClock", game.path("gameClock").asText(""));
-        data.set("displayConfig", atomicBuilder.scoreboardConfig(null));
 
-        data.set("homeTeam", mapGamePanelTeam(game.path("homeTeam")));
-        data.set("awayTeam", mapGamePanelTeam(game.path("awayTeam")));
-
-        ArrayNode actions = objectMapper.createArrayNode();
-        ObjectNode action = objectMapper.createObjectNode();
-        action.put("trigger", "onTap");
-        action.put("type", "navigate");
-        action.put("targetUri", "nba://game/" + gameId);
-        actions.add(action);
-        data.set("actions", actions);
-
-        section.set("data", data);
-        section.set("display", utils.gamePanelDisplay());
-        return section;
+        return atomicBuilder.buildGamePanelComposite(
+                "game-" + gameId,
+                "scoreboard_row_" + gameId,
+                "scoreboard",
+                gameId,
+                gameStatus,
+                game.path("gameStatusText").asText(""),
+                null,
+                atomicBuilder.gamePanelTeamFromJson(game.path("awayTeam")),
+                atomicBuilder.gamePanelTeamFromJson(game.path("homeTeam")),
+                clock,
+                "nba://game/" + gameId,
+                refreshPolicy,
+                bindings,
+                utils.gamePanelSurface());
     }
 
-    private ObjectNode mapGamePanelTeam(JsonNode team) {
-        ObjectNode mapped = objectMapper.createObjectNode();
-        mapped.put("teamId", team.path("teamId").asInt());
-        mapped.put("teamTricode", team.path("teamTricode").asText(""));
-        mapped.put("teamName", team.path("teamName").asText(""));
-        mapped.put("teamCity", team.path("teamCity").asText(""));
-        mapped.put("score", team.path("score").asInt(0));
-        mapped.put("logoUrl", SduiUtils.teamLogoUrl(team.path("teamId").asText()));
-
-        if (team.has("wins")) {
-            mapped.put("wins", team.path("wins").asInt());
+    private static int parseGameClockSeconds(String iso) {
+        if (iso == null || iso.isEmpty()) return 0;
+        try {
+            return (int) java.time.Duration.parse(iso).getSeconds();
+        } catch (Exception e) {
+            return 0;
         }
-        if (team.has("losses")) {
-            mapped.put("losses", team.path("losses").asInt());
-        }
-        return mapped;
     }
 
     private ObjectNode mapLeader(JsonNode leader) {
@@ -216,7 +202,7 @@ public class ScoreboardComposer {
         for (int i = 0; i < sections.size(); i++) {
             updated.add(sections.get(i));
             if (i == 1 && gameCount > 2) {
-                updated.add(buildScoreboardContentRail());
+                addScoreboardContentRail(updated);
             }
         }
 
@@ -231,14 +217,14 @@ public class ScoreboardComposer {
                 "NBA League Pass", null,
                 "Watch every out-of-market game live or on demand.",
                 FALLBACK_THUMB, "Learn More", "nba://leaguepass");
-        section.set("display", utils.subscribeCardDisplay(
+        section.set("surface", utils.subscribeSurface(
                 "#0C1B3A",
                 ColorTokens.BRAND_NBA,
                 20));
         return section;
     }
 
-    private ObjectNode buildScoreboardContentRail() {
+    private void addScoreboardContentRail(ArrayNode sections) {
         String[][] cards = {
                 {"league-1", "Top 10 Plays of the Night",
                         "Last night's best moments", FALLBACK_THUMB,
@@ -247,7 +233,13 @@ public class ScoreboardComposer {
                         "Current playoff picture", FALLBACK_THUMB,
                         "article", null, "nba://standings"}
         };
-        return atomicBuilder.buildContentRail("scoreboard-content-rail",
-                "scoreboard_content_rail", "Around the League", cards);
+        ObjectNode header = atomicBuilder.buildSectionHeader(
+                "scoreboard-content-rail-header", "Around the League", null, null, null);
+        header.set("surface", utils.sectionHeaderSurface());
+        sections.add(header);
+        ObjectNode rail = atomicBuilder.buildContentRail("scoreboard-content-rail",
+                "scoreboard_content_rail", null, cards);
+        rail.set("surface", utils.railSurface());
+        sections.add(rail);
     }
 }

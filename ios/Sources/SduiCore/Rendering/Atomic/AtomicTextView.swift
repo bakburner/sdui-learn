@@ -4,23 +4,54 @@ import os
 private let logger = Logger(subsystem: "com.nba.sdui", category: "AtomicText")
 
 /// Renders a Text atomic element with typography variants.
+///
+/// Typography (font / color / alignment / line clamp) lives here; the
+/// box model (margin / padding / bg / cornerRadius / shadow / border /
+/// opacity / fillWidth / badge) is applied uniformly by
+/// `AtomicBoxModifier` via `.atomicBox(...)`.
 struct AtomicTextView: View {
     let element: AtomicElement
 
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.compositeContent) private var compositeContent
 
     var body: some View {
-        if let content = element.content {
+        if let content = resolvedContent {
             Text(content)
                 .font(font(for: resolvedVariant))
                 .fontWeight(weight(for: element.weight))
                 .foregroundColor(ColorTokenResolver.resolve(element.color, colorScheme: colorScheme))
                 .lineLimit(element.maxLines)
                 .multilineTextAlignment(resolvedTextAlignment)
-                .frame(maxWidth: .infinity, alignment: resolvedFrameAlignment)
                 .applyMonospacedDigits(element.monospacedDigits == true)
+                // Text-specific framing: only apply a fill-width frame when
+                // the server signalled that the text must occupy the
+                // available width (`textAlign` or `fillWidth`). Without
+                // either, the text takes its intrinsic width so siblings
+                // in a Row lay out naturally (e.g. ✓ + label feature row).
+                .modifier(TextFrameModifier(
+                    fillWidth: shouldFillWidth,
+                    alignment: resolvedFrameAlignment
+                ))
                 .sduiAccessibility(element.accessibility, fallbackLabel: content)
+                .atomicBox(element, screenState: ScreenState(), onAction: { _ in })
         }
+    }
+
+    private var shouldFillWidth: Bool {
+        element.textAlign != nil || element.fillWidth == true
+    }
+
+    /// Resolve `content` from `bindRef` when present, falling back to the
+    /// inline `content` property. A leaf with a bindRef but no matching
+    /// `data.content` entry falls back to its inline value rather than
+    /// rendering nothing — this keeps the first paint usable while the
+    /// first real-time update is in flight.
+    private var resolvedContent: String? {
+        if let bound = BindRefResolver.resolveString(bindRef: element.bindRef, in: compositeContent) {
+            return bound
+        }
+        return element.content
     }
 
     private var resolvedVariant: TextVariant? {
@@ -58,34 +89,21 @@ struct AtomicTextView: View {
     /// server renders at visually equivalent sizes across platforms.
     private func font(for variant: TextVariant?) -> Font {
         switch variant {
-        // Material3 display
         case .displayLarge:  return .system(size: 57, weight: .heavy)
         case .displayMedium: return .system(size: 45, weight: .heavy)
         case .displaySmall:  return .system(size: 36, weight: .bold)
-        // Material3 headline
         case .headlineLarge:  return .system(size: 32, weight: .bold)
         case .headlineMedium: return .system(size: 28, weight: .bold)
         case .headlineSmall:  return .system(size: 24, weight: .bold)
-        // Material3 title
         case .titleLarge:  return .system(size: 22, weight: .medium)
         case .titleMedium: return .system(size: 16, weight: .medium)
         case .titleSmall:  return .system(size: 14, weight: .medium)
-        // Material3 body
         case .bodyLarge:  return .system(size: 16, weight: .regular)
         case .bodyMedium: return .system(size: 14, weight: .regular)
         case .bodySmall:  return .system(size: 12, weight: .regular)
-        // Material3 label
         case .labelLarge:  return .system(size: 14, weight: .medium)
         case .labelMedium: return .system(size: 12, weight: .medium)
         case .labelSmall:  return .system(size: 11, weight: .medium)
-        // Legacy semantic variants (pre-Material3 server output)
-        case .heading1: return .largeTitle
-        case .heading2: return .title
-        case .heading3: return .title3
-        case .body:     return .body
-        case .caption:  return .caption
-        case .label:    return .subheadline
-        // NBA-specific
         case .score:    return .system(size: 48, weight: .bold, design: .rounded)
         case .none:     return .body
         }
@@ -115,6 +133,20 @@ struct AtomicTextView: View {
         case .center: return .center
         case .end: return .trailing
         default: return .leading
+        }
+    }
+}
+
+private struct TextFrameModifier: ViewModifier {
+    let fillWidth: Bool
+    let alignment: SwiftUI.Alignment
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if fillWidth {
+            content.frame(maxWidth: .infinity, alignment: alignment)
+        } else {
+            content
         }
     }
 }

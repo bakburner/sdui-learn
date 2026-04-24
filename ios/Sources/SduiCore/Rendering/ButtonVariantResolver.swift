@@ -6,7 +6,7 @@ import Foundation
 /// realization).
 ///
 /// The schema emits `AtomicElement.variant` as a plain `String` (see
-/// `docs/sdui-design-system.md` §6 on strict-decode + renderer-layer
+/// `docs/sdui-design-system.md` on strict-decode + renderer-layer
 /// fallback); this enum is the iOS client's parser, so an older client
 /// receiving a newer variant name falls through to `primary` rather
 /// than failing to decode the section.

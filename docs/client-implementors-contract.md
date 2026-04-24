@@ -19,7 +19,7 @@ responsibility and a well-defined interface to the layers above and below it.
 ├──────────────┬──────────────────────────────┤
 │ SectionRouter│→ AtomicRouter (recursive)    │  Type dispatch
 ├──────────────┴──────────────────────────────┤
-│   Section Renderers (9) + Atomic Renderers (10)  │  Platform-native UI
+│   Section Renderers (8) + Atomic Renderers (11)  │  Platform-native UI
 ├─────────────────────────────────────────────┤
 │  Runtime Services                           │  ActionDispatcher, DataBindingResolver,
 │  (cross-cutting)                            │  RealTimeManager, RefreshOrchestrator,
@@ -63,13 +63,13 @@ at `localhost:8080` is the reference implementation; hit it with
 
 | # | Component | What it does |
 |---|-----------|--------------|
-| 1 | **Models** | Use (or port) generated models from `codegen/output/{lang}/`. Deserialize `SduiScreen`, `Section`, `AtomicElement`, `Action`, `RefreshPolicy`, `DataBinding`. |
+| 1 | **Models** | Use the generated models from the platform's authoritative output location (see the table in "Shared Infrastructure" above), or regenerate from `schema/sdui-schema.json` for a new language. Deserialize `SduiScreen`, `Section`, `AtomicElement`, `Action`, `RefreshPolicy`, `DataBinding`. |
 | 2 | **SduiRepository.fetchScreen** | Single HTTP method: `GET {baseUrl}{endpoint}?variant={v}` with headers `X-Platform: {platform}`, `X-Schema-Version: 1.0`. Returns `SduiScreen`. |
 | 3 | **UriResolver.resolveEndpoint** | Convert `nba://{path}` → `/sdui/{path}`. Pure string prefix swap, no branching. |
 | 4 | **SectionRouter** | Switch on `section.type` → dispatch to renderer. Unknown types → log + skip. |
 | 5 | **AtomicRouter** | Switch on `element.type` → dispatch to atomic renderer. Depth guard at 6. |
-| 6 | **AtomicComposite bridge** | When SectionRouter sees `type: "AtomicComposite"`, parse `section.data.ui` and hand to AtomicRouter. |
-| 7 | **10 atomic renderers** | Container, Text, Image, Button, Spacer, Divider, ScrollContainer, Conditional, DisplayGrid, SectionSlot. |
+| 6 | **AtomicComposite bridge** | When SectionRouter sees `type: "AtomicComposite"`, parse `section.data.ui` and hand to AtomicRouter. Renderers read live fields via `bindRef` (see §4b) against `section.data.content`. |
+| 7 | **11 atomic renderers** | Container, Text, Image, Button, Spacer, Divider, ScrollContainer, Conditional, DisplayGrid, SectionSlot, LiveClock. See §4c for LiveClock tick-loop contract. |
 | 8 | **ScreenShell** | Fetch screen via repository, iterate `sections[]`, pass each to SectionRouter. |
 
 **Milestone:** You can render the kitchen-sink demo screen as a scrollable page
@@ -99,24 +99,27 @@ Conditional elements show/hide based on state.
 | 17a | **Visibility-gated refresh** | Pause poll/SSE for off-screen sections; resume on scroll-back. Respect `pauseWhenOffScreen` field. Algorithm in §8a. |
 | 17b | **App lifecycle pause** | Pause all refresh when app is backgrounded; resume on foreground. Algorithm in §8a. |
 
-**Milestone:** Live scores update in GamePanel. Boxscore stats poll and
-refresh. Sections with `refreshPolicy.type == "static"` never refresh.
+**Milestone:** Live scores update in `AtomicComposite` game-card sections
+via `bindRef` resolution against `data.content` (see §4b). Boxscore stats
+poll and refresh. Sections with `refreshPolicy.type == "static"` never
+refresh.
 
 ### Phase 4 — Section Renderers (domain-specific)
 
 | # | Component | Why it needs client code |
 |---|-----------|------------------------|
-| 18 | **GamePanel** | Ably SSE subscription, live score state machine |
-| 19 | **BoxscoreTable** | Real-time data binding, expandable rows |
-| 20 | **SeasonLeadersTable** | Sort/filter interaction state |
-| 21 | **TabGroup** | Tab selection state, nested section hosting |
-| 22 | **Form** | Validation state, platform keyboard integration |
-| 23 | **SubscribeHero** | Platform IAP SDK integration |
-| 24 | **SubscribeBanner** | Platform IAP SDK integration |
-| 25 | **AdSlot** | Platform ad SDK lifecycle |
-| 25a | **VideoPlayer** | Platform video SDK (HLS/DASH playback, PiP, AirPlay/Chromecast, background audio, fullscreen rotation). `playerType` discriminator maps to the right SDK entry point. |
+| 18 | **BoxscoreTable** | Real-time data binding, expandable rows |
+| 19 | **SeasonLeadersTable** | Sort/filter interaction state |
+| 20 | **TabGroup** | Tab selection state, nested section hosting |
+| 21 | **Form** | Validation state, platform keyboard integration |
+| 22 | **SubscribeHero** | Platform IAP SDK integration |
+| 23 | **SubscribeBanner** | Platform IAP SDK integration |
+| 24 | **AdSlot** | Platform ad SDK lifecycle |
+| 24a | **VideoPlayer** | Platform video SDK (HLS/DASH playback, PiP, AirPlay/Chromecast, background audio, fullscreen rotation). `playerType` discriminator maps to the right SDK entry point. |
 
-**Milestone:** All 9 permanent sections render with full interactivity.
+**Milestone:** All 8 permanent sections render with full interactivity.
+Live-score surfaces (previously `GamePanel`) render as server-composed
+`AtomicComposite` trees driven by `bindRef` + SSE data bindings.
 
 ### Phase 5 — Production Hardening
 
@@ -128,6 +131,15 @@ refresh. Sections with `refreshPolicy.type == "static"` never refresh.
 | 29 | **Accessibility** | Map `accessibilityLabel`, `accessibilityRole`, `accessibilityHint` from schema to platform APIs. |
 | 30 | **SectionSlot bridge** | AtomicRouter encounters `SectionSlot` → delegates back to SectionRouter. Recursion guard at depth 2. |
 
+### Contract Drift Test (required for every client)
+
+Every client must ship a round-trip test against `schema/examples/`.
+Failure means wire-contract drift.
+
+- Web: `web/src/__tests__/schemaRoundTrip.test.ts`
+- Android: `android/sdui-core/src/test/java/com/nba/sdui/core/SchemaRoundTripTest.kt`
+- iOS: `ios/Tests/SduiCoreTests/SduiModelsRoundTripTests.swift`
+
 ---
 
 ## 3. Section Router Algorithm
@@ -136,7 +148,6 @@ refresh. Sections with `refreshPolicy.type == "static"` never refresh.
 FUNCTION SectionRouter(section, screenState, onAction, onStateChange):
     SWITCH section.type:
         "TabGroup"           → TabGroupRenderer(section, screenState, onAction, onStateChange)
-        "GamePanel"          → GamePanelRenderer(section, onAction)
         "BoxscoreTable"      → BoxscoreTableRenderer(section, onAction)
         "Form"               → FormRenderer(section, screenState, onAction, onStateChange)
         "SubscribeBanner"    → SubscribeBannerRenderer(section, onAction)
@@ -148,20 +159,33 @@ FUNCTION SectionRouter(section, screenState, onAction, onStateChange):
             compositeData = section.data
             IF compositeData.ui IS NULL:
                 RETURN null
-            AtomicRouter(compositeData.ui, screenState, onAction, onStateChange, depth=0)
+            // Provide compositeData.content to descendants so leaf primitives
+            // can resolve bindRef paths (see §4b).
+            AtomicRouter(compositeData.ui, screenState, onAction, onStateChange,
+                         depth=0, compositeContent=compositeData.content)
         DEFAULT →
             LOG_WARNING("Unknown section type: " + section.type)
             RETURN null   // Skip gracefully — never crash
 ```
 
-**Supported section types (10):**
-`TabGroup`, `GamePanel`, `BoxscoreTable`, `Form`, `SubscribeBanner`,
-`SubscribeHero`, `AdSlot`, `SeasonLeadersTable`, `VideoPlayer`,
-`AtomicComposite`
+**Supported section types (9):**
+`TabGroup`, `BoxscoreTable`, `Form`, `SubscribeBanner`, `SubscribeHero`,
+`AdSlot`, `SeasonLeadersTable`, `VideoPlayer`, `AtomicComposite`.
+Live-score / game-card surfaces are composed as `AtomicComposite`
+trees (see §4b for the `bindRef` → `content` resolution that drives
+live updates).
 
 ---
 
 ## 4. Atomic Router Algorithm
+
+The router is a **pure dispatcher**. It does not apply any styling of its own.
+Every box-model concern — `margin`, `padding`, `background`, `cornerRadius`,
+`cornerRadii`, `shadow`, `border`, `opacity`, `width`, `height`, `fillWidth`,
+variant chrome, and `badge` overlay — is applied by a single helper called
+`AtomicBox` (see §4a) that every primitive routes its output through.
+Primitives own only the content they render (typography, scroll layout,
+image scaling, flex arrangement); they never re-implement box-model logic.
 
 ```
 CONSTANT MAX_DEPTH = 6
@@ -184,6 +208,7 @@ FUNCTION AtomicRouter(element, screenState, onAction, onStateChange, depth):
         "Conditional"     → AtomicConditional(element, screenState, onAction, onStateChange, childDepth)
         "DisplayGrid"     → AtomicDisplayGrid(element)
         "SectionSlot"     → AtomicSectionSlot(element, screenState, onAction, onStateChange)
+        "LiveClock"       → AtomicLiveClock(element)   // see §4c
         DEFAULT →
             LOG_WARNING("Unknown atomic type: " + element.type)
             RETURN null
@@ -193,12 +218,115 @@ FUNCTION AtomicRouter(element, screenState, onAction, onStateChange, depth):
 ```
 FUNCTION AtomicContainer(element, state, onAction, onStateChange, depth):
     // element.direction = "row" | "column"
-    // element.children = list of AtomicElement
-    // element.padding, element.gap, element.alignment, element.background
-    // element.flex (layout weight), element.breakpoint (responsive direction flip)
+    // element.children  = list of AtomicElement
+    // element.gap, element.alignment, element.crossAlignment, element.breakpoint
+    // element.flex (layout weight on children, main-axis only)
+    //
+    // Box-model concerns (margin/padding/bg/cornerRadius/shadow/border/badge)
+    // are handled by AtomicBox — this function only arranges children.
 
-    FOR child IN element.children:
-        AtomicRouter(child, state, onAction, onStateChange, depth)
+    WRAP IN AtomicBox(element):
+        RowOrColumn(direction=element.direction, gap=element.gap, ...):
+            FOR child IN element.children:
+                AtomicRouter(child, state, onAction, onStateChange, depth)
+```
+
+### 4a. AtomicBox — the unified box-model helper
+
+`AtomicBox` is the **single site** on every client where an `AtomicElement`'s
+box model is realized. Every primitive — `Container`, `ScrollContainer`,
+`Text`, `Image`, `Button`, `Divider`, `DisplayGrid` — wraps its rendered
+content through `AtomicBox`. Primitives that are pure layout devices —
+`Spacer`, `Conditional`, `SectionSlot` — bypass it because they render no
+chrome of their own (the chosen child / hosted section carries the box
+model).
+
+**The canonical modifier order (outer → inner):**
+
+```
+margin                ← sibling-to-sibling spacing
+  └─ opacity          ← applied once, affects everything below
+       └─ shadow      ← casts from the bg shape
+            └─ corner clip
+                 └─ background (variant or inline) + optional gradient overlay
+                      └─ border
+                           └─ padding   ← interior padding; bg extends to its edge
+                                └─ sizing (width / height / fillWidth)
+                                     └─ content (what the primitive actually renders)
+```
+
+Invariants this order guarantees:
+
+- `margin` is outside everything — never clipped by the element's own
+  corner clip or tinted by its bg.
+- `padding` lives **inside** the bg + corner clip, so variants like `hero`
+  or `grouped` paint to the padded frame (matches CSS box-model intuition
+  and the historical `Container` semantic).
+- `shadow` renders on the bg shape, not on the padded frame.
+- `fillWidth` is applied to the sized frame (border-box semantics); when
+  `width` is also set, `width` wins.
+
+**Variant integration.** Before applying the stack, `AtomicBox` resolves
+`element.variant` against the platform's `ContainerVariantResolver` / 
+`ImageVariantResolver`. The resolver returns **data** (a spec with
+background role, cornerRadius, shadow, border, fillWidth, gradient overlay,
+and an `overrideMatrix`), never a platform-specific modifier. `AtomicBox`
+then merges the spec with inline `element.*` props per each axis's
+override policy (`allow` → inline wins; `lock` → variant wins, inline
+attempt is logged). This keeps variant realization client-native while
+keeping box-model application uniform.
+
+**Badge overlay.** When `element.badge` is present, `AtomicBox` renders the
+badge element through `AtomicRouter` and positions it according to
+`element.badge.alignment`. The badge uses the same box model as any other
+atomic element.
+
+**What `AtomicBox` deliberately does not own:**
+
+- **Accessibility labels.** Each primitive provides its own semantic
+  fallback (image `alt`, button `label`, text `content`) so the router
+  cannot make a generic choice.
+- **Action triggers (`actions[]`, `onTap`, `onLongPress`, `onVisible`).**
+  Primitives integrate actions into their native control (SwiftUI
+  `Button`, Compose `Modifier.clickable`, `<button>` element) because the
+  gesture surface is primitive-specific.
+- **Layout direction / flex / gap / alignment on `Container`.** These are
+  flex-layout concerns owned by `AtomicContainer`.
+
+**Why this matters for client release cadence.** New box-model schema
+fields (a future `outline`, `elevation`, or `backdrop` property) are
+implemented in `AtomicBox` once per platform and every primitive picks
+them up for free. Variant values added to the catalog (e.g. extending
+`ContainerVariant` or `ImageVariant`) reach every primitive the same
+way. A new primitive type ships with a complete box model without
+re-implementing the stack.
+
+**Pseudocode:**
+
+```
+FUNCTION AtomicBox(element, screenState, onAction, content):
+    variantSpec = ContainerVariantResolver.resolve(element.variant)
+
+    // Merge inline + variant per override policy
+    effectiveCornerRadius = resolveAxis("cornerRadius", element.cornerRadius, variantSpec?.cornerRadius, variantSpec?.overrideMatrix)
+    effectiveShadow       = resolveAxis("shadow",       element.shadow,       variantSpec?.shadow,       variantSpec?.overrideMatrix)
+    useVariantBackground  = (element.background == null) OR overrideMatrix["background"] == "lock"
+
+    shape = buildShape(element.cornerRadii, effectiveCornerRadius)
+    fillW = element.fillWidth ?? variantSpec?.fillWidth
+
+    RETURN
+      APPLY margin(element.margin)
+      APPLY opacity(element.opacity)
+      APPLY shadow(effectiveShadow, shape)
+      APPLY clipToShape(shape)
+      APPLY background(useVariantBackground ? variantSpec.background : element.background)
+      APPLY gradientOverlay(variantSpec?.gradientOverlay)   // hero variant only
+      APPLY border(variantSpec?.border, shape)
+      APPLY padding(element.padding)
+      APPLY sizing(element.width, element.height, fillW)
+      WRAP WITH badge(element.badge) IF present
+      CONTAINS content
 ```
 
 **SectionSlot bridge (atomic → section):**
@@ -220,6 +348,138 @@ FUNCTION AtomicSectionSlot(element, state, onAction, onStateChange, currentSlotD
 - Max depth: 6
 - Max children per container: 20
 - Max total nodes per AtomicComposite: 50
+
+### 4b. `bindRef` — leaf-level data binding inside AtomicComposite
+
+Inside an `AtomicComposite`, leaf primitives may carry an optional
+`bindRef: string` dot-path that resolves against the enclosing
+`AtomicCompositeData.content` object at render time. Placing the
+binding identifier on the consuming leaf (rather than in a centrally-
+declared path-into-tree on the section envelope) lets composers
+reshape the `ui` tree without breaking real-time updates. Data
+bindings on the section envelope (SSE / poll) continue to write into
+`content.*`; leaf `bindRef` reads back out.
+
+**Canonical field per leaf type:**
+
+| Leaf type | Field populated from `bindRef` | Fallback when path missing |
+|---|---|---|
+| `Text` | `content` (string) | inline `content` |
+| `Button` | `label` (string) | inline `label` |
+| `Image` | `src` (string) | inline `src` |
+| `LiveClock` | an object `{ snapshotSeconds, snapshotAt, isRunning }` | inline `snapshotSeconds` / `snapshotAt` / `isRunning` |
+
+Clients implement `bindRef` resolution once (typically as
+`BindRefResolver.resolve(element, compositeContent)`) and each leaf
+renderer calls it before picking inline fallbacks.
+
+**Propagation.** `compositeContent` is threaded from
+`SectionRouter(AtomicComposite)` down to every descendant via the
+platform's implicit-context primitive: SwiftUI `@Environment`, Compose
+`CompositionLocal`, React context. No leaf ever takes
+`compositeContent` as an explicit parameter.
+
+**Resolution algorithm:**
+
+```
+FUNCTION resolveBindRef(element, compositeContent):
+    IF element.bindRef IS NULL OR element.bindRef IS EMPTY:
+        RETURN null
+    IF compositeContent IS NULL:
+        RETURN null      // leaf is outside an AtomicComposite
+
+    current = compositeContent
+    FOR segment IN SPLIT(element.bindRef, "."):
+        IF current IS NOT OBJECT OR segment NOT IN current:
+            RETURN null   // missing path → fall back to inline
+        current = current[segment]
+
+    RETURN current
+```
+
+**Missing-path semantics.** When `bindRef` does not resolve, the leaf
+falls back to its inline value. A resolved-to-null `bindRef` is a
+live-data hole and **does not** overwrite the inline fallback — this
+mirrors the keep-previous-value rule in §5 `applyBindings`.
+
+**What `bindRef` does *not* do.** It is a read-only lookup at render
+time. It does not fire analytics, it does not register bindings
+centrally, and it is not a substitute for `section.dataBindings`
+(which writes SSE / poll payloads into `content.*`). Think of it as
+the read side of a read/write pair where `dataBindings` is the write
+side.
+
+### 4c. `LiveClock` — client-owned tick animation
+
+`LiveClock` is an atomic primitive that renders a ticking clock driven
+entirely from server-provided snapshot fields. It exists because the
+tick animation is client state (a local timer advances the displayed
+value between SSE updates); the snapshot that anchors the clock is
+server state.
+
+**Schema fields (see `schema/sdui-schema.json` → `AtomicElement`):**
+
+| Field | Type | Purpose |
+|---|---|---|
+| `snapshotSeconds` | integer | Authoritative clock value, in seconds, at `snapshotAt`. |
+| `snapshotAt` | string (ISO 8601) | Server wall-clock instant the snapshot was valid (second precision). |
+| `isRunning` | boolean | Whether the clock is ticking (drives local animation). |
+| `tickDirection` | enum `"down" \| "up"` | `down` decrements from `snapshotSeconds` toward `stopAtSeconds` (default 0); `up` increments with no upper bound unless `stopAtSeconds` is set. Named `tickDirection` to avoid collision with `AtomicElement.direction` (flex axis). |
+| `stopAtSeconds` | integer? | Optional clamp. Clock holds at this value once reached. |
+| `format` | enum `"m:ss" \| "mm:ss" \| "h:mm:ss"` | Display format, default `"m:ss"`. |
+| `bindRef` | string? | See §4b. Resolves to an object `{ snapshotSeconds, snapshotAt, isRunning }`. |
+
+**Display contract.** Render with the platform's tabular-numeral
+typography (same treatment as `TextVariant.score`) so digits do not
+jitter when values change. The clock is a leaf; it obeys the
+`AtomicBox` stack only insofar as any text leaf does.
+
+**Tick-loop algorithm:**
+
+```
+FUNCTION AtomicLiveClock(element, compositeContent):
+    resolved = resolveBindRef(element, compositeContent) OR {
+        snapshotSeconds: element.snapshotSeconds,
+        snapshotAt:      element.snapshotAt,
+        isRunning:       element.isRunning
+    }
+
+    format       = element.format        OR "m:ss"
+    tickDir      = element.tickDirection OR "down"
+    stopAt       = element.stopAtSeconds                 // may be null
+    snapshot     = resolved.snapshotSeconds
+    snapshotAt   = PARSE_ISO8601(resolved.snapshotAt)
+    isRunning    = resolved.isRunning
+
+    ON_RENDER and every 100ms WHILE isRunning:
+        elapsedSec = (NOW() - snapshotAt) / 1000
+        raw = (tickDir == "down")
+                ? snapshot - elapsedSec
+                : snapshot + elapsedSec
+
+        IF stopAt IS NOT NULL:
+            IF tickDir == "down" AND raw < stopAt: raw = stopAt
+            IF tickDir == "up"   AND raw > stopAt: raw = stopAt
+
+        IF tickDir == "down" AND raw < 0: raw = 0
+
+        DISPLAY formatSeconds(raw, format)
+
+    WHEN NOT isRunning:
+        DISPLAY formatSeconds(snapshot, format)
+```
+
+**Tick cadence.** 10Hz (100ms) is the baseline; clients may coalesce
+to the platform's display refresh (e.g. iOS `TimelineView` at
+`.animation(.none)`, Compose `withFrameMillis`, web
+`requestAnimationFrame`) so long as the displayed value advances
+smoothly.
+
+**Authoritative snapshots.** Every SSE / poll update that reaches the
+enclosing `AtomicComposite` and rewrites `content.*` fields causes
+`bindRef` to re-resolve on next render, which resets the tick loop's
+anchor. Clients should therefore not accumulate drift across ticks;
+each frame's displayed value is `snapshotSeconds ± (now − snapshotAt)`.
 
 ---
 
@@ -721,8 +981,8 @@ user cannot see.
 `RefreshPolicy` includes a `pauseWhenOffScreen` boolean (default `true`).
 When `true`, the client pauses this section's refresh when it leaves the
 viewport. When `false`, the client keeps refreshing regardless. The server
-sets `false` on critical live sections (e.g. GamePanel scores) that should
-never go stale.
+sets `false` on critical live sections (e.g. live-score composites feeding
+a `LiveClock`) that should never go stale.
 
 ### App Background / Foreground (Phase 0)
 
@@ -1178,12 +1438,12 @@ they are actually consumed; there is no intermediate copy step for any
 client. Regenerate everything with `make codegen` (or
 `cd codegen && ./generate.sh`).
 
-| Language   | Output                                               | Consumer                                                      |
-|------------|------------------------------------------------------|---------------------------------------------------------------|
-| Java       | `codegen/build/generated-sources/jsonschema2pojo/`   | Android client + Spring server (on the classpath)             |
-| Swift      | `ios/Sources/SduiCore/Models/SduiModels.swift`       | iOS `SduiCore` SwiftPM target                                 |
-| TypeScript | `web/src/generated/SduiModels.ts`                    | Web client via the `@sdui/models` Vite / tsconfig path alias  |
-| Kotlin     | `codegen/output/kotlin/SduiModels.kt`                | Demonstration only — Android consumes the Java POJOs          |
+| Language   | Output                                                                        | Consumer                                                      |
+|------------|-------------------------------------------------------------------------------|---------------------------------------------------------------|
+| Java       | `codegen/build/generated-sources/jsonschema2pojo/`                            | Spring server (on the classpath)                              |
+| Kotlin     | `android/sdui-core/src/main/java/com/nba/sdui/core/models/generated/SduiModels.kt` | Android `sdui-core` module (quicktype + Jackson)         |
+| Swift      | `ios/Sources/SduiCore/Models/SduiModels.swift`                                | iOS `SduiCore` SwiftPM target                                 |
+| TypeScript | `web/src/generated/SduiModels.ts`                                             | Web client via the `@sdui/models` Vite / tsconfig path alias  |
 
 For other languages, use [quicktype](https://quicktype.io) to generate models
 from `schema/sdui-schema.json`. Or write your own deserializer — the JSON
@@ -1198,9 +1458,9 @@ Implementations should follow platform-native animation patterns.
 
 | Effect | Server Sends | Renderer Does |
 |---|---|---|
-| **Live pulse** | `isLive: true` or `badgeText: "LIVE"` on GamePanel data | Animate opacity 0.3→1.0 on the live indicator element, repeating with autoreversal. **iOS:** `.animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true))`. **Compose:** `infiniteTransition.animateFloat()`. **Web:** CSS `@keyframes pulse`. |
-| **Numeric transitions** | Updated score/clock via SSE data binding | Apply content transition on value change. **iOS:** `.contentTransition(.numericText())`. **Compose:** `AnimatedContent`. **Web:** CSS `transition` on the value container. |
-| **Clock interpolation** | `clockRunning: true` on GamePanelData | Start a 1-second local timer that decrements the displayed game clock. Stop when an SSE update arrives (authoritative value) or when `clockRunning` flips to `false`. Apply platform-appropriate content transition to the clock text. |
+| **Live pulse** | An element whose `bindRef` resolves to a truthy `isLive` / `badgeText == "LIVE"` entry in `content`, or an explicit opacity-animated leaf in the composite tree | Animate opacity 0.3→1.0 on the indicator element, repeating with autoreversal. **iOS:** `.animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true))`. **Compose:** `infiniteTransition.animateFloat()`. **Web:** CSS `@keyframes pulse`. |
+| **Numeric transitions** | Updated score / clock field in `content.*` via SSE data binding; leaf `Text` reads it through `bindRef` | Apply content transition on value change. **iOS:** `.contentTransition(.numericText())`. **Compose:** `AnimatedContent`. **Web:** CSS `transition` on the value container. |
+| **Clock interpolation** | `LiveClock` primitive with `isRunning: true`, `snapshotSeconds`, `snapshotAt`, `tickDirection`, `stopAtSeconds`, `format` (see §4c) | Run the tick loop in §4c. Each frame's displayed value is `snapshotSeconds ± (now − snapshotAt)`, clamped by `stopAtSeconds`. When an SSE update rewrites `content.*`, `bindRef` re-resolves on next render and the tick loop re-anchors — no drift accumulation. Set `isRunning: false` to freeze on the snapshot value. |
 | **Color mixing** | Pre-computed hex colors | Server computes gradient tints from team colors at composition time. No runtime color math on clients. |
 | **Image load states** | `src` + `placeholder` on Image elements | Show loading placeholder → success image, or fall back to `placeholder` URL on failure. **iOS:** `AsyncImage { phase in }`. **Compose:** Coil `AsyncImage`. **Web:** `<img>` with `onError` fallback. |
 | **Pull-to-refresh** | `refreshPolicy: { type: "poll" }` on screen | Add platform pull-to-refresh gesture. **iOS:** `.refreshable {}`. **Compose:** `pullRefresh()`. **Web:** custom gesture or library. |
@@ -1211,54 +1471,38 @@ Implementations should follow platform-native animation patterns.
 **Timing recommendations:**
 - Content transitions: 300ms ease-in-out
 - Pulse animations: 800ms ease-in-out, repeat forever with autoreversal
-- Clock interpolation: 1s tick interval
+- `LiveClock` tick cadence: 10Hz (100ms) baseline, may coalesce to the
+  platform's display-refresh loop (see §4c).
 
 ---
 
-## 17a. Non-atomic variant tokens (GamePanel, FormField select)
+## 17a. Non-atomic variant tokens (FormField select)
 
 Most variant tokens live on atomic primitives and carry the vocabularies
-documented in `docs/sdui-design-system.md` §3 Layer 2. Two vocabularies
-live on non-atomic carriers — a section (`GamePanel`) and a
-field-data object (`FormField` when `fieldType == "select"`). They obey
-the same rules (strict-decode on the typed field, renderer realizes
-natively per Rule 16, absent value falls through to the default) but
-are exposed to the renderer through the section's data model, not the
-`AtomicElement.variant` string.
-
-### `GamePanelVariant`
-
-Declared on `GamePanelData.variant`. Values: `standard` (default),
-`featured`. Absent value renders as `standard`.
-
-| Platform | `standard` | `featured` |
-|---|---|---|
-| iOS (SwiftUI) | Existing card treatment: surface fill, `cornerRadius`, standard shadow, standard padding | Heightened card: larger corner radius, enhanced shadow, tighter inner padding. Wider width is a parent-container concern (`Container.width` wraps the section slot), not the section itself |
-| Android (Compose) | Existing `Card` treatment: Material surface, default elevation, default inner padding | `Card` with larger `RoundedCornerShape`, elevated `CardDefaults.cardElevation`, adjusted `Modifier.padding` inside the card |
-| Web (React/CSS) | Existing game-panel CSS: surface background, 12px radius, subtle shadow | Larger radius, more prominent `box-shadow`, tighter `padding` / `gap` |
-
-The server drives **carousel card width** at the wrapping
-`Container.width` on the `AtomicSectionSlot` — not inside the
-`GamePanel` renderer. `GamePanelVariant` owns only the card's internal
-visual emphasis.
+documented in `docs/sdui-design-system.md` §3 Layer 2. One vocabulary
+lives on a non-atomic carrier — a field-data object (`FormField` when
+`fieldType == "select"`). It obeys the same rules (strict-decode on the
+typed field, renderer realizes natively, absent value falls through to
+the default) but is exposed to the renderer through the field-data
+model, not the `AtomicElement.variant` string.
 
 ### `SelectVariant`
 
 Declared on `FormField.variant` and meaningful only when
-`fieldType == "select"`. Values: `dropdown` (default), `chips`,
-`segmented`. Absent value renders as `dropdown`.
+`fieldType == "select"`. Values: `dropdown` (default), `chips`.
+Absent value renders as `dropdown`.
 
-| Platform | `dropdown` | `chips` | `segmented` |
-|---|---|---|---|
-| iOS (SwiftUI) | `Menu { Picker(selection:) { ... } }` | Horizontal `ScrollView(.horizontal, showsIndicators: false)` of `Capsule()` `Button`s with selected state styled via color tokens | `Picker(selection:) { ... }.pickerStyle(.segmented)` |
-| Android (Compose) | Material 3 `ExposedDropdownMenuBox` + `DropdownMenu` | `LazyRow` of Material 3 `FilterChip` with correct `selected` state | Material 3 `SingleChoiceSegmentedButtonRow` + `SegmentedButton` |
-| Web (React/CSS) | Native `<select>` | Horizontal scroll container of pill-styled `<button>`s with a `selected` class | Flex row of equal-width `<button>`s styled as a segmented pill group |
+| Platform | `dropdown` | `chips` |
+|---|---|---|
+| iOS (SwiftUI) | `Menu { Picker(selection:) { ... } }` | Horizontal `ScrollView(.horizontal, showsIndicators: false)` of `Capsule()` `Button`s with selected state styled via color tokens |
+| Android (Compose) | Material 3 `ExposedDropdownMenuBox` + `DropdownMenu` | `LazyRow` of Material 3 `FilterChip` with correct `selected` state |
+| Web (React/CSS) | Native `<select>` | Horizontal scroll container of pill-styled `<button>`s with a `selected` class |
 
 **Not a `radio` migration.** `FormField.fieldType: "radio"` coexists
-with `fieldType: "select" + variant: "segmented"`. `radio` is a vertical
-stack of labeled choices (multi-line, all options visible);
-`segmented` is an equal-width horizontal pill chooser (usually 2–4
-options). No migration between them is planned.
+with `fieldType: "select" + variant: "chips"`. `radio` is a vertical
+stack of labeled choices (multi-line, all options visible); `chips` is
+a horizontal capsule row (usually 2–5 options). No migration between
+them is planned.
 
 ---
 
@@ -1283,7 +1527,10 @@ the rules in `AGENTS.md`.
 | C12 | Exceptions logged with context — never silently swallowed | Rule 12 |
 | C13 | Schema is the wire contract — strict decoders; new enum values go into schema first, then regen | Rule 13 |
 | C14 | Renderers are presentation-only — no business logic | Rule 14 |
+| C14a | Every atomic primitive routes its content through a single `AtomicBox` helper that applies `margin → opacity → shadow → corner-clip → background → gradient overlay → border → padding → sizing → badge` in that order. Primitives own only their content (typography, flex layout, scroll behaviour, image scaling). See §4a | Rule 14 |
 | C15 | Prefer AtomicComposite over new section type for stateless UI | Rule 15 |
-| C16 | Platform-native realization of semantic variant tokens — `TextVariant`, `ButtonVariant`, `ContainerVariant`, `ImageVariant` on atomic elements, `GamePanelVariant` on the `GamePanel` section, `SelectVariant` on `FormField.select` — emitted on the wire as a `variant` string property; map to the platform's current design language; no pixel-parity target. See §17a for renderer mapping tables | Rule 16 |
+| C16 | Platform-native realization of semantic variant tokens — `TextVariant`, `ButtonVariant`, `ContainerVariant`, `ImageVariant` on atomic elements, `SelectVariant` on `FormField.select` — emitted on the wire as a `variant` string property; map to the platform's current design language; no pixel-parity target. See §17a for the `SelectVariant` renderer mapping table | Rule 16 |
 | C17 | Code comments describe invariants and cite business constraints; do not cite internal rule numbers or AI-coding guidelines | Rule 17 |
 | C18 | Per-platform decisions default to the server (content, capability gating, asset-format). Client-realized vocabularies are the named exception (Rule 16 list) and must be pure presentation | Rule 18 |
+| C19 | `LiveClock` primitive ticks client-side from server-provided snapshot fields (`snapshotSeconds`, `snapshotAt`, `isRunning`, `tickDirection`, `stopAtSeconds`, `format`). Implements the tick-loop contract in §4c at ≥10Hz baseline, re-anchors on every SSE / poll update that rewrites `content.*`, renders with tabular-numeral typography | — |
+| C20 | Inside an `AtomicComposite`, leaf primitives with a `bindRef: string` dot-path resolve their canonical live field (Text → `content`, Button → `label`, Image → `src`, LiveClock → snapshot object) from `section.data.content`. `compositeContent` is threaded to descendants via the platform's implicit-context primitive (Environment / CompositionLocal / React context); missing paths fall back to inline values and never overwrite with null. See §4b | — |

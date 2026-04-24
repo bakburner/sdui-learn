@@ -39,8 +39,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import com.nba.sdui.core.models.Navigation
-import com.nba.sdui.core.models.NavigationItem
+import com.nba.sdui.core.models.generated.Navigation
+import com.nba.sdui.core.models.generated.NavigationItem
 import com.nba.sdui.core.renderer.IconTokenResolver
 
 private const val TAG = "SduiNavigationShell"
@@ -64,8 +64,8 @@ fun SduiNavigationShell(
             NavigationBar {
                 items.forEach { item ->
                     NavigationBarItem(
-                        selected = item.selected,
-                        onClick = { item.targetUri?.let(onNavigate) },
+                        selected = item.selected == true,
+                        onClick = { item.targetURI?.let(onNavigate) },
                         icon = { Icon(imageVector = navIcon(item), contentDescription = item.label) },
                         label = { Text(item.label) }
                     )
@@ -97,8 +97,8 @@ private fun navIcon(item: NavigationItem): ImageVector {
 private fun materialNameToImageVector(name: String): ImageVector? = when (name) {
     "PlayArrow"         -> Icons.Default.PlayArrow
     "Pause"             -> Icons.Default.Pause
-    "ArrowBack"         -> Icons.Default.ArrowBack
-    "ArrowForward"      -> Icons.Default.ArrowForward
+    "ArrowBack"         -> Icons.Filled.ArrowBack
+    "ArrowForward"      -> Icons.Filled.ArrowForward
     "Settings"          -> Icons.Default.Settings
     "KeyboardArrowDown" -> Icons.Default.KeyboardArrowDown
     "KeyboardArrowUp"   -> Icons.Default.KeyboardArrowUp

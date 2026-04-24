@@ -16,14 +16,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.nba.sdui.core.models.Background
-import com.nba.sdui.core.models.SectionDisplay
-import com.nba.sdui.core.models.Spacing
-import com.nba.sdui.core.models.parseBackground
+import com.nba.sdui.core.models.generated.SectionSurface
+import com.nba.sdui.core.models.generated.Spacing
+import com.nba.sdui.core.renderer.adapters.BackgroundViewModel
+import com.nba.sdui.core.renderer.adapters.toViewModel
 
 /**
- * Shared outer-chrome wrapper applied by [SectionRouter] to every
- * permanent section. Reads [SectionDisplay] (margin, padding,
+ * Shared section-surface wrapper applied by [SectionRouter] to every
+ * permanent section. Reads [SectionSurface] (margin, padding,
  * background, cornerRadius, shadow, border) and applies it
  * platform-natively, so permanent-section renderers never set their
  * own outer chrome.
@@ -32,25 +32,25 @@ import com.nba.sdui.core.models.parseBackground
  * `Background` union:
  *   • string  → token or hex, resolved to a solid [Color]
  *   • object with `colors`    → [Brush] linear gradient with direction
- *   • object with `imageUrl`  → remote [AsyncImage] (chrome layer
+ *   • object with `imageUrl`  → remote [AsyncImage] (surface layer
  *                                sits below the content Box)
  *
- * See AGENTS.md §15.3 for the governance rule this wrapper enforces,
- * and `SduiUtils.defaultSectionDisplay()` on the server for the
- * default chrome values composers emit.
+ * Shared wrapper enforcing server-driven outer chrome for every section.
+ * See `SduiUtils.defaultSurface()` on the server for the default
+ * surface values composers emit.
  */
 @Composable
 fun SectionContainer(
-    display: SectionDisplay?,
+    surface: SectionSurface?,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
-    val margin = display?.margin.toPaddingValues()
-    val padding = display?.padding.toPaddingValues()
-    val radius = (display?.cornerRadius ?: 0).dp
-    val shadow = display?.shadow
-    val border = display?.border
-    val bg = parseBackground(display?.background)
+    val margin = surface?.margin.toPaddingValues()
+    val padding = surface?.padding.toPaddingValues()
+    val radius = (surface?.cornerRadius ?: 0L).toInt().dp
+    val shadow = surface?.shadow
+    val border = surface?.border
+    val bg = surface?.background.toViewModel()
 
     var outer: Modifier = modifier.padding(margin)
 
@@ -65,11 +65,11 @@ fun SectionContainer(
     outer = outer.clip(RoundedCornerShape(radius))
 
     val solidOrGradientBrush: Brush? = when (bg) {
-        is Background.Solid -> {
+        is BackgroundViewModel.Solid -> {
             val c = ColorTokenResolver.resolve(bg.color)
             if (c == Color.Unspecified) null else Brush.linearGradient(listOf(c, c))
         }
-        is Background.Gradient -> gradientBrush(bg)
+        is BackgroundViewModel.Gradient -> gradientBrush(bg)
         else -> null
     }
 
@@ -89,7 +89,7 @@ fun SectionContainer(
     }
 
     Box(modifier = outer) {
-        if (bg is Background.Image) {
+        if (bg is BackgroundViewModel.Image) {
             AsyncImage(
                 model = bg.imageUrl,
                 contentDescription = null,
@@ -104,7 +104,7 @@ fun SectionContainer(
 }
 
 @Composable
-private fun gradientBrush(bg: Background.Gradient): Brush? {
+private fun gradientBrush(bg: BackgroundViewModel.Gradient): Brush? {
     val stops = bg.gradient.colors
         .map { ColorTokenResolver.resolve(it) }
         .filter { it != Color.Unspecified }
@@ -119,9 +119,9 @@ private fun gradientBrush(bg: Background.Gradient): Brush? {
 private fun Spacing?.toPaddingValues(): PaddingValues {
     val s = this ?: return PaddingValues(0.dp)
     return PaddingValues(
-        top = s.top.dp,
-        bottom = s.bottom.dp,
-        start = s.start.dp,
-        end = s.end.dp
+        top = (s.top ?: 0L).toInt().dp,
+        bottom = (s.bottom ?: 0L).toInt().dp,
+        start = (s.start ?: 0L).toInt().dp,
+        end = (s.end ?: 0L).toInt().dp
     )
 }

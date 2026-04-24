@@ -4,14 +4,14 @@ For each document in the audit list, verify every item below. Mark any inconsist
 
 ## Counts
 
-- [ ] Section type count matches schema enum length (currently 10)
-- [ ] Atomic element type count matches schema enum length (currently 10)
+- [ ] Section type count matches schema enum length (currently 9)
+- [ ] Atomic element type count matches schema enum length (currently 11)
 - [ ] Action type count matches schema enum length (currently 6)
 - [ ] Action trigger count matches schema enum length (currently 7)
 - [ ] Renderer count matches number of section renderer files per platform
 - [ ] "Migrated to atomic" count matches number of types in AtomicCompositeBuilder (currently 9)
-- [ ] "Permanent sections" count matches schema section enum minus AtomicComposite (currently 9)
-- [ ] AGENTS.md rule count matches number of top-level `## N.` headings (currently 18)
+- [ ] "Permanent sections" count matches schema section enum minus AtomicComposite (currently 8)
+- [ ] AGENTS.md section count matches number of top-level `## N.` headings (currently 13)
 
 ## Type Lists
 
@@ -24,9 +24,9 @@ For each document in the audit list, verify every item below. Mark any inconsist
 - [ ] Every `variant` value on an `Image`-type element matches the `ImageVariant` schema enum exactly
 - [ ] No document references the old per-primitive property names `buttonVariant`, `containerVariant`, `imageVariant`, `headerVariant`, or `cellVariant` — the wire property is the uniform `variant: string`
 - [ ] Every atomic element type name listed matches schema enum exactly (PascalCase)
-- [ ] No pruned/deleted types appear (ErrorState, SectionHeader, PromoBanner, ContentRail, FollowingRail, HeroPanel, StatLine, VideoCarousel, NbaTvSchedule, Row, RowData)
-- [ ] Migrated types list is complete: ErrorState, SectionHeader, PromoBanner, ContentRail, FollowingRail, HeroPanel, StatLine, VideoCarousel, NbaTvSchedule
-- [ ] Permanent types list is complete: BoxscoreTable, SeasonLeadersTable, Form, TabGroup, GamePanel, SubscribeHero, SubscribeBanner, AdSlot, VideoPlayer
+- [ ] No pruned/deleted types appear (ErrorState, SectionHeader, PromoBanner, ContentRail, FollowingRail, HeroPanel, StatLine, VideoCarousel, NbaTvSchedule, GamePanel, Row, RowData)
+- [ ] Migrated types list is complete: ErrorState, SectionHeader, PromoBanner, ContentRail, FollowingRail, HeroPanel, StatLine, VideoCarousel, NbaTvSchedule, GamePanel
+- [ ] Permanent types list is complete: BoxscoreTable, SeasonLeadersTable, Form, TabGroup, SubscribeHero, SubscribeBanner, AdSlot, VideoPlayer
 - [ ] Icon references in contract-facing docs use neutral `sdui:*` tokens (e.g. `sdui:home`, `sdui:basketball`), not raw Material Symbols names (`home`, `sports_basketball`, `play_circle`)
 
 ## Terminology

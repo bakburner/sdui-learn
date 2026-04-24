@@ -14,7 +14,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.unit.dp
-import com.nba.sdui.core.models.SectionStates
+import com.nba.sdui.core.models.generated.SectionStates
 
 /**
  * Generic section loading skeleton — renders shimmer, spinner, placeholder, or nothing
@@ -27,8 +27,8 @@ fun SectionSkeleton(
     sectionStates: SectionStates?,
     modifier: Modifier = Modifier
 ) {
-    val skeleton = sectionStates?.loading?.skeleton ?: "shimmer"
-    val minHeight = (sectionStates?.loading?.minHeightDp ?: 80).dp
+    val skeleton = sectionStates?.loading?.skeleton?.value ?: "shimmer"
+    val minHeight = (sectionStates?.loading?.minHeightDP ?: 80L).toInt().dp
 
     when (skeleton) {
         "none" -> { /* render nothing */ }

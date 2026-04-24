@@ -1,56 +1,69 @@
-// To parse the JSON, install Klaxon and do:
+// To parse the JSON, install jackson-module-kotlin and do:
 //
 //   val sduiModels = SduiModels.fromJson(jsonString)
 
-package com.nba.sdui.models.quicktype
+package com.nba.sdui.core.models.generated
 
-import com.beust.klaxon.*
+import com.fasterxml.jackson.annotation.*
+import com.fasterxml.jackson.core.*
+import com.fasterxml.jackson.databind.*
+import com.fasterxml.jackson.databind.deser.std.StdDeserializer
+import com.fasterxml.jackson.databind.module.SimpleModule
+import com.fasterxml.jackson.databind.node.*
+import com.fasterxml.jackson.databind.ser.std.StdSerializer
+import com.fasterxml.jackson.module.kotlin.*
 
-private fun <T> Klaxon.convert(k: kotlin.reflect.KClass<*>, fromJson: (JsonValue) -> T, toJson: (T) -> String, isUnion: Boolean = false) =
-    this.converter(object: Converter {
-        @Suppress("UNCHECKED_CAST")
-        override fun toJson(value: Any)        = toJson(value as T)
-        override fun fromJson(jv: JsonValue)   = fromJson(jv) as Any
-        override fun canConvert(cls: Class<*>) = cls == k.java || (isUnion && cls.superclass == k.java)
+
+@Suppress("UNCHECKED_CAST")
+private fun <T> ObjectMapper.convert(k: kotlin.reflect.KClass<*>, fromJson: (JsonNode) -> T, toJson: (T) -> String, isUnion: Boolean = false) = registerModule(SimpleModule().apply {
+    addSerializer(k.java as Class<T>, object : StdSerializer<T>(k.java as Class<T>) {
+            override fun serialize(value: T, gen: JsonGenerator, provider: SerializerProvider) = gen.writeRawValue(toJson(value))
     })
+    addDeserializer(k.java as Class<T>, object : StdDeserializer<T>(k.java as Class<T>) {
+            override fun deserialize(p: JsonParser, ctxt: DeserializationContext) = fromJson(p.readValueAsTree())
+    })
+})
 
-private val klaxon = Klaxon()
-    .convert(Destination::class,            { Destination.fromValue(it.string!!) },            { "\"${it.value}\"" })
-    .convert(FailureFeedbackStyle::class,   { FailureFeedbackStyle.fromValue(it.string!!) },   { "\"${it.value}\"" })
-    .convert(ImpressionDedup::class,        { ImpressionDedup.fromValue(it.string!!) },        { "\"${it.value}\"" })
-    .convert(ModalHeight::class,            { ModalHeight.fromValue(it.string!!) },            { "\"${it.value}\"" })
-    .convert(FailurePolicy::class,          { FailurePolicy.fromValue(it.string!!) },          { "\"${it.value}\"" })
-    .convert(MutateOperation::class,        { MutateOperation.fromValue(it.string!!) },        { "\"${it.value}\"" })
-    .convert(NavigationPresentation::class, { NavigationPresentation.fromValue(it.string!!) }, { "\"${it.value}\"" })
-    .convert(ActionTrigger::class,          { ActionTrigger.fromValue(it.string!!) },          { "\"${it.value}\"" })
-    .convert(ActionType::class,             { ActionType.fromValue(it.string!!) },             { "\"${it.value}\"" })
-    .convert(RefreshType::class,            { RefreshType.fromValue(it.string!!) },            { "\"${it.value}\"" })
-    .convert(BadgeAlignment::class,         { BadgeAlignment.fromValue(it.string!!) },         { "\"${it.value}\"" })
-    .convert(LiveRegion::class,             { LiveRegion.fromValue(it.string!!) },             { "\"${it.value}\"" })
-    .convert(Role::class,                   { Role.fromValue(it.string!!) },                   { "\"${it.value}\"" })
-    .convert(Alignment::class,              { Alignment.fromValue(it.string!!) },              { "\"${it.value}\"" })
-    .convert(Direction::class,              { Direction.fromValue(it.string!!) },              { "\"${it.value}\"" })
-    .convert(ScaleType::class,              { ScaleType.fromValue(it.string!!) },              { "\"${it.value}\"" })
-    .convert(Align::class,                  { Align.fromValue(it.string!!) },                  { "\"${it.value}\"" })
-    .convert(WidthEnum::class,              { WidthEnum.fromValue(it.string!!) },              { "\"${it.value}\"" })
-    .convert(CrossAlignment::class,         { CrossAlignment.fromValue(it.string!!) },         { "\"${it.value}\"" })
-    .convert(UIDirection::class,            { UIDirection.fromValue(it.string!!) },            { "\"${it.value}\"" })
-    .convert(ImageFit::class,               { ImageFit.fromValue(it.string!!) },               { "\"${it.value}\"" })
-    .convert(Orientation::class,            { Orientation.fromValue(it.string!!) },            { "\"${it.value}\"" })
-    .convert(UIType::class,                 { UIType.fromValue(it.string!!) },                 { "\"${it.value}\"" })
-    .convert(TextWeight::class,             { TextWeight.fromValue(it.string!!) },             { "\"${it.value}\"" })
-    .convert(Capability::class,             { Capability.fromValue(it.string!!) },             { "\"${it.value}\"" })
-    .convert(ScoreTextStyle::class,         { ScoreTextStyle.fromValue(it.string!!) },         { "\"${it.value}\"" })
-    .convert(FieldType::class,              { FieldType.fromValue(it.string!!) },              { "\"${it.value}\"" })
-    .convert(Layout::class,                 { Layout.fromValue(it.string!!) },                 { "\"${it.value}\"" })
-    .convert(PlayerType::class,             { PlayerType.fromValue(it.string!!) },             { "\"${it.value}\"" })
-    .convert(SortDirection::class,          { SortDirection.fromValue(it.string!!) },          { "\"${it.value}\"" })
-    .convert(Priority::class,               { Priority.fromValue(it.string!!) },               { "\"${it.value}\"" })
-    .convert(Skeleton::class,               { Skeleton.fromValue(it.string!!) },               { "\"${it.value}\"" })
-    .convert(OverlayType::class,            { OverlayType.fromValue(it.string!!) },            { "\"${it.value}\"" })
-    .convert(BackgroundUnion::class,        { BackgroundUnion.fromJson(it) },                  { it.toJson() }, true)
-    .convert(Overlay::class,                { Overlay.fromJson(it) },                          { it.toJson() }, true)
-    .convert(WidthUnion::class,             { WidthUnion.fromJson(it) },                       { it.toJson() }, true)
+val mapper = jacksonObjectMapper().apply {
+    propertyNamingStrategy = PropertyNamingStrategy.LOWER_CAMEL_CASE
+    setSerializationInclusion(JsonInclude.Include.NON_NULL)
+    convert(Destination::class,            { Destination.fromValue(it.asText()) },            { "\"${it.value}\"" })
+    convert(FailureFeedbackStyle::class,   { FailureFeedbackStyle.fromValue(it.asText()) },   { "\"${it.value}\"" })
+    convert(ImpressionDedup::class,        { ImpressionDedup.fromValue(it.asText()) },        { "\"${it.value}\"" })
+    convert(ModalHeight::class,            { ModalHeight.fromValue(it.asText()) },            { "\"${it.value}\"" })
+    convert(FailurePolicy::class,          { FailurePolicy.fromValue(it.asText()) },          { "\"${it.value}\"" })
+    convert(MutateOperation::class,        { MutateOperation.fromValue(it.asText()) },        { "\"${it.value}\"" })
+    convert(NavigationPresentation::class, { NavigationPresentation.fromValue(it.asText()) }, { "\"${it.value}\"" })
+    convert(ActionTrigger::class,          { ActionTrigger.fromValue(it.asText()) },          { "\"${it.value}\"" })
+    convert(ActionType::class,             { ActionType.fromValue(it.asText()) },             { "\"${it.value}\"" })
+    convert(RefreshType::class,            { RefreshType.fromValue(it.asText()) },            { "\"${it.value}\"" })
+    convert(BadgeAlignment::class,         { BadgeAlignment.fromValue(it.asText()) },         { "\"${it.value}\"" })
+    convert(LiveRegion::class,             { LiveRegion.fromValue(it.asText()) },             { "\"${it.value}\"" })
+    convert(Role::class,                   { Role.fromValue(it.asText()) },                   { "\"${it.value}\"" })
+    convert(Alignment::class,              { Alignment.fromValue(it.asText()) },              { "\"${it.value}\"" })
+    convert(Direction::class,              { Direction.fromValue(it.asText()) },              { "\"${it.value}\"" })
+    convert(ScaleType::class,              { ScaleType.fromValue(it.asText()) },              { "\"${it.value}\"" })
+    convert(Align::class,                  { Align.fromValue(it.asText()) },                  { "\"${it.value}\"" })
+    convert(WidthEnum::class,              { WidthEnum.fromValue(it.asText()) },              { "\"${it.value}\"" })
+    convert(CrossAlignment::class,         { CrossAlignment.fromValue(it.asText()) },         { "\"${it.value}\"" })
+    convert(UIDirection::class,            { UIDirection.fromValue(it.asText()) },            { "\"${it.value}\"" })
+    convert(ImageFit::class,               { ImageFit.fromValue(it.asText()) },               { "\"${it.value}\"" })
+    convert(Format::class,                 { Format.fromValue(it.asText()) },                 { "\"${it.value}\"" })
+    convert(Orientation::class,            { Orientation.fromValue(it.asText()) },            { "\"${it.value}\"" })
+    convert(TickDirection::class,          { TickDirection.fromValue(it.asText()) },          { "\"${it.value}\"" })
+    convert(TextWeight::class,             { TextWeight.fromValue(it.asText()) },             { "\"${it.value}\"" })
+    convert(Capability::class,             { Capability.fromValue(it.asText()) },             { "\"${it.value}\"" })
+    convert(FieldType::class,              { FieldType.fromValue(it.asText()) },              { "\"${it.value}\"" })
+    convert(SelectVariant::class,          { SelectVariant.fromValue(it.asText()) },          { "\"${it.value}\"" })
+    convert(Layout::class,                 { Layout.fromValue(it.asText()) },                 { "\"${it.value}\"" })
+    convert(PlayerType::class,             { PlayerType.fromValue(it.asText()) },             { "\"${it.value}\"" })
+    convert(SortDirection::class,          { SortDirection.fromValue(it.asText()) },          { "\"${it.value}\"" })
+    convert(Priority::class,               { Priority.fromValue(it.asText()) },               { "\"${it.value}\"" })
+    convert(Skeleton::class,               { Skeleton.fromValue(it.asText()) },               { "\"${it.value}\"" })
+    convert(BackgroundUnion::class,        { BackgroundUnion.fromJson(it) },                  { it.toJson() }, true)
+    convert(Overlay::class,                { Overlay.fromJson(it) },                          { it.toJson() }, true)
+    convert(WidthUnion::class,             { WidthUnion.fromJson(it) },                       { it.toJson() }, true)
+}
 
 /**
  * Server-Driven UI schema for NBA Game Detail screens
@@ -61,11 +74,14 @@ data class SduiModels (
      */
     val actions: List<Action>? = null,
 
-    @Json(name = "analyticsId")
+    @get:JsonProperty("analyticsId")@field:JsonProperty("analyticsId")
     val analyticsID: String? = null,
 
     val defaultRefreshPolicy: RefreshPolicy? = null,
+
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
     val id: String,
+
     val navigation: Navigation? = null,
 
     /**
@@ -80,26 +96,39 @@ data class SduiModels (
      * URI the back button should navigate to.  Clients always show a back button; this field
      * tells them the target.  Omit for root screens (e.g. scoreboard).
      */
-    @Json(name = "parentUri")
+    @get:JsonProperty("parentUri")@field:JsonProperty("parentUri")
     val parentURI: String? = null,
 
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
     val schemaVersion: String,
+
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
     val sections: List<Section>,
+
     val state: Map<String, Any?>? = null,
     val title: String? = null,
 
-    @Json(name = "traceId")
-    val traceID: String? = null
+    @get:JsonProperty("traceId")@field:JsonProperty("traceId")
+    val traceID: String? = null,
+
+    /**
+     * Server-exposed A/B / experiment variants available for this screen. Clients read
+     * `options` to render a variant picker (dev UI, QA tooling) and pass the selected id back
+     * to the server on subsequent requests. Omit for screens without active experiments.
+     */
+    val variants: ExperimentVariants? = null
 ) {
-    public fun toJson() = klaxon.toJsonString(this)
+    fun toJson() = mapper.writeValueAsString(this)
 
     companion object {
-        public fun fromJson(json: String) = klaxon.parse<SduiModels>(json)
+        fun fromJson(json: String) = mapper.readValue<SduiModels>(json)
     }
 }
 
 /**
  * Action fired when the form is submitted
+ *
+ * Top-level fallback action invoked when the IAP SDK is not mounted (today, always).
  *
  * Optional action to trigger on retry tap (typically a refresh action)
  */
@@ -175,10 +204,13 @@ data class Action (
     /**
      * For navigate actions: native deeplink URI
      */
-    @Json(name = "targetUri")
+    @get:JsonProperty("targetUri")@field:JsonProperty("targetUri")
     val targetURI: String? = null,
 
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
     val trigger: ActionTrigger,
+
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
     val type: ActionType,
 
     /**
@@ -189,7 +221,7 @@ data class Action (
     /**
      * For navigate actions: web-equivalent URL (first-class, not a fallback)
      */
-    @Json(name = "webUrl")
+    @get:JsonProperty("webUrl")@field:JsonProperty("webUrl")
     val webURL: String? = null
 )
 
@@ -200,7 +232,7 @@ enum class Destination(val value: String) {
     Internal("internal");
 
     companion object {
-        public fun fromValue(value: String): Destination = when (value) {
+        fun fromValue(value: String): Destination = when (value) {
             "adobe"    -> Adobe
             "all"      -> All
             "firebase" -> Firebase
@@ -240,7 +272,7 @@ enum class FailureFeedbackStyle(val value: String) {
     Toast("toast");
 
     companion object {
-        public fun fromValue(value: String): FailureFeedbackStyle = when (value) {
+        fun fromValue(value: String): FailureFeedbackStyle = when (value) {
             "inline"   -> Inline
             "snackbar" -> Snackbar
             "toast"    -> Toast
@@ -260,7 +292,7 @@ data class ImpressionPolicy (
     /**
      * Reset interval for once-per-interval strategy (milliseconds)
      */
-    @Json(name = "intervalMs")
+    @get:JsonProperty("intervalMs")@field:JsonProperty("intervalMs")
     val intervalMS: Long? = null,
 
     val threshold: ImpressionThreshold? = null
@@ -273,7 +305,7 @@ enum class ImpressionDedup(val value: String) {
     OncePerSession("once-per-session");
 
     companion object {
-        public fun fromValue(value: String): ImpressionDedup = when (value) {
+        fun fromValue(value: String): ImpressionDedup = when (value) {
             "none"              -> None
             "once-per-interval" -> OncePerInterval
             "once-per-screen"   -> OncePerScreen
@@ -287,7 +319,7 @@ data class ImpressionThreshold (
     /**
      * Milliseconds section must remain visible before impression fires
      */
-    @Json(name = "dwellMs")
+    @get:JsonProperty("dwellMs")@field:JsonProperty("dwellMs")
     val dwellMS: Long? = null,
 
     /**
@@ -305,7 +337,7 @@ enum class ModalHeight(val value: String) {
     Half("half");
 
     companion object {
-        public fun fromValue(value: String): ModalHeight = when (value) {
+        fun fromValue(value: String): ModalHeight = when (value) {
             "compact" -> Compact
             "full"    -> Full
             "half"    -> Half
@@ -327,7 +359,7 @@ enum class FailurePolicy(val value: String) {
     Silent("silent");
 
     companion object {
-        public fun fromValue(value: String): FailurePolicy = when (value) {
+        fun fromValue(value: String): FailurePolicy = when (value) {
             "continue" -> Continue
             "halt"     -> Halt
             "silent"   -> Silent
@@ -346,7 +378,7 @@ enum class MutateOperation(val value: String) {
     Toggle("toggle");
 
     companion object {
-        public fun fromValue(value: String): MutateOperation = when (value) {
+        fun fromValue(value: String): MutateOperation = when (value) {
             "append"    -> Append
             "increment" -> Increment
             "set"       -> Set
@@ -367,7 +399,7 @@ enum class NavigationPresentation(val value: String) {
     Replace("replace");
 
     companion object {
-        public fun fromValue(value: String): NavigationPresentation = when (value) {
+        fun fromValue(value: String): NavigationPresentation = when (value) {
             "external"   -> External
             "fullscreen" -> Fullscreen
             "modal"      -> Modal
@@ -388,7 +420,7 @@ enum class ActionTrigger(val value: String) {
     OnVisible("onVisible");
 
     companion object {
-        public fun fromValue(value: String): ActionTrigger = when (value) {
+        fun fromValue(value: String): ActionTrigger = when (value) {
             "onBlur"      -> OnBlur
             "onFocus"     -> OnFocus
             "onLongPress" -> OnLongPress
@@ -410,7 +442,7 @@ enum class ActionType(val value: String) {
     Toast("toast");
 
     companion object {
-        public fun fromValue(value: String): ActionType = when (value) {
+        fun fromValue(value: String): ActionType = when (value) {
             "dismiss"       -> Dismiss
             "fireAndForget" -> FireAndForget
             "mutate"        -> Mutate
@@ -436,16 +468,17 @@ data class RefreshPolicy (
     /**
      * For poll type: interval in milliseconds
      */
-    @Json(name = "intervalMs")
+    @get:JsonProperty("intervalMs")@field:JsonProperty("intervalMs")
     val intervalMS: Long? = null,
 
     /**
      * Whether the client should pause this section's refresh when it scrolls out of the
-     * viewport. Default true. Set false for critical live sections (e.g., GamePanel scores)
+     * viewport. Default true. Set false for critical live sections (e.g., live-score panels)
      * that should refresh continuously.
      */
     val pauseWhenOffScreen: Boolean? = null,
 
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
     val type: RefreshType,
 
     /**
@@ -460,7 +493,7 @@ enum class RefreshType(val value: String) {
     Static("static");
 
     companion object {
-        public fun fromValue(value: String): RefreshType = when (value) {
+        fun fromValue(value: String): RefreshType = when (value) {
             "poll"   -> Poll
             "sse"    -> SSE
             "static" -> Static
@@ -476,11 +509,16 @@ data class Navigation (
 data class NavigationItem (
     val children: List<NavigationItem>? = null,
     val icon: String? = null,
+
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
     val id: String,
+
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
     val label: String,
+
     val selected: Boolean? = null,
 
-    @Json(name = "targetUri")
+    @get:JsonProperty("targetUri")@field:JsonProperty("targetUri")
     val targetURI: String? = null
 )
 
@@ -500,15 +538,28 @@ data class Badge (
     /**
      * The element to render as a badge
      */
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
     val element: AtomicElement
 )
 
 /**
- * Root node of the atomic element tree — the rendering instructions
+ * Atomic tree describing the banner's full visible surface. Renderer walks this tree
+ * exactly as an AtomicComposite would; no client-side chrome defaults are permitted. See
+ * AGENTS.md §15.1.
  *
  * Atomic UI primitive — server-composed building block for the atomic rendering layer
  *
  * The element to render as a badge
+ *
+ * Atomic tree describing the hero's full visible surface — logo, title, subtitle, feature
+ * list, tier cards, CTAs. Renderer walks this tree exactly as an AtomicComposite would.
+ *
+ * Root node of the atomic element tree — the rendering instructions
+ *
+ * Atomic tree describing the pre-SDK placeholder surface (e.g. play-glyph column framed at
+ * the player's aspectRatio). Renderer walks this tree exactly as an AtomicComposite would;
+ * no client-side chrome defaults are permitted. Once the video SDK lands this tree becomes
+ * the loading/error placeholder the SDK overlays.
  */
 data class AtomicElement (
     /**
@@ -534,6 +585,18 @@ data class AtomicElement (
     val badge: Badge? = null,
 
     /**
+     * Dot-path into the enclosing AtomicComposite's `data.content` object. When set, renderers
+     * resolve the leaf's canonical live field from `data.content[bindRef]` at render time and
+     * fall back to the inline value when the path is absent. Canonical field per type: Text →
+     * content, Button → label, Image → src, LiveClock → an object with {snapshotSeconds,
+     * snapshotAt, isRunning}. Placing the binding identifier on the consuming node (rather than
+     * in a centrally-declared path-into-tree) lets composers reshape the ui tree without
+     * breaking real-time updates; data-bindings on the section envelope continue to write into
+     * `content.*`.
+     */
+    val bindRef: String? = null,
+
+    /**
      * Responsive breakpoint in dp/px. For Container: below this screen width, direction flips
      * from row to column. Enables responsive layouts without client logic.
      */
@@ -551,6 +614,17 @@ data class AtomicElement (
     val content: String? = null,
 
     /**
+     * Per-corner cornerRadius override. When present, takes precedence over the single-value
+     * cornerRadius; any corner key omitted falls back to cornerRadius (or 0 if that is also
+     * absent). Used for asymmetric card shapes — e.g. content-rail cards with rounded tops and
+     * square bottoms so headline text does not collide with a bottom-corner curve. iOS maps to
+     * UnevenRoundedRectangle (iOS 16+); Android to RoundedCornerShape's four-corner
+     * constructor; web to borderTopLeftRadius / borderTopRightRadius / borderBottomLeftRadius /
+     * borderBottomRightRadius.
+     */
+    val cornerRadii: CornerRadii? = null,
+
+    /**
      * Corner radius in dp/px. Applied to Container (with overflow clip) and Image elements.
      */
     val cornerRadius: Long? = null,
@@ -559,6 +633,16 @@ data class AtomicElement (
     val direction: UIDirection? = null,
     val disabled: Boolean? = null,
     val falseChild: AtomicElement? = null,
+
+    /**
+     * When true, the element stretches along its main axis to fill the parent's available
+     * width. On Image this pairs with aspectRatio to derive a height (thumbnails in a
+     * fixed-width card). On Container it stretches the flex box to parent width regardless of
+     * child intrinsic widths. Inline value takes precedence over any variant default; element
+     * width/height, when also set, wins over fillWidth.
+     */
+    val fillWidth: Boolean? = null,
+
     val fit: ImageFit? = null,
 
     /**
@@ -567,11 +651,34 @@ data class AtomicElement (
      */
     val flex: Double? = null,
 
+    /**
+     * LiveClock display format. Clients realize using their platform's tabular-numerals
+     * typography (equivalent to TextVariant.score).
+     */
+    val format: Format? = null,
+
     val gap: Long? = null,
     val height: Long? = null,
     val icon: String? = null,
     val id: String? = null,
+
+    /**
+     * LiveClock: whether the clock is actively ticking. When true, clients run a local tick
+     * loop at their platform-native refresh cadence (~10Hz) and update the displayed value.
+     * When false, clients render snapshotSeconds verbatim.
+     */
+    @get:JsonProperty("isRunning")@field:JsonProperty("isRunning")
+    val isRunning: Boolean? = null,
+
     val label: String? = null,
+
+    /**
+     * Outer space between the element and its siblings or parent edges. Applied outside the
+     * element's background, border, corner radius, and shadow — use this for sibling-to-sibling
+     * spacing instead of Spacer siblings when inhomogeneous gaps are needed.
+     */
+    val margin: Spacing? = null,
+
     val maxLines: Long? = null,
 
     /**
@@ -587,7 +694,12 @@ data class AtomicElement (
     val opacity: Double? = null,
 
     val orientation: Orientation? = null,
+
+    /**
+     * Inner space between the element's own background/border and its content.
+     */
     val padding: Spacing? = null,
+
     val paging: Boolean? = null,
     val placeholder: String? = null,
 
@@ -615,7 +727,27 @@ data class AtomicElement (
 
     val size: Long? = null,
     val snapAlignment: Align? = null,
+
+    /**
+     * LiveClock: wall-clock instant (ISO-8601) at which snapshotSeconds was captured. Clients
+     * compute elapsed = now - snapshotAt and derive the displayed value. Required when type ==
+     * 'LiveClock'.
+     */
+    val snapshotAt: String? = null,
+
+    /**
+     * LiveClock: clock value in seconds at the moment captured by snapshotAt. Clients
+     * interpolate from this anchor while isRunning == true. Required when type == 'LiveClock'.
+     */
+    val snapshotSeconds: Long? = null,
+
     val src: String? = null,
+
+    /**
+     * LiveClock: optional clamp. For direction 'down', clock holds at this value once reached.
+     * For direction 'up', clock holds once reached. Omit to disable the clamp.
+     */
+    val stopAtSeconds: Long? = null,
 
     /**
      * Alternate row background for readability
@@ -629,8 +761,18 @@ data class AtomicElement (
     val textAlign: Align? = null,
 
     val thickness: Long? = null,
+
+    /**
+     * LiveClock tick direction. 'down' decrements from snapshotSeconds toward stopAtSeconds
+     * (default 0); 'up' increments from snapshotSeconds with no upper bound unless
+     * stopAtSeconds is set.
+     */
+    val tickDirection: TickDirection? = null,
+
     val trueChild: AtomicElement? = null,
-    val type: UIType,
+
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
+    val type: String,
 
     /**
      * Named variant preset. The vocabulary depends on the element's type: TextVariant for Text,
@@ -658,63 +800,29 @@ data class AtomicElement (
  *
  * Sortable, paginated table of season statistical leaders (league-wide)
  *
- * Inline subscription upsell banner with headline, body copy, and CTA
+ * Inline subscription upsell banner. Reserved SDK integration point: the banner's visible
+ * chrome is entirely server-composed via `ui` until the platform IAP SDK (StoreKit / Play
+ * Billing) lands and starts mounting the purchase flow on CTA tap. `tiers` carries the IAP
+ * product identifiers the SDK will later bind to; `ctaAction` is the (pre-SDK) fallback
+ * action.
  *
- * Full-screen subscription upsell hero with multi-tier pricing and feature list
+ * Full-screen subscription upsell hero. Reserved SDK integration point — same contract as
+ * SubscribeBannerData: `ui` carries the full visible composition; `tiers` carries IAP
+ * product identifiers the SDK will bind to post-landing.
  *
  * Data payload for AtomicComposite sections — ui contains rendering instructions, content
  * carries domain data
  *
- * Video player section — platform SDK integration (DRM, HLS, ad insertion). Same
- * justification as SubscribeHero (StoreKit/Play Billing) and AdSlot (GAM).
+ * Video player section — reserved SDK integration point for DRM / HLS / ad insertion.
+ * `playerType`, `contentId`, `autoplay`, and `capabilities` are SDK inputs (the video SDK
+ * reads them and mounts); `ui` carries the pre-SDK placeholder composition that renders
+ * before the SDK is integrated and will serve as the loading/error placeholder afterwards.
  */
 data class Data (
     val defaultTab: String? = null,
     val stateKey: String? = null,
     val tabContents: Map<String, List<Section>>? = null,
     val tabs: List<TabData>? = null,
-    val actions: List<Action>? = null,
-    val awayTeam: TeamData? = null,
-
-    /**
-     * Badge/chip label, e.g. 'LIVE', 'FEATURED'
-     */
-    val badgeText: String? = null,
-
-    /**
-     * Whether the game clock is actively ticking. When true, renderers should interpolate the
-     * clock locally between SSE updates for visual continuity.
-     */
-    val clockRunning: Boolean? = null,
-
-    /**
-     * Server-driven visual configuration — controls all layout and styling knobs
-     */
-    val displayConfig: GamePanelDisplayConfig? = null,
-
-    /**
-     * Game clock string (e.g. 'PT05M32.00S' or '5:32')
-     */
-    val gameClock: String? = null,
-
-    @Json(name = "gameId")
-    val gameID: String? = null,
-
-    val gameLeaders: GameLeadersData? = null,
-    val gameStatus: Long? = null,
-    val gameStatusText: String? = null,
-    val gameTimeEt: String? = null,
-    val homeTeam: TeamData? = null,
-
-    /**
-     * Current game period (quarter number)
-     */
-    val period: Long? = null,
-
-    /**
-     * Secondary label shown above the matchup (e.g. team name, 'Recommended')
-     */
-    val visualLabel: String? = null,
 
     /**
      * Ordered list of column definitions; clients render left-to-right
@@ -750,7 +858,7 @@ data class Data (
      */
     val teamColor: String? = null,
 
-    @Json(name = "teamLogoUrl")
+    @get:JsonProperty("teamLogoUrl")@field:JsonProperty("teamLogoUrl")
     val teamLogoURL: String? = null,
 
     val teamName: String? = null,
@@ -795,6 +903,13 @@ data class Data (
     val label: String? = null,
 
     /**
+     * Visual treatment for the reserved rectangle before the ad SDK mounts (and after misses
+     * when collapseOnEmpty is false). Shares dimensions with sizes[0] — never carries its own
+     * width/height. Required so the stub renderer has no client-side chrome defaults.
+     */
+    val placeholder: Placeholder? = null,
+
+    /**
      * Ad network identifier, e.g. 'gam', 'amazon'
      */
     val provider: String? = null,
@@ -802,7 +917,7 @@ data class Data (
     /**
      * Optional auto-refresh interval in seconds
      */
-    @Json(name = "refreshIntervalSec")
+    @get:JsonProperty("refreshIntervalSec")@field:JsonProperty("refreshIntervalSec")
     val refreshIntervalSEC: Long? = null,
 
     /**
@@ -847,33 +962,42 @@ data class Data (
      */
     val totalRows: Long? = null,
 
-    val background: BackgroundUnion? = null,
+    /**
+     * Top-level fallback action invoked when the IAP SDK is not mounted (today, always).
+     */
     val ctaAction: Action? = null,
-    val ctaLabel: String? = null,
-
-    @Json(name = "logoUrl")
-    val logoURL: String? = null,
 
     /**
-     * Optional pricing tier highlights
+     * IAP product identifiers + server-emitted prices. Consumed by the IAP SDK when it lands;
+     * not used by the renderer, which reads the visible price copy out of `ui`.
+     *
+     * IAP product identifiers + server-emitted prices. Consumed by the IAP SDK when it lands;
+     * not used by the renderer.
      */
     val tiers: List<SubscriptionTier>? = null,
 
     /**
-     * Bullet-point feature list
+     * Atomic tree describing the banner's full visible surface. Renderer walks this tree
+     * exactly as an AtomicComposite would; no client-side chrome defaults are permitted. See
+     * AGENTS.md §15.1.
+     *
+     * Atomic tree describing the hero's full visible surface — logo, title, subtitle, feature
+     * list, tier cards, CTAs. Renderer walks this tree exactly as an AtomicComposite would.
+     *
+     * Root node of the atomic element tree — the rendering instructions
+     *
+     * Atomic tree describing the pre-SDK placeholder surface (e.g. play-glyph column framed at
+     * the player's aspectRatio). Renderer walks this tree exactly as an AtomicComposite would;
+     * no client-side chrome defaults are permitted. Once the video SDK lands this tree becomes
+     * the loading/error placeholder the SDK overlays.
      */
-    val features: List<String>? = null,
+    val ui: AtomicElement? = null,
 
     /**
      * Optional domain data (strings, URLs, flags) to populate the ui tree. Reserved for future
      * data-binding support.
      */
     val content: Map<String, Any?>? = null,
-
-    /**
-     * Root node of the atomic element tree — the rendering instructions
-     */
-    val ui: AtomicElement? = null,
 
     val autoplay: Boolean? = null,
 
@@ -887,8 +1011,10 @@ data class Data (
      * Content identifier — interpreted by playerType (gameId for game, mediaId for vod, eventId
      * for event, streamUrl for stream). Single field avoids mutually exclusive optional IDs.
      */
-    @Json(name = "contentId")
+    @get:JsonProperty("contentId")@field:JsonProperty("contentId")
     val contentID: String? = null,
+
+    val displayConfig: DisplayConfig? = null,
 
     /**
      * Discriminator for SDK player variant. Client passes contentId to the matching SDK method.
@@ -910,7 +1036,7 @@ data class Section (
      */
     val actions: List<Action>? = null,
 
-    @Json(name = "analyticsId")
+    @get:JsonProperty("analyticsId")@field:JsonProperty("analyticsId")
     val analyticsID: String? = null,
 
     val backgroundColor: String? = null,
@@ -921,7 +1047,10 @@ data class Section (
     val data: Data? = null,
 
     val dataBinding: DataBinding? = null,
+
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
     val id: String,
+
     val layoutHints: SectionLayoutHints? = null,
     val padding: Spacing? = null,
     val refreshPolicy: RefreshPolicy? = null,
@@ -938,7 +1067,10 @@ data class Section (
      */
     val subsections: List<Subsection>? = null,
 
-    val type: OverlayType
+    val surface: SectionSurface? = null,
+
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
+    val type: String
 )
 
 /**
@@ -956,7 +1088,7 @@ enum class BadgeAlignment(val value: String) {
     TopStart("topStart");
 
     companion object {
-        public fun fromValue(value: String): BadgeAlignment = when (value) {
+        fun fromValue(value: String): BadgeAlignment = when (value) {
             "bottomCenter" -> BottomCenter
             "bottomEnd"    -> BottomEnd
             "bottomStart"  -> BottomStart
@@ -1033,7 +1165,7 @@ enum class LiveRegion(val value: String) {
     Polite("polite");
 
     companion object {
-        public fun fromValue(value: String): LiveRegion = when (value) {
+        fun fromValue(value: String): LiveRegion = when (value) {
             "assertive" -> Assertive
             "off"       -> Off
             "polite"    -> Polite
@@ -1060,7 +1192,7 @@ enum class Role(val value: String) {
     Tabpanel("tabpanel");
 
     companion object {
-        public fun fromValue(value: String): Role = when (value) {
+        fun fromValue(value: String): Role = when (value) {
             "button"   -> Button
             "cell"     -> Cell
             "heading"  -> Heading
@@ -1087,7 +1219,7 @@ enum class Alignment(val value: String) {
     Start("start");
 
     companion object {
-        public fun fromValue(value: String): Alignment = when (value) {
+        fun fromValue(value: String): Alignment = when (value) {
             "center"       -> Center
             "end"          -> End
             "spaceAround"  -> SpaceAround
@@ -1100,25 +1232,23 @@ enum class Alignment(val value: String) {
 }
 
 /**
- * Default background (pre-game, final)
- *
  * Shared background type — solid color, gradient, or image with overlay
  *
- * Background override when game is LIVE
+ * Surface background (solid, gradient, or image).
  */
 sealed class BackgroundUnion {
     class BackgroundValue(val value: Background) : BackgroundUnion()
     class StringValue(val value: String)         : BackgroundUnion()
 
-    public fun toJson(): String = klaxon.toJsonString(when (this) {
+    fun toJson(): String = mapper.writeValueAsString(when (this) {
         is BackgroundValue -> this.value
         is StringValue     -> this.value
     })
 
     companion object {
-        public fun fromJson(jv: JsonValue): BackgroundUnion = when (jv.inside) {
-            is JsonObject -> BackgroundValue(jv.obj?.let { klaxon.parseFromJsonObject<Background>(it) }!!)
-            is String     -> StringValue(jv.string!!)
+        fun fromJson(jn: JsonNode): BackgroundUnion = when (jn) {
+            is ObjectNode -> BackgroundValue(mapper.treeToValue(jn))
+            is TextNode   -> StringValue(mapper.treeToValue(jn))
             else          -> throw IllegalArgumentException()
         }
     }
@@ -1140,7 +1270,7 @@ data class Background (
     /**
      * URL of the background image
      */
-    @Json(name = "imageUrl")
+    @get:JsonProperty("imageUrl")@field:JsonProperty("imageUrl")
     val imageURL: String? = null,
 
     /**
@@ -1157,7 +1287,7 @@ enum class Direction(val value: String) {
     Vertical("vertical");
 
     companion object {
-        public fun fromValue(value: String): Direction = when (value) {
+        fun fromValue(value: String): Direction = when (value) {
             "diagonal"   -> Diagonal
             "horizontal" -> Horizontal
             "vertical"   -> Vertical
@@ -1173,15 +1303,15 @@ sealed class Overlay {
     class BackgroundGradientValue(val value: BackgroundGradient) : Overlay()
     class StringValue(val value: String)                         : Overlay()
 
-    public fun toJson(): String = klaxon.toJsonString(when (this) {
+    fun toJson(): String = mapper.writeValueAsString(when (this) {
         is BackgroundGradientValue -> this.value
         is StringValue             -> this.value
     })
 
     companion object {
-        public fun fromJson(jv: JsonValue): Overlay = when (jv.inside) {
-            is JsonObject -> BackgroundGradientValue(jv.obj?.let { klaxon.parseFromJsonObject<BackgroundGradient>(it) }!!)
-            is String     -> StringValue(jv.string!!)
+        fun fromJson(jn: JsonNode): Overlay = when (jn) {
+            is ObjectNode -> BackgroundGradientValue(mapper.treeToValue(jn))
+            is TextNode   -> StringValue(mapper.treeToValue(jn))
             else          -> throw IllegalArgumentException()
         }
     }
@@ -1194,6 +1324,7 @@ data class BackgroundGradient (
     /**
      * Ordered list of color stops (hex or semantic token)
      */
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
     val colors: List<String>,
 
     val direction: Direction? = null
@@ -1205,7 +1336,7 @@ enum class ScaleType(val value: String) {
     Fill("fill");
 
     companion object {
-        public fun fromValue(value: String): ScaleType = when (value) {
+        fun fromValue(value: String): ScaleType = when (value) {
             "contain" -> Contain
             "cover"   -> Cover
             "fill"    -> Fill
@@ -1220,11 +1351,13 @@ data class Column (
     /**
      * Row data key
      */
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
     val key: String,
 
     /**
      * Header label
      */
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
     val label: String,
 
     /**
@@ -1243,7 +1376,7 @@ enum class Align(val value: String) {
     Start("start");
 
     companion object {
-        public fun fromValue(value: String): Align = when (value) {
+        fun fromValue(value: String): Align = when (value) {
             "center" -> Center
             "end"    -> End
             "start"  -> Start
@@ -1259,16 +1392,16 @@ sealed class WidthUnion {
     class EnumValue(val value: WidthEnum) : WidthUnion()
     class IntegerValue(val value: Long)   : WidthUnion()
 
-    public fun toJson(): String = klaxon.toJsonString(when (this) {
+    fun toJson(): String = mapper.writeValueAsString(when (this) {
         is EnumValue    -> this.value
         is IntegerValue -> this.value
     })
 
     companion object {
-        public fun fromJson(jv: JsonValue): WidthUnion = when (jv.inside) {
-            is String       -> EnumValue(jv.string?.let { WidthEnum.fromValue(it) }!!)
-            is Int, is Long -> IntegerValue((jv.int?.toLong() ?: jv.longValue)!!)
-            else            -> throw IllegalArgumentException()
+        fun fromJson(jn: JsonNode): WidthUnion = when (jn) {
+            is TextNode             -> EnumValue(mapper.treeToValue(jn))
+            is IntNode, is LongNode -> IntegerValue(mapper.treeToValue(jn))
+            else                    -> throw IllegalArgumentException()
         }
     }
 }
@@ -1277,12 +1410,43 @@ enum class WidthEnum(val value: String) {
     Flex("flex");
 
     companion object {
-        public fun fromValue(value: String): WidthEnum = when (value) {
+        fun fromValue(value: String): WidthEnum = when (value) {
             "flex" -> Flex
             else   -> throw IllegalArgumentException()
         }
     }
 }
+
+/**
+ * Per-corner cornerRadius override. When present, takes precedence over the single-value
+ * cornerRadius; any corner key omitted falls back to cornerRadius (or 0 if that is also
+ * absent). Used for asymmetric card shapes — e.g. content-rail cards with rounded tops and
+ * square bottoms so headline text does not collide with a bottom-corner curve. iOS maps to
+ * UnevenRoundedRectangle (iOS 16+); Android to RoundedCornerShape's four-corner
+ * constructor; web to borderTopLeftRadius / borderTopRightRadius / borderBottomLeftRadius /
+ * borderBottomRightRadius.
+ */
+data class CornerRadii (
+    /**
+     * Bottom-trailing corner.
+     */
+    val bottomEnd: Long? = null,
+
+    /**
+     * Bottom-leading corner.
+     */
+    val bottomStart: Long? = null,
+
+    /**
+     * Top-trailing corner (top-right in LTR, top-left in RTL).
+     */
+    val topEnd: Long? = null,
+
+    /**
+     * Top-leading corner (top-left in LTR, top-right in RTL).
+     */
+    val topStart: Long? = null
+)
 
 enum class CrossAlignment(val value: String) {
     Center("center"),
@@ -1291,7 +1455,7 @@ enum class CrossAlignment(val value: String) {
     Stretch("stretch");
 
     companion object {
-        public fun fromValue(value: String): CrossAlignment = when (value) {
+        fun fromValue(value: String): CrossAlignment = when (value) {
             "center"  -> Center
             "end"     -> End
             "start"   -> Start
@@ -1306,7 +1470,7 @@ enum class UIDirection(val value: String) {
     Row("row");
 
     companion object {
-        public fun fromValue(value: String): UIDirection = when (value) {
+        fun fromValue(value: String): UIDirection = when (value) {
             "column" -> Column
             "row"    -> Row
             else     -> throw IllegalArgumentException()
@@ -1321,7 +1485,7 @@ enum class ImageFit(val value: String) {
     None("none");
 
     companion object {
-        public fun fromValue(value: String): ImageFit = when (value) {
+        fun fromValue(value: String): ImageFit = when (value) {
             "contain" -> Contain
             "cover"   -> Cover
             "fill"    -> Fill
@@ -1331,19 +1495,36 @@ enum class ImageFit(val value: String) {
     }
 }
 
-enum class Orientation(val value: String) {
-    Horizontal("horizontal"),
-    Vertical("vertical");
+/**
+ * LiveClock display format. Clients realize using their platform's tabular-numerals
+ * typography (equivalent to TextVariant.score).
+ */
+enum class Format(val value: String) {
+    HMmSs("h:mm:ss"),
+    MSs("m:ss"),
+    MmSs("mm:ss");
 
     companion object {
-        public fun fromValue(value: String): Orientation = when (value) {
-            "horizontal" -> Horizontal
-            "vertical"   -> Vertical
-            else         -> throw IllegalArgumentException()
+        fun fromValue(value: String): Format = when (value) {
+            "h:mm:ss" -> HMmSs
+            "m:ss"    -> MSs
+            "mm:ss"   -> MmSs
+            else      -> throw IllegalArgumentException()
         }
     }
 }
 
+/**
+ * Outer space between the element and its siblings or parent edges. Applied outside the
+ * element's background, border, corner radius, and shadow — use this for sibling-to-sibling
+ * spacing instead of Spacer siblings when inhomogeneous gaps are needed.
+ *
+ * Inner space between the element's own background/border and its content.
+ *
+ * Outer margin (space between the surface and its siblings / screen edge).
+ *
+ * Inner padding (space between the surface edge and the content it wraps).
+ */
 data class Spacing (
     val bottom: Long? = null,
     val end: Long? = null,
@@ -1351,16 +1532,31 @@ data class Spacing (
     val top: Long? = null
 )
 
+enum class Orientation(val value: String) {
+    Horizontal("horizontal"),
+    Vertical("vertical");
+
+    companion object {
+        fun fromValue(value: String): Orientation = when (value) {
+            "horizontal" -> Horizontal
+            "vertical"   -> Vertical
+            else         -> throw IllegalArgumentException()
+        }
+    }
+}
+
 /**
  * Drop shadow applied to the element. Replaces elevation with richer CSS/SwiftUI shadow
  * semantics.
  *
  * Drop shadow with CSS/SwiftUI semantics (radius + offset). Compose approximates via
  * elevation.
+ *
+ * Drop shadow applied to the surface.
  */
 data class Shadow (
     /**
-     * Shadow color (hex with alpha)
+     * Shadow color (hex with alpha, or token reference)
      */
     val color: String? = null,
 
@@ -1380,34 +1576,24 @@ data class Shadow (
     val radius: Double? = null
 )
 
-enum class UIType(val value: String) {
-    Button("Button"),
-    Conditional("Conditional"),
-    Container("Container"),
-    DisplayGrid("DisplayGrid"),
-    Divider("Divider"),
-    Image("Image"),
-    ScrollContainer("ScrollContainer"),
-    SectionSlot("SectionSlot"),
-    Spacer("Spacer"),
-    Text("Text");
+/**
+ * LiveClock tick direction. 'down' decrements from snapshotSeconds toward stopAtSeconds
+ * (default 0); 'up' increments from snapshotSeconds with no upper bound unless
+ * stopAtSeconds is set.
+ */
+enum class TickDirection(val value: String) {
+    Down("down"),
+    Up("up");
 
     companion object {
-        public fun fromValue(value: String): UIType = when (value) {
-            "Button"          -> Button
-            "Conditional"     -> Conditional
-            "Container"       -> Container
-            "DisplayGrid"     -> DisplayGrid
-            "Divider"         -> Divider
-            "Image"           -> Image
-            "ScrollContainer" -> ScrollContainer
-            "SectionSlot"     -> SectionSlot
-            "Spacer"          -> Spacer
-            "Text"            -> Text
-            else              -> throw IllegalArgumentException()
+        fun fromValue(value: String): TickDirection = when (value) {
+            "down" -> Down
+            "up"   -> Up
+            else   -> throw IllegalArgumentException()
         }
     }
 }
+
 
 /**
  * Font weight tokens for atomic Text elements.
@@ -1419,7 +1605,7 @@ enum class TextWeight(val value: String) {
     SemiBold("semiBold");
 
     companion object {
-        public fun fromValue(value: String): TextWeight = when (value) {
+        fun fromValue(value: String): TextWeight = when (value) {
             "bold"     -> Bold
             "medium"   -> Medium
             "regular"  -> Regular
@@ -1429,20 +1615,6 @@ enum class TextWeight(val value: String) {
     }
 }
 
-data class TeamData (
-    @Json(name = "logoUrl")
-    val logoURL: String? = null,
-
-    val score: Long,
-    val teamCity: String,
-
-    @Json(name = "teamId")
-    val teamID: Long,
-
-    val teamName: String,
-    val teamTricode: String
-)
-
 enum class Capability(val value: String) {
     Airplay("airplay"),
     BackgroundAudio("backgroundAudio"),
@@ -1451,7 +1623,7 @@ enum class Capability(val value: String) {
     Pip("pip");
 
     companion object {
-        public fun fromValue(value: String): Capability = when (value) {
+        fun fromValue(value: String): Capability = when (value) {
             "airplay"            -> Airplay
             "backgroundAudio"    -> BackgroundAudio
             "chromecast"         -> Chromecast
@@ -1474,11 +1646,13 @@ data class BoxscoreColumnDefinition (
     /**
      * Property key on each player's stats object that supplies this column's value
      */
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
     val key: String,
 
     /**
      * Column header text displayed to the user
      */
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
     val label: String,
 
     /**
@@ -1492,71 +1666,10 @@ data class BoxscoreColumnDefinition (
     val width: String? = null
 )
 
-/**
- * Server-driven visual configuration — controls all layout and styling knobs
- *
- * Server-driven visual configuration for GamePanel — replaces the hardcoded variant branch
- */
-data class GamePanelDisplayConfig (
-    /**
-     * Default background (pre-game, final)
-     */
-    val background: BackgroundUnion? = null,
-
-    /**
-     * Badge/chip background color (hex)
-     */
-    val badgeColor: String? = null,
-
-    /**
-     * Fixed card height in dp/px. Null/absent = auto-size
-     */
-    val cardHeight: Long? = null,
-
-    /**
-     * Card corner radius in dp/px
-     */
-    val cornerRadius: Long? = null,
-
-    /**
-     * Card elevation/shadow in dp/px
-     */
-    val elevation: Long? = null,
-
-    /**
-     * Background override when game is LIVE
-     */
-    val liveBackground: BackgroundUnion? = null,
-
-    /**
-     * Team logo width/height in dp/px
-     */
-    val logoSize: Long? = null,
-
-    /**
-     * Score typography: compact = bodyLarge+Bold, prominent = headlineMedium+ExtraBold
-     */
-    val scoreTextStyle: ScoreTextStyle? = null,
-
+data class DisplayConfig (
     val aspectRatio: String? = null,
     val height: Long? = null
 )
-
-/**
- * Score typography: compact = bodyLarge+Bold, prominent = headlineMedium+ExtraBold
- */
-enum class ScoreTextStyle(val value: String) {
-    Compact("compact"),
-    Prominent("prominent");
-
-    companion object {
-        public fun fromValue(value: String): ScoreTextStyle = when (value) {
-            "compact"   -> Compact
-            "prominent" -> Prominent
-            else        -> throw IllegalArgumentException()
-        }
-    }
-}
 
 /**
  * One input field inside a form section
@@ -1564,14 +1677,16 @@ enum class ScoreTextStyle(val value: String) {
 data class FormField (
     val disabled: Boolean? = null,
 
-    @Json(name = "fieldId")
+    @get:JsonProperty("fieldId", required=true)@field:JsonProperty("fieldId", required=true)
     val fieldID: String,
 
     /**
      * Input type; clients map to platform-native controls
      */
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
     val fieldType: FieldType,
 
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
     val label: String,
 
     /**
@@ -1585,6 +1700,7 @@ data class FormField (
     /**
      * Screen-state key that holds this field's current value
      */
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
     val stateKey: String,
 
     /**
@@ -1595,7 +1711,13 @@ data class FormField (
     /**
      * Optional regex pattern for client-side validation
      */
-    val validationPattern: String? = null
+    val validationPattern: String? = null,
+
+    /**
+     * How to realize the control. Applies only when fieldType == 'select'. Missing value is
+     * treated as 'dropdown' at render time.
+     */
+    val variant: SelectVariant? = null
 )
 
 /**
@@ -1612,7 +1734,7 @@ enum class FieldType(val value: String) {
     Toggle("toggle");
 
     companion object {
-        public fun fromValue(value: String): FieldType = when (value) {
+        fun fromValue(value: String): FieldType = when (value) {
             "checkbox" -> Checkbox
             "date"     -> Date
             "number"   -> Number
@@ -1630,21 +1752,33 @@ enum class FieldType(val value: String) {
  * One selectable option within a select/radio/checkbox form field
  */
 data class FormOption (
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
     val label: String,
+
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
     val value: String
 )
 
-data class GameLeadersData (
-    val awayLeader: GameLeaderData? = null,
-    val homeLeader: GameLeaderData? = null
-)
+/**
+ * How to realize the control. Applies only when fieldType == 'select'. Missing value is
+ * treated as 'dropdown' at render time.
+ *
+ * How a Form single-select field is realized by the client. 'dropdown' maps to the platform
+ * menu (default). 'chips' is a horizontally-scrollable row of tappable capsules. Applies
+ * only when FormField.fieldType == 'select'.
+ */
+enum class SelectVariant(val value: String) {
+    Chips("chips"),
+    Dropdown("dropdown");
 
-data class GameLeaderData (
-    val assists: Long? = null,
-    val name: String? = null,
-    val points: Long? = null,
-    val rebounds: Long? = null
-)
+    companion object {
+        fun fromValue(value: String): SelectVariant = when (value) {
+            "chips"    -> Chips
+            "dropdown" -> Dropdown
+            else       -> throw IllegalArgumentException()
+        }
+    }
+}
 
 /**
  * Layout hint for field arrangement
@@ -1655,7 +1789,7 @@ enum class Layout(val value: String) {
     Vertical("vertical");
 
     companion object {
-        public fun fromValue(value: String): Layout = when (value) {
+        fun fromValue(value: String): Layout = when (value) {
             "grid"       -> Grid
             "horizontal" -> Horizontal
             "vertical"   -> Vertical
@@ -1663,6 +1797,23 @@ enum class Layout(val value: String) {
         }
     }
 }
+
+/**
+ * Visual treatment for the reserved rectangle before the ad SDK mounts (and after misses
+ * when collapseOnEmpty is false). Shares dimensions with sizes[0] — never carries its own
+ * width/height. Required so the stub renderer has no client-side chrome defaults.
+ */
+data class Placeholder (
+    /**
+     * Fill color for the empty rectangle.
+     */
+    val backgroundColor: String? = null,
+
+    /**
+     * Caption rendered inside the empty rectangle (e.g. 'Advertisement').
+     */
+    val text: String? = null
+)
 
 /**
  * Discriminator for SDK player variant. Client passes contentId to the matching SDK method.
@@ -1675,7 +1826,7 @@ enum class PlayerType(val value: String) {
     VOD("vod");
 
     companion object {
-        public fun fromValue(value: String): PlayerType = when (value) {
+        fun fromValue(value: String): PlayerType = when (value) {
             "event"  -> Event
             "game"   -> Game
             "nbaTv"  -> NbaTv
@@ -1694,7 +1845,7 @@ enum class PlayerType(val value: String) {
 data class PlayerRow (
     val actions: List<Action>? = null,
 
-    @Json(name = "imageUrl")
+    @get:JsonProperty("imageUrl")@field:JsonProperty("imageUrl")
     val imageURL: String? = null,
 
     val jerseyNumber: String? = null,
@@ -1704,9 +1855,10 @@ data class PlayerRow (
      *
      * Display name, e.g. 'Luka Dončić'
      */
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
     val name: String,
 
-    @Json(name = "playerId")
+    @get:JsonProperty("playerId", required=true)@field:JsonProperty("playerId", required=true)
     val playerID: String,
 
     val position: String? = null,
@@ -1719,6 +1871,7 @@ data class PlayerRow (
     /**
      * Stat values keyed by column key (gp, min, pts, reb, ast, etc.)
      */
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
     val stats: Map<String, Any?>,
 
     /**
@@ -1737,7 +1890,7 @@ enum class SortDirection(val value: String) {
     Desc("desc");
 
     companion object {
-        public fun fromValue(value: String): SortDirection = when (value) {
+        fun fromValue(value: String): SortDirection = when (value) {
             "asc"  -> Asc
             "desc" -> Desc
             else   -> throw IllegalArgumentException()
@@ -1746,8 +1899,12 @@ enum class SortDirection(val value: String) {
 }
 
 data class TabData (
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
     val id: String,
+
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
     val label: String,
+
     val stateKey: String? = null,
     val stateValue: String? = null
 )
@@ -1761,11 +1918,14 @@ data class SubscriptionTier (
     val ctaAction: Action? = null,
     val ctaLabel: String? = null,
     val features: List<String>? = null,
+
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
     val id: String,
 
     /**
      * Tier name, e.g. 'League Pass', 'League Pass Premium'
      */
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
     val name: String,
 
     /**
@@ -1776,6 +1936,7 @@ data class SubscriptionTier (
     /**
      * Display price, e.g. '$14.99/mo'
      */
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
     val price: String
 )
 
@@ -1793,11 +1954,13 @@ data class DataBindingPath (
     /**
      * JSONPath in incoming message (e.g., '$.homeTeam.score')
      */
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
     val sourcePath: String,
 
     /**
      * Dot-path to component property (e.g., 'homeScore.content')
      */
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
     val targetPath: String
 )
 
@@ -1841,7 +2004,7 @@ enum class Priority(val value: String) {
     Normal("normal");
 
     companion object {
-        public fun fromValue(value: String): Priority = when (value) {
+        fun fromValue(value: String): Priority = when (value) {
             "high"   -> High
             "low"    -> Low
             "normal" -> Normal
@@ -1880,7 +2043,7 @@ data class Loading (
     /**
      * Minimum height to reserve during loading (prevents layout shift)
      */
-    @Json(name = "minHeightDp")
+    @get:JsonProperty("minHeightDp")@field:JsonProperty("minHeightDp")
     val minHeightDP: Long? = null,
 
     /**
@@ -1899,7 +2062,7 @@ enum class Skeleton(val value: String) {
     Spinner("spinner");
 
     companion object {
-        public fun fromValue(value: String): Skeleton = when (value) {
+        fun fromValue(value: String): Skeleton = when (value) {
             "none"        -> None
             "placeholder" -> Placeholder
             "shimmer"     -> Shimmer
@@ -1919,34 +2082,111 @@ data class Subsection (
     val accessibility: AccessibilityProperties? = null,
 
     val actions: List<Action>? = null,
+
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
     val id: String
 )
 
-enum class OverlayType(val value: String) {
-    AdSlot("AdSlot"),
-    AtomicComposite("AtomicComposite"),
-    BoxscoreTable("BoxscoreTable"),
-    Form("Form"),
-    GamePanel("GamePanel"),
-    SeasonLeadersTable("SeasonLeadersTable"),
-    SubscribeBanner("SubscribeBanner"),
-    SubscribeHero("SubscribeHero"),
-    TabGroup("TabGroup"),
-    VideoPlayer("VideoPlayer");
+/**
+ * Server-driven surface spec applied by the client's SectionRouter to every permanent
+ * section — the visual wrapper beneath the section's content. Mirrors the inline-chrome
+ * vocabulary on AtomicContainer so permanent sections have schema parity with composed
+ * sections. Every client's shared SectionContainer wrapper reads these fields;
+ * permanent-section renderers do not set outer padding, margin, corner radius, shadow,
+ * border, or background themselves. The sibling `data` field carries content (including the
+ * atomic UI tree); `surface` carries the frame that sits beneath it.
+ */
+data class SectionSurface (
+    /**
+     * Surface background (solid, gradient, or image).
+     */
+    val background: BackgroundUnion? = null,
 
-    companion object {
-        public fun fromValue(value: String): OverlayType = when (value) {
-            "AdSlot"             -> AdSlot
-            "AtomicComposite"    -> AtomicComposite
-            "BoxscoreTable"      -> BoxscoreTable
-            "Form"               -> Form
-            "GamePanel"          -> GamePanel
-            "SeasonLeadersTable" -> SeasonLeadersTable
-            "SubscribeBanner"    -> SubscribeBanner
-            "SubscribeHero"      -> SubscribeHero
-            "TabGroup"           -> TabGroup
-            "VideoPlayer"        -> VideoPlayer
-            else                 -> throw IllegalArgumentException()
-        }
-    }
-}
+    /**
+     * Outer stroke applied around the surface.
+     */
+    val border: Border? = null,
+
+    /**
+     * Corner radius in dp/px applied to the surface (with overflow clip).
+     */
+    val cornerRadius: Long? = null,
+
+    /**
+     * Outer margin (space between the surface and its siblings / screen edge).
+     */
+    val margin: Spacing? = null,
+
+    /**
+     * Inner padding (space between the surface edge and the content it wraps).
+     */
+    val padding: Spacing? = null,
+
+    /**
+     * Drop shadow applied to the surface.
+     */
+    val shadow: Shadow? = null
+)
+
+/**
+ * Outer stroke applied around the surface.
+ *
+ * Outer stroke applied around a container or section.
+ */
+data class Border (
+    /**
+     * Stroke color (hex or token)
+     */
+    val color: String? = null,
+
+    /**
+     * Stroke width in dp/px
+     */
+    val width: Double? = null
+)
+
+
+/**
+ * Server-exposed A/B / experiment variants available for this screen. Clients read
+ * `options` to render a variant picker (dev UI, QA tooling) and pass the selected id back
+ * to the server on subsequent requests. Omit for screens without active experiments.
+ *
+ * Wrapper for the set of A/B variants the server is willing to serve for this screen. Lets
+ * clients expose variant selection without hardcoding experiment ids or option vocabularies.
+ */
+data class ExperimentVariants (
+    /**
+     * Stable identifier for the experiment (e.g. `game_detail_variant`). Clients echo this key
+     * back to the server as part of the experiments map on subsequent requests.
+     */
+    @get:JsonProperty("experimentId", required=true)@field:JsonProperty("experimentId", required=true)
+    val experimentID: String,
+
+    /**
+     * Ordered list of variants the client may choose from.
+     */
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
+    val options: List<ExperimentVariantOption>
+)
+
+/**
+ * One variant within an experiment.
+ */
+data class ExperimentVariantOption (
+    /**
+     * Optional longer description shown alongside the label.
+     */
+    val description: String? = null,
+
+    /**
+     * Variant identifier (e.g. `A`, `B`). Opaque to clients.
+     */
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
+    val id: String,
+
+    /**
+     * Human-readable label rendered in variant pickers.
+     */
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
+    val label: String
+)

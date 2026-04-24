@@ -18,7 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import com.nba.sdui.core.models.SduiSection
+import com.nba.sdui.core.models.generated.Section
 import com.nba.sdui.core.renderer.ColorTokenResolver
 import com.nba.sdui.core.renderer.applyAccessibility
 import com.nba.sdui.core.state.SduiAction
@@ -29,30 +29,30 @@ import com.nba.sdui.core.state.SduiAction
  * dimensions, shared by the placeholder and (when it lands) the
  * ad SDK itself. Inner placeholder chrome (background color, label
  * text) comes from `data.placeholder`; outer chrome (margin,
- * padding, shadow, radius) comes from `section.display` via the
+ * padding, shadow, radius) comes from `section.surface` via the
  * shared SectionContainer wrapper.
  *
  * This renderer carries no client-side chrome defaults. A payload
- * missing required `sizes` produces an empty stub — see AGENTS.md
- * §15.1 and §15.2.
+ * missing required `sizes` produces an empty stub — reservation
+ * dimensions and placeholder content come from the server payload.
  */
 @Composable
 fun AdSlotRenderer(
-    section: SduiSection,
+    section: Section,
     onAction: (SduiAction) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val data = section.data ?: return
-    val sizes = data["sizes"] as? List<*> ?: return
-    val first = sizes.firstOrNull() as? List<*> ?: return
+    val sizes = data.sizes ?: return
+    val first = sizes.firstOrNull() ?: return
     if (first.size < 2) return
-    val width = (first[0] as? Number)?.toInt() ?: return
-    val height = (first[1] as? Number)?.toInt() ?: return
+    val width = first[0].toInt()
+    val height = first[1].toInt()
 
-    val label = data["label"]?.toString()?.removeSurrounding("\"")
-    val placeholder = data["placeholder"] as? Map<*, *>
-    val bgToken = placeholder?.get("backgroundColor")?.toString()?.removeSurrounding("\"")
-    val placeholderText = placeholder?.get("text")?.toString()?.removeSurrounding("\"") ?: ""
+    val label = data.label
+    val placeholder = data.placeholder
+    val bgToken = placeholder?.backgroundColor
+    val placeholderText = placeholder?.text ?: ""
     val bgColor = ColorTokenResolver.resolve(bgToken).takeOrElse(Color.Unspecified)
 
     Column(

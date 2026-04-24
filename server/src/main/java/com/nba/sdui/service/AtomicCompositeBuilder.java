@@ -1,8 +1,11 @@
 package com.nba.sdui.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+
+import java.util.Set;
 
 /**
  * Builds AtomicComposite sections using atomic element trees.
@@ -66,7 +69,14 @@ public class AtomicCompositeBuilder {
         ObjectNode section = sectionEnvelope(id, null);
 
         ObjectNode root = container("row", "spaceBetween", "center");
-        root.set("padding", padding(16, 16, 12, 12));
+        // Header internal padding: 12pt top (air above title), 4pt bottom.
+        // The vertical rhythm between the header title and the next section
+        // is produced by the surface-level margin on the *next* section's
+        // surface (typically `railSurface.margin.top = 16pt`), not by extra
+        // padding inside the header. Keeping bottom tight here avoids the
+        // "double-gap" look where header-bottom-padding + next-section-
+        // top-margin + next-section-internal-top-padding all stack.
+        root.set("padding", padding(16, 16, 12, 4));
         ArrayNode children = om.createArrayNode();
 
         if (subtitle != null) {
@@ -100,9 +110,12 @@ public class AtomicCompositeBuilder {
 
         // Emit a bare root container — outer chrome (background, padding,
         // radius, shadow, margin) is owned exclusively by the shared
-        // SectionContainer wrapper via `section.display`. Callers must
-        // supply `section.display` on the returned envelope.
-        ObjectNode root = bannerContainer("row", null, "center");
+        // SectionContainer wrapper via `section.surface`. Callers must
+        // supply `section.surface` on the returned envelope. The row
+        // stretches to fill the available width so the promo subject
+        // left-aligns and the CTA (if any) sits against the trailing edge.
+        ObjectNode root = container("row", null, "center");
+        root.put("fillWidth", true);
         ArrayNode rootChildren = om.createArrayNode();
 
         if (imageUrl != null) {
@@ -152,7 +165,7 @@ public class AtomicCompositeBuilder {
         ObjectNode section = sectionEnvelope(id, analyticsId);
 
         ObjectNode root = container("column", null, null);
-        root.set("padding", padding(0, 0, 12, 12));
+        root.set("padding", padding(0, 0, 0, 12));
         ArrayNode rootChildren = om.createArrayNode();
 
         if (title != null) {
@@ -185,7 +198,14 @@ public class AtomicCompositeBuilder {
     private ObjectNode buildContentCard(String id, String headline, String subhead,
                                           String thumbnailUrl, String contentType,
                                           String duration, String targetUri) {
-        ObjectNode card = elevatedContainer("column", null, null);
+        // Plain container (no variant): the `elevated` variant's default
+        // shadow made the inter-card gap look muddy — each card's shadow
+        // bled into the 12pt gap between siblings in the rail. Dropping
+        // the variant removes the shadow entirely; the card silhouette
+        // is defined by its own gradient background, corner radius, and
+        // the scroll container's sibling gap (not by a drop shadow on
+        // neighbouring surfaces).
+        ObjectNode card = container("column", null, null);
         card.put("id", id);
         // Fix the card's outer width so the image (also 200) and any
         // full-width overlays (duration badge strip) meet the card edge
@@ -193,13 +213,16 @@ public class AtomicCompositeBuilder {
         // widths) — a long 2-line headline would push the card past
         // 200, leaving an empty right gutter next to the image.
         card.put("width", 200);
-        // Rounded top, square bottom. The `elevated` variant's default 12pt
-        // radius on all four corners pulled the bottom-left corner curve up
-        // into the headline's first glyph, clipping the leading letter.
-        // Squaring the bottom corners gives the headline full-width breathing
-        // room without reducing the card's visual weight (rounded-top +
-        // squared-bottom is a standard news/streaming-card silhouette).
-        card.set("cornerRadii", cornerRadii(12, 12, 0, 0));
+        card.put("cornerRadius", 12);
+        // Subtle vertical gradient so the card silhouette reads against
+        // the feed background without relying on a drop shadow.
+        ObjectNode cardBg = om.createObjectNode();
+        ArrayNode cardBgColors = om.createArrayNode();
+        cardBgColors.add(ColorTokens.SURFACE_RAISED);
+        cardBgColors.add(ColorTokens.SURFACE_SUNKEN);
+        cardBg.set("colors", cardBgColors);
+        cardBg.put("direction", "vertical");
+        card.set("background", cardBg);
         if (targetUri != null) {
             card.set("actions", singleActionArray(tapNavigate(targetUri)));
         }
@@ -207,17 +230,15 @@ public class AtomicCompositeBuilder {
 
         if (thumbnailUrl != null) {
             ObjectNode img = thumbnailImage(thumbnailUrl);
-            // Card is the sole width anchor; the image stretches to the
-            // card's interior and derives its height from aspectRatio.
-            // This avoids duplicating the 200pt number on both card and
-            // image, and lets the rail re-theme by tuning card.width in
-            // one place.
+            // Image is inset 8pt on start/end/top so the card face is
+            // visible as an equal-thickness frame above and beside the
+            // thumbnail (matches the 12pt inter-card gap perception on
+            // the left/right). Bottom = 0 so the title owns the vertical
+            // rhythm below the image via its own padding.
+            img.set("padding", padding(8, 8, 8, 0));
             img.put("fillWidth", true);
             img.put("aspectRatio", 16.0 / 9.0);
-            // Card outer clip (elevated variant + cornerRadii) owns the
-            // rounded top corners — suppress the thumbnail variant's 8pt
-            // radius so the image meets the card edge flush.
-            img.put("cornerRadius", 0);
+            img.put("cornerRadius", 6);
             if (duration != null) {
                 badge(img, durationBadge(duration), "bottomEnd");
             } else if ("video".equalsIgnoreCase(contentType)) {
@@ -226,9 +247,15 @@ public class AtomicCompositeBuilder {
             children.add(img);
         }
 
-        children.add(spacer(8));
+        children.add(spacer(4));
         ObjectNode headlineEl = text(headline, "bodySmall", "semiBold", ColorTokens.TEXT_PRIMARY, 2);
-        headlineEl.set("padding", padding(8, 8, 8, 8));
+        // Horizontal padding is 16pt (larger than the 8pt image inset and
+        // larger than the card's 12pt cornerRadius) so the first glyph
+        // clears the curved corner instead of sitting at the arc where
+        // the rounded clip shaves off part of the baseline. Reads as a
+        // deliberate text inset rather than a flush baseline with the
+        // image's edge.
+        headlineEl.set("padding", padding(16, 16, 8, 8));
         children.add(headlineEl);
 
         card.set("children", children);
@@ -248,7 +275,7 @@ public class AtomicCompositeBuilder {
         ObjectNode section = sectionEnvelope(id, analyticsId);
 
         ObjectNode root = container("column", null, null);
-        root.set("padding", padding(0, 0, 12, 12));
+        root.set("padding", padding(0, 0, 0, 12));
         ArrayNode rootChildren = om.createArrayNode();
 
         if (title != null) {
@@ -321,7 +348,7 @@ public class AtomicCompositeBuilder {
         ObjectNode section = sectionEnvelope(id, analyticsId);
 
         ObjectNode root = container("column", null, null);
-        root.set("padding", padding(0, 0, 12, 12));
+        root.set("padding", padding(0, 0, 0, 12));
         ArrayNode rootChildren = om.createArrayNode();
 
         if (title != null) {
@@ -389,7 +416,13 @@ public class AtomicCompositeBuilder {
         if (thumbnailUrl != null) {
             ObjectNode imgContainer = container("column", null, null);
             ArrayNode imgChildren = om.createArrayNode();
-            ObjectNode img = heroImage(thumbnailUrl);
+            // Inline hero image treatment: 16:9 artwork that fills card
+            // width, 12pt radius, cover fit. The `hero` ImageVariant was
+            // pruned because this surface is inline-expressible.
+            ObjectNode img = image(thumbnailUrl, 0, 0, "cover");
+            img.put("aspectRatio", 16.0 / 9.0);
+            img.put("fillWidth", true);
+            img.put("cornerRadius", 12);
             imgChildren.add(img);
             if (duration != null) {
                 ObjectNode dur = text(duration, "labelSmall", null, ColorTokens.TEXT_INVERSE, null);
@@ -432,6 +465,230 @@ public class AtomicCompositeBuilder {
         return section;
     }
 
+    // ── GamePanel (as AtomicComposite) ───────────────────────────────────
+
+    /**
+     * Per-team input bundle for {@link #buildGamePanelComposite}. The
+     * {@code score} is the *initial* value; live updates arrive via the
+     * section's {@code dataBinding} writing to
+     * {@code content.homeTeam.score} / {@code content.awayTeam.score},
+     * which the Text leaves pick up at render time via {@code bindRef}.
+     */
+    public record GamePanelTeam(String tricode, int score, String logoUrl) {}
+
+    /**
+     * Build a {@link GamePanelTeam} from a raw upstream team JSON node
+     * (the shape produced by stats-api and the composer mappers).
+     * Falls back to {@link SduiUtils#teamLogoUrl(String)} when the
+     * caller has not pre-populated {@code logoUrl}.
+     */
+    public GamePanelTeam gamePanelTeamFromJson(JsonNode team) {
+        String tricode = team.path("teamTricode").asText("");
+        int score = team.path("score").asInt(0);
+        String logoUrl = team.has("logoUrl") && !team.path("logoUrl").isNull()
+                ? team.path("logoUrl").asText()
+                : SduiUtils.teamLogoUrl(team.path("teamId").asText(""));
+        return new GamePanelTeam(tricode, score, logoUrl);
+    }
+
+    /**
+     * Optional LiveClock snapshot bundle for a running game. When null,
+     * the panel renders a static status Text. When non-null, the status
+     * slot renders a {@code LiveClock} that resolves its snapshot via
+     * {@code bindRef="clock"} — server pushes a single {@code gameClock}
+     * object on every SSE tick and all three animation fields update
+     * together.
+     */
+    public record GameClockSnapshot(int snapshotSeconds, String snapshotAtIso, boolean isRunning) {}
+
+    /**
+     * Build a GamePanel as an AtomicComposite.
+     *
+     * <p>The resulting section carries a pre-seeded {@code data.content}
+     * dictionary that every dynamic leaf reads via {@code bindRef}:
+     * <ul>
+     *   <li>{@code content.gameStatusText} — status row copy.</li>
+     *   <li>{@code content.homeTeam.score} / {@code content.awayTeam.score} — scores.</li>
+     *   <li>{@code content.clock} — {@code {snapshotSeconds, snapshotAt,
+     *       isRunning}} tuple consumed by the {@code LiveClock} leaf when
+     *       the panel is live and {@code clock} is non-null.</li>
+     * </ul>
+     * Live games additionally attach {@link SduiUtils#buildCompositeLinescoreBindings}
+     * so Ably linescore frames land in the same dictionary.
+     *
+     * <p>Visual treatment follows the {@code variant} argument — one of
+     * {@code standard}, {@code featured}, or {@code scoreboard}. The
+     * renderer-owned logic that used to live in {@code GamePanelView}
+     * (SwiftUI), {@code GamePanel.kt} (Compose), and {@code GamePanel.tsx}
+     * (web) is reduced to Container + Text + Image + (optional) LiveClock,
+     * with any variant-specific tuning expressed as inline style
+     * properties on those primitives.
+     */
+    public ObjectNode buildGamePanelComposite(
+            String sectionId,
+            String analyticsId,
+            String variant,
+            String gameId,
+            int gameStatus,
+            String gameStatusText,
+            String badgeText,
+            GamePanelTeam awayTeam,
+            GamePanelTeam homeTeam,
+            GameClockSnapshot clock,
+            String navigateUri,
+            ObjectNode refreshPolicy,
+            ObjectNode linescoreBindings,
+            ObjectNode surface) {
+
+        boolean featured = "featured".equals(variant);
+        int rootPadding = featured ? 20 : 16;
+        int cornerRadius = featured ? 16 : 12;
+
+        // Root vertical container with tap-to-navigate action.
+        ObjectNode root = container("column", null, "stretch");
+        root.put("id", sectionId + "-root");
+        root.put("cornerRadius", cornerRadius);
+        root.set("padding", padding(rootPadding, rootPadding, rootPadding, rootPadding));
+        if (navigateUri != null) {
+            root.set("actions", singleActionArray(tapNavigate(navigateUri)));
+        }
+
+        ArrayNode rootChildren = om.createArrayNode();
+
+        if (badgeText != null && !badgeText.isEmpty()) {
+            ObjectNode badge = text(badgeText, "labelSmall", "bold", "#FFFFFF", null);
+            badge.put("background", "#E03131");
+            badge.put("cornerRadius", 4);
+            badge.set("padding", padding(8, 8, 2, 2));
+            rootChildren.add(badge);
+            rootChildren.add(spacer(8));
+        }
+
+        // Teams row: away | status-slot | home, spread edge-to-edge.
+        ObjectNode row = container("row", "spaceBetween", "center");
+        row.put("fillWidth", true);
+        ArrayNode rowChildren = om.createArrayNode();
+
+        rowChildren.add(teamColumn(awayTeam, "awayTeam"));
+
+        // Status slot. Live games with a clock snapshot render the
+        // LiveClock primitive and let the client interpolate between
+        // snapshots; everything else renders the status text.
+        if (gameStatus == 2 && clock != null) {
+            rowChildren.add(liveClockCell(featured));
+        } else {
+            rowChildren.add(statusCell(gameStatusText, featured));
+        }
+
+        rowChildren.add(teamColumn(homeTeam, "homeTeam"));
+        row.set("children", rowChildren);
+        rootChildren.add(row);
+
+        root.set("children", rootChildren);
+
+        // Envelope + data.ui + data.content.
+        ObjectNode section = sectionEnvelope(sectionId, analyticsId, refreshPolicy);
+        ObjectNode data = wrapUi(root);
+        data.set("content", buildGamePanelContent(gameStatusText, gameStatus, homeTeam, awayTeam, clock));
+        section.set("data", data);
+
+        if (linescoreBindings != null) section.set("dataBinding", linescoreBindings);
+        if (surface != null) section.set("surface", surface);
+
+        return section;
+    }
+
+    /**
+     * Vertical team column: logo, tricode, score. The {@code score}
+     * Text carries a {@code bindRef="<key>.score"} pointing into the
+     * section's {@code content} dictionary so Ably linescore writes
+     * land on the leaf without walking the tree.
+     */
+    private ObjectNode teamColumn(GamePanelTeam team, String contentKey) {
+        ObjectNode col = container("column", "center", "center");
+
+        ArrayNode children = om.createArrayNode();
+        if (team.logoUrl() != null) {
+            ObjectNode logo = image(team.logoUrl(), 48, 48, "contain");
+            children.add(logo);
+            children.add(spacer(4));
+        }
+        ObjectNode tri = text(team.tricode(), "titleMedium", "semiBold", ColorTokens.TEXT_PRIMARY, 1);
+        children.add(tri);
+
+        ObjectNode score = text(String.valueOf(team.score()), "score", "bold", ColorTokens.TEXT_PRIMARY, 1);
+        score.put("bindRef", contentKey + ".score");
+        children.add(score);
+
+        col.set("children", children);
+        return col;
+    }
+
+    private ObjectNode statusCell(String gameStatusText, boolean featured) {
+        ObjectNode statusText = text(gameStatusText != null ? gameStatusText : "",
+                featured ? "titleSmall" : "labelSmall",
+                featured ? "semiBold" : "regular",
+                ColorTokens.TEXT_PRIMARY, 1);
+        statusText.put("opacity", 0.7);
+        statusText.put("bindRef", "gameStatusText");
+        return statusText;
+    }
+
+    /**
+     * LiveClock leaf for the status slot. Reads its
+     * {@code (snapshotSeconds, snapshotAt, isRunning)} tuple from
+     * {@code content.clock} so the server can push a single
+     * {@code gameClock} object on each tick and all three animation
+     * inputs update together.
+     */
+    private ObjectNode liveClockCell(boolean featured) {
+        ObjectNode clock = om.createObjectNode();
+        clock.put("type", "LiveClock");
+        clock.put("variant", featured ? "titleLarge" : "titleMedium");
+        clock.put("format", "m:ss");
+        clock.put("tickDirection", "down");
+        clock.put("bindRef", "clock");
+        clock.put("snapshotSeconds", 0);
+        clock.put("isRunning", false);
+        return clock;
+    }
+
+    /**
+     * Pre-seeded content dictionary the leaves resolve via
+     * {@code bindRef}. Seeded so the first paint shows real values
+     * before the first Ably frame lands; subsequent writes from
+     * {@code buildCompositeLinescoreBindings} replace these entries
+     * in place.
+     */
+    private ObjectNode buildGamePanelContent(String gameStatusText, int gameStatus,
+                                             GamePanelTeam homeTeam,
+                                             GamePanelTeam awayTeam,
+                                             GameClockSnapshot clock) {
+        ObjectNode content = om.createObjectNode();
+        if (gameStatusText != null) content.put("gameStatusText", gameStatusText);
+        content.put("gameStatus", gameStatus);
+
+        ObjectNode home = om.createObjectNode();
+        home.put("score", homeTeam.score());
+        home.put("tricode", homeTeam.tricode());
+        content.set("homeTeam", home);
+
+        ObjectNode away = om.createObjectNode();
+        away.put("score", awayTeam.score());
+        away.put("tricode", awayTeam.tricode());
+        content.set("awayTeam", away);
+
+        if (clock != null) {
+            ObjectNode clockNode = om.createObjectNode();
+            clockNode.put("snapshotSeconds", clock.snapshotSeconds());
+            if (clock.snapshotAtIso() != null) clockNode.put("snapshotAt", clock.snapshotAtIso());
+            clockNode.put("isRunning", clock.isRunning());
+            content.set("clock", clockNode);
+        }
+
+        return content;
+    }
+
     // ── VideoCarousel ────────────────────────────────────────────────────
 
     /**
@@ -446,7 +703,10 @@ public class AtomicCompositeBuilder {
         ObjectNode section = sectionEnvelope(id, analyticsId);
 
         ObjectNode root = container("column", null, null);
-        root.set("padding", padding(0, 0, 8, 8));
+        // Matches the buildContentRail padding rhythm: 0pt top (surface
+        // margin supplies the air), 12pt bottom (so the last-card row
+        // doesn't hug the next section).
+        root.set("padding", padding(0, 0, 0, 12));
         ArrayNode rootChildren = om.createArrayNode();
 
         if (title != null) {
@@ -482,16 +742,22 @@ public class AtomicCompositeBuilder {
     private ObjectNode buildVideoCard(String id, String title, String subtitle,
                                         String thumbnailUrl, String duration,
                                         String badgeText, String targetUri) {
-        ObjectNode card = elevatedContainer("column", null, null);
+        // Plain container (no variant) — see buildContentCard for the
+        // rationale. The card's silhouette is defined by its gradient
+        // background + corner radius, not a drop shadow.
+        ObjectNode card = container("column", null, null);
         card.put("id", id);
         // Fix the card's outer width so the 240pt image + full-width
         // meta row (duration / live badge) meet the card edge flush.
-        // See buildContentCard for the rationale.
         card.put("width", 240);
-        // Rounded top, square bottom — same rationale as buildContentCard:
-        // prevents the bottom-corner curve from clipping into the title's
-        // first glyph and matches the news/streaming-card silhouette.
-        card.set("cornerRadii", cornerRadii(12, 12, 0, 0));
+        card.put("cornerRadius", 12);
+        ObjectNode cardBg = om.createObjectNode();
+        ArrayNode cardBgColors = om.createArrayNode();
+        cardBgColors.add(ColorTokens.SURFACE_RAISED);
+        cardBgColors.add(ColorTokens.SURFACE_SUNKEN);
+        cardBg.set("colors", cardBgColors);
+        cardBg.put("direction", "vertical");
+        card.set("background", cardBg);
         if (targetUri != null) {
             card.set("actions", singleActionArray(tapNavigate(targetUri)));
         }
@@ -502,32 +768,37 @@ public class AtomicCompositeBuilder {
 
         if (thumbnailUrl != null) {
             ObjectNode img = thumbnailImage(thumbnailUrl);
-            // Card owns the width; image stretches + derives height from
-            // aspect ratio. See buildContentCard for the rationale.
+            // Image inset 8pt on start/end/top so the card face shows as
+            // an equal-thickness frame on three sides. Matches the
+            // buildContentCard treatment.
+            img.set("padding", padding(8, 8, 8, 0));
             img.put("fillWidth", true);
             img.put("aspectRatio", 16.0 / 9.0);
-            // Card outer clip owns the rounded top; suppress the thumbnail
-            // variant's 8pt radius so the image meets the card edge cleanly.
-            img.put("cornerRadius", 0);
+            img.put("cornerRadius", 6);
             thumbChildren.add(img);
         }
 
         ObjectNode metaContainer = container("row", "spaceBetween", "center");
-        metaContainer.set("padding", padding(6, 6, 6, 6));
+        // Start/end match the image's 8pt inset so the meta row aligns
+        // with the image's left/right edges instead of the card's outer
+        // edges.
+        metaContainer.set("padding", padding(8, 8, 6, 6));
         ArrayNode metaChildren = om.createArrayNode();
 
         if (badgeText != null) {
-            ObjectNode badge = text(badgeText, "labelSmall", "bold", ColorTokens.TEXT_INVERSE, null);
-            badge.put("background", ColorTokens.BRAND_LIVE);
-            metaChildren.add(badge);
+            // Pill badge — Container-wrapped text so the background
+            // actually renders (Text's own `background` is not honored
+            // by any of the three atomic Text renderers). Red brand
+            // pill for NEW/LIVE-style callouts.
+            metaChildren.add(pillBadge(badgeText, ColorTokens.BRAND_LIVE));
         } else {
             metaChildren.add(spacer(1));
         }
 
         if (duration != null) {
-            ObjectNode dur = text(duration, "labelSmall", null, ColorTokens.TEXT_INVERSE, null);
-            dur.put("background", "#000000B3");
-            metaChildren.add(dur);
+            // Dark translucent pill for durations (matches the duration
+            // chip overlaid on video card thumbnails elsewhere).
+            metaChildren.add(pillBadge(duration, "#000000B3"));
         }
 
         metaContainer.set("children", metaChildren);
@@ -536,7 +807,11 @@ public class AtomicCompositeBuilder {
         children.add(thumbContainer);
 
         ObjectNode textCol = container("column", null, null);
-        textCol.set("padding", padding(10, 10, 10, 10));
+        // 14pt horizontal > card's 12pt cornerRadius so the title's
+        // first glyph clears the rounded corner arc instead of sitting
+        // at the clip edge. 10pt vertical keeps the card's top/bottom
+        // rhythm unchanged.
+        textCol.set("padding", padding(14, 14, 10, 10));
         ArrayNode textChildren = om.createArrayNode();
         textChildren.add(text(title, "bodyMedium", "semiBold", ColorTokens.TEXT_PRIMARY, 2));
         if (subtitle != null) {
@@ -693,48 +968,6 @@ public class AtomicCompositeBuilder {
         return col;
     }
 
-    // ── GamePanelDisplayConfig presets ────────────────────────────────
-
-    public ObjectNode standardConfig() {
-        ObjectNode config = om.createObjectNode();
-        config.put("background", ColorTokens.SURFACE_CANVAS);
-        return config;
-    }
-
-    public ObjectNode featuredConfig(String bgImageUrl, String[] liveBgGradientColors) {
-        ObjectNode config = om.createObjectNode();
-        config.put("logoSize", 56);
-        config.put("cardHeight", 200);
-        config.put("cornerRadius", 16);
-        config.put("elevation", 6);
-        config.put("scoreTextStyle", "prominent");
-        if (bgImageUrl != null) {
-            ObjectNode bgImage = om.createObjectNode();
-            bgImage.put("imageUrl", bgImageUrl);
-            config.set("background", bgImage);
-        } else {
-            config.put("background", ColorTokens.PALETTE_BLUE_30);
-        }
-        if (liveBgGradientColors != null) {
-            ObjectNode grad = om.createObjectNode();
-            ArrayNode colors = om.createArrayNode();
-            for (String c : liveBgGradientColors) colors.add(c);
-            grad.set("colors", colors);
-            grad.put("direction", "horizontal");
-            config.set("liveBackground", grad);
-        }
-        config.put("badgeColor", ColorTokens.BRAND_LIVE);
-        return config;
-    }
-
-    public ObjectNode scoreboardConfig(String bgColor) {
-        ObjectNode config = om.createObjectNode();
-        config.put("logoSize", 60);
-        config.put("scoreTextStyle", "prominent");
-        config.put("background", bgColor != null ? bgColor : ColorTokens.BRAND_NBA);
-        return config;
-    }
-
     // ── NbaTvSchedule ────────────────────────────────────────────────────
 
     /**
@@ -749,14 +982,20 @@ public class AtomicCompositeBuilder {
                                           String[][] slots) {
         ObjectNode section = sectionEnvelope(id, analyticsId);
 
-        ObjectNode root = container("column", null, null);
-        root.put("background", ColorTokens.SURFACE_SUNKEN);
-        root.put("cornerRadius", 12);
+        // Root is content-only. The card chrome (sunken background,
+        // rounded corners, horizontal+vertical margin from siblings) is
+        // expressed on section.surface so every card-chromed composite
+        // shares one surface helper. `fillWidth: true` is required for
+        // the hero image and slot list to span the card's interior on
+        // iOS — without it the VStack sizes to max(child intrinsic).
+        ObjectNode root = container("column", null, "start");
+        root.put("fillWidth", true);
+        root.set("padding", padding(0, 0, 0, 16));
         ArrayNode rootChildren = om.createArrayNode();
 
-        ObjectNode heroContainer = container("column", "end", null);
+        ObjectNode heroContainer = container("column", "end", "start");
+        heroContainer.put("fillWidth", true);
         heroContainer.put("cornerRadius", 12);
-        heroContainer.set("padding", padding(16, 16, 8, 8));
         ArrayNode heroChildren = om.createArrayNode();
 
         if (heroImageUrl != null) {
@@ -766,7 +1005,8 @@ public class AtomicCompositeBuilder {
             heroChildren.add(heroImg);
         }
 
-        ObjectNode overlay = container("column", null, null);
+        ObjectNode overlay = container("column", null, "start");
+        overlay.put("fillWidth", true);
         overlay.set("padding", padding(16, 16, 16, 16));
         ObjectNode grad = om.createObjectNode();
         ArrayNode gradColors = om.createArrayNode();
@@ -778,9 +1018,7 @@ public class AtomicCompositeBuilder {
         ArrayNode overlayChildren = om.createArrayNode();
 
         if (liveNow) {
-            ObjectNode liveBadge = text("LIVE", "labelSmall", "bold", ColorTokens.TEXT_INVERSE, null);
-            liveBadge.put("background", ColorTokens.BRAND_LIVE);
-            overlayChildren.add(liveBadge);
+            overlayChildren.add(liveBadge());
             overlayChildren.add(spacer(6));
         }
         if (heroTitle != null) {
@@ -794,15 +1032,19 @@ public class AtomicCompositeBuilder {
         heroContainer.set("children", heroChildren);
         rootChildren.add(heroContainer);
 
-        rootChildren.add(spacer(8));
+        rootChildren.add(spacer(12));
 
+        // Heading padding is 16pt horizontal — same inset as the slot
+        // list below so the title line aligns with the row cards' outer
+        // edge. Any padding the surface provides is in addition to this.
         ObjectNode heading = text("Today's Schedule", "titleSmall", "bold", ColorTokens.TEXT_PRIMARY, null);
         heading.set("padding", padding(16, 16, 4, 4));
         rootChildren.add(heading);
 
-        ObjectNode slotList = container("column", null, null);
+        ObjectNode slotList = container("column", null, "start");
+        slotList.put("fillWidth", true);
         slotList.put("gap", 8);
-        slotList.set("padding", padding(16, 16, 0, 0));
+        slotList.set("padding", padding(16, 16, 4, 0));
         ArrayNode slotChildren = om.createArrayNode();
 
         for (String[] slot : slots) {
@@ -817,12 +1059,43 @@ public class AtomicCompositeBuilder {
         return section;
     }
 
+    /**
+     * Generic pill badge — Container with a colored rounded-rect
+     * background wrapping a small white bold label. Use for any inline
+     * chip (LIVE, NEW, durations) when the color is not the LIVE red.
+     * For the LIVE badge specifically, call {@link #liveBadge()}.
+     *
+     * <p>Expressed as a Container wrapping a Text because Text
+     * backgrounds are not rendered by any client's atomic Text
+     * renderer — Text draws only the foreground glyph on all three
+     * platforms. Container backgrounds + corner radii are universal.
+     */
+    private ObjectNode pillBadge(String label, String backgroundColor) {
+        ObjectNode badge = container("row", null, "center");
+        badge.put("background", backgroundColor);
+        badge.put("cornerRadius", 4);
+        badge.set("padding", padding(6, 6, 2, 2));
+        ArrayNode children = om.createArrayNode();
+        children.add(text(label, "labelSmall", "bold", ColorTokens.TEXT_INVERSE, null));
+        badge.set("children", children);
+        return badge;
+    }
+
     private ObjectNode buildNbaTvSlot(String id, String title, String subtitle,
                                         String displayTime, boolean isLive,
                                         String targetUri) {
+        // Row layout: [time][content fills remaining][badge, optional].
+        // `contentCol.fillWidth = true` is the load-bearing bit — without
+        // it the HStack distributes leftover space unpredictably (time
+        // and title end up far apart, title truncates with an ellipsis
+        // even though the row has plenty of room). fillWidth forces the
+        // column to claim remaining horizontal space so the time hugs
+        // the leading edge and the badge hugs the trailing edge while
+        // the title+subtitle expand into the middle.
         ObjectNode row = container("row", null, "center");
         row.put("id", id);
         row.put("fillWidth", true);
+        row.put("gap", 12);
         row.put("cornerRadius", 8);
         row.put("background", ColorTokens.SURFACE_CANVAS);
         row.set("padding", padding(12, 12, 12, 12));
@@ -833,9 +1106,9 @@ public class AtomicCompositeBuilder {
 
         ObjectNode timeText = text(displayTime, "bodyMedium", "semiBold", ColorTokens.TEXT_SECONDARY, null);
         children.add(timeText);
-        children.add(spacer(12));
 
-        ObjectNode contentCol = container("column", null, null);
+        ObjectNode contentCol = container("column", null, "start");
+        contentCol.put("fillWidth", true);
         ArrayNode contentChildren = om.createArrayNode();
         contentChildren.add(text(title, "bodyMedium", "semiBold", ColorTokens.TEXT_PRIMARY, 1));
         if (subtitle != null) {
@@ -845,10 +1118,7 @@ public class AtomicCompositeBuilder {
         children.add(contentCol);
 
         if (isLive) {
-            children.add(spacer(8));
-            ObjectNode badge = text("LIVE", "labelSmall", "bold", ColorTokens.TEXT_INVERSE, null);
-            badge.put("background", ColorTokens.BRAND_LIVE);
-            children.add(badge);
+            children.add(liveBadge());
         }
 
         row.set("children", children);
@@ -1149,13 +1419,48 @@ public class AtomicCompositeBuilder {
         if (refreshPolicy != null) section.set("refreshPolicy", refreshPolicy);
     }
 
+    /**
+     * Attach an atomic root element to a section as its {@code data.ui}
+     * payload, constructing a fresh {@code data} object. Used by the
+     * AtomicComposite builders above.
+     */
     private void wrapUi(ObjectNode section, ObjectNode rootElement) {
-        ObjectNode data = om.createObjectNode();
-        data.set("ui", rootElement);
-        section.set("data", data);
+        section.set("data", wrapUi(rootElement));
     }
 
-    private ObjectNode container(String direction, String alignment, String crossAlignment) {
+    /**
+     * Build the {@code data} object for a section whose full visible surface
+     * is expressed as an atomic tree under {@code data.ui}. Shared with
+     * permanent-section composers (SubscribeBanner / SubscribeHero /
+     * VideoPlayer) that use the same on-wire shape as AtomicComposite but
+     * additionally expose top-level domain-data fields (ctaAction, tiers,
+     * playerType, ...) the client reads alongside the tree.
+     */
+    ObjectNode wrapUi(ObjectNode rootElement) {
+        ObjectNode data = om.createObjectNode();
+        data.set("ui", rootElement);
+        return data;
+    }
+
+    // Allowed values for Container's direction / alignment / crossAlignment
+    // fields, mirroring the Direction / Alignment / CrossAlignment enums in
+    // schema/sdui-schema.json. Kept in lock-step with the schema — when an
+    // enum value is added or removed there, update the set here too.
+    // Clients strict-decode these fields, so a composer that
+    // emits a value outside the enum crashes the client at decode time;
+    // validating here surfaces the contract violation at the server-build
+    // site instead of at the client.
+    private static final Set<String> VALID_DIRECTIONS = Set.of("row", "column");
+    private static final Set<String> VALID_ALIGNMENTS =
+        Set.of("start", "center", "end", "spaceBetween", "spaceAround", "spaceEvenly");
+    private static final Set<String> VALID_CROSS_ALIGNMENTS =
+        Set.of("start", "center", "end", "stretch");
+
+    ObjectNode container(String direction, String alignment, String crossAlignment) {
+        validateEnum("direction", direction, VALID_DIRECTIONS);
+        validateEnum("alignment", alignment, VALID_ALIGNMENTS);
+        validateEnum("crossAlignment", crossAlignment, VALID_CROSS_ALIGNMENTS);
+
         ObjectNode node = om.createObjectNode();
         node.put("type", "Container");
         if (direction != null) node.put("direction", direction);
@@ -1164,14 +1469,24 @@ public class AtomicCompositeBuilder {
         return node;
     }
 
+    private static void validateEnum(String field, String value, Set<String> allowed) {
+        if (value == null) return;
+        if (!allowed.contains(value)) {
+            throw new IllegalArgumentException(
+                "Container." + field + " value '" + value
+                    + "' is not in the schema enum " + allowed
+                    + ". Fix the composer call site; clients strict-decode this field."
+            );
+        }
+    }
+
     /**
      * Container preset that emits {@code variant}. Each platform resolves the
      * string against its ContainerVariant enum and supplies a native realization
      * (material, tonal elevation, gradient, shadow). Known values: "hero",
-     * "elevated", "banner", "subtle", "grouped", "overlay". Inline style
-     * properties may still be set on the returned node and win over the
-     * variant default for axes the variant's override matrix marks as
-     * {@code allow}.
+     * "grouped". Inline style properties may still be set on the returned
+     * node and win over the variant default for axes the variant's override
+     * matrix marks as {@code allow}.
      */
     ObjectNode variantContainer(String variant, String direction,
                                 String alignment, String crossAlignment) {
@@ -1184,24 +1499,8 @@ public class AtomicCompositeBuilder {
         return variantContainer("hero", direction, alignment, crossAlignment);
     }
 
-    ObjectNode elevatedContainer(String direction, String alignment, String crossAlignment) {
-        return variantContainer("elevated", direction, alignment, crossAlignment);
-    }
-
-    ObjectNode bannerContainer(String direction, String alignment, String crossAlignment) {
-        return variantContainer("banner", direction, alignment, crossAlignment);
-    }
-
-    ObjectNode subtleContainer(String direction, String alignment, String crossAlignment) {
-        return variantContainer("subtle", direction, alignment, crossAlignment);
-    }
-
     ObjectNode groupedContainer(String direction, String alignment, String crossAlignment) {
         return variantContainer("grouped", direction, alignment, crossAlignment);
-    }
-
-    ObjectNode overlayContainer(String direction, String alignment, String crossAlignment) {
-        return variantContainer("overlay", direction, alignment, crossAlignment);
     }
 
     /**
@@ -1222,7 +1521,7 @@ public class AtomicCompositeBuilder {
         element.put("flex", flex);
     }
 
-    private ObjectNode text(String content, String variant, String weight,
+    ObjectNode text(String content, String variant, String weight,
                              String color, Integer maxLines) {
         ObjectNode node = om.createObjectNode();
         node.put("type", "Text");
@@ -1237,11 +1536,11 @@ public class AtomicCompositeBuilder {
     private static final String DEFAULT_PLACEHOLDER =
             "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png";
 
-    private ObjectNode image(String src, int width, int height, String fit) {
+    ObjectNode image(String src, int width, int height, String fit) {
         return image(src, width, height, fit, DEFAULT_PLACEHOLDER);
     }
 
-    private ObjectNode image(String src, int width, int height, String fit, String placeholder) {
+    ObjectNode image(String src, int width, int height, String fit, String placeholder) {
         ObjectNode node = om.createObjectNode();
         node.put("type", "Image");
         node.put("src", src);
@@ -1253,10 +1552,9 @@ public class AtomicCompositeBuilder {
     }
 
     /**
-     * Image preset that emits {@code variant}. Known values: "hero",
-     * "thumbnail", "logo". Each platform resolves the string against its
-     * ImageVariant enum and supplies native aspect ratio, content mode,
-     * corner radius, and clip behaviour.
+     * Image preset that emits {@code variant}. Known value: "thumbnail".
+     * The client resolves the string against its ImageVariant enum and
+     * supplies native content mode, corner radius, and clip behaviour.
      */
     ObjectNode variantImage(String variant, String src) {
         ObjectNode node = om.createObjectNode();
@@ -1267,13 +1565,9 @@ public class AtomicCompositeBuilder {
         return node;
     }
 
-    ObjectNode heroImage(String src) { return variantImage("hero", src); }
-
     ObjectNode thumbnailImage(String src) { return variantImage("thumbnail", src); }
 
-    ObjectNode logoImage(String src) { return variantImage("logo", src); }
-
-    private ObjectNode button(String label, String variant, ObjectNode action) {
+    ObjectNode button(String label, String variant, ObjectNode action) {
         ObjectNode node = om.createObjectNode();
         node.put("type", "Button");
         node.put("label", label);
@@ -1282,14 +1576,14 @@ public class AtomicCompositeBuilder {
         return node;
     }
 
-    private ObjectNode spacer(int height) {
+    ObjectNode spacer(int height) {
         ObjectNode node = om.createObjectNode();
         node.put("type", "Spacer");
         node.put("height", height);
         return node;
     }
 
-    private ObjectNode padding(int start, int end, int top, int bottom) {
+    ObjectNode padding(int start, int end, int top, int bottom) {
         ObjectNode p = om.createObjectNode();
         p.put("start", start);
         p.put("end", end);
@@ -1314,7 +1608,7 @@ public class AtomicCompositeBuilder {
         return r;
     }
 
-    private ObjectNode tapNavigate(String targetUri) {
+    ObjectNode tapNavigate(String targetUri) {
         ObjectNode action = om.createObjectNode();
         action.put("trigger", "onTap");
         action.put("type", "navigate");
@@ -1345,7 +1639,7 @@ public class AtomicCompositeBuilder {
         return fb;
     }
 
-    private ArrayNode singleActionArray(ObjectNode action) {
+    ArrayNode singleActionArray(ObjectNode action) {
         ArrayNode arr = om.createArrayNode();
         arr.add(action);
         return arr;

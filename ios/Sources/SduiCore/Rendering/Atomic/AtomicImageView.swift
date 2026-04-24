@@ -1,26 +1,31 @@
 import SwiftUI
 
 /// Renders an Image atomic element. Image URLs always come from the server
-/// response — never constructed client-side.
+/// response — never constructed client-side. Image-specific concerns
+/// (aspectRatio, objectFit, cornerRadii-on-the-image) live here; margin /
+/// padding / bg / shadow / opacity / width / fillWidth / badge live on
+/// `AtomicBoxModifier` via `.atomicBox(...)`.
+///
+/// Note on sizing: explicit `width` / `height` on the wire go to the
+/// AtomicBox's outer frame (matching leaves of every other primitive).
+/// The <img>-equivalent inside fills that frame so cornerRadius/clip on
+/// the box applies correctly. The image's own `.aspectRatio` sits on
+/// the inner view so loading / failure placeholders keep the intended
+/// aspect box even before bytes land.
 struct AtomicImageView: View {
     let element: AtomicElement
     var screenState: ScreenState = ScreenState()
     var onAction: (Action) -> Void = { _ in }
 
+    @Environment(\.compositeContent) private var compositeContent
+
     var body: some View {
-        if let src = element.src, let url = URL(string: src) {
+        if let src = resolvedSrc, let url = URL(string: src) {
             let spec = ImageVariantResolver.resolve(element.variant)
             let resolvedAspectRatio = element.aspectRatio.map { CGFloat($0) } ?? spec?.aspectRatio
             let resolvedContentMode = contentMode(spec: spec)
             let resolvedRadius = element.cornerRadius.map { CGFloat($0) } ?? spec?.cornerRadius
             let shouldClip = spec?.clip ?? true
-            // Priority: inline fillWidth > inline width > variant fillWidth.
-            // A thumbnail inside a fixed-width card emits `fillWidth: true` +
-            // `aspectRatio: 16/9` to stretch to the card edge while the card
-            // owns the sole width anchor.
-            let inlineFillWidth = element.fillWidth ?? false
-            let shouldFillWidth = (inlineFillWidth || (spec?.fillWidth ?? false))
-                && element.width == nil
 
             AsyncImage(url: url) { phase in
                 switch phase {
@@ -36,29 +41,38 @@ struct AtomicImageView: View {
                     placeholder
                 }
             }
-            .modifier(ImageFrameModifier(
-                width: element.width.map { CGFloat($0) },
-                height: element.height.map { CGFloat($0) },
-                fillWidth: shouldFillWidth
-            ))
+            // Aspect ratio on the outer frame covers loading/failure
+            // placeholders, which otherwise collapse before the image
+            // lands. A fixed `height` on the element disables this so
+            // the outer frame is a fixed box, not an aspect-derived one.
             .modifier(ImageAspectRatioModifier(
-                // Apply aspectRatio at the outer level only when fillWidth
-                // is on and no explicit height was set — in that case the
-                // loading/failure placeholders would otherwise collapse to
-                // zero height (the inner `.aspectRatio` on `.success` only
-                // runs once the image loads). When width+height are fixed,
-                // the inner `.aspectRatio` is sufficient.
-                aspectRatio: (shouldFillWidth && element.height == nil) ? resolvedAspectRatio : nil,
+                aspectRatio: (element.height == nil) ? resolvedAspectRatio : nil,
                 contentMode: resolvedContentMode
             ))
+            // Image-specific corner clip (the AtomicBox also clips when
+            // cornerRadius is set, so this is redundant when the image
+            // is already sized to fill the box; kept for the legacy
+            // case of a variant like `logo` that sets `clip: false` and
+            // relies on its own clipping disabled).
             .modifier(ImageCornerRadiusModifier(
-                radius: shouldClip ? resolvedRadius : nil,
-                radii: shouldClip ? element.cornerRadii : nil
+                radius: shouldClip ? nil : resolvedRadius,
+                radii: shouldClip ? nil : element.cornerRadii
             ))
-            .applyBadge(element.badge, screenState: screenState, onAction: onAction)
             .applyActionTriggers(element.actions, onAction: onAction)
             .sduiAccessibility(element.accessibility, fallbackLabel: element.alt)
+            .atomicBox(element, screenState: screenState, onAction: onAction)
         }
+    }
+
+    /// Resolve `src` from `bindRef` when present (pointing into the
+    /// enclosing composite's `data.content`), falling back to the inline
+    /// `src` URL. Lets composers rebind image URLs in flight without
+    /// touching the ui tree.
+    private var resolvedSrc: String? {
+        if let bound = BindRefResolver.resolveString(bindRef: element.bindRef, in: compositeContent) {
+            return bound
+        }
+        return element.src
     }
 
     private func contentMode(spec: ImageVariantSpec?) -> ContentMode {
@@ -77,27 +91,6 @@ struct AtomicImageView: View {
     private var placeholder: some View {
         Rectangle()
             .fill(Color.gray.opacity(0.2))
-            .frame(
-                width: element.width.map { CGFloat($0) },
-                height: element.height.map { CGFloat($0) }
-            )
-    }
-}
-
-private struct ImageFrameModifier: ViewModifier {
-    let width: CGFloat?
-    let height: CGFloat?
-    let fillWidth: Bool
-
-    @ViewBuilder
-    func body(content: Content) -> some View {
-        if fillWidth {
-            content
-                .frame(maxWidth: .infinity)
-                .frame(height: height)
-        } else {
-            content.frame(width: width, height: height)
-        }
     }
 }
 
@@ -122,11 +115,6 @@ private struct ImageCornerRadiusModifier: ViewModifier {
     @ViewBuilder
     func body(content: Content) -> some View {
         if let radii = radii, hasAnyCorner(radii) {
-            // Asymmetric per-corner rounding (e.g. content-card thumbnail:
-            // rounded top, square bottom so the text area below can sit flush
-            // against the image without a curved inset above it). `cornerRadius`
-            // (single value) is used as the fallback for any corner omitted
-            // from cornerRadii.
             content.clipShape(unevenShape(radii: radii, fallback: radius ?? 0))
         } else if let radius = radius {
             content.cornerRadius(radius)

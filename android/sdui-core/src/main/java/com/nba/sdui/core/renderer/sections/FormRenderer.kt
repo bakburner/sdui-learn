@@ -10,7 +10,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.nba.sdui.core.models.SduiSection
+import com.nba.sdui.core.models.generated.Section
 import com.nba.sdui.core.renderer.applyAccessibility
 import com.nba.sdui.core.renderer.adapters.FormFieldUi
 import com.nba.sdui.core.renderer.adapters.FormUiModel
@@ -28,7 +28,7 @@ private const val TAG = "FormRenderer"
  */
 @Composable
 fun FormRenderer(
-    section: SduiSection,
+    section: Section,
     screenState: Map<String, Any>,
     onAction: (SduiAction) -> Unit,
     onStateChange: (String, Any) -> Unit,
@@ -104,7 +104,6 @@ private fun FormFieldRenderer(
     when (field.fieldType) {
         "select", "picker" -> when (field.variant) {
             "chips" -> ChipsField(field, currentValue, onStateChange)
-            "segmented" -> SegmentedField(field, currentValue, onStateChange)
             // null/"dropdown" and any unknown variant fall back to the Material 3 dropdown.
             else -> {
                 if (field.variant != null && field.variant !in knownSelectVariants) {
@@ -113,7 +112,6 @@ private fun FormFieldRenderer(
                 SelectField(field, currentValue, onStateChange)
             }
         }
-        "segmented" -> SegmentedField(field, currentValue, onStateChange)
         "toggle" -> ToggleField(field, currentValue, onStateChange)
         "radio" -> RadioField(field, currentValue, onStateChange)
         "text" -> TextInputField(field, currentValue, onStateChange)
@@ -125,7 +123,7 @@ private fun FormFieldRenderer(
     }
 }
 
-private val knownSelectVariants = setOf("dropdown", "chips", "segmented")
+private val knownSelectVariants = setOf("dropdown", "chips")
 
 // ── Select (Dropdown) ────────────────────────────────────────────────
 
@@ -161,7 +159,7 @@ private fun SelectField(
                 enabled = !field.disabled,
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                 modifier = Modifier
-                    .menuAnchor()
+                    .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled = !field.disabled)
                     .fillMaxWidth()
             )
 
@@ -215,54 +213,6 @@ private fun ChipsField(
                     label = { Text(option.label, maxLines = 1) },
                     enabled = !field.disabled
                 )
-            }
-        }
-    }
-}
-
-// ── Segmented Buttons ────────────────────────────────────────────────
-
-@Composable
-private fun SegmentedField(
-    field: FormFieldUi,
-    currentValue: Any?,
-    onStateChange: (String, Any) -> Unit
-) {
-    val selectedValue = currentValue?.toString() ?: field.defaultValue ?: ""
-
-    Column {
-        field.label?.let { label ->
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Medium,
-                modifier = Modifier.padding(bottom = 4.dp)
-            )
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            field.options.forEach { option ->
-                val isSelected = option.value == selectedValue
-                if (isSelected) {
-                    FilledTonalButton(
-                        onClick = { onStateChange(field.stateKey, option.value) },
-                        modifier = Modifier.weight(1f),
-                        enabled = !field.disabled
-                    ) {
-                        Text(option.label, maxLines = 1)
-                    }
-                } else {
-                    OutlinedButton(
-                        onClick = { onStateChange(field.stateKey, option.value) },
-                        modifier = Modifier.weight(1f),
-                        enabled = !field.disabled
-                    ) {
-                        Text(option.label, maxLines = 1)
-                    }
-                }
             }
         }
     }

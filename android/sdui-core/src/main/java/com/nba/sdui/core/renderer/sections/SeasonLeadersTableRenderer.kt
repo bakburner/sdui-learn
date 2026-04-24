@@ -19,7 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import com.nba.sdui.core.models.SduiSection
+import com.nba.sdui.core.models.generated.Section
 import com.nba.sdui.core.renderer.applyAccessibility
 import com.nba.sdui.core.renderer.adapters.SeasonLeadersTableUiModel
 import com.nba.sdui.core.renderer.adapters.mapSeasonLeadersTable
@@ -43,7 +43,7 @@ private val SUBTITLE_COLOR = Color(0xFF9AA6BA)
  */
 @Composable
 fun SeasonLeadersTableRenderer(
-    section: SduiSection,
+    section: Section,
     onAction: (SduiAction) -> Unit,
     modifier: Modifier = Modifier
 ) {

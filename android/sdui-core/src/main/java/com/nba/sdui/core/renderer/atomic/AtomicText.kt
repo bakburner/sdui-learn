@@ -9,20 +9,24 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import com.nba.sdui.core.models.AtomicElement
+import com.nba.sdui.core.models.generated.Align
+import com.nba.sdui.core.models.generated.AtomicElement
+import com.nba.sdui.core.models.generated.TextWeight
 import com.nba.sdui.core.renderer.ColorTokenResolver
 import com.nba.sdui.core.renderer.applyAccessibility
 import com.nba.sdui.core.state.SduiAction
 
 /**
- * AtomicText — renders a Text element using MaterialTheme typography variants.
+ * AtomicText — renders a Text element using MaterialTheme typography
+ * variants. The text itself owns typography (font / color / alignment /
+ * line clamp); margin / padding / bg / cornerRadius / shadow / opacity
+ * / fillWidth / badge come from [AtomicBox].
  */
 @Composable
 fun AtomicText(
     element: AtomicElement,
     screenState: Map<String, Any>,
-    onAction: (SduiAction) -> Unit,
-    modifier: Modifier = Modifier
+    onAction: (SduiAction) -> Unit
 ) {
     val baseStyle = mapTypographyVariant(element.variant)
     if (element.variant != null && !isKnownTextVariant(element.variant)) {
@@ -36,27 +40,35 @@ fun AtomicText(
     val fontWeight = element.weight?.let { mapFontWeight(it) }
     val textColor = ColorTokenResolver.resolve(element.color)
     val textAlign = when (element.textAlign) {
-        "start" -> TextAlign.Start
-        "center" -> TextAlign.Center
-        "end" -> TextAlign.End
+        Align.Start -> TextAlign.Start
+        Align.Center -> TextAlign.Center
+        Align.End -> TextAlign.End
         else -> null
     }
 
-    Text(
-        text = element.content.orEmpty(),
-        style = style,
-        fontWeight = fontWeight,
-        color = textColor,
-        textAlign = textAlign,
-        maxLines = element.maxLines ?: Int.MAX_VALUE,
-        overflow = TextOverflow.Ellipsis,
-        modifier = modifier.applyAccessibility(element.accessibility)
-    )
+    // Resolve `content` from `bindRef` when present, falling back to the
+    // inline `content` property. A leaf with a bindRef but no matching
+    // `data.content` entry falls back to its inline value rather than
+    // rendering nothing — this keeps the first paint usable while the
+    // first real-time update is in flight.
+    val compositeContent = LocalCompositeContent.current
+    val resolvedContent = BindRefResolver.resolveString(element.bindRef, compositeContent)
+        ?: element.content.orEmpty()
+
+    AtomicBox(element, screenState, onAction) { boxModifier ->
+        Text(
+            text = resolvedContent,
+            style = style,
+            fontWeight = fontWeight,
+            color = textColor,
+            textAlign = textAlign,
+            maxLines = element.maxLines?.toInt() ?: Int.MAX_VALUE,
+            overflow = TextOverflow.Ellipsis,
+            modifier = boxModifier.applyAccessibility(element.accessibility)
+        )
+    }
 }
 
-/**
- * Map schema variant strings to MaterialTheme typography styles.
- */
 @Composable
 internal fun mapTypographyVariant(variant: String?): TextStyle = when (variant) {
     "displayLarge"  -> MaterialTheme.typography.displayLarge
@@ -87,15 +99,9 @@ private val KNOWN_TEXT_VARIANTS = setOf(
 
 private fun isKnownTextVariant(variant: String): Boolean = variant in KNOWN_TEXT_VARIANTS
 
-private fun mapFontWeight(weight: String): FontWeight = when (weight) {
-    "thin"       -> FontWeight.Thin
-    "extraLight" -> FontWeight.ExtraLight
-    "light"      -> FontWeight.Light
-    "normal"     -> FontWeight.Normal
-    "medium"     -> FontWeight.Medium
-    "semiBold"   -> FontWeight.SemiBold
-    "bold"       -> FontWeight.Bold
-    "extraBold"  -> FontWeight.ExtraBold
-    "black"      -> FontWeight.Black
-    else         -> FontWeight.Normal
+private fun mapFontWeight(weight: TextWeight): FontWeight = when (weight) {
+    TextWeight.Regular -> FontWeight.Normal
+    TextWeight.Medium -> FontWeight.Medium
+    TextWeight.SemiBold -> FontWeight.SemiBold
+    TextWeight.Bold -> FontWeight.Bold
 }

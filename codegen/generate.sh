@@ -7,9 +7,9 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCHEMA_FILE="$SCRIPT_DIR/../schema/sdui-schema.json"
-OUTPUT_DIR="$SCRIPT_DIR/output"
 IOS_MODELS_OUT="$SCRIPT_DIR/../ios/Sources/SduiCore/Models/SduiModels.swift"
 WEB_MODELS_OUT="$SCRIPT_DIR/../web/src/generated/SduiModels.ts"
+ANDROID_MODELS_OUT="$SCRIPT_DIR/../android/sdui-core/src/main/java/com/nba/sdui/core/models/generated/SduiModels.kt"
 
 echo "=== SDUI Code Generation ==="
 echo "Schema: $SCHEMA_FILE"
@@ -22,16 +22,16 @@ if [ ! -f "$SCHEMA_FILE" ]; then
 fi
 
 # Create output directories
-mkdir -p "$OUTPUT_DIR/kotlin"
 mkdir -p "$(dirname "$IOS_MODELS_OUT")"
 mkdir -p "$(dirname "$WEB_MODELS_OUT")"
+mkdir -p "$(dirname "$ANDROID_MODELS_OUT")"
 
 # Check if quicktype is installed
 if ! command -v quicktype &> /dev/null; then
     echo "Warning: quicktype not found. Install with: npm install -g quicktype"
     echo "Skipping Swift and TypeScript generation."
     echo ""
-    echo "Running Java/Kotlin generation via Gradle..."
+    echo "Running Java generation via Gradle..."
     cd "$SCRIPT_DIR"
     ./gradlew generateJsonSchema2Pojo
     echo ""
@@ -39,17 +39,7 @@ if ! command -v quicktype &> /dev/null; then
     exit 0
 fi
 
-echo "1. Generating Kotlin models (via quicktype)..."
-quicktype \
-    --src "$SCHEMA_FILE" \
-    --src-lang schema \
-    --lang kotlin \
-    --package com.nba.sdui.models.quicktype \
-    --framework kotlinx-serialization \
-    --out "$OUTPUT_DIR/kotlin/SduiModels.kt" \
-    2>/dev/null || echo "   Kotlin generation completed with warnings"
-
-echo "2. Generating Swift models (iOS SduiCore)..."
+echo "1. Generating Swift models (iOS SduiCore)..."
 # Writes directly into the iOS SwiftPM source tree. The iOS client
 # consumes this file as its authoritative model layer; there is no
 # intermediate copy. Renderer-level helper enums (TextVariant,
@@ -65,7 +55,7 @@ quicktype \
     --out "$IOS_MODELS_OUT" \
     2>/dev/null || echo "   Swift generation completed with warnings"
 
-echo "3. Generating TypeScript models (web src tree)..."
+echo "2. Generating TypeScript models (web src tree)..."
 # Writes directly into web/src/generated/. The web client consumes this
 # file through the '@sdui/models' Vite/tsconfig alias; there is no
 # intermediate copy. Renderer-level helper enums and resolvers
@@ -80,8 +70,54 @@ quicktype \
     --out "$WEB_MODELS_OUT" \
     2>/dev/null || echo "   TypeScript generation completed with warnings"
 
+echo "3. Generating Kotlin models (Android sdui-core)..."
+# Writes directly into the Android sdui-core source tree. The Android
+# client consumes this file as its authoritative model layer; there is
+# no intermediate copy. Renderer-level helper enums and resolvers
+# (ColorTokenResolver, ContainerVariantResolver, ImageVariantResolver,
+# IconTokenResolver) are hand-written under
+# android/sdui-core/src/main/java/com/nba/sdui/core/renderer/ and are
+# intentionally not part of this generated file.
+#
+# `--framework jackson` produces Jackson-compatible data classes,
+# matching Android's existing dependency stack
+# (jackson-module-kotlin + retrofit-jackson). The post-processing
+# step below neutralizes strict routing-type enums for forward-compat,
+# mirroring the Swift post-process.
+quicktype \
+    --src "$SCHEMA_FILE" \
+    --src-lang schema \
+    --lang kotlin \
+    --framework jackson \
+    --package com.nba.sdui.core.models.generated \
+    --out "$ANDROID_MODELS_OUT" \
+    2>/dev/null || echo "   Kotlin generation completed with warnings"
+
 echo ""
-echo "4. Post-processing Swift models (iOS lenient routing types)..."
+echo "4. Post-processing Kotlin models (Android lenient routing types)..."
+# Same rationale as the Swift post-process (see next step): rewrite the
+# two routing-type fields — `Section.type` (quicktype name: OverlayType)
+# and `AtomicElement.type` (quicktype name: UIType) — as plain `String`
+# so unknown wire values fall into the renderer's `else` branch instead
+# of crashing decode. The sed deletes:
+#   - the two `enum class` declarations (closing `}` is at column 0;
+#     companion object's `}` is indented, so `/^}/` matches only the
+#     enum's closing brace)
+#   - the corresponding `convert(...::class, ...)` registrations inside
+#     the top-level `mapper` apply block
+# and substitutes the two type names to `String` where they appear as
+# field types on `Section` and `AtomicElement`.
+TMP_KOTLIN="$(mktemp)"
+sed -e '/^enum class OverlayType/,/^}/d' \
+    -e '/^enum class UIType/,/^}/d' \
+    -e '/convert(OverlayType::class/d' \
+    -e '/convert(UIType::class/d' \
+    -e 's/OverlayType/String/g' \
+    -e 's/UIType/String/g' \
+    "$ANDROID_MODELS_OUT" > "$TMP_KOTLIN" && mv "$TMP_KOTLIN" "$ANDROID_MODELS_OUT"
+
+echo ""
+echo "5. Post-processing Swift models (iOS lenient routing types)..."
 # Strip the strict `String, Codable` enums that quicktype emits for
 # the two routing-type fields — `Section.type` (quicktype name:
 # `OverlayType`) and `AtomicElement.type` (quicktype name: `UIType`) —
@@ -124,7 +160,7 @@ sed '/^enum OverlayType:/,/^}/d
     "$IOS_MODELS_OUT" > "$TMP_SWIFT" && mv "$TMP_SWIFT" "$IOS_MODELS_OUT"
 
 echo ""
-echo "5. Generating Java POJOs (via jsonschema2pojo)..."
+echo "6. Generating Java POJOs (via jsonschema2pojo)..."
 cd "$SCRIPT_DIR"
 ./gradlew generateJsonSchema2Pojo --quiet
 
@@ -132,14 +168,14 @@ echo ""
 echo "=== Generation Complete ==="
 echo ""
 echo "Output locations:"
-echo "  Java (Android):     $SCRIPT_DIR/build/generated-sources/jsonschema2pojo/"
-echo "  Swift (iOS):        $IOS_MODELS_OUT"
-echo "  TypeScript (web):   $WEB_MODELS_OUT"
-echo "  Kotlin (demo):      $OUTPUT_DIR/kotlin/SduiModels.kt"
+echo "  Java (server POJOs):      $SCRIPT_DIR/build/generated-sources/jsonschema2pojo/"
+echo "  Swift (iOS):              $IOS_MODELS_OUT"
+echo "  TypeScript (web):         $WEB_MODELS_OUT"
+echo "  Kotlin (Android):         $ANDROID_MODELS_OUT"
 echo ""
 echo "Every client consumes its generated model file in place — there is no"
-echo "copy step. Android picks up the Java POJOs from the Gradle classpath,"
-echo "iOS includes SduiModels.swift in the SduiCore SwiftPM target, and web"
-echo "resolves the TypeScript file through the '@sdui/models' Vite alias."
-echo "The Kotlin quicktype output is demonstration-only (Android uses the"
-echo "Java POJOs)."
+echo "copy step. iOS includes SduiModels.swift in the SduiCore SwiftPM"
+echo "target, web resolves SduiModels.ts through the '@sdui/models' Vite"
+echo "alias, and Android compiles SduiModels.kt directly from its own"
+echo "source tree. The Java POJOs are currently generated for the Spring"
+echo "server (on the Gradle classpath) and are not consumed by Android."

@@ -28,8 +28,8 @@ You are **Backend Architect**, a senior server-side architect specializing in th
 ## Architecture Context
 
 ### Dual-Layer Rendering Model
-- **Section layer**: Named domain types (`BoxscoreTable`, `GamePanel`, `Form`, etc.) — client owns state.
-- **Atomic layer**: 10 server-composed primitives (`Container`, `Text`, `Image`, `Button`, `Spacer`, `Divider`, `ScrollContainer`, `Conditional`, `DisplayGrid`, `SectionSlot`) defined as `AtomicElement` in schema.
+- **Section layer**: Named domain types (`BoxscoreTable`, `TabGroup`, `Form`, etc.) — client owns state.
+- **Atomic layer**: 11 server-composed primitives (`Container`, `Text`, `Image`, `Button`, `Spacer`, `Divider`, `ScrollContainer`, `Conditional`, `DisplayGrid`, `SectionSlot`, `LiveClock`) defined as `AtomicElement` in schema.
 - **Bridge**: `AtomicComposite` section type — server composes entire atomic element trees; client just renders.
 
 ### Key Patterns

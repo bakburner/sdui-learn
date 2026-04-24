@@ -6,14 +6,14 @@ Server-Driven UI prototype demonstrating server-composed screens with real-time 
 
 | I want to… | Start with |
 |------------|------------|
-| **Build a new client** (iOS, Flutter, TV, desktop) | [Client Implementor's Contract](docs/plans/client-implementors-contract.md) — platform-agnostic blueprint with build phases, pseudocode algorithms, and conformance checklist |
+| **Build a new client** (iOS, Flutter, TV, desktop) | [Client Implementor's Contract](docs/client-implementors-contract.md) — platform-agnostic blueprint with build phases, pseudocode algorithms, and conformance checklist |
 | **Extend the Android client** | [android/sdui-core/](android/sdui-core/) — renderers, state, data binding. See [Section Types](#section-types-10-in-schema-9-permanent--atomiccomposite) below for what exists |
 | **Extend the Web client** | [web/src/](web/src/) — React components, hooks, runtime. Same section types reference |
 | **Extend the iOS client** | [ios/Sources/SduiCore/](ios/Sources/SduiCore/) — SwiftUI renderers, state, data binding. Same section types reference |
 | **Add a new server-composed screen** | [server/src/](server/src/) — add a composer, register an endpoint. Zero client changes needed |
-| **Add a new section type** | Read [AGENTS.md](AGENTS.md) §14-15 first — most things should be `AtomicComposite`. Only add a section renderer if client-owned state is required |
+| **Add a new section type** | Read [AGENTS.md](AGENTS.md) §5-6 first — most things should be `AtomicComposite`. Only add a section renderer if client-owned state is required |
 | **Understand the schema** | [schema/sdui-schema.json](schema/sdui-schema.json) — the contract. Hit `curl http://localhost:8080/sdui/demos` for a live 42-section example |
-| **Understand the rules** | [AGENTS.md](AGENTS.md) — 18 development rules that govern all SDUI work |
+| **Understand the rules** | [AGENTS.md](AGENTS.md) — development rules that govern all SDUI work |
 | **See what's built vs. what's gap** | [Requirements Summary §10](docs/sdui-requirements-summary.md) — status matrix |
 
 ## Design Philosophy
@@ -23,7 +23,7 @@ Server-Driven UI prototype demonstrating server-composed screens with real-time 
 Five principles guide every decision:
 
 1. **Schema is source of truth.** `schema/sdui-schema.json` defines the contract. Run `make codegen` after changes. Generated models are never hand-edited.
-2. **Atomic for layout, semantic for domain logic.** Atomic primitives (`Container`, `Text`, `Image`, etc.) handle server-composed layout with zero client logic. Semantic section types (`GamePanel`, `BoxscoreTable`) exist only when client-owned state or complex interaction is required. Default to atomic; promote to semantic only when you must.
+2. **Atomic for layout, semantic for domain logic.** Atomic primitives (`Container`, `Text`, `Image`, etc.) handle server-composed layout with zero client logic. Semantic section types (`BoxscoreTable`, `TabGroup`) exist only when client-owned state or complex interaction is required. Default to atomic; promote to semantic only when you must.
 3. **No hardcoded URLs or screen-type enums on clients.** Every screen is a generic `fetchScreen(endpoint)`. Endpoints are resolved from server-provided URIs (`nba://` → `/sdui/`). New screens require zero client code.
 4. **Graceful degradation everywhere.** Unknown section types, unknown atomic elements, and unknown action types are skipped with a log — never crash. Stale cached responses are better than blank screens.
 5. **Decision checklist before adding client code:** Can the server compose it? Can a schema/action change solve it? Can it be an `AtomicComposite`? Only if none of those work, add a client renderer.
@@ -32,8 +32,8 @@ Five principles guide every decision:
 
 The architecture uses two complementary rendering layers:
 
-- **Section layer** — Named domain renderers (`BoxscoreTable`, `GamePanel`, `Form`, `TabGroup`, etc.) with client-owned state (sort, scroll position, form input). Routed by `SectionRouter`.
-- **Atomic layer** — 10 atomic element types (`Container`, `Text`, `Image`, `Button`, `Spacer`, `Divider`, `ScrollContainer`, `Conditional`, `DisplayGrid`, `SectionSlot`) with zero client business logic. Routed by `AtomicRouter`.
+- **Section layer** — Named domain renderers (`BoxscoreTable`, `TabGroup`, `Form`, etc.) with client-owned state (sort, scroll position, form input). Routed by `SectionRouter`.
+- **Atomic layer** — 11 atomic element types (`Container`, `Text`, `Image`, `Button`, `Spacer`, `Divider`, `ScrollContainer`, `Conditional`, `DisplayGrid`, `SectionSlot`, `LiveClock`) with zero client business logic. Routed by `AtomicRouter`.
 - **Bridge** — `AtomicComposite` section type: `SectionRouter` delegates to `AtomicRouter`. `SectionSlot` element: `AtomicRouter` delegates back to `SectionRouter` (e.g., embed an `AdSlot` inside an atomic layout).
 
 Use semantic sections when client-side state or interaction is needed. Use atomic composition when the server can fully describe the layout.
@@ -145,14 +145,13 @@ make codegen
 | Boxscore | `GET /sdui/boxscore/{gameId}` | Boxscore tables for a specific game (home and away). |
 | Refresh | `GET /sdui/refresh/{screenId}` | Parameterized refresh endpoint for form-driven section updates. |
 
-## Section Types (10 in schema: 9 permanent + AtomicComposite)
+## Section Types (9 in schema: 8 permanent + AtomicComposite)
 
 ### Permanent Sections (client-owned renderers)
 
 | Type | Description | Refresh |
 |------|-------------|---------|
 | TabGroup | Tabbed navigation with state-driven content | Poll or static |
-| GamePanel | Game card with teams, scores, leaders. Server-driven `displayConfig` controls layout (logo size, card height, score style, background). Scoreboard rows, featured hero cards, and standard cards are all composed via `displayConfig` — no client branching. | SSE or static |
 | BoxscoreTable | Boxscore stats table | Poll or static |
 | Form | Interactive form with typed fields | Static |
 | SeasonLeadersTable | Season leaders stats table | Static |
@@ -174,6 +173,8 @@ make codegen
 | NbaTvSchedule | NBA TV hero image + time-slot schedule |
 | FollowingRail | Horizontal rail of followed items |
 | ErrorState | Server/client error with title, message, optional retry action |
+| GamePanel | Game card (teams, scores, status) — now server-composed via `buildGamePanelComposite()` with `LiveClock` for real-time game clocks |
+| GamePanel | Game card (teams, scores, status) — now server-composed via `buildGamePanelComposite()` with `LiveClock` for real-time game clocks |
 
 ### Atomic Primitives (server-composed, rendered by AtomicRouter)
 
@@ -189,6 +190,7 @@ make codegen
 | Conditional | State-driven if/else branching (`condition` evaluated against screen state) |
 | DisplayGrid | Display-only text grid — zero interactivity (sort/filter/expand → use a section) |
 | SectionSlot | Embed a full section renderer inside an atomic tree (bridge back to SectionRouter) |
+| LiveClock | Client-side ticking clock driven by server-provided snapshot fields (snapshotSeconds, snapshotAt, isRunning, tickDirection, stopAtSeconds, format) |
 
 **Performance contract:** max depth 6, max children/container 20, max nodes 50. Server validates; clients have defensive depth guards.
 
@@ -196,11 +198,11 @@ make codegen
 
 - **Per-section error handling** (2026-04-01) — `SectionErrorBoundary` on Android (catch-at-dispatch + pre-validation) and web (React ErrorBoundary). `SectionSkeleton` with 4 generic styles. Typed `SectionStates` model. Retry budget (client-side, default 5). `hideOnError` support. Contract §13 rewritten.
 - **Accessibility** (2026-03-26) — `AccessibilityProperties` on Section, Subsection, AtomicElement. Android Compose `semantics{}`, web ARIA attributes, iOS `.accessibilityLabel`/traits. All 9 section renderers and 10 atomic primitives wired on every platform.
-- **Request transport envelope** (2026-03-24) — `SduiRequestContext` POJO + `BracketParamResolver` on server. `RequestEnvelopeBuilder` on Android and web. GET-first with bracket-notation params, POST fallback.
+- **Request transport envelope** (2026-03-24) — `SduiRequestContext` POJO + `BracketParamResolver` on server. `RequestEnvelopeBuilder` on Android, iOS, and web. GET-first with bracket-notation params, POST fallback.
 - **i18n** (2026-03-24) — Section-level `stringTable` stamped by server per locale. Clients consume from each section.
 - **Experiments / A/B testing** (2026-03-24) — ADR-006 Accepted. Client-authoritative `experiments` map in request envelope. Server resolves at composition time.
-- **Atomic rendering layer** (2026-03-13) — Dual-layer architecture: 10 atomic element types (9 rendering primitives + SectionSlot bridge), AtomicRouter on Android and Web, AtomicComposite bridge section type, server-side AtomicCompositeBuilder
-- **9 section types migrated to atomic** (2026-03-13) — ErrorState, SectionHeader, PromoBanner, ContentRail, FollowingRail, HeroPanel, StatLine, VideoCarousel, NbaTvSchedule now served as AtomicComposite (schema definitions pruned)
+- **Atomic rendering layer** (2026-03-13) — Dual-layer architecture: 11 atomic element types (9 rendering primitives + SectionSlot bridge + LiveClock), AtomicRouter on Android, iOS, and web, AtomicComposite bridge section type, server-side AtomicCompositeBuilder
+- **10 section types migrated to atomic** (2026-03-13) — ErrorState, SectionHeader, PromoBanner, ContentRail, FollowingRail, HeroPanel, StatLine, VideoCarousel, NbaTvSchedule, GamePanel now served as AtomicComposite (schema definitions pruned)
 - **SectionSlot bidirectional bridge** — Atomic trees can embed full section renderers (recursion guard: depth 2)
 - **DisplayGrid** — Non-interactive server-ordered text grid primitive
 - **Kitchen sink appendix** — Full 42-section demo response documented
@@ -248,6 +250,6 @@ make codegen
 | [Technical Proposal](docs/SDUI_Technical_Proposal_v2.md) | Architecture, schema design, runtime behavior, requirement status |
 | [Requirements Summary](docs/sdui-requirements-summary.md) | Full requirements, gap analysis, ADR tracking |
 | [Kitchen Sink Appendix](docs/appendix-kitchen-sink.md) | Full 42-section demo response (Android platform) |
-| [Client Implementor's Contract](docs/plans/client-implementors-contract.md) | Platform-agnostic build guide for new clients (any language/framework) |
+| [Client Implementor's Contract](docs/client-implementors-contract.md) | Platform-agnostic build guide for new clients (any language/framework) |
 | [ADR Index](docs/adr/README.md) | Architecture Decision Records (001–013) |
 | [Accessibility Plan](docs/plans/plan-accessibility.md) | Accessibility strategy and implementation plan |

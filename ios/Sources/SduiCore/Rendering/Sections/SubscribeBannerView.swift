@@ -1,55 +1,28 @@
 import SwiftUI
 
-/// Stub renderer for SubscribeBanner — Phase 4 will add platform IAP
-/// SDK integration. Outer chrome (card radius, margin, gradient
-/// background, inner padding) comes from `section.display` via
-/// `SectionContainer` — this renderer only lays out the banner's
-/// content (logo, title, subtitle, CTA). See AGENTS.md §15.3.
+/// SubscribeBannerView — reserved SDK integration point for inline
+/// subscription upsell.
+///
+/// The entire visible surface is expressed as an atomic tree under
+/// `section.data.ui`; this view is a thin walker over that tree via
+/// ``AtomicRouter``, identical in behaviour to an AtomicComposite
+/// section.
+///
+/// Outer chrome (margin, radius, gradient background, inner padding)
+/// comes from `section.surface` via ``SectionContainer`` — this view
+/// only walks the inner atomic tree.
+///
+/// `section.data.ctaAction` is the pre-SDK fallback action; once the
+/// StoreKit IAP integration lands it will take over the CTA button's
+/// tap, reading product identifiers from `section.data.tiers`.
 struct SubscribeBannerView: View {
     let section: Section
+    let screenState: ScreenState
     let onAction: (Action) -> Void
 
     var body: some View {
-        if let data = section.data {
-            HStack(spacing: 12) {
-                if let logoURL = data.logoURL, let url = URL(string: logoURL) {
-                    AsyncImage(url: url) { image in
-                        image.resizable().scaledToFit()
-                    } placeholder: { EmptyView() }
-                    .frame(width: 40, height: 40)
-                }
-
-                VStack(alignment: .leading, spacing: 2) {
-                    if let title = data.title {
-                        Text(title)
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.white)
-                    }
-                    if let subtitle = data.subtitle {
-                        Text(subtitle)
-                            .font(.caption)
-                            .foregroundColor(.white.opacity(0.85))
-                    }
-                }
-
-                Spacer()
-
-                if let ctaLabel = data.ctaLabel {
-                    Button(action: {
-                        if let action = data.ctaAction { onAction(action) }
-                    }) {
-                        Text(ctaLabel)
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(Color.white)
-                            .foregroundColor(Color(.sRGB, red: 0.11, green: 0.26, blue: 0.54, opacity: 1))
-                            .cornerRadius(6)
-                    }
-                }
-            }
+        if let ui = section.data?.ui {
+            AtomicRouter(element: ui, screenState: screenState, onAction: onAction, depth: 0)
         }
     }
 }

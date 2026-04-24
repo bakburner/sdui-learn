@@ -13,19 +13,63 @@ func edgeInsets(from spacing: Spacing?) -> EdgeInsets {
     )
 }
 
-/// Resolve a `BackgroundUnion` to a SwiftUI `Color`. String branches and
-/// gradient stops are routed through the color token resolver so both raw hex
-/// and `token:` references render correctly in the current color scheme.
-func resolveBackground(_ bg: BackgroundUnion?, colorScheme: ColorScheme) -> Color {
-    guard let bg = bg else { return .clear }
+/// Build a SwiftUI view that renders a `BackgroundUnion` value —
+/// solid color, linear gradient, or remote image — suitable for use
+/// as `.background { backgroundView(for: bg, colorScheme: cs) }` on
+/// any view.
+///
+/// All three shapes in the schema's `Background` union are handled:
+///   • string → token or hex, resolved to a solid `Color`.
+///   • object with `colors` (≥2) → `LinearGradient` with direction.
+///   • object with `colors` (1)   → solid color fallback.
+///   • object with `imageURL`    → remote `AsyncImage` scaled to fill.
+///
+/// Used by `SectionContainer` for section-level surfaces and by the
+/// atomic `ContainerVariantResolver` for inline backgrounds, so
+/// gradient fidelity is consistent everywhere.
+@ViewBuilder
+func backgroundView(for bg: BackgroundUnion?, colorScheme: ColorScheme) -> some View {
     switch bg {
-    case .string(let value):
-        return ColorTokenResolver.resolve(value, colorScheme: colorScheme) ?? .clear
-    case .background(let bgObj):
-        if let colors = bgObj.colors, let first = colors.first {
-            return ColorTokenResolver.resolve(first, colorScheme: colorScheme) ?? .clear
+    case .none:
+        Color.clear
+    case .some(.string(let value)):
+        ColorTokenResolver.resolve(value, colorScheme: colorScheme) ?? Color.clear
+    case .some(.background(let bgObj)):
+        if let imageUrl = bgObj.imageURL, let url = URL(string: imageUrl) {
+            AsyncImage(url: url) { image in
+                image.resizable().scaledToFill()
+            } placeholder: {
+                Color.clear
+            }
+        } else if let colors = bgObj.colors, colors.count > 1 {
+            LinearGradient(
+                gradient: Gradient(colors: colors.map {
+                    ColorTokenResolver.resolve($0, colorScheme: colorScheme) ?? .clear
+                }),
+                startPoint: backgroundGradientStart(bgObj.direction),
+                endPoint: backgroundGradientEnd(bgObj.direction)
+            )
+        } else if let first = bgObj.colors?.first {
+            ColorTokenResolver.resolve(first, colorScheme: colorScheme) ?? Color.clear
+        } else {
+            Color.clear
         }
-        return .clear
+    }
+}
+
+func backgroundGradientStart(_ direction: Direction?) -> UnitPoint {
+    switch direction {
+    case .horizontal: return .leading
+    case .diagonal: return .topLeading
+    case .vertical, .none: return .top
+    }
+}
+
+func backgroundGradientEnd(_ direction: Direction?) -> UnitPoint {
+    switch direction {
+    case .horizontal: return .trailing
+    case .diagonal: return .bottomTrailing
+    case .vertical, .none: return .bottom
     }
 }
 

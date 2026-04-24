@@ -5,8 +5,8 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
-import com.nba.sdui.core.models.DataBinding
-import com.nba.sdui.core.models.DataBindingPath
+import com.nba.sdui.core.models.generated.DataBinding
+import com.nba.sdui.core.models.generated.DataBindingPath
 
 /**
  * Data Binding Resolver - Applies real-time data updates to section data.
@@ -50,13 +50,13 @@ class DataBindingResolver {
         sectionId: String? = null
     ): Map<String, Any?> {
         
-        Log.d(TAG, "Applying ${dataBinding.bindings.size} bindings, traceId=$traceId")
+        Log.d(TAG, "Applying ${dataBinding.bindings?.size ?: 0} bindings, traceId=$traceId")
         
         // Convert to JsonNode for easier path traversal
         val messageNode = objectMapper.valueToTree<JsonNode>(incomingMessage)
         val dataNode = objectMapper.valueToTree<ObjectNode>(currentData)
         
-        for (binding in dataBinding.bindings) {
+        for (binding in dataBinding.bindings.orEmpty()) {
             try {
                 applyBinding(dataNode, messageNode, binding, traceId, sectionId)
 

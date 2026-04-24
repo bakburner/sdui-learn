@@ -1,12 +1,13 @@
 package com.nba.sdui.core.renderer
 
-import android.os.Build
 import android.util.Log
 
 /**
- * Resolves a server-emitted container variant token (e.g. `hero`, `elevated`,
- * `banner`, `subtle`, `grouped`, `overlay`) to a platform-native spec that the
- * renderer applies to an `AtomicContainer`. The spec carries:
+ * Resolves a server-emitted container variant token (`hero`, `grouped`) to a
+ * platform-native spec that the renderer applies to an `AtomicContainer`.
+ * Each value in the vocabulary carries a platform-native treatment inline
+ * props cannot express; values that can be produced by inline background +
+ * cornerRadius + shadow + padding do not belong here. The spec carries:
  *
  *  - the semantic color role the background should resolve against
  *    ([SurfaceRole]), or `null` when the variant is outlined / overlay-custom
@@ -95,11 +96,7 @@ object ContainerVariantResolver {
         if (variant.isNullOrBlank()) return null
         return when (variant) {
             "hero" -> hero()
-            "elevated" -> elevated()
-            "banner" -> banner()
-            "subtle" -> subtle()
             "grouped" -> grouped()
-            "overlay" -> overlay()
             else -> {
                 Log.w(TAG, "variant_resolver_missing: $variant")
                 null
@@ -147,61 +144,6 @@ object ContainerVariantResolver {
         )
     )
 
-    private fun elevated(): ContainerVariantSpec = ContainerVariantSpec(
-        cornerRadiusDp = 12,
-        backgroundColorRole = SurfaceRole.Surface,
-        tonalElevationDp = 2,
-        shadowElevationDp = null,
-        gradientOverlay = null,
-        borderDp = null,
-        borderColorRole = null,
-        fillWidth = null,
-        overrideMatrix = ALL_ALLOW
-    )
-
-    private fun banner(): ContainerVariantSpec = ContainerVariantSpec(
-        cornerRadiusDp = 0,
-        backgroundColorRole = SurfaceRole.PrimaryContainer,
-        tonalElevationDp = null,
-        shadowElevationDp = null,
-        gradientOverlay = null,
-        borderDp = null,
-        borderColorRole = null,
-        fillWidth = true,
-        overrideMatrix = ALL_ALLOW
-    )
-
-    private fun subtle(): ContainerVariantSpec {
-        // surfaceContainer* roles were added in Material 3 with the expressive
-        // color scheme. On Android < 12 dynamic color is unavailable, so the
-        // neutral `background` role is the closer fallback.
-        val role = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            SurfaceRole.SurfaceContainerLow
-        } else {
-            SurfaceRole.Background
-        }
-        return ContainerVariantSpec(
-            cornerRadiusDp = 0,
-            backgroundColorRole = role,
-            tonalElevationDp = null,
-            shadowElevationDp = null,
-            gradientOverlay = null,
-            borderDp = null,
-            borderColorRole = null,
-            fillWidth = null,
-            overrideMatrix = mapOf(
-                "padding" to OverridePolicy.ALLOW,
-                "cornerRadius" to OverridePolicy.ALLOW,
-                "background" to OverridePolicy.ALLOW,
-                "shadow" to OverridePolicy.LOCK,
-                "color" to OverridePolicy.ALLOW,
-                "gap" to OverridePolicy.ALLOW,
-                "opacity" to OverridePolicy.ALLOW,
-                "border" to OverridePolicy.ALLOW
-            )
-        )
-    }
-
     private fun grouped(): ContainerVariantSpec = ContainerVariantSpec(
         cornerRadiusDp = 16,
         backgroundColorRole = null,
@@ -216,36 +158,4 @@ object ContainerVariantResolver {
         fillWidth = null,
         overrideMatrix = ALL_ALLOW
     )
-
-    private fun overlay(): ContainerVariantSpec {
-        // Pre-API 31: `scrim` color role predates Material You's dynamic color;
-        // fall back to an opaque black tuned for control legibility.
-        val (role, alpha, custom) = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            Triple(SurfaceRole.Scrim, 0.4f, null)
-        } else {
-            Triple(SurfaceRole.Custom, 0.4f, 0xFF000000L)
-        }
-        return ContainerVariantSpec(
-            cornerRadiusDp = null,
-            backgroundColorRole = role,
-            backgroundAlpha = alpha,
-            customBackgroundArgb = custom,
-            tonalElevationDp = null,
-            shadowElevationDp = null,
-            gradientOverlay = null,
-            borderDp = null,
-            borderColorRole = null,
-            fillWidth = null,
-            overrideMatrix = mapOf(
-                "padding" to OverridePolicy.ALLOW,
-                "cornerRadius" to OverridePolicy.ALLOW,
-                "background" to OverridePolicy.LOCK,
-                "shadow" to OverridePolicy.LOCK,
-                "color" to OverridePolicy.ALLOW,
-                "gap" to OverridePolicy.ALLOW,
-                "opacity" to OverridePolicy.LOCK,
-                "border" to OverridePolicy.LOCK
-            )
-        )
-    }
 }

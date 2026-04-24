@@ -8,11 +8,7 @@ private let logger = Logger(subsystem: "com.nba.sdui", category: "ContainerVaria
 /// to the primitive's default rendering.
 enum ContainerVariant: String {
     case hero
-    case elevated
-    case banner
-    case subtle
     case grouped
-    case overlay
 }
 
 /// Semantic surface role. Mapped to a concrete SwiftUI `Color` at render time
@@ -100,63 +96,6 @@ enum ContainerVariantResolver {
                     "border": .allow
                 ]
             )
-        case .elevated:
-            return ContainerVariantSpec(
-                cornerRadius: 12,
-                backgroundRole: .secondarySystemGroupedBackground,
-                shadow: Shadow(color: "#000000", offsetX: 0, offsetY: 2, radius: 4),
-                gradientOverlay: nil,
-                fillWidth: nil,
-                border: nil,
-                overrideMatrix: [
-                    "padding": .allow,
-                    "cornerRadius": .allow,
-                    "background": .allow,
-                    "shadow": .allow,
-                    "color": .allow,
-                    "gap": .allow,
-                    "opacity": .allow,
-                    "border": .allow
-                ]
-            )
-        case .banner:
-            return ContainerVariantSpec(
-                cornerRadius: 0,
-                backgroundRole: .accent,
-                shadow: nil,
-                gradientOverlay: nil,
-                fillWidth: true,
-                border: nil,
-                overrideMatrix: [
-                    "padding": .allow,
-                    "cornerRadius": .allow,
-                    "background": .allow,
-                    "shadow": .allow,
-                    "color": .allow,
-                    "gap": .allow,
-                    "opacity": .allow,
-                    "border": .allow
-                ]
-            )
-        case .subtle:
-            return ContainerVariantSpec(
-                cornerRadius: 0,
-                backgroundRole: .systemGroupedBackground,
-                shadow: nil,
-                gradientOverlay: nil,
-                fillWidth: nil,
-                border: nil,
-                overrideMatrix: [
-                    "padding": .allow,
-                    "cornerRadius": .allow,
-                    "background": .allow,
-                    "shadow": .lock,
-                    "color": .allow,
-                    "gap": .allow,
-                    "opacity": .allow,
-                    "border": .allow
-                ]
-            )
         case .grouped:
             // Hand-rolled grouped block: .listStyle(.insetGrouped) can't wrap an
             // arbitrary VStack, so the grouped variant emits the visual equivalent
@@ -178,28 +117,6 @@ enum ContainerVariantResolver {
                     "gap": .allow,
                     "opacity": .allow,
                     "border": .allow
-                ]
-            )
-        case .overlay:
-            // Baseline fallback: flat black@0.4. The renderer upgrades to
-            // `.thinMaterial` on iOS 17+ via `#available`, so the solid color
-            // is only ever visible on the pre-17 fallback path.
-            return ContainerVariantSpec(
-                cornerRadius: nil,
-                backgroundRole: .custom(Color.black.opacity(0.4)),
-                shadow: nil,
-                gradientOverlay: nil,
-                fillWidth: nil,
-                border: nil,
-                overrideMatrix: [
-                    "padding": .allow,
-                    "cornerRadius": .allow,
-                    "background": .lock,
-                    "shadow": .lock,
-                    "color": .allow,
-                    "gap": .allow,
-                    "opacity": .lock,
-                    "border": .lock
                 ]
             )
         }
@@ -281,7 +198,7 @@ private struct ContainerVariantApplier: ViewModifier {
             )
         } else {
             content
-                .background(resolveBackground(inlineBackground, colorScheme: colorScheme))
+                .background { backgroundView(for: inlineBackground, colorScheme: colorScheme) }
                 .modifier(ContainerCornerClipModifier(
                     radius: CGFloat(inlineCornerRadius ?? 0),
                     radii: inlineCornerRadii
@@ -361,15 +278,7 @@ private struct ContainerVariantBackgroundModifier: ViewModifier {
     @ViewBuilder
     func body(content: Content) -> some View {
         if useInlineBg {
-            content.background(resolveBackground(inlineBackground, colorScheme: colorScheme))
-        } else if variantName == ContainerVariant.overlay.rawValue {
-            if #available(iOS 17, *) {
-                content.background(.thinMaterial)
-            } else if let role = spec.backgroundRole {
-                content.background(surfaceColor(for: role))
-            } else {
-                content
-            }
+            content.background { backgroundView(for: inlineBackground, colorScheme: colorScheme) }
         } else if let role = spec.backgroundRole {
             content.background {
                 ZStack {

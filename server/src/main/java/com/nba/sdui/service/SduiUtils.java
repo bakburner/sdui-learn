@@ -224,14 +224,26 @@ public class SduiUtils {
 
     // ── Linescore bindings ─────────────────────────────────────────────
 
-    public ObjectNode buildLinescoreBindings() {
+    /**
+     * Build the linescore binding set for an {@code AtomicComposite}
+     * GamePanel. Target paths point into {@code data.content.*} rather
+     * than {@code data.*}: leaf Text/LiveClock elements resolve their
+     * value from {@code data.content} via {@code bindRef}, so writes
+     * from the Ably payload land in the same dictionary the renderers
+     * consult. The {@code gameClock} mapping carries the whole
+     * {@code {snapshotSeconds, snapshotAt, isRunning}} snapshot so a
+     * single source field drives all three values a LiveClock leaf
+     * reads.
+     */
+    public ObjectNode buildCompositeLinescoreBindings() {
         ObjectNode dataBinding = objectMapper.createObjectNode();
         ArrayNode bindings = objectMapper.createArrayNode();
 
-        bindings.add(bindingPath("$.homeTeam.score", "homeTeam.score"));
-        bindings.add(bindingPath("$.awayTeam.score", "awayTeam.score"));
-        bindings.add(bindingPath("$.gameStatusText", "gameStatusText"));
-        bindings.add(bindingPath("$.period", "period"));
+        bindings.add(bindingPath("$.homeTeam.score", "content.homeTeam.score"));
+        bindings.add(bindingPath("$.awayTeam.score", "content.awayTeam.score"));
+        bindings.add(bindingPath("$.gameStatusText", "content.gameStatusText"));
+        bindings.add(bindingPath("$.period", "content.period"));
+        bindings.add(bindingPath("$.gameClock", "content.clock"));
 
         dataBinding.set("bindings", bindings);
         return dataBinding;
@@ -251,7 +263,7 @@ public class SduiUtils {
     /**
      * Build the CDN URL for a team primary logo.
      *
-     * <p>Per Rule 18, asset-format selection is server-driven: the server
+     * <p>Asset-format selection is server-driven: the server
      * decides which URL to emit based on what each client can consume.
      * Today every client consumes PNG (iOS {@code AsyncImage}, Android
      * {@code Coil}, and the web {@code <img>} element all decode PNG
@@ -351,80 +363,88 @@ public class SduiUtils {
         return null;
     }
 
-    // ── Section display (outer chrome) ─────────────────────────────────
+    // ── Section surface (server-driven wrapper around section content) ─
 
     /**
-     * Build the default outer-chrome block applied by every permanent
+     * Build the default section-surface block applied by every permanent
      * section that does not override it. Clients' shared SectionContainer
      * reads this and applies platform-native equivalents. A single change
      * here retunes the entire app's rhythm (card inset, elevation, corner
      * radius) without a client release.
      *
-     * <p>Default: 16px horizontal margin, 8px vertical margin, raised
+     * <p>Default: 16px horizontal margin, 16px vertical margin, raised
      * surface background with a 12px corner radius and a soft 6px-radius
      * shadow at y=2. Matches the reference-app feed card treatment.
+     *
+     * <p>Vertical margin is 16 (not 8) so a card-chromed section is
+     * separated from a flush-to-edge section (like a content rail)
+     * by 32pt of air — rail contributes 16pt bottom, card contributes
+     * 16pt top. 8pt on the card side read as "no spacing" next to a
+     * rail because a flush rail has no visible bottom edge for the
+     * eye to latch onto; 16pt makes the break read as an intentional
+     * module boundary.
      */
-    public ObjectNode defaultSectionDisplay() {
-        ObjectNode display = objectMapper.createObjectNode();
-        display.set("margin", spacing(8, 16, 8, 16));
-        display.put("background", "token:color.surface.raised");
-        display.put("cornerRadius", 12);
+    public ObjectNode defaultSurface() {
+        ObjectNode surface = objectMapper.createObjectNode();
+        surface.set("margin", spacing(16, 16, 16, 16));
+        surface.put("background", "token:color.surface.raised");
+        surface.put("cornerRadius", 12);
 
         ObjectNode shadow = objectMapper.createObjectNode();
         shadow.put("color", "#00000014");
         shadow.put("radius", 6);
         shadow.put("offsetX", 0);
         shadow.put("offsetY", 2);
-        display.set("shadow", shadow);
+        surface.set("shadow", shadow);
 
-        return display;
+        return surface;
     }
 
     /**
-     * Build a flush (no outer chrome) display block. Used for sections
+     * Build a flush (no wrapper chrome) surface block. Used for sections
      * that should render edge-to-edge (hero videos, full-bleed images).
      */
-    public ObjectNode flushSectionDisplay() {
+    public ObjectNode flushSurface() {
         return objectMapper.createObjectNode();
     }
 
     /**
-     * Build a display block for subscription upsell cards — card
-     * rhythm + branded gradient background + inner padding so the
-     * caller's content lays out flush against the card chrome.
+     * Build a surface block for subscription upsell sections — standard
+     * section rhythm + branded gradient background + inner padding so
+     * the caller's content lays out flush against the surface edges.
      * Used by SubscribeBanner and SubscribeHero composers.
      */
-    public ObjectNode subscribeCardDisplay(String topColor, String bottomColor, int padding) {
-        ObjectNode display = defaultSectionDisplay();
+    public ObjectNode subscribeSurface(String topColor, String bottomColor, int padding) {
+        ObjectNode surface = defaultSurface();
         ObjectNode gradient = objectMapper.createObjectNode();
         ArrayNode colors = objectMapper.createArrayNode();
         colors.add(topColor);
         colors.add(bottomColor);
         gradient.set("colors", colors);
         gradient.put("direction", "vertical");
-        display.set("background", gradient);
-        display.set("padding", spacingSymmetric(padding, padding));
-        return display;
+        surface.set("background", gradient);
+        surface.set("padding", spacingSymmetric(padding, padding));
+        return surface;
     }
 
     /**
-     * Build a display block for the VideoPlayer section — flush
-     * edge-to-edge rectangle with a dark surface behind the player
+     * Build a surface block for the VideoPlayer section — flush
+     * edge-to-edge rectangle with a dark background behind the player
      * area. No margin (the player hugs its siblings) and no corner
      * radius (a rounded video frame is jarring against square content
      * below and makes the tap target feel like a card instead of an
      * embedded player). The player's content sizing (16:9 aspect) is
      * owned by the renderer and by `data.displayConfig`, not by this
-     * chrome block.
+     * surface block.
      */
-    public ObjectNode videoPlayerDisplay() {
-        ObjectNode display = objectMapper.createObjectNode();
-        display.put("background", "#1A1F2E");
-        return display;
+    public ObjectNode videoPlayerSurface() {
+        ObjectNode surface = objectMapper.createObjectNode();
+        surface.put("background", "#1A1F2E");
+        return surface;
     }
 
     /**
-     * Build a minimal display block that only provides vertical margin
+     * Build a minimal surface block that only provides vertical margin
      * for breathing room between flush-to-the-edge atomic composite
      * sections (content rails, video carousels, section headers). Used
      * where the composite's root Container already owns its own inner
@@ -435,22 +455,77 @@ public class SduiUtils {
      * no corner radius, no shadow. That keeps the composite's internal
      * styling untouched and avoids double-chrome.
      */
-    public ObjectNode railDisplay() {
-        ObjectNode display = objectMapper.createObjectNode();
+    /**
+     * Build a surface block for a card-chromed, vertically-stacked
+     * composite section (e.g. {@code NbaTvSchedule}) — same 16pt vertical
+     * rhythm as {@link #railSurface()}, plus 16pt horizontal margin, a
+     * rounded sunken-surface background, and a 12pt corner radius. Use
+     * this for composites that are NOT horizontal-scrolling: rails bleed
+     * edge-to-edge on purpose (so off-screen cards peek in), but a
+     * vertical-list composite should sit inside a card like {@code AdSlot}
+     * does. The background/radius live on the surface (not on the root
+     * container) so the chrome is discoverable at the section envelope
+     * level and the inner atomic tree stays content-only.
+     */
+    public ObjectNode cardSurface() {
+        ObjectNode surface = objectMapper.createObjectNode();
+        surface.set("margin", spacing(16, 16, 16, 16));
+        surface.put("background", "token:color.surface.sunken");
+        surface.put("cornerRadius", 12);
+        return surface;
+    }
+
+    public ObjectNode railSurface() {
+        ObjectNode surface = objectMapper.createObjectNode();
         ObjectNode margin = objectMapper.createObjectNode();
-        // 16pt top/bottom — pairs with the 8pt margin on `defaultSectionDisplay`
-        // (AdSlot, GamePanel, etc.) to give 24pt of air between a rail and the
-        // next full-chrome card. 8pt alone left the rail kissing the ad card
-        // top edge on iOS; 16pt reads as a deliberate break between feed
-        // modules without looking like an orphan row.
+        // 16pt top/bottom — pairs with the 16pt vertical margin on
+        // `defaultSurface` (AdSlot) to give 32pt of air between a rail
+        // and the card-chromed section that follows it. A flush rail
+        // has no visible bottom edge, so the eye reads less spacing
+        // than the pixel count suggests; 32pt reads as an intentional
+        // module boundary rather than an orphan row.
         margin.put("top", 16);
         margin.put("bottom", 16);
-        display.set("margin", margin);
-        return display;
+        surface.set("margin", margin);
+        return surface;
     }
 
     /**
-     * Build a display block for GamePanel cards — standard card
+     * Build a surface block for a SectionHeader that titles the rail or
+     * section immediately below it. A SectionHeader is semantically part
+     * of the module that follows — the header and its rail should read
+     * as one unit.
+     *
+     * <p>The gap between a header and its content is owned here, so every
+     * screen has the same header→content rhythm. If the rail below needs
+     * more or less air from the header, adjust this single constant rather
+     * than tweaking {@link #railSurface()} — that one is scoped to
+     * rail→preceding-section spacing, which is a different rhythm.
+     *
+     * <p>Emits {@code margin.top = 16, margin.bottom = 8}:
+     * <ul>
+     *   <li>Top 16 — pairs with 16pt bottom on preceding card-chromed
+     *       sections (AdSlot, GamePanel) to produce a 32pt module
+     *       break before the header.</li>
+     *   <li>Bottom 8 — combined with the following rail's 16pt top
+     *       margin this produces 24pt between the header surface and
+     *       the rail surface. Previously this was 0 (header→rail gap =
+     *       16pt) but on device the header's title line sat too close
+     *       to the top of the first rail card. 8pt here reads as "the
+     *       title belongs to the rail" without looking flush.</li>
+     * </ul>
+     */
+    public ObjectNode sectionHeaderSurface() {
+        ObjectNode surface = objectMapper.createObjectNode();
+        ObjectNode margin = objectMapper.createObjectNode();
+        margin.put("top", 16);
+        margin.put("bottom", 8);
+        surface.set("margin", margin);
+        return surface;
+    }
+
+    /**
+     * Build a surface block for GamePanel cards — standard card
      * chrome (horizontal inset + subtle shadow + rounded corners)
      * with a soft linear gradient background that gives the matchup
      * its own visual weight versus surrounding flat content. Used by
@@ -462,8 +537,8 @@ public class SduiUtils {
      * dominant information, and does not compete with SubscribeHero /
      * SubscribeBanner's strong brand gradient.
      */
-    public ObjectNode gamePanelDisplay() {
-        ObjectNode display = defaultSectionDisplay();
+    public ObjectNode gamePanelSurface() {
+        ObjectNode surface = defaultSurface();
 
         ObjectNode gradient = objectMapper.createObjectNode();
         ArrayNode colors = objectMapper.createArrayNode();
@@ -471,9 +546,9 @@ public class SduiUtils {
         colors.add("#DDE4EE");
         gradient.set("colors", colors);
         gradient.put("direction", "diagonal");
-        display.set("background", gradient);
+        surface.set("background", gradient);
 
-        return display;
+        return surface;
     }
 
     /**

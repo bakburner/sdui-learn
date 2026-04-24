@@ -108,8 +108,6 @@ struct FormFieldView: View {
             dropdownSelect
         case .chips:
             chipsSelect
-        case .segmented:
-            segmentedSelect
         }
     }
 
@@ -159,25 +157,5 @@ struct FormFieldView: View {
             }
             .padding(.vertical, 2)
         }
-    }
-
-    @ViewBuilder
-    private var segmentedSelect: some View {
-        Picker(
-            field.label,
-            selection: Binding(
-                get: { text },
-                set: { newValue in
-                    text = newValue
-                    screenState.set(field.stateKey, value: newValue)
-                }
-            )
-        ) {
-            ForEach(field.options ?? [], id: \.value) { option in
-                Text(option.label).tag(option.value)
-            }
-        }
-        .pickerStyle(.segmented)
-        .disabled(field.disabled ?? false)
     }
 }

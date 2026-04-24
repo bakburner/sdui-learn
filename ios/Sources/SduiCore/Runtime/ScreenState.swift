@@ -74,7 +74,7 @@ public final class ScreenState {
         values.removeValue(forKey: key)
     }
 
-    // MARK: - Mutate operation (§4)
+    // MARK: - Mutate operation
 
     /// Apply a schema-declared `MutateOperation` at `key` using `incoming` as
     /// the operand. `nil` operation behaves as `.set` for parity with Android.

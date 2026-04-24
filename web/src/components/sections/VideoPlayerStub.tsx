@@ -1,43 +1,40 @@
 import React from 'react';
-import type { Section, Action } from '@sdui/models';
-
-interface VideoPlayerStubProps {
-  section: Section;
-  onAction: (action: Action) => void;
-}
+import type { SectionProps } from '../SectionRouter';
+import { AtomicRouter } from '../atomic';
+import type { AtomicCompositeData } from '../atomic';
 
 /**
- * Stub renderer for VideoPlayer sections. Will be replaced with the
- * video SDK in a later phase; until then renders a placeholder play
- * icon. Outer chrome (background, corner radius) comes from
- * `section.display` via `SectionContainer`. The renderer only owns
- * the 16:9 content frame and placeholder glyph. See AGENTS.md
- * §15.1(2) and §15.3.
+ * VideoPlayerStub — reserved SDK integration point for the video player.
+ *
+ * Today the visible surface is the pre-SDK placeholder composed by the
+ * server as an atomic tree under `section.data.ui`; this renderer is a
+ * thin walker over that tree via `AtomicRouter`. Once the video SDK
+ * lands it mounts here using the SDK inputs at the top of `section.data`
+ * (`playerType`, `contentId`, `autoplay`, `capabilities`,
+ * `displayConfig`) and the atomic tree becomes the SDK's loading / error
+ * placeholder.
+ *
+ * Outer chrome comes from `section.surface` via `SectionContainer`.
  */
-export function VideoPlayerStub({ section }: VideoPlayerStubProps): React.ReactElement {
-  const data = section.data as Record<string, unknown> | undefined;
-  const playerType = (data?.playerType as string) ?? 'unknown';
-  const contentId = (data?.contentId as string) ?? 'unknown';
-
+export function VideoPlayerStub({
+  section,
+  state,
+  onAction,
+  onStateChange,
+}: SectionProps): React.ReactElement | null {
+  const data = section.data as unknown as AtomicCompositeData | undefined;
+  if (!data?.ui) {
+    console.debug(
+      `[VideoPlayerStub] section ${section.id} has no data.ui atomic tree`,
+    );
+    return null;
+  }
   return (
-    <div
-      style={{
-        width: '100%',
-        aspectRatio: '16 / 9',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: 'white',
-      }}
-    >
-      <svg width="48" height="48" viewBox="0 0 24 24" fill="white">
-        <path d="M8 5v14l11-7z" />
-      </svg>
-      <div style={{ marginTop: 8, fontSize: 18, fontWeight: 600 }}>Video Player</div>
-      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>
-        {playerType} • {contentId}
-      </div>
-    </div>
+    <AtomicRouter
+      element={data.ui}
+      state={state}
+      onAction={onAction}
+      onStateChange={onStateChange}
+    />
   );
 }

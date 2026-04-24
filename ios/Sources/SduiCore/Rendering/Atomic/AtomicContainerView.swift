@@ -1,6 +1,10 @@
 import SwiftUI
 
 /// Renders a Container atomic element — row or column layout with children.
+/// The box model (margin, padding, bg, cornerRadius, shadow, border,
+/// badge, width/height/fillWidth, opacity, variant chrome) is applied
+/// uniformly by `AtomicBoxModifier`; this renderer only owns its flex
+/// layout (HStack / VStack with gap + alignment).
 struct AtomicContainerView: View {
     let element: AtomicElement
     let screenState: ScreenState
@@ -10,10 +14,7 @@ struct AtomicContainerView: View {
     var body: some View {
         let isRow = element.direction == .row
         let gap = CGFloat(element.gap ?? 0)
-        let padding = edgeInsets(from: element.padding)
-        let variantSpec = ContainerVariantResolver.resolve(element.variant)
-        let fixedWidth = element.width.map { CGFloat($0) }
-        let fixedHeight = element.height.map { CGFloat($0) }
+        let resolvedAspectRatio = element.aspectRatio.map { CGFloat($0) }
 
         Group {
             if isRow {
@@ -26,19 +27,10 @@ struct AtomicContainerView: View {
                 }
             }
         }
-        .padding(padding)
-        .frame(width: fixedWidth, height: fixedHeight)
-        .applyContainerVariant(
-            spec: variantSpec,
-            variantName: element.variant,
-            inlineBackground: element.background,
-            inlineCornerRadius: element.cornerRadius,
-            inlineCornerRadii: element.cornerRadii,
-            inlineShadow: element.shadow
-        )
-        .applyBadge(element.badge, screenState: screenState, onAction: onAction)
+        .modifier(ContainerAspectRatioModifier(aspectRatio: resolvedAspectRatio))
         .applyActionTriggers(element.actions, onAction: onAction)
         .sduiAccessibility(element.accessibility)
+        .atomicBox(element, screenState: screenState, onAction: onAction)
     }
 
     @ViewBuilder
@@ -65,6 +57,19 @@ struct AtomicContainerView: View {
         case .end: return .trailing
         case .start: return .leading
         default: return .leading
+        }
+    }
+}
+
+/// Applies aspectRatio to a Container when the server sends one.
+private struct ContainerAspectRatioModifier: ViewModifier {
+    let aspectRatio: CGFloat?
+
+    func body(content: Content) -> some View {
+        if let ratio = aspectRatio {
+            content.aspectRatio(ratio, contentMode: .fit)
+        } else {
+            content
         }
     }
 }

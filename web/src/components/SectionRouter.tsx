@@ -1,7 +1,6 @@
 import React, { useRef } from 'react';
 import type { Section, Action, Data, RefreshPolicy } from '@sdui/models';
 import { TabGroup } from './sections/TabGroup';
-import { GamePanel } from './sections/GamePanel';
 import { BoxscoreTable } from './sections/BoxscoreTable';
 import { Form } from './sections/Form';
 import { AdSlot } from './sections/AdSlot';
@@ -11,6 +10,7 @@ import { SubscribeHero } from './sections/SubscribeHero';
 import { VideoPlayerStub } from './sections/VideoPlayerStub';
 import { AtomicRouter } from './atomic';
 import type { AtomicCompositeData } from './atomic';
+import { CompositeContentContext } from '../utils/BindRefResolver';
 import { LiveSectionWrapper } from './LiveSectionWrapper';
 import { SectionErrorBoundary } from './SectionErrorBoundary';
 import { SectionContainer } from './SectionContainer';
@@ -44,21 +44,18 @@ function SectionRenderer({
   const commonProps = { section, state, onAction, onStateChange };
   // Every section, permanent or AtomicComposite, is wrapped by
   // SectionContainer so outer chrome is server-driven via
-  // `section.display` (§15.3). `SectionContainer` is a no-op when
-  // `display` is undefined, so AtomicComposites whose root Container
+  // `section.surface`. `SectionContainer` is a no-op when
+  // `surface` is undefined, so AtomicComposites whose root Container
   // already carries its own padding/background/shadow are unaffected —
-  // composers opt into outer margin/chrome by emitting a `display`
+  // composers opt into outer margin/chrome by emitting a `surface`
   // block on the section envelope.
   const wrap = (node: React.ReactElement): React.ReactElement => (
-    <SectionContainer display={section.display}>{node}</SectionContainer>
+    <SectionContainer surface={section.surface}>{node}</SectionContainer>
   );
 
   switch (section.type) {
     case 'TabGroup':
       return wrap(<TabGroup {...commonProps} />);
-
-    case 'GamePanel':
-      return wrap(<GamePanel {...commonProps} />);
 
     case 'BoxscoreTable':
       return wrap(<BoxscoreTable {...commonProps} />);
@@ -79,7 +76,7 @@ function SectionRenderer({
       return wrap(<SubscribeHero {...commonProps} />);
 
     case 'VideoPlayer':
-      return wrap(<VideoPlayerStub section={section} onAction={onAction} />);
+      return wrap(<VideoPlayerStub {...commonProps} />);
 
     case 'AtomicComposite': {
       const compositeData = section.data as unknown as AtomicCompositeData | undefined;
@@ -87,7 +84,11 @@ function SectionRenderer({
         console.debug(`[SectionRouter] AtomicComposite section ${section.id} has no ui element`);
         return null;
       }
-      return wrap(<AtomicRouter element={compositeData.ui} state={state} onAction={onAction} onStateChange={onStateChange} />);
+      return wrap(
+        <CompositeContentContext.Provider value={compositeData.content as Record<string, unknown> | undefined}>
+          <AtomicRouter element={compositeData.ui} state={state} onAction={onAction} onStateChange={onStateChange} />
+        </CompositeContentContext.Provider>
+      );
     }
       
     default:

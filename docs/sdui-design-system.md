@@ -115,27 +115,37 @@ The variant vocabulary is per-primitive:
 
 | Primitive | Field source | Values |
 |---|---|---|
-| `Text` | `TextVariant` | `displayLarge`, `displayMedium`, `displaySmall`, `headlineLarge`, `headlineMedium`, `headlineSmall`, `titleLarge`, `titleMedium`, `titleSmall`, `bodyLarge`, `bodyMedium`, `bodySmall`, `labelLarge`, `labelMedium`, `labelSmall`, `score` (and legacy `heading1`/`heading2`/`heading3`/`body`/`caption`/`label`). |
+| `Text` | `TextVariant` | `displayLarge`, `displayMedium`, `displaySmall`, `headlineLarge`, `headlineMedium`, `headlineSmall`, `titleLarge`, `titleMedium`, `titleSmall`, `bodyLarge`, `bodyMedium`, `bodySmall`, `labelLarge`, `labelMedium`, `labelSmall`, `score`. |
 | `Button` | `ButtonVariant` | `primary`, `secondary`, `tertiary`, `text`. |
-| `Container` | `ContainerVariant` | `hero`, `elevated`, `banner`, `subtle`, `grouped`, `overlay`. |
-| `Image` | `ImageVariant` | `hero`, `thumbnail`, `logo`. |
+| `Container` | `ContainerVariant` | `hero`, `grouped`. |
+| `Image` | `ImageVariant` | `thumbnail`. |
+| `LiveClock` | `TextVariant` (shared) | Any `TextVariant` value; defaults to `score` typography (tabular digits) when absent. |
 
-Variants also exist on two non-atomic carriers — the `GamePanel` section
-and the `select` flavor of `FormField`. They obey the same rules as
-primitive variants (strict-decode at the typed field, renderer-native
-realization, absent value falls through to the default) but their field
-is declared on the section / field-data object, not on `AtomicElement`:
+Each vocabulary is deliberately small. A value earns its place by
+clearing the inexpressibility bar: the treatment cannot be produced by
+inline primitives (padding + cornerRadius + shadow + background + fit)
+alone. `ContainerVariant.hero` and `ContainerVariant.grouped` both
+carry platform-native materials or list idioms that inline properties
+cannot reproduce; `ImageVariant.thumbnail` carries a platform-tuned
+cross-fade / placeholder-reservation pattern that is likewise
+inexpressible inline. Values that fail this bar stay inline — see §3
+decision rule.
+
+Variants also exist on one non-atomic carrier — the `select` flavor of
+`FormField`. It obeys the same rules as primitive variants
+(strict-decode at the typed field, renderer-native realization, absent
+value falls through to the default) but the field is declared on the
+field-data object, not on `AtomicElement`:
 
 | Carrier | Field source | Values | Notes |
 |---|---|---|---|
-| `GamePanel` (section) | `GamePanelVariant` | `standard`, `featured` | `featured` is a heightened card (wider, higher-emphasis surface) used as the lead item in a feed or carousel. Absent value renders as `standard`. |
-| `FormField` (when `fieldType == "select"`) | `SelectVariant` | `dropdown`, `chips`, `segmented` | `dropdown` is the platform menu (default). `chips` is a horizontally-scrollable row of tappable capsules — iOS uses `ScrollView` + `Capsule()` buttons, Android uses `LazyRow<FilterChip>`, web uses a pill row. `segmented` is a platform segmented control. Absent value renders as `dropdown`. |
+| `FormField` (when `fieldType == "select"`) | `SelectVariant` | `dropdown`, `chips` | `dropdown` is the platform menu (default). `chips` is a horizontally-scrollable row of tappable capsules — iOS uses `ScrollView` + `Capsule()` buttons, Android uses `LazyRow<FilterChip>`, web uses a pill row. Absent value renders as `dropdown`. |
 
-`SelectVariant` coexists with `FormField.fieldType: "radio"`. They look
-superficially similar but are distinct: `radio` is a vertical stack of
-labeled choices (multi-option, all visible), `segmented` is an
-equal-width horizontal pill chooser (usually 2–4 options). No migration
-is planned between them; they target different layout densities.
+`SelectVariant.chips` coexists with `FormField.fieldType: "radio"`.
+They look superficially similar but are distinct: `radio` is a vertical
+stack of labeled choices (multi-option, all visible), `chips` is a
+horizontal capsule row (usually 2–5 options). No migration is planned
+between them; they target different layout densities.
 
 **What variants carry that inline primitives can't:**
 
@@ -515,10 +525,10 @@ decisions on the screen.
 
 ---
 
-## 9. Worked example: a game card row
+## 9. Worked example: a featured game hero
 
-To tie the layers together, here is a single section — a game card
-for a past game — traveling from the server to the screen on each
+To tie the layers together, here is a single section — a featured
+game hero card — traveling from the server to the screen on each
 platform.
 
 ### Server emission
@@ -526,29 +536,29 @@ platform.
 ```json
 {
   "type": "Container",
-  "variant": "elevated",
+  "variant": "hero",
   "direction": "row",
   "alignment": "center",
   "crossAlignment": "center",
   "padding": { "start": 16, "end": 16, "top": 12, "bottom": 12 },
-  "cornerRadius": 12,
+  "cornerRadius": 16,
   "actions": [
     { "trigger": "onTap", "type": "navigate", "targetUri": "nba://game/0022500001" }
   ],
   "children": [
-    { "type": "Image", "variant": "logo",
+    { "type": "Image",
       "src": "https://cdn.nba.com/logos/nba/1610612747/primary/L/logo.svg",
       "width": 48, "height": 48, "fit": "contain" },
     { "type": "Container", "direction": "column", "flex": 1,
       "children": [
-        { "type": "Text", "variant": "headlineSmall", "weight": "bold",
+        { "type": "Text", "variant": "score", "weight": "bold",
           "content": "118 - 112", "color": "token:color.text.inverse",
-          "monospacedDigits": true, "textAlign": "center" },
-        { "type": "Text", "variant": "caption",
+          "textAlign": "center" },
+        { "type": "Text", "variant": "labelMedium",
           "content": "Final", "color": "token:color.text.secondary",
           "textAlign": "center" }
       ] },
-    { "type": "Image", "variant": "logo",
+    { "type": "Image",
       "src": "https://cdn.nba.com/logos/nba/1610612738/primary/L/logo.svg",
       "width": 48, "height": 48, "fit": "contain" }
   ]
@@ -558,68 +568,66 @@ platform.
 Three layers visible in the payload:
 
 - **Inline primitives** — `padding`, `cornerRadius`, `direction`,
-  `alignment`, `flex`, `width`, `height`, `fit`, `monospacedDigits`,
-  `textAlign`, `maxLines`.
-- **Variants** — `variant: "elevated"` on the row, `variant: "logo"`
-  on the team crests, `variant: "headlineSmall"` on the score,
-  `variant: "caption"` on the status.
+  `alignment`, `flex`, `width`, `height`, `fit`, `textAlign`.
+- **Variants** — `variant: "hero"` on the row (carries the
+  platform-native material / tonal surface), `variant: "score"` on
+  the game score (carries tabular-numeral typography), `variant:
+  "labelMedium"` on the status line.
 - **Color tokens** — `color: "token:color.text.inverse"` and
   `color: "token:color.text.secondary"` on the two text elements.
 
 ### iOS render (SwiftUI)
 
-The `elevated` container resolves to:
-`Color(.secondarySystemGroupedBackground)` as the fill (semantic,
-auto-adapts light/dark), `cornerRadius(12)`, and a drop shadow of
-`black.opacity(0.08)` radius 4 offset y 2 in light mode (or
-`black.opacity(0.3)` in dark). Under the variant's override matrix
-`padding` is allow, so the inline 16/16/12/12 insets apply on top.
-`cornerRadius` is allow but the inline `12` matches the variant's
-default, so it's idempotent.
+The `hero` container resolves to Liquid Glass on iOS 26+
+(`.ultraThinMaterial` on iOS 17–25, `.secondarySystemGroupedBackground`
+on older OSes), a 2-layer spring shadow, and a 16pt corner radius.
+Under the override matrix `padding` is allow, so the inline
+16/16/12/12 insets apply on top. `background` is locked on iOS under
+`hero`, so any inline background would log
+`variant_override_blocked` — this payload does not attempt one.
 
-The `logo` image variant suppresses corner rounding (a logo should
-not be clipped) and uses `contentMode: .fit`. The inline
-`width: 48, height: 48, fit: "contain"` override where the variant
-matrix allows.
+The team-logo images carry no variant. The inline
+`width: 48, height: 48, fit: "contain"` drive a plain `Image` with
+`.resizable().aspectRatio(contentMode: .fit)` inside a fixed frame;
+no corner rounding is applied because no `cornerRadius` inline
+property is set and no variant locks one in.
 
-The `headlineSmall` text renders with SF Pro, the native
-`Font.system(.headline)` weight-bold, and
-`.monospacedDigit()` applied to keep the score columns aligned.
+The `score` text variant realizes as `Font.system(.headline)` weight
+bold with `.monospacedDigit()` so "118 - 112" keeps column alignment.
 Its `color` is `token:color.text.inverse` → `color.grey.0` → `#FFFFFF`
-in both light and dark (white content on the contrasting surface).
+in both light and dark (white content against the Liquid Glass
+surface).
 
 ### Android render (Jetpack Compose)
 
-`elevated` resolves to a Material 3 `Surface` with
-`tonalElevation = 4.dp`, `shape = RoundedCornerShape(12.dp)`, and a
-`Modifier.clickable` wrapping the row for the `onTap` navigate action
-with a native ripple. The inline `padding` and `cornerRadius` apply
-per the override matrix.
+`hero` resolves to a Material 3 Expressive `Surface` with
+`tonalElevation = 6.dp`, expressive shape, ripple, and elevation 8dp
+on Android 15+ (Material You + tonalElevation on 12–14, flat Material
+surface on <12). The inline `padding` and `cornerRadius` apply per
+the override matrix; `background` on Android is allow, though this
+payload does not set one.
 
-`logo` images render with `ContentScale.Fit` inside a fixed 48×48 dp
-box, no clipping. `headlineSmall` maps to
-`MaterialTheme.typography.headlineSmall` with Roboto (or the NBA
-brand font if installed) and a monospace digit variant. Color token
-`color.text.inverse` → `color.grey.0` → `#FFFFFF` via
-`ColorTokenResolver`, with `isSystemInDarkTheme()` picking the dark
-value (which is also `#FFFFFF` for `grey.0`; the token just asserts
-"inverse," not a specific hex).
+Team-logo images render with `ContentScale.Fit` inside a fixed
+48×48 dp box, no clipping. `score` maps to
+`MaterialTheme.typography.headlineSmall` with the NBA brand font and
+a tabular-digit feature. Color token `color.text.inverse` →
+`color.grey.0` → `#FFFFFF` via `ColorTokenResolver`, with
+`isSystemInDarkTheme()` selecting the dark value.
 
 ### Web render (React + CSS)
 
-`elevated` resolves to a CSS class with a modern-tier realization:
-`background: var(--color-surface-raised)`, `border-radius: 12px`,
-`box-shadow: var(--shadow-md)`, and on modern browsers a
-`backdrop-filter: blur(12px)`. On fallback browsers the same class
-omits `backdrop-filter`. The inline `padding` becomes
-`padding: 12px 16px`. `onTap` becomes a `role="button"` + click
-handler.
+`hero` resolves to a modern-tier CSS class: linear gradient
+background, `backdrop-filter: blur(20px) saturate(140%)`, large
+`box-shadow`, 16px radius. Fallback browsers without
+`backdrop-filter` get a solid raised surface with the same shadow
+tier. The inline `padding` becomes `padding: 12px 16px`. `onTap`
+becomes a `role="button"` + click handler.
 
-`logo` images render inside a fixed-size `<img>` with `object-fit:
-contain` and no border-radius. `headlineSmall` resolves to the CSS
-typography class for that scale step (system font stack, appropriate
-size and weight). The color token resolves via a small utility hook
-that reads `prefers-color-scheme` and picks the right hex.
+Team-logo images render inside a fixed-size `<img>` with `object-fit:
+contain` and no border-radius. `score` resolves to the CSS typography
+class for tabular-digit headline text. The color token resolves via
+a utility hook that reads `prefers-color-scheme` and picks the
+correct hex.
 
 ### What the reader should take away
 

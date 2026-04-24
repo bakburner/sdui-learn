@@ -2,9 +2,11 @@ package com.nba.sdui.core.renderer
 
 import android.util.Log
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import com.nba.sdui.core.models.generated.Section
 import com.nba.sdui.core.renderer.atomic.AtomicRouter
+import com.nba.sdui.core.renderer.atomic.LocalCompositeContent
 import com.nba.sdui.core.renderer.sections.*
 import com.nba.sdui.core.state.SduiAction
 
@@ -28,7 +30,7 @@ fun SectionRouter(
 
     // Every section, permanent or AtomicComposite, is wrapped by
     // SectionContainer so outer chrome is server-driven via
-    // `section.surface` (§15.3). `SectionContainer` is a no-op when
+    // `section.surface`. `SectionContainer` is a no-op when
     // `surface` is null, so AtomicComposites whose root Container
     // already carries its own padding/background/shadow are
     // unaffected — composers opt into outer margin/chrome by
@@ -42,13 +44,6 @@ fun SectionRouter(
                 screenState = screenState,
                 onAction = onAction,
                 onStateChange = onStateChange
-            )
-        }
-
-        "GamePanel" -> SectionContainer(section.surface, modifier) {
-            GamePanelRenderer(
-                section = section,
-                onAction = onAction
             )
         }
 
@@ -115,14 +110,15 @@ fun SectionRouter(
             val root = section.data?.ui
             if (root != null) {
                 SectionContainer(section.surface, modifier) {
-                    AtomicRouter(
-                        element = root,
-                        screenState = screenState,
-                        onAction = onAction,
-                        modifier = Modifier,
-                        onStateChange = onStateChange,
-                        sectionSlotDepth = sectionSlotDepth
-                    )
+                    CompositionLocalProvider(LocalCompositeContent provides section.data?.content) {
+                        AtomicRouter(
+                            element = root,
+                            screenState = screenState,
+                            onAction = onAction,
+                            onStateChange = onStateChange,
+                            sectionSlotDepth = sectionSlotDepth
+                        )
+                    }
                 }
             } else {
                 Log.w("SectionRouter", "AtomicComposite section ${section.id} has no parsable root element")
@@ -143,7 +139,6 @@ fun SectionRouter(
  */
 val SUPPORTED_SECTION_TYPES = setOf(
     "TabGroup",
-    "GamePanel",
     "BoxscoreTable",
     "Form",
     "SubscribeBanner",

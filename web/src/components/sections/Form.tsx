@@ -63,37 +63,6 @@ export function Form({ section, state, onAction, onStateChange }: SectionProps):
                     </div>
                   );
                 }
-                if (variant === 'segmented') {
-                  return (
-                    <div style={styles.segmentedGroup} role="radiogroup" aria-labelledby={`form-${field.fieldId}`}>
-                      {field.options?.map((opt, i) => {
-                        const selected = value === opt.value;
-                        const isFirst = i === 0;
-                        const isLast = i === (field.options?.length ?? 0) - 1;
-                        return (
-                          <button
-                            key={opt.value}
-                            type="button"
-                            role="radio"
-                            aria-checked={selected}
-                            disabled={field.disabled}
-                            onClick={() => onStateChange(field.stateKey, opt.value)}
-                            style={{
-                              ...styles.segmentedButton,
-                              ...(selected ? styles.segmentedButtonSelected : {}),
-                              borderTopLeftRadius: isFirst ? 6 : 0,
-                              borderBottomLeftRadius: isFirst ? 6 : 0,
-                              borderTopRightRadius: isLast ? 6 : 0,
-                              borderBottomRightRadius: isLast ? 6 : 0,
-                            }}
-                          >
-                            {opt.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  );
-                }
                 // dropdown (default) — native <select>
                 return (
                   <select
@@ -336,29 +305,6 @@ const styles: Record<string, React.CSSProperties> = {
   chipSelected: {
     backgroundColor: 'var(--nba-tint)',
     borderColor: 'var(--nba-tint)',
-    color: 'var(--text-on-tint, #fff)',
-  },
-  segmentedGroup: {
-    display: 'inline-flex',
-    border: '1px solid var(--divider)',
-    borderRadius: 6,
-    overflow: 'hidden',
-    alignSelf: 'flex-start',
-  },
-  segmentedButton: {
-    padding: '6px 14px',
-    border: 'none',
-    borderRight: '1px solid var(--divider)',
-    backgroundColor: 'var(--surface)',
-    color: 'var(--text-primary)',
-    fontSize: 13,
-    fontFamily: 'var(--font-body)',
-    fontWeight: 500,
-    cursor: 'pointer',
-    whiteSpace: 'nowrap',
-  },
-  segmentedButtonSelected: {
-    backgroundColor: 'var(--nba-tint)',
     color: 'var(--text-on-tint, #fff)',
   },
 };

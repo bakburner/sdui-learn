@@ -215,7 +215,7 @@ public class ScheduleComposer {
             ObjectNode scoreText = objectMapper.createObjectNode();
             scoreText.put("type", "Text");
             scoreText.put("content", awayScore + " - " + homeScore);
-            scoreText.put("variant", "heading2");
+            scoreText.put("variant", "headlineMedium");
             scoreText.put("weight", "bold");
             scoreText.put("color", ColorTokens.TEXT_PRIMARY);
             scoreText.put("monospacedDigits", true);
@@ -225,7 +225,7 @@ public class ScheduleComposer {
             ObjectNode statusEl = objectMapper.createObjectNode();
             statusEl.put("type", "Text");
             statusEl.put("content", "Final");
-            statusEl.put("variant", "caption");
+            statusEl.put("variant", "labelSmall");
             statusEl.put("color", ColorTokens.TEXT_SECONDARY);
             statusEl.put("textAlign", "center");
             centerChildren.add(statusEl);
@@ -233,7 +233,7 @@ public class ScheduleComposer {
             ObjectNode timeEl = objectMapper.createObjectNode();
             timeEl.put("type", "Text");
             timeEl.put("content", game.path("time").asText("TBD"));
-            timeEl.put("variant", "body");
+            timeEl.put("variant", "bodyMedium");
             timeEl.put("weight", "semiBold");
             timeEl.put("color", ColorTokens.TEXT_PRIMARY);
             timeEl.put("textAlign", "center");

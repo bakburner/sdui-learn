@@ -62,9 +62,6 @@
     "imageFit": {
       "$ref": "sdui-schema.json#/definitions/ImageFit"
     },
-    "teamData": {
-      "$ref": "sdui-schema.json#/definitions/TeamData"
-    },
     "tabData": {
       "$ref": "sdui-schema.json#/definitions/TabData"
     },
@@ -73,15 +70,6 @@
     },
     "navigationItem": {
       "$ref": "sdui-schema.json#/definitions/NavigationItem"
-    },
-    "gameLeaderData": {
-      "$ref": "sdui-schema.json#/definitions/GameLeaderData"
-    },
-    "gameLeadersData": {
-      "$ref": "sdui-schema.json#/definitions/GameLeadersData"
-    },
-    "gamePanelData": {
-      "$ref": "sdui-schema.json#/definitions/GamePanelData"
     },
     "tabGroupData": {
       "$ref": "sdui-schema.json#/definitions/TabGroupData"

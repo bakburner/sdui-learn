@@ -55,8 +55,8 @@ public class DemoScreenComposer {
 
         ArrayNode sections = objectMapper.createArrayNode();
 
-        // 1. GamePanel (scoreboard displayConfig)
-        sections.add(buildTypeLabel("GamePanel (scoreboard config)"));
+        // 1. Game Card (scoreboard composite)
+        sections.add(buildTypeLabel("Game Card (scoreboard)"));
         sections.add(buildDemoGamePanelScoreboard());
         // 2. AdSlot (between header and top performers)
         sections.add(buildTypeLabel("AdSlot"));
@@ -73,8 +73,8 @@ public class DemoScreenComposer {
         // 6. ContentRail
         sections.add(buildTypeLabel("ContentRail"));
         sections.add(buildDemoContentRail());
-        // 7. GamePanel
-        sections.add(buildTypeLabel("GamePanel"));
+        // 7. Game Card
+        sections.add(buildTypeLabel("Game Card"));
         sections.add(buildDemoGamePanel());
         // 8. Responsive Row (AtomicComposite with breakpoint)
         sections.add(buildTypeLabel("Responsive Row (Container + breakpoint)"));
@@ -91,8 +91,8 @@ public class DemoScreenComposer {
         // 12. SeasonLeadersTable
         sections.add(buildTypeLabel("SeasonLeadersTable"));
         sections.add(buildDemoLeadersTable());
-        // 13. GamePanel (featured displayConfig)
-        sections.add(buildTypeLabel("GamePanel (featured config)"));
+        // 13. Game Card (featured composite)
+        sections.add(buildTypeLabel("Game Card (featured)"));
         sections.add(buildDemoFeaturedGamePanel());
         // 14. VideoCarousel
         sections.add(buildTypeLabel("VideoCarousel"));
@@ -279,52 +279,26 @@ public class DemoScreenComposer {
     // ── Demo section builders ──────────────────────────────────────────
 
     /**
-     * 1. GamePanel (scoreboard displayConfig) — Lakers vs Celtics, period 3, 89-94.
+     * 1. Game Card (scoreboard composite) — Lakers vs Celtics, period 3, 89-94.
      */
     private ObjectNode buildDemoGamePanelScoreboard() {
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "demo-game-panel-scoreboard");
-        section.put("type", "GamePanel");
-        section.put("analyticsId", "demo_game_panel_scoreboard");
-        section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
-
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("gameId", "0022400999");
-        data.put("gameStatus", 2);
-        data.put("gameStatusText", "Q3 4:32");
-        data.put("period", 3);
-        data.put("gameClock", "PT04M32.00S");
-        data.set("displayConfig", atomicBuilder.scoreboardConfig(null));
-
-        ObjectNode home = objectMapper.createObjectNode();
-        home.put("teamId", 1610612738);
-        home.put("teamTricode", "BOS");
-        home.put("teamName", "Celtics");
-        home.put("teamCity", "Boston");
-        home.put("score", 94);
-        home.put("logoUrl", SduiUtils.teamLogoUrl("1610612738"));
-        data.set("homeTeam", home);
-
-        ObjectNode away = objectMapper.createObjectNode();
-        away.put("teamId", 1610612747);
-        away.put("teamTricode", "LAL");
-        away.put("teamName", "Lakers");
-        away.put("teamCity", "Los Angeles");
-        away.put("score", 89);
-        away.put("logoUrl", SduiUtils.teamLogoUrl("1610612747"));
-        data.set("awayTeam", away);
-
-        ArrayNode actions = objectMapper.createArrayNode();
-        ObjectNode action = objectMapper.createObjectNode();
-        action.put("trigger", "onTap");
-        action.put("type", "navigate");
-        action.put("targetUri", "nba://game/0022400999");
-        actions.add(action);
-        data.set("actions", actions);
-
-        section.set("data", data);
-        section.set("surface", utils.gamePanelSurface());
-        return section;
+        AtomicCompositeBuilder.GameClockSnapshot clock = new AtomicCompositeBuilder.GameClockSnapshot(
+                4 * 60 + 32, java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString(), true);
+        return atomicBuilder.buildGamePanelComposite(
+                "demo-game-panel-scoreboard",
+                "demo_game_panel_scoreboard",
+                "scoreboard",
+                "0022400999",
+                2,
+                "Q3 4:32",
+                null,
+                new AtomicCompositeBuilder.GamePanelTeam("LAL", 89, SduiUtils.teamLogoUrl("1610612747")),
+                new AtomicCompositeBuilder.GamePanelTeam("BOS", 94, SduiUtils.teamLogoUrl("1610612738")),
+                clock,
+                "nba://game/0022400999",
+                objectMapper.createObjectNode().put("type", "static"),
+                null,
+                utils.gamePanelSurface());
     }
 
     /**
@@ -388,50 +362,24 @@ public class DemoScreenComposer {
     }
 
     /**
-     * 6. GamePanel — mock game tile for a single game.
+     * 6. Game Card — mock game tile for a single game.
      */
     private ObjectNode buildDemoGamePanel() {
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "demo-game-card");
-        section.put("type", "GamePanel");
-        section.put("analyticsId", "demo_game_card");
-        section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
-
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("gameId", "0022400888");
-        data.put("gameStatus", 3);
-        data.put("gameStatusText", "Final");
-        data.set("displayConfig", atomicBuilder.standardConfig());
-
-        ObjectNode home = objectMapper.createObjectNode();
-        home.put("teamId", 1610612744);
-        home.put("teamTricode", "GSW");
-        home.put("teamName", "Warriors");
-        home.put("teamCity", "Golden State");
-        home.put("score", 112);
-        home.put("logoUrl", SduiUtils.teamLogoUrl("1610612744"));
-        data.set("homeTeam", home);
-
-        ObjectNode away = objectMapper.createObjectNode();
-        away.put("teamId", 1610612745);
-        away.put("teamTricode", "HOU");
-        away.put("teamName", "Rockets");
-        away.put("teamCity", "Houston");
-        away.put("score", 105);
-        away.put("logoUrl", SduiUtils.teamLogoUrl("1610612745"));
-        data.set("awayTeam", away);
-
-        ArrayNode actions = objectMapper.createArrayNode();
-        ObjectNode action = objectMapper.createObjectNode();
-        action.put("trigger", "onTap");
-        action.put("type", "navigate");
-        action.put("targetUri", "nba://game/0022400888");
-        actions.add(action);
-        data.set("actions", actions);
-
-        section.set("data", data);
-        section.set("surface", utils.gamePanelSurface());
-        return section;
+        return atomicBuilder.buildGamePanelComposite(
+                "demo-game-card",
+                "demo_game_card",
+                "standard",
+                "0022400888",
+                3,
+                "Final",
+                null,
+                new AtomicCompositeBuilder.GamePanelTeam("HOU", 105, SduiUtils.teamLogoUrl("1610612745")),
+                new AtomicCompositeBuilder.GamePanelTeam("GSW", 112, SduiUtils.teamLogoUrl("1610612744")),
+                null,
+                "nba://game/0022400888",
+                objectMapper.createObjectNode().put("type", "static"),
+                null,
+                utils.gamePanelSurface());
     }
 
     /**
@@ -724,54 +672,26 @@ public class DemoScreenComposer {
     }
 
     /**
-     * 13. GamePanel (featured displayConfig) — hero-sized game card with background image and badge.
+     * 13. Game Card (featured composite) — hero-sized game card with background image and badge.
      */
     private ObjectNode buildDemoFeaturedGamePanel() {
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "demo-featured-game-panel");
-        section.put("type", "GamePanel");
-        section.put("analyticsId", "demo_featured_game_panel");
-        section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
-
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("gameId", "0022400777");
-        data.put("gameStatus", 2);
-        data.put("gameStatusText", "Q4 2:15");
-        data.put("gameTimeEt", "2025-03-11T19:30:00-04:00");
-        data.set("displayConfig", atomicBuilder.featuredConfig(
-                "https://loremflickr.com/1200/600/basketball,arena?lock=9",
-                new String[]{ColorTokens.PALETTE_BLUE_30, ColorTokens.BRAND_LIVE}));
-        data.put("fallbackThumbnailUrl", FALLBACK_THUMB);
-        data.put("badgeText", "LIVE");
-
-        ObjectNode home = objectMapper.createObjectNode();
-        home.put("teamId", 1610612748);
-        home.put("teamTricode", "MIA");
-        home.put("teamName", "Heat");
-        home.put("teamCity", "Miami");
-        home.put("score", 101);
-        home.put("logoUrl", SduiUtils.teamLogoUrl("1610612748"));
-        data.set("homeTeam", home);
-
-        ObjectNode away = objectMapper.createObjectNode();
-        away.put("teamId", 1610612751);
-        away.put("teamTricode", "BKN");
-        away.put("teamName", "Nets");
-        away.put("teamCity", "Brooklyn");
-        away.put("score", 97);
-        away.put("logoUrl", SduiUtils.teamLogoUrl("1610612751"));
-        data.set("awayTeam", away);
-
-        ArrayNode actions = objectMapper.createArrayNode();
-        ObjectNode action = objectMapper.createObjectNode();
-        action.put("trigger", "onTap");
-        action.put("type", "navigate");
-        action.put("targetUri", "nba://game/0022400777");
-        actions.add(action);
-        data.set("actions", actions);
-
-        section.set("data", data);
-        return section;
+        AtomicCompositeBuilder.GameClockSnapshot clock = new AtomicCompositeBuilder.GameClockSnapshot(
+                2 * 60 + 15, java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString(), true);
+        return atomicBuilder.buildGamePanelComposite(
+                "demo-featured-game-panel",
+                "demo_featured_game_panel",
+                "featured",
+                "0022400777",
+                2,
+                "Q4 2:15",
+                "LIVE",
+                new AtomicCompositeBuilder.GamePanelTeam("BKN", 97, SduiUtils.teamLogoUrl("1610612751")),
+                new AtomicCompositeBuilder.GamePanelTeam("MIA", 101, SduiUtils.teamLogoUrl("1610612748")),
+                clock,
+                "nba://game/0022400777",
+                objectMapper.createObjectNode().put("type", "static"),
+                null,
+                null);
     }
 
     /**
@@ -811,7 +731,7 @@ public class DemoScreenComposer {
     /**
      * 16. SubscribeBanner — inline League Pass upsell. Visible surface is
      * expressed as an atomic tree under {@code data.ui}. Reserved SDK
-     * integration point — see {@code AGENTS.md} §15.1.
+     * integration point.
      */
     private ObjectNode buildDemoSubscribeBanner() {
         ObjectNode section = objectMapper.createObjectNode();

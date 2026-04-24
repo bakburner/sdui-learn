@@ -51,6 +51,7 @@ fun AtomicRouter(
         "Conditional"     -> AtomicConditional(element, screenState, onAction, depth, onStateChange, sectionSlotDepth)
         "DisplayGrid"     -> AtomicDisplayGrid(element, screenState, onAction)
         "SectionSlot"     -> AtomicSectionSlot(element, screenState, onAction, onStateChange, sectionSlotDepth)
+        "LiveClock"       -> AtomicLiveClock(element, screenState, onAction)
         else              -> Log.w("AtomicRouter", "Unknown atomic element type: ${element.type}")
     }
 }

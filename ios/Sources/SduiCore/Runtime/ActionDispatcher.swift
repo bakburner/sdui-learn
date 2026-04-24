@@ -3,7 +3,7 @@ import os
 
 private let logger = Logger(subsystem: "com.nba.sdui", category: "ActionDispatcher")
 
-/// Executes a sequence of SDUI `Action`s in declared order per §4 of
+/// Executes a sequence of SDUI `Action`s in declared order per
 /// `docs/sdui-requirements-summary.md`.
 ///
 /// Mirrors Android's
@@ -228,7 +228,7 @@ final class ActionDispatcher {
     }
 
     private func defaultFailureMessage(for action: Action) -> String {
-        // Generic localized fallback matching §4 of the requirements doc.
+        // Generic localized fallback matching the requirements doc.
         switch action.type {
         case .navigate: return String(localized: "Couldn't open that destination.")
         case .refresh: return String(localized: "Couldn't refresh right now.")

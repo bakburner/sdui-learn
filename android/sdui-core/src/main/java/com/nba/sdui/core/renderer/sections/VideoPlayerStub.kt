@@ -1,7 +1,6 @@
 package com.nba.sdui.core.renderer.sections
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
 import com.nba.sdui.core.models.generated.Section
 import com.nba.sdui.core.renderer.atomic.AtomicRouter
 import com.nba.sdui.core.state.SduiAction
@@ -18,22 +17,19 @@ import com.nba.sdui.core.state.SduiAction
  * becomes the SDK's loading / error placeholder.
  *
  * Outer chrome comes from `section.surface` via `SectionContainer`.
- * See AGENTS.md §15.3.
  */
 @Composable
 fun VideoPlayerStub(
     section: Section,
     screenState: Map<String, Any>,
     onAction: (SduiAction) -> Unit,
-    onStateChange: (String, Any) -> Unit = { _, _ -> },
-    modifier: Modifier = Modifier
+    onStateChange: (String, Any) -> Unit = { _, _ -> }
 ) {
     val root = section.data?.ui ?: return
     AtomicRouter(
         element = root,
         screenState = screenState,
         onAction = onAction,
-        modifier = modifier,
         onStateChange = onStateChange
     )
 }

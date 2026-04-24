@@ -46,9 +46,18 @@ fun AtomicText(
         else -> null
     }
 
+    // Resolve `content` from `bindRef` when present, falling back to the
+    // inline `content` property. A leaf with a bindRef but no matching
+    // `data.content` entry falls back to its inline value rather than
+    // rendering nothing — this keeps the first paint usable while the
+    // first real-time update is in flight.
+    val compositeContent = LocalCompositeContent.current
+    val resolvedContent = BindRefResolver.resolveString(element.bindRef, compositeContent)
+        ?: element.content.orEmpty()
+
     AtomicBox(element, screenState, onAction) { boxModifier ->
         Text(
-            text = element.content.orEmpty(),
+            text = resolvedContent,
             style = style,
             fontWeight = fontWeight,
             color = textColor,

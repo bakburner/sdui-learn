@@ -14,7 +14,7 @@ import type { AtomicCompositeData } from '../atomic';
  *
  * Outer chrome (margin, radius, gradient background, inner padding) comes
  * from `section.surface` via `SectionContainer` — this renderer only
- * walks the inner atomic tree. See AGENTS.md §15.3.
+ * walks the inner atomic tree.
  *
  * `section.data.tiers` carries IAP product identifiers reserved for the
  * future IAP SDK; the renderer reads nothing from it today.

@@ -48,16 +48,16 @@ val mapper = jacksonObjectMapper().apply {
     convert(CrossAlignment::class,         { CrossAlignment.fromValue(it.asText()) },         { "\"${it.value}\"" })
     convert(UIDirection::class,            { UIDirection.fromValue(it.asText()) },            { "\"${it.value}\"" })
     convert(ImageFit::class,               { ImageFit.fromValue(it.asText()) },               { "\"${it.value}\"" })
+    convert(Format::class,                 { Format.fromValue(it.asText()) },                 { "\"${it.value}\"" })
     convert(Orientation::class,            { Orientation.fromValue(it.asText()) },            { "\"${it.value}\"" })
+    convert(TickDirection::class,          { TickDirection.fromValue(it.asText()) },          { "\"${it.value}\"" })
     convert(TextWeight::class,             { TextWeight.fromValue(it.asText()) },             { "\"${it.value}\"" })
     convert(Capability::class,             { Capability.fromValue(it.asText()) },             { "\"${it.value}\"" })
-    convert(ScoreTextStyle::class,         { ScoreTextStyle.fromValue(it.asText()) },         { "\"${it.value}\"" })
     convert(FieldType::class,              { FieldType.fromValue(it.asText()) },              { "\"${it.value}\"" })
     convert(SelectVariant::class,          { SelectVariant.fromValue(it.asText()) },          { "\"${it.value}\"" })
     convert(Layout::class,                 { Layout.fromValue(it.asText()) },                 { "\"${it.value}\"" })
     convert(PlayerType::class,             { PlayerType.fromValue(it.asText()) },             { "\"${it.value}\"" })
     convert(SortDirection::class,          { SortDirection.fromValue(it.asText()) },          { "\"${it.value}\"" })
-    convert(GamePanelVariant::class,       { GamePanelVariant.fromValue(it.asText()) },       { "\"${it.value}\"" })
     convert(Priority::class,               { Priority.fromValue(it.asText()) },               { "\"${it.value}\"" })
     convert(Skeleton::class,               { Skeleton.fromValue(it.asText()) },               { "\"${it.value}\"" })
     convert(BackgroundUnion::class,        { BackgroundUnion.fromJson(it) },                  { it.toJson() }, true)
@@ -473,7 +473,7 @@ data class RefreshPolicy (
 
     /**
      * Whether the client should pause this section's refresh when it scrolls out of the
-     * viewport. Default true. Set false for critical live sections (e.g., GamePanel scores)
+     * viewport. Default true. Set false for critical live sections (e.g., live-score panels)
      * that should refresh continuously.
      */
     val pauseWhenOffScreen: Boolean? = null,
@@ -585,6 +585,18 @@ data class AtomicElement (
     val badge: Badge? = null,
 
     /**
+     * Dot-path into the enclosing AtomicComposite's `data.content` object. When set, renderers
+     * resolve the leaf's canonical live field from `data.content[bindRef]` at render time and
+     * fall back to the inline value when the path is absent. Canonical field per type: Text →
+     * content, Button → label, Image → src, LiveClock → an object with {snapshotSeconds,
+     * snapshotAt, isRunning}. Placing the binding identifier on the consuming node (rather than
+     * in a centrally-declared path-into-tree) lets composers reshape the ui tree without
+     * breaking real-time updates; data-bindings on the section envelope continue to write into
+     * `content.*`.
+     */
+    val bindRef: String? = null,
+
+    /**
      * Responsive breakpoint in dp/px. For Container: below this screen width, direction flips
      * from row to column. Enables responsive layouts without client logic.
      */
@@ -639,10 +651,25 @@ data class AtomicElement (
      */
     val flex: Double? = null,
 
+    /**
+     * LiveClock display format. Clients realize using their platform's tabular-numerals
+     * typography (equivalent to TextVariant.score).
+     */
+    val format: Format? = null,
+
     val gap: Long? = null,
     val height: Long? = null,
     val icon: String? = null,
     val id: String? = null,
+
+    /**
+     * LiveClock: whether the clock is actively ticking. When true, clients run a local tick
+     * loop at their platform-native refresh cadence (~10Hz) and update the displayed value.
+     * When false, clients render snapshotSeconds verbatim.
+     */
+    @get:JsonProperty("isRunning")@field:JsonProperty("isRunning")
+    val isRunning: Boolean? = null,
+
     val label: String? = null,
 
     /**
@@ -700,7 +727,27 @@ data class AtomicElement (
 
     val size: Long? = null,
     val snapAlignment: Align? = null,
+
+    /**
+     * LiveClock: wall-clock instant (ISO-8601) at which snapshotSeconds was captured. Clients
+     * compute elapsed = now - snapshotAt and derive the displayed value. Required when type ==
+     * 'LiveClock'.
+     */
+    val snapshotAt: String? = null,
+
+    /**
+     * LiveClock: clock value in seconds at the moment captured by snapshotAt. Clients
+     * interpolate from this anchor while isRunning == true. Required when type == 'LiveClock'.
+     */
+    val snapshotSeconds: Long? = null,
+
     val src: String? = null,
+
+    /**
+     * LiveClock: optional clamp. For direction 'down', clock holds at this value once reached.
+     * For direction 'up', clock holds once reached. Omit to disable the clamp.
+     */
+    val stopAtSeconds: Long? = null,
 
     /**
      * Alternate row background for readability
@@ -714,6 +761,14 @@ data class AtomicElement (
     val textAlign: Align? = null,
 
     val thickness: Long? = null,
+
+    /**
+     * LiveClock tick direction. 'down' decrements from snapshotSeconds toward stopAtSeconds
+     * (default 0); 'up' increments from snapshotSeconds with no upper bound unless
+     * stopAtSeconds is set.
+     */
+    val tickDirection: TickDirection? = null,
+
     val trueChild: AtomicElement? = null,
 
     @get:JsonProperty(required=true)@field:JsonProperty(required=true)
@@ -768,53 +823,6 @@ data class Data (
     val stateKey: String? = null,
     val tabContents: Map<String, List<Section>>? = null,
     val tabs: List<TabData>? = null,
-    val actions: List<Action>? = null,
-    val awayTeam: TeamData? = null,
-
-    /**
-     * Badge/chip label, e.g. 'LIVE', 'FEATURED'
-     */
-    val badgeText: String? = null,
-
-    /**
-     * Whether the game clock is actively ticking. When true, renderers should interpolate the
-     * clock locally between SSE updates for visual continuity.
-     */
-    val clockRunning: Boolean? = null,
-
-    /**
-     * Server-driven visual configuration — controls all layout and styling knobs
-     */
-    val displayConfig: GamePanelDisplayConfig? = null,
-
-    /**
-     * Game clock string (e.g. 'PT05M32.00S' or '5:32')
-     */
-    val gameClock: String? = null,
-
-    @get:JsonProperty("gameId")@field:JsonProperty("gameId")
-    val gameID: String? = null,
-
-    val gameLeaders: GameLeadersData? = null,
-    val gameStatus: Long? = null,
-    val gameStatusText: String? = null,
-    val gameTimeEt: String? = null,
-    val homeTeam: TeamData? = null,
-
-    /**
-     * Current game period (quarter number)
-     */
-    val period: Long? = null,
-
-    /**
-     * Semantic card treatment. Missing value is treated as 'standard' at render time.
-     */
-    val variant: GamePanelVariant? = null,
-
-    /**
-     * Secondary label shown above the matchup (e.g. team name, 'Recommended')
-     */
-    val visualLabel: String? = null,
 
     /**
      * Ordered list of column definitions; clients render left-to-right
@@ -1005,6 +1013,8 @@ data class Data (
      */
     @get:JsonProperty("contentId")@field:JsonProperty("contentId")
     val contentID: String? = null,
+
+    val displayConfig: DisplayConfig? = null,
 
     /**
      * Discriminator for SDK player variant. Client passes contentId to the matching SDK method.
@@ -1222,11 +1232,7 @@ enum class Alignment(val value: String) {
 }
 
 /**
- * Default background (pre-game, final)
- *
  * Shared background type — solid color, gradient, or image with overlay
- *
- * Background override when game is LIVE
  *
  * Surface background (solid, gradient, or image).
  */
@@ -1490,6 +1496,25 @@ enum class ImageFit(val value: String) {
 }
 
 /**
+ * LiveClock display format. Clients realize using their platform's tabular-numerals
+ * typography (equivalent to TextVariant.score).
+ */
+enum class Format(val value: String) {
+    HMmSs("h:mm:ss"),
+    MSs("m:ss"),
+    MmSs("mm:ss");
+
+    companion object {
+        fun fromValue(value: String): Format = when (value) {
+            "h:mm:ss" -> HMmSs
+            "m:ss"    -> MSs
+            "mm:ss"   -> MmSs
+            else      -> throw IllegalArgumentException()
+        }
+    }
+}
+
+/**
  * Outer space between the element and its siblings or parent edges. Applied outside the
  * element's background, border, corner radius, and shadow — use this for sibling-to-sibling
  * spacing instead of Spacer siblings when inhomogeneous gaps are needed.
@@ -1551,6 +1576,24 @@ data class Shadow (
     val radius: Double? = null
 )
 
+/**
+ * LiveClock tick direction. 'down' decrements from snapshotSeconds toward stopAtSeconds
+ * (default 0); 'up' increments from snapshotSeconds with no upper bound unless
+ * stopAtSeconds is set.
+ */
+enum class TickDirection(val value: String) {
+    Down("down"),
+    Up("up");
+
+    companion object {
+        fun fromValue(value: String): TickDirection = when (value) {
+            "down" -> Down
+            "up"   -> Up
+            else   -> throw IllegalArgumentException()
+        }
+    }
+}
+
 
 /**
  * Font weight tokens for atomic Text elements.
@@ -1571,26 +1614,6 @@ enum class TextWeight(val value: String) {
         }
     }
 }
-
-data class TeamData (
-    @get:JsonProperty("logoUrl")@field:JsonProperty("logoUrl")
-    val logoURL: String? = null,
-
-    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
-    val score: Long,
-
-    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
-    val teamCity: String,
-
-    @get:JsonProperty("teamId", required=true)@field:JsonProperty("teamId", required=true)
-    val teamID: Long,
-
-    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
-    val teamName: String,
-
-    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
-    val teamTricode: String
-)
 
 enum class Capability(val value: String) {
     Airplay("airplay"),
@@ -1643,81 +1666,10 @@ data class BoxscoreColumnDefinition (
     val width: String? = null
 )
 
-/**
- * Server-driven visual configuration — controls all layout and styling knobs
- *
- * Server-driven visual configuration for GamePanel — replaces the hardcoded variant branch
- */
-data class GamePanelDisplayConfig (
-    /**
-     * Default background (pre-game, final)
-     */
-    val background: BackgroundUnion? = null,
-
-    /**
-     * Badge/chip background color (hex or token)
-     */
-    val badgeColor: String? = null,
-
-    /**
-     * Fixed card height in dp/px. Null/absent = auto-size
-     */
-    val cardHeight: Long? = null,
-
-    /**
-     * Card corner radius in dp/px
-     */
-    val cornerRadius: Long? = null,
-
-    /**
-     * Card elevation/shadow in dp/px
-     */
-    val elevation: Long? = null,
-
-    /**
-     * Background override when game is LIVE
-     */
-    val liveBackground: BackgroundUnion? = null,
-
-    /**
-     * Team logo width/height in dp/px
-     */
-    val logoSize: Long? = null,
-
-    /**
-     * Score typography: compact = bodyLarge+Bold, prominent = headlineMedium+ExtraBold
-     */
-    val scoreTextStyle: ScoreTextStyle? = null,
-
-    /**
-     * Foreground color for primary text on the card (score, tricode, team name). Clients derive
-     * secondary/tertiary text (status, record, broadcaster, visual label) from this base via
-     * platform-native opacity conventions. Omit to let each client fall back to its adaptive
-     * primary foreground — set this whenever the card background diverges from the platform's
-     * default surface (e.g. dark brand backgrounds that require inverse text, or light gradient
-     * carousels that require primary text on clients whose legacy default was white).
-     */
-    val textColor: String? = null,
-
+data class DisplayConfig (
     val aspectRatio: String? = null,
     val height: Long? = null
 )
-
-/**
- * Score typography: compact = bodyLarge+Bold, prominent = headlineMedium+ExtraBold
- */
-enum class ScoreTextStyle(val value: String) {
-    Compact("compact"),
-    Prominent("prominent");
-
-    companion object {
-        fun fromValue(value: String): ScoreTextStyle = when (value) {
-            "compact"   -> Compact
-            "prominent" -> Prominent
-            else        -> throw IllegalArgumentException()
-        }
-    }
-}
 
 /**
  * One input field inside a form section
@@ -1812,36 +1764,21 @@ data class FormOption (
  * treated as 'dropdown' at render time.
  *
  * How a Form single-select field is realized by the client. 'dropdown' maps to the platform
- * menu (default). 'chips' is a horizontally-scrollable row of tappable capsules.
- * 'segmented' is a platform segmented control. Applies only when FormField.fieldType ==
- * 'select'.
+ * menu (default). 'chips' is a horizontally-scrollable row of tappable capsules. Applies
+ * only when FormField.fieldType == 'select'.
  */
 enum class SelectVariant(val value: String) {
     Chips("chips"),
-    Dropdown("dropdown"),
-    Segmented("segmented");
+    Dropdown("dropdown");
 
     companion object {
         fun fromValue(value: String): SelectVariant = when (value) {
-            "chips"     -> Chips
-            "dropdown"  -> Dropdown
-            "segmented" -> Segmented
-            else        -> throw IllegalArgumentException()
+            "chips"    -> Chips
+            "dropdown" -> Dropdown
+            else       -> throw IllegalArgumentException()
         }
     }
 }
-
-data class GameLeadersData (
-    val awayLeader: GameLeaderData? = null,
-    val homeLeader: GameLeaderData? = null
-)
-
-data class GameLeaderData (
-    val assists: Long? = null,
-    val name: String? = null,
-    val points: Long? = null,
-    val rebounds: Long? = null
-)
 
 /**
  * Layout hint for field arrangement
@@ -2002,26 +1939,6 @@ data class SubscriptionTier (
     @get:JsonProperty(required=true)@field:JsonProperty(required=true)
     val price: String
 )
-
-/**
- * Semantic card treatment. Missing value is treated as 'standard' at render time.
- *
- * Semantic treatment of a GamePanel card. Clients resolve natively (widths, padding,
- * emphasis). 'standard' is the default card. 'featured' is a heightened card used as a lead
- * item in a feed or carousel.
- */
-enum class GamePanelVariant(val value: String) {
-    Featured("featured"),
-    Standard("standard");
-
-    companion object {
-        fun fromValue(value: String): GamePanelVariant = when (value) {
-            "featured" -> Featured
-            "standard" -> Standard
-            else       -> throw IllegalArgumentException()
-        }
-    }
-}
 
 data class DataBinding (
     val bindings: List<DataBindingPath>? = null,

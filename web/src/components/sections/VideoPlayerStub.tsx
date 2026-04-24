@@ -15,7 +15,6 @@ import type { AtomicCompositeData } from '../atomic';
  * placeholder.
  *
  * Outer chrome comes from `section.surface` via `SectionContainer`.
- * See AGENTS.md §15.3.
  */
 export function VideoPlayerStub({
   section,

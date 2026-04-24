@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
@@ -74,10 +75,13 @@ fun AtomicContainer(
 
     AtomicBox(element, screenState, onAction) { boxModifier ->
         val a11y = element.accessibility
-        val finalModifier = run {
+        val baseModifier = run {
             val m = boxModifier.applyAccessibility(a11y)
             if (a11y?.label != null) m.semantics(mergeDescendants = true) {} else m
         }
+        val finalModifier = element.aspectRatio?.toFloat()?.let {
+            baseModifier.aspectRatio(it)
+        } ?: baseModifier
 
         if (isRow) {
             Row(

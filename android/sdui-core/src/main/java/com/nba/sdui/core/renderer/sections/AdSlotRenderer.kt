@@ -33,8 +33,8 @@ import com.nba.sdui.core.state.SduiAction
  * shared SectionContainer wrapper.
  *
  * This renderer carries no client-side chrome defaults. A payload
- * missing required `sizes` produces an empty stub — see AGENTS.md
- * §15.1 and §15.2.
+ * missing required `sizes` produces an empty stub — reservation
+ * dimensions and placeholder content come from the server payload.
  */
 @Composable
 fun AdSlotRenderer(

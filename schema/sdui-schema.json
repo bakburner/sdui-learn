@@ -46,15 +46,13 @@
     },
     "TextVariant": {
       "type": "string",
-      "description": "Material3 typography scale plus legacy semantic variants and the NBA-specific `score` variant.",
+      "description": "Material3 typography scale plus the NBA-specific `score` variant (monospaced digits for live score / clock rendering).",
       "enum": [
         "displayLarge", "displayMedium", "displaySmall",
         "headlineLarge", "headlineMedium", "headlineSmall",
         "titleLarge", "titleMedium", "titleSmall",
         "bodyLarge", "bodyMedium", "bodySmall",
         "labelLarge", "labelMedium", "labelSmall",
-        "heading1", "heading2", "heading3",
-        "body", "caption", "label",
         "score"
       ]
     },
@@ -69,23 +67,18 @@
     },
     "ContainerVariant": {
       "type": "string",
-      "description": "Role-based container presets. Each platform resolves to native surface treatments (materials, elevation, backdrop). Inline style properties may be overridden per the variant's override matrix.",
-      "enum": ["hero", "elevated", "subtle", "grouped", "overlay", "banner"]
+      "description": "Role-based container presets that carry platform-native surface treatments inline props cannot cleanly express. 'hero' maps to OS-tiered materials (Liquid Glass on iOS 26+, .ultraThinMaterial on iOS 17–25, Material 3 Expressive on Android 15+, Material You on 12–14, CSS surface mixin on web). 'grouped' maps to the platform's inset-grouped list idiom (SwiftUI .insetGrouped / Material ListItem grouping). Each value must clear the Rule 19 inexpressibility bar — do not add values that can be produced by inline background + cornerRadius + shadow + padding. Inline style properties may still be overridden per the variant's override matrix.",
+      "enum": ["hero", "grouped"]
     },
     "ImageVariant": {
       "type": "string",
-      "description": "Role-based image presets controlling shape, sizing constraints, and load treatment per platform.",
-      "enum": ["hero", "thumbnail", "logo"]
-    },
-    "GamePanelVariant": {
-      "type": "string",
-      "description": "Semantic treatment of a GamePanel card. Clients resolve natively (widths, padding, emphasis). 'standard' is the default card. 'featured' is a heightened card used as a lead item in a feed or carousel.",
-      "enum": ["standard", "featured"]
+      "description": "Image presentation presets that carry platform-native content mode, corner radius, and clipping inline props cannot cleanly express. 'thumbnail' maps to the platform's cropped media-tile idiom (Coil cross-fade + diskCachePolicy on Android, SwiftUI .clipShape(.rect(cornerRadius:)) with content-mode placeholder reservation on iOS, object-fit: cover + CSS aspect-ratio reserve on web). New values must clear the Rule 19 inexpressibility bar — values that reduce to cornerRadius + aspectRatio + fit do not belong here.",
+      "enum": ["thumbnail"]
     },
     "SelectVariant": {
       "type": "string",
-      "description": "How a Form single-select field is realized by the client. 'dropdown' maps to the platform menu (default). 'chips' is a horizontally-scrollable row of tappable capsules. 'segmented' is a platform segmented control. Applies only when FormField.fieldType == 'select'.",
-      "enum": ["dropdown", "chips", "segmented"]
+      "description": "How a Form single-select field is realized by the client. 'dropdown' maps to the platform menu (default). 'chips' is a horizontally-scrollable row of tappable capsules. Applies only when FormField.fieldType == 'select'.",
+      "enum": ["dropdown", "chips"]
     },
     "Direction": {
       "type": "string",
@@ -291,7 +284,7 @@
         "pauseWhenOffScreen": {
           "type": "boolean",
           "default": true,
-          "description": "Whether the client should pause this section's refresh when it scrolls out of the viewport. Default true. Set false for critical live sections (e.g., GamePanel scores) that should refresh continuously."
+          "description": "Whether the client should pause this section's refresh when it scrolls out of the viewport. Default true. Set false for critical live sections (e.g., live-score panels) that should refresh continuously."
         }
       }
     },
@@ -424,7 +417,7 @@
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["Container", "Text", "Image", "Button", "Spacer", "Divider", "ScrollContainer", "Conditional", "DisplayGrid", "SectionSlot"]
+          "enum": ["Container", "Text", "Image", "Button", "Spacer", "Divider", "ScrollContainer", "Conditional", "DisplayGrid", "SectionSlot", "LiveClock"]
         },
         "id": { "type": "string" },
         "accessibility": {
@@ -525,7 +518,14 @@
         "badge": { "$ref": "#/definitions/Badge", "description": "Z-positioned child element (e.g. 'LIVE' pill, duration label) overlaid on this element." },
         "textAlign": { "type": "string", "enum": ["start", "center", "end"], "default": "start", "description": "Text alignment within the element. Used for centered headings, right-aligned numeric values." },
         "showIndicators": { "type": "boolean", "default": false, "description": "Whether to show scroll indicators on ScrollContainer. Default false for clean carousel presentation." },
-        "monospacedDigits": { "type": "boolean", "default": false, "description": "Use tabular/monospaced digit rendering to prevent layout shift on numeric text changes (scores, clocks)." }
+        "monospacedDigits": { "type": "boolean", "default": false, "description": "Use tabular/monospaced digit rendering to prevent layout shift on numeric text changes (scores, clocks)." },
+        "snapshotSeconds": { "type": "integer", "minimum": 0, "description": "LiveClock: clock value in seconds at the moment captured by snapshotAt. Clients interpolate from this anchor while isRunning == true. Required when type == 'LiveClock'." },
+        "snapshotAt": { "type": "string", "format": "date-time", "description": "LiveClock: wall-clock instant (ISO-8601) at which snapshotSeconds was captured. Clients compute elapsed = now - snapshotAt and derive the displayed value. Required when type == 'LiveClock'." },
+        "isRunning": { "type": "boolean", "default": false, "description": "LiveClock: whether the clock is actively ticking. When true, clients run a local tick loop at their platform-native refresh cadence (~10Hz) and update the displayed value. When false, clients render snapshotSeconds verbatim." },
+        "tickDirection": { "type": "string", "enum": ["down", "up"], "default": "down", "description": "LiveClock tick direction. 'down' decrements from snapshotSeconds toward stopAtSeconds (default 0); 'up' increments from snapshotSeconds with no upper bound unless stopAtSeconds is set." },
+        "stopAtSeconds": { "type": "integer", "description": "LiveClock: optional clamp. For direction 'down', clock holds at this value once reached. For direction 'up', clock holds once reached. Omit to disable the clamp." },
+        "format": { "type": "string", "enum": ["m:ss", "mm:ss", "h:mm:ss"], "default": "m:ss", "description": "LiveClock display format. Clients realize using their platform's tabular-numerals typography (equivalent to TextVariant.score)." },
+        "bindRef": { "type": "string", "description": "Dot-path into the enclosing AtomicComposite's `data.content` object. When set, renderers resolve the leaf's canonical live field from `data.content[bindRef]` at render time and fall back to the inline value when the path is absent. Canonical field per type: Text → content, Button → label, Image → src, LiveClock → an object with {snapshotSeconds, snapshotAt, isRunning}. Placing the binding identifier on the consuming node (rather than in a centrally-declared path-into-tree) lets composers reshape the ui tree without breaking real-time updates; data-bindings on the section envelope continue to write into `content.*`." }
       }
     },
     "AtomicCompositeData": {
@@ -542,18 +542,6 @@
           "description": "Optional domain data (strings, URLs, flags) to populate the ui tree. Reserved for future data-binding support.",
           "additionalProperties": true
         }
-      }
-    },
-    "TeamData": {
-      "type": "object",
-      "required": ["teamId", "teamTricode", "teamName", "teamCity", "score"],
-      "properties": {
-        "teamId": { "type": "integer" },
-        "teamTricode": { "type": "string" },
-        "teamName": { "type": "string" },
-        "teamCity": { "type": "string" },
-        "logoUrl": { "type": "string" },
-        "score": { "type": "integer" }
       }
     },
     "TabGroupData": {
@@ -607,91 +595,6 @@
         "items": {
           "type": "array",
           "items": { "$ref": "#/definitions/NavigationItem" }
-        }
-      }
-    },
-    "GameLeaderData": {
-      "type": "object",
-      "properties": {
-        "name": { "type": "string" },
-        "points": { "type": "integer" },
-        "rebounds": { "type": "integer" },
-        "assists": { "type": "integer" }
-      }
-    },
-    "GameLeadersData": {
-      "type": "object",
-      "properties": {
-        "homeLeader": { "$ref": "#/definitions/GameLeaderData" },
-        "awayLeader": { "$ref": "#/definitions/GameLeaderData" }
-      }
-    },
-    "GamePanelDisplayConfig": {
-      "type": "object",
-      "description": "Server-driven visual configuration for GamePanel — replaces the hardcoded variant branch",
-      "properties": {
-        "logoSize": { "type": "integer", "default": 32, "description": "Team logo width/height in dp/px" },
-        "cardHeight": { "type": "integer", "description": "Fixed card height in dp/px. Null/absent = auto-size" },
-        "cornerRadius": { "type": "integer", "default": 12, "description": "Card corner radius in dp/px" },
-        "elevation": { "type": "integer", "default": 0, "description": "Card elevation/shadow in dp/px" },
-        "scoreTextStyle": {
-          "type": "string",
-          "enum": ["compact", "prominent"],
-          "default": "compact",
-          "description": "Score typography: compact = bodyLarge+Bold, prominent = headlineMedium+ExtraBold"
-        },
-        "background": { "$ref": "#/definitions/Background", "description": "Default background (pre-game, final)" },
-        "liveBackground": { "$ref": "#/definitions/Background", "description": "Background override when game is LIVE" },
-        "badgeColor": { "$ref": "#/definitions/ColorToken", "description": "Badge/chip background color (hex or token)" },
-        "textColor": {
-          "$ref": "#/definitions/ColorToken",
-          "description": "Foreground color for primary text on the card (score, tricode, team name). Clients derive secondary/tertiary text (status, record, broadcaster, visual label) from this base via platform-native opacity conventions. Omit to let each client fall back to its adaptive primary foreground — set this whenever the card background diverges from the platform's default surface (e.g. dark brand backgrounds that require inverse text, or light gradient carousels that require primary text on clients whose legacy default was white)."
-        }
-      }
-    },
-    "GamePanelData": {
-      "type": "object",
-      "required": ["gameId", "gameStatus", "homeTeam", "awayTeam"],
-      "properties": {
-        "gameId": { "type": "string" },
-        "gameStatus": { "type": "integer" },
-        "gameStatusText": { "type": "string" },
-        "gameTimeEt": { "type": "string" },
-        "homeTeam": { "$ref": "#/definitions/TeamData" },
-        "awayTeam": { "$ref": "#/definitions/TeamData" },
-        "gameLeaders": { "$ref": "#/definitions/GameLeadersData" },
-        "actions": {
-          "type": "array",
-          "items": { "$ref": "#/definitions/Action" }
-        },
-        "variant": {
-          "$ref": "#/definitions/GamePanelVariant",
-          "description": "Semantic card treatment. Missing value is treated as 'standard' at render time."
-        },
-        "displayConfig": {
-          "$ref": "#/definitions/GamePanelDisplayConfig",
-          "description": "Server-driven visual configuration — controls all layout and styling knobs"
-        },
-        "period": {
-          "type": "integer",
-          "description": "Current game period (quarter number)"
-        },
-        "gameClock": {
-          "type": "string",
-          "description": "Game clock string (e.g. 'PT05M32.00S' or '5:32')"
-        },
-        "clockRunning": {
-          "type": "boolean",
-          "default": false,
-          "description": "Whether the game clock is actively ticking. When true, renderers should interpolate the clock locally between SSE updates for visual continuity."
-        },
-        "badgeText": {
-          "type": "string",
-          "description": "Badge/chip label, e.g. 'LIVE', 'FEATURED'"
-        },
-        "visualLabel": {
-          "type": "string",
-          "description": "Secondary label shown above the matchup (e.g. team name, 'Recommended')"
         }
       }
     },
@@ -883,7 +786,7 @@
         "id": { "type": "string" },
         "type": {
           "type": "string",
-          "enum": ["TabGroup", "GamePanel", "BoxscoreTable", "Form", "AdSlot", "SeasonLeadersTable", "SubscribeBanner", "SubscribeHero", "AtomicComposite", "VideoPlayer"]
+          "enum": ["TabGroup", "BoxscoreTable", "Form", "AdSlot", "SeasonLeadersTable", "SubscribeBanner", "SubscribeHero", "AtomicComposite", "VideoPlayer"]
         },
         "refreshPolicy": { "$ref": "#/definitions/RefreshPolicy" },
         "dataBinding": { "$ref": "#/definitions/DataBinding" },
@@ -916,7 +819,6 @@
           "description": "Section-specific data payload",
           "oneOf": [
             { "$ref": "#/definitions/TabGroupData" },
-            { "$ref": "#/definitions/GamePanelData" },
             { "$ref": "#/definitions/BoxscoreTableData" },
             { "$ref": "#/definitions/FormData" },
             { "$ref": "#/definitions/AdSlotData" },

@@ -37,9 +37,15 @@ fun AtomicImage(
     val variantSpec = ImageVariantResolver.resolve(element.variant)
     val effectiveAspectRatio: Float? = element.aspectRatio?.toFloat() ?: variantSpec?.aspectRatio
 
+    // Resolve `src` from `bindRef` when present, falling back to the
+    // inline `src`. Lets composers rebind image URLs in flight without
+    // touching the ui tree.
+    val compositeContent = LocalCompositeContent.current
+    val boundSrc = BindRefResolver.resolveString(element.bindRef, compositeContent) ?: element.src
+
     val fallbackUrl = element.placeholder ?: DEFAULT_FALLBACK
-    var currentSrc by remember(element.src) { mutableStateOf(element.src) }
-    var triedFallback by remember(element.src) { mutableStateOf(false) }
+    var currentSrc by remember(boundSrc) { mutableStateOf(boundSrc) }
+    var triedFallback by remember(boundSrc) { mutableStateOf(false) }
 
     val contentScale: ContentScale = element.fit?.let { mapContentScale(it) }
         ?: variantSpec?.contentScaleHint?.let(::mapContentScaleHint)

@@ -465,7 +465,7 @@ struct RefreshPolicy: Codable {
     /// For poll type: interval in milliseconds
     let intervalMS: Int?
     /// Whether the client should pause this section's refresh when it scrolls out of the
-    /// viewport. Default true. Set false for critical live sections (e.g., GamePanel scores)
+    /// viewport. Default true. Set false for critical live sections (e.g., live-score panels)
     /// that should refresh continuously.
     let pauseWhenOffScreen: Bool?
     let type: RefreshType
@@ -709,6 +709,15 @@ class AtomicElement: Codable {
     let background: BackgroundUnion?
     /// Z-positioned child element (e.g. 'LIVE' pill, duration label) overlaid on this element.
     let badge: Badge?
+    /// Dot-path into the enclosing AtomicComposite's `data.content` object. When set, renderers
+    /// resolve the leaf's canonical live field from `data.content[bindRef]` at render time and
+    /// fall back to the inline value when the path is absent. Canonical field per type: Text →
+    /// content, Button → label, Image → src, LiveClock → an object with {snapshotSeconds,
+    /// snapshotAt, isRunning}. Placing the binding identifier on the consuming node (rather than
+    /// in a centrally-declared path-into-tree) lets composers reshape the ui tree without
+    /// breaking real-time updates; data-bindings on the section envelope continue to write into
+    /// `content.*`.
+    let bindRef: String?
     /// Responsive breakpoint in dp/px. For Container: below this screen width, direction flips
     /// from row to column. Enables responsive layouts without client logic.
     let breakpoint: Int?
@@ -741,8 +750,16 @@ class AtomicElement: Codable {
     /// Flex grow factor. When set on a child of a Container, the child claims proportional space
     /// along the main axis (like CSS flex or Compose weight). Default 0 (size to content).
     let flex: Double?
+    /// LiveClock display format. Clients realize using their platform's tabular-numerals
+    /// typography (equivalent to TextVariant.score).
+    let format: Format?
     let gap, height: Int?
-    let icon, id, label: String?
+    let icon, id: String?
+    /// LiveClock: whether the clock is actively ticking. When true, clients run a local tick
+    /// loop at their platform-native refresh cadence (~10Hz) and update the displayed value.
+    /// When false, clients render snapshotSeconds verbatim.
+    let isRunning: Bool?
+    let label: String?
     /// Outer space between the element and its siblings or parent edges. Applied outside the
     /// element's background, border, corner radius, and shadow — use this for sibling-to-sibling
     /// spacing instead of Spacer siblings when inhomogeneous gaps are needed.
@@ -771,13 +788,27 @@ class AtomicElement: Codable {
     let showIndicators: Bool?
     let size: Int?
     let snapAlignment: Align?
+    /// LiveClock: wall-clock instant (ISO-8601) at which snapshotSeconds was captured. Clients
+    /// compute elapsed = now - snapshotAt and derive the displayed value. Required when type ==
+    /// 'LiveClock'.
+    let snapshotAt: Date?
+    /// LiveClock: clock value in seconds at the moment captured by snapshotAt. Clients
+    /// interpolate from this anchor while isRunning == true. Required when type == 'LiveClock'.
+    let snapshotSeconds: Int?
     let src: String?
+    /// LiveClock: optional clamp. For direction 'down', clock holds at this value once reached.
+    /// For direction 'up', clock holds once reached. Omit to disable the clamp.
+    let stopAtSeconds: Int?
     /// Alternate row background for readability
     let striped: Bool?
     /// Text alignment within the element. Used for centered headings, right-aligned numeric
     /// values.
     let textAlign: Align?
     let thickness: Int?
+    /// LiveClock tick direction. 'down' decrements from snapshotSeconds toward stopAtSeconds
+    /// (default 0); 'up' increments from snapshotSeconds with no upper bound unless
+    /// stopAtSeconds is set.
+    let tickDirection: TickDirection?
     let trueChild: AtomicElement?
     let type: String
     /// Named variant preset. The vocabulary depends on the element's type: TextVariant for Text,
@@ -788,7 +819,7 @@ class AtomicElement: Codable {
     let weight: TextWeight?
     let width: Int?
 
-    init(accessibility: AccessibilityProperties?, actions: [Action]?, alignment: Alignment?, alt: String?, aspectRatio: Double?, background: BackgroundUnion?, badge: Badge?, breakpoint: Int?, children: [AtomicElement]?, color: String?, columns: [Column]?, condition: String?, content: String?, cornerRadii: CornerRadii?, cornerRadius: Int?, crossAlignment: CrossAlignment?, direction: UIDirection?, disabled: Bool?, falseChild: AtomicElement?, fillWidth: Bool?, fit: ImageFit?, flex: Double?, gap: Int?, height: Int?, icon: String?, id: String?, label: String?, margin: Spacing?, maxLines: Int?, monospacedDigits: Bool?, opacity: Double?, orientation: Orientation?, padding: Spacing?, paging: Bool?, placeholder: String?, rows: [[String: String]]?, section: Section?, shadow: Shadow?, showIndicators: Bool?, size: Int?, snapAlignment: Align?, src: String?, striped: Bool?, textAlign: Align?, thickness: Int?, trueChild: AtomicElement?, type: String, variant: String?, weight: TextWeight?, width: Int?) {
+    init(accessibility: AccessibilityProperties?, actions: [Action]?, alignment: Alignment?, alt: String?, aspectRatio: Double?, background: BackgroundUnion?, badge: Badge?, bindRef: String?, breakpoint: Int?, children: [AtomicElement]?, color: String?, columns: [Column]?, condition: String?, content: String?, cornerRadii: CornerRadii?, cornerRadius: Int?, crossAlignment: CrossAlignment?, direction: UIDirection?, disabled: Bool?, falseChild: AtomicElement?, fillWidth: Bool?, fit: ImageFit?, flex: Double?, format: Format?, gap: Int?, height: Int?, icon: String?, id: String?, isRunning: Bool?, label: String?, margin: Spacing?, maxLines: Int?, monospacedDigits: Bool?, opacity: Double?, orientation: Orientation?, padding: Spacing?, paging: Bool?, placeholder: String?, rows: [[String: String]]?, section: Section?, shadow: Shadow?, showIndicators: Bool?, size: Int?, snapAlignment: Align?, snapshotAt: Date?, snapshotSeconds: Int?, src: String?, stopAtSeconds: Int?, striped: Bool?, textAlign: Align?, thickness: Int?, tickDirection: TickDirection?, trueChild: AtomicElement?, type: String, variant: String?, weight: TextWeight?, width: Int?) {
         self.accessibility = accessibility
         self.actions = actions
         self.alignment = alignment
@@ -796,6 +827,7 @@ class AtomicElement: Codable {
         self.aspectRatio = aspectRatio
         self.background = background
         self.badge = badge
+        self.bindRef = bindRef
         self.breakpoint = breakpoint
         self.children = children
         self.color = color
@@ -811,10 +843,12 @@ class AtomicElement: Codable {
         self.fillWidth = fillWidth
         self.fit = fit
         self.flex = flex
+        self.format = format
         self.gap = gap
         self.height = height
         self.icon = icon
         self.id = id
+        self.isRunning = isRunning
         self.label = label
         self.margin = margin
         self.maxLines = maxLines
@@ -830,10 +864,14 @@ class AtomicElement: Codable {
         self.showIndicators = showIndicators
         self.size = size
         self.snapAlignment = snapAlignment
+        self.snapshotAt = snapshotAt
+        self.snapshotSeconds = snapshotSeconds
         self.src = src
+        self.stopAtSeconds = stopAtSeconds
         self.striped = striped
         self.textAlign = textAlign
         self.thickness = thickness
+        self.tickDirection = tickDirection
         self.trueChild = trueChild
         self.type = type
         self.variant = variant
@@ -847,7 +885,7 @@ class AtomicElement: Codable {
 extension AtomicElement {
     convenience init(data: Data) throws {
         let me = try newJSONDecoder().decode(AtomicElement.self, from: data)
-        self.init(accessibility: me.accessibility, actions: me.actions, alignment: me.alignment, alt: me.alt, aspectRatio: me.aspectRatio, background: me.background, badge: me.badge, breakpoint: me.breakpoint, children: me.children, color: me.color, columns: me.columns, condition: me.condition, content: me.content, cornerRadii: me.cornerRadii, cornerRadius: me.cornerRadius, crossAlignment: me.crossAlignment, direction: me.direction, disabled: me.disabled, falseChild: me.falseChild, fillWidth: me.fillWidth, fit: me.fit, flex: me.flex, gap: me.gap, height: me.height, icon: me.icon, id: me.id, label: me.label, margin: me.margin, maxLines: me.maxLines, monospacedDigits: me.monospacedDigits, opacity: me.opacity, orientation: me.orientation, padding: me.padding, paging: me.paging, placeholder: me.placeholder, rows: me.rows, section: me.section, shadow: me.shadow, showIndicators: me.showIndicators, size: me.size, snapAlignment: me.snapAlignment, src: me.src, striped: me.striped, textAlign: me.textAlign, thickness: me.thickness, trueChild: me.trueChild, type: me.type, variant: me.variant, weight: me.weight, width: me.width)
+        self.init(accessibility: me.accessibility, actions: me.actions, alignment: me.alignment, alt: me.alt, aspectRatio: me.aspectRatio, background: me.background, badge: me.badge, bindRef: me.bindRef, breakpoint: me.breakpoint, children: me.children, color: me.color, columns: me.columns, condition: me.condition, content: me.content, cornerRadii: me.cornerRadii, cornerRadius: me.cornerRadius, crossAlignment: me.crossAlignment, direction: me.direction, disabled: me.disabled, falseChild: me.falseChild, fillWidth: me.fillWidth, fit: me.fit, flex: me.flex, format: me.format, gap: me.gap, height: me.height, icon: me.icon, id: me.id, isRunning: me.isRunning, label: me.label, margin: me.margin, maxLines: me.maxLines, monospacedDigits: me.monospacedDigits, opacity: me.opacity, orientation: me.orientation, padding: me.padding, paging: me.paging, placeholder: me.placeholder, rows: me.rows, section: me.section, shadow: me.shadow, showIndicators: me.showIndicators, size: me.size, snapAlignment: me.snapAlignment, snapshotAt: me.snapshotAt, snapshotSeconds: me.snapshotSeconds, src: me.src, stopAtSeconds: me.stopAtSeconds, striped: me.striped, textAlign: me.textAlign, thickness: me.thickness, tickDirection: me.tickDirection, trueChild: me.trueChild, type: me.type, variant: me.variant, weight: me.weight, width: me.width)
     }
 
     convenience init(_ json: String, using encoding: String.Encoding = .utf8) throws {
@@ -869,6 +907,7 @@ extension AtomicElement {
         aspectRatio: Double?? = nil,
         background: BackgroundUnion?? = nil,
         badge: Badge?? = nil,
+        bindRef: String?? = nil,
         breakpoint: Int?? = nil,
         children: [AtomicElement]?? = nil,
         color: String?? = nil,
@@ -884,10 +923,12 @@ extension AtomicElement {
         fillWidth: Bool?? = nil,
         fit: ImageFit?? = nil,
         flex: Double?? = nil,
+        format: Format?? = nil,
         gap: Int?? = nil,
         height: Int?? = nil,
         icon: String?? = nil,
         id: String?? = nil,
+        isRunning: Bool?? = nil,
         label: String?? = nil,
         margin: Spacing?? = nil,
         maxLines: Int?? = nil,
@@ -903,10 +944,14 @@ extension AtomicElement {
         showIndicators: Bool?? = nil,
         size: Int?? = nil,
         snapAlignment: Align?? = nil,
+        snapshotAt: Date?? = nil,
+        snapshotSeconds: Int?? = nil,
         src: String?? = nil,
+        stopAtSeconds: Int?? = nil,
         striped: Bool?? = nil,
         textAlign: Align?? = nil,
         thickness: Int?? = nil,
+        tickDirection: TickDirection?? = nil,
         trueChild: AtomicElement?? = nil,
         type: String? = nil,
         variant: String?? = nil,
@@ -921,6 +966,7 @@ extension AtomicElement {
             aspectRatio: aspectRatio ?? self.aspectRatio,
             background: background ?? self.background,
             badge: badge ?? self.badge,
+            bindRef: bindRef ?? self.bindRef,
             breakpoint: breakpoint ?? self.breakpoint,
             children: children ?? self.children,
             color: color ?? self.color,
@@ -936,10 +982,12 @@ extension AtomicElement {
             fillWidth: fillWidth ?? self.fillWidth,
             fit: fit ?? self.fit,
             flex: flex ?? self.flex,
+            format: format ?? self.format,
             gap: gap ?? self.gap,
             height: height ?? self.height,
             icon: icon ?? self.icon,
             id: id ?? self.id,
+            isRunning: isRunning ?? self.isRunning,
             label: label ?? self.label,
             margin: margin ?? self.margin,
             maxLines: maxLines ?? self.maxLines,
@@ -955,10 +1003,14 @@ extension AtomicElement {
             showIndicators: showIndicators ?? self.showIndicators,
             size: size ?? self.size,
             snapAlignment: snapAlignment ?? self.snapAlignment,
+            snapshotAt: snapshotAt ?? self.snapshotAt,
+            snapshotSeconds: snapshotSeconds ?? self.snapshotSeconds,
             src: src ?? self.src,
+            stopAtSeconds: stopAtSeconds ?? self.stopAtSeconds,
             striped: striped ?? self.striped,
             textAlign: textAlign ?? self.textAlign,
             thickness: thickness ?? self.thickness,
+            tickDirection: tickDirection ?? self.tickDirection,
             trueChild: trueChild ?? self.trueChild,
             type: type ?? self.type,
             variant: variant ?? self.variant,
@@ -1011,28 +1063,6 @@ struct DataClass: Codable {
     let defaultTab, stateKey: String?
     let tabContents: [String: [Section]]?
     let tabs: [TabData]?
-    let actions: [Action]?
-    let awayTeam: TeamData?
-    /// Badge/chip label, e.g. 'LIVE', 'FEATURED'
-    let badgeText: String?
-    /// Whether the game clock is actively ticking. When true, renderers should interpolate the
-    /// clock locally between SSE updates for visual continuity.
-    let clockRunning: Bool?
-    /// Server-driven visual configuration — controls all layout and styling knobs
-    let displayConfig: GamePanelDisplayConfig?
-    /// Game clock string (e.g. 'PT05M32.00S' or '5:32')
-    let gameClock: String?
-    let gameID: String?
-    let gameLeaders: GameLeadersData?
-    let gameStatus: Int?
-    let gameStatusText, gameTimeEt: String?
-    let homeTeam: TeamData?
-    /// Current game period (quarter number)
-    let period: Int?
-    /// Semantic card treatment. Missing value is treated as 'standard' at render time.
-    let variant: GamePanelVariant?
-    /// Secondary label shown above the matchup (e.g. team name, 'Recommended')
-    let visualLabel: String?
     /// Ordered list of column definitions; clients render left-to-right
     ///
     /// Ordered column definitions; clients render left-to-right
@@ -1123,19 +1153,18 @@ struct DataClass: Codable {
     /// Content identifier — interpreted by playerType (gameId for game, mediaId for vod, eventId
     /// for event, streamUrl for stream). Single field avoids mutually exclusive optional IDs.
     let contentID: String?
+    let displayConfig: DisplayConfig?
     /// Discriminator for SDK player variant. Client passes contentId to the matching SDK method.
     let playerType: PlayerType?
 
     enum CodingKeys: String, CodingKey {
-        case defaultTab, stateKey, tabContents, tabs, actions, awayTeam, badgeText, clockRunning, displayConfig, gameClock
-        case gameID = "gameId"
-        case gameLeaders, gameStatus, gameStatusText, gameTimeEt, homeTeam, period, variant, visualLabel, columns, emptyMessage, players, sortDirectionStateKey, sortStateKey, teamColor
+        case defaultTab, stateKey, tabContents, tabs, columns, emptyMessage, players, sortDirectionStateKey, sortStateKey, teamColor
         case teamLogoURL = "teamLogoUrl"
         case teamName, teamTotals, teamTricode, fields, layout, submitAction, submitLabel, adUnitPath, collapseOnEmpty, label, placeholder, provider
         case refreshIntervalSEC = "refreshIntervalSec"
         case sizes, targeting, page, pageSize, sortColumn, sortDirection, subtitle, title, totalRows, ctaAction, tiers, ui, content, autoplay, capabilities
         case contentID = "contentId"
-        case playerType
+        case displayConfig, playerType
     }
 }
 
@@ -1162,21 +1191,6 @@ extension DataClass {
         stateKey: String?? = nil,
         tabContents: [String: [Section]]?? = nil,
         tabs: [TabData]?? = nil,
-        actions: [Action]?? = nil,
-        awayTeam: TeamData?? = nil,
-        badgeText: String?? = nil,
-        clockRunning: Bool?? = nil,
-        displayConfig: GamePanelDisplayConfig?? = nil,
-        gameClock: String?? = nil,
-        gameID: String?? = nil,
-        gameLeaders: GameLeadersData?? = nil,
-        gameStatus: Int?? = nil,
-        gameStatusText: String?? = nil,
-        gameTimeEt: String?? = nil,
-        homeTeam: TeamData?? = nil,
-        period: Int?? = nil,
-        variant: GamePanelVariant?? = nil,
-        visualLabel: String?? = nil,
         columns: [BoxscoreColumnDefinition]?? = nil,
         emptyMessage: String?? = nil,
         players: [PlayerRow]?? = nil,
@@ -1213,6 +1227,7 @@ extension DataClass {
         autoplay: Bool?? = nil,
         capabilities: [Capability]?? = nil,
         contentID: String?? = nil,
+        displayConfig: DisplayConfig?? = nil,
         playerType: PlayerType?? = nil
     ) -> DataClass {
         return DataClass(
@@ -1220,21 +1235,6 @@ extension DataClass {
             stateKey: stateKey ?? self.stateKey,
             tabContents: tabContents ?? self.tabContents,
             tabs: tabs ?? self.tabs,
-            actions: actions ?? self.actions,
-            awayTeam: awayTeam ?? self.awayTeam,
-            badgeText: badgeText ?? self.badgeText,
-            clockRunning: clockRunning ?? self.clockRunning,
-            displayConfig: displayConfig ?? self.displayConfig,
-            gameClock: gameClock ?? self.gameClock,
-            gameID: gameID ?? self.gameID,
-            gameLeaders: gameLeaders ?? self.gameLeaders,
-            gameStatus: gameStatus ?? self.gameStatus,
-            gameStatusText: gameStatusText ?? self.gameStatusText,
-            gameTimeEt: gameTimeEt ?? self.gameTimeEt,
-            homeTeam: homeTeam ?? self.homeTeam,
-            period: period ?? self.period,
-            variant: variant ?? self.variant,
-            visualLabel: visualLabel ?? self.visualLabel,
             columns: columns ?? self.columns,
             emptyMessage: emptyMessage ?? self.emptyMessage,
             players: players ?? self.players,
@@ -1271,6 +1271,7 @@ extension DataClass {
             autoplay: autoplay ?? self.autoplay,
             capabilities: capabilities ?? self.capabilities,
             contentID: contentID ?? self.contentID,
+            displayConfig: displayConfig ?? self.displayConfig,
             playerType: playerType ?? self.playerType
         )
     }
@@ -1521,11 +1522,7 @@ enum Alignment: String, Codable {
     case start = "start"
 }
 
-/// Default background (pre-game, final)
-///
 /// Shared background type — solid color, gradient, or image with overlay
-///
-/// Background override when game is LIVE
 ///
 /// Surface background (solid, gradient, or image).
 enum BackgroundUnion: Codable {
@@ -1878,6 +1875,14 @@ enum ImageFit: String, Codable {
     case none = "none"
 }
 
+/// LiveClock display format. Clients realize using their platform's tabular-numerals
+/// typography (equivalent to TextVariant.score).
+enum Format: String, Codable {
+    case hMmSs = "h:mm:ss"
+    case mSs = "m:ss"
+    case mmSs = "mm:ss"
+}
+
 /// Outer space between the element and its siblings or parent edges. Applied outside the
 /// element's background, border, corner radius, and shadow — use this for sibling-to-sibling
 /// spacing instead of Spacer siblings when inhomogeneous gaps are needed.
@@ -1998,6 +2003,14 @@ extension Shadow {
     }
 }
 
+/// LiveClock tick direction. 'down' decrements from snapshotSeconds toward stopAtSeconds
+/// (default 0); 'up' increments from snapshotSeconds with no upper bound unless
+/// stopAtSeconds is set.
+enum TickDirection: String, Codable {
+    case down = "down"
+    case up = "up"
+}
+
 
 /// Font weight tokens for atomic Text elements.
 enum TextWeight: String, Codable {
@@ -2005,67 +2018,6 @@ enum TextWeight: String, Codable {
     case medium = "medium"
     case regular = "regular"
     case semiBold = "semiBold"
-}
-
-// MARK: - TeamData
-struct TeamData: Codable {
-    let logoURL: String?
-    let score: Int
-    let teamCity: String
-    let teamID: Int
-    let teamName, teamTricode: String
-
-    enum CodingKeys: String, CodingKey {
-        case logoURL = "logoUrl"
-        case score, teamCity
-        case teamID = "teamId"
-        case teamName, teamTricode
-    }
-}
-
-// MARK: TeamData convenience initializers and mutators
-
-extension TeamData {
-    init(data: Data) throws {
-        self = try newJSONDecoder().decode(TeamData.self, from: data)
-    }
-
-    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
-        guard let data = json.data(using: encoding) else {
-            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
-        }
-        try self.init(data: data)
-    }
-
-    init(fromURL url: URL) throws {
-        try self.init(data: try Data(contentsOf: url))
-    }
-
-    func with(
-        logoURL: String?? = nil,
-        score: Int? = nil,
-        teamCity: String? = nil,
-        teamID: Int? = nil,
-        teamName: String? = nil,
-        teamTricode: String? = nil
-    ) -> TeamData {
-        return TeamData(
-            logoURL: logoURL ?? self.logoURL,
-            score: score ?? self.score,
-            teamCity: teamCity ?? self.teamCity,
-            teamID: teamID ?? self.teamID,
-            teamName: teamName ?? self.teamName,
-            teamTricode: teamTricode ?? self.teamTricode
-        )
-    }
-
-    func jsonData() throws -> Data {
-        return try newJSONEncoder().encode(self)
-    }
-
-    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
-        return String(data: try self.jsonData(), encoding: encoding)
-    }
 }
 
 enum Capability: String, Codable {
@@ -2134,43 +2086,17 @@ extension BoxscoreColumnDefinition {
     }
 }
 
-/// Server-driven visual configuration — controls all layout and styling knobs
-///
-/// Server-driven visual configuration for GamePanel — replaces the hardcoded variant branch
-// MARK: - GamePanelDisplayConfig
-struct GamePanelDisplayConfig: Codable {
-    /// Default background (pre-game, final)
-    let background: BackgroundUnion?
-    /// Badge/chip background color (hex or token)
-    let badgeColor: String?
-    /// Fixed card height in dp/px. Null/absent = auto-size
-    let cardHeight: Int?
-    /// Card corner radius in dp/px
-    let cornerRadius: Int?
-    /// Card elevation/shadow in dp/px
-    let elevation: Int?
-    /// Background override when game is LIVE
-    let liveBackground: BackgroundUnion?
-    /// Team logo width/height in dp/px
-    let logoSize: Int?
-    /// Score typography: compact = bodyLarge+Bold, prominent = headlineMedium+ExtraBold
-    let scoreTextStyle: ScoreTextStyle?
-    /// Foreground color for primary text on the card (score, tricode, team name). Clients derive
-    /// secondary/tertiary text (status, record, broadcaster, visual label) from this base via
-    /// platform-native opacity conventions. Omit to let each client fall back to its adaptive
-    /// primary foreground — set this whenever the card background diverges from the platform's
-    /// default surface (e.g. dark brand backgrounds that require inverse text, or light gradient
-    /// carousels that require primary text on clients whose legacy default was white).
-    let textColor: String?
+// MARK: - DisplayConfig
+struct DisplayConfig: Codable {
     let aspectRatio: String?
     let height: Int?
 }
 
-// MARK: GamePanelDisplayConfig convenience initializers and mutators
+// MARK: DisplayConfig convenience initializers and mutators
 
-extension GamePanelDisplayConfig {
+extension DisplayConfig {
     init(data: Data) throws {
-        self = try newJSONDecoder().decode(GamePanelDisplayConfig.self, from: data)
+        self = try newJSONDecoder().decode(DisplayConfig.self, from: data)
     }
 
     init(_ json: String, using encoding: String.Encoding = .utf8) throws {
@@ -2185,28 +2111,10 @@ extension GamePanelDisplayConfig {
     }
 
     func with(
-        background: BackgroundUnion?? = nil,
-        badgeColor: String?? = nil,
-        cardHeight: Int?? = nil,
-        cornerRadius: Int?? = nil,
-        elevation: Int?? = nil,
-        liveBackground: BackgroundUnion?? = nil,
-        logoSize: Int?? = nil,
-        scoreTextStyle: ScoreTextStyle?? = nil,
-        textColor: String?? = nil,
         aspectRatio: String?? = nil,
         height: Int?? = nil
-    ) -> GamePanelDisplayConfig {
-        return GamePanelDisplayConfig(
-            background: background ?? self.background,
-            badgeColor: badgeColor ?? self.badgeColor,
-            cardHeight: cardHeight ?? self.cardHeight,
-            cornerRadius: cornerRadius ?? self.cornerRadius,
-            elevation: elevation ?? self.elevation,
-            liveBackground: liveBackground ?? self.liveBackground,
-            logoSize: logoSize ?? self.logoSize,
-            scoreTextStyle: scoreTextStyle ?? self.scoreTextStyle,
-            textColor: textColor ?? self.textColor,
+    ) -> DisplayConfig {
+        return DisplayConfig(
             aspectRatio: aspectRatio ?? self.aspectRatio,
             height: height ?? self.height
         )
@@ -2219,12 +2127,6 @@ extension GamePanelDisplayConfig {
     func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
         return String(data: try self.jsonData(), encoding: encoding)
     }
-}
-
-/// Score typography: compact = bodyLarge+Bold, prominent = headlineMedium+ExtraBold
-enum ScoreTextStyle: String, Codable {
-    case compact = "compact"
-    case prominent = "prominent"
 }
 
 /// One input field inside a form section
@@ -2372,103 +2274,11 @@ extension FormOption {
 /// treated as 'dropdown' at render time.
 ///
 /// How a Form single-select field is realized by the client. 'dropdown' maps to the platform
-/// menu (default). 'chips' is a horizontally-scrollable row of tappable capsules.
-/// 'segmented' is a platform segmented control. Applies only when FormField.fieldType ==
-/// 'select'.
+/// menu (default). 'chips' is a horizontally-scrollable row of tappable capsules. Applies
+/// only when FormField.fieldType == 'select'.
 enum SelectVariant: String, Codable {
     case chips = "chips"
     case dropdown = "dropdown"
-    case segmented = "segmented"
-}
-
-// MARK: - GameLeadersData
-struct GameLeadersData: Codable {
-    let awayLeader, homeLeader: GameLeaderData?
-}
-
-// MARK: GameLeadersData convenience initializers and mutators
-
-extension GameLeadersData {
-    init(data: Data) throws {
-        self = try newJSONDecoder().decode(GameLeadersData.self, from: data)
-    }
-
-    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
-        guard let data = json.data(using: encoding) else {
-            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
-        }
-        try self.init(data: data)
-    }
-
-    init(fromURL url: URL) throws {
-        try self.init(data: try Data(contentsOf: url))
-    }
-
-    func with(
-        awayLeader: GameLeaderData?? = nil,
-        homeLeader: GameLeaderData?? = nil
-    ) -> GameLeadersData {
-        return GameLeadersData(
-            awayLeader: awayLeader ?? self.awayLeader,
-            homeLeader: homeLeader ?? self.homeLeader
-        )
-    }
-
-    func jsonData() throws -> Data {
-        return try newJSONEncoder().encode(self)
-    }
-
-    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
-        return String(data: try self.jsonData(), encoding: encoding)
-    }
-}
-
-// MARK: - GameLeaderData
-struct GameLeaderData: Codable {
-    let assists: Int?
-    let name: String?
-    let points, rebounds: Int?
-}
-
-// MARK: GameLeaderData convenience initializers and mutators
-
-extension GameLeaderData {
-    init(data: Data) throws {
-        self = try newJSONDecoder().decode(GameLeaderData.self, from: data)
-    }
-
-    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
-        guard let data = json.data(using: encoding) else {
-            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
-        }
-        try self.init(data: data)
-    }
-
-    init(fromURL url: URL) throws {
-        try self.init(data: try Data(contentsOf: url))
-    }
-
-    func with(
-        assists: Int?? = nil,
-        name: String?? = nil,
-        points: Int?? = nil,
-        rebounds: Int?? = nil
-    ) -> GameLeaderData {
-        return GameLeaderData(
-            assists: assists ?? self.assists,
-            name: name ?? self.name,
-            points: points ?? self.points,
-            rebounds: rebounds ?? self.rebounds
-        )
-    }
-
-    func jsonData() throws -> Data {
-        return try newJSONEncoder().encode(self)
-    }
-
-    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
-        return String(data: try self.jsonData(), encoding: encoding)
-    }
 }
 
 /// Layout hint for field arrangement
@@ -2734,16 +2544,6 @@ extension SubscriptionTier {
     func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
         return String(data: try self.jsonData(), encoding: encoding)
     }
-}
-
-/// Semantic card treatment. Missing value is treated as 'standard' at render time.
-///
-/// Semantic treatment of a GamePanel card. Clients resolve natively (widths, padding,
-/// emphasis). 'standard' is the default card. 'featured' is a heightened card used as a lead
-/// item in a feed or carousel.
-enum GamePanelVariant: String, Codable {
-    case featured = "featured"
-    case standard = "standard"
 }
 
 // MARK: - DataBinding

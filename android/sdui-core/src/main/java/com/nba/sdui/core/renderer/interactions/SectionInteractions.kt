@@ -7,20 +7,11 @@ import com.nba.sdui.core.state.SduiAction
 /**
  * Shared section interaction helpers.
  *
- * Resolves actions from the schema-level `section.actions` first,
- * falling back to legacy `section.data.actions` for backward compatibility.
+ * Resolves actions from the schema-level `section.actions`.
  */
 object SectionInteractions {
-    fun actions(section: Section): List<SduiAction> {
-        val sectionLevel = section.actions
-            ?.map { it.toSduiAction() }
-            ?.takeIf { it.isNotEmpty() }
-
-        if (sectionLevel != null) return sectionLevel
-
-        val dataLevel = section.data?.actions.orEmpty()
-        return dataLevel.map { it.toSduiAction() }
-    }
+    fun actions(section: Section): List<SduiAction> =
+        section.actions.orEmpty().map { it.toSduiAction() }
 
     fun primaryAction(section: Section, trigger: String = "onTap"): SduiAction? =
         actions(section).firstOrNull { it.trigger.equals(trigger, ignoreCase = true) }

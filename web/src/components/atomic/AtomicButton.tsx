@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import type { Action } from '@sdui/models';
 import type { AtomicProps } from './AtomicRouter';
 import { AtomicBox } from './AtomicBox';
 import { accessibilityProps } from '../../utils/accessibility';
 import { useColorTokenResolver } from '../../utils/ColorTokenResolver';
+import { CompositeContentContext, resolveBindRefString } from '../../utils/BindRefResolver';
 
 const baseButtonStyle: React.CSSProperties = {
   cursor: 'pointer',
@@ -54,9 +55,13 @@ export function AtomicButton({ element, onAction }: AtomicProps): React.ReactEle
     }
   }
   const resolvedColor = resolveColor(element.color);
+  const resolvedBg = element.background && 'color' in (element.background as Record<string, unknown>)
+    ? resolveColor((element.background as Record<string, unknown>).color as string)
+    : undefined;
   const buttonStyle: React.CSSProperties = {
     ...variantStyles[resolvedVariant],
     ...(resolvedColor ? { color: resolvedColor } : {}),
+    ...(resolvedBg ? { backgroundColor: resolvedBg } : {}),
   };
 
   const handleClick = () => {
@@ -66,15 +71,21 @@ export function AtomicButton({ element, onAction }: AtomicProps): React.ReactEle
     }
   };
 
+  // Resolve `label` from `bindRef` when present, falling back to the
+  // inline `label`. Lets composers rebind CTA copy without rewriting
+  // the ui tree.
+  const compositeContent = useContext(CompositeContentContext);
+  const resolvedLabel = resolveBindRefString(element.bindRef, compositeContent) ?? element.label ?? '';
+
   const button = (
     <button
       style={buttonStyle}
       disabled={element.disabled}
       onClick={handleClick}
-      aria-label={element.accessibility?.label ?? element.label}
+      aria-label={element.accessibility?.label ?? resolvedLabel}
       {...accessibilityProps(element.accessibility)}
     >
-      {element.label ?? ''}
+      {resolvedLabel}
     </button>
   );
 

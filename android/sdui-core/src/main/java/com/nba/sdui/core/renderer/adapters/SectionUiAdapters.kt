@@ -3,8 +3,6 @@ package com.nba.sdui.core.renderer.adapters
 import com.nba.sdui.core.models.generated.BoxscoreColumnDefinition
 import com.nba.sdui.core.models.generated.FormField
 import com.nba.sdui.core.models.generated.FormOption
-import com.nba.sdui.core.models.generated.GameLeaderData
-import com.nba.sdui.core.models.generated.GamePanelDisplayConfig
 import com.nba.sdui.core.models.generated.PlayerRow
 import com.nba.sdui.core.models.generated.Section
 import com.nba.sdui.core.state.SduiAction
@@ -22,44 +20,6 @@ data class TabUiModel(
     val id: String,
     val label: String,
     val stateValue: String
-)
-
-enum class GamePanelVisualState { PRE, LIVE, FINAL }
-
-data class GamePanelDisplayConfigUi(
-    val logoSize: Int = 32,
-    val cardHeight: Int? = null,
-    val cornerRadius: Int = 12,
-    val elevation: Int = 0,
-    val scoreTextStyle: String = "compact",
-    val background: BackgroundViewModel? = null,
-    val liveBackground: BackgroundViewModel? = null,
-    val badgeColor: String? = null,
-    val textColor: String? = null
-)
-
-data class GamePanelUiModel(
-    val awayTricode: String,
-    val homeTricode: String,
-    val awayScore: String,
-    val homeScore: String,
-    val awayLogoUrl: String?,
-    val homeLogoUrl: String?,
-    val awayName: String?,
-    val homeName: String?,
-    val awayRecord: String?,
-    val homeRecord: String?,
-    val statusText: String,
-    val recordsText: String?,
-    val broadcaster: String?,
-    val gameDateEt: String?,
-    val leaderLines: List<String>,
-    val visualState: GamePanelVisualState,
-    val primaryAction: SduiAction?,
-    val displayConfig: GamePanelDisplayConfigUi,
-    val badgeText: String?,
-    val visualLabel: String?,
-    val variant: String? = null
 )
 
 fun mapTabGroup(section: Section, screenState: Map<String, Any>): TabGroupUiModel? {
@@ -90,82 +50,6 @@ fun mapTabMutateAction(stateKey: String, stateValue: String): SduiAction =
         stateKey = stateKey,
         stateValue = stateValue
     )
-
-fun mapGamePanel(section: Section): GamePanelUiModel? {
-    val data = section.data ?: return null
-    val homeTeam = data.homeTeam ?: return null
-    val awayTeam = data.awayTeam ?: return null
-    val gameStatus = data.gameStatus?.toInt() ?: 1
-    val statusText = data.gameStatusText.orEmpty().ifBlank {
-        if (gameStatus == 1) data.gameTimeEt.orEmpty().ifBlank { "Pregame" }
-        else if (gameStatus == 2) "Live"
-        else "Final"
-    }
-    val visualState = when (gameStatus) {
-        1 -> GamePanelVisualState.PRE
-        2 -> GamePanelVisualState.LIVE
-        else -> GamePanelVisualState.FINAL
-    }
-
-    val leaderLines = listOfNotNull(
-        formatLeader(data.gameLeaders?.awayLeader),
-        formatLeader(data.gameLeaders?.homeLeader)
-    )
-
-    return GamePanelUiModel(
-        awayTricode = awayTeam.teamTricode ?: "AWY",
-        homeTricode = homeTeam.teamTricode ?: "HME",
-        awayScore = awayTeam.score?.toInt()?.toString() ?: "-",
-        homeScore = homeTeam.score?.toInt()?.toString() ?: "-",
-        awayLogoUrl = awayTeam.logoURL,
-        homeLogoUrl = homeTeam.logoURL,
-        awayName = awayTeam.teamName,
-        homeName = homeTeam.teamName,
-        awayRecord = null,
-        homeRecord = null,
-        statusText = statusText,
-        recordsText = null,
-        broadcaster = null,
-        gameDateEt = null,
-        leaderLines = leaderLines,
-        visualState = visualState,
-        primaryAction = firstActionFromSection(section),
-        displayConfig = mapDisplayConfig(data.displayConfig),
-        badgeText = data.badgeText,
-        visualLabel = data.visualLabel,
-        variant = data.variant?.value
-    )
-}
-
-private fun firstActionFromSection(section: Section): SduiAction? {
-    val sectionAction = section.actions?.firstOrNull()?.toSduiAction()
-    if (sectionAction != null) return sectionAction
-    return section.data?.actions?.firstOrNull()?.toSduiAction()
-}
-
-private fun mapDisplayConfig(config: GamePanelDisplayConfig?): GamePanelDisplayConfigUi {
-    if (config == null) return GamePanelDisplayConfigUi()
-    return GamePanelDisplayConfigUi(
-        logoSize = config.logoSize?.toInt() ?: 32,
-        cardHeight = config.cardHeight?.toInt(),
-        cornerRadius = config.cornerRadius?.toInt() ?: 12,
-        elevation = config.elevation?.toInt() ?: 0,
-        scoreTextStyle = config.scoreTextStyle?.value ?: "compact",
-        background = config.background?.toViewModel(),
-        liveBackground = config.liveBackground?.toViewModel(),
-        badgeColor = config.badgeColor,
-        textColor = config.textColor
-    )
-}
-
-private fun formatLeader(leader: GameLeaderData?): String? {
-    if (leader == null) return null
-    val name = leader.name ?: return null
-    val points = leader.points?.toInt() ?: 0
-    val rebounds = leader.rebounds?.toInt() ?: 0
-    val assists = leader.assists?.toInt() ?: 0
-    return "$name - $points PTS, $rebounds REB, $assists AST"
-}
 
 // ============ BoxscoreTable ============
 

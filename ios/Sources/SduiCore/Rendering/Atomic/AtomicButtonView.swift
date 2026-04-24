@@ -12,6 +12,8 @@ struct AtomicButtonView: View {
     let screenState: ScreenState
     let onAction: (Action) -> Void
 
+    @Environment(\.compositeContent) private var compositeContent
+
     var body: some View {
         Button(action: handleTap) {
             HStack(spacing: 8) {
@@ -19,18 +21,53 @@ struct AtomicButtonView: View {
                    let symbol = IconTokenResolver.shared.resolve(icon) {
                     Image(systemName: symbol)
                 }
-                if let label = element.label {
+                if let label = resolvedLabel {
                     Text(label)
                 }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
         }
-        .buttonStyle(SduiButtonStyle(variant: resolvedVariant))
+        .buttonStyle(SduiButtonStyle(
+            variant: resolvedVariant,
+            inlineForeground: resolvedInlineColor,
+            inlineBackground: resolvedInlineBg
+        ))
         .disabled(element.disabled ?? false)
         .modifier(VisibilityActionModifier(actions: element.actions, onAction: onAction))
         .sduiAccessibility(element.accessibility, fallbackLabel: element.label)
         .atomicBox(element, screenState: screenState, onAction: onAction)
+    }
+
+    /// Resolve `label` from `bindRef` when present, falling back to the
+    /// inline `label`. Lets composers rebind CTA copy (e.g. "Subscribe
+    /// for $9.99" → "Resume subscription") without rewriting the ui tree.
+    private var resolvedLabel: String? {
+        if let bound = BindRefResolver.resolveString(bindRef: element.bindRef, in: compositeContent) {
+            return bound
+        }
+        return element.label
+    }
+
+    @Environment(\.colorScheme) private var colorScheme
+
+    /// Inline text color override from `element.color` (ColorToken).
+    private var resolvedInlineColor: Color? {
+        ColorTokenResolver.resolve(element.color, colorScheme: colorScheme)
+    }
+
+    /// Inline background override from `element.background` (solid ColorToken case).
+    private var resolvedInlineBg: Color? {
+        guard let bg = element.background else { return nil }
+        switch bg {
+        case .string(let token):
+            return ColorTokenResolver.resolve(token, colorScheme: colorScheme)
+        case .background(let bgObj):
+            if let colors = bgObj.colors, let first = colors.first {
+                return ColorTokenResolver.resolve(first, colorScheme: colorScheme)
+            }
+            return nil
+        }
     }
 
     private var resolvedVariant: ButtonVariant {
@@ -50,11 +87,13 @@ struct AtomicButtonView: View {
 
 struct SduiButtonStyle: ButtonStyle {
     let variant: ButtonVariant
+    var inlineForeground: Color? = nil
+    var inlineBackground: Color? = nil
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .foregroundColor(foregroundColor)
-            .background(backgroundColor.opacity(configuration.isPressed ? 0.7 : 1.0))
+            .foregroundColor(inlineForeground ?? foregroundColor)
+            .background((inlineBackground ?? backgroundColor).opacity(configuration.isPressed ? 0.7 : 1.0))
             .cornerRadius(8)
     }
 

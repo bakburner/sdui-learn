@@ -25,8 +25,8 @@ func edgeInsets(from spacing: Spacing?) -> EdgeInsets {
 ///   • object with `imageURL`    → remote `AsyncImage` scaled to fill.
 ///
 /// Used by `SectionContainer` for section-level surfaces and by the
-/// atomic `ContainerVariantResolver` + `GamePanelView` for inline
-/// backgrounds, so gradient fidelity is consistent everywhere.
+/// atomic `ContainerVariantResolver` for inline backgrounds, so
+/// gradient fidelity is consistent everywhere.
 @ViewBuilder
 func backgroundView(for bg: BackgroundUnion?, colorScheme: ColorScheme) -> some View {
     switch bg {

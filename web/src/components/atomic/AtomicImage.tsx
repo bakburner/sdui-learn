@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import type { Action } from '@sdui/models';
 import type { AtomicProps } from './AtomicRouter';
 import { AtomicBox, AtomicBoxBadge } from './AtomicBox';
 import { resolveImageVariant } from '../../utils/ImageVariantResolver';
+import { CompositeContentContext, resolveBindRefString } from '../../utils/BindRefResolver';
 
 const DEFAULT_FALLBACK = 'https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png';
 
@@ -61,9 +62,15 @@ export function AtomicImage({ element, onAction }: AtomicProps): React.ReactElem
     }
   };
 
+  // Resolve `src` from `bindRef` when present, falling back to the
+  // inline `src`. Lets composers rebind image URLs in flight without
+  // touching the ui tree.
+  const compositeContent = useContext(CompositeContentContext);
+  const resolvedSrc = resolveBindRefString(element.bindRef, compositeContent) ?? element.src;
+
   const img = (
     <img
-      src={element.src}
+      src={resolvedSrc}
       alt={element.accessibility?.label ?? element.alt ?? ''}
       style={{ ...imgStyle, ...(hasActions ? { cursor: 'pointer' } : {}) }}
       onClick={handleClick}

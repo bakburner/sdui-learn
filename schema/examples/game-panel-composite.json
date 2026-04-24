@@ -1,0 +1,483 @@
+{
+  "id": "game-panel-composite",
+  "schemaVersion": "1.0",
+  "layoutVersion": "v1",
+  "analyticsId": "game_panel_composite",
+  "sections": [
+    {
+      "id": "game-pre-0042300101",
+      "type": "AtomicComposite",
+      "analyticsId": "game_panel_0042300101",
+      "refreshPolicy": {
+        "type": "static"
+      },
+      "surface": {
+        "margin": {
+          "top": 0,
+          "bottom": 12,
+          "start": 16,
+          "end": 16
+        }
+      },
+      "data": {
+        "ui": {
+          "id": "game-pre-0042300101-root",
+          "type": "Container",
+          "direction": "column",
+          "alignment": "stretch",
+          "cornerRadius": 12,
+          "padding": {
+            "top": 16,
+            "bottom": 16,
+            "start": 16,
+            "end": 16
+          },
+          "actions": [
+            {
+              "type": "navigate",
+              "trigger": "onTap",
+              "uri": "nba://game/0042300101"
+            }
+          ],
+          "children": [
+            {
+              "id": "game-pre-0042300101-row",
+              "type": "Container",
+              "direction": "row",
+              "justifyContent": "spaceBetween",
+              "alignment": "center",
+              "fillWidth": true,
+              "children": [
+                {
+                  "type": "Container",
+                  "direction": "column",
+                  "justifyContent": "center",
+                  "alignment": "center",
+                  "children": [
+                    {
+                      "type": "Image",
+                      "src": "https://cdn.nba.com/logos/nba/1610612747/global/L/logo.svg",
+                      "width": 48,
+                      "height": 48,
+                      "objectFit": "contain"
+                    },
+                    {
+                      "type": "Spacer",
+                      "size": 4
+                    },
+                    {
+                      "type": "Text",
+                      "content": "LAL",
+                      "variant": "titleMedium",
+                      "fontWeight": "semiBold",
+                      "color": "sdui:textPrimary",
+                      "maxLines": 1
+                    },
+                    {
+                      "type": "Text",
+                      "content": "0",
+                      "variant": "score",
+                      "fontWeight": "bold",
+                      "color": "sdui:textPrimary",
+                      "maxLines": 1,
+                      "bindRef": "awayTeam.score"
+                    }
+                  ]
+                },
+                {
+                  "type": "Text",
+                  "content": "7:30 PM ET",
+                  "variant": "labelSmall",
+                  "color": "sdui:textPrimary",
+                  "maxLines": 1,
+                  "opacity": 0.7,
+                  "bindRef": "gameStatusText"
+                },
+                {
+                  "type": "Container",
+                  "direction": "column",
+                  "justifyContent": "center",
+                  "alignment": "center",
+                  "children": [
+                    {
+                      "type": "Image",
+                      "src": "https://cdn.nba.com/logos/nba/1610612738/global/L/logo.svg",
+                      "width": 48,
+                      "height": 48,
+                      "objectFit": "contain"
+                    },
+                    {
+                      "type": "Spacer",
+                      "size": 4
+                    },
+                    {
+                      "type": "Text",
+                      "content": "BOS",
+                      "variant": "titleMedium",
+                      "fontWeight": "semiBold",
+                      "color": "sdui:textPrimary",
+                      "maxLines": 1
+                    },
+                    {
+                      "type": "Text",
+                      "content": "0",
+                      "variant": "score",
+                      "fontWeight": "bold",
+                      "color": "sdui:textPrimary",
+                      "maxLines": 1,
+                      "bindRef": "homeTeam.score"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "content": {
+          "gameStatusText": "7:30 PM ET",
+          "gameStatus": 1,
+          "homeTeam": {
+            "score": 0,
+            "tricode": "BOS"
+          },
+          "awayTeam": {
+            "score": 0,
+            "tricode": "LAL"
+          }
+        }
+      }
+    },
+    {
+      "id": "game-live-0042300102",
+      "type": "AtomicComposite",
+      "analyticsId": "game_panel_0042300102",
+      "refreshPolicy": {
+        "type": "sse",
+        "channel": "0042300102:linescore",
+        "pauseWhenOffScreen": false
+      },
+      "dataBinding": {
+        "bindings": [
+          {
+            "source": "$.homeTeam.score",
+            "targetPath": "content.homeTeam.score"
+          },
+          {
+            "source": "$.awayTeam.score",
+            "targetPath": "content.awayTeam.score"
+          },
+          {
+            "source": "$.gameStatusText",
+            "targetPath": "content.gameStatusText"
+          },
+          {
+            "source": "$.gameClock",
+            "targetPath": "content.clock"
+          }
+        ]
+      },
+      "surface": {
+        "margin": {
+          "top": 0,
+          "bottom": 12,
+          "start": 16,
+          "end": 16
+        }
+      },
+      "data": {
+        "ui": {
+          "id": "game-live-0042300102-root",
+          "type": "Container",
+          "direction": "column",
+          "alignment": "stretch",
+          "cornerRadius": 16,
+          "padding": {
+            "top": 20,
+            "bottom": 20,
+            "start": 20,
+            "end": 20
+          },
+          "actions": [
+            {
+              "type": "navigate",
+              "trigger": "onTap",
+              "uri": "nba://game/0042300102"
+            }
+          ],
+          "children": [
+            {
+              "type": "Text",
+              "content": "LIVE",
+              "variant": "labelSmall",
+              "fontWeight": "bold",
+              "color": "#FFFFFF",
+              "background": "#E03131",
+              "cornerRadius": 4,
+              "padding": {
+                "top": 2,
+                "bottom": 2,
+                "start": 8,
+                "end": 8
+              }
+            },
+            {
+              "type": "Spacer",
+              "size": 8
+            },
+            {
+              "id": "game-live-0042300102-row",
+              "type": "Container",
+              "direction": "row",
+              "justifyContent": "spaceBetween",
+              "alignment": "center",
+              "fillWidth": true,
+              "children": [
+                {
+                  "type": "Container",
+                  "direction": "column",
+                  "justifyContent": "center",
+                  "alignment": "center",
+                  "children": [
+                    {
+                      "type": "Image",
+                      "src": "https://cdn.nba.com/logos/nba/1610612744/global/L/logo.svg",
+                      "width": 48,
+                      "height": 48,
+                      "objectFit": "contain"
+                    },
+                    {
+                      "type": "Spacer",
+                      "size": 4
+                    },
+                    {
+                      "type": "Text",
+                      "content": "GSW",
+                      "variant": "titleMedium",
+                      "fontWeight": "semiBold",
+                      "color": "sdui:textPrimary",
+                      "maxLines": 1
+                    },
+                    {
+                      "type": "Text",
+                      "content": "89",
+                      "variant": "score",
+                      "fontWeight": "bold",
+                      "color": "sdui:textPrimary",
+                      "maxLines": 1,
+                      "bindRef": "awayTeam.score"
+                    }
+                  ]
+                },
+                {
+                  "type": "LiveClock",
+                  "variant": "titleLarge",
+                  "format": "m:ss",
+                  "tickDirection": "down",
+                  "snapshotSeconds": 0,
+                  "isRunning": false,
+                  "bindRef": "clock"
+                },
+                {
+                  "type": "Container",
+                  "direction": "column",
+                  "justifyContent": "center",
+                  "alignment": "center",
+                  "children": [
+                    {
+                      "type": "Image",
+                      "src": "https://cdn.nba.com/logos/nba/1610612738/global/L/logo.svg",
+                      "width": 48,
+                      "height": 48,
+                      "objectFit": "contain"
+                    },
+                    {
+                      "type": "Spacer",
+                      "size": 4
+                    },
+                    {
+                      "type": "Text",
+                      "content": "BOS",
+                      "variant": "titleMedium",
+                      "fontWeight": "semiBold",
+                      "color": "sdui:textPrimary",
+                      "maxLines": 1
+                    },
+                    {
+                      "type": "Text",
+                      "content": "94",
+                      "variant": "score",
+                      "fontWeight": "bold",
+                      "color": "sdui:textPrimary",
+                      "maxLines": 1,
+                      "bindRef": "homeTeam.score"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "content": {
+          "gameStatusText": "Q3 4:32",
+          "gameStatus": 2,
+          "homeTeam": {
+            "score": 94,
+            "tricode": "BOS"
+          },
+          "awayTeam": {
+            "score": 89,
+            "tricode": "GSW"
+          },
+          "clock": {
+            "snapshotSeconds": 272,
+            "snapshotAt": "2026-01-15T20:30:00Z",
+            "isRunning": true
+          }
+        }
+      }
+    },
+    {
+      "id": "game-final-0042300103",
+      "type": "AtomicComposite",
+      "analyticsId": "game_panel_0042300103",
+      "refreshPolicy": {
+        "type": "static"
+      },
+      "surface": {
+        "margin": {
+          "top": 0,
+          "bottom": 12,
+          "start": 16,
+          "end": 16
+        }
+      },
+      "data": {
+        "ui": {
+          "id": "game-final-0042300103-root",
+          "type": "Container",
+          "direction": "column",
+          "alignment": "stretch",
+          "cornerRadius": 12,
+          "padding": {
+            "top": 16,
+            "bottom": 16,
+            "start": 16,
+            "end": 16
+          },
+          "actions": [
+            {
+              "type": "navigate",
+              "trigger": "onTap",
+              "uri": "nba://game/0042300103"
+            }
+          ],
+          "children": [
+            {
+              "id": "game-final-0042300103-row",
+              "type": "Container",
+              "direction": "row",
+              "justifyContent": "spaceBetween",
+              "alignment": "center",
+              "fillWidth": true,
+              "children": [
+                {
+                  "type": "Container",
+                  "direction": "column",
+                  "justifyContent": "center",
+                  "alignment": "center",
+                  "children": [
+                    {
+                      "type": "Image",
+                      "src": "https://cdn.nba.com/logos/nba/1610612748/global/L/logo.svg",
+                      "width": 48,
+                      "height": 48,
+                      "objectFit": "contain"
+                    },
+                    {
+                      "type": "Spacer",
+                      "size": 4
+                    },
+                    {
+                      "type": "Text",
+                      "content": "MIA",
+                      "variant": "titleMedium",
+                      "fontWeight": "semiBold",
+                      "color": "sdui:textPrimary",
+                      "maxLines": 1
+                    },
+                    {
+                      "type": "Text",
+                      "content": "105",
+                      "variant": "score",
+                      "fontWeight": "bold",
+                      "color": "sdui:textPrimary",
+                      "maxLines": 1,
+                      "bindRef": "awayTeam.score"
+                    }
+                  ]
+                },
+                {
+                  "type": "Text",
+                  "content": "Final",
+                  "variant": "labelSmall",
+                  "color": "sdui:textPrimary",
+                  "maxLines": 1,
+                  "opacity": 0.7,
+                  "bindRef": "gameStatusText"
+                },
+                {
+                  "type": "Container",
+                  "direction": "column",
+                  "justifyContent": "center",
+                  "alignment": "center",
+                  "children": [
+                    {
+                      "type": "Image",
+                      "src": "https://cdn.nba.com/logos/nba/1610612752/global/L/logo.svg",
+                      "width": 48,
+                      "height": 48,
+                      "objectFit": "contain"
+                    },
+                    {
+                      "type": "Spacer",
+                      "size": 4
+                    },
+                    {
+                      "type": "Text",
+                      "content": "NYK",
+                      "variant": "titleMedium",
+                      "fontWeight": "semiBold",
+                      "color": "sdui:textPrimary",
+                      "maxLines": 1
+                    },
+                    {
+                      "type": "Text",
+                      "content": "112",
+                      "variant": "score",
+                      "fontWeight": "bold",
+                      "color": "sdui:textPrimary",
+                      "maxLines": 1,
+                      "bindRef": "homeTeam.score"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "content": {
+          "gameStatusText": "Final",
+          "gameStatus": 3,
+          "homeTeam": {
+            "score": 112,
+            "tricode": "NYK"
+          },
+          "awayTeam": {
+            "score": 105,
+            "tricode": "MIA"
+          }
+        }
+      }
+    }
+  ]
+}

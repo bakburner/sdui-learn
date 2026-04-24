@@ -11,7 +11,6 @@ import SwiftUI
 /// becomes the SDK's loading / error placeholder.
 ///
 /// Outer chrome comes from `section.surface` via ``SectionContainer``.
-/// See AGENTS.md §15.3.
 struct VideoPlayerStubView: View {
     let section: Section
     let screenState: ScreenState

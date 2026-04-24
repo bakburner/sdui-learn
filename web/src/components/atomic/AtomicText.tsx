@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import type { AtomicProps } from './AtomicRouter';
 import { AtomicBox } from './AtomicBox';
 import { accessibilityProps } from '../../utils/accessibility';
 import { useColorTokenResolver } from '../../utils/ColorTokenResolver';
+import { CompositeContentContext, resolveBindRefString } from '../../utils/BindRefResolver';
 
 /** Map schema variant strings to CSS font sizes / weights — NBA typography system.
  *  Display/Headline use Roboto Condensed (approximating Knockout/Action NBA).
@@ -43,6 +44,12 @@ export function AtomicText({ element }: AtomicProps): React.ReactElement {
   };
 
   const resolveColor = useColorTokenResolver();
+  // Resolve `content` from `bindRef` when present, falling back to the
+  // inline `content` property. A leaf with a bindRef but no matching
+  // `data.content` entry falls back to its inline value so the first
+  // paint is usable while the first real-time update is in flight.
+  const compositeContent = useContext(CompositeContentContext);
+  const resolvedContent = resolveBindRefString(element.bindRef, compositeContent) ?? element.content ?? '';
 
   let baseStyle: React.CSSProperties = {};
   if (element.variant != null) {
@@ -72,9 +79,9 @@ export function AtomicText({ element }: AtomicProps): React.ReactElement {
   let inner: React.ReactElement;
   if (a11y?.role === 'heading' && a11y.headingLevel) {
     const Tag = `h${a11y.headingLevel}` as keyof React.JSX.IntrinsicElements;
-    inner = <Tag style={textStyle} {...accessibilityProps(a11y)}>{element.content ?? ''}</Tag>;
+    inner = <Tag style={textStyle} {...accessibilityProps(a11y)}>{resolvedContent}</Tag>;
   } else {
-    inner = <span style={textStyle} {...accessibilityProps(a11y)}>{element.content ?? ''}</span>;
+    inner = <span style={textStyle} {...accessibilityProps(a11y)}>{resolvedContent}</span>;
   }
 
   return <AtomicBox element={element}>{inner}</AtomicBox>;

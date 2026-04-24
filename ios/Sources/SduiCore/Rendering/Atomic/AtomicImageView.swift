@@ -17,8 +17,10 @@ struct AtomicImageView: View {
     var screenState: ScreenState = ScreenState()
     var onAction: (Action) -> Void = { _ in }
 
+    @Environment(\.compositeContent) private var compositeContent
+
     var body: some View {
-        if let src = element.src, let url = URL(string: src) {
+        if let src = resolvedSrc, let url = URL(string: src) {
             let spec = ImageVariantResolver.resolve(element.variant)
             let resolvedAspectRatio = element.aspectRatio.map { CGFloat($0) } ?? spec?.aspectRatio
             let resolvedContentMode = contentMode(spec: spec)
@@ -60,6 +62,17 @@ struct AtomicImageView: View {
             .sduiAccessibility(element.accessibility, fallbackLabel: element.alt)
             .atomicBox(element, screenState: screenState, onAction: onAction)
         }
+    }
+
+    /// Resolve `src` from `bindRef` when present (pointing into the
+    /// enclosing composite's `data.content`), falling back to the inline
+    /// `src` URL. Lets composers rebind image URLs in flight without
+    /// touching the ui tree.
+    private var resolvedSrc: String? {
+        if let bound = BindRefResolver.resolveString(bindRef: element.bindRef, in: compositeContent) {
+            return bound
+        }
+        return element.src
     }
 
     private func contentMode(spec: ImageVariantSpec?) -> ContentMode {

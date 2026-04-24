@@ -35,8 +35,8 @@ import com.nba.sdui.core.renderer.adapters.toViewModel
  *   • object with `imageUrl`  → remote [AsyncImage] (surface layer
  *                                sits below the content Box)
  *
- * See AGENTS.md §15.3 for the governance rule this wrapper enforces,
- * and `SduiUtils.defaultSurface()` on the server for the default
+ * Shared wrapper enforcing server-driven outer chrome for every section.
+ * See `SduiUtils.defaultSurface()` on the server for the default
  * surface values composers emit.
  */
 @Composable

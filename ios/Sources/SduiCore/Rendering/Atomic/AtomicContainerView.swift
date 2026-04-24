@@ -14,6 +14,7 @@ struct AtomicContainerView: View {
     var body: some View {
         let isRow = element.direction == .row
         let gap = CGFloat(element.gap ?? 0)
+        let resolvedAspectRatio = element.aspectRatio.map { CGFloat($0) }
 
         Group {
             if isRow {
@@ -26,6 +27,7 @@ struct AtomicContainerView: View {
                 }
             }
         }
+        .modifier(ContainerAspectRatioModifier(aspectRatio: resolvedAspectRatio))
         .applyActionTriggers(element.actions, onAction: onAction)
         .sduiAccessibility(element.accessibility)
         .atomicBox(element, screenState: screenState, onAction: onAction)
@@ -55,6 +57,19 @@ struct AtomicContainerView: View {
         case .end: return .trailing
         case .start: return .leading
         default: return .leading
+        }
+    }
+}
+
+/// Applies aspectRatio to a Container when the server sends one.
+private struct ContainerAspectRatioModifier: ViewModifier {
+    let aspectRatio: CGFloat?
+
+    func body(content: Content) -> some View {
+        if let ratio = aspectRatio {
+            content.aspectRatio(ratio, contentMode: .fit)
+        } else {
+            content
         }
     }
 }

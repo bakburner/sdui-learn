@@ -13,9 +13,9 @@ import SwiftUI
 ///   • object with `imageUrl`  → remote `AsyncImage` (surface layer
 ///                                sits below `content`)
 ///
-/// See `AGENTS.md` §15.3 for the governance rule this wrapper
-/// enforces, and `SduiUtils.defaultSurface()` on the server for
-/// the default surface values composers emit.
+/// Shared wrapper enforcing server-driven outer chrome for every section.
+/// See `SduiUtils.defaultSurface()` on the server for the default
+/// surface values composers emit.
 struct SectionContainer<Content: View>: View {
     let surface: SectionSurface?
     let content: () -> Content

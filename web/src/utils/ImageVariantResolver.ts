@@ -14,7 +14,7 @@
 
 import type { OverridePolicy } from './ContainerVariantResolver';
 
-export type ImageVariantName = 'hero' | 'thumbnail' | 'logo';
+export type ImageVariantName = 'thumbnail';
 
 export interface ImageVariantSpec {
   cornerRadius?: number;
@@ -28,23 +28,6 @@ export interface ImageVariantSpec {
 }
 
 const SPECS: Record<ImageVariantName, ImageVariantSpec> = {
-  hero: {
-    cornerRadius: 12,
-    aspectRatio: '16 / 9',
-    objectFit: 'cover',
-    fillWidth: true,
-    clip: true,
-    overrideMatrix: {
-      padding: 'allow',
-      cornerRadius: 'allow',
-      background: 'allow',
-      shadow: 'allow',
-      color: 'allow',
-      opacity: 'allow',
-      border: 'allow',
-    },
-  },
-
   thumbnail: {
     cornerRadius: 8,
     aspectRatio: undefined,
@@ -61,26 +44,9 @@ const SPECS: Record<ImageVariantName, ImageVariantSpec> = {
       border: 'allow',
     },
   },
-
-  logo: {
-    cornerRadius: undefined,
-    aspectRatio: undefined,
-    objectFit: 'contain',
-    fillWidth: false,
-    clip: false,
-    overrideMatrix: {
-      padding: 'allow',
-      cornerRadius: 'allow',
-      background: 'allow',
-      shadow: 'allow',
-      color: 'allow',
-      opacity: 'allow',
-      border: 'allow',
-    },
-  },
 };
 
-const KNOWN: ReadonlyArray<ImageVariantName> = ['hero', 'thumbnail', 'logo'];
+const KNOWN: ReadonlyArray<ImageVariantName> = ['thumbnail'];
 
 export function resolveImageVariant(
   variant?: string | null,

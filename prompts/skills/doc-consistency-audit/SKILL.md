@@ -51,7 +51,7 @@ Audit these files in order (highest-visibility first):
 4. `docs/SDUI_Executive_Summary_v2.md` — renderer counts, atomic layer description, feature table
 5. `docs/SDUI_Technical_Proposal_v2.md` — tier classification, migration status, architecture details
 6. `docs/sdui-requirements-summary.md` — section inventory table, renderer counts, atomic layer row
-7. `docs/appendix-kitchen-sink.md` — section type labels, demo section list
+7. `docs/sdui-design-system` — for accuracy, model , completeness
 8. `docs/adr/*.md` — architecture decision records (check for stale type names, deprecated terminology)
 9. `prompts/agents/client-builder.agent.md` — platform adaptation table, type inventory, conformance rules
 
@@ -135,10 +135,6 @@ For every audited document that was **modified** and has a `## Revision History`
 - Run a final grep for any remaining stale type names across the project
 
 > **Kitchen sink refresh** is out of scope for this skill — the `docs/appendix-kitchen-sink.md`
-> JSON body is large (~4000 lines) and requires a running server. Refresh it manually:
-> `cd server && ./gradlew bootRun`, then
-> `curl -s -H "X-Platform: android" http://localhost:8080/sdui/demos | python3 -m json.tool`
-> and paste into the appendix.
 
 ## Key Terminology Rules
 

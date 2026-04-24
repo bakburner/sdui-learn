@@ -27,6 +27,7 @@ export function AtomicContainer({ element, state, onAction, depth = 0, onStateCh
     display: 'flex',
     flexDirection: isRow ? 'row' : 'column',
     gap: element.gap,
+    ...(element.aspectRatio != null ? { aspectRatio: String(element.aspectRatio) } : {}),
   };
 
   switch (element.alignment) {

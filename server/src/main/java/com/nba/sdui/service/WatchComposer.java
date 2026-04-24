@@ -317,74 +317,43 @@ public class WatchComposer {
     private ObjectNode buildGamePanel(JsonNode game) {
         String gameId = game.path("gameId").asText("0000000000");
         int gameStatus = game.path("gameStatus").asInt(1);
-
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "watch-game-" + gameId);
-        section.put("type", "GamePanel");
-        section.set("refreshPolicy", staticPolicy());
-
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("gameId", gameId);
-        data.put("gameStatus", gameStatus);
-        data.put("gameStatusText", game.path("gameStatusText").asText(""));
-        data.set("homeTeam", mapTeam(game.path("homeTeam")));
-        data.set("awayTeam", mapTeam(game.path("awayTeam")));
-
-        ArrayNode actions = objectMapper.createArrayNode();
-        ObjectNode action = objectMapper.createObjectNode();
-        action.put("trigger", "onTap");
-        action.put("type", "navigate");
-        action.put("targetUri", "nba://game/" + gameId);
-        actions.add(action);
-        data.set("actions", actions);
-
-        section.set("data", data);
-        section.set("surface", utils.gamePanelSurface());
-        return section;
+        return atomicBuilder.buildGamePanelComposite(
+                "watch-game-" + gameId,
+                null,
+                "standard",
+                gameId,
+                gameStatus,
+                game.path("gameStatusText").asText(""),
+                null,
+                atomicBuilder.gamePanelTeamFromJson(game.path("awayTeam")),
+                atomicBuilder.gamePanelTeamFromJson(game.path("homeTeam")),
+                null,
+                "nba://game/" + gameId,
+                staticPolicy(),
+                null,
+                utils.gamePanelSurface());
     }
 
     private ObjectNode mockGamePanel(String id, String awayTri, int awayTeamId,
                                      String homeTri, int homeTeamId,
                                      String statusText, int gameStatus) {
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", id);
-        section.put("type", "GamePanel");
-        section.set("refreshPolicy", staticPolicy());
-
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("gameId", id);
-        data.put("gameStatus", gameStatus);
-        data.put("gameStatusText", statusText);
-
-        ObjectNode away = objectMapper.createObjectNode();
-        away.put("teamId", awayTeamId);
-        away.put("teamTricode", awayTri);
-        away.put("teamName", awayTri);
-        away.put("teamCity", awayTri);
-        away.put("score", gameStatus == 2 ? 55 : 0);
-        away.put("logoUrl", SduiUtils.teamLogoUrl(awayTeamId));
-        data.set("awayTeam", away);
-
-        ObjectNode home = objectMapper.createObjectNode();
-        home.put("teamId", homeTeamId);
-        home.put("teamTricode", homeTri);
-        home.put("teamName", homeTri);
-        home.put("teamCity", homeTri);
-        home.put("score", gameStatus == 2 ? 48 : 0);
-        home.put("logoUrl", SduiUtils.teamLogoUrl(homeTeamId));
-        data.set("homeTeam", home);
-
-        ArrayNode actions = objectMapper.createArrayNode();
-        ObjectNode action = objectMapper.createObjectNode();
-        action.put("trigger", "onTap");
-        action.put("type", "navigate");
-        action.put("targetUri", "nba://game/" + id);
-        actions.add(action);
-        data.set("actions", actions);
-
-        section.set("data", data);
-        section.set("surface", utils.gamePanelSurface());
-        return section;
+        int awayScore = gameStatus == 2 ? 55 : 0;
+        int homeScore = gameStatus == 2 ? 48 : 0;
+        return atomicBuilder.buildGamePanelComposite(
+                id,
+                null,
+                "standard",
+                id,
+                gameStatus,
+                statusText,
+                null,
+                new AtomicCompositeBuilder.GamePanelTeam(awayTri, awayScore, SduiUtils.teamLogoUrl(awayTeamId)),
+                new AtomicCompositeBuilder.GamePanelTeam(homeTri, homeScore, SduiUtils.teamLogoUrl(homeTeamId)),
+                null,
+                "nba://game/" + id,
+                staticPolicy(),
+                null,
+                utils.gamePanelSurface());
     }
 
     // ── New section type builders ──────────────────────────────────────
@@ -658,20 +627,6 @@ public class WatchComposer {
     }
 
     // ── Helpers ────────────────────────────────────────────────────────
-
-    private ObjectNode mapTeam(JsonNode team) {
-        ObjectNode mapped = objectMapper.createObjectNode();
-        mapped.put("teamId", team.path("teamId").asInt());
-        mapped.put("teamTricode", team.path("teamTricode").asText(""));
-        mapped.put("teamName", team.path("teamName").asText(""));
-        mapped.put("teamCity", team.path("teamCity").asText(""));
-        mapped.put("score", team.path("score").asInt(0));
-        int wins = team.path("wins").asInt(0);
-        int losses = team.path("losses").asInt(0);
-        mapped.put("record", wins + "-" + losses);
-        mapped.put("logoUrl", SduiUtils.teamLogoUrl(team.path("teamId").asText()));
-        return mapped;
-    }
 
     private ObjectNode staticPolicy() {
         ObjectNode rp = objectMapper.createObjectNode();

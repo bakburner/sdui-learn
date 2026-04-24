@@ -264,7 +264,7 @@ export interface RefreshPolicy {
     intervalMs?: number;
     /**
      * Whether the client should pause this section's refresh when it scrolls out of the
-     * viewport. Default true. Set false for critical live sections (e.g., GamePanel scores)
+     * viewport. Default true. Set false for critical live sections (e.g., live-score panels)
      * that should refresh continuously.
      */
     pauseWhenOffScreen?: boolean;
@@ -354,6 +354,17 @@ export interface AtomicElement {
      */
     badge?: Badge;
     /**
+     * Dot-path into the enclosing AtomicComposite's `data.content` object. When set, renderers
+     * resolve the leaf's canonical live field from `data.content[bindRef]` at render time and
+     * fall back to the inline value when the path is absent. Canonical field per type: Text →
+     * content, Button → label, Image → src, LiveClock → an object with {snapshotSeconds,
+     * snapshotAt, isRunning}. Placing the binding identifier on the consuming node (rather than
+     * in a centrally-declared path-into-tree) lets composers reshape the ui tree without
+     * breaking real-time updates; data-bindings on the section envelope continue to write into
+     * `content.*`.
+     */
+    bindRef?: string;
+    /**
      * Responsive breakpoint in dp/px. For Container: below this screen width, direction flips
      * from row to column. Enables responsive layouts without client logic.
      */
@@ -397,12 +408,23 @@ export interface AtomicElement {
      * Flex grow factor. When set on a child of a Container, the child claims proportional space
      * along the main axis (like CSS flex or Compose weight). Default 0 (size to content).
      */
-    flex?:   number;
+    flex?: number;
+    /**
+     * LiveClock display format. Clients realize using their platform's tabular-numerals
+     * typography (equivalent to TextVariant.score).
+     */
+    format?: Format;
     gap?:    number;
     height?: number;
     icon?:   string;
     id?:     string;
-    label?:  string;
+    /**
+     * LiveClock: whether the clock is actively ticking. When true, clients run a local tick
+     * loop at their platform-native refresh cadence (~10Hz) and update the displayed value.
+     * When false, clients render snapshotSeconds verbatim.
+     */
+    isRunning?: boolean;
+    label?:     string;
     /**
      * Outer space between the element and its siblings or parent edges. Applied outside the
      * element's background, border, corner radius, and shadow — use this for sibling-to-sibling
@@ -447,7 +469,23 @@ export interface AtomicElement {
     showIndicators?: boolean;
     size?:           number;
     snapAlignment?:  Align;
-    src?:            string;
+    /**
+     * LiveClock: wall-clock instant (ISO-8601) at which snapshotSeconds was captured. Clients
+     * compute elapsed = now - snapshotAt and derive the displayed value. Required when type ==
+     * 'LiveClock'.
+     */
+    snapshotAt?: Date;
+    /**
+     * LiveClock: clock value in seconds at the moment captured by snapshotAt. Clients
+     * interpolate from this anchor while isRunning == true. Required when type == 'LiveClock'.
+     */
+    snapshotSeconds?: number;
+    src?:             string;
+    /**
+     * LiveClock: optional clamp. For direction 'down', clock holds at this value once reached.
+     * For direction 'up', clock holds once reached. Omit to disable the clamp.
+     */
+    stopAtSeconds?: number;
     /**
      * Alternate row background for readability
      */
@@ -458,8 +496,14 @@ export interface AtomicElement {
      */
     textAlign?: Align;
     thickness?: number;
-    trueChild?: AtomicElement;
-    type:       UIType;
+    /**
+     * LiveClock tick direction. 'down' decrements from snapshotSeconds toward stopAtSeconds
+     * (default 0); 'up' increments from snapshotSeconds with no upper bound unless
+     * stopAtSeconds is set.
+     */
+    tickDirection?: TickDirection;
+    trueChild?:     AtomicElement;
+    type:           UIType;
     /**
      * Named variant preset. The vocabulary depends on the element's type: TextVariant for Text,
      * ButtonVariant for Button, ContainerVariant for Container, ImageVariant for Image.
@@ -509,43 +553,6 @@ export interface Data {
     stateKey?:    string;
     tabContents?: { [key: string]: Section[] };
     tabs?:        TabData[];
-    actions?:     Action[];
-    awayTeam?:    TeamData;
-    /**
-     * Badge/chip label, e.g. 'LIVE', 'FEATURED'
-     */
-    badgeText?: string;
-    /**
-     * Whether the game clock is actively ticking. When true, renderers should interpolate the
-     * clock locally between SSE updates for visual continuity.
-     */
-    clockRunning?: boolean;
-    /**
-     * Server-driven visual configuration — controls all layout and styling knobs
-     */
-    displayConfig?: GamePanelDisplayConfig;
-    /**
-     * Game clock string (e.g. 'PT05M32.00S' or '5:32')
-     */
-    gameClock?:      string;
-    gameId?:         string;
-    gameLeaders?:    GameLeadersData;
-    gameStatus?:     number;
-    gameStatusText?: string;
-    gameTimeEt?:     string;
-    homeTeam?:       TeamData;
-    /**
-     * Current game period (quarter number)
-     */
-    period?: number;
-    /**
-     * Semantic card treatment. Missing value is treated as 'standard' at render time.
-     */
-    variant?: GamePanelVariant;
-    /**
-     * Secondary label shown above the matchup (e.g. team name, 'Recommended')
-     */
-    visualLabel?: string;
     /**
      * Ordered list of column definitions; clients render left-to-right
      *
@@ -696,7 +703,8 @@ export interface Data {
      * Content identifier — interpreted by playerType (gameId for game, mediaId for vod, eventId
      * for event, streamUrl for stream). Single field avoids mutually exclusive optional IDs.
      */
-    contentId?: string;
+    contentId?:     string;
+    displayConfig?: DisplayConfig;
     /**
      * Discriminator for SDK player variant. Client passes contentId to the matching SDK method.
      */
@@ -967,6 +975,16 @@ export enum ImageFit {
 }
 
 /**
+ * LiveClock display format. Clients realize using their platform's tabular-numerals
+ * typography (equivalent to TextVariant.score).
+ */
+export enum Format {
+    HMmSs = "h:mm:ss",
+    MSs = "m:ss",
+    MmSs = "mm:ss",
+}
+
+/**
  * Outer space between the element and its siblings or parent edges. Applied outside the
  * element's background, border, corner radius, and shadow — use this for sibling-to-sibling
  * spacing instead of Spacer siblings when inhomogeneous gaps are needed.
@@ -1019,6 +1037,16 @@ export interface Shadow {
     [property: string]: any;
 }
 
+/**
+ * LiveClock tick direction. 'down' decrements from snapshotSeconds toward stopAtSeconds
+ * (default 0); 'up' increments from snapshotSeconds with no upper bound unless
+ * stopAtSeconds is set.
+ */
+export enum TickDirection {
+    Down = "down",
+    Up = "up",
+}
+
 export enum UIType {
     Button = "Button",
     Conditional = "Conditional",
@@ -1026,6 +1054,7 @@ export enum UIType {
     DisplayGrid = "DisplayGrid",
     Divider = "Divider",
     Image = "Image",
+    LiveClock = "LiveClock",
     ScrollContainer = "ScrollContainer",
     SectionSlot = "SectionSlot",
     Spacer = "Spacer",
@@ -1040,16 +1069,6 @@ export enum TextWeight {
     Medium = "medium",
     Regular = "regular",
     SemiBold = "semiBold",
-}
-
-export interface TeamData {
-    logoUrl?:    string;
-    score:       number;
-    teamCity:    string;
-    teamId:      number;
-    teamName:    string;
-    teamTricode: string;
-    [property: string]: any;
 }
 
 export enum Capability {
@@ -1087,64 +1106,10 @@ export interface BoxscoreColumnDefinition {
     [property: string]: any;
 }
 
-/**
- * Server-driven visual configuration — controls all layout and styling knobs
- *
- * Server-driven visual configuration for GamePanel — replaces the hardcoded variant branch
- */
-export interface GamePanelDisplayConfig {
-    /**
-     * Default background (pre-game, final)
-     */
-    background?: Background | string;
-    /**
-     * Badge/chip background color (hex or token)
-     */
-    badgeColor?: string;
-    /**
-     * Fixed card height in dp/px. Null/absent = auto-size
-     */
-    cardHeight?: number;
-    /**
-     * Card corner radius in dp/px
-     */
-    cornerRadius?: number;
-    /**
-     * Card elevation/shadow in dp/px
-     */
-    elevation?: number;
-    /**
-     * Background override when game is LIVE
-     */
-    liveBackground?: Background | string;
-    /**
-     * Team logo width/height in dp/px
-     */
-    logoSize?: number;
-    /**
-     * Score typography: compact = bodyLarge+Bold, prominent = headlineMedium+ExtraBold
-     */
-    scoreTextStyle?: ScoreTextStyle;
-    /**
-     * Foreground color for primary text on the card (score, tricode, team name). Clients derive
-     * secondary/tertiary text (status, record, broadcaster, visual label) from this base via
-     * platform-native opacity conventions. Omit to let each client fall back to its adaptive
-     * primary foreground — set this whenever the card background diverges from the platform's
-     * default surface (e.g. dark brand backgrounds that require inverse text, or light gradient
-     * carousels that require primary text on clients whose legacy default was white).
-     */
-    textColor?:   string;
+export interface DisplayConfig {
     aspectRatio?: string;
     height?:      number;
     [property: string]: any;
-}
-
-/**
- * Score typography: compact = bodyLarge+Bold, prominent = headlineMedium+ExtraBold
- */
-export enum ScoreTextStyle {
-    Compact = "compact",
-    Prominent = "prominent",
 }
 
 /**
@@ -1212,28 +1177,12 @@ export interface FormOption {
  * treated as 'dropdown' at render time.
  *
  * How a Form single-select field is realized by the client. 'dropdown' maps to the platform
- * menu (default). 'chips' is a horizontally-scrollable row of tappable capsules.
- * 'segmented' is a platform segmented control. Applies only when FormField.fieldType ==
- * 'select'.
+ * menu (default). 'chips' is a horizontally-scrollable row of tappable capsules. Applies
+ * only when FormField.fieldType == 'select'.
  */
 export enum SelectVariant {
     Chips = "chips",
     Dropdown = "dropdown",
-    Segmented = "segmented",
-}
-
-export interface GameLeadersData {
-    awayLeader?: GameLeaderData;
-    homeLeader?: GameLeaderData;
-    [property: string]: any;
-}
-
-export interface GameLeaderData {
-    assists?:  number;
-    name?:     string;
-    points?:   number;
-    rebounds?: number;
-    [property: string]: any;
 }
 
 /**
@@ -1344,18 +1293,6 @@ export interface SubscriptionTier {
      */
     price: string;
     [property: string]: any;
-}
-
-/**
- * Semantic card treatment. Missing value is treated as 'standard' at render time.
- *
- * Semantic treatment of a GamePanel card. Clients resolve natively (widths, padding,
- * emphasis). 'standard' is the default card. 'featured' is a heightened card used as a lead
- * item in a feed or carousel.
- */
-export enum GamePanelVariant {
-    Featured = "featured",
-    Standard = "standard",
 }
 
 export interface DataBinding {
@@ -1537,7 +1474,6 @@ export enum OverlayType {
     AtomicComposite = "AtomicComposite",
     BoxscoreTable = "BoxscoreTable",
     Form = "Form",
-    GamePanel = "GamePanel",
     SeasonLeadersTable = "SeasonLeadersTable",
     SubscribeBanner = "SubscribeBanner",
     SubscribeHero = "SubscribeHero",

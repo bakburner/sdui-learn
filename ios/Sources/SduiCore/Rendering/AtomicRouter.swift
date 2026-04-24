@@ -62,6 +62,9 @@ struct AtomicRouter: View {
         case "SectionSlot":
             AtomicSectionSlotView(element: element, screenState: screenState, onAction: onAction)
 
+        case "LiveClock":
+            AtomicLiveClockView(element: element)
+
         default:
             EmptyView()
                 .onAppear {

@@ -32,7 +32,7 @@ import com.nba.sdui.core.state.SduiAction
  * - hideOnError (collapse section entirely)
  * - retryAction from sectionStates.error
  * - Configurable retry budget (default 5)
- * - §12-compliant error logging
+ * - Error logging with diagnostic context
  */
 private const val TAG = "SectionErrorBoundary"
 

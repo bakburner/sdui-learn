@@ -13,9 +13,10 @@ struct AtomicTextView: View {
     let element: AtomicElement
 
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.compositeContent) private var compositeContent
 
     var body: some View {
-        if let content = element.content {
+        if let content = resolvedContent {
             Text(content)
                 .font(font(for: resolvedVariant))
                 .fontWeight(weight(for: element.weight))
@@ -39,6 +40,18 @@ struct AtomicTextView: View {
 
     private var shouldFillWidth: Bool {
         element.textAlign != nil || element.fillWidth == true
+    }
+
+    /// Resolve `content` from `bindRef` when present, falling back to the
+    /// inline `content` property. A leaf with a bindRef but no matching
+    /// `data.content` entry falls back to its inline value rather than
+    /// rendering nothing — this keeps the first paint usable while the
+    /// first real-time update is in flight.
+    private var resolvedContent: String? {
+        if let bound = BindRefResolver.resolveString(bindRef: element.bindRef, in: compositeContent) {
+            return bound
+        }
+        return element.content
     }
 
     private var resolvedVariant: TextVariant? {
@@ -91,12 +104,6 @@ struct AtomicTextView: View {
         case .labelLarge:  return .system(size: 14, weight: .medium)
         case .labelMedium: return .system(size: 12, weight: .medium)
         case .labelSmall:  return .system(size: 11, weight: .medium)
-        case .heading1: return .largeTitle
-        case .heading2: return .title
-        case .heading3: return .title3
-        case .body:     return .body
-        case .caption:  return .caption
-        case .label:    return .subheadline
         case .score:    return .system(size: 48, weight: .bold, design: .rounded)
         case .none:     return .body
         }

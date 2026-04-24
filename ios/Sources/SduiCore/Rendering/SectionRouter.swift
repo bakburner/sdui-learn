@@ -30,12 +30,8 @@ struct SectionRouter: View {
             if let ui = section.data?.ui {
                 SectionContainer(surface: section.surface) {
                     AtomicRouter(element: ui, screenState: screenState, onAction: onAction, depth: 0)
+                        .environment(\.compositeContent, section.data?.content)
                 }
-            }
-
-        case "GamePanel":
-            SectionContainer(surface: section.surface) {
-                GamePanelView(section: section, onAction: onAction)
             }
 
         case "BoxscoreTable":

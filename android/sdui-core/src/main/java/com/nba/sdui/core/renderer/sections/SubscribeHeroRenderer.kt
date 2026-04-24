@@ -1,7 +1,6 @@
 package com.nba.sdui.core.renderer.sections
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
 import com.nba.sdui.core.models.generated.Section
 import com.nba.sdui.core.renderer.atomic.AtomicRouter
 import com.nba.sdui.core.state.SduiAction
@@ -17,7 +16,7 @@ import com.nba.sdui.core.state.SduiAction
  *
  * Outer chrome (margin, radius, gradient background, inner padding) comes
  * from `section.surface` via `SectionContainer` — this renderer only
- * walks the inner atomic tree. See AGENTS.md §15.3.
+ * walks the inner atomic tree.
  *
  * `section.data.tiers` carries IAP product identifiers reserved for the
  * future IAP SDK; the renderer reads nothing from it today.
@@ -27,15 +26,13 @@ fun SubscribeHeroRenderer(
     section: Section,
     screenState: Map<String, Any>,
     onAction: (SduiAction) -> Unit,
-    onStateChange: (String, Any) -> Unit = { _, _ -> },
-    modifier: Modifier = Modifier
+    onStateChange: (String, Any) -> Unit = { _, _ -> }
 ) {
     val root = section.data?.ui ?: return
     AtomicRouter(
         element = root,
         screenState = screenState,
         onAction = onAction,
-        modifier = modifier,
         onStateChange = onStateChange
     )
 }

@@ -4,9 +4,11 @@ import android.util.Log
 import com.nba.sdui.core.renderer.ContainerVariantResolver.OverridePolicy
 
 /**
- * Resolves a server-emitted image variant token (`hero`, `thumbnail`, `logo`)
- * to a platform-native spec the [AtomicImage] renderer applies to a Coil
- * AsyncImage.
+ * Resolves a server-emitted image variant token (`thumbnail`) to a
+ * platform-native spec the [AtomicImage] renderer applies to a Coil
+ * AsyncImage. Each value in the vocabulary carries a platform-native
+ * treatment inline props cannot cleanly express; values that reduce to
+ * inline cornerRadius + aspectRatio + fit do not belong here.
  *
  * The registry values mirror `schema/style-tokens.json` — the JSON file is
  * the governance artifact; this object is the hand-authored snapshot the
@@ -52,28 +54,12 @@ object ImageVariantResolver {
     fun resolve(variant: String?): ImageVariantSpec? {
         if (variant.isNullOrBlank()) return null
         return when (variant) {
-            "hero" -> ImageVariantSpec(
-                cornerRadiusDp = 12,
-                aspectRatio = 16f / 9f,
-                contentScaleHint = ImageContentScaleHint.Crop,
-                fillWidth = true,
-                clip = true,
-                overrideMatrix = ALL_ALLOW
-            )
             "thumbnail" -> ImageVariantSpec(
                 cornerRadiusDp = 8,
                 aspectRatio = null,
                 contentScaleHint = ImageContentScaleHint.Crop,
                 fillWidth = false,
                 clip = true,
-                overrideMatrix = ALL_ALLOW
-            )
-            "logo" -> ImageVariantSpec(
-                cornerRadiusDp = null,
-                aspectRatio = null,
-                contentScaleHint = ImageContentScaleHint.Fit,
-                fillWidth = false,
-                clip = false,
                 overrideMatrix = ALL_ALLOW
             )
             else -> {

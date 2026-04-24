@@ -13,8 +13,8 @@ import { resolveColorToken, usePrefersColorScheme } from '../../utils/ColorToken
  * via the shared SectionContainer wrapper.
  *
  * This renderer carries no client-side chrome defaults — a payload
- * missing required `sizes` renders nothing. See AGENTS.md §15.1
- * and §15.2.
+ * missing required `sizes` renders nothing. Reservation dimensions
+ * and placeholder content come from the server payload.
  */
 export function AdSlot({ section }: SectionProps): React.ReactElement | null {
   const scheme = usePrefersColorScheme();

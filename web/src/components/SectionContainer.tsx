@@ -14,8 +14,8 @@ export interface SectionContainerProps {
  * CSS, so permanent-section renderers never set their own outer
  * chrome.
  *
- * See AGENTS.md §15.3 for the governance rule this wrapper enforces,
- * and `SduiUtils.defaultSurface()` on the server for the default
+ * Shared wrapper enforcing server-driven outer chrome for every section.
+ * See `SduiUtils.defaultSurface()` on the server for the default
  * surface values composers emit.
  */
 export function SectionContainer({ surface, children }: SectionContainerProps): React.ReactElement {

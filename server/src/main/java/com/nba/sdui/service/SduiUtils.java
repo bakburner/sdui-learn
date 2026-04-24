@@ -224,14 +224,26 @@ public class SduiUtils {
 
     // ── Linescore bindings ─────────────────────────────────────────────
 
-    public ObjectNode buildLinescoreBindings() {
+    /**
+     * Build the linescore binding set for an {@code AtomicComposite}
+     * GamePanel. Target paths point into {@code data.content.*} rather
+     * than {@code data.*}: leaf Text/LiveClock elements resolve their
+     * value from {@code data.content} via {@code bindRef}, so writes
+     * from the Ably payload land in the same dictionary the renderers
+     * consult. The {@code gameClock} mapping carries the whole
+     * {@code {snapshotSeconds, snapshotAt, isRunning}} snapshot so a
+     * single source field drives all three values a LiveClock leaf
+     * reads.
+     */
+    public ObjectNode buildCompositeLinescoreBindings() {
         ObjectNode dataBinding = objectMapper.createObjectNode();
         ArrayNode bindings = objectMapper.createArrayNode();
 
-        bindings.add(bindingPath("$.homeTeam.score", "homeTeam.score"));
-        bindings.add(bindingPath("$.awayTeam.score", "awayTeam.score"));
-        bindings.add(bindingPath("$.gameStatusText", "gameStatusText"));
-        bindings.add(bindingPath("$.period", "period"));
+        bindings.add(bindingPath("$.homeTeam.score", "content.homeTeam.score"));
+        bindings.add(bindingPath("$.awayTeam.score", "content.awayTeam.score"));
+        bindings.add(bindingPath("$.gameStatusText", "content.gameStatusText"));
+        bindings.add(bindingPath("$.period", "content.period"));
+        bindings.add(bindingPath("$.gameClock", "content.clock"));
 
         dataBinding.set("bindings", bindings);
         return dataBinding;
@@ -251,7 +263,7 @@ public class SduiUtils {
     /**
      * Build the CDN URL for a team primary logo.
      *
-     * <p>Per Rule 18, asset-format selection is server-driven: the server
+     * <p>Asset-format selection is server-driven: the server
      * decides which URL to emit based on what each client can consume.
      * Today every client consumes PNG (iOS {@code AsyncImage}, Android
      * {@code Coil}, and the web {@code <img>} element all decode PNG

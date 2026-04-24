@@ -19,7 +19,7 @@ private let logger = Logger(subsystem: "com.nba.sdui", category: "DataBindingApp
 /// - Miss counter ≥ `missThreshold` (3) emits a `binding_path_missing` warning
 ///   per section+sourcePath (MP-1 / MP-2 / MP-3 in the plan)
 /// - `stringKeys[targetPath]` overrides the bound value with a localized
-///   lookup from the section-scoped string table (§8 i18n layer)
+///   lookup from the section-scoped string table (i18n layer)
 ///
 /// Instances are `@MainActor`-agnostic. The VM constructs one per screen and
 /// calls `applyBindings` synchronously on the data-update hot path.

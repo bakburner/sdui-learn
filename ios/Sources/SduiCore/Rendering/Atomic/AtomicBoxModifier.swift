@@ -5,7 +5,7 @@ import SwiftUI
 ///
 /// Every primitive renderer ends its modifier chain with
 /// `.atomicBox(element, ...)` so margin / padding / background /
-/// cornerRadius / shadow / border / opacity / width / height /
+/// cornerRadius / shadow / opacity / width / height /
 /// fillWidth / variant chrome / badge overlay live in exactly one place
 /// rather than being re-implemented per primitive.
 ///
@@ -14,7 +14,7 @@ import SwiftUI
 ///
 ///     margin box  (outer)
 ///       └─ opacity
-///            └─ shadow + background + cornerRadius + border
+///            └─ shadow + background + cornerRadius
 ///                 └─ padding
 ///                      └─ content (inner)
 ///

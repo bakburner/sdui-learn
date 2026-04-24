@@ -11,6 +11,8 @@ private let logger = Logger(subsystem: "com.nba.sdui", category: "AtomicText")
 /// `AtomicBoxModifier` via `.atomicBox(...)`.
 struct AtomicTextView: View {
     let element: AtomicElement
+    let screenState: ScreenState
+    let onAction: (Action) -> Void
 
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.compositeContent) private var compositeContent
@@ -33,8 +35,9 @@ struct AtomicTextView: View {
                     fillWidth: shouldFillWidth,
                     alignment: resolvedFrameAlignment
                 ))
+                .applyActionTriggers(element.actions, onAction: onAction)
                 .sduiAccessibility(element.accessibility, fallbackLabel: content)
-                .atomicBox(element, screenState: ScreenState(), onAction: { _ in })
+                .atomicBox(element, screenState: screenState, onAction: onAction)
         }
     }
 

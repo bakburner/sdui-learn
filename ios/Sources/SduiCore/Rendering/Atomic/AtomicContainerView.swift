@@ -1,4 +1,7 @@
 import SwiftUI
+#if os(iOS)
+import UIKit
+#endif
 
 /// Renders a Container atomic element — row or column layout with children.
 /// The box model (margin, padding, bg, cornerRadius, shadow, border,
@@ -12,16 +15,17 @@ struct AtomicContainerView: View {
     let depth: Int
 
     var body: some View {
-        let isRow = element.direction == .row
+        let isRow = resolvedDirection == .row
         let gap = CGFloat(element.gap ?? 0)
         let resolvedAspectRatio = element.aspectRatio.map { CGFloat($0) }
 
-        Group {
-            if isRow {
-                rowLayout(gap: gap)
-            } else {
-                columnLayout(gap: gap)
-            }
+        AnyLayout(AtomicFlexStackLayout(
+            isRow: isRow,
+            alignment: element.alignment,
+            crossAlignment: element.crossAlignment,
+            spacing: gap
+        )) {
+            children
         }
         .modifier(ContainerAspectRatioModifier(aspectRatio: resolvedAspectRatio))
         .applyActionTriggers(element.actions, onAction: onAction)
@@ -30,110 +34,190 @@ struct AtomicContainerView: View {
     }
 
     @ViewBuilder
-    private func rowLayout(gap: CGFloat) -> some View {
-        switch element.alignment {
-        case .center:
-            HStack(alignment: crossAlign, spacing: gap) {
-                rowChildren()
-            }
-        case .end:
-            HStack(alignment: crossAlign, spacing: gap) {
-                rowChildren()
-            }
-        case .spaceBetween:
-            HStack(alignment: crossAlign, spacing: gap) {
-                rowChildren(insertSpacerBetween: true)
-            }
-        case .spaceAround:
-            HStack(alignment: crossAlign, spacing: gap) {
-                Spacer(minLength: 0)
-                rowChildren(insertSpacerBetween: true)
-                Spacer(minLength: 0)
-            }
-        case .spaceEvenly:
-            HStack(alignment: crossAlign, spacing: gap) {
-                Spacer(minLength: 0)
-                rowChildren(insertSpacerBetween: true)
-                Spacer(minLength: 0)
-            }
-        default:
-            HStack(alignment: crossAlign, spacing: gap) {
-                rowChildren()
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func columnLayout(gap: CGFloat) -> some View {
-        switch element.alignment {
-        case .center:
-            VStack(alignment: crossHAlign, spacing: gap) {
-                columnChildren()
-            }
-        case .end:
-            VStack(alignment: crossHAlign, spacing: gap) {
-                columnChildren()
-            }
-        case .spaceBetween:
-            VStack(alignment: crossHAlign, spacing: gap) {
-                columnChildren(insertSpacerBetween: true)
-            }
-        case .spaceAround:
-            VStack(alignment: crossHAlign, spacing: gap) {
-                Spacer(minLength: 0)
-                columnChildren(insertSpacerBetween: true)
-                Spacer(minLength: 0)
-            }
-        case .spaceEvenly:
-            VStack(alignment: crossHAlign, spacing: gap) {
-                Spacer(minLength: 0)
-                columnChildren(insertSpacerBetween: true)
-                Spacer(minLength: 0)
-            }
-        default:
-            VStack(alignment: crossHAlign, spacing: gap) {
-                columnChildren()
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func rowChildren(insertSpacerBetween: Bool = false) -> some View {
+    private var children: some View {
         let kids = element.children ?? []
-        ForEach(Array(kids.enumerated()), id: \.offset) { index, child in
+        ForEach(Array(kids.enumerated()), id: \.offset) { _, child in
             AtomicRouter(element: child, screenState: screenState, onAction: onAction, depth: depth)
-            if insertSpacerBetween && index < kids.count - 1 {
-                Spacer(minLength: 0)
+                .layoutValue(key: AtomicFlexValueKey.self, value: CGFloat(max(child.flex ?? 0, 0)))
+        }
+    }
+
+    private var resolvedDirection: UIDirection? {
+        guard element.direction == .row,
+              let breakpoint = element.breakpoint,
+              currentScreenWidth < CGFloat(breakpoint) else {
+            return element.direction
+        }
+        return .column
+    }
+
+    private var currentScreenWidth: CGFloat {
+        #if os(iOS)
+        UIScreen.main.bounds.width
+        #else
+        CGFloat.greatestFiniteMagnitude
+        #endif
+    }
+}
+
+struct AtomicFlexStackLayout: SwiftUI.Layout {
+    let isRow: Bool
+    let alignment: Alignment?
+    let crossAlignment: CrossAlignment?
+    let spacing: CGFloat
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        guard !subviews.isEmpty else { return .zero }
+
+        let mainProposal = isRow ? proposal.width : proposal.height
+        let crossProposal = isRow ? proposal.height : proposal.width
+        let sizes = measuredSizes(proposal: proposal, subviews: subviews)
+        let totalFlex = subviews.reduce(CGFloat.zero) { $0 + $1[AtomicFlexValueKey.self] }
+        let baseSpacing = spacing * CGFloat(max(subviews.count - 1, 0))
+        let fixedMain = fixedMainLength(sizes: sizes, subviews: subviews, hasBoundedMain: mainProposal != nil)
+        let remainingMain = max((mainProposal ?? 0) - fixedMain - baseSpacing, 0)
+        let naturalMain = sizes.enumerated().reduce(CGFloat.zero) { partial, item in
+            let flex = subviews[item.offset][AtomicFlexValueKey.self]
+            if flex > 0 && totalFlex > 0 && mainProposal != nil {
+                return partial + remainingMain * (flex / totalFlex)
             }
+            return partial + mainLength(item.element)
+        } + baseSpacing
+        let naturalCross = sizes.reduce(CGFloat.zero) { max($0, crossLength($1)) }
+        let resolvedMain = resolvedContainerMain(
+            proposed: mainProposal,
+            natural: naturalMain,
+            hasFlexibleLayout: totalFlex > 0 || alignment?.usesRemainingMainAxisSpace == true
+        )
+        let resolvedCross = crossAlignment == .stretch ? (crossProposal ?? naturalCross) : naturalCross
+
+        return isRow
+            ? CGSize(width: resolvedMain, height: resolvedCross)
+            : CGSize(width: resolvedCross, height: resolvedMain)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        guard !subviews.isEmpty else { return }
+
+        let containerMain = isRow ? bounds.width : bounds.height
+        let containerCross = isRow ? bounds.height : bounds.width
+        let sizes = measuredSizes(
+            proposal: ProposedViewSize(width: bounds.width, height: bounds.height),
+            subviews: subviews
+        )
+        let totalFlex = subviews.reduce(CGFloat.zero) { $0 + $1[AtomicFlexValueKey.self] }
+        let baseSpacing = spacing * CGFloat(max(subviews.count - 1, 0))
+        let fixedMain = fixedMainLength(sizes: sizes, subviews: subviews, hasBoundedMain: true)
+        let remainingMain = max(containerMain - fixedMain - baseSpacing, 0)
+        let childMainLengths = sizes.enumerated().map { index, size in
+            let flex = subviews[index][AtomicFlexValueKey.self]
+            return flex > 0 && totalFlex > 0 ? remainingMain * (flex / totalFlex) : mainLength(size)
+        }
+        let occupiedMain = childMainLengths.reduce(0, +) + baseSpacing
+        let arrangement = MainAxisArrangement(alignment: alignment, extra: max(containerMain - occupiedMain, 0), count: subviews.count)
+        var cursor = arrangement.leading
+
+        for index in subviews.indices {
+            let main = childMainLengths[index]
+            let measuredCross = crossLength(sizes[index])
+            let cross = crossAlignment == .stretch ? containerCross : measuredCross
+            let crossOffset = crossAxisOffset(containerCross: containerCross, childCross: cross)
+            let origin = isRow
+                ? CGPoint(x: bounds.minX + cursor, y: bounds.minY + crossOffset)
+                : CGPoint(x: bounds.minX + crossOffset, y: bounds.minY + cursor)
+            let childProposal = isRow
+                ? ProposedViewSize(width: main, height: cross)
+                : ProposedViewSize(width: cross, height: main)
+
+            subviews[index].place(at: origin, anchor: .topLeading, proposal: childProposal)
+            cursor += main + spacing + arrangement.extraBetween
         }
     }
 
-    @ViewBuilder
-    private func columnChildren(insertSpacerBetween: Bool = false) -> some View {
-        let kids = element.children ?? []
-        ForEach(Array(kids.enumerated()), id: \.offset) { index, child in
-            AtomicRouter(element: child, screenState: screenState, onAction: onAction, depth: depth)
-            if insertSpacerBetween && index < kids.count - 1 {
-                Spacer(minLength: 0)
-            }
+    private func measuredSizes(proposal: ProposedViewSize, subviews: Subviews) -> [CGSize] {
+        subviews.map { subview in
+            let childProposal = isRow
+                ? ProposedViewSize(width: nil, height: proposal.height)
+                : ProposedViewSize(width: proposal.width, height: nil)
+            return subview.sizeThatFits(childProposal)
         }
     }
 
-    private var crossAlign: VerticalAlignment {
-        switch element.crossAlignment {
-        case .center: return .center
-        case .end: return .bottom
-        case .start: return .top
-        default: return .center
+    private func fixedMainLength(sizes: [CGSize], subviews: Subviews, hasBoundedMain: Bool) -> CGFloat {
+        sizes.enumerated().reduce(CGFloat.zero) { partial, item in
+            let flex = subviews[item.offset][AtomicFlexValueKey.self]
+            return flex > 0 && hasBoundedMain ? partial : partial + mainLength(item.element)
         }
     }
 
-    private var crossHAlign: HorizontalAlignment {
-        switch element.crossAlignment {
-        case .center: return .center
-        case .end: return .trailing
-        case .start: return .leading
-        default: return .leading
+    private func resolvedContainerMain(proposed: CGFloat?, natural: CGFloat, hasFlexibleLayout: Bool) -> CGFloat {
+        guard let proposed else { return natural }
+        return hasFlexibleLayout ? max(proposed, natural) : natural
+    }
+
+    private func crossAxisOffset(containerCross: CGFloat, childCross: CGFloat) -> CGFloat {
+        switch crossAlignment {
+        case .center:
+            return max((containerCross - childCross) / 2, 0)
+        case .end:
+            return max(containerCross - childCross, 0)
+        case .stretch:
+            return 0
+        default:
+            return 0
+        }
+    }
+
+    private func mainLength(_ size: CGSize) -> CGFloat {
+        isRow ? size.width : size.height
+    }
+
+    private func crossLength(_ size: CGSize) -> CGFloat {
+        isRow ? size.height : size.width
+    }
+}
+
+struct AtomicFlexValueKey: LayoutValueKey {
+    static let defaultValue: CGFloat = 0
+}
+
+private struct MainAxisArrangement {
+    let leading: CGFloat
+    let extraBetween: CGFloat
+
+    init(alignment: Alignment?, extra: CGFloat, count: Int) {
+        switch alignment {
+        case .center:
+            leading = extra / 2
+            extraBetween = 0
+        case .end:
+            leading = extra
+            extraBetween = 0
+        case .spaceBetween where count > 1:
+            leading = 0
+            extraBetween = extra / CGFloat(count - 1)
+        case .spaceAround where count > 0:
+            let unit = extra / CGFloat(count)
+            leading = unit / 2
+            extraBetween = unit
+        case .spaceEvenly where count > 0:
+            let unit = extra / CGFloat(count + 1)
+            leading = unit
+            extraBetween = unit
+        default:
+            leading = 0
+            extraBetween = 0
+        }
+    }
+}
+
+private extension Alignment {
+    var usesRemainingMainAxisSpace: Bool {
+        switch self {
+        case .center, .end, .spaceAround, .spaceBetween, .spaceEvenly:
+            return true
+        case .start:
+            return false
         }
     }
 }

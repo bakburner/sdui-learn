@@ -258,6 +258,9 @@ open class SduiScreenViewModel(
                     is ActionHandler.ActionResult.NavigateError -> {
                         // Show server-provided message or generic fallback
                         val msg = result.feedback?.message ?: "Unable to open page"
+                        if (result.feedback?.style == "inline") {
+                            Log.w(TAG, "failureFeedback.style=inline is decoded but not hosted inline on Android; emitting user message")
+                        }
                         _userMessage.emit(msg)
                     }
                     is ActionHandler.ActionResult.RefreshStale -> {

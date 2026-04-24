@@ -4,6 +4,29 @@
 
 This plan captures the proactive audit for places where Android and iOS parse SDUI style, layout, action, or presentation fields but ignore, silently downgrade, or only partially implement them.
 
+## Execution Status
+
+Status as of 2026-04-24: initial mobile execution pass complete.
+
+- Phase 1 layout parity: implemented iOS atomic flex/breakpoint/stretch, iOS scroll paging/view-aligned snapping hooks, Android stretch behavior, Android vertical/horizontal paging, server-authored scroll spacing, and diagnostics for unsupported scroll constraints.
+- Phase 2 visual box model parity: implemented iOS Kingfisher-backed image caching/fallback behavior, removed Android's hardcoded branded image fallback, kept payload placeholder retry policy, and constrained atomic background images with diagnostics.
+- Phase 3 interaction/action parity: wired iOS text actions through the shared action trigger path and added Android diagnostics for decoded button icons until native icon rendering is implemented.
+- Phase 4 navigation presentation parity: preserved Android navigation presentation/modalHeight metadata, implemented iOS replace navigation, and added diagnostics when modal/fullscreen presentation falls back to push because no native modal host is registered.
+- Phase 5 diagnostics and guardrails: added visible diagnostics for constrained fields and removed stale iOS atomic border comments.
+
+Verification run:
+
+- `make ios-build`
+- `./gradlew :sdui-core:clean :sdui-core:compileDebugKotlin`
+- `./gradlew :sdui-core:compileDebugKotlin`
+
+Remaining follow-up:
+
+- Add dedicated contract tests/snapshots for the high-risk fields listed in each phase.
+- Implement Android button icon rendering instead of warning-only diagnostics once active payloads emit button icons.
+- Add native modal/fullscreen host support for navigation presentation if the POC needs more than logged push fallback.
+- Add inline failure feedback hosts if active payloads require `failureFeedback.style: inline`.
+
 Related plans:
 
 - [Mobile Core Library Audit Findings](plan-mobile-core-library-audit-findings.md)

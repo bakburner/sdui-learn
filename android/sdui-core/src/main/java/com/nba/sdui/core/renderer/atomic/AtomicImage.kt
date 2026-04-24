@@ -18,9 +18,6 @@ import com.nba.sdui.core.renderer.applyAccessibility
 import com.nba.sdui.core.renderer.adapters.toSduiAction
 import com.nba.sdui.core.state.SduiAction
 
-private const val DEFAULT_FALLBACK =
-    "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png"
-
 /**
  * AtomicImage — renders an Image element via Coil AsyncImage. The box
  * model (margin / padding / bg / cornerRadius / shadow / border /
@@ -43,7 +40,6 @@ fun AtomicImage(
     val compositeContent = LocalCompositeContent.current
     val boundSrc = BindRefResolver.resolveString(element.bindRef, compositeContent) ?: element.src
 
-    val fallbackUrl = element.placeholder ?: DEFAULT_FALLBACK
     var currentSrc by remember(boundSrc) { mutableStateOf(boundSrc) }
     var triedFallback by remember(boundSrc) { mutableStateOf(false) }
 
@@ -67,7 +63,8 @@ fun AtomicImage(
             contentScale = contentScale,
             modifier = imageModifier.applyAccessibility(element.accessibility),
             onError = {
-                if (!triedFallback) {
+                val fallbackUrl = element.placeholder
+                if (!triedFallback && !fallbackUrl.isNullOrBlank() && fallbackUrl != currentSrc) {
                     triedFallback = true
                     currentSrc = fallbackUrl
                 }

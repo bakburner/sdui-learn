@@ -36,7 +36,7 @@ struct AtomicRouter: View {
             AtomicContainerView(element: element, screenState: screenState, onAction: onAction, depth: depth + 1)
 
         case "Text":
-            AtomicTextView(element: element)
+            AtomicTextView(element: element, screenState: screenState, onAction: onAction)
 
         case "Image":
             AtomicImageView(element: element, screenState: screenState, onAction: onAction)

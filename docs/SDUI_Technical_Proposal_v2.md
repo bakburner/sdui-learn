@@ -1088,7 +1088,7 @@ The `device` object carries device signals that the composition service may use 
         "id": "stats-001",
         "type": "AtomicComposite",
         "data": {
-          "root": {
+          "ui": {
             "type": "Container",
             "direction": "vertical",
             "children": [
@@ -1146,7 +1146,7 @@ The `device` object carries device signals that the composition service may use 
         "id": "content-rail-001",
         "type": "AtomicComposite",
         "data": {
-          "root": {
+          "ui": {
             "type": "ScrollContainer",
             "direction": "horizontal",
             "children": [

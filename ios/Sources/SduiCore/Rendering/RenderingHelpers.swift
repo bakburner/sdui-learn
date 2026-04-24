@@ -1,3 +1,4 @@
+import Kingfisher
 import SwiftUI
 
 // MARK: - Shared helpers used across atomic renderers
@@ -22,11 +23,12 @@ func edgeInsets(from spacing: Spacing?) -> EdgeInsets {
 ///   • string → token or hex, resolved to a solid `Color`.
 ///   • object with `colors` (≥2) → `LinearGradient` with direction.
 ///   • object with `colors` (1)   → solid color fallback.
-///   • object with `imageURL`    → remote `AsyncImage` scaled to fill.
+///   • object with `imageURL`    → cached remote image scaled to fill.
 ///
 /// Used by `SectionContainer` for section-level surfaces and by the
 /// atomic `ContainerVariantResolver` for inline backgrounds, so
 /// gradient fidelity is consistent everywhere.
+@MainActor
 @ViewBuilder
 func backgroundView(for bg: BackgroundUnion?, colorScheme: ColorScheme) -> some View {
     switch bg {
@@ -36,11 +38,10 @@ func backgroundView(for bg: BackgroundUnion?, colorScheme: ColorScheme) -> some 
         ColorTokenResolver.resolve(value, colorScheme: colorScheme) ?? Color.clear
     case .some(.background(let bgObj)):
         if let imageUrl = bgObj.imageURL, let url = URL(string: imageUrl) {
-            AsyncImage(url: url) { image in
-                image.resizable().scaledToFill()
-            } placeholder: {
-                Color.clear
-            }
+            KFImage(url)
+                .placeholder { Color.clear }
+                .resizable()
+                .scaledToFill()
         } else if let colors = bgObj.colors, colors.count > 1 {
             LinearGradient(
                 gradient: Gradient(colors: colors.map {

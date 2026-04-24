@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
@@ -69,7 +71,7 @@ fun AtomicContainer(
     val crossAxis = when (element.crossAlignment) {
         CrossAlignment.Center -> if (isRow) ComposeAlignment.CenterVertically else ComposeAlignment.CenterHorizontally
         CrossAlignment.End -> if (isRow) ComposeAlignment.Bottom else ComposeAlignment.End
-        CrossAlignment.Stretch -> if (isRow) ComposeAlignment.CenterVertically else ComposeAlignment.CenterHorizontally
+        CrossAlignment.Stretch -> if (isRow) ComposeAlignment.CenterVertically else ComposeAlignment.Start
         else -> if (isRow) ComposeAlignment.Top else ComposeAlignment.Start
     }
 
@@ -92,7 +94,11 @@ fun AtomicContainer(
                 element.children?.forEachIndexed { index, child ->
                     val flex = child.flex
                     val childModifier = if (flex != null && flex > 0.0) {
-                        Modifier.weight(flex.toFloat())
+                        Modifier
+                            .weight(flex.toFloat())
+                            .then(if (element.crossAlignment == CrossAlignment.Stretch) Modifier.fillMaxHeight() else Modifier)
+                    } else if (element.crossAlignment == CrossAlignment.Stretch) {
+                        Modifier.fillMaxHeight()
                     } else {
                         Modifier
                     }
@@ -113,7 +119,11 @@ fun AtomicContainer(
                 element.children?.forEachIndexed { index, child ->
                     val flex = child.flex
                     val childModifier = if (flex != null && flex > 0.0) {
-                        Modifier.weight(flex.toFloat())
+                        Modifier
+                            .weight(flex.toFloat())
+                            .then(if (element.crossAlignment == CrossAlignment.Stretch) Modifier.fillMaxWidth() else Modifier)
+                    } else if (element.crossAlignment == CrossAlignment.Stretch) {
+                        Modifier.fillMaxWidth()
                     } else {
                         Modifier
                     }

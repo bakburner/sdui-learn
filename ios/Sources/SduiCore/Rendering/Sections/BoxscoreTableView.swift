@@ -1,3 +1,4 @@
+import Kingfisher
 import SwiftUI
 
 /// Full renderer for BoxscoreTable. Owns expandable row state; real-time
@@ -15,9 +16,10 @@ struct BoxscoreTableView: View {
                 if let teamName = data.teamName {
                     HStack {
                         if let logoURL = data.teamLogoURL, let url = URL(string: logoURL) {
-                            AsyncImage(url: url) { image in
-                                image.resizable().scaledToFit()
-                            } placeholder: { EmptyView() }
+                            KFImage(url)
+                                .placeholder { EmptyView() }
+                                .resizable()
+                                .scaledToFit()
                             .frame(width: 24, height: 24)
                         }
                         Text(teamName).font(.headline)

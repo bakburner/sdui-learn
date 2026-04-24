@@ -56,67 +56,67 @@ public class DemoScreenComposer {
         ArrayNode sections = objectMapper.createArrayNode();
 
         // 1. Game Card (scoreboard composite)
-        sections.add(buildTypeLabel("Game Card (scoreboard)"));
+        sections.add(buildTypeLabel("Game Card (scoreboard) (Composite)"));
         sections.add(buildDemoGamePanelScoreboard());
         // 2. AdSlot (between header and top performers)
-        sections.add(buildTypeLabel("AdSlot"));
+        sections.add(buildTypeLabel("AdSlot (Semantic)"));
         sections.add(buildDemoAdSlot());
         // 3. StatLine
-        sections.add(buildTypeLabel("StatLine"));
+        sections.add(buildTypeLabel("StatLine (Composite)"));
         sections.add(buildDemoStatLine());
         // 4. PromoBanner
-        sections.add(buildTypeLabel("PromoBanner"));
+        sections.add(buildTypeLabel("PromoBanner (Composite)"));
         sections.add(buildDemoPromoBanner());
         // 5. HeroPanel
-        sections.add(buildTypeLabel("HeroPanel"));
+        sections.add(buildTypeLabel("HeroPanel (Composite)"));
         sections.add(buildDemoHeroPanel());
         // 6. ContentRail
-        sections.add(buildTypeLabel("ContentRail"));
+        sections.add(buildTypeLabel("ContentRail (Composite)"));
         sections.add(buildDemoContentRail());
         // 7. Game Card
-        sections.add(buildTypeLabel("Game Card"));
+        sections.add(buildTypeLabel("Game Card (Composite)"));
         sections.add(buildDemoGamePanel());
         // 8. Responsive Row (AtomicComposite with breakpoint)
-        sections.add(buildTypeLabel("Responsive Row (Container + breakpoint)"));
+        sections.add(buildTypeLabel("Responsive Row (Composite)"));
         sections.add(buildDemoResponsiveRow());
         // 9. TabGroup
-        sections.add(buildTypeLabel("TabGroup"));
+        sections.add(buildTypeLabel("TabGroup (Semantic)"));
         sections.add(buildDemoTabGroup());
         // 10. BoxscoreTable
-        sections.add(buildTypeLabel("BoxscoreTable"));
+        sections.add(buildTypeLabel("BoxscoreTable (Semantic)"));
         sections.add(buildDemoBoxscoreTable());
         // 11. Form
-        sections.add(buildTypeLabel("Form"));
+        sections.add(buildTypeLabel("Form (Semantic)"));
         sections.add(buildDemoForm(platform));
         // 12. SeasonLeadersTable
-        sections.add(buildTypeLabel("SeasonLeadersTable"));
+        sections.add(buildTypeLabel("SeasonLeadersTable (Semantic)"));
         sections.add(buildDemoLeadersTable());
         // 13. Game Card (featured composite)
-        sections.add(buildTypeLabel("Game Card (featured)"));
+        sections.add(buildTypeLabel("Game Card (featured) (Composite)"));
         sections.add(buildDemoFeaturedGamePanel());
         // 14. VideoCarousel
-        sections.add(buildTypeLabel("VideoCarousel"));
+        sections.add(buildTypeLabel("VideoCarousel (Composite)"));
         sections.add(buildDemoVideoCarousel());
         // 15. NbaTvSchedule
-        sections.add(buildTypeLabel("NbaTvSchedule"));
+        sections.add(buildTypeLabel("NbaTvSchedule (Composite)"));
         sections.add(buildDemoNbaTvSchedule());
         // 16. SubscribeBanner
-        sections.add(buildTypeLabel("SubscribeBanner"));
+        sections.add(buildTypeLabel("SubscribeBanner (Semantic)"));
         sections.add(buildDemoSubscribeBanner());
         // 17. SubscribeHero
-        sections.add(buildTypeLabel("SubscribeHero"));
+        sections.add(buildTypeLabel("SubscribeHero (Semantic)"));
         sections.add(buildDemoSubscribeHero());
         // 18. FollowingRail
-        sections.add(buildTypeLabel("FollowingRail"));
+        sections.add(buildTypeLabel("FollowingRail (Composite)"));
         sections.add(buildDemoFollowingRail());
         // 19. DisplayGrid (atomic primitive)
-        sections.add(buildTypeLabel("DisplayGrid"));
+        sections.add(buildTypeLabel("DisplayGrid (Composite)"));
         sections.add(buildDemoDisplayGrid());
         // 20. ErrorState
-        sections.add(buildTypeLabel("ErrorState"));
+        sections.add(buildTypeLabel("ErrorState (Composite)"));
         sections.add(buildDemoErrorState());
         // 21. SectionSlot (bidirectional bridge demo)
-        sections.add(buildTypeLabel("SectionSlot (AdSlot in atomic tree)"));
+        sections.add(buildTypeLabel("SectionSlot (AdSlot in atomic tree) (Composite)"));
         sections.add(buildDemoSectionSlot());
 
         screen.set("sections", sections);

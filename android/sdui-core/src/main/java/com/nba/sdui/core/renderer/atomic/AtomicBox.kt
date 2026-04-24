@@ -1,5 +1,6 @@
 package com.nba.sdui.core.renderer.atomic
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -27,6 +28,8 @@ import com.nba.sdui.core.renderer.adapters.BackgroundGradientViewModel
 import com.nba.sdui.core.renderer.adapters.BackgroundViewModel
 import com.nba.sdui.core.renderer.adapters.toViewModel
 import com.nba.sdui.core.state.SduiAction
+
+private const val TAG = "AtomicBox"
 
 /**
  * AtomicBox — the single site for every AtomicElement's box model on
@@ -129,6 +132,9 @@ fun Modifier.buildAtomicBox(element: AtomicElement): Modifier {
         (element.fillWidth == null && variantSpec?.fillWidth == true)
 
     val inlineBackground = element.background.toViewModel()
+    if (inlineBackground is BackgroundViewModel.Image) {
+        Log.w(TAG, "Atomic background image is decoded but constrained out of mobile atomic rendering; use section.surface background or an Image child")
+    }
     val backgroundLocked = variantSpec?.overrideMatrix?.get("background") == OverridePolicy.LOCK
     val useVariantBackground: Boolean = when {
         variantSpec == null -> false

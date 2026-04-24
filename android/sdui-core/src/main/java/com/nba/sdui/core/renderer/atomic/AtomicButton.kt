@@ -32,6 +32,9 @@ fun AtomicButton(
         element.actions?.firstOrNull()?.toSduiAction()?.let(onAction)
     }
     val enabled = element.disabled != true
+    if (!element.icon.isNullOrBlank()) {
+        Log.w("AtomicButton", "button icon is decoded but not rendered on Android yet: icon=${element.icon} elementId=${element.id}")
+    }
 
     // Resolve `label` from `bindRef` when present, falling back to the
     // inline `label`. Lets composers rebind CTA copy without rewriting

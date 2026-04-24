@@ -10,7 +10,7 @@ import SwiftUI
 /// `Background` union:
 ///   • string  → token or hex, resolved to a solid `Color`
 ///   • object with `colors`    → `LinearGradient` with direction
-///   • object with `imageUrl`  → remote `AsyncImage` (surface layer
+///   • object with `imageUrl`  → cached remote image (surface layer
 ///                                sits below `content`)
 ///
 /// Shared wrapper enforcing server-driven outer chrome for every section.
@@ -33,6 +33,7 @@ struct SectionContainer<Content: View>: View {
         let radius = CGFloat(surface?.cornerRadius ?? 0)
 
         return content()
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(padding)
             .background { backgroundView(for: surface?.background, colorScheme: colorScheme) }
             .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))

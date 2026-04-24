@@ -145,7 +145,16 @@ final class ActionDispatcher {
             nav.openExternal(url)
         } else {
             let endpoint = UriResolver.resolveEndpoint(uri: targetURI)
-            nav.push(endpoint: endpoint)
+            switch action.presentation {
+            case .replace:
+                nav.popToRoot()
+                nav.push(endpoint: endpoint)
+            case .modal, .fullscreen:
+                logger.warning("navigation presentation \(action.presentation?.rawValue ?? "nil", privacy: .public) is decoded but no native host is registered; falling back to push modalHeight=\(action.modalHeight?.rawValue ?? "nil", privacy: .public)")
+                nav.push(endpoint: endpoint)
+            case .external, .push, .none:
+                nav.push(endpoint: endpoint)
+            }
         }
         return .navigateSuccess
     }
@@ -224,6 +233,9 @@ final class ActionDispatcher {
 
     private func presentFailure(_ feedback: FailureFeedback?, from action: Action) {
         let message = feedback?.message ?? defaultFailureMessage(for: action)
+        if feedback?.style == .inline {
+            logger.warning("failureFeedback.style=inline is decoded but not hosted inline on iOS; presenting error toast")
+        }
         toasts.show(message, style: .error)
     }
 

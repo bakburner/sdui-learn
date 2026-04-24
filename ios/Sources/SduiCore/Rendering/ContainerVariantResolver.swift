@@ -198,13 +198,19 @@ private struct ContainerVariantApplier: ViewModifier {
             )
         } else {
             content
-                .background { backgroundView(for: inlineBackground, colorScheme: colorScheme) }
+                .background { backgroundView(for: constrainedInlineBackground, colorScheme: colorScheme) }
                 .modifier(ContainerCornerClipModifier(
                     radius: CGFloat(inlineCornerRadius ?? 0),
                     radii: inlineCornerRadii
                 ))
                 .applyShadow(inlineShadow)
         }
+    }
+
+    private var constrainedInlineBackground: BackgroundUnion? {
+        guard isAtomicBackgroundImage(inlineBackground) else { return inlineBackground }
+        logger.warning("Atomic background image is decoded but constrained out of mobile atomic rendering; use section.surface background or an Image child")
+        return nil
     }
 }
 
@@ -221,7 +227,7 @@ private struct ContainerVariantModifier: ViewModifier {
         let radiusPolicy = policy("cornerRadius")
         let shadowPolicy = policy("shadow")
 
-        let useInlineBg = inlineBackground != nil && bgPolicy == .allow
+        let useInlineBg = inlineBackground != nil && bgPolicy == .allow && !isAtomicBackgroundImage(inlineBackground)
         let useInlineRadius = inlineCornerRadius != nil && radiusPolicy == .allow
         let useInlineRadii = inlineCornerRadii != nil && radiusPolicy == .allow
         let useInlineShadow = inlineShadow != nil && shadowPolicy == .allow
@@ -230,6 +236,9 @@ private struct ContainerVariantModifier: ViewModifier {
             ContainerVariantResolver.logOverrideBlocked(
                 variant: variantName, axis: "background", attemptedValue: inlineBackground
             )
+        }
+        if isAtomicBackgroundImage(inlineBackground) {
+            logger.warning("Atomic background image is decoded but constrained out of mobile atomic rendering; use section.surface background or an Image child")
         }
         if inlineCornerRadius != nil && radiusPolicy == .lock {
             ContainerVariantResolver.logOverrideBlocked(
@@ -265,6 +274,11 @@ private struct ContainerVariantModifier: ViewModifier {
     private func policy(_ axis: String) -> OverridePolicy {
         spec.overrideMatrix[axis] ?? .allow
     }
+}
+
+private func isAtomicBackgroundImage(_ background: BackgroundUnion?) -> Bool {
+    guard case .background(let value) = background else { return false }
+    return value.imageURL?.isEmpty == false
 }
 
 private struct ContainerVariantBackgroundModifier: ViewModifier {

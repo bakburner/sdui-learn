@@ -47,7 +47,9 @@ data class SduiAction(
     val paramBindings: Map<String, String>? = null,
     val message: String? = null,
     val onFailure: String? = null,
-    val failureFeedback: FailureFeedback? = null
+    val failureFeedback: FailureFeedback? = null,
+    val presentation: String? = null,
+    val modalHeight: String? = null
 )
 
 /**
@@ -156,10 +158,22 @@ class ActionHandler {
             return ActionResult.NavigateError("", "No navigation target specified", action.failureFeedback)
         }
         
+        when (action.presentation) {
+            null, "push" -> Unit
+            "external" -> Log.i(TAG, "Navigate externally to: $uri")
+            "modal", "fullscreen" -> Log.w(TAG, "presentation=${action.presentation} modalHeight=${action.modalHeight} is preserved but native host is not implemented; host may fall back")
+            "replace" -> Log.i(TAG, "Navigate replace to: $uri")
+            else -> Log.w(TAG, "Unsupported navigation presentation=${action.presentation}; preserving value for host fallback")
+        }
         Log.i(TAG, "Navigate to: $uri")
         // In a real implementation, this would trigger navigation
         // For the prototype, we return the URI for the UI to show in a snackbar
-        return ActionResult.NavigateResult(uri, action.fallbackUrl)
+        return ActionResult.NavigateResult(
+            uri = uri,
+            fallbackUrl = action.fallbackUrl,
+            presentation = action.presentation,
+            modalHeight = action.modalHeight
+        )
     }
     
     private fun handleFireAndForget(action: SduiAction): ActionResult {
@@ -237,7 +251,12 @@ class ActionHandler {
         /** Whether this result represents a failure. */
         fun isFailure(): Boolean = this is NavigateError || this is MutateNoOp || this is RefreshStale || this is Error
 
-        data class NavigateResult(val uri: String, val fallbackUrl: String?) : ActionResult()
+        data class NavigateResult(
+            val uri: String,
+            val fallbackUrl: String?,
+            val presentation: String? = null,
+            val modalHeight: String? = null
+        ) : ActionResult()
         data class NavigateError(val uri: String, val reason: String, val feedback: FailureFeedback?) : ActionResult()
         data class FireAndForgetResult(val eventName: String, val params: Map<String, Any>) : ActionResult()
         data class MutateResult(val key: String, val value: Any?) : ActionResult()

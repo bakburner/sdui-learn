@@ -20,7 +20,9 @@ fun Action.toSduiAction(): SduiAction {
         paramBindings = paramBindings,
         message = message,
         onFailure = onFailure?.value,
-        failureFeedback = failureFeedback?.toViewModel()
+        failureFeedback = failureFeedback?.toViewModel(),
+        presentation = presentation?.value,
+        modalHeight = modalHeight?.value
     )
 }
 

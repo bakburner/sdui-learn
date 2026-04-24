@@ -1,3 +1,4 @@
+import Kingfisher
 import SwiftUI
 
 /// Renders an Image atomic element. Image URLs always come from the server
@@ -18,33 +19,33 @@ struct AtomicImageView: View {
     var onAction: (Action) -> Void = { _ in }
 
     @Environment(\.compositeContent) private var compositeContent
+    @State private var activeSrc: String?
+    @State private var triedPayloadFallback = false
+    @State private var finalImageFailed = false
 
     var body: some View {
-        if let src = resolvedSrc, let url = URL(string: src) {
+        if let src = currentSrc, let url = URL(string: src) {
             let spec = ImageVariantResolver.resolve(element.variant)
             let resolvedAspectRatio = element.aspectRatio.map { CGFloat($0) } ?? spec?.aspectRatio
             let resolvedContentMode = contentMode(spec: spec)
             let resolvedRadius = element.cornerRadius.map { CGFloat($0) } ?? spec?.cornerRadius
             let shouldClip = spec?.clip ?? true
 
-            AsyncImage(url: url) { phase in
-                switch phase {
-                case .success(let image):
-                    image
+            Group {
+                if finalImageFailed {
+                    placeholder
+                } else {
+                    KFImage(url)
+                        .placeholder {
+                            ProgressView()
+                        }
+                        .onFailure { _ in
+                            handleImageFailure(currentSrc: src)
+                        }
                         .resizable()
                         .aspectRatio(resolvedAspectRatio, contentMode: resolvedContentMode)
-                case .failure:
-                    placeholder
-                case .empty:
-                    ProgressView()
-                @unknown default:
-                    placeholder
                 }
             }
-            // Aspect ratio on the outer frame covers loading/failure
-            // placeholders, which otherwise collapse before the image
-            // lands. A fixed `height` on the element disables this so
-            // the outer frame is a fixed box, not an aspect-derived one.
             .modifier(ImageAspectRatioModifier(
                 aspectRatio: (element.height == nil) ? resolvedAspectRatio : nil,
                 contentMode: resolvedContentMode
@@ -61,6 +62,25 @@ struct AtomicImageView: View {
             .applyActionTriggers(element.actions, onAction: onAction)
             .sduiAccessibility(element.accessibility, fallbackLabel: element.alt)
             .atomicBox(element, screenState: screenState, onAction: onAction)
+            .task(id: resolvedSrc) {
+                activeSrc = resolvedSrc
+                triedPayloadFallback = false
+                finalImageFailed = false
+            }
+        }
+    }
+
+    /// Preserve payload-provided fallback semantics while letting Kingfisher
+    /// provide memory/disk caching for successful responses.
+    private func handleImageFailure(currentSrc: String) {
+        if let fallback = element.placeholder,
+           !triedPayloadFallback,
+           fallback != currentSrc,
+           URL(string: fallback) != nil {
+            triedPayloadFallback = true
+            activeSrc = fallback
+        } else {
+            finalImageFailed = true
         }
     }
 
@@ -75,7 +95,11 @@ struct AtomicImageView: View {
         return element.src
     }
 
-    private func contentMode(spec: ImageVariantSpec?) -> ContentMode {
+    private var currentSrc: String? {
+        activeSrc ?? resolvedSrc
+    }
+
+    private func contentMode(spec: ImageVariantSpec?) -> SwiftUI.ContentMode {
         if let fit = element.fit {
             switch fit {
             case .cover: return .fill
@@ -96,7 +120,7 @@ struct AtomicImageView: View {
 
 private struct ImageAspectRatioModifier: ViewModifier {
     let aspectRatio: CGFloat?
-    let contentMode: ContentMode
+    let contentMode: SwiftUI.ContentMode
 
     @ViewBuilder
     func body(content: Content) -> some View {

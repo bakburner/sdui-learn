@@ -102,7 +102,7 @@ fun GameDetailScreen(
                 )
             },
             navigationIcon = {
-                val parentUri = (uiState as? SduiScreenUiState.Success)?.screen?.parentUri
+                val parentUri = (uiState as? SduiScreenUiState.Success)?.screen?.parentURI
                 if (parentUri != null) {
                     IconButton(onClick = {
                         onNavigateUri(parentUri)
@@ -119,7 +119,7 @@ fun GameDetailScreen(
         // Server-driven variant chips — no client-side URI sniffing.
         val variantsData = (uiState as? SduiScreenUiState.Success)?.screen?.variants
         val serverVariants = variantsData?.options ?: emptyList()
-        val experimentId = variantsData?.experimentId ?: "variant"
+        val experimentId = variantsData?.experimentID ?: "variant"
         if (serverVariants.isNotEmpty()) {
             Row(
                 modifier = Modifier

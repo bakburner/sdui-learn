@@ -88,6 +88,13 @@ private fun GamePanelContent(
     val badgeColor = config.badgeColor?.let { parseColor(it) }
         ?: if (isLive) Color(0xFFC8102E) else Color(0xFF666666)
 
+    // Primary foreground for card text. Server-driven so light card
+    // backgrounds (carousel gradient, standard surface) can ask for dark
+    // text while the legacy dark brand cards (featured blue, scoreboard
+    // navy) can keep white. Fallback to white preserves existing output
+    // for any caller that composes a GamePanel without setting textColor.
+    val primaryTextColor = config.textColor?.let { parseColor(it) } ?: Color.White
+
     val scoreStyle = if (config.scoreTextStyle == "prominent") {
         MaterialTheme.typography.headlineMedium
     } else {
@@ -141,7 +148,7 @@ private fun GamePanelContent(
                     model.visualLabel?.let { label ->
                         Text(
                             text = label,
-                            color = Color.White.copy(alpha = 0.7f),
+                            color = primaryTextColor.copy(alpha = 0.7f),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.SemiBold,
                             letterSpacing = 0.5.sp
@@ -182,16 +189,18 @@ private fun GamePanelContent(
                         if (model.visualState != GamePanelVisualState.PRE) {
                             Text(
                                 text = model.awayScore,
-                                color = Color.White,
+                                color = primaryTextColor,
                                 style = scoreStyle,
                                 fontWeight = scoreWeight,
+                                maxLines = 1,
+                                softWrap = false,
                                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
                             )
                         }
                         model.awayName?.let { name ->
                             Text(
                                 text = name,
-                                color = Color.White.copy(alpha = 0.85f),
+                                color = primaryTextColor.copy(alpha = 0.85f),
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.SemiBold
                             )
@@ -199,7 +208,7 @@ private fun GamePanelContent(
                         model.awayRecord?.let { record ->
                             Text(
                                 text = record,
-                                color = Color.White.copy(alpha = 0.6f),
+                                color = primaryTextColor.copy(alpha = 0.6f),
                                 style = MaterialTheme.typography.labelSmall
                             )
                         }
@@ -208,14 +217,14 @@ private fun GamePanelContent(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
                             text = model.statusText,
-                            color = Color.White.copy(alpha = 0.8f),
+                            color = primaryTextColor.copy(alpha = 0.8f),
                             style = MaterialTheme.typography.bodySmall
                         )
                         if (model.visualState == GamePanelVisualState.PRE) {
                             model.broadcaster?.let { broadcaster ->
                                 Text(
                                     text = broadcaster,
-                                    color = Color.White.copy(alpha = 0.6f),
+                                    color = primaryTextColor.copy(alpha = 0.6f),
                                     style = MaterialTheme.typography.labelSmall
                                 )
                             }
@@ -234,16 +243,18 @@ private fun GamePanelContent(
                         if (model.visualState != GamePanelVisualState.PRE) {
                             Text(
                                 text = model.homeScore,
-                                color = Color.White,
+                                color = primaryTextColor,
                                 style = scoreStyle,
                                 fontWeight = scoreWeight,
+                                maxLines = 1,
+                                softWrap = false,
                                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
                             )
                         }
                         model.homeName?.let { name ->
                             Text(
                                 text = name,
-                                color = Color.White.copy(alpha = 0.85f),
+                                color = primaryTextColor.copy(alpha = 0.85f),
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.SemiBold
                             )
@@ -251,7 +262,7 @@ private fun GamePanelContent(
                         model.homeRecord?.let { record ->
                             Text(
                                 text = record,
-                                color = Color.White.copy(alpha = 0.6f),
+                                color = primaryTextColor.copy(alpha = 0.6f),
                                 style = MaterialTheme.typography.labelSmall
                             )
                         }
@@ -262,13 +273,13 @@ private fun GamePanelContent(
                     Column {
                         Text(
                             text = "Leaders",
-                            color = Color.White.copy(alpha = 0.6f),
+                            color = primaryTextColor.copy(alpha = 0.6f),
                             style = MaterialTheme.typography.labelSmall
                         )
                         model.leaderLines.forEach { line ->
                             Text(
                                 text = line,
-                                color = Color.White,
+                                color = primaryTextColor,
                                 style = MaterialTheme.typography.bodySmall
                             )
                         }
@@ -278,7 +289,7 @@ private fun GamePanelContent(
                 if (model.visualState != GamePanelVisualState.PRE && model.broadcaster != null) {
                     Text(
                         text = model.broadcaster,
-                        color = Color.White.copy(alpha = 0.6f),
+                        color = primaryTextColor.copy(alpha = 0.6f),
                         style = MaterialTheme.typography.labelSmall
                     )
                 }

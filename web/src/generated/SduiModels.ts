@@ -27,6 +27,12 @@ export interface SduiModels {
     state?:        { [key: string]: any };
     title?:        string;
     traceId?:      string;
+    /**
+     * Server-exposed A/B / experiment variants available for this screen. Clients read
+     * `options` to render a variant picker (dev UI, QA tooling) and pass the selected id back
+     * to the server on subsequent requests. Omit for screens without active experiments.
+     */
+    variants?: ExperimentVariants;
     [property: string]: any;
 }
 
@@ -1119,8 +1125,17 @@ export interface GamePanelDisplayConfig {
      * Score typography: compact = bodyLarge+Bold, prominent = headlineMedium+ExtraBold
      */
     scoreTextStyle?: ScoreTextStyle;
-    aspectRatio?:    string;
-    height?:         number;
+    /**
+     * Foreground color for primary text on the card (score, tricode, team name). Clients derive
+     * secondary/tertiary text (status, record, broadcaster, visual label) from this base via
+     * platform-native opacity conventions. Omit to let each client fall back to its adaptive
+     * primary foreground — set this whenever the card background diverges from the platform's
+     * default surface (e.g. dark brand backgrounds that require inverse text, or light gradient
+     * carousels that require primary text on clients whose legacy default was white).
+     */
+    textColor?:   string;
+    aspectRatio?: string;
+    height?:      number;
     [property: string]: any;
 }
 
@@ -1528,4 +1543,44 @@ export enum OverlayType {
     SubscribeHero = "SubscribeHero",
     TabGroup = "TabGroup",
     VideoPlayer = "VideoPlayer",
+}
+
+/**
+ * Server-exposed A/B / experiment variants available for this screen. Clients read
+ * `options` to render a variant picker (dev UI, QA tooling) and pass the selected id back
+ * to the server on subsequent requests. Omit for screens without active experiments.
+ *
+ * Wrapper for the set of A/B variants the server is willing to serve for this screen. Lets
+ * clients expose variant selection without hardcoding experiment ids or option vocabularies.
+ */
+export interface ExperimentVariants {
+    /**
+     * Stable identifier for the experiment (e.g. `game_detail_variant`). Clients echo this key
+     * back to the server as part of the experiments map on subsequent requests.
+     */
+    experimentId: string;
+    /**
+     * Ordered list of variants the client may choose from.
+     */
+    options: ExperimentVariantOption[];
+    [property: string]: any;
+}
+
+/**
+ * One variant within an experiment.
+ */
+export interface ExperimentVariantOption {
+    /**
+     * Optional longer description shown alongside the label.
+     */
+    description?: string;
+    /**
+     * Variant identifier (e.g. `A`, `B`). Opaque to clients.
+     */
+    id: string;
+    /**
+     * Human-readable label rendered in variant pickers.
+     */
+    label: string;
+    [property: string]: any;
 }

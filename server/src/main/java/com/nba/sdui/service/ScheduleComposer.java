@@ -155,8 +155,10 @@ public class ScheduleComposer {
             String date = game.path("date").asText("");
             if (!date.equals(currentDate)) {
                 currentDate = date;
-                sections.add(atomicBuilder.buildSectionHeader(
-                        "schedule-header-" + date, formatDate(date), null, null, null));
+                ObjectNode header = atomicBuilder.buildSectionHeader(
+                        "schedule-header-" + date, formatDate(date), null, null, null);
+                header.set("surface", utils.sectionHeaderSurface());
+                sections.add(header);
             }
             sections.add(buildGameCard(game));
         }

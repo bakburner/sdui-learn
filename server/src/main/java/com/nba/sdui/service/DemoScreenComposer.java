@@ -798,12 +798,14 @@ public class DemoScreenComposer {
             {"slot-2", "LAL @ BOS", "Live game broadcast", "19:30", "true", "nba://game/0022400999"},
             {"slot-3", "NBA Inside Stuff", "Post-game interviews and highlights", "22:00", "false", null}
         };
-        return atomicBuilder.buildNbaTvSchedule(
+        ObjectNode section = atomicBuilder.buildNbaTvSchedule(
                 "demo-nbatv-schedule", "demo_nbatv_schedule",
                 "https://loremflickr.com/800/400/basketball,arena?lock=14",
                 "NBA TV Live",
                 "Lakers vs Celtics — Coverage begins at 7:00 PM ET",
                 true, slots);
+        section.set("surface", utils.cardSurface());
+        return section;
     }
 
     /**
@@ -828,7 +830,7 @@ public class DemoScreenComposer {
         ctaAction.put("targetUri", "nba://subscribe");
         ctaAction.put("presentation", "modal");
 
-        ObjectNode root = atomicBuilder.container("vertical", "start", "start");
+        ObjectNode root = atomicBuilder.container("column", "start", "start");
         root.put("gap", 4);
         ArrayNode children = objectMapper.createArrayNode();
         children.add(atomicBuilder.text("Never Miss a Game", "titleMedium", "bold", "#FFFFFF", null));
@@ -862,7 +864,7 @@ public class DemoScreenComposer {
                 ColorTokens.BRAND_NBA,
                 24));
 
-        ObjectNode root = atomicBuilder.container("vertical", "start", "center");
+        ObjectNode root = atomicBuilder.container("column", "start", "center");
         root.put("gap", 6);
         ArrayNode children = objectMapper.createArrayNode();
 
@@ -880,11 +882,11 @@ public class DemoScreenComposer {
                 "NBA TV included",
                 "Compatible with all major devices"
         };
-        ObjectNode featuresCol = atomicBuilder.container("vertical", "start", "start");
+        ObjectNode featuresCol = atomicBuilder.container("column", "start", "start");
         featuresCol.put("gap", 6);
         ArrayNode featureChildren = objectMapper.createArrayNode();
         for (String feature : features) {
-            ObjectNode row = atomicBuilder.container("horizontal", "start", "center");
+            ObjectNode row = atomicBuilder.container("row", "start", "center");
             row.put("gap", 8);
             ArrayNode rowChildren = objectMapper.createArrayNode();
             rowChildren.add(atomicBuilder.text("✓", "bodyMedium", "bold", "#FFFFFF", null));
@@ -897,7 +899,7 @@ public class DemoScreenComposer {
 
         children.add(atomicBuilder.spacer(16));
 
-        ObjectNode tiersCol = atomicBuilder.container("vertical", "start", "start");
+        ObjectNode tiersCol = atomicBuilder.container("column", "start", "start");
         tiersCol.put("gap", 12);
         ArrayNode tierChildren = objectMapper.createArrayNode();
         tierChildren.add(buildDemoTierUi("League Pass", "$14.99/mo", "$22.99/mo",
@@ -928,7 +930,7 @@ public class DemoScreenComposer {
     private ObjectNode buildDemoTierUi(String name, String price, String originalPrice,
                                             String badgeText, String[] features,
                                             String ctaLabel, String ctaUri) {
-        ObjectNode card = atomicBuilder.container("vertical", "start", "start");
+        ObjectNode card = atomicBuilder.container("column", "start", "start");
         card.put("gap", 4);
         card.put("background", "rgba(255,255,255,0.1)");
         card.put("cornerRadius", 12);

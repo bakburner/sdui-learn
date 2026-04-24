@@ -17,10 +17,29 @@ struct AtomicTextView: View {
                 .foregroundColor(ColorTokenResolver.resolve(element.color, colorScheme: colorScheme))
                 .lineLimit(element.maxLines)
                 .multilineTextAlignment(resolvedTextAlignment)
-                .frame(maxWidth: .infinity, alignment: resolvedFrameAlignment)
                 .applyMonospacedDigits(element.monospacedDigits == true)
+                // Padding goes *inside* the flexible frame so the padded
+                // text lays out within the parent's width instead of
+                // overflowing it by the padding amount on fixed-width
+                // parents (e.g. a 200pt content-rail card).
+                .padding(edgeInsets(from: element.padding))
+                .modifier(TextFrameModifier(
+                    fillWidth: shouldFillWidth,
+                    alignment: resolvedFrameAlignment
+                ))
                 .sduiAccessibility(element.accessibility, fallbackLabel: content)
         }
+    }
+
+    /// Text takes its intrinsic width by default so that siblings in a Row
+    /// lay out naturally (e.g. `✓` + label feature row). A maxWidth: .infinity
+    /// frame is only applied when the server has signalled that the text
+    /// must occupy the available width — an explicit `textAlign` (centered
+    /// or trailing alignment only makes sense inside a flexible frame) or an
+    /// explicit `fillWidth` on the element. Without either signal, the text
+    /// is sized to its content and the parent container decides layout.
+    private var shouldFillWidth: Bool {
+        element.textAlign != nil || element.fillWidth == true
     }
 
     private var resolvedVariant: TextVariant? {
@@ -115,6 +134,20 @@ struct AtomicTextView: View {
         case .center: return .center
         case .end: return .trailing
         default: return .leading
+        }
+    }
+}
+
+private struct TextFrameModifier: ViewModifier {
+    let fillWidth: Bool
+    let alignment: SwiftUI.Alignment
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if fillWidth {
+            content.frame(maxWidth: .infinity, alignment: alignment)
+        } else {
+            content
         }
     }
 }

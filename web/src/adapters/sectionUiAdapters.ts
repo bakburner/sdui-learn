@@ -28,6 +28,7 @@ export interface GamePanelDisplayConfig {
   background?: any;
   liveBackground?: any;
   badgeColor?: string;
+  textColor?: string;
 }
 
 export interface GamePanelUiModel {
@@ -189,5 +190,6 @@ function parseDisplayConfig(raw: any): GamePanelDisplayConfig {
     background: raw.background,
     liveBackground: raw.liveBackground,
     badgeColor: raw.badgeColor,
+    textColor: raw.textColor,
   };
 }

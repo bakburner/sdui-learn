@@ -138,8 +138,10 @@ public class ForYouComposer {
                         "https://loremflickr.com/260/190/basketball,social?lock=21",
                         "social", "nba://social/twitter"}
         };
-        return atomicBuilder.buildFollowingRail("following-rail", "for_you_following",
+        ObjectNode section = atomicBuilder.buildFollowingRail("following-rail", "for_you_following",
                 "Following", items);
+        section.set("surface", utils.railSurface());
+        return section;
     }
 
     private ObjectNode buildFeaturedFromLive() {
@@ -264,7 +266,7 @@ public class ForYouComposer {
     private ObjectNode buildSectionHeader(String id, String title,
                                            String actionLabel, String actionUri) {
         ObjectNode section = atomicBuilder.buildSectionHeader(id, title, null, actionLabel, actionUri);
-        section.set("surface", utils.railSurface());
+        section.set("surface", utils.sectionHeaderSurface());
         return section;
     }
 
@@ -354,11 +356,13 @@ public class ForYouComposer {
                         "https://loremflickr.com/480/270/basketball,buzzer?lock=53",
                         "4:08", "false", "nba://video/top10-buzzer-beaters"}
         };
-        return atomicBuilder.buildVodPlaylist(
+        ObjectNode section = atomicBuilder.buildVodPlaylist(
                 "for-you-vod-playlist",
                 "for_you_vod_playlist",
                 "More to Watch",
                 rows);
+        section.set("surface", utils.railSurface());
+        return section;
     }
 
     private ObjectNode buildAroundTheLeagueRail() {
@@ -476,6 +480,7 @@ public class ForYouComposer {
         data.put("gameStatusText", game.path("gameStatusText").asText(""));
         data.set("homeTeam", mapTeam(game.path("homeTeam")));
         data.set("awayTeam", mapTeam(game.path("awayTeam")));
+        data.set("displayConfig", atomicBuilder.carouselConfig());
 
         ArrayNode actions = objectMapper.createArrayNode();
         ObjectNode action = objectMapper.createObjectNode();
@@ -519,6 +524,7 @@ public class ForYouComposer {
         home.put("score", 0);
         home.put("logoUrl", SduiUtils.teamLogoUrl(homeId));
         data.set("homeTeam", home);
+        data.set("displayConfig", atomicBuilder.carouselConfig());
 
         ArrayNode actions = objectMapper.createArrayNode();
         ObjectNode action = objectMapper.createObjectNode();

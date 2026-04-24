@@ -74,6 +74,26 @@ export function AtomicRouter({ element, state, onAction, depth = 0, onStateChang
       return null;
   }
 
+  // element.padding on leaf primitives is applied at the router level via a
+  // wrapper div. Container / ScrollContainer / Conditional / SectionSlot
+  // apply padding internally so it sits inside their own background, border
+  // and corner clip; wrapping those would double-pad and would move padding
+  // outside the bg — deliberately skip them here.
+  const isLeaf = element.type !== 'Container'
+    && element.type !== 'ScrollContainer'
+    && element.type !== 'Conditional'
+    && element.type !== 'SectionSlot';
+  if (isLeaf && element.padding) {
+    const p = element.padding;
+    const paddingStyle: React.CSSProperties = {
+      paddingTop: p.top,
+      paddingRight: p.end,
+      paddingBottom: p.bottom,
+      paddingLeft: p.start,
+    };
+    rendered = <div style={paddingStyle}>{rendered}</div>;
+  }
+
   // Outer margin is applied by a wrapper div so it sits outside the
   // primitive's own background, corner radius, and inner padding —
   // sibling-to-sibling spacing semantics, matching CSS `margin`.

@@ -215,7 +215,7 @@ public class LiveComposer {
     private ObjectNode buildSectionHeader(String id, String title,
                                            String subtitle, String actionUri) {
         ObjectNode section = atomicBuilder.buildSectionHeader(id, title, subtitle, null, actionUri);
-        section.set("surface", utils.railSurface());
+        section.set("surface", utils.sectionHeaderSurface());
         return section;
     }
 

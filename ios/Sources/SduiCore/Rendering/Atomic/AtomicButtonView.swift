@@ -27,6 +27,7 @@ struct AtomicButtonView: View {
         .buttonStyle(SduiButtonStyle(variant: resolvedVariant))
         .disabled(element.disabled ?? false)
         .modifier(VisibilityActionModifier(actions: element.actions, onAction: onAction))
+        .padding(edgeInsets(from: element.padding))
         .sduiAccessibility(element.accessibility, fallbackLabel: element.label)
     }
 

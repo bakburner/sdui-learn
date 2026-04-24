@@ -14,6 +14,15 @@ struct AtomicContainerView: View {
         let variantSpec = ContainerVariantResolver.resolve(element.variant)
         let fixedWidth = element.width.map { CGFloat($0) }
         let fixedHeight = element.height.map { CGFloat($0) }
+        // Wire-level fillWidth is honored here on iOS to match web
+        // (`width: 100%`) and Android (`Modifier.fillMaxWidth()`). Without
+        // this, a row child that needs to claim "the remaining horizontal
+        // space" (e.g. the middle title column in a three-column list row
+        // with a fixed-width label on the left and a badge on the right)
+        // collapses to intrinsic width and the row's space distributes
+        // unpredictably. Explicit `width` wins over fillWidth so a
+        // 200pt card is still 200pt even if marked fillWidth upstream.
+        let shouldFillWidth = fixedWidth == nil && element.fillWidth == true
 
         Group {
             if isRow {
@@ -28,6 +37,8 @@ struct AtomicContainerView: View {
         }
         .padding(padding)
         .frame(width: fixedWidth, height: fixedHeight)
+        .frame(maxWidth: shouldFillWidth ? .infinity : nil,
+               alignment: shouldFillWidth && !isRow ? frameAlignmentForColumn : .center)
         .applyContainerVariant(
             spec: variantSpec,
             variantName: element.variant,
@@ -39,6 +50,19 @@ struct AtomicContainerView: View {
         .applyBadge(element.badge, screenState: screenState, onAction: onAction)
         .applyActionTriggers(element.actions, onAction: onAction)
         .sduiAccessibility(element.accessibility)
+    }
+
+    /// For a fill-width column we want the inner content left-aligned by
+    /// default (leading) unless the element declares otherwise via
+    /// `crossAlignment`. A row's fill-width frame uses center alignment
+    /// because the HStack itself positions its children.
+    private var frameAlignmentForColumn: SwiftUI.Alignment {
+        switch element.crossAlignment {
+        case .center: return .center
+        case .end: return .trailing
+        case .start: return .leading
+        default: return .leading
+        }
     }
 
     @ViewBuilder

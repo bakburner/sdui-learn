@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import java.util.Set;
+
 /**
  * Builds AtomicComposite sections using atomic element trees.
  *
@@ -66,7 +68,14 @@ public class AtomicCompositeBuilder {
         ObjectNode section = sectionEnvelope(id, null);
 
         ObjectNode root = container("row", "spaceBetween", "center");
-        root.set("padding", padding(16, 16, 12, 12));
+        // Header internal padding: 12pt top (air above title), 4pt bottom.
+        // The vertical rhythm between the header title and the next section
+        // is produced by the surface-level margin on the *next* section's
+        // surface (typically `railSurface.margin.top = 16pt`), not by extra
+        // padding inside the header. Keeping bottom tight here avoids the
+        // "double-gap" look where header-bottom-padding + next-section-
+        // top-margin + next-section-internal-top-padding all stack.
+        root.set("padding", padding(16, 16, 12, 4));
         ArrayNode children = om.createArrayNode();
 
         if (subtitle != null) {
@@ -152,7 +161,7 @@ public class AtomicCompositeBuilder {
         ObjectNode section = sectionEnvelope(id, analyticsId);
 
         ObjectNode root = container("column", null, null);
-        root.set("padding", padding(0, 0, 12, 12));
+        root.set("padding", padding(0, 0, 0, 12));
         ArrayNode rootChildren = om.createArrayNode();
 
         if (title != null) {
@@ -185,7 +194,14 @@ public class AtomicCompositeBuilder {
     private ObjectNode buildContentCard(String id, String headline, String subhead,
                                           String thumbnailUrl, String contentType,
                                           String duration, String targetUri) {
-        ObjectNode card = elevatedContainer("column", null, null);
+        // Plain container (no variant): the `elevated` variant's default
+        // shadow made the inter-card gap look muddy — each card's shadow
+        // bled into the 12pt gap between siblings in the rail. Dropping
+        // the variant removes the shadow entirely; the card silhouette
+        // is defined by its own gradient background, corner radius, and
+        // the scroll container's sibling gap (not by a drop shadow on
+        // neighbouring surfaces).
+        ObjectNode card = container("column", null, null);
         card.put("id", id);
         // Fix the card's outer width so the image (also 200) and any
         // full-width overlays (duration badge strip) meet the card edge
@@ -193,13 +209,16 @@ public class AtomicCompositeBuilder {
         // widths) — a long 2-line headline would push the card past
         // 200, leaving an empty right gutter next to the image.
         card.put("width", 200);
-        // Rounded top, square bottom. The `elevated` variant's default 12pt
-        // radius on all four corners pulled the bottom-left corner curve up
-        // into the headline's first glyph, clipping the leading letter.
-        // Squaring the bottom corners gives the headline full-width breathing
-        // room without reducing the card's visual weight (rounded-top +
-        // squared-bottom is a standard news/streaming-card silhouette).
-        card.set("cornerRadii", cornerRadii(12, 12, 0, 0));
+        card.put("cornerRadius", 12);
+        // Subtle vertical gradient so the card silhouette reads against
+        // the feed background without relying on a drop shadow.
+        ObjectNode cardBg = om.createObjectNode();
+        ArrayNode cardBgColors = om.createArrayNode();
+        cardBgColors.add(ColorTokens.SURFACE_RAISED);
+        cardBgColors.add(ColorTokens.SURFACE_SUNKEN);
+        cardBg.set("colors", cardBgColors);
+        cardBg.put("direction", "vertical");
+        card.set("background", cardBg);
         if (targetUri != null) {
             card.set("actions", singleActionArray(tapNavigate(targetUri)));
         }
@@ -207,17 +226,15 @@ public class AtomicCompositeBuilder {
 
         if (thumbnailUrl != null) {
             ObjectNode img = thumbnailImage(thumbnailUrl);
-            // Card is the sole width anchor; the image stretches to the
-            // card's interior and derives its height from aspectRatio.
-            // This avoids duplicating the 200pt number on both card and
-            // image, and lets the rail re-theme by tuning card.width in
-            // one place.
+            // Image is inset 8pt on start/end/top so the card face is
+            // visible as an equal-thickness frame above and beside the
+            // thumbnail (matches the 12pt inter-card gap perception on
+            // the left/right). Bottom = 0 so the title owns the vertical
+            // rhythm below the image via its own padding.
+            img.set("padding", padding(8, 8, 8, 0));
             img.put("fillWidth", true);
             img.put("aspectRatio", 16.0 / 9.0);
-            // Card outer clip (elevated variant + cornerRadii) owns the
-            // rounded top corners — suppress the thumbnail variant's 8pt
-            // radius so the image meets the card edge flush.
-            img.put("cornerRadius", 0);
+            img.put("cornerRadius", 6);
             if (duration != null) {
                 badge(img, durationBadge(duration), "bottomEnd");
             } else if ("video".equalsIgnoreCase(contentType)) {
@@ -226,9 +243,15 @@ public class AtomicCompositeBuilder {
             children.add(img);
         }
 
-        children.add(spacer(8));
+        children.add(spacer(4));
         ObjectNode headlineEl = text(headline, "bodySmall", "semiBold", ColorTokens.TEXT_PRIMARY, 2);
-        headlineEl.set("padding", padding(8, 8, 8, 8));
+        // Horizontal padding is 16pt (larger than the 8pt image inset and
+        // larger than the card's 12pt cornerRadius) so the first glyph
+        // clears the curved corner instead of sitting at the arc where
+        // the rounded clip shaves off part of the baseline. Reads as a
+        // deliberate text inset rather than a flush baseline with the
+        // image's edge.
+        headlineEl.set("padding", padding(16, 16, 8, 8));
         children.add(headlineEl);
 
         card.set("children", children);
@@ -248,7 +271,7 @@ public class AtomicCompositeBuilder {
         ObjectNode section = sectionEnvelope(id, analyticsId);
 
         ObjectNode root = container("column", null, null);
-        root.set("padding", padding(0, 0, 12, 12));
+        root.set("padding", padding(0, 0, 0, 12));
         ArrayNode rootChildren = om.createArrayNode();
 
         if (title != null) {
@@ -321,7 +344,7 @@ public class AtomicCompositeBuilder {
         ObjectNode section = sectionEnvelope(id, analyticsId);
 
         ObjectNode root = container("column", null, null);
-        root.set("padding", padding(0, 0, 12, 12));
+        root.set("padding", padding(0, 0, 0, 12));
         ArrayNode rootChildren = om.createArrayNode();
 
         if (title != null) {
@@ -446,7 +469,10 @@ public class AtomicCompositeBuilder {
         ObjectNode section = sectionEnvelope(id, analyticsId);
 
         ObjectNode root = container("column", null, null);
-        root.set("padding", padding(0, 0, 8, 8));
+        // Matches the buildContentRail padding rhythm: 0pt top (surface
+        // margin supplies the air), 12pt bottom (so the last-card row
+        // doesn't hug the next section).
+        root.set("padding", padding(0, 0, 0, 12));
         ArrayNode rootChildren = om.createArrayNode();
 
         if (title != null) {
@@ -482,16 +508,22 @@ public class AtomicCompositeBuilder {
     private ObjectNode buildVideoCard(String id, String title, String subtitle,
                                         String thumbnailUrl, String duration,
                                         String badgeText, String targetUri) {
-        ObjectNode card = elevatedContainer("column", null, null);
+        // Plain container (no variant) — see buildContentCard for the
+        // rationale. The card's silhouette is defined by its gradient
+        // background + corner radius, not a drop shadow.
+        ObjectNode card = container("column", null, null);
         card.put("id", id);
         // Fix the card's outer width so the 240pt image + full-width
         // meta row (duration / live badge) meet the card edge flush.
-        // See buildContentCard for the rationale.
         card.put("width", 240);
-        // Rounded top, square bottom — same rationale as buildContentCard:
-        // prevents the bottom-corner curve from clipping into the title's
-        // first glyph and matches the news/streaming-card silhouette.
-        card.set("cornerRadii", cornerRadii(12, 12, 0, 0));
+        card.put("cornerRadius", 12);
+        ObjectNode cardBg = om.createObjectNode();
+        ArrayNode cardBgColors = om.createArrayNode();
+        cardBgColors.add(ColorTokens.SURFACE_RAISED);
+        cardBgColors.add(ColorTokens.SURFACE_SUNKEN);
+        cardBg.set("colors", cardBgColors);
+        cardBg.put("direction", "vertical");
+        card.set("background", cardBg);
         if (targetUri != null) {
             card.set("actions", singleActionArray(tapNavigate(targetUri)));
         }
@@ -502,32 +534,37 @@ public class AtomicCompositeBuilder {
 
         if (thumbnailUrl != null) {
             ObjectNode img = thumbnailImage(thumbnailUrl);
-            // Card owns the width; image stretches + derives height from
-            // aspect ratio. See buildContentCard for the rationale.
+            // Image inset 8pt on start/end/top so the card face shows as
+            // an equal-thickness frame on three sides. Matches the
+            // buildContentCard treatment.
+            img.set("padding", padding(8, 8, 8, 0));
             img.put("fillWidth", true);
             img.put("aspectRatio", 16.0 / 9.0);
-            // Card outer clip owns the rounded top; suppress the thumbnail
-            // variant's 8pt radius so the image meets the card edge cleanly.
-            img.put("cornerRadius", 0);
+            img.put("cornerRadius", 6);
             thumbChildren.add(img);
         }
 
         ObjectNode metaContainer = container("row", "spaceBetween", "center");
-        metaContainer.set("padding", padding(6, 6, 6, 6));
+        // Start/end match the image's 8pt inset so the meta row aligns
+        // with the image's left/right edges instead of the card's outer
+        // edges.
+        metaContainer.set("padding", padding(8, 8, 6, 6));
         ArrayNode metaChildren = om.createArrayNode();
 
         if (badgeText != null) {
-            ObjectNode badge = text(badgeText, "labelSmall", "bold", ColorTokens.TEXT_INVERSE, null);
-            badge.put("background", ColorTokens.BRAND_LIVE);
-            metaChildren.add(badge);
+            // Pill badge — Container-wrapped text so the background
+            // actually renders (Text's own `background` is not honored
+            // by any of the three atomic Text renderers). Red brand
+            // pill for NEW/LIVE-style callouts.
+            metaChildren.add(pillBadge(badgeText, ColorTokens.BRAND_LIVE));
         } else {
             metaChildren.add(spacer(1));
         }
 
         if (duration != null) {
-            ObjectNode dur = text(duration, "labelSmall", null, ColorTokens.TEXT_INVERSE, null);
-            dur.put("background", "#000000B3");
-            metaChildren.add(dur);
+            // Dark translucent pill for durations (matches the duration
+            // chip overlaid on video card thumbnails elsewhere).
+            metaChildren.add(pillBadge(duration, "#000000B3"));
         }
 
         metaContainer.set("children", metaChildren);
@@ -536,7 +573,11 @@ public class AtomicCompositeBuilder {
         children.add(thumbContainer);
 
         ObjectNode textCol = container("column", null, null);
-        textCol.set("padding", padding(10, 10, 10, 10));
+        // 14pt horizontal > card's 12pt cornerRadius so the title's
+        // first glyph clears the rounded corner arc instead of sitting
+        // at the clip edge. 10pt vertical keeps the card's top/bottom
+        // rhythm unchanged.
+        textCol.set("padding", padding(14, 14, 10, 10));
         ArrayNode textChildren = om.createArrayNode();
         textChildren.add(text(title, "bodyMedium", "semiBold", ColorTokens.TEXT_PRIMARY, 2));
         if (subtitle != null) {
@@ -698,6 +739,7 @@ public class AtomicCompositeBuilder {
     public ObjectNode standardConfig() {
         ObjectNode config = om.createObjectNode();
         config.put("background", ColorTokens.SURFACE_CANVAS);
+        config.put("textColor", ColorTokens.TEXT_PRIMARY);
         return config;
     }
 
@@ -724,6 +766,7 @@ public class AtomicCompositeBuilder {
             config.set("liveBackground", grad);
         }
         config.put("badgeColor", ColorTokens.BRAND_LIVE);
+        config.put("textColor", ColorTokens.TEXT_INVERSE);
         return config;
     }
 
@@ -732,6 +775,31 @@ public class AtomicCompositeBuilder {
         config.put("logoSize", 60);
         config.put("scoreTextStyle", "prominent");
         config.put("background", bgColor != null ? bgColor : ColorTokens.BRAND_NBA);
+        config.put("textColor", ColorTokens.TEXT_INVERSE);
+        return config;
+    }
+
+    /**
+     * Compact card preset used by the upcoming-games carousel on the
+     * For-You feed. Each card sits inside a ScrollContainer on a white
+     * canvas; without its own background the card silhouette dissolves
+     * against the feed. A subtle vertical gradient gives the card a
+     * distinct frame without requiring a drop shadow that would bleed
+     * into sibling cards' inter-gap.
+     */
+    public ObjectNode carouselConfig() {
+        ObjectNode config = om.createObjectNode();
+        config.put("logoSize", 44);
+        config.put("cornerRadius", 12);
+        config.put("elevation", 0);
+        ObjectNode bg = om.createObjectNode();
+        ArrayNode colors = om.createArrayNode();
+        colors.add(ColorTokens.SURFACE_RAISED);
+        colors.add(ColorTokens.SURFACE_SUNKEN);
+        bg.set("colors", colors);
+        bg.put("direction", "vertical");
+        config.set("background", bg);
+        config.put("textColor", ColorTokens.TEXT_PRIMARY);
         return config;
     }
 
@@ -749,14 +817,20 @@ public class AtomicCompositeBuilder {
                                           String[][] slots) {
         ObjectNode section = sectionEnvelope(id, analyticsId);
 
-        ObjectNode root = container("column", null, null);
-        root.put("background", ColorTokens.SURFACE_SUNKEN);
-        root.put("cornerRadius", 12);
+        // Root is content-only. The card chrome (sunken background,
+        // rounded corners, horizontal+vertical margin from siblings) is
+        // expressed on section.surface so every card-chromed composite
+        // shares one surface helper. `fillWidth: true` is required for
+        // the hero image and slot list to span the card's interior on
+        // iOS — without it the VStack sizes to max(child intrinsic).
+        ObjectNode root = container("column", null, "start");
+        root.put("fillWidth", true);
+        root.set("padding", padding(0, 0, 0, 16));
         ArrayNode rootChildren = om.createArrayNode();
 
-        ObjectNode heroContainer = container("column", "end", null);
+        ObjectNode heroContainer = container("column", "end", "start");
+        heroContainer.put("fillWidth", true);
         heroContainer.put("cornerRadius", 12);
-        heroContainer.set("padding", padding(16, 16, 8, 8));
         ArrayNode heroChildren = om.createArrayNode();
 
         if (heroImageUrl != null) {
@@ -766,7 +840,8 @@ public class AtomicCompositeBuilder {
             heroChildren.add(heroImg);
         }
 
-        ObjectNode overlay = container("column", null, null);
+        ObjectNode overlay = container("column", null, "start");
+        overlay.put("fillWidth", true);
         overlay.set("padding", padding(16, 16, 16, 16));
         ObjectNode grad = om.createObjectNode();
         ArrayNode gradColors = om.createArrayNode();
@@ -778,9 +853,7 @@ public class AtomicCompositeBuilder {
         ArrayNode overlayChildren = om.createArrayNode();
 
         if (liveNow) {
-            ObjectNode liveBadge = text("LIVE", "labelSmall", "bold", ColorTokens.TEXT_INVERSE, null);
-            liveBadge.put("background", ColorTokens.BRAND_LIVE);
-            overlayChildren.add(liveBadge);
+            overlayChildren.add(liveBadge());
             overlayChildren.add(spacer(6));
         }
         if (heroTitle != null) {
@@ -794,15 +867,19 @@ public class AtomicCompositeBuilder {
         heroContainer.set("children", heroChildren);
         rootChildren.add(heroContainer);
 
-        rootChildren.add(spacer(8));
+        rootChildren.add(spacer(12));
 
+        // Heading padding is 16pt horizontal — same inset as the slot
+        // list below so the title line aligns with the row cards' outer
+        // edge. Any padding the surface provides is in addition to this.
         ObjectNode heading = text("Today's Schedule", "titleSmall", "bold", ColorTokens.TEXT_PRIMARY, null);
         heading.set("padding", padding(16, 16, 4, 4));
         rootChildren.add(heading);
 
-        ObjectNode slotList = container("column", null, null);
+        ObjectNode slotList = container("column", null, "start");
+        slotList.put("fillWidth", true);
         slotList.put("gap", 8);
-        slotList.set("padding", padding(16, 16, 0, 0));
+        slotList.set("padding", padding(16, 16, 4, 0));
         ArrayNode slotChildren = om.createArrayNode();
 
         for (String[] slot : slots) {
@@ -817,12 +894,43 @@ public class AtomicCompositeBuilder {
         return section;
     }
 
+    /**
+     * Generic pill badge — Container with a colored rounded-rect
+     * background wrapping a small white bold label. Use for any inline
+     * chip (LIVE, NEW, durations) when the color is not the LIVE red.
+     * For the LIVE badge specifically, call {@link #liveBadge()}.
+     *
+     * <p>Expressed as a Container wrapping a Text because Text
+     * backgrounds are not rendered by any client's atomic Text
+     * renderer — Text draws only the foreground glyph on all three
+     * platforms. Container backgrounds + corner radii are universal.
+     */
+    private ObjectNode pillBadge(String label, String backgroundColor) {
+        ObjectNode badge = container("row", null, "center");
+        badge.put("background", backgroundColor);
+        badge.put("cornerRadius", 4);
+        badge.set("padding", padding(6, 6, 2, 2));
+        ArrayNode children = om.createArrayNode();
+        children.add(text(label, "labelSmall", "bold", ColorTokens.TEXT_INVERSE, null));
+        badge.set("children", children);
+        return badge;
+    }
+
     private ObjectNode buildNbaTvSlot(String id, String title, String subtitle,
                                         String displayTime, boolean isLive,
                                         String targetUri) {
+        // Row layout: [time][content fills remaining][badge, optional].
+        // `contentCol.fillWidth = true` is the load-bearing bit — without
+        // it the HStack distributes leftover space unpredictably (time
+        // and title end up far apart, title truncates with an ellipsis
+        // even though the row has plenty of room). fillWidth forces the
+        // column to claim remaining horizontal space so the time hugs
+        // the leading edge and the badge hugs the trailing edge while
+        // the title+subtitle expand into the middle.
         ObjectNode row = container("row", null, "center");
         row.put("id", id);
         row.put("fillWidth", true);
+        row.put("gap", 12);
         row.put("cornerRadius", 8);
         row.put("background", ColorTokens.SURFACE_CANVAS);
         row.set("padding", padding(12, 12, 12, 12));
@@ -833,9 +941,9 @@ public class AtomicCompositeBuilder {
 
         ObjectNode timeText = text(displayTime, "bodyMedium", "semiBold", ColorTokens.TEXT_SECONDARY, null);
         children.add(timeText);
-        children.add(spacer(12));
 
-        ObjectNode contentCol = container("column", null, null);
+        ObjectNode contentCol = container("column", null, "start");
+        contentCol.put("fillWidth", true);
         ArrayNode contentChildren = om.createArrayNode();
         contentChildren.add(text(title, "bodyMedium", "semiBold", ColorTokens.TEXT_PRIMARY, 1));
         if (subtitle != null) {
@@ -845,10 +953,7 @@ public class AtomicCompositeBuilder {
         children.add(contentCol);
 
         if (isLive) {
-            children.add(spacer(8));
-            ObjectNode badge = text("LIVE", "labelSmall", "bold", ColorTokens.TEXT_INVERSE, null);
-            badge.put("background", ColorTokens.BRAND_LIVE);
-            children.add(badge);
+            children.add(liveBadge());
         }
 
         row.set("children", children);
@@ -1172,13 +1277,42 @@ public class AtomicCompositeBuilder {
         return data;
     }
 
+    // Allowed values for Container's direction / alignment / crossAlignment
+    // fields, mirroring the Direction / Alignment / CrossAlignment enums in
+    // schema/sdui-schema.json. Kept in lock-step with the schema — when an
+    // enum value is added or removed there, update the set here too.
+    // Clients strict-decode these fields (Rule 13), so a composer that
+    // emits a value outside the enum crashes the client at decode time;
+    // validating here surfaces the contract violation at the server-build
+    // site instead of at the client.
+    private static final Set<String> VALID_DIRECTIONS = Set.of("row", "column");
+    private static final Set<String> VALID_ALIGNMENTS =
+        Set.of("start", "center", "end", "spaceBetween", "spaceAround", "spaceEvenly");
+    private static final Set<String> VALID_CROSS_ALIGNMENTS =
+        Set.of("start", "center", "end", "stretch");
+
     ObjectNode container(String direction, String alignment, String crossAlignment) {
+        validateEnum("direction", direction, VALID_DIRECTIONS);
+        validateEnum("alignment", alignment, VALID_ALIGNMENTS);
+        validateEnum("crossAlignment", crossAlignment, VALID_CROSS_ALIGNMENTS);
+
         ObjectNode node = om.createObjectNode();
         node.put("type", "Container");
         if (direction != null) node.put("direction", direction);
         if (alignment != null) node.put("alignment", alignment);
         if (crossAlignment != null) node.put("crossAlignment", crossAlignment);
         return node;
+    }
+
+    private static void validateEnum(String field, String value, Set<String> allowed) {
+        if (value == null) return;
+        if (!allowed.contains(value)) {
+            throw new IllegalArgumentException(
+                "Container." + field + " value '" + value
+                    + "' is not in the schema enum " + allowed
+                    + ". Fix the composer call site; clients strict-decode this field."
+            );
+        }
     }
 
     /**

@@ -107,8 +107,7 @@ public class WatchComposer {
         // Ad slot at top
         sections.add(buildAdSlot("watch-ad-top", "watch/featured/top"));
 
-        // Hero video carousel
-        sections.add(buildVideoCarousel("featured-highlights", "Tonight's Highlights", null,
+        addVideoCarousel(sections, "featured-highlights", "Tonight's Highlights", null,
                 new String[][]{
                         {"fh-1", "Game Recap: BOS vs LAL", "Full game highlights",
                                 FALLBACK_THUMB,
@@ -122,7 +121,7 @@ public class WatchComposer {
                         {"fh-4", "Top 10 Plays", "Last night's best moments",
                                 FALLBACK_THUMB,
                                 "2:45", null, "nba://video/top10-plays"}
-                }));
+                });
 
         // Subscribe banner (inline upsell)
         sections.add(buildSubscribeBanner("watch-subscribe-inline",
@@ -131,8 +130,7 @@ public class WatchComposer {
                 FALLBACK_THUMB,
                 "Subscribe Now", "nba://subscribe/league-pass"));
 
-        // NBA Originals carousel
-        sections.add(buildVideoCarousel("featured-originals", "NBA Originals", null,
+        addVideoCarousel(sections, "featured-originals", "NBA Originals", null,
                 new String[][]{
                         {"fo-1", "Open Court", "Inside the NBA culture",
                                 FALLBACK_THUMB,
@@ -143,13 +141,12 @@ public class WatchComposer {
                         {"fo-3", "The Reel", "Behind-the-scenes with players",
                                 FALLBACK_THUMB,
                                 "18:45", null, "nba://video/the-reel"}
-                }));
+                });
 
         // Ad slot mid-page
         sections.add(buildAdSlot("watch-ad-mid", "watch/featured/mid"));
 
-        // Content rail for articles
-        sections.add(buildContentRail("featured-stories", "Trending Stories",
+        addContentRail(sections, "featured-stories", "Trending Stories",
                 new String[][]{
                         {"fs-1", "Trade Deadline Preview", "Who's on the move?",
                                 FALLBACK_THUMB,
@@ -160,7 +157,7 @@ public class WatchComposer {
                         {"fs-3", "Playoff Picture", "Updated standings breakdown",
                                 FALLBACK_THUMB,
                                 "article", null, "nba://article/playoff-picture"}
-                }));
+                });
 
         return sections;
     }
@@ -173,8 +170,7 @@ public class WatchComposer {
         // NBA TV Schedule (hero + time-slot list)
         sections.add(buildNbaTvSchedule());
 
-        // Video carousel of recent NBA TV shows
-        sections.add(buildVideoCarousel("nbatv-shows", "Popular Shows", null,
+        addVideoCarousel(sections, "nbatv-shows", "Popular Shows", null,
                 new String[][]{
                         {"nbatv-s1", "NBA GameTime", "Nightly highlights & analysis",
                                 FALLBACK_THUMB,
@@ -185,13 +181,11 @@ public class WatchComposer {
                         {"nbatv-s3", "NBA Action", "Weekly highlights show",
                                 FALLBACK_THUMB,
                                 "30:00", null, "nba://watch/nba-action"}
-                }));
+                });
 
-        // Ad slot
         sections.add(buildAdSlot("nbatv-ad", "watch/nbatv/mid"));
 
-        // Classic games carousel
-        sections.add(buildVideoCarousel("nbatv-classics", "Classic Games", "Relive the greatest moments",
+        addVideoCarousel(sections, "nbatv-classics", "Classic Games", "Relive the greatest moments",
                 new String[][]{
                         {"nbatv-c1", "2016 Finals Game 7", "CLE vs GSW — The Block, The Shot, The Stop",
                                 FALLBACK_THUMB,
@@ -202,7 +196,7 @@ public class WatchComposer {
                         {"nbatv-c3", "2013 Finals Game 6", "MIA vs SAS — Ray Allen's clutch three",
                                 FALLBACK_THUMB,
                                 "2:35:00", null, "nba://video/2013-finals-g6"}
-                }));
+                });
 
         return sections;
     }
@@ -220,8 +214,7 @@ public class WatchComposer {
         // Pull real games if available
         addLiveGamePanels(sections);
 
-        // Video carousel for condensed games
-        sections.add(buildVideoCarousel("lp-condensed", "Condensed Games", "Full games in ~12 minutes",
+        addVideoCarousel(sections, "lp-condensed", "Condensed Games", "Full games in ~12 minutes",
                 new String[][]{
                         {"lp-c1", "BOS vs MIA Condensed", "Full condensed game",
                                 FALLBACK_THUMB,
@@ -232,7 +225,7 @@ public class WatchComposer {
                         {"lp-c3", "LAL vs GSW Condensed", "Full condensed game",
                                 FALLBACK_THUMB,
                                 "12:10", null, "nba://video/lal-gsw-condensed"}
-                }));
+                });
 
         // Ad slot
         sections.add(buildAdSlot("lp-ad", "watch/leaguepass/mid"));
@@ -267,14 +260,47 @@ public class WatchComposer {
     private ObjectNode buildSectionHeader(String id, String title,
                                            String actionLabel, String actionUri) {
         ObjectNode section = atomicBuilder.buildSectionHeader(id, title, null, actionLabel, actionUri);
-        section.set("surface", utils.railSurface());
+        section.set("surface", utils.sectionHeaderSurface());
         return section;
     }
 
-    private ObjectNode buildContentRail(String id, String title, String[][] cards) {
-        ObjectNode section = atomicBuilder.buildContentRail(id, null, title, cards);
-        section.set("surface", utils.railSurface());
+    private ObjectNode buildSectionHeader(String id, String title, String subtitle,
+                                           String actionLabel, String actionUri) {
+        ObjectNode section = atomicBuilder.buildSectionHeader(id, title, subtitle, actionLabel, actionUri);
+        section.set("surface", utils.sectionHeaderSurface());
         return section;
+    }
+
+    /**
+     * Emit a titled content rail as TWO sections — a SectionHeader followed
+     * by a title-less rail. The SectionHeader's surface
+     * ({@link SduiUtils#sectionHeaderSurface()}) is the single source of
+     * truth for the title→rail gap app-wide, so every screen has the same
+     * header rhythm. Callers that pass a null title get just the rail.
+     */
+    private void addContentRail(ArrayNode sections, String id, String title, String[][] cards) {
+        if (title != null) {
+            sections.add(buildSectionHeader(id + "-header", title, null, null));
+        }
+        ObjectNode section = atomicBuilder.buildContentRail(id, null, null, cards);
+        section.set("surface", utils.railSurface());
+        sections.add(section);
+    }
+
+    /**
+     * Emit a titled video carousel as TWO sections — a SectionHeader
+     * (carrying both title and subtitle) followed by a title-less carousel.
+     * Same rationale as {@link #addContentRail}: one header surface, one
+     * consistent app-wide rhythm.
+     */
+    private void addVideoCarousel(ArrayNode sections, String id, String title,
+                                   String subtitle, String[][] items) {
+        if (title != null) {
+            sections.add(buildSectionHeader(id + "-header", title, subtitle, null, null));
+        }
+        ObjectNode section = atomicBuilder.buildVideoCarousel(id, null, null, null, items);
+        section.set("surface", utils.railSurface());
+        sections.add(section);
     }
 
     private ObjectNode buildPromoBanner(String id, String headline, String subhead,
@@ -389,7 +415,7 @@ public class WatchComposer {
                 "NBA GameTime",
                 "LIVE — Nightly highlights & analysis",
                 true, slots);
-        section.set("surface", utils.railSurface());
+        section.set("surface", utils.cardSurface());
         return section;
     }
 
@@ -419,7 +445,7 @@ public class WatchComposer {
         ctaAction.put("type", "navigate");
         ctaAction.put("targetUri", ctaUri);
 
-        ObjectNode root = atomicBuilder.container("vertical", "start", "start");
+        ObjectNode root = atomicBuilder.container("column", "start", "start");
         root.put("gap", 4);
         ArrayNode children = objectMapper.createArrayNode();
         children.add(atomicBuilder.text(title, "titleMedium", "bold", "#FFFFFF", null));
@@ -492,7 +518,7 @@ public class WatchComposer {
      */
     private ObjectNode buildSubscribeHeroUi(String title, String subtitle, String logoUrl,
                                              String[] features, TierSpec[] tierSpecs) {
-        ObjectNode root = atomicBuilder.container("vertical", "start", "center");
+        ObjectNode root = atomicBuilder.container("column", "start", "center");
         root.put("gap", 6);
         ArrayNode children = objectMapper.createArrayNode();
 
@@ -506,11 +532,11 @@ public class WatchComposer {
         }
         children.add(atomicBuilder.spacer(12));
 
-        ObjectNode featuresCol = atomicBuilder.container("vertical", "start", "start");
+        ObjectNode featuresCol = atomicBuilder.container("column", "start", "start");
         featuresCol.put("gap", 6);
         ArrayNode featureChildren = objectMapper.createArrayNode();
         for (String feature : features) {
-            ObjectNode row = atomicBuilder.container("horizontal", "start", "center");
+            ObjectNode row = atomicBuilder.container("row", "start", "center");
             row.put("gap", 8);
             ArrayNode rowChildren = objectMapper.createArrayNode();
             rowChildren.add(atomicBuilder.text("✓", "bodyMedium", "bold", "#FFFFFF", null));
@@ -523,7 +549,7 @@ public class WatchComposer {
 
         children.add(atomicBuilder.spacer(16));
 
-        ObjectNode tiersCol = atomicBuilder.container("vertical", "start", "start");
+        ObjectNode tiersCol = atomicBuilder.container("column", "start", "start");
         tiersCol.put("gap", 12);
         ArrayNode tierChildren = objectMapper.createArrayNode();
         for (TierSpec t : tierSpecs) {
@@ -538,7 +564,7 @@ public class WatchComposer {
 
     /** Build an atomic Container that visually represents one subscription tier. */
     private ObjectNode buildTierUi(TierSpec t) {
-        ObjectNode card = atomicBuilder.container("vertical", "start", "start");
+        ObjectNode card = atomicBuilder.container("column", "start", "start");
         card.put("gap", 4);
         card.put("background", "rgba(255,255,255,0.1)");
         card.put("cornerRadius", 12);

@@ -34,7 +34,8 @@ data class GamePanelDisplayConfigUi(
     val scoreTextStyle: String = "compact",
     val background: BackgroundViewModel? = null,
     val liveBackground: BackgroundViewModel? = null,
-    val badgeColor: String? = null
+    val badgeColor: String? = null,
+    val textColor: String? = null
 )
 
 data class GamePanelUiModel(
@@ -152,7 +153,8 @@ private fun mapDisplayConfig(config: GamePanelDisplayConfig?): GamePanelDisplayC
         scoreTextStyle = config.scoreTextStyle?.value ?: "compact",
         background = config.background?.toViewModel(),
         liveBackground = config.liveBackground?.toViewModel(),
-        badgeColor = config.badgeColor
+        badgeColor = config.badgeColor,
+        textColor = config.textColor
     )
 }
 

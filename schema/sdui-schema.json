@@ -642,7 +642,11 @@
         },
         "background": { "$ref": "#/definitions/Background", "description": "Default background (pre-game, final)" },
         "liveBackground": { "$ref": "#/definitions/Background", "description": "Background override when game is LIVE" },
-        "badgeColor": { "$ref": "#/definitions/ColorToken", "description": "Badge/chip background color (hex or token)" }
+        "badgeColor": { "$ref": "#/definitions/ColorToken", "description": "Badge/chip background color (hex or token)" },
+        "textColor": {
+          "$ref": "#/definitions/ColorToken",
+          "description": "Foreground color for primary text on the card (score, tricode, team name). Clients derive secondary/tertiary text (status, record, broadcaster, visual label) from this base via platform-native opacity conventions. Omit to let each client fall back to its adaptive primary foreground — set this whenever the card background diverges from the platform's default surface (e.g. dark brand backgrounds that require inverse text, or light gradient carousels that require primary text on clients whose legacy default was white)."
+        }
       }
     },
     "GamePanelData": {
@@ -1256,6 +1260,45 @@
             "$ref": "#/definitions/Section"
           },
           "description": "Named overlay sections the client shows when a trigger condition arises. Keys are developer-defined state names (e.g. 'couchRightsWarning'). Values are server-composed sections (typically AtomicComposite). Client controls trigger timing and presentation style; server controls display content."
+        },
+        "variants": {
+          "$ref": "#/definitions/ExperimentVariants",
+          "description": "Server-exposed A/B / experiment variants available for this screen. Clients read `options` to render a variant picker (dev UI, QA tooling) and pass the selected id back to the server on subsequent requests. Omit for screens without active experiments."
+        }
+      }
+    },
+    "ExperimentVariants": {
+      "type": "object",
+      "required": ["experimentId", "options"],
+      "description": "Wrapper for the set of A/B variants the server is willing to serve for this screen. Lets clients expose variant selection without hardcoding experiment ids or option vocabularies.",
+      "properties": {
+        "experimentId": {
+          "type": "string",
+          "description": "Stable identifier for the experiment (e.g. `game_detail_variant`). Clients echo this key back to the server as part of the experiments map on subsequent requests."
+        },
+        "options": {
+          "type": "array",
+          "description": "Ordered list of variants the client may choose from.",
+          "items": { "$ref": "#/definitions/ExperimentVariantOption" }
+        }
+      }
+    },
+    "ExperimentVariantOption": {
+      "type": "object",
+      "required": ["id", "label"],
+      "description": "One variant within an experiment.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Variant identifier (e.g. `A`, `B`). Opaque to clients."
+        },
+        "label": {
+          "type": "string",
+          "description": "Human-readable label rendered in variant pickers."
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional longer description shown alongside the label."
         }
       }
     }

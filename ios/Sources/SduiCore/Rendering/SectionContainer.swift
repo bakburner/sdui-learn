@@ -34,41 +34,11 @@ struct SectionContainer<Content: View>: View {
 
         return content()
             .padding(padding)
-            .background(backgroundLayer())
+            .background { backgroundView(for: surface?.background, colorScheme: colorScheme) }
             .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
             .overlay(borderOverlay(radius: radius))
             .applyShadow(surface?.shadow)
             .padding(margin)
-    }
-
-    @ViewBuilder
-    private func backgroundLayer() -> some View {
-        switch surface?.background {
-        case .none:
-            Color.clear
-        case .some(.string(let value)):
-            ColorTokenResolver.resolve(value, colorScheme: colorScheme) ?? Color.clear
-        case .some(.background(let bg)):
-            if let imageUrl = bg.imageURL, let url = URL(string: imageUrl) {
-                AsyncImage(url: url) { image in
-                    image.resizable().scaledToFill()
-                } placeholder: {
-                    Color.clear
-                }
-            } else if let colors = bg.colors, colors.count > 1 {
-                LinearGradient(
-                    gradient: Gradient(colors: colors.map {
-                        ColorTokenResolver.resolve($0, colorScheme: colorScheme) ?? .clear
-                    }),
-                    startPoint: gradientStart(bg.direction),
-                    endPoint: gradientEnd(bg.direction)
-                )
-            } else if let first = bg.colors?.first {
-                ColorTokenResolver.resolve(first, colorScheme: colorScheme) ?? Color.clear
-            } else {
-                Color.clear
-            }
-        }
     }
 
     @ViewBuilder
@@ -80,22 +50,6 @@ struct SectionContainer<Content: View>: View {
                 .stroke(color, lineWidth: CGFloat(width))
         } else {
             EmptyView()
-        }
-    }
-
-    private func gradientStart(_ direction: Direction?) -> UnitPoint {
-        switch direction {
-        case .horizontal: return .leading
-        case .diagonal: return .topLeading
-        case .vertical, .none: return .top
-        }
-    }
-
-    private func gradientEnd(_ direction: Direction?) -> UnitPoint {
-        switch direction {
-        case .horizontal: return .trailing
-        case .diagonal: return .bottomTrailing
-        case .vertical, .none: return .bottom
         }
     }
 }

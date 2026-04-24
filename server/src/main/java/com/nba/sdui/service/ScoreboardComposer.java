@@ -216,7 +216,7 @@ public class ScoreboardComposer {
         for (int i = 0; i < sections.size(); i++) {
             updated.add(sections.get(i));
             if (i == 1 && gameCount > 2) {
-                updated.add(buildScoreboardContentRail());
+                addScoreboardContentRail(updated);
             }
         }
 
@@ -238,7 +238,7 @@ public class ScoreboardComposer {
         return section;
     }
 
-    private ObjectNode buildScoreboardContentRail() {
+    private void addScoreboardContentRail(ArrayNode sections) {
         String[][] cards = {
                 {"league-1", "Top 10 Plays of the Night",
                         "Last night's best moments", FALLBACK_THUMB,
@@ -247,7 +247,13 @@ public class ScoreboardComposer {
                         "Current playoff picture", FALLBACK_THUMB,
                         "article", null, "nba://standings"}
         };
-        return atomicBuilder.buildContentRail("scoreboard-content-rail",
-                "scoreboard_content_rail", "Around the League", cards);
+        ObjectNode header = atomicBuilder.buildSectionHeader(
+                "scoreboard-content-rail-header", "Around the League", null, null, null);
+        header.set("surface", utils.sectionHeaderSurface());
+        sections.add(header);
+        ObjectNode rail = atomicBuilder.buildContentRail("scoreboard-content-rail",
+                "scoreboard_content_rail", null, cards);
+        rail.set("surface", utils.railSurface());
+        sections.add(rail);
     }
 }

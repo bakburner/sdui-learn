@@ -57,6 +57,7 @@ struct AtomicImageView: View {
             ))
             .applyBadge(element.badge, screenState: screenState, onAction: onAction)
             .applyActionTriggers(element.actions, onAction: onAction)
+            .padding(edgeInsets(from: element.padding))
             .sduiAccessibility(element.accessibility, fallbackLabel: element.alt)
         }
     }

@@ -26,6 +26,10 @@ struct SduiModels: Codable {
     let sections: [Section]
     let state: [String: JSONAny]?
     let title, traceID: String?
+    /// Server-exposed A/B / experiment variants available for this screen. Clients read
+    /// `options` to render a variant picker (dev UI, QA tooling) and pass the selected id back
+    /// to the server on subsequent requests. Omit for screens without active experiments.
+    let variants: ExperimentVariants?
 
     enum CodingKeys: String, CodingKey {
         case actions
@@ -34,6 +38,7 @@ struct SduiModels: Codable {
         case parentURI = "parentUri"
         case schemaVersion, sections, state, title
         case traceID = "traceId"
+        case variants
     }
 }
 
@@ -67,7 +72,8 @@ extension SduiModels {
         sections: [Section]? = nil,
         state: [String: JSONAny]?? = nil,
         title: String?? = nil,
-        traceID: String?? = nil
+        traceID: String?? = nil,
+        variants: ExperimentVariants?? = nil
     ) -> SduiModels {
         return SduiModels(
             actions: actions ?? self.actions,
@@ -81,7 +87,8 @@ extension SduiModels {
             sections: sections ?? self.sections,
             state: state ?? self.state,
             title: title ?? self.title,
-            traceID: traceID ?? self.traceID
+            traceID: traceID ?? self.traceID,
+            variants: variants ?? self.variants
         )
     }
 
@@ -2148,6 +2155,13 @@ struct GamePanelDisplayConfig: Codable {
     let logoSize: Int?
     /// Score typography: compact = bodyLarge+Bold, prominent = headlineMedium+ExtraBold
     let scoreTextStyle: ScoreTextStyle?
+    /// Foreground color for primary text on the card (score, tricode, team name). Clients derive
+    /// secondary/tertiary text (status, record, broadcaster, visual label) from this base via
+    /// platform-native opacity conventions. Omit to let each client fall back to its adaptive
+    /// primary foreground — set this whenever the card background diverges from the platform's
+    /// default surface (e.g. dark brand backgrounds that require inverse text, or light gradient
+    /// carousels that require primary text on clients whose legacy default was white).
+    let textColor: String?
     let aspectRatio: String?
     let height: Int?
 }
@@ -2179,6 +2193,7 @@ extension GamePanelDisplayConfig {
         liveBackground: BackgroundUnion?? = nil,
         logoSize: Int?? = nil,
         scoreTextStyle: ScoreTextStyle?? = nil,
+        textColor: String?? = nil,
         aspectRatio: String?? = nil,
         height: Int?? = nil
     ) -> GamePanelDisplayConfig {
@@ -2191,6 +2206,7 @@ extension GamePanelDisplayConfig {
             liveBackground: liveBackground ?? self.liveBackground,
             logoSize: logoSize ?? self.logoSize,
             scoreTextStyle: scoreTextStyle ?? self.scoreTextStyle,
+            textColor: textColor ?? self.textColor,
             aspectRatio: aspectRatio ?? self.aspectRatio,
             height: height ?? self.height
         )
@@ -3202,6 +3218,113 @@ extension Border {
     }
 }
 
+
+/// Server-exposed A/B / experiment variants available for this screen. Clients read
+/// `options` to render a variant picker (dev UI, QA tooling) and pass the selected id back
+/// to the server on subsequent requests. Omit for screens without active experiments.
+///
+/// Wrapper for the set of A/B variants the server is willing to serve for this screen. Lets
+/// clients expose variant selection without hardcoding experiment ids or option vocabularies.
+// MARK: - ExperimentVariants
+struct ExperimentVariants: Codable {
+    /// Stable identifier for the experiment (e.g. `game_detail_variant`). Clients echo this key
+    /// back to the server as part of the experiments map on subsequent requests.
+    let experimentID: String
+    /// Ordered list of variants the client may choose from.
+    let options: [ExperimentVariantOption]
+
+    enum CodingKeys: String, CodingKey {
+        case experimentID = "experimentId"
+        case options
+    }
+}
+
+// MARK: ExperimentVariants convenience initializers and mutators
+
+extension ExperimentVariants {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(ExperimentVariants.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        experimentID: String? = nil,
+        options: [ExperimentVariantOption]? = nil
+    ) -> ExperimentVariants {
+        return ExperimentVariants(
+            experimentID: experimentID ?? self.experimentID,
+            options: options ?? self.options
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+/// One variant within an experiment.
+// MARK: - ExperimentVariantOption
+struct ExperimentVariantOption: Codable {
+    /// Optional longer description shown alongside the label.
+    let description: String?
+    /// Variant identifier (e.g. `A`, `B`). Opaque to clients.
+    let id: String
+    /// Human-readable label rendered in variant pickers.
+    let label: String
+}
+
+// MARK: ExperimentVariantOption convenience initializers and mutators
+
+extension ExperimentVariantOption {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(ExperimentVariantOption.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        description: String?? = nil,
+        id: String? = nil,
+        label: String? = nil
+    ) -> ExperimentVariantOption {
+        return ExperimentVariantOption(
+            description: description ?? self.description,
+            id: id ?? self.id,
+            label: label ?? self.label
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
 
 // MARK: - Helper functions for creating encoders and decoders
 

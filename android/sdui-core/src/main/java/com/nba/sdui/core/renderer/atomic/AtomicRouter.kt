@@ -55,16 +55,34 @@ fun AtomicRouter(
         )
     } ?: modifier
     val opacityModifier = element.opacity?.let { marginModifier.alpha(it.toFloat()) } ?: marginModifier
+
+    // element.padding on leaf primitives. Container / ScrollContainer /
+    // Conditional / SectionSlot apply padding internally (where it sits
+    // inside the element's own background, border, and corner clip), so
+    // we deliberately skip them here to avoid double-padding and to
+    // preserve their bg-extends-to-padding-edge semantics.
+    val leafPaddedModifier = when (element.type) {
+        "Container", "ScrollContainer", "Conditional", "SectionSlot" -> opacityModifier
+        else -> element.padding?.let {
+            opacityModifier.padding(
+                start = (it.start ?: 0L).toInt().dp,
+                end = (it.end ?: 0L).toInt().dp,
+                top = (it.top ?: 0L).toInt().dp,
+                bottom = (it.bottom ?: 0L).toInt().dp
+            )
+        } ?: opacityModifier
+    }
+
     when (element.type) {
         "Container"       -> AtomicContainer(element, screenState, onAction, opacityModifier, depth, onStateChange, sectionSlotDepth)
-        "Text"            -> AtomicText(element, screenState, onAction, opacityModifier)
-        "Image"           -> AtomicImage(element, screenState, onAction, opacityModifier)
-        "Button"          -> AtomicButton(element, screenState, onAction, opacityModifier)
-        "Spacer"          -> AtomicSpacer(element, screenState, onAction, opacityModifier)
-        "Divider"         -> AtomicDivider(element, screenState, onAction, opacityModifier)
+        "Text"            -> AtomicText(element, screenState, onAction, leafPaddedModifier)
+        "Image"           -> AtomicImage(element, screenState, onAction, leafPaddedModifier)
+        "Button"          -> AtomicButton(element, screenState, onAction, leafPaddedModifier)
+        "Spacer"          -> AtomicSpacer(element, screenState, onAction, leafPaddedModifier)
+        "Divider"         -> AtomicDivider(element, screenState, onAction, leafPaddedModifier)
         "ScrollContainer" -> AtomicScrollContainer(element, screenState, onAction, opacityModifier, depth, onStateChange, sectionSlotDepth)
         "Conditional"     -> AtomicConditional(element, screenState, onAction, opacityModifier, depth, onStateChange, sectionSlotDepth)
-        "DisplayGrid"     -> AtomicDisplayGrid(element, screenState, onAction, opacityModifier)
+        "DisplayGrid"     -> AtomicDisplayGrid(element, screenState, onAction, leafPaddedModifier)
         "SectionSlot"     -> AtomicSectionSlot(element, screenState, onAction, onStateChange, opacityModifier, sectionSlotDepth)
         else              -> Log.w("AtomicRouter", "Unknown atomic element type: ${element.type}")
     }

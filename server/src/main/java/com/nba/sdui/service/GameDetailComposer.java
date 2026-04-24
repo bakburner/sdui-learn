@@ -574,7 +574,7 @@ public class GameDetailComposer {
         section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
         section.set("surface", utils.videoPlayerSurface());
 
-        ObjectNode root = atomicBuilder.container("vertical", "center", "center");
+        ObjectNode root = atomicBuilder.container("column", "center", "center");
         root.put("fillWidth", true);
         root.put("height", 220);
         root.put("background", "#000000");
@@ -981,12 +981,18 @@ public class GameDetailComposer {
             {"trending-2", "Playoff Intensity", "The best of postseason basketball", FALLBACK_THUMB, "video", "2:15", "nba://video/playoff-intensity"},
             {"trending-3", "Post-Game Press Conference", "Hear from the coaches", FALLBACK_THUMB, "video", "6:00", "nba://video/post-game-presser"}
         };
-        ObjectNode extraRail = atomicBuilder.buildContentRail("trending-videos", "trending_videos_rail", "Trending Videos", trendingCards);
+        ObjectNode extraHeader = atomicBuilder.buildSectionHeader(
+                "trending-videos-header", "Trending Videos", null, null, null);
+        extraHeader.set("surface", utils.sectionHeaderSurface());
+        ObjectNode extraRail = atomicBuilder.buildContentRail("trending-videos",
+                "trending_videos_rail", null, trendingCards);
+        extraRail.set("surface", utils.railSurface());
 
         ArrayNode updated = objectMapper.createArrayNode();
         for (JsonNode section : sections) {
             updated.add(section);
             if ("content-rail".equals(section.path("id").asText())) {
+                updated.add(extraHeader);
                 updated.add(extraRail);
             }
         }

@@ -4,6 +4,7 @@ import type { GamePanelUiModel, GamePanelDisplayConfig } from '../../adapters/se
 import { mapGamePanel } from '../../adapters/sectionUiAdapters';
 import { getPrimarySectionAction } from '../../utils/sectionActions';
 import { resolveBackgroundCSS } from '../../utils/background';
+import { useColorTokenResolver } from '../../utils/ColorTokenResolver';
 import { DEFAULT_FALLBACK_IMAGE } from '../../utils/constants';
 import { accessibilityProps } from '../../utils/accessibility';
 
@@ -28,7 +29,9 @@ function GamePanelView({
   const config = model.displayConfig;
   const isLive = model.visualState === 'LIVE';
   const isFeatured = model.variant === 'featured';
-  const styles = buildStyles(config, isLive, isFeatured);
+  const resolveColor = useColorTokenResolver();
+  const resolvedTextColor = resolveColor(config.textColor);
+  const styles = buildStyles(config, isLive, isFeatured, resolvedTextColor);
 
   return (
     <button style={styles.container} onClick={() => primaryAction && onAction(primaryAction)} aria-label={`${model.awayName || model.awayTricode} vs ${model.homeName || model.homeTricode}`} {...accessibilityProps(section.accessibility)}>
@@ -75,7 +78,7 @@ function GamePanelView({
   );
 }
 
-function buildStyles(config: GamePanelDisplayConfig, isLive: boolean, isFeatured: boolean): Record<string, React.CSSProperties> {
+function buildStyles(config: GamePanelDisplayConfig, isLive: boolean, isFeatured: boolean, textColor: string | undefined): Record<string, React.CSSProperties> {
   const bg = isLive && config.liveBackground
     ? resolveBackgroundCSS(config.liveBackground)
     : resolveBackgroundCSS(config.background);
@@ -83,6 +86,11 @@ function buildStyles(config: GamePanelDisplayConfig, isLive: boolean, isFeatured
   const fallbackBg = Object.keys(bg).length === 0 ? { background: 'var(--game-card-bg)' } : {};
   const badgeColor = config.badgeColor ?? (isLive ? 'var(--live)' : 'var(--text-secondary)');
   const isProminent = config.scoreTextStyle === 'prominent';
+  // Primary foreground for the card. Server-driven so light carousel
+  // gradients can request dark text while the legacy dark brand cards
+  // keep white. Fallback to --text-primary preserves existing output for
+  // any caller that composes a GamePanel without setting textColor.
+  const primaryText = textColor ?? 'var(--text-primary)';
   // featured = wider emphasis card (carousel lead); standard/missing keeps the displayConfig-driven defaults.
   const effectiveRadius = isFeatured && !config.cornerRadius ? 16 : (config.cornerRadius ?? 4);
   const featuredShadow = '0 6px 20px rgba(0,0,0,0.28), 0 2px 6px rgba(0,0,0,0.16)';
@@ -97,7 +105,7 @@ function buildStyles(config: GamePanelDisplayConfig, isLive: boolean, isFeatured
       minHeight: config.cardHeight ? config.cardHeight : 'auto',
       borderRadius: effectiveRadius,
       border: 'none',
-      color: 'var(--text-primary)',
+      color: primaryText,
       padding: isFeatured ? '20px 24px' : '16px 20px',
       cursor: 'pointer',
       display: 'flex',
@@ -119,7 +127,8 @@ function buildStyles(config: GamePanelDisplayConfig, isLive: boolean, isFeatured
       fontSize: 12,
       fontWeight: 700,
       fontFamily: 'var(--font-body)',
-      color: 'var(--text-on-image-50)',
+      color: 'inherit',
+      opacity: 0.7,
       textTransform: 'uppercase' as const,
       letterSpacing: '0.08em',
     },
@@ -132,6 +141,7 @@ function buildStyles(config: GamePanelDisplayConfig, isLive: boolean, isFeatured
       borderRadius: 4,
       letterSpacing: '0.04em',
       background: badgeColor,
+      color: '#ffffff',
     },
     matchup: {
       display: 'flex',
@@ -154,6 +164,7 @@ function buildStyles(config: GamePanelDisplayConfig, isLive: boolean, isFeatured
       fontWeight: 800,
       fontFamily: 'var(--font-headline)',
       fontVariantNumeric: 'tabular-nums',
+      whiteSpace: 'nowrap' as const,
     },
     teamName: {
       fontSize: 12,
@@ -164,7 +175,8 @@ function buildStyles(config: GamePanelDisplayConfig, isLive: boolean, isFeatured
     record: {
       fontSize: 11,
       fontFamily: 'var(--font-body)',
-      color: 'var(--text-on-image-50)',
+      color: 'inherit',
+      opacity: 0.6,
     },
     centerCol: {
       display: 'flex',
@@ -175,12 +187,14 @@ function buildStyles(config: GamePanelDisplayConfig, isLive: boolean, isFeatured
     statusText: {
       fontSize: 13,
       fontFamily: 'var(--font-body)',
-      color: 'var(--text-on-image-50)',
+      color: 'inherit',
+      opacity: 0.8,
     },
     broadcaster: {
       fontSize: 11,
       fontFamily: 'var(--font-body)',
-      color: 'var(--text-on-image-50)',
+      color: 'inherit',
+      opacity: 0.6,
     },
   };
 }

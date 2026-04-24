@@ -281,7 +281,7 @@ private struct ContainerVariantApplier: ViewModifier {
             )
         } else {
             content
-                .background(resolveBackground(inlineBackground, colorScheme: colorScheme))
+                .background { backgroundView(for: inlineBackground, colorScheme: colorScheme) }
                 .modifier(ContainerCornerClipModifier(
                     radius: CGFloat(inlineCornerRadius ?? 0),
                     radii: inlineCornerRadii
@@ -361,7 +361,7 @@ private struct ContainerVariantBackgroundModifier: ViewModifier {
     @ViewBuilder
     func body(content: Content) -> some View {
         if useInlineBg {
-            content.background(resolveBackground(inlineBackground, colorScheme: colorScheme))
+            content.background { backgroundView(for: inlineBackground, colorScheme: colorScheme) }
         } else if variantName == ContainerVariant.overlay.rawValue {
             if #available(iOS 17, *) {
                 content.background(.thinMaterial)

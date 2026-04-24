@@ -14,6 +14,7 @@ struct GamePanelView: View {
     var body: some View {
         if let data = section.data {
             let variant = data.variant ?? .standard
+            let resolvedTextColor = ColorTokenResolver.resolve(data.displayConfig?.textColor, colorScheme: colorScheme)
             VStack(spacing: 8) {
                 if let badge = data.badgeText {
                     Text(badge)
@@ -34,7 +35,7 @@ struct GamePanelView: View {
                         Text(statusText)
                             .font(variant == .featured ? .subheadline : .caption)
                             .fontWeight(variant == .featured ? .semibold : .regular)
-                            .foregroundColor(.secondary)
+                            .opacity(0.7)
                             .accessibilityAddTraits(isLive(status: data.gameStatus) ? .updatesFrequently : [])
                     }
                     Spacer()
@@ -42,7 +43,8 @@ struct GamePanelView: View {
                 }
                 .padding(variant == .featured ? 20 : 16)
             }
-            .background(resolveBackground(data.displayConfig?.background, colorScheme: colorScheme))
+            .foregroundColor(resolvedTextColor)
+            .background { backgroundView(for: data.displayConfig?.background, colorScheme: colorScheme) }
             .cornerRadius(CGFloat(data.displayConfig?.cornerRadius ?? (variant == .featured ? 16 : 12)))
             .shadow(
                 color: Color.black.opacity(variant == .featured ? 0.18 : 0.08),
@@ -80,6 +82,8 @@ struct GamePanelView: View {
                     .font(.headline)
                 Text("\(team.score)")
                     .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
                     .contentTransition(.numericText())
                     .animation(.spring(duration: 0.3), value: team.score)
             }

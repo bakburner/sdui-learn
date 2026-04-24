@@ -12,14 +12,17 @@ struct AtomicDividerView: View {
         let fill = ColorTokenResolver.resolve(element.color, colorScheme: colorScheme)
             ?? Color.gray.opacity(0.3)
 
-        if isVertical {
-            Rectangle()
-                .fill(fill)
-                .frame(width: thickness)
-        } else {
-            Rectangle()
-                .fill(fill)
-                .frame(height: thickness)
+        Group {
+            if isVertical {
+                Rectangle()
+                    .fill(fill)
+                    .frame(width: thickness)
+            } else {
+                Rectangle()
+                    .fill(fill)
+                    .frame(height: thickness)
+            }
         }
+        .padding(edgeInsets(from: element.padding))
     }
 }

@@ -109,7 +109,14 @@ data class SduiModels (
     val title: String? = null,
 
     @get:JsonProperty("traceId")@field:JsonProperty("traceId")
-    val traceID: String? = null
+    val traceID: String? = null,
+
+    /**
+     * Server-exposed A/B / experiment variants available for this screen. Clients read
+     * `options` to render a variant picker (dev UI, QA tooling) and pass the selected id back
+     * to the server on subsequent requests. Omit for screens without active experiments.
+     */
+    val variants: ExperimentVariants? = null
 ) {
     fun toJson() = mapper.writeValueAsString(this)
 
@@ -1682,6 +1689,16 @@ data class GamePanelDisplayConfig (
      */
     val scoreTextStyle: ScoreTextStyle? = null,
 
+    /**
+     * Foreground color for primary text on the card (score, tricode, team name). Clients derive
+     * secondary/tertiary text (status, record, broadcaster, visual label) from this base via
+     * platform-native opacity conventions. Omit to let each client fall back to its adaptive
+     * primary foreground — set this whenever the card background diverges from the platform's
+     * default surface (e.g. dark brand backgrounds that require inverse text, or light gradient
+     * carousels that require primary text on clients whose legacy default was white).
+     */
+    val textColor: String? = null,
+
     val aspectRatio: String? = null,
     val height: Long? = null
 )
@@ -2211,3 +2228,48 @@ data class Border (
     val width: Double? = null
 )
 
+
+/**
+ * Server-exposed A/B / experiment variants available for this screen. Clients read
+ * `options` to render a variant picker (dev UI, QA tooling) and pass the selected id back
+ * to the server on subsequent requests. Omit for screens without active experiments.
+ *
+ * Wrapper for the set of A/B variants the server is willing to serve for this screen. Lets
+ * clients expose variant selection without hardcoding experiment ids or option vocabularies.
+ */
+data class ExperimentVariants (
+    /**
+     * Stable identifier for the experiment (e.g. `game_detail_variant`). Clients echo this key
+     * back to the server as part of the experiments map on subsequent requests.
+     */
+    @get:JsonProperty("experimentId", required=true)@field:JsonProperty("experimentId", required=true)
+    val experimentID: String,
+
+    /**
+     * Ordered list of variants the client may choose from.
+     */
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
+    val options: List<ExperimentVariantOption>
+)
+
+/**
+ * One variant within an experiment.
+ */
+data class ExperimentVariantOption (
+    /**
+     * Optional longer description shown alongside the label.
+     */
+    val description: String? = null,
+
+    /**
+     * Variant identifier (e.g. `A`, `B`). Opaque to clients.
+     */
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
+    val id: String,
+
+    /**
+     * Human-readable label rendered in variant pickers.
+     */
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
+    val label: String
+)

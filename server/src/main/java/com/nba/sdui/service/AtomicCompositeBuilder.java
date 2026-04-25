@@ -126,7 +126,8 @@ public class AtomicCompositeBuilder {
             rootChildren.add(spacer(24));
         }
 
-        ObjectNode contentCol = container("column", null, null);
+        ObjectNode contentCol = container("column", null, "start");
+        setFlex(contentCol, 1.0);
         ArrayNode colChildren = om.createArrayNode();
 
         if (title != null) {
@@ -138,7 +139,7 @@ public class AtomicCompositeBuilder {
             colChildren.add(spacer(4));
         }
         if (subhead != null) {
-            colChildren.add(text(subhead, "bodySmall", null, ColorTokens.TEXT_SECONDARY, null));
+            colChildren.add(text(subhead, "bodySmall", null, ColorTokens.TEXT_SECONDARY, 2));
         }
         if (targetUri != null) {
             colChildren.add(spacer(12));
@@ -232,15 +233,14 @@ public class AtomicCompositeBuilder {
         if (thumbnailUrl != null) {
             ObjectNode imageWrap = container("column", null, null);
             imageWrap.put("fillWidth", true);
-            // Keep the inset on a wrapper, not the Image, so badges align to
-            // the artwork bounds. The image is flush horizontally with the
-            // card; only top spacing remains between the card edge and media.
-            imageWrap.set("padding", padding(0, 0, 8, 0));
+            // Media should meet the card's top edge; any inset creates a
+            // visible strip of card background above the thumbnail.
+            imageWrap.set("padding", padding(0, 0, 0, 0));
 
             ObjectNode img = thumbnailImage(thumbnailUrl);
             img.put("fillWidth", true);
             img.put("aspectRatio", 16.0 / 9.0);
-            img.set("cornerRadii", cornerRadii(6, 6, 0, 0));
+            img.set("cornerRadii", cornerRadii(12, 12, 0, 0));
             if (duration != null) {
                 badge(img, durationBadge(duration), "bottomEnd");
             } else if ("video".equalsIgnoreCase(contentType)) {
@@ -352,7 +352,8 @@ public class AtomicCompositeBuilder {
                                         boolean striped) {
         ObjectNode section = sectionEnvelope(id, analyticsId);
 
-        ObjectNode root = container("column", null, null);
+        ObjectNode root = container("column", null, "stretch");
+        root.put("fillWidth", true);
         root.set("padding", padding(0, 0, 0, 12));
         ArrayNode rootChildren = om.createArrayNode();
 
@@ -368,6 +369,7 @@ public class AtomicCompositeBuilder {
         ObjectNode grid = om.createObjectNode();
         grid.put("type", "DisplayGrid");
         grid.put("id", id + "-grid");
+        grid.put("fillWidth", true);
         grid.put("striped", striped);
 
         ArrayNode colArray = om.createArrayNode();
@@ -1356,10 +1358,9 @@ public class AtomicCompositeBuilder {
      * Build a horizontally-scrolling carousel of GamePanel sections.
      *
      * <p>The first game is stamped with {@code variant: "featured"} and
-     * the rest are {@code variant: "standard"}. Every wrapper uses the
-     * same width so the rail reads as a uniform set of game cards; the
-     * {@code variant} controls only internal emphasis (padding, corner
-     * radius, shadow) on each client.
+     * the rest are {@code variant: "standard"}. The carousel's {@code gap}
+     * owns inter-card spacing; wrappers intentionally do not impose a
+     * wider fixed slot around hosted sections.
      *
      * @param sectionId      section id for the enclosing AtomicComposite
      * @param analyticsId    analyticsId for the enclosing AtomicComposite
@@ -1384,9 +1385,15 @@ public class AtomicCompositeBuilder {
             if (data != null) {
                 data.put("variant", isFeatured ? "featured" : "standard");
             }
+            if (game.get("surface") instanceof ObjectNode slotSurface) {
+                // The carousel's ScrollContainer owns inter-card spacing.
+                // Embedded section margins would add to the 12pt rail gap
+                // and make game cards feel much farther apart than content
+                // rail cards.
+                slotSurface.set("margin", padding(0, 0, 0, 0));
+            }
 
             ObjectNode wrapper = container("column", null, null);
-            wrapper.put("width", 280);
             ArrayNode wrapperChildren = om.createArrayNode();
             wrapperChildren.add(sectionSlot("carousel-slot-" + i, game));
             wrapper.set("children", wrapperChildren);

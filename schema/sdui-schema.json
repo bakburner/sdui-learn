@@ -67,7 +67,7 @@
     },
     "ContainerVariant": {
       "type": "string",
-      "description": "Role-based container presets that carry platform-native surface treatments inline props cannot cleanly express. 'hero' maps to OS-tiered materials (Liquid Glass on iOS 26+, .ultraThinMaterial on iOS 17–25, Material 3 Expressive on Android 15+, Material You on 12–14, CSS surface mixin on web). 'grouped' maps to the platform's inset-grouped list idiom (SwiftUI .insetGrouped / Material ListItem grouping). Each value must clear the Rule 19 inexpressibility bar — do not add values that can be produced by inline background + cornerRadius + shadow + padding. Inline style properties may still be overridden per the variant's override matrix.",
+      "description": "Role-based container presets that carry platform-native surface treatments inline props cannot cleanly express. 'hero' maps to OS-tiered materials (Liquid Glass on iOS 26+, .ultraThinMaterial on iOS 17–25, Material 3 Expressive on Android 15+, Material You on 12–14, CSS surface mixin on web). 'grouped' maps to the platform's inset-grouped list idiom (SwiftUI .insetGrouped / Material ListItem grouping). Each value must clear the variant-discipline inexpressibility bar — do not add values that can be produced by inline background + cornerRadius + shadow + padding. Inline style properties may still be overridden per the variant's override matrix.",
       "enum": ["hero", "grouped"]
     },
     "ImageVariant": {

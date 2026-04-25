@@ -31,6 +31,7 @@ export function AtomicDisplayGrid({ element }: AtomicProps): React.ReactElement 
 
   const tableStyle: React.CSSProperties = {
     width: '100%',
+    tableLayout: 'fixed',
     borderCollapse: 'collapse',
   };
 
@@ -55,7 +56,7 @@ export function AtomicDisplayGrid({ element }: AtomicProps): React.ReactElement 
   });
 
   return (
-    <AtomicBox element={element}>
+    <AtomicBox element={element} styleOverrides={{ width: '100%' }}>
       <table style={tableStyle} {...accessibilityProps(element.accessibility)}>
         <thead>
           <tr>

@@ -275,8 +275,8 @@ public enum ColorTokenResolver {
         "color.brand.live": "color.red.50",
 
         // surface
-        "color.surface.canvas": "color.grey.10",
-        "color.surface.raised": "color.grey.0",
+        "color.surface.canvas": "color.grey.5",
+        "color.surface.raised": "color.grey.10",
         "color.surface.sunken": "color.grey.5",
         "color.surface.promo":  "color.blue.10",
 

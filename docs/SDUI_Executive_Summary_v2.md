@@ -281,12 +281,12 @@ To preserve continuity with the original executive summary, this section explici
 | ------------------------------------ | --------------------------------- |
 | API aggregation layer technology     | **Resolved** (REST composition)   |
 | Beachhead surface                    | **TBD**                           |
-| Composition ownership and transition | **ADR pending**                   |
-| Request/contract model               | **ADR pending**                   |
-| GET/POST + caching policy            | **ADR pending**                   |
-| Action scope and precedence          | **ADR pending**                   |
+| Composition ownership and transition | **ADR-002 Proposed**              |
+| Request/contract model               | **ADR-003 Proposed**              |
+| GET/POST + caching policy            | **ADR-004 Proposed**              |
+| Action scope and precedence          | **ADR-005 Proposed**              |
 | Experiment assignment strategy       | **ADR-006 Accepted** (2026-03-30) |
-| Ads boundary and contract            | **ADR pending**                   |
+| Ads boundary and contract            | **ADR-007 Proposed**              |
 | Form-factor layout manager           | **ADR-008 Accepted** (Option C — Hybrid) |
 | Impression dedup and visibility      | **ADR-009 Accepted** (2026-03-11) |
 | Data classification and freshness    | **ADR-011 Proposed** (draft)      |
@@ -311,6 +311,7 @@ To preserve continuity with the original executive summary, this section explici
 
 | Date | Summary |
 |---|---|
+| 2026-04-25 | Doc consistency audit. Decision Continuity table: “ADR pending” → explicit ADR-00N Proposed for composition ownership, request/contract, GET/POST caching, action scope, ads boundary. |
 | 2026-04-24 | Doc consistency audit. Fixed `Client Implementor's Contract` links indirectly referenced from README/agent guidance, updated request-envelope support to include iOS, aligned capability table rows with iOS runtime parity (`BoxscoreTable`, `SeasonLeadersTable`, `Form`), changed Milestone 2 A/B ownership to the client-authoritative request-envelope model, and marked ADR-013 as Accepted/shipped in current-status tables. |
 | 2026-04-21 | Doc consistency audit. Section count 9 → 10 (VideoPlayer added as permanent section — platform video SDK). Atomic primitive count 9 → 10 (SectionSlot explicitly enumerated). iOS renderer status **Not started** → **Done (partial SSE)**; reflects live SwiftUI package with section router, atomic router, navigation shell, envelope, impression tracker. Milestone 1 contract-test row 9 → 10. Decision Continuity table adds ADR-011 / ADR-012 and updates ADR-013 to Accepted. Immediate Next Steps replaces "iOS team alignment" with "iOS hardening". |
 | 2026-04-20 | Formalized **platform-native realization** as architectural premise: the shared schema carries semantic tokens (`titleMedium`, `primary`, `card`) and each client resolves them into its platform's current design language — iOS idioms (platform materials, Liquid Glass on supported OS versions), Material on Android (tonal elevation, Material 3 Expressive where available), web conventions on web. Cross-platform visual divergence is expected; pixel parity is explicitly not a goal. Added style-token capability row to "Capabilities needed for surface expansion" table referencing ADR-013. |

@@ -45,6 +45,14 @@ kind of decision goes.
 |---|---|---|---|
 | **Content selection** — which sections, copy, or CTAs appear on this screen | Server | Compose per-platform using the `X-Platform` header | Show a subscribe hero on mobile, a subscribe banner on web. Show a "download the app" card only on web. Hide a Live Activity CTA on non-iOS. |
 | **Capability gating** — does this client's runtime support the delivery mechanism, SDK, or OS feature the section requires | Server | Read `capabilities.*` and `osVersion` from the request envelope and compose a compatible response | If `capabilities.sse == false`, set `refreshPolicy.type = "interval"`. Omit a section that needs iOS 17 when `osVersion < 17`. |
+
+> **Implementation status (2026-04-25):** Content selection via
+> `X-Platform` and asset-format selection are implemented. Capability
+> gating is **plumbed but not yet consumed**: all three clients send
+> `capabilities.sse`, `capabilities.onFocus`, and `osVersion` in the
+> request envelope, and the server deserializes them into
+> `SduiRequestContext`, but no composer currently reads these fields to
+> branch composition. See §11 (Future Enhancements).
 | **Asset-format selection** — the client needs a concrete URL or asset and only the server knows which format the platform can consume | Server | Server emits the per-platform URL or asset in the payload | iOS gets an HLS manifest; Android gets a DASH manifest. iOS gets an APNs push target; Android gets FCM. |
 | **Presentation of a known semantic intent** — how a thing *looks* or *feels* once the client already knows what it is | Client | Schema carries a neutral semantic token; each platform resolves to its native idiom | `variant: "titleMedium"`, `variant: "primary"`, `variant: "hero"`, `color: "token:color.brand.nba"`, `onTap` gesture binding |
 
@@ -309,6 +317,15 @@ overridden without breaking the effect. You can't put a flat solid
 color "into" Liquid Glass; you have to not use Liquid Glass. So
 `background` is locked on iOS under `hero`.
 
+> **Implementation status (2026-04-25):** Override matrices are
+> **hardcoded in each platform's variant resolver** (e.g.
+> `ContainerVariantResolver.kt`, `.swift`, `.ts`). Clients do not read
+> `style-tokens.json` at runtime — the JSON file serves as the
+> authoritative design-system specification and CI validation input,
+> while resolvers mirror the matrix values in platform code. A future
+> enhancement would have clients read the registry at runtime so matrix
+> changes propagate without a client release. See §11.
+
 ### Worked example: `hero` container with inline `background`
 
 Server emits:
@@ -439,6 +456,14 @@ The diagnostics are tools for composer authors: they point at places
 the server is trying to do something the variant / token vocabulary
 does not support, which is usually the signal to either fix the
 server-side emission or extend the vocabulary.
+
+> **Implementation status (2026-04-25):**
+> - `variant_resolver_missing` — emitted on all three platforms.
+> - `variant_override_blocked` — emitted on Android; web and iOS have
+>   override matrices in their resolvers but diagnostic emission needs
+>   verification.
+> - `token_resolver_missing` — emitted on web; Android and iOS coverage
+>   needs verification.
 
 ---
 
@@ -703,3 +728,24 @@ and the app-store long tail make removal a deprecation exercise,
 not a code change. Keeping the vocabularies tight is what keeps the
 server deploy — not the client release — the mechanism for most
 design changes. That is the primary KPI of the whole system.
+
+---
+
+## 11. Future Enhancements
+
+The following design-system capabilities are architecturally planned
+but not yet implemented in code. They are listed here to prevent
+misinterpretation as shipped features.
+
+| Enhancement | Current state | What ships today | What's needed |
+|---|---|---|---|
+| **Server-side capability gating** | Plumbed end-to-end | Clients send `capabilities.sse`, `capabilities.onFocus`, and `osVersion` in the request envelope; server deserializes into `SduiRequestContext.Platform.Capabilities` | Composers need to read these fields to branch composition (e.g. fall back to `refreshPolicy.type = "interval"` when `sse == false`, omit sections requiring a minimum OS version) |
+| **Server-side `osVersion` branching** | Plumbed end-to-end | Clients send `osVersion`; server deserializes it | Composers need to read `osVersion` to gate sections or choose OS-tier-appropriate payloads |
+| **Runtime-read override matrices** | Hardcoded in resolvers | Each platform's variant resolver (`ContainerVariantResolver`, `ImageVariantResolver`) hardcodes the matrix from `style-tokens.json` | Clients could read `style-tokens.json` (bundled or fetched) at runtime so override-matrix changes propagate without a client release |
+| **Full diagnostic coverage** | Partial | `variant_resolver_missing` on all 3 platforms; `variant_override_blocked` on Android; `token_resolver_missing` on web | Verify and ship `variant_override_blocked` on web and iOS; verify `token_resolver_missing` on Android and iOS |
+| **Figma export pipeline** | Spec'd, not built | Color-token and style-token registries are ref-app-seeded with a Kinetic-compatible shape | Design-system team ships Figma exports that replace `color-tokens.json` and `style-tokens.json` wholesale |
+| **Override-rate SLO telemetry** | Spec'd, not built | `variant_override_blocked` diagnostic exists (Android) | Production telemetry pipeline to compute per-axis override rates for the quarterly audit (§10) |
+
+When any of these enhancements ship, remove the corresponding row from
+this table and update the implementation-status callouts in the
+relevant sections above.

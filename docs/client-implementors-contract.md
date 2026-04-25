@@ -1511,26 +1511,26 @@ them is planned.
 A conforming client satisfies all of the following. This maps directly to
 the rules in `AGENTS.md`.
 
-| # | Requirement | AGENTS.md Rule |
-|---|-------------|----------------|
-| C1 | Models derived from schema (generated or hand-matched) | Rule 1 |
-| C2 | No hardcoded server paths — all from server response or URI resolution | Rule 2 |
-| C3 | No `ScreenType` enum — generic `fetchScreen(endpoint)` | Rule 3 |
-| C4 | Ably messages treated as opaque maps — never typed data classes | Rule 4 |
-| C5 | All image URLs from server — no client-constructed URLs | Rule 5 |
-| C6 | ErrorState rendered as a first-class section | Rule 6 |
-| C7 | Unknown section/atomic types skipped with log | Rule 7 |
-| C8 | Single generic fetch method — no `getGameDetail()` | Rule 8 |
-| C9 | Refresh driven by `refreshPolicy` — no hardcoded intervals | Rule 9 |
-| C10 | URI resolution is a simple prefix swap | Rule 10 |
-| C11 | `X-Platform` header on every request | Rule 11 |
-| C12 | Exceptions logged with context — never silently swallowed | Rule 12 |
-| C13 | Schema is the wire contract — strict decoders; new enum values go into schema first, then regen | Rule 13 |
-| C14 | Renderers are presentation-only — no business logic | Rule 14 |
-| C14a | Every atomic primitive routes its content through a single `AtomicBox` helper that applies `margin → opacity → shadow → corner-clip → background → gradient overlay → border → padding → sizing → badge` in that order. Primitives own only their content (typography, flex layout, scroll behaviour, image scaling). See §4a | Rule 14 |
-| C15 | Prefer AtomicComposite over new section type for stateless UI | Rule 15 |
-| C16 | Platform-native realization of semantic variant tokens — `TextVariant`, `ButtonVariant`, `ContainerVariant`, `ImageVariant` on atomic elements, `SelectVariant` on `FormField.select` — emitted on the wire as a `variant` string property; map to the platform's current design language; no pixel-parity target. See §17a for the `SelectVariant` renderer mapping table | Rule 16 |
-| C17 | Code comments describe invariants and cite business constraints; do not cite internal rule numbers or AI-coding guidelines | Rule 17 |
-| C18 | Per-platform decisions default to the server (content, capability gating, asset-format). Client-realized vocabularies are the named exception (Rule 16 list) and must be pure presentation | Rule 18 |
+| # | Requirement | AGENTS.md Section |
+|---|-------------|-------------------|
+| C1 | Models derived from schema (generated or hand-matched) | §1.2 |
+| C2 | No hardcoded server paths — all from server response or URI resolution | §3.1 |
+| C3 | No `ScreenType` enum — generic `fetchScreen(endpoint)` | §3.1 |
+| C4 | Ably messages treated as opaque maps — never typed data classes | §4.4 |
+| C5 | All image URLs from server — no client-constructed URLs | §3.2 |
+| C6 | ErrorState rendered as a first-class section | §8.0 |
+| C7 | Unknown section/atomic types skipped with log | §10.2 |
+| C8 | Single generic fetch method — no `getGameDetail()` | §4.1 |
+| C9 | Refresh driven by `refreshPolicy` — no hardcoded intervals | §3.3 |
+| C10 | URI resolution is a simple prefix swap | §3.1 |
+| C11 | `X-Platform` header on every request | §3.4 |
+| C12 | Exceptions logged with context — never silently swallowed | §10.1 |
+| C13 | Schema is the wire contract — strict decoders; new enum values go into schema first, then regen | §1.3 |
+| C14 | Renderers are presentation-only — no business logic | §5 |
+| C14a | Every atomic primitive routes its content through a single `AtomicBox` helper that applies `margin → opacity → shadow → corner-clip → background → gradient overlay → border → padding → sizing → badge` in that order. Primitives own only their content (typography, flex layout, scroll behaviour, image scaling). See §4a | §5 |
+| C15 | Prefer AtomicComposite over new section type for stateless UI | §6 |
+| C16 | Platform-native realization of semantic variant tokens — `TextVariant`, `ButtonVariant`, `ContainerVariant`, `ImageVariant` on atomic elements, `SelectVariant` on `FormField.select` — emitted on the wire as a `variant` string property; map to the platform's current design language; no pixel-parity target. See §17a for the `SelectVariant` renderer mapping table | §7 |
+| C17 | Code comments describe invariants and cite business constraints; do not cite internal rule numbers or AI-coding guidelines | §10.3 |
+| C18 | Per-platform decisions default to the server (content, capability gating, asset-format). Client-realized vocabularies are the named exception (§7 list) and must be pure presentation | §1.1 |
 | C19 | `LiveClock` primitive ticks client-side from server-provided snapshot fields (`snapshotSeconds`, `snapshotAt`, `isRunning`, `tickDirection`, `stopAtSeconds`, `format`). Implements the tick-loop contract in §4c at ≥10Hz baseline, re-anchors on every SSE / poll update that rewrites `content.*`, renders with tabular-numeral typography | — |
 | C20 | Inside an `AtomicComposite`, leaf primitives with a `bindRef: string` dot-path resolve their canonical live field (Text → `content`, Button → `label`, Image → `src`, LiveClock → snapshot object) from `section.data.content`. `compositeContent` is threaded to descendants via the platform's implicit-context primitive (Environment / CompositionLocal / React context); missing paths fall back to inline values and never overwrite with null. See §4b | — |

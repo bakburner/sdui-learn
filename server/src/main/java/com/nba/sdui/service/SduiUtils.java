@@ -532,9 +532,10 @@ public class SduiUtils {
      * every GamePanel composer site (For You hero, live rails,
      * scoreboard rows, Game Detail scoreboard strip).
      *
-     * <p>The gradient is intentionally subtle — a near-white top to
-     * a pale tint bottom — so scores and team identity remain the
-     * dominant information, and does not compete with SubscribeHero /
+     * <p>The gradient is intentionally token-backed so clients resolve it
+     * against their active light/dark theme. It blends from a raised card
+     * surface into the promo tint, which gives dark-mode cards a visible
+     * edge against the black canvas without competing with SubscribeHero /
      * SubscribeBanner's strong brand gradient.
      */
     public ObjectNode gamePanelSurface() {
@@ -542,8 +543,8 @@ public class SduiUtils {
 
         ObjectNode gradient = objectMapper.createObjectNode();
         ArrayNode colors = objectMapper.createArrayNode();
-        colors.add("#F5F7FA");
-        colors.add("#DDE4EE");
+        colors.add(ColorTokens.SURFACE_RAISED);
+        colors.add(ColorTokens.SURFACE_PROMO);
         gradient.set("colors", colors);
         gradient.put("direction", "diagonal");
         surface.set("background", gradient);

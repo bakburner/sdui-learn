@@ -4,6 +4,7 @@ import { useSduiScreen } from './hooks/useSduiScreen';
 import { SectionRouter } from './components/SectionRouter';
 import { TopNavigationBar } from './components/TopNavigationBar';
 import { executeActionSequence } from './runtime/ActionHandler';
+import { setColorSchemePreference, usePrefersColorScheme } from './utils/ColorTokenResolver';
 
 // TODO: Bootstrap URI should come from a /sdui/init endpoint.
 //       Hardcoded here only as a temporary prototype bootstrap.
@@ -29,6 +30,7 @@ function resolveEndpoint(uri: string): string {
 export function App(): React.ReactElement {
   const [experiments, setExperiments] = useState<Record<string, string>>({});
   const [currentUri, setCurrentUri] = useState(BOOTSTRAP_URI);
+  const colorScheme = usePrefersColorScheme();
 
   // Variants come from the server response — no client-side URI sniffing.
   // We read screen.variants after the first fetch below.
@@ -134,6 +136,10 @@ export function App(): React.ReactElement {
     executeActionSequence([action], context);
   }, [screenState, handleStateChange, handleRefresh, handleSectionUpdate, handleUriNavigate, handleSectionStale]);
 
+  const handleThemeToggle = useCallback(() => {
+    setColorSchemePreference(colorScheme === 'dark' ? 'light' : 'dark');
+  }, [colorScheme]);
+
   // Loading state
   if (loading) {
     return (
@@ -182,7 +188,18 @@ export function App(): React.ReactElement {
           </button>
         )}
         <h1 style={styles.title}>{screen.title || 'NBA'}</h1>
-        <span style={styles.schemaVersion}>Schema v{screen.schemaVersion}</span>
+        <div style={styles.headerActions}>
+          <button
+            type="button"
+            style={styles.themeButton}
+            onClick={handleThemeToggle}
+            aria-label={`Switch to ${colorScheme === 'dark' ? 'light' : 'dark'} mode`}
+            title={`Switch to ${colorScheme === 'dark' ? 'light' : 'dark'} mode`}
+          >
+            {colorScheme === 'dark' ? 'Light' : 'Dark'}
+          </button>
+          <span style={styles.schemaVersion}>Schema v{screen.schemaVersion}</span>
+        </div>
       </header>
 
       <TopNavigationBar
@@ -296,6 +313,22 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 11,
     color: 'var(--text-secondary)',
     fontFamily: 'var(--font-mono)',
+  },
+  headerActions: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+  },
+  themeButton: {
+    border: '1px solid var(--divider)',
+    borderRadius: 'var(--rounded-full)',
+    backgroundColor: 'var(--surface-alt)',
+    color: 'var(--text-primary)',
+    cursor: 'pointer',
+    fontFamily: 'var(--font-body)',
+    fontSize: 12,
+    fontWeight: 600,
+    padding: '5px 12px',
   },
   variantBar: {
     display: 'flex',

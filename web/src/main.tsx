@@ -2,6 +2,9 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './nba-tokens.css';
 import App from './App';
+import { initializeColorSchemePreference } from './utils/ColorTokenResolver';
+
+initializeColorSchemePreference();
 
 // Add spinner animation
 const style = document.createElement('style');

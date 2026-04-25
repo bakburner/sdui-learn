@@ -177,8 +177,8 @@
     "color.brand.nba":  { "aliasOf": "color.blue.50" },
     "color.brand.live": { "aliasOf": "color.red.50" },
 
-    "color.surface.canvas":       { "aliasOf": "color.grey.10" },
-    "color.surface.raised":       { "aliasOf": "color.grey.0"  },
+    "color.surface.canvas":       { "aliasOf": "color.grey.5"  },
+    "color.surface.raised":       { "aliasOf": "color.grey.10" },
     "color.surface.sunken":       { "aliasOf": "color.grey.5"  },
     "color.surface.promo":        { "aliasOf": "color.blue.10" },
 

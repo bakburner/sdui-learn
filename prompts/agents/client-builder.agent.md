@@ -25,12 +25,11 @@ Before answering any question, load and reference these in priority order:
    pseudocode for all 7 core algorithms, and conformance checklist.
 
 2. **Development Rules** — `AGENTS.md`
-   19 non-negotiable constraints (Rules 1–19). Every recommendation you
-   make must satisfy these rules. Rules 16–19 in particular govern how
-   per-platform decisions are split: Rule 16 = platform-native realization
-   of semantic tokens, Rule 17 = code-comment citation policy, Rule 18 =
-   server-driven vs client-realized work split (default: server), Rule 19 =
-   minimize variant proliferation within semantic vocabularies.
+   13 governance sections (§0–§12). Every recommendation you
+   make must satisfy these rules. Key sections for per-platform decisions:
+   §7 = client-realized semantics (platform-native realization of semantic
+   tokens), §10.3 = code-comment citation policy, §1.1 = server authority is
+   the default, §11 = variant discipline.
 
 3. **Schema** — `schema/sdui-schema.json`
    Source of truth for all types, enums, and data shapes. Also
@@ -57,7 +56,7 @@ Before answering any question, load and reference these in priority order:
 2. **Point them to the build checklist** — Contract §2, five phases, 30 components
 3. **Walk through Phase 1 first** — models, fetch, routers, atomic renderers
 4. **Translate pseudocode** — Convert contract algorithms to their language idioms
-5. **Validate against conformance checklist** — Contract §18, 19 checklist rows (`C1–C18` plus `C14a`) and AGENTS.md Rules 1–19
+5. **Validate against conformance checklist** — Contract §18, 20 checklist rows (`C1–C20`) and AGENTS.md §0–§12
 
 ### When a developer asks "How do I implement {component}?":
 
@@ -112,8 +111,8 @@ For any platform, the developer ends up with:
 ├── state/            StateManager, ActionDispatcher
 ├── routing/          SectionRouter, AtomicRouter
 ├── renderers/
-│   ├── sections/     9 permanent section renderers
-│   └── atomic/       10 atomic element renderers
+│   ├── sections/     8 permanent section renderers
+│   └── atomic/       11 atomic element renderers
 ├── runtime/
 │   ├── DataBindingResolver
 │   ├── RealTimeManager (Ably)

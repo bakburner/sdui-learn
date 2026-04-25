@@ -11,7 +11,7 @@ Server-Driven UI prototype demonstrating server-composed screens with real-time 
 | **Extend the Web client** | [web/src/](web/src/) — React components, hooks, runtime. Same section types reference |
 | **Extend the iOS client** | [ios/Sources/SduiCore/](ios/Sources/SduiCore/) — SwiftUI renderers, state, data binding. Same section types reference |
 | **Add a new server-composed screen** | [server/src/](server/src/) — add a composer, register an endpoint. Zero client changes needed |
-| **Add a new section type** | Read [AGENTS.md](AGENTS.md) §5-6 first — most things should be `AtomicComposite`. Only add a section renderer if client-owned state is required |
+| **Add a new section type** | Read [AGENTS.md](AGENTS.md) first — most things should be `AtomicComposite`. Only add a section renderer if client-owned state is required |
 | **Understand the schema** | [schema/sdui-schema.json](schema/sdui-schema.json) — the contract. Hit `curl http://localhost:8080/sdui/demos` for a live 42-section example |
 | **Understand the rules** | [AGENTS.md](AGENTS.md) — development rules that govern all SDUI work |
 | **See what's built vs. what's gap** | [Requirements Summary §10](docs/sdui-requirements-summary.md) — status matrix |
@@ -174,7 +174,6 @@ make codegen
 | FollowingRail | Horizontal rail of followed items |
 | ErrorState | Server/client error with title, message, optional retry action |
 | GamePanel | Game card (teams, scores, status) — now server-composed via `buildGamePanelComposite()` with `LiveClock` for real-time game clocks |
-| GamePanel | Game card (teams, scores, status) — now server-composed via `buildGamePanelComposite()` with `LiveClock` for real-time game clocks |
 
 ### Atomic Primitives (server-composed, rendered by AtomicRouter)
 
@@ -196,8 +195,8 @@ make codegen
 
 ## Recent Changes
 
-- **Per-section error handling** (2026-04-01) — `SectionErrorBoundary` on Android (catch-at-dispatch + pre-validation) and web (React ErrorBoundary). `SectionSkeleton` with 4 generic styles. Typed `SectionStates` model. Retry budget (client-side, default 5). `hideOnError` support. Contract §13 rewritten.
-- **Accessibility** (2026-03-26) — `AccessibilityProperties` on Section, Subsection, AtomicElement. Android Compose `semantics{}`, web ARIA attributes, iOS `.accessibilityLabel`/traits. All 9 section renderers and 10 atomic primitives wired on every platform.
+- **Per-section error handling** (2026-04-01) — `SectionErrorBoundary` on Android (catch-at-dispatch + pre-validation) and web (React ErrorBoundary). `SectionSkeleton` with 4 generic styles. Typed `SectionStates` model. Retry budget (client-side, default 5). `hideOnError` support. Error-handling contract rewritten.
+- **Accessibility** (2026-03-26) — `AccessibilityProperties` on Section, Subsection, AtomicElement. Android Compose `semantics{}`, web ARIA attributes, iOS `.accessibilityLabel`/traits. All 8 permanent section renderers and 11 atomic primitives wired on every platform.
 - **Request transport envelope** (2026-03-24) — `SduiRequestContext` POJO + `BracketParamResolver` on server. `RequestEnvelopeBuilder` on Android, iOS, and web. GET-first with bracket-notation params, POST fallback.
 - **i18n** (2026-03-24) — Section-level `stringTable` stamped by server per locale. Clients consume from each section.
 - **Experiments / A/B testing** (2026-03-24) — ADR-006 Accepted. Client-authoritative `experiments` map in request envelope. Server resolves at composition time.

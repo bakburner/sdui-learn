@@ -8,6 +8,8 @@
  */
 
 :root {
+  color-scheme: dark;
+
   /* ── Brand ─────────────────────────────────────── */
   --nba-blue:       #1D428A;
   --nba-red:        #C8102E;
@@ -25,6 +27,10 @@
   --surface-alt:       #2B2F37;
   --surface-inverted:  #FFFFFF;
   --surface-dark:      #191C23;
+  --sdui-surface-raised:        var(--surface-raised);
+  --sdui-surface-raised-top:    var(--surface-raised);
+  --sdui-surface-raised-bottom: var(--surface-alt);
+  --sdui-outline:               var(--divider);
 
   /* ── Text ──────────────────────────────────────── */
   --text-primary:           #FFFFFF;
@@ -125,4 +131,77 @@
   --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
   --duration-fast: 150ms;
   --duration-normal: 250ms;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  /* ── Canvas (page background) ──────────────────── */
+  --canvas:           #F3F4F5;
+  --canvas-light:     #F3F4F5;
+  --canvas-inverted:  #000000;
+
+  /* ── Surface (cards / containers) ──────────────── */
+  --surface:           #FFFFFF;
+  --surface-raised:    #FFFFFF;
+  --surface-alt:       #F2F2F7;
+  --surface-inverted:  #191C23;
+  --surface-dark:      #191C23;
+  --sdui-surface-raised:        var(--surface-raised);
+  --sdui-surface-raised-top:    var(--surface-raised);
+  --sdui-surface-raised-bottom: var(--surface-alt);
+  --sdui-outline:               var(--divider);
+
+  /* ── Text ──────────────────────────────────────── */
+  --text-primary:           #1C1C1E;
+  --text-primary-opposite:  #FFFFFF;
+  --text-secondary:         #636366;
+  --text-on-background:     #1C1C1E;
+  --text-on-background-alt: #636366;
+  --text-on-image:          #FFFFFF;
+  --text-on-image-50:       rgba(255,255,255,0.5);
+  --text-selected:          #000000;
+
+  /* ── Buttons ───────────────────────────────────── */
+  --button:            #1D428A;
+  --button-opposite:   #FFFFFF;
+  --button-text:       #FFFFFF;
+  --button-on-dark:    #FFFFFF;
+  --on-button-on-dark: #000000;
+
+  /* ── Dividers ──────────────────────────────────── */
+  --divider:         #D1D1D6;
+  --divider-canvas:  #D1D1D6;
+  --divider-surface: #E5E5EA;
+
+  /* ── Interactive ───────────────────────────────── */
+  --link:              #1D428A;
+  --link-on-inverted:  #69ABF3;
+  --selection:         #1D428A;
+  --icon:              #1C1C1E;
+  --disabled:          #C7C7CC;
+
+  /* ── Semantic States ───────────────────────────── */
+  --positive:  #1F8A3F;
+  --negative:  #C8102E;
+  --live:      #C8102E;
+  --warning:   #C6A208;
+
+  /* ── Surfaces (special purpose) ────────────────── */
+  --game-card-bg:     #FFFFFF;
+  --scrim:            rgba(0,0,0,0.5);
+  --blur:             rgba(255,255,255,0.91);
+  --overlay:          rgba(0,0,0,0.4);
+
+  /* ── Shadows ───────────────────────────────────── */
+  --shadow-sm:  0 1px 2px rgba(0,0,0,0.12);
+  --shadow-md:  0 4px 6px -1px rgba(0,0,0,0.12), 0 2px 4px -1px rgba(0,0,0,0.08);
+  --shadow-lg:  0 10px 15px -3px rgba(0,0,0,0.12), 0 4px 6px -2px rgba(0,0,0,0.08);
+  --shadow-xl:  0 20px 25px -5px rgba(0,0,0,0.12), 0 10px 10px -5px rgba(0,0,0,0.08);
+}
+
+body {
+  margin: 0;
+  background: var(--canvas);
+  color: var(--text-primary);
 }

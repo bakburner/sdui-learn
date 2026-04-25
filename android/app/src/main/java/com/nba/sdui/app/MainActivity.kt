@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -14,6 +15,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.nba.sdui.app.ui.GameDetailScreen
@@ -33,7 +35,10 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         Log.e(TAG, ">>> setContent about to be called")
         setContent {
-            SduiPrototypeTheme {
+            val systemDarkTheme = isSystemInDarkTheme()
+            var darkTheme by rememberSaveable { mutableStateOf(systemDarkTheme) }
+
+            SduiPrototypeTheme(darkTheme = darkTheme) {
                 val snackbarHostState = remember { SnackbarHostState() }
                 val scope = rememberCoroutineScope()
                 var currentConfig by remember { mutableStateOf(SduiConfig.fromUri(BOOTSTRAP_URI)) }
@@ -46,6 +51,7 @@ class MainActivity : ComponentActivity() {
 
                     GameDetailScreen(
                         config = config,
+                        darkTheme = darkTheme,
                         modifier = Modifier.padding(innerPadding),
                         onNavigateUri = { targetUri ->
                             // All URIs use the same code path — the server
@@ -62,6 +68,9 @@ class MainActivity : ComponentActivity() {
                         },
                         onBack = {
                             currentConfig = SduiConfig.fromUri(BOOTSTRAP_URI)
+                        },
+                        onToggleTheme = {
+                            darkTheme = !darkTheme
                         }
                     )
                 }

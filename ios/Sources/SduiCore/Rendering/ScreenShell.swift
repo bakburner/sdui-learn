@@ -48,6 +48,8 @@ public struct ScreenShell: View {
 private struct ScreenBody: View {
     @Bindable var vm: SduiScreenViewModel
     @Environment(\.navCoordinator) private var navCoordinator
+    @Environment(\.colorScheme) private var colorScheme
+    @AppStorage("sdui_color_scheme") private var colorSchemePreference = "system"
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -92,7 +94,39 @@ private struct ScreenBody: View {
             }
             ToastOverlay(host: vm.toasts)
         }
+        .preferredColorScheme(preferredColorScheme)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(themeToggleTitle) {
+                    toggleColorScheme()
+                }
+            }
+        }
         .task { await vm.load() }
+    }
+
+    private var effectiveColorScheme: ColorScheme {
+        switch colorSchemePreference {
+        case "light": return .light
+        case "dark": return .dark
+        default: return colorScheme
+        }
+    }
+
+    private var preferredColorScheme: ColorScheme? {
+        switch colorSchemePreference {
+        case "light": return .light
+        case "dark": return .dark
+        default: return nil
+        }
+    }
+
+    private var themeToggleTitle: String {
+        effectiveColorScheme == .dark ? "Light" : "Dark"
+    }
+
+    private func toggleColorScheme() {
+        colorSchemePreference = effectiveColorScheme == .dark ? "light" : "dark"
     }
 }
 

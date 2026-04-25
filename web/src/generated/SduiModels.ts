@@ -298,6 +298,25 @@ export interface NavigationItem {
 }
 
 /**
+ * One server-composed overlay layer positioned over an OverlayContainer base element.
+ */
+export interface AtomicOverlay {
+    /**
+     * Position of the overlay within the base element bounds.
+     */
+    alignment?: BadgeAlignment;
+    /**
+     * Atomic element to render in this overlay layer.
+     */
+    element: AtomicElement;
+    /**
+     * Optional edge offsets from the aligned base bounds.
+     */
+    inset?: Spacing;
+    [property: string]: any;
+}
+
+/**
  * Z-positioned child element (e.g. 'LIVE' pill, duration label) overlaid on this element.
  *
  * Z-positioned child element overlaid on a parent (e.g. 'LIVE' pill at bottom-right of a
@@ -324,6 +343,10 @@ export interface Badge {
  * Atomic UI primitive — server-composed building block for the atomic rendering layer
  *
  * The element to render as a badge
+ *
+ * OverlayContainer base element. Rendered first and sized by its own atomic box model.
+ *
+ * Atomic element to render in this overlay layer.
  *
  * Atomic tree describing the hero's full visible surface — logo, title, subtitle, feature
  * list, tier cards, CTAs. Renderer walks this tree exactly as an AtomicComposite would.
@@ -353,6 +376,10 @@ export interface AtomicElement {
      * Z-positioned child element (e.g. 'LIVE' pill, duration label) overlaid on this element.
      */
     badge?: Badge;
+    /**
+     * OverlayContainer base element. Rendered first and sized by its own atomic box model.
+     */
+    base?: AtomicElement;
     /**
      * Dot-path into the enclosing AtomicComposite's `data.content` object. When set, renderers
      * resolve the leaf's canonical live field from `data.content[bindRef]` at render time and
@@ -444,11 +471,19 @@ export interface AtomicElement {
     opacity?:     number;
     orientation?: Orientation;
     /**
+     * OverlayContainer layers rendered over the base element in server order.
+     */
+    overlays?: AtomicOverlay[];
+    /**
      * Inner space between the element's own background/border and its content.
      */
-    padding?:     Spacing;
-    paging?:      boolean;
-    placeholder?: string;
+    padding?: Spacing;
+    /**
+     * Optional ScrollContainer page indicator. Clients render it only when declared.
+     */
+    pageIndicator?: PageIndicator;
+    paging?:        boolean;
+    placeholder?:   string;
     /**
      * DisplayGrid row data — each object maps column keys to pre-formatted display values
      */
@@ -752,6 +787,10 @@ export interface Section {
 
 /**
  * Position of the badge within the parent bounds
+ *
+ * Position of the overlay within the base element bounds.
+ *
+ * Position of the indicator within the ScrollContainer bounds.
  */
 export enum BadgeAlignment {
     BottomCenter = "bottomCenter",
@@ -763,6 +802,27 @@ export enum BadgeAlignment {
     TopCenter = "topCenter",
     TopEnd = "topEnd",
     TopStart = "topStart",
+}
+
+/**
+ * Outer space between the element and its siblings or parent edges. Applied outside the
+ * element's background, border, corner radius, and shadow — use this for sibling-to-sibling
+ * spacing instead of Spacer siblings when inhomogeneous gaps are needed.
+ *
+ * Optional edge offsets from the aligned base bounds.
+ *
+ * Inner space between the element's own background/border and its content.
+ *
+ * Outer margin (space between the surface and its siblings / screen edge).
+ *
+ * Inner padding (space between the surface edge and the content it wraps).
+ */
+export interface Spacing {
+    bottom?: number;
+    end?:    number;
+    start?:  number;
+    top?:    number;
+    [property: string]: any;
 }
 
 /**
@@ -984,28 +1044,42 @@ export enum Format {
     MmSs = "mm:ss",
 }
 
-/**
- * Outer space between the element and its siblings or parent edges. Applied outside the
- * element's background, border, corner radius, and shadow — use this for sibling-to-sibling
- * spacing instead of Spacer siblings when inhomogeneous gaps are needed.
- *
- * Inner space between the element's own background/border and its content.
- *
- * Outer margin (space between the surface and its siblings / screen edge).
- *
- * Inner padding (space between the surface edge and the content it wraps).
- */
-export interface Spacing {
-    bottom?: number;
-    end?:    number;
-    start?:  number;
-    top?:    number;
-    [property: string]: any;
-}
-
 export enum Orientation {
     Horizontal = "horizontal",
     Vertical = "vertical",
+}
+
+/**
+ * Optional ScrollContainer page indicator. Clients render it only when declared.
+ *
+ * Server-declared scroll page indicator presentation for ScrollContainer. Clients own local
+ * scroll state only to realize the declared affordance.
+ */
+export interface PageIndicator {
+    /**
+     * Active indicator color.
+     */
+    activeColor?: string;
+    /**
+     * Position of the indicator within the ScrollContainer bounds.
+     */
+    alignment: BadgeAlignment;
+    /**
+     * Inactive indicator color.
+     */
+    color?: string;
+    /**
+     * Indicator visualization style.
+     */
+    style: Style;
+    [property: string]: any;
+}
+
+/**
+ * Indicator visualization style.
+ */
+export enum Style {
+    Dots = "dots",
 }
 
 /**
@@ -1055,6 +1129,7 @@ export enum UIType {
     Divider = "Divider",
     Image = "Image",
     LiveClock = "LiveClock",
+    OverlayContainer = "OverlayContainer",
     ScrollContainer = "ScrollContainer",
     SectionSlot = "SectionSlot",
     Spacer = "Spacer",

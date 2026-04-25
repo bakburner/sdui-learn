@@ -52,6 +52,7 @@ fun AtomicRouter(
         "DisplayGrid"     -> AtomicDisplayGrid(element, screenState, onAction)
         "SectionSlot"     -> AtomicSectionSlot(element, screenState, onAction, onStateChange, sectionSlotDepth)
         "LiveClock"       -> AtomicLiveClock(element, screenState, onAction)
+        "OverlayContainer" -> AtomicOverlayContainer(element, screenState, onAction, depth, onStateChange, sectionSlotDepth)
         else              -> Log.w("AtomicRouter", "Unknown atomic element type: ${element.type}")
     }
 }

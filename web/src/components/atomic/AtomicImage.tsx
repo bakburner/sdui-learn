@@ -5,8 +5,6 @@ import { AtomicBox, AtomicBoxBadge } from './AtomicBox';
 import { resolveImageVariant } from '../../utils/ImageVariantResolver';
 import { CompositeContentContext, resolveBindRefString } from '../../utils/BindRefResolver';
 
-const DEFAULT_FALLBACK = 'https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png';
-
 const fitToObjectFit: Record<string, React.CSSProperties['objectFit']> = {
   cover: 'cover',
   contain: 'contain',
@@ -54,7 +52,7 @@ export function AtomicImage({ element, onAction }: AtomicProps): React.ReactElem
       }
     : undefined;
 
-  const fallbackUrl = element.placeholder || DEFAULT_FALLBACK;
+  const fallbackUrl = element.placeholder;
   const handleError = (e: React.SyntheticEvent<HTMLImageElement>) => {
     const img = e.currentTarget;
     if (fallbackUrl && img.src !== fallbackUrl) {

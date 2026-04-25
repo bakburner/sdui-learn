@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -1402,6 +1404,726 @@ public class AtomicCompositeBuilder {
         scroll.set("children", kids);
 
         return wrapAsComposite(sectionId, analyticsId, scroll);
+    }
+
+    // ── Real-app feed atomic patterns ───────────────────────────────────
+
+    /**
+     * Horizontal story rail composed from server-provided story data.
+     * items: [id, label, imageUrl, badgeText, targetUri]
+     */
+    public ObjectNode buildStoryCircleRail(String sectionId, String analyticsId,
+                                           String title, String[][] items) {
+        requireNonBlank(sectionId, "sectionId");
+        requireRows(items, "items");
+
+        ObjectNode root = container("column", null, null);
+        root.set("padding", padding(0, 0, 0, 12));
+        ArrayNode rootChildren = om.createArrayNode();
+
+        if (title != null) {
+            ObjectNode header = text(title, "titleMedium", "bold", ColorTokens.TEXT_PRIMARY, null);
+            header.set("padding", padding(16, 16, 4, 8));
+            rootChildren.add(header);
+        }
+
+        ObjectNode scroll = scrollRow(16, false);
+        scroll.set("padding", padding(16, 16, 0, 0));
+        ArrayNode children = om.createArrayNode();
+        for (String[] item : items) {
+            if (!hasRequiredValues(item, 0, 1)) continue;
+            children.add(storyCircleItem(value(item, 0), value(item, 1), value(item, 2),
+                    value(item, 3), value(item, 4)));
+        }
+        scroll.set("children", children);
+        rootChildren.add(scroll);
+        root.set("children", rootChildren);
+        return wrapAsComposite(sectionId, analyticsId, root);
+    }
+
+    /**
+     * Horizontal rail of tall editorial image cards with server-declared
+     * scrim/text overlays.
+     * cards: [id, title, subtitle, imageUrl, badgeText, targetUri]
+     */
+    public ObjectNode buildEditorialOverlayRail(String sectionId, String analyticsId,
+                                                String title, String[][] cards) {
+        requireNonBlank(sectionId, "sectionId");
+        requireRows(cards, "cards");
+
+        ObjectNode root = container("column", null, null);
+        root.set("padding", padding(0, 0, 0, 12));
+        ArrayNode rootChildren = om.createArrayNode();
+
+        if (title != null) {
+            ObjectNode header = text(title, "titleMedium", "bold", ColorTokens.TEXT_PRIMARY, null);
+            header.set("padding", padding(16, 16, 4, 8));
+            rootChildren.add(header);
+        }
+
+        ObjectNode scroll = scrollRow(12, false);
+        scroll.set("padding", padding(16, 16, 0, 0));
+        ArrayNode children = om.createArrayNode();
+        for (String[] card : cards) {
+            if (!hasRequiredValues(card, 0, 1)) continue;
+            children.add(editorialOverlayCard(value(card, 0), value(card, 1), value(card, 2),
+                    value(card, 3), value(card, 4), value(card, 5)));
+        }
+        scroll.set("children", children);
+        rootChildren.add(scroll);
+        root.set("children", rootChildren);
+        return wrapAsComposite(sectionId, analyticsId, root);
+    }
+
+    /**
+     * Paged hero carousel for featured live/upcoming games.
+     * cards: [id, badgeText, title, subtitle, keyArtUrl, awayTri, awayScore,
+     * awayLogoUrl, homeTri, homeScore, homeLogoUrl, statusText, seriesText,
+     * sponsorLogoUrlsCsv, targetUri]
+     */
+    public ObjectNode buildFeaturedLiveGameHero(String sectionId, String analyticsId,
+                                                String title, String[][] cards) {
+        return buildFeaturedLiveGameHero(sectionId, analyticsId, title, cards, null, null);
+    }
+
+    public ObjectNode buildFeaturedLiveGameHero(String sectionId, String analyticsId,
+                                                String title, String[][] cards,
+                                                ObjectNode refreshPolicy,
+                                                ObjectNode dataBinding) {
+        requireNonBlank(sectionId, "sectionId");
+        requireRows(cards, "cards");
+
+        List<String[]> validCards = validRows(cards, 0, 2, 5, 8);
+
+        ObjectNode root = container("column", null, null);
+        root.set("padding", padding(0, 0, 0, 12));
+        ArrayNode rootChildren = om.createArrayNode();
+        if (title != null) {
+            ObjectNode header = text(title, "titleMedium", "bold", ColorTokens.TEXT_PRIMARY, null);
+            header.set("padding", padding(16, 16, 4, 8));
+            rootChildren.add(header);
+        }
+
+        ObjectNode scroll = scrollRow(12, false);
+        if (validCards.size() > 1) {
+            scroll.put("paging", true);
+            scroll.put("snapAlignment", "center");
+            ObjectNode indicator = om.createObjectNode();
+            indicator.put("style", "dots");
+            indicator.put("alignment", "bottomCenter");
+            indicator.put("color", ColorTokens.TEXT_TERTIARY);
+            indicator.put("activeColor", ColorTokens.TEXT_INVERSE);
+            scroll.set("pageIndicator", indicator);
+        }
+        scroll.set("padding", padding(16, 16, 0, 0));
+
+        ArrayNode scrollChildren = om.createArrayNode();
+        ObjectNode content = om.createObjectNode();
+        ObjectNode cardsContent = om.createObjectNode();
+        for (String[] card : validCards) {
+            String cardId = value(card, 0);
+            scrollChildren.add(featuredLiveGameHeroCard(card));
+            ObjectNode state = om.createObjectNode();
+            state.put("awayScore", parseInt(value(card, 6), 0));
+            state.put("homeScore", parseInt(value(card, 9), 0));
+            if (value(card, 11) != null) state.put("statusText", value(card, 11));
+            cardsContent.set(cardId, state);
+        }
+        content.set("cards", cardsContent);
+        scroll.set("children", scrollChildren);
+        rootChildren.add(scroll);
+        root.set("children", rootChildren);
+
+        ObjectNode section = sectionEnvelope(sectionId, analyticsId, refreshPolicy);
+        ObjectNode data = wrapUi(root);
+        data.set("content", content);
+        section.set("data", data);
+        if (dataBinding != null) section.set("dataBinding", dataBinding);
+        return section;
+    }
+
+    public ObjectNode buildRealAppSectionHeader(String sectionId, String analyticsId,
+                                                String title, String subtitle,
+                                                String actionLabel, String actionUri) {
+        requireNonBlank(sectionId, "sectionId");
+        requireNonBlank(title, "title");
+
+        ObjectNode root = container("row", "spaceBetween", "center");
+        root.put("fillWidth", true);
+        root.set("padding", padding(16, 16, 12, 4));
+
+        ArrayNode children = om.createArrayNode();
+        ObjectNode titleCol = container("column", null, "start");
+        ArrayNode titleChildren = om.createArrayNode();
+        titleChildren.add(text(title, "titleMedium", "bold", ColorTokens.TEXT_PRIMARY, null));
+        if (subtitle != null) {
+            titleChildren.add(text(subtitle, "bodySmall", null, ColorTokens.TEXT_TERTIARY, 1));
+        }
+        titleCol.set("children", titleChildren);
+        children.add(titleCol);
+
+        if (actionUri != null) {
+            children.add(button(actionLabel != null ? actionLabel + " >" : "More >",
+                    "text", tapNavigate(actionUri)));
+        }
+
+        root.set("children", children);
+        return wrapAsComposite(sectionId, analyticsId, root);
+    }
+
+    /**
+     * Two-column utility grid.
+     * items: [id, label, subtitle, imageUrl, targetUri]
+     */
+    public ObjectNode buildUtilityCardGrid(String sectionId, String analyticsId,
+                                           String title, String[][] items) {
+        requireNonBlank(sectionId, "sectionId");
+        requireRows(items, "items");
+
+        List<String[]> validItems = validRows(items, 0, 1);
+
+        ObjectNode root = container("column", null, "stretch");
+        root.put("gap", 12);
+        root.set("padding", padding(16, 16, 0, 16));
+        ArrayNode children = om.createArrayNode();
+        if (title != null) {
+            children.add(text(title, "titleMedium", "bold", ColorTokens.TEXT_PRIMARY, null));
+        }
+
+        for (int i = 0; i < validItems.size(); i += 2) {
+            ObjectNode row = container("row", null, "stretch");
+            row.put("gap", 12);
+            row.put("fillWidth", true);
+            ArrayNode rowChildren = om.createArrayNode();
+            ObjectNode first = utilityCard(validItems.get(i));
+            setFlex(first, 1.0);
+            rowChildren.add(first);
+            if (i + 1 < validItems.size()) {
+                ObjectNode second = utilityCard(validItems.get(i + 1));
+                setFlex(second, 1.0);
+                rowChildren.add(second);
+            } else {
+                ObjectNode filler = container("column", null, null);
+                setFlex(filler, 1.0);
+                rowChildren.add(filler);
+            }
+            row.set("children", rowChildren);
+            children.add(row);
+        }
+
+        root.set("children", children);
+        return wrapAsComposite(sectionId, analyticsId, root);
+    }
+
+    /**
+     * Horizontal rail of league destination cards.
+     * items: [id, label, imageUrl, targetUri]
+     */
+    public ObjectNode buildLeagueCardRail(String sectionId, String analyticsId,
+                                          String title, String[][] items) {
+        requireNonBlank(sectionId, "sectionId");
+        requireRows(items, "items");
+
+        ObjectNode root = container("column", null, null);
+        root.set("padding", padding(0, 0, 0, 12));
+        ArrayNode rootChildren = om.createArrayNode();
+        if (title != null) {
+            ObjectNode header = text(title, "titleMedium", "bold", ColorTokens.TEXT_PRIMARY, null);
+            header.set("padding", padding(16, 16, 4, 8));
+            rootChildren.add(header);
+        }
+
+        ObjectNode scroll = scrollRow(12, false);
+        scroll.set("padding", padding(16, 16, 0, 0));
+        ArrayNode children = om.createArrayNode();
+        for (String[] item : items) {
+            if (!hasRequiredValues(item, 0, 1)) continue;
+            children.add(leagueCard(value(item, 0), value(item, 1), value(item, 2), value(item, 3)));
+        }
+        scroll.set("children", children);
+        rootChildren.add(scroll);
+        root.set("children", rootChildren);
+        return wrapAsComposite(sectionId, analyticsId, root);
+    }
+
+    /**
+     * Compact schedule row/list item.
+     * row: [id, awayTri, awayName, awaySeed, awayScore, awayLogoUrl, homeTri,
+     * homeName, homeSeed, homeScore, homeLogoUrl, statusText, seriesText,
+     * broadcastLogoUrlsCsv, targetUri, overflowUri]
+     */
+    public ObjectNode buildGameScheduleRow(String sectionId, String analyticsId, String[] row) {
+        return buildGameScheduleRow(sectionId, analyticsId, row, null, null);
+    }
+
+    public ObjectNode buildGameScheduleRow(String sectionId, String analyticsId, String[] row,
+                                           ObjectNode refreshPolicy,
+                                           ObjectNode dataBinding) {
+        requireNonBlank(sectionId, "sectionId");
+        requireRow(row, "row");
+        requireRequiredValues(row, "row", 0, 1, 6);
+
+        ObjectNode card = gameScheduleRowElement(row);
+        ObjectNode wrapper = container("column", null, null);
+        wrapper.set("padding", padding(16, 16, 4, 4));
+        ArrayNode children = om.createArrayNode();
+        children.add(card);
+        wrapper.set("children", children);
+
+        ObjectNode section = sectionEnvelope(sectionId, analyticsId, refreshPolicy);
+        ObjectNode data = wrapUi(wrapper);
+        ObjectNode content = om.createObjectNode();
+        ObjectNode state = om.createObjectNode();
+        state.put("awayScore", parseInt(value(row, 4), 0));
+        state.put("homeScore", parseInt(value(row, 9), 0));
+        if (value(row, 11) != null) state.put("statusText", value(row, 11));
+        content.set(value(row, 0), state);
+        data.set("content", content);
+        section.set("data", data);
+        if (dataBinding != null) section.set("dataBinding", dataBinding);
+        return section;
+    }
+
+    public ObjectNode buildGameScheduleList(String sectionId, String analyticsId,
+                                            String title, String[][] rows) {
+        return buildGameScheduleList(sectionId, analyticsId, title, rows, null, null);
+    }
+
+    public ObjectNode buildGameScheduleList(String sectionId, String analyticsId,
+                                            String title, String[][] rows,
+                                            ObjectNode refreshPolicy,
+                                            ObjectNode dataBinding) {
+        requireNonBlank(sectionId, "sectionId");
+        requireRows(rows, "rows");
+
+        List<String[]> validRows = validRows(rows, 0, 1, 6);
+
+        ObjectNode root = container("column", null, "stretch");
+        root.put("gap", 8);
+        root.set("padding", padding(16, 16, 0, 12));
+        ArrayNode children = om.createArrayNode();
+        if (title != null) {
+            children.add(text(title, "titleMedium", "bold", ColorTokens.TEXT_PRIMARY, null));
+        }
+        ObjectNode content = om.createObjectNode();
+        for (String[] row : validRows) {
+            String rowId = value(row, 0);
+            children.add(gameScheduleRowElement(row));
+            ObjectNode state = om.createObjectNode();
+            state.put("awayScore", parseInt(value(row, 4), 0));
+            state.put("homeScore", parseInt(value(row, 9), 0));
+            if (value(row, 11) != null) state.put("statusText", value(row, 11));
+            content.set(rowId, state);
+        }
+        root.set("children", children);
+
+        ObjectNode section = sectionEnvelope(sectionId, analyticsId, refreshPolicy);
+        ObjectNode data = wrapUi(root);
+        data.set("content", content);
+        section.set("data", data);
+        if (dataBinding != null) section.set("dataBinding", dataBinding);
+        return section;
+    }
+
+    private ObjectNode storyCircleItem(String id, String label, String imageUrl,
+                                       String badgeText, String targetUri) {
+        ObjectNode item = container("column", "center", "center");
+        item.put("id", id);
+        item.put("width", 76);
+        if (targetUri != null) item.set("actions", singleActionArray(tapNavigate(targetUri)));
+        ArrayNode children = om.createArrayNode();
+
+        ObjectNode avatar = imageUrl != null
+                ? image(imageUrl, 64, 64, "cover", null)
+                : neutralInitials(label, 64, 32);
+        avatar.put("cornerRadius", 32);
+        if (badgeText != null) {
+            avatar = overlayContainer(avatar, List.of(overlay("bottomCenter",
+                    padding(0, 0, 0, 0), pillBadge(badgeText, ColorTokens.BRAND_LIVE))));
+        }
+        children.add(avatar);
+        children.add(spacer(6));
+        children.add(text(label, "labelSmall", null, ColorTokens.TEXT_PRIMARY, 1));
+        item.set("children", children);
+        return item;
+    }
+
+    private ObjectNode editorialOverlayCard(String id, String title, String subtitle,
+                                            String imageUrl, String badgeText, String targetUri) {
+        ObjectNode card = container("column", null, null);
+        card.put("id", id);
+        card.put("width", 184);
+        card.put("cornerRadius", 16);
+        if (targetUri != null) card.set("actions", singleActionArray(tapNavigate(targetUri)));
+
+        ObjectNode base = imageUrl != null
+                ? image(imageUrl, 184, 0, "cover", null)
+                : neutralInitialsRect(title, 184, 245, 16);
+        base.put("fillWidth", true);
+        base.put("aspectRatio", 3.0 / 4.0);
+        base.put("cornerRadius", 16);
+
+        ObjectNode scrimContent = container("column", null, "start");
+        scrimContent.put("fillWidth", true);
+        scrimContent.set("padding", padding(12, 12, 64, 12));
+        ObjectNode gradient = gradient("#00000000", "#000000D9", "vertical");
+        scrimContent.set("background", gradient);
+        ArrayNode children = om.createArrayNode();
+        if (badgeText != null) {
+            children.add(pillBadge(badgeText, ColorTokens.BRAND_LIVE));
+            children.add(spacer(6));
+        }
+        children.add(text(title, "titleSmall", "bold", ColorTokens.TEXT_INVERSE, 2));
+        if (subtitle != null) {
+            children.add(text(subtitle, "bodySmall", null, ColorTokens.TEXT_INVERSE, 2));
+        }
+        scrimContent.set("children", children);
+
+        ArrayNode cardChildren = om.createArrayNode();
+        cardChildren.add(overlayContainer(base, List.of(overlay("bottomStart", null, scrimContent))));
+        card.set("children", cardChildren);
+        return card;
+    }
+
+    private ObjectNode featuredLiveGameHeroCard(String[] card) {
+        String cardId = value(card, 0);
+        ObjectNode hero = container("column", null, "stretch");
+        hero.put("id", cardId);
+        hero.put("width", 320);
+        hero.put("cornerRadius", 18);
+        hero.put("background", ColorTokens.SURFACE_RAISED);
+        if (value(card, 14) != null) hero.set("actions", singleActionArray(tapNavigate(value(card, 14))));
+
+        ObjectNode art = value(card, 4) != null
+                ? image(value(card, 4), 320, 0, "cover", null)
+                : neutralInitialsRect(value(card, 2), 320, 180, 18);
+        art.put("fillWidth", true);
+        art.put("aspectRatio", 16.0 / 9.0);
+        art.set("cornerRadii", cornerRadii(18, 18, 0, 0));
+
+        ObjectNode titleOverlay = container("column", null, "start");
+        titleOverlay.put("fillWidth", true);
+        titleOverlay.set("padding", padding(16, 16, 48, 14));
+        titleOverlay.set("background", gradient("#00000000", "#000000D9", "vertical"));
+        ArrayNode overlayChildren = om.createArrayNode();
+        if (value(card, 1) != null) {
+            overlayChildren.add(pillBadge(value(card, 1), ColorTokens.BRAND_LIVE));
+            overlayChildren.add(spacer(6));
+        }
+        overlayChildren.add(text(value(card, 2), "titleMedium", "bold", ColorTokens.TEXT_INVERSE, 2));
+        if (value(card, 3) != null) {
+            overlayChildren.add(text(value(card, 3), "bodySmall", null, ColorTokens.TEXT_INVERSE, 2));
+        }
+        titleOverlay.set("children", overlayChildren);
+
+        ArrayNode heroChildren = om.createArrayNode();
+        heroChildren.add(overlayContainer(art, List.of(overlay("bottomStart", null, titleOverlay))));
+        heroChildren.add(heroScoreStrip(card));
+        ArrayNode sponsorLogos = logoRow(value(card, 13), 48, 20);
+        if (sponsorLogos.size() > 0) {
+            ObjectNode sponsors = container("row", "end", "center");
+            sponsors.put("gap", 8);
+            sponsors.set("padding", padding(16, 16, 0, 14));
+            sponsors.set("children", sponsorLogos);
+            heroChildren.add(sponsors);
+        }
+        hero.set("children", heroChildren);
+        return hero;
+    }
+
+    private ObjectNode heroScoreStrip(String[] card) {
+        ObjectNode row = container("row", "spaceBetween", "center");
+        row.put("fillWidth", true);
+        row.set("padding", padding(16, 16, 14, 10));
+        ArrayNode children = om.createArrayNode();
+        children.add(heroTeam(value(card, 5), value(card, 6), value(card, 7), "cards." + value(card, 0) + ".awayScore"));
+
+        ObjectNode center = container("column", "center", "center");
+        ArrayNode centerChildren = om.createArrayNode();
+        ObjectNode status = text(value(card, 11), "labelSmall", "semiBold", ColorTokens.TEXT_SECONDARY, 1);
+        status.put("bindRef", "cards." + value(card, 0) + ".statusText");
+        centerChildren.add(status);
+        if (value(card, 12) != null) {
+            centerChildren.add(text(value(card, 12), "labelSmall", null, ColorTokens.TEXT_TERTIARY, 1));
+        }
+        center.set("children", centerChildren);
+        children.add(center);
+
+        children.add(heroTeam(value(card, 8), value(card, 9), value(card, 10), "cards." + value(card, 0) + ".homeScore"));
+        row.set("children", children);
+        return row;
+    }
+
+    private ObjectNode heroTeam(String tri, String score, String logoUrl, String bindRef) {
+        ObjectNode col = container("column", "center", "center");
+        col.put("width", 92);
+        ArrayNode children = om.createArrayNode();
+        if (logoUrl != null) children.add(image(logoUrl, 44, 44, "contain", null));
+        children.add(text(tri, "labelSmall", "bold", ColorTokens.TEXT_PRIMARY, 1));
+        if (score != null) {
+            ObjectNode scoreText = text(score, "titleLarge", "bold", ColorTokens.TEXT_PRIMARY, 1);
+            scoreText.put("bindRef", bindRef);
+            scoreText.put("monospacedDigits", true);
+            children.add(scoreText);
+        }
+        col.set("children", children);
+        return col;
+    }
+
+    private ObjectNode utilityCard(String[] item) {
+        ObjectNode card = container("column", "center", "center");
+        card.put("id", value(item, 0));
+        card.put("gap", 8);
+        card.put("background", ColorTokens.SURFACE_RAISED);
+        card.put("cornerRadius", 14);
+        card.set("padding", padding(12, 12, 16, 16));
+        if (value(item, 4) != null) card.set("actions", singleActionArray(tapNavigate(value(item, 4))));
+
+        ArrayNode children = om.createArrayNode();
+        if (value(item, 3) != null) {
+            children.add(image(value(item, 3), 44, 44, "contain", null));
+        } else {
+            children.add(neutralInitials(value(item, 1), 44, 22));
+        }
+        children.add(text(value(item, 1), "bodyMedium", "semiBold", ColorTokens.TEXT_PRIMARY, 2));
+        if (value(item, 2) != null) {
+            children.add(text(value(item, 2), "labelSmall", null, ColorTokens.TEXT_SECONDARY, 2));
+        }
+        card.set("children", children);
+        return card;
+    }
+
+    private ObjectNode leagueCard(String id, String label, String imageUrl, String targetUri) {
+        ObjectNode card = container("column", "center", "center");
+        card.put("id", id);
+        card.put("width", 148);
+        card.put("gap", 10);
+        card.put("background", ColorTokens.SURFACE_RAISED);
+        card.put("cornerRadius", 14);
+        card.set("padding", padding(14, 14, 16, 16));
+        if (targetUri != null) card.set("actions", singleActionArray(tapNavigate(targetUri)));
+
+        ArrayNode children = om.createArrayNode();
+        if (imageUrl != null) {
+            children.add(image(imageUrl, 64, 48, "contain", null));
+        } else {
+            children.add(neutralInitials(label, 64, 24));
+        }
+        children.add(text(label, "bodyMedium", "semiBold", ColorTokens.TEXT_PRIMARY, 2));
+        card.set("children", children);
+        return card;
+    }
+
+    private ObjectNode gameScheduleRowElement(String[] row) {
+        ObjectNode card = container("column", null, "stretch");
+        card.put("id", value(row, 0));
+        card.put("gap", 10);
+        card.put("background", ColorTokens.SURFACE_RAISED);
+        card.put("cornerRadius", 14);
+        card.set("padding", padding(14, 14, 12, 12));
+        if (value(row, 14) != null) card.set("actions", singleActionArray(tapNavigate(value(row, 14))));
+
+        ArrayNode children = om.createArrayNode();
+        ObjectNode matchup = container("row", "spaceBetween", "center");
+        matchup.put("fillWidth", true);
+        ArrayNode matchupChildren = om.createArrayNode();
+        matchupChildren.add(scheduleTeam(value(row, 1), value(row, 2), value(row, 3),
+                value(row, 4), value(row, 5), value(row, 0), "awayScore"));
+        matchupChildren.add(scheduleStatus(value(row, 11), value(row, 12), value(row, 0)));
+        matchupChildren.add(scheduleTeam(value(row, 6), value(row, 7), value(row, 8),
+                value(row, 9), value(row, 10), value(row, 0), "homeScore"));
+        matchup.set("children", matchupChildren);
+        children.add(matchup);
+
+        ArrayNode logos = logoRow(value(row, 13), 44, 18);
+        if (logos.size() > 0 || value(row, 15) != null) {
+            ObjectNode meta = container("row", "spaceBetween", "center");
+            meta.put("fillWidth", true);
+            ArrayNode metaChildren = om.createArrayNode();
+            ObjectNode logoWrap = container("row", null, "center");
+            logoWrap.put("gap", 8);
+            logoWrap.set("children", logos);
+            metaChildren.add(logoWrap);
+            if (value(row, 15) != null) {
+                metaChildren.add(button("More", "text", tapNavigate(value(row, 15))));
+            }
+            meta.set("children", metaChildren);
+            children.add(meta);
+        }
+
+        card.set("children", children);
+        return card;
+    }
+
+    private ObjectNode scheduleTeam(String tri, String name, String seed, String score,
+                                    String logoUrl, String rowId, String scoreKey) {
+        ObjectNode team = container("row", null, "center");
+        team.put("gap", 8);
+        team.put("width", 112);
+        ArrayNode children = om.createArrayNode();
+        if (logoUrl != null) children.add(image(logoUrl, 36, 36, "contain", null));
+        ObjectNode labelCol = container("column", null, "start");
+        ArrayNode labelChildren = om.createArrayNode();
+        String seedPrefix = seed != null ? seed + " " : "";
+        labelChildren.add(text(seedPrefix + tri, "bodyMedium", "bold", ColorTokens.TEXT_PRIMARY, 1));
+        if (name != null) labelChildren.add(text(name, "labelSmall", null, ColorTokens.TEXT_SECONDARY, 1));
+        labelCol.set("children", labelChildren);
+        children.add(labelCol);
+        if (score != null) {
+            ObjectNode scoreText = text(score, "titleMedium", "bold", ColorTokens.TEXT_PRIMARY, 1);
+            scoreText.put("bindRef", rowId + "." + scoreKey);
+            scoreText.put("monospacedDigits", true);
+            children.add(scoreText);
+        }
+        team.set("children", children);
+        return team;
+    }
+
+    private ObjectNode scheduleStatus(String status, String seriesText, String rowId) {
+        ObjectNode center = container("column", "center", "center");
+        center.put("width", 76);
+        ArrayNode children = om.createArrayNode();
+        ObjectNode statusText = text(status != null ? status : "", "labelSmall", "semiBold",
+                ColorTokens.TEXT_SECONDARY, 2);
+        statusText.put("bindRef", rowId + ".statusText");
+        statusText.put("textAlign", "center");
+        children.add(statusText);
+        if (seriesText != null) {
+            ObjectNode series = text(seriesText, "labelSmall", null, ColorTokens.TEXT_TERTIARY, 2);
+            series.put("textAlign", "center");
+            children.add(series);
+        }
+        center.set("children", children);
+        return center;
+    }
+
+    private ObjectNode scrollRow(int gap, boolean showIndicators) {
+        ObjectNode scroll = om.createObjectNode();
+        scroll.put("type", "ScrollContainer");
+        scroll.put("direction", "row");
+        scroll.put("gap", gap);
+        scroll.put("showIndicators", showIndicators);
+        return scroll;
+    }
+
+    private ObjectNode overlayContainer(ObjectNode base, List<ObjectNode> overlays) {
+        ObjectNode node = om.createObjectNode();
+        node.put("type", "OverlayContainer");
+        node.set("base", base);
+        ArrayNode arr = om.createArrayNode();
+        for (ObjectNode overlay : overlays) arr.add(overlay);
+        node.set("overlays", arr);
+        return node;
+    }
+
+    private ObjectNode overlay(String alignment, ObjectNode inset, ObjectNode element) {
+        ObjectNode overlay = om.createObjectNode();
+        if (alignment != null) overlay.put("alignment", alignment);
+        if (inset != null) overlay.set("inset", inset);
+        overlay.set("element", element);
+        return overlay;
+    }
+
+    private ObjectNode gradient(String first, String second, String direction) {
+        ObjectNode gradient = om.createObjectNode();
+        ArrayNode colors = om.createArrayNode();
+        colors.add(first);
+        colors.add(second);
+        gradient.set("colors", colors);
+        gradient.put("direction", direction);
+        return gradient;
+    }
+
+    private ObjectNode neutralInitials(String label, int width, int radius) {
+        return neutralInitialsRect(label, width, width, radius);
+    }
+
+    private ObjectNode neutralInitialsRect(String label, int width, int height, int radius) {
+        ObjectNode box = container("row", "center", "center");
+        box.put("width", width);
+        box.put("height", height);
+        box.put("cornerRadius", radius);
+        box.put("background", ColorTokens.SURFACE_SUNKEN);
+        ArrayNode children = om.createArrayNode();
+        children.add(text(initials(label), "labelSmall", "bold", ColorTokens.TEXT_SECONDARY, 1));
+        box.set("children", children);
+        return box;
+    }
+
+    private ArrayNode logoRow(String csv, int width, int height) {
+        ArrayNode logos = om.createArrayNode();
+        if (csv == null || csv.isBlank()) return logos;
+        for (String raw : csv.split(",")) {
+            String url = raw.trim();
+            if (!url.isEmpty()) logos.add(image(url, width, height, "contain", null));
+        }
+        return logos;
+    }
+
+    private static String value(String[] row, int index) {
+        if (row == null || index >= row.length) return null;
+        String value = row[index];
+        return value == null || value.isBlank() ? null : value;
+    }
+
+    private static int parseInt(String raw, int fallback) {
+        if (raw == null) return fallback;
+        try {
+            return Integer.parseInt(raw);
+        } catch (NumberFormatException ignored) {
+            return fallback;
+        }
+    }
+
+    private static void requireNonBlank(String value, String fieldName) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(fieldName + " must not be blank");
+        }
+    }
+
+    private static void requireRow(String[] row, String fieldName) {
+        if (row == null) {
+            throw new IllegalArgumentException(fieldName + " must not be null");
+        }
+    }
+
+    private static void requireRows(String[][] rows, String fieldName) {
+        if (rows == null) {
+            throw new IllegalArgumentException(fieldName + " must not be null");
+        }
+    }
+
+    private static void requireRequiredValues(String[] row, String fieldName, int... indexes) {
+        for (int index : indexes) {
+            if (value(row, index) == null) {
+                throw new IllegalArgumentException(fieldName + "[" + index + "] must not be blank");
+            }
+        }
+    }
+
+    private static boolean hasRequiredValues(String[] row, int... indexes) {
+        if (row == null) return false;
+        for (int index : indexes) {
+            if (value(row, index) == null) return false;
+        }
+        return true;
+    }
+
+    private static List<String[]> validRows(String[][] rows, int... requiredIndexes) {
+        List<String[]> valid = new ArrayList<>();
+        for (String[] row : rows) {
+            if (hasRequiredValues(row, requiredIndexes)) valid.add(row);
+        }
+        return valid;
+    }
+
+    private static String initials(String label) {
+        if (label == null || label.isBlank()) return "";
+        String[] parts = label.trim().split("\\s+");
+        if (parts.length == 1) {
+            return parts[0].substring(0, Math.min(3, parts[0].length())).toUpperCase();
+        }
+        return (parts[0].substring(0, 1) + parts[parts.length - 1].substring(0, 1)).toUpperCase();
     }
 
     private ObjectNode sectionEnvelope(String id, String analyticsId) {

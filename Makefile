@@ -1,4 +1,4 @@
-.PHONY: dev dev-server dev-web dev-android dev-all codegen stop stop-server stop-web stop-android \
+.PHONY: dev dev-server dev-web dev-android dev-all codegen server-test stop stop-server stop-web stop-android \
 	ios-test ios-test-clean ios-build ios-demo-project ios-run ios-stop ios-fixtures-sync
 
 # ── iOS build / test config ──────────────────────────────────
@@ -30,6 +30,10 @@ codegen:
 	@cd codegen && bash generate.sh
 	@cd codegen && ./gradlew generateJsonSchema2Pojo
 	@echo "=== Codegen complete ==="
+
+server-test:
+	@echo "=== Running server tests ==="
+	@cd server && ./gradlew test
 
 # ── iOS fixtures sync ───────────────────────────────────────
 ios-fixtures-sync:

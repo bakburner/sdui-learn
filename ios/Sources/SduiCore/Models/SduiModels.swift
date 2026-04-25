@@ -629,6 +629,56 @@ extension NavigationItem {
     }
 }
 
+/// One server-composed overlay layer positioned over an OverlayContainer base element.
+// MARK: - AtomicOverlay
+struct AtomicOverlay: Codable {
+    /// Position of the overlay within the base element bounds.
+    let alignment: BadgeAlignment?
+    /// Atomic element to render in this overlay layer.
+    let element: AtomicElement
+    /// Optional edge offsets from the aligned base bounds.
+    let inset: Spacing?
+}
+
+// MARK: AtomicOverlay convenience initializers and mutators
+
+extension AtomicOverlay {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(AtomicOverlay.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        alignment: BadgeAlignment?? = nil,
+        element: AtomicElement? = nil,
+        inset: Spacing?? = nil
+    ) -> AtomicOverlay {
+        return AtomicOverlay(
+            alignment: alignment ?? self.alignment,
+            element: element ?? self.element,
+            inset: inset ?? self.inset
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
 /// Z-positioned child element (e.g. 'LIVE' pill, duration label) overlaid on this element.
 ///
 /// Z-positioned child element overlaid on a parent (e.g. 'LIVE' pill at bottom-right of a
@@ -687,6 +737,10 @@ extension Badge {
 ///
 /// The element to render as a badge
 ///
+/// OverlayContainer base element. Rendered first and sized by its own atomic box model.
+///
+/// Atomic element to render in this overlay layer.
+///
 /// Atomic tree describing the hero's full visible surface — logo, title, subtitle, feature
 /// list, tier cards, CTAs. Renderer walks this tree exactly as an AtomicComposite would.
 ///
@@ -709,6 +763,8 @@ class AtomicElement: Codable {
     let background: BackgroundUnion?
     /// Z-positioned child element (e.g. 'LIVE' pill, duration label) overlaid on this element.
     let badge: Badge?
+    /// OverlayContainer base element. Rendered first and sized by its own atomic box model.
+    let base: AtomicElement?
     /// Dot-path into the enclosing AtomicComposite's `data.content` object. When set, renderers
     /// resolve the leaf's canonical live field from `data.content[bindRef]` at render time and
     /// fall back to the inline value when the path is absent. Canonical field per type: Text →
@@ -772,8 +828,12 @@ class AtomicElement: Codable {
     /// states.
     let opacity: Double?
     let orientation: Orientation?
+    /// OverlayContainer layers rendered over the base element in server order.
+    let overlays: [AtomicOverlay]?
     /// Inner space between the element's own background/border and its content.
     let padding: Spacing?
+    /// Optional ScrollContainer page indicator. Clients render it only when declared.
+    let pageIndicator: PageIndicator?
     let paging: Bool?
     let placeholder: String?
     /// DisplayGrid row data — each object maps column keys to pre-formatted display values
@@ -819,7 +879,7 @@ class AtomicElement: Codable {
     let weight: TextWeight?
     let width: Int?
 
-    init(accessibility: AccessibilityProperties?, actions: [Action]?, alignment: Alignment?, alt: String?, aspectRatio: Double?, background: BackgroundUnion?, badge: Badge?, bindRef: String?, breakpoint: Int?, children: [AtomicElement]?, color: String?, columns: [Column]?, condition: String?, content: String?, cornerRadii: CornerRadii?, cornerRadius: Int?, crossAlignment: CrossAlignment?, direction: UIDirection?, disabled: Bool?, falseChild: AtomicElement?, fillWidth: Bool?, fit: ImageFit?, flex: Double?, format: Format?, gap: Int?, height: Int?, icon: String?, id: String?, isRunning: Bool?, label: String?, margin: Spacing?, maxLines: Int?, monospacedDigits: Bool?, opacity: Double?, orientation: Orientation?, padding: Spacing?, paging: Bool?, placeholder: String?, rows: [[String: String]]?, section: Section?, shadow: Shadow?, showIndicators: Bool?, size: Int?, snapAlignment: Align?, snapshotAt: Date?, snapshotSeconds: Int?, src: String?, stopAtSeconds: Int?, striped: Bool?, textAlign: Align?, thickness: Int?, tickDirection: TickDirection?, trueChild: AtomicElement?, type: String, variant: String?, weight: TextWeight?, width: Int?) {
+    init(accessibility: AccessibilityProperties?, actions: [Action]?, alignment: Alignment?, alt: String?, aspectRatio: Double?, background: BackgroundUnion?, badge: Badge?, base: AtomicElement?, bindRef: String?, breakpoint: Int?, children: [AtomicElement]?, color: String?, columns: [Column]?, condition: String?, content: String?, cornerRadii: CornerRadii?, cornerRadius: Int?, crossAlignment: CrossAlignment?, direction: UIDirection?, disabled: Bool?, falseChild: AtomicElement?, fillWidth: Bool?, fit: ImageFit?, flex: Double?, format: Format?, gap: Int?, height: Int?, icon: String?, id: String?, isRunning: Bool?, label: String?, margin: Spacing?, maxLines: Int?, monospacedDigits: Bool?, opacity: Double?, orientation: Orientation?, overlays: [AtomicOverlay]?, padding: Spacing?, pageIndicator: PageIndicator?, paging: Bool?, placeholder: String?, rows: [[String: String]]?, section: Section?, shadow: Shadow?, showIndicators: Bool?, size: Int?, snapAlignment: Align?, snapshotAt: Date?, snapshotSeconds: Int?, src: String?, stopAtSeconds: Int?, striped: Bool?, textAlign: Align?, thickness: Int?, tickDirection: TickDirection?, trueChild: AtomicElement?, type: String, variant: String?, weight: TextWeight?, width: Int?) {
         self.accessibility = accessibility
         self.actions = actions
         self.alignment = alignment
@@ -827,6 +887,7 @@ class AtomicElement: Codable {
         self.aspectRatio = aspectRatio
         self.background = background
         self.badge = badge
+        self.base = base
         self.bindRef = bindRef
         self.breakpoint = breakpoint
         self.children = children
@@ -855,7 +916,9 @@ class AtomicElement: Codable {
         self.monospacedDigits = monospacedDigits
         self.opacity = opacity
         self.orientation = orientation
+        self.overlays = overlays
         self.padding = padding
+        self.pageIndicator = pageIndicator
         self.paging = paging
         self.placeholder = placeholder
         self.rows = rows
@@ -885,7 +948,7 @@ class AtomicElement: Codable {
 extension AtomicElement {
     convenience init(data: Data) throws {
         let me = try newJSONDecoder().decode(AtomicElement.self, from: data)
-        self.init(accessibility: me.accessibility, actions: me.actions, alignment: me.alignment, alt: me.alt, aspectRatio: me.aspectRatio, background: me.background, badge: me.badge, bindRef: me.bindRef, breakpoint: me.breakpoint, children: me.children, color: me.color, columns: me.columns, condition: me.condition, content: me.content, cornerRadii: me.cornerRadii, cornerRadius: me.cornerRadius, crossAlignment: me.crossAlignment, direction: me.direction, disabled: me.disabled, falseChild: me.falseChild, fillWidth: me.fillWidth, fit: me.fit, flex: me.flex, format: me.format, gap: me.gap, height: me.height, icon: me.icon, id: me.id, isRunning: me.isRunning, label: me.label, margin: me.margin, maxLines: me.maxLines, monospacedDigits: me.monospacedDigits, opacity: me.opacity, orientation: me.orientation, padding: me.padding, paging: me.paging, placeholder: me.placeholder, rows: me.rows, section: me.section, shadow: me.shadow, showIndicators: me.showIndicators, size: me.size, snapAlignment: me.snapAlignment, snapshotAt: me.snapshotAt, snapshotSeconds: me.snapshotSeconds, src: me.src, stopAtSeconds: me.stopAtSeconds, striped: me.striped, textAlign: me.textAlign, thickness: me.thickness, tickDirection: me.tickDirection, trueChild: me.trueChild, type: me.type, variant: me.variant, weight: me.weight, width: me.width)
+        self.init(accessibility: me.accessibility, actions: me.actions, alignment: me.alignment, alt: me.alt, aspectRatio: me.aspectRatio, background: me.background, badge: me.badge, base: me.base, bindRef: me.bindRef, breakpoint: me.breakpoint, children: me.children, color: me.color, columns: me.columns, condition: me.condition, content: me.content, cornerRadii: me.cornerRadii, cornerRadius: me.cornerRadius, crossAlignment: me.crossAlignment, direction: me.direction, disabled: me.disabled, falseChild: me.falseChild, fillWidth: me.fillWidth, fit: me.fit, flex: me.flex, format: me.format, gap: me.gap, height: me.height, icon: me.icon, id: me.id, isRunning: me.isRunning, label: me.label, margin: me.margin, maxLines: me.maxLines, monospacedDigits: me.monospacedDigits, opacity: me.opacity, orientation: me.orientation, overlays: me.overlays, padding: me.padding, pageIndicator: me.pageIndicator, paging: me.paging, placeholder: me.placeholder, rows: me.rows, section: me.section, shadow: me.shadow, showIndicators: me.showIndicators, size: me.size, snapAlignment: me.snapAlignment, snapshotAt: me.snapshotAt, snapshotSeconds: me.snapshotSeconds, src: me.src, stopAtSeconds: me.stopAtSeconds, striped: me.striped, textAlign: me.textAlign, thickness: me.thickness, tickDirection: me.tickDirection, trueChild: me.trueChild, type: me.type, variant: me.variant, weight: me.weight, width: me.width)
     }
 
     convenience init(_ json: String, using encoding: String.Encoding = .utf8) throws {
@@ -907,6 +970,7 @@ extension AtomicElement {
         aspectRatio: Double?? = nil,
         background: BackgroundUnion?? = nil,
         badge: Badge?? = nil,
+        base: AtomicElement?? = nil,
         bindRef: String?? = nil,
         breakpoint: Int?? = nil,
         children: [AtomicElement]?? = nil,
@@ -935,7 +999,9 @@ extension AtomicElement {
         monospacedDigits: Bool?? = nil,
         opacity: Double?? = nil,
         orientation: Orientation?? = nil,
+        overlays: [AtomicOverlay]?? = nil,
         padding: Spacing?? = nil,
+        pageIndicator: PageIndicator?? = nil,
         paging: Bool?? = nil,
         placeholder: String?? = nil,
         rows: [[String: String]]?? = nil,
@@ -966,6 +1032,7 @@ extension AtomicElement {
             aspectRatio: aspectRatio ?? self.aspectRatio,
             background: background ?? self.background,
             badge: badge ?? self.badge,
+            base: base ?? self.base,
             bindRef: bindRef ?? self.bindRef,
             breakpoint: breakpoint ?? self.breakpoint,
             children: children ?? self.children,
@@ -994,7 +1061,9 @@ extension AtomicElement {
             monospacedDigits: monospacedDigits ?? self.monospacedDigits,
             opacity: opacity ?? self.opacity,
             orientation: orientation ?? self.orientation,
+            overlays: overlays ?? self.overlays,
             padding: padding ?? self.padding,
+            pageIndicator: pageIndicator ?? self.pageIndicator,
             paging: paging ?? self.paging,
             placeholder: placeholder ?? self.placeholder,
             rows: rows ?? self.rows,
@@ -1399,6 +1468,10 @@ extension Section {
 }
 
 /// Position of the badge within the parent bounds
+///
+/// Position of the overlay within the base element bounds.
+///
+/// Position of the indicator within the ScrollContainer bounds.
 enum BadgeAlignment: String, Codable {
     case bottomCenter = "bottomCenter"
     case bottomEnd = "bottomEnd"
@@ -1409,6 +1482,63 @@ enum BadgeAlignment: String, Codable {
     case topCenter = "topCenter"
     case topEnd = "topEnd"
     case topStart = "topStart"
+}
+
+/// Outer space between the element and its siblings or parent edges. Applied outside the
+/// element's background, border, corner radius, and shadow — use this for sibling-to-sibling
+/// spacing instead of Spacer siblings when inhomogeneous gaps are needed.
+///
+/// Optional edge offsets from the aligned base bounds.
+///
+/// Inner space between the element's own background/border and its content.
+///
+/// Outer margin (space between the surface and its siblings / screen edge).
+///
+/// Inner padding (space between the surface edge and the content it wraps).
+// MARK: - Spacing
+struct Spacing: Codable {
+    let bottom, end, start, top: Int?
+}
+
+// MARK: Spacing convenience initializers and mutators
+
+extension Spacing {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(Spacing.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        bottom: Int?? = nil,
+        end: Int?? = nil,
+        start: Int?? = nil,
+        top: Int?? = nil
+    ) -> Spacing {
+        return Spacing(
+            bottom: bottom ?? self.bottom,
+            end: end ?? self.end,
+            start: start ?? self.start,
+            top: top ?? self.top
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
 }
 
 /// Section-level accessibility metadata (landmark role, live region, heading)
@@ -1883,25 +2013,32 @@ enum Format: String, Codable {
     case mmSs = "mm:ss"
 }
 
-/// Outer space between the element and its siblings or parent edges. Applied outside the
-/// element's background, border, corner radius, and shadow — use this for sibling-to-sibling
-/// spacing instead of Spacer siblings when inhomogeneous gaps are needed.
-///
-/// Inner space between the element's own background/border and its content.
-///
-/// Outer margin (space between the surface and its siblings / screen edge).
-///
-/// Inner padding (space between the surface edge and the content it wraps).
-// MARK: - Spacing
-struct Spacing: Codable {
-    let bottom, end, start, top: Int?
+enum Orientation: String, Codable {
+    case horizontal = "horizontal"
+    case vertical = "vertical"
 }
 
-// MARK: Spacing convenience initializers and mutators
+/// Optional ScrollContainer page indicator. Clients render it only when declared.
+///
+/// Server-declared scroll page indicator presentation for ScrollContainer. Clients own local
+/// scroll state only to realize the declared affordance.
+// MARK: - PageIndicator
+struct PageIndicator: Codable {
+    /// Active indicator color.
+    let activeColor: String?
+    /// Position of the indicator within the ScrollContainer bounds.
+    let alignment: BadgeAlignment
+    /// Inactive indicator color.
+    let color: String?
+    /// Indicator visualization style.
+    let style: Style
+}
 
-extension Spacing {
+// MARK: PageIndicator convenience initializers and mutators
+
+extension PageIndicator {
     init(data: Data) throws {
-        self = try newJSONDecoder().decode(Spacing.self, from: data)
+        self = try newJSONDecoder().decode(PageIndicator.self, from: data)
     }
 
     init(_ json: String, using encoding: String.Encoding = .utf8) throws {
@@ -1916,16 +2053,16 @@ extension Spacing {
     }
 
     func with(
-        bottom: Int?? = nil,
-        end: Int?? = nil,
-        start: Int?? = nil,
-        top: Int?? = nil
-    ) -> Spacing {
-        return Spacing(
-            bottom: bottom ?? self.bottom,
-            end: end ?? self.end,
-            start: start ?? self.start,
-            top: top ?? self.top
+        activeColor: String?? = nil,
+        alignment: BadgeAlignment? = nil,
+        color: String?? = nil,
+        style: Style? = nil
+    ) -> PageIndicator {
+        return PageIndicator(
+            activeColor: activeColor ?? self.activeColor,
+            alignment: alignment ?? self.alignment,
+            color: color ?? self.color,
+            style: style ?? self.style
         )
     }
 
@@ -1938,9 +2075,9 @@ extension Spacing {
     }
 }
 
-enum Orientation: String, Codable {
-    case horizontal = "horizontal"
-    case vertical = "vertical"
+/// Indicator visualization style.
+enum Style: String, Codable {
+    case dots = "dots"
 }
 
 /// Drop shadow applied to the element. Replaces elevation with richer CSS/SwiftUI shadow

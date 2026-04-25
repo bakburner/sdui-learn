@@ -5,20 +5,30 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment as ComposeAlignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.nba.sdui.core.models.generated.Alignment
 import com.nba.sdui.core.models.generated.AtomicElement
+import com.nba.sdui.core.models.generated.BadgeAlignment
 import com.nba.sdui.core.models.generated.CrossAlignment
+import com.nba.sdui.core.models.generated.Style
 import com.nba.sdui.core.models.generated.UIDirection
+import com.nba.sdui.core.renderer.ColorTokenResolver
 import com.nba.sdui.core.renderer.applyAccessibility
 import com.nba.sdui.core.state.SduiAction
 
@@ -50,57 +60,169 @@ fun AtomicScrollContainer(
     if (element.showIndicators == true) {
         Log.w(TAG, "showIndicators=true is decoded but Compose Lazy containers do not expose scrollbars here; scrolling remains enabled")
     }
+    val showPageDots = element.paging == true && element.pageIndicator?.style == Style.Dots && children.size > 1
 
     AtomicBox(element, screenState, onAction) { boxModifier ->
         val a11yModifier = boxModifier.applyAccessibility(element.accessibility)
         if (element.paging == true) {
             val pagerState = rememberPagerState(pageCount = { children.size })
-            if (isHorizontal) {
-                HorizontalPager(
-                    state = pagerState,
-                    modifier = a11yModifier,
-                    pageSpacing = gap
-                ) { page ->
-                    Box(modifier = childCrossAxisModifier(element, isHorizontal)) {
-                        AtomicRouter(children[page], screenState, onAction, depth = depth + 1, onStateChange = onStateChange, sectionSlotDepth = sectionSlotDepth)
+            Box(modifier = a11yModifier) {
+                if (isHorizontal) {
+                    HorizontalPager(
+                        state = pagerState,
+                        modifier = Modifier,
+                        pageSpacing = gap
+                    ) { page ->
+                        Box(modifier = childCrossAxisModifier(element, isHorizontal)) {
+                            AtomicRouter(children[page], screenState, onAction, depth = depth + 1, onStateChange = onStateChange, sectionSlotDepth = sectionSlotDepth)
+                        }
+                    }
+                } else {
+                    VerticalPager(
+                        state = pagerState,
+                        modifier = Modifier,
+                        pageSpacing = gap
+                    ) { page ->
+                        Box(modifier = childCrossAxisModifier(element, isHorizontal)) {
+                            AtomicRouter(children[page], screenState, onAction, depth = depth + 1, onStateChange = onStateChange, sectionSlotDepth = sectionSlotDepth)
+                        }
                     }
                 }
-            } else {
-                VerticalPager(
-                    state = pagerState,
-                    modifier = a11yModifier,
-                    pageSpacing = gap
-                ) { page ->
-                    Box(modifier = childCrossAxisModifier(element, isHorizontal)) {
-                        AtomicRouter(children[page], screenState, onAction, depth = depth + 1, onStateChange = onStateChange, sectionSlotDepth = sectionSlotDepth)
-                    }
+                if (showPageDots) {
+                    PageIndicatorDots(
+                        count = children.size,
+                        activePage = pagerState.currentPage,
+                        inactiveColor = resolvedIndicatorColor(element.pageIndicator?.color, Color.White.copy(alpha = 0.45f)),
+                        activeColor = resolvedIndicatorColor(element.pageIndicator?.activeColor, Color.White),
+                        modifier = Modifier
+                            .align(pageIndicatorAlignment(element.pageIndicator?.alignment))
+                            .padding(8.dp)
+                    )
                 }
             }
         } else if (isHorizontal) {
-            LazyRow(
-                modifier = a11yModifier,
-                horizontalArrangement = horizontalArrangement(element.alignment, gap),
-                verticalAlignment = crossAxis as ComposeAlignment.Vertical
-            ) {
-                itemsIndexed(children) { _, child ->
-                    Box(modifier = childCrossAxisModifier(element, isHorizontal)) {
-                        AtomicRouter(child, screenState, onAction, depth = depth + 1, onStateChange = onStateChange, sectionSlotDepth = sectionSlotDepth)
+            val listState = rememberLazyListState()
+            if (showPageDots) {
+                Box(modifier = a11yModifier) {
+                    LazyRow(
+                        state = listState,
+                        modifier = Modifier,
+                        horizontalArrangement = horizontalArrangement(element.alignment, gap),
+                        verticalAlignment = crossAxis as ComposeAlignment.Vertical
+                    ) {
+                        itemsIndexed(children) { _, child ->
+                            Box(modifier = childCrossAxisModifier(element, isHorizontal)) {
+                                AtomicRouter(child, screenState, onAction, depth = depth + 1, onStateChange = onStateChange, sectionSlotDepth = sectionSlotDepth)
+                            }
+                        }
+                    }
+                    PageIndicatorDots(
+                        count = children.size,
+                        activePage = listState.firstVisibleItemIndex,
+                        inactiveColor = resolvedIndicatorColor(element.pageIndicator?.color, Color.White.copy(alpha = 0.45f)),
+                        activeColor = resolvedIndicatorColor(element.pageIndicator?.activeColor, Color.White),
+                        modifier = Modifier
+                            .align(pageIndicatorAlignment(element.pageIndicator?.alignment))
+                            .padding(8.dp)
+                    )
+                }
+            } else {
+                LazyRow(
+                    state = listState,
+                    modifier = a11yModifier,
+                    horizontalArrangement = horizontalArrangement(element.alignment, gap),
+                    verticalAlignment = crossAxis as ComposeAlignment.Vertical
+                ) {
+                    itemsIndexed(children) { _, child ->
+                        Box(modifier = childCrossAxisModifier(element, isHorizontal)) {
+                            AtomicRouter(child, screenState, onAction, depth = depth + 1, onStateChange = onStateChange, sectionSlotDepth = sectionSlotDepth)
+                        }
                     }
                 }
             }
         } else {
-            LazyColumn(
-                modifier = a11yModifier,
-                verticalArrangement = verticalArrangement(element.alignment, gap),
-                horizontalAlignment = crossAxis as ComposeAlignment.Horizontal
-            ) {
-                itemsIndexed(children) { _, child ->
-                    Box(modifier = childCrossAxisModifier(element, isHorizontal)) {
-                        AtomicRouter(child, screenState, onAction, depth = depth + 1, onStateChange = onStateChange, sectionSlotDepth = sectionSlotDepth)
+            val listState = rememberLazyListState()
+            if (showPageDots) {
+                Box(modifier = a11yModifier) {
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier,
+                        verticalArrangement = verticalArrangement(element.alignment, gap),
+                        horizontalAlignment = crossAxis as ComposeAlignment.Horizontal
+                    ) {
+                        itemsIndexed(children) { _, child ->
+                            Box(modifier = childCrossAxisModifier(element, isHorizontal)) {
+                                AtomicRouter(child, screenState, onAction, depth = depth + 1, onStateChange = onStateChange, sectionSlotDepth = sectionSlotDepth)
+                            }
+                        }
+                    }
+                    PageIndicatorDots(
+                        count = children.size,
+                        activePage = listState.firstVisibleItemIndex,
+                        inactiveColor = resolvedIndicatorColor(element.pageIndicator?.color, Color.White.copy(alpha = 0.45f)),
+                        activeColor = resolvedIndicatorColor(element.pageIndicator?.activeColor, Color.White),
+                        modifier = Modifier
+                            .align(pageIndicatorAlignment(element.pageIndicator?.alignment))
+                            .padding(8.dp)
+                    )
+                }
+            } else {
+                LazyColumn(
+                    state = listState,
+                    modifier = a11yModifier,
+                    verticalArrangement = verticalArrangement(element.alignment, gap),
+                    horizontalAlignment = crossAxis as ComposeAlignment.Horizontal
+                ) {
+                    itemsIndexed(children) { _, child ->
+                        Box(modifier = childCrossAxisModifier(element, isHorizontal)) {
+                            AtomicRouter(child, screenState, onAction, depth = depth + 1, onStateChange = onStateChange, sectionSlotDepth = sectionSlotDepth)
+                        }
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun PageIndicatorDots(
+    count: Int,
+    activePage: Int,
+    inactiveColor: Color,
+    activeColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        repeat(count) { index ->
+            Box(
+                modifier = Modifier
+                    .size(6.dp)
+                    .background(if (index == activePage) activeColor else inactiveColor, CircleShape)
+            )
+        }
+    }
+}
+
+@Composable
+private fun resolvedIndicatorColor(value: String?, fallback: Color): Color {
+    val resolved = ColorTokenResolver.resolve(value)
+    return if (resolved == Color.Unspecified) fallback else resolved
+}
+
+private fun pageIndicatorAlignment(alignment: BadgeAlignment?): ComposeAlignment {
+    return when (alignment) {
+        BadgeAlignment.TopStart -> ComposeAlignment.TopStart
+        BadgeAlignment.TopCenter -> ComposeAlignment.TopCenter
+        BadgeAlignment.TopEnd -> ComposeAlignment.TopEnd
+        BadgeAlignment.CenterStart -> ComposeAlignment.CenterStart
+        BadgeAlignment.Center -> ComposeAlignment.Center
+        BadgeAlignment.CenterEnd -> ComposeAlignment.CenterEnd
+        BadgeAlignment.BottomStart -> ComposeAlignment.BottomStart
+        BadgeAlignment.BottomEnd -> ComposeAlignment.BottomEnd
+        BadgeAlignment.BottomCenter, null -> ComposeAlignment.BottomCenter
     }
 }
 

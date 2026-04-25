@@ -118,6 +118,21 @@ public class DemoScreenComposer {
         // 21. SectionSlot (bidirectional bridge demo)
         sections.add(buildTypeLabel("SectionSlot (AdSlot in atomic tree) (Composite)"));
         sections.add(buildDemoSectionSlot());
+        // 22-28. Real-app feed atomic-composite patterns
+        sections.add(buildTypeLabel("RealAppSectionHeader (Composite)"));
+        sections.add(buildDemoRealAppSectionHeader());
+        sections.add(buildTypeLabel("StoryCircleRail (Composite)"));
+        sections.add(buildDemoStoryCircleRail());
+        sections.add(buildTypeLabel("FeaturedLiveGameHero (Composite)"));
+        sections.add(buildDemoFeaturedLiveGameHero());
+        sections.add(buildTypeLabel("EditorialOverlayRail (Composite)"));
+        sections.add(buildDemoEditorialOverlayRail());
+        sections.add(buildTypeLabel("UtilityCardGrid (Composite)"));
+        sections.add(buildDemoUtilityCardGrid());
+        sections.add(buildTypeLabel("LeagueCardRail (Composite)"));
+        sections.add(buildDemoLeagueCardRail());
+        sections.add(buildTypeLabel("GameScheduleList (Composite)"));
+        sections.add(buildDemoGameScheduleList());
 
         screen.set("sections", sections);
         utils.stampStringTableOnSections(screen, locale);
@@ -1024,6 +1039,111 @@ public class DemoScreenComposer {
         root.set("children", children);
 
         return atomicBuilder.wrapAsComposite("demo-section-slot", "demo-section-slot", root);
+    }
+
+    private ObjectNode buildDemoRealAppSectionHeader() {
+        ObjectNode section = atomicBuilder.buildRealAppSectionHeader(
+                "demo-real-app-header",
+                "demo_real_app_header",
+                "Top Stories",
+                "Fresh from around the league",
+                "More",
+                "nba://news");
+        section.set("surface", utils.sectionHeaderSurface());
+        return section;
+    }
+
+    private ObjectNode buildDemoStoryCircleRail() {
+        String[][] items = {
+                {"story-finals", "Finals", "https://cdn.nba.com/logos/nba/1610612738/primary/L/logo.svg", "LIVE", "nba://stories/finals"},
+                {"story-lakers", "Lakers", "https://cdn.nba.com/logos/nba/1610612747/primary/L/logo.svg", "NEW", "nba://stories/lakers"},
+                {"story-draft", "Draft", "https://cdn.nba.com/manage/2025/02/nba-draft-logo-1568x882.jpg", null, "nba://stories/draft"},
+                {"story-nbatv", "NBA TV", "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png", "LIVE", "nba://watch/nbatv"}
+        };
+        ObjectNode section = atomicBuilder.buildStoryCircleRail(
+                "demo-story-circle-rail", "demo_story_circle_rail", null, items);
+        section.set("surface", utils.railSurface());
+        return section;
+    }
+
+    private ObjectNode buildDemoEditorialOverlayRail() {
+        String[][] cards = {
+                {"editorial-1", "Five things to watch tonight", "Rivalries, returns, and playoff stakes",
+                        "https://cdn.nba.com/manage/2025/02/nba-standings-graphic-752x428.jpg", "NEW", "nba://article/five-things"},
+                {"editorial-2", "Inside the MVP race", "The numbers behind a tight finish",
+                        "https://cdn.nba.com/manage/2025/02/jokic-allstar-iso-752x428.jpg", null, "nba://article/mvp-race"},
+                {"editorial-3", "Rookies making noise", "First-year players changing rotations",
+                        "https://cdn.nba.com/manage/2025/02/risacher-hawks-drives-752x428.jpg", "LIVE", "nba://video/rookies"}
+        };
+        ObjectNode section = atomicBuilder.buildEditorialOverlayRail(
+                "demo-editorial-overlay-rail", "demo_editorial_overlay_rail", null, cards);
+        section.set("surface", utils.railSurface());
+        return section;
+    }
+
+    private ObjectNode buildDemoFeaturedLiveGameHero() {
+        String bosLogo = "https://cdn.nba.com/logos/nba/1610612738/primary/L/logo.svg";
+        String lalLogo = "https://cdn.nba.com/logos/nba/1610612747/primary/L/logo.svg";
+        String okcLogo = "https://cdn.nba.com/logos/nba/1610612760/primary/L/logo.svg";
+        String denLogo = "https://cdn.nba.com/logos/nba/1610612743/primary/L/logo.svg";
+        String[][] cards = {
+                {"hero-game-1", "LIVE", "Lakers at Celtics", "Fourth-quarter finish on NBA TV",
+                        "https://cdn.nba.com/manage/2025/02/nba-standings-graphic-752x428.jpg",
+                        "LAL", "89", lalLogo, "BOS", "94", bosLogo, "Q4 2:15", "BOS leads 3-2",
+                        "https://cdn.nba.com/manage/2025/01/league-pass-logo.png", "nba://game/0022400777"},
+                {"hero-game-2", "UP NEXT", "Thunder at Nuggets", "Coverage begins at 10:00 PM ET",
+                        "https://cdn.nba.com/manage/2025/02/warriors-thunder-preview-752x428.jpg",
+                        "OKC", null, okcLogo, "DEN", null, denLogo, "10:00 PM ET", "Season series tied",
+                        "https://cdn.nba.com/manage/2025/01/league-pass-logo.png", "nba://game/0022400778"}
+        };
+        ObjectNode section = atomicBuilder.buildFeaturedLiveGameHero(
+                "demo-featured-live-game-hero", "demo_featured_live_game_hero", null, cards);
+        section.set("surface", utils.railSurface());
+        return section;
+    }
+
+    private ObjectNode buildDemoUtilityCardGrid() {
+        String[][] items = {
+                {"utility-standings", "Standings", "Conference and division tables",
+                        "https://cdn.nba.com/manage/2025/02/nba-standings-graphic-752x428.jpg", "nba://standings"},
+                {"utility-stats", "Stats", "League leaders and team ranks",
+                        null, "nba://stats"},
+                {"utility-tickets", "Tickets", "Find games near you",
+                        null, "nba://tickets"},
+                {"utility-shop", "Shop", "Jerseys, hats, and more",
+                        "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png", "nba://shop"}
+        };
+        ObjectNode section = atomicBuilder.buildUtilityCardGrid(
+                "demo-utility-card-grid", "demo_utility_card_grid", "Around the League", items);
+        section.set("surface", utils.cardSurface());
+        return section;
+    }
+
+    private ObjectNode buildDemoLeagueCardRail() {
+        String[][] items = {
+                {"league-wnba", "WNBA", "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png", "nba://league/wnba"},
+                {"league-gleague", "G League", "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png", "nba://league/gleague"},
+                {"league-2k", "NBA 2K League", null, "nba://league/2k"}
+        };
+        ObjectNode section = atomicBuilder.buildLeagueCardRail(
+                "demo-league-card-rail", "demo_league_card_rail", "Other Leagues", items);
+        section.set("surface", utils.railSurface());
+        return section;
+    }
+
+    private ObjectNode buildDemoGameScheduleList() {
+        String[][] rows = {
+                {"schedule-demo-1", "NYK", "Knicks", "3", "109", "https://cdn.nba.com/logos/nba/1610612752/primary/L/logo.svg",
+                        "BOS", "Celtics", "2", "132", "https://cdn.nba.com/logos/nba/1610612738/primary/L/logo.svg",
+                        "Final", "BOS leads 1-0", "https://cdn.nba.com/manage/2025/01/league-pass-logo.png", "nba://game/0022400001", "nba://game/0022400001/actions"},
+                {"schedule-demo-2", "MIN", "Timberwolves", "6", "103", "https://cdn.nba.com/logos/nba/1610612750/primary/L/logo.svg",
+                        "LAL", "Lakers", "7", "110", "https://cdn.nba.com/logos/nba/1610612747/primary/L/logo.svg",
+                        "Final", null, "https://cdn.nba.com/manage/2025/01/league-pass-logo.png", "nba://game/0022400002", null}
+        };
+        ObjectNode section = atomicBuilder.buildGameScheduleList(
+                "demo-game-schedule-list", "demo_game_schedule_list", "Today", rows);
+        section.set("surface", utils.cardSurface());
+        return section;
     }
 
     // ── Private helpers ────────────────────────────────────────────────

@@ -65,6 +65,9 @@ struct AtomicRouter: View {
         case "LiveClock":
             AtomicLiveClockView(element: element)
 
+        case "OverlayContainer":
+            AtomicOverlayContainerView(element: element, screenState: screenState, onAction: onAction, depth: depth + 1)
+
         default:
             EmptyView()
                 .onAppear {

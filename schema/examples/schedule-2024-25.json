@@ -18,61 +18,70 @@
       "gameId": "0022400001",
       "date": "2024-10-22",
       "time": "7:30 PM ET",
-      "homeTeam": { "teamTricode": "BOS", "teamName": "Celtics", "teamId": 1610612738 },
-      "awayTeam": { "teamTricode": "NYK", "teamName": "Knicks", "teamId": 1610612752 },
+      "homeTeam": { "teamTricode": "BOS", "teamName": "Celtics", "teamId": 1610612738, "seed": "2", "logoUrl": "https://cdn.nba.com/logos/nba/1610612738/primary/L/logo.svg" },
+      "awayTeam": { "teamTricode": "NYK", "teamName": "Knicks", "teamId": 1610612752, "seed": "3", "logoUrl": "https://cdn.nba.com/logos/nba/1610612752/primary/L/logo.svg" },
       "status": "Final",
       "homeScore": 132,
-      "awayScore": 109
+      "awayScore": 109,
+      "seriesText": "BOS leads 1-0",
+      "broadcastLogoUrls": "https://cdn.nba.com/manage/2025/01/league-pass-logo.png",
+      "overflowUri": "nba://game/0022400001/actions"
     },
     {
       "gameId": "0022400002",
       "date": "2024-10-22",
       "time": "10:00 PM ET",
-      "homeTeam": { "teamTricode": "LAL", "teamName": "Lakers", "teamId": 1610612747 },
-      "awayTeam": { "teamTricode": "MIN", "teamName": "Timberwolves", "teamId": 1610612750 },
+      "homeTeam": { "teamTricode": "LAL", "teamName": "Lakers", "teamId": 1610612747, "seed": "7", "logoUrl": "https://cdn.nba.com/logos/nba/1610612747/primary/L/logo.svg" },
+      "awayTeam": { "teamTricode": "MIN", "teamName": "Timberwolves", "teamId": 1610612750, "seed": "6", "logoUrl": "https://cdn.nba.com/logos/nba/1610612750/primary/L/logo.svg" },
       "status": "Final",
       "homeScore": 110,
-      "awayScore": 103
+      "awayScore": 103,
+      "broadcastLogoUrls": "https://cdn.nba.com/manage/2025/01/league-pass-logo.png"
     },
     {
       "gameId": "0022400050",
       "date": "2024-11-15",
       "time": "7:00 PM ET",
-      "homeTeam": { "teamTricode": "MIL", "teamName": "Bucks", "teamId": 1610612749 },
-      "awayTeam": { "teamTricode": "CLE", "teamName": "Cavaliers", "teamId": 1610612739 },
+      "homeTeam": { "teamTricode": "MIL", "teamName": "Bucks", "teamId": 1610612749, "seed": "5", "logoUrl": "https://cdn.nba.com/logos/nba/1610612749/primary/L/logo.svg" },
+      "awayTeam": { "teamTricode": "CLE", "teamName": "Cavaliers", "teamId": 1610612739, "seed": "4", "logoUrl": "https://cdn.nba.com/logos/nba/1610612739/primary/L/logo.svg" },
       "status": "Final",
       "homeScore": 99,
-      "awayScore": 115
+      "awayScore": 115,
+      "seriesText": "CLE wins 115-99"
     },
     {
       "gameId": "0022400120",
       "date": "2024-12-25",
       "time": "12:00 PM ET",
-      "homeTeam": { "teamTricode": "GSW", "teamName": "Warriors", "teamId": 1610612744 },
-      "awayTeam": { "teamTricode": "LAL", "teamName": "Lakers", "teamId": 1610612747 },
+      "homeTeam": { "teamTricode": "GSW", "teamName": "Warriors", "teamId": 1610612744, "seed": "8", "logoUrl": "https://cdn.nba.com/logos/nba/1610612744/primary/L/logo.svg" },
+      "awayTeam": { "teamTricode": "LAL", "teamName": "Lakers", "teamId": 1610612747, "seed": "7", "logoUrl": "https://cdn.nba.com/logos/nba/1610612747/primary/L/logo.svg" },
       "status": "Final",
       "homeScore": 113,
-      "awayScore": 118
+      "awayScore": 118,
+      "broadcastLogoUrls": "https://cdn.nba.com/manage/2025/01/league-pass-logo.png"
     },
     {
       "gameId": "0022400200",
       "date": "2025-01-20",
       "time": "8:00 PM ET",
-      "homeTeam": { "teamTricode": "PHX", "teamName": "Suns", "teamId": 1610612756 },
-      "awayTeam": { "teamTricode": "DEN", "teamName": "Nuggets", "teamId": 1610612743 },
+      "homeTeam": { "teamTricode": "PHX", "teamName": "Suns", "teamId": 1610612756, "seed": "6", "logoUrl": "https://cdn.nba.com/logos/nba/1610612756/primary/L/logo.svg" },
+      "awayTeam": { "teamTricode": "DEN", "teamName": "Nuggets", "teamId": 1610612743, "seed": "3", "logoUrl": "https://cdn.nba.com/logos/nba/1610612743/primary/L/logo.svg" },
       "status": "Final",
       "homeScore": 121,
-      "awayScore": 119
+      "awayScore": 119,
+      "seriesText": "OT Final"
     },
     {
       "gameId": "0022400350",
       "date": "2025-03-10",
       "time": "7:30 PM ET",
-      "homeTeam": { "teamTricode": "BOS", "teamName": "Celtics", "teamId": 1610612738 },
-      "awayTeam": { "teamTricode": "MIA", "teamName": "Heat", "teamId": 1610612748 },
+      "homeTeam": { "teamTricode": "BOS", "teamName": "Celtics", "teamId": 1610612738, "seed": "2", "logoUrl": "https://cdn.nba.com/logos/nba/1610612738/primary/L/logo.svg" },
+      "awayTeam": { "teamTricode": "MIA", "teamName": "Heat", "teamId": 1610612748, "seed": "8", "logoUrl": "https://cdn.nba.com/logos/nba/1610612748/primary/L/logo.svg" },
       "status": "Scheduled",
       "homeScore": 0,
-      "awayScore": 0
+      "awayScore": 0,
+      "seriesText": "Tickets available",
+      "broadcastLogoUrls": "https://cdn.nba.com/manage/2025/01/league-pass-logo.png"
     }
   ]
 }

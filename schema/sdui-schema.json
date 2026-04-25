@@ -410,6 +410,31 @@
         "alignment": { "$ref": "#/definitions/BadgeAlignment", "description": "Position of the badge within the parent bounds" }
       }
     },
+    "AtomicOverlay": {
+      "type": "object",
+      "description": "One server-composed overlay layer positioned over an OverlayContainer base element.",
+      "required": ["element"],
+      "properties": {
+        "alignment": { "$ref": "#/definitions/BadgeAlignment", "description": "Position of the overlay within the base element bounds." },
+        "inset": { "$ref": "#/definitions/Spacing", "description": "Optional edge offsets from the aligned base bounds." },
+        "element": { "$ref": "#/definitions/AtomicElement", "description": "Atomic element to render in this overlay layer." }
+      }
+    },
+    "PageIndicator": {
+      "type": "object",
+      "description": "Server-declared scroll page indicator presentation for ScrollContainer. Clients own local scroll state only to realize the declared affordance.",
+      "required": ["style", "alignment"],
+      "properties": {
+        "style": {
+          "type": "string",
+          "enum": ["dots"],
+          "description": "Indicator visualization style."
+        },
+        "alignment": { "$ref": "#/definitions/BadgeAlignment", "description": "Position of the indicator within the ScrollContainer bounds." },
+        "color": { "$ref": "#/definitions/ColorToken", "description": "Inactive indicator color." },
+        "activeColor": { "$ref": "#/definitions/ColorToken", "description": "Active indicator color." }
+      }
+    },
     "AtomicElement": {
       "type": "object",
       "description": "Atomic UI primitive — server-composed building block for the atomic rendering layer",
@@ -417,7 +442,7 @@
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["Container", "Text", "Image", "Button", "Spacer", "Divider", "ScrollContainer", "Conditional", "DisplayGrid", "SectionSlot", "LiveClock"]
+          "enum": ["Container", "Text", "Image", "Button", "Spacer", "Divider", "ScrollContainer", "Conditional", "DisplayGrid", "SectionSlot", "LiveClock", "OverlayContainer"]
         },
         "id": { "type": "string" },
         "accessibility": {
@@ -516,8 +541,15 @@
         "opacity": { "type": "number", "minimum": 0, "maximum": 1, "default": 1, "description": "Element opacity (0=transparent, 1=opaque). Enables duration badge overlays and faded states." },
         "shadow": { "$ref": "#/definitions/Shadow", "description": "Drop shadow applied to the element. Replaces elevation with richer CSS/SwiftUI shadow semantics." },
         "badge": { "$ref": "#/definitions/Badge", "description": "Z-positioned child element (e.g. 'LIVE' pill, duration label) overlaid on this element." },
+        "base": { "$ref": "#/definitions/AtomicElement", "description": "OverlayContainer base element. Rendered first and sized by its own atomic box model." },
+        "overlays": {
+          "type": "array",
+          "description": "OverlayContainer layers rendered over the base element in server order.",
+          "items": { "$ref": "#/definitions/AtomicOverlay" }
+        },
         "textAlign": { "type": "string", "enum": ["start", "center", "end"], "default": "start", "description": "Text alignment within the element. Used for centered headings, right-aligned numeric values." },
         "showIndicators": { "type": "boolean", "default": false, "description": "Whether to show scroll indicators on ScrollContainer. Default false for clean carousel presentation." },
+        "pageIndicator": { "$ref": "#/definitions/PageIndicator", "description": "Optional ScrollContainer page indicator. Clients render it only when declared." },
         "monospacedDigits": { "type": "boolean", "default": false, "description": "Use tabular/monospaced digit rendering to prevent layout shift on numeric text changes (scores, clocks)." },
         "snapshotSeconds": { "type": "integer", "minimum": 0, "description": "LiveClock: clock value in seconds at the moment captured by snapshotAt. Clients interpolate from this anchor while isRunning == true. Required when type == 'LiveClock'." },
         "snapshotAt": { "type": "string", "format": "date-time", "description": "LiveClock: wall-clock instant (ISO-8601) at which snapshotSeconds was captured. Clients compute elapsed = now - snapshotAt and derive the displayed value. Required when type == 'LiveClock'." },

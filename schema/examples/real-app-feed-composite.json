@@ -1,0 +1,375 @@
+{
+  "id": "real-app-feed-composite",
+  "schemaVersion": "1.0",
+  "title": "Real App Feed Composite",
+  "analyticsId": "real_app_feed_composite",
+  "sections": [
+    {
+      "id": "real-app-feed-atomic-composite",
+      "type": "AtomicComposite",
+      "analyticsId": "real_app_feed_atomic_composite",
+      "refreshPolicy": {
+        "type": "static"
+      },
+      "surface": {
+        "margin": {
+          "top": 16,
+          "bottom": 16,
+          "start": 16,
+          "end": 16
+        }
+      },
+      "data": {
+        "ui": {
+          "id": "real-app-feed-root",
+          "type": "Container",
+          "direction": "column",
+          "gap": 20,
+          "padding": {
+            "top": 16,
+            "bottom": 16,
+            "start": 16,
+            "end": 16
+          },
+          "children": [
+            {
+              "type": "Container",
+              "direction": "row",
+              "alignment": "spaceBetween",
+              "crossAlignment": "center",
+              "fillWidth": true,
+              "children": [
+                {
+                  "type": "Text",
+                  "content": "Editor Picks",
+                  "variant": "titleMedium",
+                  "weight": "bold",
+                  "color": "token:color.text.primary"
+                },
+                {
+                  "type": "Button",
+                  "label": "More",
+                  "variant": "text",
+                  "actions": [
+                    {
+                      "trigger": "onTap",
+                      "type": "navigate",
+                      "targetUri": "nba://news"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "editorial-overlay-card",
+              "type": "OverlayContainer",
+              "cornerRadius": 16,
+              "actions": [
+                {
+                  "trigger": "onTap",
+                  "type": "navigate",
+                  "targetUri": "nba://article/giannis-dunk"
+                }
+              ],
+              "base": {
+                "type": "Image",
+                "src": "https://cdn.nba.com/manage/2025/02/giannis-dunk-752x428.jpg",
+                "variant": "thumbnail",
+                "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
+                "fillWidth": true,
+                "height": 220,
+                "fit": "cover",
+                "cornerRadius": 16,
+                "accessibility": {
+                  "label": "Giannis dunk highlight"
+                }
+              },
+              "overlays": [
+                {
+                  "alignment": "bottomCenter",
+                  "inset": {
+                    "start": 0,
+                    "end": 0,
+                    "bottom": 0
+                  },
+                  "element": {
+                    "type": "Container",
+                    "fillWidth": true,
+                    "height": 128,
+                    "background": {
+                      "colors": [
+                        "#00000000",
+                        "#000000CC"
+                      ],
+                      "direction": "vertical"
+                    },
+                    "cornerRadii": {
+                      "bottomStart": 16,
+                      "bottomEnd": 16
+                    }
+                  }
+                },
+                {
+                  "alignment": "bottomStart",
+                  "inset": {
+                    "start": 16,
+                    "end": 16,
+                    "bottom": 16
+                  },
+                  "element": {
+                    "type": "Container",
+                    "direction": "column",
+                    "gap": 4,
+                    "children": [
+                      {
+                        "type": "Text",
+                        "content": "HIGHLIGHT",
+                        "variant": "labelSmall",
+                        "weight": "bold",
+                        "color": "token:color.text.inverse",
+                        "background": "token:color.brand.live",
+                        "cornerRadius": 4,
+                        "padding": {
+                          "top": 2,
+                          "bottom": 2,
+                          "start": 6,
+                          "end": 6
+                        }
+                      },
+                      {
+                        "type": "Text",
+                        "content": "Monster Dunk by Giannis",
+                        "variant": "titleMedium",
+                        "weight": "bold",
+                        "color": "token:color.text.inverse",
+                        "maxLines": 2
+                      },
+                      {
+                        "type": "Text",
+                        "content": "Bucks vs. Celtics - Q3",
+                        "variant": "labelSmall",
+                        "color": "token:color.text.inverse",
+                        "opacity": 0.8,
+                        "maxLines": 1
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "type": "Text",
+              "content": "Featured",
+              "variant": "titleMedium",
+              "weight": "bold",
+              "color": "token:color.text.primary"
+            },
+            {
+              "id": "featured-paged-carousel",
+              "type": "ScrollContainer",
+              "direction": "row",
+              "gap": 12,
+              "paging": true,
+              "snapAlignment": "center",
+              "showIndicators": false,
+              "pageIndicator": {
+                "style": "dots",
+                "alignment": "bottomCenter",
+                "color": "#FFFFFF66",
+                "activeColor": "#FFFFFF"
+              },
+              "padding": {
+                "bottom": 28
+              },
+              "children": [
+                {
+                  "id": "featured-page-giannis",
+                  "type": "OverlayContainer",
+                  "width": 300,
+                  "cornerRadius": 16,
+                  "base": {
+                    "type": "Image",
+                    "src": "https://cdn.nba.com/manage/2025/02/giannis-dunk-752x428.jpg",
+                    "variant": "thumbnail",
+                    "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
+                    "width": 300,
+                    "height": 176,
+                    "fit": "cover",
+                    "cornerRadius": 16,
+                    "accessibility": {
+                      "label": "Giannis dunk feature"
+                    }
+                  },
+                  "overlays": [
+                    {
+                      "alignment": "bottomCenter",
+                      "inset": {
+                        "start": 0,
+                        "end": 0,
+                        "bottom": 0
+                      },
+                      "element": {
+                        "type": "Container",
+                        "fillWidth": true,
+                        "height": 96,
+                        "background": {
+                          "colors": [
+                            "#00000000",
+                            "#000000CC"
+                          ],
+                          "direction": "vertical"
+                        },
+                        "cornerRadii": {
+                          "bottomStart": 16,
+                          "bottomEnd": 16
+                        }
+                      }
+                    },
+                    {
+                      "alignment": "bottomStart",
+                      "inset": {
+                        "start": 14,
+                        "end": 14,
+                        "bottom": 14
+                      },
+                      "element": {
+                        "type": "Text",
+                        "content": "Monster Dunk by Giannis",
+                        "variant": "bodyMedium",
+                        "weight": "bold",
+                        "color": "token:color.text.inverse",
+                        "maxLines": 2
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "featured-page-curry",
+                  "type": "OverlayContainer",
+                  "width": 300,
+                  "cornerRadius": 16,
+                  "base": {
+                    "type": "Image",
+                    "src": "https://cdn.nba.com/manage/2025/02/curry-buzzer-752x428.jpg",
+                    "variant": "thumbnail",
+                    "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
+                    "width": 300,
+                    "height": 176,
+                    "fit": "cover",
+                    "cornerRadius": 16,
+                    "accessibility": {
+                      "label": "Curry buzzer beater feature"
+                    }
+                  },
+                  "overlays": [
+                    {
+                      "alignment": "bottomCenter",
+                      "inset": {
+                        "start": 0,
+                        "end": 0,
+                        "bottom": 0
+                      },
+                      "element": {
+                        "type": "Container",
+                        "fillWidth": true,
+                        "height": 96,
+                        "background": {
+                          "colors": [
+                            "#00000000",
+                            "#000000CC"
+                          ],
+                          "direction": "vertical"
+                        },
+                        "cornerRadii": {
+                          "bottomStart": 16,
+                          "bottomEnd": 16
+                        }
+                      }
+                    },
+                    {
+                      "alignment": "bottomStart",
+                      "inset": {
+                        "start": 14,
+                        "end": 14,
+                        "bottom": 14
+                      },
+                      "element": {
+                        "type": "Text",
+                        "content": "Curry Buzzer Beater from Half Court",
+                        "variant": "bodyMedium",
+                        "weight": "bold",
+                        "color": "token:color.text.inverse",
+                        "maxLines": 2
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "featured-page-jokic",
+                  "type": "OverlayContainer",
+                  "width": 300,
+                  "cornerRadius": 16,
+                  "base": {
+                    "type": "Image",
+                    "src": "https://cdn.nba.com/manage/2025/02/jokic-assist-752x428.jpg",
+                    "variant": "thumbnail",
+                    "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
+                    "width": 300,
+                    "height": 176,
+                    "fit": "cover",
+                    "cornerRadius": 16,
+                    "accessibility": {
+                      "label": "Jokic no-look dime feature"
+                    }
+                  },
+                  "overlays": [
+                    {
+                      "alignment": "bottomCenter",
+                      "inset": {
+                        "start": 0,
+                        "end": 0,
+                        "bottom": 0
+                      },
+                      "element": {
+                        "type": "Container",
+                        "fillWidth": true,
+                        "height": 96,
+                        "background": {
+                          "colors": [
+                            "#00000000",
+                            "#000000CC"
+                          ],
+                          "direction": "vertical"
+                        },
+                        "cornerRadii": {
+                          "bottomStart": 16,
+                          "bottomEnd": 16
+                        }
+                      }
+                    },
+                    {
+                      "alignment": "bottomStart",
+                      "inset": {
+                        "start": 14,
+                        "end": 14,
+                        "bottom": 14
+                      },
+                      "element": {
+                        "type": "Text",
+                        "content": "Jokic No-Look Dime",
+                        "variant": "bodyMedium",
+                        "weight": "bold",
+                        "color": "token:color.text.inverse",
+                        "maxLines": 2
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

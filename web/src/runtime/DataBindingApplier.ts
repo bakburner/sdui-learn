@@ -45,6 +45,16 @@ export function applyDataBindings<T extends Record<string, unknown>>(
         if (missKey) {
           consecutiveMissCounts.delete(missKey);
         }
+        const boundValue = applyTransform(binding.transform, value, incomingMessage);
+        if (boundValue === UNKNOWN_TRANSFORM) {
+          // Server declared a transform this client doesn't recognize. Skip
+          // the write rather than downgrading to the raw value, which would
+          // silently drop a server-declared semantic.
+          console.warn(
+            `[DataBinding] Unknown transform '${binding.transform}' for ${binding.targetPath}; skipping write to avoid downgrading server semantics.`
+          );
+          continue;
+        }
         // Check if there's a stringKey for this target path
         const stringKey = bindings.stringKeys?.[binding.targetPath];
         if (stringKey && stringTable) {
@@ -54,12 +64,12 @@ export function applyDataBindings<T extends Record<string, unknown>>(
             console.log(`[DataBinding] ${binding.sourcePath} -> ${binding.targetPath}: stringKey '${stringKey}' resolved to '${resolved}'`);
           } else {
             // Fall back to raw value when stringKey not found in table
-            setValueByPath(updated, binding.targetPath, value);
-            console.warn(`[DataBinding] stringKey '${stringKey}' not found in stringTable for ${binding.targetPath}, using raw value:`, value);
+            setValueByPath(updated, binding.targetPath, boundValue);
+            console.warn(`[DataBinding] stringKey '${stringKey}' not found in stringTable for ${binding.targetPath}, using raw value:`, boundValue);
           }
         } else {
-          setValueByPath(updated, binding.targetPath, value);
-          console.log(`[DataBinding] ${binding.sourcePath} -> ${binding.targetPath}:`, value);
+          setValueByPath(updated, binding.targetPath, boundValue);
+          console.log(`[DataBinding] ${binding.sourcePath} -> ${binding.targetPath}:`, boundValue);
         }
       } else {
         // Source path missing — track consecutive misses
@@ -87,6 +97,90 @@ export function applyDataBindings<T extends Record<string, unknown>>(
   }
 
   return updated;
+}
+
+/**
+ * Sentinel returned from {@link applyTransform} when the server declared a
+ * transform value this client build does not recognize. Callers must skip
+ * the write rather than fall back to the untransformed value, which would
+ * silently drop server-declared semantics.
+ */
+const UNKNOWN_TRANSFORM = Symbol('UNKNOWN_TRANSFORM');
+
+function applyTransform(
+  transform: string | undefined,
+  value: unknown,
+  root: Record<string, unknown>
+): unknown {
+  switch (transform) {
+    case 'liveClockSnapshot':
+      return normalizeLiveClockSnapshot(value, root);
+    case undefined:
+      return value;
+    default:
+      return UNKNOWN_TRANSFORM;
+  }
+}
+
+function normalizeLiveClockSnapshot(
+  value: unknown,
+  root: Record<string, unknown>
+): { snapshotSeconds: number; snapshotAt: string; isRunning: boolean } {
+  const objectValue = isRecord(value) ? value : undefined;
+  const rawSeconds = objectValue?.snapshotSeconds ?? objectValue?.seconds ?? objectValue?.remainingSeconds ?? value;
+  const snapshotSeconds = parseClockSeconds(rawSeconds) ?? 0;
+  const snapshotAt = asString(objectValue?.snapshotAt ?? objectValue?.snapshotAtIso ?? root.snapshotAt) ?? new Date().toISOString();
+  const runningValue = objectValue?.isRunning ?? objectValue?.clockRunning ?? objectValue?.gameClockRunning
+    ?? root.isRunning ?? root.clockRunning ?? root.gameClockRunning;
+  return {
+    snapshotSeconds,
+    snapshotAt,
+    isRunning: asBoolean(runningValue) ?? false,
+  };
+}
+
+function parseClockSeconds(value: unknown): number | undefined {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return Math.max(0, Math.floor(value));
+  }
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  const durationMatch = /^PT(?:(\d+(?:\.\d+)?)H)?(?:(\d+(?:\.\d+)?)M)?(?:(\d+(?:\.\d+)?)S)?$/i.exec(trimmed);
+  if (durationMatch) {
+    const hours = Number(durationMatch[1] ?? 0);
+    const minutes = Number(durationMatch[2] ?? 0);
+    const seconds = Number(durationMatch[3] ?? 0);
+    return Math.max(0, Math.floor(hours * 3600 + minutes * 60 + seconds));
+  }
+
+  const clockMatch = /(?:^|\b)(\d{1,2}):([0-5]\d)(?:\.\d+)?(?:\b|$)/.exec(trimmed);
+  if (clockMatch) {
+    return Number(clockMatch[1]) * 60 + Number(clockMatch[2]);
+  }
+
+  return undefined;
+}
+
+function asBoolean(value: unknown): boolean | undefined {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value !== 0;
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (['true', '1', 'yes', 'y'].includes(normalized)) return true;
+    if (['false', '0', 'no', 'n'].includes(normalized)) return false;
+  }
+  return undefined;
+}
+
+function asString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim().length > 0 ? value : undefined;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 /**

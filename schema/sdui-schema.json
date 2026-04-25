@@ -299,6 +299,11 @@
         "targetPath": {
           "type": "string",
           "description": "Dot-path to component property (e.g., 'homeScore.content')"
+        },
+        "transform": {
+          "type": "string",
+          "enum": ["liveClockSnapshot"],
+          "description": "Optional server-declared transform applied by shared client binding infrastructure before writing the target value. liveClockSnapshot normalizes clock payload values into { snapshotSeconds, snapshotAt, isRunning }."
         }
       }
     },

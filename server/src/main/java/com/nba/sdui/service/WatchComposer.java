@@ -488,38 +488,41 @@ public class WatchComposer {
     private ObjectNode buildSubscribeHeroUi(String title, String subtitle, String logoUrl,
                                              String[] features, TierSpec[] tierSpecs) {
         ObjectNode root = atomicBuilder.container("column", "start", "center");
-        root.put("gap", 6);
+        root.put("gap", 8);
+        root.put("fillWidth", true);
         ArrayNode children = objectMapper.createArrayNode();
 
         if (logoUrl != null) {
-            children.add(atomicBuilder.image(logoUrl, 0, 48, "contain"));
+            children.add(atomicBuilder.image(logoUrl, 0, 64, "contain"));
             children.add(atomicBuilder.spacer(8));
         }
-        children.add(atomicBuilder.text(title, "headlineSmall", "bold", ColorTokens.TEXT_INVERSE, null));
+        children.add(atomicBuilder.text(title, "headlineMedium", "bold", ColorTokens.TEXT_INVERSE, null));
         if (subtitle != null) {
-            children.add(atomicBuilder.text(subtitle, "bodyMedium", null, ColorTokens.TEXT_INVERSE, null));
+            children.add(atomicBuilder.text(subtitle, "bodyLarge", null, ColorTokens.TEXT_INVERSE, null));
         }
-        children.add(atomicBuilder.spacer(12));
+        children.add(atomicBuilder.spacer(16));
 
         ObjectNode featuresCol = atomicBuilder.container("column", "start", "start");
-        featuresCol.put("gap", 6);
+        featuresCol.put("gap", 8);
+        featuresCol.put("fillWidth", true);
         ArrayNode featureChildren = objectMapper.createArrayNode();
         for (String feature : features) {
             ObjectNode row = atomicBuilder.container("row", "start", "center");
             row.put("gap", 8);
             ArrayNode rowChildren = objectMapper.createArrayNode();
-            rowChildren.add(atomicBuilder.text("✓", "bodyMedium", "bold", "token:color.feedback.success.70", null));
-            rowChildren.add(atomicBuilder.text(feature, "bodyMedium", null, ColorTokens.TEXT_INVERSE, null));
+            rowChildren.add(atomicBuilder.text("✓", "bodyLarge", "bold", "token:color.feedback.success.70", null));
+            rowChildren.add(atomicBuilder.text(feature, "bodyLarge", null, ColorTokens.TEXT_INVERSE, null));
             row.set("children", rowChildren);
             featureChildren.add(row);
         }
         featuresCol.set("children", featureChildren);
         children.add(featuresCol);
 
-        children.add(atomicBuilder.spacer(16));
+        children.add(atomicBuilder.spacer(20));
 
-        ObjectNode tiersCol = atomicBuilder.container("column", "start", "start");
-        tiersCol.put("gap", 12);
+        ObjectNode tiersCol = atomicBuilder.container("column", "start", "stretch");
+        tiersCol.put("gap", 16);
+        tiersCol.put("fillWidth", true);
         ArrayNode tierChildren = objectMapper.createArrayNode();
         for (TierSpec t : tierSpecs) {
             tierChildren.add(buildTierUi(t));
@@ -534,25 +537,25 @@ public class WatchComposer {
     /** Build an atomic Container that visually represents one subscription tier. */
     private ObjectNode buildTierUi(TierSpec t) {
         ObjectNode card = atomicBuilder.container("column", "start", "start");
-        card.put("gap", 4);
+        card.put("gap", 6);
         card.put("background", "rgba(255,255,255,0.1)");
-        card.put("cornerRadius", 12);
-        card.set("padding", atomicBuilder.padding(16, 16, 16, 16));
+        card.put("cornerRadius", 16);
+        card.set("padding", atomicBuilder.padding(22, 22, 20, 20));
         card.put("fillWidth", true);
 
         ArrayNode cardChildren = objectMapper.createArrayNode();
         if (t.badgeText != null) {
-            cardChildren.add(atomicBuilder.text(t.badgeText, "labelSmall", "bold", "token:color.secondary.50", null));
+            cardChildren.add(atomicBuilder.text(t.badgeText, "labelMedium", "bold", "token:color.secondary.50", null));
         }
-        cardChildren.add(atomicBuilder.text(t.name, "titleMedium", "bold", ColorTokens.TEXT_INVERSE, null));
-        cardChildren.add(atomicBuilder.text(t.price, "titleLarge", "bold", ColorTokens.TEXT_INVERSE, null));
+        cardChildren.add(atomicBuilder.text(t.name, "titleLarge", "bold", ColorTokens.TEXT_INVERSE, null));
+        cardChildren.add(atomicBuilder.text(t.price, "headlineSmall", "bold", ColorTokens.TEXT_INVERSE, null));
 
         if (t.features != null) {
             for (String f : t.features) {
-                cardChildren.add(atomicBuilder.text("• " + f, "bodySmall", null, ColorTokens.TEXT_INVERSE, null));
+                cardChildren.add(atomicBuilder.text("• " + f, "bodyMedium", null, ColorTokens.TEXT_INVERSE, null));
             }
         }
-        cardChildren.add(atomicBuilder.spacer(8));
+        cardChildren.add(atomicBuilder.spacer(10));
 
         ObjectNode tierAction = objectMapper.createObjectNode();
         tierAction.put("trigger", "onTap");

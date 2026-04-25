@@ -1389,7 +1389,22 @@ export interface DataBindingPath {
      * Dot-path to component property (e.g., 'homeScore.content')
      */
     targetPath: string;
+    /**
+     * Optional server-declared transform applied by shared client binding infrastructure before
+     * writing the target value. liveClockSnapshot normalizes clock payload values into {
+     * snapshotSeconds, snapshotAt, isRunning }.
+     */
+    transform?: Transform;
     [property: string]: any;
+}
+
+/**
+ * Optional server-declared transform applied by shared client binding infrastructure before
+ * writing the target value. liveClockSnapshot normalizes clock payload values into {
+ * snapshotSeconds, snapshotAt, isRunning }.
+ */
+export enum Transform {
+    LiveClockSnapshot = "liveClockSnapshot",
 }
 
 /**

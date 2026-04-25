@@ -298,7 +298,8 @@ public class DemoScreenComposer {
      */
     private ObjectNode buildDemoGamePanelScoreboard() {
         AtomicCompositeBuilder.GameClockSnapshot clock = new AtomicCompositeBuilder.GameClockSnapshot(
-                4 * 60 + 32, java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString(), true);
+                4 * 60 + 32, java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString(),
+                AtomicCompositeBuilder.DEMO_INITIAL_CLOCK_RUNNING);
         return atomicBuilder.buildGamePanelComposite(
                 "demo-game-panel-scoreboard",
                 "demo_game_panel_scoreboard",
@@ -691,7 +692,8 @@ public class DemoScreenComposer {
      */
     private ObjectNode buildDemoFeaturedGamePanel() {
         AtomicCompositeBuilder.GameClockSnapshot clock = new AtomicCompositeBuilder.GameClockSnapshot(
-                2 * 60 + 15, java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString(), true);
+                2 * 60 + 15, java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString(),
+                AtomicCompositeBuilder.DEMO_INITIAL_CLOCK_RUNNING);
         return atomicBuilder.buildGamePanelComposite(
                 "demo-featured-game-panel",
                 "demo_featured_game_panel",
@@ -768,10 +770,11 @@ public class DemoScreenComposer {
         ObjectNode root = atomicBuilder.container("column", "start", "start");
         root.put("gap", 4);
         ArrayNode children = objectMapper.createArrayNode();
-        children.add(atomicBuilder.text("Never Miss a Game", "titleMedium", "bold", "#FFFFFF", null));
+        children.add(atomicBuilder.text("Never Miss a Game", "titleMedium", "bold",
+                ColorTokens.TEXT_INVERSE, null));
         children.add(atomicBuilder.text(
                 "Stream every out-of-market game live with NBA League Pass.",
-                "bodySmall", null, "rgba(255,255,255,0.85)", null));
+                "bodySmall", null, ColorTokens.TEXT_INVERSE, null));
         children.add(atomicBuilder.spacer(8));
         children.add(atomicBuilder.button("Subscribe Now", "primary", ctaAction.deepCopy()));
         root.set("children", children);
@@ -800,16 +803,18 @@ public class DemoScreenComposer {
                 24));
 
         ObjectNode root = atomicBuilder.container("column", "start", "center");
-        root.put("gap", 6);
+        root.put("gap", 8);
+        root.put("fillWidth", true);
         ArrayNode children = objectMapper.createArrayNode();
 
         children.add(atomicBuilder.image(
-                "https://cdn.nba.com/manage/2025/01/league-pass-logo.png", 0, 48, "contain"));
+                "https://cdn.nba.com/manage/2025/01/league-pass-logo.png", 0, 64, "contain"));
         children.add(atomicBuilder.spacer(8));
-        children.add(atomicBuilder.text("NBA League Pass", "headlineSmall", "bold", "#FFFFFF", null));
+        children.add(atomicBuilder.text("NBA League Pass", "headlineMedium", "bold",
+                ColorTokens.TEXT_INVERSE, null));
         children.add(atomicBuilder.text("Watch every game. Your way.",
-                "bodyMedium", null, "rgba(255,255,255,0.8)", null));
-        children.add(atomicBuilder.spacer(12));
+                "bodyLarge", null, ColorTokens.TEXT_INVERSE, null));
+        children.add(atomicBuilder.spacer(16));
 
         String[] features = {
                 "Live & on-demand out-of-market games",
@@ -818,24 +823,28 @@ public class DemoScreenComposer {
                 "Compatible with all major devices"
         };
         ObjectNode featuresCol = atomicBuilder.container("column", "start", "start");
-        featuresCol.put("gap", 6);
+        featuresCol.put("gap", 8);
+        featuresCol.put("fillWidth", true);
         ArrayNode featureChildren = objectMapper.createArrayNode();
         for (String feature : features) {
             ObjectNode row = atomicBuilder.container("row", "start", "center");
             row.put("gap", 8);
             ArrayNode rowChildren = objectMapper.createArrayNode();
-            rowChildren.add(atomicBuilder.text("✓", "bodyMedium", "bold", "#FFFFFF", null));
-            rowChildren.add(atomicBuilder.text(feature, "bodyMedium", null, "rgba(255,255,255,0.85)", null));
+            rowChildren.add(atomicBuilder.text("✓", "bodyLarge", "bold",
+                    "token:color.feedback.success.70", null));
+            rowChildren.add(atomicBuilder.text(feature, "bodyLarge", null,
+                    ColorTokens.TEXT_INVERSE, null));
             row.set("children", rowChildren);
             featureChildren.add(row);
         }
         featuresCol.set("children", featureChildren);
         children.add(featuresCol);
 
-        children.add(atomicBuilder.spacer(16));
+        children.add(atomicBuilder.spacer(20));
 
-        ObjectNode tiersCol = atomicBuilder.container("column", "start", "start");
-        tiersCol.put("gap", 12);
+        ObjectNode tiersCol = atomicBuilder.container("column", "start", "stretch");
+        tiersCol.put("gap", 16);
+        tiersCol.put("fillWidth", true);
         ArrayNode tierChildren = objectMapper.createArrayNode();
         tierChildren.add(buildDemoTierUi("League Pass", "$14.99/mo", "$22.99/mo",
                 "MOST POPULAR",
@@ -866,29 +875,35 @@ public class DemoScreenComposer {
                                             String badgeText, String[] features,
                                             String ctaLabel, String ctaUri) {
         ObjectNode card = atomicBuilder.container("column", "start", "start");
-        card.put("gap", 4);
+        card.put("gap", 6);
         card.put("background", "rgba(255,255,255,0.1)");
-        card.put("cornerRadius", 12);
-        card.set("padding", atomicBuilder.padding(16, 16, 16, 16));
+        card.put("cornerRadius", 16);
+        card.set("padding", atomicBuilder.padding(22, 22, 20, 20));
         card.put("fillWidth", true);
 
         ArrayNode cardChildren = objectMapper.createArrayNode();
         if (badgeText != null) {
-            cardChildren.add(atomicBuilder.text(badgeText, "labelSmall", "bold", "#FFDD00", null));
+            cardChildren.add(atomicBuilder.text(badgeText, "labelMedium", "bold",
+                    "token:color.secondary.50", null));
         }
-        cardChildren.add(atomicBuilder.text(name, "titleMedium", "bold", "#FFFFFF", null));
-        cardChildren.add(atomicBuilder.text(price, "titleLarge", "bold", "#FFFFFF", null));
+        cardChildren.add(atomicBuilder.text(name, "titleLarge", "bold",
+                ColorTokens.TEXT_INVERSE, null));
+        cardChildren.add(atomicBuilder.text(price, "headlineSmall", "bold",
+                ColorTokens.TEXT_INVERSE, null));
         if (originalPrice != null) {
-            cardChildren.add(atomicBuilder.text(originalPrice, "bodySmall", null,
+            // Translucent white intentionally communicates a strikethrough/dimmed
+            // price; alpha compositing is allowed where no semantic token encodes
+            // the same translucency.
+            cardChildren.add(atomicBuilder.text(originalPrice, "bodyMedium", null,
                     "rgba(255,255,255,0.6)", null));
         }
         if (features != null) {
             for (String f : features) {
-                cardChildren.add(atomicBuilder.text("• " + f, "bodySmall", null,
-                        "rgba(255,255,255,0.85)", null));
+                cardChildren.add(atomicBuilder.text("• " + f, "bodyMedium", null,
+                        ColorTokens.TEXT_INVERSE, null));
             }
         }
-        cardChildren.add(atomicBuilder.spacer(8));
+        cardChildren.add(atomicBuilder.spacer(10));
 
         ObjectNode tierAction = objectMapper.createObjectNode();
         tierAction.put("trigger", "onTap");

@@ -186,7 +186,7 @@ public class ForYouComposer {
             clock = new AtomicCompositeBuilder.GameClockSnapshot(
                     parseGameClockSeconds(game.path("gameClock").asText("")),
                     java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString(),
-                    true);
+                    AtomicCompositeBuilder.DEMO_INITIAL_CLOCK_RUNNING);
         } else {
             refreshPolicy = staticPolicy();
         }
@@ -210,7 +210,8 @@ public class ForYouComposer {
 
     private ObjectNode buildMockFeaturedGame() {
         AtomicCompositeBuilder.GameClockSnapshot clock = new AtomicCompositeBuilder.GameClockSnapshot(
-                5 * 60 + 42, java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString(), true);
+                5 * 60 + 42, java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString(),
+                AtomicCompositeBuilder.DEMO_INITIAL_CLOCK_RUNNING);
         return atomicBuilder.buildGamePanelComposite(
                 "featured-game-mock",
                 "for_you_featured_game",

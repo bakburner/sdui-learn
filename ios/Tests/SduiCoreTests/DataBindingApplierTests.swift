@@ -6,7 +6,7 @@ final class DataBindingApplierTests: XCTestCase {
     func testDotPathTargetReplacesValue() {
         let applier = DataBindingApplier()
         let binding = DataBinding(
-            bindings: [DataBindingPath(sourcePath: "$.homeTeam.score", targetPath: "homeTeam.score")],
+            bindings: [DataBindingPath(sourcePath: "$.homeTeam.score", targetPath: "homeTeam.score", transform: nil)],
             stringKeys: nil
         )
         let current: [String: Any] = ["homeTeam": ["score": 100, "name": "BOS"]]
@@ -29,7 +29,7 @@ final class DataBindingApplierTests: XCTestCase {
     func testArrayIndexSourcePath() {
         let applier = DataBindingApplier()
         let binding = DataBinding(
-            bindings: [DataBindingPath(sourcePath: "$.teams[1].score", targetPath: "away.score")],
+            bindings: [DataBindingPath(sourcePath: "$.teams[1].score", targetPath: "away.score", transform: nil)],
             stringKeys: nil
         )
         let current: [String: Any] = ["away": ["score": 0]]
@@ -55,7 +55,7 @@ final class DataBindingApplierTests: XCTestCase {
     func testMissingPathPreservesCurrentValue() {
         let applier = DataBindingApplier()
         let binding = DataBinding(
-            bindings: [DataBindingPath(sourcePath: "$.nope", targetPath: "homeTeam.score")],
+            bindings: [DataBindingPath(sourcePath: "$.nope", targetPath: "homeTeam.score", transform: nil)],
             stringKeys: nil
         )
         let current: [String: Any] = ["homeTeam": ["score": 99]]
@@ -76,7 +76,7 @@ final class DataBindingApplierTests: XCTestCase {
     func testMissCounterIncrementsUntilThreshold() {
         let applier = DataBindingApplier()
         let binding = DataBinding(
-            bindings: [DataBindingPath(sourcePath: "$.nope", targetPath: "x")],
+            bindings: [DataBindingPath(sourcePath: "$.nope", targetPath: "x", transform: nil)],
             stringKeys: nil
         )
 
@@ -96,7 +96,7 @@ final class DataBindingApplierTests: XCTestCase {
     func testSuccessResetsMissCounter() {
         let applier = DataBindingApplier()
         let binding = DataBinding(
-            bindings: [DataBindingPath(sourcePath: "$.score", targetPath: "score")],
+            bindings: [DataBindingPath(sourcePath: "$.score", targetPath: "score", transform: nil)],
             stringKeys: nil
         )
 
@@ -124,7 +124,7 @@ final class DataBindingApplierTests: XCTestCase {
     func testStringKeyOverridesBoundValue() {
         let applier = DataBindingApplier()
         let binding = DataBinding(
-            bindings: [DataBindingPath(sourcePath: "$.statusKey", targetPath: "statusText")],
+            bindings: [DataBindingPath(sourcePath: "$.statusKey", targetPath: "statusText", transform: nil)],
             stringKeys: ["statusText": "game.status.live"]
         )
         let incoming: [String: Any] = ["statusKey": "raw"]
@@ -140,5 +140,31 @@ final class DataBindingApplierTests: XCTestCase {
         )
 
         XCTAssertEqual(result["statusText"] as? String, "LIVE")
+    }
+
+    func testLiveClockSnapshotTransformAnchorsIncomingClock() {
+        let applier = DataBindingApplier()
+        let binding = DataBinding(
+            bindings: [DataBindingPath(sourcePath: "$.gameClock", targetPath: "content.clock", transform: .liveClockSnapshot)],
+            stringKeys: nil
+        )
+        let incoming: [String: Any] = [
+            "gameClock": "PT04M32.00S",
+            "gameClockRunning": true
+        ]
+
+        let result = applier.applyBindings(
+            currentData: ["content": ["clock": ["snapshotSeconds": 300, "isRunning": false]]],
+            incomingMessage: incoming,
+            dataBinding: binding,
+            sectionID: "s",
+            traceID: nil,
+            stringTable: nil
+        )
+
+        let clock = (result["content"] as? [String: Any])?["clock"] as? [String: Any]
+        XCTAssertEqual(clock?["snapshotSeconds"] as? Int, 272)
+        XCTAssertEqual(clock?["isRunning"] as? Bool, true)
+        XCTAssertNotNil(clock?["snapshotAt"] as? String)
     }
 }

@@ -512,6 +512,20 @@ public class AtomicCompositeBuilder {
     public record GameClockSnapshot(int snapshotSeconds, String snapshotAtIso, boolean isRunning) {}
 
     /**
+     * Demo-only override for the initial {@code isRunning} flag emitted on
+     * fresh composer responses. The contractual default is {@code false}:
+     * initial server payloads are rendered as paused snapshots and Ably
+     * linescore frames flip {@code isRunning=true} when local interpolation
+     * should start (see {@link LiveComposer#clockSnapshotFromGame}).
+     *
+     * <p>While the demo runs without a live Ably channel we hold this at
+     * {@code true} so reviewers see a ticking clock on first paint. Flip it
+     * back to {@code false} the moment real linescore frames are wired up;
+     * this constant is the single rollback point.
+     */
+    public static final boolean DEMO_INITIAL_CLOCK_RUNNING = true;
+
+    /**
      * Build a GamePanel as an AtomicComposite.
      *
      * <p>The resulting section carries a pre-seeded {@code data.content}
@@ -2191,6 +2205,11 @@ public class AtomicCompositeBuilder {
     private static final Set<String> VALID_CROSS_ALIGNMENTS =
         Set.of("start", "center", "end", "stretch");
 
+    // Allowed values for DataBindingPath.transform, mirroring the Transform
+    // enum in schema/sdui-schema.json. Kept in lock-step with the schema —
+    // when an enum value is added or removed there, update the set here too.
+    static final Set<String> VALID_BINDING_TRANSFORMS = Set.of("liveClockSnapshot");
+
     ObjectNode container(String direction, String alignment, String crossAlignment) {
         validateEnum("direction", direction, VALID_DIRECTIONS);
         validateEnum("alignment", alignment, VALID_ALIGNMENTS);
@@ -2210,6 +2229,24 @@ public class AtomicCompositeBuilder {
             throw new IllegalArgumentException(
                 "Container." + field + " value '" + value
                     + "' is not in the schema enum " + allowed
+                    + ". Fix the composer call site; clients strict-decode this field."
+            );
+        }
+    }
+
+    /**
+     * Validate a {@code DataBindingPath.transform} value against the schema
+     * enum before it is emitted on the wire. Mirrors {@link #validateEnum}
+     * but lives at package scope so {@link SduiUtils#bindingPath(String,
+     * String, String)} can guard its arbitrary-string overload at the
+     * composer-build site instead of crashing strict-decoding clients.
+     */
+    static void validateTransform(String value) {
+        if (value == null) return;
+        if (!VALID_BINDING_TRANSFORMS.contains(value)) {
+            throw new IllegalArgumentException(
+                "DataBindingPath.transform value '" + value
+                    + "' is not in the schema enum " + VALID_BINDING_TRANSFORMS
                     + ". Fix the composer call site; clients strict-decode this field."
             );
         }

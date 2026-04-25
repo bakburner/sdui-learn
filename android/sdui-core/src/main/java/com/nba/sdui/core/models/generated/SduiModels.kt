@@ -59,6 +59,7 @@ val mapper = jacksonObjectMapper().apply {
     convert(Layout::class,                 { Layout.fromValue(it.asText()) },                 { "\"${it.value}\"" })
     convert(PlayerType::class,             { PlayerType.fromValue(it.asText()) },             { "\"${it.value}\"" })
     convert(SortDirection::class,          { SortDirection.fromValue(it.asText()) },          { "\"${it.value}\"" })
+    convert(Transform::class,              { Transform.fromValue(it.asText()) },              { "\"${it.value}\"" })
     convert(Priority::class,               { Priority.fromValue(it.asText()) },               { "\"${it.value}\"" })
     convert(Skeleton::class,               { Skeleton.fromValue(it.asText()) },               { "\"${it.value}\"" })
     convert(BackgroundUnion::class,        { BackgroundUnion.fromJson(it) },                  { it.toJson() }, true)
@@ -2052,8 +2053,31 @@ data class DataBindingPath (
      * Dot-path to component property (e.g., 'homeScore.content')
      */
     @get:JsonProperty(required=true)@field:JsonProperty(required=true)
-    val targetPath: String
+    val targetPath: String,
+
+    /**
+     * Optional server-declared transform applied by shared client binding infrastructure before
+     * writing the target value. liveClockSnapshot normalizes clock payload values into {
+     * snapshotSeconds, snapshotAt, isRunning }.
+     */
+    val transform: Transform? = null
 )
+
+/**
+ * Optional server-declared transform applied by shared client binding infrastructure before
+ * writing the target value. liveClockSnapshot normalizes clock payload values into {
+ * snapshotSeconds, snapshotAt, isRunning }.
+ */
+enum class Transform(val value: String) {
+    LiveClockSnapshot("liveClockSnapshot");
+
+    companion object {
+        fun fromValue(value: String): Transform = when (value) {
+            "liveClockSnapshot" -> LiveClockSnapshot
+            else                -> throw IllegalArgumentException()
+        }
+    }
+}
 
 /**
  * Optional layout hints for section placement. Clients apply best-effort; unknown hints are

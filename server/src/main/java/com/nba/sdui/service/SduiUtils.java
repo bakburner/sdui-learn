@@ -243,7 +243,7 @@ public class SduiUtils {
         bindings.add(bindingPath("$.awayTeam.score", "content.awayTeam.score"));
         bindings.add(bindingPath("$.gameStatusText", "content.gameStatusText"));
         bindings.add(bindingPath("$.period", "content.period"));
-        bindings.add(bindingPath("$.gameClock", "content.clock"));
+        bindings.add(bindingPath("$.gameClock", "content.clock", "liveClockSnapshot"));
 
         dataBinding.set("bindings", bindings);
         return dataBinding;
@@ -253,6 +253,15 @@ public class SduiUtils {
         ObjectNode path = objectMapper.createObjectNode();
         path.put("sourcePath", sourcePath);
         path.put("targetPath", targetPath);
+        return path;
+    }
+
+    public ObjectNode bindingPath(String sourcePath, String targetPath, String transform) {
+        AtomicCompositeBuilder.validateTransform(transform);
+        ObjectNode path = bindingPath(sourcePath, targetPath);
+        if (transform != null) {
+            path.put("transform", transform);
+        }
         return path;
     }
 

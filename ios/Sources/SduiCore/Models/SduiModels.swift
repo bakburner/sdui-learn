@@ -2734,6 +2734,10 @@ struct DataBindingPath: Codable {
     let sourcePath: String
     /// Dot-path to component property (e.g., 'homeScore.content')
     let targetPath: String
+    /// Optional server-declared transform applied by shared client binding infrastructure before
+    /// writing the target value. liveClockSnapshot normalizes clock payload values into {
+    /// snapshotSeconds, snapshotAt, isRunning }.
+    let transform: Transform?
 }
 
 // MARK: DataBindingPath convenience initializers and mutators
@@ -2756,11 +2760,13 @@ extension DataBindingPath {
 
     func with(
         sourcePath: String? = nil,
-        targetPath: String? = nil
+        targetPath: String? = nil,
+        transform: Transform?? = nil
     ) -> DataBindingPath {
         return DataBindingPath(
             sourcePath: sourcePath ?? self.sourcePath,
-            targetPath: targetPath ?? self.targetPath
+            targetPath: targetPath ?? self.targetPath,
+            transform: transform ?? self.transform
         )
     }
 
@@ -2771,6 +2777,13 @@ extension DataBindingPath {
     func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
         return String(data: try self.jsonData(), encoding: encoding)
     }
+}
+
+/// Optional server-declared transform applied by shared client binding infrastructure before
+/// writing the target value. liveClockSnapshot normalizes clock payload values into {
+/// snapshotSeconds, snapshotAt, isRunning }.
+enum Transform: String, Codable {
+    case liveClockSnapshot = "liveClockSnapshot"
 }
 
 /// Optional layout hints for section placement. Clients apply best-effort; unknown hints are

@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -52,8 +53,10 @@ fun AtomicText(
     // rendering nothing — this keeps the first paint usable while the
     // first real-time update is in flight.
     val compositeContent = LocalCompositeContent.current
-    val resolvedContent = BindRefResolver.resolveString(element.bindRef, compositeContent)
-        ?: element.content.orEmpty()
+    val boundPreview = BindRefResolver.resolveString(element.bindRef, compositeContent)
+    val resolvedContent = remember(boundPreview, element.content) {
+        boundPreview ?: element.content.orEmpty()
+    }
 
     AtomicBox(element, screenState, onAction) { boxModifier ->
         Text(

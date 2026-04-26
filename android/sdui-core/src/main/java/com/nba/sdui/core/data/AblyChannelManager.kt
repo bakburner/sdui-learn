@@ -172,9 +172,14 @@ class AblyChannelManager(
         channel.subscribe(messageListener)
 
         awaitClose {
-            Log.d(TAG, "Unsubscribing from channel: $channelName")
-            channel.unsubscribe(messageListener)
-            activeChannels.remove(channelName)
+            try {
+                Log.d(TAG, "Unsubscribing from channel: $channelName")
+                channel.unsubscribe(messageListener)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error unsubscribing from channel: $channelName", e)
+            } finally {
+                activeChannels.remove(channelName)
+            }
         }
     }
 
@@ -183,8 +188,19 @@ class AblyChannelManager(
      */
     fun disconnect() {
         Log.d(TAG, "Disconnecting Ably client")
+        for ((name, channel) in activeChannels.toList()) {
+            try {
+                channel.unsubscribe()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error unsubscribing channel during disconnect: $name", e)
+            }
+        }
         activeChannels.clear()
-        ablyClient?.close()
+        try {
+            ablyClient?.close()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error closing Ably client", e)
+        }
         ablyClient = null
     }
 

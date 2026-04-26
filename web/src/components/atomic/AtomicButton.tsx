@@ -1,10 +1,11 @@
-import React, { useContext } from 'react';
+import React, { useContext, memo } from 'react';
 import type { Action } from '@sdui/models';
 import type { AtomicProps } from './AtomicRouter';
 import { AtomicBox } from './AtomicBox';
 import { accessibilityProps } from '../../utils/accessibility';
 import { useColorTokenResolver } from '../../utils/ColorTokenResolver';
 import { CompositeContentContext, resolveBindRefString } from '../../utils/BindRefResolver';
+import { areAtomicPropsEqual } from './areAtomicPropsEqual';
 
 const baseButtonStyle: React.CSSProperties = {
   cursor: 'pointer',
@@ -43,7 +44,7 @@ const variantStyles: Record<KnownButtonVariant, React.CSSProperties> = {
  * to tune the button's own chrome, the primitive variant should be
  * extended rather than using element.padding.
  */
-export function AtomicButton({ element, onAction }: AtomicProps): React.ReactElement {
+function AtomicButtonInner({ element, onAction }: AtomicProps): React.ReactElement {
   const resolveColor = useColorTokenResolver();
   const rawVariant = element.variant;
   let resolvedVariant: KnownButtonVariant = 'primary';
@@ -91,3 +92,5 @@ export function AtomicButton({ element, onAction }: AtomicProps): React.ReactEle
 
   return <AtomicBox element={element}>{button}</AtomicBox>;
 }
+
+export const AtomicButton = memo(AtomicButtonInner, areAtomicPropsEqual);

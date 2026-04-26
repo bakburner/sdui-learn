@@ -2856,7 +2856,8 @@ enum Priority: String, Codable {
 /// when applicable.
 // MARK: - SectionStates
 struct SectionStates: Codable {
-    let error: Error?
+    /// Server-declared error presentation for this section.
+    let error: ErrorState?
     let loading: Loading?
 }
 
@@ -2879,7 +2880,7 @@ extension SectionStates {
     }
 
     func with(
-        error: Error?? = nil,
+        error: ErrorState?? = nil,
         loading: Loading?? = nil
     ) -> SectionStates {
         return SectionStates(
@@ -2897,8 +2898,13 @@ extension SectionStates {
     }
 }
 
-// MARK: - Error
-struct Error: Codable {
+/// Server-declared error presentation for this section.
+///
+/// Server-declared error-state shape rendered by section error boundaries. Named
+/// `ErrorState` (not `Error`) so the generated client type does not shadow each runtime's
+/// native error protocol (e.g. `Swift.Error`).
+// MARK: - ErrorState
+struct ErrorState: Codable {
     /// If true, collapse the section entirely on error instead of showing error UI
     let hideOnError: Bool?
     /// Error message to display (e.g., 'Unable to load scores')
@@ -2907,11 +2913,11 @@ struct Error: Codable {
     let retryAction: Action?
 }
 
-// MARK: Error convenience initializers and mutators
+// MARK: ErrorState convenience initializers and mutators
 
-extension Error {
+extension ErrorState {
     init(data: Data) throws {
-        self = try newJSONDecoder().decode(Error.self, from: data)
+        self = try newJSONDecoder().decode(ErrorState.self, from: data)
     }
 
     init(_ json: String, using encoding: String.Encoding = .utf8) throws {
@@ -2929,8 +2935,8 @@ extension Error {
         hideOnError: Bool?? = nil,
         message: String?? = nil,
         retryAction: Action?? = nil
-    ) -> Error {
-        return Error(
+    ) -> ErrorState {
+        return ErrorState(
             hideOnError: hideOnError ?? self.hideOnError,
             message: message ?? self.message,
             retryAction: retryAction ?? self.retryAction

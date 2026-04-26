@@ -162,9 +162,9 @@ public final class SduiScreenViewModel {
                 // Parameterized refresh: caller-supplied endpoint + bindings.
                 let url = Self.appendParams(to: explicitEndpoint, params: resolvedParams)
                 do {
-                    let raw = try await repository.fetchRawJson(url: url)
+                    let raw = try await repository.fetchRawJson(url: url, traceID: screen?.traceID)
                     if let sectionID, let dict = raw as? [String: Any] {
-                        updateSectionData(sectionID: sectionID, newData: dict)
+                        await updateSectionData(sectionID: sectionID, newData: dict)
                     } else if let decoded = try? Self.decodeScreen(from: raw) {
                         applyScreen(decoded)
                     }
@@ -295,7 +295,8 @@ public final class SduiScreenViewModel {
                 directURL: directURL,
                 screenEndpoint: directURL == nil ? screenEndpoint : nil,
                 dataPath: dataPath,
-                pauseWhenOffScreen: shouldPause
+                pauseWhenOffScreen: shouldPause,
+                traceID: self.screen?.traceID
             )
         }
     }
@@ -357,7 +358,7 @@ public final class SduiScreenViewModel {
         case .success(let success):
             stalenessTracker.clear(success.sectionID)
             if success.isDirect, let dict = success.payload as? [String: Any] {
-                applyPolledData(sectionID: success.sectionID, incoming: dict)
+                await applyPolledData(sectionID: success.sectionID, incoming: dict)
             } else if let newScreen = success.payload as? SduiModels {
                 applyScreen(newScreen)
             }
@@ -380,11 +381,11 @@ public final class SduiScreenViewModel {
     ///      which means `data.ui` is preserved even for unconfigured
     ///      AtomicComposite polls, instead of being wiped out like the
     ///      old wholesale-replace path did.
-    private func applyPolledData(sectionID: String, incoming: [String: Any]) {
+    private func applyPolledData(sectionID: String, incoming: [String: Any]) async {
         guard let screen,
               let idx = screen.sections.firstIndex(where: { $0.id == sectionID }) else { return }
         let section = screen.sections[idx]
-        let currentData = Self.dataDict(from: section)
+        let currentData = await Self.dataDictOnBackground(from: section)
         let updated: [String: Any]
         if let dataBinding = section.dataBinding {
             updated = bindingApplier.applyBindings(
@@ -400,7 +401,7 @@ public final class SduiScreenViewModel {
             for (k, v) in incoming { merged[k] = v }
             updated = merged
         }
-        updateSectionData(sectionID: sectionID, newData: updated)
+        await updateSectionData(sectionID: sectionID, newData: updated)
     }
 
     private func handleAblyMessage(sectionID: String, message: [String: Any]) async {
@@ -409,7 +410,7 @@ public final class SduiScreenViewModel {
               let idx = screen.sections.firstIndex(where: { $0.id == sectionID }),
               let dataBinding = screen.sections[idx].dataBinding else { return }
         let section = screen.sections[idx]
-        let currentData = Self.dataDict(from: section)
+        let currentData = await Self.dataDictOnBackground(from: section)
         let updated = bindingApplier.applyBindings(
             currentData: currentData,
             incomingMessage: message,
@@ -418,7 +419,7 @@ public final class SduiScreenViewModel {
             traceID: screen.traceID,
             stringTable: section.stringTable
         )
-        updateSectionData(sectionID: sectionID, newData: updated)
+        await updateSectionData(sectionID: sectionID, newData: updated)
     }
 
     private func handleAblyConnectionState(_ state: AblyChannelManager.ConnectionState) async {
@@ -435,45 +436,48 @@ public final class SduiScreenViewModel {
     // MARK: - Mutation helpers
 
     /// Replace a section's `data` with the merged payload.
-    private func updateSectionData(sectionID: String, newData: [String: Any]) {
-        guard var screen,
+    private func updateSectionData(sectionID: String, newData: [String: Any]) async {
+        guard let screen = self.screen,
               let idx = screen.sections.firstIndex(where: { $0.id == sectionID }) else { return }
         let section = screen.sections[idx]
-        guard let replaced = Self.rebuildSection(section, withData: newData) else {
+        let newDataData = try? JSONSerialization.data(withJSONObject: newData)
+        let newScreen: SduiModels? = await Task.detached(priority: .userInitiated) {
+            if let newDataData,
+               let newDataClass = try? newJSONDecoder().decode(DataClass.self, from: newDataData) {
+                let newSection = section.with(data: newDataClass)
+                var newSections = screen.sections
+                newSections[idx] = newSection
+                return screen.with(sections: newSections)
+            }
+            guard let replaced = Self.rebuildSectionMergingData(section, newData: newData) else { return nil }
+            var newSections = screen.sections
+            newSections[idx] = replaced
+            return Self.replaceSectionsOnScreen(screen, with: newSections)
+        }.value
+        if let newScreen {
+            self.screen = newScreen
+        } else {
             logger.warning("failed to rebuild section \(sectionID, privacy: .public) data")
-            return
         }
-        var sections = screen.sections
-        sections[idx] = replaced
-        screen = Self.replaceSections(screen, with: sections)
-        self.screen = screen
     }
 
     // MARK: - Static JSON helpers
 
-    private static func dataDict(from section: Section) -> [String: Any] {
-        guard let data = section.data,
-              let raw = try? newJSONEncoder().encode(data),
-              let dict = try? JSONSerialization.jsonObject(with: raw) as? [String: Any]
-        else { return [:] }
-        return dict
-    }
-
-    private static func rebuildSection(_ section: Section, withData dataDict: [String: Any]) -> Section? {
+    private nonisolated static func rebuildSectionMergingData(_ section: Section, newData: [String: Any]) -> Section? {
         guard let encoded = try? newJSONEncoder().encode(section),
               var sectionDict = try? JSONSerialization.jsonObject(with: encoded) as? [String: Any]
         else { return nil }
-        sectionDict["data"] = dataDict
+        sectionDict["data"] = newData
         guard let merged = try? JSONSerialization.data(withJSONObject: sectionDict),
               let rebuilt = try? newJSONDecoder().decode(Section.self, from: merged)
         else { return nil }
         return rebuilt
     }
 
-    private static func replaceSections(_ screen: SduiModels, with sections: [Section]) -> SduiModels {
+    private nonisolated static func replaceSectionsOnScreen(_ screen: SduiModels, with sections: [Section]) -> SduiModels? {
         guard let data = try? newJSONEncoder().encode(screen),
               var dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
-        else { return screen }
+        else { return nil }
         let sectionsJSON = sections.compactMap { section -> Any? in
             guard let data = try? newJSONEncoder().encode(section) else { return nil }
             return try? JSONSerialization.jsonObject(with: data)
@@ -481,8 +485,18 @@ public final class SduiScreenViewModel {
         dict["sections"] = sectionsJSON
         guard let merged = try? JSONSerialization.data(withJSONObject: dict),
               let rebuilt = try? newJSONDecoder().decode(SduiModels.self, from: merged)
-        else { return screen }
+        else { return nil }
         return rebuilt
+    }
+
+    private static func dataDictOnBackground(from section: Section) async -> [String: Any] {
+        await Task.detached(priority: .userInitiated) {
+            guard let data = section.data,
+                  let raw = try? newJSONEncoder().encode(data),
+                  let dict = try? JSONSerialization.jsonObject(with: raw) as? [String: Any]
+            else { return [:] }
+            return dict
+        }.value
     }
 
     private static func decodeScreen(from raw: Any) throws -> SduiModels {

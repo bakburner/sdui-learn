@@ -126,7 +126,10 @@ final class ActionDispatcher {
     }
 
     private func handle(_ action: Action) -> HandleResult {
-        logger.debug("handling type=\(action.type.rawValue) trigger=\(action.trigger.rawValue)")
+        // Debug-build visibility for the action pipeline. `os.Logger.debug`
+        // streams to Xcode's console in debug runs and is filtered out of
+        // release telemetry, so this stays free in production.
+        logger.debug("dispatch type=\(action.type.rawValue, privacy: .public) trigger=\(action.trigger.rawValue, privacy: .public) section=\(self.sectionContext, privacy: .public)")
         switch action.type {
         case .navigate: return handleNavigate(action)
         case .fireAndForget: return handleFireAndForget(action)
@@ -139,8 +142,10 @@ final class ActionDispatcher {
 
     private func handleNavigate(_ action: Action) -> HandleResult {
         guard let targetURI = action.targetURI ?? action.webURL else {
+            logger.debug("navigate skipped — missing targetURI/webURL")
             return .failure(action.failureFeedback)
         }
+        logger.debug("navigate uri=\(targetURI, privacy: .public) presentation=\(action.presentation?.rawValue ?? "push", privacy: .public)")
         if action.presentation == .external, let url = URL(string: targetURI) {
             nav.openExternal(url)
         } else {
@@ -167,6 +172,7 @@ final class ActionDispatcher {
         // ADR-009: `onVisible` beacons run through the impression tracker
         // for dedup. Non-visibility triggers (onTap etc.) always fire.
         guard action.trigger == .onVisible else {
+            logger.debug("fireAndForget fired event=\(event, privacy: .public) destinations=\(destinations, privacy: .public) params=\(params, privacy: .public)")
             analytics.send(event: event, params: params, destinations: destinations)
             return .success
         }
@@ -175,13 +181,20 @@ final class ActionDispatcher {
         let policy = action.impression
         let analytics = self.analytics
         let impressions = self.impressions
-        Task {
+        Task { [logger] in
             let shouldFire = await impressions.shouldFire(
                 sectionID: sectionID,
                 event: event,
                 policy: policy
             )
-            guard shouldFire else { return }
+            guard shouldFire else {
+                // Onscreen-fire visibility: dedup-suppressed beacons would
+                // otherwise be invisible during local testing. Surface them
+                // at debug level so `onVisible` flows are auditable.
+                logger.debug("fireAndForget deduped event=\(event, privacy: .public) section=\(sectionID, privacy: .public)")
+                return
+            }
+            logger.debug("fireAndForget fired event=\(event, privacy: .public) section=\(sectionID, privacy: .public) destinations=\(destinations, privacy: .public) params=\(params, privacy: .public)")
             analytics.send(event: event, params: params, destinations: destinations)
         }
 
@@ -190,8 +203,11 @@ final class ActionDispatcher {
 
     private func handleMutate(_ action: Action) -> HandleResult {
         guard let key = action.target else {
+            logger.debug("mutate skipped — missing target")
             return .failure(action.failureFeedback)
         }
+        let op = action.operation?.rawValue ?? "set"
+        logger.debug("mutate op=\(op, privacy: .public) key=\(key, privacy: .public) value=\(String(describing: action.value?.value), privacy: .public)")
         screenState.apply(
             operation: action.operation,
             key: key,
@@ -202,19 +218,23 @@ final class ActionDispatcher {
 
     private func handleRefresh(_ action: Action) -> HandleResult {
         let resolved = resolveParamBindings(action.paramBindings)
+        logger.debug("refresh target=\(action.target ?? "screen", privacy: .public) endpoint=\(action.endpoint ?? "<inherit>", privacy: .public) params=\(resolved, privacy: .public)")
         refreshHandler(action.target, action.endpoint, resolved)
         return .success
     }
 
     private func handleDismiss(_ action: Action) -> HandleResult {
+        logger.debug("dismiss")
         dismissHandler()
         return .success
     }
 
     private func handleToast(_ action: Action) -> HandleResult {
         guard let message = action.message, !message.isEmpty else {
+            logger.debug("toast skipped — empty message")
             return .failure(action.failureFeedback)
         }
+        logger.debug("toast message=\(message, privacy: .public)")
         toasts.show(message, style: .info)
         return .success
     }

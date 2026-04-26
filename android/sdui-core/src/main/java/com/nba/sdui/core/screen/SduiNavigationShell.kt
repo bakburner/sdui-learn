@@ -31,6 +31,12 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.SportsBasketball
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.filled.Widgets
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -58,6 +64,8 @@ fun SduiNavigationShell(
         return
     }
 
+    val selectedIndex = items.indexOfFirst { it.selected == true }.let { if (it >= 0) it else 0 }
+
     Scaffold(
         modifier = modifier,
         bottomBar = {
@@ -73,7 +81,17 @@ fun SduiNavigationShell(
             }
         }
     ) { innerPadding ->
-        content(Modifier.padding(innerPadding))
+        AnimatedContent(
+            targetState = selectedIndex,
+            transitionSpec = {
+                (slideInHorizontally { it } + fadeIn()).togetherWith(
+                    slideOutHorizontally { -it } + fadeOut()
+                )
+            },
+            label = "navShellContent"
+        ) { _ ->
+            content(Modifier.padding(innerPadding))
+        }
     }
 }
 

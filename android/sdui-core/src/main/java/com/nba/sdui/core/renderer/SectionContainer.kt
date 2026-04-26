@@ -7,8 +7,10 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.painter.ColorPainter
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
@@ -90,11 +92,15 @@ fun SectionContainer(
 
     Box(modifier = outer) {
         if (bg is BackgroundViewModel.Image) {
+            val placeholder = ColorPainter(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f))
+            val errorPainter = ColorPainter(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.12f))
             AsyncImage(
                 model = bg.imageUrl,
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop
+                contentScale = ContentScale.Crop,
+                placeholder = placeholder,
+                error = errorPainter
             )
         }
         Box(modifier = Modifier.padding(padding)) {

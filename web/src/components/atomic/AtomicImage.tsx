@@ -1,9 +1,10 @@
-import React, { useContext } from 'react';
+import React, { useContext, memo, useMemo } from 'react';
 import type { Action } from '@sdui/models';
 import type { AtomicProps } from './AtomicRouter';
 import { AtomicBox, AtomicBoxBadge } from './AtomicBox';
 import { resolveImageVariant } from '../../utils/ImageVariantResolver';
 import { CompositeContentContext, resolveBindRefString } from '../../utils/BindRefResolver';
+import { areAtomicPropsEqual } from './areAtomicPropsEqual';
 
 const fitToObjectFit: Record<string, React.CSSProperties['objectFit']> = {
   cover: 'cover',
@@ -23,11 +24,35 @@ const fitToObjectFit: Record<string, React.CSSProperties['objectFit']> = {
  * by AtomicBox and the image stretches to that frame; `aspect-ratio`
  * and `object-fit` stay on the <img> to preserve the intended framing.
  */
-export function AtomicImage({ element, onAction }: AtomicProps): React.ReactElement {
+function AtomicImageInner({ element, onAction }: AtomicProps): React.ReactElement {
   const variantSpec = resolveImageVariant(element.variant);
 
   const resolvedObjectFit: React.CSSProperties['objectFit'] =
     fitToObjectFit[element.fit ?? ''] ?? variantSpec?.objectFit ?? 'contain';
+
+  const arFromVariant =
+    variantSpec?.aspectRatio != null ? Number(variantSpec.aspectRatio) : undefined;
+  const aspectRatioForDims =
+    element.aspectRatio ??
+    (arFromVariant != null && !Number.isNaN(arFromVariant) && arFromVariant > 0
+      ? arFromVariant
+      : undefined);
+
+  const intrinsicSize = useMemo((): { w: number; h: number } | undefined => {
+    const w = element.width;
+    const h = element.height;
+    const ar = aspectRatioForDims;
+    if (w != null && h != null) {
+      return { w, h };
+    }
+    if (w != null && ar != null && ar > 0) {
+      return { w, h: Math.max(1, Math.round(w / ar)) };
+    }
+    if (h != null && ar != null && ar > 0) {
+      return { w: Math.max(1, Math.round(h * ar)), h };
+    }
+    return undefined;
+  }, [element.width, element.height, aspectRatioForDims]);
 
   const aspectRatioStyle: React.CSSProperties =
     element.aspectRatio != null
@@ -73,6 +98,10 @@ export function AtomicImage({ element, onAction }: AtomicProps): React.ReactElem
       style={{ ...imgStyle, ...(hasActions ? { cursor: 'pointer' } : {}) }}
       onClick={handleClick}
       onError={handleError}
+      loading="lazy"
+      {...(intrinsicSize
+        ? { width: intrinsicSize.w, height: intrinsicSize.h }
+        : {})}
       {...(element.accessibility?.hidden ? { 'aria-hidden': true } : {})}
     />
   );
@@ -84,3 +113,5 @@ export function AtomicImage({ element, onAction }: AtomicProps): React.ReactElem
     </AtomicBox>
   );
 }
+
+export const AtomicImage = memo(AtomicImageInner, areAtomicPropsEqual);

@@ -67,7 +67,7 @@ private struct ScreenBody: View {
                         ) {
                             ScrollView {
                                 LazyVStack(spacing: 0) {
-                                    ForEach(Array(screen.sections.enumerated()), id: \.offset) { _, section in
+                                    ForEach(screen.sections, id: \.id) { section in
                                         SectionLayout(
                                             section: section,
                                             screenState: vm.screenState,
@@ -92,6 +92,8 @@ private struct ScreenBody: View {
                     }
                 }
             }
+            .animation(.easeInOut(duration: 0.2), value: vm.loadState)
+            .transition(.opacity)
             ToastOverlay(host: vm.toasts)
         }
         .preferredColorScheme(preferredColorScheme)

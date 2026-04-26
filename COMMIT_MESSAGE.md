@@ -1,179 +1,241 @@
-Add feed atomic composite foundations
+Apply SDUI renderer performance audit remediation across clients
 
-Adds schema-first overlay and paged-carousel affordances so feed-style
-modules can stay server-composed instead of becoming new permanent sections,
-plus the live-clock binding transform and strict-decode guards that enforce
-server authority over those new contract surfaces.
+Address the issues catalogued in `docs/performance-audit-remediation.md`,
+focused on the three systemic patterns it flagged: unbounded SSE/polling
+buffers, synchronous JSON serialization on the data-binding hot path, and
+positional list identity that destroys view state on reorder. Touches all
+three client renderers; no schema or server changes.
 
---- Contract + client renderers ---
+--- Cross-platform memory + lifetime ---
 
-- Add `OverlayContainer` atomic support with schema/codegen coverage.
-- Add optional `ScrollContainer.pageIndicator` for server-declared dots.
-- Add `DataBindingPath.transform` with `liveClockSnapshot` so server-declared
-  bindings normalize live clock payloads into `{ snapshotSeconds, snapshotAt,
-  isRunning }`.
-- Implement overlay rendering and page dots on web, iOS, and Android.
-- Implement live-clock binding normalization on web, iOS, and Android.
-- Render page dots only when `paging` is true and more than one child exists.
-- Size iOS paged children to page bounds so dots and paging align with web and
-  Android.
-- Remove web `AtomicImage`'s branded hardcoded fallback URL; use only
-  server-provided placeholders.
+- Bound the Android `sseMessageBuffer` with a 5-minute TTL, prune
+  expired entries on every write, clear on `stopAbly()`, and clear
+  `pollFailureCounts` on `stopAllPolling()` so off-screen sections and
+  failure counters can no longer accumulate across screen navigations
+  (C-3, C-4).
+- Convert iOS `ScreenState` to per-key `KeySlot` reference cells under
+  `@Observable`, replacing the coarse `[String: Any]` dictionary so a
+  single keystroke no longer invalidates every observer of the screen
+  (H-7). Typed convenience setters now cast their value to `Any?` at the
+  call boundary so Swift overload resolution forwards them to the
+  generic setter instead of recursing into themselves.
+- Convert web `useAppVisibility` to a module-level `useSyncExternalStore`
+  source with `register`/`unregister` semantics so the listener set
+  drains as React tears down subscribers (C-8).
+- Wrap Android Ably `awaitClose` cleanup in try/catch and add a
+  defensive cleanup pass in `disconnect()` so abrupt collector
+  cancellation can no longer leak channel listeners or grow
+  `activeChannels` (H-4).
+- Capture `[weak self]` in the iOS Ably listener closure and nil-check
+  before processing messages so dangling listeners can no longer outlive
+  the owning manager (H-10).
+- Use `[weak self]` consistently in iOS `PollingDriver` `Task` closures
+  so polling can no longer outlive the owning screen (H-9).
+- Store the active iOS screen fetch as a cancellable `Task` guarded by
+  an `NSLock`, cancel it on subsequent fetches, and cancel in `deinit`
+  so in-flight responses no longer reference deallocated state (C-6).
 
---- Strict-decode hardening ---
+--- Cross-platform main-thread budget ---
 
-- Add `AtomicCompositeBuilder.validateTransform` and call it from
-  `SduiUtils.bindingPath(...)` so unknown `transform` values fail at compose
-  time instead of at client decode.
-- Make web `DataBindingApplier` skip the write when an unknown transform is
-  encountered, surfacing a warning rather than silently downgrading server
-  semantics to the raw value.
-- Document `AtomicCompositeBuilder.DEMO_INITIAL_CLOCK_RUNNING` as a demo-only
-  override of the contractual `isRunning=false` initial state, with a single
-  rollback point for when real Ably linescore frames are wired up.
+- Move iOS `SduiScreenViewModel` JSON work off `@MainActor` via
+  `Task.detached(priority: .userInitiated)`. The fast path applies
+  incoming Ably section updates by mutating `data` through a typed
+  `DataClass` + `Section.with(data:)` value, keeping section value
+  identity stable; the JSON merge stays as a fallback for paths the
+  typed surface does not yet cover (C-5, UX-12).
+- Replace `JSON.parse(JSON.stringify(...))` deep clones in web
+  `DataBindingApplier` with a structural-sharing `setValueByPathImmutable`
+  that only copies touched paths (and their array/object ancestors), so
+  unchanged subtrees keep stable references for downstream `React.memo`
+  (C-7, UX-25 parity).
+- Slow Android `AtomicLiveClock` to 500 ms ticks (sufficient for MM:SS)
+  and pause the loop when the composable is not visible (H-1).
+- Add an in-memory cache for resolved web color tokens keyed by
+  `(scheme, tokenName)` so `SectionContainer` and gradient backgrounds
+  stop walking the palette/semantic maps on every render (H-12, M-4).
+- Reuse the shared `ObjectMapper` in Android `AblyChannelManager` token
+  parsing instead of constructing one per request (M-1).
 
---- Server composition ---
+--- Android list identity + recomposition ---
 
-- Add reusable `AtomicCompositeBuilder` helpers for story rails, editorial
-  overlay rails, featured live game hero carousels, utility grids, league rails,
-  section header composites, and compact game schedule rows/lists.
-- Keep those patterns as atomic-composite helper output, not new section types.
-- Add live-capable overloads for hero and schedule helpers so callers can attach
-  `refreshPolicy` and `dataBinding` when live data is available.
-- Seed initial server LiveClock snapshots as paused; local ticking starts only
-  when a bound live channel message sets `isRunning: true`.
-- Replace hardcoded hex/RGBA literals in the `DemoScreenComposer` subscribe
-  hero, tier UI, and subscribe banner with semantic `ColorTokens` so the demo
-  composer matches the rest of the server composition's token discipline.
-- Update demo/schedule composition and schedule fixtures to exercise the new
-  feed-style atomic patterns.
+- Replace eager `forEach` row composition in `BoxscoreTableRenderer`
+  and `SeasonLeadersTableRenderer` with `LazyColumn` + `itemsIndexed`
+  keyed on player identity (C-1).
+- Add `key` lambdas based on element identity to all four
+  `AtomicScrollContainer` `itemsIndexed` call sites (C-2).
+- Wrap each child of `TabGroupRenderer` and `FormRenderer` in
+  `key(section.id)` / `key(field.stateKey)` so state no longer leaks
+  across tab switches or form-field reorders (H-3).
+- Memoize `BoxscoreTableRenderer`'s sort via `derivedStateOf` keyed on
+  structural player identity instead of reference equality, so SSE
+  updates that produce a new list reference but identical contents stop
+  re-sorting (UX-8).
+- Memoize per-leaf `bindRef` resolution in `AtomicText` and
+  `AtomicImage` with `remember` keyed on the resolved bound value
+  rather than the entire composite content map, so a single binding
+  update no longer re-resolves every leaf in the section (UX-9).
 
---- For You parity rewrite ---
+--- iOS view identity + image stability ---
 
-- Rewrite `ForYouComposer` to mirror the Kitchen demo's atomic-composite
-  vocabulary. Each section uses the same helper the demo exercises so any
-  composite that renders correctly in `/kitchen` renders correctly here too.
-- Drop the legacy compact `GamePanel` "Upcoming Games" carousel. Replace it
-  with a single paged `FeaturedLiveGameHero` carousel that combines the live
-  game (when present) with the next few upcoming games — bigger key-art-led
-  cards, server-paged with dots, and a per-card linescore binding on the live
-  card so SSE updates keep the score and clock fresh.
-- Stop wrapping card-chromed composites in `gamePanelSurface()`. The hero
-  card now owns its own background, corner radius, and shadow, so the section
-  envelope only needs `railSurface()` margins. This removes the card-around-
-  card double chrome that was leaving the hero floating inside an empty
-  surface band on iOS and web.
-- Switch the "Around the League" utility grid from `cardSurface()` to
-  `railSurface()` — the cells are individually card-chromed, so the section
-  doesn't need an outer card.
-- Restrict story-circle imagery to square sources (team logo PNGs and square
-  loremflickr stock). The previous mix of 260×190 player headshots interacted
-  poorly with the circular crop + overlay-pill stacking on mobile and pushed
-  the LIVE/NEW badge out of position.
-- Replace expired `cdn.nba.com/manage/...` editorial / sponsor URLs in the
-  For You composer with `loremflickr.com` placeholders so the screen always
-  renders with imagery during demos. NBA team logos still come from
-  `SduiUtils.teamLogoUrl(...)` (PNG variants) so iOS Kingfisher decodes them
-  natively.
+- Replace positional `id: \.offset` `ForEach` keys in `ScreenShell`,
+  `AtomicScrollContainerView`, and `AtomicContainerView` with stable
+  element identity so reorder/insert no longer destroys and recreates
+  KFImage views (UX-11, H-8).
+- Add `Equatable` conformance to `EquatableDisplayGrid`, `Column`, and
+  `WidthUnion` so `AtomicDisplayGridView` stops re-evaluating on every
+  body pass (M-3).
+- Constrain `AtomicImageView`'s `KFImage` with a device-relative max
+  frame and give the placeholder the image's `aspectRatio` background
+  so oversized remote images no longer load at full resolution and
+  content stops jumping when the image resolves (H-11, UX-15).
+- Extract `BoxscoreTableView`'s team logo into a separate URL-keyed
+  view so live data updates no longer reset its KFImage state (UX-17).
+- Cache `SeasonLeadersTableView`'s sort in `@State` and update via
+  `.onChange(of: sortKey)` so render-time sorting stops dropping
+  frames on large rosters (UX-18).
+- Initialize `FormSectionView`'s `@State` text from `screenState` in
+  `init` instead of waiting for `onAppear`, removing the first-frame
+  empty-text layout shift (M-2, UX-13).
+- Add `.transition(.opacity)` + `withAnimation` to `ScreenShell`'s
+  loading→loaded switch and `TabGroupView`'s tab content; wrap
+  `NavCoordinator.path.append` in `withAnimation` (UX-14, UX-16).
 
---- Atomic primitive housekeeping ---
+--- Web re-render + transition fixes ---
 
-- `featuredLiveGameHeroCard` now takes a `fillWidth` flag. Single-card hero
-  sections emit the card with `fillWidth: true` and skip the paged scroll
-  wrapper; multi-card sections keep the fixed 338pt width plus paged scroll
-  with dots. The single-card branch wraps the card in a flush
-  padded-by-16 column so the card aligns with its surface horizontally.
-- `utilityCard` now sets `height: 132` and `fillWidth: true`. The grid was
-  letting cells size to their content on iOS, which produced uneven cell
-  heights across rows. Fixing height + fillWidth keeps the grid rhythm
-  visually stable on phones; web already balanced via flex.
-- `buildNbaTvSlot` (Today's Schedule rows) now sets `flex: 1` on the
-  title/subtitle column. `fillWidth: true` alone wasn't enough on iOS or
-  Android: the AtomicContainer flex stack only treats a child as "claims
-  remaining main-axis space" when it has a non-null `flex` weight. Without
-  it, the row sized to natural content width and the outer fillWidth frame
-  centered the entire stack, so the time + title rendered visually centered
-  on phones and the LIVE badge floated next to the title instead of pinning
-  to the trailing edge of the surface. With `flex: 1`, time hugs the
-  leading edge, the LIVE badge hugs the trailing edge, and the title /
-  subtitle stay left-justified in between on all three platforms.
+- Reshape `useRefreshPolicy` to take stable scalar inputs (`sectionId`
+  and the individual `refreshPolicy` fields) so the spread-section
+  reference passed from `LiveSectionWrapper` no longer restarts polling
+  or SSE every render (H-13).
+- Wrap `AtomicContainer`, `AtomicText`, `AtomicButton`, and
+  `AtomicImage` in `React.memo` with a shared `areAtomicPropsEqual`
+  comparator so atomic primitives stop re-rendering on every parent
+  prop change (H-16).
+- Track the nested `setTimeout` ID in `useImpressionTracking`'s cleanup
+  ref (and gate the dwell timer behind an `AbortController` token) so
+  the inner timeout no longer fires on stale sections after unmount
+  (H-15).
+- Add `width`, `height`, and `loading="lazy"` to the `<img>` tags in
+  `AtomicImage` and `BoxscoreTable` so the browser can reserve space
+  before load and skip off-screen fetches (H-14, UX-26).
+- Preserve the previous `screen` while a new fetch is in flight in
+  `App.tsx`: navigation now overlays a spinner on the existing screen,
+  same-screen updates merge into the existing `sections`, and errors
+  surface as a banner instead of wiping the screen (UX-21).
+- Add a CSS opacity transition on `TabGroup`'s tab content container
+  so tab switches cross-fade rather than blank-frame (UX-22).
+- Set `document.documentElement.setAttribute('data-theme', scheme)`
+  synchronously in `setColorSchemePreference()` (and on first mount in
+  `main.tsx`) so toggling color scheme no longer flashes the wrong
+  palette before React commits (UX-23).
+- Replace the raw-DOM toast in `ActionHandler.ts` with a module-level
+  `ToastStore` + `ToastHost` portal subscribed via
+  `useSyncExternalStore`, capping the visible queue and animating via
+  CSS opacity transitions (UX-27).
+- Add `willChange: 'transform'` to `SectionSkeleton`'s shimmer so the
+  animation promotes to a compositor layer on slower devices (UX-28).
+- Hold `Form.tsx` field state locally and propagate to `onStateChange`
+  on debounce/blur so each keystroke no longer bubbles to `App.tsx`
+  and re-renders every section (UX-3, UX-24).
 
---- Tests ---
+--- Android image + transition polish ---
 
-- Add `web/src/runtime/DataBindingApplier.test.ts` covering the
-  `liveClockSnapshot` transform and the unknown-transform skip behavior.
-- Add `android/sdui-core/src/test/java/com/nba/sdui/core/data/DataBindingResolverTest.kt`
-  mirroring the iOS/web `liveClockSnapshot` cases. Mocks `android.util.Log`
-  with `mockkStatic` so the test runs under the existing JUnit 4 runner without
-  changing project-wide test infrastructure.
-- Extend `DataBindingApplierTests` (iOS) with `liveClockSnapshot` coverage.
+- Configure Coil's shared `ImageLoader` with a 25%-heap memory cache
+  and a 100 MB disk cache so image decode/fetch survives configuration
+  changes and rail repeats (UX-1).
+- Decouple `AtomicImage`'s `currentSrc` and `triedFallback` `remember`
+  blocks and sync via `LaunchedEffect` so an oscillating bound URL
+  can no longer thrash the fallback flag into an infinite fetch loop
+  (H-2, UX-2).
+- Add `placeholder` and `error` painters to `SectionContainer`'s
+  background `AsyncImage` so an oversized or failed background can no
+  longer OOM or render blank (H-5).
+- Refactor `SectionVisibilityTracker` to use `MutableSharedFlow` with
+  `debounce()` for exits and immediate emission for entries inside a
+  single `CoroutineScope`, replacing the `LaunchedEffect` + `delay()`
+  loop that blocked the coroutine (H-6).
+- Wrap `AtomicConditional` in `AnimatedContent(targetState =
+  conditionMet)` so condition flips fade rather than pop (UX-4).
+- Wrap `TabGroupRenderer` content and `SduiNavigationShell` screen
+  changes in `AnimatedContent` with `slideInHorizontally` + `fadeIn`
+  so tab swaps and navigation transition rather than cut (UX-5).
+- Batch buffered SSE messages into a single state emission on
+  foreground via `flushSseBufferBatched`, replacing the
+  one-update-per-message cascade (UX-6).
+- Cache empirically measured section heights in
+  `SectionSkeletonHeightCache` and apply them as a min-height floor
+  during skeleton rendering so the shimmer→content swap stops jumping
+  when the server omits `minHeightDP` (UX-7).
 
---- Fixtures + docs ---
+--- Follow-up cleanups bundled into this commit ---
 
-- Add `schema/examples/feed-screen-composite.json` and synced iOS fixture
-  coverage for `OverlayContainer` plus paged `ScrollContainer.pageIndicator`.
-- Update existing `game-panel-composite` fixtures to use `sourcePath` per the
-  schema's `DataBindingPath` shape.
-- Refresh the feed parity plan as a pre-implementation checkpoint:
-  overlay containers and page dots are now available, so the next pass should
-  focus on server-composed visual fidelity rather than new primitives.
-- Capture screenshot-derived follow-up targets, including larger story images
-  with red live rings, yellow active tab accents, asymmetric score layouts,
-  separated broadcast strips, static date chips, headline cards, full-bleed
-  media cards, and light-mode accent behavior.
-- Add an Atomic Precedence Assessment table to the plan that classifies every
-  visible feed module (story rail, hero card, editorial rail, utility grid,
-  league rail, schedule row, date strip, promo banner, app shell) against the
-  AGENTS.md exception classes.
-- Add `make server-test`.
+While verifying the iOS active-fetch cancellation work, two long-standing
+papercuts surfaced; both are folded in here because they directly touch
+files the audit modified and would otherwise leave the surface in a worse
+state than before:
 
---- For You parity follow-ups ---
+- Schema: rename the `error` state shape from `Error` to `ErrorState` so
+  the generated client type stops shadowing each runtime's native error
+  protocol (notably `Swift.Error`). The schema property name stays
+  `error`; only the generated type name changes. All three clients
+  regenerated; renderer code touches `sectionStates?.error` as a property
+  and required no edits. The iOS `Swift.Error` qualifications on
+  `SduiRepository`/`DataBindingApplier` were dropped now that `Error`
+  resolves to the protocol again.
+- iOS `SduiRepository`: replace the freshly-introduced
+  `activeScreenFetchID: UUID` with the existing per-request
+  `traceID` (the one already sent as `X-Trace-Id`). Lifting it from
+  `attachAuthHeaders` into `fetchScreen` lets a single value drive both
+  the header and the active-fetch identity, so the active-fetch slot
+  reuses an established concept rather than inventing a parallel one.
 
-- Fix web `AtomicOverlayContainer.overlayStyle` to treat `inset` as an
-  *offset from the aligned base bounds* (matching iOS/Android), instead of
-  overriding the alignment-derived edge anchors. With the prior code, a
-  story-circle LIVE pill emitted as `bottomCenter` + `inset = {0,0,0,0}`
-  ended up anchored to all four edges and translated, which on web rendered
-  the pill clipped in the upper right of the avatar (looking like a small
-  red triangle) instead of at the bottom-center as on iOS.
-- Pin the iOS `TabGroupView` strip's scroll offset to the active tab via
-  `ScrollViewReader` + `.scrollTo(activeId, anchor: .center)` on appear and
-  on every selection change. Previously, tapping a trailing tab on Watch
-  ("League Pass") let SwiftUI's implicit bring-focused-button-into-view
-  behavior settle the inner horizontal ScrollView at an offset that cropped
-  the leading "Featured" tab off the screen, and the strip would snap back
-  to that offset even after manual scrolling. Centering on the active tab
-  lets the ScrollView clamp naturally at its bounds, so leading-tab
-  selections stay clamped at the leading edge, trailing-tab selections
-  clamp at the trailing edge, and all three Watch tabs remain visible at
-  every selection state.
-- Always emit the red "story" ring on `storyCircleItem` avatars, regardless
-  of whether the item carries a notification badge. The ring is the
-  rail-wide visual signature (matches the real NBA app's Following rail
-  and the parity plan's "red circle around the images in the top rail"
-  target). The badge ("LIVE", "NEW", …) remains an independent overlay
-  layered on the bottom-center of the avatar. Previously the ring was
-  gated on `badgeText != null`, so only Celtics / Lakers carried it on the
-  For You Following rail and Warriors / Thunder / News / Social rendered
-  as ringless avatars.
-- Drop the loremflickr broadcaster placeholder from the For You hero
-  cards. The `FeaturedLiveGameHero` composite still renders a sponsor row
-  when its `sponsorLogoUrlsCsv` slot is populated, but the demo doesn't
-  have real broadcaster art and the placeholder rendered as a broken
-  thumbnail next to the score strip on web. Broadcaster mention is
-  carried in the subtitle ("Live now on NBA TV" / "Tonight on NBA TV").
-  Re-introduce sponsor logos once we can source actual broadcaster art
-  server-side.
+--- Action-pipeline debug logging ---
+
+Add gated debug logging to the action system on all three clients so
+local-build sessions can visually verify that actions — especially
+`fireAndForget`, which has no on-screen side effect — are actually
+firing:
+
+- iOS `ActionDispatcher` emits per-handler `os.Logger.debug(...)` lines
+  with the resolved payload, including a "fired" / "deduped" log on the
+  `onVisible` impression-tracker path that was previously silent. `os`
+  unified logging keeps these out of release telemetry.
+- Android introduces `SduiActionLogger`, gated on `BuildConfig.DEBUG`
+  for `sdui-core` (`buildConfig = true` enabled), and routes
+  per-handler logs through it under a single `SDUI/Action` tag.
+  `Log.w` warning paths stay unconditional.
+- Web introduces `runtime/actionLogger.ts`, gated on
+  `import.meta.env.DEV`. Replaces the ad-hoc `[Action]` /
+  `[FireAndForget]` `console.log`s with `actionLog`/`actionWarn`/
+  `actionError` so the production bundle stays quiet.
+
+All three loggers expose a runtime override (`enabled` / equivalent)
+for hosts that need to capture telemetry from a release build during
+dogfooding.
+
+--- TraceId consistency across clients ---
+
+Thread the screen-level `traceId` through data-binding and polling paths
+so log correlation survives the full request lifecycle on all platforms:
+
+- Web: pass `traceId` from the screen response through `SectionRouter`
+  → `LiveSectionWrapper` → `applyDataBindings`. All `[DataBinding]`
+  console logs now include a `trace=<id>` tag when available.
+- Android: add `traceId` parameter to `SduiRepository.fetchRawJson()`
+  and send it as the `X-Trace-Id` header so polling requests reuse the
+  screen's trace context instead of generating a fresh one.
+- iOS: add `traceID` parameter to `PollingDriver.start()` and pass it
+  through to `SduiRepository.fetchRawJson()`. Update both call sites
+  in `SduiScreenViewModel` (`startPolling` and `refresh`) to forward
+  `screen?.traceID`.
 
 --- Verification ---
 
-- `make codegen`
-- `make server-test`
-- `node scripts/validate-color-tokens.js`
-- `node scripts/validate-style-tokens.js`
-- `npm --prefix web run build`
-- `npm --prefix web test`
-- `cd android && ./gradlew :sdui-core:test --tests com.nba.sdui.core.data.DataBindingResolverTest`
-- `cd android && ./gradlew :app:compileDebugKotlin`
-- `make ios-build`
-- `git diff --check`
+Verified across all three platforms:
+
+- `make codegen` — clean regen (Java, Kotlin, Swift, TS).
+- Web: `npm --prefix web test` (9 files, 95 tests) +
+  `npm --prefix web run build` — pass.
+- Android: `./gradlew :sdui-core:test :app:compileDebugKotlin` —
+  BUILD SUCCESSFUL.
+- iOS: `make ios-test` (66 tests, 0 failures) + `make ios-build` —
+  Build Succeeded.

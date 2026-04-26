@@ -5,6 +5,7 @@ import { SectionRouter } from './components/SectionRouter';
 import { TopNavigationBar } from './components/TopNavigationBar';
 import { executeActionSequence } from './runtime/ActionHandler';
 import { setColorSchemePreference, usePrefersColorScheme } from './utils/ColorTokenResolver';
+import { ToastHost } from './components/ToastHost';
 
 // TODO: Bootstrap URI should come from a /sdui/init endpoint.
 //       Hardcoded here only as a temporary prototype bootstrap.
@@ -37,7 +38,6 @@ export function App(): React.ReactElement {
 
   useEffect(() => {
     setExperiments({});
-    setScreenState({});
   }, [currentUri]);
 
   const endpoint = resolveEndpoint(currentUri);
@@ -58,17 +58,28 @@ export function App(): React.ReactElement {
   // Track whether the last screen mutation was a surgical section update
   // so we can skip re-seeding state from the (stale) screen.state.
   const isSectionUpdateRef = useRef(false);
+  const lastScreenIdRef = useRef<string | undefined>(undefined);
 
-  // Initialize screen state from server response when it arrives.
-  // Skip when the screen reference changed due to a section-level merge
-  // (the original screen.state still has defaults that would overwrite
-  // the user's form selections).
+  // Initialize or merge screen state from the server. Full replacement when
+  // the screen id changes (navigation); merge when the same screen is updated.
   useEffect(() => {
     if (isSectionUpdateRef.current) {
       isSectionUpdateRef.current = false;
       return;
     }
-    if (screen?.state) {
+    if (!screen) {
+      return;
+    }
+    if (lastScreenIdRef.current !== screen.id) {
+      lastScreenIdRef.current = screen.id;
+      if (screen.state) {
+        setScreenState({ ...screen.state });
+      } else {
+        setScreenState({});
+      }
+      return;
+    }
+    if (screen.state) {
       setScreenState((prev) => ({ ...prev, ...screen.state }));
     }
   }, [screen]);
@@ -140,8 +151,7 @@ export function App(): React.ReactElement {
     setColorSchemePreference(colorScheme === 'dark' ? 'light' : 'dark');
   }, [colorScheme]);
 
-  // Loading state
-  if (loading) {
+  if (loading && !screen) {
     return (
       <div style={styles.centered}>
         <div style={styles.spinner} />
@@ -150,8 +160,7 @@ export function App(): React.ReactElement {
     );
   }
 
-  // Error state
-  if (error) {
+  if (error && !screen) {
     return (
       <div style={styles.centered}>
         <p style={styles.errorText}>Error: {error}</p>
@@ -165,7 +174,6 @@ export function App(): React.ReactElement {
     );
   }
 
-  // No screen data
   if (!screen) {
     return (
       <div style={styles.centered}>
@@ -176,6 +184,25 @@ export function App(): React.ReactElement {
 
   return (
     <div style={styles.container}>
+      <ToastHost />
+      {loading && (
+        <div
+          style={styles.navLoadingOverlay}
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
+        >
+          <div style={styles.spinner} />
+        </div>
+      )}
+      {error && (
+        <div style={styles.navErrorBanner}>
+          <span style={styles.navErrorText}>{error}</span>
+          <button type="button" style={styles.navErrorRetry} onClick={() => { void refetch(); }}>
+            Retry
+          </button>
+        </div>
+      )}
       {/* Header */}
       <header style={styles.header}>
         {screen.parentUri && (
@@ -233,7 +260,12 @@ export function App(): React.ReactElement {
       )}
 
       {/* Sections */}
-      <main style={styles.main}>
+      <main
+        style={{
+          ...styles.main,
+          ...(loading ? styles.mainWhileLoading : {}),
+        }}
+      >
         {screen.sections?.length ? (
           screen.sections.map((section) => (
             <div
@@ -253,6 +285,7 @@ export function App(): React.ReactElement {
                 onAction={handleAction}
                 onStateChange={handleStateChange}
                 onStalenessChange={handleStalenessChange}
+                traceId={screen.traceId ?? undefined}
               />
               {section.layoutHints?.dividerBelow && <hr className="sdui-divider" />}
             </div>
@@ -281,6 +314,43 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '0 16px',
     backgroundColor: 'var(--canvas)',
     overflowX: 'hidden',
+    position: 'relative',
+  },
+  navLoadingOverlay: {
+    position: 'absolute',
+    inset: 0,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.12)',
+    zIndex: 10,
+    pointerEvents: 'none',
+    transition: 'opacity 0.2s ease',
+  },
+  navErrorBanner: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    padding: '8px 16px',
+    backgroundColor: 'rgba(200, 40, 40, 0.12)',
+    color: 'var(--negative, #c62828)',
+    fontSize: 13,
+  },
+  navErrorText: {
+    flex: 1,
+  },
+  navErrorRetry: {
+    padding: '4px 12px',
+    borderRadius: 'var(--rounded-base)',
+    border: '1px solid var(--divider)',
+    background: 'var(--surface)',
+    cursor: 'pointer',
+    fontSize: 12,
+  },
+  mainWhileLoading: {
+    opacity: 0.5,
+    transition: 'opacity 0.2s ease',
   },
   header: {
     display: 'flex',

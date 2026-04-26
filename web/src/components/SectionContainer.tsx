@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import type { SectionSurface, Spacing, Background } from '@sdui/models';
 import { resolveColorToken, usePrefersColorScheme } from '../utils/ColorTokenResolver';
 
@@ -27,17 +27,27 @@ export function SectionContainer({ surface, children }: SectionContainerProps): 
 
   const marginStyle = spacingToCss(surface.margin, 'margin');
   const paddingStyle = spacingToCss(surface.padding, 'padding');
-  const background = resolveBackgroundCss(surface.background, scheme);
-  const borderColor = resolveColorToken(surface.border?.color, scheme);
-  const borderStyle =
-    surface.border && borderColor && (surface.border.width ?? 1) > 0
-      ? `${surface.border.width ?? 1}px solid ${borderColor}`
-      : undefined;
 
-  const shadowColor = resolveColorToken(surface.shadow?.color, scheme) ?? 'rgba(0,0,0,0.08)';
-  const boxShadow = surface.shadow
-    ? `${surface.shadow.offsetX ?? 0}px ${surface.shadow.offsetY ?? 2}px ${surface.shadow.radius ?? 4}px 0 ${shadowColor}`
-    : undefined;
+  const background = useMemo(
+    () => resolveBackgroundCss(surface.background, scheme),
+    [surface.background, scheme],
+  );
+  const borderColor = useMemo(
+    () => resolveColorToken(surface.border?.color, scheme),
+    [surface.border?.color, scheme],
+  );
+  const borderStyle = useMemo((): string | undefined => {
+    if (!surface.border || !borderColor || (surface.border.width ?? 1) <= 0) {
+      return undefined;
+    }
+    return `${surface.border.width ?? 1}px solid ${borderColor}`;
+  }, [surface.border, borderColor]);
+
+  const boxShadow = useMemo((): string | undefined => {
+    if (!surface.shadow) return undefined;
+    const shadowColor = resolveColorToken(surface.shadow.color, scheme) ?? 'rgba(0,0,0,0.08)';
+    return `${surface.shadow.offsetX ?? 0}px ${surface.shadow.offsetY ?? 2}px ${surface.shadow.radius ?? 4}px 0 ${shadowColor}`;
+  }, [surface.shadow, scheme]);
 
   const style: React.CSSProperties = {
     ...marginStyle,

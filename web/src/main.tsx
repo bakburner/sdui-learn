@@ -12,6 +12,14 @@ style.textContent = `
   @keyframes spin {
     to { transform: rotate(360deg); }
   }
+  @keyframes sduiTabContentFade {
+    from { opacity: 0.35; }
+    to { opacity: 1; }
+  }
+  @keyframes toastIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
 `;
 document.head.appendChild(style);
 

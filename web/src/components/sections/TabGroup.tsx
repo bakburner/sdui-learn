@@ -17,6 +17,9 @@ export function TabGroup({ section, state, onAction, onStateChange }: SectionPro
     onStateChange(model.stateKey, stateValue);
   };
 
+  const activeTab = model.tabs.find((t) => t.isActive);
+  const activePanelKey = activeTab?.stateValue ?? activeTab?.id ?? 'none';
+
   return (
     <div style={{ ...styles.container, backgroundColor: section.backgroundColor || 'transparent' }} {...accessibilityProps(section.accessibility)}>
       {/* Tab Bar */}
@@ -37,17 +40,18 @@ export function TabGroup({ section, state, onAction, onStateChange }: SectionPro
         ))}
       </div>
 
-      {/* Tab Content */}
       <div style={styles.tabContent} role="tabpanel">
         {model.activeSections.length > 0 ? (
-          <SectionList
-            sections={model.activeSections}
-            state={state}
-            onAction={onAction}
-            onStateChange={onStateChange}
-          />
+          <div key={activePanelKey} style={styles.tabPanelLayer}>
+            <SectionList
+              sections={model.activeSections}
+              state={state}
+              onAction={onAction}
+              onStateChange={onStateChange}
+            />
+          </div>
         ) : (
-          <div style={styles.emptyContent}>
+          <div key={activePanelKey} style={styles.emptyContent}>
             No content for this tab
           </div>
         )}
@@ -88,6 +92,12 @@ const styles: Record<string, React.CSSProperties> = {
   },
   tabContent: {
     padding: 8,
+    minHeight: 64,
+    position: 'relative',
+  },
+  tabPanelLayer: {
+    transition: 'opacity 200ms ease',
+    animation: 'sduiTabContentFade 200ms ease',
   },
   emptyContent: {
     padding: 24,

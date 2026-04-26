@@ -1449,12 +1449,22 @@ export enum Priority {
  * when applicable.
  */
 export interface SectionStates {
-    error?:   Error;
+    /**
+     * Server-declared error presentation for this section.
+     */
+    error?:   ErrorState;
     loading?: Loading;
     [property: string]: any;
 }
 
-export interface Error {
+/**
+ * Server-declared error presentation for this section.
+ *
+ * Server-declared error-state shape rendered by section error boundaries. Named
+ * `ErrorState` (not `Error`) so the generated client type does not shadow each runtime's
+ * native error protocol (e.g. `Swift.Error`).
+ */
+export interface ErrorState {
     /**
      * If true, collapse the section entirely on error instead of showing error UI
      */

@@ -58,9 +58,11 @@ struct TabGroupView: View {
                 }
 
                 if let tabContents = data.tabContents, let sections = tabContents[selectedTab] {
-                    ForEach(Array(sections.enumerated()), id: \.offset) { _, childSection in
+                    ForEach(sections, id: \.id) { childSection in
                         SectionRouter(section: childSection, screenState: screenState, onAction: onAction)
                     }
+                    .animation(.easeInOut(duration: 0.2), value: selectedTab)
+                    .transition(.opacity)
                 }
             }
             .accessibilityElement(children: .contain)

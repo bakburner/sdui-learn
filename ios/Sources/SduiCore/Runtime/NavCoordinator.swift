@@ -28,7 +28,9 @@ public final class NavCoordinator {
     /// `navigationDestination(for: String.self)` resolves the endpoint to
     /// another `ScreenShell`.
     public func push(endpoint: String) {
-        path.append(endpoint)
+        withAnimation(.easeInOut(duration: 0.25)) {
+            path.append(endpoint)
+        }
     }
 
     public func pop() {

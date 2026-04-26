@@ -15,6 +15,8 @@ interface LiveSectionWrapperProps {
   defaultRefreshPolicy?: Section['refreshPolicy'];
   /** Callback when section data channel becomes stale or recovers */
   onStalenessChange?: (sectionId: string, isStale: boolean) => void;
+  /** Screen-level traceId for log correlation */
+  traceId?: string;
   children: (effectiveData: Data | undefined) => React.ReactElement | null;
 }
 
@@ -30,6 +32,7 @@ export function LiveSectionWrapper({
   section,
   defaultRefreshPolicy,
   onStalenessChange,
+  traceId,
   children,
 }: LiveSectionWrapperProps): React.ReactElement | null {
   const sectionRef = useRef<HTMLDivElement>(null);
@@ -69,7 +72,8 @@ export function LiveSectionWrapper({
           section.dataBinding,
           incomingPayload as Record<string, unknown>,
           (section as Record<string, unknown>).stringTable as Record<string, string> | undefined,
-          section.id
+          section.id,
+          traceId
         );
         return updated as Data;
       }
@@ -82,12 +86,10 @@ export function LiveSectionWrapper({
 
       return currentData;
     });
-  }, [section.id, section.dataBinding, hasDataBindings, section.stringTable]);
+  }, [section.id, section.dataBinding, hasDataBindings, section.stringTable, traceId]);
   useRefreshPolicy({
-    section: {
-      ...section,
-      refreshPolicy: effectivePolicy,
-    },
+    sectionId: section.id,
+    refreshPolicy: effectivePolicy,
     onUpdate: handleUpdate,
     onStalenessChange,
     enabled,
@@ -107,6 +109,7 @@ export function LiveSectionWrapper({
 export function useLiveData(
   section: Section,
   defaultRefreshPolicy?: Section['refreshPolicy'],
+  traceId?: string,
 ): Data | undefined {
   const [liveData, setLiveData] = useState<Data | undefined>(section.data as Data | undefined);
 
@@ -130,7 +133,8 @@ export function useLiveData(
           section.dataBinding,
           incomingPayload as Record<string, unknown>,
           (section as Record<string, unknown>).stringTable as Record<string, string> | undefined,
-          section.id
+          section.id,
+          traceId
         );
         return updated as Data;
       }
@@ -141,13 +145,11 @@ export function useLiveData(
 
       return currentData;
     });
-  }, [section.id, section.dataBinding, hasDataBindings, section.stringTable]);
+  }, [section.id, section.dataBinding, hasDataBindings, section.stringTable, traceId]);
 
   useRefreshPolicy({
-    section: {
-      ...section,
-      refreshPolicy: effectivePolicy,
-    },
+    sectionId: section.id,
+    refreshPolicy: effectivePolicy,
     onUpdate: handleUpdate,
     enabled: hasRefreshPolicy,
   });

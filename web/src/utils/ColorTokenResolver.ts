@@ -241,6 +241,12 @@ const SEMANTIC: Record<string, string> = {
 const TOKEN_PREFIX = 'token:';
 const MAX_ALIAS_DEPTH = 8;
 
+const resolvedTokenCache = new Map<string, string | undefined>();
+
+function tokenCacheKey(scheme: ColorScheme, value: string): string {
+  return `${scheme}\0${value}`;
+}
+
 /**
  * Resolve an SDUI color value to a CSS color string.
  * - `null` / `undefined` / empty → returns `undefined` so the caller can
@@ -255,7 +261,19 @@ export function resolveColorToken(
   scheme: ColorScheme,
 ): string | undefined {
   if (!value) return undefined;
-  if (!value.startsWith(TOKEN_PREFIX)) return value;
+  if (!value.startsWith(TOKEN_PREFIX)) {
+    const key = tokenCacheKey(scheme, value);
+    if (resolvedTokenCache.has(key)) {
+      return resolvedTokenCache.get(key);
+    }
+    resolvedTokenCache.set(key, value);
+    return value;
+  }
+
+  const key = tokenCacheKey(scheme, value);
+  if (resolvedTokenCache.has(key)) {
+    return resolvedTokenCache.get(key);
+  }
 
   const name = value.slice(TOKEN_PREFIX.length);
   const entry = followAlias(name);
@@ -263,9 +281,12 @@ export function resolveColorToken(
     if (typeof console !== 'undefined') {
       console.warn('token_resolver_missing', { token: value });
     }
+    resolvedTokenCache.set(key, undefined);
     return undefined;
   }
-  return scheme === 'dark' ? entry.dark : entry.light;
+  const resolved = scheme === 'dark' ? entry.dark : entry.light;
+  resolvedTokenCache.set(key, resolved);
+  return resolved;
 }
 
 function followAlias(name: string, depth = 0): PaletteEntry | undefined {
@@ -301,12 +322,16 @@ export function getEffectiveColorScheme(): ColorScheme {
 
 function applyColorScheme(scheme: ColorScheme): void {
   if (typeof document !== 'undefined') {
+    document.documentElement.setAttribute('data-theme', scheme);
     document.documentElement.dataset.theme = scheme;
     document.documentElement.style.colorScheme = scheme;
   }
 }
 
 export function setColorSchemePreference(scheme: ColorScheme): void {
+  if (typeof document !== 'undefined') {
+    document.documentElement.setAttribute('data-theme', scheme);
+  }
   applyColorScheme(scheme);
   if (typeof window !== 'undefined') {
     window.localStorage.setItem(THEME_STORAGE_KEY, scheme);

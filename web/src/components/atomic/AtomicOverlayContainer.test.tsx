@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import React from 'react';
 import { AtomicOverlayContainer } from './AtomicOverlayContainer';
 import type { AtomicElement } from '@sdui/models';
 import { UIType } from '@sdui/models';

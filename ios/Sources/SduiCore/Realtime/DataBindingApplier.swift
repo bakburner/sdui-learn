@@ -86,7 +86,7 @@ final class DataBindingApplier {
 
     // MARK: - Single binding
 
-    private struct BindingMissError: Swift.Error {}
+    private struct BindingMissError: Error {}
 
     private func applyOne(
         output: inout [String: Any],

@@ -15,6 +15,17 @@ final class SduiRepository {
     private let config: SduiConfig
     private let session: URLSession
     private let envelopeProvider: @Sendable () -> RequestEnvelope
+    private let fetchStateLock = NSLock()
+    private var activeScreenFetch: Task<SduiModels, Error>?
+    /// Per-request `X-Trace-Id` of the current in-flight screen fetch. Reused
+    /// as the active-fetch identity so the deferred cleanup only nils the slot
+    /// when no newer fetch has overwritten it (Task is a struct, so identity
+    /// comparison via `===` is unavailable).
+    private var activeScreenFetchTraceID: String?
+
+    deinit {
+        fetchStateLock.withLock { activeScreenFetch?.cancel() }
+    }
 
     init(
         config: SduiConfig,
@@ -37,39 +48,54 @@ final class SduiRepository {
             envelope.gameState = variant
         }
 
-        let request = try buildRequest(endpoint: endpoint, envelope: envelope)
-        logger.debug("Fetching screen \(request.httpMethod ?? "GET"): \(request.url?.absoluteString ?? endpoint)")
+        let traceID = config.traceIDProvider()
+        let request = try buildRequest(endpoint: endpoint, envelope: envelope, traceID: traceID)
+        logger.debug("Fetching screen \(request.httpMethod ?? "GET"): \(request.url?.absoluteString ?? endpoint) [trace=\(traceID, privacy: .public)]")
 
-        let (data, response) = try await session.data(for: request)
+        fetchStateLock.withLock { activeScreenFetch?.cancel() }
 
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw SduiError.invalidResponse
+        let httpSession = self.session
+        let task: Task<SduiModels, Error> = Task {
+            let (data, response) = try await httpSession.data(for: request)
+
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw SduiError.invalidResponse
+            }
+
+            guard (200...299).contains(httpResponse.statusCode) else {
+                logger.error("HTTP \(httpResponse.statusCode) for \(endpoint)")
+                throw SduiError.httpError(statusCode: httpResponse.statusCode)
+            }
+
+            do {
+                let screen = try SduiModels(data: data)
+                logger.debug("Fetched screen '\(screen.id)' with \(screen.sections.count) sections")
+                return screen
+            } catch {
+                let detail = Self.describeDecodingError(error)
+                logger.error("Failed to decode screen from \(endpoint, privacy: .public): \(detail, privacy: .public)")
+                throw SduiError.decodingFailed(detail)
+            }
         }
-
-        guard (200...299).contains(httpResponse.statusCode) else {
-            logger.error("HTTP \(httpResponse.statusCode) for \(endpoint)")
-            throw SduiError.httpError(statusCode: httpResponse.statusCode)
+        fetchStateLock.withLock {
+            activeScreenFetch = task
+            activeScreenFetchTraceID = traceID
         }
-
-        do {
-            let screen = try SduiModels(data: data)
-            logger.debug("Fetched screen '\(screen.id)' with \(screen.sections.count) sections")
-            return screen
-        } catch {
-            let detail = Self.describeDecodingError(error)
-            logger.error("Failed to decode screen from \(endpoint, privacy: .public): \(detail, privacy: .public)")
-            throw SduiError.decodingFailed(detail)
+        defer {
+            fetchStateLock.withLock {
+                if activeScreenFetchTraceID == traceID {
+                    activeScreenFetch = nil
+                    activeScreenFetchTraceID = nil
+                }
+            }
         }
+        return try await task.value
     }
 
     /// Expand a `DecodingError` into `keyNotFound/typeMismatch/valueNotFound/dataCorrupted`
     /// with the failing JSON path and the underlying reason. `localizedDescription`
     /// hides that detail, which makes on-device decode failures unreadable.
-    ///
-    /// NOTE: fully-qualified `Swift.Error` — the generated `SduiModels.swift`
-    /// declares a `struct Error` (schema's error-state payload shape) that
-    /// would otherwise shadow the protocol inside this module.
-    private static func describeDecodingError(_ error: Swift.Error) -> String {
+    private static func describeDecodingError(_ error: Error) -> String {
         guard let decodingError = error as? DecodingError else {
             return error.localizedDescription
         }
@@ -91,9 +117,11 @@ final class SduiRepository {
     }
 
     /// Fetch raw JSON from a direct URL (for poll refresh with `dataPath` extraction).
-    func fetchRawJson(url: URL) async throws -> Any {
+    /// - Parameter traceID: Optional trace ID to reuse from the parent screen fetch.
+    ///   Falls back to generating a fresh ID if nil.
+    func fetchRawJson(url: URL, traceID: String? = nil) async throws -> Any {
         var request = URLRequest(url: url)
-        attachAuthHeaders(&request)
+        attachAuthHeaders(&request, traceID: traceID ?? config.traceIDProvider())
 
         let (data, response) = try await session.data(for: request)
 
@@ -109,7 +137,8 @@ final class SduiRepository {
 
     private func buildRequest(
         endpoint: String,
-        envelope: RequestEnvelope
+        envelope: RequestEnvelope,
+        traceID: String
     ) throws -> URLRequest {
         let path = endpoint.hasPrefix("/") ? endpoint : "/\(endpoint)"
         let baseWithPath = config.baseURL.appendingPathComponent(
@@ -121,7 +150,7 @@ final class SduiRepository {
             request.httpMethod = "POST"
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             request.httpBody = try envelope.jsonBody()
-            attachAuthHeaders(&request)
+            attachAuthHeaders(&request, traceID: traceID)
             return request
         }
 
@@ -131,15 +160,15 @@ final class SduiRepository {
             throw SduiError.invalidURL(endpoint)
         }
         var request = URLRequest(url: url)
-        attachAuthHeaders(&request)
+        attachAuthHeaders(&request, traceID: traceID)
         return request
     }
 
-    private func attachAuthHeaders(_ request: inout URLRequest) {
+    private func attachAuthHeaders(_ request: inout URLRequest, traceID: String) {
         if let token = config.authorizationToken {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
-        request.setValue(config.traceIDProvider(), forHTTPHeaderField: "X-Trace-Id")
+        request.setValue(traceID, forHTTPHeaderField: "X-Trace-Id")
     }
 }
 

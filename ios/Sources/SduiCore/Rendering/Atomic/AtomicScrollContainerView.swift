@@ -61,7 +61,8 @@ struct AtomicScrollContainerView: View {
     @ViewBuilder
     private var children: some View {
         if let kids = element.children {
-            ForEach(Array(kids.enumerated()), id: \.offset) { index, child in
+            ForEach(0..<kids.count, id: \.self) { index in
+                let child = kids[index]
                 AtomicRouter(element: child, screenState: screenState, onAction: onAction, depth: depth)
                     .modifier(PageFrameModifier(enabled: element.paging == true, isHorizontal: element.direction == .row))
                     .layoutValue(key: AtomicFlexValueKey.self, value: CGFloat(max(child.flex ?? 0, 0)))

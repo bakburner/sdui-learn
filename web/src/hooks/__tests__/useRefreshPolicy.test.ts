@@ -42,7 +42,14 @@ describe('useRefreshPolicy — poll', () => {
     });
     const onUpdate = vi.fn();
 
-    renderHook(() => useRefreshPolicy({ section, onUpdate, enabled: false }));
+    renderHook(() =>
+      useRefreshPolicy({
+        sectionId: section.id,
+        refreshPolicy: section.refreshPolicy,
+        onUpdate,
+        enabled: false,
+      }),
+    );
 
     await act(async () => {
       vi.advanceTimersByTime(5000);
@@ -63,7 +70,13 @@ describe('useRefreshPolicy — poll', () => {
     });
 
     const { rerender, unmount } = renderHook(
-      ({ enabled }) => useRefreshPolicy({ section, onUpdate, enabled }),
+      ({ enabled }) =>
+        useRefreshPolicy({
+          sectionId: section.id,
+          refreshPolicy: section.refreshPolicy,
+          onUpdate,
+          enabled,
+        }),
       { initialProps: { enabled: true } },
     );
 
@@ -103,7 +116,13 @@ describe('useRefreshPolicy — poll', () => {
     (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: false });
 
     renderHook(() =>
-      useRefreshPolicy({ section, onUpdate, onStalenessChange, enabled: true }),
+      useRefreshPolicy({
+        sectionId: section.id,
+        refreshPolicy: section.refreshPolicy,
+        onUpdate,
+        onStalenessChange,
+        enabled: true,
+      }),
     );
 
     // Initial fetch (fails)
@@ -127,7 +146,14 @@ describe('useRefreshPolicy — poll', () => {
     });
     const onUpdate = vi.fn();
 
-    renderHook(() => useRefreshPolicy({ section, onUpdate, enabled: true }));
+    renderHook(() =>
+      useRefreshPolicy({
+        sectionId: section.id,
+        refreshPolicy: section.refreshPolicy,
+        onUpdate,
+        enabled: true,
+      }),
+    );
 
     expect(fetch).not.toHaveBeenCalled();
   });
@@ -141,7 +167,14 @@ describe('useRefreshPolicy — SSE', () => {
       refreshPolicy: { type: RefreshType.SSE, channel: 'game:123' },
     });
 
-    renderHook(() => useRefreshPolicy({ section, onUpdate: vi.fn(), enabled: false }));
+    renderHook(() =>
+      useRefreshPolicy({
+        sectionId: section.id,
+        refreshPolicy: section.refreshPolicy,
+        onUpdate: vi.fn(),
+        enabled: false,
+      }),
+    );
 
     expect(mockedSubscribeToChannel).not.toHaveBeenCalled();
   });
@@ -151,7 +184,14 @@ describe('useRefreshPolicy — SSE', () => {
       refreshPolicy: { type: RefreshType.SSE, channel: 'game:123' },
     });
 
-    renderHook(() => useRefreshPolicy({ section, onUpdate: vi.fn(), enabled: true }));
+    renderHook(() =>
+      useRefreshPolicy({
+        sectionId: section.id,
+        refreshPolicy: section.refreshPolicy,
+        onUpdate: vi.fn(),
+        enabled: true,
+      }),
+    );
 
     expect(mockedSubscribeToChannel).toHaveBeenCalledWith('game:123', expect.any(Function));
   });
@@ -162,7 +202,13 @@ describe('useRefreshPolicy — SSE', () => {
     });
 
     const { rerender } = renderHook(
-      ({ enabled }) => useRefreshPolicy({ section, onUpdate: vi.fn(), enabled }),
+      ({ enabled }) =>
+        useRefreshPolicy({
+          sectionId: section.id,
+          refreshPolicy: section.refreshPolicy,
+          onUpdate: vi.fn(),
+          enabled,
+        }),
       { initialProps: { enabled: true } },
     );
 

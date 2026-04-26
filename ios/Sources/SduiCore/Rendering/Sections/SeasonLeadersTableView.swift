@@ -10,6 +10,7 @@ struct SeasonLeadersTableView: View {
 
     @State private var sortKey: String?
     @State private var sortAscending: Bool = false
+    @State private var displayedPlayers: [PlayerRow] = []
 
     var body: some View {
         if let data = section.data {
@@ -25,12 +26,28 @@ struct SeasonLeadersTableView: View {
                     ScrollView(.horizontal, showsIndicators: false) {
                         VStack(spacing: 0) {
                             header(columns: columns)
-                            rows(columns: columns, players: sortedPlayers(players))
+                            rows(columns: columns, players: displayedPlayers)
                         }
+                    }
+                    .onAppear {
+                        displayedPlayers = sortedPlayers(players)
+                    }
+                    .onChange(of: sortKey) { _, _ in
+                        displayedPlayers = sortedPlayers(players)
+                    }
+                    .onChange(of: sortAscending) { _, _ in
+                        displayedPlayers = sortedPlayers(players)
+                    }
+                    .onChange(of: playerSignature(players)) { _, _ in
+                        displayedPlayers = sortedPlayers(players)
                     }
                 }
             }
         }
+    }
+
+    private func playerSignature(_ players: [PlayerRow]) -> String {
+        players.map(\.playerID).joined(separator: "|")
     }
 
     @ViewBuilder

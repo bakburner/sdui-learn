@@ -17,6 +17,9 @@ export function useImpressionTracking({
 }: UseImpressionTrackingParams): void {
   const { hasFired, markFired, canFireInterval } = useAnalyticsContext();
   const dwellTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const extraTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const onActionRef = useRef(onAction);
+  onActionRef.current = onAction;
 
   const onVisibleActions = actions.filter(
     (a) => a.trigger === 'onVisible' && a.type === 'fireAndForget',
@@ -39,9 +42,9 @@ export function useImpressionTracking({
       }
 
       markFired(dedupKey);
-      onAction(action);
+      onActionRef.current(action);
     },
-    [sectionId, hasFired, markFired, canFireInterval, onAction],
+    [sectionId, hasFired, markFired, canFireInterval],
   );
 
   useEffect(() => {
@@ -59,7 +62,11 @@ export function useImpressionTracking({
                 if (dwellMs <= 1000) {
                   fireAction(action);
                 } else {
-                  setTimeout(() => fireAction(action), dwellMs - 1000);
+                  const tid = setTimeout(() => {
+                    extraTimersRef.current = extraTimersRef.current.filter((x) => x !== tid);
+                    fireAction(action);
+                  }, dwellMs - 1000);
+                  extraTimersRef.current.push(tid);
                 }
               }
             }, 1000);
@@ -68,6 +75,10 @@ export function useImpressionTracking({
               clearTimeout(dwellTimerRef.current);
               dwellTimerRef.current = null;
             }
+            for (const tid of extraTimersRef.current) {
+              clearTimeout(tid);
+            }
+            extraTimersRef.current = [];
           }
         }
       },
@@ -80,7 +91,12 @@ export function useImpressionTracking({
       observer.disconnect();
       if (dwellTimerRef.current) {
         clearTimeout(dwellTimerRef.current);
+        dwellTimerRef.current = null;
       }
+      for (const tid of extraTimersRef.current) {
+        clearTimeout(tid);
+      }
+      extraTimersRef.current = [];
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ref, sectionId, fireAction, onVisibleActions.length]);

@@ -930,22 +930,27 @@
           }
         },
         "error": {
-          "type": "object",
-          "properties": {
-            "message": {
-              "type": "string",
-              "description": "Error message to display (e.g., 'Unable to load scores')"
-            },
-            "retryAction": {
-              "$ref": "#/definitions/Action",
-              "description": "Optional action to trigger on retry tap (typically a refresh action)"
-            },
-            "hideOnError": {
-              "type": "boolean",
-              "default": false,
-              "description": "If true, collapse the section entirely on error instead of showing error UI"
-            }
-          }
+          "$ref": "#/definitions/ErrorState",
+          "description": "Server-declared error presentation for this section."
+        }
+      }
+    },
+    "ErrorState": {
+      "type": "object",
+      "description": "Server-declared error-state shape rendered by section error boundaries. Named `ErrorState` (not `Error`) so the generated client type does not shadow each runtime's native error protocol (e.g. `Swift.Error`).",
+      "properties": {
+        "message": {
+          "type": "string",
+          "description": "Error message to display (e.g., 'Unable to load scores')"
+        },
+        "retryAction": {
+          "$ref": "#/definitions/Action",
+          "description": "Optional action to trigger on retry tap (typically a refresh action)"
+        },
+        "hideOnError": {
+          "type": "boolean",
+          "default": false,
+          "description": "If true, collapse the section entirely on error instead of showing error UI"
         }
       }
     },

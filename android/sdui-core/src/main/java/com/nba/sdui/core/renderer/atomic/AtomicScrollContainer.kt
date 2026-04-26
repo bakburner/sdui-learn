@@ -110,7 +110,10 @@ fun AtomicScrollContainer(
                         horizontalArrangement = horizontalArrangement(element.alignment, gap),
                         verticalAlignment = crossAxis as ComposeAlignment.Vertical
                     ) {
-                        itemsIndexed(children) { _, child ->
+                        itemsIndexed(
+                            children,
+                            key = { i, child -> child.id ?: "scroll_child_$i" }
+                        ) { _, child ->
                             Box(modifier = childCrossAxisModifier(element, isHorizontal)) {
                                 AtomicRouter(child, screenState, onAction, depth = depth + 1, onStateChange = onStateChange, sectionSlotDepth = sectionSlotDepth)
                             }
@@ -133,7 +136,10 @@ fun AtomicScrollContainer(
                     horizontalArrangement = horizontalArrangement(element.alignment, gap),
                     verticalAlignment = crossAxis as ComposeAlignment.Vertical
                 ) {
-                    itemsIndexed(children) { _, child ->
+                    itemsIndexed(
+                        children,
+                        key = { i, child -> child.id ?: "scroll_child_$i" }
+                    ) { _, child ->
                         Box(modifier = childCrossAxisModifier(element, isHorizontal)) {
                             AtomicRouter(child, screenState, onAction, depth = depth + 1, onStateChange = onStateChange, sectionSlotDepth = sectionSlotDepth)
                         }
@@ -150,7 +156,10 @@ fun AtomicScrollContainer(
                         verticalArrangement = verticalArrangement(element.alignment, gap),
                         horizontalAlignment = crossAxis as ComposeAlignment.Horizontal
                     ) {
-                        itemsIndexed(children) { _, child ->
+                        itemsIndexed(
+                            children,
+                            key = { i, child -> child.id ?: "scroll_child_$i" }
+                        ) { _, child ->
                             Box(modifier = childCrossAxisModifier(element, isHorizontal)) {
                                 AtomicRouter(child, screenState, onAction, depth = depth + 1, onStateChange = onStateChange, sectionSlotDepth = sectionSlotDepth)
                             }
@@ -173,7 +182,10 @@ fun AtomicScrollContainer(
                     verticalArrangement = verticalArrangement(element.alignment, gap),
                     horizontalAlignment = crossAxis as ComposeAlignment.Horizontal
                 ) {
-                    itemsIndexed(children) { _, child ->
+                    itemsIndexed(
+                        children,
+                        key = { i, child -> child.id ?: "scroll_child_$i" }
+                    ) { _, child ->
                         Box(modifier = childCrossAxisModifier(element, isHorizontal)) {
                             AtomicRouter(child, screenState, onAction, depth = depth + 1, onStateChange = onStateChange, sectionSlotDepth = sectionSlotDepth)
                         }

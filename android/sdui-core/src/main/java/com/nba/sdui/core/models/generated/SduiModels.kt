@@ -2133,11 +2133,22 @@ enum class Priority(val value: String) {
  * when applicable.
  */
 data class SectionStates (
-    val error: Error? = null,
+    /**
+     * Server-declared error presentation for this section.
+     */
+    val error: ErrorState? = null,
+
     val loading: Loading? = null
 )
 
-data class Error (
+/**
+ * Server-declared error presentation for this section.
+ *
+ * Server-declared error-state shape rendered by section error boundaries. Named
+ * `ErrorState` (not `Error`) so the generated client type does not shadow each runtime's
+ * native error protocol (e.g. `Swift.Error`).
+ */
+data class ErrorState (
     /**
      * If true, collapse the section entirely on error instead of showing error UI
      */

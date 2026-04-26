@@ -27,14 +27,15 @@ export function applyDataBindings<T extends Record<string, unknown>>(
   bindings: DataBinding | undefined,
   incomingMessage: Record<string, unknown>,
   stringTable?: Record<string, string>,
-  sectionId?: string
+  sectionId?: string,
+  traceId?: string
 ): T {
   if (!bindings?.bindings?.length) {
     return sectionData;
   }
 
-  // Clone to avoid mutation
-  const updated = JSON.parse(JSON.stringify(sectionData)) as T;
+  const traceTag = traceId ? ` trace=${traceId}` : '';
+  let updated: T = sectionData;
 
   for (const binding of bindings.bindings) {
     try {
@@ -51,7 +52,7 @@ export function applyDataBindings<T extends Record<string, unknown>>(
           // the write rather than downgrading to the raw value, which would
           // silently drop a server-declared semantic.
           console.warn(
-            `[DataBinding] Unknown transform '${binding.transform}' for ${binding.targetPath}; skipping write to avoid downgrading server semantics.`
+            `[DataBinding${traceTag}] Unknown transform '${binding.transform}' for ${binding.targetPath}; skipping write to avoid downgrading server semantics.`
           );
           continue;
         }
@@ -60,16 +61,16 @@ export function applyDataBindings<T extends Record<string, unknown>>(
         if (stringKey && stringTable) {
           const resolved = stringTable[stringKey];
           if (resolved !== undefined) {
-            setValueByPath(updated, binding.targetPath, resolved);
-            console.log(`[DataBinding] ${binding.sourcePath} -> ${binding.targetPath}: stringKey '${stringKey}' resolved to '${resolved}'`);
+            updated = setValueByPathImmutable(updated, binding.targetPath, resolved);
+            console.log(`[DataBinding${traceTag}] ${binding.sourcePath} -> ${binding.targetPath}: stringKey '${stringKey}' resolved to '${resolved}'`);
           } else {
             // Fall back to raw value when stringKey not found in table
-            setValueByPath(updated, binding.targetPath, boundValue);
-            console.warn(`[DataBinding] stringKey '${stringKey}' not found in stringTable for ${binding.targetPath}, using raw value:`, boundValue);
+            updated = setValueByPathImmutable(updated, binding.targetPath, boundValue);
+            console.warn(`[DataBinding${traceTag}] stringKey '${stringKey}' not found in stringTable for ${binding.targetPath}, using raw value:`, boundValue);
           }
         } else {
-          setValueByPath(updated, binding.targetPath, boundValue);
-          console.log(`[DataBinding] ${binding.sourcePath} -> ${binding.targetPath}:`, boundValue);
+          updated = setValueByPathImmutable(updated, binding.targetPath, boundValue);
+          console.log(`[DataBinding${traceTag}] ${binding.sourcePath} -> ${binding.targetPath}:`, boundValue);
         }
       } else {
         // Source path missing — track consecutive misses
@@ -78,7 +79,7 @@ export function applyDataBindings<T extends Record<string, unknown>>(
           consecutiveMissCounts.set(missKey, count);
           if (count >= MISS_THRESHOLD) {
             console.warn(
-              `[DataBinding] Binding path missing for ${count} consecutive cycles:`,
+              `[DataBinding${traceTag}] Binding path missing for ${count} consecutive cycles:`,
               `sectionId=${sectionId}, sourcePath=${binding.sourcePath}`
             );
             // TODO: emit binding_path_missing analytics event
@@ -92,7 +93,7 @@ export function applyDataBindings<T extends Record<string, unknown>>(
         const count = (consecutiveMissCounts.get(missKey) ?? 0) + 1;
         consecutiveMissCounts.set(missKey, count);
       }
-      console.warn(`[DataBinding] Failed to apply binding:`, binding, err);
+      console.warn(`[DataBinding${traceTag}] Failed to apply binding:`, binding, err);
     }
   }
 
@@ -218,47 +219,83 @@ function getValueByPath(obj: Record<string, unknown>, path: string): unknown {
 }
 
 /**
- * Set value in object using dot-path syntax.
+ * Immutable dot-path set that structural-shares all branches that do not
+ * change so downstream memoization still sees stable references.
  */
-function setValueByPath(obj: Record<string, unknown>, path: string, value: unknown): void {
+function setValueByPathImmutable<T extends Record<string, unknown>>(
+  root: T,
+  path: string,
+  value: unknown,
+): T {
   const segments = path.split('.');
-  let current = obj;
-
-  for (let i = 0; i < segments.length - 1; i++) {
-    const segment = segments[i];
-    
-    // Handle array indexing
-    const arrayMatch = segment.match(/^(\w+)\[(\d+)\]$/);
-    if (arrayMatch) {
-      const [, key, index] = arrayMatch;
-      if (!current[key]) {
-        current[key] = [];
-      }
-      const arr = current[key] as unknown[];
-      const idx = parseInt(index, 10);
-      if (!arr[idx]) {
-        arr[idx] = {};
-      }
-      current = arr[idx] as Record<string, unknown>;
-    } else {
-      if (!current[segment]) {
-        current[segment] = {};
-      }
-      current = current[segment] as Record<string, unknown>;
-    }
+  if (segments.length === 0) {
+    return root;
   }
+  return updateAtPath(root, segments, 0, value) as T;
+}
 
-  const lastSegment = segments[segments.length - 1];
-  const arrayMatch = lastSegment.match(/^(\w+)\[(\d+)\]$/);
+function updateAtPath(
+  current: unknown,
+  segments: string[],
+  i: number,
+  value: unknown,
+): unknown {
+  const seg = segments[i]!;
+  const isLast = i === segments.length - 1;
+  const parent: Record<string, unknown> = isRecord(current) ? current : {};
+  const arrayMatch = seg.match(/^(\w+)\[(\d+)\]$/);
+
   if (arrayMatch) {
-    const [, key, index] = arrayMatch;
-    if (!current[key]) {
-      current[key] = [];
+    const key = arrayMatch[1]!;
+    const idx = parseInt(arrayMatch[2]!, 10);
+    const oldArr: unknown = parent[key];
+    const sourceArr: unknown[] = Array.isArray(oldArr) ? (oldArr as unknown[]) : [];
+    const newArr: unknown[] = sourceArr.length ? [...sourceArr] : [];
+    while (newArr.length <= idx) {
+      newArr.push(undefined);
     }
-    (current[key] as unknown[])[parseInt(index, 10)] = value;
-  } else {
-    current[lastSegment] = value;
+    if (isLast) {
+      if (sourceArr[idx] === value) {
+        return isRecord(current) ? current : parent;
+      }
+      newArr[idx] = value;
+      if (isRecord(current)) {
+        return { ...current, [key]: newArr };
+      }
+      return { ...parent, [key]: newArr };
+    }
+    const newInner = updateAtPath(newArr[idx], segments, i + 1, value);
+    if (newInner === newArr[idx] && isRecord(current) && (current as Record<string, unknown>)[key] === oldArr) {
+      return current;
+    }
+    const withIdx = newArr;
+    withIdx[idx] = newInner;
+    if (isRecord(current)) {
+      return { ...current, [key]: withIdx };
+    }
+    return { ...parent, [key]: withIdx };
   }
+
+  if (isLast) {
+    if (isRecord(current) && (current as Record<string, unknown>)[seg] === value) {
+      return current;
+    }
+    if (isRecord(current)) {
+      return { ...current, [seg]: value };
+    }
+    return { [seg]: value };
+  }
+
+  const child = parent[seg];
+  const childForUpdate = isRecord(child) ? child : undefined;
+  const newChild = updateAtPath(childForUpdate, segments, i + 1, value);
+  if (newChild === child && isRecord(current)) {
+    return current;
+  }
+  if (isRecord(current)) {
+    return { ...current, [seg]: newChild };
+  }
+  return { [seg]: newChild };
 }
 
 /**

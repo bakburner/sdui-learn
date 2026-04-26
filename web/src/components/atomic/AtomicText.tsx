@@ -1,9 +1,10 @@
-import React, { useContext } from 'react';
+import React, { useContext, memo } from 'react';
 import type { AtomicProps } from './AtomicRouter';
 import { AtomicBox } from './AtomicBox';
 import { accessibilityProps } from '../../utils/accessibility';
 import { useColorTokenResolver } from '../../utils/ColorTokenResolver';
 import { CompositeContentContext, resolveBindRefString } from '../../utils/BindRefResolver';
+import { areAtomicPropsEqual } from './areAtomicPropsEqual';
 
 /** Map schema variant strings to CSS font sizes / weights — NBA typography system.
  *  Display/Headline use Roboto Condensed (approximating Knockout/Action NBA).
@@ -38,7 +39,7 @@ const weightMap: Record<string, number> = {
  * padding, background, border, shadow, cornerRadius, opacity, and
  * variant chrome are applied by AtomicBox.
  */
-export function AtomicText({ element }: AtomicProps): React.ReactElement {
+function AtomicTextInner({ element }: AtomicProps): React.ReactElement {
   const textAlignMap: Record<string, React.CSSProperties['textAlign']> = {
     start: 'left', center: 'center', end: 'right',
   };
@@ -86,3 +87,5 @@ export function AtomicText({ element }: AtomicProps): React.ReactElement {
 
   return <AtomicBox element={element}>{inner}</AtomicBox>;
 }
+
+export const AtomicText = memo(AtomicTextInner, areAtomicPropsEqual);

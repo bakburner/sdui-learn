@@ -31,6 +31,8 @@ object ColorTokenResolver {
     private const val TAG = "ColorTokenResolver"
     private const val TOKEN_PREFIX = "token:"
 
+    private val resolveCache = mutableMapOf<Pair<String, Boolean>, Color>()
+
     private data class PaletteEntry(val light: String, val dark: String)
 
     // Palette primitives — literal light/dark hex pairs.
@@ -258,17 +260,25 @@ object ColorTokenResolver {
     @Composable
     fun resolve(value: String?): Color {
         if (value.isNullOrBlank()) return Color.Unspecified
-        if (!value.startsWith(TOKEN_PREFIX)) {
-            return parseHex(value)
-        }
-        val name = value.removePrefix(TOKEN_PREFIX)
-        val entry = followAlias(name)
-        if (entry == null) {
-            Log.w(TAG, "token_resolver_missing: $value")
-            return Color.Unspecified
-        }
         val useDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
-        return parseHex(if (useDark) entry.dark else entry.light)
+        val cacheKey = value to useDark
+        resolveCache[cacheKey]?.let { return it }
+        val resolved = if (!value.startsWith(TOKEN_PREFIX)) {
+            parseHex(value)
+        } else {
+            val name = value.removePrefix(TOKEN_PREFIX)
+            val entry = followAlias(name)
+            if (entry == null) {
+                Log.w(TAG, "token_resolver_missing: $value")
+                Color.Unspecified
+            } else {
+                parseHex(if (useDark) entry.dark else entry.light)
+            }
+        }
+        if (resolved != Color.Unspecified) {
+            resolveCache[cacheKey] = resolved
+        }
+        return resolved
     }
 
     /**

@@ -47,7 +47,7 @@ function findPathToText(
   if (current === null || current === undefined) return false;
   if (Array.isArray(current)) {
     for (const c of current) {
-      if (findPathToText(c, target, path)) {
+      if (findPathToText(c as Json, target, path)) {
         return true;
       }
     }

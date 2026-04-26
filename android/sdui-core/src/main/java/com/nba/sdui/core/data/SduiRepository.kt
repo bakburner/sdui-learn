@@ -97,13 +97,16 @@ class SduiRepository(
      *
      * @param url The full URL to fetch from
      * @param dataPath Optional JSONPath-like path to extract data (e.g., "game" or "sections[0].data")
+     * @param traceId Optional trace ID to send via X-Trace-Id header for log correlation
      */
-    suspend fun fetchRawJson(url: String, dataPath: String? = null): Map<String, Any> = withContext(Dispatchers.IO) {
-        Log.d(TAG, "Fetching raw JSON from: $url")
+    suspend fun fetchRawJson(url: String, dataPath: String? = null, traceId: String? = null): Map<String, Any> = withContext(Dispatchers.IO) {
+        Log.d(TAG, "Fetching raw JSON from: $url${traceId?.let { " [trace=$it]" } ?: ""}")
 
-        val request = Request.Builder()
-            .url(url)
-            .build()
+        val requestBuilder = Request.Builder().url(url)
+        if (traceId != null) {
+            requestBuilder.header("X-Trace-Id", traceId)
+        }
+        val request = requestBuilder.build()
 
         val response = httpClient.newCall(request).execute()
 

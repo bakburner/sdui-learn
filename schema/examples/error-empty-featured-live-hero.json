@@ -1,0 +1,52 @@
+{
+  "id": "error-empty-featured-live-hero",
+  "schemaVersion": "1.0",
+  "title": "Featured live hero — empty live payload (server empty state)",
+  "analyticsId": "error_featured_live_empty",
+  "sections": [
+    {
+      "id": "featured-live-empty",
+      "type": "AtomicComposite",
+      "refreshPolicy": { "type": "static" },
+      "data": {
+        "ui": {
+          "type": "Container",
+          "direction": "column",
+          "alignment": "center",
+          "crossAlignment": "center",
+          "padding": { "top": 16, "bottom": 32, "start": 16, "end": 16 },
+          "children": [
+            { "type": "Text", "content": "📡", "variant": "titleLarge" },
+            { "type": "Spacer", "height": 12 },
+            {
+              "type": "Text",
+              "content": "Live games unavailable",
+              "variant": "titleMedium",
+              "weight": "bold"
+            },
+            { "type": "Spacer", "height": 8 },
+            {
+              "type": "Text",
+              "content": "The server could not load featured live games for this feed. Retry to refresh.",
+              "variant": "bodyMedium",
+              "color": "token:color.text.secondary"
+            },
+            { "type": "Spacer", "height": 16 },
+            {
+              "type": "Button",
+              "label": "Try Again",
+              "variant": "primary",
+              "actions": [
+                {
+                  "trigger": "onTap",
+                  "type": "navigate",
+                  "targetUri": "nba://scores/live?refresh=1"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

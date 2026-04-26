@@ -171,6 +171,10 @@ public class ScheduleComposer {
         JsonNode home = game.path("homeTeam");
         boolean finalGame = "Final".equals(status);
         String statusText = "Final".equals(status) ? "Final" : game.path("time").asText("TBD");
+        String targetUri = game.path("targetUri").asText(null);
+        if (targetUri == null || targetUri.isBlank()) {
+            log.warn("Schedule game {} missing server targetUri; row will not declare a tap action", gameId);
+        }
         String[] row = {
                 "schedule-game-" + gameId,
                 away.path("teamTricode").asText(""),
@@ -186,7 +190,7 @@ public class ScheduleComposer {
                 statusText,
                 game.path("seriesText").asText(null),
                 game.path("broadcastLogoUrls").asText(null),
-                "nba://game/" + gameId,
+                targetUri,
                 game.path("overflowUri").asText(null)
         };
         ObjectNode section = atomicBuilder.buildGameScheduleRow(

@@ -166,4 +166,64 @@ final class SduiModelsRoundTripTests: XCTestCase {
         XCTAssertNil(field.variant,
                      "Absent variant must decode as nil; renderer is responsible for the 'dropdown' fallback")
     }
+
+    // MARK: - Phase 6 schema example screens (AtomicComposite + overlays)
+
+    func testPhase6SchemaExampleScreensDecode() throws {
+        let fixtureNames = [
+            "feed-screen-composite",
+            "utility-card-grid-composite",
+            "league-card-rail-composite",
+            "game-schedule-row-composite",
+            "sponsor-logo-row-composite",
+            "error-empty-featured-live-hero",
+            "error-empty-story-rail",
+            "error-empty-schedule-list",
+        ]
+        for name in fixtureNames {
+            let data = try loadFixture(name)
+            let screen = try SduiModels(data: data)
+            let section = try XCTUnwrap(screen.sections.first(where: { $0.type == "AtomicComposite" }),
+                                        "\(name): expected an AtomicComposite section")
+            XCTAssertNotNil(section.data?.ui, "\(name): data.ui must decode")
+            if name == "feed-screen-composite" {
+                let root = try XCTUnwrap(section.data?.ui)
+                XCTAssertTrue(
+                    containsOverlayContainerWithLayers(root),
+                    "\(name): fixture should include OverlayContainer nodes with overlays for Phase 6 coverage"
+                )
+            }
+        }
+    }
+
+    private func containsOverlayContainerWithLayers(_ element: AtomicElement) -> Bool {
+        if element.type == "OverlayContainer",
+           let overlays = element.overlays,
+           !overlays.isEmpty {
+            return true
+        }
+        if let children = element.children {
+            for child in children where containsOverlayContainerWithLayers(child) {
+                return true
+            }
+        }
+        if let base = element.base, containsOverlayContainerWithLayers(base) {
+            return true
+        }
+        if let overlays = element.overlays {
+            for layer in overlays where containsOverlayContainerWithLayers(layer.element) {
+                return true
+            }
+        }
+        if let trueChild = element.trueChild, containsOverlayContainerWithLayers(trueChild) {
+            return true
+        }
+        if let falseChild = element.falseChild, containsOverlayContainerWithLayers(falseChild) {
+            return true
+        }
+        if let badge = element.badge, containsOverlayContainerWithLayers(badge.element) {
+            return true
+        }
+        return false
+    }
 }

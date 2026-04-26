@@ -1,0 +1,52 @@
+{
+  "id": "error-empty-schedule-list",
+  "schemaVersion": "1.0",
+  "title": "Schedule list — empty schedule (server empty state)",
+  "analyticsId": "error_schedule_empty",
+  "sections": [
+    {
+      "id": "schedule-list-empty",
+      "type": "AtomicComposite",
+      "refreshPolicy": { "type": "static" },
+      "data": {
+        "ui": {
+          "type": "Container",
+          "direction": "column",
+          "alignment": "center",
+          "crossAlignment": "center",
+          "padding": { "top": 16, "bottom": 32, "start": 16, "end": 16 },
+          "children": [
+            { "type": "Text", "content": "⏱️", "variant": "titleLarge" },
+            { "type": "Spacer", "height": 12 },
+            {
+              "type": "Text",
+              "content": "No games scheduled",
+              "variant": "titleMedium",
+              "weight": "bold"
+            },
+            { "type": "Spacer", "height": 8 },
+            {
+              "type": "Text",
+              "content": "The schedule is empty for the selected range. Choose another date or retry.",
+              "variant": "bodyMedium",
+              "color": "token:color.text.secondary"
+            },
+            { "type": "Spacer", "height": 16 },
+            {
+              "type": "Button",
+              "label": "Try Again",
+              "variant": "primary",
+              "actions": [
+                {
+                  "trigger": "onTap",
+                  "type": "navigate",
+                  "targetUri": "nba://games/schedule?refresh=1"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

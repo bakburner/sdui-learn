@@ -43,32 +43,69 @@ export function AtomicOverlayContainer({ element, state, onAction, depth = 0, on
 }
 
 function overlayStyle(overlay: AtomicOverlay): React.CSSProperties {
-  const style: React.CSSProperties = {
-    position: 'absolute',
-    ...alignmentStyle(overlay.alignment ?? 'bottomCenter'),
-  };
-
+  // Schema contract: `inset` is an OFFSET from the aligned base bounds —
+  // not an absolute position. Anchor to the edges implied by `alignment`,
+  // then add the matching inset value as the distance from each anchored
+  // edge. Edges that aren't anchored by the alignment ignore their inset
+  // (e.g. `bottomCenter` ignores `inset.top` since there's no top anchor).
+  // This matches iOS (`ZStack(alignment) { ... }.padding(inset)`) and
+  // Android (`Modifier.align(...)` + padding) behavior. The previous
+  // implementation overrode `left/'50%'` with `inset.start`, which collapsed
+  // a `bottomCenter` badge with `inset = 0/0/0/0` onto the corner and
+  // produced a cropped triangle on story-circle rails.
+  const alignment = overlay.alignment ?? 'bottomCenter';
   const inset = overlay.inset;
-  if (inset?.top != null) style.top = inset.top;
-  if (inset?.end != null) style.right = inset.end;
-  if (inset?.bottom != null) style.bottom = inset.bottom;
-  if (inset?.start != null) style.left = inset.start;
+  const top = inset?.top ?? 0;
+  const end = inset?.end ?? 0;
+  const bottom = inset?.bottom ?? 0;
+  const start = inset?.start ?? 0;
 
-  return style;
-}
+  const style: React.CSSProperties = { position: 'absolute' };
 
-function alignmentStyle(alignment: string): React.CSSProperties {
   switch (alignment) {
-    case 'topStart': return { top: 0, left: 0 };
-    case 'topCenter': return { top: 0, left: '50%', transform: 'translateX(-50%)' };
-    case 'topEnd': return { top: 0, right: 0 };
-    case 'centerStart': return { top: '50%', left: 0, transform: 'translateY(-50%)' };
-    case 'center': return { top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
-    case 'centerEnd': return { top: '50%', right: 0, transform: 'translateY(-50%)' };
-    case 'bottomStart': return { bottom: 0, left: 0 };
-    case 'bottomEnd': return { bottom: 0, right: 0 };
+    case 'topStart':
+      style.top = top;
+      style.left = start;
+      break;
+    case 'topCenter':
+      style.top = top;
+      style.left = '50%';
+      style.transform = 'translateX(-50%)';
+      break;
+    case 'topEnd':
+      style.top = top;
+      style.right = end;
+      break;
+    case 'centerStart':
+      style.top = '50%';
+      style.left = start;
+      style.transform = 'translateY(-50%)';
+      break;
+    case 'center':
+      style.top = '50%';
+      style.left = '50%';
+      style.transform = 'translate(-50%, -50%)';
+      break;
+    case 'centerEnd':
+      style.top = '50%';
+      style.right = end;
+      style.transform = 'translateY(-50%)';
+      break;
+    case 'bottomStart':
+      style.bottom = bottom;
+      style.left = start;
+      break;
+    case 'bottomEnd':
+      style.bottom = bottom;
+      style.right = end;
+      break;
     case 'bottomCenter':
     default:
-      return { bottom: 0, left: '50%', transform: 'translateX(-50%)' };
+      style.bottom = bottom;
+      style.left = '50%';
+      style.transform = 'translateX(-50%)';
+      break;
   }
+
+  return style;
 }

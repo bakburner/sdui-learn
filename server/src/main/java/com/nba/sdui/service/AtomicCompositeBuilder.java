@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 /**
@@ -1110,13 +1111,19 @@ public class AtomicCompositeBuilder {
                                         String displayTime, boolean isLive,
                                         String targetUri) {
         // Row layout: [time][content fills remaining][badge, optional].
-        // `contentCol.fillWidth = true` is the load-bearing bit — without
-        // it the HStack distributes leftover space unpredictably (time
-        // and title end up far apart, title truncates with an ellipsis
-        // even though the row has plenty of room). fillWidth forces the
-        // column to claim remaining horizontal space so the time hugs
-        // the leading edge and the badge hugs the trailing edge while
-        // the title+subtitle expand into the middle.
+        //
+        // `contentCol.flex = 1` is the load-bearing bit. `fillWidth: true`
+        // alone is not sufficient on iOS / Android: the AtomicContainer's
+        // flex stack only treats a child as "flexible" (i.e. claims
+        // leftover main-axis space) when it has a non-null `flex` weight.
+        // Without flex weight, the HStack/Row sizes to its natural width
+        // and the outer fillWidth frame centers the whole stack, so time +
+        // title + subtitle render visually centered inside the surface and
+        // the LIVE badge floats next to the title instead of pinning to
+        // the trailing edge. With `flex: 1`, the content column claims the
+        // remaining horizontal space so the time hugs the leading edge,
+        // the badge hugs the trailing edge, and the title + subtitle
+        // expand into the middle and remain left-justified.
         ObjectNode row = container("row", null, "center");
         row.put("id", id);
         row.put("fillWidth", true);
@@ -1134,6 +1141,7 @@ public class AtomicCompositeBuilder {
 
         ObjectNode contentCol = container("column", null, "start");
         contentCol.put("fillWidth", true);
+        contentCol.put("flex", 1.0);
         ArrayNode contentChildren = om.createArrayNode();
         contentChildren.add(text(title, "bodyMedium", "semiBold", ColorTokens.TEXT_PRIMARY, 1));
         if (subtitle != null) {
@@ -1441,7 +1449,7 @@ public class AtomicCompositeBuilder {
             rootChildren.add(header);
         }
 
-        ObjectNode scroll = scrollRow(16, false);
+        ObjectNode scroll = scrollRow(14, false);
         scroll.set("padding", padding(16, 16, 0, 0));
         ArrayNode children = om.createArrayNode();
         for (String[] item : items) {
@@ -1475,7 +1483,7 @@ public class AtomicCompositeBuilder {
             rootChildren.add(header);
         }
 
-        ObjectNode scroll = scrollRow(12, false);
+        ObjectNode scroll = scrollRow(14, false);
         scroll.set("padding", padding(16, 16, 0, 0));
         ArrayNode children = om.createArrayNode();
         for (String[] card : cards) {
@@ -1493,7 +1501,13 @@ public class AtomicCompositeBuilder {
      * Paged hero carousel for featured live/upcoming games.
      * cards: [id, badgeText, title, subtitle, keyArtUrl, awayTri, awayScore,
      * awayLogoUrl, homeTri, homeScore, homeLogoUrl, statusText, seriesText,
-     * sponsorLogoUrlsCsv, targetUri]
+     * sponsorLogoUrlsCsv, targetUri, heroOverflowUri]
+     * <p>
+     * Broadcaster/sponsor logo URLs in {@code sponsorLogoUrlsCsv} must be
+     * server-provided (comma-separated). {@code targetUri} is the card tap
+     * target; {@code heroOverflowUri} is optional top-right overflow affordance
+     * — both must come from composer inputs, never from client-side
+     * derivation from game or team identity.
      */
     public ObjectNode buildFeaturedLiveGameHero(String sectionId, String analyticsId,
                                                 String title, String[][] cards) {
@@ -1518,25 +1532,13 @@ public class AtomicCompositeBuilder {
             rootChildren.add(header);
         }
 
-        ObjectNode scroll = scrollRow(12, false);
-        if (validCards.size() > 1) {
-            scroll.put("paging", true);
-            scroll.put("snapAlignment", "center");
-            ObjectNode indicator = om.createObjectNode();
-            indicator.put("style", "dots");
-            indicator.put("alignment", "bottomCenter");
-            indicator.put("color", ColorTokens.TEXT_TERTIARY);
-            indicator.put("activeColor", ColorTokens.TEXT_INVERSE);
-            scroll.set("pageIndicator", indicator);
-        }
-        scroll.set("padding", padding(16, 16, 0, 0));
-
+        boolean singleCard = validCards.size() == 1;
         ArrayNode scrollChildren = om.createArrayNode();
         ObjectNode content = om.createObjectNode();
         ObjectNode cardsContent = om.createObjectNode();
         for (String[] card : validCards) {
             String cardId = value(card, 0);
-            scrollChildren.add(featuredLiveGameHeroCard(card));
+            scrollChildren.add(featuredLiveGameHeroCard(card, singleCard));
             ObjectNode state = om.createObjectNode();
             state.put("awayScore", parseInt(value(card, 6), 0));
             state.put("homeScore", parseInt(value(card, 9), 0));
@@ -1544,8 +1546,23 @@ public class AtomicCompositeBuilder {
             cardsContent.set(cardId, state);
         }
         content.set("cards", cardsContent);
-        scroll.set("children", scrollChildren);
-        rootChildren.add(scroll);
+
+        // Single-card hero: emit a flush container so the card fills its
+        // surface end-to-end. Multi-card hero: paged horizontal scroll
+        // with peeking edges and a dot indicator.
+        if (singleCard) {
+            ObjectNode wrapper = container("column", null, "stretch");
+            wrapper.set("padding", padding(16, 16, 0, 0));
+            ArrayNode wrapperChildren = om.createArrayNode();
+            for (int i = 0; i < scrollChildren.size(); i++) wrapperChildren.add(scrollChildren.get(i));
+            wrapper.set("children", wrapperChildren);
+            rootChildren.add(wrapper);
+        } else {
+            ObjectNode scroll = pagedHorizontalScroll(12, validCards.size(), padding(16, 16, 0, 0),
+                    "bottomCenter", null, null);
+            scroll.set("children", scrollChildren);
+            rootChildren.add(scroll);
+        }
         root.set("children", rootChildren);
 
         ObjectNode section = sectionEnvelope(sectionId, analyticsId, refreshPolicy);
@@ -1556,9 +1573,9 @@ public class AtomicCompositeBuilder {
         return section;
     }
 
-    public ObjectNode buildRealAppSectionHeader(String sectionId, String analyticsId,
-                                                String title, String subtitle,
-                                                String actionLabel, String actionUri) {
+    public ObjectNode buildSectionHeaderComposite(String sectionId, String analyticsId,
+                                                  String title, String subtitle,
+                                                  String actionLabel, String actionUri) {
         requireNonBlank(sectionId, "sectionId");
         requireNonBlank(title, "title");
 
@@ -1569,7 +1586,8 @@ public class AtomicCompositeBuilder {
         ArrayNode children = om.createArrayNode();
         ObjectNode titleCol = container("column", null, "start");
         ArrayNode titleChildren = om.createArrayNode();
-        titleChildren.add(text(title, "titleMedium", "bold", ColorTokens.TEXT_PRIMARY, null));
+        titleChildren.add(text(title.toUpperCase(Locale.ROOT), "titleMedium", "bold",
+                ColorTokens.TEXT_PRIMARY, null));
         if (subtitle != null) {
             titleChildren.add(text(subtitle, "bodySmall", null, ColorTokens.TEXT_TERTIARY, 1));
         }
@@ -1577,8 +1595,10 @@ public class AtomicCompositeBuilder {
         children.add(titleCol);
 
         if (actionUri != null) {
-            children.add(button(actionLabel != null ? actionLabel + " >" : "More >",
-                    "text", tapNavigate(actionUri)));
+            ObjectNode more = button(actionLabel != null ? actionLabel + " >" : "More >",
+                    "text", tapNavigate(actionUri));
+            more.put("color", ColorTokens.BRAND_NBA);
+            children.add(more);
         }
 
         root.set("children", children);
@@ -1664,7 +1684,9 @@ public class AtomicCompositeBuilder {
      * Compact schedule row/list item.
      * row: [id, awayTri, awayName, awaySeed, awayScore, awayLogoUrl, homeTri,
      * homeName, homeSeed, homeScore, homeLogoUrl, statusText, seriesText,
-     * broadcastLogoUrlsCsv, targetUri, overflowUri]
+     * broadcastLogoUrlsCsv, targetUri, overflowUri] — broadcast URLs, {@code targetUri},
+     * and {@code overflowUri} must be supplied by the composer from server data, not derived
+     * from game/team identity in the client.
      */
     public ObjectNode buildGameScheduleRow(String sectionId, String analyticsId, String[] row) {
         return buildGameScheduleRow(sectionId, analyticsId, row, null, null);
@@ -1739,23 +1761,144 @@ public class AtomicCompositeBuilder {
         return section;
     }
 
+    /**
+     * Full-bleed static image card with scrim, title/dek, optional outlined CTA
+     * ({@code secondary} button + on-media text color), optional top-start badge,
+     * and optional share/audio icon actions. Emits an {@code AtomicComposite} envelope.
+     * <p>
+     * This path uses an atomic {@link #image} base only; it does <strong>not</strong> mount a
+     * {@code VideoPlayer}. Callers that need in-card video playback must compose a separate
+     * {@code VideoPlayer} reservation with payload-owned dimensions (AGENTS.md §6.4).
+     *
+     * @param topStartBadgeText optional LIVE/NEW (or other) copy for a top-leading pill
+     * @param shareActionUri    optional; when non-null, emits a share icon with this navigate target
+     * @param audioActionUri   optional; when non-null, emits an audio-state icon with this target
+     */
+    public ObjectNode buildMediaOverlayCard(String sectionId, String analyticsId,
+                                            String imageUrl, String title, String subtitle,
+                                            String ctaLabel, String ctaTargetUri,
+                                            String topStartBadgeText,
+                                            String shareActionUri, String audioActionUri) {
+        requireNonBlank(sectionId, "sectionId");
+        requireNonBlank(imageUrl, "imageUrl");
+        requireNonBlank(title, "title");
+
+        int radius = 12;
+        ObjectNode base = image(imageUrl, 0, 0, "cover", null);
+        base.put("fillWidth", true);
+        base.put("aspectRatio", 16.0 / 9.0);
+        base.put("cornerRadius", radius);
+
+        List<ObjectNode> layers = new ArrayList<>();
+
+        ObjectNode copyCol = container("column", null, "start");
+        copyCol.put("fillWidth", true);
+        copyCol.set("padding", padding(16, 16, 20, 16));
+        copyCol.set("background", mediaBottomScrimGradient());
+        copyCol.set("cornerRadii", cornerRadii(0, 0, radius, radius));
+        ArrayNode copyChildren = om.createArrayNode();
+        copyChildren.add(text(title, "titleMedium", "bold", ColorTokens.TEXT_INVERSE, 3));
+        if (subtitle != null) {
+            copyChildren.add(text(subtitle, "bodySmall", null, ColorTokens.TEXT_INVERSE, 3));
+        }
+        if (ctaLabel != null && ctaTargetUri != null) {
+            ObjectNode cta = button(ctaLabel, "secondary", tapNavigate(ctaTargetUri));
+            cta.put("color", ColorTokens.TEXT_INVERSE);
+            cta.put("background", "#00000000");
+            copyChildren.add(spacer(8));
+            copyChildren.add(cta);
+        }
+        copyCol.set("children", copyChildren);
+        layers.add(overlay("bottomStart", null, copyCol));
+
+        if (topStartBadgeText != null) {
+            String t = topStartBadgeText.trim();
+            ObjectNode pill = t.equalsIgnoreCase("LIVE")
+                    ? liveBadge()
+                    : pillBadge(topStartBadgeText, ColorTokens.BRAND_NBA);
+            layers.add(overlay("topStart", padding(12, 12, 0, 0), pill));
+        }
+
+        if (shareActionUri != null || audioActionUri != null) {
+            ObjectNode iconRow = container("row", "end", "center");
+            iconRow.put("gap", 8);
+            ArrayNode iconKids = om.createArrayNode();
+            if (audioActionUri != null) {
+                iconKids.add(mediaOverlayIconButton("sdui:video", tapNavigate(audioActionUri)));
+            }
+            if (shareActionUri != null) {
+                iconKids.add(mediaOverlayIconButton("sdui:share", tapNavigate(shareActionUri)));
+            }
+            iconRow.set("children", iconKids);
+            layers.add(overlay("topEnd", padding(12, 12, 0, 0), iconRow));
+        }
+
+        ObjectNode root = overlayContainer(base, layers);
+        return wrapAsComposite(sectionId, analyticsId, root);
+    }
+
+    private ObjectNode mediaOverlayIconButton(String iconToken, ObjectNode action) {
+        ObjectNode b = om.createObjectNode();
+        b.put("type", "Button");
+        b.put("label", "");
+        b.put("icon", iconToken);
+        b.put("variant", "text");
+        b.put("color", ColorTokens.TEXT_INVERSE);
+        b.set("actions", singleActionArray(action));
+        return b;
+    }
+
+    /**
+     * Vertical gradient for bottom media scrim: transparent to {@link ColorTokens#OVERLAY_SCRIM}.
+     * Leading transparent stop uses ARGB {@code #00000000} as a compositing edge (not a semantic fill).
+     */
+    private ObjectNode mediaBottomScrimGradient() {
+        ObjectNode g = om.createObjectNode();
+        ArrayNode colors = om.createArrayNode();
+        colors.add("#00000000");
+        colors.add(ColorTokens.OVERLAY_SCRIM);
+        g.set("colors", colors);
+        g.put("direction", "vertical");
+        return g;
+    }
+
     private ObjectNode storyCircleItem(String id, String label, String imageUrl,
                                        String badgeText, String targetUri) {
         ObjectNode item = container("column", "center", "center");
         item.put("id", id);
-        item.put("width", 76);
+        item.put("width", 82);
         if (targetUri != null) item.set("actions", singleActionArray(tapNavigate(targetUri)));
         ArrayNode children = om.createArrayNode();
 
+        int inner = 70;
+        // Story-rail convention: every avatar wears a red ring regardless of
+        // whether it also carries a notification badge ("LIVE", "NEW", …).
+        // The ring is the rail-wide visual signature (matches the real NBA
+        // app's Following rail and our parity plan's "red circle around the
+        // images in the top rail" target). The badge is an independent
+        // overlay layered on the bottom-center of the avatar.
+        int ring = 3;
         ObjectNode avatar = imageUrl != null
-                ? image(imageUrl, 64, 64, "cover", null)
-                : neutralInitials(label, 64, 32);
-        avatar.put("cornerRadius", 32);
+                ? image(imageUrl, inner, inner, "cover", null)
+                : neutralInitials(label, inner, inner / 2);
+        avatar.put("cornerRadius", inner / 2);
+        // Defense in depth: opaque inner fill so a missing image doesn't
+        // reveal the BRAND_LIVE ring color through to the whole disc.
+        avatar.put("background", ColorTokens.SURFACE_SUNKEN);
         if (badgeText != null) {
             avatar = overlayContainer(avatar, List.of(overlay("bottomCenter",
                     padding(0, 0, 0, 0), pillBadge(badgeText, ColorTokens.BRAND_LIVE))));
         }
-        children.add(avatar);
+        ObjectNode ringWrap = container("row", "center", "center");
+        ringWrap.put("width", inner + ring * 2);
+        ringWrap.put("height", inner + ring * 2);
+        ringWrap.put("cornerRadius", (inner + ring * 2) / 2);
+        ringWrap.put("background", ColorTokens.BRAND_LIVE);
+        ringWrap.set("padding", padding(ring, ring, ring, ring));
+        ArrayNode ringKids = om.createArrayNode();
+        ringKids.add(avatar);
+        ringWrap.set("children", ringKids);
+        children.add(ringWrap);
         children.add(spacer(6));
         children.add(text(label, "labelSmall", null, ColorTokens.TEXT_PRIMARY, 1));
         item.set("children", children);
@@ -1764,32 +1907,33 @@ public class AtomicCompositeBuilder {
 
     private ObjectNode editorialOverlayCard(String id, String title, String subtitle,
                                             String imageUrl, String badgeText, String targetUri) {
+        int radius = 12;
         ObjectNode card = container("column", null, null);
         card.put("id", id);
-        card.put("width", 184);
-        card.put("cornerRadius", 16);
+        card.put("width", 200);
+        card.put("cornerRadius", radius);
         if (targetUri != null) card.set("actions", singleActionArray(tapNavigate(targetUri)));
 
         ObjectNode base = imageUrl != null
-                ? image(imageUrl, 184, 0, "cover", null)
-                : neutralInitialsRect(title, 184, 245, 16);
+                ? image(imageUrl, 200, 0, "cover", null)
+                : neutralInitialsRect(title, 200, 268, radius);
         base.put("fillWidth", true);
         base.put("aspectRatio", 3.0 / 4.0);
-        base.put("cornerRadius", 16);
+        base.put("cornerRadius", radius);
 
         ObjectNode scrimContent = container("column", null, "start");
         scrimContent.put("fillWidth", true);
-        scrimContent.set("padding", padding(12, 12, 64, 12));
-        ObjectNode gradient = gradient("#00000000", "#000000D9", "vertical");
-        scrimContent.set("background", gradient);
+        scrimContent.set("padding", padding(14, 14, 72, 14));
+        scrimContent.set("background", mediaBottomScrimGradient());
+        scrimContent.set("cornerRadii", cornerRadii(0, 0, radius, radius));
         ArrayNode children = om.createArrayNode();
         if (badgeText != null) {
             children.add(pillBadge(badgeText, ColorTokens.BRAND_LIVE));
             children.add(spacer(6));
         }
-        children.add(text(title, "titleSmall", "bold", ColorTokens.TEXT_INVERSE, 2));
+        children.add(text(title, "titleSmall", "bold", ColorTokens.TEXT_INVERSE, 3));
         if (subtitle != null) {
-            children.add(text(subtitle, "bodySmall", null, ColorTokens.TEXT_INVERSE, 2));
+            children.add(text(subtitle, "bodySmall", null, ColorTokens.TEXT_INVERSE, 3));
         }
         scrimContent.set("children", children);
 
@@ -1799,26 +1943,46 @@ public class AtomicCompositeBuilder {
         return card;
     }
 
-    private ObjectNode featuredLiveGameHeroCard(String[] card) {
+    /** Top-right overflow control on hero key art; action must be server-declared. */
+    private ObjectNode heroOverflowButton(ObjectNode navigateAction) {
+        ObjectNode b = om.createObjectNode();
+        b.put("type", "Button");
+        b.put("label", "⋯");
+        b.put("variant", "text");
+        b.put("color", ColorTokens.TEXT_INVERSE);
+        b.set("actions", singleActionArray(navigateAction));
+        return b;
+    }
+
+    private ObjectNode featuredLiveGameHeroCard(String[] card, boolean fillWidth) {
         String cardId = value(card, 0);
+        int heroRadius = 12;
         ObjectNode hero = container("column", null, "stretch");
         hero.put("id", cardId);
-        hero.put("width", 320);
-        hero.put("cornerRadius", 18);
+        // Single-card section: card fills its surface (no fixed width).
+        // Multi-card paged carousel: cards snap at a fixed width so a
+        // peek of the next card is visible at the edge.
+        if (fillWidth) {
+            hero.put("fillWidth", true);
+        } else {
+            hero.put("width", 338);
+        }
+        hero.put("cornerRadius", heroRadius);
         hero.put("background", ColorTokens.SURFACE_RAISED);
+        shadow(hero);
         if (value(card, 14) != null) hero.set("actions", singleActionArray(tapNavigate(value(card, 14))));
 
         ObjectNode art = value(card, 4) != null
-                ? image(value(card, 4), 320, 0, "cover", null)
-                : neutralInitialsRect(value(card, 2), 320, 180, 18);
+                ? image(value(card, 4), 0, 0, "cover", null)
+                : neutralInitialsRect(value(card, 2), 338, 190, heroRadius);
         art.put("fillWidth", true);
         art.put("aspectRatio", 16.0 / 9.0);
-        art.set("cornerRadii", cornerRadii(18, 18, 0, 0));
+        art.set("cornerRadii", cornerRadii(heroRadius, heroRadius, 0, 0));
 
         ObjectNode titleOverlay = container("column", null, "start");
         titleOverlay.put("fillWidth", true);
-        titleOverlay.set("padding", padding(16, 16, 48, 14));
-        titleOverlay.set("background", gradient("#00000000", "#000000D9", "vertical"));
+        titleOverlay.set("padding", padding(16, 16, 52, 14));
+        titleOverlay.set("background", mediaBottomScrimGradient());
         ArrayNode overlayChildren = om.createArrayNode();
         if (value(card, 1) != null) {
             overlayChildren.add(pillBadge(value(card, 1), ColorTokens.BRAND_LIVE));
@@ -1830,11 +1994,18 @@ public class AtomicCompositeBuilder {
         }
         titleOverlay.set("children", overlayChildren);
 
+        List<ObjectNode> artOverlays = new ArrayList<>();
+        artOverlays.add(overlay("bottomStart", null, titleOverlay));
+        if (value(card, 15) != null) {
+            artOverlays.add(overlay("topEnd", padding(8, 8, 0, 0), heroOverflowButton(tapNavigate(value(card, 15)))));
+        }
+
         ArrayNode heroChildren = om.createArrayNode();
-        heroChildren.add(overlayContainer(art, List.of(overlay("bottomStart", null, titleOverlay))));
+        heroChildren.add(overlayContainer(art, artOverlays));
         heroChildren.add(heroScoreStrip(card));
         ArrayNode sponsorLogos = logoRow(value(card, 13), 48, 20);
         if (sponsorLogos.size() > 0) {
+            heroChildren.add(cardHairlineDivider());
             ObjectNode sponsors = container("row", "end", "center");
             sponsors.put("gap", 8);
             sponsors.set("padding", padding(16, 16, 0, 14));
@@ -1850,47 +2021,86 @@ public class AtomicCompositeBuilder {
         row.put("fillWidth", true);
         row.set("padding", padding(16, 16, 14, 10));
         ArrayNode children = om.createArrayNode();
-        children.add(heroTeam(value(card, 5), value(card, 6), value(card, 7), "cards." + value(card, 0) + ".awayScore"));
+        children.add(heroTeam(value(card, 5), value(card, 6), value(card, 7),
+                "cards." + value(card, 0) + ".awayScore", false));
 
         ObjectNode center = container("column", "center", "center");
+        center.put("width", 88);
         ArrayNode centerChildren = om.createArrayNode();
-        ObjectNode status = text(value(card, 11), "labelSmall", "semiBold", ColorTokens.TEXT_SECONDARY, 1);
-        status.put("bindRef", "cards." + value(card, 0) + ".statusText");
-        centerChildren.add(status);
+        boolean liveCue = value(card, 1) != null;
+        if (liveCue) {
+            ObjectNode statusLine = container("row", "center", "center");
+            statusLine.put("gap", 6);
+            ArrayNode slKids = om.createArrayNode();
+            slKids.add(liveStatusDot());
+            ObjectNode status = text(value(card, 11), "labelSmall", "semiBold", ColorTokens.TEXT_SECONDARY, 1);
+            status.put("bindRef", "cards." + value(card, 0) + ".statusText");
+            slKids.add(status);
+            statusLine.set("children", slKids);
+            centerChildren.add(statusLine);
+        } else {
+            ObjectNode status = text(value(card, 11), "labelSmall", "semiBold", ColorTokens.TEXT_SECONDARY, 1);
+            status.put("bindRef", "cards." + value(card, 0) + ".statusText");
+            centerChildren.add(status);
+        }
         if (value(card, 12) != null) {
             centerChildren.add(text(value(card, 12), "labelSmall", null, ColorTokens.TEXT_TERTIARY, 1));
         }
         center.set("children", centerChildren);
         children.add(center);
 
-        children.add(heroTeam(value(card, 8), value(card, 9), value(card, 10), "cards." + value(card, 0) + ".homeScore"));
+        children.add(heroTeam(value(card, 8), value(card, 9), value(card, 10),
+                "cards." + value(card, 0) + ".homeScore", true));
         row.set("children", children);
         return row;
     }
 
-    private ObjectNode heroTeam(String tri, String score, String logoUrl, String bindRef) {
-        ObjectNode col = container("column", "center", "center");
-        col.put("width", 92);
-        ArrayNode children = om.createArrayNode();
-        if (logoUrl != null) children.add(image(logoUrl, 44, 44, "contain", null));
-        children.add(text(tri, "labelSmall", "bold", ColorTokens.TEXT_PRIMARY, 1));
+    /**
+     * Away: logo/name toward outer edge, score toward center. Home: score toward center, logo/name outer.
+     */
+    private ObjectNode heroTeam(String tri, String score, String logoUrl, String bindRef, boolean homeSide) {
+        ObjectNode row = container("row", "center", "center");
+        row.put("gap", 8);
+        row.put("width", homeSide ? 108 : 112);
+        ArrayNode stackChildren = om.createArrayNode();
+        if (logoUrl != null) stackChildren.add(image(logoUrl, 44, 44, "contain", null));
+        stackChildren.add(text(tri, "labelSmall", "bold", ColorTokens.TEXT_PRIMARY, 1));
+        ObjectNode nameCol = container("column", "center", "center");
+        nameCol.set("children", stackChildren);
+
+        ObjectNode scoreText = null;
         if (score != null) {
-            ObjectNode scoreText = text(score, "titleLarge", "bold", ColorTokens.TEXT_PRIMARY, 1);
+            scoreText = text(score, "titleLarge", "bold", ColorTokens.TEXT_PRIMARY, 1);
             scoreText.put("bindRef", bindRef);
             scoreText.put("monospacedDigits", true);
-            children.add(scoreText);
         }
-        col.set("children", children);
-        return col;
+
+        ArrayNode rowChildren = om.createArrayNode();
+        if (homeSide) {
+            if (scoreText != null) rowChildren.add(scoreText);
+            rowChildren.add(nameCol);
+        } else {
+            rowChildren.add(nameCol);
+            if (scoreText != null) rowChildren.add(scoreText);
+        }
+        row.set("children", rowChildren);
+        return row;
     }
 
     private ObjectNode utilityCard(String[] item) {
         ObjectNode card = container("column", "center", "center");
         card.put("id", value(item, 0));
         card.put("gap", 8);
+        // Fixed height + fillWidth gives the grid balanced cells across rows
+        // even when subtitles wrap differently. Width comes from the parent
+        // row's flex distribution; height is locked to keep the grid rhythm
+        // visually stable on mobile.
+        card.put("height", 132);
+        card.put("fillWidth", true);
         card.put("background", ColorTokens.SURFACE_RAISED);
-        card.put("cornerRadius", 14);
-        card.set("padding", padding(12, 12, 16, 16));
+        card.put("cornerRadius", 8);
+        card.set("padding", padding(14, 14, 16, 14));
+        shadow(card);
         if (value(item, 4) != null) card.set("actions", singleActionArray(tapNavigate(value(item, 4))));
 
         ArrayNode children = om.createArrayNode();
@@ -1910,18 +2120,21 @@ public class AtomicCompositeBuilder {
     private ObjectNode leagueCard(String id, String label, String imageUrl, String targetUri) {
         ObjectNode card = container("column", "center", "center");
         card.put("id", id);
-        card.put("width", 148);
+        card.put("width", 160);
         card.put("gap", 10);
         card.put("background", ColorTokens.SURFACE_RAISED);
-        card.put("cornerRadius", 14);
-        card.set("padding", padding(14, 14, 16, 16));
+        card.put("cornerRadius", 8);
+        card.set("padding", padding(14, 14, 18, 16));
+        shadow(card);
         if (targetUri != null) card.set("actions", singleActionArray(tapNavigate(targetUri)));
 
         ArrayNode children = om.createArrayNode();
         if (imageUrl != null) {
-            children.add(image(imageUrl, 64, 48, "contain", null));
+            ObjectNode logo = image(imageUrl, 72, 56, "contain", null);
+            logo.put("aspectRatio", 4.0 / 3.0);
+            children.add(logo);
         } else {
-            children.add(neutralInitials(label, 64, 24));
+            children.add(neutralInitials(label, 72, 28));
         }
         children.add(text(label, "bodyMedium", "semiBold", ColorTokens.TEXT_PRIMARY, 2));
         card.set("children", children);
@@ -1933,8 +2146,9 @@ public class AtomicCompositeBuilder {
         card.put("id", value(row, 0));
         card.put("gap", 10);
         card.put("background", ColorTokens.SURFACE_RAISED);
-        card.put("cornerRadius", 14);
+        card.put("cornerRadius", 8);
         card.set("padding", padding(14, 14, 12, 12));
+        shadow(card);
         if (value(row, 14) != null) card.set("actions", singleActionArray(tapNavigate(value(row, 14))));
 
         ArrayNode children = om.createArrayNode();
@@ -1942,15 +2156,16 @@ public class AtomicCompositeBuilder {
         matchup.put("fillWidth", true);
         ArrayNode matchupChildren = om.createArrayNode();
         matchupChildren.add(scheduleTeam(value(row, 1), value(row, 2), value(row, 3),
-                value(row, 4), value(row, 5), value(row, 0), "awayScore"));
+                value(row, 4), value(row, 5), value(row, 0), "awayScore", false));
         matchupChildren.add(scheduleStatus(value(row, 11), value(row, 12), value(row, 0)));
         matchupChildren.add(scheduleTeam(value(row, 6), value(row, 7), value(row, 8),
-                value(row, 9), value(row, 10), value(row, 0), "homeScore"));
+                value(row, 9), value(row, 10), value(row, 0), "homeScore", true));
         matchup.set("children", matchupChildren);
         children.add(matchup);
 
         ArrayNode logos = logoRow(value(row, 13), 44, 18);
         if (logos.size() > 0 || value(row, 15) != null) {
+            children.add(cardHairlineDivider());
             ObjectNode meta = container("row", "spaceBetween", "center");
             meta.put("fillWidth", true);
             ArrayNode metaChildren = om.createArrayNode();
@@ -1969,25 +2184,37 @@ public class AtomicCompositeBuilder {
         return card;
     }
 
+    /**
+     * @param homeSide when true, score is leading (toward center); away uses logo/name first.
+     */
     private ObjectNode scheduleTeam(String tri, String name, String seed, String score,
-                                    String logoUrl, String rowId, String scoreKey) {
+                                    String logoUrl, String rowId, String scoreKey,
+                                    boolean homeSide) {
         ObjectNode team = container("row", null, "center");
         team.put("gap", 8);
-        team.put("width", 112);
-        ArrayNode children = om.createArrayNode();
-        if (logoUrl != null) children.add(image(logoUrl, 36, 36, "contain", null));
+        team.put("width", homeSide ? 108 : 124);
+        ObjectNode logo = logoUrl != null ? image(logoUrl, 36, 36, "contain", null) : null;
         ObjectNode labelCol = container("column", null, "start");
         ArrayNode labelChildren = om.createArrayNode();
         String seedPrefix = seed != null ? seed + " " : "";
         labelChildren.add(text(seedPrefix + tri, "bodyMedium", "bold", ColorTokens.TEXT_PRIMARY, 1));
         if (name != null) labelChildren.add(text(name, "labelSmall", null, ColorTokens.TEXT_SECONDARY, 1));
         labelCol.set("children", labelChildren);
-        children.add(labelCol);
+        ObjectNode scoreText = null;
         if (score != null) {
-            ObjectNode scoreText = text(score, "titleMedium", "bold", ColorTokens.TEXT_PRIMARY, 1);
+            scoreText = text(score, "titleMedium", "bold", ColorTokens.TEXT_PRIMARY, 1);
             scoreText.put("bindRef", rowId + "." + scoreKey);
             scoreText.put("monospacedDigits", true);
-            children.add(scoreText);
+        }
+        ArrayNode children = om.createArrayNode();
+        if (homeSide) {
+            if (scoreText != null) children.add(scoreText);
+            children.add(labelCol);
+            if (logo != null) children.add(logo);
+        } else {
+            if (logo != null) children.add(logo);
+            children.add(labelCol);
+            if (scoreText != null) children.add(scoreText);
         }
         team.set("children", children);
         return team;
@@ -1995,13 +2222,25 @@ public class AtomicCompositeBuilder {
 
     private ObjectNode scheduleStatus(String status, String seriesText, String rowId) {
         ObjectNode center = container("column", "center", "center");
-        center.put("width", 76);
+        center.put("width", 80);
         ArrayNode children = om.createArrayNode();
-        ObjectNode statusText = text(status != null ? status : "", "labelSmall", "semiBold",
+        String raw = status != null ? status : "";
+        boolean liveCue = raw.toUpperCase(Locale.ROOT).contains("LIVE");
+        ObjectNode statusText = text(raw, "labelSmall", "semiBold",
                 ColorTokens.TEXT_SECONDARY, 2);
         statusText.put("bindRef", rowId + ".statusText");
         statusText.put("textAlign", "center");
-        children.add(statusText);
+        if (liveCue) {
+            ObjectNode statusLine = container("row", "center", "center");
+            statusLine.put("gap", 4);
+            ArrayNode sl = om.createArrayNode();
+            sl.add(liveStatusDot());
+            sl.add(statusText);
+            statusLine.set("children", sl);
+            children.add(statusLine);
+        } else {
+            children.add(statusText);
+        }
         if (seriesText != null) {
             ObjectNode series = text(seriesText, "labelSmall", null, ColorTokens.TEXT_TERTIARY, 2);
             series.put("textAlign", "center");
@@ -2011,12 +2250,56 @@ public class AtomicCompositeBuilder {
         return center;
     }
 
+    /** 6dp live indicator dot ({@link ColorTokens#BRAND_LIVE}). */
+    private ObjectNode liveStatusDot() {
+        ObjectNode dot = container("row", "center", "center");
+        dot.put("width", 6);
+        dot.put("height", 6);
+        dot.put("cornerRadius", 3);
+        dot.put("background", ColorTokens.BRAND_LIVE);
+        dot.set("children", om.createArrayNode());
+        return dot;
+    }
+
+    private ObjectNode cardHairlineDivider() {
+        ObjectNode d = om.createObjectNode();
+        d.put("type", "Divider");
+        d.put("thickness", 1);
+        d.put("color", ColorTokens.BORDER_SUBTLE);
+        return d;
+    }
+
     private ObjectNode scrollRow(int gap, boolean showIndicators) {
         ObjectNode scroll = om.createObjectNode();
         scroll.put("type", "ScrollContainer");
         scroll.put("direction", "row");
         scroll.put("gap", gap);
         scroll.put("showIndicators", showIndicators);
+        return scroll;
+    }
+
+    /**
+     * Paged horizontal carousel: sets {@code paging}, {@code snapAlignment},
+     * and {@code pageIndicator} only when {@code childCount > 1}. Dot colors
+     * default to tertiary/inverse; pass non-null overrides to customize.
+     */
+    private ObjectNode pagedHorizontalScroll(int gap, int childCount, ObjectNode padding,
+                                            String indicatorAlignment,
+                                            String inactiveDotColor, String activeDotColor) {
+        ObjectNode scroll = scrollRow(gap, false);
+        if (padding != null) {
+            scroll.set("padding", padding);
+        }
+        if (childCount > 1) {
+            scroll.put("paging", true);
+            scroll.put("snapAlignment", "center");
+            ObjectNode indicator = om.createObjectNode();
+            indicator.put("style", "dots");
+            indicator.put("alignment", indicatorAlignment != null ? indicatorAlignment : "bottomCenter");
+            indicator.put("color", inactiveDotColor != null ? inactiveDotColor : ColorTokens.TEXT_TERTIARY);
+            indicator.put("activeColor", activeDotColor != null ? activeDotColor : ColorTokens.TEXT_INVERSE);
+            scroll.set("pageIndicator", indicator);
+        }
         return scroll;
     }
 

@@ -1,0 +1,48 @@
+{
+  "id": "sponsor-logo-row-composite",
+  "schemaVersion": "1.0",
+  "title": "Sponsor / broadcast logo strip (minimal)",
+  "analyticsId": "sponsor_logo_row_fixture",
+  "sections": [
+    {
+      "id": "sponsor-row-section",
+      "type": "AtomicComposite",
+      "refreshPolicy": { "type": "static" },
+      "data": {
+        "ui": {
+          "id": "sponsor-row-root",
+          "type": "Container",
+          "direction": "row",
+          "alignment": "center",
+          "crossAlignment": "center",
+          "gap": 12,
+          "fillWidth": true,
+          "padding": { "top": 8, "bottom": 8, "start": 16, "end": 16 },
+          "background": "token:color.surface.raised",
+          "children": [
+            {
+              "type": "Text",
+              "content": "Presented by",
+              "variant": "labelSmall",
+              "color": "token:color.text.tertiary"
+            },
+            {
+              "type": "Image",
+              "id": "broadcaster-a",
+              "src": "https://example.com/broadcast/logo-a.png",
+              "height": 24,
+              "fit": "contain"
+            },
+            {
+              "type": "Image",
+              "id": "broadcaster-b",
+              "src": "https://example.com/broadcast/logo-b.png",
+              "height": 24,
+              "fit": "contain"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

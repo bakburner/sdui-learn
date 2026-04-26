@@ -1,13 +1,13 @@
 {
-  "id": "real-app-feed-composite",
+  "id": "feed-screen-composite",
   "schemaVersion": "1.0",
-  "title": "Real App Feed Composite",
-  "analyticsId": "real_app_feed_composite",
+  "title": "Feed Screen Composite",
+  "analyticsId": "feed_screen_composite",
   "sections": [
     {
-      "id": "real-app-feed-atomic-composite",
+      "id": "feed-screen-atomic-composite",
       "type": "AtomicComposite",
-      "analyticsId": "real_app_feed_atomic_composite",
+      "analyticsId": "feed_screen_atomic_composite",
       "refreshPolicy": {
         "type": "static"
       },
@@ -21,7 +21,7 @@
       },
       "data": {
         "ui": {
-          "id": "real-app-feed-root",
+          "id": "feed-screen-root",
           "type": "Container",
           "direction": "column",
           "gap": 20,
@@ -159,6 +159,288 @@
             },
             {
               "type": "Text",
+              "content": "Stories",
+              "variant": "titleMedium",
+              "weight": "bold",
+              "color": "token:color.text.primary"
+            },
+            {
+              "type": "ScrollContainer",
+              "direction": "row",
+              "gap": 16,
+              "showIndicators": false,
+              "children": [
+                {
+                  "id": "story-circle-with-badge",
+                  "type": "Container",
+                  "direction": "column",
+                  "alignment": "center",
+                  "crossAlignment": "center",
+                  "width": 76,
+                  "actions": [
+                    {
+                      "trigger": "onTap",
+                      "type": "navigate",
+                      "targetUri": "nba://story/phase4-demo"
+                    }
+                  ],
+                  "children": [
+                    {
+                      "type": "OverlayContainer",
+                      "base": {
+                        "type": "Image",
+                        "src": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
+                        "width": 64,
+                        "height": 64,
+                        "fit": "cover",
+                        "cornerRadius": 32
+                      },
+                      "overlays": [
+                        {
+                          "alignment": "bottomCenter",
+                          "inset": {
+                            "start": 0,
+                            "end": 0,
+                            "bottom": 0
+                          },
+                          "element": {
+                            "type": "Container",
+                            "background": "token:color.brand.live",
+                            "cornerRadius": 4,
+                            "padding": {
+                              "top": 2,
+                              "bottom": 2,
+                              "start": 6,
+                              "end": 6
+                            },
+                            "children": [
+                              {
+                                "type": "Text",
+                                "content": "LIVE",
+                                "variant": "labelSmall",
+                                "weight": "bold",
+                                "color": "token:color.text.inverse"
+                              }
+                            ]
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "Spacer",
+                      "height": 6
+                    },
+                    {
+                      "type": "Text",
+                      "content": "Gameday",
+                      "variant": "labelSmall",
+                      "color": "token:color.text.primary",
+                      "maxLines": 1
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "new-badge-image-card",
+              "type": "OverlayContainer",
+              "cornerRadius": 12,
+              "base": {
+                "type": "Image",
+                "src": "https://cdn.nba.com/manage/2025/02/nba-standings-graphic-752x428.jpg",
+                "fillWidth": true,
+                "height": 120,
+                "fit": "cover",
+                "cornerRadius": 12
+              },
+              "overlays": [
+                {
+                  "alignment": "topStart",
+                  "inset": {
+                    "start": 12,
+                    "end": 12,
+                    "top": 12
+                  },
+                  "element": {
+                    "type": "Container",
+                    "background": "token:color.brand.nba",
+                    "cornerRadius": 4,
+                    "padding": {
+                      "top": 2,
+                      "bottom": 2,
+                      "start": 6,
+                      "end": 6
+                    },
+                    "children": [
+                      {
+                        "type": "Text",
+                        "content": "NEW",
+                        "variant": "labelSmall",
+                        "weight": "bold",
+                        "color": "token:color.text.inverse"
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "id": "media-overlay-saturday-slate",
+              "type": "OverlayContainer",
+              "cornerRadius": 12,
+              "actions": [
+                {
+                  "trigger": "onTap",
+                  "type": "navigate",
+                  "targetUri": "nba://editorial/saturday-slate"
+                }
+              ],
+              "base": {
+                "type": "Image",
+                "src": "https://cdn.nba.com/manage/2025/02/warriors-thunder-preview-752x428.jpg",
+                "fillWidth": true,
+                "height": 0,
+                "fit": "cover",
+                "aspectRatio": 1.7777777777777777,
+                "cornerRadius": 12
+              },
+              "overlays": [
+                {
+                  "alignment": "bottomStart",
+                  "element": {
+                    "type": "Container",
+                    "direction": "column",
+                    "fillWidth": true,
+                    "padding": {
+                      "start": 16,
+                      "end": 16,
+                      "top": 16,
+                      "bottom": 20
+                    },
+                    "background": {
+                      "colors": [
+                        "#00000000",
+                        "token:color.overlay.scrim"
+                      ],
+                      "direction": "vertical"
+                    },
+                    "cornerRadii": {
+                      "bottomStart": 12,
+                      "bottomEnd": 12
+                    },
+                    "children": [
+                      {
+                        "type": "Text",
+                        "content": "Saturday's Stacked Slate",
+                        "variant": "titleMedium",
+                        "weight": "bold",
+                        "color": "token:color.text.inverse",
+                        "maxLines": 3
+                      },
+                      {
+                        "type": "Text",
+                        "content": "11 games, no League Pass",
+                        "variant": "bodySmall",
+                        "color": "token:color.text.inverse",
+                        "maxLines": 2
+                      },
+                      {
+                        "type": "Spacer",
+                        "height": 8
+                      },
+                      {
+                        "type": "Button",
+                        "label": "View Games",
+                        "variant": "secondary",
+                        "color": "token:color.text.inverse",
+                        "actions": [
+                          {
+                            "trigger": "onTap",
+                            "type": "navigate",
+                            "targetUri": "nba://schedule/saturday"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                },
+                {
+                  "alignment": "topStart",
+                  "inset": {
+                    "start": 12,
+                    "end": 12,
+                    "top": 12
+                  },
+                  "element": {
+                    "type": "Container",
+                    "background": "token:color.brand.live",
+                    "cornerRadius": 4,
+                    "padding": {
+                      "top": 2,
+                      "bottom": 2,
+                      "start": 6,
+                      "end": 6
+                    },
+                    "children": [
+                      {
+                        "type": "Text",
+                        "content": "LIVE",
+                        "variant": "labelSmall",
+                        "weight": "bold",
+                        "color": "token:color.text.inverse"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "alignment": "topEnd",
+                  "inset": {
+                    "start": 12,
+                    "end": 12,
+                    "top": 12
+                  },
+                  "element": {
+                    "type": "Container",
+                    "direction": "row",
+                    "alignment": "end",
+                    "crossAlignment": "center",
+                    "gap": 8,
+                    "children": [
+                      {
+                        "type": "Button",
+                        "label": "",
+                        "icon": "sdui:video",
+                        "variant": "text",
+                        "color": "token:color.text.inverse",
+                        "actions": [
+                          {
+                            "trigger": "onTap",
+                            "type": "navigate",
+                            "targetUri": "nba://audio/saturday-slate"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "Button",
+                        "label": "",
+                        "icon": "sdui:share",
+                        "variant": "text",
+                        "color": "token:color.text.inverse",
+                        "actions": [
+                          {
+                            "trigger": "onTap",
+                            "type": "navigate",
+                            "targetUri": "nba://share/saturday-slate"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "type": "Text",
               "content": "Featured",
               "variant": "titleMedium",
               "weight": "bold",
@@ -175,8 +457,8 @@
               "pageIndicator": {
                 "style": "dots",
                 "alignment": "bottomCenter",
-                "color": "#FFFFFF66",
-                "activeColor": "#FFFFFF"
+                "color": "token:color.text.tertiary",
+                "activeColor": "token:color.text.inverse"
               },
               "padding": {
                 "bottom": 28
@@ -239,6 +521,27 @@
                         "weight": "bold",
                         "color": "token:color.text.inverse",
                         "maxLines": 2
+                      }
+                    },
+                    {
+                      "alignment": "topEnd",
+                      "inset": {
+                        "start": 0,
+                        "end": 0,
+                        "top": 0
+                      },
+                      "element": {
+                        "type": "Button",
+                        "label": "⋯",
+                        "variant": "text",
+                        "color": "token:color.text.inverse",
+                        "actions": [
+                          {
+                            "trigger": "onTap",
+                            "type": "navigate",
+                            "targetUri": "nba://game/featured-giannis/actions"
+                          }
+                        ]
                       }
                     }
                   ]

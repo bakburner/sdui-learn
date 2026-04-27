@@ -410,6 +410,22 @@ public class SduiUtils {
     }
 
     /**
+     * Surface for {@code AdSlot} sections — server-owned outer chrome per
+     * AGENTS.md §4.2. Sharp corners, no shadow; 16px column margin; inner
+     * padding 12px horizontal and 16px top/bottom (equal vertical rhythm for
+     * the disclosure label + creative). The client fills the padded width and
+     * derives height from {@code data.sizes[0]} aspect ratio only.
+     */
+    public ObjectNode adSlotSurface() {
+        ObjectNode surface = objectMapper.createObjectNode();
+        surface.set("margin", spacing(16, 16, 16, 16));
+        surface.set("padding", spacing(16, 12, 16, 12));
+        surface.put("background", "token:color.surface.raised");
+        surface.put("cornerRadius", 0);
+        return surface;
+    }
+
+    /**
      * Build a flush (no wrapper chrome) surface block. Used for sections
      * that should render edge-to-edge (hero videos, full-bleed images).
      */
@@ -617,7 +633,7 @@ public class SduiUtils {
         error.put("hideOnError", false);
 
         ObjectNode retryAction = objectMapper.createObjectNode();
-        retryAction.put("trigger", "onTap");
+        retryAction.put("trigger", "onActivate");
         retryAction.put("type", "refresh");
         retryAction.put("target", sectionId);
         error.set("retryAction", retryAction);

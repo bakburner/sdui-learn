@@ -76,7 +76,7 @@ The SDUI schema is universal — all platforms share the same vocabulary of sect
 - Image dimensions and density parameters
 - Interaction triggers (touch vs. D-pad vs. hover)
 
-The client identifies its platform family via the request envelope (`platform.name`, `platform.deviceClass`) or the `X-Platform` header (values: `android`, `ios`, `web`). The composition service routes to the appropriate composer. In the prototype, the `X-Platform` header controls platform-specific field values — for example, Form `layout` is `horizontal` for web (inline controls) and `vertical` for mobile (stacked controls). The cost is additional server-side composition logic — this is acceptable and is where the investment should go. The alternative (one response for all platforms) produces a mediocre experience everywhere.
+The client identifies its platform family via the request envelope (`platform.name`, `platform.deviceClass`; bracket notation on GET, same fields in the POST JSON body). Allowed `platform.name` values are `android`, `ios`, `web`. The composition service routes to the appropriate composer. For example, Form `layout` is `horizontal` for web (inline controls) and `vertical` for mobile (stacked controls). The cost is additional server-side composition logic — this is acceptable and is where the investment should go. The alternative (one response for all platforms) produces a mediocre experience everywhere.
 
 ---
 
@@ -249,7 +249,7 @@ Tabular stat views (boxscore, roster, standings) share UX patterns — frozen fi
 
 The schema defines a second layer of **atomic element types** alongside the semantic section types described above. While semantic sections carry domain-typed data and rely on client-owned renderers (sort state, frozen columns, form submission), atomic elements are **server-composed primitives** rendered generically by an `AtomicRouter` with no client-side business logic.
 
-**AtomicElement types (10 in schema enum — 9 rendering primitives + 1 bridge):**
+**AtomicElement types (12 in schema enum):**
 
 | Type | Purpose | Key properties |
 |---|---|---|
@@ -263,6 +263,8 @@ The schema defines a second layer of **atomic element types** alongside the sema
 | **Conditional** | State-driven branching | `condition`, `trueChild`, `falseChild` |
 | **DisplayGrid** | Display-only text grid | `columns`, `rows`, `striped` |
 | **SectionSlot** | Embed a full section | `section` (a complete Section object) |
+| **LiveClock** | Client-ticked clock | `snapshotSeconds`, `snapshotAt`, `isRunning`, `tickDirection`, `format`, optional `bindRef` |
+| **OverlayContainer** | Layered base + overlays | `base`, `overlays` |
 
 **Bridge mechanism — `AtomicComposite` section type:**
 
@@ -437,7 +439,7 @@ Actions are supported at three scopes:
 The `refresh` action type supports two optional fields for server-driven settings interactions:
 
 - **`endpoint`** (string, optional) — target URL for the refresh. Defaults to the current screen endpoint if omitted.
-- **`paramBindings`** (object, optional) — map of query parameter name → screen state key. At execution time, the client resolves each state key's current value and appends the result as query parameters to the refresh endpoint.
+- **`paramBindings`** (object, optional) — map of query parameter name → screen state key. At execution time, the client resolves each state key's current value and hands the resolved values to the shared fetch primitive as user-params.
 
 This enables Form submit buttons to say "refresh the screen with `season={state.season}&seasonType={state.seasonType}`" without any client-side knowledge of what parameters mean. Existing `refresh` actions with only `target` continue to work unchanged — the extension is backward-compatible.
 
@@ -452,6 +454,16 @@ This enables Form submit buttons to say "refresh the screen with `season={state.
   }
 }
 ```
+
+**Transport contract.** Parameterized refresh is *not* a parallel transport. The client's action handler resolves the bindings into a user-params map and routes through the same fetch primitive (`SduiRepository.fetchScreen` / `fetchSduiScreen`) every other composition request uses. That primitive owns:
+
+- Resolution of the endpoint against the configured base URL.
+- Bracket-notation envelope params on the URL (or a JSON body of the same shape on POST when the envelope exceeds 8192 chars).
+- RFC-3986 percent-encoding for both halves of the query string (envelope params and user params), with deterministic key ordering.
+- User filter params on the URL query string regardless of HTTP method, so the server reads them through the same `@RequestParam` path on either side.
+- `X-Trace-Id` propagation from the parent screen so refresh logs correlate with the screen that triggered them.
+
+The server's `/sdui/refresh/{screenId}` endpoint is dual-mounted (`@GetMapping` + `@PostMapping`) to the same handler. There are no GET-only or POST-only composition routes anywhere in the system. Hand-rolled URL strings, bespoke `fetch` / `URLRequest` / `OkHttp` calls, or per-action transports for composition data are explicitly prohibited; they silently bypass the cache key, the encoding rule, and trace correlation.
 
 
 ### Precedence and Composability
@@ -934,6 +946,7 @@ The alternative is duplicated platform composition logic and drift in feature be
 
 | Date | Summary |
 |---|---|
+| 2026-04-27 | Parameterized refresh + shared transport (§4, AGENTS §4.1.1, contract §11). §0: `platform` via envelope only. §2a: 12 `AtomicElement` types in the summary table. Server `/sdui/refresh/{screenId}` GET+POST. Glossary: fetch primitive, parameterized refresh. |
 | 2026-04-26 | Doc consistency audit. Stripped historical migration narrative — §2b reframed "When a section can migrate to atomic" as "When a content surface is atomic" (forward-looking criterion only); §8 former-section note replaced with a `VideoPlayer` stub-status note; §8 atomic-element coverage table gained an `OverlayContainer` row and the dispatch-summary sentence updated to 12 element types. Doc now describes current architectural state without "former section types" framing. |
 | 2026-04-25 | Doc consistency audit. Migrated-section count 9 → 10 (GamePanel added). Atomic element count 10 → 11 (§8 coverage table + summary line). Section type count 10th → 9th, 9 permanent → 8 permanent. LiveClock row added to atomic platform coverage table. Former-section note updated to list all 10 migrated types. Implementation-status annotations added: §1 capability-gating example marked as plumbed-not-consumed, §2c Figma CI pipeline marked as planned-not-built, §8 style-tokens row updated with override-matrix and diagnostic coverage qualifications. |
 | 2026-04-25 | GamePanel migration to AtomicComposite. Updated §1 decision examples (SSE question no longer GamePanel-specific), §2 dual-layer model (GamePanel removed from semantic list), §2b (BoxscoreTable replaces GamePanel as network-lifecycle example), §2c elevation row (shadow on Container replaces GamePanelDisplayConfig), §6 router/renderer examples (BoxscoreTable), §8 platform coverage table (GamePanel row removed), §10 JSON example (AtomicComposite). Stripped Rule N / AGENTS.md citations per §10.3. |

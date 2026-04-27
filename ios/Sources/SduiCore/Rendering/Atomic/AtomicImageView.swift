@@ -127,13 +127,16 @@ struct AtomicImageView: View {
         .modifier(ImageAspectRatioModifier(aspectRatio: (element.height == nil) ? resolvedAspectRatio : nil, contentMode: contentMode))
     }
 
+    /// Last-resort when `src` and server `placeholder` both fail: bundled league fallback art (not wire-driven).
     @ViewBuilder
     private func placeholder(
         resolvedAspectRatio: CGFloat?,
         contentMode: SwiftUI.ContentMode
     ) -> some View {
-        Color.gray.opacity(0.2)
+        Image("SduiImageLastResortFallback", bundle: .module)
+            .resizable()
             .modifier(ImageAspectRatioModifier(aspectRatio: (element.height == nil) ? resolvedAspectRatio : nil, contentMode: contentMode))
+            .accessibilityHidden(true)
     }
 }
 

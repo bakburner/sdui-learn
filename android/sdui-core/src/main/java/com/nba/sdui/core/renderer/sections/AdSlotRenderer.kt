@@ -3,12 +3,10 @@ package com.nba.sdui.core.renderer.sections
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,9 +26,10 @@ import com.nba.sdui.core.state.SduiAction
  * rectangle — `data.sizes[0]` is the single source of truth for
  * dimensions, shared by the placeholder and (when it lands) the
  * ad SDK itself. Inner placeholder chrome (background color, label
- * text) comes from `data.placeholder`; outer chrome (margin,
- * padding, shadow, radius) comes from `section.surface` via the
- * shared SectionContainer wrapper.
+ * text) comes from `data.placeholder`. Outer chrome is applied by
+ * `SectionContainer` from `section.surface` (server — e.g.
+ * `SduiUtils.adSlotSurface()`). The creative `fillMaxWidth` with
+ * `aspectRatio` from `data.sizes[0]`.
  *
  * This renderer carries no client-side chrome defaults. A payload
  * missing required `sizes` produces an empty stub — reservation
@@ -48,6 +47,8 @@ fun AdSlotRenderer(
     if (first.size < 2) return
     val width = first[0].toInt()
     val height = first[1].toInt()
+    if (width <= 0 || height <= 0) return
+    val aspect = width.toFloat() / height.toFloat()
 
     val label = data.label
     val placeholder = data.placeholder
@@ -68,12 +69,12 @@ fun AdSlotRenderer(
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(8.dp))
         }
         Box(
             modifier = Modifier
-                .width(width.dp)
-                .height(height.dp)
+                .fillMaxWidth()
+                .aspectRatio(aspect)
                 .background(bgColor),
             contentAlignment = Alignment.Center
         ) {

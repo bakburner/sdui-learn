@@ -79,7 +79,7 @@ struct AtomicButtonView: View {
 
     private func handleTap() {
         guard let actions = element.actions else { return }
-        for action in actions where action.trigger == .onTap {
+        for action in actions where action.trigger.isPrimaryActivation {
             onAction(action)
         }
     }

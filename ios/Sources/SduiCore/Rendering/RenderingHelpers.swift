@@ -163,7 +163,7 @@ struct ActionTapModifier: ViewModifier {
     let onAction: (Action) -> Void
 
     func body(content: Content) -> some View {
-        if let tapActions = actions?.filter({ $0.trigger == .onTap }), !tapActions.isEmpty {
+        if let tapActions = actions?.filter(\.trigger.isPrimaryActivation), !tapActions.isEmpty {
             content.onTapGesture {
                 for action in tapActions {
                     onAction(action)

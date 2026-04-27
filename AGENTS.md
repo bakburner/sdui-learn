@@ -158,14 +158,19 @@ The following are **not** valid client exceptions:
 - Real-time payloads are opaque JSON and are applied only through shared
   data-binding infrastructure.
 
-### 3.4 Platform header is required
+### 3.4 Platform identity travels in the request envelope
 
-- Every client must send `X-Platform` on every request (e.g. `android`, `web`,
-  `ios`).
-- The server must never assume a platform via `defaultValue`. Use
-  `required = false` with no default — composition logic treats a missing
-  platform safely (e.g. form layout falls back to vertical).
-- Platform-specific composition decisions are resolved from this header, not
+- Every client identifies its platform through the request envelope, not
+  through a dedicated header. `RequestEnvelopeBuilder` emits `platform[name]`
+  (and `platform.deviceClass`) as a bracket-notation query parameter on GET
+  requests and as `platform.name` inside the JSON body on POST. See §4.1.1.
+- Allowed `platform[name]` values are `android`, `ios`, `web`.
+- Server composition reads the platform via `SduiRequestContext` /
+  `BracketParamResolver`. Composers must never assume a platform via
+  `defaultValue`; missing platforms must compose safely (e.g. form layout
+  falls back to vertical).
+- Do not set `X-Platform` on outbound requests.
+- Platform-specific composition decisions are resolved from the envelope, not
   from hardcoded strings.
 
 ### 3.5 Action semantics are server-declared
@@ -189,6 +194,59 @@ The following are **not** valid client exceptions:
 - `SduiRepository` exposes one generic screen-fetch method and `fetchRawJson()`
   for direct polling URLs.
 - Dedicated repository methods for specific screens are prohibited.
+- **Every** composition request — initial loads, navigation transitions,
+  pull-to-refresh, action-driven `refresh` (including parameterized refresh
+  with `paramBindings`), and any future variant — routes through that single
+  fetch primitive. Hand-rolled URL strings, bespoke `fetch`/`URLRequest`
+  calls, or per-action transports for composition responses are prohibited.
+
+### 4.1.1 Request envelope is the transport contract
+
+Every SDUI composition request shares one transport shape, owned by the
+shared envelope builder (`RequestEnvelopeBuilder` on each platform) and the
+single fetch primitive in `SduiRepository`. This contract is non-negotiable
+because it is what makes GET requests cacheable on the CDN, makes POST
+requests interchangeable with GET requests on the server, and makes
+`X-Trace-Id` correlation across screens, sections, and refreshes possible
+at all.
+
+The contract:
+
+- **Bracket-notation query params for the envelope.** `platform`, `device`,
+  `experiments`, `locale`, `schemaVersion`, and `gameState` are serialized
+  as `platform[name]=ios`, `device[countryCode]=US`,
+  `experiments[exp_id]=variant_b`, etc. Same bytes on every platform.
+- **GET-first, POST fallback at 8192 chars.** When the envelope query
+  exceeds the threshold, the *same envelope shape* moves to a JSON body
+  on the same path. The server reads it through one resolver
+  (`BracketParamResolver` → `SduiRequestContext`).
+- **User-supplied filter params ride the URL query string regardless of
+  method.** Form submits, refresh `paramBindings`, and any other
+  caller-provided values participate in the GET/POST length decision but
+  are always on the URL so the server reads them through `@RequestParam`
+  on either side.
+- **RFC-3986 percent-encoding for both halves of the query.** The user
+  params and the envelope params encode through the same rule; handwritten
+  string concatenation (`"$key=$value"`) is prohibited because it silently
+  corrupts spaces, ampersands, and non-ASCII bytes.
+- **Deterministic key ordering.** User params are sorted by key; envelope
+  ordering is fixed by the builder. Identical inputs produce byte-identical
+  URLs across platforms and across runs — the CDN cache key depends on it.
+- **`X-Trace-Id` propagates from the parent fetch.** A parameterized
+  refresh inherits its screen's trace ID so server logs correlate the
+  refresh response with the screen that triggered it.
+
+Every server route that accepts an SDUI envelope must be dual-mounted as
+`@GetMapping` *and* `@PostMapping` to the same handler. A GET-only or
+POST-only composition endpoint is a contract bug.
+
+The systemic rule that follows from this contract:
+
+> If a feature needs to fetch composition data, the only correct answer is
+> to call the shared fetch primitive with an envelope and (optionally)
+> user params. Anything else — building URL strings, calling `fetch` /
+> `URLRequest` / `OkHttp` directly, prepending base URLs by hand — silently
+> opts out of the contract and is prohibited.
 
 ### 4.2 Section wrappers own outer chrome
 

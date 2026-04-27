@@ -22,6 +22,25 @@ class RequestEnvelopeBuilder {
 
     companion object {
         private const val MAX_QUERY_LENGTH = 8192
+
+        /**
+         * RFC-3986 percent-encoding, matching the iOS `RequestEnvelope.percentEncode`
+         * and the web `encodeURIComponent`-based encoder so the same input produces
+         * byte-identical query strings on every platform. Spaces become `%20`
+         * (not `+`), and the unreserved set (`A-Z a-z 0-9 - _ . ~`) survives raw.
+         *
+         * `java.net.URLEncoder.encode(..., "UTF-8")` is form-urlencoding, not
+         * RFC-3986, and emits `+` for spaces — using it would silently desync
+         * the Android wire format from iOS/web, breaking parity tests and
+         * CDN cache keys whenever any value contained whitespace.
+         */
+        @JvmStatic
+        fun percentEncode(value: String): String {
+            return URLEncoder.encode(value, Charsets.UTF_8.name())
+                .replace("+", "%20")
+                .replace("*", "%2A")
+                .replace("%7E", "~")
+        }
     }
 
     // ── Top-level params ───────────────────────────────────────────────
@@ -116,6 +135,5 @@ class RequestEnvelopeBuilder {
      */
     fun generateTraceId(): String = "trace-${UUID.randomUUID().toString().substring(0, 8)}"
 
-    private fun encode(value: String): String =
-        URLEncoder.encode(value, Charsets.UTF_8.name())
+    private fun encode(value: String): String = percentEncode(value)
 }

@@ -98,7 +98,8 @@
     },
     "ActionTrigger": {
       "type": "string",
-      "enum": ["onTap", "onLongPress", "onVisible", "onSwipe", "onFocus", "onBlur", "onSubmit"]
+      "description": "Event that fires the action. Prefer onActivate for primary activation (tap, keyboard Enter/Space, accessibility activate). onTap is a deprecated alias for onActivate.",
+      "enum": ["onActivate", "onTap", "onLongPress", "onVisible", "onSwipe", "onFocus", "onBlur", "onSubmit"]
     },
     "ActionType": {
       "type": "string",

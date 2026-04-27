@@ -52,7 +52,7 @@
                   "variant": "text",
                   "actions": [
                     {
-                      "trigger": "onTap",
+                      "trigger": "onActivate",
                       "type": "navigate",
                       "targetUri": "nba://news"
                     }
@@ -66,7 +66,7 @@
               "cornerRadius": 16,
               "actions": [
                 {
-                  "trigger": "onTap",
+                  "trigger": "onActivate",
                   "type": "navigate",
                   "targetUri": "nba://article/giannis-dunk"
                 }
@@ -179,7 +179,7 @@
                   "width": 76,
                   "actions": [
                     {
-                      "trigger": "onTap",
+                      "trigger": "onActivate",
                       "type": "navigate",
                       "targetUri": "nba://story/phase4-demo"
                     }
@@ -290,7 +290,7 @@
               "cornerRadius": 12,
               "actions": [
                 {
-                  "trigger": "onTap",
+                  "trigger": "onActivate",
                   "type": "navigate",
                   "targetUri": "nba://editorial/saturday-slate"
                 }
@@ -355,7 +355,7 @@
                         "color": "token:color.text.inverse",
                         "actions": [
                           {
-                            "trigger": "onTap",
+                            "trigger": "onActivate",
                             "type": "navigate",
                             "targetUri": "nba://schedule/saturday"
                           }
@@ -414,7 +414,7 @@
                         "color": "token:color.text.inverse",
                         "actions": [
                           {
-                            "trigger": "onTap",
+                            "trigger": "onActivate",
                             "type": "navigate",
                             "targetUri": "nba://audio/saturday-slate"
                           }
@@ -428,7 +428,7 @@
                         "color": "token:color.text.inverse",
                         "actions": [
                           {
-                            "trigger": "onTap",
+                            "trigger": "onActivate",
                             "type": "navigate",
                             "targetUri": "nba://share/saturday-slate"
                           }
@@ -537,7 +537,7 @@
                         "color": "token:color.text.inverse",
                         "actions": [
                           {
-                            "trigger": "onTap",
+                            "trigger": "onActivate",
                             "type": "navigate",
                             "targetUri": "nba://game/featured-giannis/actions"
                           }

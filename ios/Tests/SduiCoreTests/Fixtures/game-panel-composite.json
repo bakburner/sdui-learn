@@ -35,7 +35,7 @@
           "actions": [
             {
               "type": "navigate",
-              "trigger": "onTap",
+              "trigger": "onActivate",
               "uri": "nba://game/0042300101"
             }
           ],
@@ -201,7 +201,7 @@
           "actions": [
             {
               "type": "navigate",
-              "trigger": "onTap",
+              "trigger": "onActivate",
               "uri": "nba://game/0042300102"
             }
           ],
@@ -368,7 +368,7 @@
           "actions": [
             {
               "type": "navigate",
-              "trigger": "onTap",
+              "trigger": "onActivate",
               "uri": "nba://game/0042300103"
             }
           ],

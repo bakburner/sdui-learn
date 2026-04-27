@@ -22,17 +22,16 @@ struct TabGroupView: View {
 
             VStack(spacing: 0) {
                 // ScrollViewReader pins the strip's scroll offset to the
-                // active tab on every selection change. Without this, tapping
-                // a trailing tab (e.g. "League Pass" on Watch) lets SwiftUI's
-                // implicit "bring focused button fully into view" behavior
-                // shift the inner ScrollView's offset, which on iOS settled
-                // with the leading tab ("Featured") cropped off the leading
-                // edge. Anchoring on `.center` lets the ScrollView clamp at
-                // its bounds — leading-tab selections stay clamped to the
-                // leading edge and trailing-tab selections clamp to the
-                // trailing edge, so all tabs remain visible whenever the
-                // strip's natural width fits the screen, and the active tab
-                // is always centered when it doesn't.
+                // active tab on every selection change. We anchor by the
+                // tab's position in the list — tabs in the leading half use
+                // `.leading`, tabs in the trailing half use `.trailing` —
+                // so the ScrollView clamps at its natural bounds whenever
+                // the strip fits the viewport. That keeps leading tabs
+                // (e.g. "Featured" on Watch) from losing their first letter
+                // when a trailing tab (e.g. "League Pass") is selected.
+                // Cropping only kicks in when the strip is genuinely wider
+                // than the viewport and a trailing tab is selected — the
+                // only case where it's unavoidable.
                 ScrollViewReader { proxy in
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 16) {
@@ -71,9 +70,16 @@ struct TabGroupView: View {
 
     private func scrollToActiveTab(tabs: [TabData], selectedTab: String,
                                    proxy: ScrollViewProxy, animated: Bool) {
-        guard let active = tabs.first(where: { ($0.stateValue ?? $0.id) == selectedTab })
-                ?? tabs.first else { return }
-        let scroll = { proxy.scrollTo(active.id, anchor: .center) }
+        guard let activeIndex = tabs.firstIndex(where: {
+            ($0.stateValue ?? $0.id) == selectedTab
+        }) ?? (tabs.isEmpty ? nil : 0) else { return }
+        let active = tabs[activeIndex]
+        // Leading-half tabs clamp to `.leading` (offset 0 when the strip
+        // fits), trailing-half tabs clamp to `.trailing`. With (n+1)/2 as
+        // the split, an odd-length strip puts the middle tab on the
+        // leading side, which keeps Featured-style first tabs un-cropped.
+        let anchor: UnitPoint = activeIndex < (tabs.count + 1) / 2 ? .leading : .trailing
+        let scroll = { proxy.scrollTo(active.id, anchor: anchor) }
         if animated {
             withAnimation(.easeInOut(duration: 0.2)) { scroll() }
         } else {

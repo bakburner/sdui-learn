@@ -39,18 +39,36 @@ final class SduiRepository {
 
     /// Fetch a screen from any SDUI endpoint. The endpoint is always provided
     /// by caller/server — never hardcoded.
+    ///
+    /// - Parameters:
+    ///   - endpoint: server-relative path (e.g. `/sdui/scoreboard`).
+    ///   - variant: optional `gameState` override.
+    ///   - userParams: optional user-supplied filter params (e.g. Form submit
+    ///     bindings like `season=2025-26`). Always travel in the URL query
+    ///     string regardless of GET vs POST so the server reads them
+    ///     uniformly. They participate in the GET/POST length decision.
+    ///   - traceID: optional trace ID to reuse from a parent fetch (e.g.
+    ///     parameterized refresh inheriting its screen's trace). Falls back
+    ///     to the config's provider when absent.
     func fetchScreen(
         endpoint: String,
-        variant: String? = nil
+        variant: String? = nil,
+        userParams: [String: String] = [:],
+        traceID: String? = nil
     ) async throws -> SduiModels {
         var envelope = envelopeProvider()
         if let variant {
             envelope.gameState = variant
         }
 
-        let traceID = config.traceIDProvider()
-        let request = try buildRequest(endpoint: endpoint, envelope: envelope, traceID: traceID)
-        logger.debug("Fetching screen \(request.httpMethod ?? "GET"): \(request.url?.absoluteString ?? endpoint) [trace=\(traceID, privacy: .public)]")
+        let resolvedTraceID = traceID ?? config.traceIDProvider()
+        let request = try buildRequest(
+            endpoint: endpoint,
+            envelope: envelope,
+            userParams: userParams,
+            traceID: resolvedTraceID
+        )
+        logger.debug("Fetching screen \(request.httpMethod ?? "GET"): \(request.url?.absoluteString ?? endpoint) [trace=\(resolvedTraceID, privacy: .public)]")
 
         fetchStateLock.withLock { activeScreenFetch?.cancel() }
 
@@ -79,11 +97,11 @@ final class SduiRepository {
         }
         fetchStateLock.withLock {
             activeScreenFetch = task
-            activeScreenFetchTraceID = traceID
+            activeScreenFetchTraceID = resolvedTraceID
         }
         defer {
             fetchStateLock.withLock {
-                if activeScreenFetchTraceID == traceID {
+                if activeScreenFetchTraceID == resolvedTraceID {
                     activeScreenFetch = nil
                     activeScreenFetchTraceID = nil
                 }
@@ -135,9 +153,17 @@ final class SduiRepository {
 
     // MARK: - Request assembly
 
+    /// Build a request for the canonical SDUI transport. The envelope owns the
+    /// GET-vs-POST decision (length-based via `exceedsGetThreshold`); user
+    /// params always travel in the URL query string regardless of method, so
+    /// the server reads them through the same `@RequestParam` path on either
+    /// side. Both halves of the query string use RFC-3986 percent-encoding so
+    /// values with `&`, `=`, spaces, or non-ASCII bytes survive the round-trip
+    /// intact.
     private func buildRequest(
         endpoint: String,
         envelope: RequestEnvelope,
+        userParams: [String: String],
         traceID: String
     ) throws -> URLRequest {
         let path = endpoint.hasPrefix("/") ? endpoint : "/\(endpoint)"
@@ -145,8 +171,19 @@ final class SduiRepository {
             String(path.dropFirst())
         )
 
+        let userQuery = Self.encodeUserParams(userParams)
+
         if envelope.exceedsGetThreshold {
-            var request = URLRequest(url: baseWithPath)
+            let postURL: URL
+            if userQuery.isEmpty {
+                postURL = baseWithPath
+            } else {
+                guard let url = URL(string: baseWithPath.absoluteString + "?" + userQuery) else {
+                    throw SduiError.invalidURL(endpoint)
+                }
+                postURL = url
+            }
+            var request = URLRequest(url: postURL)
             request.httpMethod = "POST"
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             request.httpBody = try envelope.jsonBody()
@@ -154,14 +191,27 @@ final class SduiRepository {
             return request
         }
 
-        let query = envelope.buildQueryString()
-        let urlString = baseWithPath.absoluteString + "?" + query
+        let envelopeQuery = envelope.buildQueryString()
+        let combined = userQuery.isEmpty ? envelopeQuery : userQuery + "&" + envelopeQuery
+        let urlString = baseWithPath.absoluteString + "?" + combined
         guard let url = URL(string: urlString) else {
             throw SduiError.invalidURL(endpoint)
         }
         var request = URLRequest(url: url)
         attachAuthHeaders(&request, traceID: traceID)
         return request
+    }
+
+    /// Percent-encode user params with the same RFC-3986 rule the envelope
+    /// uses, preserving deterministic order so the encoded URL is stable
+    /// across calls (matters for parity tests and CDN cache keys).
+    private static func encodeUserParams(_ params: [String: String]) -> String {
+        guard !params.isEmpty else { return "" }
+        return params
+            .filter { !$0.value.isEmpty }
+            .sorted(by: { $0.key < $1.key })
+            .map { "\(RequestEnvelope.percentEncode($0.key))=\(RequestEnvelope.percentEncode($0.value))" }
+            .joined(separator: "&")
     }
 
     private func attachAuthHeaders(_ request: inout URLRequest, traceID: String) {

@@ -438,6 +438,7 @@ enum NavigationPresentation: String, Codable {
 }
 
 enum ActionTrigger: String, Codable {
+    case onActivate = "onActivate"
     case onBlur = "onBlur"
     case onFocus = "onFocus"
     case onLongPress = "onLongPress"
@@ -445,6 +446,11 @@ enum ActionTrigger: String, Codable {
     case onSwipe = "onSwipe"
     case onTap = "onTap"
     case onVisible = "onVisible"
+}
+
+extension ActionTrigger {
+    /// Primary user activation: `onActivate` (preferred) or legacy `onTap`.
+    var isPrimaryActivation: Bool { self == .onActivate || self == .onTap }
 }
 
 enum ActionType: String, Codable {

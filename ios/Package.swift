@@ -60,6 +60,9 @@ let package = Package(
                 .product(name: "Kingfisher", package: "Kingfisher")
             ] + ablyTargetDependencies,
             path: "Sources/SduiCore",
+            resources: [
+                .process("Resources")
+            ],
             swiftSettings: sduiCoreSwiftSettings
         ),
         .testTarget(

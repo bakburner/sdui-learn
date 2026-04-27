@@ -356,10 +356,38 @@ public class SduiController {
 
     // ── Parameterized Refresh (Form submit support) ────────────────────
 
+    /**
+     * Parameterized refresh endpoint. User-supplied filter params (e.g.
+     * {@code perMode}, {@code season}) always travel in the URL query string,
+     * regardless of HTTP method. The request envelope ({@link SduiRequestContext})
+     * follows the same GET/POST rule as every other composition route — bracket
+     * notation in the query for GET, JSON body for POST when the envelope is
+     * large or sensitive.
+     */
     @GetMapping(value = "/sdui/refresh/{screenId}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<JsonNode> refreshScreen(
+    public ResponseEntity<JsonNode> getRefreshScreen(
             @PathVariable String screenId,
             @RequestParam Map<String, String> allParams,
+            SduiRequestContext ctx,
+            HttpServletRequest request,
+            HttpServletResponse response) {
+        return refreshScreen(screenId, allParams, ctx, request, response);
+    }
+
+    @PostMapping(value = "/sdui/refresh/{screenId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<JsonNode> postRefreshScreen(
+            @PathVariable String screenId,
+            @RequestParam Map<String, String> allParams,
+            SduiRequestContext ctx,
+            HttpServletRequest request,
+            HttpServletResponse response) {
+        return refreshScreen(screenId, allParams, ctx, request, response);
+    }
+
+    private ResponseEntity<JsonNode> refreshScreen(
+            String screenId,
+            Map<String, String> allParams,
+            SduiRequestContext ctx,
             HttpServletRequest request,
             HttpServletResponse response) {
 
@@ -368,14 +396,17 @@ public class SduiController {
             traceId = "trace-" + UUID.randomUUID().toString().substring(0, 8);
         }
         MDC.put("traceId", traceId);
-        log.info("SDUI parameterized refresh: screenId={}, params={}", screenId, allParams);
+
+        Map<String, String> userParams = stripEnvelopeKeys(allParams);
+        log.info("SDUI parameterized refresh: screenId={}, userParams={}, method={}",
+                screenId, userParams, request.getMethod());
 
         try {
             JsonNode screenResponse;
 
             if ("stats-leaders".equals(screenId)) {
-                String locale = allParams.getOrDefault("locale", "en");
-                screenResponse = compositionService.composeLeadersRefresh(traceId, allParams, locale);
+                String locale = ctx.getLocale() != null ? ctx.getLocale() : "en";
+                screenResponse = compositionService.composeLeadersRefresh(traceId, userParams, locale);
             } else {
                 ObjectNode placeholder = objectMapper.createObjectNode();
                 placeholder.put("id", screenId);
@@ -383,7 +414,7 @@ public class SduiController {
                 placeholder.put("schemaVersion", "1.0");
 
                 ObjectNode state = objectMapper.createObjectNode();
-                allParams.forEach(state::put);
+                userParams.forEach(state::put);
                 placeholder.set("state", state);
                 placeholder.set("sections", objectMapper.createArrayNode());
                 screenResponse = placeholder;
@@ -401,6 +432,28 @@ public class SduiController {
         } finally {
             MDC.clear();
         }
+    }
+
+    /**
+     * Strip envelope keys from a flat {@code @RequestParam} map so what remains
+     * is the user-supplied filter params (the things a Form submitted). Envelope
+     * keys are either bracket-notation ({@code platform[name]}, {@code device[zipCode]},
+     * {@code experiments[exp_id]}) or top-level scalars the envelope already owns
+     * ({@code locale}, {@code schemaVersion}, {@code gameState}).
+     */
+    private static Map<String, String> stripEnvelopeKeys(Map<String, String> params) {
+        java.util.LinkedHashMap<String, String> filtered = new java.util.LinkedHashMap<>();
+        for (Map.Entry<String, String> e : params.entrySet()) {
+            String k = e.getKey();
+            if (k.contains("[")) {
+                continue;
+            }
+            if ("locale".equals(k) || "schemaVersion".equals(k) || "gameState".equals(k)) {
+                continue;
+            }
+            filtered.put(k, e.getValue());
+        }
+        return filtered;
     }
 
     // ── Init ──────────────────────────────────────────────────────────

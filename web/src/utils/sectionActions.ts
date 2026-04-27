@@ -16,11 +16,15 @@ export function getSectionActions(section: Section): Action[] {
   return actions ?? [];
 }
 
-export function getPrimarySectionAction(section: Section, trigger: string = 'onTap'): Action | undefined {
+export function getPrimarySectionAction(section: Section, trigger: string = 'onActivate'): Action | undefined {
   const normalizedTrigger = trigger.toLowerCase();
-  return getSectionActions(section).find(
-    (action) => (action.trigger ?? '').toLowerCase() === normalizedTrigger
-  );
+  const list = getSectionActions(section);
+  const match = list.find((action) => (action.trigger ?? '').toLowerCase() === normalizedTrigger);
+  if (match) return match;
+  if (normalizedTrigger === 'onactivate') {
+    return list.find((action) => (action.trigger ?? '').toLowerCase() === 'ontap');
+  }
+  return undefined;
 }
 
 export function getSubsectionActions(section: Section, subsectionId: string): Action[] {
@@ -31,11 +35,15 @@ export function getSubsectionActions(section: Section, subsectionId: string): Ac
 export function getSubsectionPrimaryAction(
   section: Section,
   subsectionId: string,
-  trigger: string = 'onTap'
+  trigger: string = 'onActivate'
 ): Action | undefined {
   const normalizedTrigger = trigger.toLowerCase();
-  return getSubsectionActions(section, subsectionId).find(
-    (action) => (action.trigger ?? '').toLowerCase() === normalizedTrigger
-  );
+  const list = getSubsectionActions(section, subsectionId);
+  const match = list.find((action) => (action.trigger ?? '').toLowerCase() === normalizedTrigger);
+  if (match) return match;
+  if (normalizedTrigger === 'onactivate') {
+    return list.find((action) => (action.trigger ?? '').toLowerCase() === 'ontap');
+  }
+  return undefined;
 }
 

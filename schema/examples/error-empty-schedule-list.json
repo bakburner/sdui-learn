@@ -38,7 +38,7 @@
               "variant": "primary",
               "actions": [
                 {
-                  "trigger": "onTap",
+                  "trigger": "onActivate",
                   "type": "navigate",
                   "targetUri": "nba://games/schedule?refresh=1"
                 }

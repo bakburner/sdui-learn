@@ -24,8 +24,11 @@ struct AtomicScrollContainerView: View {
 
         Group {
             if shouldShowPageIndicator {
-                ZStack(alignment: swiftUIAlignment(for: element.pageIndicator?.alignment)) {
+                // In document flow, not overlaying paged content (avoids covering tappable
+                // areas or text). Top* alignments place dots above the scroll view.
+                pageIndicatorScaffold(alignment: element.pageIndicator?.alignment) {
                     scrollView(isHorizontal: isHorizontal, gap: gap, trackPage: true)
+                } dots: {
                     PageIndicatorDots(
                         count: element.children?.count ?? 0,
                         activePage: activePage ?? 0,
@@ -39,6 +42,50 @@ struct AtomicScrollContainerView: View {
             }
         }
         .atomicBox(element, screenState: screenState, onAction: onAction)
+    }
+
+    /// Stacks scroll and dots in layout order (VStack) instead of overlaying.
+    @ViewBuilder
+    private func pageIndicatorScaffold(
+        alignment: BadgeAlignment?,
+        @ViewBuilder scroll: () -> some View,
+        @ViewBuilder dots: () -> some View
+    ) -> some View {
+        let dotsOnTop: Bool = {
+            switch alignment {
+            case .topStart, .topCenter, .topEnd: return true
+            default: return false
+            }
+        }()
+        VStack(alignment: .leading, spacing: 0) {
+            if dotsOnTop {
+                dotsFrame(alignment: alignment) { dots() }
+                scroll()
+            } else {
+                scroll()
+                dotsFrame(alignment: alignment) { dots() }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func dotsFrame(alignment: BadgeAlignment?, @ViewBuilder content: () -> some View) -> some View {
+        let a = alignment ?? .bottomCenter
+        HStack(alignment: .center, spacing: 0) {
+            switch a {
+            case .topStart, .bottomStart, .centerStart:
+                content()
+                Spacer(minLength: 0)
+            case .topEnd, .bottomEnd, .centerEnd:
+                Spacer(minLength: 0)
+                content()
+            case .topCenter, .bottomCenter, .center:
+                Spacer(minLength: 0)
+                content()
+                Spacer(minLength: 0)
+            }
+        }
+        .frame(maxWidth: .infinity)
     }
 
     @ViewBuilder
@@ -77,19 +124,6 @@ struct AtomicScrollContainerView: View {
         }
     }
 
-    private func swiftUIAlignment(for alignment: BadgeAlignment?) -> SwiftUI.Alignment {
-        switch alignment {
-        case .topStart: return .topLeading
-        case .topCenter: return .top
-        case .topEnd: return .topTrailing
-        case .centerStart: return .leading
-        case .center: return .center
-        case .centerEnd: return .trailing
-        case .bottomStart: return .bottomLeading
-        case .bottomEnd: return .bottomTrailing
-        case .bottomCenter, .none: return .bottom
-        }
-    }
 }
 
 private struct PageFrameModifier: ViewModifier {

@@ -1,7 +1,7 @@
 {
   "id": "game-schedule-row-composite",
   "schemaVersion": "1.0",
-  "title": "Single game schedule row (minimal)",
+  "title": "Single game schedule row (GamePanel-aligned vertical teams)",
   "analyticsId": "game_schedule_row_fixture",
   "sections": [
     {
@@ -22,12 +22,12 @@
               "crossAlignment": "stretch",
               "gap": 10,
               "background": "token:color.surface.raised",
-              "cornerRadius": 14,
-              "padding": { "top": 14, "bottom": 12, "start": 14, "end": 12 },
+              "cornerRadius": 12,
+              "padding": { "top": 16, "bottom": 16, "start": 16, "end": 16 },
               "shadow": { "color": "#00000014", "radius": 4, "offsetX": 0, "offsetY": 2 },
               "actions": [
                 {
-                  "trigger": "onTap",
+                  "trigger": "onActivate",
                   "type": "navigate",
                   "targetUri": "nba://game/0022400001"
                 }
@@ -42,46 +42,41 @@
                   "children": [
                     {
                       "type": "Container",
-                      "direction": "row",
+                      "direction": "column",
+                      "alignment": "center",
                       "crossAlignment": "center",
-                      "gap": 8,
                       "width": 124,
                       "children": [
                         {
                           "type": "Image",
                           "src": "https://example.com/logos/nyk.png",
-                          "width": 36,
-                          "height": 36,
+                          "width": 48,
+                          "height": 48,
                           "fit": "contain"
                         },
+                        { "type": "Spacer", "height": 4 },
                         {
-                          "type": "Container",
-                          "direction": "column",
-                          "crossAlignment": "start",
-                          "children": [
-                            {
-                              "type": "Text",
-                              "content": "3 NYK",
-                              "variant": "bodyMedium",
-                              "weight": "bold",
-                              "color": "token:color.text.primary",
-                              "maxLines": 1
-                            },
-                            {
-                              "type": "Text",
-                              "content": "Knicks",
-                              "variant": "labelSmall",
-                              "color": "token:color.text.secondary",
-                              "maxLines": 1
-                            }
-                          ]
+                          "type": "Text",
+                          "content": "3 NYK",
+                          "variant": "titleMedium",
+                          "weight": "semiBold",
+                          "color": "token:color.text.primary",
+                          "maxLines": 1
+                        },
+                        {
+                          "type": "Text",
+                          "content": "Knicks",
+                          "variant": "labelSmall",
+                          "color": "token:color.text.secondary",
+                          "maxLines": 1
                         },
                         {
                           "type": "Text",
                           "content": "109",
-                          "variant": "titleMedium",
+                          "variant": "score",
                           "weight": "bold",
                           "color": "token:color.text.primary",
+                          "maxLines": 1,
                           "monospacedDigits": true,
                           "bindRef": "game-row-1.awayScore"
                         }
@@ -107,48 +102,43 @@
                     },
                     {
                       "type": "Container",
-                      "direction": "row",
+                      "direction": "column",
+                      "alignment": "center",
                       "crossAlignment": "center",
-                      "gap": 8,
                       "width": 108,
                       "children": [
                         {
-                          "type": "Text",
-                          "content": "132",
-                          "variant": "titleMedium",
-                          "weight": "bold",
-                          "color": "token:color.text.primary",
-                          "monospacedDigits": true,
-                          "bindRef": "game-row-1.homeScore"
-                        },
-                        {
-                          "type": "Container",
-                          "direction": "column",
-                          "crossAlignment": "center",
-                          "children": [
-                            {
-                              "type": "Text",
-                              "content": "2 BOS",
-                              "variant": "bodyMedium",
-                              "weight": "bold",
-                              "color": "token:color.text.primary",
-                              "maxLines": 1
-                            },
-                            {
-                              "type": "Text",
-                              "content": "Celtics",
-                              "variant": "labelSmall",
-                              "color": "token:color.text.secondary",
-                              "maxLines": 1
-                            }
-                          ]
-                        },
-                        {
                           "type": "Image",
                           "src": "https://example.com/logos/bos.png",
-                          "width": 36,
-                          "height": 36,
+                          "width": 48,
+                          "height": 48,
                           "fit": "contain"
+                        },
+                        { "type": "Spacer", "height": 4 },
+                        {
+                          "type": "Text",
+                          "content": "2 BOS",
+                          "variant": "titleMedium",
+                          "weight": "semiBold",
+                          "color": "token:color.text.primary",
+                          "maxLines": 1
+                        },
+                        {
+                          "type": "Text",
+                          "content": "Celtics",
+                          "variant": "labelSmall",
+                          "color": "token:color.text.secondary",
+                          "maxLines": 1
+                        },
+                        {
+                          "type": "Text",
+                          "content": "132",
+                          "variant": "score",
+                          "weight": "bold",
+                          "color": "token:color.text.primary",
+                          "maxLines": 1,
+                          "monospacedDigits": true,
+                          "bindRef": "game-row-1.homeScore"
                         }
                       ]
                     }

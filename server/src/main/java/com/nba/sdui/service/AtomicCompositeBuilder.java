@@ -1684,9 +1684,10 @@ public class AtomicCompositeBuilder {
      * Compact schedule row/list item.
      * row: [id, awayTri, awayName, awaySeed, awayScore, awayLogoUrl, homeTri,
      * homeName, homeSeed, homeScore, homeLogoUrl, statusText, seriesText,
-     * broadcastLogoUrlsCsv, targetUri, overflowUri] — broadcast URLs, {@code targetUri},
-     * and {@code overflowUri} must be supplied by the composer from server data, not derived
-     * from game/team identity in the client.
+     * broadcastLogoUrlsCsv, targetUri, overflowUri] — {@code targetUri} and
+     * {@code overflowUri} must be supplied by the composer from server data. The UI does not
+     * render broadcast images (index 13 is ignored for layout); composers may still send a CSV
+     * for future use.
      */
     public ObjectNode buildGameScheduleRow(String sectionId, String analyticsId, String[] row) {
         return buildGameScheduleRow(sectionId, analyticsId, row, null, null);
@@ -2146,8 +2147,9 @@ public class AtomicCompositeBuilder {
         card.put("id", value(row, 0));
         card.put("gap", 10);
         card.put("background", ColorTokens.SURFACE_RAISED);
-        card.put("cornerRadius", 8);
-        card.set("padding", padding(14, 14, 12, 12));
+        // Match buildGamePanelComposite (non-featured) card radius / padding.
+        card.put("cornerRadius", 12);
+        card.set("padding", padding(16, 16, 16, 16));
         shadow(card);
         if (value(row, 14) != null) card.set("actions", singleActionArray(tapNavigate(value(row, 14))));
 
@@ -2155,27 +2157,22 @@ public class AtomicCompositeBuilder {
         ObjectNode matchup = container("row", "spaceBetween", "center");
         matchup.put("fillWidth", true);
         ArrayNode matchupChildren = om.createArrayNode();
-        matchupChildren.add(scheduleTeam(value(row, 1), value(row, 2), value(row, 3),
-                value(row, 4), value(row, 5), value(row, 0), "awayScore", false));
+        matchupChildren.add(scheduleTeamColumn(
+                value(row, 1), value(row, 2), value(row, 3),
+                value(row, 4), value(row, 5), value(row, 0), "awayScore", 124));
         matchupChildren.add(scheduleStatus(value(row, 11), value(row, 12), value(row, 0)));
-        matchupChildren.add(scheduleTeam(value(row, 6), value(row, 7), value(row, 8),
-                value(row, 9), value(row, 10), value(row, 0), "homeScore", true));
+        matchupChildren.add(scheduleTeamColumn(
+                value(row, 6), value(row, 7), value(row, 8),
+                value(row, 9), value(row, 10), value(row, 0), "homeScore", 108));
         matchup.set("children", matchupChildren);
         children.add(matchup);
 
-        ArrayNode logos = logoRow(value(row, 13), 44, 18);
-        if (logos.size() > 0 || value(row, 15) != null) {
+        if (value(row, 15) != null) {
             children.add(cardHairlineDivider());
-            ObjectNode meta = container("row", "spaceBetween", "center");
+            ObjectNode meta = container("row", "end", "center");
             meta.put("fillWidth", true);
             ArrayNode metaChildren = om.createArrayNode();
-            ObjectNode logoWrap = container("row", null, "center");
-            logoWrap.put("gap", 8);
-            logoWrap.set("children", logos);
-            metaChildren.add(logoWrap);
-            if (value(row, 15) != null) {
-                metaChildren.add(button("More", "text", tapNavigate(value(row, 15))));
-            }
+            metaChildren.add(scheduleMoreLink(tapNavigate(value(row, 15))));
             meta.set("children", metaChildren);
             children.add(meta);
         }
@@ -2185,39 +2182,34 @@ public class AtomicCompositeBuilder {
     }
 
     /**
-     * @param homeSide when true, score is leading (toward center); away uses logo/name first.
+     * Per-team column aligned with {@link #teamColumn(GamePanelTeam, String)} (Games / game
+     * detail): logo, tricode, optional name line, score — not the legacy horizontal
+     * logo–labels–score row.
      */
-    private ObjectNode scheduleTeam(String tri, String name, String seed, String score,
-                                    String logoUrl, String rowId, String scoreKey,
-                                    boolean homeSide) {
-        ObjectNode team = container("row", null, "center");
-        team.put("gap", 8);
-        team.put("width", homeSide ? 108 : 124);
-        ObjectNode logo = logoUrl != null ? image(logoUrl, 36, 36, "contain", null) : null;
-        ObjectNode labelCol = container("column", null, "start");
-        ArrayNode labelChildren = om.createArrayNode();
-        String seedPrefix = seed != null ? seed + " " : "";
-        labelChildren.add(text(seedPrefix + tri, "bodyMedium", "bold", ColorTokens.TEXT_PRIMARY, 1));
-        if (name != null) labelChildren.add(text(name, "labelSmall", null, ColorTokens.TEXT_SECONDARY, 1));
-        labelCol.set("children", labelChildren);
-        ObjectNode scoreText = null;
+    private ObjectNode scheduleTeamColumn(
+            String tri, String name, String seed, String score,
+            String logoUrl, String rowId, String scoreKey, int columnWidth) {
+        ObjectNode col = container("column", "center", "center");
+        col.put("width", columnWidth);
+        ArrayNode children = om.createArrayNode();
+        if (logoUrl != null) {
+            children.add(image(logoUrl, 48, 48, "contain", null));
+            children.add(spacer(4));
+        }
+        String seedPrefix = seed != null && !seed.isBlank() ? seed + " " : "";
+        children.add(
+                text(seedPrefix + (tri != null ? tri : ""), "titleMedium", "semiBold", ColorTokens.TEXT_PRIMARY, 1));
+        if (name != null && !name.isBlank()) {
+            children.add(text(name, "labelSmall", null, ColorTokens.TEXT_SECONDARY, 1));
+        }
         if (score != null) {
-            scoreText = text(score, "titleMedium", "bold", ColorTokens.TEXT_PRIMARY, 1);
+            ObjectNode scoreText = text(score, "score", "bold", ColorTokens.TEXT_PRIMARY, 1);
             scoreText.put("bindRef", rowId + "." + scoreKey);
             scoreText.put("monospacedDigits", true);
+            children.add(scoreText);
         }
-        ArrayNode children = om.createArrayNode();
-        if (homeSide) {
-            if (scoreText != null) children.add(scoreText);
-            children.add(labelCol);
-            if (logo != null) children.add(logo);
-        } else {
-            if (logo != null) children.add(logo);
-            children.add(labelCol);
-            if (scoreText != null) children.add(scoreText);
-        }
-        team.set("children", children);
-        return team;
+        col.set("children", children);
+        return col;
     }
 
     private ObjectNode scheduleStatus(String status, String seriesText, String rowId) {
@@ -2248,6 +2240,16 @@ public class AtomicCompositeBuilder {
         }
         center.set("children", children);
         return center;
+    }
+
+    /**
+     * Compact text link for schedule overflow (smaller than {@code Button} text variant).
+     * Broadcast logos are not rendered here — URLs in row[13] are ignored for layout.
+     */
+    private ObjectNode scheduleMoreLink(ObjectNode navigateAction) {
+        ObjectNode t = text("More", "bodySmall", "semiBold", ColorTokens.PALETTE_BLUE_50, null);
+        t.set("actions", singleActionArray(navigateAction));
+        return t;
     }
 
     /** 6dp live indicator dot ({@link ColorTokens#BRAND_LIVE}). */
@@ -2588,8 +2590,8 @@ public class AtomicCompositeBuilder {
         return node;
     }
 
-    private static final String DEFAULT_PLACEHOLDER =
-            "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png";
+    /** ORB-safe: same-origin static asset (see web/public/sdui-demo, server static/sdui-demo). */
+    private static final String DEFAULT_PLACEHOLDER = DemoImageUrls.placeholderTiny();
 
     ObjectNode image(String src, int width, int height, String fit) {
         return image(src, width, height, fit, DEFAULT_PLACEHOLDER);
@@ -2665,7 +2667,7 @@ public class AtomicCompositeBuilder {
 
     ObjectNode tapNavigate(String targetUri) {
         ObjectNode action = om.createObjectNode();
-        action.put("trigger", "onTap");
+        action.put("trigger", "onActivate");
         action.put("type", "navigate");
         action.put("targetUri", targetUri);
         return action;

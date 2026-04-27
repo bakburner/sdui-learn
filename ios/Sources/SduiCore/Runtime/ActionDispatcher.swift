@@ -129,6 +129,9 @@ final class ActionDispatcher {
         // Debug-build visibility for the action pipeline. `os.Logger.debug`
         // streams to Xcode's console in debug runs and is filtered out of
         // release telemetry, so this stays free in production.
+        if action.trigger == .onTap {
+            logger.debug("deprecated_trigger_used: onTap is a deprecated alias for onActivate")
+        }
         logger.debug("dispatch type=\(action.type.rawValue, privacy: .public) trigger=\(action.trigger.rawValue, privacy: .public) section=\(self.sectionContext, privacy: .public)")
         switch action.type {
         case .navigate: return handleNavigate(action)
@@ -170,7 +173,7 @@ final class ActionDispatcher {
         let destinations = (action.destinations ?? []).map(\.rawValue)
 
         // ADR-009: `onVisible` beacons run through the impression tracker
-        // for dedup. Non-visibility triggers (onTap etc.) always fire.
+        // for dedup. Non-visibility triggers (onActivate / legacy onTap) always fire.
         guard action.trigger == .onVisible else {
             logger.debug("fireAndForget fired event=\(event, privacy: .public) destinations=\(destinations, privacy: .public) params=\(params, privacy: .public)")
             analytics.send(event: event, params: params, destinations: destinations)

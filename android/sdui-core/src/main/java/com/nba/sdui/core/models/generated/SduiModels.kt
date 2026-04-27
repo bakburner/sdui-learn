@@ -413,6 +413,7 @@ enum class NavigationPresentation(val value: String) {
 }
 
 enum class ActionTrigger(val value: String) {
+    OnActivate("onActivate"),
     OnBlur("onBlur"),
     OnFocus("onFocus"),
     OnLongPress("onLongPress"),
@@ -423,6 +424,7 @@ enum class ActionTrigger(val value: String) {
 
     companion object {
         fun fromValue(value: String): ActionTrigger = when (value) {
+            "onActivate"  -> OnActivate
             "onBlur"      -> OnBlur
             "onFocus"     -> OnFocus
             "onLongPress" -> OnLongPress

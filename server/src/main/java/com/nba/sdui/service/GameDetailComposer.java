@@ -691,7 +691,7 @@ public class GameDetailComposer {
         button.put("variant", "primary");
         ArrayNode actions = objectMapper.createArrayNode();
         ObjectNode action = objectMapper.createObjectNode();
-        action.put("trigger", "onTap");
+        action.put("trigger", "onActivate");
         if ("dismiss".equals(ctaTarget)) {
             action.put("type", "dismiss");
         } else {
@@ -819,7 +819,7 @@ public class GameDetailComposer {
 
             ArrayNode cardActions = objectMapper.createArrayNode();
             ObjectNode mutateAction = objectMapper.createObjectNode();
-            mutateAction.put("trigger", "onTap");
+            mutateAction.put("trigger", "onActivate");
             mutateAction.put("type", "mutate");
             mutateAction.put("target", "screenState.selectedHighlight");
             mutateAction.put("operation", "set");

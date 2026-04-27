@@ -231,6 +231,7 @@ export enum NavigationPresentation {
 }
 
 export enum ActionTrigger {
+    OnActivate = "onActivate",
     OnBlur = "onBlur",
     OnFocus = "onFocus",
     OnLongPress = "onLongPress",

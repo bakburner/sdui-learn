@@ -1,5 +1,11 @@
-.PHONY: dev dev-server dev-web dev-android dev-all codegen server-test stop stop-server stop-web stop-android \
+.PHONY: dev dev-server dev-web dev-android dev-all codegen server-test android-test web-test test \
+	lint-sdui-warn \
+	stop stop-server stop-web stop-android \
 	ios-test ios-test-clean ios-build ios-demo-project ios-run ios-stop ios-fixtures-sync
+
+# Warn if Java composers reintroduce put("trigger", "onTap") — should use onActivate.
+lint-sdui-warn:
+	@./scripts/warn-onTap-in-composers.sh
 
 # ── iOS build / test config ──────────────────────────────────
 IOS_SCHEME        ?= SduiCore
@@ -34,6 +40,17 @@ codegen:
 server-test:
 	@echo "=== Running server tests ==="
 	@cd server && ./gradlew test
+
+android-test:
+	@echo "=== Running Android sdui-core JVM tests ==="
+	@cd android && ./gradlew :sdui-core:testDebugUnitTest
+
+web-test:
+	@echo "=== Running web vitest suite ==="
+	@cd web && npm test -- --run
+
+test: server-test android-test web-test ios-test
+	@echo "=== All platform tests passed ==="
 
 # ── iOS fixtures sync ───────────────────────────────────────
 ios-fixtures-sync:

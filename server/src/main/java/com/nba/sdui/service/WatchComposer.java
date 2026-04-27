@@ -410,7 +410,7 @@ public class WatchComposer {
                 20));
 
         ObjectNode ctaAction = objectMapper.createObjectNode();
-        ctaAction.put("trigger", "onTap");
+        ctaAction.put("trigger", "onActivate");
         ctaAction.put("type", "navigate");
         ctaAction.put("targetUri", ctaUri);
 
@@ -558,7 +558,7 @@ public class WatchComposer {
         cardChildren.add(atomicBuilder.spacer(10));
 
         ObjectNode tierAction = objectMapper.createObjectNode();
-        tierAction.put("trigger", "onTap");
+        tierAction.put("trigger", "onActivate");
         tierAction.put("type", "navigate");
         tierAction.put("targetUri", t.ctaUri);
         cardChildren.add(atomicBuilder.button(t.ctaLabel, "primary", tierAction));
@@ -598,7 +598,7 @@ public class WatchComposer {
         section.put("id", id);
         section.put("type", "AdSlot");
         section.set("refreshPolicy", staticPolicy());
-        section.set("surface", utils.defaultSurface());
+        section.set("surface", utils.adSlotSurface());
 
         ObjectNode data = objectMapper.createObjectNode();
         data.put("provider", "gam");

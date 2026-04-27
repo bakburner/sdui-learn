@@ -54,6 +54,9 @@ Audit these files in order (highest-visibility first):
 7. `docs/sdui-design-system` — for accuracy, model , completeness
 8. `docs/adr/*.md` — architecture decision records (check for stale type names, deprecated terminology)
 9. `prompts/agents/client-builder.agent.md` — platform adaptation table, type inventory, conformance rules
+10. `docs/glossary.md` — remove deprecated terminology. add new architectural pattern vocabulary
+
+Do not interleave notes about older implementations that have been updated. Only leave history in the revision history. otherwise focus on the current state and only put future plans in existing future enhancements sections.
 
 **Out of scope:** `prompts/agency-agents/` (unrelated to SDUI architecture).
 

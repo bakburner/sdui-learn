@@ -50,6 +50,8 @@ export interface BoxscoreTableUiModel {
   teamName: string;
   teamColor?: string;
   teamLogoUrl?: string;
+  /** Server-provided image to try on load error before client initials/placeholder. */
+  fallbackThumbnailUrl?: string;
   columns: BoxscoreColumnDefinition[];
   players: PlayerRow[];
   teamTotals?: Record<string, unknown>;
@@ -74,6 +76,7 @@ export function mapBoxscoreTable(section: Section, state: Record<string, unknown
     teamName: (data.teamName as string) || '',
     teamColor: data.teamColor as string | undefined,
     teamLogoUrl: data.teamLogoUrl as string | undefined,
+    fallbackThumbnailUrl: data.fallbackThumbnailUrl as string | undefined,
     columns: (data.columns as BoxscoreColumnDefinition[]) || [],
     players: (data.players as PlayerRow[]) || [],
     teamTotals: data.teamTotals as Record<string, unknown> | undefined,

@@ -1,4 +1,5 @@
 import React, { useContext, memo } from 'react';
+import type { Action } from '@sdui/models';
 import type { AtomicProps } from './AtomicRouter';
 import { AtomicBox } from './AtomicBox';
 import { accessibilityProps } from '../../utils/accessibility';
@@ -39,7 +40,7 @@ const weightMap: Record<string, number> = {
  * padding, background, border, shadow, cornerRadius, opacity, and
  * variant chrome are applied by AtomicBox.
  */
-function AtomicTextInner({ element }: AtomicProps): React.ReactElement {
+function AtomicTextInner({ element, onAction }: AtomicProps): React.ReactElement {
   const textAlignMap: Record<string, React.CSSProperties['textAlign']> = {
     start: 'left', center: 'center', end: 'right',
   };
@@ -85,7 +86,23 @@ function AtomicTextInner({ element }: AtomicProps): React.ReactElement {
     inner = <span style={textStyle} {...accessibilityProps(a11y)}>{resolvedContent}</span>;
   }
 
-  return <AtomicBox element={element}>{inner}</AtomicBox>;
+  const hasActions = element.actions && element.actions.length > 0;
+  const handleClick = hasActions
+    ? (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onAction(element.actions![0] as unknown as Action);
+      }
+    : undefined;
+
+  return (
+    <AtomicBox
+      element={element}
+      onClick={handleClick}
+      styleOverrides={hasActions ? { cursor: 'pointer' } : undefined}
+    >
+      {inner}
+    </AtomicBox>
+  );
 }
 
 export const AtomicText = memo(AtomicTextInner, areAtomicPropsEqual);

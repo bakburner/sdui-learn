@@ -69,7 +69,7 @@ at `localhost:8080` is the reference implementation; hit it with
 | 4 | **SectionRouter** | Switch on `section.type` → dispatch to renderer. Unknown types → log + skip. |
 | 5 | **AtomicRouter** | Switch on `element.type` → dispatch to atomic renderer. Depth guard at 6. |
 | 6 | **AtomicComposite bridge** | When SectionRouter sees `type: "AtomicComposite"`, parse `section.data.ui` and hand to AtomicRouter. Renderers read live fields via `bindRef` (see §4b) against `section.data.content`. |
-| 7 | **11 atomic renderers** | Container, Text, Image, Button, Spacer, Divider, ScrollContainer, Conditional, DisplayGrid, SectionSlot, LiveClock. See §4c for LiveClock tick-loop contract. |
+| 7 | **12 atomic renderers** | Container, Text, Image, Button, Spacer, Divider, ScrollContainer, Conditional, DisplayGrid, OverlayContainer, SectionSlot, LiveClock. See §4c for LiveClock tick-loop contract. |
 | 8 | **ScreenShell** | Fetch screen via repository, iterate `sections[]`, pass each to SectionRouter. |
 
 **Milestone:** You can render the kitchen-sink demo screen as a scrollable page
@@ -118,8 +118,8 @@ refresh.
 | 24a | **VideoPlayer** | Platform video SDK (HLS/DASH playback, PiP, AirPlay/Chromecast, background audio, fullscreen rotation). `playerType` discriminator maps to the right SDK entry point. |
 
 **Milestone:** All 8 permanent sections render with full interactivity.
-Live-score surfaces (previously `GamePanel`) render as server-composed
-`AtomicComposite` trees driven by `bindRef` + SSE data bindings.
+Live-score surfaces render as server-composed `AtomicComposite` trees
+driven by `bindRef` + SSE data bindings.
 
 ### Phase 5 — Production Hardening
 
@@ -198,17 +198,18 @@ FUNCTION AtomicRouter(element, screenState, onAction, onStateChange, depth):
     childDepth = depth + 1
 
     SWITCH element.type:
-        "Container"       → AtomicContainer(element, screenState, onAction, onStateChange, childDepth)
-        "Text"            → AtomicText(element)
-        "Image"           → AtomicImage(element)
-        "Button"          → AtomicButton(element, screenState, onAction)
-        "Spacer"          → AtomicSpacer(element)
-        "Divider"         → AtomicDivider(element)
-        "ScrollContainer" → AtomicScrollContainer(element, screenState, onAction, onStateChange, childDepth)
-        "Conditional"     → AtomicConditional(element, screenState, onAction, onStateChange, childDepth)
-        "DisplayGrid"     → AtomicDisplayGrid(element)
-        "SectionSlot"     → AtomicSectionSlot(element, screenState, onAction, onStateChange)
-        "LiveClock"       → AtomicLiveClock(element)   // see §4c
+        "Container"        → AtomicContainer(element, screenState, onAction, onStateChange, childDepth)
+        "Text"             → AtomicText(element)
+        "Image"            → AtomicImage(element)
+        "Button"           → AtomicButton(element, screenState, onAction)
+        "Spacer"           → AtomicSpacer(element)
+        "Divider"          → AtomicDivider(element)
+        "ScrollContainer"  → AtomicScrollContainer(element, screenState, onAction, onStateChange, childDepth)
+        "Conditional"      → AtomicConditional(element, screenState, onAction, onStateChange, childDepth)
+        "DisplayGrid"      → AtomicDisplayGrid(element)
+        "OverlayContainer" → AtomicOverlayContainer(element, screenState, onAction, onStateChange, childDepth)
+        "SectionSlot"      → AtomicSectionSlot(element, screenState, onAction, onStateChange)
+        "LiveClock"        → AtomicLiveClock(element)   // see §4c
         DEFAULT →
             LOG_WARNING("Unknown atomic type: " + element.type)
             RETURN null
@@ -235,11 +236,11 @@ FUNCTION AtomicContainer(element, state, onAction, onStateChange, depth):
 
 `AtomicBox` is the **single site** on every client where an `AtomicElement`'s
 box model is realized. Every primitive — `Container`, `ScrollContainer`,
-`Text`, `Image`, `Button`, `Divider`, `DisplayGrid` — wraps its rendered
-content through `AtomicBox`. Primitives that are pure layout devices —
-`Spacer`, `Conditional`, `SectionSlot` — bypass it because they render no
-chrome of their own (the chosen child / hosted section carries the box
-model).
+`Text`, `Image`, `Button`, `Divider`, `DisplayGrid`, `OverlayContainer` —
+wraps its rendered content through `AtomicBox`. Primitives that are pure
+layout devices — `Spacer`, `Conditional`, `SectionSlot` — bypass it because
+they render no chrome of their own (the chosen child / hosted section
+carries the box model).
 
 **The canonical modifier order (outer → inner):**
 
@@ -1511,26 +1512,26 @@ them is planned.
 A conforming client satisfies all of the following. This maps directly to
 the rules in `AGENTS.md`.
 
-| # | Requirement | AGENTS.md Rule |
-|---|-------------|----------------|
-| C1 | Models derived from schema (generated or hand-matched) | Rule 1 |
-| C2 | No hardcoded server paths — all from server response or URI resolution | Rule 2 |
-| C3 | No `ScreenType` enum — generic `fetchScreen(endpoint)` | Rule 3 |
-| C4 | Ably messages treated as opaque maps — never typed data classes | Rule 4 |
-| C5 | All image URLs from server — no client-constructed URLs | Rule 5 |
-| C6 | ErrorState rendered as a first-class section | Rule 6 |
-| C7 | Unknown section/atomic types skipped with log | Rule 7 |
-| C8 | Single generic fetch method — no `getGameDetail()` | Rule 8 |
-| C9 | Refresh driven by `refreshPolicy` — no hardcoded intervals | Rule 9 |
-| C10 | URI resolution is a simple prefix swap | Rule 10 |
-| C11 | `X-Platform` header on every request | Rule 11 |
-| C12 | Exceptions logged with context — never silently swallowed | Rule 12 |
-| C13 | Schema is the wire contract — strict decoders; new enum values go into schema first, then regen | Rule 13 |
-| C14 | Renderers are presentation-only — no business logic | Rule 14 |
-| C14a | Every atomic primitive routes its content through a single `AtomicBox` helper that applies `margin → opacity → shadow → corner-clip → background → gradient overlay → border → padding → sizing → badge` in that order. Primitives own only their content (typography, flex layout, scroll behaviour, image scaling). See §4a | Rule 14 |
-| C15 | Prefer AtomicComposite over new section type for stateless UI | Rule 15 |
-| C16 | Platform-native realization of semantic variant tokens — `TextVariant`, `ButtonVariant`, `ContainerVariant`, `ImageVariant` on atomic elements, `SelectVariant` on `FormField.select` — emitted on the wire as a `variant` string property; map to the platform's current design language; no pixel-parity target. See §17a for the `SelectVariant` renderer mapping table | Rule 16 |
-| C17 | Code comments describe invariants and cite business constraints; do not cite internal rule numbers or AI-coding guidelines | Rule 17 |
-| C18 | Per-platform decisions default to the server (content, capability gating, asset-format). Client-realized vocabularies are the named exception (Rule 16 list) and must be pure presentation | Rule 18 |
+| # | Requirement | AGENTS.md Section |
+|---|-------------|-------------------|
+| C1 | Models derived from schema (generated or hand-matched) | §1.2 |
+| C2 | No hardcoded server paths — all from server response or URI resolution | §3.1 |
+| C3 | No `ScreenType` enum — generic `fetchScreen(endpoint)` | §3.1 |
+| C4 | Ably messages treated as opaque maps — never typed data classes | §4.4 |
+| C5 | All image URLs from server — no client-constructed URLs | §3.2 |
+| C6 | ErrorState rendered as a first-class section | §8.0 |
+| C7 | Unknown section/atomic types skipped with log | §10.2 |
+| C8 | Single generic fetch method — no `getGameDetail()` | §4.1 |
+| C9 | Refresh driven by `refreshPolicy` — no hardcoded intervals | §3.3 |
+| C10 | URI resolution is a simple prefix swap | §3.1 |
+| C11 | `X-Platform` header on every request | §3.4 |
+| C12 | Exceptions logged with context — never silently swallowed | §10.1 |
+| C13 | Schema is the wire contract — strict decoders; new enum values go into schema first, then regen | §1.3 |
+| C14 | Renderers are presentation-only — no business logic | §5 |
+| C14a | Every atomic primitive routes its content through a single `AtomicBox` helper that applies `margin → opacity → shadow → corner-clip → background → gradient overlay → border → padding → sizing → badge` in that order. Primitives own only their content (typography, flex layout, scroll behaviour, image scaling). See §4a | §5 |
+| C15 | Prefer AtomicComposite over new section type for stateless UI | §6 |
+| C16 | Platform-native realization of semantic variant tokens — `TextVariant`, `ButtonVariant`, `ContainerVariant`, `ImageVariant` on atomic elements, `SelectVariant` on `FormField.select` — emitted on the wire as a `variant` string property; map to the platform's current design language; no pixel-parity target. See §17a for the `SelectVariant` renderer mapping table | §7 |
+| C17 | Code comments describe invariants and cite business constraints; do not cite internal rule numbers or AI-coding guidelines | §10.3 |
+| C18 | Per-platform decisions default to the server (content, capability gating, asset-format). Client-realized vocabularies are the named exception (§7 list) and must be pure presentation | §1.1 |
 | C19 | `LiveClock` primitive ticks client-side from server-provided snapshot fields (`snapshotSeconds`, `snapshotAt`, `isRunning`, `tickDirection`, `stopAtSeconds`, `format`). Implements the tick-loop contract in §4c at ≥10Hz baseline, re-anchors on every SSE / poll update that rewrites `content.*`, renders with tabular-numeral typography | — |
 | C20 | Inside an `AtomicComposite`, leaf primitives with a `bindRef: string` dot-path resolve their canonical live field (Text → `content`, Button → `label`, Image → `src`, LiveClock → snapshot object) from `section.data.content`. `compositeContent` is threaded to descendants via the platform's implicit-context primitive (Environment / CompositionLocal / React context); missing paths fall back to inline values and never overwrite with null. See §4b | — |

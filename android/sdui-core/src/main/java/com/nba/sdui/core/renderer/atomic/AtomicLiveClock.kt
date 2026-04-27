@@ -9,6 +9,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.findRootCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
 import com.nba.sdui.core.models.generated.AtomicElement
 import com.nba.sdui.core.models.generated.Format
 import com.nba.sdui.core.models.generated.TickDirection
@@ -53,12 +57,13 @@ fun AtomicLiveClock(
     var nowMillis by remember(element.id, snapshotAtRaw, snapshotSeconds, running) {
         mutableStateOf(System.currentTimeMillis())
     }
+    var isVisibleInWindow by remember(element.id) { mutableStateOf(true) }
 
-    LaunchedEffect(element.id, snapshotAtRaw, snapshotSeconds, running) {
-        if (!running) return@LaunchedEffect
+    LaunchedEffect(element.id, snapshotAtRaw, snapshotSeconds, running, isVisibleInWindow) {
+        if (!running || !isVisibleInWindow) return@LaunchedEffect
         while (true) {
             nowMillis = System.currentTimeMillis()
-            delay(100L)
+            delay(500L)
         }
     }
 
@@ -86,7 +91,16 @@ fun AtomicLiveClock(
             text = display,
             style = style,
             color = textColor,
-            modifier = boxModifier.applyAccessibility(element.accessibility)
+            modifier = boxModifier
+                .onGloballyPositioned { coords ->
+                    val root = coords.findRootCoordinates()
+                    val bounds = coords.boundsInRoot()
+                    val h = root.size.height.toFloat()
+                    val w = root.size.width.toFloat()
+                    isVisibleInWindow =
+                        bounds.bottom > 0f && bounds.top < h && bounds.right > 0f && bounds.left < w
+                }
+                .applyAccessibility(element.accessibility)
         )
     }
 }

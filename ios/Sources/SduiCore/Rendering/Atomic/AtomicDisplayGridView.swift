@@ -9,13 +9,35 @@ struct AtomicDisplayGridView: View {
 
     var body: some View {
         if let columns = element.columns, let rows = element.rows {
-            gridBody(columns: columns, rows: rows)
-                .atomicBox(element, screenState: ScreenState(), onAction: { _ in })
+            EquatableView(
+                content: EquatableDisplayGrid(
+                    element: element,
+                    columns: columns,
+                    rows: rows
+                )
+            )
+            .atomicBox(element, screenState: ScreenState(), onAction: { _ in })
         }
+    }
+}
+
+private struct EquatableDisplayGrid: View, Equatable {
+    let element: AtomicElement
+    let columns: [Column]
+    let rows: [[String: String]]
+
+    static func == (lhs: EquatableDisplayGrid, rhs: EquatableDisplayGrid) -> Bool {
+        lhs.element.striped == rhs.element.striped
+        && lhs.columns == rhs.columns
+        && lhs.rows == rhs.rows
+    }
+
+    var body: some View {
+        gridBody
     }
 
     @ViewBuilder
-    private func gridBody(columns: [Column], rows: [[String: String]]) -> some View {
+    private var gridBody: some View {
         VStack(spacing: 0) {
             HStack(spacing: 0) {
                 ForEach(columns, id: \.key) { col in
@@ -56,6 +78,25 @@ struct AtomicDisplayGridView: View {
         case .end: return .trailing
         case .start: return .leading
         case .none: return .leading
+        }
+    }
+}
+
+extension Column: Equatable {
+    static func == (lhs: Column, rhs: Column) -> Bool {
+        lhs.key == rhs.key
+            && lhs.label == rhs.label
+            && lhs.align == rhs.align
+            && lhs.width == rhs.width
+    }
+}
+
+extension WidthUnion: Equatable {
+    static func == (lhs: WidthUnion, rhs: WidthUnion) -> Bool {
+        switch (lhs, rhs) {
+        case let (.integer(a), .integer(b)): return a == b
+        case let (.enumeration(a), .enumeration(b)): return a == b
+        default: return false
         }
     }
 }

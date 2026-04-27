@@ -7,7 +7,8 @@ const MAX_BACKOFF_MS = 30_000;
 const SSE_STALE_DELAY_MS = 10_000;
 
 interface UseRefreshPolicyOptions {
-  section: Section;
+  sectionId: string;
+  refreshPolicy: Section['refreshPolicy'];
   onUpdate: (data: unknown) => void;
   onStalenessChange?: (sectionId: string, isStale: boolean) => void;
   enabled?: boolean;
@@ -21,8 +22,7 @@ interface UseRefreshPolicyOptions {
  * - static: no-op
  */
 export function useRefreshPolicy(options: UseRefreshPolicyOptions): void {
-  const { section, onUpdate, onStalenessChange, enabled = true } = options;
-  const policy = section.refreshPolicy;
+  const { sectionId, refreshPolicy: policy, onUpdate, onStalenessChange, enabled = true } = options;
   const timeoutRef = useRef<number | null>(null);
   const pollFailureCount = useRef(0);
   const currentIntervalRef = useRef<number | null>(null);
@@ -31,16 +31,16 @@ export function useRefreshPolicy(options: UseRefreshPolicyOptions): void {
   const markStale = useCallback((isStale: boolean) => {
     if (isStaleFlagRef.current !== isStale) {
       isStaleFlagRef.current = isStale;
-      onStalenessChange?.(section.id, isStale);
+      onStalenessChange?.(sectionId, isStale);
     }
-  }, [section.id, onStalenessChange]);
+  }, [sectionId, onStalenessChange]);
 
   const fetchData = useCallback(async (): Promise<boolean> => {
     if (!policy) return false;
 
     const pollUrl = policy.url;
     if (!pollUrl) {
-      console.warn(`[RefreshPolicy] No url in refreshPolicy for section ${section.id}, skipping poll`);
+      console.warn(`[RefreshPolicy] No url in refreshPolicy for section ${sectionId}, skipping poll`);
       return false;
     }
 
@@ -53,10 +53,10 @@ export function useRefreshPolicy(options: UseRefreshPolicyOptions): void {
       }
       return false;
     } catch (err) {
-      console.error(`[RefreshPolicy] Poll failed for ${section.id}:`, err);
+      console.error(`[RefreshPolicy] Poll failed for ${sectionId}:`, err);
       return false;
     }
-  }, [section.id, policy, onUpdate]);
+  }, [sectionId, policy, onUpdate]);
 
   // Poll with exponential backoff
   useEffect(() => {
@@ -67,7 +67,7 @@ export function useRefreshPolicy(options: UseRefreshPolicyOptions): void {
     currentIntervalRef.current = baseInterval;
     isStaleFlagRef.current = false;
 
-    console.log(`[RefreshPolicy] Starting poll for ${section.id} every ${baseInterval}ms`);
+    console.log(`[RefreshPolicy] Starting poll for ${sectionId} every ${baseInterval}ms`);
 
     const schedulePoll = () => {
       timeoutRef.current = window.setTimeout(async () => {
@@ -107,13 +107,13 @@ export function useRefreshPolicy(options: UseRefreshPolicyOptions): void {
         timeoutRef.current = null;
       }
     };
-  }, [enabled, policy, section.id, fetchData, markStale]);
+  }, [enabled, policy, sectionId, fetchData, markStale]);
 
   // SSE subscription with disconnect staleness
   useEffect(() => {
     if (!enabled || !policy || policy.type !== 'sse' || !policy.channel) return;
 
-    console.log(`[RefreshPolicy] Subscribing to Ably channel "${policy.channel}" for ${section.id}`);
+    console.log(`[RefreshPolicy] Subscribing to Ably channel "${policy.channel}" for ${sectionId}`);
     isStaleFlagRef.current = false;
     let staleTimerId: number | null = null;
 
@@ -151,7 +151,7 @@ export function useRefreshPolicy(options: UseRefreshPolicyOptions): void {
         clearTimeout(staleTimerId);
       }
     };
-  }, [enabled, policy, section.id, onUpdate, markStale]);
+  }, [enabled, policy, sectionId, onUpdate, markStale]);
 }
 
 /**

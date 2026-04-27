@@ -12,6 +12,7 @@ import { AtomicConditional } from './AtomicConditional';
 import { AtomicDisplayGrid } from './AtomicDisplayGrid';
 import { AtomicSectionSlot } from './AtomicSectionSlot';
 import { AtomicLiveClock } from './AtomicLiveClock';
+import { AtomicOverlayContainer } from './AtomicOverlayContainer';
 
 const MAX_TREE_DEPTH = 6;
 
@@ -67,6 +68,8 @@ export function AtomicRouter({ element, state, onAction, depth = 0, onStateChang
       return <AtomicSectionSlot element={element} {...childProps} />;
     case 'LiveClock':
       return <AtomicLiveClock element={element} state={state} onAction={onAction} />;
+    case 'OverlayContainer':
+      return <AtomicOverlayContainer element={element} {...childProps} depth={childDepth} />;
     default:
       console.debug(`[AtomicRouter] Unknown element type: ${element.type}`);
       return null;

@@ -9,11 +9,14 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.nba.sdui.core.models.generated.SduiModels
 import com.nba.sdui.core.models.generated.Section
 import com.nba.sdui.core.renderer.SectionErrorBoundary
 import com.nba.sdui.core.renderer.SectionRouter
+import com.nba.sdui.core.renderer.SectionSkeletonHeightCache
 import com.nba.sdui.core.state.SduiAction
 import com.nba.sdui.core.state.SectionVisibilityTracker
 
@@ -84,8 +87,16 @@ private fun SectionItem(
     onAction: (SduiAction) -> Unit,
     onStateChange: (String, Any) -> Unit
 ) {
+    val density = LocalDensity.current
     val hints = section.layoutHints
-    Column {
+    Column(
+        modifier = Modifier.onSizeChanged { sz ->
+            val h = sz.height
+            if (h > 0) {
+                SectionSkeletonHeightCache.record(section.id, with(density) { h.toDp() })
+            }
+        }
+    ) {
         if (hints?.dividerAbove == true) {
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         }

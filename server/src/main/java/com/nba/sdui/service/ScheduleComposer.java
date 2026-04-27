@@ -167,94 +167,37 @@ public class ScheduleComposer {
     private ObjectNode buildGameCard(JsonNode game) {
         String gameId = game.path("gameId").asText("unknown");
         String status = game.path("status").asText("Scheduled");
-
-        ObjectNode root = objectMapper.createObjectNode();
-        root.put("type", "Container");
-        root.put("direction", "row");
-        root.put("alignment", "center");
-        root.put("crossAlignment", "center");
-        root.put("background", ColorTokens.SURFACE_CANVAS);
-        root.put("cornerRadius", 12);
-
-        ObjectNode shadowObj = objectMapper.createObjectNode();
-        shadowObj.put("color", "#00000014");
-        shadowObj.put("radius", 4);
-        shadowObj.put("offsetX", 0);
-        shadowObj.put("offsetY", 2);
-        root.set("shadow", shadowObj);
-
-        ObjectNode pad = objectMapper.createObjectNode();
-        pad.put("start", 16); pad.put("end", 16); pad.put("top", 12); pad.put("bottom", 12);
-        root.set("padding", pad);
-
-        ArrayNode actions = objectMapper.createArrayNode();
-        ObjectNode action = objectMapper.createObjectNode();
-        action.put("trigger", "onTap");
-        action.put("type", "navigate");
-        action.put("targetUri", "nba://game/" + gameId);
-        actions.add(action);
-        root.set("actions", actions);
-
-        ArrayNode children = objectMapper.createArrayNode();
-
-        // Away team column
-        children.add(buildTeamColumn(game.path("awayTeam")));
-
-        // Score / time center
-        ObjectNode center = objectMapper.createObjectNode();
-        center.put("type", "Container");
-        center.put("direction", "column");
-        center.put("alignment", "center");
-        center.put("crossAlignment", "center");
-        center.put("flex", 1);
-        ArrayNode centerChildren = objectMapper.createArrayNode();
-
-        if ("Final".equals(status)) {
-            int awayScore = game.path("awayScore").asInt(0);
-            int homeScore = game.path("homeScore").asInt(0);
-            ObjectNode scoreText = objectMapper.createObjectNode();
-            scoreText.put("type", "Text");
-            scoreText.put("content", awayScore + " - " + homeScore);
-            scoreText.put("variant", "headlineMedium");
-            scoreText.put("weight", "bold");
-            scoreText.put("color", ColorTokens.TEXT_PRIMARY);
-            scoreText.put("monospacedDigits", true);
-            scoreText.put("textAlign", "center");
-            centerChildren.add(scoreText);
-
-            ObjectNode statusEl = objectMapper.createObjectNode();
-            statusEl.put("type", "Text");
-            statusEl.put("content", "Final");
-            statusEl.put("variant", "labelSmall");
-            statusEl.put("color", ColorTokens.TEXT_SECONDARY);
-            statusEl.put("textAlign", "center");
-            centerChildren.add(statusEl);
-        } else {
-            ObjectNode timeEl = objectMapper.createObjectNode();
-            timeEl.put("type", "Text");
-            timeEl.put("content", game.path("time").asText("TBD"));
-            timeEl.put("variant", "bodyMedium");
-            timeEl.put("weight", "semiBold");
-            timeEl.put("color", ColorTokens.TEXT_PRIMARY);
-            timeEl.put("textAlign", "center");
-            centerChildren.add(timeEl);
+        JsonNode away = game.path("awayTeam");
+        JsonNode home = game.path("homeTeam");
+        boolean finalGame = "Final".equals(status);
+        String statusText = "Final".equals(status) ? "Final" : game.path("time").asText("TBD");
+        String targetUri = game.path("targetUri").asText(null);
+        if (targetUri == null || targetUri.isBlank()) {
+            log.warn("Schedule game {} missing server targetUri; row will not declare a tap action", gameId);
         }
-        center.set("children", centerChildren);
-        children.add(center);
-
-        // Home team column
-        children.add(buildTeamColumn(game.path("homeTeam")));
-
-        root.set("children", children);
-
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "schedule-game-" + gameId);
-        section.put("type", "AtomicComposite");
-        section.put("analyticsId", "schedule_game_" + gameId);
-        section.set("refreshPolicy", staticPolicy());
-        ObjectNode data = objectMapper.createObjectNode();
-        data.set("ui", root);
-        section.set("data", data);
+        String[] row = {
+                "schedule-game-" + gameId,
+                away.path("teamTricode").asText(""),
+                away.path("teamName").asText(""),
+                away.path("seed").asText(null),
+                finalGame ? String.valueOf(game.path("awayScore").asInt(0)) : null,
+                away.path("logoUrl").asText(null),
+                home.path("teamTricode").asText(""),
+                home.path("teamName").asText(""),
+                home.path("seed").asText(null),
+                finalGame ? String.valueOf(game.path("homeScore").asInt(0)) : null,
+                home.path("logoUrl").asText(null),
+                statusText,
+                game.path("seriesText").asText(null),
+                game.path("broadcastLogoUrls").asText(null),
+                targetUri,
+                game.path("overflowUri").asText(null)
+        };
+        ObjectNode section = atomicBuilder.buildGameScheduleRow(
+                "schedule-game-" + gameId,
+                "schedule_game_" + gameId,
+                row);
+        section.set("surface", utils.railSurface());
         return section;
     }
 

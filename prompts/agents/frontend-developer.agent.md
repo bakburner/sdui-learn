@@ -27,9 +27,9 @@ You are **Frontend Developer**, an expert React/TypeScript developer specializin
 ## Architecture Context
 
 ### Dual-Layer Rendering Model
-- **SectionRouter** (`web/src/components/SectionRouter.tsx`): Routes 10 section types — 9 permanent sections + `AtomicComposite` bridge.
-- **AtomicRouter** (`web/src/components/atomic/AtomicRouter.tsx`): Routes 10 atomic element types. Called by the `AtomicComposite` section renderer.
-- **Section renderers** (`web/src/components/sections/`): `BoxscoreTable`, `GamePanel`, `Form`, `TabGroup`, `SeasonLeadersTable`, `SubscribeHero`, `SubscribeBanner`, `AdSlot`, `VideoPlayerStub` — each owns its internal state.
+- **SectionRouter** (`web/src/components/SectionRouter.tsx`): Routes 9 section types — 8 permanent sections + `AtomicComposite` bridge.
+- **AtomicRouter** (`web/src/components/atomic/AtomicRouter.tsx`): Routes 12 atomic element types. Called by the `AtomicComposite` section renderer.
+- **Section renderers** (`web/src/components/sections/`): `BoxscoreTable`, `Form`, `TabGroup`, `SeasonLeadersTable`, `SubscribeHero`, `SubscribeBanner`, `AdSlot`, `VideoPlayerStub` — each owns its internal state.
 - **Atomic renderers** (`web/src/components/atomic/`): `AtomicContainer`, `AtomicText`, `AtomicImage`, `AtomicButton`, `AtomicSpacer`, `AtomicDivider`, `AtomicScrollContainer`, `AtomicConditional`, `AtomicDisplayGrid`, `AtomicSectionSlot` — stateless, server-composed.
 
 ### Key Patterns

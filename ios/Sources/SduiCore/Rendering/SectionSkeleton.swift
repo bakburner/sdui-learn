@@ -70,10 +70,11 @@ private struct PlaceholderRows: View {
         .frame(maxWidth: .infinity, minHeight: minHeight, alignment: .leading)
         .onAppear {
             guard animated else { return }
-            // SwiftUI's phase-based animator would be cleaner but this
-            // keeps the renderer a pure view with no extra lifecycle state.
-            withAnimation(.linear(duration: 1.5).repeatForever(autoreverses: false)) {
-                shimmerOffset = 2
+            Task { @MainActor in
+                await Task.yield()
+                withAnimation(.linear(duration: 1.5).repeatForever(autoreverses: false)) {
+                    shimmerOffset = 2
+                }
             }
         }
     }

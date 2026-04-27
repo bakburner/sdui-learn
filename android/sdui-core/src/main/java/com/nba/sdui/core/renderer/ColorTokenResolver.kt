@@ -1,9 +1,10 @@
 package com.nba.sdui.core.renderer
 
 import android.util.Log
-import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 
 /**
  * Resolves SDUI color values to a Compose [Color].
@@ -15,8 +16,7 @@ import androidx.compose.ui.graphics.Color
  *
  * Token lookup walks a two-tier registry: `semantic` aliases resolve (through
  * any further aliases) to a `palette` primitive, which carries a light/dark
- * pair. The current color scheme (`isSystemInDarkTheme`) selects which hex
- * value is returned.
+ * pair. The active Material color scheme selects which hex value is returned.
  *
  * Unknown tokens log `token_resolver_missing` and return [Color.Unspecified]
  * so the caller can fall back to a sensible default. `null` / blank input
@@ -30,6 +30,8 @@ object ColorTokenResolver {
 
     private const val TAG = "ColorTokenResolver"
     private const val TOKEN_PREFIX = "token:"
+
+    private val resolveCache = mutableMapOf<Pair<String, Boolean>, Color>()
 
     private data class PaletteEntry(val light: String, val dark: String)
 
@@ -225,8 +227,8 @@ object ColorTokenResolver {
         "color.brand.live"  to "color.red.50",
 
         // surface — elevated/recessed/canvas layers
-        "color.surface.canvas"  to "color.grey.10",
-        "color.surface.raised"  to "color.grey.0",
+        "color.surface.canvas"  to "color.grey.5",
+        "color.surface.raised"  to "color.grey.10",
         "color.surface.sunken"  to "color.grey.5",
         "color.surface.promo"   to "color.blue.10",
 
@@ -258,17 +260,25 @@ object ColorTokenResolver {
     @Composable
     fun resolve(value: String?): Color {
         if (value.isNullOrBlank()) return Color.Unspecified
-        if (!value.startsWith(TOKEN_PREFIX)) {
-            return parseHex(value)
+        val useDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+        val cacheKey = value to useDark
+        resolveCache[cacheKey]?.let { return it }
+        val resolved = if (!value.startsWith(TOKEN_PREFIX)) {
+            parseHex(value)
+        } else {
+            val name = value.removePrefix(TOKEN_PREFIX)
+            val entry = followAlias(name)
+            if (entry == null) {
+                Log.w(TAG, "token_resolver_missing: $value")
+                Color.Unspecified
+            } else {
+                parseHex(if (useDark) entry.dark else entry.light)
+            }
         }
-        val name = value.removePrefix(TOKEN_PREFIX)
-        val entry = followAlias(name)
-        if (entry == null) {
-            Log.w(TAG, "token_resolver_missing: $value")
-            return Color.Unspecified
+        if (resolved != Color.Unspecified) {
+            resolveCache[cacheKey] = resolved
         }
-        val useDark = isSystemInDarkTheme()
-        return parseHex(if (useDark) entry.dark else entry.light)
+        return resolved
     }
 
     /**

@@ -19,6 +19,9 @@ import { useEffect, useState } from 'react';
 
 export type ColorScheme = 'light' | 'dark';
 
+const THEME_STORAGE_KEY = 'sdui-color-scheme';
+const THEME_CHANGE_EVENT = 'sdui-color-scheme-change';
+
 interface PaletteEntry {
   light: string;
   dark: string;
@@ -215,8 +218,8 @@ const SEMANTIC: Record<string, string> = {
   'color.brand.live': 'color.red.50',
 
   // surface
-  'color.surface.canvas': 'color.grey.10',
-  'color.surface.raised': 'color.grey.0',
+  'color.surface.canvas': 'color.grey.5',
+  'color.surface.raised': 'color.grey.10',
   'color.surface.sunken': 'color.grey.5',
   'color.surface.promo':  'color.blue.10',
 
@@ -238,6 +241,12 @@ const SEMANTIC: Record<string, string> = {
 const TOKEN_PREFIX = 'token:';
 const MAX_ALIAS_DEPTH = 8;
 
+const resolvedTokenCache = new Map<string, string | undefined>();
+
+function tokenCacheKey(scheme: ColorScheme, value: string): string {
+  return `${scheme}\0${value}`;
+}
+
 /**
  * Resolve an SDUI color value to a CSS color string.
  * - `null` / `undefined` / empty → returns `undefined` so the caller can
@@ -252,7 +261,19 @@ export function resolveColorToken(
   scheme: ColorScheme,
 ): string | undefined {
   if (!value) return undefined;
-  if (!value.startsWith(TOKEN_PREFIX)) return value;
+  if (!value.startsWith(TOKEN_PREFIX)) {
+    const key = tokenCacheKey(scheme, value);
+    if (resolvedTokenCache.has(key)) {
+      return resolvedTokenCache.get(key);
+    }
+    resolvedTokenCache.set(key, value);
+    return value;
+  }
+
+  const key = tokenCacheKey(scheme, value);
+  if (resolvedTokenCache.has(key)) {
+    return resolvedTokenCache.get(key);
+  }
 
   const name = value.slice(TOKEN_PREFIX.length);
   const entry = followAlias(name);
@@ -260,9 +281,12 @@ export function resolveColorToken(
     if (typeof console !== 'undefined') {
       console.warn('token_resolver_missing', { token: value });
     }
+    resolvedTokenCache.set(key, undefined);
     return undefined;
   }
-  return scheme === 'dark' ? entry.dark : entry.light;
+  const resolved = scheme === 'dark' ? entry.dark : entry.light;
+  resolvedTokenCache.set(key, resolved);
+  return resolved;
 }
 
 function followAlias(name: string, depth = 0): PaletteEntry | undefined {
@@ -274,27 +298,80 @@ function followAlias(name: string, depth = 0): PaletteEntry | undefined {
   return followAlias(next, depth + 1);
 }
 
-/**
- * React hook that tracks the OS-level `prefers-color-scheme` media
- * query. SSR-safe: returns `'light'` during server render and when
- * `matchMedia` is unavailable.
- */
-export function usePrefersColorScheme(): ColorScheme {
-  const getScheme = (): ColorScheme =>
-    typeof window !== 'undefined' &&
+function systemColorScheme(): ColorScheme {
+  return typeof window !== 'undefined' &&
     typeof window.matchMedia === 'function' &&
     window.matchMedia('(prefers-color-scheme: dark)').matches
       ? 'dark'
       : 'light';
+}
+
+function storedColorScheme(): ColorScheme | undefined {
+  if (typeof window === 'undefined') return undefined;
+  const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
+  return stored === 'light' || stored === 'dark' ? stored : undefined;
+}
+
+export function getEffectiveColorScheme(): ColorScheme {
+  if (typeof document !== 'undefined') {
+    const attr = document.documentElement.dataset.theme;
+    if (attr === 'light' || attr === 'dark') return attr;
+  }
+  return storedColorScheme() ?? systemColorScheme();
+}
+
+function applyColorScheme(scheme: ColorScheme): void {
+  if (typeof document !== 'undefined') {
+    document.documentElement.setAttribute('data-theme', scheme);
+    document.documentElement.dataset.theme = scheme;
+    document.documentElement.style.colorScheme = scheme;
+  }
+}
+
+export function setColorSchemePreference(scheme: ColorScheme): void {
+  if (typeof document !== 'undefined') {
+    document.documentElement.setAttribute('data-theme', scheme);
+  }
+  applyColorScheme(scheme);
+  if (typeof window !== 'undefined') {
+    window.localStorage.setItem(THEME_STORAGE_KEY, scheme);
+    window.dispatchEvent(new CustomEvent<ColorScheme>(THEME_CHANGE_EVENT, { detail: scheme }));
+  }
+}
+
+export function initializeColorSchemePreference(): void {
+  applyColorScheme(storedColorScheme() ?? systemColorScheme());
+}
+
+/**
+ * React hook that tracks the effective app color scheme. The app-level
+ * toggle wins over OS `prefers-color-scheme`; without an override it
+ * follows the OS setting. SSR-safe: returns `'light'` when unavailable.
+ */
+export function usePrefersColorScheme(): ColorScheme {
+  const getScheme = (): ColorScheme => getEffectiveColorScheme();
 
   const [scheme, setScheme] = useState<ColorScheme>(getScheme);
 
   useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
-    const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const listener = () => setScheme(getScheme());
-    mq.addEventListener?.('change', listener);
-    return () => mq.removeEventListener?.('change', listener);
+    if (typeof window === 'undefined') return;
+    const update = () => {
+      const next = storedColorScheme() ?? systemColorScheme();
+      applyColorScheme(next);
+      setScheme(next);
+    };
+    const mq = typeof window.matchMedia === 'function'
+      ? window.matchMedia('(prefers-color-scheme: dark)')
+      : undefined;
+
+    window.addEventListener(THEME_CHANGE_EVENT, update);
+    mq?.addEventListener?.('change', update);
+
+    update();
+    return () => {
+      window.removeEventListener(THEME_CHANGE_EVENT, update);
+      mq?.removeEventListener?.('change', update);
+    };
   }, []);
 
   return scheme;

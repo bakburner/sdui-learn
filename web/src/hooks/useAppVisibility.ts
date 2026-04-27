@@ -8,21 +8,40 @@ import { useSyncExternalStore } from 'react';
  */
 let _isVisible = typeof document !== 'undefined' ? !document.hidden : true;
 const listeners = new Set<() => void>();
+let visibilityListenerAttached = false;
+
+function onDocumentVisibilityChange(): void {
+  _isVisible = !document.hidden;
+  listeners.forEach((cb) => cb());
+}
+
+function ensureVisibilityListener(): void {
+  if (typeof document === 'undefined' || visibilityListenerAttached) {
+    return;
+  }
+  document.addEventListener('visibilitychange', onDocumentVisibilityChange);
+  visibilityListenerAttached = true;
+}
+
+function maybeRemoveVisibilityListener(): void {
+  if (typeof document === 'undefined' || !visibilityListenerAttached || listeners.size > 0) {
+    return;
+  }
+  document.removeEventListener('visibilitychange', onDocumentVisibilityChange);
+  visibilityListenerAttached = false;
+}
 
 function subscribe(callback: () => void): () => void {
+  ensureVisibilityListener();
   listeners.add(callback);
-  return () => listeners.delete(callback);
+  return () => {
+    listeners.delete(callback);
+    maybeRemoveVisibilityListener();
+  };
 }
 
 function getSnapshot(): boolean {
   return _isVisible;
-}
-
-if (typeof document !== 'undefined') {
-  document.addEventListener('visibilitychange', () => {
-    _isVisible = !document.hidden;
-    listeners.forEach((cb) => cb());
-  });
 }
 
 /**

@@ -50,6 +50,7 @@ val mapper = jacksonObjectMapper().apply {
     convert(ImageFit::class,               { ImageFit.fromValue(it.asText()) },               { "\"${it.value}\"" })
     convert(Format::class,                 { Format.fromValue(it.asText()) },                 { "\"${it.value}\"" })
     convert(Orientation::class,            { Orientation.fromValue(it.asText()) },            { "\"${it.value}\"" })
+    convert(Style::class,                  { Style.fromValue(it.asText()) },                  { "\"${it.value}\"" })
     convert(TickDirection::class,          { TickDirection.fromValue(it.asText()) },          { "\"${it.value}\"" })
     convert(TextWeight::class,             { TextWeight.fromValue(it.asText()) },             { "\"${it.value}\"" })
     convert(Capability::class,             { Capability.fromValue(it.asText()) },             { "\"${it.value}\"" })
@@ -58,6 +59,7 @@ val mapper = jacksonObjectMapper().apply {
     convert(Layout::class,                 { Layout.fromValue(it.asText()) },                 { "\"${it.value}\"" })
     convert(PlayerType::class,             { PlayerType.fromValue(it.asText()) },             { "\"${it.value}\"" })
     convert(SortDirection::class,          { SortDirection.fromValue(it.asText()) },          { "\"${it.value}\"" })
+    convert(Transform::class,              { Transform.fromValue(it.asText()) },              { "\"${it.value}\"" })
     convert(Priority::class,               { Priority.fromValue(it.asText()) },               { "\"${it.value}\"" })
     convert(Skeleton::class,               { Skeleton.fromValue(it.asText()) },               { "\"${it.value}\"" })
     convert(BackgroundUnion::class,        { BackgroundUnion.fromJson(it) },                  { it.toJson() }, true)
@@ -523,6 +525,27 @@ data class NavigationItem (
 )
 
 /**
+ * One server-composed overlay layer positioned over an OverlayContainer base element.
+ */
+data class AtomicOverlay (
+    /**
+     * Position of the overlay within the base element bounds.
+     */
+    val alignment: BadgeAlignment? = null,
+
+    /**
+     * Atomic element to render in this overlay layer.
+     */
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
+    val element: AtomicElement,
+
+    /**
+     * Optional edge offsets from the aligned base bounds.
+     */
+    val inset: Spacing? = null
+)
+
+/**
  * Z-positioned child element (e.g. 'LIVE' pill, duration label) overlaid on this element.
  *
  * Z-positioned child element overlaid on a parent (e.g. 'LIVE' pill at bottom-right of a
@@ -550,6 +573,10 @@ data class Badge (
  * Atomic UI primitive — server-composed building block for the atomic rendering layer
  *
  * The element to render as a badge
+ *
+ * OverlayContainer base element. Rendered first and sized by its own atomic box model.
+ *
+ * Atomic element to render in this overlay layer.
  *
  * Atomic tree describing the hero's full visible surface — logo, title, subtitle, feature
  * list, tier cards, CTAs. Renderer walks this tree exactly as an AtomicComposite would.
@@ -583,6 +610,11 @@ data class AtomicElement (
      * Z-positioned child element (e.g. 'LIVE' pill, duration label) overlaid on this element.
      */
     val badge: Badge? = null,
+
+    /**
+     * OverlayContainer base element. Rendered first and sized by its own atomic box model.
+     */
+    val base: AtomicElement? = null,
 
     /**
      * Dot-path into the enclosing AtomicComposite's `data.content` object. When set, renderers
@@ -696,9 +728,19 @@ data class AtomicElement (
     val orientation: Orientation? = null,
 
     /**
+     * OverlayContainer layers rendered over the base element in server order.
+     */
+    val overlays: List<AtomicOverlay>? = null,
+
+    /**
      * Inner space between the element's own background/border and its content.
      */
     val padding: Spacing? = null,
+
+    /**
+     * Optional ScrollContainer page indicator. Clients render it only when declared.
+     */
+    val pageIndicator: PageIndicator? = null,
 
     val paging: Boolean? = null,
     val placeholder: String? = null,
@@ -1075,6 +1117,10 @@ data class Section (
 
 /**
  * Position of the badge within the parent bounds
+ *
+ * Position of the overlay within the base element bounds.
+ *
+ * Position of the indicator within the ScrollContainer bounds.
  */
 enum class BadgeAlignment(val value: String) {
     BottomCenter("bottomCenter"),
@@ -1102,6 +1148,26 @@ enum class BadgeAlignment(val value: String) {
         }
     }
 }
+
+/**
+ * Outer space between the element and its siblings or parent edges. Applied outside the
+ * element's background, border, corner radius, and shadow — use this for sibling-to-sibling
+ * spacing instead of Spacer siblings when inhomogeneous gaps are needed.
+ *
+ * Optional edge offsets from the aligned base bounds.
+ *
+ * Inner space between the element's own background/border and its content.
+ *
+ * Outer margin (space between the surface and its siblings / screen edge).
+ *
+ * Inner padding (space between the surface edge and the content it wraps).
+ */
+data class Spacing (
+    val bottom: Long? = null,
+    val end: Long? = null,
+    val start: Long? = null,
+    val top: Long? = null
+)
 
 /**
  * Section-level accessibility metadata (landmark role, live region, heading)
@@ -1514,24 +1580,6 @@ enum class Format(val value: String) {
     }
 }
 
-/**
- * Outer space between the element and its siblings or parent edges. Applied outside the
- * element's background, border, corner radius, and shadow — use this for sibling-to-sibling
- * spacing instead of Spacer siblings when inhomogeneous gaps are needed.
- *
- * Inner space between the element's own background/border and its content.
- *
- * Outer margin (space between the surface and its siblings / screen edge).
- *
- * Inner padding (space between the surface edge and the content it wraps).
- */
-data class Spacing (
-    val bottom: Long? = null,
-    val end: Long? = null,
-    val start: Long? = null,
-    val top: Long? = null
-)
-
 enum class Orientation(val value: String) {
     Horizontal("horizontal"),
     Vertical("vertical");
@@ -1541,6 +1589,50 @@ enum class Orientation(val value: String) {
             "horizontal" -> Horizontal
             "vertical"   -> Vertical
             else         -> throw IllegalArgumentException()
+        }
+    }
+}
+
+/**
+ * Optional ScrollContainer page indicator. Clients render it only when declared.
+ *
+ * Server-declared scroll page indicator presentation for ScrollContainer. Clients own local
+ * scroll state only to realize the declared affordance.
+ */
+data class PageIndicator (
+    /**
+     * Active indicator color.
+     */
+    val activeColor: String? = null,
+
+    /**
+     * Position of the indicator within the ScrollContainer bounds.
+     */
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
+    val alignment: BadgeAlignment,
+
+    /**
+     * Inactive indicator color.
+     */
+    val color: String? = null,
+
+    /**
+     * Indicator visualization style.
+     */
+    @get:JsonProperty(required=true)@field:JsonProperty(required=true)
+    val style: Style
+)
+
+/**
+ * Indicator visualization style.
+ */
+enum class Style(val value: String) {
+    Dots("dots");
+
+    companion object {
+        fun fromValue(value: String): Style = when (value) {
+            "dots" -> Dots
+            else   -> throw IllegalArgumentException()
         }
     }
 }
@@ -1961,8 +2053,31 @@ data class DataBindingPath (
      * Dot-path to component property (e.g., 'homeScore.content')
      */
     @get:JsonProperty(required=true)@field:JsonProperty(required=true)
-    val targetPath: String
+    val targetPath: String,
+
+    /**
+     * Optional server-declared transform applied by shared client binding infrastructure before
+     * writing the target value. liveClockSnapshot normalizes clock payload values into {
+     * snapshotSeconds, snapshotAt, isRunning }.
+     */
+    val transform: Transform? = null
 )
+
+/**
+ * Optional server-declared transform applied by shared client binding infrastructure before
+ * writing the target value. liveClockSnapshot normalizes clock payload values into {
+ * snapshotSeconds, snapshotAt, isRunning }.
+ */
+enum class Transform(val value: String) {
+    LiveClockSnapshot("liveClockSnapshot");
+
+    companion object {
+        fun fromValue(value: String): Transform = when (value) {
+            "liveClockSnapshot" -> LiveClockSnapshot
+            else                -> throw IllegalArgumentException()
+        }
+    }
+}
 
 /**
  * Optional layout hints for section placement. Clients apply best-effort; unknown hints are
@@ -2018,11 +2133,22 @@ enum class Priority(val value: String) {
  * when applicable.
  */
 data class SectionStates (
-    val error: Error? = null,
+    /**
+     * Server-declared error presentation for this section.
+     */
+    val error: ErrorState? = null,
+
     val loading: Loading? = null
 )
 
-data class Error (
+/**
+ * Server-declared error presentation for this section.
+ *
+ * Server-declared error-state shape rendered by section error boundaries. Named
+ * `ErrorState` (not `Error`) so the generated client type does not shadow each runtime's
+ * native error protocol (e.g. `Swift.Error`).
+ */
+data class ErrorState (
     /**
      * If true, collapse the section entirely on error instead of showing error UI
      */
@@ -2036,7 +2162,13 @@ data class Error (
     /**
      * Optional action to trigger on retry tap (typically a refresh action)
      */
-    val retryAction: Action? = null
+    val retryAction: Action? = null,
+
+    /**
+     * Button label for the retry CTA (e.g. 'Try Again', 'Reload'). Clients use 'Retry' as a
+     * neutral default when omitted.
+     */
+    val retryLabel: String? = null
 )
 
 data class Loading (

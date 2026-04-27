@@ -1,0 +1,111 @@
+{
+  "id": "utility-card-grid-composite",
+  "schemaVersion": "1.0",
+  "title": "Discover utility grid (minimal)",
+  "analyticsId": "utility_card_grid_fixture",
+  "sections": [
+    {
+      "id": "utility-grid-section",
+      "type": "AtomicComposite",
+      "analyticsId": "utility_grid",
+      "refreshPolicy": { "type": "static" },
+      "data": {
+        "ui": {
+          "type": "Container",
+          "direction": "column",
+          "crossAlignment": "stretch",
+          "gap": 12,
+          "padding": { "top": 16, "bottom": 0, "start": 16, "end": 16 },
+          "children": [
+            {
+              "type": "Text",
+              "content": "Around The League",
+              "variant": "titleMedium",
+              "weight": "bold",
+              "color": "token:color.text.primary"
+            },
+            {
+              "type": "Container",
+              "direction": "row",
+              "crossAlignment": "stretch",
+              "gap": 12,
+              "fillWidth": true,
+              "children": [
+                {
+                  "id": "util-a",
+                  "type": "Container",
+                  "direction": "column",
+                  "crossAlignment": "center",
+                  "gap": 8,
+                  "background": "token:color.surface.raised",
+                  "cornerRadius": 14,
+                  "padding": { "top": 14, "bottom": 20, "start": 14, "end": 16 },
+                  "shadow": { "color": "#00000014", "radius": 4, "offsetX": 0, "offsetY": 2 },
+                  "actions": [
+                    {
+                      "trigger": "onTap",
+                      "type": "navigate",
+                      "targetUri": "nba://discover/util-a"
+                    }
+                  ],
+                  "children": [
+                    {
+                      "type": "Image",
+                      "src": "https://example.com/icons/standings.png",
+                      "width": 44,
+                      "height": 44,
+                      "fit": "contain"
+                    },
+                    {
+                      "type": "Text",
+                      "content": "Standings",
+                      "variant": "bodyMedium",
+                      "weight": "semiBold",
+                      "color": "token:color.text.primary",
+                      "maxLines": 2
+                    }
+                  ]
+                },
+                {
+                  "id": "util-b",
+                  "type": "Container",
+                  "direction": "column",
+                  "crossAlignment": "center",
+                  "gap": 8,
+                  "background": "token:color.surface.raised",
+                  "cornerRadius": 14,
+                  "padding": { "top": 14, "bottom": 20, "start": 14, "end": 16 },
+                  "shadow": { "color": "#00000014", "radius": 4, "offsetX": 0, "offsetY": 2 },
+                  "actions": [
+                    {
+                      "trigger": "onTap",
+                      "type": "navigate",
+                      "targetUri": "nba://discover/util-b"
+                    }
+                  ],
+                  "children": [
+                    {
+                      "type": "Image",
+                      "src": "https://example.com/icons/leaders.png",
+                      "width": 44,
+                      "height": 44,
+                      "fit": "contain"
+                    },
+                    {
+                      "type": "Text",
+                      "content": "Leaders",
+                      "variant": "bodyMedium",
+                      "weight": "semiBold",
+                      "color": "token:color.text.primary",
+                      "maxLines": 2
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

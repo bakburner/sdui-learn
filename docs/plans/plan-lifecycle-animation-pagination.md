@@ -40,7 +40,7 @@ Three related gaps that govern how sections appear, update, and extend over time
 
 ### Phase 2: Server
 - [ ] Mark long-scroll sections with `lazyLoad: true` in refresh policy
-- [ ] Add animation hints to GamePanel (score pulse), ContentRail (fade-in)
+- [ ] Add animation hints to live-score `AtomicComposite` surfaces (score pulse, formerly `GamePanel`) and content-rail-shaped `AtomicComposite` modules (fade-in, formerly `ContentRail`)
 - [ ] Implement cursor-based pagination for play-by-play, stats tables
 
 ### Phase 3: Android

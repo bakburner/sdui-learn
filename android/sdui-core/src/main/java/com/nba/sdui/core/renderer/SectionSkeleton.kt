@@ -13,8 +13,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.nba.sdui.core.models.generated.SectionStates
+import kotlin.math.max
+
+internal object SectionSkeletonHeightCache {
+    private val heights = mutableMapOf<String, Dp>()
+
+    fun record(sectionId: String, height: Dp) {
+        val prev = heights[sectionId]
+        if (prev == null || height.value > prev.value) {
+            heights[sectionId] = height
+        }
+    }
+
+    fun peek(sectionId: String): Dp? = heights[sectionId]
+}
 
 /**
  * Generic section loading skeleton — renders shimmer, spinner, placeholder, or nothing
@@ -25,10 +40,13 @@ import com.nba.sdui.core.models.generated.SectionStates
 @Composable
 fun SectionSkeleton(
     sectionStates: SectionStates?,
+    sectionId: String? = null,
     modifier: Modifier = Modifier
 ) {
     val skeleton = sectionStates?.loading?.skeleton?.value ?: "shimmer"
     val minHeight = (sectionStates?.loading?.minHeightDP ?: 80L).toInt().dp
+    val cachedFloor = sectionId?.let { SectionSkeletonHeightCache.peek(it) }
+    val floorMinDp = if (cachedFloor != null) max(minHeight.value, cachedFloor.value).dp else minHeight
 
     when (skeleton) {
         "none" -> { /* render nothing */ }
@@ -37,7 +55,7 @@ fun SectionSkeleton(
             Box(
                 modifier = modifier
                     .fillMaxWidth()
-                    .heightIn(min = minHeight),
+                    .heightIn(min = floorMinDp),
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator(
@@ -52,7 +70,7 @@ fun SectionSkeleton(
             Column(
                 modifier = modifier
                     .fillMaxWidth()
-                    .heightIn(min = minHeight)
+                    .heightIn(min = floorMinDp)
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -108,7 +126,7 @@ fun SectionSkeleton(
             Column(
                 modifier = modifier
                     .fillMaxWidth()
-                    .heightIn(min = minHeight)
+                    .heightIn(min = floorMinDp)
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {

@@ -134,8 +134,8 @@ class ActionHandler {
      * Handle an SDUI action and return the result.
      */
     fun handle(action: SduiAction, stateManager: StateManager): ActionResult {
-        Log.d(TAG, "Handling action: type=${action.type}, trigger=${action.trigger}")
-        
+        SduiActionLogger.debug(action, "dispatch")
+
         return when (action.type) {
             "navigate" -> handleNavigate(action)
             "fireAndForget" -> handleFireAndForget(action)
@@ -160,12 +160,12 @@ class ActionHandler {
         
         when (action.presentation) {
             null, "push" -> Unit
-            "external" -> Log.i(TAG, "Navigate externally to: $uri")
+            "external" -> SduiActionLogger.debug(action, "navigate external uri=$uri")
             "modal", "fullscreen" -> Log.w(TAG, "presentation=${action.presentation} modalHeight=${action.modalHeight} is preserved but native host is not implemented; host may fall back")
-            "replace" -> Log.i(TAG, "Navigate replace to: $uri")
+            "replace" -> SduiActionLogger.debug(action, "navigate replace uri=$uri")
             else -> Log.w(TAG, "Unsupported navigation presentation=${action.presentation}; preserving value for host fallback")
         }
-        Log.i(TAG, "Navigate to: $uri")
+        SduiActionLogger.debug(action, "navigate uri=$uri presentation=${action.presentation ?: "push"}")
         // In a real implementation, this would trigger navigation
         // For the prototype, we return the URI for the UI to show in a snackbar
         return ActionResult.NavigateResult(
@@ -179,29 +179,31 @@ class ActionHandler {
     private fun handleFireAndForget(action: SduiAction): ActionResult {
         val eventName = action.eventName ?: "unnamed_event"
         val params = action.eventParams ?: emptyMap()
-        
-        Log.i(TAG, "FireAndForget event: $eventName, params=$params")
-        // In a real implementation, this would forward to registered backends (analytics, logging, etc.)
+
+        // Fire-and-forget has no on-screen side effect, so debug logging
+        // is the only way to verify the beacon was actually emitted
+        // during local testing. iOS mirrors this in `ActionDispatcher`.
+        SduiActionLogger.debug(action, "fireAndForget event=$eventName params=$params")
         return ActionResult.FireAndForgetResult(eventName, params)
     }
-    
+
     private fun handleMutate(action: SduiAction, stateManager: StateManager): ActionResult {
         val key = action.stateKey
         val value = action.stateValue
-        
+
         if (key == null) {
             Log.w(TAG, "Mutate action missing stateKey")
             return ActionResult.MutateNoOp("", "No state key specified")
         }
-        
+
         if (value != null) {
-            Log.i(TAG, "Mutate state: $key = $value")
+            SduiActionLogger.debug(action, "mutate set $key=$value")
             stateManager.setState(key, value)
         } else {
-            Log.i(TAG, "Remove state: $key")
+            SduiActionLogger.debug(action, "mutate remove $key")
             stateManager.removeState(key)
         }
-        
+
         return ActionResult.MutateResult(key, value)
     }
     
@@ -223,24 +225,22 @@ class ActionHandler {
             val separator = if ("?" in endpoint) "&" else "?"
             val url = "$endpoint$separator$queryString"
 
-            Log.i(TAG, "Parameterized refresh: url=$url")
-            // In a real implementation, this would fetch the URL and replace screen data.
-            // For the prototype, we return the resolved URL for the UI layer to handle.
+            SduiActionLogger.debug(action, "refresh parameterized url=$url")
             return ActionResult.ParameterizedRefreshResult(url, resolvedParams)
         }
 
-        Log.i(TAG, "Refresh: sectionId=$sectionId")
+        SduiActionLogger.debug(action, "refresh target=${sectionId ?: "screen"}")
         return ActionResult.RefreshResult(sectionId)
     }
-    
+
     private fun handleDismiss(action: SduiAction): ActionResult {
-        Log.i(TAG, "Dismiss action triggered")
+        SduiActionLogger.debug(action, "dismiss")
         return ActionResult.DismissResult
     }
 
     private fun handleToast(action: SduiAction): ActionResult {
         val message = action.message ?: "No message"
-        Log.i(TAG, "Toast: $message")
+        SduiActionLogger.debug(action, "toast message=$message")
         return ActionResult.ToastResult(message)
     }
     

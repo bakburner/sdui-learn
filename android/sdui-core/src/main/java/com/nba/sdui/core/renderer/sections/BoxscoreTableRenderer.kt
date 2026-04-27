@@ -11,6 +11,9 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -84,8 +87,10 @@ fun BoxscoreTableRenderer(
     }
 
     // Sort players client-side
-    val sortedPlayers = remember(model.players, model.sortColumn, model.sortDirection) {
-        sortPlayers(model.players, model.sortColumn, model.sortDirection)
+    val sortedPlayers by remember(model.players, model.sortColumn, model.sortDirection) {
+        derivedStateOf {
+            sortPlayers(model.players, model.sortColumn, model.sortDirection)
+        }
     }
 
     val teamColor = model.teamColor?.let { parseHexColor(it) }
@@ -163,6 +168,7 @@ fun BoxscoreTableRenderer(
                 BenchDivider()
             }
 
+            key(boxscorePlayerRowKey(player)) {
             Row(modifier = Modifier.fillMaxWidth().height(ROW_HEIGHT)) {
                 // Frozen player column
                 PlayerCell(
@@ -209,6 +215,7 @@ fun BoxscoreTableRenderer(
                 thickness = 0.5.dp,
                 color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
             )
+            }
         }
 
         // Totals row
@@ -383,6 +390,9 @@ private fun handleColumnSort(
         onStateChange(sortDirectionStateKey, "desc")
     }
 }
+
+private fun boxscorePlayerRowKey(player: BoxscorePlayerRowUi): Any =
+    player.playerId.takeIf { it != 0 } ?: player.name
 
 private fun sortPlayers(
     players: List<BoxscorePlayerRowUi>,

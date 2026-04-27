@@ -2,13 +2,16 @@ package com.nba.sdui.core.renderer.atomic
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.painter.ColorPainter
 import coil.compose.AsyncImage
 import com.nba.sdui.core.models.generated.AtomicElement
 import com.nba.sdui.core.models.generated.ImageFit
@@ -40,8 +43,15 @@ fun AtomicImage(
     val compositeContent = LocalCompositeContent.current
     val boundSrc = BindRefResolver.resolveString(element.bindRef, compositeContent) ?: element.src
 
-    var currentSrc by remember(boundSrc) { mutableStateOf(boundSrc) }
-    var triedFallback by remember(boundSrc) { mutableStateOf(false) }
+    var currentSrc by remember { mutableStateOf<String?>(null) }
+    var triedFallback by remember { mutableStateOf(false) }
+    LaunchedEffect(boundSrc) {
+        currentSrc = boundSrc
+        triedFallback = false
+    }
+    val modelUrl = currentSrc ?: boundSrc
+    val neutralPlaceholder = ColorPainter(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f))
+    val neutralError = ColorPainter(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f))
 
     val contentScale: ContentScale = element.fit?.let { mapContentScale(it) }
         ?: variantSpec?.contentScaleHint?.let(::mapContentScaleHint)
@@ -58,13 +68,15 @@ fun AtomicImage(
             }
         }
         AsyncImage(
-            model = currentSrc,
+            model = modelUrl,
             contentDescription = element.accessibility?.label ?: element.alt ?: "",
             contentScale = contentScale,
             modifier = imageModifier.applyAccessibility(element.accessibility),
+            placeholder = neutralPlaceholder,
+            error = neutralError,
             onError = {
                 val fallbackUrl = element.placeholder
-                if (!triedFallback && !fallbackUrl.isNullOrBlank() && fallbackUrl != currentSrc) {
+                if (!triedFallback && !fallbackUrl.isNullOrBlank() && fallbackUrl != modelUrl) {
                     triedFallback = true
                     currentSrc = fallbackUrl
                 }

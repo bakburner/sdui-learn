@@ -15,12 +15,8 @@ struct BoxscoreTableView: View {
             VStack(alignment: .leading, spacing: 0) {
                 if let teamName = data.teamName {
                     HStack {
-                        if let logoURL = data.teamLogoURL, let url = URL(string: logoURL) {
-                            KFImage(url)
-                                .placeholder { EmptyView() }
-                                .resizable()
-                                .scaledToFit()
-                            .frame(width: 24, height: 24)
+                        if let logoURL = data.teamLogoURL, !logoURL.isEmpty {
+                            TeamLogoView(urlString: logoURL)
                         }
                         Text(teamName).font(.headline)
                     }
@@ -101,5 +97,22 @@ struct BoxscoreTableView: View {
         if let i = v.value as? Int64 { return String(i) }
         if let d = v.value as? Double { return String(format: "%.1f", d) }
         return "-"
+    }
+}
+
+private struct TeamLogoView: View {
+    let urlString: String
+
+    var body: some View {
+        Group {
+            if let url = URL(string: urlString) {
+                KFImage(url)
+                    .placeholder { EmptyView() }
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 24, height: 24)
+            }
+        }
+        .id(urlString)
     }
 }

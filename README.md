@@ -11,7 +11,7 @@ Server-Driven UI prototype demonstrating server-composed screens with real-time 
 | **Extend the Web client** | [web/src/](web/src/) — React components, hooks, runtime. Same section types reference |
 | **Extend the iOS client** | [ios/Sources/SduiCore/](ios/Sources/SduiCore/) — SwiftUI renderers, state, data binding. Same section types reference |
 | **Add a new server-composed screen** | [server/src/](server/src/) — add a composer, register an endpoint. Zero client changes needed |
-| **Add a new section type** | Read [AGENTS.md](AGENTS.md) §5-6 first — most things should be `AtomicComposite`. Only add a section renderer if client-owned state is required |
+| **Add a new section type** | Read [AGENTS.md](AGENTS.md) first — most things should be `AtomicComposite`. Only add a section renderer if client-owned state is required |
 | **Understand the schema** | [schema/sdui-schema.json](schema/sdui-schema.json) — the contract. Hit `curl http://localhost:8080/sdui/demos` for a live 42-section example |
 | **Understand the rules** | [AGENTS.md](AGENTS.md) — development rules that govern all SDUI work |
 | **See what's built vs. what's gap** | [Requirements Summary §10](docs/sdui-requirements-summary.md) — status matrix |
@@ -33,7 +33,7 @@ Five principles guide every decision:
 The architecture uses two complementary rendering layers:
 
 - **Section layer** — Named domain renderers (`BoxscoreTable`, `TabGroup`, `Form`, etc.) with client-owned state (sort, scroll position, form input). Routed by `SectionRouter`.
-- **Atomic layer** — 11 atomic element types (`Container`, `Text`, `Image`, `Button`, `Spacer`, `Divider`, `ScrollContainer`, `Conditional`, `DisplayGrid`, `SectionSlot`, `LiveClock`) with zero client business logic. Routed by `AtomicRouter`.
+- **Atomic layer** — 12 atomic element types (`Container`, `Text`, `Image`, `Button`, `Spacer`, `Divider`, `ScrollContainer`, `Conditional`, `DisplayGrid`, `OverlayContainer`, `SectionSlot`, `LiveClock`) with zero client business logic. Routed by `AtomicRouter`.
 - **Bridge** — `AtomicComposite` section type: `SectionRouter` delegates to `AtomicRouter`. `SectionSlot` element: `AtomicRouter` delegates back to `SectionRouter` (e.g., embed an `AdSlot` inside an atomic layout).
 
 Use semantic sections when client-side state or interaction is needed. Use atomic composition when the server can fully describe the layout.
@@ -66,11 +66,11 @@ sdui-prototype/
 │   └── sdui-core/              # Reusable SDUI library (renderers, state, data)
 ├── web/                        # React/TypeScript web client
 │   └── src/
-│       ├── components/         # SectionRouter + 9 permanent section renderers + AtomicRouter + SectionErrorBoundary, SectionSkeleton
+│       ├── components/         # SectionRouter + 8 permanent section renderers + AtomicRouter + SectionErrorBoundary, SectionSkeleton
 │       ├── hooks/              # useSduiScreen, useRefreshPolicy, useImpressionTracking, useAnalyticsContext
 │       └── runtime/            # AblyClient, ActionHandler, DataBindingApplier
 ├── ios/                        # iOS / SwiftUI client (Swift Package + SduiDemo app)
-│   ├── Sources/SduiCore/       # SectionRouter + 9 permanent section views + AtomicRouter + navigation shell
+│   ├── Sources/SduiCore/       # SectionRouter + 8 permanent section views + AtomicRouter + navigation shell
 │   ├── Tests/SduiCoreTests/    # Model round-trips, fixtures, action dispatcher, impression tracker
 │   └── SduiDemo/               # XcodeGen-based demo host (bootstraps nba://for-you)
 ├── docs/                       # Technical proposal & requirements
@@ -160,21 +160,20 @@ make codegen
 | AdSlot | Embedded ad placement (provider, targeting) | Static |
 | VideoPlayer | Platform video SDK host with playerType discriminator (game / vod / event / nbaTv / stream) and capability list (pip, chromecast, airplay, backgroundAudio, fullscreenRotation) | Static (player drives its own timeline) |
 
-### Migrated to Atomic (server-composed AtomicComposite — no client renderers)
+### Server-composed Atomic Surfaces (delivered as `AtomicComposite` — no client renderers)
 
-| Type | Description |
-|------|-------------|
-| StatLine | Player stat rows |
-| HeroPanel | Single content item (article/video) |
-| ContentRail | Horizontal scrolling content strip |
-| PromoBanner | Promotional banner with CTA |
-| SectionHeader | Simple header with optional subtitle and CTA |
-| VideoCarousel | Horizontal scrolling video thumbnails |
-| NbaTvSchedule | NBA TV hero image + time-slot schedule |
-| FollowingRail | Horizontal rail of followed items |
-| ErrorState | Server/client error with title, message, optional retry action |
-| GamePanel | Game card (teams, scores, status) — now server-composed via `buildGamePanelComposite()` with `LiveClock` for real-time game clocks |
-| GamePanel | Game card (teams, scores, status) — now server-composed via `buildGamePanelComposite()` with `LiveClock` for real-time game clocks |
+| Surface | Description |
+|---------|-------------|
+| Stat line | Player stat rows |
+| Hero panel | Single content item (article/video) |
+| Content rail | Horizontal scrolling content strip |
+| Promo banner | Promotional banner with CTA |
+| Section header | Simple header with optional subtitle and CTA |
+| Video carousel | Horizontal scrolling video thumbnails |
+| NBA TV schedule | NBA TV hero image + time-slot schedule |
+| Following rail | Horizontal rail of followed items |
+| Error state | Server/client error with title, message, optional retry action |
+| Live-score card | Game card (teams, scores, status) composed with `LiveClock` for real-time game clocks |
 
 ### Atomic Primitives (server-composed, rendered by AtomicRouter)
 
@@ -189,6 +188,7 @@ make codegen
 | ScrollContainer | Scrollable region (horizontal/vertical) with paging + snap |
 | Conditional | State-driven if/else branching (`condition` evaluated against screen state) |
 | DisplayGrid | Display-only text grid — zero interactivity (sort/filter/expand → use a section) |
+| OverlayContainer | Foreground content stacked over a background (image, gradient, scrim) with corner clipping and badge/tag overlays |
 | SectionSlot | Embed a full section renderer inside an atomic tree (bridge back to SectionRouter) |
 | LiveClock | Client-side ticking clock driven by server-provided snapshot fields (snapshotSeconds, snapshotAt, isRunning, tickDirection, stopAtSeconds, format) |
 
@@ -196,12 +196,12 @@ make codegen
 
 ## Recent Changes
 
-- **Per-section error handling** (2026-04-01) — `SectionErrorBoundary` on Android (catch-at-dispatch + pre-validation) and web (React ErrorBoundary). `SectionSkeleton` with 4 generic styles. Typed `SectionStates` model. Retry budget (client-side, default 5). `hideOnError` support. Contract §13 rewritten.
-- **Accessibility** (2026-03-26) — `AccessibilityProperties` on Section, Subsection, AtomicElement. Android Compose `semantics{}`, web ARIA attributes, iOS `.accessibilityLabel`/traits. All 9 section renderers and 10 atomic primitives wired on every platform.
+- **Per-section error handling** (2026-04-01) — `SectionErrorBoundary` on Android (catch-at-dispatch + pre-validation) and web (React ErrorBoundary). `SectionSkeleton` with 4 generic styles. Typed `SectionStates` model. Retry budget (client-side, default 5). `hideOnError` support. Error-handling contract rewritten.
+- **Accessibility** (2026-03-26) — `AccessibilityProperties` on Section, Subsection, AtomicElement. Android Compose `semantics{}`, web ARIA attributes, iOS `.accessibilityLabel`/traits. All 8 permanent section renderers and 12 atomic primitives wired on every platform.
 - **Request transport envelope** (2026-03-24) — `SduiRequestContext` POJO + `BracketParamResolver` on server. `RequestEnvelopeBuilder` on Android, iOS, and web. GET-first with bracket-notation params, POST fallback.
 - **i18n** (2026-03-24) — Section-level `stringTable` stamped by server per locale. Clients consume from each section.
 - **Experiments / A/B testing** (2026-03-24) — ADR-006 Accepted. Client-authoritative `experiments` map in request envelope. Server resolves at composition time.
-- **Atomic rendering layer** (2026-03-13) — Dual-layer architecture: 11 atomic element types (9 rendering primitives + SectionSlot bridge + LiveClock), AtomicRouter on Android, iOS, and web, AtomicComposite bridge section type, server-side AtomicCompositeBuilder
+- **Atomic rendering layer** (2026-03-13) — Dual-layer architecture: 12 atomic element types (10 rendering primitives + SectionSlot bridge + LiveClock), AtomicRouter on Android, iOS, and web, AtomicComposite bridge section type, server-side AtomicCompositeBuilder
 - **10 section types migrated to atomic** (2026-03-13) — ErrorState, SectionHeader, PromoBanner, ContentRail, FollowingRail, HeroPanel, StatLine, VideoCarousel, NbaTvSchedule, GamePanel now served as AtomicComposite (schema definitions pruned)
 - **SectionSlot bidirectional bridge** — Atomic trees can embed full section renderers (recursion guard: depth 2)
 - **DisplayGrid** — Non-interactive server-ordered text grid primitive

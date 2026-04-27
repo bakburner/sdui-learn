@@ -183,7 +183,8 @@ actor AblyChannelManager {
         }
 
         return AsyncStream { continuation in
-            let listener = channel.subscribe { [channelName] message in
+            let listener = channel.subscribe { [weak self, channelName] message in
+                guard self != nil else { return }
                 guard let payload = Self.parseMessage(message) else {
                     logger.warning("dropping non-dictionary payload on \(channelName, privacy: .public)")
                     return

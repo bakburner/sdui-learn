@@ -1,5 +1,7 @@
 import type { Action, Section, FailurePolicy } from '@sdui/models';
 import { SDUI_PATH_PREFIX, API_PROXY_PREFIX } from '../utils/constants';
+import { pushToast } from './ToastStore';
+import { actionLog, actionWarn, actionError } from './actionLogger';
 
 export interface ActionContext {
   /** Callback to update screen state */
@@ -43,7 +45,7 @@ export async function executeActionSequence(
   const executed: Action[] = [];
 
   for (const action of actions) {
-    console.log('[Action]', action.type, action);
+    actionLog(`dispatch type=${action.type} trigger=${action.trigger ?? 'onTap'}`, action);
     const success = await dispatchAction(action, context);
     executed.push(action);
 
@@ -55,7 +57,7 @@ export async function executeActionSequence(
         return { executed, halted: true };
       }
       if (policy === 'continue') {
-        console.warn(`[Action] ${action.type} failed, continuing sequence`);
+        actionWarn(`${action.type} failed, continuing sequence`);
       }
       // silent: no log, just continue
     }
@@ -91,7 +93,7 @@ async function dispatchAction(action: Action, context: ActionContext): Promise<b
       return true;
 
     default:
-      console.warn('[Action] Unknown action type:', action.type);
+      actionWarn('Unknown action type:', action.type);
       return false;
   }
 }
@@ -107,10 +109,10 @@ function getDefaultErrorMessage(action: Action): string | undefined {
 function handleNavigate(action: Action): boolean {
   const uri = action.targetUri || action.fallbackUrl;
   if (!uri) {
-    console.warn('[Action] Navigate: no targetUri or fallbackUrl');
+    actionWarn('Navigate: no targetUri or fallbackUrl');
     return false;
   }
-  console.log('[Action] Navigate:', uri);
+  actionLog(`navigate uri=${uri} presentation=${action.presentation ?? 'push'}`);
   // In-app navigation is handled by App.tsx before reaching here.
   // This handler runs only for URIs not intercepted by the app shell.
   const name = uri
@@ -124,11 +126,11 @@ function handleNavigate(action: Action): boolean {
 
 function handleMutate(action: Action, context: ActionContext): boolean {
   if (action.stateKey !== undefined) {
-    console.log('[Action] Mutating state:', action.stateKey, '=', action.stateValue);
+    actionLog(`mutate ${action.stateKey}=${String(action.stateValue)}`);
     context.onStateChange(action.stateKey, action.stateValue);
     return true;
   }
-  console.warn('[Action] Mutate: no stateKey');
+  actionWarn('Mutate: no stateKey');
   return false;
 }
 
@@ -149,7 +151,7 @@ async function handleRefresh(action: Action, context: ActionContext): Promise<bo
     const separator = baseUrl.includes('?') ? '&' : '?';
     const url = baseUrl ? `${baseUrl}${separator}${params.toString()}` : undefined;
 
-    console.log('[Action] Parameterized refresh:', url || `params=${params.toString()}`);
+    actionLog(`refresh parameterized url=${url ?? 'inherit'} params=${params.toString()}`);
 
     if (url) {
       const fetchUrl = url.startsWith(SDUI_PATH_PREFIX) ? `${API_PROXY_PREFIX}${url}` : url;
@@ -157,7 +159,7 @@ async function handleRefresh(action: Action, context: ActionContext): Promise<bo
         const res = await fetch(fetchUrl);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const screen = await res.json();
-        console.log('[Action] Parameterized refresh succeeded, response id:', screen.id);
+        actionLog(`refresh succeeded id=${screen.id}`);
 
         // Merge new state from refresh response
         if (screen.state) {
@@ -175,7 +177,7 @@ async function handleRefresh(action: Action, context: ActionContext): Promise<bo
             (s: Section) => s.id === targetSectionId,
           );
           if (updatedSection) {
-            console.log('[Action] Surgical section update:', targetSectionId);
+            actionLog(`refresh surgical-update section=${targetSectionId}`);
             context.onSectionUpdate(targetSectionId, updatedSection);
             return true;
           }
@@ -193,7 +195,7 @@ async function handleRefresh(action: Action, context: ActionContext): Promise<bo
         context.onRefresh(targetSectionId);
         return true;
       } catch (err) {
-        console.error('[Action] Parameterized refresh failed:', err);
+        actionError(`refresh failed: ${(err as Error).message ?? err}`);
         if (action.target) {
           context.onSectionStale(action.target);
         }
@@ -202,7 +204,7 @@ async function handleRefresh(action: Action, context: ActionContext): Promise<bo
     }
   }
 
-  console.log('[Action] Refreshing:', action.target || 'full screen');
+  actionLog(`refresh target=${action.target ?? 'screen'}`);
   context.onRefresh(action.target);
   return true;
 }
@@ -212,44 +214,25 @@ function handleFireAndForget(action: Action): void {
   const params = action.params ?? (action as Record<string, unknown>).eventParams ?? {};
   const destinations = action.destinations ?? ['all'];
 
-  const beacon = {
-    event,
-    params,
-    destinations,
-    timestamp: new Date().toISOString(),
-  };
-
-  console.log('[FireAndForget]', JSON.stringify(beacon, null, 2));
-
-  for (const dest of destinations) {
-    switch (dest) {
-      case 'adobe':
-        console.log('[FireAndForget:Adobe]', event, params);
-        break;
-      case 'firebase':
-        console.log('[FireAndForget:Firebase]', event, params);
-        break;
-      case 'internal':
-        console.log('[FireAndForget:Internal]', event, params);
-        break;
-      case 'all':
-      default:
-        console.log('[FireAndForget:All]', event, params);
-        break;
-    }
-  }
+  // Fire-and-forget has no on-screen side effect, so debug logging is the
+  // only way to verify the beacon was actually emitted during local
+  // testing. iOS and Android mirror this behaviour. Keep the payload
+  // shape compact (one line per dispatch) so the dev-tools console
+  // stays scannable when many beacons fire from a single screen view.
+  actionLog(`fireAndForget event=${event} destinations=${destinations.join(',')}`, params);
 }
 
 function handleDismiss(): void {
-  console.log('[Action] Dismiss (not implemented in prototype)');
+  actionLog('dismiss (not implemented in prototype)');
 }
 
 function handleToast(action: Action): void {
   const message = (action as Record<string, unknown>).message as string | undefined;
   if (message) {
+    actionLog(`toast message=${message}`);
     showToast(message);
   } else {
-    console.warn('[Action] Toast action missing message');
+    actionWarn('Toast action missing message');
   }
 }
 
@@ -265,33 +248,6 @@ export function createActionHandler(context: ActionContext) {
 
 // ---------- internal helpers ----------
 
-/** Ephemeral toast notification for the demo */
 export function showToast(message: string): void {
-  const existing = document.getElementById('sdui-toast');
-  if (existing) existing.remove();
-
-  const toast = document.createElement('div');
-  toast.id = 'sdui-toast';
-  Object.assign(toast.style, {
-    position: 'fixed',
-    bottom: '72px',
-    left: '50%',
-    transform: 'translateX(-50%)',
-    padding: '10px 20px',
-    borderRadius: '8px',
-    backgroundColor: '#333',
-    color: '#fff',
-    fontSize: '13px',
-    zIndex: '9999',
-    maxWidth: '90vw',
-    textAlign: 'center',
-    transition: 'opacity 0.3s',
-  } as CSSStyleDeclaration);
-  toast.textContent = message;
-  document.body.appendChild(toast);
-
-  setTimeout(() => {
-    toast.style.opacity = '0';
-    setTimeout(() => toast.remove(), 300);
-  }, 2500);
+  pushToast(message);
 }

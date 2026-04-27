@@ -7,6 +7,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import com.nba.sdui.core.models.generated.DataBinding
 import com.nba.sdui.core.models.generated.DataBindingPath
+import com.nba.sdui.core.models.generated.Transform
+import java.time.Instant
 
 /**
  * Data Binding Resolver - Applies real-time data updates to section data.
@@ -132,10 +134,92 @@ class DataBindingResolver {
             consecutiveMissCounts.remove(missKey)
         }
         
-        // Set target value in data
-        setTargetPath(targetData, binding.targetPath, sourceValue)
+        val targetValue = applyTransform(binding.transform, sourceValue, sourceMessage)
+        setTargetPath(targetData, binding.targetPath, targetValue)
         
         Log.d(TAG, "Applied binding: ${binding.sourcePath} -> ${binding.targetPath} = $sourceValue, traceId=$traceId")
+    }
+
+    private fun applyTransform(transform: Transform?, sourceValue: JsonNode, sourceMessage: JsonNode): JsonNode {
+        return when (transform) {
+            Transform.LiveClockSnapshot -> normalizeLiveClockSnapshot(sourceValue, sourceMessage)
+            null -> sourceValue
+        }
+    }
+
+    private fun normalizeLiveClockSnapshot(sourceValue: JsonNode, sourceMessage: JsonNode): ObjectNode {
+        val snapshot = objectMapper.createObjectNode()
+        val rawSeconds = if (sourceValue.isObject) {
+            firstPresent(sourceValue, "snapshotSeconds", "seconds", "remainingSeconds") ?: sourceValue
+        } else {
+            sourceValue
+        }
+        val snapshotAt = if (sourceValue.isObject) {
+            firstText(sourceValue, "snapshotAt", "snapshotAtIso")
+        } else {
+            null
+        } ?: firstText(sourceMessage, "snapshotAt") ?: Instant.now().toString()
+        val runningNode = if (sourceValue.isObject) {
+            firstPresent(sourceValue, "isRunning", "clockRunning", "gameClockRunning")
+        } else {
+            null
+        } ?: firstPresent(sourceMessage, "isRunning", "clockRunning", "gameClockRunning")
+
+        snapshot.put("snapshotSeconds", parseClockSeconds(rawSeconds) ?: 0)
+        snapshot.put("snapshotAt", snapshotAt)
+        snapshot.put("isRunning", parseBoolean(runningNode) ?: false)
+        return snapshot
+    }
+
+    private fun firstPresent(node: JsonNode, vararg names: String): JsonNode? {
+        for (name in names) {
+            val child = node.get(name)
+            if (child != null && !child.isNull && !child.isMissingNode) return child
+        }
+        return null
+    }
+
+    private fun firstText(node: JsonNode, vararg names: String): String? {
+        for (name in names) {
+            val text = node.get(name)?.takeIf { it.isTextual }?.asText()?.trim()
+            if (!text.isNullOrEmpty()) return text
+        }
+        return null
+    }
+
+    private fun parseClockSeconds(value: JsonNode?): Int? {
+        if (value == null || value.isNull) return null
+        if (value.isNumber) return value.asDouble().toInt().coerceAtLeast(0)
+        if (!value.isTextual) return null
+
+        val text = value.asText().trim()
+        val durationMatch = Regex("""^PT(?:(\d+(?:\.\d+)?)H)?(?:(\d+(?:\.\d+)?)M)?(?:(\d+(?:\.\d+)?)S)?$""", RegexOption.IGNORE_CASE)
+            .matchEntire(text)
+        if (durationMatch != null) {
+            val hours = durationMatch.groupValues.getOrNull(1)?.toDoubleOrNull() ?: 0.0
+            val minutes = durationMatch.groupValues.getOrNull(2)?.toDoubleOrNull() ?: 0.0
+            val seconds = durationMatch.groupValues.getOrNull(3)?.toDoubleOrNull() ?: 0.0
+            return (hours * 3600 + minutes * 60 + seconds).toInt().coerceAtLeast(0)
+        }
+
+        val clockMatch = Regex("""(?<!\d)(\d{1,2}):([0-5]\d)(?:\.\d+)?(?!\d)""").find(text)
+        if (clockMatch != null) {
+            return clockMatch.groupValues[1].toInt() * 60 + clockMatch.groupValues[2].toInt()
+        }
+
+        return null
+    }
+
+    private fun parseBoolean(value: JsonNode?): Boolean? {
+        if (value == null || value.isNull) return null
+        if (value.isBoolean) return value.asBoolean()
+        if (value.isNumber) return value.asInt() != 0
+        if (!value.isTextual) return null
+        return when (value.asText().trim().lowercase()) {
+            "true", "1", "yes", "y" -> true
+            "false", "0", "no", "n" -> false
+            else -> null
+        }
     }
     
     /**

@@ -1,0 +1,52 @@
+{
+  "id": "error-empty-story-rail",
+  "schemaVersion": "1.0",
+  "title": "Story rail — empty content (server empty state)",
+  "analyticsId": "error_story_rail_empty",
+  "sections": [
+    {
+      "id": "story-rail-empty",
+      "type": "AtomicComposite",
+      "refreshPolicy": { "type": "static" },
+      "data": {
+        "ui": {
+          "type": "Container",
+          "direction": "column",
+          "alignment": "center",
+          "crossAlignment": "center",
+          "padding": { "top": 16, "bottom": 32, "start": 16, "end": 16 },
+          "children": [
+            { "type": "Text", "content": "🔍", "variant": "titleLarge" },
+            { "type": "Spacer", "height": 12 },
+            {
+              "type": "Text",
+              "content": "No stories to show",
+              "variant": "titleMedium",
+              "weight": "bold"
+            },
+            { "type": "Spacer", "height": 8 },
+            {
+              "type": "Text",
+              "content": "There are no story items in this module. Pull to refresh or try again.",
+              "variant": "bodyMedium",
+              "color": "token:color.text.secondary"
+            },
+            { "type": "Spacer", "height": 16 },
+            {
+              "type": "Button",
+              "label": "Try Again",
+              "variant": "primary",
+              "actions": [
+                {
+                  "trigger": "onTap",
+                  "type": "navigate",
+                  "targetUri": "nba://home/stories?refresh=1"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

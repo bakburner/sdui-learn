@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { memo } from 'react';
 import type { AtomicProps } from './AtomicRouter';
 import { AtomicRouter } from './AtomicRouter';
 import { AtomicBox, AtomicBoxBadge } from './AtomicBox';
 import { accessibilityProps } from '../../utils/accessibility';
+import { areAtomicPropsEqual } from './areAtomicPropsEqual';
 
 /**
  * AtomicContainer — renders a flex row or column with gap, flex children,
@@ -18,7 +19,7 @@ import { accessibilityProps } from '../../utils/accessibility';
  * Breakpoint: When set and direction is "row", the container flips to column
  * below the breakpoint width using a CSS media query.
  */
-export function AtomicContainer({ element, state, onAction, depth = 0, onStateChange, sectionSlotDepth }: AtomicProps): React.ReactElement {
+function AtomicContainerInner({ element, state, onAction, depth = 0, onStateChange, sectionSlotDepth }: AtomicProps): React.ReactElement {
   const isRow = element.direction === 'row';
   const hasBreakpoint = isRow && element.breakpoint != null;
   const className = hasBreakpoint ? `sdui-ac-${element.id ?? depth}` : undefined;
@@ -82,3 +83,5 @@ export function AtomicContainer({ element, state, onAction, depth = 0, onStateCh
     </AtomicBox>
   );
 }
+
+export const AtomicContainer = memo(AtomicContainerInner, areAtomicPropsEqual);

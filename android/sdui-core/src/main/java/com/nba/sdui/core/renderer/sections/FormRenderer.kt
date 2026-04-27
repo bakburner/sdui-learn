@@ -58,23 +58,27 @@ fun FormRenderer(
                 verticalAlignment = Alignment.Bottom
             ) {
                 model.fields.forEach { field ->
-                    Box(modifier = Modifier.weight(1f)) {
-                        FormFieldRenderer(
-                            field = field,
-                            currentValue = screenState[field.stateKey],
-                            onStateChange = onStateChange
-                        )
+                    key(field.stateKey) {
+                        Box(modifier = Modifier.weight(1f)) {
+                            FormFieldRenderer(
+                                field = field,
+                                currentValue = screenState[field.stateKey],
+                                onStateChange = onStateChange
+                            )
+                        }
                     }
                 }
             }
         } else {
             // Vertical layout — fields stacked
             model.fields.forEach { field ->
-                FormFieldRenderer(
-                    field = field,
-                    currentValue = screenState[field.stateKey],
-                    onStateChange = onStateChange
-                )
+                key(field.stateKey) {
+                    FormFieldRenderer(
+                        field = field,
+                        currentValue = screenState[field.stateKey],
+                        onStateChange = onStateChange
+                    )
+                }
             }
         }
 

@@ -30,6 +30,8 @@ export interface SectionRouterProps extends SectionProps {
   defaultRefreshPolicy?: RefreshPolicy;
   /** Callback when section data channel becomes stale or recovers */
   onStalenessChange?: (sectionId: string, isStale: boolean) => void;
+  /** Screen-level traceId for log correlation */
+  traceId?: string;
 }
 
 /**
@@ -111,6 +113,7 @@ export function SectionRouter({
   onStateChange,
   defaultRefreshPolicy,
   onStalenessChange,
+  traceId,
 }: SectionRouterProps): React.ReactElement | null {
   const trackingRef = useRef<HTMLDivElement>(null);
 
@@ -138,6 +141,7 @@ export function SectionRouter({
         onStateChange={onStateChange}
         defaultRefreshPolicy={defaultRefreshPolicy}
         onStalenessChange={onStalenessChange}
+        traceId={traceId}
       >
         {(liveData: Data | undefined) => {
           const liveSection: Section = {

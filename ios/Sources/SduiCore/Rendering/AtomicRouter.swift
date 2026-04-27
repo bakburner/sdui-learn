@@ -65,11 +65,16 @@ struct AtomicRouter: View {
         case "LiveClock":
             AtomicLiveClockView(element: element)
 
+        case "OverlayContainer":
+            AtomicOverlayContainerView(element: element, screenState: screenState, onAction: onAction, depth: depth + 1)
+
         default:
+            let _ = Self.logUnknownIfNeeded(element: element)
             EmptyView()
-                .onAppear {
-                    logger.warning("skipping unknown atomic element type=\(element.type, privacy: .public) id=\(element.id ?? "(nil)", privacy: .public)")
-                }
         }
+    }
+
+    private static func logUnknownIfNeeded(element: AtomicElement) {
+        logger.warning("skipping unknown atomic element type=\(element.type, privacy: .public) id=\(element.id ?? "(nil)", privacy: .public)")
     }
 }

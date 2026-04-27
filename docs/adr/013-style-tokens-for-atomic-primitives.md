@@ -506,17 +506,21 @@ the governance rules below.
 
 ### Implementation status (2026-04-22)
 
-The initial rollout landed with a slightly different token set than
-the one proposed above — the ref-app audit pointed at six container
-variants and three image variants as the load-bearing set:
+The initial rollout landed with a smaller **wire** vocabulary than the
+Option D examples above. The authoritative enum is `schema/sdui-schema.json`
+(`TextVariant`, `ButtonVariant`, `ContainerVariant`, `ImageVariant`,
+`SelectVariant`). As of the Phase 1 (2026-04-25) audit, that contract is:
 
-- **`ContainerVariant`** values shipped: `hero`, `elevated`, `banner`,
-  `subtle`, `grouped`, `overlay`.
-- **`ImageVariant`** values shipped: `hero`, `thumbnail`, `logo`.
-- `TextVariant` and `ButtonVariant` were already in flight and
-  continue to resolve through their existing per-platform mappings.
-- `DividerVariant` is deferred — the existing `thickness` + `color`
-  inline props cover every case in the current composers.
+- **`ContainerVariant`**: `hero`, `grouped`.
+- **`ImageVariant`**: `thumbnail`.
+- `TextVariant` and `ButtonVariant` unchanged; `SelectVariant` applies to
+  `FormField` when `fieldType == "select"`.
+- `schema/style-tokens.json` documents `ContainerVariant.hero`,
+  `ContainerVariant.grouped`, and `ImageVariant.thumbnail` with full
+  per-platform specs. Older ADR text that listed `elevated`, `banner`,
+  `logo`, etc. described superseded exploration, not the current wire enum.
+- `DividerVariant` remains deferred — `thickness` + `color` inline props
+  cover current composers.
 
 Artifacts:
 

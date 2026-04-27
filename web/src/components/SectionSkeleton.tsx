@@ -57,6 +57,7 @@ const styles: Record<string, React.CSSProperties> = {
     background: 'linear-gradient(90deg, #1a1a2e 25%, #2a2a4e 50%, #1a1a2e 75%)',
     backgroundSize: '200% 100%',
     animation: 'shimmer 1.5s ease-in-out infinite',
+    willChange: 'transform',
   },
   spinner: {
     width: 24,

@@ -46,12 +46,15 @@ web/src/
 └── components/
     ├── SectionRouter.tsx       # Route sections to appropriate renderers
     ├── LiveSectionWrapper.tsx  # Wire refresh + data bindings to sections
-    └── sections/               # Section-specific renderers
-        ├── GamePanel.tsx
-        ├── StatLine.tsx
-        ├── ContentRail.tsx
+    └── sections/               # Section-specific renderers (8 permanent)
+        ├── AdSlot.tsx
+        ├── BoxscoreTable.tsx
+        ├── Form.tsx
+        ├── SeasonLeadersTable.tsx
+        ├── SubscribeBanner.tsx
+        ├── SubscribeHero.tsx
         ├── TabGroup.tsx
-        └── PromoBanner.tsx
+        └── VideoPlayerStub.tsx
 ```
 
 ## Live Data Updates

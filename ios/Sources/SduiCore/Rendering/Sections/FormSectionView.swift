@@ -39,7 +39,22 @@ struct FormFieldView: View {
     let field: FormField
     let screenState: ScreenState
 
-    @State private var text: String = ""
+    @State private var text: String
+    @State private var debounceTask: Task<Void, Never>?
+
+    init(field: FormField, screenState: ScreenState) {
+        self.field = field
+        self.screenState = screenState
+        if let v = screenState.get(field.stateKey) {
+            if let s = v as? String {
+                _text = State(initialValue: s)
+            } else {
+                _text = State(initialValue: String(describing: v))
+            }
+        } else {
+            _text = State(initialValue: "")
+        }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -54,14 +69,15 @@ struct FormFieldView: View {
                     .disabled(field.disabled ?? false)
                     .keyboardType(field.fieldType == .number ? .numberPad : .default)
                     .onChange(of: text) { _, newValue in
-                        screenState.set(field.stateKey, value: newValue)
+                        pushDebounced(newValue)
                     }
+                    .onSubmit { syncToScreenState() }
             case .textarea:
                 TextEditor(text: $text)
                     .frame(minHeight: 80)
                     .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.gray.opacity(0.3)))
                     .onChange(of: text) { _, newValue in
-                        screenState.set(field.stateKey, value: newValue)
+                        pushDebounced(newValue)
                     }
             case .toggle:
                 Toggle(field.label, isOn: Binding(
@@ -73,6 +89,9 @@ struct FormFieldView: View {
             default:
                 TextField(field.placeholder ?? "", text: $text)
                     .textFieldStyle(.roundedBorder)
+                    .onChange(of: text) { _, newValue in
+                        pushDebounced(newValue)
+                    }
             }
 
             if let error = validationError, !error.isEmpty {
@@ -81,12 +100,28 @@ struct FormFieldView: View {
                     .foregroundColor(.red)
             }
         }
-        .onAppear {
-            // Hydrate initial value from screen state so server-seeded
-            // defaults survive across re-renders.
-            if let current = screenState.get(field.stateKey) {
-                text = String(describing: current)
+        .onDisappear {
+            if shouldDebounceToScreenState {
+                syncToScreenState()
             }
+        }
+    }
+
+    private var shouldDebounceToScreenState: Bool {
+        field.fieldType != .toggle
+    }
+
+    private func syncToScreenState() {
+        debounceTask?.cancel()
+        screenState.set(field.stateKey, value: text)
+    }
+
+    private func pushDebounced(_ newValue: String) {
+        debounceTask?.cancel()
+        debounceTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            guard !Task.isCancelled else { return }
+            screenState.set(field.stateKey, value: newValue)
         }
     }
 

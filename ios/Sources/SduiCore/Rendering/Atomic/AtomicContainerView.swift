@@ -36,9 +36,12 @@ struct AtomicContainerView: View {
     @ViewBuilder
     private var children: some View {
         let kids = element.children ?? []
-        ForEach(Array(kids.enumerated()), id: \.offset) { _, child in
-            AtomicRouter(element: child, screenState: screenState, onAction: onAction, depth: depth)
-                .layoutValue(key: AtomicFlexValueKey.self, value: CGFloat(max(child.flex ?? 0, 0)))
+        let rows = kids.enumerated().map { i, c in
+            AtomicContainerChild(id: c.id.map { "e:\($0)" } ?? "i:\(i)", child: c)
+        }
+        ForEach(rows) { item in
+            AtomicRouter(element: item.child, screenState: screenState, onAction: onAction, depth: depth)
+                .layoutValue(key: AtomicFlexValueKey.self, value: CGFloat(max(item.child.flex ?? 0, 0)))
         }
     }
 
@@ -58,6 +61,11 @@ struct AtomicContainerView: View {
         CGFloat.greatestFiniteMagnitude
         #endif
     }
+}
+
+private struct AtomicContainerChild: Identifiable {
+    let id: String
+    let child: AtomicElement
 }
 
 struct AtomicFlexStackLayout: SwiftUI.Layout {

@@ -9,6 +9,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -21,6 +22,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import com.nba.sdui.core.models.generated.Section
 import com.nba.sdui.core.renderer.applyAccessibility
+import com.nba.sdui.core.renderer.adapters.SeasonLeadersPlayerRow
 import com.nba.sdui.core.renderer.adapters.SeasonLeadersTableUiModel
 import com.nba.sdui.core.renderer.adapters.mapSeasonLeadersTable
 import com.nba.sdui.core.state.SduiAction
@@ -198,6 +200,7 @@ fun SeasonLeadersTableRenderer(
 
         // ── Player rows ──────────────────────────────────────────────
         model.players.forEach { player ->
+            key(leadersPlayerRowKey(player)) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -284,11 +287,15 @@ fun SeasonLeadersTableRenderer(
                 thickness = 0.5.dp,
                 color = Color(0xFF333333).copy(alpha = 0.5f)
             )
+            }
         }
     }
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────
+
+private fun leadersPlayerRowKey(player: SeasonLeadersPlayerRow): Any =
+    player.playerId.ifBlank { "${player.rank}_${player.name}" }
 
 private fun formatStatValue(value: Any?): String {
     return when (value) {

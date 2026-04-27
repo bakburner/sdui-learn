@@ -84,7 +84,7 @@ actor PollingDriver {
             // `events()` is actor-isolated; the Task inherits that isolation,
             // so `register` runs on this actor without crossing a suspension
             // point. The `await` was a no-op and the compiler flagged it.
-            Task { self.register(id: id, continuation: continuation) }
+            Task { [weak self] in await self?.register(id: id, continuation: continuation) }
             continuation.onTermination = { [weak self] _ in
                 Task { [weak self] in await self?.unregister(id: id) }
             }
@@ -119,7 +119,8 @@ actor PollingDriver {
         directURL: URL?,
         screenEndpoint: String?,
         dataPath: String?,
-        pauseWhenOffScreen: Bool
+        pauseWhenOffScreen: Bool,
+        traceID: String? = nil
     ) {
         tasks[sectionID]?.cancel()
         failureCounts[sectionID] = 0
@@ -139,7 +140,7 @@ actor PollingDriver {
                 do {
                     let event: PollEvent
                     if let directURL {
-                        let raw = try await repository.fetchRawJson(url: directURL)
+                        let raw = try await repository.fetchRawJson(url: directURL, traceID: traceID)
                         let trimmed = Self.extract(dataPath: dataPath, from: raw)
                         event = .success(PollSuccess(sectionID: sectionID, payload: trimmed, isDirect: true))
                     } else if let screenEndpoint {

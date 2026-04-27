@@ -1,0 +1,83 @@
+{
+  "id": "league-card-rail-composite",
+  "schemaVersion": "1.0",
+  "title": "Other leagues rail (minimal)",
+  "analyticsId": "league_card_rail_fixture",
+  "sections": [
+    {
+      "id": "league-rail-section",
+      "type": "AtomicComposite",
+      "analyticsId": "league_rail",
+      "refreshPolicy": { "type": "static" },
+      "data": {
+        "ui": {
+          "type": "Container",
+          "direction": "column",
+          "padding": { "top": 0, "bottom": 12, "start": 0, "end": 0 },
+          "children": [
+            {
+              "type": "Container",
+              "direction": "column",
+              "children": [
+                {
+                  "type": "Text",
+                  "content": "Other Leagues",
+                  "variant": "titleMedium",
+                  "weight": "bold",
+                  "color": "token:color.text.primary"
+                }
+              ],
+              "padding": { "top": 16, "bottom": 4, "start": 16, "end": 16 }
+            },
+            {
+              "type": "ScrollContainer",
+              "direction": "row",
+              "gap": 12,
+              "showIndicators": false,
+              "padding": { "top": 0, "bottom": 0, "start": 16, "end": 16 },
+              "children": [
+                {
+                  "id": "league-wnba",
+                  "type": "Container",
+                  "direction": "column",
+                  "crossAlignment": "center",
+                  "width": 160,
+                  "gap": 10,
+                  "background": "token:color.surface.raised",
+                  "cornerRadius": 14,
+                  "padding": { "top": 14, "bottom": 18, "start": 14, "end": 16 },
+                  "shadow": { "color": "#00000014", "radius": 4, "offsetX": 0, "offsetY": 2 },
+                  "actions": [
+                    {
+                      "trigger": "onTap",
+                      "type": "navigate",
+                      "targetUri": "nba://league/wnba"
+                    }
+                  ],
+                  "children": [
+                    {
+                      "type": "Image",
+                      "src": "https://example.com/leagues/wnba.png",
+                      "width": 72,
+                      "height": 56,
+                      "fit": "contain",
+                      "aspectRatio": 1.3333333333333333
+                    },
+                    {
+                      "type": "Text",
+                      "content": "WNBA",
+                      "variant": "bodyMedium",
+                      "weight": "semiBold",
+                      "color": "token:color.text.primary",
+                      "maxLines": 2
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

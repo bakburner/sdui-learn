@@ -159,20 +159,21 @@
       "dataBinding": {
         "bindings": [
           {
-            "source": "$.homeTeam.score",
+            "sourcePath": "$.homeTeam.score",
             "targetPath": "content.homeTeam.score"
           },
           {
-            "source": "$.awayTeam.score",
+            "sourcePath": "$.awayTeam.score",
             "targetPath": "content.awayTeam.score"
           },
           {
-            "source": "$.gameStatusText",
+            "sourcePath": "$.gameStatusText",
             "targetPath": "content.gameStatusText"
           },
           {
-            "source": "$.gameClock",
-            "targetPath": "content.clock"
+            "sourcePath": "$.gameClock",
+            "targetPath": "content.clock",
+            "transform": "liveClockSnapshot"
           }
         ]
       },

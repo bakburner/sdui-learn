@@ -86,7 +86,7 @@ final class DataBindingApplier {
 
     // MARK: - Single binding
 
-    private struct BindingMissError: Swift.Error {}
+    private struct BindingMissError: Error {}
 
     private func applyOne(
         output: inout [String: Any],
@@ -115,7 +115,102 @@ final class DataBindingApplier {
             consecutiveMisses.removeValue(forKey: "\(sectionID):\(binding.sourcePath)")
         }
 
-        setValue(resolved, at: binding.targetPath, in: &output)
+        let value = transform(resolved, using: binding.transform, root: incoming)
+        setValue(value, at: binding.targetPath, in: &output)
+    }
+
+    private func transform(_ value: Any, using transform: Transform?, root: [String: Any]) -> Any {
+        switch transform {
+        case .liveClockSnapshot:
+            return Self.normalizeLiveClockSnapshot(value, root: root)
+        case .none:
+            return value
+        }
+    }
+
+    private static func normalizeLiveClockSnapshot(_ value: Any, root: [String: Any]) -> [String: Any] {
+        let objectValue = value as? [String: Any]
+        let rawSeconds = objectValue?["snapshotSeconds"]
+            ?? objectValue?["seconds"]
+            ?? objectValue?["remainingSeconds"]
+            ?? value
+        let snapshotAt = stringValue(objectValue?["snapshotAt"])
+            ?? stringValue(objectValue?["snapshotAtIso"])
+            ?? stringValue(root["snapshotAt"])
+            ?? ISO8601DateFormatter().string(from: Date())
+        let runningValue = objectValue?["isRunning"]
+            ?? objectValue?["clockRunning"]
+            ?? objectValue?["gameClockRunning"]
+            ?? root["isRunning"]
+            ?? root["clockRunning"]
+            ?? root["gameClockRunning"]
+
+        return [
+            "snapshotSeconds": parseClockSeconds(rawSeconds) ?? 0,
+            "snapshotAt": snapshotAt,
+            "isRunning": boolValue(runningValue) ?? false
+        ]
+    }
+
+    private static func parseClockSeconds(_ value: Any?) -> Int? {
+        if let intValue = value as? Int {
+            return max(0, intValue)
+        }
+        if let doubleValue = value as? Double, doubleValue.isFinite {
+            return max(0, Int(doubleValue.rounded(.down)))
+        }
+        guard let string = value as? String else { return nil }
+        let trimmed = string.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if let seconds = parseISODurationSeconds(trimmed) {
+            return seconds
+        }
+
+        let clockPattern = #"(?<!\d)(\d{1,2}):([0-5]\d)(?:\.\d+)?(?!\d)"#
+        guard let regex = try? NSRegularExpression(pattern: clockPattern),
+              let match = regex.firstMatch(in: trimmed, range: NSRange(trimmed.startIndex..<trimmed.endIndex, in: trimmed)),
+              let minuteRange = Range(match.range(at: 1), in: trimmed),
+              let secondRange = Range(match.range(at: 2), in: trimmed),
+              let minutes = Int(trimmed[minuteRange]),
+              let seconds = Int(trimmed[secondRange]) else { return nil }
+        return minutes * 60 + seconds
+    }
+
+    private static func parseISODurationSeconds(_ value: String) -> Int? {
+        let pattern = #"^PT(?:(\d+(?:\.\d+)?)H)?(?:(\d+(?:\.\d+)?)M)?(?:(\d+(?:\.\d+)?)S)?$"#
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]) else { return nil }
+        let range = NSRange(value.startIndex..<value.endIndex, in: value)
+        guard let match = regex.firstMatch(in: value, range: range) else { return nil }
+
+        func component(_ index: Int) -> Double {
+            let nsRange = match.range(at: index)
+            guard nsRange.location != NSNotFound,
+                  let range = Range(nsRange, in: value) else { return 0 }
+            return Double(value[range]) ?? 0
+        }
+
+        let total = component(1) * 3600 + component(2) * 60 + component(3)
+        return max(0, Int(total.rounded(.down)))
+    }
+
+    private static func boolValue(_ value: Any?) -> Bool? {
+        if let bool = value as? Bool { return bool }
+        if let number = value as? NSNumber { return number.intValue != 0 }
+        guard let string = value as? String else { return nil }
+        switch string.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+        case "true", "1", "yes", "y":
+            return true
+        case "false", "0", "no", "n":
+            return false
+        default:
+            return nil
+        }
+    }
+
+    private static func stringValue(_ value: Any?) -> String? {
+        guard let string = value as? String,
+              !string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+        return string
     }
 
     // MARK: - Path navigation

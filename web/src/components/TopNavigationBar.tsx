@@ -68,9 +68,14 @@ const styles: Record<string, React.CSSProperties> = {
     position: 'sticky',
     top: 0,
     zIndex: 10,
+    overflowX: 'auto',
+    overflowY: 'hidden',
+    WebkitOverflowScrolling: 'touch',
+    scrollbarWidth: 'none',
   },
   itemWrapper: {
     position: 'relative',
+    flex: '0 0 auto',
   },
   itemButton: {
     border: 'none',
@@ -87,6 +92,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'inline-flex',
     alignItems: 'center',
     gap: 6,
+    whiteSpace: 'nowrap',
   },
   itemButtonSelected: {
     background: 'var(--nba-blue)',

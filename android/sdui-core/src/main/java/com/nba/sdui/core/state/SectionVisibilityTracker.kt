@@ -2,9 +2,23 @@ package com.nba.sdui.core.state
 
 import android.util.Log
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 
 /**
  * Tracks which sections are near the viewport in a LazyColumn.
@@ -15,6 +29,7 @@ import kotlinx.coroutines.flow.*
  *
  * Consumers read [isNearViewport] to gate polling / SSE processing.
  */
+@OptIn(FlowPreview::class)
 class SectionVisibilityTracker(
     private val bufferFactor: Float = 0.5f, // 0.5 = 1.5× viewport (half a viewport on each side)
     private val exitDebounceMs: Long = 500L
@@ -23,7 +38,35 @@ class SectionVisibilityTracker(
         private const val TAG = "SectionVisTracker"
     }
 
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+
     private val _visibleSections = MutableStateFlow<Set<String>>(emptySet())
+
+    private val nearSnapshots = MutableSharedFlow<Set<String>>(extraBufferCapacity = 32)
+
+    init {
+        nearSnapshots
+            .onEach { near ->
+                val current = _visibleSections.value
+                val entering = near - current
+                if (entering.isNotEmpty()) {
+                    _visibleSections.value = current + entering
+                    Log.d(TAG, "Sections entered viewport: $entering")
+                }
+            }
+            .launchIn(scope)
+        nearSnapshots
+            .debounce(exitDebounceMs)
+            .onEach { near ->
+                val current = _visibleSections.value
+                val exiting = current - near
+                if (exiting.isNotEmpty()) {
+                    _visibleSections.value = current - exiting
+                    Log.d(TAG, "Sections exited viewport: $exiting")
+                }
+            }
+            .launchIn(scope)
+    }
 
     /**
      * Flow of section IDs that are currently near the viewport.
@@ -50,12 +93,11 @@ class SectionVisibilityTracker(
      * Call from a Composable to observe [LazyListState] and update visibility.
      * The [sectionIds] list must be in the same order as the LazyColumn items.
      */
-    @OptIn(FlowPreview::class)
     @Composable
     fun Observe(lazyListState: LazyListState, sectionIds: List<String>) {
         val layoutInfo by remember { derivedStateOf { lazyListState.layoutInfo } }
 
-        LaunchedEffect(layoutInfo) {
+        LaunchedEffect(layoutInfo, sectionIds, bufferFactor) {
             val visibleItems = layoutInfo.visibleItemsInfo
             if (visibleItems.isEmpty() || sectionIds.isEmpty()) return@LaunchedEffect
 
@@ -67,7 +109,6 @@ class SectionVisibilityTracker(
             val bufferedStart = viewportStart - buffer
             val bufferedEnd = viewportEnd + buffer
 
-            // Determine which item indices fall within the buffered viewport
             val nearIndices = mutableSetOf<Int>()
             for (item in visibleItems) {
                 val itemEnd = item.offset + item.size
@@ -76,10 +117,8 @@ class SectionVisibilityTracker(
                 }
             }
 
-            // Also include items just outside visible range but within buffer
             val firstVisible = visibleItems.firstOrNull()?.index ?: 0
             val lastVisible = visibleItems.lastOrNull()?.index ?: 0
-            // Estimate items in buffer zone (approximation: 1 item per viewport fraction)
             val bufferItems = ((bufferFactor * visibleItems.size).toInt()).coerceAtLeast(1)
             for (i in (firstVisible - bufferItems).coerceAtLeast(0)..firstVisible) {
                 nearIndices.add(i)
@@ -93,26 +132,7 @@ class SectionVisibilityTracker(
                 .map { sectionIds[it] }
                 .toSet()
 
-            val current = _visibleSections.value
-            // Immediate entry: add new sections right away
-            val entering = nearSectionIds - current
-            if (entering.isNotEmpty()) {
-                _visibleSections.value = current + entering
-                Log.d(TAG, "Sections entered viewport: $entering")
-            }
-
-            // Debounced exit: sections that left but might come back
-            val exiting = current - nearSectionIds
-            if (exiting.isNotEmpty()) {
-                kotlinx.coroutines.delay(exitDebounceMs)
-                // Re-check: only remove if still not near after debounce
-                val stillNear = _visibleSections.value
-                val confirmedExits = exiting.filter { it !in nearSectionIds }
-                if (confirmedExits.isNotEmpty()) {
-                    _visibleSections.value = stillNear - confirmedExits.toSet()
-                    Log.d(TAG, "Sections exited viewport: $confirmedExits")
-                }
-            }
+            nearSnapshots.tryEmit(nearSectionIds)
         }
     }
 }

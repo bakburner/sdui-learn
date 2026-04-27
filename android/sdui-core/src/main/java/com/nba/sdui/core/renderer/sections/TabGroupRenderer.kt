@@ -1,6 +1,12 @@
 package com.nba.sdui.core.renderer.sections
 
 import android.util.Log
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -50,32 +56,46 @@ fun TabGroupRenderer(
             modifier = Modifier.fillMaxWidth()
         ) {
             data.tabs.forEachIndexed { index, tab ->
-                Tab(
-                    selected = index == activeTabIndex,
-                    onClick = {
-                        Log.d("TabGroupRenderer", "Tab clicked: ${tab.label}, stateValue=${tab.stateValue}")
-                        onStateChange(data.stateKey, tab.stateValue)
-                        onAction(mapTabMutateAction(data.stateKey, tab.stateValue))
-                    },
-                    text = {
-                        Text(text = tab.label)
-                    }
-                )
+                key(tab.stateValue) {
+                    Tab(
+                        selected = index == activeTabIndex,
+                        onClick = {
+                            Log.d("TabGroupRenderer", "Tab clicked: ${tab.label}, stateValue=${tab.stateValue}")
+                            onStateChange(data.stateKey, tab.stateValue)
+                            onAction(mapTabMutateAction(data.stateKey, tab.stateValue))
+                        },
+                        text = {
+                            Text(text = tab.label)
+                        }
+                    )
+                }
             }
         }
-        
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp)
-        ) {
-            data.activeSections.forEach { contentSection ->
-                SectionRouter(
-                    section = contentSection,
-                    screenState = screenState,
-                    onAction = onAction,
-                    onStateChange = onStateChange
+
+        AnimatedContent(
+            targetState = activeTabIndex,
+            transitionSpec = {
+                (slideInHorizontally { it } + fadeIn()).togetherWith(
+                    slideOutHorizontally { -it } + fadeOut()
                 )
+            },
+            label = "tabGroupBody"
+        ) { _ ->
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp)
+            ) {
+                data.activeSections.forEach { contentSection ->
+                    key(contentSection.id) {
+                        SectionRouter(
+                            section = contentSection,
+                            screenState = screenState,
+                            onAction = onAction,
+                            onStateChange = onStateChange
+                        )
+                    }
+                }
             }
         }
     }

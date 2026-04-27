@@ -34,12 +34,12 @@ Add server-driven accessibility metadata to every renderable element so screen r
 
 ### Phase 2: Server
 - [x] Populate `accessibility` properties in composers
-- [ ] Add `liveRegion: "polite"` to GamePanel score elements for real-time updates
+- [ ] Add `liveRegion: "polite"` to live-score `AtomicComposite` score text (formerly `GamePanel`) for real-time updates
 - [ ] Add `liveRegion: "assertive"` to ErrorState sections
 
 ### Phase 3: Android
 - [x] Create `AccessibilityExt.kt` shared utility
-- [x] Apply to all 9 section renderers + 10 atomic renderers
+- [x] Apply to all 8 permanent section renderers + 12 atomic renderers
 - [ ] Wire `liveRegion` to Compose `LiveRegionMode.Polite` / `Assertive`
 - [ ] Add Espresso accessibility checks to UI tests
 
@@ -60,5 +60,5 @@ Add server-driven accessibility metadata to every renderable element so screen r
 
 ## Open Questions
 
-- [ ] Should `liveRegion` be applied at the section level (GamePanel) or at the specific atomic element containing the score text?
+- [ ] Should `liveRegion` be applied at the `AtomicComposite` section envelope or at the specific atomic `Text` / `LiveClock` element containing the score?
 - [ ] What is the target WCAG compliance level (AA or AAA)?

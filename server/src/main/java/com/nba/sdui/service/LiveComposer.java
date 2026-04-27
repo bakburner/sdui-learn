@@ -284,16 +284,16 @@ public class LiveComposer {
     /**
      * Build an initial {@code LiveClock} snapshot from upstream stats-api
      * game JSON. The `gameClock` string is ISO-8601 duration (e.g.
-     * {@code PT04M32.00S}); for the first paint we treat the current
-     * server time as the snapshot anchor so clients interpolate from
-     * "now" until the first Ably frame lands.
+     * {@code PT04M32.00S}). Initial server payloads are rendered as
+     * snapshots only; Ably linescore frames are responsible for setting
+     * {@code isRunning=true} when local interpolation should start.
      */
     private AtomicCompositeBuilder.GameClockSnapshot clockSnapshotFromGame(JsonNode game) {
         int seconds = parseGameClockSeconds(game.path("gameClock").asText(""));
         return new AtomicCompositeBuilder.GameClockSnapshot(
                 seconds,
                 java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString(),
-                true);
+                AtomicCompositeBuilder.DEMO_INITIAL_CLOCK_RUNNING);
     }
 
     private AtomicCompositeBuilder.GameClockSnapshot mockClockSnapshotFromStatus(String statusText) {
@@ -301,7 +301,7 @@ public class LiveComposer {
         return new AtomicCompositeBuilder.GameClockSnapshot(
                 seconds,
                 java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString(),
-                true);
+                AtomicCompositeBuilder.DEMO_INITIAL_CLOCK_RUNNING);
     }
 
     private static int parseGameClockSeconds(String iso) {

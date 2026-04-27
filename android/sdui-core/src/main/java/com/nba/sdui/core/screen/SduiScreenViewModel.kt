@@ -51,6 +51,7 @@ open class SduiScreenViewModel(
         private const val POLL_FAILURE_THRESHOLD = 2
         private const val MAX_BACKOFF_MS = 30_000L
         private const val SSE_STALE_DELAY_MS = 10_000L
+        private const val SSE_BUFFER_TTL_MS = 5 * 60 * 1000L
 
         /**
          * Convert nba:// URI to server endpoint path.
@@ -76,8 +77,10 @@ open class SduiScreenViewModel(
     /** True when the app is in the foreground. Gates ALL refresh activity. */
     private val _isAppForeground = MutableStateFlow(true)
 
+    private data class BufferedSseEntry(val message: Map<String, Any?>, val receivedAtMs: Long)
+
     /** Buffer of latest SSE messages per section, applied on visibility resume. */
-    private val sseMessageBuffer = mutableMapOf<String, Map<String, Any?>>()
+    private val sseMessageBuffer = mutableMapOf<String, BufferedSseEntry>()
 
     /**
      * Build the request envelope from config.
@@ -134,6 +137,7 @@ open class SduiScreenViewModel(
     fun onAppForegrounded() {
         Log.d(TAG, "App foregrounded — resuming refresh")
         _isAppForeground.value = true
+        flushSseBufferBatched()
     }
 
     // ── Load / Refresh ───────────────────────────────────────────────
@@ -286,6 +290,12 @@ open class SduiScreenViewModel(
      * Apply a fetched screen: seed state, emit success, start data channels.
      */
     private fun applyScreen(screen: SduiModels) {
+        val previous = currentScreen
+        val oldIds = previous?.sections?.map { it.id }?.toSet().orEmpty()
+        val newIds = screen.sections.map { it.id }.toSet()
+        for (id in oldIds - newIds) {
+            dataBindingResolver.resetCounters(id)
+        }
         currentScreen = screen
         screen.state?.forEach { (key, value) ->
             if (value != null) {
@@ -343,7 +353,7 @@ open class SduiScreenViewModel(
                         delay(currentIntervalMs)
                         try {
                             if (pollUrl != null) {
-                                val data = repository.fetchRawJson(pollUrl, dataPath)
+                                val data = repository.fetchRawJson(pollUrl, dataPath, screen.traceID)
                                 updateSectionData(section.id, data)
                             } else {
                                 val endpoint = currentEndpoint ?: continue
@@ -406,6 +416,7 @@ open class SduiScreenViewModel(
             job.cancel()
         }
         pollingJobs.clear()
+        pollFailureCounts.clear()
     }
 
     // ── Ably ─────────────────────────────────────────────────────────
@@ -472,8 +483,9 @@ open class SduiScreenViewModel(
                     val isVisible = !shouldPause || visibilityTracker.isNearViewport(section.id)
 
                     if (!isForeground || !isVisible) {
-                        // Buffer the latest message — will be applied on resume
-                        sseMessageBuffer[section.id] = message
+                        val now = System.currentTimeMillis()
+                        sseMessageBuffer[section.id] = BufferedSseEntry(message, now)
+                        pruneExpiredSseBuffer(now)
                         Log.d(TAG, "SSE message buffered for ${section.id} (fg=$isForeground, vis=$isVisible)")
                         return@collect
                     }
@@ -490,7 +502,10 @@ open class SduiScreenViewModel(
             viewModelScope.launch {
                 visibilityTracker.visibleSections.collect { visibleSet ->
                     if (section.id in visibleSet) {
-                        val buffered = sseMessageBuffer.remove(section.id)
+                        val entry = sseMessageBuffer.remove(section.id)
+                        val buffered = entry?.takeIf {
+                            System.currentTimeMillis() - it.receivedAtMs <= SSE_BUFFER_TTL_MS
+                        }?.message
                         if (buffered != null) {
                             Log.d(TAG, "Applying buffered SSE message for ${section.id}")
                             applyAblyMessage(section, buffered)
@@ -501,19 +516,63 @@ open class SduiScreenViewModel(
         }
     }
 
-    private fun applyAblyMessage(section: Section, message: Map<String, Any?>) {
+    private fun mergeSectionWithAblyMessage(
+        section: Section,
+        message: Map<String, Any?>,
+        screen: SduiModels
+    ): Data? {
         val dataBinding = section.dataBinding
-        if (dataBinding != null) {
-            val currentData = currentScreen?.sections
-                ?.find { it.id == section.id }?.data
-                ?.let { toMap(it) } ?: return
-            val updatedData = dataBindingResolver.applyBindings(
-                currentData, message, dataBinding, currentScreen?.traceID,
-                section.stringTable, section.id
-            )
-            updateSectionInScreen(section.id, toData(updatedData))
-        } else {
+        if (dataBinding == null) {
             Log.w(TAG, "No dataBinding config for section ${section.id} — message dropped")
+            return null
+        }
+        val currentData = screen.sections
+            .find { it.id == section.id }?.data
+            ?.let { toMap(it) } ?: return null
+        val updatedData = dataBindingResolver.applyBindings(
+            currentData, message, dataBinding, screen.traceID,
+            section.stringTable, section.id
+        )
+        return toData(updatedData)
+    }
+
+    private fun applyAblyMessage(section: Section, message: Map<String, Any?>) {
+        val screen = currentScreen ?: return
+        val merged = mergeSectionWithAblyMessage(section, message, screen) ?: return
+        updateSectionInScreen(section.id, merged)
+    }
+
+    private fun pruneExpiredSseBuffer(now: Long) {
+        val cutoff = now - SSE_BUFFER_TTL_MS
+        for (id in sseMessageBuffer.filterValues { it.receivedAtMs < cutoff }.keys) {
+            sseMessageBuffer.remove(id)
+        }
+    }
+
+    private fun flushSseBufferBatched() {
+        if (sseMessageBuffer.isEmpty()) return
+        val now = System.currentTimeMillis()
+        val entries = sseMessageBuffer.entries.mapNotNull { (id, entry) ->
+            if (now - entry.receivedAtMs > SSE_BUFFER_TTL_MS) null else id to entry.message
+        }
+        sseMessageBuffer.clear()
+        if (entries.isEmpty()) return
+
+        var screen = currentScreen ?: return
+        var appliedCount = 0
+        for ((sectionId, message) in entries) {
+            val section = screen.sections.find { it.id == sectionId } ?: continue
+            val merged = mergeSectionWithAblyMessage(section, message, screen) ?: continue
+            screen = screen.copy(
+                sections = screen.sections.map { if (it.id == sectionId) it.copy(data = merged) else it }
+            )
+            _staleSections.value = _staleSections.value - sectionId
+            appliedCount++
+        }
+        if (appliedCount > 0) {
+            currentScreen = screen
+            _uiState.value = SduiScreenUiState.Success(screen)
+            Log.d(TAG, "Applied $appliedCount buffered SSE message(s) on foreground")
         }
     }
 
@@ -547,6 +606,7 @@ open class SduiScreenViewModel(
             job.cancel()
         }
         ablyJobs.clear()
+        sseMessageBuffer.clear()
         ablyChannelManager?.disconnect()
         ablyChannelManager = null
     }

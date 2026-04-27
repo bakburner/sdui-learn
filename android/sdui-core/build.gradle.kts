@@ -38,6 +38,9 @@ android {
     
     buildFeatures {
         compose = true
+        // Generates BuildConfig.DEBUG for the SDUI core. Used to gate
+        // verbose action-pipeline logging to local/debug builds only.
+        buildConfig = true
     }
     
     // Reference generated models from codegen project

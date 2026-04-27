@@ -4,10 +4,11 @@ import { useSduiScreen } from './hooks/useSduiScreen';
 import { SectionRouter } from './components/SectionRouter';
 import { TopNavigationBar } from './components/TopNavigationBar';
 import { executeActionSequence } from './runtime/ActionHandler';
+import { setColorSchemePreference, usePrefersColorScheme } from './utils/ColorTokenResolver';
+import { ToastHost } from './components/ToastHost';
 
-// TODO: Bootstrap URI should come from a /sdui/init endpoint.
-//       Hardcoded here only as a temporary prototype bootstrap.
-const BOOTSTRAP_URI = 'nba://for-you';
+// Degraded-connectivity fallback only — primary bootstrap URI comes from /sdui/init.
+const FALLBACK_BOOTSTRAP_URI = 'nba://for-you';
 
 /**
  * Convert an nba:// URI to a server endpoint path.
@@ -28,17 +29,31 @@ function resolveEndpoint(uri: string): string {
 
 export function App(): React.ReactElement {
   const [experiments, setExperiments] = useState<Record<string, string>>({});
-  const [currentUri, setCurrentUri] = useState(BOOTSTRAP_URI);
+  const [currentUri, setCurrentUri] = useState<string | null>(null);
+  const colorScheme = usePrefersColorScheme();
+
+  // Fetch bootstrap URI from the server on mount; fall back if unavailable.
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/sdui/init')
+      .then(r => r.ok ? r.json() : Promise.reject(new Error(`init: ${r.status}`)))
+      .then((data: { bootstrapUri?: string }) => {
+        if (!cancelled && data.bootstrapUri) setCurrentUri(data.bootstrapUri);
+      })
+      .catch(() => {
+        if (!cancelled) setCurrentUri(FALLBACK_BOOTSTRAP_URI);
+      });
+    return () => { cancelled = true; };
+  }, []);
 
   // Variants come from the server response — no client-side URI sniffing.
   // We read screen.variants after the first fetch below.
 
   useEffect(() => {
     setExperiments({});
-    setScreenState({});
   }, [currentUri]);
 
-  const endpoint = resolveEndpoint(currentUri);
+  const endpoint = currentUri ? resolveEndpoint(currentUri) : null;
   const { screen, loading, error, refetch, setScreen } = useSduiScreen({ endpoint, experiments });
 
   // Read available variants from the server response (empty if not provided).
@@ -56,17 +71,28 @@ export function App(): React.ReactElement {
   // Track whether the last screen mutation was a surgical section update
   // so we can skip re-seeding state from the (stale) screen.state.
   const isSectionUpdateRef = useRef(false);
+  const lastScreenIdRef = useRef<string | undefined>(undefined);
 
-  // Initialize screen state from server response when it arrives.
-  // Skip when the screen reference changed due to a section-level merge
-  // (the original screen.state still has defaults that would overwrite
-  // the user's form selections).
+  // Initialize or merge screen state from the server. Full replacement when
+  // the screen id changes (navigation); merge when the same screen is updated.
   useEffect(() => {
     if (isSectionUpdateRef.current) {
       isSectionUpdateRef.current = false;
       return;
     }
-    if (screen?.state) {
+    if (!screen) {
+      return;
+    }
+    if (lastScreenIdRef.current !== screen.id) {
+      lastScreenIdRef.current = screen.id;
+      if (screen.state) {
+        setScreenState({ ...screen.state });
+      } else {
+        setScreenState({});
+      }
+      return;
+    }
+    if (screen.state) {
       setScreenState((prev) => ({ ...prev, ...screen.state }));
     }
   }, [screen]);
@@ -134,8 +160,11 @@ export function App(): React.ReactElement {
     executeActionSequence([action], context);
   }, [screenState, handleStateChange, handleRefresh, handleSectionUpdate, handleUriNavigate, handleSectionStale]);
 
-  // Loading state
-  if (loading) {
+  const handleThemeToggle = useCallback(() => {
+    setColorSchemePreference(colorScheme === 'dark' ? 'light' : 'dark');
+  }, [colorScheme]);
+
+  if (loading && !screen) {
     return (
       <div style={styles.centered}>
         <div style={styles.spinner} />
@@ -144,8 +173,7 @@ export function App(): React.ReactElement {
     );
   }
 
-  // Error state
-  if (error) {
+  if (error && !screen) {
     return (
       <div style={styles.centered}>
         <p style={styles.errorText}>Error: {error}</p>
@@ -159,7 +187,6 @@ export function App(): React.ReactElement {
     );
   }
 
-  // No screen data
   if (!screen) {
     return (
       <div style={styles.centered}>
@@ -170,6 +197,25 @@ export function App(): React.ReactElement {
 
   return (
     <div style={styles.container}>
+      <ToastHost />
+      {loading && (
+        <div
+          style={styles.navLoadingOverlay}
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
+        >
+          <div style={styles.spinner} />
+        </div>
+      )}
+      {error && (
+        <div style={styles.navErrorBanner}>
+          <span style={styles.navErrorText}>{error}</span>
+          <button type="button" style={styles.navErrorRetry} onClick={() => { void refetch(); }}>
+            Retry
+          </button>
+        </div>
+      )}
       {/* Header */}
       <header style={styles.header}>
         {screen.parentUri && (
@@ -182,7 +228,18 @@ export function App(): React.ReactElement {
           </button>
         )}
         <h1 style={styles.title}>{screen.title || 'NBA'}</h1>
-        <span style={styles.schemaVersion}>Schema v{screen.schemaVersion}</span>
+        <div style={styles.headerActions}>
+          <button
+            type="button"
+            style={styles.themeButton}
+            onClick={handleThemeToggle}
+            aria-label={`Switch to ${colorScheme === 'dark' ? 'light' : 'dark'} mode`}
+            title={`Switch to ${colorScheme === 'dark' ? 'light' : 'dark'} mode`}
+          >
+            {colorScheme === 'dark' ? 'Light' : 'Dark'}
+          </button>
+          <span style={styles.schemaVersion}>Schema v{screen.schemaVersion}</span>
+        </div>
       </header>
 
       <TopNavigationBar
@@ -216,7 +273,12 @@ export function App(): React.ReactElement {
       )}
 
       {/* Sections */}
-      <main style={styles.main}>
+      <main
+        style={{
+          ...styles.main,
+          ...(loading ? styles.mainWhileLoading : {}),
+        }}
+      >
         {screen.sections?.length ? (
           screen.sections.map((section) => (
             <div
@@ -236,6 +298,7 @@ export function App(): React.ReactElement {
                 onAction={handleAction}
                 onStateChange={handleStateChange}
                 onStalenessChange={handleStalenessChange}
+                traceId={screen.traceId ?? undefined}
               />
               {section.layoutHints?.dividerBelow && <hr className="sdui-divider" />}
             </div>
@@ -264,6 +327,43 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '0 16px',
     backgroundColor: 'var(--canvas)',
     overflowX: 'hidden',
+    position: 'relative',
+  },
+  navLoadingOverlay: {
+    position: 'absolute',
+    inset: 0,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.12)',
+    zIndex: 10,
+    pointerEvents: 'none',
+    transition: 'opacity 0.2s ease',
+  },
+  navErrorBanner: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    padding: '8px 16px',
+    backgroundColor: 'rgba(200, 40, 40, 0.12)',
+    color: 'var(--negative, #c62828)',
+    fontSize: 13,
+  },
+  navErrorText: {
+    flex: 1,
+  },
+  navErrorRetry: {
+    padding: '4px 12px',
+    borderRadius: 'var(--rounded-base)',
+    border: '1px solid var(--divider)',
+    background: 'var(--surface)',
+    cursor: 'pointer',
+    fontSize: 12,
+  },
+  mainWhileLoading: {
+    opacity: 0.5,
+    transition: 'opacity 0.2s ease',
   },
   header: {
     display: 'flex',
@@ -296,6 +396,22 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 11,
     color: 'var(--text-secondary)',
     fontFamily: 'var(--font-mono)',
+  },
+  headerActions: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+  },
+  themeButton: {
+    border: '1px solid var(--divider)',
+    borderRadius: 'var(--rounded-full)',
+    backgroundColor: 'var(--surface-alt)',
+    color: 'var(--text-primary)',
+    cursor: 'pointer',
+    fontFamily: 'var(--font-body)',
+    fontSize: 12,
+    fontWeight: 600,
+    padding: '5px 12px',
   },
   variantBar: {
     display: 'flex',

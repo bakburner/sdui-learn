@@ -21,28 +21,63 @@ struct TabGroupView: View {
                 ?? ""
 
             VStack(spacing: 0) {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 16) {
-                        ForEach(tabs, id: \.id) { tab in
-                            tabButton(
-                                tab: tab,
-                                isSelected: (tab.stateValue ?? tab.id) == selectedTab,
-                                onSelect: {
-                                    screenState.set(stateKey, value: tab.stateValue ?? tab.id)
-                                }
-                            )
+                // ScrollViewReader pins the strip's scroll offset to the
+                // active tab on every selection change. Without this, tapping
+                // a trailing tab (e.g. "League Pass" on Watch) lets SwiftUI's
+                // implicit "bring focused button fully into view" behavior
+                // shift the inner ScrollView's offset, which on iOS settled
+                // with the leading tab ("Featured") cropped off the leading
+                // edge. Anchoring on `.center` lets the ScrollView clamp at
+                // its bounds — leading-tab selections stay clamped to the
+                // leading edge and trailing-tab selections clamp to the
+                // trailing edge, so all tabs remain visible whenever the
+                // strip's natural width fits the screen, and the active tab
+                // is always centered when it doesn't.
+                ScrollViewReader { proxy in
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 16) {
+                            ForEach(tabs, id: \.id) { tab in
+                                tabButton(
+                                    tab: tab,
+                                    isSelected: (tab.stateValue ?? tab.id) == selectedTab,
+                                    onSelect: {
+                                        screenState.set(stateKey, value: tab.stateValue ?? tab.id)
+                                    }
+                                )
+                                .id(tab.id)
+                            }
                         }
+                        .padding(.horizontal)
                     }
-                    .padding(.horizontal)
+                    .onAppear {
+                        scrollToActiveTab(tabs: tabs, selectedTab: selectedTab, proxy: proxy, animated: false)
+                    }
+                    .onChange(of: selectedTab) { _, newValue in
+                        scrollToActiveTab(tabs: tabs, selectedTab: newValue, proxy: proxy, animated: true)
+                    }
                 }
 
                 if let tabContents = data.tabContents, let sections = tabContents[selectedTab] {
-                    ForEach(Array(sections.enumerated()), id: \.offset) { _, childSection in
+                    ForEach(sections, id: \.id) { childSection in
                         SectionRouter(section: childSection, screenState: screenState, onAction: onAction)
                     }
+                    .animation(.easeInOut(duration: 0.2), value: selectedTab)
+                    .transition(.opacity)
                 }
             }
             .accessibilityElement(children: .contain)
+        }
+    }
+
+    private func scrollToActiveTab(tabs: [TabData], selectedTab: String,
+                                   proxy: ScrollViewProxy, animated: Bool) {
+        guard let active = tabs.first(where: { ($0.stateValue ?? $0.id) == selectedTab })
+                ?? tabs.first else { return }
+        let scroll = { proxy.scrollTo(active.id, anchor: .center) }
+        if animated {
+            withAnimation(.easeInOut(duration: 0.2)) { scroll() }
+        } else {
+            scroll()
         }
     }
 

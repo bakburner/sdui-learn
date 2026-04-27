@@ -1,5 +1,8 @@
 import Kingfisher
 import SwiftUI
+#if os(iOS)
+import UIKit
+#endif
 
 /// Renders an Image atomic element. Image URLs always come from the server
 /// response — never constructed client-side. Image-specific concerns
@@ -33,11 +36,11 @@ struct AtomicImageView: View {
 
             Group {
                 if finalImageFailed {
-                    placeholder
+                    placeholder(resolvedAspectRatio: resolvedAspectRatio, contentMode: resolvedContentMode)
                 } else {
                     KFImage(url)
                         .placeholder {
-                            ProgressView()
+                            loadingPlaceholder(resolvedAspectRatio: resolvedAspectRatio, contentMode: resolvedContentMode)
                         }
                         .onFailure { _ in
                             handleImageFailure(currentSrc: src)
@@ -46,6 +49,7 @@ struct AtomicImageView: View {
                         .aspectRatio(resolvedAspectRatio, contentMode: resolvedContentMode)
                 }
             }
+            .modifier(AtomicImageMaxFrameModifier())
             .modifier(ImageAspectRatioModifier(
                 aspectRatio: (element.height == nil) ? resolvedAspectRatio : nil,
                 contentMode: resolvedContentMode
@@ -112,9 +116,39 @@ struct AtomicImageView: View {
     }
 
     @ViewBuilder
-    private var placeholder: some View {
-        Rectangle()
-            .fill(Color.gray.opacity(0.2))
+    private func loadingPlaceholder(
+        resolvedAspectRatio: CGFloat?,
+        contentMode: SwiftUI.ContentMode
+    ) -> some View {
+        ZStack {
+            Color.gray.opacity(0.2)
+            ProgressView()
+        }
+        .modifier(ImageAspectRatioModifier(aspectRatio: (element.height == nil) ? resolvedAspectRatio : nil, contentMode: contentMode))
+    }
+
+    @ViewBuilder
+    private func placeholder(
+        resolvedAspectRatio: CGFloat?,
+        contentMode: SwiftUI.ContentMode
+    ) -> some View {
+        Color.gray.opacity(0.2)
+            .modifier(ImageAspectRatioModifier(aspectRatio: (element.height == nil) ? resolvedAspectRatio : nil, contentMode: contentMode))
+    }
+}
+
+private struct AtomicImageMaxFrameModifier: ViewModifier {
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        #if os(iOS)
+        content
+            .frame(
+                maxWidth: min(UIScreen.main.bounds.width * 2, 8192),
+                maxHeight: min(UIScreen.main.bounds.height * 2, 8192)
+            )
+        #else
+        content
+        #endif
     }
 }
 

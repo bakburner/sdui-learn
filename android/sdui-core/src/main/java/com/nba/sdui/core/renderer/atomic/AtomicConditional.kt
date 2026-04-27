@@ -1,5 +1,6 @@
 package com.nba.sdui.core.renderer.atomic
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.runtime.Composable
 import com.nba.sdui.core.models.generated.AtomicElement
 import com.nba.sdui.core.state.SduiAction
@@ -25,16 +26,21 @@ fun AtomicConditional(
     sectionSlotDepth: Int = 0
 ) {
     val conditionMet = evaluateCondition(element.condition, screenState)
-    val child = if (conditionMet) element.trueChild else element.falseChild
-    child?.let {
-        AtomicRouter(
-            it,
-            screenState,
-            onAction,
-            depth = depth + 1,
-            onStateChange = onStateChange,
-            sectionSlotDepth = sectionSlotDepth
-        )
+    AnimatedContent(
+        targetState = conditionMet,
+        label = "atomicConditional"
+    ) { met ->
+        val child = if (met) element.trueChild else element.falseChild
+        child?.let {
+            AtomicRouter(
+                it,
+                screenState,
+                onAction,
+                depth = depth + 1,
+                onStateChange = onStateChange,
+                sectionSlotDepth = sectionSlotDepth
+            )
+        }
     }
 }
 

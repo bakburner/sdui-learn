@@ -33,11 +33,13 @@ import com.nba.sdui.core.state.ActionHandler
 @Composable
 fun GameDetailScreen(
     config: SduiConfig,
+    darkTheme: Boolean,
     modifier: Modifier = Modifier,
     onNavigateUri: (String) -> Unit = {},
     onShowToast: (String) -> Unit = {},
     onVariantChange: (String) -> Unit = {},
     onBack: () -> Unit = {},
+    onToggleTheme: () -> Unit = {},
     viewModel: GameDetailViewModel = viewModel {
         GameDetailViewModel(
             baseUrl = BuildConfig.SDUI_BASE_URL,
@@ -112,6 +114,11 @@ fun GameDetailScreen(
                             contentDescription = "Back"
                         )
                     }
+                }
+            },
+            actions = {
+                TextButton(onClick = onToggleTheme) {
+                    Text(if (darkTheme) "Light" else "Dark")
                 }
             }
         )

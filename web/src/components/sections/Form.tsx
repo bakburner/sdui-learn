@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { SectionProps } from '../SectionRouter';
 import { mapForm } from '../../adapters/sectionUiAdapters';
 import { accessibilityProps } from '../../utils/accessibility';
@@ -9,13 +9,77 @@ import { accessibilityProps } from '../../utils/accessibility';
  * Renders typed fields (select, radio, toggle, text, etc.) bound to
  * screen state.  Submit fires a parameterized refresh action.
  */
+const TEXT_DEBOUNCE_MS = 300;
+
+function isTextLikeField(fieldType: string | undefined): boolean {
+  return fieldType === 'text' || fieldType === 'textarea' || fieldType === 'number' || fieldType === 'date';
+}
+
 export function Form({ section, state, onAction, onStateChange }: SectionProps): React.ReactElement {
   const model = mapForm(section, state);
+  const textDebounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [textDraft, setTextDraft] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    setTextDraft({});
+  }, [section.id]);
+
+  useEffect(
+    () => () => {
+      if (textDebounceTimerRef.current) {
+        clearTimeout(textDebounceTimerRef.current);
+        textDebounceTimerRef.current = null;
+      }
+    },
+    [],
+  );
+
+  const clearTextDebounce = useCallback(() => {
+    if (textDebounceTimerRef.current) {
+      clearTimeout(textDebounceTimerRef.current);
+      textDebounceTimerRef.current = null;
+    }
+  }, []);
+
+  const pushTextToScreen = useCallback(
+    (key: string, value: string) => {
+      clearTextDebounce();
+      onStateChange(key, value);
+    },
+    [clearTextDebounce, onStateChange],
+  );
+
+  const scheduleTextChange = useCallback(
+    (key: string, value: string) => {
+      if (textDebounceTimerRef.current) {
+        clearTimeout(textDebounceTimerRef.current);
+      }
+      textDebounceTimerRef.current = setTimeout(() => {
+        textDebounceTimerRef.current = null;
+        onStateChange(key, value);
+      }, TEXT_DEBOUNCE_MS);
+    },
+    [onStateChange],
+  );
+
   if (!model) {
     return <div style={styles.container}>No form data available</div>;
   }
 
+  const getTextFieldValue = (key: string): string => {
+    if (Object.prototype.hasOwnProperty.call(textDraft, key)) {
+      return textDraft[key]!;
+    }
+    return (state[key] as string) ?? '';
+  };
+
   const handleSubmit = () => {
+    clearTextDebounce();
+    for (const field of model.fields) {
+      if (isTextLikeField(field.fieldType)) {
+        onStateChange(field.stateKey, getTextFieldValue(field.stateKey));
+      }
+    }
     if (model.submitAction) {
       onAction(model.submitAction);
     }
@@ -27,7 +91,9 @@ export function Form({ section, state, onAction, onStateChange }: SectionProps):
     <div role="form" style={{ ...styles.container, backgroundColor: section.backgroundColor || 'var(--surface)' }} {...accessibilityProps(section.accessibility)}>
       <div style={{ ...styles.fields, flexDirection: isHorizontal ? 'row' : 'column' }}>
         {model.fields.map((field) => {
-          const value = (state[field.stateKey] as string) ?? '';
+          const value = isTextLikeField(field.fieldType)
+            ? getTextFieldValue(field.stateKey)
+            : ((state[field.stateKey] as string) ?? '');
           return (
             <div key={field.fieldId} style={styles.fieldGroup}>
               <label style={styles.label} htmlFor={`form-${field.fieldId}`}>
@@ -125,7 +191,12 @@ export function Form({ section, state, onAction, onStateChange }: SectionProps):
                   type="date"
                   value={value}
                   disabled={field.disabled}
-                  onChange={(e) => onStateChange(field.stateKey, e.target.value)}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setTextDraft((d) => ({ ...d, [field.stateKey]: v }));
+                    scheduleTextChange(field.stateKey, v);
+                  }}
+                  onBlur={() => pushTextToScreen(field.stateKey, getTextFieldValue(field.stateKey))}
                   style={styles.textInput}
                 />
               )}
@@ -138,7 +209,12 @@ export function Form({ section, state, onAction, onStateChange }: SectionProps):
                   value={value}
                   placeholder={field.placeholder}
                   disabled={field.disabled}
-                  onChange={(e) => onStateChange(field.stateKey, e.target.value)}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setTextDraft((d) => ({ ...d, [field.stateKey]: v }));
+                    scheduleTextChange(field.stateKey, v);
+                  }}
+                  onBlur={() => pushTextToScreen(field.stateKey, getTextFieldValue(field.stateKey))}
                   style={styles.textInput}
                 />
               )}
@@ -150,7 +226,12 @@ export function Form({ section, state, onAction, onStateChange }: SectionProps):
                   value={value}
                   placeholder={field.placeholder}
                   disabled={field.disabled}
-                  onChange={(e) => onStateChange(field.stateKey, e.target.value)}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setTextDraft((d) => ({ ...d, [field.stateKey]: v }));
+                    scheduleTextChange(field.stateKey, v);
+                  }}
+                  onBlur={() => pushTextToScreen(field.stateKey, getTextFieldValue(field.stateKey))}
                   style={{ ...styles.textInput, minHeight: 80, resize: 'vertical' }}
                 />
               )}
@@ -163,7 +244,12 @@ export function Form({ section, state, onAction, onStateChange }: SectionProps):
                   value={value}
                   placeholder={field.placeholder}
                   disabled={field.disabled}
-                  onChange={(e) => onStateChange(field.stateKey, e.target.value)}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setTextDraft((d) => ({ ...d, [field.stateKey]: v }));
+                    scheduleTextChange(field.stateKey, v);
+                  }}
+                  onBlur={() => pushTextToScreen(field.stateKey, getTextFieldValue(field.stateKey))}
                   style={styles.textInput}
                 />
               )}

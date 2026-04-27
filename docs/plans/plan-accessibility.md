@@ -39,7 +39,7 @@ Add server-driven accessibility metadata to every renderable element so screen r
 
 ### Phase 3: Android
 - [x] Create `AccessibilityExt.kt` shared utility
-- [x] Apply to all 9 section renderers + 10 atomic renderers
+- [x] Apply to all 8 permanent section renderers + 12 atomic renderers
 - [ ] Wire `liveRegion` to Compose `LiveRegionMode.Polite` / `Assertive`
 - [ ] Add Espresso accessibility checks to UI tests
 

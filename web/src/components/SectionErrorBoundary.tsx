@@ -56,14 +56,14 @@ export class SectionErrorBoundary extends React.Component<
 
     const message = errorConfig?.message ?? 'Something went wrong';
     const hasRetry = !!errorConfig?.retryAction;
+    const retryLabel = errorConfig?.retryLabel;
 
     return (
       <div style={styles.container}>
-        <span style={styles.icon}>⚠</span>
         <p style={styles.message}>{message}</p>
         {hasRetry && (
           <button style={styles.retryButton} onClick={this.handleRetry}>
-            Try Again
+            {retryLabel ?? 'Retry'}
           </button>
         )}
       </div>
@@ -77,27 +77,23 @@ const styles: Record<string, React.CSSProperties> = {
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: '24px 16px',
-    backgroundColor: 'rgba(255, 107, 107, 0.08)',
+    padding: '16px',
+    backgroundColor: 'var(--surface-variant, rgba(128, 128, 128, 0.08))',
     borderRadius: 8,
     margin: '8px 0',
   },
-  icon: {
-    fontSize: 24,
-    marginBottom: 8,
-  },
   message: {
-    color: '#ff6b6b',
+    color: 'var(--on-surface-variant, inherit)',
     fontSize: 13,
     textAlign: 'center',
     margin: '0 0 12px',
   },
   retryButton: {
     padding: '8px 20px',
-    border: '1px solid #ff6b6b',
+    border: '1px solid var(--outline, #888)',
     borderRadius: 6,
     backgroundColor: 'transparent',
-    color: '#ff6b6b',
+    color: 'var(--on-surface-variant, inherit)',
     fontSize: 12,
     fontWeight: 600,
     cursor: 'pointer',

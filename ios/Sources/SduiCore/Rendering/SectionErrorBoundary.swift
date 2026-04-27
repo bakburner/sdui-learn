@@ -62,6 +62,7 @@ struct SectionErrorBoundary<Content: View>: View {
                 SectionErrorCard(
                     message: errorConfig?.message ?? message,
                     retryAction: errorConfig?.retryAction,
+                    retryLabel: errorConfig?.retryLabel,
                     canRetry: retryCount < maxRetries,
                     onRetry: {
                         retryCount += 1
@@ -96,15 +97,13 @@ extension SectionErrorBoundary {
 private struct SectionErrorCard: View {
     let message: String
     let retryAction: Action?
+    let retryLabel: String?
     let canRetry: Bool
     let onRetry: () -> Void
     let onAction: (Action) -> Void
 
     var body: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.title)
-                .foregroundStyle(.orange)
+        VStack(spacing: 8) {
             Text(message)
                 .font(.body)
                 .foregroundStyle(.secondary)
@@ -114,17 +113,15 @@ private struct SectionErrorCard: View {
                     onAction(retryAction)
                     onRetry()
                 } label: {
-                    Text("Try Again")
+                    Text(retryLabel ?? "Retry")
                 }
                 .buttonStyle(.bordered)
             }
         }
-        .padding(24)
+        .padding(16)
         .frame(maxWidth: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.red.opacity(0.08))
-        )
+        .background(Color(.secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         .padding(.vertical, 4)
     }
 }

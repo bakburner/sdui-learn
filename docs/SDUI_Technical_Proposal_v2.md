@@ -328,11 +328,9 @@ New UI surface needed?
 | **Client-owned interaction state** | **BoxscoreTable** — frozen column + horizontal scroll sync, client-side sort with `remember{}`, starter/bench divider logic, DNP player handling, totals row. The sort and scroll coordination are tightly coupled local UI state. | Atomic primitives have no `remember{}`/`useState` equivalent. Coordinated scroll positions and sort state require client-owned render logic. |
 | **Section container** | **TabGroup** — tab selection fires `mutate` updating `screenState`, which drives which child sections render. It nests other sections. | Atomic trees cannot contain section children (except via `SectionSlot`, which is the escape hatch for embedding one section inside an atomic layout — not for nesting arbitrary section trees). |
 
-**When a section can migrate to atomic:**
+**When a content surface is atomic:**
 
-A section is a migration candidate when it is stateless (no `remember{}`, no `mutableStateOf`, no scroll state), has no platform SDK dependencies, does not nest other sections, and its visual variants are deterministic from server-sent data fields alone. The server emits the correct atomic tree directly — the client's `AtomicRouter` paints it without branching.
-
-Migrated sections (10 types): ErrorState, SectionHeader, PromoBanner, ContentRail, FollowingRail, HeroPanel, StatLine, VideoCarousel, NbaTvSchedule, GamePanel — server-composed `AtomicComposite` with no client renderers. Schema definitions pruned; only the 8 permanent section types + `AtomicComposite` remain in the `Section.type` enum.
+A surface is composed as `AtomicComposite` when it is stateless (no `remember{}`, no `mutableStateOf`, no scroll state), has no platform SDK dependencies, does not nest other sections, and its visual variants are deterministic from server-sent data fields alone. The server emits the atomic tree directly — the client's `AtomicRouter` paints it without branching. Live-score surfaces, headers, rails, hero panels, promo banners, stat lines, video carousels, schedule layouts, and error states all fall into this bucket; the server composes them as `AtomicComposite` with `bindRef` leaf-level data resolution and the `LiveClock` primitive for client-owned tick animation where needed.
 
 ### 2c. Figma Design System Integration
 
@@ -653,7 +651,7 @@ Each platform family receives a tailored composition from the server while shari
 | VideoPlayer | Partial (stub view in place) | Partial (stub view in place) | Partial (stub view in place) |
 | AtomicComposite (server-composed atomic trees; bridges section + atomic layers) | Built | Built | Built |
 
-> **Note:** 10 former section types (ErrorState, SectionHeader, PromoBanner, ContentRail, FollowingRail, HeroPanel, StatLine, VideoCarousel, NbaTvSchedule, GamePanel) have been migrated to server-composed AtomicComposite. They no longer appear in the `Section.type` schema enum and require no dedicated client renderers. `VideoPlayer` ships with a platform-neutral stub view on each platform; wiring to the real video SDKs (AVPlayer / ExoPlayer / HLS.js) is a follow-up.
+> **Note:** `VideoPlayer` ships with a platform-neutral stub view on each platform; wiring to the real video SDKs (AVPlayer / ExoPlayer / HLS.js) is a follow-up.
 
 **Atomic element coverage across platforms:**
 
@@ -670,9 +668,10 @@ Each platform family receives a tailored composition from the server while shari
 | DisplayGrid | Built | Built | Built |
 | SectionSlot | Built | Built | Built |
 | LiveClock | Built | Built | Built |
+| OverlayContainer | Built | Built | Built |
 | **AtomicRouter** | **Built** | **Built** | **Built** |
 
-The `AtomicRouter` dispatches rendering for all 11 element types. `AtomicComposite` is the 9th section type in `SectionRouter` (8 permanent + AtomicComposite). 10 former section types have been migrated to server-composed AtomicComposite layouts with no client renderers.
+The `AtomicRouter` dispatches rendering for all 12 element types. `AtomicComposite` is one of the 9 section types in `SectionRouter` (8 permanent sections + the `AtomicComposite` bridge to the atomic layer).
 
 
 ---
@@ -730,7 +729,7 @@ SubcomposeAsyncImage(
 - **Server-driven**: The server decides what the fallback image is — clients never hardcode fallback URLs.
 - **Graceful**: If both primary and fallback fail, the image area remains empty (no crash, no broken icon).
 - **Per-section**: Different sections can specify different fallbacks appropriate to their content type.
-- **Sections using this pattern**: AtomicComposite layouts (formerly VideoCarousel, ContentRail, HeroPanel, NbaTvSchedule, PromoBanner, FollowingRail), SubscribeBanner, SubscribeHero.
+- **Sections using this pattern**: image-bearing `AtomicComposite` layouts (rails, hero panels, video carousels, schedule layouts, promo banners), `SubscribeBanner`, `SubscribeHero`.
 
 ---
 
@@ -927,7 +926,7 @@ The alternative is duplicated platform composition logic and drift in feature be
 4. Introduce ad primitive (ADR-007). Layout strategy already accepted (ADR-008, Option C).
 5. Implement impression tracking per ADR-009 (accepted). Android/iOS pending.
 6. Implement offline/degraded connectivity strategy per ADR-010 — platform cache fallback, staleness UX, fire-and-forget queue.
-7. Style-token strategy per ADR-013 — **shipped and Accepted.** Uniform `variant: string` with per-primitive enums (`TextVariant`, `ButtonVariant`, `ContainerVariant`, `ImageVariant`); per-platform per-OS-tier realization with mandatory dark-mode coverage; per-variant override matrix (including per-platform policies); three diagnostics (`variant_resolver_missing`, `variant_override_blocked`, `token_resolver_missing`); color-token wire encoding with two-tier palette/semantic registry; client `ColorTokenResolver` on every platform; server `ColorTokens` constants with startup consistency check against the registry; pilot composer migrations complete (`AtomicCompositeBuilder`, `GameDetailComposer`, `ScheduleComposer`, `LiveComposer`, `ForYouComposer`, `DemoScreenComposer`). Figma export pipeline deferred — registry is ref-app-seeded with a Kinetic-compatible shape that is replaceable wholesale when the design-system tooling lands. Reference document: [`sdui-design-system.md`](sdui-design-system.md).
+7. Style-token strategy per ADR-013 — **shipped and Accepted.** Uniform `variant: string` with per-primitive enums (`TextVariant`, `ButtonVariant`, `ContainerVariant`, `ImageVariant`); per-platform per-OS-tier realization with mandatory dark-mode coverage; per-variant override matrix (including per-platform policies); three diagnostics (`variant_resolver_missing`, `variant_override_blocked`, `token_resolver_missing`); color-token wire encoding with two-tier palette/semantic registry; client `ColorTokenResolver` on every platform; server `ColorTokens` constants with startup consistency check against the registry; tokens applied across composers (`AtomicCompositeBuilder`, `GameDetailComposer`, `ScheduleComposer`, `LiveComposer`, `ForYouComposer`, `DemoScreenComposer`). Figma export pipeline deferred — registry is ref-app-seeded with a Kinetic-compatible shape that is replaceable wholesale when the design-system tooling lands. Reference document: [`sdui-design-system.md`](sdui-design-system.md).
 
 ---
 
@@ -935,6 +934,7 @@ The alternative is duplicated platform composition logic and drift in feature be
 
 | Date | Summary |
 |---|---|
+| 2026-04-26 | Doc consistency audit. Stripped historical migration narrative — §2b reframed "When a section can migrate to atomic" as "When a content surface is atomic" (forward-looking criterion only); §8 former-section note replaced with a `VideoPlayer` stub-status note; §8 atomic-element coverage table gained an `OverlayContainer` row and the dispatch-summary sentence updated to 12 element types. Doc now describes current architectural state without "former section types" framing. |
 | 2026-04-25 | Doc consistency audit. Migrated-section count 9 → 10 (GamePanel added). Atomic element count 10 → 11 (§8 coverage table + summary line). Section type count 10th → 9th, 9 permanent → 8 permanent. LiveClock row added to atomic platform coverage table. Former-section note updated to list all 10 migrated types. Implementation-status annotations added: §1 capability-gating example marked as plumbed-not-consumed, §2c Figma CI pipeline marked as planned-not-built, §8 style-tokens row updated with override-matrix and diagnostic coverage qualifications. |
 | 2026-04-25 | GamePanel migration to AtomicComposite. Updated §1 decision examples (SSE question no longer GamePanel-specific), §2 dual-layer model (GamePanel removed from semantic list), §2b (BoxscoreTable replaces GamePanel as network-lifecycle example), §2c elevation row (shadow on Container replaces GamePanelDisplayConfig), §6 router/renderer examples (BoxscoreTable), §8 platform coverage table (GamePanel row removed), §10 JSON example (AtomicComposite). Stripped Rule N / AGENTS.md citations per §10.3. |
 | 2026-04-24 | Doc consistency audit. Added the AtomicBox note tying Layer 1 inline primitives to the unified box-model execution path. Updated current status rows so BoxscoreTable and Form reflect Android, iOS, and web parity. |

@@ -2162,7 +2162,13 @@ data class ErrorState (
     /**
      * Optional action to trigger on retry tap (typically a refresh action)
      */
-    val retryAction: Action? = null
+    val retryAction: Action? = null,
+
+    /**
+     * Button label for the retry CTA (e.g. 'Try Again', 'Reload'). Clients use 'Retry' as a
+     * neutral default when omitted.
+     */
+    val retryLabel: String? = null
 )
 
 data class Loading (

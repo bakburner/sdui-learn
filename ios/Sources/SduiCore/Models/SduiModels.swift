@@ -2911,6 +2911,9 @@ struct ErrorState: Codable {
     let message: String?
     /// Optional action to trigger on retry tap (typically a refresh action)
     let retryAction: Action?
+    /// Button label for the retry CTA (e.g. 'Try Again', 'Reload'). Clients use 'Retry' as a
+    /// neutral default when omitted.
+    let retryLabel: String?
 }
 
 // MARK: ErrorState convenience initializers and mutators
@@ -2934,12 +2937,14 @@ extension ErrorState {
     func with(
         hideOnError: Bool?? = nil,
         message: String?? = nil,
-        retryAction: Action?? = nil
+        retryAction: Action?? = nil,
+        retryLabel: String?? = nil
     ) -> ErrorState {
         return ErrorState(
             hideOnError: hideOnError ?? self.hideOnError,
             message: message ?? self.message,
-            retryAction: retryAction ?? self.retryAction
+            retryAction: retryAction ?? self.retryAction,
+            retryLabel: retryLabel ?? self.retryLabel
         )
     }
 

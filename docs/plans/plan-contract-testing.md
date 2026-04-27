@@ -30,7 +30,7 @@ Automated testing that validates the full SDUI pipeline: server composition outp
 
 ### Phase 1: Golden Fixture Generation
 - [ ] Create `schema/fixtures/` directory
-- [ ] Generate golden JSON fixture for each of the 10 section types from live server output
+- [ ] Generate golden JSON fixture for each of the 9 section types from live server output
 - [ ] Generate golden JSON fixture for each AtomicComposite variant (from kitchen sink)
 - [ ] Version fixtures with a `_fixture_version` field for schema evolution tracking
 - [ ] Add `make fixtures` command to regenerate from live server

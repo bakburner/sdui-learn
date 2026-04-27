@@ -403,6 +403,25 @@ public class SduiController {
         }
     }
 
+    // ── Init ──────────────────────────────────────────────────────────
+
+    /**
+     * Bootstrap endpoint — returns the initial navigation URI so clients
+     * do not need to hardcode a starting screen.
+     */
+    @GetMapping(value = "/sdui/init", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<JsonNode> init(SduiRequestContext ctx, HttpServletResponse response) {
+        ensureTraceId(ctx);
+        setResponseHeaders(response, ctx);
+
+        ObjectNode body = objectMapper.createObjectNode();
+        body.put("bootstrapUri", "nba://for-you");
+        body.put("schemaVersion", ctx.getSchemaVersion());
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.maxAge(Duration.ofSeconds(300)).cachePublic())
+                .body(body);
+    }
+
     // ── Health ──────────────────────────────────────────────────────────
 
     @GetMapping("/health")

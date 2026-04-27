@@ -4,8 +4,8 @@ import type { SduiModels } from '@sdui/models';
 import { RequestEnvelopeBuilder } from '../request/RequestEnvelopeBuilder';
 
 interface UseSduiScreenOptions {
-  /** Server endpoint path, e.g. "/sdui/scoreboard" or "/sdui/game-detail/0042300102?gameState=live" */
-  endpoint: string;
+  /** Server endpoint path, e.g. "/sdui/scoreboard". Null skips the fetch. */
+  endpoint: string | null;
   /** Experiment assignments from Amplitude (experimentId → variant). */
   experiments?: Record<string, string>;
 }
@@ -33,6 +33,7 @@ export function useSduiScreen(options: UseSduiScreenOptions): UseSduiScreenResul
   const [error, setError] = useState<string | null>(null);
 
   const fetchScreen = useCallback(async () => {
+    if (!endpoint) return;
     try {
       setLoading(true);
       setError(null);

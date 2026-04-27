@@ -112,7 +112,7 @@ For any platform, the developer ends up with:
 ├── routing/          SectionRouter, AtomicRouter
 ├── renderers/
 │   ├── sections/     8 permanent section renderers
-│   └── atomic/       11 atomic element renderers
+│   └── atomic/       12 atomic element renderers
 ├── runtime/
 │   ├── DataBindingResolver
 │   ├── RealTimeManager (Ably)

@@ -947,6 +947,10 @@
           "$ref": "#/definitions/Action",
           "description": "Optional action to trigger on retry tap (typically a refresh action)"
         },
+        "retryLabel": {
+          "type": "string",
+          "description": "Button label for the retry CTA (e.g. 'Try Again', 'Reload'). Clients use 'Retry' as a neutral default when omitted."
+        },
         "hideOnError": {
           "type": "boolean",
           "default": false,

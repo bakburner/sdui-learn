@@ -69,7 +69,7 @@ at `localhost:8080` is the reference implementation; hit it with
 | 4 | **SectionRouter** | Switch on `section.type` → dispatch to renderer. Unknown types → log + skip. |
 | 5 | **AtomicRouter** | Switch on `element.type` → dispatch to atomic renderer. Depth guard at 6. |
 | 6 | **AtomicComposite bridge** | When SectionRouter sees `type: "AtomicComposite"`, parse `section.data.ui` and hand to AtomicRouter. Renderers read live fields via `bindRef` (see §4b) against `section.data.content`. |
-| 7 | **11 atomic renderers** | Container, Text, Image, Button, Spacer, Divider, ScrollContainer, Conditional, DisplayGrid, SectionSlot, LiveClock. See §4c for LiveClock tick-loop contract. |
+| 7 | **12 atomic renderers** | Container, Text, Image, Button, Spacer, Divider, ScrollContainer, Conditional, DisplayGrid, OverlayContainer, SectionSlot, LiveClock. See §4c for LiveClock tick-loop contract. |
 | 8 | **ScreenShell** | Fetch screen via repository, iterate `sections[]`, pass each to SectionRouter. |
 
 **Milestone:** You can render the kitchen-sink demo screen as a scrollable page
@@ -118,8 +118,8 @@ refresh.
 | 24a | **VideoPlayer** | Platform video SDK (HLS/DASH playback, PiP, AirPlay/Chromecast, background audio, fullscreen rotation). `playerType` discriminator maps to the right SDK entry point. |
 
 **Milestone:** All 8 permanent sections render with full interactivity.
-Live-score surfaces (previously `GamePanel`) render as server-composed
-`AtomicComposite` trees driven by `bindRef` + SSE data bindings.
+Live-score surfaces render as server-composed `AtomicComposite` trees
+driven by `bindRef` + SSE data bindings.
 
 ### Phase 5 — Production Hardening
 
@@ -198,17 +198,18 @@ FUNCTION AtomicRouter(element, screenState, onAction, onStateChange, depth):
     childDepth = depth + 1
 
     SWITCH element.type:
-        "Container"       → AtomicContainer(element, screenState, onAction, onStateChange, childDepth)
-        "Text"            → AtomicText(element)
-        "Image"           → AtomicImage(element)
-        "Button"          → AtomicButton(element, screenState, onAction)
-        "Spacer"          → AtomicSpacer(element)
-        "Divider"         → AtomicDivider(element)
-        "ScrollContainer" → AtomicScrollContainer(element, screenState, onAction, onStateChange, childDepth)
-        "Conditional"     → AtomicConditional(element, screenState, onAction, onStateChange, childDepth)
-        "DisplayGrid"     → AtomicDisplayGrid(element)
-        "SectionSlot"     → AtomicSectionSlot(element, screenState, onAction, onStateChange)
-        "LiveClock"       → AtomicLiveClock(element)   // see §4c
+        "Container"        → AtomicContainer(element, screenState, onAction, onStateChange, childDepth)
+        "Text"             → AtomicText(element)
+        "Image"            → AtomicImage(element)
+        "Button"           → AtomicButton(element, screenState, onAction)
+        "Spacer"           → AtomicSpacer(element)
+        "Divider"          → AtomicDivider(element)
+        "ScrollContainer"  → AtomicScrollContainer(element, screenState, onAction, onStateChange, childDepth)
+        "Conditional"      → AtomicConditional(element, screenState, onAction, onStateChange, childDepth)
+        "DisplayGrid"      → AtomicDisplayGrid(element)
+        "OverlayContainer" → AtomicOverlayContainer(element, screenState, onAction, onStateChange, childDepth)
+        "SectionSlot"      → AtomicSectionSlot(element, screenState, onAction, onStateChange)
+        "LiveClock"        → AtomicLiveClock(element)   // see §4c
         DEFAULT →
             LOG_WARNING("Unknown atomic type: " + element.type)
             RETURN null
@@ -235,11 +236,11 @@ FUNCTION AtomicContainer(element, state, onAction, onStateChange, depth):
 
 `AtomicBox` is the **single site** on every client where an `AtomicElement`'s
 box model is realized. Every primitive — `Container`, `ScrollContainer`,
-`Text`, `Image`, `Button`, `Divider`, `DisplayGrid` — wraps its rendered
-content through `AtomicBox`. Primitives that are pure layout devices —
-`Spacer`, `Conditional`, `SectionSlot` — bypass it because they render no
-chrome of their own (the chosen child / hosted section carries the box
-model).
+`Text`, `Image`, `Button`, `Divider`, `DisplayGrid`, `OverlayContainer` —
+wraps its rendered content through `AtomicBox`. Primitives that are pure
+layout devices — `Spacer`, `Conditional`, `SectionSlot` — bypass it because
+they render no chrome of their own (the chosen child / hosted section
+carries the box model).
 
 **The canonical modifier order (outer → inner):**
 

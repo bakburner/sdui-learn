@@ -85,6 +85,7 @@ fun SectionErrorBoundary(
         SectionErrorCard(
             message = errorConfig?.message ?: activeError,
             retryAction = errorConfig?.retryAction,
+            retryLabel = errorConfig?.retryLabel,
             canRetry = retryCount < maxRetries,
             onRetry = {
                 retryCount++
@@ -101,6 +102,7 @@ fun SectionErrorBoundary(
 private fun SectionErrorCard(
     message: String,
     retryAction: Action?,
+    retryLabel: String?,
     canRetry: Boolean,
     onRetry: () -> Unit,
     onAction: (SduiAction) -> Unit
@@ -109,30 +111,25 @@ private fun SectionErrorCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 0.dp, vertical = 4.dp),
-        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f),
+        color = MaterialTheme.colorScheme.surfaceVariant,
         shape = MaterialTheme.shapes.medium
     ) {
         Column(
-            modifier = Modifier.padding(24.dp),
+            modifier = Modifier.padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "⚠",
-                style = MaterialTheme.typography.titleLarge
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
                 text = message,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.error
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             if (canRetry && retryAction != null) {
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(12.dp))
                 OutlinedButton(onClick = {
                     retryAction?.let { onAction(it.toSduiAction()) }
                     onRetry()
                 }) {
-                    Text("Try Again")
+                    Text(retryLabel ?: "Retry")
                 }
             }
         }

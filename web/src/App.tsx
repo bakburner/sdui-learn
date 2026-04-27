@@ -7,9 +7,8 @@ import { executeActionSequence } from './runtime/ActionHandler';
 import { setColorSchemePreference, usePrefersColorScheme } from './utils/ColorTokenResolver';
 import { ToastHost } from './components/ToastHost';
 
-// TODO: Bootstrap URI should come from a /sdui/init endpoint.
-//       Hardcoded here only as a temporary prototype bootstrap.
-const BOOTSTRAP_URI = 'nba://for-you';
+// Degraded-connectivity fallback only — primary bootstrap URI comes from /sdui/init.
+const FALLBACK_BOOTSTRAP_URI = 'nba://for-you';
 
 /**
  * Convert an nba:// URI to a server endpoint path.
@@ -30,8 +29,22 @@ function resolveEndpoint(uri: string): string {
 
 export function App(): React.ReactElement {
   const [experiments, setExperiments] = useState<Record<string, string>>({});
-  const [currentUri, setCurrentUri] = useState(BOOTSTRAP_URI);
+  const [currentUri, setCurrentUri] = useState<string | null>(null);
   const colorScheme = usePrefersColorScheme();
+
+  // Fetch bootstrap URI from the server on mount; fall back if unavailable.
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/sdui/init')
+      .then(r => r.ok ? r.json() : Promise.reject(new Error(`init: ${r.status}`)))
+      .then((data: { bootstrapUri?: string }) => {
+        if (!cancelled && data.bootstrapUri) setCurrentUri(data.bootstrapUri);
+      })
+      .catch(() => {
+        if (!cancelled) setCurrentUri(FALLBACK_BOOTSTRAP_URI);
+      });
+    return () => { cancelled = true; };
+  }, []);
 
   // Variants come from the server response — no client-side URI sniffing.
   // We read screen.variants after the first fetch below.
@@ -40,7 +53,7 @@ export function App(): React.ReactElement {
     setExperiments({});
   }, [currentUri]);
 
-  const endpoint = resolveEndpoint(currentUri);
+  const endpoint = currentUri ? resolveEndpoint(currentUri) : null;
   const { screen, loading, error, refetch, setScreen } = useSduiScreen({ endpoint, experiments });
 
   // Read available variants from the server response (empty if not provided).

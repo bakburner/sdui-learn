@@ -1477,6 +1477,11 @@ export interface ErrorState {
      * Optional action to trigger on retry tap (typically a refresh action)
      */
     retryAction?: Action;
+    /**
+     * Button label for the retry CTA (e.g. 'Try Again', 'Reload'). Clients use 'Retry' as a
+     * neutral default when omitted.
+     */
+    retryLabel?: string;
     [property: string]: any;
 }
 

@@ -5,11 +5,10 @@ For each document in the audit list, verify every item below. Mark any inconsist
 ## Counts
 
 - [ ] Section type count matches schema enum length (currently 9)
-- [ ] Atomic element type count matches schema enum length (currently 11)
+- [ ] Atomic element type count matches schema enum length (currently 12)
 - [ ] Action type count matches schema enum length (currently 6)
 - [ ] Action trigger count matches schema enum length (currently 7)
 - [ ] Renderer count matches number of section renderer files per platform
-- [ ] "Migrated to atomic" count matches number of types in AtomicCompositeBuilder (currently 9)
 - [ ] "Permanent sections" count matches schema section enum minus AtomicComposite (currently 8)
 - [ ] AGENTS.md section count matches number of top-level `## N.` headings (currently 13)
 

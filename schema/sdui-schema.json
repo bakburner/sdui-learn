@@ -325,16 +325,23 @@
     "Spacing": {
       "type": "object",
       "properties": {
-        "top": { "type": "integer" },
-        "bottom": { "type": "integer" },
-        "start": { "type": "integer" },
-        "end": { "type": "integer" }
+        "top": { "$ref": "#/definitions/LayoutScalar" },
+        "bottom": { "$ref": "#/definitions/LayoutScalar" },
+        "start": { "$ref": "#/definitions/LayoutScalar" },
+        "end": { "$ref": "#/definitions/LayoutScalar" }
       }
     },
     "ColorToken": {
       "type": "string",
       "pattern": "^(#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{8}|token:[A-Za-z0-9][A-Za-z0-9_.-]*)$",
       "description": "A color value on the wire. Either a literal hex color (#RRGGBB or #RRGGBBAA) or a semantic token reference of the form 'token:<dot.separated.path>' (e.g. 'token:color.primary.50', 'token:color.brand.nba'). Clients resolve token references at render time against their bundled color registry, picking a light or dark value based on the OS color scheme. Unknown tokens log 'token_resolver_missing' and fall back to the caller's default."
+    },
+    "LayoutScalar": {
+      "description": "Absolute layout value: raw dp/px integer, or a semantic layout token reference token:<path> (e.g. token:spacing.md, token:radius.lg) resolved per platform.formFactor against bundled spacing/corner/size/typography/shadow registries. Unknown tokens log token_resolver_missing and fall back to 0 (or caller default).",
+      "oneOf": [
+        { "type": "integer" },
+        { "type": "string", "pattern": "^token:[A-Za-z0-9][A-Za-z0-9_.-]*$" }
+      ]
     },
     "BackgroundGradient": {
       "type": "object",
@@ -462,7 +469,7 @@
         "direction": { "$ref": "#/definitions/Direction" },
         "alignment": { "$ref": "#/definitions/Alignment" },
         "crossAlignment": { "$ref": "#/definitions/CrossAlignment" },
-        "gap": { "type": "integer" },
+        "gap": { "$ref": "#/definitions/LayoutScalar", "description": "Gap between flex children (row/column), or grid gap where applicable." },
         "padding": { "$ref": "#/definitions/Spacing", "description": "Inner space between the element's own background/border and its content." },
         "margin": { "$ref": "#/definitions/Spacing", "description": "Outer space between the element and its siblings or parent edges. Applied outside the element's background, border, corner radius, and shadow — use this for sibling-to-sibling spacing instead of Spacer siblings when inhomogeneous gaps are needed." },
         "background": { "$ref": "#/definitions/Background" },
@@ -472,12 +479,18 @@
         "color": { "$ref": "#/definitions/ColorToken" },
         "maxLines": { "type": "integer" },
         "src": { "type": "string" },
-        "aspectRatio": { "type": "number" },
+        "aspectRatio": {
+          "description": "Aspect ratio: legacy numeric (w/h), or named ratio string for semantic layout.",
+          "oneOf": [
+            { "type": "number" },
+            { "type": "string", "enum": ["16:9", "4:3", "1:1", "3:2", "21:9"] }
+          ]
+        },
         "fit": { "$ref": "#/definitions/ImageFit" },
         "placeholder": { "type": "string" },
         "alt": { "type": "string", "description": "Deprecated: use accessibility.label instead. Retained for backward compatibility; clients prefer accessibility.label when present." },
-        "width": { "type": "integer" },
-        "height": { "type": "integer" },
+        "width": { "$ref": "#/definitions/LayoutScalar", "description": "Fixed width in dp/px or layout token." },
+        "height": { "$ref": "#/definitions/LayoutScalar", "description": "Fixed height in dp/px or layout token." },
         "fillWidth": {
           "type": "boolean",
           "description": "When true, the element stretches along its main axis to fill the parent's available width. On Image this pairs with aspectRatio to derive a height (thumbnails in a fixed-width card). On Container it stretches the flex box to parent width regardless of child intrinsic widths. Inline value takes precedence over any variant default; element width/height, when also set, wins over fillWidth."
@@ -532,15 +545,15 @@
         },
         "flex": { "type": "number", "description": "Flex grow factor. When set on a child of a Container, the child claims proportional space along the main axis (like CSS flex or Compose weight). Default 0 (size to content)." },
         "breakpoint": { "type": "integer", "description": "Responsive breakpoint in dp/px. For Container: below this screen width, direction flips from row to column. Enables responsive layouts without client logic." },
-        "cornerRadius": { "type": "integer", "description": "Corner radius in dp/px. Applied to Container (with overflow clip) and Image elements." },
+        "cornerRadius": { "$ref": "#/definitions/LayoutScalar", "description": "Corner radius: dp/px or layout token. Applied to Container (with overflow clip) and Image elements." },
         "cornerRadii": {
           "type": "object",
           "description": "Per-corner cornerRadius override. When present, takes precedence over the single-value cornerRadius; any corner key omitted falls back to cornerRadius (or 0 if that is also absent). Used for asymmetric card shapes — e.g. content-rail cards with rounded tops and square bottoms so headline text does not collide with a bottom-corner curve. iOS maps to UnevenRoundedRectangle (iOS 16+); Android to RoundedCornerShape's four-corner constructor; web to borderTopLeftRadius / borderTopRightRadius / borderBottomLeftRadius / borderBottomRightRadius.",
           "properties": {
-            "topStart":    { "type": "integer", "description": "Top-leading corner (top-left in LTR, top-right in RTL)." },
-            "topEnd":      { "type": "integer", "description": "Top-trailing corner (top-right in LTR, top-left in RTL)." },
-            "bottomStart": { "type": "integer", "description": "Bottom-leading corner." },
-            "bottomEnd":   { "type": "integer", "description": "Bottom-trailing corner." }
+            "topStart":    { "$ref": "#/definitions/LayoutScalar", "description": "Top-leading corner (top-left in LTR, top-right in RTL)." },
+            "topEnd":      { "$ref": "#/definitions/LayoutScalar", "description": "Top-trailing corner (top-right in LTR, top-left in RTL)." },
+            "bottomStart": { "$ref": "#/definitions/LayoutScalar", "description": "Bottom-leading corner." },
+            "bottomEnd":   { "$ref": "#/definitions/LayoutScalar", "description": "Bottom-trailing corner." }
           },
           "additionalProperties": false
         },
@@ -876,7 +889,7 @@
         "margin":       { "$ref": "#/definitions/Spacing", "description": "Outer margin (space between the surface and its siblings / screen edge)." },
         "padding":      { "$ref": "#/definitions/Spacing", "description": "Inner padding (space between the surface edge and the content it wraps)." },
         "background":   { "$ref": "#/definitions/Background", "description": "Surface background (solid, gradient, or image)." },
-        "cornerRadius": { "type": "integer", "description": "Corner radius in dp/px applied to the surface (with overflow clip)." },
+        "cornerRadius": { "$ref": "#/definitions/LayoutScalar", "description": "Corner radius: dp/px or layout token, applied to the surface (with overflow clip)." },
         "shadow":       { "$ref": "#/definitions/Shadow", "description": "Drop shadow applied to the surface." },
         "border":       { "$ref": "#/definitions/Border", "description": "Outer stroke applied around the surface." }
       }

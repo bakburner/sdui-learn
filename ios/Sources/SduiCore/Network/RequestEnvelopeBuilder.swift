@@ -39,6 +39,8 @@ public struct RequestEnvelope: Sendable, Equatable {
     public var deviceClass: String
     public var sseCapable: Bool
     public var onFocusCapable: Bool
+    /// Layout token axis: `phone`, `phone.landscape`, `tablet`, `web.narrow`, `web.wide`, `tv`. Sent on every request.
+    public var formFactor: String
 
     // MARK: Device
 
@@ -61,6 +63,7 @@ public struct RequestEnvelope: Sendable, Equatable {
         deviceClass: String = Self.currentDeviceClass,
         sseCapable: Bool = true,
         onFocusCapable: Bool = false,
+        formFactor: String = Self.currentFormFactor,
         deviceID: String? = nil,
         zipCode: String? = nil,
         countryCode: String? = nil,
@@ -76,6 +79,7 @@ public struct RequestEnvelope: Sendable, Equatable {
         self.deviceClass = deviceClass
         self.sseCapable = sseCapable
         self.onFocusCapable = onFocusCapable
+        self.formFactor = formFactor
         self.deviceID = deviceID
         self.zipCode = zipCode
         self.countryCode = countryCode
@@ -104,6 +108,7 @@ public struct RequestEnvelope: Sendable, Equatable {
         if onFocusCapable {
             params.append(("platform[capabilities][onFocus]", "true"))
         }
+        params.append(("platform[formFactor]", formFactor))
 
         if let deviceID { params.append(("device[deviceId]", deviceID)) }
         if let zipCode { params.append(("device[zipCode]", zipCode)) }
@@ -130,7 +135,8 @@ public struct RequestEnvelope: Sendable, Equatable {
         var platform: [String: Any] = [
             "name": platformName,
             "osVersion": osVersion,
-            "deviceClass": deviceClass
+            "deviceClass": deviceClass,
+            "formFactor": formFactor
         ]
         if let appVersion { platform["appVersion"] = appVersion }
         var capabilities: [String: Any] = ["sse": sseCapable]
@@ -176,6 +182,22 @@ public struct RequestEnvelope: Sendable, Equatable {
         case .pad: return "tablet"
         case .tv: return "tv"
         case .phone: return "phone"
+        default: return "phone"
+        }
+        #else
+        return "phone"
+        #endif
+    }
+
+    /// Layout / token axis for this process (best-effort; matches `deviceClass` and orientation).
+    public static var currentFormFactor: String {
+        #if canImport(UIKit) && !os(macOS)
+        switch UIDevice.current.userInterfaceIdiom {
+        case .pad: return "tablet"
+        case .tv: return "tv"
+        case .phone:
+            let s = UIScreen.main.bounds.size
+            return s.width > s.height ? "phone.landscape" : "phone"
         default: return "phone"
         }
         #else

@@ -54,18 +54,29 @@ The lower rule never weakens the higher one.
   fallback so the new value renders sensibly, (4) only then update the server
   to emit the value. This prevents a window where the server emits values that
   clients cannot decode.
-- After schema changes, always run `make codegen`.
-- Generated models are never edited by hand:
+- After schema changes, always run `make codegen` (see repo `Makefile` /
+  `codegen/generate.sh`).
+- **Checked-in generated models** must be **produced only** by the codegen
+  pipeline, not by ad-hoc PR edits. Outputs live at:
   - Java: `codegen/build/generated-sources/jsonschema2pojo/`
   - Kotlin: `android/sdui-core/src/main/java/com/nba/sdui/core/models/generated/SduiModels.kt`
   - Swift: `ios/Sources/SduiCore/Models/SduiModels.swift`
   - TypeScript: `web/src/generated/SduiModels.ts`
+- **Post-processing is part of that pipeline** — e.g. `codegen/generate.sh`
+  runs quicktype (Swift/TS/Kotlin) and **deterministic** `sed` steps so routing
+  types stay forward-compatible. New mechanical transforms go **in the script**
+  (or schema), not as one-off edits to the model files.
+- **Forbidden:** editing the files above to “patch” types or enums without
+  changing `schema/sdui-schema.json` and re-running the full generate step.
 
 ### 1.3 Strict decoding is intentional
 
 - Clients decode strictly on purpose.
-- Unknown server values are contract violations, not graceful-degradation
-  opportunities.
+- Unknown server values for **closed wire shapes** (e.g. wrong enum for a
+  strict field) are contract violations, not hidden graceful degradation.
+- **Open-ended wire strings** (e.g. `token:…` presentational references) must
+  decode; **unknown token names** are handled in **resolvers** (log +
+  neutral default) — that does not relax JSON decoding.
 - Renderer fallbacks happen after successful decode; they do not weaken the
   schema contract.
 
@@ -97,7 +108,8 @@ it fits one of the categories below.
      keyboard / IME integration.
 4. **Platform-native realization of neutral semantics**
    - Examples: typography variants, button variants, icon tokens, image
-     variants, gesture realization of `onTap` / `onVisible` / `onSubmit`.
+     variants, gesture realization of `onActivate` (and legacy `onTap`) /
+     `onLongPress` / `onVisible` / `onSubmit`.
 
 Clarifying boundary:
 
@@ -125,7 +137,9 @@ The following are **not** valid client exceptions:
 
 - Inventing missing content, labels, or identifiers
 - Inventing backup URIs, endpoints, or bootstrap destinations
-- Inventing image URLs or branded fallback assets
+- Inventing image URLs, or unapproved branded client assets that look like
+  real server-pushed content (see §3.2 for the narrow **approved** static
+  last-resort case)
 - Downgrading a richer schema contract into a simpler local behavior
 - Adding per-renderer outer chrome where shared infrastructure already owns it
 - Recreating section-specific business logic that could have been expressed in
@@ -146,9 +160,15 @@ The following are **not** valid client exceptions:
 
 - Every image URL must originate from the server payload.
 - Clients must not construct CDN URLs from local patterns.
-- Last-resort renderability fallbacks must be visually distinguishable from
-  server-provided content (e.g. a generic placeholder or empty frame), not
-  branded assets that could be mistaken for a real server response.
+- **Default rule:** last-resort renderability fallbacks (load failure, wire
+  `placeholder` failure) should be **generic** — visually distinguishable from
+  real content (e.g. neutral block, empty frame), not branded art that could be
+  mistaken for a server asset.
+- **Narrow exception:** a **client-bundled**, **non-wire** “cannot render
+  image” tile may use **product-approved** static art (documented in code, same
+  on every build) when product explicitly requires brand continuity for broken
+  images. It must not substitute for URL-backed images the server *could* have
+  sent; it is for **renderability only** when all URLs failed.
 
 ### 3.3 Refresh, polling, and live updates are server-driven
 
@@ -172,6 +192,11 @@ The following are **not** valid client exceptions:
 - Do not set `X-Platform` on outbound requests.
 - Platform-specific composition decisions are resolved from the envelope, not
   from hardcoded strings.
+- **`formFactor` (roadmap):** the wire will carry a client-declared form factor
+  in the same envelope (see implementation plan). Until that is required end to
+  end, clients may use a **documented default** (e.g. `phone`) for
+  form-factor-scoped **presentational** resolution (e.g. layout tokens) —
+  **temporary;** do not use it to override server content choices.
 
 ### 3.5 Action semantics are server-declared
 
@@ -402,8 +427,8 @@ Examples:
 - Typography and button variants
 - Icon token lookup
 - Container and image presentation variants
-- Gesture realization of `onTap`, `onLongPress`, `onVisible`, `onSubmit`, and
-  similar interaction intents
+- Gesture realization of `onActivate` and legacy `onTap`, `onLongPress`,
+  `onVisible`, `onSubmit`, and similar interaction intents
 
 Counterexamples:
 
@@ -437,10 +462,10 @@ Before adding a new client-realized vocabulary, require all of the following:
 3. **Stable neutral meaning**
    - The semantic changes more slowly than its platform-specific realization.
 4. **Documented renderer fallback**
-   - Older clients can realize unknown values with a sensible renderer-level
-     default after successful strict decode. This does not relax strict
-     decoding — unknown values that fail decode are contract violations, not
-     fallback opportunities.
+   - After **successful** decode, older clients can apply a neutral default in
+     resolvers (e.g. unknown **presentational** token name in a `token:…`
+     string). **Failed JSON decode** (e.g. wrong type, invalid enum for a closed
+     field) remains a contract violation — not a resolver fallback.
 5. **Clear server/client split**
    - The server still chooses the meaning; the client is not choosing business
      policy.
@@ -494,7 +519,8 @@ Examples:
 
 - Render nothing for an omitted optional field
 - Render flush when no `surface` is present
-- Use a neutral platform default for an unknown presentational token
+- Use a neutral platform default for an unknown **presentational** token
+  (string decoded successfully; name unknown to resolver)
 - Surface an `ErrorState` section instead of inventing replacement content
 
 ### 8.2 Forbidden fallback
@@ -505,7 +531,9 @@ Examples:
 
 - Fake team identifiers, labels, or status text
 - Client-owned bootstrap URIs or backup routes
-- Hardcoded branded image URLs that masquerade as real content
+- Hardcoded **URLs** to branded art that pretend to be server-pushed content
+  (see §3.2 for the narrow **approved** bundled last-resort tile when all URLs
+  failed)
 - Card chrome, copy, or dimensions invented by a renderer that could have been
   server-emitted
 

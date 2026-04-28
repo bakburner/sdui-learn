@@ -54,13 +54,13 @@ enum ContainerVariantResolver {
 
     /// Returns the realized spec for a recognized variant, or `nil` to let
     /// the primitive fall back to its default rendering.
-    static func resolve(_ variant: String?) -> ContainerVariantSpec? {
+    static func resolve(_ variant: String?, formFactor: String = RequestEnvelope.currentFormFactor) -> ContainerVariantSpec? {
         guard let raw = variant, !raw.isEmpty else { return nil }
         guard let value = ContainerVariant(rawValue: raw) else {
             logger.debug("unknown container variant \(raw, privacy: .public); rendering with primitive defaults")
             return nil
         }
-        return spec(for: value)
+        return spec(for: value, formFactor: formFactor)
     }
 
     /// Emits a debug log when an inline prop attempts to override an axis the
@@ -72,13 +72,14 @@ enum ContainerVariantResolver {
         )
     }
 
-    private static func spec(for variant: ContainerVariant) -> ContainerVariantSpec {
+    private static func spec(for variant: ContainerVariant, formFactor: String) -> ContainerVariantSpec {
+        let isTablet = formFactor == "tablet"
         switch variant {
         case .hero:
             return ContainerVariantSpec(
                 cornerRadius: 16,
                 backgroundRole: .secondarySystemGroupedBackground,
-                shadow: Shadow(color: "#000000", offsetX: 0, offsetY: 3, radius: 6),
+                shadow: Shadow(color: "#000000", offsetX: 0, offsetY: isTablet ? 4 : 3, radius: isTablet ? 8 : 6),
                 gradientOverlay: GradientOverlay(
                     topColor: Color.accentColor.opacity(0.10),
                     bottomColor: .clear
@@ -156,7 +157,7 @@ extension View {
         spec: ContainerVariantSpec?,
         variantName: String?,
         inlineBackground: BackgroundUnion?,
-        inlineCornerRadius: Int?,
+        inlineCornerRadius: LayoutScalar?,
         inlineCornerRadii: CornerRadii? = nil,
         inlineShadow: Shadow?
     ) -> some View {
@@ -177,7 +178,7 @@ private struct ContainerVariantApplier: ViewModifier {
     let spec: ContainerVariantSpec?
     let variantName: String?
     let inlineBackground: BackgroundUnion?
-    let inlineCornerRadius: Int?
+    let inlineCornerRadius: LayoutScalar?
     let inlineCornerRadii: CornerRadii?
     let inlineShadow: Shadow?
 
@@ -200,7 +201,7 @@ private struct ContainerVariantApplier: ViewModifier {
             content
                 .background { backgroundView(for: constrainedInlineBackground, colorScheme: colorScheme) }
                 .modifier(ContainerCornerClipModifier(
-                    radius: CGFloat(inlineCornerRadius ?? 0),
+                    radius: LayoutTokenResolver.cgFloat(inlineCornerRadius),
                     radii: inlineCornerRadii
                 ))
                 .applyShadow(inlineShadow)
@@ -218,7 +219,7 @@ private struct ContainerVariantModifier: ViewModifier {
     let spec: ContainerVariantSpec
     let variantName: String
     let inlineBackground: BackgroundUnion?
-    let inlineCornerRadius: Int?
+    let inlineCornerRadius: LayoutScalar?
     let inlineCornerRadii: CornerRadii?
     let inlineShadow: Shadow?
 
@@ -252,7 +253,7 @@ private struct ContainerVariantModifier: ViewModifier {
         }
 
         let effectiveRadius: CGFloat = useInlineRadius
-            ? CGFloat(inlineCornerRadius ?? 0)
+            ? LayoutTokenResolver.cgFloat(inlineCornerRadius)
             : (spec.cornerRadius ?? 0)
         let effectiveRadii: CornerRadii? = useInlineRadii ? inlineCornerRadii : nil
         let effectiveShadow: Shadow? = useInlineShadow ? inlineShadow : spec.shadow
@@ -336,11 +337,12 @@ private struct ContainerCornerClipModifier: ViewModifier {
     @ViewBuilder
     func body(content: Content) -> some View {
         if let radii = radii, hasAnyCorner(radii) {
+            let r = radius
             content.clipShape(UnevenRoundedRectangle(
-                topLeadingRadius: CGFloat(radii.topStart ?? Int(radius)),
-                bottomLeadingRadius: CGFloat(radii.bottomStart ?? Int(radius)),
-                bottomTrailingRadius: CGFloat(radii.bottomEnd ?? Int(radius)),
-                topTrailingRadius: CGFloat(radii.topEnd ?? Int(radius)),
+                topLeadingRadius: cornerScalar(radii.topStart, fallback: r),
+                bottomLeadingRadius: cornerScalar(radii.bottomStart, fallback: r),
+                bottomTrailingRadius: cornerScalar(radii.bottomEnd, fallback: r),
+                topTrailingRadius: cornerScalar(radii.topEnd, fallback: r),
                 style: .continuous
             ))
         } else if radius > 0 {
@@ -351,7 +353,12 @@ private struct ContainerCornerClipModifier: ViewModifier {
     }
 
     private func hasAnyCorner(_ r: CornerRadii) -> Bool {
-        (r.topStart ?? 0) != 0 || (r.topEnd ?? 0) != 0
-            || (r.bottomStart ?? 0) != 0 || (r.bottomEnd ?? 0) != 0
+        LayoutTokenResolver.cgFloat(r.topStart) != 0 || LayoutTokenResolver.cgFloat(r.topEnd) != 0
+            || LayoutTokenResolver.cgFloat(r.bottomStart) != 0 || LayoutTokenResolver.cgFloat(r.bottomEnd) != 0
+    }
+
+    private func cornerScalar(_ s: LayoutScalar?, fallback: CGFloat) -> CGFloat {
+        guard let s else { return fallback }
+        return LayoutTokenResolver.cgFloat(s)
     }
 }

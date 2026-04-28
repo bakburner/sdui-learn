@@ -836,6 +836,7 @@ public class GameDetailComposer {
             img.put("height", 112);
             img.put("fit", "cover");
             img.put("cornerRadius", 8);
+            AccessibilityHelper.addImage(objectMapper, img, hl[0]);
 
             ObjectNode durationBadgeEl = objectMapper.createObjectNode();
             durationBadgeEl.put("type", "Container");

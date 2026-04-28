@@ -17,7 +17,7 @@ struct AtomicScrollContainerView: View {
 
     var body: some View {
         let isHorizontal = element.direction == .row
-        let gap = CGFloat(element.gap ?? 0)
+        let gap = LayoutTokenResolver.cgFloat(element.gap)
         let _ = logUnsupportedScrollConstraints()
         let isPaging = element.paging == true
         let shouldShowPageIndicator = isPaging && element.pageIndicator?.style == .dots && (element.children?.count ?? 0) > 1

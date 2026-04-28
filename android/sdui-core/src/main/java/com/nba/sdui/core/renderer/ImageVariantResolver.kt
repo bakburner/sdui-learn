@@ -51,17 +51,20 @@ object ImageVariantResolver {
      *   value not present in the registry (a warning is logged and the
      *   renderer falls through to inline-only behavior).
      */
-    fun resolve(variant: String?): ImageVariantSpec? {
+    fun resolve(variant: String?, formFactor: String = "phone"): ImageVariantSpec? {
         if (variant.isNullOrBlank()) return null
         return when (variant) {
-            "thumbnail" -> ImageVariantSpec(
-                cornerRadiusDp = 8,
+            "thumbnail" -> {
+                val isTablet = formFactor == "tablet"
+                ImageVariantSpec(
+                cornerRadiusDp = if (isTablet) 12 else 8,
                 aspectRatio = null,
                 contentScaleHint = ImageContentScaleHint.Crop,
                 fillWidth = false,
                 clip = true,
                 overrideMatrix = ALL_ALLOW
             )
+            }
             else -> {
                 Log.w(TAG, "variant_resolver_missing: $variant")
                 null

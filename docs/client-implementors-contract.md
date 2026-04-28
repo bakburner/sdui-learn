@@ -287,7 +287,7 @@ atomic element.
 - **Accessibility labels.** Each primitive provides its own semantic
   fallback (image `alt`, button `label`, text `content`) so the router
   cannot make a generic choice.
-- **Action triggers (`actions[]`, `onTap`, `onLongPress`, `onVisible`).**
+- **Action triggers (`actions[]`, `onActivate`, `onTap`, `onLongPress`, `onVisible`, `onSwipe`, `onFocus`, `onBlur`, `onSubmit`).**
   Primitives integrate actions into their native control (SwiftUI
   `Button`, Compose `Modifier.clickable`, `<button>` element) because the
   gesture surface is primitive-specific.
@@ -661,7 +661,7 @@ with failure-policy semantics.
 ```
 Action:
     type: "navigate" | "fireAndForget" | "mutate" | "refresh" | "dismiss" | "toast"
-    trigger: "onTap" | "onLongPress" | "onVisible" | "onSwipe" | "onFocus" | "onBlur" | "onSubmit"
+    trigger: "onActivate" | "onTap" | "onLongPress" | "onVisible" | "onSwipe" | "onFocus" | "onBlur" | "onSubmit"
     targetUri: string?          // For navigate
     webUrl: string?             // Fallback URL for navigate
     presentation: "push" | "modal" | "fullscreen" | "replace" | "external"?

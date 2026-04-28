@@ -12,6 +12,7 @@ final class RequestEnvelopeBuilderTests: XCTestCase {
             osVersion: "17.5",
             deviceClass: "phone",
             sseCapable: true,
+            formFactor: "phone",
             countryCode: "US",
             experiments: ["gd_tab_order_v2": "variant_b"]
         )
@@ -24,6 +25,7 @@ final class RequestEnvelopeBuilderTests: XCTestCase {
         XCTAssertTrue(query.contains("platform%5BappVersion%5D=8.3.0"))
         XCTAssertTrue(query.contains("device%5BcountryCode%5D=US"))
         XCTAssertTrue(query.contains("experiments%5Bgd_tab_order_v2%5D=variant_b"))
+        XCTAssertTrue(query.contains("platform%5BformFactor%5D=phone"))
     }
 
     func testPercentEncodingMatchesRFC3986() {
@@ -41,6 +43,7 @@ final class RequestEnvelopeBuilderTests: XCTestCase {
             osVersion: "17.5",
             deviceClass: "phone",
             sseCapable: true,
+            formFactor: "phone",
             countryCode: "US",
             experiments: ["exp_a": "1"]
         )
@@ -52,6 +55,7 @@ final class RequestEnvelopeBuilderTests: XCTestCase {
         let platform = decoded?["platform"] as? [String: Any]
         XCTAssertEqual(platform?["name"] as? String, "ios")
         XCTAssertEqual(platform?["appVersion"] as? String, "8.3.0")
+        XCTAssertEqual(platform?["formFactor"] as? String, "phone")
 
         let device = decoded?["device"] as? [String: Any]
         XCTAssertEqual(device?["countryCode"] as? String, "US")

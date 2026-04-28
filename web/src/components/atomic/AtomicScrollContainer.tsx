@@ -4,6 +4,10 @@ import { AtomicRouter } from './AtomicRouter';
 import { AtomicBox } from './AtomicBox';
 import { accessibilityProps } from '../../utils/accessibility';
 import { useColorTokenResolver } from '../../utils/ColorTokenResolver';
+import {
+  currentFormFactor,
+  resolveLayoutScalar,
+} from '../../utils/LayoutTokenResolver';
 
 /**
  * AtomicScrollContainer — renders children in a scrollable row or column.
@@ -24,13 +28,14 @@ export function AtomicScrollContainer({ element, state, onAction, depth = 0, onS
   const [canScroll, setCanScroll] = React.useState(true);
   const resolveColor = useColorTokenResolver();
   const hasPageIndicator = element.paging === true && element.pageIndicator?.style === 'dots' && children.length > 1;
-  const gapPx = typeof element.gap === 'number' ? element.gap : 0;
+  const ff = currentFormFactor();
+  const gapPx = element.gap != null ? resolveLayoutScalar(element.gap, ff) : 0;
 
   const layoutStyle: React.CSSProperties = {
     display: 'flex',
     flexDirection: isHorizontal ? 'row' : 'column',
     flexWrap: 'nowrap',
-    gap: element.gap,
+    gap: gapPx,
     overflowX: isHorizontal ? 'auto' : undefined,
     overflowY: isHorizontal ? undefined : 'auto',
     maxWidth: isHorizontal ? '100%' : undefined,

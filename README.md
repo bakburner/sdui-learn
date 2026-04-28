@@ -173,7 +173,7 @@ make codegen
 | NBA TV schedule | NBA TV hero image + time-slot schedule |
 | Following rail | Horizontal rail of followed items |
 | Error state | Server/client error with title, message, optional retry action |
-| Live-score card | Game card (teams, scores, status) composed with `LiveClock` for real-time game clocks |
+| Game panel | Game card (teams, scores, status) composed with `LiveClock` for real-time game clocks |
 
 ### Atomic Primitives (server-composed, rendered by AtomicRouter)
 

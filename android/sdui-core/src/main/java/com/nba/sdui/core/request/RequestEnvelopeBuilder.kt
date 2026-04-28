@@ -1,6 +1,8 @@
 package com.nba.sdui.core.request
 
+import android.content.res.Configuration
 import android.os.Build
+import android.util.Log
 import java.net.URLEncoder
 import java.util.UUID
 
@@ -41,6 +43,27 @@ class RequestEnvelopeBuilder {
                 .replace("*", "%2A")
                 .replace("%7E", "~")
         }
+
+        /**
+         * Best-effort form factor for layout tokens and the request envelope.
+         * Uses [Configuration] from the system resources (no Context required).
+         */
+        @JvmStatic
+        fun defaultFormFactor(): String {
+            return try {
+                val res = android.content.res.Resources.getSystem()
+                val sw = res.configuration.smallestScreenWidthDp
+                val land = res.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+                when {
+                    sw >= 600 -> "tablet"
+                    land && sw < 600 -> "phone.landscape"
+                    else -> "phone"
+                }
+            } catch (e: Exception) {
+                Log.d("RequestEnvelopeBuilder", "defaultFormFactor fallback: ${e.message}")
+                "phone"
+            }
+        }
     }
 
     // ── Top-level params ───────────────────────────────────────────────
@@ -55,6 +78,7 @@ class RequestEnvelopeBuilder {
     private var deviceClass: String = "phone"
     private var sseCapable: Boolean = true
     private var onFocusCapable: Boolean = false
+    private var formFactor: String = defaultFormFactor()
 
     // ── Device ─────────────────────────────────────────────────────────
     private var deviceId: String? = null
@@ -77,6 +101,7 @@ class RequestEnvelopeBuilder {
     fun deviceClass(cls: String) = apply { this.deviceClass = cls }
     fun sseCapable(capable: Boolean) = apply { this.sseCapable = capable }
     fun onFocusCapable(capable: Boolean) = apply { this.onFocusCapable = capable }
+    fun formFactor(value: String) = apply { this.formFactor = value }
 
     fun deviceId(id: String?) = apply { this.deviceId = id }
     fun zipCode(zip: String?) = apply { this.zipCode = zip }
@@ -107,6 +132,7 @@ class RequestEnvelopeBuilder {
         if (onFocusCapable) {
             params.add("platform[capabilities][onFocus]" to "true")
         }
+        params.add("platform[formFactor]" to formFactor)
 
         // Device (nested, all optional)
         deviceId?.let { params.add("device[deviceId]" to it) }

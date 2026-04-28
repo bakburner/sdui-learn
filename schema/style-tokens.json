@@ -1,5 +1,5 @@
 {
-  "$comment": "Style-token registry for SDUI variant primitives. Each entry describes intent, per-platform per-OS-tier realization, and an override matrix indicating which inline props may override the variant's defaults. Every tier declares a light and dark spec. Clients read the appropriate tier at render time based on OS version or capability detection; the server reads the override matrix when migrating inline-property bags to variant references.",
+  "$comment": "Style-token registry for SDUI variant primitives. Each entry describes intent, per-platform per-OS-tier realization, and an override matrix indicating which inline props may override the variant's defaults. Every tier declares a light and dark spec. Clients read the appropriate tier at render time based on OS version or capability detection; the server reads the override matrix when migrating inline-property bags to variant references. Phase 6 adds an optional formFactorNotes dimension: when present it documents how the variant realization adjusts for non-phone form factors. A missing formFactor row means the phone realization is the default.",
   "ContainerVariant": {
     "hero": {
       "description": "Prominent featured-content surface. Layered shadow, platform material on capable tiers, adaptive background for dark mode.",
@@ -56,6 +56,13 @@
         "composers": ["AtomicCompositeBuilder.buildHeroPanel (DemoScreenComposer x4, GameDetailComposer)"],
         "iosRefApp": "No true hero composite; extrapolated from RefAppComponents.swift L52-69 gradient badge pattern + GameCardView shadow/radius",
         "androidRefApp": "No clear hero; derived from Material 3 conventions"
+      },
+      "formFactorNotes": {
+        "phone": "Default realization — current spec",
+        "tablet": "Increased horizontal padding (24dp/pt vs 16dp/pt), increased shadow elevation (12dp vs 8dp), same 16pt corner radius",
+        "web.wide": "Same as tablet realization; wider content area with max-width constraint",
+        "web.narrow": "Falls back to phone realization",
+        "phone.landscape": "Falls back to phone realization"
       }
     },
 
@@ -114,6 +121,13 @@
         "composers": ["Future use; new variant"],
         "iosRefApp": "SettingsView L18-23, ProfileView L18-23, StreamsListView L62-78, VideoConfigSheet L20-25 (.listStyle(.insetGrouped)); VODPlaylistView L23-48 (hand-rolled block: secondarySystemGroupedBackground + 12pt + divider inset 104pt aligned to thumbnail)",
         "androidRefApp": "StreamInfoScreen.kt L290-349 (Modifier.border(1.dp, ..., RoundedCornerShape(16.dp)) + padding 16.dp + interior HorizontalDivider)"
+      },
+      "formFactorNotes": {
+        "phone": "Default realization — current spec",
+        "tablet": "Increased horizontal padding (24dp/pt vs 16dp/pt), same 12/16pt corner radius and border",
+        "web.wide": "Single realization — no form-factor adjustment needed",
+        "web.narrow": "Falls back to phone realization",
+        "phone.landscape": "Falls back to phone realization"
       }
     }
   },
@@ -173,6 +187,13 @@
         "composers": ["WatchComposer VOD cards, AtomicCompositeBuilder.buildContentCard"],
         "iosRefApp": "VODCardView.swift L22-45 (frame 80x52, cornerRadius 8, aspectRatio(.fit))",
         "androidRefApp": "Not found; derived from Compose conventions"
+      },
+      "formFactorNotes": {
+        "phone": "Default realization — 8dp/pt corner radius",
+        "tablet": "Increased corner radius (12dp/pt vs 8dp/pt)",
+        "web.wide": "Single realization — CSS responsive sizing, no form-factor adjustment",
+        "web.narrow": "Falls back to phone realization",
+        "phone.landscape": "Falls back to phone realization"
       }
     }
   },

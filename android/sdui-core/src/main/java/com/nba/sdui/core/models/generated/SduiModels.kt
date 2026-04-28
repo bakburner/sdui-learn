@@ -41,6 +41,7 @@ val mapper = jacksonObjectMapper().apply {
     convert(LiveRegion::class,             { LiveRegion.fromValue(it.asText()) },             { "\"${it.value}\"" })
     convert(Role::class,                   { Role.fromValue(it.asText()) },                   { "\"${it.value}\"" })
     convert(Alignment::class,              { Alignment.fromValue(it.asText()) },              { "\"${it.value}\"" })
+    convert(AspectRatioEnum::class,        { AspectRatioEnum.fromValue(it.asText()) },        { "\"${it.value}\"" })
     convert(Direction::class,              { Direction.fromValue(it.asText()) },              { "\"${it.value}\"" })
     convert(ScaleType::class,              { ScaleType.fromValue(it.asText()) },              { "\"${it.value}\"" })
     convert(Align::class,                  { Align.fromValue(it.asText()) },                  { "\"${it.value}\"" })
@@ -62,6 +63,8 @@ val mapper = jacksonObjectMapper().apply {
     convert(Transform::class,              { Transform.fromValue(it.asText()) },              { "\"${it.value}\"" })
     convert(Priority::class,               { Priority.fromValue(it.asText()) },               { "\"${it.value}\"" })
     convert(Skeleton::class,               { Skeleton.fromValue(it.asText()) },               { "\"${it.value}\"" })
+    convert(LayoutScalar::class,           { LayoutScalar.fromJson(it) },                     { it.toJson() }, true)
+    convert(AspectRatioUnion::class,       { AspectRatioUnion.fromJson(it) },                 { it.toJson() }, true)
     convert(BackgroundUnion::class,        { BackgroundUnion.fromJson(it) },                  { it.toJson() }, true)
     convert(Overlay::class,                { Overlay.fromJson(it) },                          { it.toJson() }, true)
     convert(WidthUnion::class,             { WidthUnion.fromJson(it) },                       { it.toJson() }, true)
@@ -412,6 +415,10 @@ enum class NavigationPresentation(val value: String) {
     }
 }
 
+/**
+ * Event that fires the action. Prefer onActivate for primary activation (tap, keyboard
+ * Enter/Space, accessibility activate). onTap is a deprecated alias for onActivate.
+ */
 enum class ActionTrigger(val value: String) {
     OnActivate("onActivate"),
     OnBlur("onBlur"),
@@ -605,7 +612,11 @@ data class AtomicElement (
      */
     val alt: String? = null,
 
-    val aspectRatio: Double? = null,
+    /**
+     * Aspect ratio: legacy numeric (w/h), or named ratio string for semantic layout.
+     */
+    val aspectRatio: AspectRatioUnion? = null,
+
     val background: BackgroundUnion? = null,
 
     /**
@@ -659,9 +670,10 @@ data class AtomicElement (
     val cornerRadii: CornerRadii? = null,
 
     /**
-     * Corner radius in dp/px. Applied to Container (with overflow clip) and Image elements.
+     * Corner radius: dp/px or layout token. Applied to Container (with overflow clip) and Image
+     * elements.
      */
-    val cornerRadius: Long? = null,
+    val cornerRadius: LayoutScalar? = null,
 
     val crossAlignment: CrossAlignment? = null,
     val direction: UIDirection? = null,
@@ -691,8 +703,16 @@ data class AtomicElement (
      */
     val format: Format? = null,
 
-    val gap: Long? = null,
-    val height: Long? = null,
+    /**
+     * Gap between flex children (row/column), or grid gap where applicable.
+     */
+    val gap: LayoutScalar? = null,
+
+    /**
+     * Fixed height in dp/px or layout token.
+     */
+    val height: LayoutScalar? = null,
+
     val icon: String? = null,
     val id: String? = null,
 
@@ -827,7 +847,11 @@ data class AtomicElement (
     val variant: String? = null,
 
     val weight: TextWeight? = null,
-    val width: Long? = null
+
+    /**
+     * Fixed width in dp/px or layout token.
+     */
+    val width: LayoutScalar? = null
 )
 
 /**
@@ -1165,11 +1189,54 @@ enum class BadgeAlignment(val value: String) {
  * Inner padding (space between the surface edge and the content it wraps).
  */
 data class Spacing (
-    val bottom: Long? = null,
-    val end: Long? = null,
-    val start: Long? = null,
-    val top: Long? = null
+    val bottom: LayoutScalar? = null,
+    val end: LayoutScalar? = null,
+    val start: LayoutScalar? = null,
+    val top: LayoutScalar? = null
 )
+
+/**
+ * Bottom-trailing corner.
+ *
+ * Absolute layout value: raw dp/px integer, or a semantic layout token reference
+ * token:<path> (e.g. token:spacing.md, token:radius.lg) resolved per platform.formFactor
+ * against bundled spacing/corner/size/typography/shadow registries. Unknown tokens log
+ * token_resolver_missing and fall back to 0 (or caller default).
+ *
+ * Bottom-leading corner.
+ *
+ * Top-trailing corner (top-right in LTR, top-left in RTL).
+ *
+ * Top-leading corner (top-left in LTR, top-right in RTL).
+ *
+ * Corner radius: dp/px or layout token. Applied to Container (with overflow clip) and Image
+ * elements.
+ *
+ * Gap between flex children (row/column), or grid gap where applicable.
+ *
+ * Fixed height in dp/px or layout token.
+ *
+ * Fixed width in dp/px or layout token.
+ *
+ * Corner radius: dp/px or layout token, applied to the surface (with overflow clip).
+ */
+sealed class LayoutScalar {
+    class IntegerValue(val value: Long)  : LayoutScalar()
+    class StringValue(val value: String) : LayoutScalar()
+
+    fun toJson(): String = mapper.writeValueAsString(when (this) {
+        is IntegerValue -> this.value
+        is StringValue  -> this.value
+    })
+
+    companion object {
+        fun fromJson(jn: JsonNode): LayoutScalar = when (jn) {
+            is IntNode, is LongNode -> IntegerValue(mapper.treeToValue(jn))
+            is TextNode             -> StringValue(mapper.treeToValue(jn))
+            else                    -> throw IllegalArgumentException()
+        }
+    }
+}
 
 /**
  * Section-level accessibility metadata (landmark role, live region, heading)
@@ -1295,6 +1362,46 @@ enum class Alignment(val value: String) {
             "spaceEvenly"  -> SpaceEvenly
             "start"        -> Start
             else           -> throw IllegalArgumentException()
+        }
+    }
+}
+
+/**
+ * Aspect ratio: legacy numeric (w/h), or named ratio string for semantic layout.
+ */
+sealed class AspectRatioUnion {
+    class DoubleValue(val value: Double)        : AspectRatioUnion()
+    class EnumValue(val value: AspectRatioEnum) : AspectRatioUnion()
+
+    fun toJson(): String = mapper.writeValueAsString(when (this) {
+        is DoubleValue -> this.value
+        is EnumValue   -> this.value
+    })
+
+    companion object {
+        fun fromJson(jn: JsonNode): AspectRatioUnion = when (jn) {
+            is DoubleNode -> DoubleValue(mapper.treeToValue(jn))
+            is TextNode   -> EnumValue(mapper.treeToValue(jn))
+            else          -> throw IllegalArgumentException()
+        }
+    }
+}
+
+enum class AspectRatioEnum(val value: String) {
+    The11("1:1"),
+    The169("16:9"),
+    The219("21:9"),
+    The32("3:2"),
+    The43("4:3");
+
+    companion object {
+        fun fromValue(value: String): AspectRatioEnum = when (value) {
+            "1:1"  -> The11
+            "16:9" -> The169
+            "21:9" -> The219
+            "3:2"  -> The32
+            "4:3"  -> The43
+            else   -> throw IllegalArgumentException()
         }
     }
 }
@@ -1498,22 +1605,22 @@ data class CornerRadii (
     /**
      * Bottom-trailing corner.
      */
-    val bottomEnd: Long? = null,
+    val bottomEnd: LayoutScalar? = null,
 
     /**
      * Bottom-leading corner.
      */
-    val bottomStart: Long? = null,
+    val bottomStart: LayoutScalar? = null,
 
     /**
      * Top-trailing corner (top-right in LTR, top-left in RTL).
      */
-    val topEnd: Long? = null,
+    val topEnd: LayoutScalar? = null,
 
     /**
      * Top-leading corner (top-left in LTR, top-right in RTL).
      */
-    val topStart: Long? = null
+    val topStart: LayoutScalar? = null
 )
 
 enum class CrossAlignment(val value: String) {
@@ -2242,9 +2349,9 @@ data class SectionSurface (
     val border: Border? = null,
 
     /**
-     * Corner radius in dp/px applied to the surface (with overflow clip).
+     * Corner radius: dp/px or layout token, applied to the surface (with overflow clip).
      */
-    val cornerRadius: Long? = null,
+    val cornerRadius: LayoutScalar? = null,
 
     /**
      * Outer margin (space between the surface and its siblings / screen edge).

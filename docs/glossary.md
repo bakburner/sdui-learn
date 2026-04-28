@@ -46,7 +46,8 @@ glossary is strictly about runtime, wire, and design-system vocabulary.
 | Term | Definition |
 | --- | --- |
 | **Action** | Server-declared command attached to an interactive or visible element. Always has a `type` and a `trigger` plus type-specific payload fields. Executes through the platform's Dispatcher / Handler. |
-| **Trigger** | When an action fires: `onTap`, `onLongPress`, `onVisible`, `onSwipe`. `onVisible` triggers route through Impression policy for dedup; the others fire on every occurrence. |
+| **Trigger** | When an action fires: `onActivate` (preferred), `onTap` (deprecated alias for onActivate), `onLongPress`, `onVisible`, `onSwipe`, `onFocus`, `onBlur`, `onSubmit`. `onVisible` triggers route through Impression policy for dedup; the others fire on every occurrence. |
+| **onActivate** | Preferred activation trigger. Neutral name for tap, click, keyboard Enter, or TV select. Replaces legacy `onTap`. |
 | **Beacon** | An emitted `fireAndForget` event. Cross-platform synonym for "an analytics ping". Has no on-screen effect, so during local testing it is verifiable only via the Action logger. |
 | **Failure policy** | Sequence-control verb on a failed action: `halt` / `continue` / `silent`. When the server omits `onFailure`, per-type defaults apply (navigate → halt; mutate/refresh → continue; fireAndForget/dismiss/toast → silent). See ADR-005. |
 | **Failure feedback** | Server-provided error message + presentation hint (`snackbar` / `toast` / `inline`) shown when a halted action surfaces an error. |

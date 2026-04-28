@@ -16,6 +16,7 @@ struct AtomicDisplayGridView: View {
                     rows: rows
                 )
             )
+            .sduiAccessibility(element.accessibility)
             .atomicBox(element, screenState: ScreenState(), onAction: { _ in })
         }
     }

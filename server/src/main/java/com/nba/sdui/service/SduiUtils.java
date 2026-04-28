@@ -658,7 +658,21 @@ public class SduiUtils {
                     Map.entry("period.q2", "Q2"),
                     Map.entry("period.q3", "Q3"),
                     Map.entry("period.q4", "Q4"),
-                    Map.entry("period.ot", "OT")
+                    Map.entry("period.ot", "OT"),
+                    Map.entry("screen.schedule", "Schedule"),
+                    Map.entry("filter.season", "Season"),
+                    Map.entry("filter.year", "Year"),
+                    Map.entry("filter.month", "Month"),
+                    Map.entry("filter.day", "Day"),
+                    Map.entry("filter.all", "All"),
+                    Map.entry("filter.apply", "Apply"),
+                    Map.entry("month.january", "January"),
+                    Map.entry("month.february", "February"),
+                    Map.entry("month.march", "March"),
+                    Map.entry("month.april", "April"),
+                    Map.entry("month.october", "October"),
+                    Map.entry("month.november", "November"),
+                    Map.entry("month.december", "December")
             ),
             "es", Map.ofEntries(
                     Map.entry("status.pre", "Próximo"),
@@ -669,7 +683,21 @@ public class SduiUtils {
                     Map.entry("period.q2", "Q2"),
                     Map.entry("period.q3", "Q3"),
                     Map.entry("period.q4", "Q4"),
-                    Map.entry("period.ot", "TE")
+                    Map.entry("period.ot", "TE"),
+                    Map.entry("screen.schedule", "Calendario"),
+                    Map.entry("filter.season", "Temporada"),
+                    Map.entry("filter.year", "Año"),
+                    Map.entry("filter.month", "Mes"),
+                    Map.entry("filter.day", "Día"),
+                    Map.entry("filter.all", "Todos"),
+                    Map.entry("filter.apply", "Aplicar"),
+                    Map.entry("month.january", "Enero"),
+                    Map.entry("month.february", "Febrero"),
+                    Map.entry("month.march", "Marzo"),
+                    Map.entry("month.april", "Abril"),
+                    Map.entry("month.october", "Octubre"),
+                    Map.entry("month.november", "Noviembre"),
+                    Map.entry("month.december", "Diciembre")
             ),
             "fr", Map.ofEntries(
                     Map.entry("status.pre", "À venir"),
@@ -680,7 +708,21 @@ public class SduiUtils {
                     Map.entry("period.q2", "Q2"),
                     Map.entry("period.q3", "Q3"),
                     Map.entry("period.q4", "Q4"),
-                    Map.entry("period.ot", "Prol.")
+                    Map.entry("period.ot", "Prol."),
+                    Map.entry("screen.schedule", "Calendrier"),
+                    Map.entry("filter.season", "Saison"),
+                    Map.entry("filter.year", "Année"),
+                    Map.entry("filter.month", "Mois"),
+                    Map.entry("filter.day", "Jour"),
+                    Map.entry("filter.all", "Tous"),
+                    Map.entry("filter.apply", "Appliquer"),
+                    Map.entry("month.january", "Janvier"),
+                    Map.entry("month.february", "Février"),
+                    Map.entry("month.march", "Mars"),
+                    Map.entry("month.april", "Avril"),
+                    Map.entry("month.october", "Octobre"),
+                    Map.entry("month.november", "Novembre"),
+                    Map.entry("month.december", "Décembre")
             )
     );
 
@@ -696,6 +738,18 @@ public class SduiUtils {
         ObjectNode node = objectMapper.createObjectNode();
         table.forEach(node::put);
         return node;
+    }
+
+    /**
+     * Look up a single localized string by key.
+     * Falls back to English, then to the raw key if not found.
+     */
+    public static String getLocalizedString(String locale, String key) {
+        Map<String, String> table = STRING_TABLES.getOrDefault(
+                locale != null ? locale.toLowerCase() : "en",
+                STRING_TABLES.get("en")
+        );
+        return table.getOrDefault(key, key);
     }
 
     /**

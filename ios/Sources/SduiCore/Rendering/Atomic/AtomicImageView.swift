@@ -29,9 +29,9 @@ struct AtomicImageView: View {
     var body: some View {
         if let src = currentSrc, let url = URL(string: src) {
             let spec = ImageVariantResolver.resolve(element.variant)
-            let resolvedAspectRatio = element.aspectRatio.map { CGFloat($0) } ?? spec?.aspectRatio
+            let resolvedAspectRatio = LayoutTokenResolver.aspectRatio(element.aspectRatio) ?? spec?.aspectRatio
             let resolvedContentMode = contentMode(spec: spec)
-            let resolvedRadius = element.cornerRadius.map { CGFloat($0) } ?? spec?.cornerRadius
+            let resolvedRadius = element.cornerRadius.map { LayoutTokenResolver.cgFloat($0) } ?? spec?.cornerRadius
             let shouldClip = spec?.clip ?? true
 
             Group {
@@ -185,15 +185,15 @@ private struct ImageCornerRadiusModifier: ViewModifier {
     }
 
     private func hasAnyCorner(_ r: CornerRadii) -> Bool {
-        (r.topStart ?? 0) != 0 || (r.topEnd ?? 0) != 0
-            || (r.bottomStart ?? 0) != 0 || (r.bottomEnd ?? 0) != 0
+        LayoutTokenResolver.cgFloat(r.topStart) != 0 || LayoutTokenResolver.cgFloat(r.topEnd) != 0
+            || LayoutTokenResolver.cgFloat(r.bottomStart) != 0 || LayoutTokenResolver.cgFloat(r.bottomEnd) != 0
     }
 
     private func unevenShape(radii: CornerRadii, fallback: CGFloat) -> some Shape {
-        let tl = CGFloat(radii.topStart ?? Int(fallback))
-        let tr = CGFloat(radii.topEnd ?? Int(fallback))
-        let bl = CGFloat(radii.bottomStart ?? Int(fallback))
-        let br = CGFloat(radii.bottomEnd ?? Int(fallback))
+        let tl = cornerScalar(radii.topStart, fallback: fallback)
+        let tr = cornerScalar(radii.topEnd, fallback: fallback)
+        let bl = cornerScalar(radii.bottomStart, fallback: fallback)
+        let br = cornerScalar(radii.bottomEnd, fallback: fallback)
         return UnevenRoundedRectangle(
             topLeadingRadius: tl,
             bottomLeadingRadius: bl,
@@ -201,5 +201,10 @@ private struct ImageCornerRadiusModifier: ViewModifier {
             topTrailingRadius: tr,
             style: .continuous
         )
+    }
+
+    private func cornerScalar(_ s: LayoutScalar?, fallback: CGFloat) -> CGFloat {
+        guard let s else { return fallback }
+        return LayoutTokenResolver.cgFloat(s)
     }
 }

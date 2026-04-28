@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fetchSduiScreen } from './fetchSduiScreen';
+import { RequestEnvelopeBuilder } from '../request/RequestEnvelopeBuilder';
 
 /**
  * Contract tests asserting that parameterized refresh produces the *same*
@@ -57,12 +58,35 @@ function normalizeHeaders(headers: HeadersInit | undefined): Record<string, stri
   return Object.fromEntries(Object.entries(headers).map(([k, v]) => [k.toLowerCase(), String(v)]));
 }
 
+/**
+ * Deterministic form-factor stub. jsdom does not implement `matchMedia`, so
+ * `currentFormFactor()` falls back to `'web.wide'`. Tests still pin the
+ * stub explicitly so a future jsdom upgrade or test runner doesn't flip
+ * the asserted form factor underneath us.
+ */
+function stubMatchMedia(matches: boolean): void {
+  vi.stubGlobal(
+    'matchMedia',
+    vi.fn((query: string) => ({
+      matches,
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    })),
+  );
+}
+
 describe('fetchSduiScreen — parameterized refresh transport', () => {
   let captured: CapturedRequest[];
 
   beforeEach(() => {
     captured = [];
     installFetchStub(captured);
+    stubMatchMedia(true); // (min-width: 768px) → web.wide
   });
 
   afterEach(() => {
@@ -120,5 +144,69 @@ describe('fetchSduiScreen — parameterized refresh transport', () => {
 
     expect(refreshQuery.startsWith('k=v&')).toBe(true);
     expect(refreshQuery.slice('k=v&'.length)).toBe(screenQuery);
+  });
+});
+
+describe('fetchSduiScreen — formFactor in request envelope', () => {
+  let captured: CapturedRequest[];
+
+  beforeEach(() => {
+    captured = [];
+    installFetchStub(captured);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('emits platform[formFactor]=web.wide on GET when viewport is wide', async () => {
+    stubMatchMedia(true); // (min-width: 768px) matches → web.wide
+    await fetchSduiScreen({ endpoint: '/sdui/scoreboard' });
+
+    const req = captured[0];
+    expect(req.method).toBe('GET');
+
+    const query = req.url.split('?')[1] ?? '';
+    expect(query).toContain('platform%5BformFactor%5D=web.wide');
+
+    // formFactor must follow the capabilities block — same byte ordering
+    // as iOS / Android so the CDN cache key collides across platforms.
+    const sse = query.indexOf('platform%5Bcapabilities%5D%5Bsse%5D=');
+    const ff = query.indexOf('platform%5BformFactor%5D=');
+    expect(sse).toBeGreaterThanOrEqual(0);
+    expect(ff).toBeGreaterThan(sse);
+  });
+
+  it('emits platform[formFactor]=web.narrow on GET when viewport is narrow', async () => {
+    stubMatchMedia(false); // (min-width: 768px) does not match → web.narrow
+    await fetchSduiScreen({ endpoint: '/sdui/scoreboard' });
+
+    const query = captured[0].url.split('?')[1] ?? '';
+    expect(query).toContain('platform%5BformFactor%5D=web.narrow');
+  });
+
+  it('includes platform.formFactor in JSON body on POST fallback', async () => {
+    stubMatchMedia(true); // web.wide
+
+    // Force POST by stuffing experiments past the 8192-char threshold.
+    const bigExperiments: Record<string, string> = {};
+    for (let i = 0; i < 600; i++) {
+      bigExperiments[`exp_${i.toString().padStart(4, '0')}`] = 'variant_xyz_aaaaaaaaaaaaa';
+    }
+
+    await fetchSduiScreen({ endpoint: '/sdui/scoreboard', experiments: bigExperiments });
+    const req = captured[0];
+    expect(req.method).toBe('POST');
+    expect(req.body).toBeDefined();
+
+    const body = JSON.parse(req.body!) as { platform?: { formFactor?: string } };
+    expect(body.platform?.formFactor).toBe('web.wide');
+  });
+
+  it('builder.formFactor() override wins over the matchMedia-derived default', () => {
+    stubMatchMedia(true); // would default to web.wide
+    const qs = new RequestEnvelopeBuilder().formFactor('tablet').buildQueryString();
+    expect(qs).toContain('platform%5BformFactor%5D=tablet');
+    expect(qs).not.toContain('platform%5BformFactor%5D=web.wide');
   });
 });

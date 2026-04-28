@@ -171,6 +171,7 @@ private extension RequestEnvelope {
             osVersion: "17.5",
             deviceClass: "phone",
             sseCapable: true,
+            formFactor: "phone",
             countryCode: "US",
             experiments: [:]
         )
@@ -190,6 +191,7 @@ private extension RequestEnvelope {
             osVersion: "17.5",
             deviceClass: "phone",
             sseCapable: true,
+            formFactor: "phone",
             countryCode: "US",
             experiments: experiments
         )

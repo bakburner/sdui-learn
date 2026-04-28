@@ -30,7 +30,9 @@ import com.nba.sdui.core.models.generated.CrossAlignment
 import com.nba.sdui.core.models.generated.Style
 import com.nba.sdui.core.models.generated.UIDirection
 import com.nba.sdui.core.renderer.ColorTokenResolver
+import com.nba.sdui.core.renderer.LayoutTokenResolver
 import com.nba.sdui.core.renderer.applyAccessibility
+import com.nba.sdui.core.request.RequestEnvelopeBuilder
 import com.nba.sdui.core.state.SduiAction
 
 /**
@@ -48,7 +50,10 @@ fun AtomicScrollContainer(
     sectionSlotDepth: Int = 0
 ) {
     val children = element.children.orEmpty()
-    val gap = element.gap?.toInt()?.dp ?: 0.dp
+    // TODO(phase3): swap for `LocalSduiFormFactor.current` once the
+    // form-factor classifier is plumbed end-to-end.
+    val formFactor = RequestEnvelopeBuilder.defaultFormFactor()
+    val gap = LayoutTokenResolver.dp(element.gap, formFactor)
     val isHorizontal = element.direction != UIDirection.Column
     val crossAxis = when (element.crossAlignment) {
         CrossAlignment.Center -> if (isHorizontal) ComposeAlignment.CenterVertically else ComposeAlignment.CenterHorizontally

@@ -25,20 +25,21 @@ enum ImageVariantResolver {
 
     /// Returns the realized spec for a recognized variant, or `nil` to let
     /// the primitive fall back to its default rendering.
-    static func resolve(_ variant: String?) -> ImageVariantSpec? {
+    static func resolve(_ variant: String?, formFactor: String = RequestEnvelope.currentFormFactor) -> ImageVariantSpec? {
         guard let raw = variant, !raw.isEmpty else { return nil }
         guard let value = ImageVariant(rawValue: raw) else {
             logger.debug("unknown image variant \(raw, privacy: .public); rendering with primitive defaults")
             return nil
         }
-        return spec(for: value)
+        return spec(for: value, formFactor: formFactor)
     }
 
-    private static func spec(for variant: ImageVariant) -> ImageVariantSpec {
+    private static func spec(for variant: ImageVariant, formFactor: String) -> ImageVariantSpec {
+        let isTablet = formFactor == "tablet"
         switch variant {
         case .thumbnail:
             return ImageVariantSpec(
-                cornerRadius: 8,
+                cornerRadius: isTablet ? 12 : 8,
                 aspectRatio: nil,
                 contentMode: .fill,
                 fillWidth: false,

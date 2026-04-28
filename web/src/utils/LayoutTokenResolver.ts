@@ -1,0 +1,251 @@
+/**
+ * LayoutTokenResolver — resolves layout scalars and `token:…` references
+ * against the bundled snapshots of the layout-token registries.
+ *
+ * Palette + semantic maps are an inline snapshot of:
+ *   schema/spacing-tokens.json
+ *   schema/corner-radius-tokens.json
+ *   schema/size-tokens.json
+ *   schema/typography-tokens.json
+ *   schema/shadow-tokens.json
+ *
+ * regenerate when schema/*-tokens.json changes
+ *
+ * Mirrors `ios/Sources/SduiCore/Rendering/LayoutTokenResolver.swift` so iOS,
+ * Android, and web resolve the same wire string to the same numeric value
+ * for any given form factor.
+ */
+
+const TOKEN_PREFIX = 'token:';
+const MAX_ALIAS_DEPTH = 8;
+const NARROW_BREAKPOINT_PX = 768;
+
+export type FormFactor =
+  | 'phone'
+  | 'phone.landscape'
+  | 'tablet'
+  | 'tv'
+  | 'web.narrow'
+  | 'web.wide';
+
+const KNOWN_FORM_FACTORS: ReadonlySet<FormFactor> = new Set<FormFactor>([
+  'phone',
+  'phone.landscape',
+  'tablet',
+  'tv',
+  'web.narrow',
+  'web.wide',
+]);
+
+/**
+ * Best-effort form factor for the current browser viewport.
+ *
+ * Web breakpoint comes from the implementation plan (Phase 3): a single
+ * 768px width threshold separates `web.narrow` from `web.wide`. SSR-safe:
+ * returns `'web.wide'` when `window` is unavailable so server-rendered
+ * markup is stable and matches the typical desktop default.
+ */
+export function currentFormFactor(): FormFactor {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    return 'web.wide';
+  }
+  return window.matchMedia(`(min-width: ${NARROW_BREAKPOINT_PX}px)`).matches
+    ? 'web.wide'
+    : 'web.narrow';
+}
+
+/**
+ * Resolve a `LayoutScalar` (number | `token:…` string) to a CSS pixel value.
+ *
+ * Numeric values pass through unchanged. `token:<name>` is resolved through
+ * the bundled palette + semantic registries. Unknown tokens log
+ * `token_resolver_missing` at debug severity and fall back to 0 so the
+ * payload still renders. Plain strings without the `token:` prefix are
+ * not valid wire values for layout scalars and resolve to 0.
+ */
+export function resolveLayoutScalar(
+  value: number | string | undefined,
+  formFactor: FormFactor = currentFormFactor(),
+): number {
+  if (value == null) return 0;
+  if (typeof value === 'number') return value;
+  if (!value.startsWith(TOKEN_PREFIX)) return 0;
+  const name = value.slice(TOKEN_PREFIX.length);
+  if (!(name in PALETTE) && !(name in SEMANTIC)) {
+    if (typeof console !== 'undefined') {
+      console.debug('token_resolver_missing', value);
+    }
+    return 0;
+  }
+  return followAlias(name, formFactor, 0);
+}
+
+/**
+ * Resolve an `AspectRatioUnion` (number | enum string) to a numeric ratio.
+ * Unknown enum values resolve to `undefined` so the caller can omit the
+ * declaration entirely.
+ */
+export function resolveAspectRatio(value: number | string | undefined): number | undefined {
+  if (value == null) return undefined;
+  if (typeof value === 'number') return value;
+  switch (value) {
+    case '16:9': return 16 / 9;
+    case '4:3':  return 4 / 3;
+    case '1:1':  return 1;
+    case '3:2':  return 3 / 2;
+    case '21:9': return 21 / 9;
+    default:     return undefined;
+  }
+}
+
+interface SpacingInput {
+  top?: number | string;
+  bottom?: number | string;
+  start?: number | string;
+  end?: number | string;
+}
+
+export interface ResolvedSpacingPx {
+  top: number;
+  bottom: number;
+  left: number;
+  right: number;
+}
+
+/**
+ * Resolve a `Spacing` block into LTR CSS edges (top/bottom/left/right) in
+ * pixels. `start` maps to `left` and `end` maps to `right`.
+ *
+ * TODO(rtl): Phase 5 introduces locale-aware layout direction; when the
+ * document is in an RTL locale the start/end → left/right mapping should
+ * flip. Today we assume LTR; revisit when RTL lands.
+ */
+export function resolveSpacingPx(
+  spacing: SpacingInput | undefined,
+  formFactor: FormFactor = currentFormFactor(),
+): ResolvedSpacingPx {
+  if (!spacing) return { top: 0, bottom: 0, left: 0, right: 0 };
+  return {
+    top:    resolveLayoutScalar(spacing.top,    formFactor),
+    bottom: resolveLayoutScalar(spacing.bottom, formFactor),
+    left:   resolveLayoutScalar(spacing.start,  formFactor),
+    right:  resolveLayoutScalar(spacing.end,    formFactor),
+  };
+}
+
+/** Test-only: surface KNOWN_FORM_FACTORS for callers that want to validate
+ * a string before forwarding it as a form-factor override. */
+export function isFormFactor(value: string): value is FormFactor {
+  return KNOWN_FORM_FACTORS.has(value as FormFactor);
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// Snapshot: semantic aliases (alias name → palette/alias key)
+// ────────────────────────────────────────────────────────────────────────
+
+const SEMANTIC: Record<string, string> = {
+  'spacing.xs':  'space.raw.4',
+  'spacing.sm':  'space.raw.8',
+  'spacing.md':  'space.raw.12',
+  'spacing.lg':  'space.raw.16',
+  'spacing.xl':  'space.raw.24',
+  'spacing.xxl': 'space.raw.32',
+
+  'radius.sm':   'radius.raw.4',
+  'radius.md':   'radius.raw.8',
+  'radius.lg':   'radius.raw.12',
+  'radius.xl':   'radius.raw.16',
+  'radius.full': 'radius.raw.999',
+
+  'icon.sm':      'size.raw.20',
+  'icon.md':      'size.raw.32',
+  'icon.lg':      'size.raw.40',
+  'logo.team.sm': 'size.raw.40',
+  'logo.team.md': 'size.raw.48',
+  'logo.team.lg': 'size.raw.56',
+  'avatar.sm':    'size.raw.40',
+  'avatar.md':    'size.raw.48',
+  'avatar.lg':    'size.raw.64',
+  'thumbnail.sm': 'size.raw.72',
+  'thumbnail.md': 'size.raw.96',
+
+  'type.body':     'type.raw.14',
+  'type.bodyEm':   'type.raw.16',
+  'type.title':    'type.raw.20',
+  'type.headline': 'type.raw.28',
+
+  'shadow.sm': 'shadow.raw.1',
+  'shadow.md': 'shadow.raw.2',
+  'shadow.lg': 'shadow.raw.3',
+};
+
+// ────────────────────────────────────────────────────────────────────────
+// Snapshot: merged palette (palette key → form-factor row)
+//
+// Tuple ordering: [phone, phone.landscape, tablet, tv, web.narrow, web.wide].
+// ────────────────────────────────────────────────────────────────────────
+
+type PaletteRow = readonly [number, number, number, number, number, number];
+
+const PALETTE: Record<string, PaletteRow> = {
+  // spacing
+  'space.raw.0':   [0,  0,  0,  0,  0,  0 ],
+  'space.raw.4':   [4,  4,  6,  8,  4,  6 ],
+  'space.raw.8':   [8,  8,  10, 12, 8,  10],
+  'space.raw.12':  [12, 12, 14, 16, 12, 14],
+  'space.raw.16':  [16, 16, 18, 20, 16, 18],
+  'space.raw.24':  [24, 24, 28, 32, 24, 28],
+  'space.raw.32':  [32, 32, 36, 40, 32, 36],
+
+  // corner radius
+  'radius.raw.0':   [0,   0,   0,   0,   0,   0  ],
+  'radius.raw.4':   [4,   4,   6,   8,   4,   6  ],
+  'radius.raw.8':   [8,   8,   10,  12,  8,   10 ],
+  'radius.raw.12':  [12,  12,  14,  16,  12,  14 ],
+  'radius.raw.16':  [16,  16,  18,  20,  16,  18 ],
+  'radius.raw.999': [999, 999, 999, 999, 999, 999],
+
+  // sizes
+  'size.raw.20': [20, 20, 24,  28,  20, 24 ],
+  'size.raw.32': [32, 32, 40,  48,  32, 40 ],
+  'size.raw.40': [40, 40, 48,  56,  40, 48 ],
+  'size.raw.48': [48, 48, 56,  64,  48, 56 ],
+  'size.raw.56': [56, 56, 64,  80,  56, 64 ],
+  'size.raw.64': [64, 64, 72,  96,  64, 72 ],
+  'size.raw.72': [72, 72, 80,  112, 72, 80 ],
+  'size.raw.96': [96, 96, 108, 128, 96, 108],
+
+  // typography
+  'type.raw.12': [12, 12, 13, 18, 12, 13],
+  'type.raw.14': [14, 14, 15, 20, 14, 15],
+  'type.raw.16': [16, 16, 17, 24, 16, 17],
+  'type.raw.20': [20, 20, 22, 32, 20, 22],
+  'type.raw.28': [28, 28, 32, 40, 28, 32],
+
+  // shadow elevation tier
+  'shadow.raw.0': [0, 0, 0, 0, 0, 0],
+  'shadow.raw.1': [1, 1, 1, 2, 1, 1],
+  'shadow.raw.2': [2, 2, 2, 3, 2, 2],
+  'shadow.raw.3': [3, 3, 3, 4, 3, 3],
+};
+
+const FORM_FACTOR_INDEX: Readonly<Record<FormFactor, number>> = {
+  'phone':           0,
+  'phone.landscape': 1,
+  'tablet':          2,
+  'tv':              3,
+  'web.narrow':      4,
+  'web.wide':        5,
+};
+
+function followAlias(name: string, formFactor: FormFactor, depth: number): number {
+  if (depth > MAX_ALIAS_DEPTH) return 0;
+  const row = PALETTE[name];
+  if (row) {
+    const idx = FORM_FACTOR_INDEX[formFactor];
+    return idx != null ? row[idx] : row[FORM_FACTOR_INDEX.phone];
+  }
+  const next = SEMANTIC[name];
+  if (!next) return 0;
+  return followAlias(next, formFactor, depth + 1);
+}

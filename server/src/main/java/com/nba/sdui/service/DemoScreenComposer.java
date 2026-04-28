@@ -8,6 +8,8 @@ import org.springframework.stereotype.Component;
 
 import java.util.Map;
 
+import static com.nba.sdui.service.AccessibilityHelper.*;
+
 /**
  * Composes the kitchen-sink demo screen showcasing all semantic section types,
  * the Season Leaders table, and the parameterised refresh response for the
@@ -767,8 +769,10 @@ public class DemoScreenComposer {
         ObjectNode root = atomicBuilder.container("column", "start", "start");
         root.put("gap", 4);
         ArrayNode children = objectMapper.createArrayNode();
-        children.add(atomicBuilder.text("Never Miss a Game", "titleMedium", "bold",
-                ColorTokens.TEXT_INVERSE, null));
+        ObjectNode bannerTitle = atomicBuilder.text("Never Miss a Game", "titleMedium", "bold",
+                ColorTokens.TEXT_INVERSE, null);
+        addHeading(objectMapper, bannerTitle, "Never Miss a Game", 2);
+        children.add(bannerTitle);
         children.add(atomicBuilder.text(
                 "Stream every out-of-market game live with NBA League Pass.",
                 "bodySmall", null, ColorTokens.TEXT_INVERSE, null));
@@ -806,9 +810,13 @@ public class DemoScreenComposer {
 
         children.add(atomicBuilder.image(
                 DemoImageUrls.logoWide(), 0, 64, "contain"));
+        // Logo is decorative — title below provides the accessible label.
+        addHidden(objectMapper, (ObjectNode) children.get(children.size() - 1));
         children.add(atomicBuilder.spacer(8));
-        children.add(atomicBuilder.text("NBA League Pass", "headlineMedium", "bold",
-                ColorTokens.TEXT_INVERSE, null));
+        ObjectNode heroTitle = atomicBuilder.text("NBA League Pass", "headlineMedium", "bold",
+                ColorTokens.TEXT_INVERSE, null);
+        addHeading(objectMapper, heroTitle, "NBA League Pass", 2);
+        children.add(heroTitle);
         children.add(atomicBuilder.text("Watch every game. Your way.",
                 "bodyLarge", null, ColorTokens.TEXT_INVERSE, null));
         children.add(atomicBuilder.spacer(16));
@@ -883,8 +891,10 @@ public class DemoScreenComposer {
             cardChildren.add(atomicBuilder.text(badgeText, "labelMedium", "bold",
                     "token:color.secondary.50", null));
         }
-        cardChildren.add(atomicBuilder.text(name, "titleLarge", "bold",
-                ColorTokens.TEXT_INVERSE, null));
+        ObjectNode tierName = atomicBuilder.text(name, "titleLarge", "bold",
+                ColorTokens.TEXT_INVERSE, null);
+        addHeading(objectMapper, tierName, name, 3);
+        cardChildren.add(tierName);
         cardChildren.add(atomicBuilder.text(price, "headlineSmall", "bold",
                 ColorTokens.TEXT_INVERSE, null));
         if (originalPrice != null) {
@@ -1030,6 +1040,7 @@ public class DemoScreenComposer {
         title.put("variant", "titleMedium");
         title.put("weight", "bold");
         title.put("color", ColorTokens.TEXT_PRIMARY);
+        addHeading(objectMapper, title, "LAL vs BOS", 3);
         children.add(title);
 
         ObjectNode subtitle = objectMapper.createObjectNode();

@@ -230,6 +230,10 @@ export enum NavigationPresentation {
     Replace = "replace",
 }
 
+/**
+ * Event that fires the action. Prefer onActivate for primary activation (tap, keyboard
+ * Enter/Space, accessibility activate). onTap is a deprecated alias for onActivate.
+ */
 export enum ActionTrigger {
     OnActivate = "onActivate",
     OnBlur = "onBlur",
@@ -370,8 +374,11 @@ export interface AtomicElement {
      * Deprecated: use accessibility.label instead. Retained for backward compatibility; clients
      * prefer accessibility.label when present.
      */
-    alt?:         string;
-    aspectRatio?: number;
+    alt?: string;
+    /**
+     * Aspect ratio: legacy numeric (w/h), or named ratio string for semantic layout.
+     */
+    aspectRatio?: number | AspectRatioEnum;
     background?:  Background | string;
     /**
      * Z-positioned child element (e.g. 'LIVE' pill, duration label) overlaid on this element.
@@ -416,9 +423,10 @@ export interface AtomicElement {
      */
     cornerRadii?: CornerRadii;
     /**
-     * Corner radius in dp/px. Applied to Container (with overflow clip) and Image elements.
+     * Corner radius: dp/px or layout token. Applied to Container (with overflow clip) and Image
+     * elements.
      */
-    cornerRadius?:   number;
+    cornerRadius?:   number | string;
     crossAlignment?: CrossAlignment;
     direction?:      UIDirection;
     disabled?:       boolean;
@@ -442,8 +450,14 @@ export interface AtomicElement {
      * typography (equivalent to TextVariant.score).
      */
     format?: Format;
-    gap?:    number;
-    height?: number;
+    /**
+     * Gap between flex children (row/column), or grid gap where applicable.
+     */
+    gap?: number | string;
+    /**
+     * Fixed height in dp/px or layout token.
+     */
+    height?: number | string;
     icon?:   string;
     id?:     string;
     /**
@@ -548,7 +562,10 @@ export interface AtomicElement {
      */
     variant?: string;
     weight?:  TextWeight;
-    width?:   number;
+    /**
+     * Fixed width in dp/px or layout token.
+     */
+    width?: number | string;
     [property: string]: any;
 }
 
@@ -819,10 +836,10 @@ export enum BadgeAlignment {
  * Inner padding (space between the surface edge and the content it wraps).
  */
 export interface Spacing {
-    bottom?: number;
-    end?:    number;
-    start?:  number;
-    top?:    number;
+    bottom?: number | string;
+    end?:    number | string;
+    start?:  number | string;
+    top?:    number | string;
     [property: string]: any;
 }
 
@@ -908,6 +925,14 @@ export enum Alignment {
     SpaceBetween = "spaceBetween",
     SpaceEvenly = "spaceEvenly",
     Start = "start",
+}
+
+export enum AspectRatioEnum {
+    The11 = "1:1",
+    The169 = "16:9",
+    The219 = "21:9",
+    The32 = "3:2",
+    The43 = "4:3",
 }
 
 /**
@@ -1001,19 +1026,19 @@ export interface CornerRadii {
     /**
      * Bottom-trailing corner.
      */
-    bottomEnd?: number;
+    bottomEnd?: number | string;
     /**
      * Bottom-leading corner.
      */
-    bottomStart?: number;
+    bottomStart?: number | string;
     /**
      * Top-trailing corner (top-right in LTR, top-left in RTL).
      */
-    topEnd?: number;
+    topEnd?: number | string;
     /**
      * Top-leading corner (top-left in LTR, top-right in RTL).
      */
-    topStart?: number;
+    topStart?: number | string;
 }
 
 export enum CrossAlignment {
@@ -1540,9 +1565,9 @@ export interface SectionSurface {
      */
     border?: Border;
     /**
-     * Corner radius in dp/px applied to the surface (with overflow clip).
+     * Corner radius: dp/px or layout token, applied to the surface (with overflow clip).
      */
-    cornerRadius?: number;
+    cornerRadius?: number | string;
     /**
      * Outer margin (space between the surface and its siblings / screen edge).
      */

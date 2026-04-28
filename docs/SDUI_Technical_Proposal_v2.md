@@ -412,6 +412,7 @@ Actions are supported at three scopes:
 
 | Trigger       | Fires when                                           |
 | ------------- | ---------------------------------------------------- |
+| `onActivate`  | Neutral activation intent (tap, click, keyboard Enter, TV select). Preferred over legacy `onTap`. |
 | `onTap`       | touch/click/remote select                            |
 | `onLongPress` | hold gesture                                         |
 | `onVisible`   | enters viewport                                      |
@@ -892,7 +893,7 @@ These limits ensure atomic trees remain a lightweight composition mechanism, not
 | Ad primitive contract          | Gap     | ADR-007 | required field policy + fallback semantics pending  |
 | Layout manager contract        | Partial | ADR-008 | SectionLayoutHints built on Web (margins, dividers, priority). ADR-008 accepted (Option C). Android wiring pending. |
 | Impression semantics           | Partial | ADR-009 | Built on web (IntersectionObserver + dedup registry), Android (`SectionVisibilityTracker`), and iOS (`ImpressionTracker` + `SectionVisibilityTracker`). ADR-009 accepted. Cross-platform dedup registry + analytics forwarding still in progress. |
-| Error handling (ErrorState)    | Built   | —       | server-composed `ErrorState` section type built on Web, Android, and iOS (`SectionErrorBoundary` / skeleton on iOS). Per-section runtime error/loading states (`sectionStates`) planned. |
+| Error handling (ErrorState)    | Built   | —       | server-composed `ErrorState` now served via `AtomicComposite` (migrated from standalone section type). Built on Web, Android, and iOS (`SectionErrorBoundary` / skeleton on iOS). Per-section runtime error/loading states (`sectionStates`) planned. |
 | Contract testing/observability | Gap     | —       | broader test corpus + dashboards pending            |
 | Internationalization (i18n)    | Built   | —       | Section-level `stringTable` stamped by server per locale. Server pre-translates initial text. Clients consume `stringTable` from each section. Parameterized strings via atomic decomposition. |
 | Tabular data (BoxscoreTable)   | Built   | —       | semantic table type, domain-typed data, client-side sort. Built on Android, iOS, and web. |
@@ -946,6 +947,7 @@ The alternative is duplicated platform composition logic and drift in feature be
 
 | Date | Summary |
 |---|---|
+| 2026-04-27 | Doc consistency audit: `onActivate` trigger added to §4 table, ErrorState note clarified as AtomicComposite in §10, terminology sync. |
 | 2026-04-27 | Parameterized refresh + shared transport (§4, AGENTS §4.1.1, contract §11). §0: `platform` via envelope only. §2a: 12 `AtomicElement` types in the summary table. Server `/sdui/refresh/{screenId}` GET+POST. Glossary: fetch primitive, parameterized refresh. |
 | 2026-04-26 | Doc consistency audit. Stripped historical migration narrative — §2b reframed "When a section can migrate to atomic" as "When a content surface is atomic" (forward-looking criterion only); §8 former-section note replaced with a `VideoPlayer` stub-status note; §8 atomic-element coverage table gained an `OverlayContainer` row and the dispatch-summary sentence updated to 12 element types. Doc now describes current architectural state without "former section types" framing. |
 | 2026-04-25 | Doc consistency audit. Migrated-section count 9 → 10 (GamePanel added). Atomic element count 10 → 11 (§8 coverage table + summary line). Section type count 10th → 9th, 9 permanent → 8 permanent. LiveClock row added to atomic platform coverage table. Former-section note updated to list all 10 migrated types. Implementation-status annotations added: §1 capability-gating example marked as plumbed-not-consumed, §2c Figma CI pipeline marked as planned-not-built, §8 style-tokens row updated with override-matrix and diagnostic coverage qualifications. |

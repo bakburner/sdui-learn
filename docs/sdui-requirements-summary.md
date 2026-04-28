@@ -277,27 +277,29 @@ Defines server-controlled interactivity. Every interactive component carries an 
 
 When both parent and child define actions for the same trigger, child action scope takes precedence unless explicitly composed.
 
-### Interaction Triggers (6 types — 4 in current schema)
+### Interaction Triggers (8 types — all in current schema)
 
 ```mermaid
 graph LR
     subgraph "In Schema"
-        T[onTap] 
+        A[onActivate]
+        T[onTap — deprecated alias]
         LP[onLongPress]
         V[onVisible]
         SW[onSwipe]
-    end
-    subgraph "Future (TV)"
         F[onFocus]
         BL[onBlur]
+        S[onSubmit]
     end
     
-    T -->|"touch / click / remote select"| EX[Action Executor]
+    A -->|"neutral activation intent (tap, click, Enter, TV select)"| EX[Action Executor]
+    T -->|"touch / click / remote select (deprecated — use onActivate)"| EX
     LP -->|"press-and-hold"| EX
     V -->|"viewport entry — impressions"| EX
     SW -->|"directional swipe"| EX
     F -->|"D-pad focus lands"| EX
     BL -->|"D-pad focus leaves"| EX
+    S -->|"form submission (Enter, return key, submit button)"| EX
     
     style EX fill:#8E44AD,color:#fff
 ```
@@ -1169,6 +1171,7 @@ graph TD
 
 | Date | Summary |
 |---|---|
+| 2026-04-27 | Doc consistency audit: trigger counts (6 → 8, all in schema), onActivate + onSubmit added, "Future (TV)" distinction removed, terminology sync. |
 | 2026-04-27 | Envelope-only platform (`platform[name]`, `schemaVersion`). §9o bullet and §10 atomic row aligned. Client contract: C11, §11.5, architecture diagram. |
 | 2026-04-26 | Doc consistency audit. Stripped historical migration narrative — Key Schema Decisions, §9r classification, §10 renderer rows, and Atomic rendering layer row all describe current state without "former section types" or "migrated to atomic" framing. Atomic element count corrected 11 → 12 (`OverlayContainer` added). §9r "Migrated to atomic" tier renamed to "Atomic surfaces" with example list rather than enumerated former-types. Stray legacy `Row` reference removed. |
 | 2026-04-25 | Doc consistency audit. Atomic rendering layer row: added LiveClock, updated migrated count 9 → 10 (GamePanel added). §9g theming: override-matrix description qualified as hardcoded in resolvers (not read from `style-tokens.json` at runtime); `variant_override_blocked` coverage qualified as Android-only verified. |

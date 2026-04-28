@@ -1,12 +1,14 @@
-SDUI: unify refresh transport, add onActivate, harden images, add production patterns
+SDUI: complete Phases 2–6, doc consistency audit, remediate iOS regressions
 
-Unify parameterized refresh with the same envelope + query encoding as other
-SDUI fetches. Introduce `onActivate` as the primary action trigger (retain
-`onTap` as a deprecated alias) across schema, server, and clients. Bundle a
-last-resort image for failed loads on iOS, add same-origin demo assets, and
-record production server architecture patterns and the design-system
-implementation plan. Refresh governing docs; remove
-`COMMIT_MESSAGE_VIOLATIONS.md`.
+Complete the full design-system implementation plan (Phases 2–6): semantic
+size/spacing tokens, form-factor classification and routing, accessibility
+floor on atomic primitives, i18n localization (RTL deferred), and variant
+realization extension to form factor. Fix Phase 2/3 iOS regressions
+(LayoutTokenResolver access modifiers, isPrimaryActivation codegen
+post-process). Run doc consistency audit across all governance documents.
+
+Prior commit context: Phase 1 (onActivate), parameterized refresh transport,
+image hardening, and production server patterns were landed previously.
 
 --- Phase 1: onActivate (schema + all clients) ---
 
@@ -109,3 +111,58 @@ implementation plan. Refresh governing docs; remove
 - Spot-check: leaders / stats refresh with form filters; Watch Featured tab
   visible on iOS; tap/activate on demo screens; image failure shows bundled
   fallback (iOS).
+
+--- Phase 2/3 iOS remediation ---
+
+- `LayoutTokenResolver.swift`: drop `public` from `cgFloat`, `intValue`,
+  `aspectRatio` methods (LayoutScalar/AspectRatioUnion are internal).
+- `codegen/generate.sh`: restore `isPrimaryActivation` extension post-process
+  on ActionTrigger (was dropped by a codegen rerun).
+- Reran `make codegen`; iOS compiles and 71/71 tests pass.
+
+--- Phase 4: Accessibility floor on atomic primitives ---
+
+- Schema: `AccessibilityProperties` (7 fields: label, hint, role, hidden,
+  headingLevel, liveRegion, sortOrder) on AtomicElement and Section.
+- Server: `AccessibilityHelper.java` (addLabel, addHidden, addHeading,
+  addButton, addImage); AtomicCompositeBuilder 15+ call sites.
+  WatchComposer + DemoScreenComposer: a11y on hand-built nodes.
+- iOS: `AccessibilityModifiers.swift` wired into all content renderers
+  including AtomicDisplayGridView (new).
+- Android: `AccessibilityExt.kt` wired into 8 content renderers; decorative
+  elements (Divider, Spacer) correctly hidden via clearAndSetSemantics.
+- Web: `accessibility.ts` utility + 30 dedicated tests; integrated in
+  AtomicText/Image/Container/LiveClock/DisplayGrid/OverlayContainer.
+- `scripts/lint-a11y-labels.sh` (warn-only).
+
+--- Phase 5: i18n (no RTL, no CI lint) ---
+
+- `SduiUtils.java`: STRING_TABLES expanded with 14 new keys per locale
+  (en/es/fr) — month names, filter labels, screen title.
+  `getLocalizedString(locale, key)` public accessor added.
+- `ScheduleComposer.java`: hardcoded English month switch replaced with
+  `java.time.LocalDate` + `DateTimeFormatter.ofPattern("MMMM d, yyyy",
+  Locale.forLanguageTag(locale))`. Form labels resolve through string table.
+- No client changes needed — i18n is server-driven per AGENTS.md §1.1.
+
+--- Phase 6: Variant realization extension to form factor ---
+
+- `schema/style-tokens.json`: `formFactorNotes` added for hero/grouped/
+  thumbnail (phone, tablet, web.wide intent statements).
+- Android: `ContainerVariantResolver.kt` + `ImageVariantResolver.kt` accept
+  `formFactor` param; hero tablet gets 12dp shadow. `build.gradle.kts` adds
+  `testOptions.unitTests.isReturnDefaultValues = true` for Log mocking.
+- iOS: `ContainerVariantResolver.swift` + `ImageVariantResolver.swift` accept
+  `formFactor`; call sites in AtomicBoxModifier, AtomicImageView updated.
+- Web: `ContainerVariantResolver.ts` + `ImageVariantResolver.ts` accept
+  `formFactor`; call sites pass `currentFormFactor()`.
+
+--- Doc consistency audit ---
+
+- Ran `extract-facts.py`; cross-referenced routers vs schema (all match).
+- Fixed across 7 docs: trigger counts (7→8, add onActivate), ADR-010 missing
+  row in Executive Summary, ErrorState classification in Technical Proposal,
+  RTL marked deferred in design-system doc, glossary entries for onActivate,
+  trigger lists in client-implementors-contract, "Live-score card"→"Game panel"
+  in README.
+- All JSON schema files validated; no dangling $refs.

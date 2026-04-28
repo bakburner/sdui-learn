@@ -91,6 +91,8 @@ class SduiRepositoryRefreshTransportTest {
         )
         assertTrue("envelope must travel as bracket-notation: $query",
             query.contains("platform%5Bname%5D=android"))
+        assertTrue("envelope must carry formFactor on every request: $query",
+            query.contains("platform%5BformFactor%5D=phone"))
         assertTrue(query.contains("locale=en"))
 
         assertEquals("trace-parent", request.header("X-Trace-Id"))
@@ -169,6 +171,9 @@ class SduiRepositoryRefreshTransportTest {
         .osVersion("34")
         .deviceClass("phone")
         .sseCapable(true)
+        // Pin form factor for byte-stable URL assertions; production paths
+        // pick this up from the runtime classifier.
+        .formFactor("phone")
 
     private fun oversizedEnvelope(): RequestEnvelopeBuilder {
         val builder = compactEnvelope()

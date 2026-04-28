@@ -53,7 +53,7 @@ The prototype has moved beyond architectural planning into working, demonstrable
 
 | Area                        | Description                                                                                                                                                                                                                                                                                               | Status                 |
 | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
-| **JSON Schema**             | Complete schema defining 12 atomic element types (10 rendering primitives + SectionSlot bridge + LiveClock), 9 section types (8 permanent + AtomicComposite), 6 action types, 7 action triggers, 3 refresh policies, field-level data bindings, and screen-level state management. | **Done**               |
+| **JSON Schema**             | Complete schema defining 12 atomic element types (10 rendering primitives + SectionSlot bridge + LiveClock), 9 section types (8 permanent + AtomicComposite), 6 action types, 8 action triggers, 3 refresh policies, field-level data bindings, and screen-level state management. | **Done**               |
 | **Code generation**         | Multi-platform pipeline: jsonschema2pojo produces Java POJOs with Jackson annotations; quicktype generates Swift structs and TypeScript types — all from a single schema source                                                                                                                           | **Done**               |
 | **Composition service**     | Spring Boot service assembling SDUI responses from live NBA data (Stats API + CDN). Supports demo/live modes, per-section refresh policies, Ably channel resolution, A/B variant composition, request context envelope (`SduiRequestContext`), section-level i18n (`stringTable`), and trace ID observability | **Done**               |
 | **Android renderer**        | Full Kotlin/Compose renderer in a reusable `sdui-core` library module. 8 permanent section renderers (TabGroup, BoxscoreTable, Form, SeasonLeadersTable, SubscribeBanner, SubscribeHero, AdSlot, VideoPlayer) plus `AtomicComposite` routing to the atomic layer. Real-time Ably integration, polling with direct CDN support, StateFlow-based state management, generic action handler, server-driven image fallback via Coil `SubcomposeAsyncImage`, `IconTokenResolver` for `sdui:*` icon tokens, server-declared bottom navigation shell | **Done**               |
@@ -289,6 +289,7 @@ To preserve continuity with the original executive summary, this section explici
 | Ads boundary and contract            | **ADR-007 Proposed**              |
 | Form-factor layout manager           | **ADR-008 Accepted** (Option C — Hybrid) |
 | Impression dedup and visibility      | **ADR-009 Accepted** (2026-03-11) |
+| Offline and degraded connectivity    | **ADR-010 Proposed**              |
 | Data classification and freshness    | **ADR-011 Proposed** (draft)      |
 | Client data architecture             | **ADR-012 Proposed** (draft)      |
 | Style tokens for atomic primitives   | **ADR-013 Accepted**              |
@@ -311,6 +312,7 @@ To preserve continuity with the original executive summary, this section explici
 
 | Date | Summary |
 |---|---|
+| 2026-04-27 | Doc consistency audit: trigger counts (7 → 8), ADR-010 row added to Decision Continuity, terminology sync. |
 | 2026-04-27 | Feature table: second column title → `Description`. Schema version + platform bullets: envelope-only (`platform[name]`, `schemaVersion`). |
 | 2026-04-26 | Doc consistency audit. Stripped historical migration narrative — no more "former section types" framing. JSON Schema, Android renderer, Atomic rendering layer, and Two-tier primitives bullets describe current state only. Atomic element count corrected 11 → 12 (`OverlayContainer` added). Milestone 1 contract-test row corrected 10 → 9 section types. |
 | 2026-04-25 | Doc consistency audit. Decision Continuity table: “ADR pending” → explicit ADR-00N Proposed for composition ownership, request/contract, GET/POST caching, action scope, ads boundary. |

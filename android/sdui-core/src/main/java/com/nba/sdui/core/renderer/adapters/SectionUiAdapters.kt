@@ -45,7 +45,7 @@ fun mapTabGroup(section: Section, screenState: Map<String, Any>): TabGroupUiMode
 
 fun mapTabMutateAction(stateKey: String, stateValue: String): SduiAction =
     SduiAction(
-        trigger = "onTap",
+        trigger = "onActivate",
         type = "mutate",
         stateKey = stateKey,
         stateValue = stateValue

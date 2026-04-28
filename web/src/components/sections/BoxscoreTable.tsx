@@ -1,8 +1,7 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import type { Action } from '@sdui/models';
 import type { SectionProps } from '../SectionRouter';
 import { mapBoxscoreTable } from '../../adapters/sectionUiAdapters';
-import { DEFAULT_FALLBACK_IMAGE } from '../../utils/constants';
 import { accessibilityProps } from '../../utils/accessibility';
 
 /**
@@ -64,14 +63,45 @@ export function BoxscoreTable({ section, state, onAction, onStateChange }: Secti
 
   const teamAccent = model.teamColor || 'var(--nba-blue)';
 
+  const [teamLogoUseInitials, setTeamLogoUseInitials] = useState(false);
+  const teamTriedServerFallback = useRef(false);
+  const [headshotUseInitials, setHeadshotUseInitials] = useState<Set<string>>(() => new Set());
+  const headTriedServerFallback = useRef<Record<string, boolean>>({});
+
+  const onTeamLogoError: React.ReactEventHandler<HTMLImageElement> = (e) => {
+    const img = e.currentTarget;
+    const fb = model.fallbackThumbnailUrl;
+    if (fb && !teamTriedServerFallback.current) {
+      teamTriedServerFallback.current = true;
+      img.src = fb;
+      return;
+    }
+    setTeamLogoUseInitials(true);
+  };
+
+  const onPlayerImageError = (playerId: string): React.ReactEventHandler<HTMLImageElement> => (e) => {
+    const img = e.currentTarget;
+    const fb = model.fallbackThumbnailUrl;
+    if (fb && !headTriedServerFallback.current[playerId]) {
+      headTriedServerFallback.current[playerId] = true;
+      img.src = fb;
+      return;
+    }
+    setHeadshotUseInitials((prev) => new Set(prev).add(playerId));
+  };
+
   return (
     <div style={{ ...styles.container, backgroundColor: section.backgroundColor || 'var(--surface)' }} {...accessibilityProps(section.accessibility)}>
       {/* Team header */}
       {model.teamName && (
         <div style={styles.teamHeader}>
-          {model.teamLogoUrl && (
-            <img src={model.teamLogoUrl} alt={model.teamTricode} style={styles.teamLogo}
-              onError={(e) => { const img = e.currentTarget; if (img.src !== DEFAULT_FALLBACK_IMAGE) img.src = DEFAULT_FALLBACK_IMAGE; }} />
+          {model.teamLogoUrl && !teamLogoUseInitials && (
+            <img src={model.teamLogoUrl} alt={model.teamTricode} style={styles.teamLogo} onError={onTeamLogoError} />
+          )}
+          {model.teamLogoUrl && teamLogoUseInitials && (
+            <div style={styles.teamLogoInitials} aria-hidden>
+              {model.teamTricode.slice(0, 2)}
+            </div>
           )}
           <span>{model.teamName}</span>
         </div>
@@ -137,20 +167,23 @@ export function BoxscoreTable({ section, state, onAction, onStateChange }: Secti
                       cursor: player.actions?.length ? 'pointer' : 'default',
                     }}
                     onClick={() => {
-                      const act = player.actions?.find((a: Action) => a.trigger === 'onTap') ?? player.actions?.[0];
+                      const act =
+                        player.actions?.find(
+                          (a: Action) => a.trigger === 'onActivate' || a.trigger === 'onTap',
+                        ) ?? player.actions?.[0];
                       if (act) onAction(act);
                     }}
                   >
                     {/* Frozen player cell */}
                     <td style={{ ...styles.td, ...styles.frozenCol, ...styles.playerCell }}>
                       <div style={styles.playerInner}>
-                        {player.imageUrl ? (
+                        {player.imageUrl && !headshotUseInitials.has(player.playerId) ? (
                           <img
                             src={player.imageUrl}
                             alt={player.name}
                             style={styles.headshot}
                             loading="lazy"
-                            onError={(e) => { const img = e.currentTarget; if (img.src !== DEFAULT_FALLBACK_IMAGE) img.src = DEFAULT_FALLBACK_IMAGE; }}
+                            onError={onPlayerImageError(player.playerId)}
                           />
                         ) : (
                           <div style={styles.headshotPlaceholder}>
@@ -244,6 +277,19 @@ const styles: Record<string, React.CSSProperties> = {
     width: 24,
     height: 24,
     objectFit: 'contain',
+  },
+  teamLogoInitials: {
+    width: 24,
+    height: 24,
+    borderRadius: 4,
+    backgroundColor: 'var(--surface-raised)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: 9,
+    fontWeight: 700,
+    color: 'var(--text-secondary)',
+    flexShrink: 0,
   },
   emptyMessage: {
     padding: 32,

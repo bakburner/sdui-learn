@@ -22,6 +22,7 @@ import com.nba.sdui.core.models.generated.SectionSurface
 import com.nba.sdui.core.models.generated.Spacing
 import com.nba.sdui.core.renderer.adapters.BackgroundViewModel
 import com.nba.sdui.core.renderer.adapters.toViewModel
+import com.nba.sdui.core.request.RequestEnvelopeBuilder
 
 /**
  * Shared section-surface wrapper applied by [SectionRouter] to every
@@ -47,9 +48,12 @@ fun SectionContainer(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
-    val margin = surface?.margin.toPaddingValues()
-    val padding = surface?.padding.toPaddingValues()
-    val radius = (surface?.cornerRadius ?: 0L).toInt().dp
+    // TODO(phase3): swap for `LocalSduiFormFactor.current` once the
+    // form-factor classifier is plumbed end-to-end.
+    val formFactor = RequestEnvelopeBuilder.defaultFormFactor()
+    val margin = surface?.margin.toPaddingValues(formFactor)
+    val padding = surface?.padding.toPaddingValues(formFactor)
+    val radius = LayoutTokenResolver.dp(surface?.cornerRadius, formFactor)
     val shadow = surface?.shadow
     val border = surface?.border
     val bg = surface?.background.toViewModel()
@@ -122,12 +126,12 @@ private fun gradientBrush(bg: BackgroundViewModel.Gradient): Brush? {
     }
 }
 
-private fun Spacing?.toPaddingValues(): PaddingValues {
+private fun Spacing?.toPaddingValues(formFactor: String): PaddingValues {
     val s = this ?: return PaddingValues(0.dp)
     return PaddingValues(
-        top = (s.top ?: 0L).toInt().dp,
-        bottom = (s.bottom ?: 0L).toInt().dp,
-        start = (s.start ?: 0L).toInt().dp,
-        end = (s.end ?: 0L).toInt().dp
+        top = LayoutTokenResolver.dp(s.top, formFactor),
+        bottom = LayoutTokenResolver.dp(s.bottom, formFactor),
+        start = LayoutTokenResolver.dp(s.start, formFactor),
+        end = LayoutTokenResolver.dp(s.end, formFactor)
     )
 }

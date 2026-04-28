@@ -1,0 +1,21 @@
+{
+  "$comment": "Semantic spacing (dp / px logical units). Palette rows are per form factor. Semantic aliases point at palette keys.",
+  "$version": "0.1.0",
+  "palette": {
+    "space.raw.0":  { "phone": 0,  "phone.landscape": 0,  "tablet": 0,  "tv": 0,  "web.narrow": 0,  "web.wide": 0  },
+    "space.raw.4":  { "phone": 4,  "phone.landscape": 4,  "tablet": 6,  "tv": 8,  "web.narrow": 4,  "web.wide": 6  },
+    "space.raw.8":  { "phone": 8,  "phone.landscape": 8,  "tablet": 10, "tv": 12, "web.narrow": 8,  "web.wide": 10 },
+    "space.raw.12": { "phone": 12, "phone.landscape": 12, "tablet": 14, "tv": 16, "web.narrow": 12, "web.wide": 14 },
+    "space.raw.16": { "phone": 16, "phone.landscape": 16, "tablet": 18, "tv": 20, "web.narrow": 16, "web.wide": 18 },
+    "space.raw.24": { "phone": 24, "phone.landscape": 24, "tablet": 28, "tv": 32, "web.narrow": 24, "web.wide": 28 },
+    "space.raw.32": { "phone": 32, "phone.landscape": 32, "tablet": 36, "tv": 40, "web.narrow": 32, "web.wide": 36 }
+  },
+  "semantic": {
+    "spacing.xs":  { "aliasOf": "space.raw.4" },
+    "spacing.sm":  { "aliasOf": "space.raw.8" },
+    "spacing.md":  { "aliasOf": "space.raw.12" },
+    "spacing.lg":  { "aliasOf": "space.raw.16" },
+    "spacing.xl":  { "aliasOf": "space.raw.24" },
+    "spacing.xxl": { "aliasOf": "space.raw.32" }
+  }
+}

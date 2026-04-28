@@ -4,13 +4,13 @@ import SwiftUI
 // MARK: - Shared helpers used across atomic renderers
 
 /// Convert schema Spacing to EdgeInsets.
-func edgeInsets(from spacing: Spacing?) -> EdgeInsets {
+func edgeInsets(from spacing: Spacing?, formFactor: String = RequestEnvelope.currentFormFactor) -> EdgeInsets {
     guard let s = spacing else { return EdgeInsets() }
     return EdgeInsets(
-        top: CGFloat(s.top ?? 0),
-        leading: CGFloat(s.start ?? 0),
-        bottom: CGFloat(s.bottom ?? 0),
-        trailing: CGFloat(s.end ?? 0)
+        top: LayoutTokenResolver.cgFloat(s.top, formFactor: formFactor),
+        leading: LayoutTokenResolver.cgFloat(s.start, formFactor: formFactor),
+        bottom: LayoutTokenResolver.cgFloat(s.bottom, formFactor: formFactor),
+        trailing: LayoutTokenResolver.cgFloat(s.end, formFactor: formFactor)
     )
 }
 
@@ -163,7 +163,7 @@ struct ActionTapModifier: ViewModifier {
     let onAction: (Action) -> Void
 
     func body(content: Content) -> some View {
-        if let tapActions = actions?.filter({ $0.trigger == .onTap }), !tapActions.isEmpty {
+        if let tapActions = actions?.filter(\.trigger.isPrimaryActivation), !tapActions.isEmpty {
             content.onTapGesture {
                 for action in tapActions {
                     onAction(action)

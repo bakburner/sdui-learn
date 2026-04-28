@@ -1,7 +1,7 @@
 import type { Action, Section, FailurePolicy } from '@sdui/models';
-import { SDUI_PATH_PREFIX, API_PROXY_PREFIX } from '../utils/constants';
 import { pushToast } from './ToastStore';
 import { actionLog, actionWarn, actionError } from './actionLogger';
+import { fetchSduiScreen } from './fetchSduiScreen';
 
 export interface ActionContext {
   /** Callback to update screen state */
@@ -45,7 +45,10 @@ export async function executeActionSequence(
   const executed: Action[] = [];
 
   for (const action of actions) {
-    actionLog(`dispatch type=${action.type} trigger=${action.trigger ?? 'onTap'}`, action);
+    if (import.meta.env.DEV && action.trigger === 'onTap') {
+      actionLog('deprecated_trigger_used: onTap is a deprecated alias for onActivate', action);
+    }
+    actionLog(`dispatch type=${action.type} trigger=${action.trigger ?? 'onActivate'}`, action);
     const success = await dispatchAction(action, context);
     executed.push(action);
 
@@ -135,72 +138,65 @@ function handleMutate(action: Action, context: ActionContext): boolean {
 }
 
 async function handleRefresh(action: Action, context: ActionContext): Promise<boolean> {
-  // Resolve paramBindings from screen state (Form submit support)
-  if (action.paramBindings && Object.keys(action.paramBindings).length > 0) {
-    const params = new URLSearchParams();
+  // Parameterized refresh: resolve mustache-bound state values into a
+  // user-params map and route through the canonical `fetchSduiScreen`
+  // transport (envelope + GET/POST length fallback + RFC-3986 percent
+  // encoding + `X-Trace-Id` propagation). Hand-rolling URL strings here
+  // would silently bypass those invariants.
+  if (action.paramBindings && action.endpoint && Object.keys(action.paramBindings).length > 0) {
+    const userParams: Record<string, string> = {};
     for (const [paramName, rawStateKey] of Object.entries(action.paramBindings)) {
-      // Strip mustache delimiters: "{{form_season}}" → "form_season"
       const stateKey = rawStateKey.replace(/^\{\{|\}\}$/g, '');
       const value = context.state[stateKey];
-      if (value !== undefined && value !== null) {
-        params.set(paramName, String(value));
+      if (value !== undefined && value !== null && value !== '') {
+        userParams[paramName] = String(value);
       }
     }
 
-    const baseUrl = action.endpoint || '';
-    const separator = baseUrl.includes('?') ? '&' : '?';
-    const url = baseUrl ? `${baseUrl}${separator}${params.toString()}` : undefined;
+    actionLog(
+      `refresh parameterized endpoint=${action.endpoint} params=${JSON.stringify(userParams)}`,
+    );
 
-    actionLog(`refresh parameterized url=${url ?? 'inherit'} params=${params.toString()}`);
+    try {
+      const { screen, url, method } = await fetchSduiScreen({
+        endpoint: action.endpoint,
+        userParams,
+      });
+      actionLog(`refresh succeeded id=${screen.id} method=${method} url=${url}`);
 
-    if (url) {
-      const fetchUrl = url.startsWith(SDUI_PATH_PREFIX) ? `${API_PROXY_PREFIX}${url}` : url;
-      try {
-        const res = await fetch(fetchUrl);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const screen = await res.json();
-        actionLog(`refresh succeeded id=${screen.id}`);
-
-        // Merge new state from refresh response
-        if (screen.state) {
-          for (const [k, v] of Object.entries(screen.state)) {
-            context.onStateChange(k, v);
-          }
+      if (screen.state) {
+        for (const [k, v] of Object.entries(screen.state)) {
+          context.onStateChange(k, v);
         }
+      }
 
-        // Surgical section-level merge
-        const targetSectionId = action.target;
-        const responseSections = screen.sections as Section[] | undefined;
+      const targetSectionId = action.target;
+      const responseSections = screen.sections as Section[] | undefined;
 
-        if (targetSectionId && responseSections?.length) {
-          const updatedSection = responseSections.find(
-            (s: Section) => s.id === targetSectionId,
-          );
-          if (updatedSection) {
-            actionLog(`refresh surgical-update section=${targetSectionId}`);
-            context.onSectionUpdate(targetSectionId, updatedSection);
-            return true;
-          }
-        }
-
-        // Fallback: replace all sections from the response
-        if (responseSections?.length) {
-          for (const s of responseSections) {
-            context.onSectionUpdate(s.id, s);
-          }
+      if (targetSectionId && responseSections?.length) {
+        const updatedSection = responseSections.find((s: Section) => s.id === targetSectionId);
+        if (updatedSection) {
+          actionLog(`refresh surgical-update section=${targetSectionId}`);
+          context.onSectionUpdate(targetSectionId, updatedSection);
           return true;
         }
-
-        // Last resort: full screen refresh
-        context.onRefresh(targetSectionId);
-        return true;
-      } catch (err) {
-        actionError(`refresh failed: ${(err as Error).message ?? err}`);
-        if (action.target) {
-          context.onSectionStale(action.target);
-        }
-        return false;
       }
+
+      if (responseSections?.length) {
+        for (const s of responseSections) {
+          context.onSectionUpdate(s.id, s);
+        }
+        return true;
+      }
+
+      context.onRefresh(targetSectionId);
+      return true;
+    } catch (err) {
+      actionError(`refresh failed: ${(err as Error).message ?? err}`);
+      if (action.target) {
+        context.onSectionStale(action.target);
+      }
+      return false;
     }
   }
 

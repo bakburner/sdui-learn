@@ -8,9 +8,9 @@ import { resolveColorToken, usePrefersColorScheme } from '../../utils/ColorToken
  * rectangle — `data.sizes[0]` is the single source of truth for
  * dimensions, shared by the placeholder and (when the SDK lands)
  * the ad platform itself. Inner placeholder chrome (background
- * color, caption text) comes from `data.placeholder`; outer chrome
- * (margin, padding, shadow, radius) comes from `section.surface`
- * via the shared SectionContainer wrapper.
+ * color, caption text) comes from `data.placeholder`. Outer chrome is
+ * `section.surface` (server — e.g. `SduiUtils.adSlotSurface()`). The
+ * creative uses full width with `aspect-ratio` from `data.sizes[0]`.
  *
  * This renderer carries no client-side chrome defaults — a payload
  * missing required `sizes` renders nothing. Reservation dimensions
@@ -36,17 +36,32 @@ export function AdSlot({ section }: SectionProps): React.ReactElement | null {
       aria-label={label ?? 'Advertisement'}
       role="complementary"
       {...accessibilityProps(section.accessibility)}
-      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'stretch',
+        width: '100%',
+        gap: 8,
+      }}
     >
       {label && (
-        <span style={{ fontSize: 10, fontWeight: 600, color: '#888', textTransform: 'uppercase', letterSpacing: 1 }}>
+        <span
+          style={{
+            fontSize: 10,
+            fontWeight: 600,
+            color: 'var(--color-on-surface-variant, #888)',
+            textTransform: 'uppercase',
+            letterSpacing: 1,
+            textAlign: 'center',
+          }}
+        >
           {label}
         </span>
       )}
       <div
         style={{
-          width,
-          height,
+          width: '100%',
+          aspectRatio: `${width} / ${height}`,
           backgroundColor: placeholderBg,
           display: 'flex',
           alignItems: 'center',
@@ -54,7 +69,7 @@ export function AdSlot({ section }: SectionProps): React.ReactElement | null {
         }}
       >
         {placeholderText && (
-          <span style={{ fontSize: 12, color: '#888' }}>{placeholderText}</span>
+          <span style={{ fontSize: 12, color: 'var(--color-on-surface-variant, #888)' }}>{placeholderText}</span>
         )}
       </div>
     </div>

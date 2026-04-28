@@ -4,9 +4,10 @@ import SwiftUI
 /// rectangle — `data.sizes[0]` is the single source of truth for
 /// dimensions, shared by the placeholder and (when it lands) the
 /// ad SDK itself. Inner placeholder chrome (background color, label
-/// text) comes from `data.placeholder`; outer chrome (margin,
-/// padding, shadow, radius) comes from `section.surface` via the
-/// shared `SectionContainer` wrapper.
+/// text) comes from `data.placeholder`. Outer chrome is `section.surface`
+/// (server-composed, typically `SduiUtils.adSlotSurface()`). The creative
+/// **fills the column width** inside that padding; height follows the
+/// **aspect ratio** of `data.sizes[0]`.
 ///
 /// This renderer carries no client-side chrome defaults. A payload
 /// missing required `sizes` is a decoder-level failure, not a
@@ -26,28 +27,32 @@ struct AdSlotView: View {
         else {
             return AnyView(EmptyView())
         }
-        let width = CGFloat(first[0])
-        let height = CGFloat(first[1])
+        let w = CGFloat(first[0])
+        let h = CGFloat(first[1])
+        guard w > 0, h > 0 else { return AnyView(EmptyView()) }
+        let aspect = w / h
         let label = data.label
         let placeholder = data.placeholder
 
         return AnyView(
-            VStack(spacing: 4) {
+            VStack(alignment: .center, spacing: 8) {
                 if let label = label {
                     Text(label)
                         .font(.caption2)
                         .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
                 }
                 Rectangle()
                     .fill(ColorTokenResolver.resolve(placeholder?.backgroundColor, colorScheme: colorScheme) ?? .clear)
-                    .frame(width: width, height: height)
+                    .aspectRatio(aspect, contentMode: .fit)
+                    .frame(maxWidth: .infinity)
                     .overlay(
                         Text(placeholder?.text ?? "")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     )
             }
-            .frame(maxWidth: .infinity)
+            .frame(maxWidth: .infinity, alignment: .center)
         )
     }
 }

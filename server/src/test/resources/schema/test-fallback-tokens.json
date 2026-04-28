@@ -1,0 +1,8 @@
+{
+  "$comment": "Test-only registry. Synthetic palette entry with only a phone row to exercise the form-factor fallback path.",
+  "$version": "0.1.0-test",
+  "palette": {
+    "test.fallback.only": { "phone": 7 }
+  },
+  "semantic": {}
+}

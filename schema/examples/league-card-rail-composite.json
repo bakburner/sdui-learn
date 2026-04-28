@@ -49,7 +49,7 @@
                   "shadow": { "color": "#00000014", "radius": 4, "offsetX": 0, "offsetY": 2 },
                   "actions": [
                     {
-                      "trigger": "onTap",
+                      "trigger": "onActivate",
                       "type": "navigate",
                       "targetUri": "nba://league/wnba"
                     }

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type React from 'react';
 import type { SduiModels } from '@sdui/models';
-import { RequestEnvelopeBuilder } from '../request/RequestEnvelopeBuilder';
+import { fetchSduiScreen } from '../runtime/fetchSduiScreen';
 
 interface UseSduiScreenOptions {
   /** Server endpoint path, e.g. "/sdui/scoreboard". Null skips the fetch. */
@@ -38,46 +38,12 @@ export function useSduiScreen(options: UseSduiScreenOptions): UseSduiScreenResul
       setLoading(true);
       setError(null);
 
-      const builder = new RequestEnvelopeBuilder().experiments(experiments);
-      const traceId = RequestEnvelopeBuilder.generateTraceId();
-
-      let response: Response;
-
-      if (builder.exceedsGetThreshold()) {
-        // POST fallback for oversized query strings
-        const url = `/api${endpoint}`;
-        console.log('[SDUI] Fetching (POST fallback):', url);
-        response = await fetch(url, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Trace-Id': traceId,
-          },
-          body: JSON.stringify(builder.buildJsonBody()),
-        });
-      } else {
-        // Standard GET with bracket-notation query params
-        const qs = builder.buildQueryString();
-        const separator = endpoint.includes('?') ? '&' : '?';
-        const url = `/api${endpoint}${separator}${qs}`;
-        console.log('[SDUI] Fetching:', url);
-        response = await fetch(url, {
-          headers: {
-            'X-Trace-Id': traceId,
-          },
-        });
-      }
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch: ${response.status} ${response.statusText}`);
-      }
-
-      const responseTraceId = response.headers.get('X-Trace-Id');
-      const data: SduiModels = await response.json();
+      const { screen: data, url, method, traceId } = await fetchSduiScreen({ endpoint, experiments });
+      console.log(`[SDUI] Fetching (${method}):`, url);
       console.log(
         '[SDUI] Received screen:', data.id,
         '| sections:', data.sections?.length,
-        '| trace:', responseTraceId ?? data.traceId,
+        '| trace:', data.traceId ?? traceId,
       );
 
       setScreen(data);

@@ -4,6 +4,10 @@ import { AtomicRouter } from './AtomicRouter';
 import { AtomicBox } from './AtomicBox';
 import { accessibilityProps } from '../../utils/accessibility';
 import { useColorTokenResolver } from '../../utils/ColorTokenResolver';
+import {
+  currentFormFactor,
+  resolveLayoutScalar,
+} from '../../utils/LayoutTokenResolver';
 
 /**
  * AtomicScrollContainer — renders children in a scrollable row or column.
@@ -12,27 +16,32 @@ import { useColorTokenResolver } from '../../utils/ColorTokenResolver';
  * AtomicBox owns margin / padding / background / cornerRadius / shadow /
  * border / opacity. This renderer owns only the scroll layout CSS
  * (display/flex/gap/overflow/scroll-snap), passed to AtomicBox as
- * layoutStyle. When pageIndicator is declared, the scroll viewport becomes
- * an inner node so the dots can be positioned against the AtomicBox frame.
+ * layoutStyle. When pageIndicator is declared, dots render in a separate row
+ * above or below the scroll viewport (not absolutely positioned) so they do
+ * not cover interactive or informational content in the paged children.
  */
 export function AtomicScrollContainer({ element, state, onAction, depth = 0, onStateChange, sectionSlotDepth }: AtomicProps): React.ReactElement {
   const isHorizontal = element.direction !== 'column';
   const children = element.children ?? [];
   const scrollRef = React.useRef<HTMLDivElement | null>(null);
   const [activePage, setActivePage] = React.useState(0);
+  const [canScroll, setCanScroll] = React.useState(true);
   const resolveColor = useColorTokenResolver();
   const hasPageIndicator = element.paging === true && element.pageIndicator?.style === 'dots' && children.length > 1;
+  const ff = currentFormFactor();
+  const gapPx = element.gap != null ? resolveLayoutScalar(element.gap, ff) : 0;
 
   const layoutStyle: React.CSSProperties = {
     display: 'flex',
     flexDirection: isHorizontal ? 'row' : 'column',
     flexWrap: 'nowrap',
-    gap: element.gap,
+    gap: gapPx,
     overflowX: isHorizontal ? 'auto' : undefined,
     overflowY: isHorizontal ? undefined : 'auto',
     maxWidth: isHorizontal ? '100%' : undefined,
     maxHeight: isHorizontal ? undefined : '100%',
     minWidth: 0,
+    ...(isHorizontal && element.paging ? { touchAction: 'pan-x' as const } : {}),
     ...(element.paging ? {
       scrollSnapType: isHorizontal ? 'x mandatory' : 'y mandatory',
     } : {}),
@@ -41,30 +50,86 @@ export function AtomicScrollContainer({ element, state, onAction, depth = 0, onS
 
   const hideScrollbarClass = element.showIndicators === false ? 'sdui-hide-scrollbar' : undefined;
 
-  React.useEffect(() => {
-    if (!hasPageIndicator) return;
+  const updateActiveFromScroll = React.useCallback((node: HTMLDivElement) => {
+    const extent = isHorizontal ? node.clientWidth : node.clientHeight;
+    const offset = isHorizontal ? node.scrollLeft : node.scrollTop;
+    if (extent <= 0) return;
+    const stride = extent + gapPx;
+    if (stride <= 0) return;
+    setActivePage(Math.max(0, Math.min(children.length - 1, Math.round(offset / stride))));
+  }, [children.length, gapPx, isHorizontal]);
+
+  const measureOverflow = React.useCallback((node: HTMLDivElement) => {
+    const w = node.clientWidth;
+    const h = node.clientHeight;
+    if (w <= 0 && h <= 0) {
+      return;
+    }
+    setCanScroll(
+      (w > 0 && node.scrollWidth > w + 1) || (h > 0 && node.scrollHeight > h + 1),
+    );
+  }, []);
+
+  const goToPage = React.useCallback(
+    (page: number) => {
+      const node = scrollRef.current;
+      if (!node) return;
+      const extent = isHorizontal ? node.clientWidth : node.clientHeight;
+      const stride = extent + gapPx;
+      const target = Math.max(0, Math.min(children.length - 1, page));
+      if (isHorizontal) {
+        node.scrollTo({ left: target * stride, behavior: 'smooth' });
+      } else {
+        node.scrollTo({ top: target * stride, behavior: 'smooth' });
+      }
+    },
+    [children.length, gapPx, isHorizontal],
+  );
+
+  React.useLayoutEffect(() => {
+    if (!element.paging) return;
     const node = scrollRef.current;
     if (!node) return;
-    const update = () => {
-      const extent = isHorizontal ? node.clientWidth : node.clientHeight;
-      const offset = isHorizontal ? node.scrollLeft : node.scrollTop;
-      if (extent <= 0) return;
-      setActivePage(Math.max(0, Math.min(children.length - 1, Math.round(offset / extent))));
+    const onScroll = () => {
+      updateActiveFromScroll(node);
+      if (hasPageIndicator) {
+        measureOverflow(node);
+      }
     };
-
-    update();
-    node.addEventListener('scroll', update, { passive: true });
-    window.addEventListener('resize', update);
+    onScroll();
+    const ro = new ResizeObserver(() => onScroll());
+    ro.observe(node);
+    node.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
     return () => {
-      node.removeEventListener('scroll', update);
-      window.removeEventListener('resize', update);
+      ro.disconnect();
+      node.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
     };
-  }, [children.length, hasPageIndicator, isHorizontal]);
+  }, [element.paging, hasPageIndicator, children.length, measureOverflow, updateActiveFromScroll]);
+
+  /** Desktop: map vertical wheel to horizontal scroll when scrollbar is hidden. */
+  React.useEffect(() => {
+    if (!element.paging || !isHorizontal) return;
+    const node = scrollRef.current;
+    if (!node) return;
+    const onWheel = (e: WheelEvent) => {
+      if (node.scrollWidth <= node.clientWidth + 1) return;
+      if (Math.abs(e.deltaX) >= Math.abs(e.deltaY)) return;
+      node.scrollLeft += e.deltaY;
+      e.preventDefault();
+    };
+    node.addEventListener('wheel', onWheel, { passive: false });
+    return () => node.removeEventListener('wheel', onWheel);
+  }, [element.paging, isHorizontal, children.length, gapPx]);
 
   const childStyle: React.CSSProperties = {
     flexShrink: 0,
     ...(element.paging ? { scrollSnapAlign: element.snapAlignment ?? 'start' } : {}),
-    ...(element.paging ? (isHorizontal ? { width: '100%' } : { height: '100%' }) : {}),
+    ...(element.paging && isHorizontal
+      ? { flex: '0 0 100%', minWidth: 0, display: 'flex', justifyContent: 'center', boxSizing: 'border-box' }
+      : {}),
+    ...(element.paging && !isHorizontal ? { height: '100%', display: 'flex', alignItems: 'center' } : {}),
   };
 
   const content = (
@@ -77,28 +142,46 @@ export function AtomicScrollContainer({ element, state, onAction, depth = 0, onS
     </>
   );
 
-  if (hasPageIndicator) {
+  const a11y = accessibilityProps(element.accessibility) as Record<string, unknown>;
+  const showDots = hasPageIndicator && canScroll;
+
+  if (element.paging) {
+    const dotAlign = element.pageIndicator?.alignment ?? 'bottomCenter';
+    const dotsAbove = isDotsRowAbove(dotAlign);
     return (
       <AtomicBox
         element={element}
-        layoutStyle={{ position: 'relative' }}
+        layoutStyle={showDots ? { display: 'flex', flexDirection: 'column', minWidth: 0, width: '100%' } : undefined}
         role="list"
         ariaLabel={element.accessibility?.label}
-        extraProps={accessibilityProps(element.accessibility) as Record<string, unknown>}
+        extraProps={a11y}
       >
+        {showDots && dotsAbove && (
+          <PageDots
+            count={children.length}
+            activePage={activePage}
+            alignment={dotAlign}
+            color={resolveColor(element.pageIndicator?.color) ?? 'rgba(255,255,255,0.45)'}
+            activeColor={resolveColor(element.pageIndicator?.activeColor) ?? '#FFFFFF'}
+            onSelectPage={goToPage}
+          />
+        )}
         <div ref={scrollRef} style={layoutStyle} className={hideScrollbarClass}>
           {content}
           {hideScrollbarClass && (
             <style>{`.sdui-hide-scrollbar::-webkit-scrollbar { display: none; }`}</style>
           )}
         </div>
-        <PageDots
-          count={children.length}
-          activePage={activePage}
-          alignment={element.pageIndicator?.alignment ?? 'bottomCenter'}
-          color={resolveColor(element.pageIndicator?.color) ?? 'rgba(255,255,255,0.45)'}
-          activeColor={resolveColor(element.pageIndicator?.activeColor) ?? '#FFFFFF'}
-        />
+        {showDots && !dotsAbove && (
+          <PageDots
+            count={children.length}
+            activePage={activePage}
+            alignment={dotAlign}
+            color={resolveColor(element.pageIndicator?.color) ?? 'rgba(255,255,255,0.45)'}
+            activeColor={resolveColor(element.pageIndicator?.activeColor) ?? '#FFFFFF'}
+            onSelectPage={goToPage}
+          />
+        )}
       </AtomicBox>
     );
   }
@@ -110,7 +193,7 @@ export function AtomicScrollContainer({ element, state, onAction, depth = 0, onS
       className={hideScrollbarClass}
       role="list"
       ariaLabel={element.accessibility?.label}
-      extraProps={accessibilityProps(element.accessibility) as Record<string, unknown>}
+      extraProps={a11y}
     >
       {content}
       {hideScrollbarClass && (
@@ -120,25 +203,53 @@ export function AtomicScrollContainer({ element, state, onAction, depth = 0, onS
   );
 }
 
+function isDotsRowAbove(alignment: string): boolean {
+  return (
+    alignment === 'topStart' ||
+    alignment === 'topCenter' ||
+    alignment === 'topEnd'
+  );
+}
+
 function PageDots(props: {
   count: number;
   activePage: number;
   alignment: string;
   color: string;
   activeColor: string;
+  onSelectPage: (index: number) => void;
 }): React.ReactElement {
-  const { count, activePage, alignment, color, activeColor } = props;
+  const { count, activePage, alignment, color, activeColor, onSelectPage } = props;
   return (
-    <div aria-hidden="true" style={pageIndicatorStyle(alignment)}>
+    <div
+      role="tablist"
+      aria-label="Pages"
+      style={pageIndicatorFlowStyle(alignment)}
+    >
       {Array.from({ length: count }).map((_, index) => (
-        <span
+        <button
           key={index}
+          type="button"
+          role="tab"
+          aria-selected={index === activePage}
+          tabIndex={index === activePage ? 0 : -1}
+          onClick={() => onSelectPage(index)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onSelectPage(index);
+            }
+          }}
           style={{
             display: 'block',
             width: 6,
             height: 6,
+            padding: 0,
+            border: 'none',
             borderRadius: 999,
             background: index === activePage ? activeColor : color,
+            cursor: 'pointer',
+            flexShrink: 0,
           }}
         />
       ))}
@@ -146,26 +257,35 @@ function PageDots(props: {
   );
 }
 
-function pageIndicatorStyle(alignment: string): React.CSSProperties {
+function pageIndicatorFlowStyle(alignment: string): React.CSSProperties {
   const base: React.CSSProperties = {
-    position: 'absolute',
     display: 'flex',
+    flexDirection: 'row',
+    flexWrap: 'nowrap',
     gap: 6,
     padding: 8,
-    pointerEvents: 'none',
+    width: '100%',
+    boxSizing: 'border-box',
+    flexShrink: 0,
   };
 
+  let justify: React.CSSProperties['justifyContent'] = 'center';
   switch (alignment) {
-    case 'topStart': return { ...base, top: 0, left: 0 };
-    case 'topCenter': return { ...base, top: 0, left: '50%', transform: 'translateX(-50%)' };
-    case 'topEnd': return { ...base, top: 0, right: 0 };
-    case 'centerStart': return { ...base, top: '50%', left: 0, transform: 'translateY(-50%)' };
-    case 'center': return { ...base, top: '50%', left: '50%', transform: 'translate(-50%, -50%)' };
-    case 'centerEnd': return { ...base, top: '50%', right: 0, transform: 'translateY(-50%)' };
-    case 'bottomStart': return { ...base, bottom: 0, left: 0 };
-    case 'bottomEnd': return { ...base, bottom: 0, right: 0 };
+    case 'topStart':
+    case 'bottomStart':
+    case 'centerStart':
+      justify = 'flex-start';
+      break;
+    case 'topEnd':
+    case 'bottomEnd':
+    case 'centerEnd':
+      justify = 'flex-end';
+      break;
+    case 'topCenter':
     case 'bottomCenter':
+    case 'center':
     default:
-      return { ...base, bottom: 0, left: '50%', transform: 'translateX(-50%)' };
+      justify = 'center';
   }
+  return { ...base, justifyContent: justify };
 }

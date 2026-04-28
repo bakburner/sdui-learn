@@ -86,12 +86,16 @@ public class AtomicCompositeBuilder {
         if (subtitle != null) {
             ObjectNode titleCol = container("column", null, null);
             ArrayNode titleChildren = om.createArrayNode();
-            titleChildren.add(text(title, "titleMedium", "bold", null, null));
+            ObjectNode titleText = text(title, "titleMedium", "bold", null, null);
+            AccessibilityHelper.addHeading(om, titleText, title, 2);
+            titleChildren.add(titleText);
             titleChildren.add(text(subtitle, "bodySmall", null, ColorTokens.TEXT_TERTIARY, null));
             titleCol.set("children", titleChildren);
             children.add(titleCol);
         } else {
-            children.add(text(title, "titleMedium", "bold", null, null));
+            ObjectNode titleText = text(title, "titleMedium", "bold", null, null);
+            AccessibilityHelper.addHeading(om, titleText, title, 2);
+            children.add(titleText);
         }
 
         if (actionUri != null) {
@@ -125,6 +129,7 @@ public class AtomicCompositeBuilder {
         if (imageUrl != null) {
             ObjectNode img = image(imageUrl, 120, 80, "cover");
             img.put("cornerRadius", 10);
+            AccessibilityHelper.addImage(om, img, headline != null ? headline : "Promo image");
             rootChildren.add(img);
             rootChildren.add(spacer(24));
         }
@@ -230,6 +235,7 @@ public class AtomicCompositeBuilder {
         card.set("background", cardBg);
         if (targetUri != null) {
             card.set("actions", singleActionArray(tapNavigate(targetUri)));
+            AccessibilityHelper.addButton(om, card, headline);
         }
         ArrayNode children = om.createArrayNode();
 
@@ -244,6 +250,7 @@ public class AtomicCompositeBuilder {
             img.put("fillWidth", true);
             img.put("aspectRatio", 16.0 / 9.0);
             img.set("cornerRadii", cornerRadii(12, 12, 0, 0));
+            AccessibilityHelper.addImage(om, img, headline);
             if (duration != null) {
                 badge(img, durationBadge(duration), "bottomEnd");
             } else if ("video".equalsIgnoreCase(contentType)) {
@@ -325,6 +332,7 @@ public class AtomicCompositeBuilder {
         if (imageUrl != null) {
             ObjectNode img = image(imageUrl, 56, 56, "cover");
             img.put("cornerRadius", 28);
+            AccessibilityHelper.addImage(om, img, name + " avatar");
             children.add(img);
         } else {
             ObjectNode fallback = text(name.length() >= 3 ? name.substring(0, 3).toUpperCase() : name.toUpperCase(),
@@ -420,6 +428,7 @@ public class AtomicCompositeBuilder {
         ObjectNode card = heroContainer("column", null, null);
         if (targetUri != null) {
             card.set("actions", singleActionArray(tapNavigate(targetUri)));
+            AccessibilityHelper.addButton(om, card, headline);
         }
         ArrayNode children = om.createArrayNode();
 
@@ -434,6 +443,7 @@ public class AtomicCompositeBuilder {
             img.put("aspectRatio", 16.0 / 9.0);
             img.put("fillWidth", true);
             img.set("cornerRadii", cornerRadii(12, 12, 0, 0));
+            AccessibilityHelper.addImage(om, img, headline);
             imgChildren.add(img);
             if (duration != null) {
                 ObjectNode dur = text(duration, "labelSmall", null, ColorTokens.TEXT_INVERSE, null);
@@ -577,6 +587,9 @@ public class AtomicCompositeBuilder {
         root.set("padding", padding(rootPadding, rootPadding, rootPadding, rootPadding));
         if (navigateUri != null) {
             root.set("actions", singleActionArray(tapNavigate(navigateUri)));
+            String a11yLabel = awayTeam.tricode() + " vs " + homeTeam.tricode();
+            if (gameStatusText != null) a11yLabel += ", " + gameStatusText;
+            AccessibilityHelper.addButton(om, root, a11yLabel);
         }
 
         ArrayNode rootChildren = om.createArrayNode();
@@ -636,6 +649,7 @@ public class AtomicCompositeBuilder {
         ArrayNode children = om.createArrayNode();
         if (team.logoUrl() != null) {
             ObjectNode logo = image(team.logoUrl(), 48, 48, "contain");
+            AccessibilityHelper.addImage(om, logo, team.tricode() + " logo");
             children.add(logo);
             children.add(spacer(4));
         }
@@ -786,6 +800,7 @@ public class AtomicCompositeBuilder {
         card.set("background", cardBg);
         if (targetUri != null) {
             card.set("actions", singleActionArray(tapNavigate(targetUri)));
+            AccessibilityHelper.addButton(om, card, title);
         }
         ArrayNode children = om.createArrayNode();
 
@@ -801,6 +816,7 @@ public class AtomicCompositeBuilder {
             img.put("fillWidth", true);
             img.put("aspectRatio", 16.0 / 9.0);
             img.put("cornerRadius", 6);
+            AccessibilityHelper.addImage(om, img, title);
             thumbChildren.add(img);
         }
 
@@ -931,6 +947,7 @@ public class AtomicCompositeBuilder {
         if (playerImageUrl != null) {
             ObjectNode img = image(playerImageUrl, 40, 40, "cover");
             img.put("cornerRadius", 20);
+            AccessibilityHelper.addImage(om, img, playerName + " headshot");
             children.add(img);
             children.add(spacer(12));
         }
@@ -966,6 +983,7 @@ public class AtomicCompositeBuilder {
         if (playerImageUrl != null) {
             ObjectNode img = image(playerImageUrl, 40, 40, "cover");
             img.put("cornerRadius", 20);
+            AccessibilityHelper.addImage(om, img, playerName + " headshot");
             topChildren.add(img);
             topChildren.add(spacer(12));
         }
@@ -1028,6 +1046,7 @@ public class AtomicCompositeBuilder {
             ObjectNode heroImg = image(heroImageUrl, 0, 200, "cover");
             heroImg.put("fillWidth", true);
             heroImg.set("cornerRadii", cornerRadii(12, 12, 0, 0));
+            AccessibilityHelper.addImage(om, heroImg, heroTitle != null ? heroTitle : "NBA TV");
             heroChildren.add(heroImg);
         }
 
@@ -1065,6 +1084,7 @@ public class AtomicCompositeBuilder {
         // edge. Any padding the surface provides is in addition to this.
         ObjectNode heading = text("Today's Schedule", "titleSmall", "bold", ColorTokens.TEXT_PRIMARY, null);
         heading.set("padding", padding(16, 16, 4, 4));
+        AccessibilityHelper.addHeading(om, heading, "Today's Schedule", 3);
         rootChildren.add(heading);
 
         ObjectNode slotList = container("column", null, "start");
@@ -1288,6 +1308,7 @@ public class AtomicCompositeBuilder {
             ObjectNode headerEl = text(header, "titleSmall", "semiBold", null, null);
             ObjectNode headerPad = padding(16, 16, 12, 8);
             headerEl.set("padding", headerPad);
+            AccessibilityHelper.addHeading(om, headerEl, header, 3);
             surfaceChildren.add(headerEl);
         }
 
@@ -1327,6 +1348,7 @@ public class AtomicCompositeBuilder {
         row.set("padding", padding(12, 12, 10, 10));
         if (targetUri != null) {
             row.set("actions", singleActionArray(tapNavigate(targetUri)));
+            AccessibilityHelper.addButton(om, row, title);
         }
 
         ArrayNode children = om.createArrayNode();
@@ -1335,6 +1357,7 @@ public class AtomicCompositeBuilder {
             thumb.put("width", 80);
             thumb.put("height", 52);
             thumb.put("cornerRadius", 6);
+            AccessibilityHelper.addImage(om, thumb, title);
             if (isLive) {
                 badge(thumb, liveBadge(), "topStart");
             } else if (duration != null) {
@@ -1586,8 +1609,10 @@ public class AtomicCompositeBuilder {
         ArrayNode children = om.createArrayNode();
         ObjectNode titleCol = container("column", null, "start");
         ArrayNode titleChildren = om.createArrayNode();
-        titleChildren.add(text(title.toUpperCase(Locale.ROOT), "titleMedium", "bold",
-                ColorTokens.TEXT_PRIMARY, null));
+        ObjectNode titleEl = text(title.toUpperCase(Locale.ROOT), "titleMedium", "bold",
+                ColorTokens.TEXT_PRIMARY, null);
+        AccessibilityHelper.addHeading(om, titleEl, title, 2);
+        titleChildren.add(titleEl);
         if (subtitle != null) {
             titleChildren.add(text(subtitle, "bodySmall", null, ColorTokens.TEXT_TERTIARY, 1));
         }
@@ -1684,9 +1709,10 @@ public class AtomicCompositeBuilder {
      * Compact schedule row/list item.
      * row: [id, awayTri, awayName, awaySeed, awayScore, awayLogoUrl, homeTri,
      * homeName, homeSeed, homeScore, homeLogoUrl, statusText, seriesText,
-     * broadcastLogoUrlsCsv, targetUri, overflowUri] — broadcast URLs, {@code targetUri},
-     * and {@code overflowUri} must be supplied by the composer from server data, not derived
-     * from game/team identity in the client.
+     * broadcastLogoUrlsCsv, targetUri, overflowUri] — {@code targetUri} and
+     * {@code overflowUri} must be supplied by the composer from server data. The UI does not
+     * render broadcast images (index 13 is ignored for layout); composers may still send a CSV
+     * for future use.
      */
     public ObjectNode buildGameScheduleRow(String sectionId, String analyticsId, String[] row) {
         return buildGameScheduleRow(sectionId, analyticsId, row, null, null);
@@ -1788,6 +1814,7 @@ public class AtomicCompositeBuilder {
         base.put("fillWidth", true);
         base.put("aspectRatio", 16.0 / 9.0);
         base.put("cornerRadius", radius);
+        AccessibilityHelper.addImage(om, base, title);
 
         List<ObjectNode> layers = new ArrayList<>();
 
@@ -1867,7 +1894,10 @@ public class AtomicCompositeBuilder {
         ObjectNode item = container("column", "center", "center");
         item.put("id", id);
         item.put("width", 82);
-        if (targetUri != null) item.set("actions", singleActionArray(tapNavigate(targetUri)));
+        if (targetUri != null) {
+            item.set("actions", singleActionArray(tapNavigate(targetUri)));
+            AccessibilityHelper.addButton(om, item, label);
+        }
         ArrayNode children = om.createArrayNode();
 
         int inner = 70;
@@ -1912,7 +1942,10 @@ public class AtomicCompositeBuilder {
         card.put("id", id);
         card.put("width", 200);
         card.put("cornerRadius", radius);
-        if (targetUri != null) card.set("actions", singleActionArray(tapNavigate(targetUri)));
+        if (targetUri != null) {
+            card.set("actions", singleActionArray(tapNavigate(targetUri)));
+            AccessibilityHelper.addButton(om, card, title);
+        }
 
         ObjectNode base = imageUrl != null
                 ? image(imageUrl, 200, 0, "cover", null)
@@ -1920,6 +1953,7 @@ public class AtomicCompositeBuilder {
         base.put("fillWidth", true);
         base.put("aspectRatio", 3.0 / 4.0);
         base.put("cornerRadius", radius);
+        if (imageUrl != null) AccessibilityHelper.addImage(om, base, title);
 
         ObjectNode scrimContent = container("column", null, "start");
         scrimContent.put("fillWidth", true);
@@ -1971,6 +2005,7 @@ public class AtomicCompositeBuilder {
         hero.put("background", ColorTokens.SURFACE_RAISED);
         shadow(hero);
         if (value(card, 14) != null) hero.set("actions", singleActionArray(tapNavigate(value(card, 14))));
+        AccessibilityHelper.addButton(om, hero, value(card, 2));
 
         ObjectNode art = value(card, 4) != null
                 ? image(value(card, 4), 0, 0, "cover", null)
@@ -1978,6 +2013,7 @@ public class AtomicCompositeBuilder {
         art.put("fillWidth", true);
         art.put("aspectRatio", 16.0 / 9.0);
         art.set("cornerRadii", cornerRadii(heroRadius, heroRadius, 0, 0));
+        if (value(card, 4) != null) AccessibilityHelper.addImage(om, art, value(card, 2));
 
         ObjectNode titleOverlay = container("column", null, "start");
         titleOverlay.put("fillWidth", true);
@@ -2063,7 +2099,11 @@ public class AtomicCompositeBuilder {
         row.put("gap", 8);
         row.put("width", homeSide ? 108 : 112);
         ArrayNode stackChildren = om.createArrayNode();
-        if (logoUrl != null) stackChildren.add(image(logoUrl, 44, 44, "contain", null));
+        if (logoUrl != null) {
+            ObjectNode logoImg = image(logoUrl, 44, 44, "contain", null);
+            AccessibilityHelper.addImage(om, logoImg, tri + " logo");
+            stackChildren.add(logoImg);
+        }
         stackChildren.add(text(tri, "labelSmall", "bold", ColorTokens.TEXT_PRIMARY, 1));
         ObjectNode nameCol = container("column", "center", "center");
         nameCol.set("children", stackChildren);
@@ -2101,11 +2141,16 @@ public class AtomicCompositeBuilder {
         card.put("cornerRadius", 8);
         card.set("padding", padding(14, 14, 16, 14));
         shadow(card);
-        if (value(item, 4) != null) card.set("actions", singleActionArray(tapNavigate(value(item, 4))));
+        if (value(item, 4) != null) {
+            card.set("actions", singleActionArray(tapNavigate(value(item, 4))));
+            AccessibilityHelper.addButton(om, card, value(item, 1));
+        }
 
         ArrayNode children = om.createArrayNode();
         if (value(item, 3) != null) {
-            children.add(image(value(item, 3), 44, 44, "contain", null));
+            ObjectNode img = image(value(item, 3), 44, 44, "contain", null);
+            AccessibilityHelper.addImage(om, img, value(item, 1) + " icon");
+            children.add(img);
         } else {
             children.add(neutralInitials(value(item, 1), 44, 22));
         }
@@ -2126,12 +2171,16 @@ public class AtomicCompositeBuilder {
         card.put("cornerRadius", 8);
         card.set("padding", padding(14, 14, 18, 16));
         shadow(card);
-        if (targetUri != null) card.set("actions", singleActionArray(tapNavigate(targetUri)));
+        if (targetUri != null) {
+            card.set("actions", singleActionArray(tapNavigate(targetUri)));
+            AccessibilityHelper.addButton(om, card, label);
+        }
 
         ArrayNode children = om.createArrayNode();
         if (imageUrl != null) {
             ObjectNode logo = image(imageUrl, 72, 56, "contain", null);
             logo.put("aspectRatio", 4.0 / 3.0);
+            AccessibilityHelper.addImage(om, logo, label + " logo");
             children.add(logo);
         } else {
             children.add(neutralInitials(label, 72, 28));
@@ -2146,36 +2195,38 @@ public class AtomicCompositeBuilder {
         card.put("id", value(row, 0));
         card.put("gap", 10);
         card.put("background", ColorTokens.SURFACE_RAISED);
-        card.put("cornerRadius", 8);
-        card.set("padding", padding(14, 14, 12, 12));
+        // Match buildGamePanelComposite (non-featured) card radius / padding.
+        card.put("cornerRadius", 12);
+        card.set("padding", padding(16, 16, 16, 16));
         shadow(card);
-        if (value(row, 14) != null) card.set("actions", singleActionArray(tapNavigate(value(row, 14))));
+        if (value(row, 14) != null) {
+            card.set("actions", singleActionArray(tapNavigate(value(row, 14))));
+            String awayTri = value(row, 1) != null ? value(row, 1) : "";
+            String homeTri = value(row, 6) != null ? value(row, 6) : "";
+            String status = value(row, 11) != null ? value(row, 11) : "";
+            AccessibilityHelper.addButton(om, card, awayTri + " vs " + homeTri + ", " + status);
+        }
 
         ArrayNode children = om.createArrayNode();
         ObjectNode matchup = container("row", "spaceBetween", "center");
         matchup.put("fillWidth", true);
         ArrayNode matchupChildren = om.createArrayNode();
-        matchupChildren.add(scheduleTeam(value(row, 1), value(row, 2), value(row, 3),
-                value(row, 4), value(row, 5), value(row, 0), "awayScore", false));
+        matchupChildren.add(scheduleTeamColumn(
+                value(row, 1), value(row, 2), value(row, 3),
+                value(row, 4), value(row, 5), value(row, 0), "awayScore", 124));
         matchupChildren.add(scheduleStatus(value(row, 11), value(row, 12), value(row, 0)));
-        matchupChildren.add(scheduleTeam(value(row, 6), value(row, 7), value(row, 8),
-                value(row, 9), value(row, 10), value(row, 0), "homeScore", true));
+        matchupChildren.add(scheduleTeamColumn(
+                value(row, 6), value(row, 7), value(row, 8),
+                value(row, 9), value(row, 10), value(row, 0), "homeScore", 108));
         matchup.set("children", matchupChildren);
         children.add(matchup);
 
-        ArrayNode logos = logoRow(value(row, 13), 44, 18);
-        if (logos.size() > 0 || value(row, 15) != null) {
+        if (value(row, 15) != null) {
             children.add(cardHairlineDivider());
-            ObjectNode meta = container("row", "spaceBetween", "center");
+            ObjectNode meta = container("row", "end", "center");
             meta.put("fillWidth", true);
             ArrayNode metaChildren = om.createArrayNode();
-            ObjectNode logoWrap = container("row", null, "center");
-            logoWrap.put("gap", 8);
-            logoWrap.set("children", logos);
-            metaChildren.add(logoWrap);
-            if (value(row, 15) != null) {
-                metaChildren.add(button("More", "text", tapNavigate(value(row, 15))));
-            }
+            metaChildren.add(scheduleMoreLink(tapNavigate(value(row, 15))));
             meta.set("children", metaChildren);
             children.add(meta);
         }
@@ -2185,39 +2236,36 @@ public class AtomicCompositeBuilder {
     }
 
     /**
-     * @param homeSide when true, score is leading (toward center); away uses logo/name first.
+     * Per-team column aligned with {@link #teamColumn(GamePanelTeam, String)} (Games / game
+     * detail): logo, tricode, optional name line, score — not the legacy horizontal
+     * logo–labels–score row.
      */
-    private ObjectNode scheduleTeam(String tri, String name, String seed, String score,
-                                    String logoUrl, String rowId, String scoreKey,
-                                    boolean homeSide) {
-        ObjectNode team = container("row", null, "center");
-        team.put("gap", 8);
-        team.put("width", homeSide ? 108 : 124);
-        ObjectNode logo = logoUrl != null ? image(logoUrl, 36, 36, "contain", null) : null;
-        ObjectNode labelCol = container("column", null, "start");
-        ArrayNode labelChildren = om.createArrayNode();
-        String seedPrefix = seed != null ? seed + " " : "";
-        labelChildren.add(text(seedPrefix + tri, "bodyMedium", "bold", ColorTokens.TEXT_PRIMARY, 1));
-        if (name != null) labelChildren.add(text(name, "labelSmall", null, ColorTokens.TEXT_SECONDARY, 1));
-        labelCol.set("children", labelChildren);
-        ObjectNode scoreText = null;
+    private ObjectNode scheduleTeamColumn(
+            String tri, String name, String seed, String score,
+            String logoUrl, String rowId, String scoreKey, int columnWidth) {
+        ObjectNode col = container("column", "center", "center");
+        col.put("width", columnWidth);
+        ArrayNode children = om.createArrayNode();
+        if (logoUrl != null) {
+            ObjectNode logoImg = image(logoUrl, 48, 48, "contain", null);
+            AccessibilityHelper.addImage(om, logoImg, (tri != null ? tri : "") + " logo");
+            children.add(logoImg);
+            children.add(spacer(4));
+        }
+        String seedPrefix = seed != null && !seed.isBlank() ? seed + " " : "";
+        children.add(
+                text(seedPrefix + (tri != null ? tri : ""), "titleMedium", "semiBold", ColorTokens.TEXT_PRIMARY, 1));
+        if (name != null && !name.isBlank()) {
+            children.add(text(name, "labelSmall", null, ColorTokens.TEXT_SECONDARY, 1));
+        }
         if (score != null) {
-            scoreText = text(score, "titleMedium", "bold", ColorTokens.TEXT_PRIMARY, 1);
+            ObjectNode scoreText = text(score, "score", "bold", ColorTokens.TEXT_PRIMARY, 1);
             scoreText.put("bindRef", rowId + "." + scoreKey);
             scoreText.put("monospacedDigits", true);
+            children.add(scoreText);
         }
-        ArrayNode children = om.createArrayNode();
-        if (homeSide) {
-            if (scoreText != null) children.add(scoreText);
-            children.add(labelCol);
-            if (logo != null) children.add(logo);
-        } else {
-            if (logo != null) children.add(logo);
-            children.add(labelCol);
-            if (scoreText != null) children.add(scoreText);
-        }
-        team.set("children", children);
-        return team;
+        col.set("children", children);
+        return col;
     }
 
     private ObjectNode scheduleStatus(String status, String seriesText, String rowId) {
@@ -2248,6 +2296,16 @@ public class AtomicCompositeBuilder {
         }
         center.set("children", children);
         return center;
+    }
+
+    /**
+     * Compact text link for schedule overflow (smaller than {@code Button} text variant).
+     * Broadcast logos are not rendered here — URLs in row[13] are ignored for layout.
+     */
+    private ObjectNode scheduleMoreLink(ObjectNode navigateAction) {
+        ObjectNode t = text("More", "bodySmall", "semiBold", ColorTokens.PALETTE_BLUE_50, null);
+        t.set("actions", singleActionArray(navigateAction));
+        return t;
     }
 
     /** 6dp live indicator dot ({@link ColorTokens#BRAND_LIVE}). */
@@ -2588,8 +2646,8 @@ public class AtomicCompositeBuilder {
         return node;
     }
 
-    private static final String DEFAULT_PLACEHOLDER =
-            "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png";
+    /** ORB-safe: same-origin static asset (see web/public/sdui-demo, server static/sdui-demo). */
+    private static final String DEFAULT_PLACEHOLDER = DemoImageUrls.placeholderTiny();
 
     ObjectNode image(String src, int width, int height, String fit) {
         return image(src, width, height, fit, DEFAULT_PLACEHOLDER);
@@ -2665,7 +2723,7 @@ public class AtomicCompositeBuilder {
 
     ObjectNode tapNavigate(String targetUri) {
         ObjectNode action = om.createObjectNode();
-        action.put("trigger", "onTap");
+        action.put("trigger", "onActivate");
         action.put("type", "navigate");
         action.put("targetUri", targetUri);
         return action;

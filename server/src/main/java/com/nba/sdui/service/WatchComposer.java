@@ -9,6 +9,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import static com.nba.sdui.service.AccessibilityHelper.*;
+
 /**
  * Composes the "Watch" SDUI screen — video / streaming hub organised into tabs.
  *
@@ -410,14 +412,16 @@ public class WatchComposer {
                 20));
 
         ObjectNode ctaAction = objectMapper.createObjectNode();
-        ctaAction.put("trigger", "onTap");
+        ctaAction.put("trigger", "onActivate");
         ctaAction.put("type", "navigate");
         ctaAction.put("targetUri", ctaUri);
 
         ObjectNode root = atomicBuilder.container("column", "start", "start");
         root.put("gap", 4);
         ArrayNode children = objectMapper.createArrayNode();
-        children.add(atomicBuilder.text(title, "titleMedium", "bold", "#FFFFFF", null));
+        ObjectNode titleText = atomicBuilder.text(title, "titleMedium", "bold", "#FFFFFF", null);
+        addHeading(objectMapper, titleText, title, 2);
+        children.add(titleText);
         if (subtitle != null) {
             children.add(atomicBuilder.text(subtitle, "bodySmall", null, "rgba(255,255,255,0.85)", null));
         }
@@ -493,10 +497,14 @@ public class WatchComposer {
         ArrayNode children = objectMapper.createArrayNode();
 
         if (logoUrl != null) {
-            children.add(atomicBuilder.image(logoUrl, 0, 64, "contain"));
+            ObjectNode logoImg = atomicBuilder.image(logoUrl, 0, 64, "contain");
+            addHidden(objectMapper, logoImg);
+            children.add(logoImg);
             children.add(atomicBuilder.spacer(8));
         }
-        children.add(atomicBuilder.text(title, "headlineMedium", "bold", ColorTokens.TEXT_INVERSE, null));
+        ObjectNode heroTitle = atomicBuilder.text(title, "headlineMedium", "bold", ColorTokens.TEXT_INVERSE, null);
+        addHeading(objectMapper, heroTitle, title, 2);
+        children.add(heroTitle);
         if (subtitle != null) {
             children.add(atomicBuilder.text(subtitle, "bodyLarge", null, ColorTokens.TEXT_INVERSE, null));
         }
@@ -547,7 +555,9 @@ public class WatchComposer {
         if (t.badgeText != null) {
             cardChildren.add(atomicBuilder.text(t.badgeText, "labelMedium", "bold", "token:color.secondary.50", null));
         }
-        cardChildren.add(atomicBuilder.text(t.name, "titleLarge", "bold", ColorTokens.TEXT_INVERSE, null));
+        ObjectNode tierName = atomicBuilder.text(t.name, "titleLarge", "bold", ColorTokens.TEXT_INVERSE, null);
+        addHeading(objectMapper, tierName, t.name, 3);
+        cardChildren.add(tierName);
         cardChildren.add(atomicBuilder.text(t.price, "headlineSmall", "bold", ColorTokens.TEXT_INVERSE, null));
 
         if (t.features != null) {
@@ -558,7 +568,7 @@ public class WatchComposer {
         cardChildren.add(atomicBuilder.spacer(10));
 
         ObjectNode tierAction = objectMapper.createObjectNode();
-        tierAction.put("trigger", "onTap");
+        tierAction.put("trigger", "onActivate");
         tierAction.put("type", "navigate");
         tierAction.put("targetUri", t.ctaUri);
         cardChildren.add(atomicBuilder.button(t.ctaLabel, "primary", tierAction));
@@ -598,7 +608,7 @@ public class WatchComposer {
         section.put("id", id);
         section.put("type", "AdSlot");
         section.set("refreshPolicy", staticPolicy());
-        section.set("surface", utils.defaultSurface());
+        section.set("surface", utils.adSlotSurface());
 
         ObjectNode data = objectMapper.createObjectNode();
         data.put("provider", "gam");

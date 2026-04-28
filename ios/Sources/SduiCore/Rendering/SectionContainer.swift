@@ -30,7 +30,7 @@ struct SectionContainer<Content: View>: View {
     var body: some View {
         let padding = edgeInsets(from: surface?.padding)
         let margin = edgeInsets(from: surface?.margin)
-        let radius = CGFloat(surface?.cornerRadius ?? 0)
+        let radius = LayoutTokenResolver.cgFloat(surface?.cornerRadius)
 
         return content()
             .frame(maxWidth: .infinity, alignment: .leading)

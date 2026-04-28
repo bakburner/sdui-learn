@@ -6,14 +6,13 @@ export interface ToastItem {
 const MAX_TOASTS = 3;
 const DISPLAY_MS = 2500;
 
-type Listener = (toasts: ToastItem[]) => void;
+type Listener = () => void;
 const listeners = new Set<Listener>();
 
 let toasts: ToastItem[] = [];
 
 function emit(): void {
-  const snapshot = [...toasts];
-  listeners.forEach((l) => l(snapshot));
+  listeners.forEach((l) => l());
 }
 
 export function subscribeToasts(listener: Listener): () => void {
@@ -22,7 +21,8 @@ export function subscribeToasts(listener: Listener): () => void {
 }
 
 export function getToastsSnapshot(): ToastItem[] {
-  return [...toasts];
+  // useSyncExternalStore: must return the same array reference when nothing changed.
+  return toasts;
 }
 
 export function pushToast(message: string): void {

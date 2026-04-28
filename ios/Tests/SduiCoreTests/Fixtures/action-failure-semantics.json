@@ -4,7 +4,7 @@
     {
       "note": "Navigate with default failure behavior (halt) — onFailure absent, client applies default",
       "action": {
-        "trigger": "onTap",
+        "trigger": "onActivate",
         "type": "navigate",
         "targetUri": "nba://game/0022500384"
       }
@@ -12,7 +12,7 @@
     {
       "note": "Navigate with explicit halt and server-provided error message",
       "action": {
-        "trigger": "onTap",
+        "trigger": "onActivate",
         "type": "navigate",
         "targetUri": "nba://game/0022500384",
         "onFailure": "halt",
@@ -25,7 +25,7 @@
     {
       "note": "Navigate overridden to continue — useful for optional deep links that should not block the sequence",
       "action": {
-        "trigger": "onTap",
+        "trigger": "onActivate",
         "type": "navigate",
         "targetUri": "nba://promo/summer-league",
         "onFailure": "continue"
@@ -34,7 +34,7 @@
     {
       "note": "Refresh with default failure behavior (continue) — shows stale indicator",
       "action": {
-        "trigger": "onTap",
+        "trigger": "onActivate",
         "type": "refresh",
         "target": "live-scores",
         "endpoint": "/sdui/scoreboard"
@@ -43,7 +43,7 @@
     {
       "note": "Refresh overridden to halt — critical live-game section where stale data is unacceptable",
       "action": {
-        "trigger": "onTap",
+        "trigger": "onActivate",
         "type": "refresh",
         "target": "live-play-by-play",
         "endpoint": "/sdui/game/0022500384/pbp",
@@ -58,13 +58,13 @@
       "note": "Multi-action sequence: fireAndForget → navigate (demonstrates fire-and-forget-before-navigation pattern)",
       "actions": [
         {
-          "trigger": "onTap",
+          "trigger": "onActivate",
           "type": "fireAndForget",
           "event": "game_card_tapped",
           "params": { "gameId": "0022500384", "source": "scoreboard" }
         },
         {
-          "trigger": "onTap",
+          "trigger": "onActivate",
           "type": "navigate",
           "targetUri": "nba://game/0022500384/boxscore",
           "failureFeedback": {

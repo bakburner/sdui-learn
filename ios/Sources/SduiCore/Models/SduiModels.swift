@@ -437,7 +437,10 @@ enum NavigationPresentation: String, Codable {
     case replace = "replace"
 }
 
+/// Event that fires the action. Prefer onActivate for primary activation (tap, keyboard
+/// Enter/Space, accessibility activate). onTap is a deprecated alias for onActivate.
 enum ActionTrigger: String, Codable {
+    case onActivate = "onActivate"
     case onBlur = "onBlur"
     case onFocus = "onFocus"
     case onLongPress = "onLongPress"
@@ -759,7 +762,8 @@ class AtomicElement: Codable {
     /// Deprecated: use accessibility.label instead. Retained for backward compatibility; clients
     /// prefer accessibility.label when present.
     let alt: String?
-    let aspectRatio: Double?
+    /// Aspect ratio: legacy numeric (w/h), or named ratio string for semantic layout.
+    let aspectRatio: AspectRatioUnion?
     let background: BackgroundUnion?
     /// Z-positioned child element (e.g. 'LIVE' pill, duration label) overlaid on this element.
     let badge: Badge?
@@ -790,8 +794,9 @@ class AtomicElement: Codable {
     /// constructor; web to borderTopLeftRadius / borderTopRightRadius / borderBottomLeftRadius /
     /// borderBottomRightRadius.
     let cornerRadii: CornerRadii?
-    /// Corner radius in dp/px. Applied to Container (with overflow clip) and Image elements.
-    let cornerRadius: Int?
+    /// Corner radius: dp/px or layout token. Applied to Container (with overflow clip) and Image
+    /// elements.
+    let cornerRadius: LayoutScalar?
     let crossAlignment: CrossAlignment?
     let direction: UIDirection?
     let disabled: Bool?
@@ -809,7 +814,10 @@ class AtomicElement: Codable {
     /// LiveClock display format. Clients realize using their platform's tabular-numerals
     /// typography (equivalent to TextVariant.score).
     let format: Format?
-    let gap, height: Int?
+    /// Gap between flex children (row/column), or grid gap where applicable.
+    let gap: LayoutScalar?
+    /// Fixed height in dp/px or layout token.
+    let height: LayoutScalar?
     let icon, id: String?
     /// LiveClock: whether the clock is actively ticking. When true, clients run a local tick
     /// loop at their platform-native refresh cadence (~10Hz) and update the displayed value.
@@ -877,9 +885,10 @@ class AtomicElement: Codable {
     /// unrecognized values.
     let variant: String?
     let weight: TextWeight?
-    let width: Int?
+    /// Fixed width in dp/px or layout token.
+    let width: LayoutScalar?
 
-    init(accessibility: AccessibilityProperties?, actions: [Action]?, alignment: Alignment?, alt: String?, aspectRatio: Double?, background: BackgroundUnion?, badge: Badge?, base: AtomicElement?, bindRef: String?, breakpoint: Int?, children: [AtomicElement]?, color: String?, columns: [Column]?, condition: String?, content: String?, cornerRadii: CornerRadii?, cornerRadius: Int?, crossAlignment: CrossAlignment?, direction: UIDirection?, disabled: Bool?, falseChild: AtomicElement?, fillWidth: Bool?, fit: ImageFit?, flex: Double?, format: Format?, gap: Int?, height: Int?, icon: String?, id: String?, isRunning: Bool?, label: String?, margin: Spacing?, maxLines: Int?, monospacedDigits: Bool?, opacity: Double?, orientation: Orientation?, overlays: [AtomicOverlay]?, padding: Spacing?, pageIndicator: PageIndicator?, paging: Bool?, placeholder: String?, rows: [[String: String]]?, section: Section?, shadow: Shadow?, showIndicators: Bool?, size: Int?, snapAlignment: Align?, snapshotAt: Date?, snapshotSeconds: Int?, src: String?, stopAtSeconds: Int?, striped: Bool?, textAlign: Align?, thickness: Int?, tickDirection: TickDirection?, trueChild: AtomicElement?, type: String, variant: String?, weight: TextWeight?, width: Int?) {
+    init(accessibility: AccessibilityProperties?, actions: [Action]?, alignment: Alignment?, alt: String?, aspectRatio: AspectRatioUnion?, background: BackgroundUnion?, badge: Badge?, base: AtomicElement?, bindRef: String?, breakpoint: Int?, children: [AtomicElement]?, color: String?, columns: [Column]?, condition: String?, content: String?, cornerRadii: CornerRadii?, cornerRadius: LayoutScalar?, crossAlignment: CrossAlignment?, direction: UIDirection?, disabled: Bool?, falseChild: AtomicElement?, fillWidth: Bool?, fit: ImageFit?, flex: Double?, format: Format?, gap: LayoutScalar?, height: LayoutScalar?, icon: String?, id: String?, isRunning: Bool?, label: String?, margin: Spacing?, maxLines: Int?, monospacedDigits: Bool?, opacity: Double?, orientation: Orientation?, overlays: [AtomicOverlay]?, padding: Spacing?, pageIndicator: PageIndicator?, paging: Bool?, placeholder: String?, rows: [[String: String]]?, section: Section?, shadow: Shadow?, showIndicators: Bool?, size: Int?, snapAlignment: Align?, snapshotAt: Date?, snapshotSeconds: Int?, src: String?, stopAtSeconds: Int?, striped: Bool?, textAlign: Align?, thickness: Int?, tickDirection: TickDirection?, trueChild: AtomicElement?, type: String, variant: String?, weight: TextWeight?, width: LayoutScalar?) {
         self.accessibility = accessibility
         self.actions = actions
         self.alignment = alignment
@@ -967,7 +976,7 @@ extension AtomicElement {
         actions: [Action]?? = nil,
         alignment: Alignment?? = nil,
         alt: String?? = nil,
-        aspectRatio: Double?? = nil,
+        aspectRatio: AspectRatioUnion?? = nil,
         background: BackgroundUnion?? = nil,
         badge: Badge?? = nil,
         base: AtomicElement?? = nil,
@@ -979,7 +988,7 @@ extension AtomicElement {
         condition: String?? = nil,
         content: String?? = nil,
         cornerRadii: CornerRadii?? = nil,
-        cornerRadius: Int?? = nil,
+        cornerRadius: LayoutScalar?? = nil,
         crossAlignment: CrossAlignment?? = nil,
         direction: UIDirection?? = nil,
         disabled: Bool?? = nil,
@@ -988,8 +997,8 @@ extension AtomicElement {
         fit: ImageFit?? = nil,
         flex: Double?? = nil,
         format: Format?? = nil,
-        gap: Int?? = nil,
-        height: Int?? = nil,
+        gap: LayoutScalar?? = nil,
+        height: LayoutScalar?? = nil,
         icon: String?? = nil,
         id: String?? = nil,
         isRunning: Bool?? = nil,
@@ -1022,7 +1031,7 @@ extension AtomicElement {
         type: String? = nil,
         variant: String?? = nil,
         weight: TextWeight?? = nil,
-        width: Int?? = nil
+        width: LayoutScalar?? = nil
     ) -> AtomicElement {
         return AtomicElement(
             accessibility: accessibility ?? self.accessibility,
@@ -1497,7 +1506,7 @@ enum BadgeAlignment: String, Codable {
 /// Inner padding (space between the surface edge and the content it wraps).
 // MARK: - Spacing
 struct Spacing: Codable {
-    let bottom, end, start, top: Int?
+    let bottom, end, start, top: LayoutScalar?
 }
 
 // MARK: Spacing convenience initializers and mutators
@@ -1519,10 +1528,10 @@ extension Spacing {
     }
 
     func with(
-        bottom: Int?? = nil,
-        end: Int?? = nil,
-        start: Int?? = nil,
-        top: Int?? = nil
+        bottom: LayoutScalar?? = nil,
+        end: LayoutScalar?? = nil,
+        start: LayoutScalar?? = nil,
+        top: LayoutScalar?? = nil
     ) -> Spacing {
         return Spacing(
             bottom: bottom ?? self.bottom,
@@ -1538,6 +1547,57 @@ extension Spacing {
 
     func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
         return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+/// Bottom-trailing corner.
+///
+/// Absolute layout value: raw dp/px integer, or a semantic layout token reference
+/// token:<path> (e.g. token:spacing.md, token:radius.lg) resolved per platform.formFactor
+/// against bundled spacing/corner/size/typography/shadow registries. Unknown tokens log
+/// token_resolver_missing and fall back to 0 (or caller default).
+///
+/// Bottom-leading corner.
+///
+/// Top-trailing corner (top-right in LTR, top-left in RTL).
+///
+/// Top-leading corner (top-left in LTR, top-right in RTL).
+///
+/// Corner radius: dp/px or layout token. Applied to Container (with overflow clip) and Image
+/// elements.
+///
+/// Gap between flex children (row/column), or grid gap where applicable.
+///
+/// Fixed height in dp/px or layout token.
+///
+/// Fixed width in dp/px or layout token.
+///
+/// Corner radius: dp/px or layout token, applied to the surface (with overflow clip).
+enum LayoutScalar: Codable {
+    case integer(Int)
+    case string(String)
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if let x = try? container.decode(Int.self) {
+            self = .integer(x)
+            return
+        }
+        if let x = try? container.decode(String.self) {
+            self = .string(x)
+            return
+        }
+        throw DecodingError.typeMismatch(LayoutScalar.self, DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Wrong type for LayoutScalar"))
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self {
+        case .integer(let x):
+            try container.encode(x)
+        case .string(let x):
+            try container.encode(x)
+        }
     }
 }
 
@@ -1650,6 +1710,43 @@ enum Alignment: String, Codable {
     case spaceBetween = "spaceBetween"
     case spaceEvenly = "spaceEvenly"
     case start = "start"
+}
+
+/// Aspect ratio: legacy numeric (w/h), or named ratio string for semantic layout.
+enum AspectRatioUnion: Codable {
+    case double(Double)
+    case enumeration(AspectRatioEnum)
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if let x = try? container.decode(Double.self) {
+            self = .double(x)
+            return
+        }
+        if let x = try? container.decode(AspectRatioEnum.self) {
+            self = .enumeration(x)
+            return
+        }
+        throw DecodingError.typeMismatch(AspectRatioUnion.self, DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Wrong type for AspectRatioUnion"))
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self {
+        case .double(let x):
+            try container.encode(x)
+        case .enumeration(let x):
+            try container.encode(x)
+        }
+    }
+}
+
+enum AspectRatioEnum: String, Codable {
+    case the11 = "1:1"
+    case the169 = "16:9"
+    case the219 = "21:9"
+    case the32 = "3:2"
+    case the43 = "4:3"
 }
 
 /// Shared background type — solid color, gradient, or image with overlay
@@ -1936,13 +2033,13 @@ enum WidthEnum: String, Codable {
 // MARK: - CornerRadii
 struct CornerRadii: Codable {
     /// Bottom-trailing corner.
-    let bottomEnd: Int?
+    let bottomEnd: LayoutScalar?
     /// Bottom-leading corner.
-    let bottomStart: Int?
+    let bottomStart: LayoutScalar?
     /// Top-trailing corner (top-right in LTR, top-left in RTL).
-    let topEnd: Int?
+    let topEnd: LayoutScalar?
     /// Top-leading corner (top-left in LTR, top-right in RTL).
-    let topStart: Int?
+    let topStart: LayoutScalar?
 }
 
 // MARK: CornerRadii convenience initializers and mutators
@@ -1964,10 +2061,10 @@ extension CornerRadii {
     }
 
     func with(
-        bottomEnd: Int?? = nil,
-        bottomStart: Int?? = nil,
-        topEnd: Int?? = nil,
-        topStart: Int?? = nil
+        bottomEnd: LayoutScalar?? = nil,
+        bottomStart: LayoutScalar?? = nil,
+        topEnd: LayoutScalar?? = nil,
+        topStart: LayoutScalar?? = nil
     ) -> CornerRadii {
         return CornerRadii(
             bottomEnd: bottomEnd ?? self.bottomEnd,
@@ -3076,8 +3173,8 @@ struct SectionSurface: Codable {
     let background: BackgroundUnion?
     /// Outer stroke applied around the surface.
     let border: Border?
-    /// Corner radius in dp/px applied to the surface (with overflow clip).
-    let cornerRadius: Int?
+    /// Corner radius: dp/px or layout token, applied to the surface (with overflow clip).
+    let cornerRadius: LayoutScalar?
     /// Outer margin (space between the surface and its siblings / screen edge).
     let margin: Spacing?
     /// Inner padding (space between the surface edge and the content it wraps).
@@ -3107,7 +3204,7 @@ extension SectionSurface {
     func with(
         background: BackgroundUnion?? = nil,
         border: Border?? = nil,
-        cornerRadius: Int?? = nil,
+        cornerRadius: LayoutScalar?? = nil,
         margin: Spacing?? = nil,
         padding: Spacing?? = nil,
         shadow: Shadow?? = nil
@@ -3548,5 +3645,13 @@ class JSONAny: Codable {
                     var container = encoder.singleValueContainer()
                     try JSONAny.encode(to: &container, value: self.value)
             }
+    }
+}
+
+// MARK: - ActionTrigger convenience (codegen post-process)
+extension ActionTrigger {
+    /// Primary user activation: `onActivate` (preferred) or legacy `onTap`.
+    var isPrimaryActivation: Bool {
+        self == .onActivate || self == .onTap
     }
 }

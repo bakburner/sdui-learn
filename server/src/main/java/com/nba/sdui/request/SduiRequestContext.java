@@ -34,6 +34,12 @@ public class SduiRequestContext {
         private String appVersion;
         private String osVersion;
         private String deviceClass;
+        /**
+         * Layout token axis: {@code phone}, {@code phone.landscape}, {@code tablet},
+         * {@code web.narrow}, {@code web.wide}, {@code tv}. Clients must send a value
+         * on every request; when absent, the server treats it as {@code phone} for resolution only.
+         */
+        private String formFactor;
         private Capabilities capabilities;
 
         public static class Capabilities {
@@ -54,6 +60,8 @@ public class SduiRequestContext {
         public void setOsVersion(String osVersion) { this.osVersion = osVersion; }
         public String getDeviceClass() { return deviceClass; }
         public void setDeviceClass(String deviceClass) { this.deviceClass = deviceClass; }
+        public String getFormFactor() { return formFactor; }
+        public void setFormFactor(String formFactor) { this.formFactor = formFactor; }
         public Capabilities getCapabilities() { return capabilities; }
         public void setCapabilities(Capabilities capabilities) { this.capabilities = capabilities; }
     }

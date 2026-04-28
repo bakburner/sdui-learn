@@ -36,6 +36,10 @@ android {
         jvmTarget = "17"
     }
     
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
+
     buildFeatures {
         compose = true
         // Generates BuildConfig.DEBUG for the SDUI core. Used to gate

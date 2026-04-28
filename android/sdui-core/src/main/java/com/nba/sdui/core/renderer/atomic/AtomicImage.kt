@@ -17,8 +17,10 @@ import com.nba.sdui.core.models.generated.AtomicElement
 import com.nba.sdui.core.models.generated.ImageFit
 import com.nba.sdui.core.renderer.ImageVariantResolver
 import com.nba.sdui.core.renderer.ImageVariantResolver.ImageContentScaleHint
+import com.nba.sdui.core.renderer.LayoutTokenResolver
 import com.nba.sdui.core.renderer.applyAccessibility
 import com.nba.sdui.core.renderer.adapters.toSduiAction
+import com.nba.sdui.core.request.RequestEnvelopeBuilder
 import com.nba.sdui.core.state.SduiAction
 
 /**
@@ -34,8 +36,10 @@ fun AtomicImage(
     screenState: Map<String, Any>,
     onAction: (SduiAction) -> Unit
 ) {
-    val variantSpec = ImageVariantResolver.resolve(element.variant)
-    val effectiveAspectRatio: Float? = element.aspectRatio?.toFloat() ?: variantSpec?.aspectRatio
+    val formFactor = RequestEnvelopeBuilder.defaultFormFactor()
+    val variantSpec = ImageVariantResolver.resolve(element.variant, formFactor)
+    val effectiveAspectRatio: Float? =
+        LayoutTokenResolver.aspectRatio(element.aspectRatio) ?: variantSpec?.aspectRatio
 
     // Resolve `src` from `bindRef` when present, falling back to the
     // inline `src`. Lets composers rebind image URLs in flight without

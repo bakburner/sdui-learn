@@ -15,6 +15,8 @@
  * ```
  */
 
+import { currentFormFactor } from '../utils/LayoutTokenResolver';
+
 const MAX_QUERY_LENGTH = 8192;
 
 interface Platform {
@@ -26,6 +28,13 @@ interface Platform {
     sse: boolean;
     onFocus?: boolean;
   };
+  /**
+   * Form factor for layout-token resolution. Sent on every request so the
+   * server can route to a form-factor-aware composer (Phase 3 of the SDUI
+   * implementation plan). Matches the iOS / Android wire field name and
+   * ordering for byte parity.
+   */
+  formFactor: string;
 }
 
 interface Device {
@@ -43,6 +52,7 @@ export class RequestEnvelopeBuilder {
     name: 'web',
     deviceClass: 'web',
     capabilities: { sse: true },
+    formFactor: currentFormFactor(),
   };
   private _device: Device = {};
   private _experiments: Record<string, string> = {};
@@ -79,6 +89,11 @@ export class RequestEnvelopeBuilder {
 
   sseCapable(capable: boolean): this {
     this._platform.capabilities.sse = capable;
+    return this;
+  }
+
+  formFactor(value: string): this {
+    this._platform.formFactor = value;
     return this;
   }
 
@@ -129,6 +144,7 @@ export class RequestEnvelopeBuilder {
     if (this._platform.capabilities.onFocus) {
       params.push(['platform[capabilities][onFocus]', 'true']);
     }
+    params.push(['platform[formFactor]', this._platform.formFactor]);
 
     // Device (nested, all optional)
     if (this._device.deviceId) params.push(['device[deviceId]', this._device.deviceId]);

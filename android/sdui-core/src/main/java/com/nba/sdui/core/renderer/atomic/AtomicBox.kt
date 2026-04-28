@@ -24,9 +24,11 @@ import com.nba.sdui.core.models.generated.BadgeAlignment
 import com.nba.sdui.core.renderer.ColorTokenResolver
 import com.nba.sdui.core.renderer.ContainerVariantResolver
 import com.nba.sdui.core.renderer.ContainerVariantResolver.OverridePolicy
+import com.nba.sdui.core.renderer.LayoutTokenResolver
 import com.nba.sdui.core.renderer.adapters.BackgroundGradientViewModel
 import com.nba.sdui.core.renderer.adapters.BackgroundViewModel
 import com.nba.sdui.core.renderer.adapters.toViewModel
+import com.nba.sdui.core.request.RequestEnvelopeBuilder
 import com.nba.sdui.core.state.SduiAction
 
 private const val TAG = "AtomicBox"
@@ -110,11 +112,14 @@ fun AtomicBox(
  */
 @Composable
 fun Modifier.buildAtomicBox(element: AtomicElement): Modifier {
-    val variantSpec = ContainerVariantResolver.resolve(element.variant)
+    // TODO(phase3): swap for `LocalSduiFormFactor.current` once the
+    // form-factor classifier is plumbed end-to-end.
+    val formFactor = RequestEnvelopeBuilder.defaultFormFactor()
+    val variantSpec = ContainerVariantResolver.resolve(element.variant, formFactor)
 
     val effectiveCornerRadius: Int? = resolveAxis(
         axis = "cornerRadius",
-        inline = element.cornerRadius?.toInt(),
+        inline = element.cornerRadius?.let { LayoutTokenResolver.intValue(it, formFactor) },
         variantValue = variantSpec?.cornerRadiusDp,
         overrideMatrix = variantSpec?.overrideMatrix,
         variantName = element.variant
@@ -149,21 +154,23 @@ fun Modifier.buildAtomicBox(element: AtomicElement): Modifier {
     }
 
     val radii = element.cornerRadii
-    val anyPerCornerSet = radii != null && (
-        (radii.topStart ?: 0L) > 0L ||
-        (radii.topEnd ?: 0L) > 0L ||
-        (radii.bottomStart ?: 0L) > 0L ||
-        (radii.bottomEnd ?: 0L) > 0L
-    )
+    val perCornerTopStart = radii?.topStart?.let { LayoutTokenResolver.intValue(it, formFactor) }
+    val perCornerTopEnd = radii?.topEnd?.let { LayoutTokenResolver.intValue(it, formFactor) }
+    val perCornerBottomStart = radii?.bottomStart?.let { LayoutTokenResolver.intValue(it, formFactor) }
+    val perCornerBottomEnd = radii?.bottomEnd?.let { LayoutTokenResolver.intValue(it, formFactor) }
+    val anyPerCornerSet = (perCornerTopStart ?: 0) > 0 ||
+        (perCornerTopEnd ?: 0) > 0 ||
+        (perCornerBottomStart ?: 0) > 0 ||
+        (perCornerBottomEnd ?: 0) > 0
     val hasAnyCorner = (effectiveCornerRadius != null && effectiveCornerRadius > 0) || anyPerCornerSet
 
     val shape = if (radii != null && anyPerCornerSet) {
         val fallback = effectiveCornerRadius ?: 0
         RoundedCornerShape(
-            topStart = (radii.topStart?.toInt() ?: fallback).dp,
-            topEnd = (radii.topEnd?.toInt() ?: fallback).dp,
-            bottomEnd = (radii.bottomEnd?.toInt() ?: fallback).dp,
-            bottomStart = (radii.bottomStart?.toInt() ?: fallback).dp
+            topStart = (perCornerTopStart ?: fallback).dp,
+            topEnd = (perCornerTopEnd ?: fallback).dp,
+            bottomEnd = (perCornerBottomEnd ?: fallback).dp,
+            bottomStart = (perCornerBottomStart ?: fallback).dp
         )
     } else {
         RoundedCornerShape((effectiveCornerRadius ?: 0).dp)
@@ -181,10 +188,10 @@ fun Modifier.buildAtomicBox(element: AtomicElement): Modifier {
     // margin (outermost)
     element.margin?.let {
         result = result.padding(
-            start = (it.start ?: 0L).toInt().dp,
-            end = (it.end ?: 0L).toInt().dp,
-            top = (it.top ?: 0L).toInt().dp,
-            bottom = (it.bottom ?: 0L).toInt().dp
+            start = LayoutTokenResolver.dp(it.start, formFactor),
+            end = LayoutTokenResolver.dp(it.end, formFactor),
+            top = LayoutTokenResolver.dp(it.top, formFactor),
+            bottom = LayoutTokenResolver.dp(it.bottom, formFactor)
         )
     }
 
@@ -232,19 +239,20 @@ fun Modifier.buildAtomicBox(element: AtomicElement): Modifier {
     // padding (inner, sits inside bg/clip)
     element.padding?.let {
         result = result.padding(
-            start = (it.start ?: 0L).toInt().dp,
-            end = (it.end ?: 0L).toInt().dp,
-            top = (it.top ?: 0L).toInt().dp,
-            bottom = (it.bottom ?: 0L).toInt().dp
+            start = LayoutTokenResolver.dp(it.start, formFactor),
+            end = LayoutTokenResolver.dp(it.end, formFactor),
+            top = LayoutTokenResolver.dp(it.top, formFactor),
+            bottom = LayoutTokenResolver.dp(it.bottom, formFactor)
         )
     }
 
-    // sizing — explicit width/height beat fillWidth
+    // sizing — explicit width/height beat fillWidth. Preserve null-short-circuit
+    // semantics: a missing scalar must NOT collapse the frame to 0.dp.
     if (effectiveFillWidth && element.width == null) {
         result = result.fillMaxWidth()
     }
-    element.width?.let { result = result.width(it.toInt().dp) }
-    element.height?.let { result = result.height(it.toInt().dp) }
+    element.width?.let { result = result.width(LayoutTokenResolver.dp(it, formFactor)) }
+    element.height?.let { result = result.height(LayoutTokenResolver.dp(it, formFactor)) }
 
     return result
 }

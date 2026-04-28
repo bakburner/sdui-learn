@@ -19,7 +19,7 @@ responsibility and a well-defined interface to the layers above and below it.
 ├──────────────┬──────────────────────────────┤
 │ SectionRouter│→ AtomicRouter (recursive)    │  Type dispatch
 ├──────────────┴──────────────────────────────┤
-│   Section Renderers (8) + Atomic Renderers (11)  │  Platform-native UI
+│   Section Renderers (8) + Atomic Renderers (12)  │  Platform-native UI
 ├─────────────────────────────────────────────┤
 │  Runtime Services                           │  ActionDispatcher, DataBindingResolver,
 │  (cross-cutting)                            │  RealTimeManager, RefreshOrchestrator,
@@ -64,12 +64,12 @@ at `localhost:8080` is the reference implementation; hit it with
 | # | Component | What it does |
 |---|-----------|--------------|
 | 1 | **Models** | Use the generated models from the platform's authoritative output location (see the table in "Shared Infrastructure" above), or regenerate from `schema/sdui-schema.json` for a new language. Deserialize `SduiScreen`, `Section`, `AtomicElement`, `Action`, `RefreshPolicy`, `DataBinding`. |
-| 2 | **SduiRepository.fetchScreen** | Single HTTP method: `GET {baseUrl}{endpoint}?variant={v}` with headers `X-Platform: {platform}`, `X-Schema-Version: 1.0`. Returns `SduiScreen`. |
+| 2 | **SduiRepository.fetchScreen** | Single fetch primitive every composition request routes through. Builds the request envelope as bracket-notation query params; falls back to POST with the same shape in the JSON body when the query exceeds 8192 chars. Sends `X-Trace-Id` on every request. See §11 for the full transport contract. Returns `SduiScreen`. |
 | 3 | **UriResolver.resolveEndpoint** | Convert `nba://{path}` → `/sdui/{path}`. Pure string prefix swap, no branching. |
 | 4 | **SectionRouter** | Switch on `section.type` → dispatch to renderer. Unknown types → log + skip. |
 | 5 | **AtomicRouter** | Switch on `element.type` → dispatch to atomic renderer. Depth guard at 6. |
 | 6 | **AtomicComposite bridge** | When SectionRouter sees `type: "AtomicComposite"`, parse `section.data.ui` and hand to AtomicRouter. Renderers read live fields via `bindRef` (see §4b) against `section.data.content`. |
-| 7 | **12 atomic renderers** | Container, Text, Image, Button, Spacer, Divider, ScrollContainer, Conditional, DisplayGrid, OverlayContainer, SectionSlot, LiveClock. See §4c for LiveClock tick-loop contract. |
+| 7 | **12 atomic renderers** | Container, Text, Image, Button, Spacer, Divider, ScrollContainer, Conditional, DisplayGrid, SectionSlot, LiveClock, OverlayContainer. See §4c for LiveClock tick-loop contract. |
 | 8 | **ScreenShell** | Fetch screen via repository, iterate `sections[]`, pass each to SectionRouter. |
 
 **Milestone:** You can render the kitchen-sink demo screen as a scrollable page
@@ -287,7 +287,7 @@ atomic element.
 - **Accessibility labels.** Each primitive provides its own semantic
   fallback (image `alt`, button `label`, text `content`) so the router
   cannot make a generic choice.
-- **Action triggers (`actions[]`, `onTap`, `onLongPress`, `onVisible`).**
+- **Action triggers (`actions[]`, `onActivate`, `onTap`, `onLongPress`, `onVisible`, `onSwipe`, `onFocus`, `onBlur`, `onSubmit`).**
   Primitives integrate actions into their native control (SwiftUI
   `Button`, Compose `Modifier.clickable`, `<button>` element) because the
   gesture surface is primitive-specific.
@@ -661,7 +661,7 @@ with failure-policy semantics.
 ```
 Action:
     type: "navigate" | "fireAndForget" | "mutate" | "refresh" | "dismiss" | "toast"
-    trigger: "onTap" | "onLongPress" | "onVisible" | "onSwipe" | "onFocus" | "onBlur" | "onSubmit"
+    trigger: "onActivate" | "onTap" | "onLongPress" | "onVisible" | "onSwipe" | "onFocus" | "onBlur" | "onSubmit"
     targetUri: string?          // For navigate
     webUrl: string?             // Fallback URL for navigate
     presentation: "push" | "modal" | "fullscreen" | "replace" | "external"?
@@ -762,14 +762,20 @@ FUNCTION dispatchSingleAction(action, stateManager):
 
         "refresh":
             IF action.paramBindings IS NOT EMPTY AND action.endpoint IS NOT NULL:
-                // Resolve param templates from screen state
+                // Resolve param templates from screen state. The action handler
+                // does NOT build a URL — that's the transport's job. Hand off
+                // (endpoint, sectionId, resolvedParams) and route through the
+                // shared fetch primitive (§11) so the request inherits the
+                // canonical envelope contract: bracket-notation envelope
+                // params, GET/POST length fallback, RFC-3986 percent-encoding,
+                // and X-Trace-Id propagation from the parent screen.
                 resolvedParams = {}
                 FOR key, template IN action.paramBindings:
                     stateKey = STRIP_DELIMITERS(template, "{{", "}}")
-                    resolvedParams[key] = stateManager.getState(stateKey) OR ""
-                queryString = URL_ENCODE(resolvedParams)
-                url = action.endpoint + "?" + queryString
-                RETURN ParameterizedRefreshResult(url, resolvedParams)
+                    value = stateManager.getState(stateKey)
+                    IF value IS NOT NULL AND value != "":
+                        resolvedParams[key] = value
+                RETURN ParameterizedRefreshResult(action.endpoint, action.sectionId, resolvedParams)
             RETURN RefreshResult(action.sectionId)
 
         "dismiss":
@@ -1196,36 +1202,86 @@ FUNCTION resolveEndpoint(uri):
 
 ## 11. Request Envelope
 
-Every HTTP request to the SDUI server must include:
+Every composition request — initial loads, navigation, pull-to-refresh,
+action-driven refresh (including parameterized refresh with
+`paramBindings`), and any other future fetch — routes through one shared
+fetch primitive (`SduiRepository.fetchScreen` on iOS/Android,
+`fetchSduiScreen` on web). That primitive owns the entire transport
+contract; bespoke `fetch` / `URLRequest` / `OkHttp` calls for composition
+data are prohibited.
 
-| Header | Value | Required |
-|--------|-------|----------|
-| `X-Platform` | Platform identifier (e.g., `ios`, `android`, `web`, `tvos`, `roku`) | Yes |
-| `X-Schema-Version` | `"1.0"` | Yes |
+### 11.1 Wire shape
 
-**Query parameter alternative:** The server also accepts bracket-notation
-query parameters as an alternative to headers (both are accepted during
-transition):
+The envelope is serialized as **bracket-notation query parameters** for
+GET requests and as a **JSON body of the same shape** for POST requests:
 
-| Query Param | Equivalent Header |
-|-------------|-------------------|
-| `platform[name]=android` | `X-Platform: android` |
-| `schemaVersion=1.0` | `X-Schema-Version: 1.0` |
-| `platform[capabilities][sse]=true` | (capability declaration) |
-| `device[countryCode]=US` | (device context) |
-| `experiments[gd_tab_order_v2]=variant_b` | (experiment assignment) |
+| Query Param | JSON Path | Purpose |
+|-------------|-----------|---------|
+| `locale=en` | `locale` | Locale for i18n |
+| `schemaVersion=1.0` | `schemaVersion` | Schema version |
+| `gameState=live` | `gameState` | Optional state filter |
+| `platform[name]=android` | `platform.name` | Platform identifier |
+| `platform[appVersion]=8.3.0` | `platform.appVersion` | App version |
+| `platform[osVersion]=14` | `platform.osVersion` | OS version |
+| `platform[deviceClass]=phone` | `platform.deviceClass` | Form factor |
+| `platform[capabilities][sse]=true` | `platform.capabilities.sse` | Capability declaration |
+| `device[countryCode]=US` | `device.countryCode` | Device context |
+| `device[zipCode]=10001` | `device.zipCode` | Device context |
+| `experiments[exp_id]=variant_b` | `experiments.exp_id` | Experiment assignment |
 
-Additional query parameters:
+The server resolves both shapes into one typed `SduiRequestContext` via a
+shared `BracketParamResolver`. The client and server therefore see the
+same fields regardless of HTTP method.
 
-| Param | Purpose |
-|-------|---------|
-| `variant` | A/B test variant (default `"A"`) |
-| `locale` | Locale for i18n (e.g., `en-US`) |
-| `gameState` | Filter by game state (e.g., `live`, `pre`, `post`) |
+### 11.2 GET-first, POST fallback at 8192 chars
 
-The server uses `X-Platform` (or `platform[name]`) for platform-specific
-composition decisions (layout direction, section density). It must never be
-hardcoded on the server side via `defaultValue`.
+The shared fetch primitive uses GET by default and switches to POST when
+the encoded envelope query string exceeds 8192 chars. Every composition
+endpoint is dual-mounted (`@GetMapping` + `@PostMapping`) on the server
+and dispatches to the same handler — there are no GET-only or POST-only
+composition routes.
+
+### 11.3 User-supplied filter params (Form / refresh `paramBindings`)
+
+User-supplied filter params (e.g. a Form's `paramBindings` resolved into
+`{perMode: "Totals", season: "2025-26"}`) **always ride the URL query
+string regardless of HTTP method**, so the server reads them through
+`@RequestParam` on either side. They participate in the GET/POST length
+decision alongside the envelope.
+
+| Where they live | GET | POST |
+|-----------------|-----|------|
+| Envelope params (`platform[*]`, `device[*]`, `experiments[*]`, `locale`, `schemaVersion`, `gameState`) | URL query (bracket notation) | JSON body (same shape) |
+| User filter params (`perMode=Totals`, `season=2025-26`) | URL query | URL query |
+| `X-Trace-Id` | Header | Header |
+
+Encoding rules (apply uniformly to both halves of the query string):
+
+- **RFC-3986 percent-encoding.** Spaces become `%20`, brackets `%5B` / `%5D`,
+  ampersands `%26`, etc. Hand-rolled string concatenation
+  (`"$key=$value"`) is prohibited because it silently corrupts spaces,
+  ampersands, and non-ASCII bytes.
+- **Deterministic key ordering.** User params are sorted by key; envelope
+  ordering is fixed by the builder. Identical inputs produce
+  byte-identical URLs across platforms — the CDN cache key depends on it.
+
+### 11.4 `X-Trace-Id`
+
+`X-Trace-Id` travels as an HTTP header on every request. Parameterized
+refresh inherits its parent screen's trace ID so server logs correlate
+the refresh response with the screen that triggered it.
+
+### 11.5 Headers
+
+| Header | Required | Purpose |
+|--------|----------|---------|
+| `Authorization` | Yes (when authenticated) | Bearer token |
+| `X-Trace-Id` | Yes | Request correlation |
+| `Content-Type: application/json` | POST only | Envelope body |
+
+`platform[name]` and `schemaVersion` are part of every composition request
+(query on GET, same fields in the JSON body on POST). Clients do not send
+`X-Platform` or `X-Schema-Version` headers.
 
 ---
 
@@ -1524,7 +1580,7 @@ the rules in `AGENTS.md`.
 | C8 | Single generic fetch method — no `getGameDetail()` | §4.1 |
 | C9 | Refresh driven by `refreshPolicy` — no hardcoded intervals | §3.3 |
 | C10 | URI resolution is a simple prefix swap | §3.1 |
-| C11 | `X-Platform` header on every request | §3.4 |
+| C11 | `platform[name]` and `schemaVersion` on every composition request (envelope) | `AGENTS.md` §3.4; §11 |
 | C12 | Exceptions logged with context — never silently swallowed | §10.1 |
 | C13 | Schema is the wire contract — strict decoders; new enum values go into schema first, then regen | §1.3 |
 | C14 | Renderers are presentation-only — no business logic | §5 |

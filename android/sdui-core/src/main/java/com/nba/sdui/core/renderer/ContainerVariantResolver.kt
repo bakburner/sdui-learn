@@ -92,11 +92,11 @@ object ContainerVariantResolver {
      *   the registry (a warning is logged and the renderer falls through to
      *   inline-only behavior).
      */
-    fun resolve(variant: String?): ContainerVariantSpec? {
+    fun resolve(variant: String?, formFactor: String = "phone"): ContainerVariantSpec? {
         if (variant.isNullOrBlank()) return null
         return when (variant) {
-            "hero" -> hero()
-            "grouped" -> grouped()
+            "hero" -> hero(formFactor)
+            "grouped" -> grouped(formFactor)
             else -> {
                 Log.w(TAG, "variant_resolver_missing: $variant")
                 null
@@ -116,11 +116,13 @@ object ContainerVariantResolver {
         )
     }
 
-    private fun hero(): ContainerVariantSpec = ContainerVariantSpec(
+    private fun hero(formFactor: String): ContainerVariantSpec {
+        val isTablet = formFactor == "tablet"
+        return ContainerVariantSpec(
         cornerRadiusDp = 16,
         backgroundColorRole = SurfaceRole.SurfaceContainer,
         tonalElevationDp = 6,
-        shadowElevationDp = 8,
+        shadowElevationDp = if (isTablet) 12 else 8,
         // Top-of-surface accent wash that fades out toward the bottom, giving
         // the surface a slight sense of lift without a literal material effect.
         gradientOverlay = GradientOverlaySpec(
@@ -143,8 +145,9 @@ object ContainerVariantResolver {
             "border" to OverridePolicy.ALLOW
         )
     )
+    }
 
-    private fun grouped(): ContainerVariantSpec = ContainerVariantSpec(
+    private fun grouped(formFactor: String): ContainerVariantSpec = ContainerVariantSpec(
         cornerRadiusDp = 16,
         backgroundColorRole = null,
         tonalElevationDp = null,

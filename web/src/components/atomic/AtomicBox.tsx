@@ -9,6 +9,12 @@ import {
   supportsBackdropFilter,
   type ContainerVariantSpec,
 } from '../../utils/ContainerVariantResolver';
+import {
+  currentFormFactor,
+  resolveLayoutScalar,
+  resolveSpacingPx,
+  type FormFactor,
+} from '../../utils/LayoutTokenResolver';
 import { AtomicRouter } from './AtomicRouter';
 
 /**
@@ -164,56 +170,72 @@ export function buildBoxStyle(
   layoutStyle?: React.CSSProperties,
   styleOverrides?: React.CSSProperties,
 ): React.CSSProperties {
-  const variantSpec = resolveContainerVariant(element.variant);
+  const ff = currentFormFactor();
+  const variantSpec = resolveContainerVariant(element.variant, ff);
   const variantName = variantSpec ? (element.variant as string) : undefined;
 
   const style: React.CSSProperties = {};
 
-  // margin (outer spacing)
+  // margin (outer spacing) — start/end map to LTR left/right; tokens
+  // resolved per form factor so semantic spacing (e.g. `token:spacing.md`)
+  // produces a concrete pixel value here, not a CSS-invalid string.
   if (element.margin) {
-    const m = element.margin;
-    if (m.top != null) style.marginTop = m.top;
-    if (m.end != null) style.marginRight = m.end;
-    if (m.bottom != null) style.marginBottom = m.bottom;
-    if (m.start != null) style.marginLeft = m.start;
+    const m = resolveSpacingPx(element.margin, ff);
+    if (element.margin.top != null)    style.marginTop    = m.top;
+    if (element.margin.end != null)    style.marginRight  = m.right;
+    if (element.margin.bottom != null) style.marginBottom = m.bottom;
+    if (element.margin.start != null)  style.marginLeft   = m.left;
   }
 
   // padding (inner spacing, inside bg/corner clip)
   if (element.padding) {
-    const p = element.padding;
-    if (p.top != null) style.paddingTop = p.top;
-    if (p.end != null) style.paddingRight = p.end;
-    if (p.bottom != null) style.paddingBottom = p.bottom;
-    if (p.start != null) style.paddingLeft = p.start;
+    const p = resolveSpacingPx(element.padding, ff);
+    if (element.padding.top != null)    style.paddingTop    = p.top;
+    if (element.padding.end != null)    style.paddingRight  = p.right;
+    if (element.padding.bottom != null) style.paddingBottom = p.bottom;
+    if (element.padding.start != null)  style.paddingLeft   = p.left;
   }
 
-  // width / height / fillWidth
+  // width / height / fillWidth — token strings resolve to pixels; numbers
+  // pass through; non-token strings (constraint primitives like `fill`,
+  // `wrap`) flow through to CSS for now (constraint primitive support is
+  // a follow-up; see implementation plan Phase 2).
   if (element.width != null) {
-    style.width = element.width;
+    style.width = resolveLayoutSize(element.width, ff);
     style.flexShrink = 0;
   } else if (element.fillWidth || variantSpec?.fillWidth) {
     style.width = '100%';
   }
   if (element.height != null) {
-    style.height = element.height;
+    style.height = resolveLayoutSize(element.height, ff);
   }
 
   // corner radius — per-corner wins when any corner is non-zero; else
-  // inline `cornerRadius`; else variant default.
-  const radiiFallback = element.cornerRadius ?? variantSpec?.cornerRadius ?? 0;
+  // inline `cornerRadius`; else variant default. Tokens resolved per
+  // form factor; variant `cornerRadius` is already a number.
+  const inlineCornerPx = element.cornerRadius != null
+    ? resolveLayoutScalar(element.cornerRadius, ff)
+    : undefined;
+  const radiiFallback = inlineCornerPx ?? variantSpec?.cornerRadius ?? 0;
   const radii = element.cornerRadii;
-  const hasAnyRadii = radii != null && (
-    (radii.topStart ?? 0) !== 0 || (radii.topEnd ?? 0) !== 0 ||
-    (radii.bottomStart ?? 0) !== 0 || (radii.bottomEnd ?? 0) !== 0
+  const radiiPx = radii ? {
+    topStart:    radii.topStart    != null ? resolveLayoutScalar(radii.topStart,    ff) : undefined,
+    topEnd:      radii.topEnd      != null ? resolveLayoutScalar(radii.topEnd,      ff) : undefined,
+    bottomStart: radii.bottomStart != null ? resolveLayoutScalar(radii.bottomStart, ff) : undefined,
+    bottomEnd:   radii.bottomEnd   != null ? resolveLayoutScalar(radii.bottomEnd,   ff) : undefined,
+  } : undefined;
+  const hasAnyRadii = radiiPx != null && (
+    (radiiPx.topStart ?? 0) !== 0 || (radiiPx.topEnd ?? 0) !== 0 ||
+    (radiiPx.bottomStart ?? 0) !== 0 || (radiiPx.bottomEnd ?? 0) !== 0
   );
-  if (hasAnyRadii && radii) {
-    style.borderTopLeftRadius     = radii.topStart ?? radiiFallback;
-    style.borderTopRightRadius    = radii.topEnd ?? radiiFallback;
-    style.borderBottomRightRadius = radii.bottomEnd ?? radiiFallback;
-    style.borderBottomLeftRadius  = radii.bottomStart ?? radiiFallback;
+  if (hasAnyRadii && radiiPx) {
+    style.borderTopLeftRadius     = radiiPx.topStart    ?? radiiFallback;
+    style.borderTopRightRadius    = radiiPx.topEnd      ?? radiiFallback;
+    style.borderBottomRightRadius = radiiPx.bottomEnd   ?? radiiFallback;
+    style.borderBottomLeftRadius  = radiiPx.bottomStart ?? radiiFallback;
     style.overflow = 'hidden';
-  } else if (element.cornerRadius != null) {
-    style.borderRadius = element.cornerRadius;
+  } else if (inlineCornerPx != null) {
+    style.borderRadius = inlineCornerPx;
     style.overflow = 'hidden';
   } else if (variantSpec?.cornerRadius != null) {
     style.borderRadius = variantSpec.cornerRadius;
@@ -273,6 +295,23 @@ export function buildBoxStyle(
   }
 
   return style;
+}
+
+/**
+ * Resolve a width / height-style scalar that may be a number, a `token:…`
+ * reference, or a constraint primitive (`fill`, `wrap`, `flex`). Tokens
+ * resolve to pixels through the form-factor-aware resolver. Numbers and
+ * non-token strings pass through unchanged so existing constraint
+ * primitives keep their current CSS value (full constraint primitive
+ * support is a follow-up; tracked in implementation plan Phase 2).
+ */
+function resolveLayoutSize(
+  value: number | string,
+  formFactor: FormFactor,
+): number | string {
+  if (typeof value === 'number') return value;
+  if (value.startsWith('token:')) return resolveLayoutScalar(value, formFactor);
+  return value;
 }
 
 function applyShadow(

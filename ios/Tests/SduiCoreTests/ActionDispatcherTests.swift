@@ -33,7 +33,7 @@ final class ActionDispatcherTests: XCTestCase {
 
     private func action(
         type: ActionType,
-        trigger: ActionTrigger = .onTap,
+        trigger: ActionTrigger = .onActivate,
         event: String? = nil,
         target: String? = nil,
         operation: MutateOperation? = nil,
@@ -118,12 +118,21 @@ final class ActionDispatcherTests: XCTestCase {
     }
 
     @MainActor
-    func testFireAndForgetOnTapDispatchesImmediately() {
+    func testFireAndForgetOnActivateDispatchesImmediately() {
         let analytics = InMemoryAnalyticsDispatcher()
         let (dispatcher, _, _, _) = makeDispatcher(analytics: analytics)
-        dispatcher.dispatch(action(type: .fireAndForget, trigger: .onTap, event: "tap_event"))
+        dispatcher.dispatch(action(type: .fireAndForget, trigger: .onActivate, event: "tap_event"))
 
         XCTAssertEqual(analytics.events.first?.name, "tap_event")
+    }
+
+    @MainActor
+    func testFireAndForgetLegacyOnTapStillDispatches() {
+        let analytics = InMemoryAnalyticsDispatcher()
+        let (dispatcher, _, _, _) = makeDispatcher(analytics: analytics)
+        dispatcher.dispatch(action(type: .fireAndForget, trigger: .onTap, event: "legacy_tap_event"))
+
+        XCTAssertEqual(analytics.events.first?.name, "legacy_tap_event")
     }
 
     @MainActor
@@ -152,7 +161,7 @@ final class ActionDispatcherTests: XCTestCase {
         let (dispatcher, _, _, _) = makeDispatcher(analytics: analytics)
 
         let navigate = action(type: .navigate, targetURI: "nba://for-you")
-        let followUp = action(type: .fireAndForget, trigger: .onTap, event: "after_nav")
+        let followUp = action(type: .fireAndForget, trigger: .onActivate, event: "after_nav")
 
         let ran = dispatcher.execute([navigate, followUp])
 

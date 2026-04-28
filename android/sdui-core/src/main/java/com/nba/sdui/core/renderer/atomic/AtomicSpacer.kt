@@ -9,6 +9,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
 import com.nba.sdui.core.models.generated.AtomicElement
+import com.nba.sdui.core.renderer.LayoutTokenResolver
+import com.nba.sdui.core.request.RequestEnvelopeBuilder
 
 /**
  * AtomicSpacer — renders a blank Spacer with configurable width,
@@ -18,10 +20,13 @@ import com.nba.sdui.core.models.generated.AtomicElement
  */
 @Composable
 fun AtomicSpacer(element: AtomicElement) {
+    // TODO(phase3): swap for `LocalSduiFormFactor.current` once the
+    // form-factor classifier is plumbed end-to-end.
+    val formFactor = RequestEnvelopeBuilder.defaultFormFactor()
     var spacerModifier: Modifier = Modifier
     element.size?.let { spacerModifier = spacerModifier.size(it.toInt().dp) }
-    element.width?.let { spacerModifier = spacerModifier.width(it.toInt().dp) }
-    element.height?.let { spacerModifier = spacerModifier.height(it.toInt().dp) }
+    element.width?.let { spacerModifier = spacerModifier.width(LayoutTokenResolver.dp(it, formFactor)) }
+    element.height?.let { spacerModifier = spacerModifier.height(LayoutTokenResolver.dp(it, formFactor)) }
 
     Spacer(modifier = spacerModifier.clearAndSetSemantics {})
 }

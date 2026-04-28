@@ -43,8 +43,8 @@ struct AtomicBoxModifier: ViewModifier {
         let spec = element.type == "Container"
             ? ContainerVariantResolver.resolve(element.variant)
             : nil
-        let fixedWidth = element.width.map { CGFloat($0) }
-        let fixedHeight = element.height.map { CGFloat($0) }
+        let fixedWidth = element.width.map { LayoutTokenResolver.cgFloat($0) }
+        let fixedHeight = element.height.map { LayoutTokenResolver.cgFloat($0) }
         let shouldFillWidth = fixedWidth == nil && element.fillWidth == true
         let frameAlignment = frameAlignmentForColumn(for: element)
 

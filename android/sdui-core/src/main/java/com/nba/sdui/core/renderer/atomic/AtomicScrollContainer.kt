@@ -3,6 +3,7 @@ package com.nba.sdui.core.renderer.atomic
 import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -29,7 +30,9 @@ import com.nba.sdui.core.models.generated.CrossAlignment
 import com.nba.sdui.core.models.generated.Style
 import com.nba.sdui.core.models.generated.UIDirection
 import com.nba.sdui.core.renderer.ColorTokenResolver
+import com.nba.sdui.core.renderer.LayoutTokenResolver
 import com.nba.sdui.core.renderer.applyAccessibility
+import com.nba.sdui.core.request.RequestEnvelopeBuilder
 import com.nba.sdui.core.state.SduiAction
 
 /**
@@ -47,7 +50,10 @@ fun AtomicScrollContainer(
     sectionSlotDepth: Int = 0
 ) {
     val children = element.children.orEmpty()
-    val gap = element.gap?.toInt()?.dp ?: 0.dp
+    // TODO(phase3): swap for `LocalSduiFormFactor.current` once the
+    // form-factor classifier is plumbed end-to-end.
+    val formFactor = RequestEnvelopeBuilder.defaultFormFactor()
+    val gap = LayoutTokenResolver.dp(element.gap, formFactor)
     val isHorizontal = element.direction != UIDirection.Column
     val crossAxis = when (element.crossAlignment) {
         CrossAlignment.Center -> if (isHorizontal) ComposeAlignment.CenterVertically else ComposeAlignment.CenterHorizontally
@@ -66,7 +72,22 @@ fun AtomicScrollContainer(
         val a11yModifier = boxModifier.applyAccessibility(element.accessibility)
         if (element.paging == true) {
             val pagerState = rememberPagerState(pageCount = { children.size })
-            Box(modifier = a11yModifier) {
+            val dotsOnTop = when (element.pageIndicator?.alignment) {
+                BadgeAlignment.TopStart, BadgeAlignment.TopCenter, BadgeAlignment.TopEnd -> true
+                else -> false
+            }
+            val dotRowArrangement = pageIndicatorHorizontalArrangement(element.pageIndicator?.alignment)
+            Column(modifier = a11yModifier) {
+                if (showPageDots && dotsOnTop) {
+                    PageIndicatorDots(
+                        count = children.size,
+                        activePage = pagerState.currentPage,
+                        inactiveColor = resolvedIndicatorColor(element.pageIndicator?.color, Color.White.copy(alpha = 0.45f)),
+                        activeColor = resolvedIndicatorColor(element.pageIndicator?.activeColor, Color.White),
+                        modifier = Modifier.fillMaxWidth().padding(8.dp),
+                        groupHorizontalArrangement = dotRowArrangement
+                    )
+                }
                 if (isHorizontal) {
                     HorizontalPager(
                         state = pagerState,
@@ -88,15 +109,14 @@ fun AtomicScrollContainer(
                         }
                     }
                 }
-                if (showPageDots) {
+                if (showPageDots && !dotsOnTop) {
                     PageIndicatorDots(
                         count = children.size,
                         activePage = pagerState.currentPage,
                         inactiveColor = resolvedIndicatorColor(element.pageIndicator?.color, Color.White.copy(alpha = 0.45f)),
                         activeColor = resolvedIndicatorColor(element.pageIndicator?.activeColor, Color.White),
-                        modifier = Modifier
-                            .align(pageIndicatorAlignment(element.pageIndicator?.alignment))
-                            .padding(8.dp)
+                        modifier = Modifier.fillMaxWidth().padding(8.dp),
+                        groupHorizontalArrangement = dotRowArrangement
                     )
                 }
             }
@@ -202,18 +222,21 @@ private fun PageIndicatorDots(
     activePage: Int,
     inactiveColor: Color,
     activeColor: Color,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    groupHorizontalArrangement: Arrangement.Horizontal = Arrangement.Center
 ) {
     Row(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
+        horizontalArrangement = groupHorizontalArrangement
     ) {
-        repeat(count) { index ->
-            Box(
-                modifier = Modifier
-                    .size(6.dp)
-                    .background(if (index == activePage) activeColor else inactiveColor, CircleShape)
-            )
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            repeat(count) { index ->
+                Box(
+                    modifier = Modifier
+                        .size(6.dp)
+                        .background(if (index == activePage) activeColor else inactiveColor, CircleShape)
+                )
+            }
         }
     }
 }
@@ -224,6 +247,15 @@ private fun resolvedIndicatorColor(value: String?, fallback: Color): Color {
     return if (resolved == Color.Unspecified) fallback else resolved
 }
 
+private fun pageIndicatorHorizontalArrangement(alignment: BadgeAlignment?): Arrangement.Horizontal {
+    return when (alignment) {
+        BadgeAlignment.TopStart, BadgeAlignment.BottomStart, BadgeAlignment.CenterStart -> Arrangement.Start
+        BadgeAlignment.TopEnd, BadgeAlignment.BottomEnd, BadgeAlignment.CenterEnd -> Arrangement.End
+        BadgeAlignment.TopCenter, BadgeAlignment.BottomCenter, BadgeAlignment.Center, null -> Arrangement.Center
+    }
+}
+
+/** Used when page dots overlay a non-paging LazyRow/LazyColumn (legacy path). */
 private fun pageIndicatorAlignment(alignment: BadgeAlignment?): ComposeAlignment {
     return when (alignment) {
         BadgeAlignment.TopStart -> ComposeAlignment.TopStart

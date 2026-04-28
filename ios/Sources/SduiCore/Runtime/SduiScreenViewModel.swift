@@ -156,18 +156,22 @@ public final class SduiScreenViewModel {
     }
 
     /// Called by `ActionDispatcher` when a `refresh` action fires.
+    ///
+    /// Parameterized refresh routes through the same `fetchScreen` transport as
+    /// the initial load so the request envelope, bracket-notation encoding,
+    /// length-based POST fallback, and `X-Trace-Id` correlation all carry over
+    /// uniformly. The response is always a full screen — section merging is
+    /// handled client-side by id (Android matches).
     func refresh(sectionID: String?, endpoint explicitEndpoint: String?, resolvedParams: [String: String]) {
         Task {
             if let explicitEndpoint {
-                // Parameterized refresh: caller-supplied endpoint + bindings.
-                let url = Self.appendParams(to: explicitEndpoint, params: resolvedParams)
                 do {
-                    let raw = try await repository.fetchRawJson(url: url, traceID: screen?.traceID)
-                    if let sectionID, let dict = raw as? [String: Any] {
-                        await updateSectionData(sectionID: sectionID, newData: dict)
-                    } else if let decoded = try? Self.decodeScreen(from: raw) {
-                        applyScreen(decoded)
-                    }
+                    let refreshScreen = try await repository.fetchScreen(
+                        endpoint: explicitEndpoint,
+                        userParams: resolvedParams,
+                        traceID: screen?.traceID
+                    )
+                    await mergeRefreshedScreen(refreshScreen, targetSectionID: sectionID)
                 } catch {
                     logger.error("parameterized refresh failed: \(error.localizedDescription, privacy: .public)")
                     toasts.show(String(localized: "Couldn't refresh right now."), style: .error)
@@ -177,6 +181,31 @@ public final class SduiScreenViewModel {
                 await load()
             }
         }
+    }
+
+    /// Apply a parameterized-refresh response: surgical replace when the
+    /// target section is in the response, fall back to wholesale apply
+    /// otherwise. Mirrors Android's `refreshSections` merge semantics.
+    private func mergeRefreshedScreen(_ refreshed: SduiModels, targetSectionID: String?) async {
+        for (key, value) in refreshed.state ?? [:] {
+            screenState.set(key, value: value.value)
+        }
+
+        guard let current = screen else {
+            applyScreen(refreshed)
+            return
+        }
+
+        if let targetSectionID,
+           let updated = refreshed.sections.first(where: { $0.id == targetSectionID }),
+           let idx = current.sections.firstIndex(where: { $0.id == targetSectionID }) {
+            var merged = current.sections
+            merged[idx] = updated
+            screen = current.with(sections: merged)
+            return
+        }
+
+        applyScreen(refreshed)
     }
 
     // MARK: - Scene phase
@@ -499,18 +528,4 @@ public final class SduiScreenViewModel {
         }.value
     }
 
-    private static func decodeScreen(from raw: Any) throws -> SduiModels {
-        let data = try JSONSerialization.data(withJSONObject: raw)
-        return try newJSONDecoder().decode(SduiModels.self, from: data)
-    }
-
-    private static func appendParams(to endpoint: String, params: [String: String]) -> URL {
-        var components = URLComponents(string: endpoint) ?? URLComponents()
-        var query = components.queryItems ?? []
-        for (key, value) in params where !value.isEmpty {
-            query.append(URLQueryItem(name: key, value: value))
-        }
-        components.queryItems = query
-        return components.url ?? URL(string: endpoint)!
-    }
 }

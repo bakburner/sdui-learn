@@ -2,7 +2,9 @@ import React, { useContext, memo, useMemo } from 'react';
 import type { Action } from '@sdui/models';
 import type { AtomicProps } from './AtomicRouter';
 import { AtomicBox, AtomicBoxBadge } from './AtomicBox';
+import { accessibilityProps } from '../../utils/accessibility';
 import { resolveImageVariant } from '../../utils/ImageVariantResolver';
+import { currentFormFactor } from '../../utils/LayoutTokenResolver';
 import { CompositeContentContext, resolveBindRefString } from '../../utils/BindRefResolver';
 import { areAtomicPropsEqual } from './areAtomicPropsEqual';
 
@@ -25,7 +27,7 @@ const fitToObjectFit: Record<string, React.CSSProperties['objectFit']> = {
  * and `object-fit` stay on the <img> to preserve the intended framing.
  */
 function AtomicImageInner({ element, onAction }: AtomicProps): React.ReactElement {
-  const variantSpec = resolveImageVariant(element.variant);
+  const variantSpec = resolveImageVariant(element.variant, currentFormFactor());
 
   const resolvedObjectFit: React.CSSProperties['objectFit'] =
     fitToObjectFit[element.fit ?? ''] ?? variantSpec?.objectFit ?? 'contain';
@@ -91,10 +93,13 @@ function AtomicImageInner({ element, onAction }: AtomicProps): React.ReactElemen
   const compositeContent = useContext(CompositeContentContext);
   const resolvedSrc = resolveBindRefString(element.bindRef, compositeContent) ?? element.src;
 
+  const a11y = element.accessibility;
+  const altText = a11y?.hidden ? '' : (a11y?.label ?? element.alt ?? '');
+
   const img = (
     <img
       src={resolvedSrc}
-      alt={element.accessibility?.label ?? element.alt ?? ''}
+      alt={altText}
       style={{ ...imgStyle, ...(hasActions ? { cursor: 'pointer' } : {}) }}
       onClick={handleClick}
       onError={handleError}
@@ -102,7 +107,7 @@ function AtomicImageInner({ element, onAction }: AtomicProps): React.ReactElemen
       {...(intrinsicSize
         ? { width: intrinsicSize.w, height: intrinsicSize.h }
         : {})}
-      {...(element.accessibility?.hidden ? { 'aria-hidden': true } : {})}
+      {...accessibilityProps(a11y)}
     />
   );
 

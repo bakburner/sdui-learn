@@ -181,16 +181,26 @@ open class SduiScreenViewModel(
     }
 
     /**
-     * Surgical section merge — fetches a refresh endpoint and merges the
-     * returned sections into the current screen, preserving sections that
-     * are not in the response (e.g. the form). State values echoed from
-     * the server are applied to keep form selections consistent.
+     * Parameterized refresh — fetches the supplied endpoint with user-bound
+     * filter params via the canonical `fetchScreen` transport (envelope +
+     * GET/POST length fallback + `X-Trace-Id` propagation), then merges the
+     * returned sections into the current screen. Form-style sections that
+     * are not in the response are preserved. State values echoed from the
+     * server are applied so the form's selection stays in sync.
      */
-    fun refreshSections(endpoint: String) {
+    fun refreshSections(
+        endpoint: String,
+        userParams: Map<String, String> = emptyMap()
+    ) {
         viewModelScope.launch {
             try {
-                Log.d(TAG, "Surgical section refresh: $endpoint")
-                val refreshScreen = repository.fetchScreen(endpoint, buildEnvelope())
+                Log.d(TAG, "Parameterized refresh: endpoint=$endpoint params=$userParams")
+                val refreshScreen = repository.fetchScreen(
+                    path = endpoint,
+                    envelope = buildEnvelope(),
+                    userParams = userParams,
+                    traceIdOverride = currentScreen?.traceID
+                )
 
                 // Merge echoed state from the response
                 refreshScreen.state?.forEach { (key, value) ->
@@ -202,12 +212,10 @@ open class SduiScreenViewModel(
                 }
 
                 val current = currentScreen ?: run {
-                    // No current screen — fall back to full load
                     applyScreen(refreshScreen)
                     return@launch
                 }
 
-                // Build merged section list: keep existing, replace or append from response
                 val mergedSections = current.sections.toMutableList()
                 for (newSection in refreshScreen.sections) {
                     val idx = mergedSections.indexOfFirst { it.id == newSection.id }
@@ -222,7 +230,7 @@ open class SduiScreenViewModel(
                 currentScreen = mergedScreen
                 _uiState.value = SduiScreenUiState.Success(mergedScreen)
             } catch (e: Exception) {
-                Log.e(TAG, "Surgical section refresh failed: $endpoint", e)
+                Log.e(TAG, "Parameterized refresh failed: $endpoint", e)
                 // Don't replace screen with error — keep current screen intact
             }
         }

@@ -1,0 +1,19 @@
+{
+  "$comment": "Corner radius tokens (dp). Per form factor.",
+  "$version": "0.1.0",
+  "palette": {
+    "radius.raw.0":  { "phone": 0,  "phone.landscape": 0,  "tablet": 0,  "tv": 0,  "web.narrow": 0,  "web.wide": 0  },
+    "radius.raw.4":  { "phone": 4,  "phone.landscape": 4,  "tablet": 6,  "tv": 8,  "web.narrow": 4,  "web.wide": 6  },
+    "radius.raw.8":  { "phone": 8,  "phone.landscape": 8,  "tablet": 10, "tv": 12, "web.narrow": 8,  "web.wide": 10 },
+    "radius.raw.12": { "phone": 12, "phone.landscape": 12, "tablet": 14, "tv": 16, "web.narrow": 12, "web.wide": 14 },
+    "radius.raw.16": { "phone": 16, "phone.landscape": 16, "tablet": 18, "tv": 20, "web.narrow": 16, "web.wide": 18 },
+    "radius.raw.999":{ "phone": 999, "phone.landscape": 999, "tablet": 999, "tv": 999, "web.narrow": 999, "web.wide": 999 }
+  },
+  "semantic": {
+    "radius.sm":   { "aliasOf": "radius.raw.4" },
+    "radius.md":   { "aliasOf": "radius.raw.8" },
+    "radius.lg":   { "aliasOf": "radius.raw.12" },
+    "radius.xl":   { "aliasOf": "radius.raw.16" },
+    "radius.full": { "aliasOf": "radius.raw.999" }
+  }
+}

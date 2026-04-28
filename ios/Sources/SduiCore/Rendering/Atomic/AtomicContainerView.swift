@@ -16,8 +16,8 @@ struct AtomicContainerView: View {
 
     var body: some View {
         let isRow = resolvedDirection == .row
-        let gap = CGFloat(element.gap ?? 0)
-        let resolvedAspectRatio = element.aspectRatio.map { CGFloat($0) }
+        let gap = LayoutTokenResolver.cgFloat(element.gap)
+        let resolvedAspectRatio = LayoutTokenResolver.aspectRatio(element.aspectRatio)
 
         AnyLayout(AtomicFlexStackLayout(
             isRow: isRow,

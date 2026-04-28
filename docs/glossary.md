@@ -15,14 +15,14 @@ glossary is strictly about runtime, wire, and design-system vocabulary.
 | Term | Definition |
 | --- | --- |
 | **Section** | Top-level unit of refresh and visibility. Carries `id`, `type`, `data`, `sectionStates`, and (optionally) `refreshPolicy`. The smallest chunk the server can replace independently and the granularity at which live updates, error boundaries, and impression dedup operate. |
-| **Element** | Any node inside a section's `data.ui` tree. Distinguishes the atomic-tree nodes (`Box`, `Text`, `Image`, …) from the surrounding `Section`. An element has no `id`/`refreshPolicy` of its own. |
-| **Atomic primitive** | Leaf-level renderable element type emitted in `data.ui`. The primitive set is `Box`, `Stack`, `Row`, `Column`, `Text`, `Image`, `Button`, `ScrollContainer`, `OverlayContainer`, `ConditionalView`, `DisplayGrid`. Every primitive is server-composable and has a single client renderer per platform. Anything more product-specific belongs inside an `AtomicComposite`, not a new primitive. |
+| **Element** | Any node inside a section's `data.ui` tree (`Container`, `Text`, `Image`, …), distinct from the enclosing `Section`. No `id`/`refreshPolicy` on the node itself. |
+| **Atomic primitive** | `AtomicElement` `type` from the schema enum: `Container`, `Text`, `Image`, `Button`, `Spacer`, `Divider`, `ScrollContainer`, `Conditional`, `DisplayGrid`, `SectionSlot`, `LiveClock`, `OverlayContainer`. Each has one `AtomicRouter` branch per platform. Product-specific layout belongs in `AtomicComposite` trees, not new primitives, unless the schema gains a type. |
 | **AtomicComposite** | Section type whose `data.ui` is a server-composed tree of atomic primitives rather than a fixed-shape payload. The default section type for stateless layout surfaces. Lets the server build new product surfaces without shipping new client renderers. |
-| **Permanent section** | A section type with a dedicated client renderer (i.e. *not* an `AtomicComposite`). Allowed only for cases the atomic primitive set cannot express today; the project maintains an explicit inventory of permitted permanent sections. "Permanent" does not mean forever — sections graduate to `AtomicComposite` as the primitive set grows. |
+| **Permanent section** | A section type with a dedicated client renderer (not `AtomicComposite`). The allowed set is the schema `Section` enum minus `AtomicComposite`. |
 | **Surface** | Design-system tier-adaptive container (e.g. `hero` surface, `canvas` surface). Realized natively per OS tier (Liquid Glass on iOS 26+, blur-fallback below; Material 3 expressive on Android; CSS filter on Web). Distinct from `Section`: a surface is presentational, a section is structural. See `docs/sdui-design-system.md` §5. |
 | **Chrome** / **outer chrome** | The wrapper styling owned by `SectionContainer` (margins, dividers, frame, error/loading scaffolding). Renderers do not paint chrome themselves; ownership of this layer is shared infrastructure, not per-section. |
 | **Skeleton** | Loading-state placeholder shape declared via `sectionStates.loading.skeleton`. One of `shimmer` / `spinner` / `placeholder` / `none`. |
-| **ErrorState** | The section's server-declared error presentation (`message`, `retryAction`, `hideOnError`) under `sectionStates.error`. Named `ErrorState` rather than `Error` so the generated client type doesn't shadow each runtime's native error protocol (e.g. `Swift.Error`). |
+| **ErrorState** | The section's server-declared error presentation (`message`, `retryAction`, `hideOnError`) under `sectionStates.error`. Schema name avoids colliding with host `Error` types in generated code. |
 
 ---
 
@@ -32,10 +32,12 @@ glossary is strictly about runtime, wire, and design-system vocabulary.
 | --- | --- |
 | **Schema** | `schema/sdui-schema.json`. The single source of truth for the wire contract. All client and server types are generated from it. |
 | **Codegen** | The build step that emits Swift, Kotlin, TypeScript, and Java models from the schema. Run via `make codegen`. Generated files are checked in; do not hand-edit. |
-| **Envelope** (`RequestEnvelope`) | The structured query/POST body for a screen fetch. Encapsulates the request parameters and decides between GET-with-querystring and POST-with-body based on size threshold. |
+| **Envelope** (`RequestEnvelope`) | The structured query/POST body for every composition fetch. Encapsulates platform, device, experiments, locale, schema version, and game-state context. Serialized as bracket-notation query params for GET and as a JSON body of the same shape for POST; flips to POST when the encoded query exceeds 8192 chars. The single transport contract every composition request rides on, owned by `RequestEnvelopeBuilder` per platform. |
+| **Fetch primitive** | The one shared screen-fetch entry point on every client (`SduiRepository.fetchScreen` on iOS/Android, `fetchSduiScreen` on web). Owns baseURL resolution, envelope serialization, GET/POST length-fallback, RFC-3986 percent-encoding, deterministic key ordering, and `X-Trace-Id` propagation. Every composition request — initial loads, navigation, pull-to-refresh, action-driven `refresh` — routes through it. |
+| **Parameterized refresh** | A `refresh` action whose `paramBindings` resolve Screen-state values into user filter params (e.g. `season=2025-26`, `perMode=Totals`) that travel on the URL query string regardless of HTTP method. Routes through the shared fetch primitive so envelope, encoding, length fallback, and trace-ID inheritance all apply. |
 | **Endpoint** | A server-relative path that returns an SDUI screen payload. Endpoints are server-owned; clients never hardcode them. |
 | **Fixture** | A schema-validated example screen JSON kept under `ios/Tests/.../Fixtures/` and `schema/examples/`. Used for round-trip decoder tests and to seed the demo server. |
-| **Trace ID** (`X-Trace-Id`) | Per-request UUID emitted on every outbound SDUI request. Reused inside the client as the active-fetch identity so a newer fetch can dethrone an older one without inventing a parallel ID. |
+| **Trace ID** (`X-Trace-Id`) | Per-request UUID emitted on every outbound SDUI request. Reused inside the client as the active-fetch identity so a newer fetch can dethrone an older one without inventing a parallel ID. Parameterized refreshes inherit their parent screen's trace ID so server logs correlate refresh responses with the screens that triggered them. |
 
 ---
 
@@ -44,11 +46,12 @@ glossary is strictly about runtime, wire, and design-system vocabulary.
 | Term | Definition |
 | --- | --- |
 | **Action** | Server-declared command attached to an interactive or visible element. Always has a `type` and a `trigger` plus type-specific payload fields. Executes through the platform's Dispatcher / Handler. |
-| **Trigger** | When an action fires: `onTap`, `onLongPress`, `onVisible`, `onSwipe`. `onVisible` triggers route through Impression policy for dedup; the others fire on every occurrence. |
+| **Trigger** | When an action fires: `onActivate` (preferred), `onTap` (deprecated alias for onActivate), `onLongPress`, `onVisible`, `onSwipe`, `onFocus`, `onBlur`, `onSubmit`. `onVisible` triggers route through Impression policy for dedup; the others fire on every occurrence. |
+| **onActivate** | Preferred activation trigger. Neutral name for tap, click, keyboard Enter, or TV select. Replaces legacy `onTap`. |
 | **Beacon** | An emitted `fireAndForget` event. Cross-platform synonym for "an analytics ping". Has no on-screen effect, so during local testing it is verifiable only via the Action logger. |
 | **Failure policy** | Sequence-control verb on a failed action: `halt` / `continue` / `silent`. When the server omits `onFailure`, per-type defaults apply (navigate → halt; mutate/refresh → continue; fireAndForget/dismiss/toast → silent). See ADR-005. |
 | **Failure feedback** | Server-provided error message + presentation hint (`snackbar` / `toast` / `inline`) shown when a halted action surfaces an error. |
-| **Param bindings** | Mustache-style template values in a `refresh` action's `paramBindings` map (e.g. `{ "season": "{{form_season}}" }`). Resolved against Screen state at dispatch time and folded into the refresh URL's query string. |
+| **Param bindings** | Mustache-style template values in a `refresh` action's `paramBindings` map (e.g. `{ "season": "{{form_season}}" }`). Resolved against Screen state at dispatch time and handed to the shared fetch primitive as user-params; the primitive (not the action handler) is the only thing that builds URL strings. See **Parameterized refresh**. |
 
 ### Action types
 
@@ -97,6 +100,7 @@ For the long-form treatment of these terms, see `docs/sdui-design-system.md`.
 | **Tier** / **OS-version tiering** | Variants and surfaces realize differently across OS tiers (e.g. Liquid Glass iOS 26+ vs blur fallback below; Material 3 expressive on Android 14+ vs M3 below). Tier is a property of the runtime realization, not the wire payload. |
 | **Inline style primitive** | A directly-expressible property (`padding`, `cornerRadius`, `background.color`, …). Layer 1 of the three-layer style model; used to express fine-grained intent that doesn't yet warrant a named variant. |
 | **Override matrix** | The precedence stack for resolving styling: `style token < variant < inline override`. Inline overrides win. See `docs/sdui-design-system.md` §4. |
+| **Scrim** | Contrast layer painted between an image base and overlaid foreground content (text, badges, CTAs) inside an `OverlayContainer`. Anchored to the `color.overlay.scrim` semantic token; typically realized as the bottom-of-media transparent-to-scrim gradient produced server-side by `AtomicCompositeBuilder.mediaBottomScrimGradient()`. Required (by static-shape contract test) on any `OverlayContainer` whose base is an `Image` and whose overlays carry `Text`, so foreground copy stays legible regardless of the image content. |
 
 ---
 
@@ -108,7 +112,7 @@ participates in.
 
 | Pattern | Concept | Examples |
 | --- | --- | --- |
-| **`Atomic*`** | Lives in the atomic-primitive layer; server-composable. | `AtomicComposite`, `AtomicRouter`, `AtomicScrollContainer`, `AtomicOverlayContainer`, `AtomicDisplayGrid`, `AtomicConditionalView` |
+| **`Atomic*`** | Lives in the atomic-primitive layer; server-composable. | `AtomicComposite`, `AtomicRouter`, `AtomicScrollContainer`, `AtomicOverlayContainer`, `AtomicDisplayGrid`, `AtomicConditional` |
 | **`Sdui*`** | Project-namespaced runtime type that would otherwise collide with native/runtime symbols. | `SduiAction`, `SduiActionLogger`, `SduiError`, `SduiRepository`, `SduiCore`, `SduiScreenViewModel` |
 | **`*Composer`** | Server-side role: builds an SDUI screen response from data + composition rules. | `DemoScreenComposer`, `ForYouComposer`, `ScheduleComposer`, `AtomicCompositeBuilder` |
 | **`*Router`** | Client-side dispatch role: maps a `type` field to its renderer. | `SectionRouter`, `AtomicRouter` |

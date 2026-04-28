@@ -5,6 +5,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.foundation.clickable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -15,6 +16,7 @@ import com.nba.sdui.core.models.generated.AtomicElement
 import com.nba.sdui.core.models.generated.TextWeight
 import com.nba.sdui.core.renderer.ColorTokenResolver
 import com.nba.sdui.core.renderer.applyAccessibility
+import com.nba.sdui.core.renderer.adapters.toSduiAction
 import com.nba.sdui.core.state.SduiAction
 
 /**
@@ -58,7 +60,15 @@ fun AtomicText(
         boundPreview ?: element.content.orEmpty()
     }
 
+    val hasActions = !element.actions.isNullOrEmpty()
+
     AtomicBox(element, screenState, onAction) { boxModifier ->
+        var textModifier = boxModifier
+        if (hasActions) {
+            textModifier = textModifier.clickable {
+                element.actions?.firstOrNull()?.toSduiAction()?.let(onAction)
+            }
+        }
         Text(
             text = resolvedContent,
             style = style,
@@ -67,7 +77,7 @@ fun AtomicText(
             textAlign = textAlign,
             maxLines = element.maxLines?.toInt() ?: Int.MAX_VALUE,
             overflow = TextOverflow.Ellipsis,
-            modifier = boxModifier.applyAccessibility(element.accessibility)
+            modifier = textModifier.applyAccessibility(element.accessibility)
         )
     }
 }

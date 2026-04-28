@@ -38,8 +38,8 @@ import org.springframework.stereotype.Component;
  *
  * <p>Surface policy: card-chromed composites (hero, rails, grid, vod
  * playlist) get {@code railSurface()} — margins only, no outer card.
- * Section headers get {@code sectionHeaderSurface()}. AdSlots are
- * content-only and get {@code defaultSurface()} for the card chrome.
+ * Section headers get {@code sectionHeaderSurface()}. AdSlots use
+ * {@code adSlotSurface()} for server-owned card chrome.
  * No composite is wrapped in {@code gamePanelSurface()} — that surface
  * was for the legacy chrome-less {@code GamePanel} section type.
  */
@@ -459,7 +459,7 @@ public class ForYouComposer {
         section.put("type", "AdSlot");
         section.put("analyticsId", analyticsId);
         section.set("refreshPolicy", staticPolicy());
-        section.set("surface", utils.defaultSurface());
+        section.set("surface", utils.adSlotSurface());
 
         ObjectNode data = objectMapper.createObjectNode();
         data.put("provider", "gam");

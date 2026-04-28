@@ -4,6 +4,11 @@ import { AtomicRouter } from './AtomicRouter';
 import { AtomicBox, AtomicBoxBadge } from './AtomicBox';
 import { accessibilityProps } from '../../utils/accessibility';
 import { areAtomicPropsEqual } from './areAtomicPropsEqual';
+import {
+  currentFormFactor,
+  resolveAspectRatio,
+  resolveLayoutScalar,
+} from '../../utils/LayoutTokenResolver';
 
 /**
  * AtomicContainer — renders a flex row or column with gap, flex children,
@@ -23,12 +28,19 @@ function AtomicContainerInner({ element, state, onAction, depth = 0, onStateChan
   const isRow = element.direction === 'row';
   const hasBreakpoint = isRow && element.breakpoint != null;
   const className = hasBreakpoint ? `sdui-ac-${element.id ?? depth}` : undefined;
+  const ff = currentFormFactor();
+  const gapPx = element.gap != null ? resolveLayoutScalar(element.gap, ff) : undefined;
+  const aspect = resolveAspectRatio(element.aspectRatio);
+
+  if (element.actions?.length && !element.accessibility?.label) {
+    console.warn('a11y_container_missing_label', { elementId: element.id });
+  }
 
   const layoutStyle: React.CSSProperties = {
     display: 'flex',
     flexDirection: isRow ? 'row' : 'column',
-    gap: element.gap,
-    ...(element.aspectRatio != null ? { aspectRatio: String(element.aspectRatio) } : {}),
+    ...(gapPx != null ? { gap: gapPx } : {}),
+    ...(aspect != null ? { aspectRatio: String(aspect) } : {}),
   };
 
   switch (element.alignment) {

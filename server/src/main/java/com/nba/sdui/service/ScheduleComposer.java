@@ -9,6 +9,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.Locale;
+
 /**
  * Composes the Schedule screen — a date-filterable game list.
  *
@@ -41,7 +45,7 @@ public class ScheduleComposer {
 
         ObjectNode response = objectMapper.createObjectNode();
         response.put("id", "schedule");
-        response.put("title", "Schedule");
+        response.put("title", SduiUtils.getLocalizedString(locale, "screen.schedule"));
         response.put("analyticsId", "schedule");
         response.put("traceId", traceId);
         response.put("schemaVersion", schemaVersion);
@@ -60,11 +64,11 @@ public class ScheduleComposer {
 
         ArrayNode sections = objectMapper.createArrayNode();
 
-        sections.add(buildFilterForm());
+        sections.add(buildFilterForm(locale));
 
         JsonNode mockData = loadScheduleData();
         if (mockData != null) {
-            addGameSections(sections, mockData);
+            addGameSections(sections, mockData, locale);
         }
 
         response.set("sections", sections);
@@ -72,7 +76,7 @@ public class ScheduleComposer {
         return response;
     }
 
-    private ObjectNode buildFilterForm() {
+    private ObjectNode buildFilterForm(String locale) {
         ObjectNode section = objectMapper.createObjectNode();
         section.put("id", "schedule-filters");
         section.put("type", "Form");
@@ -90,30 +94,38 @@ public class ScheduleComposer {
         submitAction.put("trigger", "onSubmit");
         submitAction.put("type", "refresh");
         data.set("submitAction", submitAction);
-        data.put("submitLabel", "Apply");
+        data.put("submitLabel", SduiUtils.getLocalizedString(locale, "filter.apply"));
 
         ArrayNode fields = objectMapper.createArrayNode();
 
-        fields.add(buildChipsField("schedule_season", "Season",
+        String all = SduiUtils.getLocalizedString(locale, "filter.all");
+
+        fields.add(buildChipsField("schedule_season", SduiUtils.getLocalizedString(locale, "filter.season"),
                 new String[][]{
                         {"2024-25", "2024-25"}, {"2023-24", "2023-24"},
                         {"2022-23", "2022-23"}, {"2021-22", "2021-22"}
                 }));
 
-        fields.add(buildChipsField("schedule_year", "Year",
+        fields.add(buildChipsField("schedule_year", SduiUtils.getLocalizedString(locale, "filter.year"),
                 new String[][]{
                         {"2024", "2024"}, {"2025", "2025"}
                 }));
 
-        fields.add(buildChipsField("schedule_month", "Month",
+        fields.add(buildChipsField("schedule_month", SduiUtils.getLocalizedString(locale, "filter.month"),
                 new String[][]{
-                        {"", "All"}, {"10", "October"}, {"11", "November"}, {"12", "December"},
-                        {"1", "January"}, {"2", "February"}, {"3", "March"}, {"4", "April"}
+                        {"", all},
+                        {"10", SduiUtils.getLocalizedString(locale, "month.october")},
+                        {"11", SduiUtils.getLocalizedString(locale, "month.november")},
+                        {"12", SduiUtils.getLocalizedString(locale, "month.december")},
+                        {"1", SduiUtils.getLocalizedString(locale, "month.january")},
+                        {"2", SduiUtils.getLocalizedString(locale, "month.february")},
+                        {"3", SduiUtils.getLocalizedString(locale, "month.march")},
+                        {"4", SduiUtils.getLocalizedString(locale, "month.april")}
                 }));
 
-        fields.add(buildChipsField("schedule_day", "Day",
+        fields.add(buildChipsField("schedule_day", SduiUtils.getLocalizedString(locale, "filter.day"),
                 new String[][]{
-                        {"", "All"}, {"1", "1"}, {"5", "5"}, {"10", "10"},
+                        {"", all}, {"1", "1"}, {"5", "5"}, {"10", "10"},
                         {"15", "15"}, {"20", "20"}, {"25", "25"}, {"30", "30"}
                 }));
 
@@ -146,7 +158,7 @@ public class ScheduleComposer {
         return field;
     }
 
-    private void addGameSections(ArrayNode sections, JsonNode mockData) {
+    private void addGameSections(ArrayNode sections, JsonNode mockData, String locale) {
         JsonNode games = mockData.path("games");
         if (!games.isArray()) return;
 
@@ -156,7 +168,7 @@ public class ScheduleComposer {
             if (!date.equals(currentDate)) {
                 currentDate = date;
                 ObjectNode header = atomicBuilder.buildSectionHeader(
-                        "schedule-header-" + date, formatDate(date), null, null, null);
+                        "schedule-header-" + date, formatDate(date, locale), null, null, null);
                 header.set("surface", utils.sectionHeaderSurface());
                 sections.add(header);
             }
@@ -216,6 +228,8 @@ public class ScheduleComposer {
         logo.put("width", 48);
         logo.put("height", 48);
         logo.put("fit", "contain");
+        AccessibilityHelper.addImage(objectMapper, logo,
+                team.path("teamTricode").asText("Team") + " logo");
         children.add(logo);
 
         ObjectNode spacer = objectMapper.createObjectNode();
@@ -245,21 +259,14 @@ public class ScheduleComposer {
         }
     }
 
-    private String formatDate(String isoDate) {
+    private String formatDate(String isoDate, String locale) {
         try {
-            String[] parts = isoDate.split("-");
-            String month = switch (parts[1]) {
-                case "01" -> "January";
-                case "02" -> "February";
-                case "03" -> "March";
-                case "04" -> "April";
-                case "10" -> "October";
-                case "11" -> "November";
-                case "12" -> "December";
-                default -> parts[1];
-            };
-            return month + " " + Integer.parseInt(parts[2]) + ", " + parts[0];
+            LocalDate date = LocalDate.parse(isoDate);
+            Locale loc = Locale.forLanguageTag(locale != null ? locale : "en");
+            DateTimeFormatter fmt = DateTimeFormatter.ofPattern("MMMM d, yyyy", loc);
+            return date.format(fmt);
         } catch (Exception e) {
+            log.warn("Failed to parse date '{}', returning raw value", isoDate);
             return isoDate;
         }
     }

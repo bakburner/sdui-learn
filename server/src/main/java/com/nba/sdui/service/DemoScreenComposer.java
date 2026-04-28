@@ -8,6 +8,8 @@ import org.springframework.stereotype.Component;
 
 import java.util.Map;
 
+import static com.nba.sdui.service.AccessibilityHelper.*;
+
 /**
  * Composes the kitchen-sink demo screen showcasing all semantic section types,
  * the Season Leaders table, and the parameterised refresh response for the
@@ -15,9 +17,6 @@ import java.util.Map;
  */
 @Component
 public class DemoScreenComposer {
-
-    private static final String FALLBACK_THUMB =
-            "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png";
 
     private final ObjectMapper objectMapper;
     private final SduiUtils utils;
@@ -308,8 +307,8 @@ public class DemoScreenComposer {
                 2,
                 "Q3 4:32",
                 null,
-                new AtomicCompositeBuilder.GamePanelTeam("LAL", 89, SduiUtils.teamLogoUrl("1610612747")),
-                new AtomicCompositeBuilder.GamePanelTeam("BOS", 94, SduiUtils.teamLogoUrl("1610612738")),
+                new AtomicCompositeBuilder.GamePanelTeam("LAL", 89, DemoImageUrls.teamLogo("1610612747")),
+                new AtomicCompositeBuilder.GamePanelTeam("BOS", 94, DemoImageUrls.teamLogo("1610612738")),
                 clock,
                 "nba://game/0022400999",
                 objectMapper.createObjectNode().put("type", "static"),
@@ -322,9 +321,9 @@ public class DemoScreenComposer {
      */
     private ObjectNode buildDemoStatLine() {
         String[][] stats = {
-            {"1628369", "Jayson Tatum", "BOS", "PTS", "32", "https://cdn.nba.com/headshots/nba/latest/1040x760/1628369.png"},
-            {"203507", "LeBron James", "LAL", "PTS", "28", "https://cdn.nba.com/headshots/nba/latest/1040x760/203507.png"},
-            {"203076", "Anthony Davis", "LAL", "REB", "14", "https://cdn.nba.com/headshots/nba/latest/1040x760/203076.png"}
+            {"1628369", "Jayson Tatum", "BOS", "PTS", "32", DemoImageUrls.headshot("1628369")},
+            {"203507", "LeBron James", "LAL", "PTS", "28", DemoImageUrls.headshot("203507")},
+            {"203076", "Anthony Davis", "LAL", "REB", "14", DemoImageUrls.headshot("203076")}
         };
         return atomicBuilder.buildStatLine(
                 "demo-stat-line", "demo_stat_line", "Top Performers", "vertical", stats);
@@ -389,8 +388,8 @@ public class DemoScreenComposer {
                 3,
                 "Final",
                 null,
-                new AtomicCompositeBuilder.GamePanelTeam("HOU", 105, SduiUtils.teamLogoUrl("1610612745")),
-                new AtomicCompositeBuilder.GamePanelTeam("GSW", 112, SduiUtils.teamLogoUrl("1610612744")),
+                new AtomicCompositeBuilder.GamePanelTeam("HOU", 105, DemoImageUrls.teamLogo("1610612745")),
+                new AtomicCompositeBuilder.GamePanelTeam("GSW", 112, DemoImageUrls.teamLogo("1610612744")),
                 null,
                 "nba://game/0022400888",
                 objectMapper.createObjectNode().put("type", "static"),
@@ -407,12 +406,12 @@ public class DemoScreenComposer {
         ObjectNode scoringLeader = atomicBuilder.buildStatLine(
                 "row-scoring-leader", null, "Scoring Leader", "vertical",
                 new String[][]{{"203999", "Nikola Jokić", "DEN", "PTS", "26.4",
-                        "https://cdn.nba.com/headshots/nba/latest/1040x760/203999.png"}});
+                        DemoImageUrls.headshot("203999")}});
 
         ObjectNode assistsLeader = atomicBuilder.buildStatLine(
                 "row-assists-leader", null, "Assists Leader", "vertical",
                 new String[][]{{"201566", "Trae Young", "ATL", "AST", "11.1",
-                        "https://cdn.nba.com/headshots/nba/latest/1040x760/201566.png"}});
+                        DemoImageUrls.headshot("201566")}});
 
         ObjectNode root = atomicBuilder.responsiveRow(16, 600);
         root.put("id", "demo-row-container");
@@ -503,7 +502,7 @@ public class DemoScreenComposer {
         // & Brand ever changes the mapping, update here — the color registry is
         // not the source of truth for team brand identity.
         data.put("teamColor", "#007A33");
-        data.put("teamLogoUrl", SduiUtils.teamLogoUrl("1610612738"));
+        data.put("teamLogoUrl", DemoImageUrls.teamLogo("1610612738"));
 
         ArrayNode columns = objectMapper.createArrayNode();
         columns.add(utils.colDef("min", "MIN", true, false, null));
@@ -646,7 +645,7 @@ public class DemoScreenComposer {
         section.put("type", "AdSlot");
         section.put("analyticsId", "demo_ad_slot");
         section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
-        section.set("surface", utils.defaultSurface());
+        section.set("surface", utils.adSlotSurface());
 
         ObjectNode data = objectMapper.createObjectNode();
         data.put("provider", "gam");
@@ -702,8 +701,8 @@ public class DemoScreenComposer {
                 2,
                 "Q4 2:15",
                 "LIVE",
-                new AtomicCompositeBuilder.GamePanelTeam("BKN", 97, SduiUtils.teamLogoUrl("1610612751")),
-                new AtomicCompositeBuilder.GamePanelTeam("MIA", 101, SduiUtils.teamLogoUrl("1610612748")),
+                new AtomicCompositeBuilder.GamePanelTeam("BKN", 97, DemoImageUrls.teamLogo("1610612751")),
+                new AtomicCompositeBuilder.GamePanelTeam("MIA", 101, DemoImageUrls.teamLogo("1610612748")),
                 clock,
                 "nba://game/0022400777",
                 objectMapper.createObjectNode().put("type", "static"),
@@ -762,7 +761,7 @@ public class DemoScreenComposer {
                 20));
 
         ObjectNode ctaAction = objectMapper.createObjectNode();
-        ctaAction.put("trigger", "onTap");
+        ctaAction.put("trigger", "onActivate");
         ctaAction.put("type", "navigate");
         ctaAction.put("targetUri", "nba://subscribe");
         ctaAction.put("presentation", "modal");
@@ -770,8 +769,10 @@ public class DemoScreenComposer {
         ObjectNode root = atomicBuilder.container("column", "start", "start");
         root.put("gap", 4);
         ArrayNode children = objectMapper.createArrayNode();
-        children.add(atomicBuilder.text("Never Miss a Game", "titleMedium", "bold",
-                ColorTokens.TEXT_INVERSE, null));
+        ObjectNode bannerTitle = atomicBuilder.text("Never Miss a Game", "titleMedium", "bold",
+                ColorTokens.TEXT_INVERSE, null);
+        addHeading(objectMapper, bannerTitle, "Never Miss a Game", 2);
+        children.add(bannerTitle);
         children.add(atomicBuilder.text(
                 "Stream every out-of-market game live with NBA League Pass.",
                 "bodySmall", null, ColorTokens.TEXT_INVERSE, null));
@@ -808,10 +809,14 @@ public class DemoScreenComposer {
         ArrayNode children = objectMapper.createArrayNode();
 
         children.add(atomicBuilder.image(
-                "https://cdn.nba.com/manage/2025/01/league-pass-logo.png", 0, 64, "contain"));
+                DemoImageUrls.logoWide(), 0, 64, "contain"));
+        // Logo is decorative — title below provides the accessible label.
+        addHidden(objectMapper, (ObjectNode) children.get(children.size() - 1));
         children.add(atomicBuilder.spacer(8));
-        children.add(atomicBuilder.text("NBA League Pass", "headlineMedium", "bold",
-                ColorTokens.TEXT_INVERSE, null));
+        ObjectNode heroTitle = atomicBuilder.text("NBA League Pass", "headlineMedium", "bold",
+                ColorTokens.TEXT_INVERSE, null);
+        addHeading(objectMapper, heroTitle, "NBA League Pass", 2);
+        children.add(heroTitle);
         children.add(atomicBuilder.text("Watch every game. Your way.",
                 "bodyLarge", null, ColorTokens.TEXT_INVERSE, null));
         children.add(atomicBuilder.spacer(16));
@@ -886,8 +891,10 @@ public class DemoScreenComposer {
             cardChildren.add(atomicBuilder.text(badgeText, "labelMedium", "bold",
                     "token:color.secondary.50", null));
         }
-        cardChildren.add(atomicBuilder.text(name, "titleLarge", "bold",
-                ColorTokens.TEXT_INVERSE, null));
+        ObjectNode tierName = atomicBuilder.text(name, "titleLarge", "bold",
+                ColorTokens.TEXT_INVERSE, null);
+        addHeading(objectMapper, tierName, name, 3);
+        cardChildren.add(tierName);
         cardChildren.add(atomicBuilder.text(price, "headlineSmall", "bold",
                 ColorTokens.TEXT_INVERSE, null));
         if (originalPrice != null) {
@@ -906,7 +913,7 @@ public class DemoScreenComposer {
         cardChildren.add(atomicBuilder.spacer(10));
 
         ObjectNode tierAction = objectMapper.createObjectNode();
-        tierAction.put("trigger", "onTap");
+        tierAction.put("trigger", "onActivate");
         tierAction.put("type", "navigate");
         tierAction.put("targetUri", ctaUri);
         cardChildren.add(atomicBuilder.button(ctaLabel, "primary", tierAction));
@@ -928,11 +935,11 @@ public class DemoScreenComposer {
      */
     private ObjectNode buildDemoFollowingRail() {
         String[][] items = {
-            {"team-lal", "Lakers", SduiUtils.teamLogoUrl("1610612747"), "team", "nba://team/1610612747"},
-            {"team-bos", "Celtics", SduiUtils.teamLogoUrl("1610612738"), "team", "nba://team/1610612738"},
-            {"player-luka", "Luka Dončić", "https://cdn.nba.com/headshots/nba/latest/1040x760/203999.png", "player", "nba://player/203999"},
-            {"team-gsw", "Warriors", SduiUtils.teamLogoUrl("1610612744"), "team", "nba://team/1610612744"},
-            {"player-sga", "Shai Gilgeous-Alexander", "https://cdn.nba.com/headshots/nba/latest/1040x760/1630175.png", "player", "nba://player/1630175"}
+            {"team-lal", "Lakers", DemoImageUrls.teamLogo("1610612747"), "team", "nba://team/1610612747"},
+            {"team-bos", "Celtics", DemoImageUrls.teamLogo("1610612738"), "team", "nba://team/1610612738"},
+            {"player-luka", "Luka Dončić", DemoImageUrls.headshot("203999"), "player", "nba://player/203999"},
+            {"team-gsw", "Warriors", DemoImageUrls.teamLogo("1610612744"), "team", "nba://team/1610612744"},
+            {"player-sga", "Shai Gilgeous-Alexander", DemoImageUrls.headshot("1630175"), "player", "nba://player/1630175"}
         };
         return atomicBuilder.buildFollowingRail(
                 "demo-following-rail", "demo_following_rail", "Following", items);
@@ -989,7 +996,7 @@ public class DemoScreenComposer {
         ObjectNode adSection = objectMapper.createObjectNode();
         adSection.put("id", "demo-inline-ad");
         adSection.put("type", "AdSlot");
-        adSection.set("surface", utils.defaultSurface());
+        adSection.set("surface", utils.adSlotSurface());
         ObjectNode adData = objectMapper.createObjectNode();
         adData.put("provider", "gam");
         adData.put("adUnitPath", "/nba/game-card-inline");
@@ -1033,6 +1040,7 @@ public class DemoScreenComposer {
         title.put("variant", "titleMedium");
         title.put("weight", "bold");
         title.put("color", ColorTokens.TEXT_PRIMARY);
+        addHeading(objectMapper, title, "LAL vs BOS", 3);
         children.add(title);
 
         ObjectNode subtitle = objectMapper.createObjectNode();
@@ -1070,10 +1078,10 @@ public class DemoScreenComposer {
 
     private ObjectNode buildDemoStoryCircleRail() {
         String[][] items = {
-                {"story-finals", "Finals", SduiUtils.teamLogoUrl("1610612738"), "LIVE", "nba://stories/finals"},
-                {"story-lakers", "Lakers", SduiUtils.teamLogoUrl("1610612747"), "NEW", "nba://stories/lakers"},
-                {"story-draft", "Draft", "https://cdn.nba.com/manage/2025/02/nba-draft-logo-1568x882.jpg", null, "nba://stories/draft"},
-                {"story-nbatv", "NBA TV", "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png", "LIVE", "nba://watch/nbatv"}
+                {"story-finals", "Finals", DemoImageUrls.teamLogo("1610612738"), "LIVE", "nba://stories/finals"},
+                {"story-lakers", "Lakers", DemoImageUrls.teamLogo("1610612747"), "NEW", "nba://stories/lakers"},
+                {"story-draft", "Draft", DemoImageUrls.cardWide("draft"), null, "nba://stories/draft"},
+                {"story-nbatv", "NBA TV", DemoImageUrls.cardWide("nbatv"), "LIVE", "nba://watch/nbatv"}
         };
         ObjectNode section = atomicBuilder.buildStoryCircleRail(
                 "demo-story-circle-rail", "demo_story_circle_rail", null, items);
@@ -1084,11 +1092,11 @@ public class DemoScreenComposer {
     private ObjectNode buildDemoEditorialOverlayRail() {
         String[][] cards = {
                 {"editorial-1", "Five things to watch tonight", "Rivalries, returns, and playoff stakes",
-                        "https://cdn.nba.com/manage/2025/02/nba-standings-graphic-752x428.jpg", "NEW", "nba://article/five-things"},
+                        DemoImageUrls.cardWide("editorial-1"), "NEW", "nba://article/five-things"},
                 {"editorial-2", "Inside the MVP race", "The numbers behind a tight finish",
-                        "https://cdn.nba.com/manage/2025/02/jokic-allstar-iso-752x428.jpg", null, "nba://article/mvp-race"},
+                        DemoImageUrls.cardWide("editorial-2"), null, "nba://article/mvp-race"},
                 {"editorial-3", "Rookies making noise", "First-year players changing rotations",
-                        "https://cdn.nba.com/manage/2025/02/risacher-hawks-drives-752x428.jpg", "LIVE", "nba://video/rookies"}
+                        DemoImageUrls.cardWide("editorial-3"), "LIVE", "nba://video/rookies"}
         };
         ObjectNode section = atomicBuilder.buildEditorialOverlayRail(
                 "demo-editorial-overlay-rail", "demo_editorial_overlay_rail", null, cards);
@@ -1097,20 +1105,20 @@ public class DemoScreenComposer {
     }
 
     private ObjectNode buildDemoFeaturedLiveGameHero() {
-        String bosLogo = SduiUtils.teamLogoUrl("1610612738");
-        String lalLogo = SduiUtils.teamLogoUrl("1610612747");
-        String okcLogo = SduiUtils.teamLogoUrl("1610612760");
-        String denLogo = SduiUtils.teamLogoUrl("1610612743");
+        String bosLogo = DemoImageUrls.teamLogo("1610612738");
+        String lalLogo = DemoImageUrls.teamLogo("1610612747");
+        String okcLogo = DemoImageUrls.teamLogo("1610612760");
+        String denLogo = DemoImageUrls.teamLogo("1610612743");
         String[][] cards = {
                 {"hero-game-1", "LIVE", "Lakers at Celtics", "Fourth-quarter finish on NBA TV",
-                        "https://cdn.nba.com/manage/2025/02/nba-standings-graphic-752x428.jpg",
+                        DemoImageUrls.cardWide("hero-lal-bos"),
                         "LAL", "89", lalLogo, "BOS", "94", bosLogo, "Q4 2:15", "BOS leads 3-2",
-                        "https://cdn.nba.com/manage/2025/01/league-pass-logo.png", "nba://game/0022400777",
+                        DemoImageUrls.logoWide(), "nba://game/0022400777",
                         "nba://game/0022400777/actions"},
                 {"hero-game-2", "UP NEXT", "Thunder at Nuggets", "Coverage begins at 10:00 PM ET",
-                        "https://cdn.nba.com/manage/2025/02/warriors-thunder-preview-752x428.jpg",
+                        DemoImageUrls.cardWide("hero-okc-den"),
                         "OKC", null, okcLogo, "DEN", null, denLogo, "10:00 PM ET", "Season series tied",
-                        "https://cdn.nba.com/manage/2025/01/league-pass-logo.png", "nba://game/0022400778", null}
+                        DemoImageUrls.logoWide(), "nba://game/0022400778", null}
         };
         ObjectNode section = atomicBuilder.buildFeaturedLiveGameHero(
                 "demo-featured-live-game-hero", "demo_featured_live_game_hero", null, cards);
@@ -1121,13 +1129,13 @@ public class DemoScreenComposer {
     private ObjectNode buildDemoUtilityCardGrid() {
         String[][] items = {
                 {"utility-standings", "Standings", "Conference and division tables",
-                        "https://cdn.nba.com/manage/2025/02/nba-standings-graphic-752x428.jpg", "nba://standings"},
+                        DemoImageUrls.cardWide("standings"), "nba://standings"},
                 {"utility-stats", "Stats", "League leaders and team ranks",
                         null, "nba://stats"},
                 {"utility-tickets", "Tickets", "Find games near you",
                         null, "nba://tickets"},
                 {"utility-shop", "Shop", "Jerseys, hats, and more",
-                        "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png", "nba://shop"}
+                        DemoImageUrls.cardWide("shop"), "nba://shop"}
         };
         ObjectNode section = atomicBuilder.buildUtilityCardGrid(
                 "demo-utility-card-grid", "demo_utility_card_grid", "Around the League", items);
@@ -1137,8 +1145,8 @@ public class DemoScreenComposer {
 
     private ObjectNode buildDemoLeagueCardRail() {
         String[][] items = {
-                {"league-wnba", "WNBA", "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png", "nba://league/wnba"},
-                {"league-gleague", "G League", "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png", "nba://league/gleague"},
+                {"league-wnba", "WNBA", DemoImageUrls.cardWide("league-wnba"), "nba://league/wnba"},
+                {"league-gleague", "G League", DemoImageUrls.cardWide("league-gleague"), "nba://league/gleague"},
                 {"league-2k", "NBA 2K League", null, "nba://league/2k"}
         };
         ObjectNode section = atomicBuilder.buildLeagueCardRail(
@@ -1149,12 +1157,12 @@ public class DemoScreenComposer {
 
     private ObjectNode buildDemoGameScheduleList() {
         String[][] rows = {
-                {"schedule-demo-1", "NYK", "Knicks", "3", "109", SduiUtils.teamLogoUrl("1610612752"),
-                        "BOS", "Celtics", "2", "132", SduiUtils.teamLogoUrl("1610612738"),
-                        "Final", "BOS leads 1-0", "https://cdn.nba.com/manage/2025/01/league-pass-logo.png", "nba://game/0022400001", "nba://game/0022400001/actions"},
-                {"schedule-demo-2", "MIN", "Timberwolves", "6", "103", SduiUtils.teamLogoUrl("1610612750"),
-                        "LAL", "Lakers", "7", "110", SduiUtils.teamLogoUrl("1610612747"),
-                        "Final", null, "https://cdn.nba.com/manage/2025/01/league-pass-logo.png", "nba://game/0022400002", null}
+                {"schedule-demo-1", "NYK", "Knicks", "3", "109", DemoImageUrls.teamLogo("1610612752"),
+                        "BOS", "Celtics", "2", "132", DemoImageUrls.teamLogo("1610612738"),
+                        "Final", "BOS leads 1-0", DemoImageUrls.logoWide(), "nba://game/0022400001", "nba://game/0022400001/actions"},
+                {"schedule-demo-2", "MIN", "Timberwolves", "6", "103", DemoImageUrls.teamLogo("1610612750"),
+                        "LAL", "Lakers", "7", "110", DemoImageUrls.teamLogo("1610612747"),
+                        "Final", null, DemoImageUrls.logoWide(), "nba://game/0022400002", null}
         };
         ObjectNode section = atomicBuilder.buildGameScheduleList(
                 "demo-game-schedule-list", "demo_game_schedule_list", "Today", rows);
@@ -1180,7 +1188,7 @@ public class DemoScreenComposer {
         row.put("name", name);
         row.put("position", position);
         row.put("jerseyNumber", jerseyNumber);
-        row.put("imageUrl", "https://cdn.nba.com/headshots/nba/latest/1040x760/" + playerId + ".png");
+        row.put("imageUrl", DemoImageUrls.headshot(playerId));
         row.put("starter", starter);
 
         ObjectNode statsNode = objectMapper.createObjectNode();

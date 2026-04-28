@@ -13,8 +13,15 @@ object SectionInteractions {
     fun actions(section: Section): List<SduiAction> =
         section.actions.orEmpty().map { it.toSduiAction() }
 
-    fun primaryAction(section: Section, trigger: String = "onTap"): SduiAction? =
-        actions(section).firstOrNull { it.trigger.equals(trigger, ignoreCase = true) }
+    fun primaryAction(section: Section, trigger: String = "onActivate"): SduiAction? {
+        val list = actions(section)
+        return list.firstOrNull { it.trigger.equals(trigger, ignoreCase = true) }
+            ?: if (trigger.equals("onActivate", ignoreCase = true)) {
+                list.firstOrNull { it.trigger.equals("onTap", ignoreCase = true) }
+            } else {
+                null
+            }
+    }
 
     fun subsectionActions(section: Section, subsectionId: String): List<SduiAction> {
         val subsection = section.subsections?.firstOrNull { it.id == subsectionId }
@@ -22,8 +29,14 @@ object SectionInteractions {
         return subsection.actions.orEmpty().map { it.toSduiAction() }
     }
 
-    fun subsectionPrimaryAction(section: Section, subsectionId: String, trigger: String = "onTap"): SduiAction? =
-        subsectionActions(section, subsectionId)
-            .firstOrNull { it.trigger.equals(trigger, ignoreCase = true) }
+    fun subsectionPrimaryAction(section: Section, subsectionId: String, trigger: String = "onActivate"): SduiAction? {
+        val list = subsectionActions(section, subsectionId)
+        return list.firstOrNull { it.trigger.equals(trigger, ignoreCase = true) }
+            ?: if (trigger.equals("onActivate", ignoreCase = true)) {
+                list.firstOrNull { it.trigger.equals("onTap", ignoreCase = true) }
+            } else {
+                null
+            }
+    }
 }
 

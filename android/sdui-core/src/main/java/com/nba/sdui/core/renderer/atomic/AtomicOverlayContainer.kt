@@ -10,7 +10,9 @@ import androidx.compose.ui.unit.dp
 import com.nba.sdui.core.models.generated.AtomicElement
 import com.nba.sdui.core.models.generated.BadgeAlignment
 import com.nba.sdui.core.models.generated.Spacing
+import com.nba.sdui.core.renderer.LayoutTokenResolver
 import com.nba.sdui.core.renderer.applyAccessibility
+import com.nba.sdui.core.request.RequestEnvelopeBuilder
 import com.nba.sdui.core.state.SduiAction
 
 @Composable
@@ -60,11 +62,14 @@ private fun composeAlignment(alignment: BadgeAlignment?): ComposeAlignment {
 
 private fun insetModifier(inset: Spacing?): Modifier {
     if (inset == null) return Modifier
+    // TODO(phase3): swap for `LocalSduiFormFactor.current` once the
+    // form-factor classifier is plumbed end-to-end.
+    val formFactor = RequestEnvelopeBuilder.defaultFormFactor()
     return Modifier.padding(
-        start = (inset.start ?: 0L).toInt().dp,
-        top = (inset.top ?: 0L).toInt().dp,
-        end = (inset.end ?: 0L).toInt().dp,
-        bottom = (inset.bottom ?: 0L).toInt().dp
+        start = LayoutTokenResolver.dp(inset.start, formFactor),
+        top = LayoutTokenResolver.dp(inset.top, formFactor),
+        end = LayoutTokenResolver.dp(inset.end, formFactor),
+        bottom = LayoutTokenResolver.dp(inset.bottom, formFactor)
     )
 }
 

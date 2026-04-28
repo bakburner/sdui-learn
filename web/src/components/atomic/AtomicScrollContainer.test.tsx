@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { beforeAll, describe, it, expect, vi } from 'vitest';
 import { render } from '@testing-library/react';
 import { AtomicScrollContainer } from './AtomicScrollContainer';
 import type { AtomicElement } from '@sdui/models';
@@ -7,6 +7,13 @@ import { Align, BadgeAlignment, Style, UIType } from '@sdui/models';
 vi.mock('../../utils/ColorTokenResolver', () => ({
   useColorTokenResolver: () => (token: string | undefined) => token ?? 'rgba(255,255,255,0.45)',
 }));
+
+beforeAll(() => {
+  global.ResizeObserver = class {
+    observe(): void {}
+    disconnect(): void {}
+  };
+});
 
 describe('AtomicScrollContainer — page indicators', () => {
   function leafText(id: string, label: string): AtomicElement {
@@ -33,9 +40,9 @@ describe('AtomicScrollContainer — page indicators', () => {
       <AtomicScrollContainer element={element} state={{}} onAction={() => {}} depth={0} />,
     );
 
-    const dotsRow = container.querySelector('[aria-hidden="true"]');
+    const dotsRow = container.querySelector('[role="tablist"]');
     expect(dotsRow).not.toBeNull();
-    const dots = dotsRow?.querySelectorAll('span');
+    const dots = dotsRow?.querySelectorAll('button[role="tab"]');
     expect(dots?.length).toBe(2);
   });
 
@@ -53,7 +60,7 @@ describe('AtomicScrollContainer — page indicators', () => {
       <AtomicScrollContainer element={element} state={{}} onAction={() => {}} depth={0} />,
     );
 
-    expect(container.querySelector('[aria-hidden="true"]')).toBeNull();
+    expect(container.querySelector('[role="tablist"]')).toBeNull();
   });
 
   it('does not render dots when only one child, even with paging and pageIndicator dots', () => {
@@ -71,6 +78,6 @@ describe('AtomicScrollContainer — page indicators', () => {
       <AtomicScrollContainer element={element} state={{}} onAction={() => {}} depth={0} />,
     );
 
-    expect(container.querySelector('[aria-hidden="true"]')).toBeNull();
+    expect(container.querySelector('[role="tablist"]')).toBeNull();
   });
 });

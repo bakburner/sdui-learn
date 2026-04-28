@@ -30,11 +30,11 @@ data class FailureFeedback(
 /**
  * SDUI Action - Declarative action attached to components.
  * 
- * Actions are triggered by user interaction (onTap, onVisible, etc.)
+ * Actions are triggered by user interaction (onActivate, onVisible, etc.)
  * and dispatched to the ActionHandler.
  */
 data class SduiAction(
-    val trigger: String, // "onTap", "onLongPress", "onVisible", "onSwipe"
+    val trigger: String, // "onActivate", "onTap" (deprecated), "onLongPress", "onVisible", …
     val type: String, // "navigate", "fireAndForget", "mutate", "refresh", "dismiss", "toast"
     val targetUri: String? = null,
     val fallbackUrl: String? = null,
@@ -134,6 +134,9 @@ class ActionHandler {
      * Handle an SDUI action and return the result.
      */
     fun handle(action: SduiAction, stateManager: StateManager): ActionResult {
+        if (action.trigger.equals("onTap", ignoreCase = true) && Log.isLoggable(TAG, Log.DEBUG)) {
+            Log.d(TAG, "deprecated_trigger_used: onTap is a deprecated alias for onActivate")
+        }
         SduiActionLogger.debug(action, "dispatch")
 
         return when (action.type) {
@@ -213,20 +216,18 @@ class ActionHandler {
         val paramBindings = action.paramBindings
 
         if (!paramBindings.isNullOrEmpty() && endpoint != null) {
-            // Parameterized refresh: resolve bindings from screen state → query params
+            // Parameterized refresh: resolve mustache-bound state values into a
+            // user-params map. The viewmodel routes this through the canonical
+            // `fetchScreen` transport (envelope + GET/POST length fallback +
+            // RFC-3986 percent-encoding), so this handler must NOT pre-build a
+            // URL string — that's the transport's job, not the handler's.
             val resolvedParams = paramBindings.mapValues { (_, template) ->
-                // Strip mustache delimiters: "{{form_season}}" → "form_season"
                 val stateKey = template.removePrefix("{{").removeSuffix("}}")
                 stateManager.getState(stateKey)?.toString() ?: ""
-            }
-            val queryString = resolvedParams.entries
-                .filter { it.value.isNotEmpty() }
-                .joinToString("&") { "${it.key}=${it.value}" }
-            val separator = if ("?" in endpoint) "&" else "?"
-            val url = "$endpoint$separator$queryString"
+            }.filterValues { it.isNotEmpty() }
 
-            SduiActionLogger.debug(action, "refresh parameterized url=$url")
-            return ActionResult.ParameterizedRefreshResult(url, resolvedParams)
+            SduiActionLogger.debug(action, "refresh parameterized endpoint=$endpoint params=$resolvedParams")
+            return ActionResult.ParameterizedRefreshResult(endpoint, sectionId, resolvedParams)
         }
 
         SduiActionLogger.debug(action, "refresh target=${sectionId ?: "screen"}")
@@ -263,7 +264,18 @@ class ActionHandler {
         data class MutateNoOp(val key: String, val reason: String) : ActionResult()
         data class RefreshResult(val sectionId: String?) : ActionResult()
         data class RefreshStale(val sectionId: String?, val reason: String) : ActionResult()
-        data class ParameterizedRefreshResult(val url: String, val params: Map<String, String>) : ActionResult()
+        /**
+         * Parameterized refresh result. The viewmodel will hand
+         * `(endpoint, params)` to `SduiRepository.fetchScreen`, which applies
+         * the canonical envelope/POST-fallback transport. `sectionId` (when
+         * non-null) tells the merge step which section to surgically replace
+         * if the response includes it.
+         */
+        data class ParameterizedRefreshResult(
+            val endpoint: String,
+            val sectionId: String?,
+            val params: Map<String, String>
+        ) : ActionResult()
         data object DismissResult : ActionResult()
         data class ToastResult(val message: String) : ActionResult()
         data class Error(val message: String) : ActionResult()

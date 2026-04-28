@@ -80,6 +80,7 @@ const KNOWN: ReadonlyArray<ContainerVariantName> = ['hero', 'grouped'];
 
 export function resolveContainerVariant(
   variant?: string | null,
+  formFactor?: string,
 ): ContainerVariantSpec | undefined {
   if (!variant) return undefined;
   if (!KNOWN.includes(variant as ContainerVariantName)) {
@@ -88,7 +89,15 @@ export function resolveContainerVariant(
     }
     return undefined;
   }
-  return SPECS[variant as ContainerVariantName];
+  const base = SPECS[variant as ContainerVariantName];
+  if (variant === 'hero' && formFactor === 'web.wide') {
+    return {
+      ...base,
+      boxShadow:
+        '0 8px 24px rgba(0,0,0,0.14), 0 16px 32px rgba(0,0,0,0.10)',
+    };
+  }
+  return base;
 }
 
 /**

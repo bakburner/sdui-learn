@@ -25,7 +25,9 @@ import com.nba.sdui.core.models.generated.UIDirection
 import com.nba.sdui.core.renderer.ContainerVariantResolver.OverridePolicy
 import com.nba.sdui.core.renderer.ContainerVariantResolver.SurfaceRole
 import com.nba.sdui.core.renderer.ContainerVariantResolver
+import com.nba.sdui.core.renderer.LayoutTokenResolver
 import com.nba.sdui.core.renderer.applyAccessibility
+import com.nba.sdui.core.request.RequestEnvelopeBuilder
 import com.nba.sdui.core.state.SduiAction
 
 /**
@@ -57,7 +59,10 @@ fun AtomicContainer(
         element.direction == UIDirection.Row
     }
 
-    val gap = element.gap?.toInt()?.dp ?: 0.dp
+    // TODO(phase3): swap for `LocalSduiFormFactor.current` once the
+    // form-factor classifier is plumbed end-to-end.
+    val formFactor = RequestEnvelopeBuilder.defaultFormFactor()
+    val gap = LayoutTokenResolver.dp(element.gap, formFactor)
 
     val mainAxisArrangement = when (element.alignment) {
         Alignment.Center -> Arrangement.Center
@@ -81,7 +86,7 @@ fun AtomicContainer(
             val m = boxModifier.applyAccessibility(a11y)
             if (a11y?.label != null) m.semantics(mergeDescendants = true) {} else m
         }
-        val finalModifier = element.aspectRatio?.toFloat()?.let {
+        val finalModifier = LayoutTokenResolver.aspectRatio(element.aspectRatio)?.let {
             baseModifier.aspectRatio(it)
         } ?: baseModifier
 

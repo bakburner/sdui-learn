@@ -50,6 +50,7 @@ const KNOWN: ReadonlyArray<ImageVariantName> = ['thumbnail'];
 
 export function resolveImageVariant(
   variant?: string | null,
+  _formFactor?: string,
 ): ImageVariantSpec | undefined {
   if (!variant) return undefined;
   if (!KNOWN.includes(variant as ImageVariantName)) {
@@ -58,5 +59,6 @@ export function resolveImageVariant(
     }
     return undefined;
   }
+  // Web uses CSS responsive sizing — no form-factor adjustment needed.
   return SPECS[variant as ImageVariantName];
 }

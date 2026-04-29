@@ -128,7 +128,7 @@ Owning one part of a surface does not grant ownership of adjacent concerns.
 
 - A section renderer that owns runtime state does not also own card chrome.
 - A token resolver that owns presentation does not also own content policy.
-- A permanent section that owns SDK hosting does not also own fallback copy,
+- A semantic section that owns SDK hosting does not also own fallback copy,
   dimensions, or assets the server could have sent.
 
 ### 2.3 Forbidden false exceptions
@@ -275,9 +275,9 @@ The systemic rule that follows from this contract:
 
 ### 4.2 Section wrappers own outer chrome
 
-- Permanent sections are wrapped in a shared `SectionContainer` that applies
+- Semantic sections are wrapped in a shared `SectionContainer` that applies
   `section.surface`.
-- Permanent section renderers must not set their own outer padding, margin,
+- Semantic section renderers must not set their own outer padding, margin,
   corner radius, shadow, border, or background.
 - If `section.surface` is omitted, clients render flush unless the server emits
   a default surface.
@@ -317,7 +317,7 @@ Before editing a renderer, ask:
 
 If the answer to 1, 2, or 3 is yes, do not add section-specific renderer logic.
 
-## 6. Permanent Sections Are Exceptions, Not Defaults
+## 6. Semantic Sections Are Exceptions, Not Defaults
 
 - The default is server-composed `AtomicComposite`.
 - A dedicated client section renderer is justified only for client-owned state,
@@ -327,7 +327,7 @@ If the answer to 1, 2, or 3 is yes, do not add section-specific renderer logic.
 - SDK reservation rectangles come from the payload; clients do not invent
   fallback dimensions.
 
-### 6.1 Decision test for adding or keeping a permanent section
+### 6.1 Decision test for adding or keeping a semantic section
 
 Ask the questions in this order:
 
@@ -341,7 +341,7 @@ Ask the questions in this order:
    composition time, such as subscriptions, local visibility observation, or
    keyboard / IME behavior?
 
-If the answer to all four is no, it should not be a permanent section.
+If the answer to all four is no, it should not be a semantic section.
 
 ### 6.2 Reserved SDK sections remain server-authored until the SDK lands
 
@@ -355,12 +355,12 @@ If the answer to all four is no, it should not be a permanent section.
 
 Owning the future mount point does not authorize owning the present-day UI.
 
-### 6.3 Permanent-section surface ownership stays shared
+### 6.3 Semantic-section surface ownership stays shared
 
-- Permanent sections still read their outer wrapper from `section.surface`.
+- Semantic sections still read their outer wrapper from `section.surface`.
 - The shared `SectionContainer` owns that wrapper uniformly across every
-  permanent section.
-- A permanent section may own only its inner content and the client-side
+  semantic section.
+- A semantic section may own only its inner content and the client-side
   behavior that justified its existence.
 
 If a permanent renderer starts setting its own outer chrome, the section has
@@ -375,17 +375,17 @@ crossed its exception boundary.
 - A missing reservation rectangle is a contract problem, not an invitation for
   the client to invent a default size.
 
-### 6.5 Permanent-section inventories are expected to evolve
+### 6.5 Semantic-section inventories are expected to evolve
 
-- The exact list of permanent sections may change over time.
+- The exact list of semantic sections may change over time.
 - That inventory is not the doctrine; it is the current application of the
   doctrine.
 - When product or runtime realities change, update the registry in `AGENTS.md`
   rather than stretching the exception model informally in code.
 
-### 6.6 Current permanent-section inventory
+### 6.6 Current semantic-section inventory
 
-The current set of justified permanent sections is:
+The current set of justified semantic sections is:
 
 - `BoxscoreTable` — real-time binding plus expandable interaction state
 - `SeasonLeadersTable` — sort / filter interaction state

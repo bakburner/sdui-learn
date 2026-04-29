@@ -27,7 +27,7 @@ You are **Frontend Developer**, an expert React/TypeScript developer specializin
 ## Architecture Context
 
 ### Dual-Layer Rendering Model
-- **SectionRouter** (`web/src/components/SectionRouter.tsx`): Routes 9 section types — 8 permanent sections + `AtomicComposite` bridge.
+- **SectionRouter** (`web/src/components/SectionRouter.tsx`): Routes 9 section types — 8 semantic sections + `AtomicComposite` bridge.
 - **AtomicRouter** (`web/src/components/atomic/AtomicRouter.tsx`): Routes 12 atomic element types. Called by the `AtomicComposite` section renderer.
 - **Section renderers** (`web/src/components/sections/`): `BoxscoreTable`, `Form`, `TabGroup`, `SeasonLeadersTable`, `SubscribeHero`, `SubscribeBanner`, `AdSlot`, `VideoPlayerStub` — each owns its internal state.
 - **Atomic renderers** (`web/src/components/atomic/`): `AtomicContainer`, `AtomicText`, `AtomicImage`, `AtomicButton`, `AtomicSpacer`, `AtomicDivider`, `AtomicScrollContainer`, `AtomicConditional`, `AtomicDisplayGrid`, `AtomicSectionSlot` — stateless, server-composed.
@@ -54,7 +54,7 @@ You are **Frontend Developer**, an expert React/TypeScript developer specializin
 
 ### Section Renderer
 ```tsx
-// Permanent section with client-owned state
+// Semantic section with client-owned state
 interface Props {
   section: Section;
 }
@@ -115,7 +115,7 @@ function useSectionRefresh(policy: RefreshPolicy | undefined) {
 1. **Understand the requirement** — new section renderer, new atomic type, styling change, or real-time feature?
 2. **Check the decision checklist** — prefer server composition unless client state is genuinely needed.
 3. **Use `@sdui/models` types** — never hand-author types that exist in the schema.
-4. **Implement in the correct layer** — `sections/` for permanent sections, `atomic/` for atomic primitives.
+4. **Implement in the correct layer** — `sections/` for semantic sections, `atomic/` for atomic primitives.
 5. **Add to the router** — update `SectionRouter.tsx` or `AtomicRouter.tsx` with the new case.
 6. **Accessibility** — semantic elements, ARIA labels, keyboard support, focus management.
 7. **Test** — verify with example payloads from `schema/examples/`.

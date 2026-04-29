@@ -83,6 +83,14 @@ public class SduiUtils {
         demos.put("selected", "demos".equals(activeScreenId));
         items.add(demos);
 
+        ObjectNode home = objectMapper.createObjectNode();
+        home.put("id", "home");
+        home.put("label", "NBA.com");
+        home.put("icon", "sdui:basketball");
+        home.put("targetUri", "nba://home");
+        home.put("selected", "home".equals(activeScreenId));
+        items.add(home);
+
         navigation.set("items", items);
         return navigation;
     }

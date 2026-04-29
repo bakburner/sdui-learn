@@ -1486,6 +1486,200 @@ public class AtomicCompositeBuilder {
         return wrapAsComposite(sectionId, analyticsId, root);
     }
 
+    // ── Cinematic Hero Carousel ────────────────────────────────────────
+
+    /**
+     * Full-bleed paged hero carousel (NBA.com-style). Each slide is an edge-to-edge
+     * background image with a bottom dark-gradient scrim overlaying headline, subtitle,
+     * optional badge, and optional CTA button. No rounded corners — slides fill the
+     * full viewport width.
+     *
+     * <p>slides: [id, imageUrl, badge, title, subtitle, ctaLabel, targetUri]
+     *
+     * <p>Unlike {@link #buildHeroPanel} (which produces a rounded card with text below),
+     * this produces a cinematic full-bleed treatment with text overlaid on the image.
+     */
+    public ObjectNode buildCinematicHeroCarousel(String sectionId, String analyticsId,
+                                                  String[][] slides) {
+        requireNonBlank(sectionId, "sectionId");
+        requireRows(slides, "slides");
+
+        ObjectNode root = container("column", null, null);
+        root.put("fillWidth", true);
+        ArrayNode rootChildren = om.createArrayNode();
+
+        boolean multiSlide = slides.length > 1;
+        ArrayNode scrollChildren = om.createArrayNode();
+
+        for (String[] slide : slides) {
+            if (!hasRequiredValues(slide, 0, 1, 3)) continue;
+            scrollChildren.add(cinematicHeroSlide(
+                    value(slide, 0), value(slide, 1), value(slide, 2),
+                    value(slide, 3), value(slide, 4), value(slide, 5),
+                    value(slide, 6)));
+        }
+
+        if (multiSlide) {
+            // Paged scroll with dash indicators overlaid on the image
+            ObjectNode scroll = scrollRow(0, false);
+            scroll.put("fillWidth", true);
+            scroll.put("paging", true);
+            scroll.put("snapAlignment", "center");
+            ObjectNode indicator = om.createObjectNode();
+            indicator.put("style", "dashes");
+            indicator.put("alignment", "bottomCenter");
+            indicator.put("color", "#FFFFFF66");
+            indicator.put("activeColor", "#FFFFFFFF");
+            scroll.set("pageIndicator", indicator);
+            scroll.set("children", scrollChildren);
+            rootChildren.add(scroll);
+        } else if (!scrollChildren.isEmpty()) {
+            rootChildren.add(scrollChildren.get(0));
+        }
+
+        root.set("children", rootChildren);
+        return wrapAsComposite(sectionId, analyticsId, root);
+    }
+
+    private ObjectNode cinematicHeroSlide(String id, String imageUrl, String badgeText,
+                                           String title, String subtitle,
+                                           String ctaLabel, String targetUri) {
+        // Outer wrapper — no corner radius (full-bleed)
+        ObjectNode slide = container("column", null, "stretch");
+        slide.put("id", id);
+        slide.put("fillWidth", true);
+
+        if (targetUri != null) {
+            slide.set("actions", singleActionArray(tapNavigate(targetUri)));
+            AccessibilityHelper.addButton(om, slide, title);
+        }
+
+        // Background image fills full width, 16:9 aspect
+        ObjectNode bgImage = image(imageUrl, 0, 0, "cover", null);
+        bgImage.put("fillWidth", true);
+        bgImage.put("aspectRatio", 16.0 / 9.0);
+        AccessibilityHelper.addImage(om, bgImage, title);
+
+        // Scrim overlay covering most of the image height so the gradient
+        // fades gradually from transparent to dark. Large top padding ensures
+        // the container is tall enough for the gradient to be smooth (not an
+        // abrupt box edge). Text content pushes to the bottom via alignment.
+        ObjectNode scrimOverlay = container("column", "end", "start");
+        scrimOverlay.put("fillWidth", true);
+        scrimOverlay.set("padding", padding(16, 16, 200, 24));
+        scrimOverlay.set("background", gradient("#00000000", "#000000E6", "vertical"));
+        ArrayNode scrimChildren = om.createArrayNode();
+
+        if (badgeText != null) {
+            scrimChildren.add(pillBadge(badgeText, ColorTokens.BRAND_LIVE));
+            scrimChildren.add(spacer(8));
+        }
+        scrimChildren.add(text(title, "headlineSmall", "bold", ColorTokens.TEXT_INVERSE, 2));
+        if (subtitle != null) {
+            scrimChildren.add(spacer(4));
+            scrimChildren.add(text(subtitle, "bodyMedium", null, ColorTokens.TEXT_INVERSE, 2));
+        }
+        if (ctaLabel != null) {
+            scrimChildren.add(spacer(12));
+            ObjectNode cta = button(ctaLabel, "primary", targetUri != null ? tapNavigate(targetUri) : null);
+            scrimChildren.add(cta);
+        }
+        scrimOverlay.set("children", scrimChildren);
+
+        // Compose using OverlayContainer: image base + bottom scrim overlay
+        ArrayNode slideChildren = om.createArrayNode();
+        slideChildren.add(overlayContainer(bgImage, List.of(overlay("bottomStart", null, scrimOverlay))));
+        slide.set("children", slideChildren);
+        return slide;
+    }
+
+    // ── Overlay Story Rail ──────────────────────────────────────────────
+
+    /**
+     * Horizontal scrolling rail of tall portrait story cards (NBA.com-style).
+     * Each card is a 3:4 aspect image with text overlaid at the bottom via a dark
+     * gradient scrim. An optional "NEW" badge pill appears at the top-left corner.
+     *
+     * <p>cards: [id, title, imageUrl, badgeText, targetUri]
+     *
+     * <p>Unlike {@link #buildContentRail} (which uses square thumbnails with text below),
+     * this produces tall portrait cards with all text overlaid on the image.
+     */
+    public ObjectNode buildOverlayStoryRail(String sectionId, String analyticsId,
+                                             String title, String[][] cards) {
+        requireNonBlank(sectionId, "sectionId");
+        requireRows(cards, "cards");
+
+        ObjectNode root = container("column", null, null);
+        root.set("padding", padding(0, 0, 0, 12));
+        ArrayNode rootChildren = om.createArrayNode();
+
+        if (title != null) {
+            ObjectNode header = text(title, "titleMedium", "bold", ColorTokens.TEXT_PRIMARY, null);
+            header.set("padding", padding(16, 16, 4, 8));
+            rootChildren.add(header);
+        }
+
+        ObjectNode scroll = scrollRow(14, false);
+        scroll.set("padding", padding(16, 16, 0, 0));
+        ArrayNode children = om.createArrayNode();
+        for (String[] card : cards) {
+            if (!hasRequiredValues(card, 0, 1)) continue;
+            children.add(overlayStoryCard(value(card, 0), value(card, 1),
+                    value(card, 2), value(card, 3), value(card, 4)));
+        }
+        scroll.set("children", children);
+        rootChildren.add(scroll);
+        root.set("children", rootChildren);
+        return wrapAsComposite(sectionId, analyticsId, root);
+    }
+
+    private ObjectNode overlayStoryCard(String id, String title, String imageUrl,
+                                         String badgeText, String targetUri) {
+        int radius = 12;
+        ObjectNode card = container("column", null, null);
+        card.put("id", id);
+        card.put("width", 180);
+        card.put("cornerRadius", radius);
+        if (targetUri != null) {
+            card.set("actions", singleActionArray(tapNavigate(targetUri)));
+            AccessibilityHelper.addButton(om, card, title);
+        }
+
+        // Full-bleed portrait image as base (3:4 aspect ratio)
+        ObjectNode base = imageUrl != null
+                ? image(imageUrl, 180, 0, "cover", null)
+                : neutralInitialsRect(title, 180, 240, radius);
+        base.put("fillWidth", true);
+        base.put("aspectRatio", 3.0 / 4.0);
+        base.put("cornerRadius", radius);
+        if (imageUrl != null) AccessibilityHelper.addImage(om, base, title);
+
+        // Bottom scrim overlay with title text — dark black gradient for readability
+        ObjectNode scrimContent = container("column", "end", "start");
+        scrimContent.put("fillWidth", true);
+        scrimContent.set("padding", padding(12, 12, 60, 12));
+        scrimContent.set("background", gradient("#00000000", "#000000CC", "vertical"));
+        scrimContent.set("cornerRadii", cornerRadii(0, 0, radius, radius));
+        ArrayNode scrimChildren = om.createArrayNode();
+        scrimChildren.add(text(title, "titleSmall", "bold", ColorTokens.TEXT_INVERSE, 3));
+        scrimContent.set("children", scrimChildren);
+
+        // Top-left "NEW" badge overlay (if present)
+        List<ObjectNode> overlays = new ArrayList<>();
+        overlays.add(overlay("bottomStart", null, scrimContent));
+        if (badgeText != null) {
+            ObjectNode badgePill = pillBadge(badgeText, ColorTokens.BRAND_LIVE);
+            ObjectNode badgeInset = padding(10, 0, 10, 0);
+            overlays.add(overlay("topStart", badgeInset, badgePill));
+        }
+
+        ArrayNode cardChildren = om.createArrayNode();
+        cardChildren.add(overlayContainer(base, overlays));
+        card.set("children", cardChildren);
+        return card;
+    }
+
     /**
      * Horizontal rail of tall editorial image cards with server-declared
      * scrim/text overlays.
@@ -1876,14 +2070,15 @@ public class AtomicCompositeBuilder {
     }
 
     /**
-     * Vertical gradient for bottom media scrim: transparent to {@link ColorTokens#OVERLAY_SCRIM}.
-     * Leading transparent stop uses ARGB {@code #00000000} as a compositing edge (not a semantic fill).
+     * Vertical gradient for bottom media scrim: transparent to dark black.
+     * Uses hardcoded ARGB rather than the overlay.scrim token because the token
+     * inverts in dark mode (becomes white), defeating the purpose of a darkening scrim.
      */
     private ObjectNode mediaBottomScrimGradient() {
         ObjectNode g = om.createObjectNode();
         ArrayNode colors = om.createArrayNode();
         colors.add("#00000000");
-        colors.add(ColorTokens.OVERLAY_SCRIM);
+        colors.add("#000000CC");
         g.set("colors", colors);
         g.put("direction", "vertical");
         return g;
@@ -2521,7 +2716,7 @@ public class AtomicCompositeBuilder {
     /**
      * Build the {@code data} object for a section whose full visible surface
      * is expressed as an atomic tree under {@code data.ui}. Shared with
-     * permanent-section composers (SubscribeBanner / SubscribeHero /
+     * semantic-section composers (SubscribeBanner / SubscribeHero /
      * VideoPlayer) that use the same on-wire shape as AtomicComposite but
      * additionally expose top-level domain-data fields (ctaAction, tiers,
      * playerType, ...) the client reads alongside the tree.

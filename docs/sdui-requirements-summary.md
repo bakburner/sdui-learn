@@ -149,7 +149,7 @@ graph LR
 
 ### Key Schema Decisions
 
-- **Dual-layer type model** — 9 **section types in schema** (8 permanent with client renderers: BoxscoreTable, SeasonLeadersTable, Form, TabGroup, SubscribeBanner, SubscribeHero, AdSlot, VideoPlayer — plus the `AtomicComposite` bridge), plus 12 **atomic element types** (Container, Text, Image, Button, Spacer, Divider, ScrollContainer, Conditional, DisplayGrid, OverlayContainer, SectionSlot, LiveClock) for server-composed generic layouts. Stateless layout surfaces (headers, rails, hero panels, promo banners, stat lines, video carousels, schedule layouts, error states, live-score cards) are server-composed as `AtomicComposite` trees driven by `bindRef` leaf-level data resolution plus the `LiveClock` primitive for client-owned tick animation. Permanent sections handle stateful domain logic (sort, frozen columns, forms, platform SDK integration — IAP, ads, video); atomic primitives handle server-composed layouts with no client business logic. See *Grid vs. Section Decision Tree* in §9q.
+- **Dual-layer type model** — 9 **section types in schema** (8 permanent with client renderers: BoxscoreTable, SeasonLeadersTable, Form, TabGroup, SubscribeBanner, SubscribeHero, AdSlot, VideoPlayer — plus the `AtomicComposite` bridge), plus 12 **atomic element types** (Container, Text, Image, Button, Spacer, Divider, ScrollContainer, Conditional, DisplayGrid, OverlayContainer, SectionSlot, LiveClock) for server-composed generic layouts. Stateless layout surfaces (headers, rails, hero panels, promo banners, stat lines, video carousels, schedule layouts, error states, live-score cards) are server-composed as `AtomicComposite` trees driven by `bindRef` leaf-level data resolution plus the `LiveClock` primitive for client-owned tick animation. Semantic sections handle stateful domain logic (sort, frozen columns, forms, platform SDK integration — IAP, ads, video); atomic primitives handle server-composed layouts with no client business logic. See *Grid vs. Section Decision Tree* in §9q.
 - **Codegen produces data models only** — not UI code. Platform teams write a thin renderer layer (~30 lines per section type) that wires generated models to existing design system components.
 - **Schema is versioned** — client sends its schema version, server responds with a compatible payload. Fields can never be removed without a major version bump.
 - **Subsection actions are required** — `actions` must be supported at section and nested component/subsection level (for example, tapping home team area within a game section).
@@ -158,7 +158,7 @@ graph LR
 
 ### Section Surface (Server-Driven Outer Frame)
 
-Every section carries an optional `surface` field — a server-driven spec for the visual wrapper (frame) that sits beneath the section's content. The shared `SectionContainer` on each platform reads `surface` and applies it; permanent-section renderers never set their own outer padding, margin, corner radius, shadow, border, or background.
+Every section carries an optional `surface` field — a server-driven spec for the visual wrapper (frame) that sits beneath the section's content. The shared `SectionContainer` on each platform reads `surface` and applies it; semantic-section renderers never set their own outer padding, margin, corner radius, shadow, border, or background.
 
 **`SectionSurface` properties:**
 
@@ -174,9 +174,9 @@ Every section carries an optional `surface` field — a server-driven spec for t
 **Requirements:**
 
 - A single shared `SectionContainer` component per platform owns surface application — one owner, one code path
-- Permanent-section renderers must not set outer padding, margin, corner radius, shadow, border, or background themselves — that is the surface's job
+- Semantic-section renderers must not set outer padding, margin, corner radius, shadow, border, or background themselves — that is the surface's job
 - When `surface` is omitted, sections render flush (no frame) unless the server emits a default surface
-- `SectionSurface` mirrors the inline styling vocabulary on atomic `Container`, so permanent sections have schema parity with composed `AtomicComposite` sections
+- `SectionSurface` mirrors the inline styling vocabulary on atomic `Container`, so semantic sections have schema parity with composed `AtomicComposite` sections
 - For `AtomicComposite` sections, the root `Container` in `data.ui` provides its own frame via inline props — `surface` is typically omitted since the atomic tree is self-describing
 - Surface ownership does not expand sideways: owning the frame does not grant a renderer ownership of content, actions, or refresh policy
 
@@ -1082,12 +1082,12 @@ This split prevents semantic sections from becoming all-client black boxes where
 | Tier | Sections | Criterion | Disposition |
 |---|---|---|---|
 | **Atomic surfaces** | Headers, rails (content / following / story-circle), hero panels, promo banners, stat lines, video carousels, schedule layouts, live-score cards, error states | Stateless, no SDK deps, no lifecycle. Live-state surfaces use `section.dataBindings` to write into `content.*`, leaves read via `bindRef`, and the `LiveClock` primitive owns the tick animation. | Server-composed `AtomicComposite`. Not enumerated in the `Section.type` enum — all share the single `AtomicComposite` section type. |
-| **Permanent sections** | BoxscoreTable, SeasonLeadersTable | Client-owned interaction state (frozen scroll sync, sort) | Client manages coordinated scroll and sort state. |
-| **Permanent sections** | Form | Client-owned interaction state (field expansion, validation, submit) | Client manages per-field state. |
-| **Permanent sections** | TabGroup | Client-owned interaction state (nests child sections) | Section container — orchestrates child section rendering. |
-| **Permanent sections** | SubscribeHero, SubscribeBanner | Platform SDK (Play Billing / StoreKit 2) | Client section integrates billing SDK lifecycle. |
-| **Permanent sections** | AdSlot | Platform SDK (Google Ad Manager) | Client section integrates ad SDK lifecycle. |
-| **Permanent sections** | VideoPlayer | Platform SDK (AVPlayer / ExoPlayer / Media3 / HLS.js) | Client section drives HLS/DASH playback, PiP, AirPlay / Chromecast, background audio, fullscreen rotation. `playerType` discriminator dispatches to the right SDK entry point. |
+| **Semantic sections** | BoxscoreTable, SeasonLeadersTable | Client-owned interaction state (frozen scroll sync, sort) | Client manages coordinated scroll and sort state. |
+| **Semantic sections** | Form | Client-owned interaction state (field expansion, validation, submit) | Client manages per-field state. |
+| **Semantic sections** | TabGroup | Client-owned interaction state (nests child sections) | Section container — orchestrates child section rendering. |
+| **Semantic sections** | SubscribeHero, SubscribeBanner | Platform SDK (Play Billing / StoreKit 2) | Client section integrates billing SDK lifecycle. |
+| **Semantic sections** | AdSlot | Platform SDK (Google Ad Manager) | Client section integrates ad SDK lifecycle. |
+| **Semantic sections** | VideoPlayer | Platform SDK (AVPlayer / ExoPlayer / Media3 / HLS.js) | Client section drives HLS/DASH playback, PiP, AirPlay / Chromecast, background audio, fullscreen rotation. `playerType` discriminator dispatches to the right SDK entry point. |
 
 Breakpoint-responsive horizontal containers are handled by atomic `Container(direction=row)` with `flex` and `breakpoint` properties.
 
@@ -1141,9 +1141,9 @@ Until approved, these remain directional requirements and may be refined.
 |---|---|---|
 | Schema definition (section types, data shapes) | **Built** | JSON Schema with semantic types. Prototype validated. |
 | Codegen pipeline (schema → typed models) | **Built** | quicktype (Kotlin/Swift/TS), jsonschema2pojo (Java — legacy fallback) |
-| Android renderer (Compose) | **Built** | Section router + 8 permanent section renderers + AtomicRouter with 12 atomic primitives incl. `LiveClock` and `OverlayContainer`. `IconTokenResolver` + bottom navigation shell resolve `sdui:*` icon tokens to Material Symbols. |
-| Web renderer (React) | **Built** | React section router + 8 permanent section renderers + AtomicRouter with 12 atomic primitives incl. `LiveClock`, `OverlayContainer`, and live data wrappers. `IconTokenResolver` + Material Symbols font for top navigation bar. |
-| iOS renderer (SwiftUI) | **Built** | Swift Package (`ios/`) with SwiftUI section router + 8 permanent section views + AtomicRouter with 12 atomic primitives incl. `LiveClock` and `OverlayContainer`. Server-declared bottom `SduiNavigationShell` resolves `sdui:*` icon tokens to SF Symbols. Real-time via Ably (`AblyChannelManager` actor) + `PollingDriver`. `SectionVisibilityTracker` wired. Demo app (`SduiDemo`, XcodeGen, `make ios-run`) bootstraps `nba://for-you`. |
+| Android renderer (Compose) | **Built** | Section router + 8 semantic section renderers + AtomicRouter with 12 atomic primitives incl. `LiveClock` and `OverlayContainer`. `IconTokenResolver` + bottom navigation shell resolve `sdui:*` icon tokens to Material Symbols. |
+| Web renderer (React) | **Built** | React section router + 8 semantic section renderers + AtomicRouter with 12 atomic primitives incl. `LiveClock`, `OverlayContainer`, and live data wrappers. `IconTokenResolver` + Material Symbols font for top navigation bar. |
+| iOS renderer (SwiftUI) | **Built** | Swift Package (`ios/`) with SwiftUI section router + 8 semantic section views + AtomicRouter with 12 atomic primitives incl. `LiveClock` and `OverlayContainer`. Server-declared bottom `SduiNavigationShell` resolves `sdui:*` icon tokens to SF Symbols. Real-time via Ably (`AblyChannelManager` actor) + `PollingDriver`. `SectionVisibilityTracker` wired. Demo app (`SduiDemo`, XcodeGen, `make ios-run`) bootstraps `nba://for-you`. |
 | Data binding (SSE/poll, field-level) | **Built** | Ably for SSE, direct-URL polling, DataBindingResolver class exists but live updates use hardcoded mapping |
 | Action system (navigate, fireAndForget, mutate) | **Built** | ActionHandler dispatches all 6 action types |
 | Screen state management (tabs, toggles) | **Built** | StateManager, TabGroup wired |
@@ -1212,7 +1212,7 @@ The alternative — maintaining five parallel native implementations of the game
 | 2026-04-26 | Doc consistency audit. Stripped historical migration narrative — Key Schema Decisions, §9r classification, §10 renderer rows, and Atomic rendering layer row all describe current state without "former section types" or "migrated to atomic" framing. Atomic element count corrected 11 → 12 (`OverlayContainer` added). §9r "Migrated to atomic" tier renamed to "Atomic surfaces" with example list rather than enumerated former-types. Stray legacy `Row` reference removed. |
 | 2026-04-25 | Doc consistency audit. Atomic rendering layer row: added LiveClock, updated migrated count 9 → 10 (GamePanel added). §9g theming: override-matrix description qualified as hardcoded in resolvers (not read from `style-tokens.json` at runtime); `variant_override_blocked` coverage qualified as Android-only verified. |
 | 2026-04-24 | Doc consistency audit. Corrected the variant-selector follow-up to the request-envelope `experiments` map; updated request-envelope support to include iOS; added the AtomicBox note to the theming row; and aligned current ErrorState / BoxscoreTable / Form status text with iOS runtime parity. |
-| 2026-04-21 | Doc consistency audit. Section count 9 → 10 (added `VideoPlayer` as a permanent section — platform video SDK lifecycle: AVPlayer / ExoPlayer / HLS.js, PiP, AirPlay / Chromecast, background audio). Permanent-section inventory updated. ADR Status Summary adds ADR-011 (data classification and freshness, Proposed draft), ADR-012 (client data architecture, Proposed draft), ADR-013 (style tokens for atomic primitives, Accepted). §10 renderer rows updated to describe `IconTokenResolver` + server-declared navigation shells on Android, iOS, and web. |
+| 2026-04-21 | Doc consistency audit. Section count 9 → 10 (added `VideoPlayer` as a semantic section — platform video SDK lifecycle: AVPlayer / ExoPlayer / HLS.js, PiP, AirPlay / Chromecast, background audio). Semantic-section inventory updated. ADR Status Summary adds ADR-011 (data classification and freshness, Proposed draft), ADR-012 (client data architecture, Proposed draft), ADR-013 (style tokens for atomic primitives, Accepted). §10 renderer rows updated to describe `IconTokenResolver` + server-declared navigation shells on Android, iOS, and web. |
 | 2026-04-20 | iOS runtime parity with Android landed. §10 status updates: iOS renderer (SwiftUI) Designed → Built; Error handling & fallbacks (iOS `SectionErrorBoundary` + `SectionSkeleton`); Impression deduplication (iOS `ImpressionTracker` actor); Atomic rendering layer (iOS AtomicRouter + 9 primitives). |
 | 2026-04-01 | Doc consistency audit. ADR Status Summary: renamed from "ADR Approvals Pending", added ADR-001 (Proposed) and ADR-010 (Proposed). §10 status: Accessibility descriptors Gap → Built. |
 | 2026-03-30 | Doc consistency audit. ADR Approvals table: ADR-006 Proposed → Accepted. §10 status updated: Internationalization Gap → Built (section-level stringTable). |

@@ -117,7 +117,7 @@ refresh.
 | 24 | **AdSlot** | Platform ad SDK lifecycle |
 | 24a | **VideoPlayer** | Platform video SDK (HLS/DASH playback, PiP, AirPlay/Chromecast, background audio, fullscreen rotation). `playerType` discriminator maps to the right SDK entry point. |
 
-**Milestone:** All 8 permanent sections render with full interactivity.
+**Milestone:** All 8 semantic sections render with full interactivity.
 Live-score surfaces render as server-composed `AtomicComposite` trees
 driven by `bindRef` + SSE data bindings.
 

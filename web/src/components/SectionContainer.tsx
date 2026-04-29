@@ -9,9 +9,9 @@ export interface SectionContainerProps {
 
 /**
  * Shared section-surface wrapper applied by `SectionRouter` to every
- * permanent section. Reads `section.surface` (margin, padding,
+ * semantic section. Reads `section.surface` (margin, padding,
  * background, cornerRadius, shadow, border) and applies it as
- * CSS, so permanent-section renderers never set their own outer
+ * CSS, so semantic-section renderers never set their own outer
  * chrome.
  *
  * Shared wrapper enforcing server-driven outer chrome for every section.

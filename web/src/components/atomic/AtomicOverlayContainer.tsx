@@ -27,7 +27,7 @@ export function AtomicOverlayContainer({ element, state, onAction, depth = 0, on
         sectionSlotDepth={sectionSlotDepth}
       />
       {element.overlays?.map((overlay, index) => (
-        <div key={overlay.element.id ?? index} style={overlayStyle(overlay)}>
+        <div key={overlay.element.id ?? index} style={overlayStyle(overlay, overlay.element)}>
           <AtomicRouter
             element={overlay.element}
             state={state}
@@ -42,7 +42,7 @@ export function AtomicOverlayContainer({ element, state, onAction, depth = 0, on
   );
 }
 
-function overlayStyle(overlay: AtomicOverlay): React.CSSProperties {
+function overlayStyle(overlay: AtomicOverlay, el?: Record<string, unknown>): React.CSSProperties {
   // Schema contract: `inset` is an OFFSET from the aligned base bounds —
   // not an absolute position. Anchor to the edges implied by `alignment`,
   // then add the matching inset value as the distance from each anchored
@@ -105,6 +105,21 @@ function overlayStyle(overlay: AtomicOverlay): React.CSSProperties {
       style.left = '50%';
       style.transform = 'translateX(-50%)';
       break;
+  }
+
+  // When the overlay element declares fillWidth/fillHeight, stretch the
+  // absolutely-positioned wrapper so the child's percentage sizing resolves
+  // against the full parent bounds (e.g. a gradient scrim that must span
+  // the entire image width).
+  if (el?.fillWidth) {
+    style.left = start;
+    style.right = end;
+    style.width = undefined;
+    style.transform = undefined;
+  }
+  if (el?.fillHeight) {
+    style.top = top;
+    style.bottom = bottom;
   }
 
   return style;

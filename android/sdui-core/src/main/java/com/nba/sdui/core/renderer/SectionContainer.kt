@@ -26,9 +26,9 @@ import com.nba.sdui.core.request.RequestEnvelopeBuilder
 
 /**
  * Shared section-surface wrapper applied by [SectionRouter] to every
- * permanent section. Reads [SectionSurface] (margin, padding,
+ * semantic section. Reads [SectionSurface] (margin, padding,
  * background, cornerRadius, shadow, border) and applies it
- * platform-natively, so permanent-section renderers never set their
+ * platform-natively, so semantic-section renderers never set their
  * own outer chrome.
  *
  * Supports three `background` shapes — matching the schema's

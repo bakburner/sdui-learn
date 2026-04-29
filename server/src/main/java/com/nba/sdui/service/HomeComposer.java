@@ -1,0 +1,430 @@
+package com.nba.sdui.service;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+/**
+ * Composes the "Home" SDUI screen — an NBA.com-style homepage built entirely
+ * from AtomicComposite sections. Demonstrates that a full content-rich page
+ * can be server-composed with zero client-side renderers.
+ *
+ * <pre>
+ *   1.  HeroPanel              – featured video hero (16:9 image + play overlay + title)
+ *   2.  SectionHeader          – "STORIES"
+ *   3.  ContentRail            – story cards with NEW badges
+ *   4.  SectionHeader          – "HEADLINES" + "See More"
+ *   5.  AtomicComposite        – vertical headline text list with dividers
+ *   6.  SectionHeader          – "TRENDING NOW"
+ *   7.  VideoCarousel          – trending video cards
+ *   8.  SectionHeader          – "2026 POSTSEASON"
+ *   9.  EditorialOverlayRail   – postseason image cards with title overlay
+ *  10.  SectionHeader          – "2025-26 GAME RECAPS" + "See More"
+ *  11.  VideoCarousel          – game recap video cards
+ *  12.  SectionHeader          – "AROUND THE NBA"
+ *  13.  AtomicComposite        – vertical article card list (thumbnail + text)
+ * </pre>
+ */
+@Component
+public class HomeComposer {
+
+    private static final Logger log = LoggerFactory.getLogger(HomeComposer.class);
+
+    private static final String FALLBACK_HERO =
+            "https://loremflickr.com/800/450/basketball,game?lock=90";
+    private static final String FALLBACK_STORY =
+            "https://loremflickr.com/300/300/basketball?lock=91";
+    private static final String FALLBACK_THUMB =
+            "https://loremflickr.com/400/225/basketball,nba?lock=92";
+    private static final String FALLBACK_ARTICLE =
+            "https://loremflickr.com/120/120/basketball?lock=93";
+
+    private final ObjectMapper objectMapper;
+    private final SduiUtils utils;
+    private final AtomicCompositeBuilder atomicBuilder;
+
+    @Value("${sdui.schema.version:1.0}")
+    private String schemaVersion;
+
+    public HomeComposer(ObjectMapper objectMapper, SduiUtils utils) {
+        this.objectMapper = objectMapper;
+        this.utils = utils;
+        this.atomicBuilder = new AtomicCompositeBuilder(objectMapper);
+    }
+
+    public JsonNode composeHome(String traceId, String locale) {
+        log.info("Composing Home screen, locale={}", locale);
+
+        ObjectNode response = objectMapper.createObjectNode();
+        response.put("id", "home");
+        response.put("title", "Home");
+        response.put("analyticsId", "home");
+        response.put("traceId", traceId);
+        response.put("schemaVersion", schemaVersion);
+        response.set("navigation", utils.buildNavigation("home"));
+
+        ArrayNode sections = objectMapper.createArrayNode();
+
+        // ── Row 1: Hero (2/3 width) + Headlines (1/3 width) ──────────
+        sections.add(buildHeroAndHeadlinesRow());
+
+        // ── Row 2: Stories (2/3 width) + Ad Slot (1/3 width) ─────────
+        sections.add(buildStoriesAndAdRow());
+
+        // 6-7. Trending Now
+        sections.add(buildSectionHeader("trending-header", "TRENDING NOW", null, null));
+        sections.add(buildTrendingVideoRail());
+
+        // 8-9. 2026 Postseason
+        sections.add(buildSectionHeader("postseason-header", "2026 POSTSEASON", null, null));
+        sections.add(buildPostseasonRail());
+
+        // 10-11. Game Recaps
+        sections.add(buildSectionHeader("recaps-header", "2025-26 GAME RECAPS", "See More", "nba://recaps"));
+        sections.add(buildRecapsVideoRail());
+
+        // 12-13. Around the NBA
+        sections.add(buildSectionHeader("around-header", "AROUND THE NBA", null, null));
+        sections.add(buildAroundTheNbaList());
+
+        response.set("sections", sections);
+        utils.stampStringTableOnSections(response, locale);
+        return response;
+    }
+
+    // ── Section builders ───────────────────────────────────────────────
+
+    /**
+     * Row 1: Two-column layout — Hero carousel (left, 2/3) + Headlines (right, 1/3).
+     * Collapses to single column on narrow viewports (< 768px).
+     */
+    private ObjectNode buildHeroAndHeadlinesRow() {
+        // Hero carousel content (embedded as SectionSlot)
+        String[][] heroSlides = {
+                {"hero-1", FALLBACK_HERO, "VIDEO",
+                        "Playoffs First Round: Celtics vs. Heat Game 3",
+                        "Jayson Tatum drops 38 as Boston takes a commanding 2-1 series lead",
+                        "WATCH", "nba://video/playoffs-bos-mia-g3"},
+                {"hero-2", "https://loremflickr.com/800/450/basketball,dunk?lock=95", null,
+                        "Wembanyama's Historic Rookie Season",
+                        "A look back at the records broken this year",
+                        "READ", "nba://article/wemby-season"},
+                {"hero-3", "https://loremflickr.com/800/450/basketball,arena?lock=96", "LIVE",
+                        "Nuggets vs. Timberwolves Game 4",
+                        "Western Conference Semifinals",
+                        "WATCH", "nba://video/den-min-g4"}
+        };
+        ObjectNode heroSection = atomicBuilder.buildCinematicHeroCarousel(
+                "home-hero", "home_hero", heroSlides);
+        heroSection.set("surface", utils.flushSurface());
+
+        // Headlines content (embedded as SectionSlot)
+        ObjectNode headlinesSection = buildHeadlinesList();
+
+        // Compose as responsive row
+        ObjectNode row = atomicBuilder.responsiveRow(16, 768);
+        row.put("id", "home-row1");
+        ArrayNode children = objectMapper.createArrayNode();
+
+        ObjectNode leftSlot = atomicBuilder.sectionSlot("row1-hero", heroSection);
+        atomicBuilder.setFlex(leftSlot, 2);
+        children.add(leftSlot);
+
+        ObjectNode rightSlot = atomicBuilder.sectionSlot("row1-headlines", headlinesSection);
+        atomicBuilder.setFlex(rightSlot, 1);
+        children.add(rightSlot);
+
+        row.set("children", children);
+        ObjectNode section = atomicBuilder.wrapAsComposite("home-row1", "home_row1", row);
+        section.set("surface", utils.flushSurface());
+        ObjectNode hints = objectMapper.createObjectNode();
+        hints.put("marginTop", 16);
+        section.set("layoutHints", hints);
+        return section;
+    }
+
+    /**
+     * Row 2: Two-column layout — Stories rail (left, 2/3) + Ad slot (right, 1/3).
+     * Collapses to single column on narrow viewports (< 768px).
+     */
+    private ObjectNode buildStoriesAndAdRow() {
+        // Stories rail (embedded as SectionSlot)
+        ObjectNode storiesSection = buildStoriesRail();
+
+        // Ad slot (embedded as SectionSlot)
+        ObjectNode adSection = buildAdSlot("home-ad-sidebar", "home/sidebar");
+
+        // Compose as responsive row
+        ObjectNode row = atomicBuilder.responsiveRow(16, 768);
+        row.put("id", "home-row2");
+        ArrayNode children = objectMapper.createArrayNode();
+
+        ObjectNode leftSlot = atomicBuilder.sectionSlot("row2-stories", storiesSection);
+        atomicBuilder.setFlex(leftSlot, 2);
+        children.add(leftSlot);
+
+        ObjectNode rightSlot = atomicBuilder.sectionSlot("row2-ad", adSection);
+        atomicBuilder.setFlex(rightSlot, 1);
+        children.add(rightSlot);
+
+        row.set("children", children);
+        ObjectNode section = atomicBuilder.wrapAsComposite("home-row2", "home_row2", row);
+        section.set("surface", utils.flushSurface());
+        return section;
+    }
+
+    private ObjectNode buildSectionHeader(String id, String title,
+                                           String actionLabel, String actionUri) {
+        ObjectNode header = atomicBuilder.buildSectionHeader(id, title, null, actionLabel, actionUri);
+        header.set("surface", utils.sectionHeaderSurface());
+        return header;
+    }
+
+    private ObjectNode buildStoriesRail() {
+        // cards: [id, title, imageUrl, badgeText, targetUri]
+        String[][] cards = {
+                {"story-1", "Celtics Advance",
+                        "https://loremflickr.com/300/400/basketball,celtics?lock=101",
+                        null, "nba://article/celtics-advance"},
+                {"story-2", "Jokic Triple-Double",
+                        "https://loremflickr.com/300/400/basketball,nuggets?lock=102",
+                        "NEW", "nba://article/jokic-triple"},
+                {"story-3", "Rookie Sensation",
+                        "https://loremflickr.com/300/400/basketball,spurs?lock=103",
+                        "NEW", "nba://article/wemby-record"},
+                {"story-4", "Trade Rumors",
+                        "https://loremflickr.com/300/400/basketball,trade?lock=104",
+                        null, "nba://article/trade-rumors"},
+                {"story-5", "Draft Preview",
+                        "https://loremflickr.com/300/400/basketball,draft?lock=105",
+                        null, "nba://article/draft-preview"}
+        };
+        ObjectNode rail = atomicBuilder.buildOverlayStoryRail(
+                "home-stories", "home_stories", "STORIES", cards);
+        rail.set("surface", utils.railSurface());
+        return rail;
+    }
+
+    /**
+     * Vertical list of headline text rows separated by dividers.
+     * Includes its own "HEADLINES" header since it's embedded in a SectionSlot.
+     * Each row is tappable, navigating to the article.
+     */
+    private ObjectNode buildHeadlinesList() {
+        String[][] headlines = {
+                {"Celtics' Tatum named Eastern Conference Player of the Week", "nba://article/tatum-potw"},
+                {"NBA announces schedule changes for Conference Finals", "nba://article/schedule-changes"},
+                {"Injury report: Durant listed as questionable for Game 4", "nba://article/durant-injury"},
+                {"All-NBA Team voting deadline approaches", "nba://article/all-nba-voting"},
+                {"G League Finals set: Ignite vs. Blue Coats", "nba://article/gleague-finals"}
+        };
+
+        ObjectNode root = atomicBuilder.container("column", null, null);
+        root.put("fillWidth", true);
+        root.set("padding", atomicBuilder.padding(16, 16, 8, 8));
+        ArrayNode children = objectMapper.createArrayNode();
+
+        // Inline header
+        children.add(atomicBuilder.text("HEADLINES", "titleMedium", "bold", ColorTokens.TEXT_PRIMARY, null));
+        children.add(atomicBuilder.spacer(12));
+
+        for (int i = 0; i < headlines.length; i++) {
+            String headline = headlines[i][0];
+            String uri = headlines[i][1];
+
+            ObjectNode row = atomicBuilder.container("row", "start", "center");
+            row.put("fillWidth", true);
+            row.set("padding", atomicBuilder.padding(0, 0, 12, 12));
+            row.set("actions", atomicBuilder.singleActionArray(atomicBuilder.tapNavigate(uri)));
+            ArrayNode rowChildren = objectMapper.createArrayNode();
+            rowChildren.add(atomicBuilder.text(headline, "bodyMedium", "medium", ColorTokens.TEXT_PRIMARY, 2));
+            row.set("children", rowChildren);
+            children.add(row);
+
+            if (i < headlines.length - 1) {
+                children.add(divider());
+            }
+        }
+
+        root.set("children", children);
+        ObjectNode section = atomicBuilder.wrapAsComposite("home-headlines", "home_headlines", root);
+        section.set("surface", utils.railSurface());
+        return section;
+    }
+
+    private ObjectNode buildTrendingVideoRail() {
+        String[][] videos = {
+                {"trend-1", "Top 10 Plays of the Night", "Last night's best moments",
+                        FALLBACK_THUMB, "3:45", null, "nba://video/top10-tonight"},
+                {"trend-2", "Playoff Buzzer Beaters", "The most clutch shots",
+                        FALLBACK_THUMB, "5:12", null, "nba://video/buzzer-beaters"},
+                {"trend-3", "Dunk Contest Preview", "Rising stars show off",
+                        FALLBACK_THUMB, "2:30", "NEW", "nba://video/dunk-preview"},
+                {"trend-4", "Coach Interviews", "Post-game reactions",
+                        FALLBACK_THUMB, "8:15", null, "nba://video/coach-interviews"}
+        };
+        ObjectNode rail = atomicBuilder.buildVideoCarousel(
+                "home-trending", "home_trending", null, null, videos);
+        rail.set("surface", utils.railSurface());
+        return rail;
+    }
+
+    private ObjectNode buildPostseasonRail() {
+        // cards: [id, title, subtitle, imageUrl, badgeText, targetUri]
+        String[][] cards = {
+                {"post-1", "Eastern Conference Finals", null, FALLBACK_THUMB,
+                        null, "nba://playoffs/east-finals"},
+                {"post-2", "Western Conference Finals", null, FALLBACK_THUMB,
+                        null, "nba://playoffs/west-finals"},
+                {"post-3", "First Round Highlights", null, FALLBACK_THUMB,
+                        null, "nba://playoffs/first-round"},
+                {"post-4", "Playoff Bracket", null, FALLBACK_THUMB,
+                        null, "nba://playoffs/bracket"}
+        };
+        ObjectNode rail = atomicBuilder.buildEditorialOverlayRail(
+                "home-postseason", "home_postseason", null, cards);
+        rail.set("surface", utils.railSurface());
+        return rail;
+    }
+
+    private ObjectNode buildRecapsVideoRail() {
+        String[][] videos = {
+                {"recap-1", "BOS 112 - MIA 98", "Celtics take Game 3",
+                        FALLBACK_THUMB, "2:48:00", null, "nba://video/recap-bos-mia-g3"},
+                {"recap-2", "DEN 105 - MIN 101", "Jokic leads Nuggets",
+                        FALLBACK_THUMB, "2:35:00", null, "nba://video/recap-den-min"},
+                {"recap-3", "NYK 118 - PHI 109", "Knicks even series",
+                        FALLBACK_THUMB, "2:22:00", null, "nba://video/recap-nyk-phi"},
+                {"recap-4", "OKC 99 - DAL 95", "Thunder take 3-1 lead",
+                        FALLBACK_THUMB, "2:15:00", null, "nba://video/recap-okc-dal"}
+        };
+        ObjectNode rail = atomicBuilder.buildVideoCarousel(
+                "home-recaps", "home_recaps", null, null, videos);
+        rail.set("surface", utils.railSurface());
+        return rail;
+    }
+
+    /**
+     * Vertical list of article cards: thumbnail on the left, headline + 
+     * description + timestamp on the right.
+     */
+    private ObjectNode buildAroundTheNbaList() {
+        String[][] articles = {
+                {"around-1", "Lakers eyeing major free agent signing this summer",
+                        "Multiple sources confirm Los Angeles is preparing a max-level offer",
+                        "2h ago", FALLBACK_ARTICLE, "nba://article/lakers-free-agent"},
+                {"around-2", "Warriors' young core impresses in summer league",
+                        "Jonathan Kuminga and Moses Moody show growth",
+                        "4h ago", FALLBACK_ARTICLE, "nba://article/warriors-young-core"},
+                {"around-3", "Commissioner announces expansion timeline",
+                        "Las Vegas and Seattle remain frontrunners for new franchises",
+                        "6h ago", FALLBACK_ARTICLE, "nba://article/expansion-timeline"},
+                {"around-4", "Vintage jerseys making a comeback",
+                        "Teams across the league bring back classic looks for next season",
+                        "8h ago", FALLBACK_ARTICLE, "nba://article/vintage-jerseys"}
+        };
+
+        ObjectNode root = atomicBuilder.container("column", null, null);
+        root.put("fillWidth", true);
+        root.set("padding", atomicBuilder.padding(16, 16, 8, 8));
+        ArrayNode children = objectMapper.createArrayNode();
+
+        for (int i = 0; i < articles.length; i++) {
+            String id = articles[i][0];
+            String headline = articles[i][1];
+            String description = articles[i][2];
+            String timestamp = articles[i][3];
+            String imageUrl = articles[i][4];
+            String targetUri = articles[i][5];
+
+            ObjectNode row = atomicBuilder.container("row", "start", "start");
+            row.put("id", id);
+            row.put("fillWidth", true);
+            row.set("padding", atomicBuilder.padding(0, 0, 12, 12));
+            row.set("actions", atomicBuilder.singleActionArray(atomicBuilder.tapNavigate(targetUri)));
+
+            ArrayNode rowChildren = objectMapper.createArrayNode();
+
+            // Thumbnail
+            ObjectNode img = atomicBuilder.image(imageUrl, 80, 80, "cover");
+            img.put("cornerRadius", 8);
+            rowChildren.add(img);
+
+            // Text column
+            ObjectNode textCol = atomicBuilder.container("column", null, null);
+            textCol.set("padding", atomicBuilder.padding(12, 0, 0, 0));
+            textCol.put("flex", 1);
+            ArrayNode textChildren = objectMapper.createArrayNode();
+            textChildren.add(atomicBuilder.text(headline, "bodyMedium", "semiBold", ColorTokens.TEXT_PRIMARY, 2));
+            textChildren.add(atomicBuilder.text(description, "bodySmall", null, ColorTokens.TEXT_SECONDARY, 2));
+            textChildren.add(atomicBuilder.text(timestamp, "labelSmall", null, ColorTokens.TEXT_TERTIARY, null));
+            textCol.set("children", textChildren);
+            rowChildren.add(textCol);
+
+            row.set("children", rowChildren);
+            children.add(row);
+
+            if (i < articles.length - 1) {
+                children.add(divider());
+            }
+        }
+
+        root.set("children", children);
+        ObjectNode section = atomicBuilder.wrapAsComposite("home-around", "home_around", root);
+        section.set("surface", utils.railSurface());
+        return section;
+    }
+
+    // ── Helpers ────────────────────────────────────────────────────────
+
+    /** AdSlot section — ad placement primitive (ADR-007). */
+    private ObjectNode buildAdSlot(String id, String adUnitPath) {
+        ObjectNode section = objectMapper.createObjectNode();
+        section.put("id", id);
+        section.put("type", "AdSlot");
+        section.put("analyticsId", id.replace("-", "_"));
+        section.set("surface", utils.adSlotSurface());
+
+        ObjectNode data = objectMapper.createObjectNode();
+        data.put("provider", "gam");
+        data.put("adUnitPath", adUnitPath);
+
+        ArrayNode sizes = objectMapper.createArrayNode();
+        ArrayNode size300 = objectMapper.createArrayNode();
+        size300.add(300);
+        size300.add(250);
+        sizes.add(size300);
+        ArrayNode size300x600 = objectMapper.createArrayNode();
+        size300x600.add(300);
+        size300x600.add(600);
+        sizes.add(size300x600);
+        data.set("sizes", sizes);
+
+        ObjectNode targeting = objectMapper.createObjectNode();
+        targeting.put("section", "home");
+        targeting.put("position", "sidebar");
+        data.set("targeting", targeting);
+
+        data.put("collapseOnEmpty", true);
+        data.put("label", "Advertisement");
+
+        ObjectNode placeholder = objectMapper.createObjectNode();
+        placeholder.put("backgroundColor", ColorTokens.SURFACE_SUNKEN);
+        placeholder.put("text", "Advertisement");
+        data.set("placeholder", placeholder);
+
+        section.set("data", data);
+        return section;
+    }
+
+    private ObjectNode divider() {
+        ObjectNode d = objectMapper.createObjectNode();
+        d.put("type", "Divider");
+        return d;
+    }
+}

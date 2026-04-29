@@ -27,7 +27,8 @@ export function AtomicScrollContainer({ element, state, onAction, depth = 0, onS
   const [activePage, setActivePage] = React.useState(0);
   const [canScroll, setCanScroll] = React.useState(true);
   const resolveColor = useColorTokenResolver();
-  const hasPageIndicator = element.paging === true && element.pageIndicator?.style === 'dots' && children.length > 1;
+  const indicatorStyle = element.pageIndicator?.style;
+  const hasPageIndicator = element.paging === true && (indicatorStyle === 'dots' || indicatorStyle === 'dashes') && children.length > 1;
   const ff = currentFormFactor();
   const gapPx = element.gap != null ? resolveLayoutScalar(element.gap, ff) : 0;
 
@@ -143,20 +144,50 @@ export function AtomicScrollContainer({ element, state, onAction, depth = 0, onS
   );
 
   const a11y = accessibilityProps(element.accessibility) as Record<string, unknown>;
-  const showDots = hasPageIndicator && canScroll;
+  const showIndicator = hasPageIndicator && canScroll;
 
   if (element.paging) {
     const dotAlign = element.pageIndicator?.alignment ?? 'bottomCenter';
     const dotsAbove = isDotsRowAbove(dotAlign);
+    const isDashes = indicatorStyle === 'dashes';
+
+    // Dashes render overlaid on the scroll content (absolute positioned)
+    if (isDashes && showIndicator) {
+      return (
+        <AtomicBox
+          element={element}
+          layoutStyle={{ position: 'relative', minWidth: 0, width: '100%' }}
+          role="list"
+          ariaLabel={element.accessibility?.label}
+          extraProps={a11y}
+        >
+          <div ref={scrollRef} style={layoutStyle} className={hideScrollbarClass}>
+            {content}
+            {hideScrollbarClass && (
+              <style>{`.sdui-hide-scrollbar::-webkit-scrollbar { display: none; }`}</style>
+            )}
+          </div>
+          <PageDashes
+            count={children.length}
+            activePage={activePage}
+            alignment={dotAlign}
+            color={resolveColor(element.pageIndicator?.color) ?? 'rgba(255,255,255,0.4)'}
+            activeColor={resolveColor(element.pageIndicator?.activeColor) ?? '#FFFFFF'}
+            onSelectPage={goToPage}
+          />
+        </AtomicBox>
+      );
+    }
+
     return (
       <AtomicBox
         element={element}
-        layoutStyle={showDots ? { display: 'flex', flexDirection: 'column', minWidth: 0, width: '100%' } : undefined}
+        layoutStyle={showIndicator ? { display: 'flex', flexDirection: 'column', minWidth: 0, width: '100%' } : undefined}
         role="list"
         ariaLabel={element.accessibility?.label}
         extraProps={a11y}
       >
-        {showDots && dotsAbove && (
+        {showIndicator && dotsAbove && (
           <PageDots
             count={children.length}
             activePage={activePage}
@@ -172,7 +203,7 @@ export function AtomicScrollContainer({ element, state, onAction, depth = 0, onS
             <style>{`.sdui-hide-scrollbar::-webkit-scrollbar { display: none; }`}</style>
           )}
         </div>
-        {showDots && !dotsAbove && (
+        {showIndicator && !dotsAbove && (
           <PageDots
             count={children.length}
             activePage={activePage}
@@ -250,6 +281,62 @@ function PageDots(props: {
             background: index === activePage ? activeColor : color,
             cursor: 'pointer',
             flexShrink: 0,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+/** Dashes indicator — horizontal bar segments overlaid on the scroll content. */
+function PageDashes(props: {
+  count: number;
+  activePage: number;
+  alignment: string;
+  color: string;
+  activeColor: string;
+  onSelectPage: (index: number) => void;
+}): React.ReactElement {
+  const { count, activePage, alignment, color, activeColor, onSelectPage } = props;
+  // Position absolutely at bottom, overlaying the scroll content
+  const positionStyle: React.CSSProperties = {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    ...(alignment.startsWith('top') ? { top: 0 } : { bottom: 0 }),
+    display: 'flex',
+    flexDirection: 'row',
+    gap: 4,
+    padding: '12px 16px',
+    boxSizing: 'border-box',
+    zIndex: 2,
+  };
+  return (
+    <div role="tablist" aria-label="Pages" style={positionStyle}>
+      {Array.from({ length: count }).map((_, index) => (
+        <button
+          key={index}
+          type="button"
+          role="tab"
+          aria-selected={index === activePage}
+          tabIndex={index === activePage ? 0 : -1}
+          onClick={() => onSelectPage(index)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onSelectPage(index);
+            }
+          }}
+          style={{
+            display: 'block',
+            flex: 1,
+            height: 3,
+            padding: 0,
+            border: 'none',
+            borderRadius: 2,
+            background: index === activePage ? activeColor : color,
+            cursor: 'pointer',
+            transition: 'background 0.2s ease',
           }}
         />
       ))}

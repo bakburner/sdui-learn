@@ -2,6 +2,11 @@
 
 > Source requirements: §9i from sdui-requirements-summary.md, ADR-009 (Accepted)
 
+## Status
+
+> **Phases 1, 2, 4 complete** (schema, server, web). Remaining: Phase 3
+> (Android `ImpressionTracker`), Phase 5 (tests, doc status update).
+
 ## Summary
 
 Implement visibility-based impression firing with configurable deduplication across all platforms. Web implementation is complete; Android and iOS need the same IntersectionObserver-equivalent behavior using platform viewport APIs.

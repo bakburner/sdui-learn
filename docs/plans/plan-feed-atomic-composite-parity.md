@@ -2,6 +2,13 @@
 
 > Source inputs: real NBA app screenshots provided 2026-04-25, `AGENTS.md`, `docs/client-implementors-contract.md`, `docs/sdui-design-system.md`, ADR-013, `schema/sdui-schema.json`, `schema/color-tokens.json`, `schema/style-tokens.json`, and current atomic renderers/composers.
 
+## Status
+
+> **Phases 1–6 complete.** Remaining work: Phase 5 token blockers (scrim alias,
+> brand.nba color), unchecked verification commands, open questions on demo
+> hosting / overflow actions / icon strategy, and `buildStaticDateStrip` /
+> `buildHeadlineListCard` helpers (deferred from Phase 4).
+
 ## Summary
 
 Use the atomic-composite capabilities needed to emulate the real NBA app look and feel across For You, Games, Discover, and adjacent content screens: circular live story rails, dark editorial image cards with text overlays, featured live game hero cards, schedule game rows, utility card grids, league rails, section headers with CTA affordances, snap/paged carousels with optional page indicators, and sponsor/logo rows. Keep global app chrome, real video playback, ads, and SDK mounts outside atomic content.

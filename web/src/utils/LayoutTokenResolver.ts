@@ -5,9 +5,6 @@
  * Palette + semantic maps are an inline snapshot of:
  *   schema/spacing-tokens.json
  *   schema/corner-radius-tokens.json
- *   schema/size-tokens.json
- *   schema/typography-tokens.json
- *   schema/shadow-tokens.json
  *
  * regenerate when schema/*-tokens.json changes
  *
@@ -144,39 +141,31 @@ export function isFormFactor(value: string): value is FormFactor {
 // ────────────────────────────────────────────────────────────────────────
 
 const SEMANTIC: Record<string, string> = {
-  'spacing.xs':  'space.raw.4',
-  'spacing.sm':  'space.raw.8',
-  'spacing.md':  'space.raw.12',
-  'spacing.lg':  'space.raw.16',
-  'spacing.xl':  'space.raw.24',
-  'spacing.xxl': 'space.raw.32',
+  'nba.spacing.xs':  'nba.space.raw.2',
+  'nba.spacing.sm':  'nba.space.raw.4',
+  'nba.spacing.md':  'nba.space.raw.8',
+  'nba.spacing.lg':  'nba.space.raw.16',
+  'nba.spacing.xl':  'nba.space.raw.32',
+  'nba.spacing.2xl': 'nba.space.raw.40',
 
-  'radius.sm':   'radius.raw.4',
-  'radius.md':   'radius.raw.8',
-  'radius.lg':   'radius.raw.12',
-  'radius.xl':   'radius.raw.16',
-  'radius.full': 'radius.raw.999',
+  'nba.radius.xs':   'nba.radius.raw.2',
+  'nba.radius.sm':   'nba.radius.raw.4',
+  'nba.radius.md':   'nba.radius.raw.8',
+  'nba.radius.lg':   'nba.radius.raw.16',
+  'nba.radius.xl':   'nba.radius.raw.24',
+  'nba.radius.2xl':  'nba.radius.raw.32',
+  'nba.radius.full': 'nba.radius.raw.9999',
 
-  'icon.sm':      'size.raw.20',
-  'icon.md':      'size.raw.32',
-  'icon.lg':      'size.raw.40',
-  'logo.team.sm': 'size.raw.40',
-  'logo.team.md': 'size.raw.48',
-  'logo.team.lg': 'size.raw.56',
-  'avatar.sm':    'size.raw.40',
-  'avatar.md':    'size.raw.48',
-  'avatar.lg':    'size.raw.64',
-  'thumbnail.sm': 'size.raw.72',
-  'thumbnail.md': 'size.raw.96',
-
-  'type.body':     'type.raw.14',
-  'type.bodyEm':   'type.raw.16',
-  'type.title':    'type.raw.20',
-  'type.headline': 'type.raw.28',
-
-  'shadow.sm': 'shadow.raw.1',
-  'shadow.md': 'shadow.raw.2',
-  'shadow.lg': 'shadow.raw.3',
+  // Legacy aliases (deprecated — kept for backward compat with cached payloads)
+  'spacing.xs':  'nba.space.raw.2',
+  'spacing.sm':  'nba.space.raw.4',
+  'spacing.md':  'nba.space.raw.8',
+  'spacing.lg':  'nba.space.raw.16',
+  'spacing.xl':  'nba.space.raw.32',
+  'radius.sm':   'nba.radius.raw.4',
+  'radius.md':   'nba.radius.raw.8',
+  'radius.lg':   'nba.radius.raw.16',
+  'radius.full': 'nba.radius.raw.9999',
 };
 
 // ────────────────────────────────────────────────────────────────────────
@@ -188,45 +177,24 @@ const SEMANTIC: Record<string, string> = {
 type PaletteRow = readonly [number, number, number, number, number, number];
 
 const PALETTE: Record<string, PaletteRow> = {
-  // spacing
-  'space.raw.0':   [0,  0,  0,  0,  0,  0 ],
-  'space.raw.4':   [4,  4,  6,  8,  4,  6 ],
-  'space.raw.8':   [8,  8,  10, 12, 8,  10],
-  'space.raw.12':  [12, 12, 14, 16, 12, 14],
-  'space.raw.16':  [16, 16, 18, 20, 16, 18],
-  'space.raw.24':  [24, 24, 28, 32, 24, 28],
-  'space.raw.32':  [32, 32, 36, 40, 32, 36],
+  // spacing (Kinetic)
+  'nba.space.raw.0':   [0,  0,  0,  0,  0,  0 ],
+  'nba.space.raw.2':   [2,  2,  2,  4,  2,  2 ],
+  'nba.space.raw.4':   [4,  4,  6,  6,  4,  6 ],
+  'nba.space.raw.8':   [8,  8,  10, 12, 8,  10],
+  'nba.space.raw.16':  [16, 16, 20, 24, 16, 20],
+  'nba.space.raw.32':  [32, 32, 40, 48, 32, 40],
+  'nba.space.raw.40':  [40, 40, 48, 56, 40, 48],
 
-  // corner radius
-  'radius.raw.0':   [0,   0,   0,   0,   0,   0  ],
-  'radius.raw.4':   [4,   4,   6,   8,   4,   6  ],
-  'radius.raw.8':   [8,   8,   10,  12,  8,   10 ],
-  'radius.raw.12':  [12,  12,  14,  16,  12,  14 ],
-  'radius.raw.16':  [16,  16,  18,  20,  16,  18 ],
-  'radius.raw.999': [999, 999, 999, 999, 999, 999],
-
-  // sizes
-  'size.raw.20': [20, 20, 24,  28,  20, 24 ],
-  'size.raw.32': [32, 32, 40,  48,  32, 40 ],
-  'size.raw.40': [40, 40, 48,  56,  40, 48 ],
-  'size.raw.48': [48, 48, 56,  64,  48, 56 ],
-  'size.raw.56': [56, 56, 64,  80,  56, 64 ],
-  'size.raw.64': [64, 64, 72,  96,  64, 72 ],
-  'size.raw.72': [72, 72, 80,  112, 72, 80 ],
-  'size.raw.96': [96, 96, 108, 128, 96, 108],
-
-  // typography
-  'type.raw.12': [12, 12, 13, 18, 12, 13],
-  'type.raw.14': [14, 14, 15, 20, 14, 15],
-  'type.raw.16': [16, 16, 17, 24, 16, 17],
-  'type.raw.20': [20, 20, 22, 32, 20, 22],
-  'type.raw.28': [28, 28, 32, 40, 28, 32],
-
-  // shadow elevation tier
-  'shadow.raw.0': [0, 0, 0, 0, 0, 0],
-  'shadow.raw.1': [1, 1, 1, 2, 1, 1],
-  'shadow.raw.2': [2, 2, 2, 3, 2, 2],
-  'shadow.raw.3': [3, 3, 3, 4, 3, 3],
+  // corner radius (Kinetic — flat across form factors)
+  'nba.radius.raw.0':    [0,    0,    0,    0,    0,    0   ],
+  'nba.radius.raw.2':    [2,    2,    2,    2,    2,    2   ],
+  'nba.radius.raw.4':    [4,    4,    4,    4,    4,    4   ],
+  'nba.radius.raw.8':    [8,    8,    8,    8,    8,    8   ],
+  'nba.radius.raw.16':   [16,   16,   16,   16,   16,   16  ],
+  'nba.radius.raw.24':   [24,   24,   24,   24,   24,   24  ],
+  'nba.radius.raw.32':   [32,   32,   32,   32,   32,   32  ],
+  'nba.radius.raw.9999': [9999, 9999, 9999, 9999, 9999, 9999],
 };
 
 const FORM_FACTOR_INDEX: Readonly<Record<FormFactor, number>> = {

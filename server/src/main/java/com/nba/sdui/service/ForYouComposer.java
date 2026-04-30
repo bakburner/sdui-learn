@@ -485,7 +485,7 @@ public class ForYouComposer {
         data.put("label", "Advertisement");
 
         ObjectNode placeholder = objectMapper.createObjectNode();
-        placeholder.put("backgroundColor", "token:color.surface.sunken");
+        placeholder.put("backgroundColor", "token:nba.bg.tertiary");
         placeholder.put("text", "Advertisement");
         data.set("placeholder", placeholder);
 

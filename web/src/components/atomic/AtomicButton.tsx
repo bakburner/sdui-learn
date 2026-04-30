@@ -6,6 +6,7 @@ import { accessibilityProps } from '../../utils/accessibility';
 import { useColorTokenResolver } from '../../utils/ColorTokenResolver';
 import { CompositeContentContext, resolveBindRefString } from '../../utils/BindRefResolver';
 import { areAtomicPropsEqual } from './areAtomicPropsEqual';
+import { getActivateActions } from './getActivateActions';
 
 const baseButtonStyle: React.CSSProperties = {
   cursor: 'pointer',
@@ -66,9 +67,9 @@ function AtomicButtonInner({ element, onAction }: AtomicProps): React.ReactEleme
   };
 
   const handleClick = () => {
-    if (element.actions?.length) {
-      const action = element.actions[0] as unknown as Action;
-      onAction(action);
+    const actions = getActivateActions(element.actions as Action[] | undefined);
+    if (actions.length > 0) {
+      onAction(actions);
     }
   };
 

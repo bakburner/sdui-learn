@@ -68,15 +68,19 @@ private struct ScreenBody: View {
                             ScrollView {
                                 LazyVStack(spacing: 0) {
                                     ForEach(screen.sections, id: \.id) { section in
+                                        let sectionDispatcher = vm.makeActionDispatcher().scoped(to: section.id)
                                         SectionLayout(
                                             section: section,
                                             screenState: vm.screenState,
                                             staleness: vm.stalenessPublisher,
-                                            dispatcher: vm.makeActionDispatcher().scoped(to: section.id),
+                                            dispatcher: sectionDispatcher,
                                             onVisibilityChange: { visible in
                                                 vm.reportVisibility(sectionID: section.id, visible: visible)
                                             }
                                         )
+                                        .environment(\.batchActionExecutor, { actions in
+                                            sectionDispatcher.execute(actions)
+                                        })
                                     }
                                 }
                             }
@@ -198,7 +202,7 @@ private struct SectionLayout: View {
     @MainActor
     private func fireOnVisibleActions() {
         let actions = (section.actions ?? []).filter { $0.trigger == .onVisible }
-        for action in actions { dispatcher.dispatch(action) }
+        if !actions.isEmpty { dispatcher.execute(actions) }
     }
 
     /// Extracts the section's `data` as a `[String: Any]` for validation

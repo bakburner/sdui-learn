@@ -148,7 +148,7 @@ export function AtomicBoxBadge(props: {
       <AtomicRouter
         element={badge.element}
         state={{}}
-        onAction={onAction as (action: import('@sdui/models').Action) => void}
+        onAction={onAction as (action: import('@sdui/models').Action | import('@sdui/models').Action[]) => void}
       />
     </div>
   );

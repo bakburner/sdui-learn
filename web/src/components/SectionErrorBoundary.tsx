@@ -5,7 +5,7 @@ interface SectionErrorBoundaryProps {
   sectionStates?: SectionStates;
   sectionId: string;
   sectionType: string;
-  onAction: (action: Action) => void;
+  onAction: (action: Action | Action[]) => void;
   children: React.ReactNode;
 }
 

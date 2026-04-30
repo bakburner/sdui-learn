@@ -7,6 +7,7 @@ import { resolveImageVariant } from '../../utils/ImageVariantResolver';
 import { currentFormFactor } from '../../utils/LayoutTokenResolver';
 import { CompositeContentContext, resolveBindRefString } from '../../utils/BindRefResolver';
 import { areAtomicPropsEqual } from './areAtomicPropsEqual';
+import { getActivateActions } from './getActivateActions';
 
 const fitToObjectFit: Record<string, React.CSSProperties['objectFit']> = {
   cover: 'cover',
@@ -74,8 +75,8 @@ function AtomicImageInner({ element, onAction }: AtomicProps): React.ReactElemen
   const hasActions = element.actions && element.actions.length > 0;
   const handleClick = hasActions
     ? () => {
-        const action = element.actions![0] as unknown as Action;
-        onAction(action);
+        const actions = getActivateActions(element.actions as Action[] | undefined);
+        if (actions.length > 0) onAction(actions);
       }
     : undefined;
 

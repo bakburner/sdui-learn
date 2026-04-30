@@ -9,7 +9,7 @@ import { SectionSkeleton } from './SectionSkeleton';
 interface LiveSectionWrapperProps {
   section: Section;
   state: Record<string, unknown>;
-  onAction: (action: Action) => void;
+  onAction: (action: Action | Action[]) => void;
   onStateChange: (key: string, value: unknown) => void;
   /** Optional screen-level default refresh policy */
   defaultRefreshPolicy?: Section['refreshPolicy'];

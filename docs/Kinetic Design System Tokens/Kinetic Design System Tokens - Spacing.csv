@@ -1,0 +1,22 @@
+$Name,$Type,$Description,Mode 1
+gap.sm,float,,pixels/4
+gap.md,float,,pixels/8
+gap.lg,float,,pixels/16
+gap.xl,float,,pixels/32
+gap.2xl,float,,pixels/40
+radius.xs,float,,pixels/2
+radius.sm,float,,pixels/4
+radius.md,float,,pixels/8
+radius.lg,float,,pixels/16
+radius.2xl,float,,pixels/32
+padding.sm,float,,pixels/4
+padding.md,float,,pixels/8
+padding.lg,float,,pixels/16
+padding.xl,float,,pixels/32
+padding.2xl,float,,pixels/40
+radius.full,float,,9999
+radius.none,float,,pixels/0
+gap.none,float,,pixels/0
+padding.none,float,,pixels/0
+radius.xl,float,,pixels/24
+gap.xs,float,,pixels/2

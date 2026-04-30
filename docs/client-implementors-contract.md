@@ -789,6 +789,46 @@ FUNCTION dispatchSingleAction(action, stateManager):
             RETURN UnknownResult(action.type)
 ```
 
+### Element-Level Batch Action Execution
+
+Actions live on elements (primitives and containers), not just sections. When
+a trigger fires on an element, the client must execute **all** actions matching
+that trigger as a single ordered batch — not just the first match.
+
+**Algorithm:**
+
+```
+FUNCTION handleElementTrigger(element, trigger, stateManager):
+    // Filter: collect all actions declared on this element whose trigger matches
+    matching = FILTER(element.actions, a -> a.trigger == trigger)
+
+    IF matching IS EMPTY:
+        RETURN
+
+    // Execute as a batch sequence with failure-policy semantics
+    executeActionSequence(matching, stateManager)
+```
+
+**Key rules:**
+
+1. **Filter by trigger.** An element's `actions[]` array may contain actions
+   for multiple triggers (e.g. `onActivate` + `onVisible`). Only actions
+   matching the firing trigger participate in the batch.
+2. **Preserve order.** Actions execute in their declared array order.
+3. **Failure policy applies within the batch.** If one action fails with
+   `onFailure: "halt"`, subsequent actions in the same batch are skipped.
+4. **Container activation.** `Container` elements with `actions[]` containing
+   `onActivate` (or legacy `onTap`) triggers are interactive — they receive
+   tap/click gestures and execute their action batch on activation.
+
+**Platform realization:**
+- **iOS:** `ActionTapModifier` filters `onActivate`/`onTap` actions, batches
+  through the `batchActionExecutor` environment value.
+- **Android:** `getActivateActions()` helper filters, then dispatches through
+  `LocalActionExecutor`.
+- **Web:** `ActionWrapper` component filters by trigger and calls
+  `executeActions()` with the matching subset.
+
 ---
 
 ## 7. Refresh & Polling Algorithm

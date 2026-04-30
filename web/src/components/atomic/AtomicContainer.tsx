@@ -1,9 +1,11 @@
 import React, { memo } from 'react';
+import type { Action } from '@sdui/models';
 import type { AtomicProps } from './AtomicRouter';
 import { AtomicRouter } from './AtomicRouter';
 import { AtomicBox, AtomicBoxBadge } from './AtomicBox';
 import { accessibilityProps } from '../../utils/accessibility';
 import { areAtomicPropsEqual } from './areAtomicPropsEqual';
+import { getActivateActions } from './getActivateActions';
 import {
   currentFormFactor,
   resolveAspectRatio,
@@ -36,6 +38,11 @@ function AtomicContainerInner({ element, state, onAction, depth = 0, onStateChan
     console.warn('a11y_container_missing_label', { elementId: element.id });
   }
 
+  const activateActions = getActivateActions(element.actions as Action[] | undefined);
+  const handleClick = activateActions.length > 0
+    ? () => { onAction(activateActions); }
+    : undefined;
+
   const layoutStyle: React.CSSProperties = {
     display: 'flex',
     flexDirection: isRow ? 'row' : 'column',
@@ -64,7 +71,10 @@ function AtomicContainerInner({ element, state, onAction, depth = 0, onStateChan
       element={element}
       layoutStyle={layoutStyle}
       className={className}
+      onClick={handleClick}
+      role={handleClick ? 'button' : undefined}
       extraProps={accessibilityProps(element.accessibility) as Record<string, unknown>}
+      styleOverrides={handleClick ? { cursor: 'pointer' } : undefined}
     >
       {element.children?.map((child, i) => {
         const childStyle: React.CSSProperties | undefined =

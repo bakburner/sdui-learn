@@ -6,7 +6,7 @@ interface UseImpressionTrackingParams {
   ref: React.RefObject<HTMLDivElement | null>;
   sectionId: string;
   actions: Action[];
-  onAction: (action: Action) => void;
+  onAction: (action: Action | Action[]) => void;
 }
 
 export function useImpressionTracking({

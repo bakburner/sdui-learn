@@ -671,7 +671,7 @@ public class DemoScreenComposer {
         data.put("label", "Advertisement");
 
         ObjectNode placeholder = objectMapper.createObjectNode();
-        placeholder.put("backgroundColor", "token:color.surface.sunken");
+        placeholder.put("backgroundColor", "token:nba.bg.tertiary");
         placeholder.put("text", "Advertisement");
         data.set("placeholder", placeholder);
 
@@ -836,7 +836,7 @@ public class DemoScreenComposer {
             row.put("gap", 8);
             ArrayNode rowChildren = objectMapper.createArrayNode();
             rowChildren.add(atomicBuilder.text("✓", "bodyLarge", "bold",
-                    "token:color.feedback.success.70", null));
+                    "token:nba.color.feedback.success.70", null));
             rowChildren.add(atomicBuilder.text(feature, "bodyLarge", null,
                     ColorTokens.TEXT_INVERSE, null));
             row.set("children", rowChildren);
@@ -889,7 +889,7 @@ public class DemoScreenComposer {
         ArrayNode cardChildren = objectMapper.createArrayNode();
         if (badgeText != null) {
             cardChildren.add(atomicBuilder.text(badgeText, "labelMedium", "bold",
-                    "token:color.secondary.50", null));
+                    "token:nba.color.secondary.50", null));
         }
         ObjectNode tierName = atomicBuilder.text(name, "titleLarge", "bold",
                 ColorTokens.TEXT_INVERSE, null);
@@ -1008,7 +1008,7 @@ public class DemoScreenComposer {
         adData.put("collapseOnEmpty", true);
         adData.put("label", "Advertisement");
         ObjectNode adPlaceholder = objectMapper.createObjectNode();
-        adPlaceholder.put("backgroundColor", "token:color.surface.sunken");
+        adPlaceholder.put("backgroundColor", "token:nba.bg.tertiary");
         adPlaceholder.put("text", "Advertisement");
         adData.set("placeholder", adPlaceholder);
         adSection.set("data", adData);

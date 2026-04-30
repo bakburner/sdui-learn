@@ -34,8 +34,8 @@ class LayoutTokenRegistryTest {
     /** Confirms the registry actually loads from the runtime classpath. */
     @Test
     void registryLoadsFromClasspath() {
-        assertEquals(12, registry.resolveInt("token:spacing.md", "phone"),
-                "spacing.md should resolve to 12 on phone if classpath load succeeded");
+        assertEquals(8, registry.resolveInt("token:nba.spacing.md", "phone"),
+                "nba.spacing.md should resolve to 8 on phone if classpath load succeeded");
     }
 
     @Test
@@ -47,10 +47,10 @@ class LayoutTokenRegistryTest {
 
     @Test
     void spacingMdResolvesPerFormFactor() {
-        assertEquals(12, registry.resolveInt("token:spacing.md", "phone"));
-        assertEquals(14, registry.resolveInt("token:spacing.md", "tablet"));
-        assertEquals(16, registry.resolveInt("token:spacing.md", "tv"));
-        assertEquals(14, registry.resolveInt("token:spacing.md", "web.wide"));
+        assertEquals(8, registry.resolveInt("token:nba.spacing.md", "phone"));
+        assertEquals(10, registry.resolveInt("token:nba.spacing.md", "tablet"));
+        assertEquals(12, registry.resolveInt("token:nba.spacing.md", "tv"));
+        assertEquals(10, registry.resolveInt("token:nba.spacing.md", "web.wide"));
     }
 
     @Test
@@ -58,8 +58,8 @@ class LayoutTokenRegistryTest {
         for (String ff : new String[] {
                 "phone", "phone.landscape", "tablet", "tv", "web.narrow", "web.wide"
         }) {
-            assertEquals(999, registry.resolveInt("token:radius.full", ff),
-                    "radius.full should alias to 999 for " + ff);
+            assertEquals(9999, registry.resolveInt("token:nba.radius.full", ff),
+                    "nba.radius.full should alias to 9999 for " + ff);
         }
     }
 
@@ -72,7 +72,7 @@ class LayoutTokenRegistryTest {
 
     @Test
     void tokenPrefixOnNonexistentNameReturnsZero() {
-        assertEquals(0, registry.resolveInt("token:spacing.does-not-exist", "tablet"));
+        assertEquals(0, registry.resolveInt("token:nba.spacing.does-not-exist", "tablet"));
     }
 
     @Test

@@ -6,6 +6,7 @@ import { accessibilityProps } from '../../utils/accessibility';
 import { useColorTokenResolver } from '../../utils/ColorTokenResolver';
 import { CompositeContentContext, resolveBindRefString } from '../../utils/BindRefResolver';
 import { areAtomicPropsEqual } from './areAtomicPropsEqual';
+import { getActivateActions } from './getActivateActions';
 
 /** Map schema variant strings to CSS font sizes / weights — NBA typography system.
  *  Display/Headline use Roboto Condensed (approximating Knockout/Action NBA).
@@ -90,7 +91,8 @@ function AtomicTextInner({ element, onAction }: AtomicProps): React.ReactElement
   const handleClick = hasActions
     ? (e: React.MouseEvent) => {
         e.stopPropagation();
-        onAction(element.actions![0] as unknown as Action);
+        const actions = getActivateActions(element.actions as Action[] | undefined);
+        if (actions.length > 0) onAction(actions);
       }
     : undefined;
 

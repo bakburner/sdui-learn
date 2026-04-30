@@ -28,14 +28,18 @@ A given screen mixes both. This document covers the atomic layer only.
 | File | Purpose |
 |---|---|
 | `schema/color-tokens.json` | Color palette + semantic aliases (light/dark) |
-| `schema/spacing-tokens.json` | Spacing scale per form factor |
-| `schema/size-tokens.json` | Semantic sizes per form factor |
-| `schema/typography-tokens.json` | Type scale per form factor |
-| `schema/corner-radius-tokens.json` | Corner radii per form factor |
-| `schema/shadow-tokens.json` | Elevation tiers per form factor |
+| `schema/spacing-tokens.json` | Spacing scale per form factor (Kinetic v1.0.0) |
+| `schema/corner-radius-tokens.json` | Corner radii — flat across form factors (Kinetic v1.0.0) |
 | `schema/icon-tokens.json` | Icon name → per-platform symbol mapping |
 | `schema/style-tokens.json` | Variant definitions + override matrices |
 | `schema/sdui-schema.json` | Wire contract (enum values, element types) |
+| `server/.../LayoutTokens.java` | Server-side wire-form token constants (spacing + radius) |
+| `server/.../IconTokens.java` | Server-side wire-form icon token constants |
+
+> **Planned (awaiting design validation):** Size tokens, typography tokens,
+> and shadow tokens are not yet validated by the design team. The speculative
+> registry files were removed. These will be rebuilt from Kinetic design
+> exports when the design team provides validated scales.
 
 ---
 
@@ -46,7 +50,7 @@ layer that can express it.
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│ Layer 3: Color tokens     (token:color.brand.nba)       │  ← brand & content color
+│ Layer 3: Color tokens     (token:nba.label.accent.brand)│  ← brand & content color
 ├─────────────────────────────────────────────────────────┤
 │ Layer 2: Variants         (variant: "hero")             │  ← platform-native preset
 ├─────────────────────────────────────────────────────────┤
@@ -66,8 +70,9 @@ treatments inline properties cannot express (materials, multi-layer shadows,
 press animations, OS-adaptive surfaces). Each platform resolves variants to
 its own native idiom.
 
-**Layer 3 — Color tokens.** A `token:color.*` reference that resolves to
-light/dark hex at render time. Used for brand, content, and surface colors.
+**Layer 3 — Color tokens.** A `token:nba.color.*` or `token:nba.label.*`
+reference that resolves to light/dark hex at render time. Used for brand,
+content, and surface colors.
 
 ### Decision rule
 
@@ -87,11 +92,24 @@ light/dark hex at render time. Used for brand, content, and surface colors.
 **File:** `schema/color-tokens.json` · **Figma connection:** Figma
 color styles should match semantic alias names 1:1.
 
-Two-tier structure:
+Multi-tier structure sourced from the Kinetic Design System:
 
-- **Palette primitives** — `color.<family>.<step>` with `{ light, dark }`
-  hex pairs.
-- **Semantic aliases** — named roles pointing to palette primitives.
+- **Primitives** — `nba.color.<family>.<step>` with `{ light, dark }` hex
+  pairs. Families: `grey`, `blue`, `red`, `green`, `orange`, `yellow`,
+  `t-black` (transparent black), `t-white` (transparent white).
+- **Semantic aliases** — named color scales pointing to primitives
+  (`nba.color.primary.*`, `nba.color.secondary.*`, `nba.color.tertiary.*`,
+  `nba.color.feedback.*`).
+- **Labels** — purpose-defined text/icon colors per context:
+  `nba.label.primary`, `nba.label.secondary`, `nba.label.interactive`,
+  `nba.label-dark.*`, `nba.label-inverted.*`, `nba.label-tint.*`,
+  `nba.label.accent.brand`, `nba.label.accent.live`.
+- **UI / Backgrounds** — `nba.bg.primary`, `nba.bg.secondary`,
+  `nba.bg-dark.*`, `nba.bg-inverted.*`, `nba.bg-tint.*`.
+- **Button** — `nba.button.primary.label`, `nba.button.secondary.label`,
+  `nba.button.tint.label`, `nba.button.focus-ring`.
+- **Team** — team brand colors injected at composition time (e.g.
+  BOS `#007A33`, GSW `#1D428A`).
 
 **Palette families:**
 
@@ -103,22 +121,26 @@ Two-tier structure:
 | `green` | 0–100 | Success feedback |
 | `orange` | 0–100 | Warning feedback |
 | `yellow` | 0–100 | Secondary accent |
+| `t-black` | 5–90 | Transparent black overlays |
+| `t-white` | 5–90 | Transparent white overlays |
 
 **Semantic aliases (current inventory):**
 
 | Group | Tokens |
 |---|---|
-| Primary scale | `color.primary.{0,10,20,30,40,50,60,70,80,90,95,99,100}` |
-| Secondary scale | `color.secondary.{0–100}` |
-| Tertiary scale | `color.tertiary.{0–100}` |
-| Success feedback | `color.feedback.success.{0–100}` |
-| Error feedback | `color.feedback.error.{0–100}` |
-| Warning feedback | `color.feedback.warning.{0–100}` |
-| Brand | `color.brand.nba`, `color.brand.live` |
-| Surfaces | `color.surface.canvas`, `.raised`, `.sunken`, `.promo` |
-| Text | `color.text.primary`, `.secondary`, `.tertiary`, `.inverse`, `.onBrand` |
-| Borders | `color.border.default`, `.subtle` |
-| Overlay | `color.overlay.scrim` |
+| Primary scale | `nba.color.primary.{0,10,20,30,40,50,60,70,80,90,95,99,100}` |
+| Secondary scale | `nba.color.secondary.{0–100}` |
+| Tertiary scale | `nba.color.tertiary.{0–100}` |
+| Success feedback | `nba.color.feedback.success.{0–100}` |
+| Error feedback | `nba.color.feedback.error.{0–100}` |
+| Warning feedback | `nba.color.feedback.warning.{0–100}` |
+| Labels | `nba.label.primary`, `.secondary`, `.tertiary`, `.interactive`, `.selection` |
+| Label dark | `nba.label-dark.primary`, `.secondary`, `.tertiary`, `.quaternary`, `.interactive` |
+| Label inverted | `nba.label-inverted.primary`, `.secondary`, `.tertiary`, `.quaternary`, `.link` |
+| Brand accents | `nba.label.accent.brand`, `nba.label.accent.live`, `nba.label.accent.splash-screen` |
+| Backgrounds | `nba.bg.primary`, `.secondary`, `.tertiary`, `.quaternary`, `.selection`, `.badge`, `.disabled` |
+| Background dark | `nba.bg-dark.primary`, `.secondary`, `.tertiary`, `.quaternary` |
+| Buttons | `nba.button.primary.label`, `.secondary.label`, `.tint.label`, `.focus-ring` |
 
 **Light/dark resolution:** clients select `light` or `dark` from the
 palette primitive at render time based on OS color scheme.
@@ -134,46 +156,41 @@ Color tokens are **not** form-factor-aware — only light/dark.
 
 ### 2.2 Spacing tokens
 
-**File:** `schema/spacing-tokens.json` · **Figma connection:** Figma
-auto-layout spacing values should use these semantic names.
+**File:** `schema/spacing-tokens.json` (v1.0.0-kinetic) · **Server constants:** `LayoutTokens.java` ·
+**Figma connection:** Figma auto-layout spacing values should use these semantic names.
 
-| Semantic token | Phone | Tablet | TV | Web narrow | Web wide |
+Sourced from the Kinetic Design System. Phone is the base scale;
+form-factor multipliers are applied by each client's `LayoutTokenResolver`.
+
+| Wire token | Phone | Tablet | TV | Web narrow | Web wide |
 |---|---|---|---|---|---|
-| `spacing.xs` | 4 | 4 | 8 | 4 | 4 |
-| `spacing.sm` | 8 | 12 | 16 | 8 | 12 |
-| `spacing.md` | 16 | 20 | 32 | 16 | 20 |
-| `spacing.lg` | 24 | 24 | 32 | 24 | 24 |
-| `spacing.xl` | 24 | 24 | 32 | 24 | 24 |
-| `spacing.xxl` | 32 | 32 | 32 | 32 | 32 |
+| `nba.spacing.xs` | 2 | 2 | 4 | 2 | 2 |
+| `nba.spacing.sm` | 4 | 6 | 6 | 4 | 6 |
+| `nba.spacing.md` | 8 | 10 | 12 | 8 | 10 |
+| `nba.spacing.lg` | 16 | 20 | 24 | 16 | 20 |
+| `nba.spacing.xl` | 32 | 40 | 48 | 32 | 40 |
+| `nba.spacing.2xl` | 40 | 48 | 56 | 40 | 48 |
 
 Used for `padding`, `gap`, and `spacing` properties on atomic elements.
+Composers emit these via `LayoutTokens.SPACING_*` constants.
 
-### 2.3 Size tokens
+### 2.3 Size tokens (planned)
 
-**File:** `schema/size-tokens.json` · **Figma connection:** Figma
-component sizing constraints should reference these tokens.
+> **Status:** Awaiting validated design input. The speculative
+> `schema/size-tokens.json` was removed — values were engineering
+> guesses with no design-team sign-off.
 
-| Semantic token | Phone | Tablet | TV | Web narrow | Web wide |
-|---|---|---|---|---|---|
-| `icon.sm` | 20 | 20 | 32 | 20 | 20 |
-| `icon.md` | 32 | 32 | 48 | 32 | 32 |
-| `icon.lg` | 40 | 48 | 64 | 40 | 48 |
-| `logo.team.sm` | 32 | 40 | 56 | 32 | 40 |
-| `logo.team.md` | 48 | 64 | 96 | 48 | 64 |
-| `logo.team.lg` | 64 | 72 | 96 | 64 | 72 |
-| `avatar.sm` | 32 | 40 | 48 | 32 | 40 |
-| `avatar.md` | 48 | 56 | 72 | 48 | 56 |
-| `avatar.lg` | 64 | 72 | 96 | 64 | 72 |
-| `thumbnail.sm` | 40 | 48 | 64 | 40 | 48 |
-| `thumbnail.md` | 56 | 64 | 96 | 56 | 64 |
+When rebuilt, this registry will cover icon sizes, logo sizes, avatar
+sizes, and thumbnail dimensions with per-form-factor values.
 
-### 2.4 Typography tokens
+### 2.4 Typography tokens (planned)
 
-**File:** `schema/typography-tokens.json` · **Figma connection:** Figma
-text styles should map to these semantic names.
+> **Status:** Awaiting validated design input. The speculative
+> `schema/typography-tokens.json` was removed.
 
-**Semantic tokens:** `type.body`, `type.bodyEm`, `type.title`,
-`type.headline` — each with per-form-factor values.
+Typography is currently expressed through the `TextVariant` enum on the
+schema. The future token registry will provide per-form-factor type
+scales that variants can reference.
 
 **Schema `TextVariant` enum** (used on `Text` and `LiveClock` elements):
 
@@ -189,65 +206,69 @@ scores and clocks.
 
 ### 2.5 Corner radius tokens
 
-**File:** `schema/corner-radius-tokens.json` · **Figma connection:** Figma
-corner radius values should use these names.
+**File:** `schema/corner-radius-tokens.json` (v1.0.0-kinetic) · **Server constants:** `LayoutTokens.java` ·
+**Figma connection:** Figma corner radius variables should use these names.
 
-| Semantic token | Phone | Tablet | TV | Web narrow | Web wide |
-|---|---|---|---|---|---|
-| `radius.sm` | 4 | 4 | 8 | 4 | 4 |
-| `radius.md` | 8 | 8 | 12 | 8 | 8 |
-| `radius.lg` | 12 | 16 | 16 | 12 | 16 |
-| `radius.xl` | 16 | 16 | 24 | 16 | 16 |
-| `radius.full` | 999 | 999 | 999 | 999 | 999 |
+Sourced from the Kinetic Design System. Flat across all form factors —
+corner radii do not scale with device class.
 
-`shape: "circle"` is also available — clients compute `radius = width/2`.
-
-### 2.6 Shadow tokens
-
-**File:** `schema/shadow-tokens.json`
-
-| Semantic token | Purpose |
+| Wire token | Value (all form factors) |
 |---|---|
-| `shadow.sm` | Subtle lift (cards) |
-| `shadow.md` | Medium elevation (modals, popovers) |
-| `shadow.lg` | High elevation (hero surfaces) |
+| `nba.radius.xs` | 2 |
+| `nba.radius.sm` | 4 |
+| `nba.radius.md` | 8 |
+| `nba.radius.lg` | 16 |
+| `nba.radius.xl` | 24 |
+| `nba.radius.2xl` | 32 |
+| `nba.radius.full` | 9999 |
+
+`nba.radius.full` produces a pill/circle shape. The `shape: "circle"` schema
+field remains available as a shorthand for `cornerRadius: "token:nba.radius.full"`.
+Composers emit these via `LayoutTokens.RADIUS_*` constants.
+
+### 2.6 Shadow tokens (planned)
+
+> **Status:** Awaiting validated design input. The speculative
+> `schema/shadow-tokens.json` was removed.
 
 ### 2.7 Icon tokens
 
-**File:** `schema/icon-tokens.json` · **Figma connection:** Figma icon
-components should use the `sdui:` prefix name as the component name.
+**File:** `schema/icon-tokens.json` · **Server constants:** `IconTokens.java` ·
+**Figma connection:** Figma icon components should use the `sdui:` prefix name
+as the component name.
 
 Each token maps to platform-specific symbols:
 
-| Token | SF Symbols (iOS) | Material Icons (Android/Web) |
-|---|---|---|
-| `sdui:play` | `play.fill` | `play_arrow` |
-| `sdui:pause` | `pause.fill` | `pause` |
-| `sdui:back` | `chevron.left` | `arrow_back` |
-| `sdui:forward` | `chevron.right` | `arrow_forward` |
-| `sdui:settings` | `gearshape` | `settings` |
-| `sdui:home` | `house` | `home` |
-| `sdui:basketball` | `basketball` | `sports_basketball` |
-| `sdui:video` | `play.rectangle` | `smart_display` |
-| `sdui:leaderboard` | `chart.bar` | `leaderboard` |
-| `sdui:grid` | `square.grid.2x2` | `grid_view` |
-| `sdui:expand` | `chevron.down` | `expand_more` |
-| `sdui:collapse` | `chevron.up` | `expand_less` |
-| `sdui:check` | `checkmark` | `check` |
-| `sdui:warning` | `exclamationmark.triangle` | `warning` |
-| `sdui:live` | `dot.radiowaves.left.and.right` | `sensors` |
-| `sdui:person` | `person` | `person` |
-| `sdui:close` | `xmark` | `close` |
-| `sdui:search` | `magnifyingglass` | `search` |
-| `sdui:share` | `square.and.arrow.up` | `share` |
-| `sdui:favorite` | `heart` | `favorite_border` |
-| `sdui:favorited` | `heart.fill` | `favorite` |
-| `sdui:fullscreen` | `arrow.up.left.and.arrow.down.right` | `fullscreen` |
-| `sdui:pip` | `pip` | `picture_in_picture_alt` |
-| `sdui:cast` | `tv` | `cast` |
-| `sdui:info` | `info.circle` | `info` |
-| `sdui:calendar` | `calendar` | `calendar_today` |
-| `sdui:refresh` | `arrow.clockwise` | `refresh` |
+| Token | SF Symbols (iOS) | Material (Android) | Web |
+|---|---|---|---|
+| `sdui:play` | `play.fill` | `PlayArrow` | `play_arrow` |
+| `sdui:pause` | `pause.fill` | `Pause` | `pause` |
+| `sdui:back` | `chevron.left` | `ArrowBack` | `arrow_back` |
+| `sdui:forward` | `chevron.right` | `ArrowForward` | `arrow_forward` |
+| `sdui:settings` | `gearshape` | `Settings` | `settings` |
+| `sdui:home` | `house` | `Home` | `home` |
+| `sdui:basketball` | `basketball.fill` | `SportsBasketball` | `sports_basketball` |
+| `sdui:video` | `play.rectangle` | `PlayCircle` | `play_circle` |
+| `sdui:leaderboard` | `list.number` | `Leaderboard` | `leaderboard` |
+| `sdui:grid` | `square.grid.2x2` | `Widgets` | `widgets` |
+| `sdui:expand` | `chevron.down` | `KeyboardArrowDown` | `expand_more` |
+| `sdui:collapse` | `chevron.up` | `KeyboardArrowUp` | `expand_less` |
+| `sdui:check` | `checkmark` | `Check` | `check` |
+| `sdui:warning` | `exclamationmark.triangle` | `Warning` | `warning` |
+| `sdui:live` | `antenna.radiowaves.left.and.right` | `Sensors` | `sensors` |
+| `sdui:person` | `person.circle` | `AccountCircle` | `account_circle` |
+| `sdui:close` | `xmark` | `Close` | `close` |
+| `sdui:search` | `magnifyingglass` | `Search` | `search` |
+| `sdui:share` | `square.and.arrow.up` | `Share` | `share` |
+| `sdui:favorite` | `heart` | `FavoriteBorder` | `favorite_border` |
+| `sdui:favorited` | `heart.fill` | `Favorite` | `favorite` |
+| `sdui:fullscreen` | `arrow.up.left.and.arrow.down.right` | `Fullscreen` | `fullscreen` |
+| `sdui:pip` | `pip` | `PictureInPicture` | `picture_in_picture` |
+| `sdui:cast` | `airplayvideo` | `Cast` | `cast` |
+| `sdui:info` | `info.circle` | `Info` | `info` |
+| `sdui:calendar` | `calendar` | `CalendarToday` | `calendar_today` |
+| `sdui:refresh` | `arrow.clockwise` | `Refresh` | `refresh` |
+| `sdui:lock` | `lock.fill` | `Lock` | `lock` |
 
 Directional icons (`back`, `forward`) auto-mirror in RTL locales.
 
@@ -325,27 +346,28 @@ Variants adapt per form factor. Example for `hero` on Android 15+:
 | Figma construct | Wire equivalent |
 |---|---|
 | Frame with auto-layout | `Container` with `direction`, `gap`, `padding` |
+| Clickable frame | `Container` with `actions` (`onActivate` / `onTap`) |
 | Text layer | `Text` with `variant` + `weight` + `color` |
 | Image fill / placed image | `Image` with `src`, `size`, `fit` |
 | Component instance (Button) | `Button` with `variant` + `label` |
 | Icon component | `Icon` with `token` (e.g. `sdui:play`) + `size` |
-| Color style | `token:color.*` reference |
-| Spacing value | Semantic token (`spacing.md`) |
-| Corner radius | Semantic token (`radius.lg`) or `shape: "circle"` |
-| Shadow effect | Semantic token (`shadow.md`) |
+| Color style | `token:nba.color.*` or `token:nba.label.*` reference |
+| Spacing value | Semantic token (`token:nba.spacing.md`) |
+| Corner radius | Semantic token (`token:nba.radius.lg`) or `shape: "circle"` |
 | Text style | `TextVariant` enum value |
 
 ### Figma naming conventions
 
 For tokens to round-trip between Figma and the wire:
 
-- **Color styles** use the semantic alias path: `color/text/primary`,
-  `color/brand/nba`, `color/surface/canvas`.
+- **Color styles** use the `nba.` prefix path: `nba.label.primary`,
+  `nba.label.accent.brand`, `nba.bg.primary`, `nba.color.primary.50`.
 - **Text styles** use the `TextVariant` name: `bodyMedium`, `titleLarge`,
   `score`.
-- **Spacing variables** use the semantic name: `spacing/xs`, `spacing/md`.
-- **Size variables** use the semantic name: `icon/md`, `avatar/lg`.
-- **Corner radius variables** use: `radius/sm`, `radius/lg`, `radius/full`.
+- **Spacing variables** use the `nba.spacing` prefix: `nba.spacing.xs`,
+  `nba.spacing.md`.
+- **Corner radius variables** use: `nba.radius.sm`, `nba.radius.lg`,
+  `nba.radius.full`.
 - **Icon components** use the `sdui:` prefix: `sdui:play`, `sdui:close`.
 
 ### What Figma files should contain
@@ -444,11 +466,12 @@ All are non-fatal. The renderer falls back to defaults and logs the issue.
 
 ### Token coverage
 
-- [ ] Typography registry has only 4 semantic tokens (`type.body`,
-      `type.bodyEm`, `type.title`, `type.headline`) — needs full coverage
-      matching the 16-value `TextVariant` enum
-- [ ] Shadow registry has only 3 tokens — evaluate if more tiers are needed
-- [ ] Size registry missing tokens for larger hero/banner sizes
+- [ ] Typography token registry removed (awaiting Kinetic design validation)
+      — currently expressed only as `TextVariant` enum (16 values)
+- [ ] Shadow token registry removed (awaiting Kinetic design validation)
+      — evaluate tiers needed when rebuilt
+- [ ] Size token registry removed (awaiting Kinetic design validation)
+      — evaluate icon/logo/avatar/thumbnail sizes when rebuilt
 - [ ] No `opacity` token registry — decide if one is needed
 
 ### Variant coverage

@@ -19,7 +19,6 @@ import com.nba.sdui.core.renderer.ImageVariantResolver
 import com.nba.sdui.core.renderer.ImageVariantResolver.ImageContentScaleHint
 import com.nba.sdui.core.renderer.LayoutTokenResolver
 import com.nba.sdui.core.renderer.applyAccessibility
-import com.nba.sdui.core.renderer.adapters.toSduiAction
 import com.nba.sdui.core.request.RequestEnvelopeBuilder
 import com.nba.sdui.core.state.SduiAction
 
@@ -62,13 +61,21 @@ fun AtomicImage(
         ?: ContentScale.Fit
 
     val hasActions = !element.actions.isNullOrEmpty()
+    val batchExecutor = LocalActionExecutor.current
 
     AtomicBox(element, screenState, onAction) { boxModifier ->
         var imageModifier = boxModifier
         effectiveAspectRatio?.let { imageModifier = imageModifier.aspectRatio(it) }
         if (hasActions) {
             imageModifier = imageModifier.clickable {
-                element.actions?.firstOrNull()?.toSduiAction()?.let(onAction)
+                val activateActions = getActivateActions(element.actions)
+                if (activateActions.isNotEmpty()) {
+                    if (batchExecutor != null) {
+                        batchExecutor(activateActions)
+                    } else {
+                        activateActions.forEach(onAction)
+                    }
+                }
             }
         }
         AsyncImage(

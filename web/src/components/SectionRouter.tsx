@@ -19,7 +19,7 @@ import { useImpressionTracking } from '../hooks/useImpressionTracking';
 export interface SectionProps {
   section: Section;
   state: Record<string, unknown>;
-  onAction: (action: Action) => void;
+  onAction: (action: Action | Action[]) => void;
   onStateChange: (key: string, value: unknown) => void;
   /** React key (passed by parent, not used in component) */
   key?: React.Key;
@@ -196,7 +196,7 @@ export function SectionList({
 }: { 
   sections: Section[]; 
   state: Record<string, unknown>;
-  onAction: (action: Action) => void;
+  onAction: (action: Action | Action[]) => void;
   onStateChange: (key: string, value: unknown) => void;
   defaultRefreshPolicy?: RefreshPolicy;
 }): React.ReactElement {

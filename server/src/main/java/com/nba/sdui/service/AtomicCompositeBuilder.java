@@ -42,7 +42,7 @@ public class AtomicCompositeBuilder {
         };
 
         ObjectNode root = container("column", "center", "center");
-        root.set("padding", padding(16, 16, 32, 32));
+        root.set("padding", padding(LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, LayoutTokens.SPACING_XL, LayoutTokens.SPACING_XL));
         ArrayNode children = om.createArrayNode();
 
         children.add(text(emoji, "titleLarge", null, null, null));
@@ -80,7 +80,7 @@ public class AtomicCompositeBuilder {
         // padding inside the header. Keeping bottom tight here avoids the
         // "double-gap" look where header-bottom-padding + next-section-
         // top-margin + next-section-internal-top-padding all stack.
-        root.set("padding", padding(16, 16, 12, 4));
+        root.set("padding", padding(LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, LayoutTokens.SPACING_MD, LayoutTokens.SPACING_XS));
         ArrayNode children = om.createArrayNode();
 
         if (subtitle != null) {
@@ -128,7 +128,7 @@ public class AtomicCompositeBuilder {
 
         if (imageUrl != null) {
             ObjectNode img = image(imageUrl, 120, 80, "cover");
-            img.put("cornerRadius", 10);
+            img.put("cornerRadius", LayoutTokens.RADIUS_MD);
             AccessibilityHelper.addImage(om, img, headline != null ? headline : "Promo image");
             rootChildren.add(img);
             rootChildren.add(spacer(24));
@@ -175,7 +175,7 @@ public class AtomicCompositeBuilder {
         ObjectNode section = sectionEnvelope(id, analyticsId);
 
         ObjectNode root = container("column", null, null);
-        root.set("padding", padding(0, 0, 0, 12));
+        root.set("padding", padding(0, 0, 0, LayoutTokens.SPACING_MD));
         ArrayNode rootChildren = om.createArrayNode();
 
         if (title != null) {
@@ -190,7 +190,7 @@ public class AtomicCompositeBuilder {
         ObjectNode scroll = om.createObjectNode();
         scroll.put("type", "ScrollContainer");
         scroll.put("direction", "row");
-        scroll.put("gap", 12);
+        scroll.put("gap", LayoutTokens.SPACING_MD);
         scroll.put("showIndicators", false);
         ArrayNode scrollChildren = om.createArrayNode();
 
@@ -223,7 +223,7 @@ public class AtomicCompositeBuilder {
         // widths) — a long 2-line headline would push the card past
         // 200, leaving an empty right gutter next to the image.
         card.put("width", 200);
-        card.put("cornerRadius", 12);
+        card.put("cornerRadius", LayoutTokens.RADIUS_LG);
         // Subtle vertical gradient so the card silhouette reads against
         // the feed background without relying on a drop shadow.
         ObjectNode cardBg = om.createObjectNode();
@@ -249,7 +249,7 @@ public class AtomicCompositeBuilder {
             ObjectNode img = thumbnailImage(thumbnailUrl);
             img.put("fillWidth", true);
             img.put("aspectRatio", 16.0 / 9.0);
-            img.set("cornerRadii", cornerRadii(12, 12, 0, 0));
+            img.set("cornerRadii", cornerRadii(LayoutTokens.RADIUS_LG, LayoutTokens.RADIUS_LG, 0, 0));
             AccessibilityHelper.addImage(om, img, headline);
             if (duration != null) {
                 badge(img, durationBadge(duration), "bottomEnd");
@@ -270,7 +270,7 @@ public class AtomicCompositeBuilder {
         // the rounded clip shaves off part of the baseline. Reads as a
         // deliberate text inset rather than a flush baseline with the
         // image's edge.
-        headlineEl.set("padding", padding(16, 16, 8, 8));
+        headlineEl.set("padding", padding(LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, LayoutTokens.SPACING_SM, LayoutTokens.SPACING_SM));
         children.add(headlineEl);
 
         card.set("children", children);
@@ -290,7 +290,7 @@ public class AtomicCompositeBuilder {
         ObjectNode section = sectionEnvelope(id, analyticsId);
 
         ObjectNode root = container("column", null, null);
-        root.set("padding", padding(0, 0, 0, 12));
+        root.set("padding", padding(0, 0, 0, LayoutTokens.SPACING_MD));
         ArrayNode rootChildren = om.createArrayNode();
 
         if (title != null) {
@@ -305,7 +305,7 @@ public class AtomicCompositeBuilder {
         ObjectNode scroll = om.createObjectNode();
         scroll.put("type", "ScrollContainer");
         scroll.put("direction", "row");
-        scroll.put("gap", 16);
+        scroll.put("gap", LayoutTokens.SPACING_LG);
         scroll.put("showIndicators", false);
         ArrayNode scrollChildren = om.createArrayNode();
 
@@ -331,7 +331,7 @@ public class AtomicCompositeBuilder {
 
         if (imageUrl != null) {
             ObjectNode img = image(imageUrl, 56, 56, "cover");
-            img.put("cornerRadius", 28);
+            img.put("cornerRadius", LayoutTokens.RADIUS_LG);
             AccessibilityHelper.addImage(om, img, name + " avatar");
             children.add(img);
         } else {
@@ -365,7 +365,7 @@ public class AtomicCompositeBuilder {
 
         ObjectNode root = container("column", null, "stretch");
         root.put("fillWidth", true);
-        root.set("padding", padding(0, 0, 0, 12));
+        root.set("padding", padding(0, 0, 0, LayoutTokens.SPACING_MD));
         ArrayNode rootChildren = om.createArrayNode();
 
         if (title != null) {
@@ -442,12 +442,12 @@ public class AtomicCompositeBuilder {
             ObjectNode img = image(thumbnailUrl, 0, 0, "cover");
             img.put("aspectRatio", 16.0 / 9.0);
             img.put("fillWidth", true);
-            img.set("cornerRadii", cornerRadii(12, 12, 0, 0));
+            img.set("cornerRadii", cornerRadii(LayoutTokens.RADIUS_LG, LayoutTokens.RADIUS_LG, 0, 0));
             AccessibilityHelper.addImage(om, img, headline);
             imgChildren.add(img);
             if (duration != null) {
                 ObjectNode dur = text(duration, "labelSmall", null, ColorTokens.TEXT_INVERSE, null);
-                dur.set("padding", padding(8, 8, 0, 0));
+                dur.set("padding", padding(LayoutTokens.SPACING_SM, LayoutTokens.SPACING_SM, 0, 0));
                 imgChildren.add(dur);
             }
             imgContainer.set("children", imgChildren);
@@ -455,12 +455,12 @@ public class AtomicCompositeBuilder {
         }
 
         ObjectNode textCol = container("column", null, null);
-        textCol.set("padding", padding(12, 12, 12, 12));
+        textCol.set("padding", padding(LayoutTokens.SPACING_MD, LayoutTokens.SPACING_MD, LayoutTokens.SPACING_MD, LayoutTokens.SPACING_MD));
         ArrayNode textChildren = om.createArrayNode();
 
         if (contentType != null) {
             ObjectNode badge = text(contentType.toUpperCase(), "labelSmall", "bold", ColorTokens.BRAND_LIVE, null);
-            ObjectNode badgePad = padding(0, 0, 0, 4);
+            ObjectNode badgePad = padding(0, 0, 0, LayoutTokens.SPACING_XS);
             badge.set("padding", badgePad);
             textChildren.add(badge);
         }
@@ -469,7 +469,7 @@ public class AtomicCompositeBuilder {
 
         if (subhead != null) {
             ObjectNode sub = text(subhead, "bodySmall", null, ColorTokens.TEXT_SECONDARY, 2);
-            sub.set("padding", padding(0, 0, 4, 0));
+            sub.set("padding", padding(0, 0, LayoutTokens.SPACING_XS, 0));
             textChildren.add(sub);
         }
 
@@ -478,7 +478,7 @@ public class AtomicCompositeBuilder {
         card.set("children", children);
 
         ObjectNode root = container("column", null, null);
-        root.set("padding", padding(16, 16, 8, 8));
+        root.set("padding", padding(LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, LayoutTokens.SPACING_SM, LayoutTokens.SPACING_SM));
         ArrayNode rootChildren = om.createArrayNode();
         rootChildren.add(card);
         root.set("children", rootChildren);
@@ -597,8 +597,8 @@ public class AtomicCompositeBuilder {
         if (badgeText != null && !badgeText.isEmpty()) {
             ObjectNode badge = text(badgeText, "labelSmall", "bold", "#FFFFFF", null);
             badge.put("background", "#E03131");
-            badge.put("cornerRadius", 4);
-            badge.set("padding", padding(8, 8, 2, 2));
+            badge.put("cornerRadius", LayoutTokens.RADIUS_SM);
+            badge.set("padding", padding(LayoutTokens.SPACING_SM, LayoutTokens.SPACING_SM, 2, 2));
             rootChildren.add(badge);
             rootChildren.add(spacer(8));
         }
@@ -746,24 +746,24 @@ public class AtomicCompositeBuilder {
         // Matches the buildContentRail padding rhythm: 0pt top (surface
         // margin supplies the air), 12pt bottom (so the last-card row
         // doesn't hug the next section).
-        root.set("padding", padding(0, 0, 0, 12));
+        root.set("padding", padding(0, 0, 0, LayoutTokens.SPACING_MD));
         ArrayNode rootChildren = om.createArrayNode();
 
         if (title != null) {
             ObjectNode titleEl = text(title, "titleMedium", "bold", ColorTokens.TEXT_PRIMARY, null);
-            titleEl.set("padding", padding(16, 16, 4, 4));
+            titleEl.set("padding", padding(LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, LayoutTokens.SPACING_XS, LayoutTokens.SPACING_XS));
             rootChildren.add(titleEl);
         }
         if (subtitle != null) {
             ObjectNode subEl = text(subtitle, "bodySmall", null, ColorTokens.TEXT_SECONDARY, null);
-            subEl.set("padding", padding(16, 16, 2, 2));
+            subEl.set("padding", padding(LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, 2, 2));
             rootChildren.add(subEl);
         }
 
         ObjectNode scroll = om.createObjectNode();
         scroll.put("type", "ScrollContainer");
         scroll.put("direction", "row");
-        scroll.put("gap", 12);
+        scroll.put("gap", LayoutTokens.SPACING_MD);
         scroll.put("showIndicators", false);
         ArrayNode scrollChildren = om.createArrayNode();
 
@@ -790,7 +790,7 @@ public class AtomicCompositeBuilder {
         // Fix the card's outer width so the 240pt image + full-width
         // meta row (duration / live badge) meet the card edge flush.
         card.put("width", 240);
-        card.put("cornerRadius", 12);
+        card.put("cornerRadius", LayoutTokens.RADIUS_LG);
         ObjectNode cardBg = om.createObjectNode();
         ArrayNode cardBgColors = om.createArrayNode();
         cardBgColors.add(ColorTokens.SURFACE_RAISED);
@@ -812,10 +812,10 @@ public class AtomicCompositeBuilder {
             // Image inset 8pt on start/end/top so the card face shows as
             // an equal-thickness frame on three sides. Matches the
             // buildContentCard treatment.
-            img.set("padding", padding(8, 8, 8, 0));
+            img.set("padding", padding(LayoutTokens.SPACING_SM, LayoutTokens.SPACING_SM, LayoutTokens.SPACING_SM, 0));
             img.put("fillWidth", true);
             img.put("aspectRatio", 16.0 / 9.0);
-            img.put("cornerRadius", 6);
+            img.put("cornerRadius", LayoutTokens.RADIUS_SM);
             AccessibilityHelper.addImage(om, img, title);
             thumbChildren.add(img);
         }
@@ -824,7 +824,7 @@ public class AtomicCompositeBuilder {
         // Start/end match the image's 8pt inset so the meta row aligns
         // with the image's left/right edges instead of the card's outer
         // edges.
-        metaContainer.set("padding", padding(8, 8, 6, 6));
+        metaContainer.set("padding", padding(LayoutTokens.SPACING_SM, LayoutTokens.SPACING_SM, LayoutTokens.SPACING_XS, LayoutTokens.SPACING_XS));
         ArrayNode metaChildren = om.createArrayNode();
 
         if (badgeText != null) {
@@ -853,7 +853,7 @@ public class AtomicCompositeBuilder {
         // first glyph clears the rounded corner arc instead of sitting
         // at the clip edge. 10pt vertical keeps the card's top/bottom
         // rhythm unchanged.
-        textCol.set("padding", padding(14, 14, 10, 10));
+        textCol.set("padding", padding(LayoutTokens.SPACING_MD, LayoutTokens.SPACING_MD, LayoutTokens.SPACING_SM, LayoutTokens.SPACING_SM));
         ArrayNode textChildren = om.createArrayNode();
         textChildren.add(text(title, "bodyMedium", "semiBold", ColorTokens.TEXT_PRIMARY, 2));
         if (subtitle != null) {
@@ -883,12 +883,12 @@ public class AtomicCompositeBuilder {
         ObjectNode section = sectionEnvelope(id, analyticsId);
 
         ObjectNode root = container("column", null, null);
-        root.set("padding", padding(16, 16, 8, 8));
+        root.set("padding", padding(LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, LayoutTokens.SPACING_SM, LayoutTokens.SPACING_SM));
         ArrayNode rootChildren = om.createArrayNode();
 
         if (title != null) {
             ObjectNode titleEl = text(title, "titleMedium", "bold", null, null);
-            titleEl.set("padding", padding(0, 0, 0, 12));
+            titleEl.set("padding", padding(0, 0, 0, LayoutTokens.SPACING_MD));
             rootChildren.add(titleEl);
         }
 
@@ -941,12 +941,12 @@ public class AtomicCompositeBuilder {
                                                 String teamTricode, String statCategory,
                                                 String statValue, String playerImageUrl) {
         ObjectNode row = container("row", null, "center");
-        row.set("padding", padding(0, 0, 6, 6));
+        row.set("padding", padding(0, 0, LayoutTokens.SPACING_XS, LayoutTokens.SPACING_XS));
         ArrayNode children = om.createArrayNode();
 
         if (playerImageUrl != null) {
             ObjectNode img = image(playerImageUrl, 40, 40, "cover");
-            img.put("cornerRadius", 20);
+            img.put("cornerRadius", LayoutTokens.RADIUS_LG);
             AccessibilityHelper.addImage(om, img, playerName + " headshot");
             children.add(img);
             children.add(spacer(12));
@@ -974,7 +974,7 @@ public class AtomicCompositeBuilder {
                                               String teamTricode, String statCategory,
                                               String statValue, String playerImageUrl) {
         ObjectNode col = container("column", null, null);
-        col.set("padding", padding(0, 0, 6, 6));
+        col.set("padding", padding(0, 0, LayoutTokens.SPACING_XS, LayoutTokens.SPACING_XS));
         ArrayNode children = om.createArrayNode();
 
         ObjectNode topRow = container("row", null, "center");
@@ -982,7 +982,7 @@ public class AtomicCompositeBuilder {
 
         if (playerImageUrl != null) {
             ObjectNode img = image(playerImageUrl, 40, 40, "cover");
-            img.put("cornerRadius", 20);
+            img.put("cornerRadius", LayoutTokens.RADIUS_LG);
             AccessibilityHelper.addImage(om, img, playerName + " headshot");
             topChildren.add(img);
             topChildren.add(spacer(12));
@@ -1000,7 +1000,7 @@ public class AtomicCompositeBuilder {
         children.add(topRow);
 
         ObjectNode bottomRow = container("row", "end", "center");
-        bottomRow.set("padding", padding(0, 0, 4, 0));
+        bottomRow.set("padding", padding(0, 0, LayoutTokens.SPACING_XS, 0));
         ArrayNode bottomChildren = om.createArrayNode();
         bottomChildren.add(text(statCategory, "bodyMedium", null, ColorTokens.TEXT_SECONDARY, null));
         bottomChildren.add(spacer(8));
@@ -1034,25 +1034,25 @@ public class AtomicCompositeBuilder {
         // iOS — without it the VStack sizes to max(child intrinsic).
         ObjectNode root = container("column", null, "start");
         root.put("fillWidth", true);
-        root.set("padding", padding(0, 0, 0, 16));
+        root.set("padding", padding(0, 0, 0, LayoutTokens.SPACING_LG));
         ArrayNode rootChildren = om.createArrayNode();
 
         ObjectNode heroContainer = container("column", "end", "start");
         heroContainer.put("fillWidth", true);
-        heroContainer.put("cornerRadius", 12);
+        heroContainer.put("cornerRadius", LayoutTokens.RADIUS_LG);
         ArrayNode heroChildren = om.createArrayNode();
 
         if (heroImageUrl != null) {
             ObjectNode heroImg = image(heroImageUrl, 0, 200, "cover");
             heroImg.put("fillWidth", true);
-            heroImg.set("cornerRadii", cornerRadii(12, 12, 0, 0));
+            heroImg.set("cornerRadii", cornerRadii(LayoutTokens.RADIUS_LG, LayoutTokens.RADIUS_LG, 0, 0));
             AccessibilityHelper.addImage(om, heroImg, heroTitle != null ? heroTitle : "NBA TV");
             heroChildren.add(heroImg);
         }
 
         ObjectNode overlay = container("column", null, "start");
         overlay.put("fillWidth", true);
-        overlay.set("padding", padding(16, 16, 16, 16));
+        overlay.set("padding", padding(LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG));
         ObjectNode grad = om.createObjectNode();
         ArrayNode gradColors = om.createArrayNode();
         gradColors.add("#00000000");
@@ -1083,14 +1083,14 @@ public class AtomicCompositeBuilder {
         // list below so the title line aligns with the row cards' outer
         // edge. Any padding the surface provides is in addition to this.
         ObjectNode heading = text("Today's Schedule", "titleSmall", "bold", ColorTokens.TEXT_PRIMARY, null);
-        heading.set("padding", padding(16, 16, 4, 4));
+        heading.set("padding", padding(LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, LayoutTokens.SPACING_XS, LayoutTokens.SPACING_XS));
         AccessibilityHelper.addHeading(om, heading, "Today's Schedule", 3);
         rootChildren.add(heading);
 
         ObjectNode slotList = container("column", null, "start");
         slotList.put("fillWidth", true);
-        slotList.put("gap", 8);
-        slotList.set("padding", padding(16, 16, 4, 0));
+        slotList.put("gap", LayoutTokens.SPACING_SM);
+        slotList.set("padding", padding(LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, LayoutTokens.SPACING_XS, 0));
         ArrayNode slotChildren = om.createArrayNode();
 
         for (String[] slot : slots) {
@@ -1119,8 +1119,8 @@ public class AtomicCompositeBuilder {
     private ObjectNode pillBadge(String label, String backgroundColor) {
         ObjectNode badge = container("row", null, "center");
         badge.put("background", backgroundColor);
-        badge.put("cornerRadius", 4);
-        badge.set("padding", padding(6, 6, 2, 2));
+        badge.put("cornerRadius", LayoutTokens.RADIUS_SM);
+        badge.set("padding", padding(LayoutTokens.SPACING_XS, LayoutTokens.SPACING_XS, 2, 2));
         ArrayNode children = om.createArrayNode();
         children.add(text(label, "labelSmall", "bold", ColorTokens.TEXT_INVERSE, null));
         badge.set("children", children);
@@ -1147,10 +1147,10 @@ public class AtomicCompositeBuilder {
         ObjectNode row = container("row", null, "center");
         row.put("id", id);
         row.put("fillWidth", true);
-        row.put("gap", 12);
-        row.put("cornerRadius", 8);
+        row.put("gap", LayoutTokens.SPACING_MD);
+        row.put("cornerRadius", LayoutTokens.RADIUS_MD);
         row.put("background", ColorTokens.SURFACE_CANVAS);
-        row.set("padding", padding(12, 12, 12, 12));
+        row.set("padding", padding(LayoutTokens.SPACING_MD, LayoutTokens.SPACING_MD, LayoutTokens.SPACING_MD, LayoutTokens.SPACING_MD));
         if (targetUri != null) {
             row.set("actions", singleActionArray(tapNavigate(targetUri)));
         }
@@ -1232,12 +1232,12 @@ public class AtomicCompositeBuilder {
     /** Build a duration badge element (dark background pill with white text). */
     public ObjectNode durationBadge(String duration) {
         ObjectNode bg = container("row", "center", "center");
-        bg.put("cornerRadius", 4);
+        bg.put("cornerRadius", LayoutTokens.RADIUS_SM);
         bg.put("background", "#000000B3");
         // iOS ref app uses 0.7 for duration pill opacity; normalised here so
         // Android + web match without each platform inventing its own value.
         opacity(bg, 0.7);
-        bg.set("padding", padding(4, 4, 2, 2));
+        bg.set("padding", padding(LayoutTokens.SPACING_XS, LayoutTokens.SPACING_XS, 2, 2));
         ArrayNode children = om.createArrayNode();
         children.add(text(duration, "labelSmall", "semiBold", ColorTokens.TEXT_INVERSE, null));
         bg.set("children", children);
@@ -1247,9 +1247,9 @@ public class AtomicCompositeBuilder {
     /** Build a "LIVE" badge element (red pill with white text). */
     public ObjectNode liveBadge() {
         ObjectNode bg = container("row", "center", "center");
-        bg.put("cornerRadius", 4);
+        bg.put("cornerRadius", LayoutTokens.RADIUS_SM);
         bg.put("background", ColorTokens.BRAND_LIVE);
-        bg.set("padding", padding(6, 6, 2, 2));
+        bg.set("padding", padding(LayoutTokens.SPACING_XS, LayoutTokens.SPACING_XS, 2, 2));
         ArrayNode children = om.createArrayNode();
         children.add(text("LIVE", "labelSmall", "bold", ColorTokens.TEXT_INVERSE, null));
         bg.set("children", children);
@@ -1300,13 +1300,13 @@ public class AtomicCompositeBuilder {
     public ObjectNode buildVodPlaylist(String sectionId, String analyticsId,
                                        String header, String[][] rows) {
         ObjectNode surface = groupedContainer("column", null, null);
-        surface.put("cornerRadius", 12);
-        surface.set("padding", padding(0, 0, 4, 4));
+        surface.put("cornerRadius", LayoutTokens.RADIUS_LG);
+        surface.set("padding", padding(0, 0, LayoutTokens.SPACING_XS, LayoutTokens.SPACING_XS));
 
         ArrayNode surfaceChildren = om.createArrayNode();
         if (header != null) {
             ObjectNode headerEl = text(header, "titleSmall", "semiBold", null, null);
-            ObjectNode headerPad = padding(16, 16, 12, 8);
+            ObjectNode headerPad = padding(LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, LayoutTokens.SPACING_MD, LayoutTokens.SPACING_SM);
             headerEl.set("padding", headerPad);
             AccessibilityHelper.addHeading(om, headerEl, header, 3);
             surfaceChildren.add(headerEl);
@@ -1331,7 +1331,7 @@ public class AtomicCompositeBuilder {
         surface.set("children", surfaceChildren);
 
         ObjectNode wrapper = container("column", null, null);
-        wrapper.set("padding", padding(16, 16, 0, 0));
+        wrapper.set("padding", padding(LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, 0, 0));
         ArrayNode wrapperKids = om.createArrayNode();
         wrapperKids.add(surface);
         wrapper.set("children", wrapperKids);
@@ -1344,8 +1344,8 @@ public class AtomicCompositeBuilder {
                                    boolean isLive, String targetUri) {
         ObjectNode row = container("row", null, "center");
         row.put("id", id);
-        row.put("gap", 12);
-        row.set("padding", padding(12, 12, 10, 10));
+        row.put("gap", LayoutTokens.SPACING_MD);
+        row.set("padding", padding(LayoutTokens.SPACING_MD, LayoutTokens.SPACING_MD, LayoutTokens.SPACING_SM, LayoutTokens.SPACING_SM));
         if (targetUri != null) {
             row.set("actions", singleActionArray(tapNavigate(targetUri)));
             AccessibilityHelper.addButton(om, row, title);
@@ -1356,7 +1356,7 @@ public class AtomicCompositeBuilder {
             ObjectNode thumb = thumbnailImage(thumbnailUrl);
             thumb.put("width", 80);
             thumb.put("height", 52);
-            thumb.put("cornerRadius", 6);
+            thumb.put("cornerRadius", LayoutTokens.RADIUS_SM);
             AccessibilityHelper.addImage(om, thumb, title);
             if (isLive) {
                 badge(thumb, liveBadge(), "topStart");
@@ -1419,9 +1419,9 @@ public class AtomicCompositeBuilder {
         ObjectNode scroll = om.createObjectNode();
         scroll.put("type", "ScrollContainer");
         scroll.put("direction", "row");
-        scroll.put("gap", 12);
+        scroll.put("gap", LayoutTokens.SPACING_MD);
         scroll.put("showIndicators", false);
-        scroll.set("padding", padding(16, 16, 4, 4));
+        scroll.set("padding", padding(LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, LayoutTokens.SPACING_XS, LayoutTokens.SPACING_XS));
 
         ArrayNode kids = om.createArrayNode();
         for (int i = 0; i < gameSections.size(); i++) {
@@ -1463,17 +1463,17 @@ public class AtomicCompositeBuilder {
         requireRows(items, "items");
 
         ObjectNode root = container("column", null, null);
-        root.set("padding", padding(0, 0, 0, 12));
+        root.set("padding", padding(0, 0, 0, LayoutTokens.SPACING_MD));
         ArrayNode rootChildren = om.createArrayNode();
 
         if (title != null) {
             ObjectNode header = text(title, "titleMedium", "bold", ColorTokens.TEXT_PRIMARY, null);
-            header.set("padding", padding(16, 16, 4, 8));
+            header.set("padding", padding(LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, LayoutTokens.SPACING_XS, LayoutTokens.SPACING_SM));
             rootChildren.add(header);
         }
 
         ObjectNode scroll = scrollRow(14, false);
-        scroll.set("padding", padding(16, 16, 0, 0));
+        scroll.set("padding", padding(LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, 0, 0));
         ArrayNode children = om.createArrayNode();
         for (String[] item : items) {
             if (!hasRequiredValues(item, 0, 1)) continue;
@@ -1560,13 +1560,14 @@ public class AtomicCompositeBuilder {
         bgImage.put("aspectRatio", 16.0 / 9.0);
         AccessibilityHelper.addImage(om, bgImage, title);
 
-        // Scrim overlay covering most of the image height so the gradient
-        // fades gradually from transparent to dark. Large top padding ensures
-        // the container is tall enough for the gradient to be smooth (not an
-        // abrupt box edge). Text content pushes to the bottom via alignment.
+        // Scrim overlay fills the full image height so the gradient scales
+        // proportionally on any viewport. Content pushes to the bottom via
+        // alignment="end". No fixed top padding — the gradient itself provides
+        // the visual fade from transparent at top to dark at bottom.
         ObjectNode scrimOverlay = container("column", "end", "start");
         scrimOverlay.put("fillWidth", true);
-        scrimOverlay.set("padding", padding(16, 16, 200, 24));
+        scrimOverlay.put("fillHeight", true);
+        scrimOverlay.set("padding", padding(LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, 0, LayoutTokens.SPACING_XL));
         scrimOverlay.set("background", gradient("#00000000", "#000000E6", "vertical"));
         ArrayNode scrimChildren = om.createArrayNode();
 
@@ -1611,17 +1612,17 @@ public class AtomicCompositeBuilder {
         requireRows(cards, "cards");
 
         ObjectNode root = container("column", null, null);
-        root.set("padding", padding(0, 0, 0, 12));
+        root.set("padding", padding(0, 0, 0, LayoutTokens.SPACING_MD));
         ArrayNode rootChildren = om.createArrayNode();
 
         if (title != null) {
             ObjectNode header = text(title, "titleMedium", "bold", ColorTokens.TEXT_PRIMARY, null);
-            header.set("padding", padding(16, 16, 4, 8));
+            header.set("padding", padding(LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, LayoutTokens.SPACING_XS, LayoutTokens.SPACING_SM));
             rootChildren.add(header);
         }
 
         ObjectNode scroll = scrollRow(14, false);
-        scroll.set("padding", padding(16, 16, 0, 0));
+        scroll.set("padding", padding(LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, 0, 0));
         ArrayNode children = om.createArrayNode();
         for (String[] card : cards) {
             if (!hasRequiredValues(card, 0, 1)) continue;
@@ -1658,7 +1659,8 @@ public class AtomicCompositeBuilder {
         // Bottom scrim overlay with title text — dark black gradient for readability
         ObjectNode scrimContent = container("column", "end", "start");
         scrimContent.put("fillWidth", true);
-        scrimContent.set("padding", padding(12, 12, 60, 12));
+        scrimContent.put("fillHeight", true);
+        scrimContent.set("padding", padding(LayoutTokens.SPACING_MD, LayoutTokens.SPACING_MD, 0, LayoutTokens.SPACING_MD));
         scrimContent.set("background", gradient("#00000000", "#000000CC", "vertical"));
         scrimContent.set("cornerRadii", cornerRadii(0, 0, radius, radius));
         ArrayNode scrimChildren = om.createArrayNode();
@@ -1670,7 +1672,7 @@ public class AtomicCompositeBuilder {
         overlays.add(overlay("bottomStart", null, scrimContent));
         if (badgeText != null) {
             ObjectNode badgePill = pillBadge(badgeText, ColorTokens.BRAND_LIVE);
-            ObjectNode badgeInset = padding(10, 0, 10, 0);
+            ObjectNode badgeInset = padding(LayoutTokens.SPACING_SM, 0, LayoutTokens.SPACING_SM, 0);
             overlays.add(overlay("topStart", badgeInset, badgePill));
         }
 
@@ -1691,17 +1693,17 @@ public class AtomicCompositeBuilder {
         requireRows(cards, "cards");
 
         ObjectNode root = container("column", null, null);
-        root.set("padding", padding(0, 0, 0, 12));
+        root.set("padding", padding(0, 0, 0, LayoutTokens.SPACING_MD));
         ArrayNode rootChildren = om.createArrayNode();
 
         if (title != null) {
             ObjectNode header = text(title, "titleMedium", "bold", ColorTokens.TEXT_PRIMARY, null);
-            header.set("padding", padding(16, 16, 4, 8));
+            header.set("padding", padding(LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, LayoutTokens.SPACING_XS, LayoutTokens.SPACING_SM));
             rootChildren.add(header);
         }
 
         ObjectNode scroll = scrollRow(14, false);
-        scroll.set("padding", padding(16, 16, 0, 0));
+        scroll.set("padding", padding(LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, 0, 0));
         ArrayNode children = om.createArrayNode();
         for (String[] card : cards) {
             if (!hasRequiredValues(card, 0, 1)) continue;
@@ -1741,11 +1743,11 @@ public class AtomicCompositeBuilder {
         List<String[]> validCards = validRows(cards, 0, 2, 5, 8);
 
         ObjectNode root = container("column", null, null);
-        root.set("padding", padding(0, 0, 0, 12));
+        root.set("padding", padding(0, 0, 0, LayoutTokens.SPACING_MD));
         ArrayNode rootChildren = om.createArrayNode();
         if (title != null) {
             ObjectNode header = text(title, "titleMedium", "bold", ColorTokens.TEXT_PRIMARY, null);
-            header.set("padding", padding(16, 16, 4, 8));
+            header.set("padding", padding(LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, LayoutTokens.SPACING_XS, LayoutTokens.SPACING_SM));
             rootChildren.add(header);
         }
 
@@ -1769,13 +1771,13 @@ public class AtomicCompositeBuilder {
         // with peeking edges and a dot indicator.
         if (singleCard) {
             ObjectNode wrapper = container("column", null, "stretch");
-            wrapper.set("padding", padding(16, 16, 0, 0));
+            wrapper.set("padding", padding(LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, 0, 0));
             ArrayNode wrapperChildren = om.createArrayNode();
             for (int i = 0; i < scrollChildren.size(); i++) wrapperChildren.add(scrollChildren.get(i));
             wrapper.set("children", wrapperChildren);
             rootChildren.add(wrapper);
         } else {
-            ObjectNode scroll = pagedHorizontalScroll(12, validCards.size(), padding(16, 16, 0, 0),
+            ObjectNode scroll = pagedHorizontalScroll(12, validCards.size(), padding(LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, 0, 0),
                     "bottomCenter", null, null);
             scroll.set("children", scrollChildren);
             rootChildren.add(scroll);
@@ -1798,7 +1800,7 @@ public class AtomicCompositeBuilder {
 
         ObjectNode root = container("row", "spaceBetween", "center");
         root.put("fillWidth", true);
-        root.set("padding", padding(16, 16, 12, 4));
+        root.set("padding", padding(LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, LayoutTokens.SPACING_MD, LayoutTokens.SPACING_XS));
 
         ArrayNode children = om.createArrayNode();
         ObjectNode titleCol = container("column", null, "start");
@@ -1836,8 +1838,8 @@ public class AtomicCompositeBuilder {
         List<String[]> validItems = validRows(items, 0, 1);
 
         ObjectNode root = container("column", null, "stretch");
-        root.put("gap", 12);
-        root.set("padding", padding(16, 16, 0, 16));
+        root.put("gap", LayoutTokens.SPACING_MD);
+        root.set("padding", padding(LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, 0, LayoutTokens.SPACING_LG));
         ArrayNode children = om.createArrayNode();
         if (title != null) {
             children.add(text(title, "titleMedium", "bold", ColorTokens.TEXT_PRIMARY, null));
@@ -1845,7 +1847,7 @@ public class AtomicCompositeBuilder {
 
         for (int i = 0; i < validItems.size(); i += 2) {
             ObjectNode row = container("row", null, "stretch");
-            row.put("gap", 12);
+            row.put("gap", LayoutTokens.SPACING_MD);
             row.put("fillWidth", true);
             ArrayNode rowChildren = om.createArrayNode();
             ObjectNode first = utilityCard(validItems.get(i));
@@ -1878,16 +1880,16 @@ public class AtomicCompositeBuilder {
         requireRows(items, "items");
 
         ObjectNode root = container("column", null, null);
-        root.set("padding", padding(0, 0, 0, 12));
+        root.set("padding", padding(0, 0, 0, LayoutTokens.SPACING_MD));
         ArrayNode rootChildren = om.createArrayNode();
         if (title != null) {
             ObjectNode header = text(title, "titleMedium", "bold", ColorTokens.TEXT_PRIMARY, null);
-            header.set("padding", padding(16, 16, 4, 8));
+            header.set("padding", padding(LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, LayoutTokens.SPACING_XS, LayoutTokens.SPACING_SM));
             rootChildren.add(header);
         }
 
         ObjectNode scroll = scrollRow(12, false);
-        scroll.set("padding", padding(16, 16, 0, 0));
+        scroll.set("padding", padding(LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, 0, 0));
         ArrayNode children = om.createArrayNode();
         for (String[] item : items) {
             if (!hasRequiredValues(item, 0, 1)) continue;
@@ -1921,7 +1923,7 @@ public class AtomicCompositeBuilder {
 
         ObjectNode card = gameScheduleRowElement(row);
         ObjectNode wrapper = container("column", null, null);
-        wrapper.set("padding", padding(16, 16, 4, 4));
+        wrapper.set("padding", padding(LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, LayoutTokens.SPACING_XS, LayoutTokens.SPACING_XS));
         ArrayNode children = om.createArrayNode();
         children.add(card);
         wrapper.set("children", children);
@@ -1949,14 +1951,29 @@ public class AtomicCompositeBuilder {
                                             String title, String[][] rows,
                                             ObjectNode refreshPolicy,
                                             ObjectNode dataBinding) {
+        return buildGameScheduleList(sectionId, analyticsId, title, rows, refreshPolicy, dataBinding, null);
+    }
+
+    /**
+     * Build a GameScheduleList composite with optional per-row live clock snapshots.
+     * When a row's ID appears in {@code clockSnapshots}, the status column renders a
+     * {@code LiveClock} element that counts down via the SSE data binding channel.
+     *
+     * @param clockSnapshots map from rowId to clock snapshot (null for no live clocks)
+     */
+    public ObjectNode buildGameScheduleList(String sectionId, String analyticsId,
+                                            String title, String[][] rows,
+                                            ObjectNode refreshPolicy,
+                                            ObjectNode dataBinding,
+                                            java.util.Map<String, GameClockSnapshot> clockSnapshots) {
         requireNonBlank(sectionId, "sectionId");
         requireRows(rows, "rows");
 
         List<String[]> validRows = validRows(rows, 0, 1, 6);
 
         ObjectNode root = container("column", null, "stretch");
-        root.put("gap", 8);
-        root.set("padding", padding(16, 16, 0, 12));
+        root.put("gap", LayoutTokens.SPACING_SM);
+        root.set("padding", padding(LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, 0, LayoutTokens.SPACING_MD));
         ArrayNode children = om.createArrayNode();
         if (title != null) {
             children.add(text(title, "titleMedium", "bold", ColorTokens.TEXT_PRIMARY, null));
@@ -1964,11 +1981,19 @@ public class AtomicCompositeBuilder {
         ObjectNode content = om.createObjectNode();
         for (String[] row : validRows) {
             String rowId = value(row, 0);
-            children.add(gameScheduleRowElement(row));
+            GameClockSnapshot clock = clockSnapshots != null ? clockSnapshots.get(rowId) : null;
+            children.add(gameScheduleRowElement(row, clock));
             ObjectNode state = om.createObjectNode();
             state.put("awayScore", parseInt(value(row, 4), 0));
             state.put("homeScore", parseInt(value(row, 9), 0));
             if (value(row, 11) != null) state.put("statusText", value(row, 11));
+            if (clock != null) {
+                ObjectNode clockState = om.createObjectNode();
+                clockState.put("snapshotSeconds", clock.snapshotSeconds());
+                clockState.put("snapshotAt", clock.snapshotAtIso());
+                clockState.put("isRunning", clock.isRunning());
+                state.set("clock", clockState);
+            }
             content.set(rowId, state);
         }
         root.set("children", children);
@@ -2014,7 +2039,7 @@ public class AtomicCompositeBuilder {
 
         ObjectNode copyCol = container("column", null, "start");
         copyCol.put("fillWidth", true);
-        copyCol.set("padding", padding(16, 16, 20, 16));
+        copyCol.set("padding", padding(LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG));
         copyCol.set("background", mediaBottomScrimGradient());
         copyCol.set("cornerRadii", cornerRadii(0, 0, radius, radius));
         ArrayNode copyChildren = om.createArrayNode();
@@ -2037,12 +2062,12 @@ public class AtomicCompositeBuilder {
             ObjectNode pill = t.equalsIgnoreCase("LIVE")
                     ? liveBadge()
                     : pillBadge(topStartBadgeText, ColorTokens.BRAND_NBA);
-            layers.add(overlay("topStart", padding(12, 12, 0, 0), pill));
+            layers.add(overlay("topStart", padding(LayoutTokens.SPACING_MD, LayoutTokens.SPACING_MD, 0, 0), pill));
         }
 
         if (shareActionUri != null || audioActionUri != null) {
             ObjectNode iconRow = container("row", "end", "center");
-            iconRow.put("gap", 8);
+            iconRow.put("gap", LayoutTokens.SPACING_SM);
             ArrayNode iconKids = om.createArrayNode();
             if (audioActionUri != null) {
                 iconKids.add(mediaOverlayIconButton("sdui:video", tapNavigate(audioActionUri)));
@@ -2051,7 +2076,7 @@ public class AtomicCompositeBuilder {
                 iconKids.add(mediaOverlayIconButton("sdui:share", tapNavigate(shareActionUri)));
             }
             iconRow.set("children", iconKids);
-            layers.add(overlay("topEnd", padding(12, 12, 0, 0), iconRow));
+            layers.add(overlay("topEnd", padding(LayoutTokens.SPACING_MD, LayoutTokens.SPACING_MD, 0, 0), iconRow));
         }
 
         ObjectNode root = overlayContainer(base, layers);
@@ -2152,7 +2177,7 @@ public class AtomicCompositeBuilder {
 
         ObjectNode scrimContent = container("column", null, "start");
         scrimContent.put("fillWidth", true);
-        scrimContent.set("padding", padding(14, 14, 72, 14));
+        scrimContent.set("padding", padding(LayoutTokens.SPACING_MD, LayoutTokens.SPACING_MD, 72, LayoutTokens.SPACING_MD));
         scrimContent.set("background", mediaBottomScrimGradient());
         scrimContent.set("cornerRadii", cornerRadii(0, 0, radius, radius));
         ArrayNode children = om.createArrayNode();
@@ -2212,7 +2237,7 @@ public class AtomicCompositeBuilder {
 
         ObjectNode titleOverlay = container("column", null, "start");
         titleOverlay.put("fillWidth", true);
-        titleOverlay.set("padding", padding(16, 16, 52, 14));
+        titleOverlay.set("padding", padding(LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, 52, LayoutTokens.SPACING_MD));
         titleOverlay.set("background", mediaBottomScrimGradient());
         ArrayNode overlayChildren = om.createArrayNode();
         if (value(card, 1) != null) {
@@ -2228,7 +2253,7 @@ public class AtomicCompositeBuilder {
         List<ObjectNode> artOverlays = new ArrayList<>();
         artOverlays.add(overlay("bottomStart", null, titleOverlay));
         if (value(card, 15) != null) {
-            artOverlays.add(overlay("topEnd", padding(8, 8, 0, 0), heroOverflowButton(tapNavigate(value(card, 15)))));
+            artOverlays.add(overlay("topEnd", padding(LayoutTokens.SPACING_SM, LayoutTokens.SPACING_SM, 0, 0), heroOverflowButton(tapNavigate(value(card, 15)))));
         }
 
         ArrayNode heroChildren = om.createArrayNode();
@@ -2238,8 +2263,8 @@ public class AtomicCompositeBuilder {
         if (sponsorLogos.size() > 0) {
             heroChildren.add(cardHairlineDivider());
             ObjectNode sponsors = container("row", "end", "center");
-            sponsors.put("gap", 8);
-            sponsors.set("padding", padding(16, 16, 0, 14));
+            sponsors.put("gap", LayoutTokens.SPACING_SM);
+            sponsors.set("padding", padding(LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, 0, LayoutTokens.SPACING_MD));
             sponsors.set("children", sponsorLogos);
             heroChildren.add(sponsors);
         }
@@ -2250,7 +2275,7 @@ public class AtomicCompositeBuilder {
     private ObjectNode heroScoreStrip(String[] card) {
         ObjectNode row = container("row", "spaceBetween", "center");
         row.put("fillWidth", true);
-        row.set("padding", padding(16, 16, 14, 10));
+        row.set("padding", padding(LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, LayoutTokens.SPACING_MD, LayoutTokens.SPACING_SM));
         ArrayNode children = om.createArrayNode();
         children.add(heroTeam(value(card, 5), value(card, 6), value(card, 7),
                 "cards." + value(card, 0) + ".awayScore", false));
@@ -2261,7 +2286,7 @@ public class AtomicCompositeBuilder {
         boolean liveCue = value(card, 1) != null;
         if (liveCue) {
             ObjectNode statusLine = container("row", "center", "center");
-            statusLine.put("gap", 6);
+            statusLine.put("gap", LayoutTokens.SPACING_XS);
             ArrayNode slKids = om.createArrayNode();
             slKids.add(liveStatusDot());
             ObjectNode status = text(value(card, 11), "labelSmall", "semiBold", ColorTokens.TEXT_SECONDARY, 1);
@@ -2291,7 +2316,7 @@ public class AtomicCompositeBuilder {
      */
     private ObjectNode heroTeam(String tri, String score, String logoUrl, String bindRef, boolean homeSide) {
         ObjectNode row = container("row", "center", "center");
-        row.put("gap", 8);
+        row.put("gap", LayoutTokens.SPACING_SM);
         row.put("width", homeSide ? 108 : 112);
         ArrayNode stackChildren = om.createArrayNode();
         if (logoUrl != null) {
@@ -2325,7 +2350,7 @@ public class AtomicCompositeBuilder {
     private ObjectNode utilityCard(String[] item) {
         ObjectNode card = container("column", "center", "center");
         card.put("id", value(item, 0));
-        card.put("gap", 8);
+        card.put("gap", LayoutTokens.SPACING_SM);
         // Fixed height + fillWidth gives the grid balanced cells across rows
         // even when subtitles wrap differently. Width comes from the parent
         // row's flex distribution; height is locked to keep the grid rhythm
@@ -2333,8 +2358,8 @@ public class AtomicCompositeBuilder {
         card.put("height", 132);
         card.put("fillWidth", true);
         card.put("background", ColorTokens.SURFACE_RAISED);
-        card.put("cornerRadius", 8);
-        card.set("padding", padding(14, 14, 16, 14));
+        card.put("cornerRadius", LayoutTokens.RADIUS_MD);
+        card.set("padding", padding(LayoutTokens.SPACING_MD, LayoutTokens.SPACING_MD, LayoutTokens.SPACING_LG, LayoutTokens.SPACING_MD));
         shadow(card);
         if (value(item, 4) != null) {
             card.set("actions", singleActionArray(tapNavigate(value(item, 4))));
@@ -2361,10 +2386,10 @@ public class AtomicCompositeBuilder {
         ObjectNode card = container("column", "center", "center");
         card.put("id", id);
         card.put("width", 160);
-        card.put("gap", 10);
+        card.put("gap", LayoutTokens.SPACING_SM);
         card.put("background", ColorTokens.SURFACE_RAISED);
-        card.put("cornerRadius", 8);
-        card.set("padding", padding(14, 14, 18, 16));
+        card.put("cornerRadius", LayoutTokens.RADIUS_MD);
+        card.set("padding", padding(LayoutTokens.SPACING_MD, LayoutTokens.SPACING_MD, LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG));
         shadow(card);
         if (targetUri != null) {
             card.set("actions", singleActionArray(tapNavigate(targetUri)));
@@ -2386,13 +2411,17 @@ public class AtomicCompositeBuilder {
     }
 
     private ObjectNode gameScheduleRowElement(String[] row) {
+        return gameScheduleRowElement(row, null);
+    }
+
+    private ObjectNode gameScheduleRowElement(String[] row, GameClockSnapshot clock) {
         ObjectNode card = container("column", null, "stretch");
         card.put("id", value(row, 0));
-        card.put("gap", 10);
+        card.put("gap", LayoutTokens.SPACING_SM);
         card.put("background", ColorTokens.SURFACE_RAISED);
         // Match buildGamePanelComposite (non-featured) card radius / padding.
-        card.put("cornerRadius", 12);
-        card.set("padding", padding(16, 16, 16, 16));
+        card.put("cornerRadius", LayoutTokens.RADIUS_LG);
+        card.set("padding", padding(LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG));
         shadow(card);
         if (value(row, 14) != null) {
             card.set("actions", singleActionArray(tapNavigate(value(row, 14))));
@@ -2409,7 +2438,7 @@ public class AtomicCompositeBuilder {
         matchupChildren.add(scheduleTeamColumn(
                 value(row, 1), value(row, 2), value(row, 3),
                 value(row, 4), value(row, 5), value(row, 0), "awayScore", 124));
-        matchupChildren.add(scheduleStatus(value(row, 11), value(row, 12), value(row, 0)));
+        matchupChildren.add(scheduleStatus(value(row, 11), value(row, 12), value(row, 0), clock));
         matchupChildren.add(scheduleTeamColumn(
                 value(row, 6), value(row, 7), value(row, 8),
                 value(row, 9), value(row, 10), value(row, 0), "homeScore", 108));
@@ -2464,25 +2493,54 @@ public class AtomicCompositeBuilder {
     }
 
     private ObjectNode scheduleStatus(String status, String seriesText, String rowId) {
+        return scheduleStatus(status, seriesText, rowId, null);
+    }
+
+    /**
+     * Center column of a schedule row: status text (or LiveClock when game is live),
+     * plus optional series text below.
+     */
+    private ObjectNode scheduleStatus(String status, String seriesText, String rowId,
+                                      GameClockSnapshot clock) {
         ObjectNode center = container("column", "center", "center");
         center.put("width", 80);
         ArrayNode children = om.createArrayNode();
         String raw = status != null ? status : "";
-        boolean liveCue = raw.toUpperCase(Locale.ROOT).contains("LIVE");
-        ObjectNode statusText = text(raw, "labelSmall", "semiBold",
-                ColorTokens.TEXT_SECONDARY, 2);
-        statusText.put("bindRef", rowId + ".statusText");
-        statusText.put("textAlign", "center");
-        if (liveCue) {
+        boolean liveCue = raw.toUpperCase(Locale.ROOT).contains("LIVE") || clock != null;
+
+        if (clock != null) {
+            // Live game: render a LiveClock that counts down via SSE binding
+            ObjectNode clockNode = om.createObjectNode();
+            clockNode.put("type", "LiveClock");
+            clockNode.put("variant", "labelSmall");
+            clockNode.put("format", "m:ss");
+            clockNode.put("tickDirection", "down");
+            clockNode.put("bindRef", rowId + ".clock");
+            clockNode.put("snapshotSeconds", clock.snapshotSeconds());
+            clockNode.put("isRunning", clock.isRunning());
             ObjectNode statusLine = container("row", "center", "center");
-            statusLine.put("gap", 4);
+            statusLine.put("gap", LayoutTokens.SPACING_XS);
             ArrayNode sl = om.createArrayNode();
             sl.add(liveStatusDot());
-            sl.add(statusText);
+            sl.add(clockNode);
             statusLine.set("children", sl);
             children.add(statusLine);
         } else {
-            children.add(statusText);
+            ObjectNode statusText = text(raw, "labelSmall", "semiBold",
+                    ColorTokens.TEXT_SECONDARY, 2);
+            statusText.put("bindRef", rowId + ".statusText");
+            statusText.put("textAlign", "center");
+            if (liveCue) {
+                ObjectNode statusLine = container("row", "center", "center");
+                statusLine.put("gap", LayoutTokens.SPACING_XS);
+                ArrayNode sl = om.createArrayNode();
+                sl.add(liveStatusDot());
+                sl.add(statusText);
+                statusLine.set("children", sl);
+                children.add(statusLine);
+            } else {
+                children.add(statusText);
+            }
         }
         if (seriesText != null) {
             ObjectNode series = text(seriesText, "labelSmall", null, ColorTokens.TEXT_TERTIARY, 2);
@@ -2508,7 +2566,7 @@ public class AtomicCompositeBuilder {
         ObjectNode dot = container("row", "center", "center");
         dot.put("width", 6);
         dot.put("height", 6);
-        dot.put("cornerRadius", 3);
+        dot.put("cornerRadius", LayoutTokens.RADIUS_SM);
         dot.put("background", ColorTokens.BRAND_LIVE);
         dot.set("children", om.createArrayNode());
         return dot;
@@ -2891,12 +2949,12 @@ public class AtomicCompositeBuilder {
         return node;
     }
 
-    ObjectNode padding(int start, int end, int top, int bottom) {
+    ObjectNode padding(Object start, Object end, Object top, Object bottom) {
         ObjectNode p = om.createObjectNode();
-        p.put("start", start);
-        p.put("end", end);
-        p.put("top", top);
-        p.put("bottom", bottom);
+        putLayoutScalar(p, "start", start);
+        putLayoutScalar(p, "end", end);
+        putLayoutScalar(p, "top", top);
+        putLayoutScalar(p, "bottom", bottom);
         return p;
     }
 
@@ -2907,13 +2965,22 @@ public class AtomicCompositeBuilder {
      * "square" — it is preserved through the wire (it is not treated as
      * "omitted, fall back to cornerRadius") per the schema contract.
      */
-    private ObjectNode cornerRadii(int topStart, int topEnd, int bottomStart, int bottomEnd) {
+    private ObjectNode cornerRadii(Object topStart, Object topEnd, Object bottomStart, Object bottomEnd) {
         ObjectNode r = om.createObjectNode();
-        r.put("topStart", topStart);
-        r.put("topEnd", topEnd);
-        r.put("bottomStart", bottomStart);
-        r.put("bottomEnd", bottomEnd);
+        putLayoutScalar(r, "topStart", topStart);
+        putLayoutScalar(r, "topEnd", topEnd);
+        putLayoutScalar(r, "bottomStart", bottomStart);
+        putLayoutScalar(r, "bottomEnd", bottomEnd);
         return r;
+    }
+
+    /** Puts a LayoutScalar value (int or "token:..." string) into a node. */
+    private void putLayoutScalar(ObjectNode node, String key, Object value) {
+        if (value instanceof String s) {
+            node.put(key, s);
+        } else if (value instanceof Number n) {
+            node.put(key, n.intValue());
+        }
     }
 
     ObjectNode tapNavigate(String targetUri) {

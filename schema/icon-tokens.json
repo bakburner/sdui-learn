@@ -28,6 +28,7 @@
     "sdui:cast":     { "sf": "airplayvideo",                       "material": "Cast",             "web": "cast" },
     "sdui:info":     { "sf": "info.circle",                        "material": "Info",             "web": "info" },
     "sdui:calendar": { "sf": "calendar",                           "material": "CalendarToday",    "web": "calendar_today" },
-    "sdui:refresh":  { "sf": "arrow.clockwise",                    "material": "Refresh",          "web": "refresh" }
+    "sdui:refresh":  { "sf": "arrow.clockwise",                    "material": "Refresh",          "web": "refresh" },
+    "sdui:lock":     { "sf": "lock.fill",                          "material": "Lock",             "web": "lock" }
   }
 }

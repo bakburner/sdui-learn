@@ -6,6 +6,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -18,6 +19,7 @@ import com.nba.sdui.core.screen.SduiNavigationShell
 import com.nba.sdui.core.screen.SduiScreenContent
 import com.nba.sdui.core.screen.SduiScreenUiState
 import com.nba.sdui.core.state.ActionHandler
+import com.nba.sdui.core.renderer.atomic.LocalActionExecutor
 
 /**
  * SDUI Screen — app-level wrapper.
@@ -151,17 +153,19 @@ fun GameDetailScreen(
             onNavigate = onNavigateUri,
             modifier = Modifier.weight(1f)
         ) { contentModifier ->
-            SduiScreenContent(
-                uiState = uiState,
-                screenState = screenState,
-                isRefreshing = isRefreshing,
-                onRefresh = { viewModel.refresh() },
-                onRetry = { viewModel.load(config.uri) },
-                onAction = { viewModel.handleAction(it) },
-                onStateChange = { key, value -> viewModel.updateState(key, value) },
-                visibilityTracker = viewModel.visibilityTracker,
-                modifier = contentModifier
-            )
+            CompositionLocalProvider(LocalActionExecutor provides { actions -> viewModel.handleActions(actions) }) {
+                SduiScreenContent(
+                    uiState = uiState,
+                    screenState = screenState,
+                    isRefreshing = isRefreshing,
+                    onRefresh = { viewModel.refresh() },
+                    onRetry = { viewModel.load(config.uri) },
+                    onAction = { viewModel.handleAction(it) },
+                    onStateChange = { key, value -> viewModel.updateState(key, value) },
+                    visibilityTracker = viewModel.visibilityTracker,
+                    modifier = contentModifier
+                )
+            }
         }
     }
 }

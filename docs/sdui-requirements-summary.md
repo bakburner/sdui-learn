@@ -343,12 +343,13 @@ When poll failures trigger staleness, apply exponential backoff to the poll inte
 
 ## 4. Action System
 
-Defines server-controlled interactivity. Every interactive component carries an `actions` map where keys are interaction triggers and values are ordered arrays of actions that execute sequentially.
+Defines server-controlled interactivity. Every interactive component carries an `actions` array where each action declares its `trigger`. When a trigger fires, the client collects **all** actions matching that trigger (in declared order) and passes the full array to the action executor as a single sequence. Failure policies (`halt`/`continue`/`silent`) are evaluated across the batch — not per-action independently.
 
 **Scope requirement:** actions are supported at multiple levels:
 - screen-level defaults (optional)
 - section-level actions
 - nested/subcomponent actions (subsection interaction targets)
+- **element-level actions** (atomic primitives: Container, Button, Image, Text)
 
 When both parent and child define actions for the same trigger, child action scope takes precedence unless explicitly composed.
 
@@ -440,6 +441,20 @@ Rules:
 3. **`continue`** failures log a warning, apply any type-specific side effect (e.g., stale indicator for refresh), and proceed to the next action.
 4. **Already-fired actions are committed.** There is no rollback. Fire-and-forget actions capture what the user *attempted*, not what succeeded.
 5. **Navigate success also halts** — navigation takes over the screen, so subsequent actions are moot regardless of `onFailure` value.
+
+### Element-Level Action Execution (Atomic Primitives)
+
+Any atomic element (`Container`, `Button`, `Image`, `Text`) may carry an `actions` array. When the element's primary activation trigger fires (tap, click, Enter, TV select), clients **must**:
+
+1. **Filter** — collect all actions where `trigger` is `onActivate` or the deprecated alias `onTap`.
+2. **Batch** — pass the filtered array (in declared order) to the action executor as a single sequence.
+3. **Execute with failure policy** — the executor runs the sequence using the same halt/continue/silent rules defined above.
+
+Clients must **not** fire only the first action and ignore the rest. A typical server pattern attaches `[fireAndForget(analytics), navigate(target)]` so the analytics beacon fires before navigation takes over. Firing only the navigate loses the analytics event; firing only the analytics loses the navigation.
+
+**Server composition responsibility:** The server owns the ordering of action sequences. Because `navigate` success halts the sequence (the screen changes), any actions declared *after* a navigate are unreachable. The client does not reorder, deduplicate, or "fix" a poorly composed sequence — it executes in declared order and stops when halt conditions are met. If the server places a toast after a navigate, the toast is dead code. That is a server composition bug, not a client concern.
+
+**Container activation:** A Container element with `actions` is clickable/tappable as a unit. The entire container surface is the tap target. This enables card-level activation (e.g., game cards, content tiles) without requiring a nested Button.
 
 ---
 

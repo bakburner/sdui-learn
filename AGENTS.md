@@ -212,6 +212,23 @@ The following are **not** valid client exceptions:
   be explicit and temporary rather than silently normalized into a weaker
   runtime contract.
 
+### 3.6 Composers emit design-system tokens, not raw pixels
+
+- Composed payloads must emit semantic token strings (e.g. `"token:nba.spacing.lg"`)
+  for spacing, corner radius, and size values — not hardcoded integers.
+- Clients resolve token strings to concrete pixel values via the form-factor-aware
+  `LayoutTokenResolver`; emitting raw integers bypasses form-factor adaptation.
+- **Narrow exceptions where raw integers remain acceptable:**
+  - `0` (no semantic value for zero spacing).
+  - Calculated values that depend on runtime state (e.g. circle radius = width/2).
+  - Component-specific fixed dimensions that are intentionally non-responsive
+    (e.g. card carousel item widths).
+  - Values for which no design-system token exists (rare; document why).
+- `LayoutTokens.java` is the server-side source of truth for wire-form token
+  strings; composers reference constants from that class.
+- This rule applies to all layout-scalar fields: `padding`, `cornerRadius`,
+  `gap`, `width`, `height`, `minWidth`, `minHeight`, `maxWidth`, `maxHeight`.
+
 ## 4. Shared Infrastructure Owns Shared Concerns
 
 ### 4.1 One fetch path

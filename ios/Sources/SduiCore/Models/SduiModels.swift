@@ -1553,7 +1553,7 @@ extension Spacing {
 /// Bottom-trailing corner.
 ///
 /// Absolute layout value: raw dp/px integer, or a semantic layout token reference
-/// token:<path> (e.g. token:spacing.md, token:radius.lg) resolved per platform.formFactor
+/// token:<path> (e.g. token:nba.spacing.md, token:nba.radius.lg) resolved per platform.formFactor
 /// against bundled spacing/corner/size/typography/shadow registries. Unknown tokens log
 /// token_resolver_missing and fall back to 0 (or caller default).
 ///

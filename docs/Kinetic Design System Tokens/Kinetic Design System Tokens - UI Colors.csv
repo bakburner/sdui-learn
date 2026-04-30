@@ -1,0 +1,111 @@
+Status,Old Token Name,New Token Name,light-mode-alias,light-mode-hex,dark-mode-alias,dark-mode-hex
+renamed,canvas,bg/primary,color/primary/95,#F3F4F5,color/primary/0,#000000
+renamed,surface,bg/secondary,color/primary/100,#FFFFFF,color/primary/10,#191C23
+renamed,surface-raised,bg/tertiary,color/primary/90,#E7E9EA,color/primary/20,#2B2F37
+renamed,surface-lowered,bg/quaternary,color/primary/80,#DADDDE,color/primary/30,#3C414A
+renamed,selection,bg/selection,color/primary/0,#000000,color/primary/100,#FFFFFF
+renamed,badge-fill,bg/badge,color/t-white/90,#FFFFFF @90%,color/t-white/90,#FFFFFF @90%
+renamed,disabled,bg/disabled,color/primary/80,#DADDDE,color/primary/30,#3C414A
+renamed,splash-screen-background,bg/splash-screen,color/tertiary/30,#1D428A,color/tertiary/0,#000000
+renamed,link,label/interactive,color/tertiary/40,#0064FF,color/tertiary/70,#66ABFF
+renamed,on-background,label/primary,color/primary/0,#000000,color/primary/100,#FFFFFF
+renamed,on-background-alt,label/secondary,color/primary/40,#4E525C,color/primary/60,#A4A7AD
+new token,-,label/tertiary,color/primary/60,#A4A7AD,color/primary/50,#838A96
+renamed,on-background-ghost,label-dark/quaternary,color/t-white/25,#FFFFFF @25%,color/t-white/25,#FFFFFF @25%
+renamed,on-selection,label/selection,color/primary/100,#FFFFFF,color/primary/0,#000000
+renamed,canvas--dark,bg-dark/primary,color/primary/0,#000000,color/primary/0,#000000
+renamed,surface--dark,bg-dark/secondary,color/primary/10,#191C23,color/primary/10,#191C23
+renamed,surface--dark-raised,bg-dark/tertiary,color/primary/20,#2B2F37,color/primary/20,#2B2F37
+renamed,surface--dark-lowered,bg-dark/quaternary,color/primary/30,#3C414A,color/primary/30,#3C414A
+renamed,canvas--inverted,bg-inverted/primary,color/primary/0,#000000,color/primary/95,#F3F4F5
+new token,-,bg-inverted/quaternary,color/primary/30,#3C414A,color/primary/80,#DADDDE
+renamed,surface--inverted,bg-inverted/secondary,color/primary/10,#191C23,color/primary/100,#FFFFFF
+new token,-,bg-inverted/tertiary,color/primary/20,#2B2F37,color/primary/90,#E7E9EA
+renamed,on-inverted,label-inverted/primary,color/primary/100,#FFFFFF,color/primary/0,#000000
+renamed,on-inverted-alt,label-inverted/secondary,color/primary/60,#A4A7AD,color/primary/40,#4E525C
+renamed,tint,bg-tint/primary,color/secondary/60,#FBCD44,color/secondary/60,#FBCD44
+new token,-,bg-tint/secondary,color/secondary/80,#FCDE82,color/secondary/80,#FCDE82
+new token,-,bg-tint/tertiary,color/secondary/50,#F1BE27,color/secondary/50,#F1BE27
+new token,-,bg-tint/quaternary,color/secondary/40,#E1AA05,color/secondary/50,#F1BE27
+renamed,on-tint,label-tint/primary,color/secondary/0,#000000,color/secondary/0,#000000
+new token,-,label-tint/secondary,color/secondary/20,#644B02,color/secondary/20,#644B02
+renamed,divider-canvas,divider/moderate,color/primary/70,#BFC2C6,color/primary/40,#4E525C
+renamed,divider-surface,divider/subtle,color/primary/80,#DADDDE,color/primary/20,#2B2F37
+new token,-,divider/prominent,color/primary/60,#A4A7AD,color/primary/50,#838A96
+renamed,blur,effect/blur,color/t-white/90,#FFFFFF @90%,color/t-white/90,#FFFFFF @90%
+renamed,scrim,effect/scrim,color/t-black/50,#000000 @50%,color/t-black/50,#000000 @50%
+renamed,shadow-color-15,effect/shadow-color-15,color/t-black/15,#000000 @15%,color/t-white/15,#FFFFFF @15%
+renamed,shadow-color-30,effect/shadow-color-30,color/t-black/30,#000000 @30%,color/t-white/30,#FFFFFF @30%
+renamed,surface--error,feedback/bg-error/primary,color/feedback/error/90,#F9DEDC,color/feedback/error/10,#410E0B
+new token,-,feedback/bg-success/primary,color/feedback/success/99,#F0F2DE,color/feedback/success/10,#103514
+new token,-,feedback/bg-warning/primary,color/feedback/warning/99,#FEF2E6,color/feedback/warning/10,#1F0D02
+renamed,negative,feedback/label-error/primary,color/feedback/error/50,#DC362E,color/feedback/error/60,#FE6F67
+renamed,on-surface--error,feedback/label-error/secondary,color/feedback/error/30,#8C1D18,color/feedback/error/70,#EC928E
+renamed,positive,feedback/label-success/primary,color/feedback/success/50,#45A057,color/feedback/success/60,#4FB664
+new token,-,feedback/label-success/secondary,color/feedback/success/30,#317E44,color/feedback/success/70,#30D158
+new token,-,feedback/label-warning/primary,color/feedback/warning/50,#9A450F,color/feedback/warning/70,#E66E1A
+new token,-,feedback/label-warning/secondary,color/feedback/warning/30,#5A2508,color/feedback/warning/60,#BB5814
+renamed,on-dark,label-dark/interactive,color/tertiary/40,#0064FF,color/tertiary/40,#0064FF
+renamed,on-dark-alt,label-dark/primary,color/primary/100,#FFFFFF,color/primary/100,#FFFFFF
+new token,-,label-dark/secondary,color/primary/60,#A4A7AD,color/primary/60,#A4A7AD
+renamed,on-dark-ghost,label-dark/tertiary,color/primary/50,#838A96,color/primary/40,#4E525C
+new token,-,label-inverted/quaternary,color/t-white/20,#FFFFFF @20%,color/t-black/5,#000000 @5%
+new token,-,label-inverted/tertiary,color/primary/50,#838A96,color/primary/60,#A4A7AD
+renamed,link-on-inverted,label-inverted/quaternary,color/t-white/20,#FFFFFF @20%,color/t-black/5,#000000 @5%
+renamed,nba-logo--wordmark,label-inverted/link-on-inverted,color/tertiary/70,#66ABFF,color/tertiary/40,#0064FF
+renamed,live,label/accent/brand,nba/blue,#1D428A,color/primary/100,#FFFFFF
+renamed,splash-screen-graphic,label/accent/live,nba/red,#C8102E,nba/red,#C8102E
+new token,-,label/accent/splash-screen,color/primary/100,#FFFFFF,color/tertiary/40,#0064FF
+new token,-,team/bg-team,team-bg (See Team UI Modes),,team-bg (See Team UI Modes),
+new token,-,team/label-team,team-label (See Team UI Modes),,team-label (See Team UI Modes),
+new token,-,team/accent-team,team-accent--light (See Team UI Modes),,team-accent--dark (See Team UI Modes),
+new token,-,team/label-accent-team,team-accent-label--light (See Team UI Modes),,team-accent-label--dark (See Team UI Modes),
+,,,,,,
+new token,-,button/focus-ring,label/interactive,#0064FF,label/interactive,#66ABFF
+renamed,button,button/primary/bg,bg-inverted/secondary,#191C23,bg-inverted/secondary,#FFFFFF
+new token,-,button/primary/border-color,color/t-white/0,#FFFFFF @0%,color/t-white/0,#FFFFFF @0%
+renamed,on-button,button/primary/label,label-inverted/primary,#FFFFFF,label-inverted/primary,#000000
+new token,-,button/primary/state-layer/focused,color/t-white/15,#FFFFFF @15%,color/t-black/15,#000000 @15%
+new token,-,button/primary/state-layer/pressed,color/t-white/10,#FFFFFF @10%,color/t-black/10,#000000 @10%
+new token,-,button/secondary/bg,color/t-black/0,#000000 @0%,color/t-black/0,#000000 @0%
+new token,-,button/secondary/border-color,color/t-white/0,#FFFFFF @0%,color/t-white/0,#FFFFFF @0%
+new token,-,button/secondary/label,label/primary,#000000,label/primary,#FFFFFF
+new token,-,button/secondary/state-layer/focused,color/t-white/15,#FFFFFF @15%,color/t-black/15,#000000 @15%
+new token,-,button/secondary/state-layer/pressed,color/t-white/10,#FFFFFF @10%,color/t-black/10,#000000 @10%
+renamed,button-on-dark,button/on-dark/bg,color/primary/100,#FFFFFF,color/primary/100,#FFFFFF
+renamed,on-button-on-dark,button/on-dark/label,color/primary/0,#000000,color/primary/0,#000000
+new token,-,button/on-dark/border-color,color/t-white/0,#FFFFFF @0%,color/t-white/0,#FFFFFF @0%
+new token,-,button/on-dark/state-layer/focused,color/t-black/15,#000000 @15%,color/t-black/15,#000000 @15%
+new token,-,button/on-dark/state-layer/pressed,color/t-black/10,#000000 @10%,color/t-black/10,#000000 @10%
+new token,-,button/tint/bg,bg-tint/primary,#FBCD44,bg-tint/primary,#FBCD44
+new token,-,button/tint/border-color,color/t-white/0,#FFFFFF @0%,color/t-white/0,#FFFFFF @0%
+new token,-,button/tint/label,label-tint/primary,#000000,label-tint/primary,#000000
+new token,-,button/tint/state-layer/focused,color/t-black/15,#000000 @15%,color/t-black/15,#000000 @15%
+new token,-,button/tint/state-layer/pressed,color/t-black/10,#000000 @10%,color/t-black/10,#000000 @10%
+new token,-,button/ghost/bg,color/t-white/25,#FFFFFF @25%,color/t-white/25,#FFFFFF @25%
+new token,-,button/ghost/border-color,color/t-white/0,#FFFFFF @0%,color/t-white/0,#FFFFFF @0%
+new token,-,button/ghost/label,color/primary/100,#FFFFFF,color/primary/100,#FFFFFF
+new token,-,button/ghost/state-layer/focused,color/t-white/50,#FFFFFF @50%,color/t-white/50,#FFFFFF @50%
+new token,-,button/ghost/state-layer/pressed,color/t-white/30,#FFFFFF @30%,color/t-white/30,#FFFFFF @30%
+,,,,,,
+removed,button--focused,-,,,,
+removed,button--pressed,-,,,,
+removed,button-on-dark--focused,-,,,,
+removed,button-on-dark--pressed,-,,,,
+removed,on-button--focused,-,,,,
+removed,on-button--pressed,-,,,,
+removed,on-button-on-dark--focused,-,,,,
+removed,on-button-on-dark--pressed,-,,,,
+,,,,,,
+no-change,opacity.t-dark-10,opacity/t-dark-10,#000000 @10%,,#FFFFFF @10%,
+no-change,opacity.t-dark-16,opacity/t-dark-16,#000000 @16%,,#FFFFFF @20%,
+no-change,opacity.t-dark-4,opacity/t-dark-4,#000000 @4%,,#FFFFFF @4%,
+no-change,opacity.t-dark-8,opacity/t-dark-8,#000000 @8%,,#FFFFFF @8%,
+no-change,opacity.t-light-10,opacity/t-light-10,#FFFFFF @10%,,#000000 @10%,
+no-change,opacity.t-light-16,opacity/t-light-16,#FFFFFF @16%,,#000000 @20%,
+no-change,opacity.t-light-4,opacity/t-light-4,#FFFFFF @4%,,#000000 @4%,
+no-change,opacity.t-light-8,opacity/t-light-8,#FFFFFF @8%,,#000000 @8%,
+no-change,opacity.t-red-10,opacity/t-red-10,#DC362E @10%,,#FE6F67 @12%,
+no-change,opacity.t-red-16,opacity/t-red-16,#DC362E @16%,,#FE6F67 @16%,
+no-change,opacity.t-red-4,opacity/t-red-4,#DC362E @4%,,#FE6F67 @4%,
+no-change,opacity.t-red-8,opacity/t-red-8,#DC362E @8%,,#FE6F67 @8%,

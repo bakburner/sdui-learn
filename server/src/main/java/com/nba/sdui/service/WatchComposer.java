@@ -518,7 +518,7 @@ public class WatchComposer {
             ObjectNode row = atomicBuilder.container("row", "start", "center");
             row.put("gap", 8);
             ArrayNode rowChildren = objectMapper.createArrayNode();
-            rowChildren.add(atomicBuilder.text("✓", "bodyLarge", "bold", "token:color.feedback.success.70", null));
+            rowChildren.add(atomicBuilder.text("✓", "bodyLarge", "bold", "token:nba.color.feedback.success.70", null));
             rowChildren.add(atomicBuilder.text(feature, "bodyLarge", null, ColorTokens.TEXT_INVERSE, null));
             row.set("children", rowChildren);
             featureChildren.add(row);
@@ -553,7 +553,7 @@ public class WatchComposer {
 
         ArrayNode cardChildren = objectMapper.createArrayNode();
         if (t.badgeText != null) {
-            cardChildren.add(atomicBuilder.text(t.badgeText, "labelMedium", "bold", "token:color.secondary.50", null));
+            cardChildren.add(atomicBuilder.text(t.badgeText, "labelMedium", "bold", "token:nba.color.secondary.50", null));
         }
         ObjectNode tierName = atomicBuilder.text(t.name, "titleLarge", "bold", ColorTokens.TEXT_INVERSE, null);
         addHeading(objectMapper, tierName, t.name, 3);
@@ -631,7 +631,7 @@ public class WatchComposer {
         data.put("label", "Advertisement");
 
         ObjectNode placeholder = objectMapper.createObjectNode();
-        placeholder.put("backgroundColor", "token:color.surface.sunken");
+        placeholder.put("backgroundColor", "token:nba.bg.tertiary");
         placeholder.put("text", "Advertisement");
         data.set("placeholder", placeholder);
 

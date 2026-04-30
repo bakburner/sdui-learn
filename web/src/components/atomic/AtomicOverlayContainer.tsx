@@ -120,6 +120,15 @@ function overlayStyle(overlay: AtomicOverlay, el?: Record<string, unknown>): Rea
   if (el?.fillHeight) {
     style.top = top;
     style.bottom = bottom;
+    // When stretched to full height, use flex to preserve the alignment
+    // intent for inner content (e.g. bottom-anchored gradient scrim).
+    style.display = 'flex';
+    style.flexDirection = 'column';
+    if (alignment.startsWith('bottom')) {
+      style.justifyContent = 'flex-end';
+    } else if (alignment.startsWith('center')) {
+      style.justifyContent = 'center';
+    }
   }
 
   return style;

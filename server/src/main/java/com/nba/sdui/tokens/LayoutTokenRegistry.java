@@ -32,10 +32,7 @@ public class LayoutTokenRegistry {
         this.objectMapper = objectMapper;
         for (String name : new String[] {
             "schema/spacing-tokens.json",
-            "schema/corner-radius-tokens.json",
-            "schema/size-tokens.json",
-            "schema/typography-tokens.json",
-            "schema/shadow-tokens.json"
+            "schema/corner-radius-tokens.json"
         }) {
             try {
                 loadRegistry(name);
@@ -95,15 +92,6 @@ public class LayoutTokenRegistry {
         }
         if (classpathPath.contains("corner-radius")) {
             return "corner";
-        }
-        if (classpathPath.contains("size-tokens")) {
-            return "size";
-        }
-        if (classpathPath.contains("typography")) {
-            return "type";
-        }
-        if (classpathPath.contains("shadow")) {
-            return "shadow";
         }
         return "other";
     }

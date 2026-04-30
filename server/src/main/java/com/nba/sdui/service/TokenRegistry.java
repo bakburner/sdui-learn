@@ -59,26 +59,27 @@ public class TokenRegistry {
     void load() {
         try (InputStream stream = new ClassPathResource(COLOR_TOKENS_RESOURCE).getInputStream()) {
             JsonNode root = objectMapper.readTree(stream);
-            loadPalette(root.path("palette"));
+            loadPrimitives(root.path("primitives"));
+            int primCount = palette.size();
             loadSemantic(root.path("semantic"));
-            log.info("TokenRegistry loaded {} palette primitives and {} semantic tokens from {}",
-                    palette.size(), semantic.size(), COLOR_TOKENS_RESOURCE);
+            loadUi(root.path("ui"));
+            log.info("TokenRegistry loaded {} primitives, {} semantic aliases, {} ui tokens from {}",
+                    primCount, semantic.size(), palette.size() - primCount, COLOR_TOKENS_RESOURCE);
         } catch (IOException e) {
             log.error("TokenRegistry failed to load {} — composers will reject every token reference",
                     COLOR_TOKENS_RESOURCE, e);
         }
     }
 
-    private void loadPalette(JsonNode paletteNode) {
-        if (!paletteNode.isObject()) return;
-        Iterator<Map.Entry<String, JsonNode>> it = paletteNode.fields();
+    private void loadPrimitives(JsonNode primitivesNode) {
+        if (!primitivesNode.isObject()) return;
+        Iterator<Map.Entry<String, JsonNode>> it = primitivesNode.fields();
         while (it.hasNext()) {
             Map.Entry<String, JsonNode> e = it.next();
-            JsonNode v = e.getValue();
-            String light = v.path("light").asText(null);
-            String dark = v.path("dark").asText(null);
-            if (light != null && dark != null) {
-                palette.put(e.getKey(), new PaletteEntry(light, dark));
+            if (e.getKey().startsWith("$")) continue;
+            String hex = e.getValue().asText(null);
+            if (hex != null && !hex.isBlank()) {
+                palette.put(e.getKey(), new PaletteEntry(hex, hex));
                 allTokenNames.add(e.getKey());
             }
         }
@@ -97,6 +98,22 @@ public class TokenRegistry {
         }
     }
 
+    private void loadUi(JsonNode uiNode) {
+        if (!uiNode.isObject()) return;
+        Iterator<Map.Entry<String, JsonNode>> it = uiNode.fields();
+        while (it.hasNext()) {
+            Map.Entry<String, JsonNode> e = it.next();
+            if (e.getKey().startsWith("$")) continue;
+            JsonNode v = e.getValue();
+            String light = v.path("light").asText(null);
+            String dark = v.path("dark").asText(null);
+            if (light != null && dark != null) {
+                palette.put(e.getKey(), new PaletteEntry(light, dark));
+                allTokenNames.add(e.getKey());
+            }
+        }
+    }
+
     /**
      * True when {@code name} identifies a palette primitive or semantic alias
      * that resolves to one.
@@ -107,8 +124,8 @@ public class TokenRegistry {
     }
 
     /**
-     * Accepts a bare token name (e.g. {@code color.primary.50}) or a
-     * fully-qualified wire reference (e.g. {@code token:color.primary.50})
+     * Accepts a bare token name (e.g. {@code nba.color.primary.50}) or a
+     * fully-qualified wire reference (e.g. {@code token:nba.color.primary.50})
      * and returns the wire form with the {@code token:} prefix attached.
      * Rejects unknown tokens by throwing {@link IllegalArgumentException};
      * call {@link #exists(String)} first if the caller needs a non-throwing

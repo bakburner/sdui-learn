@@ -334,10 +334,10 @@
     "ColorToken": {
       "type": "string",
       "pattern": "^(#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{8}|token:[A-Za-z0-9][A-Za-z0-9_.-]*)$",
-      "description": "A color value on the wire. Either a literal hex color (#RRGGBB or #RRGGBBAA) or a semantic token reference of the form 'token:<dot.separated.path>' (e.g. 'token:color.primary.50', 'token:color.brand.nba'). Clients resolve token references at render time against their bundled color registry, picking a light or dark value based on the OS color scheme. Unknown tokens log 'token_resolver_missing' and fall back to the caller's default."
+      "description": "A color value on the wire. Either a literal hex color (#RRGGBB or #RRGGBBAA) or a semantic token reference of the form 'token:<dot.separated.path>' (e.g. 'token:nba.color.primary.50', 'token:nba.label.accent.brand'). Clients resolve token references at render time against their bundled color registry, picking a light or dark value based on the OS color scheme. Unknown tokens log 'token_resolver_missing' and fall back to the caller's default."
     },
     "LayoutScalar": {
-      "description": "Absolute layout value: raw dp/px integer, or a semantic layout token reference token:<path> (e.g. token:spacing.md, token:radius.lg) resolved per platform.formFactor against bundled spacing/corner/size/typography/shadow registries. Unknown tokens log token_resolver_missing and fall back to 0 (or caller default).",
+      "description": "Absolute layout value: raw dp/px integer, or a semantic layout token reference token:<path> (e.g. token:nba.spacing.md, token:nba.radius.lg) resolved per platform.formFactor against bundled spacing/corner/size/typography/shadow registries. Unknown tokens log token_resolver_missing and fall back to 0 (or caller default).",
       "oneOf": [
         { "type": "integer" },
         { "type": "string", "pattern": "^token:[A-Za-z0-9][A-Za-z0-9_.-]*$" }

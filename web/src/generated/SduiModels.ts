@@ -1095,16 +1095,19 @@ export interface PageIndicator {
      */
     color?: string;
     /**
-     * Indicator visualization style.
+     * Indicator visualization style. 'dots' renders circular dots; 'dashes' renders horizontal
+     * bar segments.
      */
     style: Style;
     [property: string]: any;
 }
 
 /**
- * Indicator visualization style.
+ * Indicator visualization style. 'dots' renders circular dots; 'dashes' renders horizontal
+ * bar segments.
  */
 export enum Style {
+    Dashes = "dashes",
     Dots = "dots",
 }
 
@@ -1547,11 +1550,11 @@ export interface Subsection {
 }
 
 /**
- * Server-driven surface spec applied by the client's SectionRouter to every permanent
+ * Server-driven surface spec applied by the client's SectionRouter to every semantic
  * section — the visual wrapper beneath the section's content. Mirrors the inline-chrome
- * vocabulary on AtomicContainer so permanent sections have schema parity with composed
+ * vocabulary on AtomicContainer so semantic sections have schema parity with composed
  * sections. Every client's shared SectionContainer wrapper reads these fields;
- * permanent-section renderers do not set outer padding, margin, corner radius, shadow,
+ * semantic-section renderers do not set outer padding, margin, corner radius, shadow,
  * border, or background themselves. The sibling `data` field carries content (including the
  * atomic UI tree); `surface` carries the frame that sits beneath it.
  */

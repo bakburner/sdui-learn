@@ -19,7 +19,7 @@ const MAX_TREE_DEPTH = 6;
 export interface AtomicProps {
   element: AtomicElement;
   state: Record<string, unknown>;
-  onAction: (action: Action) => void;
+  onAction: (action: Action | Action[]) => void;
   depth?: number;
   onStateChange?: (key: string, value: unknown) => void;
   sectionSlotDepth?: number;

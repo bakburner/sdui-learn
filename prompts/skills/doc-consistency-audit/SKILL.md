@@ -14,6 +14,8 @@ Sync all SDUI governance documentation against the schema and code as the single
 - After renaming action types or other schema enums
 - After implementing features that close gaps (request transport, i18n, experimentation, etc.)
 - After ADR status changes (Proposed → Accepted)
+- When the working tree contains uncommitted changes that introduce new capabilities or patterns
+- After any multi-file implementation work (new infrastructure, new execution models, new helpers)
 - Periodic consistency review ("review the docs", "sync docs", "dedup docs")
 - After server composition changes (the kitchen sink appendix JSON is refreshed from the live server)
 
@@ -39,6 +41,7 @@ Extract current facts from code before auditing docs. These files define reality
 | i18n implementation | `server/.../SduiUtils.java` → `stampStringTableOnSections` + `schema/sdui-schema.json` → `stringTable` on Section |
 | Experiment implementation | `server/.../SduiCompositionService.java` → experiment resolution + `docs/adr/006-experiment-assignment-model.md` status |
 | Recent commits (feature status) | `git log --oneline -10` — scan for feat/fix commits that close gaps |
+| Working tree changes (new facts) | `git status --short` + `git diff HEAD` — uncommitted capabilities, patterns, new requirements |
 | Kitchen sink live response | `GET http://localhost:8080/sdui/demos` with `X-Platform: android` (requires running server) |
 
 ## Documents to Audit
@@ -77,7 +80,30 @@ Then read the router files to record:
 - Which types the Android/Web AtomicRouters route
 - What the AtomicCompositeBuilder builds (migrated types)
 
-### Step 1b — Extract feature status facts
+### Step 1b — Extract working tree changes
+
+The working tree often contains new capabilities, patterns, or architectural decisions that docs don't yet reflect. This step captures them **before** the doc audit so new information propagates forward.
+
+1. **Staged + unstaged changes** — run `git diff --stat HEAD` and `git diff --cached --stat` (or `git status --short`) to identify all modified/added files.
+2. **Classify each changed file** by domain:
+   - Schema changes → new types, fields, enums that need documenting
+   - Server composition changes → new composers, new patterns, new endpoints
+   - Client renderer/infrastructure changes → new capabilities, fixed gaps, new patterns
+   - Runtime/action changes → new action semantics, new execution models
+   - Config/build changes → new tooling, new makefile targets
+3. **Read the diffs** for substantive files — `git diff HEAD -- <file>` for each file with meaningful changes (skip formatting-only or generated output). Summarize:
+   - What new capability or pattern was introduced?
+   - Does it close a previously documented gap?
+   - Does it introduce a new requirement, constraint, or architectural pattern?
+   - Does it change the execution model or contract for an existing feature?
+4. **Build a "new facts" list** — for each substantive change, record:
+   - The fact (e.g. "onActivate now executes all matching actions as a batch sequence with failure policy")
+   - Which documents should reflect it (requirements summary, technical proposal, executive summary, contract, etc.)
+   - Whether it closes a gap, adds a new requirement, or modifies an existing one
+
+This new-facts list feeds into Steps 3–5: when auditing each document, check whether the new facts are present. If not, add them.
+
+### Step 1c — Extract feature status facts
 
 The extraction script covers schema structure. Feature status requires additional checks:
 
@@ -104,6 +130,15 @@ Verify:
 ### Step 3 — Audit each document
 
 For each doc in the audit list, check the [consistency checklist](./references/consistency-checklist.md).
+
+Additionally, for each document, check the **new-facts list** from Step 1b:
+- If a new fact belongs in this document (per the classification in Step 1b), verify it is present.
+- If absent, mark it as an inconsistency to fix — new capabilities, requirements, and architectural patterns must be documented where they apply.
+- For requirements documents (`sdui-requirements-summary.md`): add new requirements or update existing ones, update status matrices, and add to the relevant subsections.
+- For the technical proposal: update architecture descriptions, feature tables, and status sections.
+- For the executive summary: update feature tables and capability descriptions.
+- For the client contract: update pseudocode, algorithms, and conformance checklists if the working-tree changes alter the client contract.
+- For `AGENTS.md`: update semantic section inventories, rule clarifications, or operational rules if the working-tree changes affect governance.
 
 ### Step 4 — Report inconsistencies
 

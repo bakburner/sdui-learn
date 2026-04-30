@@ -17,10 +17,10 @@ glossary is strictly about runtime, wire, and design-system vocabulary.
 | **Section** | Top-level unit of refresh and visibility. Carries `id`, `type`, `data`, `sectionStates`, and (optionally) `refreshPolicy`. The smallest chunk the server can replace independently and the granularity at which live updates, error boundaries, and impression dedup operate. |
 | **Element** | Any node inside a section's `data.ui` tree (`Container`, `Text`, `Image`, …), distinct from the enclosing `Section`. No `id`/`refreshPolicy` on the node itself. |
 | **Atomic primitive** | `AtomicElement` `type` from the schema enum: `Container`, `Text`, `Image`, `Button`, `Spacer`, `Divider`, `ScrollContainer`, `Conditional`, `DisplayGrid`, `SectionSlot`, `LiveClock`, `OverlayContainer`. Each has one `AtomicRouter` branch per platform. Product-specific layout belongs in `AtomicComposite` trees, not new primitives, unless the schema gains a type. |
-| **AtomicComposite** | Section type whose `data.ui` is a server-composed tree of atomic primitives rather than a fixed-shape payload. The default section type for stateless layout surfaces. Lets the server build new product surfaces without shipping new client renderers. |
-| **Permanent section** | A section type with a dedicated client renderer (not `AtomicComposite`). The allowed set is the schema `Section` enum minus `AtomicComposite`. |
+| **AtomicComposite section** | Section whose `type` is `"AtomicComposite"` and whose `data.ui` is a server-composed tree of atomic primitives rather than a fixed-shape payload. The default section type for stateless layout surfaces. Lets the server build new product surfaces without shipping new client renderers. |
+| **Semantic section** | A section type with a dedicated client renderer (not `AtomicComposite`). The allowed set is the schema `Section` enum minus `AtomicComposite`. Justified by client-owned state, SDK hosting, or runtime lifecycle. |
 | **Surface** | Design-system tier-adaptive container (e.g. `hero` surface, `canvas` surface). Realized natively per OS tier (Liquid Glass on iOS 26+, blur-fallback below; Material 3 expressive on Android; CSS filter on Web). Distinct from `Section`: a surface is presentational, a section is structural. See `docs/sdui-design-system.md` §5. |
-| **Chrome** / **outer chrome** | The wrapper styling owned by `SectionContainer` (margins, dividers, frame, error/loading scaffolding). Renderers do not paint chrome themselves; ownership of this layer is shared infrastructure, not per-section. |
+| **Section frame** / **outer frame** | The wrapper styling owned by `SectionContainer` (margins, dividers, surface, error/loading scaffolding). Renderers do not paint the frame themselves; ownership of this layer is shared infrastructure, not per-section. |
 | **Skeleton** | Loading-state placeholder shape declared via `sectionStates.loading.skeleton`. One of `shimmer` / `spinner` / `placeholder` / `none`. |
 | **ErrorState** | The section's server-declared error presentation (`message`, `retryAction`, `hideOnError`) under `sectionStates.error`. Schema name avoids colliding with host `Error` types in generated code. |
 
@@ -116,7 +116,7 @@ participates in.
 | **`Sdui*`** | Project-namespaced runtime type that would otherwise collide with native/runtime symbols. | `SduiAction`, `SduiActionLogger`, `SduiError`, `SduiRepository`, `SduiCore`, `SduiScreenViewModel` |
 | **`*Composer`** | Server-side role: builds an SDUI screen response from data + composition rules. | `DemoScreenComposer`, `ForYouComposer`, `ScheduleComposer`, `AtomicCompositeBuilder` |
 | **`*Router`** | Client-side dispatch role: maps a `type` field to its renderer. | `SectionRouter`, `AtomicRouter` |
-| **`*Container`** | Wrapper that owns chrome / shared concerns around its child. | `SectionContainer`, `AtomicScrollContainer`, `AtomicOverlayContainer` |
+| **`*Container`** | Wrapper that owns the frame / shared concerns around its child. | `SectionContainer`, `AtomicScrollContainer`, `AtomicOverlayContainer` |
 | **`*Boundary`** | Error-isolation wrapper at a granularity (catches and surfaces failures inside its scope). | `SectionErrorBoundary` |
 | **`*Dispatcher`** / **`*Handler`** | Action-execution role; one owner per platform. | `ActionDispatcher` (iOS), `ActionHandler` (Android, Web) |
 | **`*Tracker`** | Stateful observer of a runtime signal; emits dedup/lifecycle events. | `ImpressionTracker`, `SectionVisibilityTracker` |

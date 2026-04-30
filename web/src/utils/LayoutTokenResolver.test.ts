@@ -8,9 +8,8 @@ import {
 
 /**
  * Contract tests for the inlined token snapshots. The numbers below are
- * pinned to `schema/spacing-tokens.json`, `schema/size-tokens.json`,
- * `schema/corner-radius-tokens.json`, `schema/typography-tokens.json`, and
- * `schema/shadow-tokens.json`. If those files change, regenerate the
+ * pinned to `schema/spacing-tokens.json` and
+ * `schema/corner-radius-tokens.json`. If those files change, regenerate the
  * snapshot in `LayoutTokenResolver.ts` and update these expectations.
  */
 
@@ -41,21 +40,21 @@ describe('resolveLayoutScalar', () => {
   });
 
   it('resolves a semantic spacing token per form factor', () => {
-    // spacing.md → space.raw.12 → phone:12, tablet:14, web.wide:14
-    expect(resolveLayoutScalar('token:spacing.md', 'phone')).toBe(12);
-    expect(resolveLayoutScalar('token:spacing.md', 'tablet')).toBe(14);
-    expect(resolveLayoutScalar('token:spacing.md', 'web.wide')).toBe(14);
-    expect(resolveLayoutScalar('token:spacing.md', 'web.narrow')).toBe(12);
+    // nba.spacing.md → nba.space.raw.8 → phone:8, tablet:10, web.wide:10
+    expect(resolveLayoutScalar('token:nba.spacing.md', 'phone')).toBe(8);
+    expect(resolveLayoutScalar('token:nba.spacing.md', 'tablet')).toBe(10);
+    expect(resolveLayoutScalar('token:nba.spacing.md', 'web.wide')).toBe(10);
+    expect(resolveLayoutScalar('token:nba.spacing.md', 'web.narrow')).toBe(8);
   });
 
   it('resolves a semantic radius token per form factor', () => {
-    // radius.lg → radius.raw.12 → phone:12, tablet:14
-    expect(resolveLayoutScalar('token:radius.lg', 'phone')).toBe(12);
-    expect(resolveLayoutScalar('token:radius.lg', 'tablet')).toBe(14);
+    // nba.radius.lg → nba.radius.raw.16 → phone:16, tablet:16 (flat)
+    expect(resolveLayoutScalar('token:nba.radius.lg', 'phone')).toBe(16);
+    expect(resolveLayoutScalar('token:nba.radius.lg', 'tablet')).toBe(16);
   });
 
   it('resolves palette tokens directly', () => {
-    expect(resolveLayoutScalar('token:space.raw.16', 'phone')).toBe(16);
+    expect(resolveLayoutScalar('token:nba.space.raw.16', 'phone')).toBe(16);
     expect(resolveLayoutScalar('token:size.raw.40', 'tablet')).toBe(48);
   });
 
@@ -121,19 +120,19 @@ describe('resolveSpacingPx', () => {
   it('resolves token strings on each edge through the form-factor row', () => {
     const out = resolveSpacingPx(
       {
-        top:    'token:spacing.xs',  // space.raw.4 → tablet:6
-        bottom: 'token:spacing.sm',  // space.raw.8 → tablet:10
-        start:  'token:spacing.md',  // space.raw.12 → tablet:14
-        end:    'token:spacing.lg',  // space.raw.16 → tablet:18
+        top:    'token:nba.spacing.xs',  // nba.space.raw.2 → tablet:2
+        bottom: 'token:nba.spacing.sm',  // nba.space.raw.4 → tablet:6
+        start:  'token:nba.spacing.md',  // nba.space.raw.8 → tablet:10
+        end:    'token:nba.spacing.lg',  // nba.space.raw.16 → tablet:20
       },
       'tablet',
     );
-    expect(out).toEqual({ top: 6, bottom: 10, left: 14, right: 18 });
+    expect(out).toEqual({ top: 2, bottom: 6, left: 10, right: 20 });
   });
 
   it('treats missing edges as 0 and ignores extra keys', () => {
-    const out = resolveSpacingPx({ top: 'token:spacing.md' }, 'phone');
-    expect(out).toEqual({ top: 12, bottom: 0, left: 0, right: 0 });
+    const out = resolveSpacingPx({ top: 'token:nba.spacing.md' }, 'phone');
+    expect(out).toEqual({ top: 8, bottom: 0, left: 0, right: 0 });
   });
 });
 
@@ -169,7 +168,7 @@ describe('resolveLayoutScalar — form-factor default integration', () => {
   });
 
   it('uses currentFormFactor() when no form factor is supplied', () => {
-    // web.wide: spacing.md → 14
-    expect(resolveLayoutScalar('token:spacing.md')).toBe(14);
+    // web.wide: nba.spacing.md → 10
+    expect(resolveLayoutScalar('token:nba.spacing.md')).toBe(10);
   });
 });

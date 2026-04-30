@@ -66,11 +66,11 @@ sdui-prototype/
 │   └── sdui-core/              # Reusable SDUI library (renderers, state, data)
 ├── web/                        # React/TypeScript web client
 │   └── src/
-│       ├── components/         # SectionRouter + 8 permanent section renderers + AtomicRouter + SectionErrorBoundary, SectionSkeleton
+│       ├── components/         # SectionRouter + 8 semantic section renderers + AtomicRouter + SectionErrorBoundary, SectionSkeleton
 │       ├── hooks/              # useSduiScreen, useRefreshPolicy, useImpressionTracking, useAnalyticsContext
 │       └── runtime/            # AblyClient, ActionHandler, DataBindingApplier
 ├── ios/                        # iOS / SwiftUI client (Swift Package + SduiDemo app)
-│   ├── Sources/SduiCore/       # SectionRouter + 8 permanent section views + AtomicRouter + navigation shell
+│   ├── Sources/SduiCore/       # SectionRouter + 8 semantic section views + AtomicRouter + navigation shell
 │   ├── Tests/SduiCoreTests/    # Model round-trips, fixtures, action dispatcher, impression tracker
 │   └── SduiDemo/               # XcodeGen-based demo host (bootstraps nba://for-you)
 ├── docs/                       # Technical proposal & requirements
@@ -147,7 +147,7 @@ make codegen
 
 ## Section Types (9 in schema: 8 permanent + AtomicComposite)
 
-### Permanent Sections (client-owned renderers)
+### Semantic Sections (client-owned renderers)
 
 | Type | Description | Refresh |
 |------|-------------|---------|
@@ -197,7 +197,7 @@ make codegen
 ## Recent Changes
 
 - **Per-section error handling** (2026-04-01) — `SectionErrorBoundary` on Android (catch-at-dispatch + pre-validation) and web (React ErrorBoundary). `SectionSkeleton` with 4 generic styles. Typed `SectionStates` model. Retry budget (client-side, default 5). `hideOnError` support. Error-handling contract rewritten.
-- **Accessibility** (2026-03-26) — `AccessibilityProperties` on Section, Subsection, AtomicElement. Android Compose `semantics{}`, web ARIA attributes, iOS `.accessibilityLabel`/traits. All 8 permanent section renderers and 12 atomic primitives wired on every platform.
+- **Accessibility** (2026-03-26) — `AccessibilityProperties` on Section, Subsection, AtomicElement. Android Compose `semantics{}`, web ARIA attributes, iOS `.accessibilityLabel`/traits. All 8 semantic section renderers and 12 atomic primitives wired on every platform.
 - **Request transport envelope** (2026-03-24) — `SduiRequestContext` POJO + `BracketParamResolver` on server. `RequestEnvelopeBuilder` on Android, iOS, and web. GET-first with bracket-notation params, POST fallback.
 - **i18n** (2026-03-24) — Section-level `stringTable` stamped by server per locale. Clients consume from each section.
 - **Experiments / A/B testing** (2026-03-24) — ADR-006 Accepted. Client-authoritative `experiments` map in request envelope. Server resolves at composition time.

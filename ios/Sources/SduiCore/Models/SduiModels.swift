@@ -1553,7 +1553,7 @@ extension Spacing {
 /// Bottom-trailing corner.
 ///
 /// Absolute layout value: raw dp/px integer, or a semantic layout token reference
-/// token:<path> (e.g. token:spacing.md, token:radius.lg) resolved per platform.formFactor
+/// token:<path> (e.g. token:nba.spacing.md, token:nba.radius.lg) resolved per platform.formFactor
 /// against bundled spacing/corner/size/typography/shadow registries. Unknown tokens log
 /// token_resolver_missing and fall back to 0 (or caller default).
 ///
@@ -2127,7 +2127,8 @@ struct PageIndicator: Codable {
     let alignment: BadgeAlignment
     /// Inactive indicator color.
     let color: String?
-    /// Indicator visualization style.
+    /// Indicator visualization style. 'dots' renders circular dots; 'dashes' renders horizontal
+    /// bar segments.
     let style: Style
 }
 
@@ -2172,8 +2173,10 @@ extension PageIndicator {
     }
 }
 
-/// Indicator visualization style.
+/// Indicator visualization style. 'dots' renders circular dots; 'dashes' renders horizontal
+/// bar segments.
 enum Style: String, Codable {
+    case dashes = "dashes"
     case dots = "dots"
 }
 
@@ -3160,11 +3163,11 @@ extension Subsection {
     }
 }
 
-/// Server-driven surface spec applied by the client's SectionRouter to every permanent
+/// Server-driven surface spec applied by the client's SectionRouter to every semantic
 /// section — the visual wrapper beneath the section's content. Mirrors the inline-chrome
-/// vocabulary on AtomicContainer so permanent sections have schema parity with composed
+/// vocabulary on AtomicContainer so semantic sections have schema parity with composed
 /// sections. Every client's shared SectionContainer wrapper reads these fields;
-/// permanent-section renderers do not set outer padding, margin, corner radius, shadow,
+/// semantic-section renderers do not set outer padding, margin, corner radius, shadow,
 /// border, or background themselves. The sibling `data` field carries content (including the
 /// atomic UI tree); `surface` carries the frame that sits beneath it.
 // MARK: - SectionSurface

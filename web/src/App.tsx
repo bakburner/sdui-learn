@@ -145,19 +145,17 @@ export function App(): React.ReactElement {
     });
   }, []);
 
-  const handleAction = useCallback((action: Action) => {
-    if (action.type === 'navigate' && action.targetUri) {
-      handleUriNavigate(action.targetUri);
-      return;
-    }
+  const handleAction = useCallback((actionOrActions: Action | Action[]) => {
+    const actions = Array.isArray(actionOrActions) ? actionOrActions : [actionOrActions];
     const context = {
       state: screenState,
       onStateChange: handleStateChange,
       onRefresh: handleRefresh,
       onSectionUpdate: handleSectionUpdate,
       onSectionStale: handleSectionStale,
+      onNavigate: handleUriNavigate,
     };
-    executeActionSequence([action], context);
+    executeActionSequence(actions, context);
   }, [screenState, handleStateChange, handleRefresh, handleSectionUpdate, handleUriNavigate, handleSectionStale]);
 
   const handleThemeToggle = useCallback(() => {

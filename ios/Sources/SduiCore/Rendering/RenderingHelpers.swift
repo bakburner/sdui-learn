@@ -161,12 +161,17 @@ extension View {
 struct ActionTapModifier: ViewModifier {
     let actions: [Action]?
     let onAction: (Action) -> Void
+    @Environment(\.batchActionExecutor) private var batchExecutor
 
     func body(content: Content) -> some View {
         if let tapActions = actions?.filter(\.trigger.isPrimaryActivation), !tapActions.isEmpty {
             content.onTapGesture {
-                for action in tapActions {
-                    onAction(action)
+                if let batch = batchExecutor {
+                    batch(tapActions)
+                } else {
+                    for action in tapActions {
+                        onAction(action)
+                    }
                 }
             }
         } else {

@@ -12,6 +12,8 @@ export interface ActionContext {
   onSectionUpdate: (sectionId: string, section: Section) => void;
   /** Mark a section as stale (refresh failed) */
   onSectionStale: (sectionId: string) => void;
+  /** Navigate to an nba:// URI (triggers screen change) */
+  onNavigate: (uri: string) => void;
   /** Current screen state */
   state: Record<string, unknown>;
 }
@@ -75,7 +77,7 @@ export async function executeActionSequence(
 async function dispatchAction(action: Action, context: ActionContext): Promise<boolean> {
   switch (action.type) {
     case 'navigate':
-      return handleNavigate(action);
+      return handleNavigate(action, context);
 
     case 'mutate':
       return handleMutate(action, context);
@@ -109,21 +111,14 @@ function getDefaultErrorMessage(action: Action): string | undefined {
   }
 }
 
-function handleNavigate(action: Action): boolean {
+function handleNavigate(action: Action, context: ActionContext): boolean {
   const uri = action.targetUri || action.fallbackUrl;
   if (!uri) {
     actionWarn('Navigate: no targetUri or fallbackUrl');
     return false;
   }
   actionLog(`navigate uri=${uri} presentation=${action.presentation ?? 'push'}`);
-  // In-app navigation is handled by App.tsx before reaching here.
-  // This handler runs only for URIs not intercepted by the app shell.
-  const name = uri
-    .replace('nba://', '')
-    .replace(/\//g, ' ')
-    .replace(/-/g, ' ')
-    .replace(/^\w/, (c: string) => c.toUpperCase());
-  showToast(`Navigating to ${name} (not implemented)`);
+  context.onNavigate(uri);
   return true;
 }
 
@@ -234,11 +229,12 @@ function handleToast(action: Action): void {
 
 /**
  * Create action handler bound to a context.
- * Wraps a single action into a one-element sequence.
+ * Normalizes single actions or arrays into a sequence for the executor.
  */
 export function createActionHandler(context: ActionContext) {
-  return (action: Action) => {
-    executeActionSequence([action], context);
+  return (actionOrActions: Action | Action[]) => {
+    const actions = Array.isArray(actionOrActions) ? actionOrActions : [actionOrActions];
+    executeActionSequence(actions, context);
   };
 }
 

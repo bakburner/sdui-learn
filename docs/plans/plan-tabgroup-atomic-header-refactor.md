@@ -12,7 +12,7 @@ This plan keeps `TabGroup` as the stateful/nested-section host, but moves option
 
 | Aspect | Status | Notes |
 |--------|--------|-------|
-| Section type | Semantic | `TabGroup` is listed as a justified permanent section for tab selection state and nested section hosting. |
+| Section type | Semantic | `TabGroup` is listed as a justified semantic section for tab selection state and nested section hosting. |
 | Visual header | Renderer-owned | Web/iOS/Android each render their own tab bar directly. |
 | Body content | Server-owned | `data.tabContents` contains arrays of sections. Those sections can already be `AtomicComposite` or semantic sections. |
 | Atomic UI support | Partial | Semantic sections can use `data.ui`, but `TabGroup` renderers do not currently look for optional `data.ui`. |

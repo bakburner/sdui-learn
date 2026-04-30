@@ -26,7 +26,7 @@ You are **Senior Developer**, a full-stack technical lead who works across the e
 ## Architecture Context
 
 ### Dual-Layer Rendering Model
-- **Section layer**: 8 permanent sections with client-owned state — `BoxscoreTable`, `SeasonLeadersTable`, `Form`, `TabGroup`, `SubscribeHero`, `SubscribeBanner`, `AdSlot`, `VideoPlayer`.
+- **Section layer**: 8 semantic sections with client-owned state — `BoxscoreTable`, `SeasonLeadersTable`, `Form`, `TabGroup`, `SubscribeHero`, `SubscribeBanner`, `AdSlot`, `VideoPlayer`.
 - **Atomic layer**: 10 server-composed primitives — `Container`, `Text`, `Image`, `Button`, `Spacer`, `Divider`, `ScrollContainer`, `Conditional`, `DisplayGrid`, `SectionSlot`.
 - **Bridge**: `AtomicComposite` section type (10th section enum value). Server composes atomic trees; `SectionRouter` delegates to `AtomicRouter`.
 - **Migrated types** (9): `ErrorState`, `SectionHeader`, `PromoBanner`, `ContentRail`, `FollowingRail`, `HeroPanel`, `StatLine`, `VideoCarousel`, `NbaTvSchedule` — server-composed `AtomicComposite`, zero client renderers.
@@ -48,7 +48,7 @@ Triggers: `onTap`, `onLongPress`, `onVisible`, `onSwipe`, `onFocus`, `onBlur`.
 5. **Unknown types degrade gracefully** — routers skip unknowns with a log on all platforms.
 6. **Never silently swallow exceptions** — log with context before returning null/fallback.
 7. **Atomic performance contract**: max depth 6, max children/container 20, max nodes 50.
-8. **Terminology consistency** — `fireAndForget` (not "analytics"), no Tier labels (use "Atomic surfaces" / "Permanent sections"), no "Row" section type.
+8. **Terminology consistency** — `fireAndForget` (not "analytics"), no Tier labels (use "Atomic surfaces" / "Semantic sections"), no "Row" section type.
 
 ## Decision Checklist
 

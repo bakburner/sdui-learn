@@ -334,10 +334,10 @@
     "ColorToken": {
       "type": "string",
       "pattern": "^(#[0-9A-Fa-f]{6}|#[0-9A-Fa-f]{8}|token:[A-Za-z0-9][A-Za-z0-9_.-]*)$",
-      "description": "A color value on the wire. Either a literal hex color (#RRGGBB or #RRGGBBAA) or a semantic token reference of the form 'token:<dot.separated.path>' (e.g. 'token:color.primary.50', 'token:color.brand.nba'). Clients resolve token references at render time against their bundled color registry, picking a light or dark value based on the OS color scheme. Unknown tokens log 'token_resolver_missing' and fall back to the caller's default."
+      "description": "A color value on the wire. Either a literal hex color (#RRGGBB or #RRGGBBAA) or a semantic token reference of the form 'token:<dot.separated.path>' (e.g. 'token:nba.color.primary.50', 'token:nba.label.accent.brand'). Clients resolve token references at render time against their bundled color registry, picking a light or dark value based on the OS color scheme. Unknown tokens log 'token_resolver_missing' and fall back to the caller's default."
     },
     "LayoutScalar": {
-      "description": "Absolute layout value: raw dp/px integer, or a semantic layout token reference token:<path> (e.g. token:spacing.md, token:radius.lg) resolved per platform.formFactor against bundled spacing/corner/size/typography/shadow registries. Unknown tokens log token_resolver_missing and fall back to 0 (or caller default).",
+      "description": "Absolute layout value: raw dp/px integer, or a semantic layout token reference token:<path> (e.g. token:nba.spacing.md, token:nba.radius.lg) resolved per platform.formFactor against bundled spacing/corner/size/typography/shadow registries. Unknown tokens log token_resolver_missing and fall back to 0 (or caller default).",
       "oneOf": [
         { "type": "integer" },
         { "type": "string", "pattern": "^token:[A-Za-z0-9][A-Za-z0-9_.-]*$" }
@@ -440,8 +440,8 @@
       "properties": {
         "style": {
           "type": "string",
-          "enum": ["dots"],
-          "description": "Indicator visualization style."
+          "enum": ["dots", "dashes"],
+          "description": "Indicator visualization style. 'dots' renders circular dots; 'dashes' renders horizontal bar segments."
         },
         "alignment": { "$ref": "#/definitions/BadgeAlignment", "description": "Position of the indicator within the ScrollContainer bounds." },
         "color": { "$ref": "#/definitions/ColorToken", "description": "Inactive indicator color." },
@@ -884,7 +884,7 @@
     },
     "SectionSurface": {
       "type": "object",
-      "description": "Server-driven surface spec applied by the client's SectionRouter to every permanent section — the visual wrapper beneath the section's content. Mirrors the inline-chrome vocabulary on AtomicContainer so permanent sections have schema parity with composed sections. Every client's shared SectionContainer wrapper reads these fields; permanent-section renderers do not set outer padding, margin, corner radius, shadow, border, or background themselves. The sibling `data` field carries content (including the atomic UI tree); `surface` carries the frame that sits beneath it.",
+      "description": "Server-driven surface spec applied by the client's SectionRouter to every semantic section — the visual wrapper beneath the section's content. Mirrors the inline-chrome vocabulary on AtomicContainer so semantic sections have schema parity with composed sections. Every client's shared SectionContainer wrapper reads these fields; semantic-section renderers do not set outer padding, margin, corner radius, shadow, border, or background themselves. The sibling `data` field carries content (including the atomic UI tree); `surface` carries the frame that sits beneath it.",
       "properties": {
         "margin":       { "$ref": "#/definitions/Spacing", "description": "Outer margin (space between the surface and its siblings / screen edge)." },
         "padding":      { "$ref": "#/definitions/Spacing", "description": "Inner padding (space between the surface edge and the content it wraps)." },

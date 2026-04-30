@@ -21,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class AtomicCompositeBuilderFeedModulesTest {
 
-    private static final String OVERLAY_SCRIM_TOKEN = "token:color.overlay.scrim";
+    private static final String OVERLAY_SCRIM_TOKEN = "token:nba.effect.scrim";
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final AtomicCompositeBuilder builder = new AtomicCompositeBuilder(objectMapper);

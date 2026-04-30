@@ -39,6 +39,7 @@ public class SduiCompositionService {
     private final WatchComposer watchComposer;
     private final LiveComposer liveComposer;
     private final ScheduleComposer scheduleComposer;
+    private final HomeComposer homeComposer;
 
     /** Default experiment ID used for game-detail variant resolution. */
     private static final String GAME_DETAIL_EXPERIMENT = "game_detail_variant";
@@ -55,7 +56,8 @@ public class SduiCompositionService {
                                    ForYouComposer forYouComposer,
                                    WatchComposer watchComposer,
                                    LiveComposer liveComposer,
-                                   ScheduleComposer scheduleComposer) {
+                                   ScheduleComposer scheduleComposer,
+                                   HomeComposer homeComposer) {
         this.objectMapper = objectMapper;
         this.statsApiClient = statsApiClient;
         this.utils = utils;
@@ -67,6 +69,7 @@ public class SduiCompositionService {
         this.watchComposer = watchComposer;
         this.liveComposer = liveComposer;
         this.scheduleComposer = scheduleComposer;
+        this.homeComposer = homeComposer;
     }
 
     // ── Screen delegation ──────────────────────────────────────────────
@@ -114,6 +117,10 @@ public class SduiCompositionService {
 
     public JsonNode composeSchedule(SduiRequestContext ctx) {
         return scheduleComposer.composeSchedule(ctx.getTraceId(), ctx.getLocale());
+    }
+
+    public JsonNode composeHome(SduiRequestContext ctx) {
+        return homeComposer.composeHome(ctx.getTraceId(), ctx.getLocale());
     }
 
     // ── Stats-polling helpers (kept here — they need StatsApiClient) ──

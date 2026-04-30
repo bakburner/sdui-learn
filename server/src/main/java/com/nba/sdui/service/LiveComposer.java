@@ -9,15 +9,24 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 /**
  * Composes the "Games" SDUI screen — all live, upcoming & final games.
  *
  * Layout:
  *   1. GamePanel (featured) – hero card for the top live game (SSE refresh)
- *   2. SectionHeader    – "Live Now"
- *   3–N. GamePanel       – every live game (gameStatus == 2)
- *   N+1. SectionHeader  – "Upcoming Today"
- *   N+2–M. GamePanel     – every upcoming game (gameStatus == 1)
+ *   2. GameScheduleList     – "Live Now" compact list (SSE per-row clock countdown)
+ *   3. GameScheduleList     – "Upcoming Today" (static)
+ *   4. GameScheduleList     – "Final" (static)
+ *
+ * Live rows use per-game SSE channels bound via dataBinding so the LiveClock
+ * element counts down in real-time. When the Ably/SSE channel delivers a
+ * linescore frame, the client writes clock.isRunning=true and the clock starts
+ * local interpolation.
  */
 @Component
 public class LiveComposer {
@@ -60,9 +69,9 @@ public class LiveComposer {
                 : objectMapper.createArrayNode();
 
         // Partition games by status
-        ArrayNode liveGames = objectMapper.createArrayNode();
-        ArrayNode upcomingGames = objectMapper.createArrayNode();
-        ArrayNode finishedGames = objectMapper.createArrayNode();
+        List<JsonNode> liveGames = new ArrayList<>();
+        List<JsonNode> upcomingGames = new ArrayList<>();
+        List<JsonNode> finishedGames = new ArrayList<>();
 
         for (JsonNode game : games) {
             int status = game.path("gameStatus").asInt(1);
@@ -73,43 +82,34 @@ public class LiveComposer {
             }
         }
 
-        // 1. Featured game — first live game, else first upcoming
-        JsonNode heroGame = liveGames.size() > 0 ? liveGames.get(0)
-                : (upcomingGames.size() > 0 ? upcomingGames.get(0) : null);
+        // 1. Featured game — hero card for top live game (SSE refresh)
+        JsonNode heroGame = !liveGames.isEmpty() ? liveGames.get(0)
+                : (!upcomingGames.isEmpty() ? upcomingGames.get(0) : null);
         if (heroGame != null) {
             sections.add(buildFeaturedGamePanel(heroGame));
         } else {
             sections.add(buildMockFeaturedGame());
         }
 
-        // 2. "Live Now" section
-        if (liveGames.size() > 0) {
-            sections.add(buildSectionHeader("live-now-header", "Live Now",
-                    liveGames.size() + " Games", null));
-            for (JsonNode g : liveGames) {
-                sections.add(buildGamePanel(g, true));
-            }
+        // 2. "Live Now" — compact schedule list with per-row SSE clock
+        if (!liveGames.isEmpty()) {
+            sections.add(buildLiveScheduleList(liveGames));
         }
 
-        // 3. "Upcoming Today"
-        if (upcomingGames.size() > 0) {
-            sections.add(buildSectionHeader("upcoming-header", "Upcoming Today",
-                    null, null));
-            for (JsonNode g : upcomingGames) {
-                sections.add(buildGamePanel(g, false));
-            }
+        // 3. "Upcoming Today" — static schedule list
+        if (!upcomingGames.isEmpty()) {
+            sections.add(buildScheduleList("upcoming-games", "upcoming_games",
+                    "Upcoming Today", upcomingGames, false));
         }
 
-        // 4. "Final" — completed games
-        if (finishedGames.size() > 0) {
-            sections.add(buildSectionHeader("final-header", "Final", null, null));
-            for (JsonNode g : finishedGames) {
-                sections.add(buildGamePanel(g, false));
-            }
+        // 4. "Final" — static schedule list
+        if (!finishedGames.isEmpty()) {
+            sections.add(buildScheduleList("final-games", "final_games",
+                    "Final", finishedGames, false));
         }
 
         // If no real data, add mock sections
-        if (liveGames.size() == 0 && upcomingGames.size() == 0 && finishedGames.size() == 0) {
+        if (liveGames.isEmpty() && upcomingGames.isEmpty() && finishedGames.isEmpty()) {
             addMockSections(sections);
         }
 
@@ -120,16 +120,61 @@ public class LiveComposer {
 
     // ── Section builders ───────────────────────────────────────────────
 
+    /**
+     * Build the live games schedule list with SSE per-row data binding.
+     * Each live game row gets a LiveClock element that counts down via
+     * its per-game SSE channel.
+     */
+    private ObjectNode buildLiveScheduleList(List<JsonNode> liveGames) {
+        String[][] rows = new String[liveGames.size()][];
+        Map<String, AtomicCompositeBuilder.GameClockSnapshot> clockSnapshots = new HashMap<>();
+
+        for (int i = 0; i < liveGames.size(); i++) {
+            JsonNode game = liveGames.get(i);
+            String gameId = game.path("gameId").asText("0000000000");
+            rows[i] = gameToRow(game);
+            clockSnapshots.put(gameId, clockSnapshotFromGame(game));
+        }
+
+        // SSE refresh on the first live game's channel; all rows get clock
+        // snapshots seeded from the initial composition. Subsequent Ably/SSE
+        // frames update per-row content via the dataBinding map.
+        ObjectNode refreshPolicy = ssePolicy(liveGames.get(0));
+        ObjectNode dataBinding = buildScheduleListBindings(liveGames);
+
+        ObjectNode section = atomicBuilder.buildGameScheduleList(
+                "live-games", "live_games", "Live Now", rows,
+                refreshPolicy, dataBinding, clockSnapshots);
+        section.set("surface", utils.cardSurface());
+        return section;
+    }
+
+    /**
+     * Build a static (or non-live) schedule list for upcoming / final games.
+     */
+    private ObjectNode buildScheduleList(String sectionId, String analyticsId,
+                                         String title, List<JsonNode> gamesList,
+                                         boolean live) {
+        String[][] rows = new String[gamesList.size()][];
+        for (int i = 0; i < gamesList.size(); i++) {
+            rows[i] = gameToRow(gamesList.get(i));
+        }
+        ObjectNode section = atomicBuilder.buildGameScheduleList(
+                sectionId, analyticsId, title, rows, staticPolicy(), null);
+        section.set("surface", utils.cardSurface());
+        return section;
+    }
+
     private ObjectNode buildFeaturedGamePanel(JsonNode game) {
         String gameId = game.path("gameId").asText("0000000000");
         int gameStatus = game.path("gameStatus").asInt(1);
         boolean live = gameStatus == 2;
 
-        ObjectNode refreshPolicy = live ? ssePolicy(gameId) : staticPolicy();
+        ObjectNode refreshPolicy = live ? ssePolicy(game) : staticPolicy();
         ObjectNode bindings = live ? utils.buildCompositeLinescoreBindings() : null;
         AtomicCompositeBuilder.GameClockSnapshot clock = live ? clockSnapshotFromGame(game) : null;
 
-        ObjectNode section = atomicBuilder.buildGamePanelComposite(
+        return atomicBuilder.buildGamePanelComposite(
                 "live-featured-" + gameId,
                 "live_featured_game",
                 "featured",
@@ -144,7 +189,6 @@ public class LiveComposer {
                 refreshPolicy,
                 bindings,
                 utils.gamePanelSurface());
-        return section;
     }
 
     private ObjectNode buildMockFeaturedGame() {
@@ -167,93 +211,131 @@ public class LiveComposer {
                 utils.gamePanelSurface());
     }
 
-    private ObjectNode buildSectionHeader(String id, String title,
-                                           String subtitle, String actionUri) {
-        ObjectNode section = atomicBuilder.buildSectionHeader(id, title, subtitle, null, actionUri);
-        section.set("surface", utils.sectionHeaderSurface());
-        return section;
-    }
-
-    private ObjectNode buildGamePanel(JsonNode game, boolean liveRefresh) {
-        String gameId = game.path("gameId").asText("0000000000");
-        int gameStatus = game.path("gameStatus").asInt(1);
-        boolean live = liveRefresh && gameStatus == 2;
-
-        ObjectNode refreshPolicy = live ? ssePolicy(gameId) : staticPolicy();
-        ObjectNode bindings = live ? utils.buildCompositeLinescoreBindings() : null;
-        AtomicCompositeBuilder.GameClockSnapshot clock = live ? clockSnapshotFromGame(game) : null;
-
-        return atomicBuilder.buildGamePanelComposite(
-                "live-game-" + gameId,
-                "live_game_" + gameId,
-                "standard",
-                gameId,
-                gameStatus,
-                game.path("gameStatusText").asText(""),
-                null,
-                atomicBuilder.gamePanelTeamFromJson(game.path("awayTeam")),
-                atomicBuilder.gamePanelTeamFromJson(game.path("homeTeam")),
-                clock,
-                "nba://game/" + gameId,
-                refreshPolicy,
-                bindings,
-                utils.gamePanelSurface());
-    }
-
+    /**
+     * Mock sections for when the CDN scoreboard is unreachable.
+     */
     private void addMockSections(ArrayNode sections) {
-        sections.add(buildSectionHeader("live-now-header", "Live Now", "2 Games", null));
+        // Mock live schedule list
+        String[][] liveRows = {
+                {"mock-live-1", "BOS", "Celtics", null,
+                        "72", SduiUtils.teamLogoUrl("1610612738"),
+                        "LAL", "Lakers", null,
+                        "68", SduiUtils.teamLogoUrl("1610612747"),
+                        "Q3 4:22", null, null, "nba://game/mock-live-1", null},
+                {"mock-live-2", "GSW", "Warriors", null,
+                        "31", SduiUtils.teamLogoUrl("1610612744"),
+                        "PHX", "Suns", null,
+                        "28", SduiUtils.teamLogoUrl("1610612756"),
+                        "Q1 9:15", null, null, "nba://game/mock-live-2", null}
+        };
+        Map<String, AtomicCompositeBuilder.GameClockSnapshot> mockClocks = new HashMap<>();
+        mockClocks.put("mock-live-1", mockClockSnapshotFromStatus("Q3 4:22"));
+        mockClocks.put("mock-live-2", mockClockSnapshotFromStatus("Q1 9:15"));
 
-        // Mock live games
-        sections.add(mockGamePanel("mock-live-1", "BOS", 1610612738, "LAL", 1610612747,
-                "Q3 4:22", 2, true));
-        sections.add(mockGamePanel("mock-live-2", "GSW", 1610612744, "PHX", 1610612756,
-                "Q1 9:15", 2, true));
+        ObjectNode mockSsePolicy = objectMapper.createObjectNode();
+        mockSsePolicy.put("type", "sse");
+        mockSsePolicy.put("channel", "mock-live-1:linescore");
+        mockSsePolicy.put("pauseWhenOffScreen", false);
 
-        sections.add(buildSectionHeader("upcoming-header", "Upcoming Today", null, null));
+        ObjectNode liveSection = atomicBuilder.buildGameScheduleList(
+                "live-games", "live_games", "Live Now", liveRows,
+                mockSsePolicy, null, mockClocks);
+        liveSection.set("surface", utils.cardSurface());
+        sections.add(liveSection);
 
-        sections.add(mockGamePanel("mock-up-1", "MIL", 1610612749, "DEN", 1610612743,
-                "8:00 PM ET", 1, false));
-        sections.add(mockGamePanel("mock-up-2", "DAL", 1610612742, "MIA", 1610612748,
-                "10:00 PM ET", 1, false));
+        // Mock upcoming schedule list
+        String[][] upcomingRows = {
+                {"mock-up-1", "MIL", "Bucks", null,
+                        null, SduiUtils.teamLogoUrl("1610612749"),
+                        "DEN", "Nuggets", null,
+                        null, SduiUtils.teamLogoUrl("1610612743"),
+                        "8:00 PM ET", null, null, "nba://game/mock-up-1", null},
+                {"mock-up-2", "DAL", "Mavericks", null,
+                        null, SduiUtils.teamLogoUrl("1610612742"),
+                        "MIA", "Heat", null,
+                        null, SduiUtils.teamLogoUrl("1610612748"),
+                        "10:00 PM ET", null, null, "nba://game/mock-up-2", null}
+        };
+        ObjectNode upcomingSection = atomicBuilder.buildGameScheduleList(
+                "upcoming-games", "upcoming_games", "Upcoming Today", upcomingRows,
+                staticPolicy(), null);
+        upcomingSection.set("surface", utils.cardSurface());
+        sections.add(upcomingSection);
     }
 
-    private ObjectNode mockGamePanel(String id, String awayTri, int awayId,
-                                     String homeTri, int homeId,
-                                     String statusText, int gameStatus,
-                                     boolean liveRefresh) {
-        ObjectNode refreshPolicy;
-        if (liveRefresh) {
-            refreshPolicy = objectMapper.createObjectNode();
-            refreshPolicy.put("type", "sse");
-            refreshPolicy.put("channel", id + ":linescore");
-            refreshPolicy.put("pauseWhenOffScreen", false);
-        } else {
-            refreshPolicy = staticPolicy();
+    // ── Row conversion ─────────────────────────────────────────────────
+
+    /**
+     * Convert a coreapi game JSON node into the row format expected by
+     * {@code buildGameScheduleList}:
+     * [id, awayTri, awayName, awaySeed, awayScore, awayLogoUrl,
+     *  homeTri, homeName, homeSeed, homeScore, homeLogoUrl,
+     *  statusText, seriesText, broadcastLogos, targetUri, overflowUri]
+     */
+    private String[] gameToRow(JsonNode game) {
+        String gameId = game.path("gameId").asText("0000000000");
+        JsonNode away = game.path("awayTeam");
+        JsonNode home = game.path("homeTeam");
+        int gameStatus = game.path("gameStatus").asInt(1);
+
+        String awayScore = gameStatus >= 2
+                ? String.valueOf(away.path("score").asInt(0)) : null;
+        String homeScore = gameStatus >= 2
+                ? String.valueOf(home.path("score").asInt(0)) : null;
+
+        return new String[]{
+                gameId,
+                away.path("teamTricode").asText(""),
+                away.path("teamName").asText(""),
+                null, // awaySeed
+                awayScore,
+                SduiUtils.teamLogoUrl(away.path("teamId").asText("")),
+                home.path("teamTricode").asText(""),
+                home.path("teamName").asText(""),
+                null, // homeSeed
+                homeScore,
+                SduiUtils.teamLogoUrl(home.path("teamId").asText("")),
+                game.path("gameStatusText").asText(""),
+                null, // seriesText
+                null, // broadcastLogos
+                "nba://game/" + gameId,
+                null  // overflowUri
+        };
+    }
+
+    // ── Data binding for live schedule list ─────────────────────────────
+
+    /**
+     * Build per-row data bindings for all live games in the schedule list.
+     * Each game's SSE channel pushes linescore frames that update scores
+     * and the clock snapshot for its row.
+     */
+    private ObjectNode buildScheduleListBindings(List<JsonNode> liveGames) {
+        ObjectNode dataBinding = objectMapper.createObjectNode();
+        ArrayNode bindings = objectMapper.createArrayNode();
+
+        for (JsonNode game : liveGames) {
+            String gameId = game.path("gameId").asText("0000000000");
+            // Per-row score bindings from the SSE linescore frame
+            bindings.add(utils.bindingPath(
+                    "$.homeTeam.score", "content." + gameId + ".homeScore"));
+            bindings.add(utils.bindingPath(
+                    "$.awayTeam.score", "content." + gameId + ".awayScore"));
+            bindings.add(utils.bindingPath(
+                    "$.gameStatusText", "content." + gameId + ".statusText"));
+            bindings.add(utils.bindingPath(
+                    "$.gameClock", "content." + gameId + ".clock", "liveClockSnapshot"));
         }
 
-        AtomicCompositeBuilder.GamePanelTeam away = new AtomicCompositeBuilder.GamePanelTeam(
-                awayTri, gameStatus == 2 ? 72 : 0, SduiUtils.teamLogoUrl(awayId));
-        AtomicCompositeBuilder.GamePanelTeam home = new AtomicCompositeBuilder.GamePanelTeam(
-                homeTri, gameStatus == 2 ? 68 : 0, SduiUtils.teamLogoUrl(homeId));
-        AtomicCompositeBuilder.GameClockSnapshot clock = liveRefresh && gameStatus == 2
-                ? mockClockSnapshotFromStatus(statusText)
-                : null;
-
-        return atomicBuilder.buildGamePanelComposite(
-                id,
-                null,
-                "standard",
-                id,
-                gameStatus,
-                statusText,
-                null,
-                away,
-                home,
-                clock,
-                "nba://game/" + id,
-                refreshPolicy,
-                null,
-                utils.gamePanelSurface());
+        dataBinding.set("bindings", bindings);
+        // Multi-channel: the section subscribes to all live game channels
+        ArrayNode channels = objectMapper.createArrayNode();
+        for (JsonNode game : liveGames) {
+            String gameId = game.path("gameId").asText("0000000000");
+            channels.add(gameId + ":linescore");
+        }
+        dataBinding.set("channels", channels);
+        return dataBinding;
     }
 
     // ── Helpers ────────────────────────────────────────────────────────
@@ -262,7 +344,7 @@ public class LiveComposer {
         try {
             return statsApiClient.getScoreboard();
         } catch (Exception e) {
-            log.warn("Could not fetch scoreboard for Live screen: {}", e.getMessage());
+            log.warn("Could not fetch scoreboard for Games screen: {}", e.getMessage());
             return null;
         }
     }
@@ -273,7 +355,8 @@ public class LiveComposer {
         return rp;
     }
 
-    private ObjectNode ssePolicy(String gameId) {
+    private ObjectNode ssePolicy(JsonNode game) {
+        String gameId = game.path("gameId").asText("0000000000");
         ObjectNode rp = objectMapper.createObjectNode();
         rp.put("type", "sse");
         rp.put("channel", gameId + ":linescore");
@@ -282,11 +365,10 @@ public class LiveComposer {
     }
 
     /**
-     * Build an initial {@code LiveClock} snapshot from upstream stats-api
-     * game JSON. The `gameClock` string is ISO-8601 duration (e.g.
-     * {@code PT04M32.00S}). Initial server payloads are rendered as
-     * snapshots only; Ably linescore frames are responsible for setting
-     * {@code isRunning=true} when local interpolation should start.
+     * Build an initial LiveClock snapshot from upstream stats-api game JSON.
+     * The gameClock string is ISO-8601 duration (e.g. PT04M32.00S).
+     * Initial server payloads are rendered as paused snapshots; SSE/Ably
+     * linescore frames set isRunning=true to start local interpolation.
      */
     private AtomicCompositeBuilder.GameClockSnapshot clockSnapshotFromGame(JsonNode game) {
         int seconds = parseGameClockSeconds(game.path("gameClock").asText(""));
@@ -313,11 +395,6 @@ public class LiveComposer {
         }
     }
 
-    /**
-     * Parse the M:SS portion of mock status strings such as
-     * {@code "Q3 4:22"} into seconds. Returns 0 when the format does
-     * not match (upcoming / final / mock non-live).
-     */
     private static int parseMockClockSeconds(String statusText) {
         if (statusText == null) return 0;
         int colon = statusText.lastIndexOf(':');

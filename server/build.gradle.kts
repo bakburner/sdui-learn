@@ -62,9 +62,6 @@ tasks.named<ProcessResources>("processResources") {
         include("icon-tokens.json")
         include("spacing-tokens.json")
         include("corner-radius-tokens.json")
-        include("size-tokens.json")
-        include("typography-tokens.json")
-        include("shadow-tokens.json")
         into("schema")
     }
 }

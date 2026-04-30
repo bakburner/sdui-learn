@@ -83,6 +83,14 @@ public class SduiUtils {
         demos.put("selected", "demos".equals(activeScreenId));
         items.add(demos);
 
+        ObjectNode home = objectMapper.createObjectNode();
+        home.put("id", "home");
+        home.put("label", "NBA.com");
+        home.put("icon", "sdui:basketball");
+        home.put("targetUri", "nba://home");
+        home.put("selected", "home".equals(activeScreenId));
+        items.add(home);
+
         navigation.set("items", items);
         return navigation;
     }
@@ -179,44 +187,42 @@ public class SduiUtils {
     /**
      * Resolve a team primary colour by tricode.
      *
-     * <p>NBA brand guideline: team primary colors are brand assets owned by
-     * each team, not design-system tokens, so these hex values are
-     * intentionally inline and are not represented in the color-token
-     * registry at {@code schema/color-tokens.json}. Values sourced from the
-     * NBA team style guides; if Rights &amp; Brand changes a primary, update
-     * here — there is no registry lookup to keep in sync.
+     * <p>Values sourced from the Kinetic Design System export
+     * ({@code docs/Kinetic Design System Tokens/…NBA Team Colors.csv}).
+     * The design team maintains this palette in Figma; if a team rebrands,
+     * update here to match the latest Kinetic export.
      */
     public static String getTeamPrimaryColor(String tricode) {
         return switch (tricode) {
-            case "ATL" -> "#E03A3E";
-            case "BOS" -> "#007A33";
+            case "ATL" -> "#C8102E";
+            case "BOS" -> "#008348";
             case "BKN" -> "#000000";
-            case "CHA" -> "#1D1160";
+            case "CHA" -> "#00788C";
             case "CHI" -> "#CE1141";
             case "CLE" -> "#860038";
-            case "DAL" -> "#00538C";
+            case "DAL" -> "#0064B1";
             case "DEN" -> "#0E2240";
-            case "DET" -> "#C8102E";
+            case "DET" -> "#1D428A";
             case "GSW" -> "#1D428A";
             case "HOU" -> "#CE1141";
-            case "IND" -> "#002D62";
-            case "LAC" -> "#C8102E";
-            case "LAL" -> "#552583";
+            case "IND" -> "#0C2340";
+            case "LAC" -> "#12173F";
+            case "LAL" -> "#31006F";
             case "MEM" -> "#5D76A9";
             case "MIA" -> "#98002E";
             case "MIL" -> "#00471B";
             case "MIN" -> "#0C2340";
-            case "NOP" -> "#0C2340";
-            case "NYK" -> "#006BB6";
+            case "NOP" -> "#0A2240";
+            case "NYK" -> "#1D428A";
             case "OKC" -> "#007AC1";
-            case "ORL" -> "#0077C0";
-            case "PHI" -> "#006BB6";
+            case "ORL" -> "#0050B5";
+            case "PHI" -> "#1D428A";
             case "PHX" -> "#1D1160";
             case "POR" -> "#E03A3E";
             case "SAC" -> "#5A2D81";
-            case "SAS" -> "#C4CED4";
+            case "SAS" -> "#000000";
             case "TOR" -> "#CE1141";
-            case "UTA" -> "#002B5C";
+            case "UTA" -> "#4E008E";
             case "WAS" -> "#002B5C";
             default -> "#17408B"; // NBA blue
         };
@@ -396,7 +402,7 @@ public class SduiUtils {
     public ObjectNode defaultSurface() {
         ObjectNode surface = objectMapper.createObjectNode();
         surface.set("margin", spacing(16, 16, 16, 16));
-        surface.put("background", "token:color.surface.raised");
+        surface.put("background", "token:nba.bg.secondary");
         surface.put("cornerRadius", 12);
 
         ObjectNode shadow = objectMapper.createObjectNode();
@@ -420,7 +426,7 @@ public class SduiUtils {
         ObjectNode surface = objectMapper.createObjectNode();
         surface.set("margin", spacing(16, 16, 16, 16));
         surface.set("padding", spacing(16, 12, 16, 12));
-        surface.put("background", "token:color.surface.raised");
+        surface.put("background", "token:nba.bg.secondary");
         surface.put("cornerRadius", 0);
         return surface;
     }
@@ -495,7 +501,7 @@ public class SduiUtils {
     public ObjectNode cardSurface() {
         ObjectNode surface = objectMapper.createObjectNode();
         surface.set("margin", spacing(16, 16, 16, 16));
-        surface.put("background", "token:color.surface.sunken");
+        surface.put("background", "token:nba.bg.tertiary");
         surface.put("cornerRadius", 12);
         return surface;
     }

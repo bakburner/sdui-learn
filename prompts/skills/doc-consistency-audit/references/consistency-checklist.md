@@ -9,7 +9,7 @@ For each document in the audit list, verify every item below. Mark any inconsist
 - [ ] Action type count matches schema enum length (currently 6)
 - [ ] Action trigger count matches schema enum length (currently 7)
 - [ ] Renderer count matches number of section renderer files per platform
-- [ ] "Permanent sections" count matches schema section enum minus AtomicComposite (currently 8)
+- [ ] "Semantic sections" count matches schema section enum minus AtomicComposite (currently 8)
 - [ ] AGENTS.md section count matches number of top-level `## N.` headings (currently 13)
 
 ## Type Lists
@@ -80,3 +80,13 @@ Compare every status table entry against actual code state. Recent commits frequ
 - [ ] Revision entries accurately describe the changes made
 - [ ] All revision history tables are sorted **newest-first** (descending date order)
 - [ ] New entries are inserted at the top of the table (after the header row), not appended at the bottom
+
+## Working Tree Propagation
+
+- [ ] Every new capability in the working tree is documented in the appropriate requirements section
+- [ ] New execution models or behavioral changes (e.g. batch action dispatch, new failure policies) are reflected in architectural descriptions
+- [ ] New helpers, infrastructure files, or patterns introduced in the working tree are described where the docs explain that layer
+- [ ] If a working-tree change closes a previously documented gap, status matrices are updated from Gap/Partial → Built
+- [ ] New requirements introduced by working-tree changes have corresponding entries in `sdui-requirements-summary.md`
+- [ ] Client contract (`client-implementors-contract.md`) reflects any new obligations or patterns clients must implement
+- [ ] No document describes only the pre-change state when the working tree has superseded it

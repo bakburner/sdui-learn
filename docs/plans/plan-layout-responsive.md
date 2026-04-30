@@ -2,6 +2,12 @@
 
 > Source requirements: §9m, §9b from sdui-requirements-summary.md, ADR-008 (Accepted, Option C)
 
+## Status
+
+> **Phases 1, 2, 4 complete** (schema, server, web). Remaining: Phase 3
+> (Android renderer wiring), Phase 5 (tests, doc status update),
+> responsive breakpoints (deferred).
+
 ## Summary
 
 Complete the hybrid layout manager (server hints + client layout engine) across all platforms. `SectionLayoutHints` schema and Web implementation are done. Android renderer wiring is the remaining gap. Client-side responsive breakpoints within a platform family (e.g., phone vs tablet) are deferred pending further design.

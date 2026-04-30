@@ -1,168 +1,85 @@
-SDUI: complete Phases 2–6, doc consistency audit, remediate iOS regressions
+SDUI: batch action execution, doc consistency remediation, design-system sync
 
-Complete the full design-system implementation plan (Phases 2–6): semantic
-size/spacing tokens, form-factor classification and routing, accessibility
-floor on atomic primitives, i18n localization (RTL deferred), and variant
-realization extension to form factor. Fix Phase 2/3 iOS regressions
-(LayoutTokenResolver access modifiers, isPrimaryActivation codegen
-post-process). Run doc consistency audit across all governance documents.
+Implement element-level batch action execution across all platforms (iOS,
+Android, web). Run doc-consistency audit against working tree and remediate
+19 inconsistencies — primarily stale token names and deleted file references
+in sdui-design-system.md following the Kinetic design system rebuild.
 
-Prior commit context: Phase 1 (onActivate), parameterized refresh transport,
-image hardening, and production server patterns were landed previously.
+--- Batch action execution (all platforms) ---
 
---- Phase 1: onActivate (schema + all clients) ---
+Element-level actions now filter by trigger and execute as a single ordered
+batch with failure-policy semantics (halt/continue/silent). Previously only
+the first matching action fired.
 
-- `ActionTrigger` adds `onActivate`; `onTap` kept with schema description
-  (deprecated alias).
-- iOS: `isPrimaryActivation`; `SectionInteractions` default `onActivate` with
-  `onTap` fallback; `deprecated_trigger_used` via `os.Logger` when `onTap` is
-  dispatched.
-- Android: enum + `SectionInteractions` / `ActionHandler` same semantics;
-  debug log for legacy `onTap`.
-- Web: `sectionActions` + `ActionHandler` + `BoxscoreTable` align; dev-only
-  deprecation log for `onTap`.
-- Server composers emit `onActivate`; `make lint-sdui-warn` /
-  `scripts/warn-onTap-in-composers.sh` warn if `put("trigger", "onTap")` returns.
-- Schema examples + iOS fixtures: triggers migrated to `onActivate`.
+- iOS: `BatchActionExecutor.swift` (new) — EnvironmentKey-based batch
+  executor; `ActionTapModifier` in `RenderingHelpers.swift` reads from
+  environment and filters onActivate/onTap actions; `ScreenShell.swift`
+  provides the executor and fixes `fireOnVisibleActions` to batch.
+- Android: `ActionExecutor.kt` (new) — `LocalActionExecutor` CompositionLocal
+  + `getActivateActions()` helper; `AtomicButton`, `AtomicImage`, `AtomicText`,
+  `AtomicContainer` updated to use batch execution via CompositionLocal.
+  `GameDetailScreen` wires the provider.
+- Web: Already had batch semantics via `executeActions()` in ActionHandler;
+  verified `ActionWrapper` filters by trigger correctly.
+- Contract: Added "Element-Level Batch Action Execution" subsection to
+  `docs/client-implementors-contract.md` §6 documenting filter→batch→execute
+  pattern and Container activation.
 
---- Parameterized refresh transport (server + all clients) ---
+--- Doc consistency audit + skill update ---
 
-- Dual-mount `GET` and `POST` on `/sdui/refresh/{screenId}`; shared
-  `refreshScreen` implementation.
-- `stripEnvelopeKeys` on flat query maps so user filter params stay distinct
-  from bracket-notation envelope fields (`platform[name]`, `device[...]`, etc.).
+- `prompts/skills/doc-consistency-audit/SKILL.md`: Added Step 1b (working tree
+  changes via `git diff --stat`) and updated When to Use section.
+- `prompts/skills/doc-consistency-audit/references/consistency-checklist.md`:
+  Added "Working Tree Propagation" section.
 
---- Android ---
+--- Design-system doc remediation (docs/sdui-design-system.md) ---
 
-- `SduiRepository.fetchScreen` accepts `userParams` and `traceIdOverride`;
-  user params in the query with the envelope; RFC-3986-aligned encoding.
-- `RequestEnvelopeBuilder`: shared `percentEncode` (spaces `%20`, not `+`).
-- `ActionHandler.handleRefresh` yields structured `ParameterizedRefreshResult`
-  for the `ViewModel`.
-- `SduiScreenViewModel` routes parameterized refresh through `fetchScreen` and
-  merges the response; `GameDetailScreen` updated.
-- `SduiRepositoryRefreshTransportTest` (OkHttp) validates refresh wire shape.
-- `AtomicText` / `AtomicScrollContainer` / ad slot and other UI touch-ups as
-  in branch.
+Synced to current Kinetic v1.0.0 token state:
 
---- iOS ---
+- Related files table: removed rows for deleted files (size-tokens.json,
+  typography-tokens.json, shadow-tokens.json); added LayoutTokens.java and
+  IconTokens.java references; added "Planned" note for future registries.
+- Layer diagram: `token:color.brand.nba` → `token:nba.label.accent.brand`.
+- Layer 3 description: `token:color.*` → `token:nba.color.*` / `token:nba.label.*`.
+- §2.1 Color tokens: rewrote from two-tier (palette + semantic aliases) to
+  current multi-tier Kinetic structure (primitives, semantic, labels, UI/bg,
+  buttons, team). Added t-black/t-white families. Updated semantic alias
+  inventory to match color-tokens.json (nba.label.*, nba.bg.*, nba.button.*).
+- §2.2 Spacing: corrected values to Kinetic (xs=2, sm=4, md=8, lg=16, xl=32,
+  2xl=40 phone base). Added LayoutTokens.java reference. Fixed wire token
+  names (nba.spacing.*).
+- §2.3 Size tokens: marked "Planned" (file was deleted — awaiting design).
+- §2.4 Typography tokens: marked "Planned" (file was deleted). Retained
+  TextVariant enum reference.
+- §2.5 Corner radius: corrected to flat values from Kinetic (xs=2, sm=4,
+  md=8, lg=16, xl=24, 2xl=32, full=9999). Added nba.radius.xs and
+  nba.radius.2xl rows. Added LayoutTokens.java reference.
+- §2.6 Shadow tokens: marked "Planned" (file was deleted).
+- §2.7 Icon tokens: fixed 8 discrepancies vs icon-tokens.json (basketball.fill
+  not basketball; play.rectangle→PlayCircle/play_circle not smart_display;
+  list.number not chart.bar; Widgets/widgets not grid_view;
+  antenna.radiowaves.left.and.right not dot.radiowaves; person.circle/
+  AccountCircle not person; PictureInPicture not picture_in_picture_alt;
+  airplayvideo not tv). Added sdui:lock row. Split Material column into
+  Android (PascalCase) and Web (snake_case). Added IconTokens.java reference.
+- §4 Figma mapping: added Container activation row; fixed token references
+  to nba.* prefix; removed shadow row (planned); removed size variables
+  reference.
+- §4 Figma naming: updated color style examples to nba.* namespace; removed
+  size variables line; updated spacing to nba.spacing prefix.
+- §9 Gaps: updated token coverage checklist to note registries were removed
+  (not merely incomplete).
 
-- `SduiRepository.fetchScreen` with `userParams` / `traceID`; `buildRequest` merge,
-  POST fallback, deterministic encoding.
-- `SduiScreenViewModel` parameterized refresh uses `fetchScreen` + trace reuse.
-- `TabGroupView`: `scrollToActiveTab` leading vs. trailing anchor so the first
-  tab is not cropped.
-- `SduiRepositoryRefreshTransportTests` (URLProtocol) for refresh transport.
-- `AtomicImageView`: grey loading placeholder; bundled
-  `SduiImageLastResortFallback.png` when `src` and wire `placeholder` both fail
-  (Swift package `Resources`).
-- `Package.swift`: process `Resources` for the fallback asset.
+--- Technical Proposal remediation (docs/SDUI_Technical_Proposal_v2.md) ---
 
---- Web ---
+- Line 81: `token:color.*` → `token:nba.color.*` / `token:nba.label.*` in
+  design system summary row.
+- Line 324: Removed reference to deleted size-tokens.json; updated to list
+  current registries (spacing-tokens, corner-radius-tokens).
+- Line 326: `token:color.*` → `token:nba.color.*` / `token:nba.label.*`.
 
-- `fetchSduiScreen` for initial load and refresh (GET-first, POST fallback,
-  `userParams` on query, `X-Trace-Id`); `useSduiScreen` + `ActionHandler` use it.
-- `fetchSduiScreen.test.ts` for encoding assertions.
-- `AtomicScrollContainer` / `AtomicText` / AdSlot + related updates.
+--- Verification ---
 
---- Demo assets + server ---
-
-- `DemoImageUrls` and static `/sdui-demo/*` (server `resources/static`, web
-  `public/sdui-demo`) for ORB-safe kitchen-sink images.
-
---- Contract / tests (server) ---
-
-- `SduiRefreshTransportTest` (MockMvc) for `/sdui/refresh/{screenId}`.
-
---- Docs + plans ---
-
-- `docs/plans/plan-production-server-patterns.md` (new): production server
-  architecture — 11 patterns (typed composition model, single-round pipeline,
-  SAF bridge, screen+section composers, variant resolution, builder DSL, screen
-  state contract, refresh/partial response, aggregation modules with interface
-  extraction seams, data binding factory, request envelope cache key strategy).
-  Includes deployment topology (collocated modular monolith), capacity model
-  (10K RPS baseline, 2s P50 upstream latency, ZGC, stale-while-revalidate),
-  seam enforcement (Gradle multi-module + ArchUnit + package visibility), and
-  CDN cache key strategy (CompositionContext vs RequestMetadata split, edge
-  cohort resolution, 75-95% CDN hit rate projections).
-- `docs/plans/sdui-implementation-plan.md` (new): phased roadmap (form factor,
-  semantic tokens, a11y, i18n, variant realization × form factor); program
-  scope (phone, tablet, web; TV/Roku deferred).
-- `docs/sdui-design-system.md`: major rewrite — adds semantic size/spacing
-  tokens (§3 Layer 1 revisited), `onActivate` action vocabulary (§4),
-  form factor as first-class axis (§5.5), accessibility floor on atomic
-  primitives (§6), i18n/RTL contract (§7), per-form-factor variant
-  realization (§5.5.1), override matrices, six-registry model (§11),
-  worked example (§12), governance rules (§13).
-- `AGENTS.md`, `README.md`, `client-implementors-contract`, technical proposal,
-  executive summary, requirements summary, glossary, prompts and skills:
-  aligned to schema and transport rules; remove `COMMIT_MESSAGE_VIOLATIONS.md`
-  (superseded by this file).
-
---- Makefile ---
-
-- `test` target (server, Android, web, iOS); `lint-sdui-warn` for composer
-  `onTap` guardrail.
-
---- Verification (run before commit) ---
-
-- `make test` (or `server-test`, `android-test`, `web-test`, `ios-test`).
-- Spot-check: leaders / stats refresh with form filters; Watch Featured tab
-  visible on iOS; tap/activate on demo screens; image failure shows bundled
-  fallback (iOS).
-
---- Phase 2/3 iOS remediation ---
-
-- `LayoutTokenResolver.swift`: drop `public` from `cgFloat`, `intValue`,
-  `aspectRatio` methods (LayoutScalar/AspectRatioUnion are internal).
-- `codegen/generate.sh`: restore `isPrimaryActivation` extension post-process
-  on ActionTrigger (was dropped by a codegen rerun).
-- Reran `make codegen`; iOS compiles and 71/71 tests pass.
-
---- Phase 4: Accessibility floor on atomic primitives ---
-
-- Schema: `AccessibilityProperties` (7 fields: label, hint, role, hidden,
-  headingLevel, liveRegion, sortOrder) on AtomicElement and Section.
-- Server: `AccessibilityHelper.java` (addLabel, addHidden, addHeading,
-  addButton, addImage); AtomicCompositeBuilder 15+ call sites.
-  WatchComposer + DemoScreenComposer: a11y on hand-built nodes.
-- iOS: `AccessibilityModifiers.swift` wired into all content renderers
-  including AtomicDisplayGridView (new).
-- Android: `AccessibilityExt.kt` wired into 8 content renderers; decorative
-  elements (Divider, Spacer) correctly hidden via clearAndSetSemantics.
-- Web: `accessibility.ts` utility + 30 dedicated tests; integrated in
-  AtomicText/Image/Container/LiveClock/DisplayGrid/OverlayContainer.
-- `scripts/lint-a11y-labels.sh` (warn-only).
-
---- Phase 5: i18n (no RTL, no CI lint) ---
-
-- `SduiUtils.java`: STRING_TABLES expanded with 14 new keys per locale
-  (en/es/fr) — month names, filter labels, screen title.
-  `getLocalizedString(locale, key)` public accessor added.
-- `ScheduleComposer.java`: hardcoded English month switch replaced with
-  `java.time.LocalDate` + `DateTimeFormatter.ofPattern("MMMM d, yyyy",
-  Locale.forLanguageTag(locale))`. Form labels resolve through string table.
-- No client changes needed — i18n is server-driven per AGENTS.md §1.1.
-
---- Phase 6: Variant realization extension to form factor ---
-
-- `schema/style-tokens.json`: `formFactorNotes` added for hero/grouped/
-  thumbnail (phone, tablet, web.wide intent statements).
-- Android: `ContainerVariantResolver.kt` + `ImageVariantResolver.kt` accept
-  `formFactor` param; hero tablet gets 12dp shadow. `build.gradle.kts` adds
-  `testOptions.unitTests.isReturnDefaultValues = true` for Log mocking.
-- iOS: `ContainerVariantResolver.swift` + `ImageVariantResolver.swift` accept
-  `formFactor`; call sites in AtomicBoxModifier, AtomicImageView updated.
-- Web: `ContainerVariantResolver.ts` + `ImageVariantResolver.ts` accept
-  `formFactor`; call sites pass `currentFormFactor()`.
-
---- Doc consistency audit ---
-
-- Ran `extract-facts.py`; cross-referenced routers vs schema (all match).
-- Fixed across 7 docs: trigger counts (7→8, add onActivate), ADR-010 missing
-  row in Executive Summary, ErrorState classification in Technical Proposal,
-  RTL marked deferred in design-system doc, glossary entries for onActivate,
-  trigger lists in client-implementors-contract, "Live-score card"→"Game panel"
-  in README.
-- All JSON schema files validated; no dangling $refs.
+- `make codegen` passes (no schema changes this session).
+- grep for stale `token:color.` / `token:spacing.` / `token:radius.`
+  references returns zero hits in source code.

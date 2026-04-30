@@ -79,47 +79,36 @@ enum LayoutTokenResolver {
     // swiftformat:disable:next
     // swiftlint:disable:next line_length
     private static let semantic: [String: String] = [
-        "spacing.xs": "space.raw.4", "spacing.sm": "space.raw.8", "spacing.md": "space.raw.12", "spacing.lg": "space.raw.16", "spacing.xl": "space.raw.24", "spacing.xxl": "space.raw.32",
-        "radius.sm": "radius.raw.4", "radius.md": "radius.raw.8", "radius.lg": "radius.raw.12", "radius.xl": "radius.raw.16", "radius.full": "radius.raw.999",
-        "icon.sm": "size.raw.20", "icon.md": "size.raw.32", "icon.lg": "size.raw.40", "logo.team.sm": "size.raw.40", "logo.team.md": "size.raw.48", "logo.team.lg": "size.raw.56", "avatar.sm": "size.raw.40", "avatar.md": "size.raw.48", "avatar.lg": "size.raw.64", "thumbnail.sm": "size.raw.72", "thumbnail.md": "size.raw.96",
-        "type.body": "type.raw.14", "type.bodyEm": "type.raw.16", "type.title": "type.raw.20", "type.headline": "type.raw.28",
-        "shadow.sm": "shadow.raw.1", "shadow.md": "shadow.raw.2", "shadow.lg": "shadow.raw.3"
+        // spacing (Kinetic)
+        "nba.spacing.xs": "nba.space.raw.2", "nba.spacing.sm": "nba.space.raw.4", "nba.spacing.md": "nba.space.raw.8", "nba.spacing.lg": "nba.space.raw.16", "nba.spacing.xl": "nba.space.raw.32", "nba.spacing.2xl": "nba.space.raw.40",
+        // radius (Kinetic)
+        "nba.radius.xs": "nba.radius.raw.2", "nba.radius.sm": "nba.radius.raw.4", "nba.radius.md": "nba.radius.raw.8", "nba.radius.lg": "nba.radius.raw.16", "nba.radius.xl": "nba.radius.raw.24", "nba.radius.2xl": "nba.radius.raw.32", "nba.radius.full": "nba.radius.raw.9999",
+        // Legacy aliases (deprecated — kept for backward compat with cached payloads)
+        "spacing.xs": "nba.space.raw.2", "spacing.sm": "nba.space.raw.4", "spacing.md": "nba.space.raw.8", "spacing.lg": "nba.space.raw.16", "spacing.xl": "nba.space.raw.32",
+        "radius.sm": "nba.radius.raw.4", "radius.md": "nba.radius.raw.8", "radius.lg": "nba.radius.raw.16", "radius.full": "nba.radius.raw.9999"
     ]
 
     // MARK: - Snapshot: palette (merged registries)
 
     private static let palette: [String: [String: Int]] = {
         var m: [String: [String: Int]] = [:]
-        addPalette(&m, "space.raw.0", 0, 0, 0, 0, 0, 0)
-        addPalette(&m, "space.raw.4", 4, 4, 6, 8, 4, 6)
-        addPalette(&m, "space.raw.8", 8, 8, 10, 12, 8, 10)
-        addPalette(&m, "space.raw.12", 12, 12, 14, 16, 12, 14)
-        addPalette(&m, "space.raw.16", 16, 16, 18, 20, 16, 18)
-        addPalette(&m, "space.raw.24", 24, 24, 28, 32, 24, 28)
-        addPalette(&m, "space.raw.32", 32, 32, 36, 40, 32, 36)
-        addPalette(&m, "radius.raw.0", 0, 0, 0, 0, 0, 0)
-        addPalette(&m, "radius.raw.4", 4, 4, 6, 8, 4, 6)
-        addPalette(&m, "radius.raw.8", 8, 8, 10, 12, 8, 10)
-        addPalette(&m, "radius.raw.12", 12, 12, 14, 16, 12, 14)
-        addPalette(&m, "radius.raw.16", 16, 16, 18, 20, 16, 18)
-        addPalette(&m, "radius.raw.999", 999, 999, 999, 999, 999, 999)
-        addPalette(&m, "size.raw.20", 20, 20, 24, 28, 20, 24)
-        addPalette(&m, "size.raw.32", 32, 32, 40, 48, 32, 40)
-        addPalette(&m, "size.raw.40", 40, 40, 48, 56, 40, 48)
-        addPalette(&m, "size.raw.48", 48, 48, 56, 64, 48, 56)
-        addPalette(&m, "size.raw.56", 56, 56, 64, 80, 56, 64)
-        addPalette(&m, "size.raw.64", 64, 64, 72, 96, 64, 72)
-        addPalette(&m, "size.raw.72", 72, 72, 80, 112, 72, 80)
-        addPalette(&m, "size.raw.96", 96, 96, 108, 128, 96, 108)
-        addPalette(&m, "type.raw.12", 12, 12, 13, 18, 12, 13)
-        addPalette(&m, "type.raw.14", 14, 14, 15, 20, 14, 15)
-        addPalette(&m, "type.raw.16", 16, 16, 17, 24, 16, 17)
-        addPalette(&m, "type.raw.20", 20, 20, 22, 32, 20, 22)
-        addPalette(&m, "type.raw.28", 28, 28, 32, 40, 28, 32)
-        addPalette(&m, "shadow.raw.0", 0, 0, 0, 0, 0, 0)
-        addPalette(&m, "shadow.raw.1", 1, 1, 1, 2, 1, 1)
-        addPalette(&m, "shadow.raw.2", 2, 2, 2, 3, 2, 2)
-        addPalette(&m, "shadow.raw.3", 3, 3, 3, 4, 3, 3)
+        // spacing (Kinetic)
+        addPalette(&m, "nba.space.raw.0",  0,  0,  0,  0,  0,  0)
+        addPalette(&m, "nba.space.raw.2",  2,  2,  2,  4,  2,  2)
+        addPalette(&m, "nba.space.raw.4",  4,  4,  6,  6,  4,  6)
+        addPalette(&m, "nba.space.raw.8",  8,  8,  10, 12, 8,  10)
+        addPalette(&m, "nba.space.raw.16", 16, 16, 20, 24, 16, 20)
+        addPalette(&m, "nba.space.raw.32", 32, 32, 40, 48, 32, 40)
+        addPalette(&m, "nba.space.raw.40", 40, 40, 48, 56, 40, 48)
+        // corner radius (Kinetic — flat across form factors)
+        addPalette(&m, "nba.radius.raw.0",    0,    0,    0,    0,    0,    0)
+        addPalette(&m, "nba.radius.raw.2",    2,    2,    2,    2,    2,    2)
+        addPalette(&m, "nba.radius.raw.4",    4,    4,    4,    4,    4,    4)
+        addPalette(&m, "nba.radius.raw.8",    8,    8,    8,    8,    8,    8)
+        addPalette(&m, "nba.radius.raw.16",   16,   16,   16,   16,   16,   16)
+        addPalette(&m, "nba.radius.raw.24",   24,   24,   24,   24,   24,   24)
+        addPalette(&m, "nba.radius.raw.32",   32,   32,   32,   32,   32,   32)
+        addPalette(&m, "nba.radius.raw.9999", 9999, 9999, 9999, 9999, 9999, 9999)
         return m
     }()
 

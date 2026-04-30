@@ -21,7 +21,7 @@ import org.junit.Test
  *   - unknown tokens log `token_resolver_missing` and return 0
  *   - non-`token:` strings log a debug diagnostic and return 0
  *   - aspect ratio enum values map to `width / height` floats
- *   - alias chain hops correctly (e.g. `radius.full` → `radius.raw.999`)
+ *   - alias chain hops correctly (e.g. `radius.full` → `radius.raw.9999`)
  *
  * Mirrors `LayoutTokenResolverTests.swift` on iOS so cross-platform
  * resolution semantics stay equivalent.
@@ -54,22 +54,22 @@ class LayoutTokenResolverTest {
 
     @Test
     fun `spacing md resolves per form factor`() {
-        val token = LayoutScalar.StringValue("token:spacing.md")
-        assertEquals(12, LayoutTokenResolver.intValue(token, formFactor = "phone"))
-        assertEquals(14, LayoutTokenResolver.intValue(token, formFactor = "tablet"))
+        val token = LayoutScalar.StringValue("token:nba.spacing.md")
+        assertEquals(8, LayoutTokenResolver.intValue(token, formFactor = "phone"))
+        assertEquals(10, LayoutTokenResolver.intValue(token, formFactor = "tablet"))
     }
 
     @Test
     fun `unknown form factor row falls back to phone`() {
-        val token = LayoutScalar.StringValue("token:spacing.md")
-        assertEquals(12, LayoutTokenResolver.intValue(token, formFactor = "watch.tiny"))
+        val token = LayoutScalar.StringValue("token:nba.spacing.md")
+        assertEquals(8, LayoutTokenResolver.intValue(token, formFactor = "watch.tiny"))
     }
 
     @Test
     fun `unknown token returns zero and logs token_resolver_missing`() {
-        val token = LayoutScalar.StringValue("token:spacing.does.not.exist")
+        val token = LayoutScalar.StringValue("token:nba.spacing.does.not.exist")
         assertEquals(0, LayoutTokenResolver.intValue(token, formFactor = "phone"))
-        verify { Log.d("LayoutTokenResolver", "token_resolver_missing: token:spacing.does.not.exist") }
+        verify { Log.d("LayoutTokenResolver", "token_resolver_missing: token:nba.spacing.does.not.exist") }
     }
 
     @Test
@@ -107,10 +107,10 @@ class LayoutTokenResolverTest {
     }
 
     @Test
-    fun `radius full alias chain resolves to 999`() {
-        val token = LayoutScalar.StringValue("token:radius.full")
-        assertEquals(999, LayoutTokenResolver.intValue(token, formFactor = "phone"))
-        assertEquals(999, LayoutTokenResolver.intValue(token, formFactor = "tablet"))
-        assertEquals(999, LayoutTokenResolver.intValue(token, formFactor = "web.wide"))
+    fun `radius full alias chain resolves to 9999`() {
+        val token = LayoutScalar.StringValue("token:nba.radius.full")
+        assertEquals(9999, LayoutTokenResolver.intValue(token, formFactor = "phone"))
+        assertEquals(9999, LayoutTokenResolver.intValue(token, formFactor = "tablet"))
+        assertEquals(9999, LayoutTokenResolver.intValue(token, formFactor = "web.wide"))
     }
 }

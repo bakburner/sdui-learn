@@ -103,89 +103,58 @@ object LayoutTokenResolver {
     // (by hand for now) when those files change; keep deterministic
     // ordering so diffs are reviewable.
     private val semantic: Map<String, String> = mapOf(
-        // spacing-tokens.json
-        "spacing.xs"    to "space.raw.4",
-        "spacing.sm"    to "space.raw.8",
-        "spacing.md"    to "space.raw.12",
-        "spacing.lg"    to "space.raw.16",
-        "spacing.xl"    to "space.raw.24",
-        "spacing.xxl"   to "space.raw.32",
+        // spacing-tokens.json (Kinetic)
+        "nba.spacing.xs"  to "nba.space.raw.2",
+        "nba.spacing.sm"  to "nba.space.raw.4",
+        "nba.spacing.md"  to "nba.space.raw.8",
+        "nba.spacing.lg"  to "nba.space.raw.16",
+        "nba.spacing.xl"  to "nba.space.raw.32",
+        "nba.spacing.2xl" to "nba.space.raw.40",
 
-        // corner-radius-tokens.json
-        "radius.sm"     to "radius.raw.4",
-        "radius.md"     to "radius.raw.8",
-        "radius.lg"     to "radius.raw.12",
-        "radius.xl"     to "radius.raw.16",
-        "radius.full"   to "radius.raw.999",
+        // corner-radius-tokens.json (Kinetic)
+        "nba.radius.xs"   to "nba.radius.raw.2",
+        "nba.radius.sm"   to "nba.radius.raw.4",
+        "nba.radius.md"   to "nba.radius.raw.8",
+        "nba.radius.lg"   to "nba.radius.raw.16",
+        "nba.radius.xl"   to "nba.radius.raw.24",
+        "nba.radius.2xl"  to "nba.radius.raw.32",
+        "nba.radius.full" to "nba.radius.raw.9999",
 
-        // size-tokens.json
-        "icon.sm"       to "size.raw.20",
-        "icon.md"       to "size.raw.32",
-        "icon.lg"       to "size.raw.40",
-        "logo.team.sm"  to "size.raw.40",
-        "logo.team.md"  to "size.raw.48",
-        "logo.team.lg"  to "size.raw.56",
-        "avatar.sm"     to "size.raw.40",
-        "avatar.md"     to "size.raw.48",
-        "avatar.lg"     to "size.raw.64",
-        "thumbnail.sm"  to "size.raw.72",
-        "thumbnail.md"  to "size.raw.96",
+        // Legacy aliases (deprecated — kept for backward compat with cached payloads)
+        "spacing.xs"  to "nba.space.raw.2",
+        "spacing.sm"  to "nba.space.raw.4",
+        "spacing.md"  to "nba.space.raw.8",
+        "spacing.lg"  to "nba.space.raw.16",
+        "spacing.xl"  to "nba.space.raw.32",
+        "radius.sm"   to "nba.radius.raw.4",
+        "radius.md"   to "nba.radius.raw.8",
+        "radius.lg"   to "nba.radius.raw.16",
+        "radius.full" to "nba.radius.raw.9999",
 
-        // typography-tokens.json
-        "type.body"     to "type.raw.14",
-        "type.bodyEm"   to "type.raw.16",
-        "type.title"    to "type.raw.20",
-        "type.headline" to "type.raw.28",
-
-        // shadow-tokens.json
-        "shadow.sm"     to "shadow.raw.1",
-        "shadow.md"     to "shadow.raw.2",
-        "shadow.lg"     to "shadow.raw.3"
     )
 
     // ── Snapshot: merged palette (per form factor) ───────────────────
     //
     // Order of values per row: phone, phone.landscape, tablet, tv, web.narrow, web.wide.
     private val palette: Map<String, Map<String, Int>> = buildMap {
-        // spacing-tokens.json
-        addRow("space.raw.0",  0,  0,  0,  0,  0,  0)
-        addRow("space.raw.4",  4,  4,  6,  8,  4,  6)
-        addRow("space.raw.8",  8,  8,  10, 12, 8,  10)
-        addRow("space.raw.12", 12, 12, 14, 16, 12, 14)
-        addRow("space.raw.16", 16, 16, 18, 20, 16, 18)
-        addRow("space.raw.24", 24, 24, 28, 32, 24, 28)
-        addRow("space.raw.32", 32, 32, 36, 40, 32, 36)
+        // spacing (Kinetic)
+        addRow("nba.space.raw.0",  0,  0,  0,  0,  0,  0)
+        addRow("nba.space.raw.2",  2,  2,  2,  4,  2,  2)
+        addRow("nba.space.raw.4",  4,  4,  6,  6,  4,  6)
+        addRow("nba.space.raw.8",  8,  8,  10, 12, 8,  10)
+        addRow("nba.space.raw.16", 16, 16, 20, 24, 16, 20)
+        addRow("nba.space.raw.32", 32, 32, 40, 48, 32, 40)
+        addRow("nba.space.raw.40", 40, 40, 48, 56, 40, 48)
 
-        // corner-radius-tokens.json
-        addRow("radius.raw.0",   0,   0,   0,   0,   0,   0)
-        addRow("radius.raw.4",   4,   4,   6,   8,   4,   6)
-        addRow("radius.raw.8",   8,   8,   10,  12,  8,   10)
-        addRow("radius.raw.12",  12,  12,  14,  16,  12,  14)
-        addRow("radius.raw.16",  16,  16,  18,  20,  16,  18)
-        addRow("radius.raw.999", 999, 999, 999, 999, 999, 999)
-
-        // size-tokens.json
-        addRow("size.raw.20", 20, 20, 24,  28,  20, 24)
-        addRow("size.raw.32", 32, 32, 40,  48,  32, 40)
-        addRow("size.raw.40", 40, 40, 48,  56,  40, 48)
-        addRow("size.raw.48", 48, 48, 56,  64,  48, 56)
-        addRow("size.raw.56", 56, 56, 64,  80,  56, 64)
-        addRow("size.raw.64", 64, 64, 72,  96,  64, 72)
-        addRow("size.raw.72", 72, 72, 80,  112, 72, 80)
-        addRow("size.raw.96", 96, 96, 108, 128, 96, 108)
-
-        // typography-tokens.json
-        addRow("type.raw.12", 12, 12, 13, 18, 12, 13)
-        addRow("type.raw.14", 14, 14, 15, 20, 14, 15)
-        addRow("type.raw.16", 16, 16, 17, 24, 16, 17)
-        addRow("type.raw.20", 20, 20, 22, 32, 20, 22)
-        addRow("type.raw.28", 28, 28, 32, 40, 28, 32)
-
-        // shadow-tokens.json
-        addRow("shadow.raw.0", 0, 0, 0, 0, 0, 0)
-        addRow("shadow.raw.1", 1, 1, 1, 2, 1, 1)
-        addRow("shadow.raw.2", 2, 2, 2, 3, 2, 2)
-        addRow("shadow.raw.3", 3, 3, 3, 4, 3, 3)
+        // corner radius (Kinetic — flat across form factors)
+        addRow("nba.radius.raw.0",    0,    0,    0,    0,    0,    0)
+        addRow("nba.radius.raw.2",    2,    2,    2,    2,    2,    2)
+        addRow("nba.radius.raw.4",    4,    4,    4,    4,    4,    4)
+        addRow("nba.radius.raw.8",    8,    8,    8,    8,    8,    8)
+        addRow("nba.radius.raw.16",   16,   16,   16,   16,   16,   16)
+        addRow("nba.radius.raw.24",   24,   24,   24,   24,   24,   24)
+        addRow("nba.radius.raw.32",   32,   32,   32,   32,   32,   32)
+        addRow("nba.radius.raw.9999", 9999, 9999, 9999, 9999, 9999, 9999)
     }
 
     private fun MutableMap<String, Map<String, Int>>.addRow(

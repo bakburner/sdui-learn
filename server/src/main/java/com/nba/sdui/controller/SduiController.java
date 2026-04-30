@@ -290,6 +290,36 @@ public class SduiController {
         return getDemos(ctx, response);
     }
 
+    // ── Home (NBA.com style) ───────────────────────────────────────────
+
+    @GetMapping(value = "/sdui/home", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<JsonNode> getHome(
+            SduiRequestContext ctx,
+            HttpServletResponse response) {
+
+        ensureTraceId(ctx);
+        MDC.put("traceId", ctx.getTraceId());
+        log.info("SDUI home request: locale={}, schemaVersion={}", ctx.getLocale(), ctx.getSchemaVersion());
+
+        try {
+            JsonNode screenResponse = compositionService.composeHome(ctx);
+            setResponseHeaders(response, ctx);
+            return ResponseEntity.ok()
+                    .cacheControl(CacheControl.maxAge(Duration.ofSeconds(120)).cachePublic())
+                    .body(screenResponse);
+        } catch (Exception e) {
+            log.error("Error composing home screen", e);
+            return ResponseEntity.internalServerError().build();
+        } finally {
+            MDC.clear();
+        }
+    }
+
+    @PostMapping(value = "/sdui/home", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<JsonNode> postHome(SduiRequestContext ctx, HttpServletResponse response) {
+        return getHome(ctx, response);
+    }
+
     // ── Leaders ────────────────────────────────────────────────────────
 
     @GetMapping(value = "/sdui/leaders", produces = MediaType.APPLICATION_JSON_VALUE)

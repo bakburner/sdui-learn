@@ -12,17 +12,20 @@ import androidx.compose.ui.graphics.luminance
  * Accepts two forms on the wire:
  *   - A literal hex color: `"#RRGGBB"` or `"#RRGGBBAA"`.
  *   - A semantic token reference: `"token:<dot.separated.path>"`
- *     (e.g. `"token:color.primary.50"`, `"token:color.brand.nba"`).
+ *     (e.g. `"token:nba.color.primary.50"`, `"token:nba.label.accent.brand"`).
  *
- * Token lookup walks a two-tier registry: `semantic` aliases resolve (through
- * any further aliases) to a `palette` primitive, which carries a light/dark
- * pair. The active Material color scheme selects which hex value is returned.
+ * Token lookup walks a three-tier registry:
+ *   1. `palette` — Kinetic primitives (mode-independent hex) and UI tokens
+ *      (mode-aware, values may be token names referencing other palette/semantic
+ *      entries).
+ *   2. `semantic` — aliases mapping one token name to another.
+ *   3. Recursive resolution — after picking light/dark from a palette entry,
+ *      if the value is not hex (#...) it is resolved again through followAlias.
  *
  * Unknown tokens log `token_resolver_missing` and return [Color.Unspecified]
- * so the caller can fall back to a sensible default. `null` / blank input
- * also returns [Color.Unspecified].
+ * so the caller can fall back to a sensible default.
  *
- * The palette and semantic maps below are a hand-mirrored snapshot of
+ * The palette and semantic maps below are a snapshot of
  * `schema/color-tokens.json`. When that file changes, regenerate this
  * snapshot to keep the client registry in sync.
  */
@@ -30,221 +33,294 @@ object ColorTokenResolver {
 
     private const val TAG = "ColorTokenResolver"
     private const val TOKEN_PREFIX = "token:"
+    private const val MAX_DEPTH = 8
 
     private val resolveCache = mutableMapOf<Pair<String, Boolean>, Color>()
 
     private data class PaletteEntry(val light: String, val dark: String)
 
-    // Palette primitives — literal light/dark hex pairs.
+    // ── Palette primitives (mode-independent) + UI tokens (mode-aware) ──
+
     private val palette: Map<String, PaletteEntry> = mapOf(
-        // grey
-        "color.grey.0"    to PaletteEntry("#FFFFFF", "#FFFFFF"),
-        "color.grey.5"    to PaletteEntry("#FAFAFA", "#0D0F12"),
-        "color.grey.10"   to PaletteEntry("#F2F2F7", "#1A1F2E"),
-        "color.grey.20"   to PaletteEntry("#E5E5EA", "#2A2A4A"),
-        "color.grey.30"   to PaletteEntry("#D1D1D6", "#3A3A5A"),
-        "color.grey.40"   to PaletteEntry("#C7C7CC", "#48485F"),
-        "color.grey.50"   to PaletteEntry("#8E8E93", "#7A8BAA"),
-        "color.grey.60"   to PaletteEntry("#636366", "#9999AA"),
-        "color.grey.70"   to PaletteEntry("#48484A", "#AAAAAA"),
-        "color.grey.80"   to PaletteEntry("#3A3A3C", "#CCCCCC"),
-        "color.grey.90"   to PaletteEntry("#1C1C1E", "#E5E5E7"),
-        "color.grey.95"   to PaletteEntry("#0F0F10", "#F2F2F4"),
-        "color.grey.99"   to PaletteEntry("#050506", "#FAFAFB"),
-        "color.grey.100"  to PaletteEntry("#000000", "#FFFFFF"),
-
         // blue
-        "color.blue.0"    to PaletteEntry("#F5F8FF", "#0A1128"),
-        "color.blue.10"   to PaletteEntry("#E0EAFF", "#0E1B3E"),
-        "color.blue.20"   to PaletteEntry("#B6CDFF", "#12295A"),
-        "color.blue.30"   to PaletteEntry("#7FA0F0", "#1D428A"),
-        "color.blue.40"   to PaletteEntry("#3D6BD4", "#2B5AB0"),
-        "color.blue.50"   to PaletteEntry("#17408B", "#5B8DEE"),
-        "color.blue.60"   to PaletteEntry("#1A4FAF", "#7FA8F0"),
-        "color.blue.70"   to PaletteEntry("#3D6DC4", "#A3C1F5"),
-        "color.blue.80"   to PaletteEntry("#6F94DC", "#C7D9F8"),
-        "color.blue.90"   to PaletteEntry("#A8BEE8", "#E0EAFB"),
-        "color.blue.95"   to PaletteEntry("#CFDDF3", "#EEF2FD"),
-        "color.blue.99"   to PaletteEntry("#F3F6FD", "#F9FBFE"),
-        "color.blue.100"  to PaletteEntry("#FFFFFF", "#FFFFFF"),
-
-        // red
-        "color.red.0"     to PaletteEntry("#FFF5F5", "#2C0A0F"),
-        "color.red.10"    to PaletteEntry("#FFE5E8", "#4A0F16"),
-        "color.red.20"    to PaletteEntry("#FFB8C0", "#6B0A18"),
-        "color.red.30"    to PaletteEntry("#FF8091", "#8A0D1E"),
-        "color.red.40"    to PaletteEntry("#FF4D62", "#A81025"),
-        "color.red.50"    to PaletteEntry("#C8102E", "#FF6B6B"),
-        "color.red.60"    to PaletteEntry("#D63848", "#FF8E95"),
-        "color.red.70"    to PaletteEntry("#E06470", "#FFB0B5"),
-        "color.red.80"    to PaletteEntry("#EC9298", "#FFCBCF"),
-        "color.red.90"    to PaletteEntry("#F6C3C6", "#FFE1E3"),
-        "color.red.95"    to PaletteEntry("#FBDEE0", "#FFEFF0"),
-        "color.red.99"    to PaletteEntry("#FEF7F7", "#FFFAFB"),
-        "color.red.100"   to PaletteEntry("#FFFFFF", "#FFFFFF"),
-
+        "nba.color.blue.0"    to PaletteEntry("#000000", "#000000"),
+        "nba.color.blue.10"   to PaletteEntry("#051C2D", "#051C2D"),
+        "nba.color.blue.20"   to PaletteEntry("#132A59", "#132A59"),
+        "nba.color.blue.30"   to PaletteEntry("#1D428A", "#1D428A"),
+        "nba.color.blue.40"   to PaletteEntry("#0064FF", "#0064FF"),
+        "nba.color.blue.50"   to PaletteEntry("#1A81FF", "#1A81FF"),
+        "nba.color.blue.60"   to PaletteEntry("#4D9DFF", "#4D9DFF"),
+        "nba.color.blue.70"   to PaletteEntry("#66ABFF", "#66ABFF"),
+        "nba.color.blue.80"   to PaletteEntry("#99C7FF", "#99C7FF"),
+        "nba.color.blue.90"   to PaletteEntry("#CCE3FF", "#CCE3FF"),
+        "nba.color.blue.95"   to PaletteEntry("#E5F1FF", "#E5F1FF"),
+        "nba.color.blue.99"   to PaletteEntry("#F5F9FF", "#F5F9FF"),
+        "nba.color.blue.100"  to PaletteEntry("#FFFFFF", "#FFFFFF"),
         // green
-        "color.green.0"   to PaletteEntry("#F4FBF5", "#0A1F12"),
-        "color.green.10"  to PaletteEntry("#DCF0DF", "#0D3018"),
-        "color.green.20"  to PaletteEntry("#A8D8B2", "#14502A"),
-        "color.green.30"  to PaletteEntry("#6EBC83", "#1C6D3A"),
-        "color.green.40"  to PaletteEntry("#3D9E5A", "#258A4C"),
-        "color.green.50"  to PaletteEntry("#1F8A3F", "#4CB27A"),
-        "color.green.60"  to PaletteEntry("#3EA05B", "#70C594"),
-        "color.green.70"  to PaletteEntry("#68B87F", "#94D4AE"),
-        "color.green.80"  to PaletteEntry("#97CCA5", "#B8E1C5"),
-        "color.green.90"  to PaletteEntry("#C4E0CB", "#DCEEE0"),
-        "color.green.95"  to PaletteEntry("#DFECE3", "#EDF5EF"),
-        "color.green.99"  to PaletteEntry("#F8FBF9", "#FAFCFB"),
-        "color.green.100" to PaletteEntry("#FFFFFF", "#FFFFFF"),
-
+        "nba.color.green.0"   to PaletteEntry("#000000", "#000000"),
+        "nba.color.green.10"  to PaletteEntry("#103514", "#103514"),
+        "nba.color.green.20"  to PaletteEntry("#206A28", "#206A28"),
+        "nba.color.green.30"  to PaletteEntry("#317E44", "#317E44"),
+        "nba.color.green.40"  to PaletteEntry("#3B8A4A", "#3B8A4A"),
+        "nba.color.green.50"  to PaletteEntry("#45A057", "#45A057"),
+        "nba.color.green.60"  to PaletteEntry("#4FB664", "#4FB664"),
+        "nba.color.green.70"  to PaletteEntry("#30D158", "#30D158"),
+        "nba.color.green.80"  to PaletteEntry("#64D879", "#64D879"),
+        "nba.color.green.90"  to PaletteEntry("#97E09B", "#97E09B"),
+        "nba.color.green.95"  to PaletteEntry("#CBE8BD", "#CBE8BD"),
+        "nba.color.green.99"  to PaletteEntry("#F0F2DE", "#F0F2DE"),
+        "nba.color.green.100" to PaletteEntry("#FFFFFF", "#FFFFFF"),
+        // grey
+        "nba.color.grey.0"    to PaletteEntry("#000000", "#000000"),
+        "nba.color.grey.10"   to PaletteEntry("#191C23", "#191C23"),
+        "nba.color.grey.20"   to PaletteEntry("#2B2F37", "#2B2F37"),
+        "nba.color.grey.30"   to PaletteEntry("#3C414A", "#3C414A"),
+        "nba.color.grey.40"   to PaletteEntry("#4E525C", "#4E525C"),
+        "nba.color.grey.50"   to PaletteEntry("#838A96", "#838A96"),
+        "nba.color.grey.60"   to PaletteEntry("#A4A7AD", "#A4A7AD"),
+        "nba.color.grey.70"   to PaletteEntry("#BFC2C6", "#BFC2C6"),
+        "nba.color.grey.80"   to PaletteEntry("#DADDDE", "#DADDDE"),
+        "nba.color.grey.90"   to PaletteEntry("#E7E9EA", "#E7E9EA"),
+        "nba.color.grey.95"   to PaletteEntry("#F3F4F5", "#F3F4F5"),
+        "nba.color.grey.99"   to PaletteEntry("#F9FAFA", "#F9FAFA"),
+        "nba.color.grey.100"  to PaletteEntry("#FFFFFF", "#FFFFFF"),
         // orange
-        "color.orange.0"   to PaletteEntry("#FFF8F0", "#2C1708"),
-        "color.orange.10"  to PaletteEntry("#FFEAD0", "#4A2610"),
-        "color.orange.20"  to PaletteEntry("#FFCE8B", "#6E3A17"),
-        "color.orange.30"  to PaletteEntry("#FFA94D", "#945121"),
-        "color.orange.40"  to PaletteEntry("#F58420", "#BA6B2E"),
-        "color.orange.50"  to PaletteEntry("#D86E0F", "#F58A3E"),
-        "color.orange.60"  to PaletteEntry("#E0863A", "#FFA35F"),
-        "color.orange.70"  to PaletteEntry("#E9A066", "#FFB988"),
-        "color.orange.80"  to PaletteEntry("#F2BB92", "#FFD0B0"),
-        "color.orange.90"  to PaletteEntry("#F9D9C0", "#FFE5D3"),
-        "color.orange.95"  to PaletteEntry("#FCE8D6", "#FFEFE3"),
-        "color.orange.99"  to PaletteEntry("#FEF9F4", "#FFFBF7"),
-        "color.orange.100" to PaletteEntry("#FFFFFF", "#FFFFFF"),
-
+        "nba.color.orange.0"   to PaletteEntry("#000000", "#000000"),
+        "nba.color.orange.10"  to PaletteEntry("#1F0D02", "#1F0D02"),
+        "nba.color.orange.20"  to PaletteEntry("#3A1805", "#3A1805"),
+        "nba.color.orange.30"  to PaletteEntry("#5A2508", "#5A2508"),
+        "nba.color.orange.40"  to PaletteEntry("#7A340B", "#7A340B"),
+        "nba.color.orange.50"  to PaletteEntry("#9A450F", "#9A450F"),
+        "nba.color.orange.60"  to PaletteEntry("#BB5814", "#BB5814"),
+        "nba.color.orange.70"  to PaletteEntry("#E66E1A", "#E66E1A"),
+        "nba.color.orange.80"  to PaletteEntry("#F18F45", "#F18F45"),
+        "nba.color.orange.90"  to PaletteEntry("#F6B679", "#F6B679"),
+        "nba.color.orange.95"  to PaletteEntry("#FAD5A6", "#FAD5A6"),
+        "nba.color.orange.99"  to PaletteEntry("#FEF2E6", "#FEF2E6"),
+        "nba.color.orange.100" to PaletteEntry("#FFFFFF", "#FFFFFF"),
+        // red
+        "nba.color.red.0"     to PaletteEntry("#000000", "#000000"),
+        "nba.color.red.10"    to PaletteEntry("#410E0B", "#410E0B"),
+        "nba.color.red.20"    to PaletteEntry("#601410", "#601410"),
+        "nba.color.red.30"    to PaletteEntry("#8C1D18", "#8C1D18"),
+        "nba.color.red.40"    to PaletteEntry("#B3261E", "#B3261E"),
+        "nba.color.red.50"    to PaletteEntry("#DC362E", "#DC362E"),
+        "nba.color.red.60"    to PaletteEntry("#FE6F67", "#FE6F67"),
+        "nba.color.red.70"    to PaletteEntry("#EC928E", "#EC928E"),
+        "nba.color.red.80"    to PaletteEntry("#F2B8B5", "#F2B8B5"),
+        "nba.color.red.90"    to PaletteEntry("#F9DEDC", "#F9DEDC"),
+        "nba.color.red.95"    to PaletteEntry("#FCEEEE", "#FCEEEE"),
+        "nba.color.red.99"    to PaletteEntry("#FFFBF9", "#FFFBF9"),
+        "nba.color.red.100"   to PaletteEntry("#FFFFFF", "#FFFFFF"),
+        // t-black (transparent black)
+        "nba.color.t-black.0"  to PaletteEntry("#00000000", "#00000000"),
+        "nba.color.t-black.5"  to PaletteEntry("#0000000D", "#0000000D"),
+        "nba.color.t-black.10" to PaletteEntry("#0000001A", "#0000001A"),
+        "nba.color.t-black.15" to PaletteEntry("#00000026", "#00000026"),
+        "nba.color.t-black.20" to PaletteEntry("#00000033", "#00000033"),
+        "nba.color.t-black.25" to PaletteEntry("#00000040", "#00000040"),
+        "nba.color.t-black.30" to PaletteEntry("#0000004D", "#0000004D"),
+        "nba.color.t-black.40" to PaletteEntry("#00000066", "#00000066"),
+        "nba.color.t-black.50" to PaletteEntry("#00000080", "#00000080"),
+        "nba.color.t-black.60" to PaletteEntry("#00000099", "#00000099"),
+        "nba.color.t-black.70" to PaletteEntry("#000000B2", "#000000B2"),
+        "nba.color.t-black.75" to PaletteEntry("#000000BF", "#000000BF"),
+        "nba.color.t-black.80" to PaletteEntry("#000000CC", "#000000CC"),
+        "nba.color.t-black.85" to PaletteEntry("#000000D9", "#000000D9"),
+        "nba.color.t-black.90" to PaletteEntry("#000000E5", "#000000E5"),
+        "nba.color.t-black.95" to PaletteEntry("#000000F2", "#000000F2"),
+        // t-white (transparent white)
+        "nba.color.t-white.0"  to PaletteEntry("#FFFFFF00", "#FFFFFF00"),
+        "nba.color.t-white.5"  to PaletteEntry("#FFFFFF0D", "#FFFFFF0D"),
+        "nba.color.t-white.10" to PaletteEntry("#FFFFFF1A", "#FFFFFF1A"),
+        "nba.color.t-white.15" to PaletteEntry("#FFFFFF26", "#FFFFFF26"),
+        "nba.color.t-white.20" to PaletteEntry("#FFFFFF33", "#FFFFFF33"),
+        "nba.color.t-white.25" to PaletteEntry("#FFFFFF40", "#FFFFFF40"),
+        "nba.color.t-white.30" to PaletteEntry("#FFFFFF4D", "#FFFFFF4D"),
+        "nba.color.t-white.40" to PaletteEntry("#FFFFFF66", "#FFFFFF66"),
+        "nba.color.t-white.50" to PaletteEntry("#FFFFFF80", "#FFFFFF80"),
+        "nba.color.t-white.60" to PaletteEntry("#FFFFFF99", "#FFFFFF99"),
+        "nba.color.t-white.70" to PaletteEntry("#FFFFFFB2", "#FFFFFFB2"),
+        "nba.color.t-white.75" to PaletteEntry("#FFFFFFBF", "#FFFFFFBF"),
+        "nba.color.t-white.80" to PaletteEntry("#FFFFFFCC", "#FFFFFFCC"),
+        "nba.color.t-white.85" to PaletteEntry("#FFFFFFD9", "#FFFFFFD9"),
+        "nba.color.t-white.90" to PaletteEntry("#FFFFFFE5", "#FFFFFFE5"),
+        "nba.color.t-white.95" to PaletteEntry("#FFFFFFF2", "#FFFFFFF2"),
         // yellow
-        "color.yellow.0"   to PaletteEntry("#FFFDF0", "#2A2408"),
-        "color.yellow.10"  to PaletteEntry("#FFF6CC", "#463B0F"),
-        "color.yellow.20"  to PaletteEntry("#FFEB85", "#695A17"),
-        "color.yellow.30"  to PaletteEntry("#FFDB3F", "#8F7C20"),
-        "color.yellow.40"  to PaletteEntry("#E8C010", "#B69E29"),
-        "color.yellow.50"  to PaletteEntry("#C6A208", "#EACB3B"),
-        "color.yellow.60"  to PaletteEntry("#D1B035", "#F2D85D"),
-        "color.yellow.70"  to PaletteEntry("#DCC165", "#F6E08A"),
-        "color.yellow.80"  to PaletteEntry("#E8D392", "#FAE8B2"),
-        "color.yellow.90"  to PaletteEntry("#F1E4C0", "#FBEED4"),
-        "color.yellow.95"  to PaletteEntry("#F7EFDA", "#FDF4E6"),
-        "color.yellow.99"  to PaletteEntry("#FDFAF4", "#FEFAF2"),
-        "color.yellow.100" to PaletteEntry("#FFFFFF", "#FFFFFF")
+        "nba.color.yellow.0"   to PaletteEntry("#000000", "#000000"),
+        "nba.color.yellow.10"  to PaletteEntry("#281E01", "#281E01"),
+        "nba.color.yellow.20"  to PaletteEntry("#644B02", "#644B02"),
+        "nba.color.yellow.30"  to PaletteEntry("#967103", "#967103"),
+        "nba.color.yellow.40"  to PaletteEntry("#E1AA05", "#E1AA05"),
+        "nba.color.yellow.50"  to PaletteEntry("#F1BE27", "#F1BE27"),
+        "nba.color.yellow.60"  to PaletteEntry("#FBCD44", "#FBCD44"),
+        "nba.color.yellow.70"  to PaletteEntry("#FCD769", "#FCD769"),
+        "nba.color.yellow.80"  to PaletteEntry("#FCDE82", "#FCDE82"),
+        "nba.color.yellow.90"  to PaletteEntry("#FEF2CD", "#FEF2CD"),
+        "nba.color.yellow.95"  to PaletteEntry("#FEF9E6", "#FEF9E6"),
+        "nba.color.yellow.99"  to PaletteEntry("#FFFEFA", "#FFFEFA"),
+        "nba.color.yellow.100" to PaletteEntry("#FFFFFF", "#FFFFFF"),
+
+        // ── UI tokens (mode-aware) — values reference token names ──
+        "nba.bg.primary"              to PaletteEntry("nba.color.primary.95", "nba.color.primary.0"),
+        "nba.bg.secondary"            to PaletteEntry("nba.color.primary.100", "nba.color.primary.10"),
+        "nba.bg.tertiary"             to PaletteEntry("nba.color.primary.90", "nba.color.primary.20"),
+        "nba.bg.quaternary"           to PaletteEntry("nba.color.primary.80", "nba.color.primary.30"),
+        "nba.bg.selection"            to PaletteEntry("nba.color.primary.0", "nba.color.primary.100"),
+        "nba.bg.badge"                to PaletteEntry("nba.color.t-white.90", "nba.color.t-white.90"),
+        "nba.bg.disabled"             to PaletteEntry("nba.color.primary.80", "nba.color.primary.30"),
+        "nba.bg.splash-screen"        to PaletteEntry("nba.color.tertiary.30", "nba.color.tertiary.0"),
+        "nba.bg-dark.primary"         to PaletteEntry("nba.color.primary.0", "nba.color.primary.0"),
+        "nba.bg-dark.secondary"       to PaletteEntry("nba.color.primary.10", "nba.color.primary.10"),
+        "nba.bg-dark.tertiary"        to PaletteEntry("nba.color.primary.20", "nba.color.primary.20"),
+        "nba.bg-dark.quaternary"      to PaletteEntry("nba.color.primary.30", "nba.color.primary.30"),
+        "nba.bg-inverted.primary"     to PaletteEntry("nba.color.primary.0", "nba.color.primary.95"),
+        "nba.bg-inverted.secondary"   to PaletteEntry("nba.color.primary.10", "nba.color.primary.100"),
+        "nba.bg-inverted.tertiary"    to PaletteEntry("nba.color.primary.20", "nba.color.primary.90"),
+        "nba.bg-inverted.quaternary"  to PaletteEntry("nba.color.primary.30", "nba.color.primary.80"),
+        "nba.bg-tint.primary"         to PaletteEntry("nba.color.secondary.60", "nba.color.secondary.60"),
+        "nba.bg-tint.secondary"       to PaletteEntry("nba.color.secondary.80", "nba.color.secondary.80"),
+        "nba.bg-tint.tertiary"        to PaletteEntry("nba.color.secondary.50", "nba.color.secondary.50"),
+        "nba.bg-tint.quaternary"      to PaletteEntry("nba.color.secondary.40", "nba.color.secondary.50"),
+        "nba.label.primary"           to PaletteEntry("nba.color.primary.0", "nba.color.primary.100"),
+        "nba.label.secondary"         to PaletteEntry("nba.color.primary.40", "nba.color.primary.60"),
+        "nba.label.tertiary"          to PaletteEntry("nba.color.primary.60", "nba.color.primary.50"),
+        "nba.label.interactive"       to PaletteEntry("nba.color.tertiary.40", "nba.color.tertiary.70"),
+        "nba.label.selection"         to PaletteEntry("nba.color.primary.100", "nba.color.primary.0"),
+        "nba.label-dark.primary"      to PaletteEntry("nba.color.primary.100", "nba.color.primary.100"),
+        "nba.label-dark.secondary"    to PaletteEntry("nba.color.primary.60", "nba.color.primary.60"),
+        "nba.label-dark.tertiary"     to PaletteEntry("nba.color.primary.50", "nba.color.primary.40"),
+        "nba.label-dark.quaternary"   to PaletteEntry("nba.color.t-white.25", "nba.color.t-white.25"),
+        "nba.label-dark.interactive"  to PaletteEntry("nba.color.tertiary.40", "nba.color.tertiary.40"),
+        "nba.label-inverted.primary"  to PaletteEntry("nba.color.primary.100", "nba.color.primary.0"),
+        "nba.label-inverted.secondary" to PaletteEntry("nba.color.primary.60", "nba.color.primary.40"),
+        "nba.label-inverted.tertiary" to PaletteEntry("nba.color.primary.50", "nba.color.primary.60"),
+        "nba.label-inverted.quaternary" to PaletteEntry("nba.color.t-white.20", "nba.color.t-black.5"),
+        "nba.label-inverted.link"     to PaletteEntry("nba.color.tertiary.70", "nba.color.tertiary.40"),
+        "nba.label-tint.primary"      to PaletteEntry("nba.color.secondary.0", "nba.color.secondary.0"),
+        "nba.label-tint.secondary"    to PaletteEntry("nba.color.secondary.20", "nba.color.secondary.20"),
+        "nba.label.accent.brand"      to PaletteEntry("#1D428A", "nba.color.primary.100"),
+        "nba.label.accent.live"       to PaletteEntry("#C8102E", "#C8102E"),
+        "nba.label.accent.splash-screen" to PaletteEntry("nba.color.primary.100", "nba.color.tertiary.40"),
+        "nba.divider.moderate"        to PaletteEntry("nba.color.primary.70", "nba.color.primary.40"),
+        "nba.divider.subtle"          to PaletteEntry("nba.color.primary.80", "nba.color.primary.20"),
+        "nba.divider.prominent"       to PaletteEntry("nba.color.primary.60", "nba.color.primary.50"),
+        "nba.effect.blur"             to PaletteEntry("nba.color.t-white.90", "nba.color.t-white.90"),
+        "nba.effect.scrim"            to PaletteEntry("nba.color.t-black.50", "nba.color.t-black.50"),
+        "nba.effect.shadow-color-15"  to PaletteEntry("nba.color.t-black.15", "nba.color.t-white.15"),
+        "nba.effect.shadow-color-30"  to PaletteEntry("nba.color.t-black.30", "nba.color.t-white.30"),
+        "nba.feedback.bg-error.primary" to PaletteEntry("nba.color.feedback.error.90", "nba.color.feedback.error.10"),
+        "nba.feedback.bg-success.primary" to PaletteEntry("nba.color.feedback.success.99", "nba.color.feedback.success.10"),
+        "nba.feedback.bg-warning.primary" to PaletteEntry("nba.color.feedback.warning.99", "nba.color.feedback.warning.10"),
+        "nba.feedback.label-error.primary" to PaletteEntry("nba.color.feedback.error.50", "nba.color.feedback.error.60"),
+        "nba.feedback.label-error.secondary" to PaletteEntry("nba.color.feedback.error.30", "nba.color.feedback.error.70"),
+        "nba.feedback.label-success.primary" to PaletteEntry("nba.color.feedback.success.50", "nba.color.feedback.success.60"),
+        "nba.feedback.label-success.secondary" to PaletteEntry("nba.color.feedback.success.30", "nba.color.feedback.success.70"),
+        "nba.feedback.label-warning.primary" to PaletteEntry("nba.color.feedback.warning.50", "nba.color.feedback.warning.70"),
+        "nba.feedback.label-warning.secondary" to PaletteEntry("nba.color.feedback.warning.30", "nba.color.feedback.warning.60"),
+        "nba.button.primary.bg"       to PaletteEntry("nba.bg-inverted.secondary", "nba.bg-inverted.secondary"),
+        "nba.button.primary.label"    to PaletteEntry("nba.label-inverted.primary", "nba.label-inverted.primary"),
+        "nba.button.primary.border-color" to PaletteEntry("nba.color.t-white.0", "nba.color.t-white.0"),
+        "nba.button.secondary.bg"     to PaletteEntry("nba.color.t-black.0", "nba.color.t-black.0"),
+        "nba.button.secondary.label"  to PaletteEntry("nba.label.primary", "nba.label.primary"),
+        "nba.button.on-dark.bg"       to PaletteEntry("nba.color.primary.100", "nba.color.primary.100"),
+        "nba.button.on-dark.label"    to PaletteEntry("nba.color.primary.0", "nba.color.primary.0"),
+        "nba.button.tint.bg"          to PaletteEntry("nba.bg-tint.primary", "nba.bg-tint.primary"),
+        "nba.button.tint.label"       to PaletteEntry("nba.label-tint.primary", "nba.label-tint.primary"),
+        "nba.button.ghost.bg"         to PaletteEntry("nba.color.t-white.25", "nba.color.t-white.25"),
+        "nba.button.ghost.label"      to PaletteEntry("nba.color.primary.100", "nba.color.primary.100"),
+        "nba.button.focus-ring"       to PaletteEntry("nba.label.interactive", "nba.label.interactive"),
+        "nba.opacity.t-dark-4"        to PaletteEntry("nba.color.t-black.5", "nba.color.t-white.5"),
+        "nba.opacity.t-dark-8"        to PaletteEntry("nba.color.t-black.10", "nba.color.t-white.10"),
+        "nba.opacity.t-dark-10"       to PaletteEntry("nba.color.t-black.10", "nba.color.t-white.10"),
+        "nba.opacity.t-dark-16"       to PaletteEntry("nba.color.t-black.15", "nba.color.t-white.20"),
+        "nba.opacity.t-light-4"       to PaletteEntry("nba.color.t-white.5", "nba.color.t-black.5"),
+        "nba.opacity.t-light-8"       to PaletteEntry("nba.color.t-white.10", "nba.color.t-black.10"),
+        "nba.opacity.t-light-10"      to PaletteEntry("nba.color.t-white.10", "nba.color.t-black.10"),
+        "nba.opacity.t-light-16"      to PaletteEntry("nba.color.t-white.15", "nba.color.t-black.20")
     )
 
-    // Semantic aliases — every value either points at a palette primitive
-    // above or at another semantic alias (the resolver chases the chain).
+    // ── Semantic aliases ────────────────────────────────────────────────
+
     private val semantic: Map<String, String> = mapOf(
-        // primary — neutral/greyscale ramp
-        "color.primary.0"    to "color.grey.0",
-        "color.primary.10"   to "color.grey.10",
-        "color.primary.20"   to "color.grey.20",
-        "color.primary.30"   to "color.grey.30",
-        "color.primary.40"   to "color.grey.40",
-        "color.primary.50"   to "color.grey.50",
-        "color.primary.60"   to "color.grey.60",
-        "color.primary.70"   to "color.grey.70",
-        "color.primary.80"   to "color.grey.80",
-        "color.primary.90"   to "color.grey.90",
-        "color.primary.95"   to "color.grey.95",
-        "color.primary.99"   to "color.grey.99",
-        "color.primary.100"  to "color.grey.100",
-
-        // secondary — yellow accent ramp
-        "color.secondary.0"    to "color.yellow.0",
-        "color.secondary.10"   to "color.yellow.10",
-        "color.secondary.20"   to "color.yellow.20",
-        "color.secondary.30"   to "color.yellow.30",
-        "color.secondary.40"   to "color.yellow.40",
-        "color.secondary.50"   to "color.yellow.50",
-        "color.secondary.60"   to "color.yellow.60",
-        "color.secondary.70"   to "color.yellow.70",
-        "color.secondary.80"   to "color.yellow.80",
-        "color.secondary.90"   to "color.yellow.90",
-        "color.secondary.95"   to "color.yellow.95",
-        "color.secondary.99"   to "color.yellow.99",
-        "color.secondary.100"  to "color.yellow.100",
-
-        // tertiary — blue accent ramp
-        "color.tertiary.0"    to "color.blue.0",
-        "color.tertiary.10"   to "color.blue.10",
-        "color.tertiary.20"   to "color.blue.20",
-        "color.tertiary.30"   to "color.blue.30",
-        "color.tertiary.40"   to "color.blue.40",
-        "color.tertiary.50"   to "color.blue.50",
-        "color.tertiary.60"   to "color.blue.60",
-        "color.tertiary.70"   to "color.blue.70",
-        "color.tertiary.80"   to "color.blue.80",
-        "color.tertiary.90"   to "color.blue.90",
-        "color.tertiary.95"   to "color.blue.95",
-        "color.tertiary.99"   to "color.blue.99",
-        "color.tertiary.100"  to "color.blue.100",
-
-        // feedback.success — green ramp
-        "color.feedback.success.0"    to "color.green.0",
-        "color.feedback.success.10"   to "color.green.10",
-        "color.feedback.success.20"   to "color.green.20",
-        "color.feedback.success.30"   to "color.green.30",
-        "color.feedback.success.40"   to "color.green.40",
-        "color.feedback.success.50"   to "color.green.50",
-        "color.feedback.success.60"   to "color.green.60",
-        "color.feedback.success.70"   to "color.green.70",
-        "color.feedback.success.80"   to "color.green.80",
-        "color.feedback.success.90"   to "color.green.90",
-        "color.feedback.success.95"   to "color.green.95",
-        "color.feedback.success.99"   to "color.green.99",
-        "color.feedback.success.100"  to "color.green.100",
-
-        // feedback.error — red ramp
-        "color.feedback.error.0"    to "color.red.0",
-        "color.feedback.error.10"   to "color.red.10",
-        "color.feedback.error.20"   to "color.red.20",
-        "color.feedback.error.30"   to "color.red.30",
-        "color.feedback.error.40"   to "color.red.40",
-        "color.feedback.error.50"   to "color.red.50",
-        "color.feedback.error.60"   to "color.red.60",
-        "color.feedback.error.70"   to "color.red.70",
-        "color.feedback.error.80"   to "color.red.80",
-        "color.feedback.error.90"   to "color.red.90",
-        "color.feedback.error.95"   to "color.red.95",
-        "color.feedback.error.99"   to "color.red.99",
-        "color.feedback.error.100"  to "color.red.100",
-
-        // feedback.warning — orange ramp
-        "color.feedback.warning.0"    to "color.orange.0",
-        "color.feedback.warning.10"   to "color.orange.10",
-        "color.feedback.warning.20"   to "color.orange.20",
-        "color.feedback.warning.30"   to "color.orange.30",
-        "color.feedback.warning.40"   to "color.orange.40",
-        "color.feedback.warning.50"   to "color.orange.50",
-        "color.feedback.warning.60"   to "color.orange.60",
-        "color.feedback.warning.70"   to "color.orange.70",
-        "color.feedback.warning.80"   to "color.orange.80",
-        "color.feedback.warning.90"   to "color.orange.90",
-        "color.feedback.warning.95"   to "color.orange.95",
-        "color.feedback.warning.99"   to "color.orange.99",
-        "color.feedback.warning.100"  to "color.orange.100",
-
-        // brand — league identity accents
-        "color.brand.nba"   to "color.blue.50",
-        "color.brand.live"  to "color.red.50",
-
-        // surface — elevated/recessed/canvas layers
-        "color.surface.canvas"  to "color.grey.5",
-        "color.surface.raised"  to "color.grey.10",
-        "color.surface.sunken"  to "color.grey.5",
-        "color.surface.promo"   to "color.blue.10",
-
-        // text — foreground roles
-        "color.text.primary"    to "color.grey.90",
-        "color.text.secondary"  to "color.grey.60",
-        "color.text.tertiary"   to "color.grey.50",
-        "color.text.inverse"    to "color.grey.0",
-        "color.text.onBrand"    to "color.grey.0",
-
-        // border
-        "color.border.default"  to "color.grey.20",
-        "color.border.subtle"   to "color.grey.10",
-
-        // overlay — scrims
-        "color.overlay.scrim"   to "color.grey.100"
+        "nba.color.primary.0"    to "nba.color.grey.0",
+        "nba.color.primary.10"   to "nba.color.grey.10",
+        "nba.color.primary.20"   to "nba.color.grey.20",
+        "nba.color.primary.30"   to "nba.color.grey.30",
+        "nba.color.primary.40"   to "nba.color.grey.40",
+        "nba.color.primary.50"   to "nba.color.grey.50",
+        "nba.color.primary.60"   to "nba.color.grey.60",
+        "nba.color.primary.70"   to "nba.color.grey.70",
+        "nba.color.primary.80"   to "nba.color.grey.80",
+        "nba.color.primary.90"   to "nba.color.grey.90",
+        "nba.color.primary.95"   to "nba.color.grey.95",
+        "nba.color.primary.99"   to "nba.color.grey.99",
+        "nba.color.primary.100"  to "nba.color.grey.100",
+        "nba.color.secondary.0"    to "nba.color.yellow.0",
+        "nba.color.secondary.10"   to "nba.color.yellow.10",
+        "nba.color.secondary.20"   to "nba.color.yellow.20",
+        "nba.color.secondary.30"   to "nba.color.yellow.30",
+        "nba.color.secondary.40"   to "nba.color.yellow.40",
+        "nba.color.secondary.50"   to "nba.color.yellow.50",
+        "nba.color.secondary.60"   to "nba.color.yellow.60",
+        "nba.color.secondary.70"   to "nba.color.yellow.70",
+        "nba.color.secondary.80"   to "nba.color.yellow.80",
+        "nba.color.secondary.90"   to "nba.color.yellow.90",
+        "nba.color.secondary.95"   to "nba.color.yellow.95",
+        "nba.color.secondary.99"   to "nba.color.yellow.99",
+        "nba.color.secondary.100"  to "nba.color.yellow.100",
+        "nba.color.tertiary.0"    to "nba.color.blue.0",
+        "nba.color.tertiary.10"   to "nba.color.blue.10",
+        "nba.color.tertiary.20"   to "nba.color.blue.20",
+        "nba.color.tertiary.30"   to "nba.color.blue.30",
+        "nba.color.tertiary.40"   to "nba.color.blue.40",
+        "nba.color.tertiary.50"   to "nba.color.blue.50",
+        "nba.color.tertiary.60"   to "nba.color.blue.60",
+        "nba.color.tertiary.70"   to "nba.color.blue.70",
+        "nba.color.tertiary.80"   to "nba.color.blue.80",
+        "nba.color.tertiary.90"   to "nba.color.blue.90",
+        "nba.color.tertiary.95"   to "nba.color.blue.95",
+        "nba.color.tertiary.99"   to "nba.color.blue.99",
+        "nba.color.tertiary.100"  to "nba.color.blue.100",
+        "nba.color.feedback.success.0"    to "nba.color.green.0",
+        "nba.color.feedback.success.10"   to "nba.color.green.10",
+        "nba.color.feedback.success.20"   to "nba.color.green.20",
+        "nba.color.feedback.success.30"   to "nba.color.green.30",
+        "nba.color.feedback.success.40"   to "nba.color.green.40",
+        "nba.color.feedback.success.50"   to "nba.color.green.50",
+        "nba.color.feedback.success.60"   to "nba.color.green.60",
+        "nba.color.feedback.success.70"   to "nba.color.green.70",
+        "nba.color.feedback.success.80"   to "nba.color.green.80",
+        "nba.color.feedback.success.90"   to "nba.color.green.90",
+        "nba.color.feedback.success.95"   to "nba.color.green.95",
+        "nba.color.feedback.success.99"   to "nba.color.green.99",
+        "nba.color.feedback.success.100"  to "nba.color.green.100",
+        "nba.color.feedback.error.0"    to "nba.color.red.0",
+        "nba.color.feedback.error.10"   to "nba.color.red.10",
+        "nba.color.feedback.error.20"   to "nba.color.red.20",
+        "nba.color.feedback.error.30"   to "nba.color.red.30",
+        "nba.color.feedback.error.40"   to "nba.color.red.40",
+        "nba.color.feedback.error.50"   to "nba.color.red.50",
+        "nba.color.feedback.error.60"   to "nba.color.red.60",
+        "nba.color.feedback.error.70"   to "nba.color.red.70",
+        "nba.color.feedback.error.80"   to "nba.color.red.80",
+        "nba.color.feedback.error.90"   to "nba.color.red.90",
+        "nba.color.feedback.error.95"   to "nba.color.red.95",
+        "nba.color.feedback.error.99"   to "nba.color.red.99",
+        "nba.color.feedback.error.100"  to "nba.color.red.100",
+        "nba.color.feedback.warning.0"    to "nba.color.orange.0",
+        "nba.color.feedback.warning.10"   to "nba.color.orange.10",
+        "nba.color.feedback.warning.20"   to "nba.color.orange.20",
+        "nba.color.feedback.warning.30"   to "nba.color.orange.30",
+        "nba.color.feedback.warning.40"   to "nba.color.orange.40",
+        "nba.color.feedback.warning.50"   to "nba.color.orange.50",
+        "nba.color.feedback.warning.60"   to "nba.color.orange.60",
+        "nba.color.feedback.warning.70"   to "nba.color.orange.70",
+        "nba.color.feedback.warning.80"   to "nba.color.orange.80",
+        "nba.color.feedback.warning.90"   to "nba.color.orange.90",
+        "nba.color.feedback.warning.95"   to "nba.color.orange.95",
+        "nba.color.feedback.warning.99"   to "nba.color.orange.99",
+        "nba.color.feedback.warning.100"  to "nba.color.orange.100"
     )
 
     /**
@@ -254,8 +330,9 @@ object ColorTokenResolver {
      * - `"#RRGGBB"` / `"#RRGGBBAA"` → parsed as a literal hex color.
      * - `"token:<path>"` → looked up against the semantic / palette registry;
      *   returns the light or dark value based on the ambient color scheme.
-     *   Unknown tokens log `token_resolver_missing` and fall through to
-     *   [Color.Unspecified].
+     *   UI tokens whose light/dark value is another token name are resolved
+     *   recursively. Unknown tokens log `token_resolver_missing` and fall
+     *   through to [Color.Unspecified].
      */
     @Composable
     fun resolve(value: String?): Color {
@@ -272,7 +349,8 @@ object ColorTokenResolver {
                 Log.w(TAG, "token_resolver_missing: $value")
                 Color.Unspecified
             } else {
-                parseHex(if (useDark) entry.dark else entry.light)
+                val modeValue = if (useDark) entry.dark else entry.light
+                resolveIndirection(modeValue, useDark)
             }
         }
         if (resolved != Color.Unspecified) {
@@ -282,12 +360,24 @@ object ColorTokenResolver {
     }
 
     /**
+     * Resolve indirection: if the value is already hex (#...) parse it;
+     * otherwise treat it as a token name and resolve recursively.
+     */
+    private fun resolveIndirection(value: String, useDark: Boolean, depth: Int = 0): Color {
+        if (depth > MAX_DEPTH) return Color.Unspecified
+        if (value.startsWith("#")) return parseHex(value)
+        val entry = followAlias(value) ?: return Color.Unspecified
+        val next = if (useDark) entry.dark else entry.light
+        return resolveIndirection(next, useDark, depth + 1)
+    }
+
+    /**
      * Walk the alias chain: palette hit returns immediately; otherwise look up
      * the next semantic link. The depth guard is defensive — the registry is
      * CI-validated acyclic, so in practice the chain is 1-2 hops.
      */
     private fun followAlias(name: String, depth: Int = 0): PaletteEntry? {
-        if (depth > 8) return null
+        if (depth > MAX_DEPTH) return null
         palette[name]?.let { return it }
         val next = semantic[name] ?: return null
         return followAlias(next, depth + 1)

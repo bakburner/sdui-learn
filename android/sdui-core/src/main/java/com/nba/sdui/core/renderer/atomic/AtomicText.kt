@@ -16,7 +16,6 @@ import com.nba.sdui.core.models.generated.AtomicElement
 import com.nba.sdui.core.models.generated.TextWeight
 import com.nba.sdui.core.renderer.ColorTokenResolver
 import com.nba.sdui.core.renderer.applyAccessibility
-import com.nba.sdui.core.renderer.adapters.toSduiAction
 import com.nba.sdui.core.state.SduiAction
 
 /**
@@ -61,12 +60,20 @@ fun AtomicText(
     }
 
     val hasActions = !element.actions.isNullOrEmpty()
+    val batchExecutor = LocalActionExecutor.current
 
     AtomicBox(element, screenState, onAction) { boxModifier ->
         var textModifier = boxModifier
         if (hasActions) {
             textModifier = textModifier.clickable {
-                element.actions?.firstOrNull()?.toSduiAction()?.let(onAction)
+                val activateActions = getActivateActions(element.actions)
+                if (activateActions.isNotEmpty()) {
+                    if (batchExecutor != null) {
+                        batchExecutor(activateActions)
+                    } else {
+                        activateActions.forEach(onAction)
+                    }
+                }
             }
         }
         Text(

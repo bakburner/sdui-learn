@@ -1,9 +1,9 @@
 import SwiftUI
 
 /// Shared section-surface wrapper applied by `SectionRouter` to every
-/// permanent section. Reads `section.surface` (margin, padding,
+/// semantic section. Reads `section.surface` (margin, padding,
 /// background, cornerRadius, shadow, border) and applies it
-/// platform-natively, so permanent-section renderers never set
+/// platform-natively, so semantic-section renderers never set
 /// their own outer chrome.
 ///
 /// Supports three `background` shapes — matching the schema's

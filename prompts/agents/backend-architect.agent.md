@@ -114,7 +114,7 @@ policy.setJsonPath("$.scoreboard");
 1. **Understand the requirement** — identify whether it's a new screen, new section type, schema extension, or real-time channel.
 2. **Check the decision checklist** — prefer server composition over client code.
 3. **Schema first** — if new types are needed, update `sdui-schema.json` and run codegen.
-4. **Build the composer** — use `AtomicCompositeBuilder` for atomic content; set section data for permanent sections.
+4. **Build the composer** — use `AtomicCompositeBuilder` for atomic content; set section data for semantic sections.
 5. **Wire the controller** — thin REST endpoint delegating to the composer.
 6. **Validate** — schema JSON validity, codegen output, example payloads.
 

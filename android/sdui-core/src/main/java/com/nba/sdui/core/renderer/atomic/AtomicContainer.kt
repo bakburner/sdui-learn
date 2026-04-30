@@ -1,5 +1,6 @@
 package com.nba.sdui.core.renderer.atomic
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -80,11 +81,24 @@ fun AtomicContainer(
         else -> if (isRow) ComposeAlignment.Top else ComposeAlignment.Start
     }
 
+    val batchExecutor = LocalActionExecutor.current
+
     AtomicBox(element, screenState, onAction) { boxModifier ->
         val a11y = element.accessibility
         val baseModifier = run {
-            val m = boxModifier.applyAccessibility(a11y)
-            if (a11y?.label != null) m.semantics(mergeDescendants = true) {} else m
+            var m = boxModifier.applyAccessibility(a11y)
+            if (a11y?.label != null) m = m.semantics(mergeDescendants = true) {}
+            val activateActions = getActivateActions(element.actions)
+            if (activateActions.isNotEmpty()) {
+                m = m.clickable {
+                    if (batchExecutor != null) {
+                        batchExecutor(activateActions)
+                    } else {
+                        activateActions.forEach(onAction)
+                    }
+                }
+            }
+            m
         }
         val finalModifier = LayoutTokenResolver.aspectRatio(element.aspectRatio)?.let {
             baseModifier.aspectRatio(it)

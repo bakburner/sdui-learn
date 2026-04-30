@@ -133,32 +133,67 @@ graph LR
     S --> DB["Data Binding<br/>How data stays fresh"]
     S --> ACT["Actions<br/>What happens on interaction"]
     S --> STATE["Screen State<br/>Initial values for mutate targets"]
+    S --> SURF["Surface<br/>Server-driven outer frame"]
     
     DB -->|Processed by| SM[SDUIStateManager]
     ACT -->|Processed by| AE[SDUIActionExecutor]
     STATE -->|Processed by| SSM[SDUIScreenStateManager]
+    SURF -->|Applied by| SC[SectionContainer]
     
     style S fill:#1B4F72,color:#fff
     style SM fill:#E67E22,color:#fff
     style AE fill:#8E44AD,color:#fff
     style SSM fill:#2980B9,color:#fff
+    style SC fill:#27AE60,color:#fff
 ```
 
 ### Key Schema Decisions
 
-- **Dual-layer type model** — 9 **section types in schema** (8 permanent with client renderers: BoxscoreTable, SeasonLeadersTable, Form, TabGroup, SubscribeBanner, SubscribeHero, AdSlot, VideoPlayer — plus the `AtomicComposite` bridge), plus 12 **atomic element types** (Container, Text, Image, Button, Spacer, Divider, ScrollContainer, Conditional, DisplayGrid, OverlayContainer, SectionSlot, LiveClock) for server-composed generic layouts. Stateless layout surfaces (headers, rails, hero panels, promo banners, stat lines, video carousels, schedule layouts, error states, live-score cards) are server-composed as `AtomicComposite` trees driven by `bindRef` leaf-level data resolution plus the `LiveClock` primitive for client-owned tick animation. Permanent sections handle stateful domain logic (sort, frozen columns, forms, platform SDK integration — IAP, ads, video); atomic primitives handle server-composed layouts with no client business logic. See *Grid vs. Section Decision Tree* in §9q.
+- **Dual-layer type model** — 9 **section types in schema** (8 permanent with client renderers: BoxscoreTable, SeasonLeadersTable, Form, TabGroup, SubscribeBanner, SubscribeHero, AdSlot, VideoPlayer — plus the `AtomicComposite` bridge), plus 12 **atomic element types** (Container, Text, Image, Button, Spacer, Divider, ScrollContainer, Conditional, DisplayGrid, OverlayContainer, SectionSlot, LiveClock) for server-composed generic layouts. Stateless layout surfaces (headers, rails, hero panels, promo banners, stat lines, video carousels, schedule layouts, error states, live-score cards) are server-composed as `AtomicComposite` trees driven by `bindRef` leaf-level data resolution plus the `LiveClock` primitive for client-owned tick animation. Semantic sections handle stateful domain logic (sort, frozen columns, forms, platform SDK integration — IAP, ads, video); atomic primitives handle server-composed layouts with no client business logic. See *Grid vs. Section Decision Tree* in §9q.
 - **Codegen produces data models only** — not UI code. Platform teams write a thin renderer layer (~30 lines per section type) that wires generated models to existing design system components.
 - **Schema is versioned** — client sends its schema version, server responds with a compatible payload. Fields can never be removed without a major version bump.
 - **Subsection actions are required** — `actions` must be supported at section and nested component/subsection level (for example, tapping home team area within a game section).
 - **Request context is contract input** — composition must support a typed request envelope (platform, app version, locale, device context, experiments, capabilities, traceId).
 - **Server-driven back navigation** — `Screen.parentUri` (optional) tells the client where the back button should navigate.  Omit for root screens.  Clients always show the back button on non-root screens.
 
-### Prototype Concessions
+### Section Surface (Server-Driven Outer Frame)
+
+Every section carries an optional `surface` field — a server-driven spec for the visual wrapper (frame) that sits beneath the section's content. The shared `SectionContainer` on each platform reads `surface` and applies it; semantic-section renderers never set their own outer padding, margin, corner radius, shadow, border, or background.
+
+**`SectionSurface` properties:**
+
+| Property | Type | Purpose |
+|---|---|---|
+| `margin` | `Spacing` | Outer space between the surface and its siblings / screen edge |
+| `padding` | `Spacing` | Inner space between the surface edge and the content it wraps |
+| `background` | `Background` | Surface fill — solid color, gradient, or image |
+| `cornerRadius` | `LayoutScalar` | Corner radius with overflow clip |
+| `shadow` | `Shadow` | Drop shadow |
+| `border` | `Border` | Outer stroke |
+
+**Requirements:**
+
+- A single shared `SectionContainer` component per platform owns surface application — one owner, one code path
+- Semantic-section renderers must not set outer padding, margin, corner radius, shadow, border, or background themselves — that is the surface's job
+- When `surface` is omitted, sections render flush (no frame) unless the server emits a default surface
+- `SectionSurface` mirrors the inline styling vocabulary on atomic `Container`, so semantic sections have schema parity with composed `AtomicComposite` sections
+- For `AtomicComposite` sections, the root `Container` in `data.ui` provides its own frame via inline props — `surface` is typically omitted since the atomic tree is self-describing
+- Surface ownership does not expand sideways: owning the frame does not grant a renderer ownership of content, actions, or refresh policy
+
+This separation ensures the server can adjust spacing, card treatments, and visual grouping of any section without a client release.
+
+### Section Placement Traceability (Future)
+
+Section position is implicit in the `sections[]` array index. When an upstream content management system (e.g., Playmaker) requires analytics correlation between composition intent and rendered position, a `placement` string field may be added to `Section`. Design constraints for that future field:
+
+- Slot names must describe **screen position** (e.g., `"top-primary"`, `"mid-1"`), not content type — the same slot may carry different sections depending on cohort or business override
+- `placement` would be for analytics/debugging only — clients must not use it for layout or rendering
+- Until that integration exists, the array index is sufficient for position tracking in beacons
+
+### Prototype Concession (Open)
 
 | Concession | Rationale | Migration Path |
 |-----------|-----------|----------------|
-| ~~Android `GENERIC` screen-type enum~~ | ~~Scoreboard and game-detail have pre-existing Ably/polling transport wiring that is coupled to screen type.~~ | ✅ **Resolved.** `ScreenType` enum removed. All screens use a single URI-driven load path; transport behavior derived from `refreshPolicy` fields. |
-| ~~`resolveEndpoint()` special case (`nba://game/{id}` → `game-detail/{id}?gameState=live`)~~ | ~~Preserves backward compatibility with the existing game-detail endpoint path and required query parameter.~~ | ✅ **Resolved.** `resolveEndpoint()` now performs a straight `nba://` → `/sdui/` prefix swap with no special cases. |
 | Variant selector is a developer tool | Variant chips are hardcoded client-side UI, not server-driven. Real A/B would use experiment assignment. | Remove variant selector; server resolves variant via the request-envelope `experiments` map. |
 
 ---
@@ -206,7 +241,47 @@ The refresh policy defines the channel separately:
 
 **Key decisions:** The SDUIStateManager on each platform opens the channel, receives messages, resolves JSONPath sources, and patches the corresponding fields in section data. Bindings also support transforms (e.g., format a timestamp). Initial data is always included so there is **no loading spinner on first paint**.
 
-### 3a. Binding Path Resilience
+### 3a. Leaf-Level Data Resolution (`bindRef`)
+
+`bindRef` is the mechanism that connects live data updates to individual atomic elements inside an `AtomicComposite` tree. While `dataBindings` writes incoming SSE/poll data into `section.data.content`, `bindRef` on each leaf element reads from that content object at render time.
+
+**Contract:**
+
+- `bindRef` is an optional string property on every `AtomicElement`
+- Value is a dot-path into the enclosing `AtomicComposite`'s `data.content` object (e.g., `"homeTeam.score"`)
+- When set, the renderer resolves the leaf's canonical field from `data.content[bindRef]` at render time
+- When the path is absent or resolves to null, the renderer falls back to the element's inline value
+- No client-invented defaults — the inline field is the only fallback
+
+**Canonical field per element type:**
+
+| Element Type | Resolved Field | Type |
+|---|---|---|
+| Text | `content` | String (numbers/booleans coerced to string) |
+| Button | `label` | String |
+| Image | `src` | String (URL) |
+| LiveClock | Object | `{snapshotSeconds, snapshotAt, isRunning}` |
+
+**Data flow for live updates:**
+
+```
+SSE message arrives
+  → DataBindingResolver reads sourcePath (JSONPath) from message
+  → Writes value into section.data.content at targetPath (e.g., "content.homeTeam.score")
+  → Leaf elements re-resolve bindRef on next render
+  → Updated value appears in UI without tree reconstruction
+```
+
+**Architectural rationale:** Placing the binding identifier on the consuming node (rather than in a centrally-declared path-into-tree mapping) lets the server reshape the `ui` tree freely without breaking real-time updates. Elements can be moved, nested differently, or duplicated — each carries its own data reference. The `dataBindings` section envelope continues to write into `content.*` regardless of tree structure.
+
+**Requirements:**
+
+- All platforms must implement `BindRefResolver` with identical dot-path traversal and type coercion semantics
+- Resolution must be non-destructive: missing paths return the inline fallback, never crash or show error UI
+- The server composer is responsible for populating both the inline value (first paint) and the `data.content` entry (live updates) for every element with a `bindRef`
+- `data.content` is the reserved namespace for bindable domain data; `data.ui` is the atomic element tree — these two concerns must not be mixed
+
+### 3b. Binding Path Resilience
 
 Schema evolution is additive-first, but bindings may reference paths that disappear from the data shape over time — either because the server stops sending a field, because a schema migration removes it, or because a cached layout targets a path that no longer exists in live messages. The binding runtime must handle all three cases gracefully.
 
@@ -236,7 +311,7 @@ The existing `applyBindings()` null-guard (`IF sourceValue IS NULL: CONTINUE`) i
 
 When a section is removed from the screen (e.g., navigation away, screen refresh replaces section list), clients MUST clear the miss counters for that section to prevent memory leaks.
 
-### 3b. Per-Section Staleness Tracking
+### 3c. Per-Section Staleness Tracking
 
 Each section with a non-static `refreshPolicy` has its own data channel (SSE or poll). These channels can fail independently — one section's Ably subscription may disconnect while another section's poll continues succeeding. Clients MUST track staleness at the section level, not just at the screen level.
 
@@ -268,12 +343,13 @@ When poll failures trigger staleness, apply exponential backoff to the poll inte
 
 ## 4. Action System
 
-Defines server-controlled interactivity. Every interactive component carries an `actions` map where keys are interaction triggers and values are ordered arrays of actions that execute sequentially.
+Defines server-controlled interactivity. Every interactive component carries an `actions` array where each action declares its `trigger`. When a trigger fires, the client collects **all** actions matching that trigger (in declared order) and passes the full array to the action executor as a single sequence. Failure policies (`halt`/`continue`/`silent`) are evaluated across the batch — not per-action independently.
 
 **Scope requirement:** actions are supported at multiple levels:
 - screen-level defaults (optional)
 - section-level actions
 - nested/subcomponent actions (subsection interaction targets)
+- **element-level actions** (atomic primitives: Container, Button, Image, Text)
 
 When both parent and child define actions for the same trigger, child action scope takes precedence unless explicitly composed.
 
@@ -326,7 +402,7 @@ sequenceDiagram
     participant Navigator
 
     User->>Renderer: Taps a game-card AtomicComposite (scoreboard)
-    Renderer->>ActionExecutor: execute(onTap actions)
+    Renderer->>ActionExecutor: execute(onActivate actions)
     ActionExecutor->>BeaconDispatcher: fire("scoreboard_tapped", {gameId, status})
     BeaconDispatcher-->>ActionExecutor: ack
     ActionExecutor->>Navigator: push("nba://game/0022500384/boxscore")
@@ -366,6 +442,20 @@ Rules:
 4. **Already-fired actions are committed.** There is no rollback. Fire-and-forget actions capture what the user *attempted*, not what succeeded.
 5. **Navigate success also halts** — navigation takes over the screen, so subsequent actions are moot regardless of `onFailure` value.
 
+### Element-Level Action Execution (Atomic Primitives)
+
+Any atomic element (`Container`, `Button`, `Image`, `Text`) may carry an `actions` array. When the element's primary activation trigger fires (tap, click, Enter, TV select), clients **must**:
+
+1. **Filter** — collect all actions where `trigger` is `onActivate` or the deprecated alias `onTap`.
+2. **Batch** — pass the filtered array (in declared order) to the action executor as a single sequence.
+3. **Execute with failure policy** — the executor runs the sequence using the same halt/continue/silent rules defined above.
+
+Clients must **not** fire only the first action and ignore the rest. A typical server pattern attaches `[fireAndForget(analytics), navigate(target)]` so the analytics beacon fires before navigation takes over. Firing only the navigate loses the analytics event; firing only the analytics loses the navigation.
+
+**Server composition responsibility:** The server owns the ordering of action sequences. Because `navigate` success halts the sequence (the screen changes), any actions declared *after* a navigate are unreachable. The client does not reorder, deduplicate, or "fix" a poorly composed sequence — it executes in declared order and stops when halt conditions are met. If the server places a toast after a navigate, the toast is dead code. That is a server composition bug, not a client concern.
+
+**Container activation:** A Container element with `actions` is clickable/tappable as a unit. The entire container surface is the tap target. This enables card-level activation (e.g., game cards, content tiles) without requiring a nested Button.
+
 ---
 
 ## 5. Screen-Level State Management
@@ -381,7 +471,7 @@ sequenceDiagram
     participant ContentArea
 
     User->>TabRenderer: Taps "Box Score" tab
-    TabRenderer->>ActionExecutor: execute(onTap actions)
+    TabRenderer->>ActionExecutor: execute(onActivate actions)
     ActionExecutor->>ActionExecutor: fire fireAndForget("tab_selected")
     ActionExecutor->>ScreenStateManager: setState("selectedTab", "boxscore")
     ScreenStateManager-->>ContentArea: recompose (SwiftUI @Published / Compose StateFlow)
@@ -406,7 +496,7 @@ Analytics is fully server-driven. The composition service attaches fireAndForget
 graph LR
     CS[Composition Service] -->|"Attaches fireAndForget actions<br/>to section triggers"| RESP[SDUI Response]
     RESP --> REND[Section Renderer]
-    REND -->|"onVisible / onTap / onFocus<br/>triggers fire"| EXEC[SDUIActionExecutor]
+    REND -->|"onVisible / onActivate / onFocus<br/>triggers fire"| EXEC[SDUIActionExecutor]
     EXEC -->|"Reads event, params,<br/>destinations"| DISP[AnalyticsDispatcher]
     DISP --> ADOBE[Adobe Analytics]
     DISP --> FIRE[Firebase]
@@ -425,7 +515,7 @@ graph LR
 | **Action Schema** | Defines the contract — what a fireAndForget action object looks like (type, event, params, destinations). |
 | **SDUIActionExecutor** | Dispatches fireAndForget actions to the existing AnalyticsDispatcher. Does not know what section type fired it. Generic across all sections. |
 | **AnalyticsDispatcher** | Existing SDK already in the app. Routes to Adobe, Firebase, internal pipeline based on `destinations` array. Unchanged by SDUI. |
-| **Section Renderer** | Wires triggers (onVisible, onTap, onFocus) to the executor. Does not know the action is fireAndForget — just passes the action array through. |
+| **Section Renderer** | Wires triggers (onVisible, onActivate, onFocus) to the executor. Does not know the action is fireAndForget — just passes the action array through. |
 
 ### What the Server Controls
 
@@ -456,7 +546,8 @@ To add a param, change which backends receive an event, or add analytics to a se
 | Trigger | Analytics Use Case | Fires When |
 |---|---|---|
 | `onVisible` | Impression tracking | Section enters viewport |
-| `onTap` | Engagement tracking | User taps/clicks/selects |
+| `onActivate` | Engagement tracking | User activates (tap, click, Enter, TV select) |
+| `onTap` | Engagement tracking (deprecated — use `onActivate`) | User taps/clicks/selects |
 | `onLongPress` | Secondary engagement | User long-presses (mobile) |
 | `onFocus` | Browse tracking (TV) | D-pad focus lands on section |
 | `onBlur` | Dwell time calculation | D-pad focus leaves section |
@@ -576,7 +667,7 @@ Pending impression semantics decisions are tracked in [ADR-009](adr/009-impressi
 
 ## 6. Client Infrastructure — Written Once
 
-Three platform-agnostic systems, each implemented once per platform (iOS/tvOS and Android/Fire TV):
+Four platform-agnostic systems, each implemented once per platform (iOS/tvOS and Android/Fire TV):
 
 | System | Responsibility | Inputs |
 |---|---|---|
@@ -593,11 +684,11 @@ The action executor and state manager **do not replace** existing app infrastruc
 
 ```mermaid
 graph LR
-    SCHEMA[sdui-schema.json] -->|jsonschema2pojo| JAVA[Java POJOs<br/>Jackson annotations]
+    SCHEMA[sdui-schema.json] -->|quicktype| KOTLIN[Kotlin Models<br/>Jackson annotations]
     SCHEMA -->|quicktype| SWIFT[Swift Models<br/>SduiModels.swift]
     SCHEMA -->|quicktype| TS[TypeScript Models<br/>SduiModels.ts]
     
-    JAVA --> ANDROID[Android/Fire TV Renderer]
+    KOTLIN --> ANDROID[Android/Fire TV Renderer]
     SWIFT --> IOS[iOS/tvOS Renderer]
     TS --> WEB[Web Renderer]
     
@@ -636,7 +727,7 @@ Airbnb's Ghost Platform and Lyft both embed accessibility metadata in the server
 - Live region behavior for real-time sections (`liveRegion: "polite"` / `"assertive"` — score updates announce without user interaction)
 - Focus ordering hints for TV platforms (`sortOrder` overrides default traversal order)
 
-**Settled:** Accessibility metadata is nested under a dedicated `accessibility` field (type `AccessibilityProperties`) on `Section`, `Subsection`, and `AtomicElement`. Implemented in schema, Android (Compose `semantics {}`), and Web (ARIA attributes). See `plan-accessibility.md`.
+**Settled:** Accessibility metadata is nested under a dedicated `accessibility` field (type `AccessibilityProperties`) on `Section`, `Subsection`, and `AtomicElement`. Implemented in schema, Android (Compose `semantics {}`), and Web (ARIA attributes).
 
 ### 9b. Conditional Rendering / Visibility Rules
 
@@ -648,7 +739,7 @@ Server-driven platforms need to show or hide sections based on conditions that v
 
 **Deferred:** Client-side visibility expressions (a `visibility` field with condition evaluation on sections) were evaluated and rejected. The server already controls which sections appear via composition — feature flags, A/B gating, user-segment filtering, and time-based conditions are all resolved server-side. Adding a client-side condition evaluator would duplicate server responsibility and violate the core SDUI principle that the server owns composition. If a narrow need for state-gated visibility emerges later, it can be revisited.
 
-**Decision required:** Whether within-family responsive rules need a `visibility` field in the schema or can be handled entirely by responsive atomic containers with `flex` and `breakpoint`.
+**Deferred:** Client-side visibility expressions rejected. Within-family responsive rules deferred pending evidence of need beyond atomic `flex` and `breakpoint` properties.
 
 ### 9c. Error Handling & Fallback Sections
 
@@ -679,11 +770,11 @@ stateDiagram-v2
     Error --> Rendering: Retry
 ```
 
-**Decision required:** Whether fallback behavior is defined per-section in the schema (server decides) or is a client-side policy. Recommendation: server-defined per section, with a client-side global default.
+**Settled:** Server-defined per section via `SectionStates` (loading skeleton hint, error message, retry action, hide-on-error). Client applies a global default for sections without explicit `sectionStates`.
 
 ### 9d. Section Lifecycle & Lazy Loading
 
-> **Status: Built** (visibility-gated refresh). See `docs/plans/plan-visibility-gated-refresh.md`.
+> **Status: Built** (visibility-gated refresh).
 
 Airbnb and DoorDash implement section-level lazy loading for long scrolling screens.
 
@@ -702,6 +793,7 @@ Airbnb and DoorDash implement section-level lazy loading for long scrolling scre
 - Server sets `pauseWhenOffScreen: false` on critical live-score composites that should refresh continuously
 
 **Remaining:** Eager/lazy initial-load trigger (§9d original `loading` field) is not yet built — the current implementation gates ongoing refresh but does not defer initial data fetch.
+
 
 ### 9e. Caching & Offline Support
 
@@ -740,17 +832,18 @@ sequenceDiagram
 
 ### 9g. Theming & Dark Mode
 
-**Built.** Two-layer theming built across the stack, landing as the **three layers** of the SDUI design system. See the full reference at [`sdui-design-system.md`](sdui-design-system.md).
+**Status:** Built. Three-layer design system implemented across all platforms. See [`sdui-design-system.md`](sdui-design-system.md) for the full reference.
 
-**Layer 2 — Variants (platform-native surfaces, `plan-style-token-variants.md`).** The `variant: string` field on `AtomicElement` carries per-primitive semantic presets (`ContainerVariant`, `ImageVariant`, `TextVariant`, `ButtonVariant`). Each platform resolves variants to its native design language with per-OS-tier realization: Liquid Glass / `.ultraThinMaterial` / solid-fallback on iOS (26+, 17–25, <17), Material 3 Expressive / Material You / flat Material on Android (15+, 12–14, <12), and `backdrop-filter` / solid-fallback on web (modern vs. fallback via feature detection). Dark-mode specs are mandatory at every declared tier. Per-variant override matrices (`allow` / `lock` / per-platform object) govern whether inline style properties override variant defaults; override matrices are currently hardcoded in each platform's variant resolver (not read from `style-tokens.json` at runtime). `variant_override_blocked` is emitted on Android when an inline prop tries to override a locked axis; web and iOS have override matrices in their resolvers but diagnostic emission is not yet verified. Registry: [`schema/style-tokens.json`](../schema/style-tokens.json); CI validator: [`scripts/validate-style-tokens.js`](../scripts/validate-style-tokens.js).
+**Requirements:**
 
-**Layer 3 — Color tokens (`plan-theming-design-tokens.md`).** The `ColorToken` wire type accepts either a literal hex (`#RRGGBB` / `#RRGGBBAA`) or a semantic reference (`token:color.brand.nba`, `token:color.text.primary`). The registry at [`schema/color-tokens.json`](../schema/color-tokens.json) is two-tier — **palette primitives** with literal `{ light, dark }` hex pairs, plus **semantic aliases** that point to palette primitives by name. Clients resolve tokens at render time against their hand-mirrored registry snapshots, picking light or dark from the OS color scheme (`@Environment(\.colorScheme)`, `isSystemInDarkTheme()`, `prefers-color-scheme`). Unknown tokens log `token_resolver_missing` and fall back to the caller's default color. Server composers emit tokens via a `ColorTokens` constants class (`server/src/main/java/com/nba/sdui/service/ColorTokens.java`); a `TokenRegistry` bean loads the JSON registry at startup, and a `TokenRegistryConsistencyCheck` post-construct bean fails Spring boot if any constant references a name not in the registry. Tokens are emitted across `AtomicCompositeBuilder`, `GameDetailComposer`, `ScheduleComposer`, `LiveComposer`, `ForYouComposer`, and `DemoScreenComposer`. Alpha-bearing hex literals (e.g. `#000000B3` scrims) stay inline — they encode compositing alpha, not design-system colors. Team brand primary colors (`SduiUtils.getTeamPrimaryColor`) also stay inline and cite the NBA team style guide — per NBA brand guidelines, team colors are brand assets owned by each team, not design-system tokens.
-
-**Scope split.** Variant surface colors resolve through the platform's native semantic palette (UIKit semantic colors, `MaterialTheme.colorScheme`, CSS custom properties under `prefers-color-scheme`) and are **not** routed through the color-token registry. Brand and content colors on color-valued `AtomicElement` properties (`color`, `background`, `shadow.color`, `Divider.color`, `Shadow.color`) resolve through `ColorTokenResolver`. No overlap.
-
-**Out of scope (by design, not deferral).** Server-composable dark mode — no `X-Theme` header exists or is planned. Dark mode is OS context owned by the client; the server is not told which mode the user is in. Brand theme takeovers (All-Star, Playoffs, sponsor windows) are intentionally not in the vocabulary; if they become a requirement they compose as variance plus a narrow themeable subset, not as platform-wide theming architecture.
-
-**Figma pipeline.** The current color-token registry is **ref-app-seeded** — values sourced best-guess from the iOS VideoKit and Android VideoKit reference apps plus each platform's own semantic color conventions. The Figma → registry export pipeline is deferred pending design-system tooling readiness; the registry shape is Kinetic-compatible (dot-separated palette / semantic aliases) so a Figma export replaces this file wholesale when the pipeline lands. See §9s for the integration plan.
+- **Three-layer system:** (1) inline style primitives on atomic elements, (2) semantic variants per primitive type (`ContainerVariant`, `ImageVariant`, `TextVariant`, `ButtonVariant`) resolved per OS tier, (3) two-tier color token registry (palette primitives + semantic aliases)
+- **Variant resolution:** Each platform resolves `variant` to its native design language with per-OS-tier realization. Dark-mode specs are mandatory at every declared tier. Per-variant override matrices govern whether inline props override variant defaults. Registry: [`schema/style-tokens.json`](../schema/style-tokens.json)
+- **Color token resolution:** `ColorToken` wire type accepts literal hex (`#RRGGBB` / `#RRGGBBAA`) or semantic reference (`token:color.*`). Clients resolve at render time against the OS color scheme using the registry's palette/semantic alias chain. Unknown tokens log and fall back to caller default. Registry: [`schema/color-tokens.json`](../schema/color-tokens.json)
+- **Scope boundary:** Variant surface colors resolve through the platform's native semantic palette (not the color-token registry). Brand and content colors on atomic element properties resolve through `ColorTokenResolver`. No overlap
+- **Inline exemptions:** Alpha-bearing hex literals (compositing alpha) and team brand primary colors (per NBA brand guidelines, team colors are brand assets) stay inline — not tokens
+- **Dark mode is client-owned:** No `X-Theme` header exists or is planned. The server is not told which mode the user is in
+- **Brand theme takeovers** (All-Star, Playoffs, sponsor windows) are out of scope by design — not deferral
+- **Figma pipeline:** Deferred. Registry is ref-app-seeded with a Kinetic-compatible shape. See §9s
 
 ### 9h. Animation & Transition Hints
 
@@ -765,11 +858,11 @@ sequenceDiagram
 
 **Built (web):** Impression tracking implemented with `useImpressionTracking` hook using `IntersectionObserver` for viewport detection, `AnalyticsProvider` context for deduplication registry, and enhanced `ActionHandler` analytics dispatch. Supports server-defined dedup policies (`once-per-screen`, `once-per-interval`), visibility thresholds, and dwell time. ADR-009 accepted.
 
-**Built (Android):** `SectionVisibilityTracker` + `ImpressionTracker` wired through `SduiScreenViewModel`; dedup registry + dwell-time thresholds mirror the web behaviour.
+**Built (all platforms — visibility infrastructure):** `SectionVisibilityTracker` wired on Android, iOS, and web. `onVisible` triggers dispatch through the action executor. Dedup registry and dwell-time threshold enforcement are in place.
 
-**Built (iOS):** `SectionVisibilityTracker` + `ImpressionTracker` actor in `ios/Sources/SduiCore/State/` wired into the SwiftUI section shell via `.onAppear` / `.onDisappear`; dedup policies aligned with the web and Android implementations.
+**Gap (server-side analytics composition):** No server composer currently attaches `fireAndForget` actions to `onVisible` triggers for impression analytics. The client infrastructure is ready — visibility detection, dedup policy enforcement, and action dispatch are built — but idle until the composition layer emits impression beacons.
 
-**Remaining gap:** cross-platform dedup registry and analytics forwarding parity (exposure vs. impression contract, offline buffering).
+**Remaining gap:** Cross-platform dedup registry parity (exposure vs. impression contract, offline buffering).
 
 **ADR tracking:** [ADR-009](adr/009-impression-dedup-and-visibility-semantics.md) — **Accepted**
 
@@ -781,7 +874,7 @@ sequenceDiagram
 - Section ordering, content, and even action behavior can vary per variant
 - The composition service resolves experiment assignments from the request envelope and uses them for composition branching
 
-**Resolved decisions (see [ADR-006](adr/006-experiment-assignment-model.md), [plan-experimentation.md](plans/plan-experimentation.md) D1–D4):**
+**Resolved decisions (see [ADR-006](adr/006-experiment-assignment-model.md)):**
 
 - **Client is fully authoritative.** Clients resolve assignments via experiment SDK (Amplitude) at app start (per-session) and send them as `experiments[experimentId]=variantName` in the request envelope.
 - **Server trusts assignments.** `resolveVariant(experimentId, default)` reads the experiments map and branches composition. No server-side experiment resolution service.
@@ -864,7 +957,7 @@ sequenceDiagram
   - section-first caching as primary strategy
   - optional screen snapshot caching for fast first paint/fallback
 
-**Resolved decisions (see [plan-request-transport.md](plans/plan-request-transport.md) D1–D7):**
+**Resolved decisions:**
 
 - GET-first with bracket-notation nested params (`platform[name]=android`, `device[countryCode]=US`, `experiments[exp_id]=variant_b`). All composition context travels as query parameters — naturally part of the CDN cache key.
 - POST fallback on the same URL with a JSON body of the same shape, when query string exceeds 8192 characters.
@@ -980,6 +1073,17 @@ Need tabular data?
 
 Every section renderer must be classified as either a semantic section (client-owned native renderer) or an `AtomicComposite` (server-composed atomic tree). The classification is based on three implementation-level criteria that determine whether the server can fully describe the surface at composition time.
 
+**`data.ui` on semantic sections — the presentation/state boundary:**
+
+Semantic sections exist because the client must own some behavior (tab switching, sort state, SDK lifecycle). That behavioral justification does not extend to the section's *visuals*. When a semantic section carries an optional `data.ui` tree, it means:
+
+- **Server** owns the presentation — the atomic tree is rendered wholesale, exactly as in `AtomicComposite`. Visual redesigns ship server-side without a client release.
+- **Client** owns the stateful behavior that justified the section's existence (interaction state, SDK integration, or runtime lifecycle).
+
+The client renders `data.ui` as-is for the sub-surface it governs. It does not cherry-pick portions of the tree or merge server-sent visuals with client templates. When `data.ui` is absent, the client falls back to its native template for that sub-surface.
+
+This split prevents semantic sections from becoming all-client black boxes where every visual change requires a release, while preserving the client's ownership of behavior the server cannot execute at composition time.
+
 **Classification criteria:**
 
 | Criterion | What it means | Section examples | Implementation impact |
@@ -993,12 +1097,12 @@ Every section renderer must be classified as either a semantic section (client-o
 | Tier | Sections | Criterion | Disposition |
 |---|---|---|---|
 | **Atomic surfaces** | Headers, rails (content / following / story-circle), hero panels, promo banners, stat lines, video carousels, schedule layouts, live-score cards, error states | Stateless, no SDK deps, no lifecycle. Live-state surfaces use `section.dataBindings` to write into `content.*`, leaves read via `bindRef`, and the `LiveClock` primitive owns the tick animation. | Server-composed `AtomicComposite`. Not enumerated in the `Section.type` enum — all share the single `AtomicComposite` section type. |
-| **Permanent sections** | BoxscoreTable, SeasonLeadersTable | Client-owned interaction state (frozen scroll sync, sort) | Client manages coordinated scroll and sort state. |
-| **Permanent sections** | Form | Client-owned interaction state (field expansion, validation, submit) | Client manages per-field state. |
-| **Permanent sections** | TabGroup | Client-owned interaction state (nests child sections) | Section container — orchestrates child section rendering. |
-| **Permanent sections** | SubscribeHero, SubscribeBanner | Platform SDK (Play Billing / StoreKit 2) | Client section integrates billing SDK lifecycle. |
-| **Permanent sections** | AdSlot | Platform SDK (Google Ad Manager) | Client section integrates ad SDK lifecycle. |
-| **Permanent sections** | VideoPlayer | Platform SDK (AVPlayer / ExoPlayer / Media3 / HLS.js) | Client section drives HLS/DASH playback, PiP, AirPlay / Chromecast, background audio, fullscreen rotation. `playerType` discriminator dispatches to the right SDK entry point. |
+| **Semantic sections** | BoxscoreTable, SeasonLeadersTable | Client-owned interaction state (frozen scroll sync, sort) | Client manages coordinated scroll and sort state. |
+| **Semantic sections** | Form | Client-owned interaction state (field expansion, validation, submit) | Client manages per-field state. |
+| **Semantic sections** | TabGroup | Client-owned interaction state (nests child sections) | Section container — orchestrates child section rendering. |
+| **Semantic sections** | SubscribeHero, SubscribeBanner | Platform SDK (Play Billing / StoreKit 2) | Client section integrates billing SDK lifecycle. |
+| **Semantic sections** | AdSlot | Platform SDK (Google Ad Manager) | Client section integrates ad SDK lifecycle. |
+| **Semantic sections** | VideoPlayer | Platform SDK (AVPlayer / ExoPlayer / Media3 / HLS.js) | Client section drives HLS/DASH playback, PiP, AirPlay / Chromecast, background audio, fullscreen rotation. `playerType` discriminator dispatches to the right SDK entry point. |
 
 Breakpoint-responsive horizontal containers are handled by atomic `Container(direction=row)` with `flex` and `breakpoint` properties.
 
@@ -1006,44 +1110,19 @@ Breakpoint-responsive horizontal containers are handled by atomic `Container(dir
 
 When adding a new section type, apply the classification criteria above. If all three criteria are absent (no lifecycle, no SDK, no local state), implement as an `AtomicComposite` template in the server composition layer — no client code needed. If any criterion is present, implement a semantic section renderer on each platform.
 
-### 9s. Figma Design Token Integration — Implementation Details
+### 9s. Figma Design Token Integration
 
-**Status.** The atomic layer is token-plumbed on every platform; the Figma export pipeline is deferred pending design-system tooling readiness. The committed registries are **ref-app-seeded** and shaped to be replaceable wholesale by a Figma export when that pipeline lands.
+**Status:** Deferred. Token registries are ref-app-seeded and shaped for wholesale replacement by a Figma export.
 
-**1. Registry files (committed artifacts).**
+**Requirements:**
 
-Two machine-readable registries sit next to the JSON schema:
+- Two machine-readable token registries ([`schema/style-tokens.json`](../schema/style-tokens.json), [`schema/color-tokens.json`](../schema/color-tokens.json)) must use a Kinetic-compatible shape so a Figma export replaces them without structural changes
+- Server-side token emission must be consistency-checked against the registry at startup — a mismatch must fail the build, not surface silently at runtime
+- Each client must resolve color tokens at render time against the OS color scheme (light/dark) using the registry's palette/semantic alias chain
+- CI validators must assert registry structure, hex format, alias integrity, and no dangling references
+- When the Figma export pipeline lands, it replaces registry values wholesale; the registry shape is the contract
 
-- [`schema/style-tokens.json`](../schema/style-tokens.json) — variant definitions keyed by primitive (`ContainerVariant.hero`, `ImageVariant.thumbnail`, …). Each entry declares intent, per-platform per-OS-tier realization with `light` / `dark` specs, an override matrix, and evidence (composer patterns or ref-app surfaces that justify the variant).
-- [`schema/color-tokens.json`](../schema/color-tokens.json) — two-tier color registry. `palette` primitives (`color.grey.50`, `color.blue.30`, …) carry `{ light, dark }` hex pairs; `semantic` aliases (`color.brand.nba`, `color.text.primary`, `color.surface.canvas`, `color.feedback.error.50`, …) point to palette primitives by dot-separated name. Kinetic-compatible so a Figma export can replace this file without a shape change.
-
-**2. Server-side token plumbing.**
-
-- `ColorTokens` Java constants class (`server/src/main/java/com/nba/sdui/service/ColorTokens.java`) exposes each semantic token as a wire-form string (`"token:color.brand.nba"`) with IDE auto-completion.
-- `TokenRegistry` `@Service` bean loads `schema/color-tokens.json` from the classpath at startup; `build.gradle.kts`'s `processResources` copies registries from `schema/` into `server/src/main/resources/schema/`.
-- `TokenRegistryConsistencyCheck` `@PostConstruct` fails Spring boot if any `ColorTokens` constant references a name not in the registry — a mismatch surfaces as a boot error, never as a silent `token_resolver_missing` in production.
-- Wave 1 composers (`AtomicCompositeBuilder`, `GameDetailComposer`, `ScheduleComposer`, `LiveComposer`, `ForYouComposer`, `DemoScreenComposer`) emit tokens via the constants class.
-
-**3. Client-side token resolution.**
-
-Each client ships a `ColorTokenResolver` with a hand-mirrored snapshot of the registry. Resolution: strip the `token:` prefix, follow the semantic alias chain to a palette primitive, pick `light` or `dark` based on the OS color scheme, parse the hex.
-
-- **Android** — `ColorTokenResolver.kt` in `android/sdui-core/.../renderer/`; `@Composable` that reads `isSystemInDarkTheme()` and returns `androidx.compose.ui.graphics.Color`. Atomic text / container / image / divider renderers route `element.color` and variant surface overrides through the resolver.
-- **iOS** — `ColorTokenResolver.swift` in `ios/Sources/SduiCore/Rendering/`; pure enum that takes a `ColorScheme` from `@Environment(\.colorScheme)` and returns `SwiftUI.Color?`. `RenderingHelpers.resolveBackground(_:colorScheme:)` + `ContainerVariantResolver` / `ShadowModifier` pipe the environment through.
-- **Web** — `ColorTokenResolver.ts` in `web/src/utils/`; `resolveColorToken(value, scheme)` plus an SSR-safe `usePrefersColorScheme()` hook and `useColorTokenResolver()` wrapper. `background.ts::resolveBackgroundCSS` accepts an optional `ColorMapper` so gradient stops and overlay colors resolve through the same path.
-
-**4. CI validation (committed).**
-
-- [`scripts/validate-style-tokens.js`](../scripts/validate-style-tokens.js) — asserts `style-tokens.json` structure, required OS tiers, `light` / `dark` coverage, override-matrix shape, and evidence blocks.
-- [`scripts/validate-color-tokens.js`](../scripts/validate-color-tokens.js) — asserts `color-tokens.json` palette hex format, semantic alias integrity, no cycles, no dangling references.
-- Spring `TokenRegistryConsistencyCheck` — asserts the server's `ColorTokens` constants all resolve against the runtime registry.
-
-**5. Figma pipeline (deferred).**
-
-When the design-system team ships a Figma export, it replaces `schema/color-tokens.json` (and, in a follow-on step, `schema/style-tokens.json`) wholesale. The Kinetic-compatible two-tier shape is the contract; the values are currently best-guess-sourced from the iOS and Android VideoKit reference apps plus each platform's own semantic color conventions. Additional CI levels planned when the pipeline exists:
-
-- **Component structure** — Figma REST API → compare auto-layout direction / padding / gap / child structure against `AtomicComposite` templates for the same pattern. Catches layout drift between design and implementation.
-- **Visual regression** — Render `AtomicComposite` JSON through platform renderers (Compose Preview on Android, Storybook/Chromatic on web, Xcode previews on iOS). Compare each platform against its **own** Figma frame export — not cross-platform pixel diffs. Each platform is evaluated against its own design language.
+Implementation details for server plumbing, per-platform resolvers, and CI scripts are in [`sdui-design-system.md`](sdui-design-system.md).
 
 ---
 
@@ -1076,10 +1155,10 @@ Until approved, these remain directional requirements and may be refined.
 | Requirement | Status | Notes |
 |---|---|---|
 | Schema definition (section types, data shapes) | **Built** | JSON Schema with semantic types. Prototype validated. |
-| Codegen pipeline (schema → typed models) | **Built** | jsonschema2pojo (Java/Jackson), quicktype (Swift/TS demo) |
-| Android renderer (Compose) | **Built** | Section router + 8 permanent section renderers + AtomicRouter with 12 atomic primitives incl. `LiveClock` and `OverlayContainer`. `IconTokenResolver` + bottom navigation shell resolve `sdui:*` icon tokens to Material Symbols. |
-| Web renderer (React) | **Built** | React section router + 8 permanent section renderers + AtomicRouter with 12 atomic primitives incl. `LiveClock`, `OverlayContainer`, and live data wrappers. `IconTokenResolver` + Material Symbols font for top navigation bar. |
-| iOS renderer (SwiftUI) | **Built** | Swift Package (`ios/`) with SwiftUI section router + 8 permanent section views + AtomicRouter with 12 atomic primitives incl. `LiveClock` and `OverlayContainer`. Server-declared bottom `SduiNavigationShell` resolves `sdui:*` icon tokens to SF Symbols. Real-time via Ably (`AblyChannelManager` actor) + `PollingDriver`. `SectionVisibilityTracker` + `ImpressionTracker` wired. Demo app (`SduiDemo`, XcodeGen, `make ios-run`) bootstraps `nba://for-you`. |
+| Codegen pipeline (schema → typed models) | **Built** | quicktype (Kotlin/Swift/TS), jsonschema2pojo (Java — legacy fallback) |
+| Android renderer (Compose) | **Built** | Section router + 8 semantic section renderers + AtomicRouter with 12 atomic primitives incl. `LiveClock` and `OverlayContainer`. `IconTokenResolver` + bottom navigation shell resolve `sdui:*` icon tokens to Material Symbols. |
+| Web renderer (React) | **Built** | React section router + 8 semantic section renderers + AtomicRouter with 12 atomic primitives incl. `LiveClock`, `OverlayContainer`, and live data wrappers. `IconTokenResolver` + Material Symbols font for top navigation bar. |
+| iOS renderer (SwiftUI) | **Built** | Swift Package (`ios/`) with SwiftUI section router + 8 semantic section views + AtomicRouter with 12 atomic primitives incl. `LiveClock` and `OverlayContainer`. Server-declared bottom `SduiNavigationShell` resolves `sdui:*` icon tokens to SF Symbols. Real-time via Ably (`AblyChannelManager` actor) + `PollingDriver`. `SectionVisibilityTracker` wired. Demo app (`SduiDemo`, XcodeGen, `make ios-run`) bootstraps `nba://for-you`. |
 | Data binding (SSE/poll, field-level) | **Built** | Ably for SSE, direct-URL polling, DataBindingResolver class exists but live updates use hardcoded mapping |
 | Action system (navigate, fireAndForget, mutate) | **Built** | ActionHandler dispatches all 6 action types |
 | Screen state management (tabs, toggles) | **Built** | StateManager, TabGroup wired |
@@ -1087,7 +1166,7 @@ Until approved, these remain directional requirements and may be refined.
 | Accessibility descriptors | **Built** | Schema `accessibility` field on Section, Subsection, AtomicElement. Android Compose `semantics{}`, web ARIA attributes. All renderers wired. |
 | Conditional rendering / visibility | **Partial** | Cross-platform: settled (server-side composition). Client-side visibility expressions deferred (server handles show/hide). Within-family responsive: gap |
 | Error handling & fallbacks | **Partial** | Server `ErrorState` (AtomicComposite) built. Client `SectionErrorBoundary` built on Android, web, and iOS (catch-at-dispatch + pre-validation). `SectionSkeleton` built on Android, web, and iOS. `hideOnError`, `retryAction`, retry budget (client-side, default 5) implemented. §12-compliant logging. Contract §13 updated. Gap: tvOS/Fire TV not started. |
-| Section lifecycle & lazy loading | **Partial** | Visibility-gated refresh built (poll/SSE pause when off-screen, app background pause, `pauseWhenOffScreen` schema field). Eager/lazy initial-load trigger still gap. See `plan-visibility-gated-refresh.md`. |
+| Section lifecycle & lazy loading | **Partial** | Visibility-gated refresh built (poll/SSE pause when off-screen, app background pause, `pauseWhenOffScreen` schema field). Eager/lazy initial-load trigger still gap. |
 | Caching & offline | **Gap** | Stale-while-revalidate, cold start optimization |
 | Schema versioning protocol | **Partial** | Version header sent; no multi-version routing yet |
 | Composition ownership model (SDUI composer as source of truth) | **Partial** | Architecture intent clear; transitional CoreAPI-derived composition still in use |
@@ -1098,7 +1177,7 @@ Until approved, these remain directional requirements and may be refined.
 | Ad support as first-class primitive | **Gap** | Needs ad primitive definition and fallback behavior |
 | Theming / dark mode | **Built** | Three-layer design system (inline primitives, variants, color tokens). Layer 1 inline primitives now flow through a single per-platform `AtomicBox` helper so margin, opacity, shadow, corner clip, background, border, padding, sizing, and badge semantics apply consistently across atomic primitives. Variants ship per-primitive with per-OS-tier realization and override matrices (`schema/style-tokens.json`); `ColorToken` wire type + two-tier palette/semantic registry (`schema/color-tokens.json`) resolve on each client against the OS color scheme. Server composers emit tokens via `ColorTokens` constants with startup consistency-checked against the registry. Reference docs: `sdui-design-system.md`, `client-implementors-contract.md` §4a. Figma export pipeline deferred — registry is ref-app-seeded with a Kinetic-compatible shape. |
 | Animation hints | **Gap** | Entry/exit + data-change animations |
-| Impression deduplication | **Partial** | Built on web (IntersectionObserver + dedup registry) and iOS (`ImpressionTracker` actor + `SectionVisibilityTracker` via `.onScrollVisibilityChange`). Android pending. ADR-009 accepted. |
+| Impression deduplication | **Partial** | Visibility infrastructure (`SectionVisibilityTracker`, `onVisible` dispatch, dedup registry) built on all platforms. Server does not yet compose `fireAndForget` impression beacons on `onVisible` triggers. ADR-009 accepted. |
 | A/B testing integration | **Built** | Fully client-authoritative (ADR-006 Accepted). `experiments` map replaces `variant` param. Kill switch is client-side. Exposure tracking via fire-and-forget actions. Amplitude SDK integration deferred. |
 | Pagination / infinite scroll | **Gap** | Cursor-based, server-defined |
 | Debugging / observability | **Partial** | traceId in responses; structured Logcat; no dashboards |
@@ -1138,45 +1217,17 @@ The alternative — maintaining five parallel native implementations of the game
 
 ---
 
-### 11b. Recommended Next Steps
-
-```mermaid
-graph TD
-    A[Phase 1: Foundation] --> B[Phase 2: Gaps]
-    B --> C[Phase 3: Production]
-    
-    A1["Define accessibility schema fields"] --> A
-    A2["Implement error handling / fallback behavior"] --> A
-    A3["Build schema versioning protocol"] --> A
-    A4["Add caching layer (stale-while-revalidate)"] --> A
-    
-    B1["Implement section lazy loading"] --> B
-    B2["Add impression deduplication"] --> B
-    B3["Integrate A/B testing"] --> B
-    B4["Build conditional rendering"] --> B
-    
-    C1["Build composition service"] --> C
-    C2["Contract testing suite"] --> C
-    C3["Debug overlay for dev builds"] --> C
-    C4["Observability integration (traceIds)"] --> C
-    
-    style A fill:#27AE60,color:#fff
-    style B fill:#E67E22,color:#fff
-    style C fill:#8E44AD,color:#fff
-```
-
----
-
 ## Revision History
 
 | Date | Summary |
 |---|---|
+| 2026-04-28 | Requirements audit: onTap → onActivate in all diagrams/tables. §9g theming and §9s Figma trimmed to requirement statements (implementation detail moved to sdui-design-system.md). §9i impression status corrected (visibility infra built all platforms; server analytics composition gap). §7 codegen diagram fixed (quicktype → Kotlin). §6 system count corrected (3 → 4). §9b/§9c stale "Decision required" tags resolved. Dead plan references removed (7 files). §11b next steps removed. Appendix A removed (dead reference). Footer date removed. |
 | 2026-04-27 | Doc consistency audit: trigger counts (6 → 8, all in schema), onActivate + onSubmit added, "Future (TV)" distinction removed, terminology sync. |
 | 2026-04-27 | Envelope-only platform (`platform[name]`, `schemaVersion`). §9o bullet and §10 atomic row aligned. Client contract: C11, §11.5, architecture diagram. |
 | 2026-04-26 | Doc consistency audit. Stripped historical migration narrative — Key Schema Decisions, §9r classification, §10 renderer rows, and Atomic rendering layer row all describe current state without "former section types" or "migrated to atomic" framing. Atomic element count corrected 11 → 12 (`OverlayContainer` added). §9r "Migrated to atomic" tier renamed to "Atomic surfaces" with example list rather than enumerated former-types. Stray legacy `Row` reference removed. |
 | 2026-04-25 | Doc consistency audit. Atomic rendering layer row: added LiveClock, updated migrated count 9 → 10 (GamePanel added). §9g theming: override-matrix description qualified as hardcoded in resolvers (not read from `style-tokens.json` at runtime); `variant_override_blocked` coverage qualified as Android-only verified. |
 | 2026-04-24 | Doc consistency audit. Corrected the variant-selector follow-up to the request-envelope `experiments` map; updated request-envelope support to include iOS; added the AtomicBox note to the theming row; and aligned current ErrorState / BoxscoreTable / Form status text with iOS runtime parity. |
-| 2026-04-21 | Doc consistency audit. Section count 9 → 10 (added `VideoPlayer` as a permanent section — platform video SDK lifecycle: AVPlayer / ExoPlayer / HLS.js, PiP, AirPlay / Chromecast, background audio). Permanent-section inventory updated. ADR Status Summary adds ADR-011 (data classification and freshness, Proposed draft), ADR-012 (client data architecture, Proposed draft), ADR-013 (style tokens for atomic primitives, Accepted). §10 renderer rows updated to describe `IconTokenResolver` + server-declared navigation shells on Android, iOS, and web. |
+| 2026-04-21 | Doc consistency audit. Section count 9 → 10 (added `VideoPlayer` as a semantic section — platform video SDK lifecycle: AVPlayer / ExoPlayer / HLS.js, PiP, AirPlay / Chromecast, background audio). Semantic-section inventory updated. ADR Status Summary adds ADR-011 (data classification and freshness, Proposed draft), ADR-012 (client data architecture, Proposed draft), ADR-013 (style tokens for atomic primitives, Accepted). §10 renderer rows updated to describe `IconTokenResolver` + server-declared navigation shells on Android, iOS, and web. |
 | 2026-04-20 | iOS runtime parity with Android landed. §10 status updates: iOS renderer (SwiftUI) Designed → Built; Error handling & fallbacks (iOS `SectionErrorBoundary` + `SectionSkeleton`); Impression deduplication (iOS `ImpressionTracker` actor); Atomic rendering layer (iOS AtomicRouter + 9 primitives). |
 | 2026-04-01 | Doc consistency audit. ADR Status Summary: renamed from "ADR Approvals Pending", added ADR-001 (Proposed) and ADR-010 (Proposed). §10 status: Accessibility descriptors Gap → Built. |
 | 2026-03-30 | Doc consistency audit. ADR Approvals table: ADR-006 Proposed → Accepted. §10 status updated: Internationalization Gap → Built (section-level stringTable). |
@@ -1195,13 +1246,4 @@ graph TD
 
 ---
 
-## Appendix
 
-### A. Implementation Reference
-
-Detailed code implementations, visibility detection patterns, and schema definitions:
-- **[sdui-implementation-reference.md](sdui-implementation-reference.md)** — Swift and Kotlin implementations for `SDUIImpressionTracker`, visibility detection wiring, and analytics impression schema.
-
----
-
-*Document generated from SDUI design sessions — February 2025*

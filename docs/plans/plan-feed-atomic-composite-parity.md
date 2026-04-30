@@ -2,6 +2,13 @@
 
 > Source inputs: real NBA app screenshots provided 2026-04-25, `AGENTS.md`, `docs/client-implementors-contract.md`, `docs/sdui-design-system.md`, ADR-013, `schema/sdui-schema.json`, `schema/color-tokens.json`, `schema/style-tokens.json`, and current atomic renderers/composers.
 
+## Status
+
+> **Phases 1–6 complete.** Remaining work: Phase 5 token blockers (scrim alias,
+> brand.nba color), unchecked verification commands, open questions on demo
+> hosting / overflow actions / icon strategy, and `buildStaticDateStrip` /
+> `buildHeadlineListCard` helpers (deferred from Phase 4).
+
 ## Summary
 
 Use the atomic-composite capabilities needed to emulate the real NBA app look and feel across For You, Games, Discover, and adjacent content screens: circular live story rails, dark editorial image cards with text overlays, featured live game hero cards, schedule game rows, utility card grids, league rails, section headers with CTA affordances, snap/paged carousels with optional page indicators, and sponsor/logo rows. Keep global app chrome, real video playback, ads, and SDK mounts outside atomic content.
@@ -14,7 +21,7 @@ The guiding principle is server-authored structure and semantics, with clients o
 
 | Source | Findings |
 |--------|----------|
-| `AGENTS.md` | Stateless feed UI should default to `AtomicComposite`. New permanent sections require client-owned state, SDK hosting, or runtime lifecycle. Section outer chrome belongs to `section.surface` / `SectionContainer`. Clients must not invent copy, URLs, routes, or business meaning. |
+| `AGENTS.md` | Stateless feed UI should default to `AtomicComposite`. New semantic sections require client-owned state, SDK hosting, or runtime lifecycle. Section outer chrome belongs to `section.surface` / `SectionContainer`. Clients must not invent copy, URLs, routes, or business meaning. |
 | `docs/client-implementors-contract.md` | `AtomicComposite` uses `data.ui` plus optional `data.content`. `bindRef` updates leaf values from live content. Shared `AtomicBox` owns box model uniformly. Renderer-local animation/clock behavior is allowed when driven by server data. |
 | `docs/sdui-design-system.md` | Styling has three layers: inline atomic props, per-primitive variants, and color tokens. No parent-to-child style cascade. Team colors are not design-system tokens. |
 | `docs/adr/013-style-tokens-for-atomic-primitives.md` | Variant additions must be stable, reusable, platform-owned presentation semantics. `AtomicComposite` is a host for an atomic tree, not a visual variant host. |
@@ -45,7 +52,7 @@ The guiding principle is server-authored structure and semantics, with clients o
 | Discover utility grid | Built, needs fidelity tuning | `buildUtilityCardGrid` exists. Needs screenshot-like tile height, icon treatment, two-column rhythm, and light/dark raised surfaces. |
 | League card rail | Built, needs fidelity tuning | `buildLeagueCardRail` exists. Needs larger logo emphasis and card sizing closer to the Discover screenshots. |
 | Games schedule row | Built, needs fidelity tuning | `buildGameScheduleRow` and `buildGameScheduleList` exist. Current team row is symmetric; screenshots need left/right score ordering, a center live status with red dot, separated broadcast strip, and overflow action. |
-| Date selector strip | Needs classification | Static date chips can be atomic. Calendar picker/current-date state likely belongs to a permanent section or app-level interaction, unless every date change is represented as a server action. |
+| Date selector strip | Needs classification | Static date chips can be atomic. Calendar picker/current-date state likely belongs to a semantic section or app-level interaction, unless every date change is represented as a server action. |
 | Global nav / bottom bar | Built as app chrome | Should remain `screen.navigation` / native shell, not atomic content. |
 | Video playback | Reserved SDK section | Actual player remains `VideoPlayer`, not atomic content. |
 
@@ -62,11 +69,11 @@ These are the concrete treatments from the supplied real NBA app screenshots tha
 | Score layout | Left team logo/name sits to the left of the left score; right score sits before right team logo/name. Center shows red live dot plus period/clock. | Split symmetric helpers into left/right variants for hero and schedule rows. Add a small red dot element before live status text. |
 | Game metadata | Series text is quiet and centered below the score/status row. | Keep `seriesText` as subdued `labelSmall` / tertiary text in the game body, not in the sponsor row. |
 | Sponsor/broadcast row | Peacock/NBC logos sit in a distinct bottom strip; overflow dots trail at the right. | Compose a separated bottom row with a subtle divider/surface, centered logo group, and server-declared overflow action. |
-| Games date strip | Month label, weekday row, horizontal dates, selected day in a blue circle. | If static, compose as atomic chips/actions; if it owns local calendar state, document as a permanent-section exception. Use blue selected date token, not the feed-tab yellow. |
+| Games date strip | Month label, weekday row, horizontal dates, selected day in a blue circle. | If static, compose as atomic chips/actions; if it owns local calendar state, document as a semantic-section exception. Use blue selected date token, not the feed-tab yellow. |
 | Promo banners | Wide, short image/text banners appear in Discover and Games. | Use atomic promo/banner composition for marketing content. Paid ad inventory remains `AdSlot`. |
 | Editorial/video cards | Large portrait or landscape media cards use bold white text over bottom scrims, often with `NEW`/`LIVE` labels. | Prefer `EditorialOverlayRail` over generic `ContentRail` for screenshot-like modules. |
 | Full-bleed video hero | Some feed modules are large image/video stills with title, short dek, and an outlined CTA over the media. | Compose as `OverlayContainer` with scrim and an outlined/button-like CTA if no real playback is mounted. Use `VideoPlayer` when playback is required. |
-| Headline list card | A raised dark card can contain a branded header row and compact story rows with thumbnails. | Can be built as an atomic composite list using raised surface, dividers, row thumbnails, and server actions. No new permanent section required. |
+| Headline list card | A raised dark card can contain a branded header row and compact story rows with thumbnails. | Can be built as an atomic composite list using raised surface, dividers, row thumbnails, and server actions. No new semantic section required. |
 | Discover utility tiles | Two-column dark raised tiles use simple white outline icons and labels. | `UtilityCardGrid` should allow either server image URLs or icon tokens, with generous tile height and left/top icon alignment tuned by module. |
 | Other leagues rail | Horizontal cards with large league logos and labels sit on raised surfaces. | Tune `LeagueCardRail` card width/height, logo sizing, and scroll padding. |
 | BAL/live media card | Badge at top-left, audio icon over image, large title/dek below, share affordance at lower right. | Treat as an editorial/media overlay card plus server-declared trailing action/share icon if action semantics exist. |
@@ -84,8 +91,8 @@ These are the concrete treatments from the supplied real NBA app screenshots tha
 | Carousel dots | Use existing `ScrollContainer.pageIndicator` | Acceptable because it is scroll presentation state. Flag if clients auto-add dots without server declaration. |
 | Discover utility cards | Use atomic composite / `DisplayGrid` | No new primitive needed. Flag any proposal for a dedicated `DiscoverGrid` section as unnecessary proliferation. |
 | League card rail | Use atomic composite / `ScrollContainer` | No new primitive needed. |
-| Games compact schedule rows | Use atomic composite helper | No new permanent section unless row interaction requires client-owned state beyond actions. |
-| Date strip with selectable days | Use existing `TabGroup` or atomic action chips for simple navigation | Flag as potentially violating if implemented as client screen-specific logic. A rich calendar picker may justify a permanent section because it owns date interaction state. |
+| Games compact schedule rows | Use atomic composite helper | No new semantic section unless row interaction requires client-owned state beyond actions. |
+| Date strip with selectable days | Use existing `TabGroup` or atomic action chips for simple navigation | Flag as potentially violating if implemented as client screen-specific logic. A rich calendar picker may justify a semantic section because it owns date interaction state. |
 | Promo/ad banners | Split responsibilities | Marketing promo can be atomic. Paid ad SDK inventory remains `AdSlot`. Flag any atomic recreation of real ad SDK behavior. |
 | App header and bottom nav | Keep as app shell | Flag any plan to reproduce shell chrome as atomic feed content. |
 | Account, cast, overflow icons | Server action/icon tokens or app shell | Flag if clients invent routes or behavior. Overflow menu may need action semantics if server-driven. |
@@ -113,7 +120,7 @@ These are the concrete treatments from the supplied real NBA app screenshots tha
 - [x] Resolve doc/schema drift around current variant values before adding any new variant.
   - Check `schema/sdui-schema.json`, `schema/style-tokens.json`, and `docs/sdui-design-system.md`.
   - If any doc claims variants not in schema, update the doc or add the schema value via the proper codegen path.
-- [x] Document the “feed” target as atomic-composite patterns, not permanent sections.
+- [x] Document the “feed” target as atomic-composite patterns, not semantic sections.
   - Pattern names: `StoryCircleRail`, `EditorialOverlayRail`, `FeaturedLiveGameHero`, `GameScheduleRow`, `UtilityCardGrid`, `LeagueCardRail`, `ScoreStrip`, `SponsorLogoRow`.
   - These names should be server builder/helper names, not new section types.
 - [x] Decide which gaps are schema gaps versus composer/style gaps.
@@ -124,22 +131,22 @@ These are the concrete treatments from the supplied real NBA app screenshots tha
   - Does it host a runtime that the server cannot drive directly (e.g. native calendar SDK)?
   - Does it require client-only lifecycle the atomic tree cannot express?
   - Is its visual chrome unstable enough that variants alone cannot capture it?
-  - If any answer is yes, it is a candidate `DatePickerStrip` permanent section and the exception must be documented.
+  - If any answer is yes, it is a candidate `DatePickerStrip` semantic section and the exception must be documented.
   - If all answers are no, compose it as atomic action chips or `TabGroup`. Static date strips where each chip is an enumerated server action default to the atomic path.
 
 Verification:
-- [ ] `rg "ContentRail|GamePanel|EditorialOverlay" docs/ AGENTS.md schema/` confirms docs describe these as atomic-composite patterns, not new permanent sections.
+- [ ] `rg "ContentRail|GamePanel|EditorialOverlay" docs/ AGENTS.md schema/` confirms docs describe these as atomic-composite patterns, not new semantic sections.
 - [ ] `node scripts/validate-color-tokens.js` and `node scripts/validate-style-tokens.js` pass if touched.
 
 Anti-pattern guards:
-- Do not add a `FeedScreen` permanent section.
-- Do not add `StoryCircleRail`, `EditorialOverlayRail`, `FeaturedLiveGameHero`, `SectionHeaderComposite`, `DiscoverGrid`, `UtilityCardGrid`, `LeagueCardRail`, `GameScheduleRow`, `GameScheduleList`, `HeadlineListCard`, `MediaOverlayCard`, `StaticDateStrip`, `SponsorLogoRow`, or `ScoreStrip` as permanent section types while they remain stateless atomic compositions. They are server builder/helper names, not section types.
+- Do not add a `FeedScreen` semantic section.
+- Do not add `StoryCircleRail`, `EditorialOverlayRail`, `FeaturedLiveGameHero`, `SectionHeaderComposite`, `DiscoverGrid`, `UtilityCardGrid`, `LeagueCardRail`, `GameScheduleRow`, `GameScheduleList`, `HeadlineListCard`, `MediaOverlayCard`, `StaticDateStrip`, `SponsorLogoRow`, or `ScoreStrip` as semantic section types while they remain stateless atomic compositions. They are server builder/helper names, not section types.
 - Do not add a catch-all `className`, `styleName`, or platform-specific raw CSS escape hatch.
 - Do not add speculative variants just to reduce repeated inline prop bags.
 
 #### Phase 1 Outcome: Gap Classification
 
-Work remaining for feed parity, using the Atomic Precedence Assessment table plus Screenshot-Specific Visual Targets modules not already listed there. Classifications: **`composer/style`** — server helper tuning, inline atomic props, or token alignment; **`schema/client`** — would require a new schema field, primitive, client renderer change, or new variant; **`exception`** — intentional permanent section, app shell, or reserved SDK surface (`TabGroup`, `AdSlot`, `VideoPlayer`, app shell, or a future justified `DatePickerStrip`).
+Work remaining for feed parity, using the Atomic Precedence Assessment table plus Screenshot-Specific Visual Targets modules not already listed there. Classifications: **`composer/style`** — server helper tuning, inline atomic props, or token alignment; **`schema/client`** — would require a new schema field, primitive, client renderer change, or new variant; **`exception`** — intentional semantic section, app shell, or reserved SDK surface (`TabGroup`, `AdSlot`, `VideoPlayer`, app shell, or a future justified `DatePickerStrip`).
 
 | Module | Classification | Notes |
 |--------|----------------|-------|
@@ -166,11 +173,11 @@ Work remaining for feed parity, using the Atomic Precedence Assessment table plu
 
 Schema/client items requiring foreman attention: none.
 
-Remaining gaps are addressable with existing atomics (`OverlayContainer`, `pageIndicator`, `ScrollContainer`, `DisplayGrid`, etc.) and composer tuning. If a future product decision requires a **native** calendar or client-computed “today” that cannot be server-round-tripped, reclassify the date UI as **`exception`** (permanent section) per AGENTS.md §6.1; that is not a schema gap until an explicit proposal is made.
+Remaining gaps are addressable with existing atomics (`OverlayContainer`, `pageIndicator`, `ScrollContainer`, `DisplayGrid`, etc.) and composer tuning. If a future product decision requires a **native** calendar or client-computed “today” that cannot be server-round-tripped, reclassify the date UI as **`exception`** (semantic section) per AGENTS.md §6.1; that is not a schema gap until an explicit proposal is made.
 
 #### Phase 1 Outcome: Games Date Selector Classification
 
-Four questions (restated from Phase 1 checklist; aligned with AGENTS.md §6.1 decision test for permanent sections):
+Four questions (restated from Phase 1 checklist; aligned with AGENTS.md §6.1 decision test for semantic sections):
 
 | Question | Answer | Rationale |
 |----------|--------|-----------|
@@ -179,7 +186,7 @@ Four questions (restated from Phase 1 checklist; aligned with AGENTS.md §6.1 de
 | Does it require client-only lifecycle the atomic tree cannot express? | No | Horizontal `ScrollContainer`, `Text`/`Button` chips, optional `Conditional`, and normal scroll affordances suffice; no SSE or SDK mount implied for the strip itself. |
 | Is its visual chrome unstable enough that variants alone cannot capture it? | No | Blue selected state uses existing token guidance (primary blue / brand primary); chip geometry is inline props and composition, not a new **variant** value. |
 
-**Decision:** **atomic action chips** (with server-owned selection and actions), or **`TabGroup`** if product models the strip as tab-like section swapping. **`DatePickerStrip`** as a permanent section remains a **conditional** path only if product later requires native calendar UX or client-local date state that cannot be round-tripped—then document under AGENTS.md §6.6 and the §6.1 tests.
+**Decision:** **atomic action chips** (with server-owned selection and actions), or **`TabGroup`** if product models the strip as tab-like section swapping. **`DatePickerStrip`** as a semantic section remains a **conditional** path only if product later requires native calendar UX or client-local date state that cannot be round-tripped—then document under AGENTS.md §6.6 and the §6.1 tests.
 
 **Rationale:** The screenshot-backed target is a **stateless, composable** strip: each date is a declarative control with server-driven selected styling. That matches the default atomic path and server authority (AGENTS.md §1.1). TabGroup is appropriate when the UX is literally switching among server-provided section lists, not because the date row is a new wire type.
 
@@ -206,7 +213,7 @@ Verification:
 
 Anti-pattern guards:
 - Do not use `Container.background.imageUrl` as the primary solution for mobile image cards unless the mobile policy is deliberately reopened.
-- Do not make overlay layout a permanent section renderer.
+- Do not make overlay layout a semantic section renderer.
 
 #### Phase 2 Outcome: OverlayContainer Validation
 
@@ -404,7 +411,7 @@ Add reusable `AtomicCompositeBuilder` helpers that compose feed-style surfaces f
   - Static date strip, headline list card, and media overlay card where appropriate
 
 Verification:
-- [x] JSON snapshots assert each helper emits `AtomicComposite` with `data.ui`, not a new permanent section.
+- [x] JSON snapshots assert each helper emits `AtomicComposite` with `data.ui`, not a new semantic section.
 - [x] Golden fixtures added under `schema/examples/` for each new pattern.
 - [ ] iOS fixtures sync via `make ios-fixtures-sync` or `make ios-build`.
 
@@ -418,7 +425,7 @@ Anti-pattern guards:
 - Do not put outer section margin/background inside permanent renderers.
 - Do not model bottom nav, profile, cast, or status bar as feed atomics.
 - Do not implement paid ad behavior as atomics; only server-authored promo art/content belongs here.
-- Do not introduce a `PageableRail` permanent section, atomic primitive, `ScrollContainer` variant, or schema synonym. The four `ScrollContainer` fields (`direction`, `paging`, `snapAlignment`, `pageIndicator`) are the contract for paged carousels.
+- Do not introduce a `PageableRail` semantic section, atomic primitive, `ScrollContainer` variant, or schema synonym. The four `ScrollContainer` fields (`direction`, `paging`, `snapAlignment`, `pageIndicator`) are the contract for paged carousels.
 
 #### Phase 4 Outcome
 
@@ -559,9 +566,9 @@ Anti-pattern guards:
 - [x] Add Android compile/render smoke checks where current test infrastructure supports it. _(read-only audit; no new Kotlin test file)_
 - [x] Add ErrorState fixtures for live modules: featured live game hero with empty/failed live payload, story rail with empty content, schedule list with empty schedule. Each fixture must surface a server-emitted `ErrorState` (or empty state) section, not client-invented fallback copy or default assets (AGENTS.md §8.0). _(AtomicComposite empty-state screens mirroring `buildErrorState` composition; see Phase 6 Outcome)_
 - [x] Add anti-pattern greps to the verification checklist:
-  - no new permanent section type for feed modules
-  - no new permanent section type for Discover utility cards or league rails
-  - no `PageableRail` permanent section, primitive, or variant introduced
+  - no new semantic section type for feed modules
+  - no new semantic section type for Discover utility cards or league rails
+  - no `PageableRail` semantic section, primitive, or variant introduced
   - no client-constructed CDN URLs
   - no client-invented fallback copy
   - no raw style/class escape hatch
@@ -669,9 +676,9 @@ Verification:
 - [x] Should `pageIndicator` live on `ScrollContainer`, or should it be a sibling primitive bound to scroll state by ID? Decision: `pageIndicator` lives on `ScrollContainer`.
 - [x] Do we need first-class semantic tokens for yellow/gold CTA, selected-date blue, and live ring colors, or are existing palette/brand aliases sufficient? Decision (provisional, this iteration): reuse `color.brand.nba` for yellow/gold accents, `color.brand.live` for live red, the existing primary blue palette alias for selected dates, and `OVERLAY_SCRIM` for scrims. Promote to dedicated stable accent tokens only if a real styling pass shows fragmentation, per AGENTS.md §11.4.
 - [x] Should page dots be supported only for paged carousels, or also for normal scroll rails? Decision: paged carousels only. Continuous rails (story circle, editorial overlay, league, schedule list, utility grid, sponsor strip, static date strip) must not declare `pageIndicator`. See Phase 3 negative list.
-- [x] Should we introduce a `PageableRail` primitive, permanent section, or `ScrollContainer` variant for paged hero/media carousels? Decision: no. The four `ScrollContainer` fields (`direction`, `paging`, `snapAlignment`, `pageIndicator`) are the contract. Server helpers route paged-carousel composition through a single shared internal helper instead of new wire-level vocabulary.
+- [x] Should we introduce a `PageableRail` primitive, semantic section, or `ScrollContainer` variant for paged hero/media carousels? Decision: no. The four `ScrollContainer` fields (`direction`, `paging`, `snapAlignment`, `pageIndicator`) are the contract. Server helpers route paged-carousel composition through a single shared internal helper instead of new wire-level vocabulary.
 - [ ] Should the feed demo live as a Kitchen Sink section group, a new demo screen variant, or a `for-you` experiment option?
-- [x] Should the Games date selector be modeled as atomic action chips, `TabGroup`, or a justified permanent date-picker section? Decision (Phase 1 outcome): atomic action chips with server-owned selection, or `TabGroup` if the strip swaps section lists. `DatePickerStrip` permanent section is reserved as a conditional exception only if product later requires native calendar UX or client-local date state that cannot be round-tripped. See **Phase 1 Outcome: Games Date Selector Classification**.
+- [x] Should the Games date selector be modeled as atomic action chips, `TabGroup`, or a justified permanent date-picker section? Decision (Phase 1 outcome): atomic action chips with server-owned selection, or `TabGroup` if the strip swaps section lists. `DatePickerStrip` semantic section is reserved as a conditional exception only if product later requires native calendar UX or client-local date state that cannot be round-tripped. See **Phase 1 Outcome: Games Date Selector Classification**.
 - [ ] Should overflow menu actions be added as server-declared action groups, or stay as existing app-shell behavior where applicable?
 - [ ] Should utility card icons use server-provided image URLs, an icon token registry, or both?
 - [ ] Should headline list cards and full-bleed media CTA cards become named server helper patterns, or remain one-off demo/feed compositions until repeated?
@@ -679,7 +686,7 @@ Verification:
 ## Completion Criteria
 
 - The feed modules visible in the real NBA app screenshots that fit atomic precedence can be represented as server-emitted `AtomicComposite` trees.
-- Any module that does not fit atomic precedence is explicitly classified as app shell, reserved SDK section, `TabGroup`, `AdSlot`, `VideoPlayer`, or a separately justified permanent section.
+- Any module that does not fit atomic precedence is explicitly classified as app shell, reserved SDK section, `TabGroup`, `AdSlot`, `VideoPlayer`, or a separately justified semantic section.
 - New capabilities, if any are still required after the styling pass, are schema-first, codegen-backed, and implemented on web/iOS/Android.
 - Global app chrome, ads, and video SDK hosts remain outside atomic content.
 - Clients remain presentation-only: no invented assets, copy, routes, or business policy.

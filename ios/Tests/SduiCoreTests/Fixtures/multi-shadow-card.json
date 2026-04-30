@@ -1,0 +1,71 @@
+{
+  "id": "multi-shadow-card",
+  "schemaVersion": "1.0",
+  "title": "Layered drop shadows matching Figma multi-shadow pattern",
+  "analyticsId": "multi_shadow_card_fixture",
+  "sections": [
+    {
+      "id": "multi-shadow-section",
+      "type": "AtomicComposite",
+      "refreshPolicy": { "type": "static" },
+      "data": {
+        "ui": {
+          "id": "multi-shadow-root",
+          "type": "Container",
+          "direction": "column",
+          "crossAlignment": "center",
+          "widthMode": "fill",
+          "padding": { "top": "token:nba.spacing.xl", "bottom": "token:nba.spacing.xl", "start": "token:nba.spacing.lg", "end": "token:nba.spacing.lg" },
+          "children": [
+            {
+              "id": "shadow-card",
+              "type": "Container",
+              "direction": "column",
+              "crossAlignment": "stretch",
+              "widthMode": "fill",
+              "cornerRadius": "token:nba.radius.lg",
+              "background": "token:color.surface.raised",
+              "padding": { "top": "token:nba.spacing.lg", "bottom": "token:nba.spacing.lg", "start": "token:nba.spacing.lg", "end": "token:nba.spacing.lg" },
+              "shadows": [
+                {
+                  "type": "drop",
+                  "color": "#0000000A",
+                  "radius": 16,
+                  "offsetX": 0,
+                  "offsetY": 8
+                },
+                {
+                  "type": "drop",
+                  "color": "#00000014",
+                  "radius": 4,
+                  "offsetX": 0,
+                  "offsetY": 2
+                }
+              ],
+              "children": [
+                {
+                  "type": "Text",
+                  "content": "Elevated Card",
+                  "variant": "titleMedium",
+                  "weight": "bold",
+                  "color": "token:color.text.primary"
+                },
+                {
+                  "type": "Spacer",
+                  "height": 4
+                },
+                {
+                  "type": "Text",
+                  "content": "Two drop shadows: a subtle outer glow (large blur, light color) and a tighter contact shadow (small blur, darker color).",
+                  "variant": "bodyMedium",
+                  "color": "token:color.text.secondary",
+                  "maxLines": 3
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

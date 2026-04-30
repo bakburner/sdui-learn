@@ -92,6 +92,12 @@
       "type": "string",
       "enum": ["start", "center", "end", "stretch"]
     },
+    "SizingMode": {
+      "type": "string",
+      "enum": ["hug", "fill", "fixed"],
+      "default": "hug",
+      "description": "Sizing behavior along one axis. 'hug' sizes to content (default). 'fill' stretches to parent available space. 'fixed' uses the explicit width/height value."
+    },
     "ImageFit": {
       "type": "string",
       "enum": ["cover", "contain", "fill", "none"]
@@ -393,8 +399,9 @@
     },
     "Shadow": {
       "type": "object",
-      "description": "Drop shadow with CSS/SwiftUI semantics (radius + offset). Compose approximates via elevation.",
+      "description": "Shadow effect with CSS/SwiftUI semantics (radius + offset). Compose approximates via elevation. Use 'type' to distinguish drop vs inner shadows.",
       "properties": {
+        "type":    { "type": "string", "enum": ["drop", "inner"], "default": "drop", "description": "Shadow type. 'drop' is an outer shadow (default, backward-compatible). 'inner' is an inset shadow. Platforms without first-class inner shadow support fall back to drop with a diagnostic." },
         "color":   { "$ref": "#/definitions/ColorToken", "default": "#00000014", "description": "Shadow color (hex with alpha, or token reference)" },
         "radius":  { "type": "number", "default": 4, "description": "Blur radius in dp/px" },
         "offsetX": { "type": "number", "default": 0, "description": "Horizontal offset in dp/px" },
@@ -472,7 +479,8 @@
         "gap": { "$ref": "#/definitions/LayoutScalar", "description": "Gap between flex children (row/column), or grid gap where applicable." },
         "padding": { "$ref": "#/definitions/Spacing", "description": "Inner space between the element's own background/border and its content." },
         "margin": { "$ref": "#/definitions/Spacing", "description": "Outer space between the element and its siblings or parent edges. Applied outside the element's background, border, corner radius, and shadow — use this for sibling-to-sibling spacing instead of Spacer siblings when inhomogeneous gaps are needed." },
-        "background": { "$ref": "#/definitions/Background" },
+        "background": { "$ref": "#/definitions/Background", "description": "DEPRECATED — use backgrounds (array) for new payloads. Single background. If both background and backgrounds are present, backgrounds wins." },
+        "backgrounds": { "type": "array", "items": { "$ref": "#/definitions/Background" }, "description": "Ordered array of background layers. Index 0 is the bottommost layer (Figma convention); higher indices paint on top. Web renderers must reverse the array when mapping to CSS background shorthand (CSS is top-to-bottom). When absent, falls back to singular background field." },
         "content": { "type": "string" },
         "variant": { "type": "string", "description": "Named variant preset. The vocabulary depends on the element's type: TextVariant for Text, ButtonVariant for Button, ContainerVariant for Container, ImageVariant for Image. Renderers parse this string against the primitive's enum and log a diagnostic on unrecognized values." },
         "weight": { "$ref": "#/definitions/TextWeight" },
@@ -491,10 +499,19 @@
         "alt": { "type": "string", "description": "Deprecated: use accessibility.label instead. Retained for backward compatibility; clients prefer accessibility.label when present." },
         "width": { "$ref": "#/definitions/LayoutScalar", "description": "Fixed width in dp/px or layout token." },
         "height": { "$ref": "#/definitions/LayoutScalar", "description": "Fixed height in dp/px or layout token." },
+        "widthMode": { "$ref": "#/definitions/SizingMode", "description": "Sizing behavior along the width axis. Replaces fillWidth. 'hug' = intrinsic, 'fill' = stretch to parent, 'fixed' = use explicit width value." },
+        "heightMode": { "$ref": "#/definitions/SizingMode", "description": "Sizing behavior along the height axis. 'hug' = intrinsic, 'fill' = stretch to parent, 'fixed' = use explicit height value." },
         "fillWidth": {
           "type": "boolean",
-          "description": "When true, the element stretches along its main axis to fill the parent's available width. On Image this pairs with aspectRatio to derive a height (thumbnails in a fixed-width card). On Container it stretches the flex box to parent width regardless of child intrinsic widths. Inline value takes precedence over any variant default; element width/height, when also set, wins over fillWidth."
+          "description": "DEPRECATED — use widthMode: 'fill' instead. Retained for backward compatibility. When true, equivalent to widthMode: 'fill'. If both fillWidth and widthMode are set, widthMode wins."
         },
+        "minWidth": { "$ref": "#/definitions/LayoutScalar", "description": "Minimum width constraint in dp/px or layout token." },
+        "maxWidth": { "$ref": "#/definitions/LayoutScalar", "description": "Maximum width constraint in dp/px or layout token." },
+        "minHeight": { "$ref": "#/definitions/LayoutScalar", "description": "Minimum height constraint in dp/px or layout token." },
+        "maxHeight": { "$ref": "#/definitions/LayoutScalar", "description": "Maximum height constraint in dp/px or layout token." },
+        "layoutWrap": { "type": "boolean", "default": false, "description": "When true, enables flex-wrap on a Container. Children that overflow the main axis wrap to the next line. Only meaningful on Container elements." },
+        "crossAxisGap": { "$ref": "#/definitions/LayoutScalar", "description": "Gap between wrapped lines when layoutWrap is true. Falls back to gap when absent. Ignored when layoutWrap is false." },
+        "alignSelf": { "$ref": "#/definitions/CrossAlignment", "description": "Per-child cross-axis alignment override. When set, wins over parent crossAlignment for this child (matches Figma and CSS align-self semantics)." },
         "label": { "type": "string" },
         "icon": { "type": "string" },
         "disabled": { "type": "boolean" },
@@ -558,7 +575,8 @@
           "additionalProperties": false
         },
         "opacity": { "type": "number", "minimum": 0, "maximum": 1, "default": 1, "description": "Element opacity (0=transparent, 1=opaque). Enables duration badge overlays and faded states." },
-        "shadow": { "$ref": "#/definitions/Shadow", "description": "Drop shadow applied to the element. Replaces elevation with richer CSS/SwiftUI shadow semantics." },
+        "shadow": { "$ref": "#/definitions/Shadow", "description": "DEPRECATED — use shadows (array) for new payloads. Single shadow. If both shadow and shadows are present, shadows wins." },
+        "shadows": { "type": "array", "items": { "$ref": "#/definitions/Shadow" }, "description": "Ordered array of shadow layers. Index 0 is the outermost shadow (Figma convention); higher indices are closer to the element. Maps directly to CSS box-shadow list order. When absent, falls back to singular shadow field." },
         "badge": { "$ref": "#/definitions/Badge", "description": "Z-positioned child element (e.g. 'LIVE' pill, duration label) overlaid on this element." },
         "base": { "$ref": "#/definitions/AtomicElement", "description": "OverlayContainer base element. Rendered first and sized by its own atomic box model." },
         "overlays": {

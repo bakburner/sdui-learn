@@ -759,12 +759,22 @@ class AtomicElement: Codable {
     let accessibility: AccessibilityProperties?
     let actions: [Action]?
     let alignment: Alignment?
+    /// Per-child cross-axis alignment override. When set, wins over parent crossAlignment for
+    /// this child (matches Figma and CSS align-self semantics).
+    let alignSelf: CrossAlignment?
     /// Deprecated: use accessibility.label instead. Retained for backward compatibility; clients
     /// prefer accessibility.label when present.
     let alt: String?
     /// Aspect ratio: legacy numeric (w/h), or named ratio string for semantic layout.
     let aspectRatio: AspectRatioUnion?
+    /// DEPRECATED — use backgrounds (array) for new payloads. Single background. If both
+    /// background and backgrounds are present, backgrounds wins.
     let background: BackgroundUnion?
+    /// Ordered array of background layers. Index 0 is the bottommost layer (Figma convention);
+    /// higher indices paint on top. Web renderers must reverse the array when mapping to CSS
+    /// background shorthand (CSS is top-to-bottom). When absent, falls back to singular
+    /// background field.
+    let backgrounds: [BackgroundUnion]?
     /// Z-positioned child element (e.g. 'LIVE' pill, duration label) overlaid on this element.
     let badge: Badge?
     /// OverlayContainer base element. Rendered first and sized by its own atomic box model.
@@ -798,14 +808,15 @@ class AtomicElement: Codable {
     /// elements.
     let cornerRadius: LayoutScalar?
     let crossAlignment: CrossAlignment?
+    /// Gap between wrapped lines when layoutWrap is true. Falls back to gap when absent. Ignored
+    /// when layoutWrap is false.
+    let crossAxisGap: LayoutScalar?
     let direction: UIDirection?
     let disabled: Bool?
     let falseChild: AtomicElement?
-    /// When true, the element stretches along its main axis to fill the parent's available
-    /// width. On Image this pairs with aspectRatio to derive a height (thumbnails in a
-    /// fixed-width card). On Container it stretches the flex box to parent width regardless of
-    /// child intrinsic widths. Inline value takes precedence over any variant default; element
-    /// width/height, when also set, wins over fillWidth.
+    /// DEPRECATED — use widthMode: 'fill' instead. Retained for backward compatibility. When
+    /// true, equivalent to widthMode: 'fill'. If both fillWidth and widthMode are set, widthMode
+    /// wins.
     let fillWidth: Bool?
     let fit: ImageFit?
     /// Flex grow factor. When set on a child of a Container, the child claims proportional space
@@ -818,17 +829,31 @@ class AtomicElement: Codable {
     let gap: LayoutScalar?
     /// Fixed height in dp/px or layout token.
     let height: LayoutScalar?
+    /// Sizing behavior along the height axis. 'hug' = intrinsic, 'fill' = stretch to parent,
+    /// 'fixed' = use explicit height value.
+    let heightMode: SizingMode?
     let icon, id: String?
     /// LiveClock: whether the clock is actively ticking. When true, clients run a local tick
     /// loop at their platform-native refresh cadence (~10Hz) and update the displayed value.
     /// When false, clients render snapshotSeconds verbatim.
     let isRunning: Bool?
     let label: String?
+    /// When true, enables flex-wrap on a Container. Children that overflow the main axis wrap to
+    /// the next line. Only meaningful on Container elements.
+    let layoutWrap: Bool?
     /// Outer space between the element and its siblings or parent edges. Applied outside the
     /// element's background, border, corner radius, and shadow — use this for sibling-to-sibling
     /// spacing instead of Spacer siblings when inhomogeneous gaps are needed.
     let margin: Spacing?
+    /// Maximum height constraint in dp/px or layout token.
+    let maxHeight: LayoutScalar?
     let maxLines: Int?
+    /// Maximum width constraint in dp/px or layout token.
+    let maxWidth: LayoutScalar?
+    /// Minimum height constraint in dp/px or layout token.
+    let minHeight: LayoutScalar?
+    /// Minimum width constraint in dp/px or layout token.
+    let minWidth: LayoutScalar?
     /// Use tabular/monospaced digit rendering to prevent layout shift on numeric text changes
     /// (scores, clocks).
     let monospacedDigits: Bool?
@@ -848,9 +873,13 @@ class AtomicElement: Codable {
     let rows: [[String: String]]?
     /// Full section object to render via SectionRouter. Only used when type is SectionSlot.
     let section: Section?
-    /// Drop shadow applied to the element. Replaces elevation with richer CSS/SwiftUI shadow
-    /// semantics.
+    /// DEPRECATED — use shadows (array) for new payloads. Single shadow. If both shadow and
+    /// shadows are present, shadows wins.
     let shadow: Shadow?
+    /// Ordered array of shadow layers. Index 0 is the outermost shadow (Figma convention);
+    /// higher indices are closer to the element. Maps directly to CSS box-shadow list order.
+    /// When absent, falls back to singular shadow field.
+    let shadows: [Shadow]?
     /// Whether to show scroll indicators on ScrollContainer. Default false for clean carousel
     /// presentation.
     let showIndicators: Bool?
@@ -887,14 +916,19 @@ class AtomicElement: Codable {
     let weight: TextWeight?
     /// Fixed width in dp/px or layout token.
     let width: LayoutScalar?
+    /// Sizing behavior along the width axis. Replaces fillWidth. 'hug' = intrinsic, 'fill' =
+    /// stretch to parent, 'fixed' = use explicit width value.
+    let widthMode: SizingMode?
 
-    init(accessibility: AccessibilityProperties?, actions: [Action]?, alignment: Alignment?, alt: String?, aspectRatio: AspectRatioUnion?, background: BackgroundUnion?, badge: Badge?, base: AtomicElement?, bindRef: String?, breakpoint: Int?, children: [AtomicElement]?, color: String?, columns: [Column]?, condition: String?, content: String?, cornerRadii: CornerRadii?, cornerRadius: LayoutScalar?, crossAlignment: CrossAlignment?, direction: UIDirection?, disabled: Bool?, falseChild: AtomicElement?, fillWidth: Bool?, fit: ImageFit?, flex: Double?, format: Format?, gap: LayoutScalar?, height: LayoutScalar?, icon: String?, id: String?, isRunning: Bool?, label: String?, margin: Spacing?, maxLines: Int?, monospacedDigits: Bool?, opacity: Double?, orientation: Orientation?, overlays: [AtomicOverlay]?, padding: Spacing?, pageIndicator: PageIndicator?, paging: Bool?, placeholder: String?, rows: [[String: String]]?, section: Section?, shadow: Shadow?, showIndicators: Bool?, size: Int?, snapAlignment: Align?, snapshotAt: Date?, snapshotSeconds: Int?, src: String?, stopAtSeconds: Int?, striped: Bool?, textAlign: Align?, thickness: Int?, tickDirection: TickDirection?, trueChild: AtomicElement?, type: String, variant: String?, weight: TextWeight?, width: LayoutScalar?) {
+    init(accessibility: AccessibilityProperties?, actions: [Action]?, alignment: Alignment?, alignSelf: CrossAlignment?, alt: String?, aspectRatio: AspectRatioUnion?, background: BackgroundUnion?, backgrounds: [BackgroundUnion]?, badge: Badge?, base: AtomicElement?, bindRef: String?, breakpoint: Int?, children: [AtomicElement]?, color: String?, columns: [Column]?, condition: String?, content: String?, cornerRadii: CornerRadii?, cornerRadius: LayoutScalar?, crossAlignment: CrossAlignment?, crossAxisGap: LayoutScalar?, direction: UIDirection?, disabled: Bool?, falseChild: AtomicElement?, fillWidth: Bool?, fit: ImageFit?, flex: Double?, format: Format?, gap: LayoutScalar?, height: LayoutScalar?, heightMode: SizingMode?, icon: String?, id: String?, isRunning: Bool?, label: String?, layoutWrap: Bool?, margin: Spacing?, maxHeight: LayoutScalar?, maxLines: Int?, maxWidth: LayoutScalar?, minHeight: LayoutScalar?, minWidth: LayoutScalar?, monospacedDigits: Bool?, opacity: Double?, orientation: Orientation?, overlays: [AtomicOverlay]?, padding: Spacing?, pageIndicator: PageIndicator?, paging: Bool?, placeholder: String?, rows: [[String: String]]?, section: Section?, shadow: Shadow?, shadows: [Shadow]?, showIndicators: Bool?, size: Int?, snapAlignment: Align?, snapshotAt: Date?, snapshotSeconds: Int?, src: String?, stopAtSeconds: Int?, striped: Bool?, textAlign: Align?, thickness: Int?, tickDirection: TickDirection?, trueChild: AtomicElement?, type: String, variant: String?, weight: TextWeight?, width: LayoutScalar?, widthMode: SizingMode?) {
         self.accessibility = accessibility
         self.actions = actions
         self.alignment = alignment
+        self.alignSelf = alignSelf
         self.alt = alt
         self.aspectRatio = aspectRatio
         self.background = background
+        self.backgrounds = backgrounds
         self.badge = badge
         self.base = base
         self.bindRef = bindRef
@@ -907,6 +941,7 @@ class AtomicElement: Codable {
         self.cornerRadii = cornerRadii
         self.cornerRadius = cornerRadius
         self.crossAlignment = crossAlignment
+        self.crossAxisGap = crossAxisGap
         self.direction = direction
         self.disabled = disabled
         self.falseChild = falseChild
@@ -916,12 +951,18 @@ class AtomicElement: Codable {
         self.format = format
         self.gap = gap
         self.height = height
+        self.heightMode = heightMode
         self.icon = icon
         self.id = id
         self.isRunning = isRunning
         self.label = label
+        self.layoutWrap = layoutWrap
         self.margin = margin
+        self.maxHeight = maxHeight
         self.maxLines = maxLines
+        self.maxWidth = maxWidth
+        self.minHeight = minHeight
+        self.minWidth = minWidth
         self.monospacedDigits = monospacedDigits
         self.opacity = opacity
         self.orientation = orientation
@@ -933,6 +974,7 @@ class AtomicElement: Codable {
         self.rows = rows
         self.section = section
         self.shadow = shadow
+        self.shadows = shadows
         self.showIndicators = showIndicators
         self.size = size
         self.snapAlignment = snapAlignment
@@ -949,6 +991,7 @@ class AtomicElement: Codable {
         self.variant = variant
         self.weight = weight
         self.width = width
+        self.widthMode = widthMode
     }
 }
 
@@ -957,7 +1000,7 @@ class AtomicElement: Codable {
 extension AtomicElement {
     convenience init(data: Data) throws {
         let me = try newJSONDecoder().decode(AtomicElement.self, from: data)
-        self.init(accessibility: me.accessibility, actions: me.actions, alignment: me.alignment, alt: me.alt, aspectRatio: me.aspectRatio, background: me.background, badge: me.badge, base: me.base, bindRef: me.bindRef, breakpoint: me.breakpoint, children: me.children, color: me.color, columns: me.columns, condition: me.condition, content: me.content, cornerRadii: me.cornerRadii, cornerRadius: me.cornerRadius, crossAlignment: me.crossAlignment, direction: me.direction, disabled: me.disabled, falseChild: me.falseChild, fillWidth: me.fillWidth, fit: me.fit, flex: me.flex, format: me.format, gap: me.gap, height: me.height, icon: me.icon, id: me.id, isRunning: me.isRunning, label: me.label, margin: me.margin, maxLines: me.maxLines, monospacedDigits: me.monospacedDigits, opacity: me.opacity, orientation: me.orientation, overlays: me.overlays, padding: me.padding, pageIndicator: me.pageIndicator, paging: me.paging, placeholder: me.placeholder, rows: me.rows, section: me.section, shadow: me.shadow, showIndicators: me.showIndicators, size: me.size, snapAlignment: me.snapAlignment, snapshotAt: me.snapshotAt, snapshotSeconds: me.snapshotSeconds, src: me.src, stopAtSeconds: me.stopAtSeconds, striped: me.striped, textAlign: me.textAlign, thickness: me.thickness, tickDirection: me.tickDirection, trueChild: me.trueChild, type: me.type, variant: me.variant, weight: me.weight, width: me.width)
+        self.init(accessibility: me.accessibility, actions: me.actions, alignment: me.alignment, alignSelf: me.alignSelf, alt: me.alt, aspectRatio: me.aspectRatio, background: me.background, backgrounds: me.backgrounds, badge: me.badge, base: me.base, bindRef: me.bindRef, breakpoint: me.breakpoint, children: me.children, color: me.color, columns: me.columns, condition: me.condition, content: me.content, cornerRadii: me.cornerRadii, cornerRadius: me.cornerRadius, crossAlignment: me.crossAlignment, crossAxisGap: me.crossAxisGap, direction: me.direction, disabled: me.disabled, falseChild: me.falseChild, fillWidth: me.fillWidth, fit: me.fit, flex: me.flex, format: me.format, gap: me.gap, height: me.height, heightMode: me.heightMode, icon: me.icon, id: me.id, isRunning: me.isRunning, label: me.label, layoutWrap: me.layoutWrap, margin: me.margin, maxHeight: me.maxHeight, maxLines: me.maxLines, maxWidth: me.maxWidth, minHeight: me.minHeight, minWidth: me.minWidth, monospacedDigits: me.monospacedDigits, opacity: me.opacity, orientation: me.orientation, overlays: me.overlays, padding: me.padding, pageIndicator: me.pageIndicator, paging: me.paging, placeholder: me.placeholder, rows: me.rows, section: me.section, shadow: me.shadow, shadows: me.shadows, showIndicators: me.showIndicators, size: me.size, snapAlignment: me.snapAlignment, snapshotAt: me.snapshotAt, snapshotSeconds: me.snapshotSeconds, src: me.src, stopAtSeconds: me.stopAtSeconds, striped: me.striped, textAlign: me.textAlign, thickness: me.thickness, tickDirection: me.tickDirection, trueChild: me.trueChild, type: me.type, variant: me.variant, weight: me.weight, width: me.width, widthMode: me.widthMode)
     }
 
     convenience init(_ json: String, using encoding: String.Encoding = .utf8) throws {
@@ -975,9 +1018,11 @@ extension AtomicElement {
         accessibility: AccessibilityProperties?? = nil,
         actions: [Action]?? = nil,
         alignment: Alignment?? = nil,
+        alignSelf: CrossAlignment?? = nil,
         alt: String?? = nil,
         aspectRatio: AspectRatioUnion?? = nil,
         background: BackgroundUnion?? = nil,
+        backgrounds: [BackgroundUnion]?? = nil,
         badge: Badge?? = nil,
         base: AtomicElement?? = nil,
         bindRef: String?? = nil,
@@ -990,6 +1035,7 @@ extension AtomicElement {
         cornerRadii: CornerRadii?? = nil,
         cornerRadius: LayoutScalar?? = nil,
         crossAlignment: CrossAlignment?? = nil,
+        crossAxisGap: LayoutScalar?? = nil,
         direction: UIDirection?? = nil,
         disabled: Bool?? = nil,
         falseChild: AtomicElement?? = nil,
@@ -999,12 +1045,18 @@ extension AtomicElement {
         format: Format?? = nil,
         gap: LayoutScalar?? = nil,
         height: LayoutScalar?? = nil,
+        heightMode: SizingMode?? = nil,
         icon: String?? = nil,
         id: String?? = nil,
         isRunning: Bool?? = nil,
         label: String?? = nil,
+        layoutWrap: Bool?? = nil,
         margin: Spacing?? = nil,
+        maxHeight: LayoutScalar?? = nil,
         maxLines: Int?? = nil,
+        maxWidth: LayoutScalar?? = nil,
+        minHeight: LayoutScalar?? = nil,
+        minWidth: LayoutScalar?? = nil,
         monospacedDigits: Bool?? = nil,
         opacity: Double?? = nil,
         orientation: Orientation?? = nil,
@@ -1016,6 +1068,7 @@ extension AtomicElement {
         rows: [[String: String]]?? = nil,
         section: Section?? = nil,
         shadow: Shadow?? = nil,
+        shadows: [Shadow]?? = nil,
         showIndicators: Bool?? = nil,
         size: Int?? = nil,
         snapAlignment: Align?? = nil,
@@ -1031,15 +1084,18 @@ extension AtomicElement {
         type: String? = nil,
         variant: String?? = nil,
         weight: TextWeight?? = nil,
-        width: LayoutScalar?? = nil
+        width: LayoutScalar?? = nil,
+        widthMode: SizingMode?? = nil
     ) -> AtomicElement {
         return AtomicElement(
             accessibility: accessibility ?? self.accessibility,
             actions: actions ?? self.actions,
             alignment: alignment ?? self.alignment,
+            alignSelf: alignSelf ?? self.alignSelf,
             alt: alt ?? self.alt,
             aspectRatio: aspectRatio ?? self.aspectRatio,
             background: background ?? self.background,
+            backgrounds: backgrounds ?? self.backgrounds,
             badge: badge ?? self.badge,
             base: base ?? self.base,
             bindRef: bindRef ?? self.bindRef,
@@ -1052,6 +1108,7 @@ extension AtomicElement {
             cornerRadii: cornerRadii ?? self.cornerRadii,
             cornerRadius: cornerRadius ?? self.cornerRadius,
             crossAlignment: crossAlignment ?? self.crossAlignment,
+            crossAxisGap: crossAxisGap ?? self.crossAxisGap,
             direction: direction ?? self.direction,
             disabled: disabled ?? self.disabled,
             falseChild: falseChild ?? self.falseChild,
@@ -1061,12 +1118,18 @@ extension AtomicElement {
             format: format ?? self.format,
             gap: gap ?? self.gap,
             height: height ?? self.height,
+            heightMode: heightMode ?? self.heightMode,
             icon: icon ?? self.icon,
             id: id ?? self.id,
             isRunning: isRunning ?? self.isRunning,
             label: label ?? self.label,
+            layoutWrap: layoutWrap ?? self.layoutWrap,
             margin: margin ?? self.margin,
+            maxHeight: maxHeight ?? self.maxHeight,
             maxLines: maxLines ?? self.maxLines,
+            maxWidth: maxWidth ?? self.maxWidth,
+            minHeight: minHeight ?? self.minHeight,
+            minWidth: minWidth ?? self.minWidth,
             monospacedDigits: monospacedDigits ?? self.monospacedDigits,
             opacity: opacity ?? self.opacity,
             orientation: orientation ?? self.orientation,
@@ -1078,6 +1141,7 @@ extension AtomicElement {
             rows: rows ?? self.rows,
             section: section ?? self.section,
             shadow: shadow ?? self.shadow,
+            shadows: shadows ?? self.shadows,
             showIndicators: showIndicators ?? self.showIndicators,
             size: size ?? self.size,
             snapAlignment: snapAlignment ?? self.snapAlignment,
@@ -1093,7 +1157,8 @@ extension AtomicElement {
             type: type ?? self.type,
             variant: variant ?? self.variant,
             weight: weight ?? self.weight,
-            width: width ?? self.width
+            width: width ?? self.width,
+            widthMode: widthMode ?? self.widthMode
         )
     }
 
@@ -1553,9 +1618,9 @@ extension Spacing {
 /// Bottom-trailing corner.
 ///
 /// Absolute layout value: raw dp/px integer, or a semantic layout token reference
-/// token:<path> (e.g. token:nba.spacing.md, token:nba.radius.lg) resolved per platform.formFactor
-/// against bundled spacing/corner/size/typography/shadow registries. Unknown tokens log
-/// token_resolver_missing and fall back to 0 (or caller default).
+/// token:<path> (e.g. token:nba.spacing.md, token:nba.radius.lg) resolved per
+/// platform.formFactor against bundled spacing/corner/size/typography/shadow registries.
+/// Unknown tokens log token_resolver_missing and fall back to 0 (or caller default).
 ///
 /// Bottom-leading corner.
 ///
@@ -1566,9 +1631,20 @@ extension Spacing {
 /// Corner radius: dp/px or layout token. Applied to Container (with overflow clip) and Image
 /// elements.
 ///
+/// Gap between wrapped lines when layoutWrap is true. Falls back to gap when absent. Ignored
+/// when layoutWrap is false.
+///
 /// Gap between flex children (row/column), or grid gap where applicable.
 ///
 /// Fixed height in dp/px or layout token.
+///
+/// Maximum height constraint in dp/px or layout token.
+///
+/// Maximum width constraint in dp/px or layout token.
+///
+/// Minimum height constraint in dp/px or layout token.
+///
+/// Minimum width constraint in dp/px or layout token.
 ///
 /// Fixed width in dp/px or layout token.
 ///
@@ -1703,6 +1779,15 @@ enum Role: String, Codable {
     case tabpanel = "tabpanel"
 }
 
+/// Per-child cross-axis alignment override. When set, wins over parent crossAlignment for
+/// this child (matches Figma and CSS align-self semantics).
+enum CrossAlignment: String, Codable {
+    case center = "center"
+    case end = "end"
+    case start = "start"
+    case stretch = "stretch"
+}
+
 enum Alignment: String, Codable {
     case center = "center"
     case end = "end"
@@ -1749,6 +1834,9 @@ enum AspectRatioEnum: String, Codable {
     case the43 = "4:3"
 }
 
+/// DEPRECATED — use backgrounds (array) for new payloads. Single background. If both
+/// background and backgrounds are present, backgrounds wins.
+///
 /// Shared background type — solid color, gradient, or image with overlay
 ///
 /// Surface background (solid, gradient, or image).
@@ -2083,13 +2171,6 @@ extension CornerRadii {
     }
 }
 
-enum CrossAlignment: String, Codable {
-    case center = "center"
-    case end = "end"
-    case start = "start"
-    case stretch = "stretch"
-}
-
 enum UIDirection: String, Codable {
     case column = "column"
     case row = "row"
@@ -2108,6 +2189,20 @@ enum Format: String, Codable {
     case hMmSs = "h:mm:ss"
     case mSs = "m:ss"
     case mmSs = "mm:ss"
+}
+
+/// Sizing behavior along the height axis. 'hug' = intrinsic, 'fill' = stretch to parent,
+/// 'fixed' = use explicit height value.
+///
+/// Sizing behavior along one axis. 'hug' sizes to content (default). 'fill' stretches to
+/// parent available space. 'fixed' uses the explicit width/height value.
+///
+/// Sizing behavior along the width axis. Replaces fillWidth. 'hug' = intrinsic, 'fill' =
+/// stretch to parent, 'fixed' = use explicit width value.
+enum SizingMode: String, Codable {
+    case fill = "fill"
+    case fixed = "fixed"
+    case hug = "hug"
 }
 
 enum Orientation: String, Codable {
@@ -2180,11 +2275,11 @@ enum Style: String, Codable {
     case dots = "dots"
 }
 
-/// Drop shadow applied to the element. Replaces elevation with richer CSS/SwiftUI shadow
-/// semantics.
+/// DEPRECATED — use shadows (array) for new payloads. Single shadow. If both shadow and
+/// shadows are present, shadows wins.
 ///
-/// Drop shadow with CSS/SwiftUI semantics (radius + offset). Compose approximates via
-/// elevation.
+/// Shadow effect with CSS/SwiftUI semantics (radius + offset). Compose approximates via
+/// elevation. Use 'type' to distinguish drop vs inner shadows.
 ///
 /// Drop shadow applied to the surface.
 // MARK: - Shadow
@@ -2197,6 +2292,10 @@ struct Shadow: Codable {
     let offsetY: Double?
     /// Blur radius in dp/px
     let radius: Double?
+    /// Shadow type. 'drop' is an outer shadow (default, backward-compatible). 'inner' is an
+    /// inset shadow. Platforms without first-class inner shadow support fall back to drop with a
+    /// diagnostic.
+    let type: ShadowType?
 }
 
 // MARK: Shadow convenience initializers and mutators
@@ -2221,13 +2320,15 @@ extension Shadow {
         color: String?? = nil,
         offsetX: Double?? = nil,
         offsetY: Double?? = nil,
-        radius: Double?? = nil
+        radius: Double?? = nil,
+        type: ShadowType?? = nil
     ) -> Shadow {
         return Shadow(
             color: color ?? self.color,
             offsetX: offsetX ?? self.offsetX,
             offsetY: offsetY ?? self.offsetY,
-            radius: radius ?? self.radius
+            radius: radius ?? self.radius,
+            type: type ?? self.type
         )
     }
 
@@ -2238,6 +2339,14 @@ extension Shadow {
     func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
         return String(data: try self.jsonData(), encoding: encoding)
     }
+}
+
+/// Shadow type. 'drop' is an outer shadow (default, backward-compatible). 'inner' is an
+/// inset shadow. Platforms without first-class inner shadow support fall back to drop with a
+/// diagnostic.
+enum ShadowType: String, Codable {
+    case drop = "drop"
+    case inner = "inner"
 }
 
 /// LiveClock tick direction. 'down' decrements from snapshotSeconds toward stopAtSeconds

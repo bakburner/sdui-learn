@@ -1,0 +1,71 @@
+{
+  "id": "inner-shadow-card",
+  "schemaVersion": "1.0",
+  "title": "Combined drop shadow and inner shadow",
+  "analyticsId": "inner_shadow_card_fixture",
+  "sections": [
+    {
+      "id": "inner-shadow-section",
+      "type": "AtomicComposite",
+      "refreshPolicy": { "type": "static" },
+      "data": {
+        "ui": {
+          "id": "inner-shadow-root",
+          "type": "Container",
+          "direction": "column",
+          "crossAlignment": "center",
+          "widthMode": "fill",
+          "padding": { "top": "token:nba.spacing.xl", "bottom": "token:nba.spacing.xl", "start": "token:nba.spacing.lg", "end": "token:nba.spacing.lg" },
+          "children": [
+            {
+              "id": "inset-card",
+              "type": "Container",
+              "direction": "column",
+              "crossAlignment": "stretch",
+              "widthMode": "fill",
+              "cornerRadius": "token:nba.radius.lg",
+              "background": "token:color.surface.raised",
+              "padding": { "top": "token:nba.spacing.lg", "bottom": "token:nba.spacing.lg", "start": "token:nba.spacing.lg", "end": "token:nba.spacing.lg" },
+              "shadows": [
+                {
+                  "type": "drop",
+                  "color": "#00000014",
+                  "radius": 8,
+                  "offsetX": 0,
+                  "offsetY": 4
+                },
+                {
+                  "type": "inner",
+                  "color": "#0000001A",
+                  "radius": 3,
+                  "offsetX": 0,
+                  "offsetY": 2
+                }
+              ],
+              "children": [
+                {
+                  "type": "Text",
+                  "content": "Pressed Card",
+                  "variant": "titleMedium",
+                  "weight": "bold",
+                  "color": "token:color.text.primary"
+                },
+                {
+                  "type": "Spacer",
+                  "height": 4
+                },
+                {
+                  "type": "Text",
+                  "content": "Outer drop shadow for elevation plus an inner shadow for a subtle pressed/inset appearance.",
+                  "variant": "bodyMedium",
+                  "color": "token:color.text.secondary",
+                  "maxLines": 3
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -18,14 +18,30 @@ struct AtomicContainerView: View {
         let isRow = resolvedDirection == .row
         let gap = LayoutTokenResolver.cgFloat(element.gap)
         let resolvedAspectRatio = LayoutTokenResolver.aspectRatio(element.aspectRatio)
+        let wrap = element.layoutWrap == true
+        let crossGap: CGFloat = element.crossAxisGap.map { LayoutTokenResolver.cgFloat($0) } ?? gap
 
-        AnyLayout(AtomicFlexStackLayout(
-            isRow: isRow,
-            alignment: element.alignment,
-            crossAlignment: element.crossAlignment,
-            spacing: gap
-        )) {
-            children
+        Group {
+            if wrap {
+                AnyLayout(WrappingFlexLayout(
+                    isRow: isRow,
+                    alignment: element.alignment,
+                    crossAlignment: element.crossAlignment,
+                    mainAxisSpacing: gap,
+                    crossAxisSpacing: crossGap
+                )) {
+                    children
+                }
+            } else {
+                AnyLayout(AtomicFlexStackLayout(
+                    isRow: isRow,
+                    alignment: element.alignment,
+                    crossAlignment: element.crossAlignment,
+                    spacing: gap
+                )) {
+                    children
+                }
+            }
         }
         .modifier(ContainerAspectRatioModifier(aspectRatio: resolvedAspectRatio))
         .applyActionTriggers(element.actions, onAction: onAction)
@@ -42,6 +58,7 @@ struct AtomicContainerView: View {
         ForEach(rows) { item in
             AtomicRouter(element: item.child, screenState: screenState, onAction: onAction, depth: depth)
                 .layoutValue(key: AtomicFlexValueKey.self, value: CGFloat(max(item.child.flex ?? 0, 0)))
+                .layoutValue(key: AtomicAlignSelfKey.self, value: item.child.alignSelf)
         }
     }
 
@@ -128,8 +145,10 @@ struct AtomicFlexStackLayout: SwiftUI.Layout {
         for index in subviews.indices {
             let main = childMainLengths[index]
             let measuredCross = crossLength(sizes[index])
-            let cross = crossAlignment == .stretch ? containerCross : measuredCross
-            let crossOffset = crossAxisOffset(containerCross: containerCross, childCross: cross)
+            let childAlignSelf = subviews[index][AtomicAlignSelfKey.self]
+            let effectiveCrossAlignment = childAlignSelf ?? crossAlignment
+            let cross = effectiveCrossAlignment == .stretch ? containerCross : measuredCross
+            let crossOffset = crossAxisOffset(containerCross: containerCross, childCross: cross, effectiveAlignment: effectiveCrossAlignment)
             let origin = isRow
                 ? CGPoint(x: bounds.minX + cursor, y: bounds.minY + crossOffset)
                 : CGPoint(x: bounds.minX + crossOffset, y: bounds.minY + cursor)
@@ -163,8 +182,8 @@ struct AtomicFlexStackLayout: SwiftUI.Layout {
         return hasFlexibleLayout ? max(proposed, natural) : natural
     }
 
-    private func crossAxisOffset(containerCross: CGFloat, childCross: CGFloat) -> CGFloat {
-        switch crossAlignment {
+    private func crossAxisOffset(containerCross: CGFloat, childCross: CGFloat, effectiveAlignment: CrossAlignment?) -> CGFloat {
+        switch effectiveAlignment {
         case .center:
             return max((containerCross - childCross) / 2, 0)
         case .end:

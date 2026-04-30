@@ -77,15 +77,73 @@ content, and surface colors.
 ### Decision rule
 
 1. Can inline primitives (with semantic tokens) express it? → Use inline.
-2. Could one more orthogonal inline property close the gap? → Extend inline.
-3. Does it need a platform SDK, OS-version API, or multi-layer compositing?
-   → Variant.
-4. Does the color need light/dark adaptation or a stable semantic name?
+2. Can an ordered stack of existing inline primitives express it? → Use
+   inline array (`backgrounds`, `shadows`).
+3. Could one more orthogonal inline property close the gap? → Extend inline.
+4. Does it need a platform SDK, OS-version API, or runtime interaction
+   effect? → Variant.
+5. Does the color need light/dark adaptation or a stable semantic name?
    → Color token. Otherwise inline hex is fine.
 
 ---
 
 ## 2. Token registries
+
+**Registry version:** `2.0.0-matrix`
+
+All token registries share a common matrix shape:
+
+```json
+{
+  "<tokenName>": {
+    "<theme>": {
+      "<formFactor>": <value>
+    }
+  }
+}
+```
+
+Either axis may use the `"*"` wildcard to indicate the value is independent
+of that dimension. For example, spacing tokens are theme-independent
+(use `"*"` for theme), while color UI tokens are form-factor-independent
+(use `"*"` for form factor).
+
+**Resolution algorithm (4-step fallback):**
+
+1. **Exact match** — `registry[token][theme][formFactor]`
+2. **Theme-wildcard** — `registry[token]["*"][formFactor]`
+3. **Form-factor-wildcard** — `registry[token][theme]["*"]`
+4. **Universal** — `registry[token]["*"]["*"]`
+
+Theme takes priority over form factor in the fallback order because
+color/brand correctness is a hard constraint (wrong color = wrong brand),
+while form-factor adaptation is a progressive enhancement (slightly
+off-size spacing still renders correctly).
+
+**Examples:**
+
+```jsonc
+// Spacing — theme-independent, form-factor-variable
+"nba.spacing.lg": {
+  "*": {
+    "phone": 16,
+    "tablet": 20,
+    "tv": 24,
+    "web.narrow": 16,
+    "web.wide": 20
+  }
+}
+
+// Color UI token — form-factor-independent, theme-variable
+"nba.bg.primary": {
+  "light": { "*": "#FFFFFF" },
+  "dark":  { "*": "#121212" }
+}
+```
+
+The matrix is intentionally sparse — most tokens vary on only one axis
+and use `"*"` for the other. The resolver's fallback chain means registries
+need not enumerate every combination.
 
 ### 2.1 Color tokens
 
@@ -154,6 +212,10 @@ owned per-team (e.g. BOS `#007A33`, GSW `#1D428A`).
 
 Color tokens are **not** form-factor-aware — only light/dark.
 
+> **Workstream B note:** Color tokens remain theme-only (light/dark
+> resolution). The backgrounds/shadows array work does not change the color
+> token registry — it uses existing color token references inline.
+
 ### 2.2 Spacing tokens
 
 **File:** `schema/spacing-tokens.json` (v1.0.0-kinetic) · **Server constants:** `LayoutTokens.java` ·
@@ -166,7 +228,7 @@ form-factor multipliers are applied by each client's `LayoutTokenResolver`.
 |---|---|---|---|---|---|
 | `nba.spacing.xs` | 2 | 2 | 4 | 2 | 2 |
 | `nba.spacing.sm` | 4 | 6 | 6 | 4 | 6 |
-| `nba.spacing.md` | 8 | 10 | 12 | 8 | 10 |
+| `nba.spacing.md` | 12 | 15 | 18 | 12 | 15 |
 | `nba.spacing.lg` | 16 | 20 | 24 | 16 | 20 |
 | `nba.spacing.xl` | 32 | 40 | 48 | 32 | 40 |
 | `nba.spacing.2xl` | 40 | 48 | 56 | 40 | 48 |
@@ -216,7 +278,7 @@ corner radii do not scale with device class.
 |---|---|
 | `nba.radius.xs` | 2 |
 | `nba.radius.sm` | 4 |
-| `nba.radius.md` | 8 |
+| `nba.radius.md` | 12 |
 | `nba.radius.lg` | 16 |
 | `nba.radius.xl` | 24 |
 | `nba.radius.2xl` | 32 |
@@ -277,8 +339,32 @@ Directional icons (`back`, `forward`) auto-mirror in RTL locales.
 ## 3. Variants
 
 Variants carry platform-native treatments that inline properties cannot
-express: materials, multi-layer shadows, interaction states, OS-adaptive
-surfaces, and form-factor-adaptive sizing.
+express: materials, interaction states, OS-adaptive surfaces, and
+form-factor-adaptive sizing.
+
+### Variant escalation boundary
+
+After Workstream B, the boundary between inline and variant is:
+
+**Stays variant-only:**
+
+| Treatment | Why |
+|---|---|
+| Blend modes | Inconsistent platform support |
+| Platform materials (Liquid Glass, `.ultraThinMaterial`, Material You tonal surfaces) | Require OS-version-gated APIs |
+| `backdrop-filter` (blur, saturation) | CSS-only; no equivalent Compose/SwiftUI semantics |
+| Runtime interaction effects (press, ripple, hover lift, focus halo) | Require platform animation/interaction APIs |
+
+**Moves inline:**
+
+| Treatment | Wire representation |
+|---|---|
+| Solid color fill | Single `Background` (existing) |
+| Linear gradient | `BackgroundGradient` (existing) |
+| Image fill + overlay | `BackgroundImage` (existing) |
+| Multi-layer fill stack | `backgrounds` array |
+| Multi-layer drop shadow | `shadows` array, `type: "drop"` |
+| Inner shadow | `shadows` array, `type: "inner"` |
 
 ### 3.1 Container variants
 
@@ -307,6 +393,12 @@ Override matrix:
 
 `background` is locked on iOS because Liquid Glass /
 `.ultraThinMaterial` cannot be replaced with an inline solid color.
+
+> **Post-Workstream B:** After inline `backgrounds`/`shadows` arrays land,
+> `hero` carries only platform materials, backdrop blur, and OS-gated
+> interaction effects — treatments that genuinely require platform APIs.
+> The shadow `lock` on `hero` is subject to product review (multi-layer
+> drop shadows are now expressible inline via the `shadows` array).
 
 **`grouped`** — Inset-grouped list surface. All axes allow override.
 
@@ -355,6 +447,9 @@ Variants adapt per form factor. Example for `hero` on Android 15+:
 | Spacing value | Semantic token (`token:nba.spacing.md`) |
 | Corner radius | Semantic token (`token:nba.radius.lg`) or `shape: "circle"` |
 | Text style | `TextVariant` enum value |
+| Multiple fills (stacked) | `backgrounds` array — ordered bottom-to-top |
+| Drop shadow (single or stacked) | `shadows` array with `type: "drop"` entries |
+| Inner shadow | `shadows` array with `type: "inner"` entry |
 
 ### Figma naming conventions
 
@@ -435,6 +530,16 @@ All token registries (except color) have per-form-factor values.
 | `tv` | 1920×1080+ | D-pad remote | 10-foot, focus-driven, overscan-safe |
 | `web.narrow` | <768px | Mouse + touch + keyboard | Mobile web |
 | `web.wide` | ≥768px | Mouse + keyboard | Hover states, scroll wheel |
+
+> **Token resolution and form factors (v2.0.0-matrix):** The token resolver
+> now supports joint theme × form-factor variation through the matrix shape
+> described in §2. In practice today, spacing tokens remain theme-independent
+> (they use `"*"` for the theme axis) and color UI tokens remain
+> form-factor-independent (they use `"*"` for the form-factor axis). However,
+> the resolver handles both axes, so future tokens that need simultaneous
+> theme and form-factor variation (e.g. a surface shadow that changes between
+> light/dark *and* scales with device class) are supported without further
+> infrastructure changes.
 
 ---
 

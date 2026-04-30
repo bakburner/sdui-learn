@@ -79,7 +79,7 @@ enum ContainerVariantResolver {
             return ContainerVariantSpec(
                 cornerRadius: 16,
                 backgroundRole: .secondarySystemGroupedBackground,
-                shadow: Shadow(color: "#000000", offsetX: 0, offsetY: isTablet ? 4 : 3, radius: isTablet ? 8 : 6),
+                shadow: Shadow(color: "#000000", offsetX: 0, offsetY: isTablet ? 4 : 3, radius: isTablet ? 8 : 6, type: nil),
                 gradientOverlay: GradientOverlay(
                     topColor: Color.accentColor.opacity(0.10),
                     bottomColor: .clear

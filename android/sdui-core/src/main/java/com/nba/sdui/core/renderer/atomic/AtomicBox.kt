@@ -4,10 +4,13 @@ import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -18,9 +21,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.nba.sdui.core.models.generated.AtomicElement
 import com.nba.sdui.core.models.generated.BadgeAlignment
+import com.nba.sdui.core.models.generated.ShadowType
+import com.nba.sdui.core.models.generated.SizingMode
 import com.nba.sdui.core.renderer.ColorTokenResolver
 import com.nba.sdui.core.renderer.ContainerVariantResolver
 import com.nba.sdui.core.renderer.ContainerVariantResolver.OverridePolicy
@@ -125,28 +131,35 @@ fun Modifier.buildAtomicBox(element: AtomicElement): Modifier {
         variantName = element.variant
     )
 
-    val effectiveShadowElevationDp: Int? = resolveAxis(
-        axis = "shadow",
-        inline = element.shadow?.radius?.toInt(),
-        variantValue = variantSpec?.shadowElevationDp,
-        overrideMatrix = variantSpec?.overrideMatrix,
-        variantName = element.variant
-    )
+    // --- Shadow normalization: array wins over deprecated singular ---
+    val effectiveShadows = element.shadows
+        ?: element.shadow?.let { listOf(it) }
+        ?: emptyList()
+    val shadowAxisLocked = variantSpec?.overrideMatrix?.get("shadow") == OverridePolicy.LOCK
 
     val effectiveFillWidth: Boolean = element.fillWidth == true ||
         (element.fillWidth == null && variantSpec?.fillWidth == true)
 
-    val inlineBackground = element.background.toViewModel()
-    if (inlineBackground is BackgroundViewModel.Image) {
-        Log.w(TAG, "Atomic background image is decoded but constrained out of mobile atomic rendering; use section.surface background or an Image child")
+    // --- Background normalization: array wins over deprecated singular ---
+    val effectiveBackgrounds: List<BackgroundViewModel> = run {
+        val rawList = element.backgrounds
+            ?: element.background?.let { listOf(it) }
+            ?: emptyList()
+        rawList.mapNotNull { bg ->
+            val vm = bg.toViewModel()
+            if (vm is BackgroundViewModel.Image) {
+                Log.w(TAG, "Atomic background image is decoded but constrained out of mobile atomic rendering; use section.surface background or an Image child")
+            }
+            vm
+        }
     }
     val backgroundLocked = variantSpec?.overrideMatrix?.get("background") == OverridePolicy.LOCK
     val useVariantBackground: Boolean = when {
         variantSpec == null -> false
-        inlineBackground == null -> variantSpec.backgroundColorRole != null
+        effectiveBackgrounds.isEmpty() -> variantSpec.backgroundColorRole != null
         backgroundLocked -> {
             ContainerVariantResolver.logOverrideBlocked(
-                element.variant, "background", element.background
+                element.variant, "background", element.backgrounds ?: element.background
             )
             variantSpec.backgroundColorRole != null
         }
@@ -200,9 +213,26 @@ fun Modifier.buildAtomicBox(element: AtomicElement): Modifier {
         result = result.alpha(it.toFloat())
     }
 
-    // shadow
-    if (effectiveShadowElevationDp != null && effectiveShadowElevationDp > 0) {
-        result = result.shadow(elevation = effectiveShadowElevationDp.dp, shape = shape)
+    // shadow (multi-layer: index 0 = outermost, applied first)
+    val useInlineShadows = effectiveShadows.isNotEmpty() && !shadowAxisLocked
+    if (useInlineShadows) {
+        for (s in effectiveShadows) {
+            val elevation = s.radius?.toInt() ?: 0
+            if (elevation > 0) {
+                if (s.type == ShadowType.Inner) {
+                    Log.w(TAG, "Inner shadow not yet supported on Android; falling back to drop")
+                }
+                result = result.shadow(elevation = elevation.dp, shape = shape)
+            }
+        }
+    } else {
+        if (shadowAxisLocked && effectiveShadows.isNotEmpty()) {
+            ContainerVariantResolver.logOverrideBlocked(element.variant, "shadow", effectiveShadows)
+        }
+        val variantElevation = variantSpec?.shadowElevationDp ?: 0
+        if (variantElevation > 0) {
+            result = result.shadow(elevation = variantElevation.dp, shape = shape)
+        }
     }
 
     // corner clip
@@ -210,12 +240,17 @@ fun Modifier.buildAtomicBox(element: AtomicElement): Modifier {
         result = result.clip(shape)
     }
 
-    // background
-    result = when {
-        variantBackgroundColor != null -> result.background(variantBackgroundColor)
-        inlineBackground is BackgroundViewModel.Gradient -> result.background(inlineBackground.gradient.toBrush())
-        inlineBackground is BackgroundViewModel.Solid -> result.background(ColorTokenResolver.resolve(inlineBackground.color))
-        else -> result
+    // background (multi-layer: index 0 = bottommost, painted first)
+    if (variantBackgroundColor != null) {
+        result = result.background(variantBackgroundColor)
+    } else {
+        for (bg in effectiveBackgrounds) {
+            result = when (bg) {
+                is BackgroundViewModel.Gradient -> result.background(bg.gradient.toBrush())
+                is BackgroundViewModel.Solid -> result.background(ColorTokenResolver.resolve(bg.color))
+                is BackgroundViewModel.Image -> result // constrained out; already warned
+            }
+        }
     }
 
     // gradient overlay (hero variant only today)
@@ -246,13 +281,49 @@ fun Modifier.buildAtomicBox(element: AtomicElement): Modifier {
         )
     }
 
-    // sizing — explicit width/height beat fillWidth. Preserve null-short-circuit
-    // semantics: a missing scalar must NOT collapse the frame to 0.dp.
-    if (effectiveFillWidth && element.width == null) {
-        result = result.fillMaxWidth()
+    // sizing — widthMode/heightMode supersede deprecated fillWidth.
+    // Normalization: null widthMode + fillWidth==true → Fill (backward compat).
+    // Precedence: widthMode wins over fillWidth when both are set.
+    val resolvedWidthMode = element.widthMode
+        ?: if (effectiveFillWidth) SizingMode.Fill else null
+
+    when (resolvedWidthMode) {
+        SizingMode.Fill -> result = result.fillMaxWidth()
+        SizingMode.Fixed -> element.width?.let { result = result.width(LayoutTokenResolver.dp(it, formFactor)) }
+        SizingMode.Hug -> {} // intrinsic sizing — no modifier
+        null -> {
+            // Legacy path: apply explicit width when no mode is declared
+            element.width?.let { result = result.width(LayoutTokenResolver.dp(it, formFactor)) }
+        }
     }
-    element.width?.let { result = result.width(LayoutTokenResolver.dp(it, formFactor)) }
-    element.height?.let { result = result.height(LayoutTokenResolver.dp(it, formFactor)) }
+
+    when (element.heightMode) {
+        SizingMode.Fill -> result = result.fillMaxHeight()
+        SizingMode.Fixed -> element.height?.let { result = result.height(LayoutTokenResolver.dp(it, formFactor)) }
+        SizingMode.Hug -> {} // intrinsic sizing — no modifier
+        null -> {
+            element.height?.let { result = result.height(LayoutTokenResolver.dp(it, formFactor)) }
+        }
+    }
+
+    // min/max constraints
+    val minW: Dp? = element.minWidth?.let { LayoutTokenResolver.dp(it, formFactor) }
+    val maxW: Dp? = element.maxWidth?.let { LayoutTokenResolver.dp(it, formFactor) }
+    if (minW != null || maxW != null) {
+        result = result.widthIn(
+            min = minW ?: Dp.Unspecified,
+            max = maxW ?: Dp.Unspecified
+        )
+    }
+
+    val minH: Dp? = element.minHeight?.let { LayoutTokenResolver.dp(it, formFactor) }
+    val maxH: Dp? = element.maxHeight?.let { LayoutTokenResolver.dp(it, formFactor) }
+    if (minH != null || maxH != null) {
+        result = result.heightIn(
+            min = minH ?: Dp.Unspecified,
+            max = maxH ?: Dp.Unspecified
+        )
+    }
 
     return result
 }

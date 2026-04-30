@@ -27,7 +27,7 @@ public final class LayoutTokens {
 
     public static final String SPACING_XS  = "token:nba.spacing.xs";   // phone: 2
     public static final String SPACING_SM  = "token:nba.spacing.sm";   // phone: 4
-    public static final String SPACING_MD  = "token:nba.spacing.md";   // phone: 8
+    public static final String SPACING_MD  = "token:nba.spacing.md";   // phone: 12
     public static final String SPACING_LG  = "token:nba.spacing.lg";   // phone: 16
     public static final String SPACING_XL  = "token:nba.spacing.xl";   // phone: 32
     public static final String SPACING_2XL = "token:nba.spacing.2xl";  // phone: 40
@@ -37,7 +37,7 @@ public final class LayoutTokens {
 
     public static final String RADIUS_XS   = "token:nba.radius.xs";    // 2
     public static final String RADIUS_SM   = "token:nba.radius.sm";    // 4
-    public static final String RADIUS_MD   = "token:nba.radius.md";    // 8
+    public static final String RADIUS_MD   = "token:nba.radius.md";    // 12
     public static final String RADIUS_LG   = "token:nba.radius.lg";    // 16
     public static final String RADIUS_XL   = "token:nba.radius.xl";    // 24
     public static final String RADIUS_2XL  = "token:nba.radius.2xl";   // 32

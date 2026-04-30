@@ -205,6 +205,18 @@ public struct RequestEnvelope: Sendable, Equatable {
         #endif
     }
 
+    /// Current color scheme from OS. Returns "dark" or "light".
+    public static var currentTheme: String {
+        #if canImport(UIKit) && !os(macOS)
+        if UITraitCollection.current.userInterfaceStyle == .dark {
+            return "dark"
+        }
+        return "light"
+        #else
+        return "light"
+        #endif
+    }
+
     // MARK: Percent encoding
 
     /// Percent-encodes per RFC 3986 unreserved set, matching

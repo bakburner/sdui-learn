@@ -1,0 +1,79 @@
+{
+  "id": "fill-maxwidth-card",
+  "schemaVersion": "1.0",
+  "title": "Responsive card with fill width and max constraint",
+  "analyticsId": "fill_maxwidth_card_fixture",
+  "sections": [
+    {
+      "id": "responsive-card-section",
+      "type": "AtomicComposite",
+      "refreshPolicy": { "type": "static" },
+      "data": {
+        "ui": {
+          "id": "responsive-card-root",
+          "type": "Container",
+          "direction": "column",
+          "crossAlignment": "center",
+          "padding": { "top": "token:nba.spacing.lg", "bottom": "token:nba.spacing.lg", "start": "token:nba.spacing.lg", "end": "token:nba.spacing.lg" },
+          "widthMode": "fill",
+          "children": [
+            {
+              "id": "hero-card",
+              "type": "Container",
+              "direction": "column",
+              "crossAlignment": "stretch",
+              "widthMode": "fill",
+              "maxWidth": "token:nba.spacing.2xl",
+              "cornerRadius": "token:nba.radius.lg",
+              "background": "token:color.surface.raised",
+              "children": [
+                {
+                  "type": "Image",
+                  "src": "https://example.com/content/featured-game.jpg",
+                  "widthMode": "fill",
+                  "aspectRatio": "16:9",
+                  "fit": "cover",
+                  "cornerRadii": {
+                    "topStart": "token:nba.radius.lg",
+                    "topEnd": "token:nba.radius.lg",
+                    "bottomStart": 0,
+                    "bottomEnd": 0
+                  }
+                },
+                {
+                  "type": "Container",
+                  "direction": "column",
+                  "gap": "token:nba.spacing.sm",
+                  "padding": { "top": "token:nba.spacing.lg", "bottom": "token:nba.spacing.lg", "start": "token:nba.spacing.lg", "end": "token:nba.spacing.lg" },
+                  "children": [
+                    {
+                      "type": "Text",
+                      "content": "FEATURED",
+                      "variant": "labelSmall",
+                      "weight": "bold",
+                      "color": "token:color.brand.live"
+                    },
+                    {
+                      "type": "Text",
+                      "content": "Lakers vs Celtics — Game 7 Preview",
+                      "variant": "titleMedium",
+                      "weight": "bold",
+                      "color": "token:color.text.primary"
+                    },
+                    {
+                      "type": "Text",
+                      "content": "The rivalry continues as both teams prepare for a historic Game 7.",
+                      "variant": "bodyMedium",
+                      "color": "token:color.text.secondary",
+                      "maxLines": 2
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -4,6 +4,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowColumn
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -44,6 +47,7 @@ import com.nba.sdui.core.state.SduiAction
  * Breakpoint: When set on this Container, the direction flips from
  * row→column when the screen width is below the breakpoint (dp).
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AtomicContainer(
     element: AtomicElement,
@@ -64,6 +68,13 @@ fun AtomicContainer(
     // form-factor classifier is plumbed end-to-end.
     val formFactor = RequestEnvelopeBuilder.defaultFormFactor()
     val gap = LayoutTokenResolver.dp(element.gap, formFactor)
+    val shouldWrap = element.layoutWrap == true
+    // crossAxisGap falls back to gap when absent (CSS shorthand behavior)
+    val crossGap = if (element.crossAxisGap != null) {
+        LayoutTokenResolver.dp(element.crossAxisGap, formFactor)
+    } else {
+        gap
+    }
 
     val mainAxisArrangement = when (element.alignment) {
         Alignment.Center -> Arrangement.Center
@@ -104,7 +115,43 @@ fun AtomicContainer(
             baseModifier.aspectRatio(it)
         } ?: baseModifier
 
-        if (isRow) {
+        if (isRow && shouldWrap) {
+            FlowRow(
+                modifier = finalModifier,
+                horizontalArrangement = Arrangement.spacedBy(gap),
+                verticalArrangement = Arrangement.spacedBy(crossGap)
+            ) {
+                element.children?.forEach { child ->
+                    val flex = child.flex
+                    val childModifier = if (flex != null && flex > 0.0) {
+                        Modifier.weight(flex.toFloat())
+                    } else {
+                        Modifier
+                    }
+                    Box(modifier = childModifier) {
+                        AtomicRouter(child, screenState, onAction, depth = depth + 1, onStateChange = onStateChange, sectionSlotDepth = sectionSlotDepth)
+                    }
+                }
+            }
+        } else if (!isRow && shouldWrap) {
+            FlowColumn(
+                modifier = finalModifier,
+                verticalArrangement = Arrangement.spacedBy(gap),
+                horizontalArrangement = Arrangement.spacedBy(crossGap)
+            ) {
+                element.children?.forEach { child ->
+                    val flex = child.flex
+                    val childModifier = if (flex != null && flex > 0.0) {
+                        Modifier.weight(flex.toFloat())
+                    } else {
+                        Modifier
+                    }
+                    Box(modifier = childModifier) {
+                        AtomicRouter(child, screenState, onAction, depth = depth + 1, onStateChange = onStateChange, sectionSlotDepth = sectionSlotDepth)
+                    }
+                }
+            }
+        } else if (isRow) {
             Row(
                 modifier = finalModifier,
                 horizontalArrangement = mainAxisArrangement as Arrangement.Horizontal,
@@ -112,14 +159,21 @@ fun AtomicContainer(
             ) {
                 element.children?.forEachIndexed { index, child ->
                     val flex = child.flex
+                    val alignSelf = child.alignSelf
                     val childModifier = if (flex != null && flex > 0.0) {
                         Modifier
                             .weight(flex.toFloat())
-                            .then(if (element.crossAlignment == CrossAlignment.Stretch) Modifier.fillMaxHeight() else Modifier)
-                    } else if (element.crossAlignment == CrossAlignment.Stretch) {
-                        Modifier.fillMaxHeight()
+                            .then(resolveRowChildCrossAxis(alignSelf, element.crossAlignment))
                     } else {
-                        Modifier
+                        resolveRowChildCrossAxis(alignSelf, element.crossAlignment)
+                    }.let { mod ->
+                        // alignSelf alignment override (non-stretch)
+                        when (alignSelf) {
+                            CrossAlignment.Start -> mod.align(ComposeAlignment.Top)
+                            CrossAlignment.Center -> mod.align(ComposeAlignment.CenterVertically)
+                            CrossAlignment.End -> mod.align(ComposeAlignment.Bottom)
+                            else -> mod
+                        }
                     }
                     Box(modifier = childModifier) {
                         AtomicRouter(child, screenState, onAction, depth = depth + 1, onStateChange = onStateChange, sectionSlotDepth = sectionSlotDepth)
@@ -137,14 +191,21 @@ fun AtomicContainer(
             ) {
                 element.children?.forEachIndexed { index, child ->
                     val flex = child.flex
+                    val alignSelf = child.alignSelf
                     val childModifier = if (flex != null && flex > 0.0) {
                         Modifier
                             .weight(flex.toFloat())
-                            .then(if (element.crossAlignment == CrossAlignment.Stretch) Modifier.fillMaxWidth() else Modifier)
-                    } else if (element.crossAlignment == CrossAlignment.Stretch) {
-                        Modifier.fillMaxWidth()
+                            .then(resolveColumnChildCrossAxis(alignSelf, element.crossAlignment))
                     } else {
-                        Modifier
+                        resolveColumnChildCrossAxis(alignSelf, element.crossAlignment)
+                    }.let { mod ->
+                        // alignSelf alignment override (non-stretch)
+                        when (alignSelf) {
+                            CrossAlignment.Start -> mod.align(ComposeAlignment.Start)
+                            CrossAlignment.Center -> mod.align(ComposeAlignment.CenterHorizontally)
+                            CrossAlignment.End -> mod.align(ComposeAlignment.End)
+                            else -> mod
+                        }
                     }
                     Box(modifier = childModifier) {
                         AtomicRouter(child, screenState, onAction, depth = depth + 1, onStateChange = onStateChange, sectionSlotDepth = sectionSlotDepth)
@@ -156,6 +217,24 @@ fun AtomicContainer(
             }
         }
     }
+}
+
+/** Resolve cross-axis modifier for a child in a Row (cross axis = vertical). */
+private fun resolveRowChildCrossAxis(
+    alignSelf: CrossAlignment?,
+    parentCrossAlignment: CrossAlignment?
+): Modifier {
+    val effective = alignSelf ?: parentCrossAlignment
+    return if (effective == CrossAlignment.Stretch) Modifier.fillMaxHeight() else Modifier
+}
+
+/** Resolve cross-axis modifier for a child in a Column (cross axis = horizontal). */
+private fun resolveColumnChildCrossAxis(
+    alignSelf: CrossAlignment?,
+    parentCrossAlignment: CrossAlignment?
+): Modifier {
+    val effective = alignSelf ?: parentCrossAlignment
+    return if (effective == CrossAlignment.Stretch) Modifier.fillMaxWidth() else Modifier
 }
 
 /** Parse a hex color string (e.g. "#1A1A2E" or "text.primary") into a Compose [Color]. */

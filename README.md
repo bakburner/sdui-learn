@@ -196,6 +196,7 @@ make codegen
 
 ## Recent Changes
 
+- **Layout constraint & sizing overhaul** (2026-04-30) — `SizingMode` enum (hug/fill/fixed), `widthMode`/`heightMode` fields, `minWidth`/`maxWidth`/`minHeight`/`maxHeight` constraints, `layoutWrap` for flex-wrap, `crossAxisGap`, per-child `alignSelf`. Multi-layer `backgrounds` and `shadows` arrays with inner-shadow support (`Shadow.type: "inner"`). Deprecated `fillWidth`, singular `background`, singular `shadow`. Updated `LayoutTokenResolver` across all platforms for corrected `md=12` base. Replaced all broken loremflickr demo image URLs with same-origin `DemoImageUrls` SVGs.
 - **Per-section error handling** (2026-04-01) — `SectionErrorBoundary` on Android (catch-at-dispatch + pre-validation) and web (React ErrorBoundary). `SectionSkeleton` with 4 generic styles. Typed `SectionStates` model. Retry budget (client-side, default 5). `hideOnError` support. Error-handling contract rewritten.
 - **Accessibility** (2026-03-26) — `AccessibilityProperties` on Section, Subsection, AtomicElement. Android Compose `semantics{}`, web ARIA attributes, iOS `.accessibilityLabel`/traits. All 8 semantic section renderers and 12 atomic primitives wired on every platform.
 - **Request transport envelope** (2026-03-24) — `SduiRequestContext` POJO + `BracketParamResolver` on server. `RequestEnvelopeBuilder` on Android, iOS, and web. GET-first with bracket-notation params, POST fallback.

@@ -35,14 +35,10 @@ public class HomeComposer {
 
     private static final Logger log = LoggerFactory.getLogger(HomeComposer.class);
 
-    private static final String FALLBACK_HERO =
-            "https://loremflickr.com/800/450/basketball,game?lock=90";
-    private static final String FALLBACK_STORY =
-            "https://loremflickr.com/300/300/basketball?lock=91";
-    private static final String FALLBACK_THUMB =
-            "https://loremflickr.com/400/225/basketball,nba?lock=92";
-    private static final String FALLBACK_ARTICLE =
-            "https://loremflickr.com/120/120/basketball?lock=93";
+    private static final String FALLBACK_HERO = DemoImageUrls.hero("game");
+    private static final String FALLBACK_STORY = DemoImageUrls.avatar("story");
+    private static final String FALLBACK_THUMB = DemoImageUrls.cardWide("nba");
+    private static final String FALLBACK_ARTICLE = DemoImageUrls.thumb("article");
 
     private final ObjectMapper objectMapper;
     private final SduiUtils utils;
@@ -110,11 +106,11 @@ public class HomeComposer {
                         "Playoffs First Round: Celtics vs. Heat Game 3",
                         "Jayson Tatum drops 38 as Boston takes a commanding 2-1 series lead",
                         "WATCH", "nba://video/playoffs-bos-mia-g3"},
-                {"hero-2", "https://loremflickr.com/800/450/basketball,dunk?lock=95", null,
+                {"hero-2", DemoImageUrls.hero("dunk"), null,
                         "Wembanyama's Historic Rookie Season",
                         "A look back at the records broken this year",
                         "READ", "nba://article/wemby-season"},
-                {"hero-3", "https://loremflickr.com/800/450/basketball,arena?lock=96", "LIVE",
+                {"hero-3", DemoImageUrls.hero("arena"), "LIVE",
                         "Nuggets vs. Timberwolves Game 4",
                         "Western Conference Semifinals",
                         "WATCH", "nba://video/den-min-g4"}
@@ -189,19 +185,19 @@ public class HomeComposer {
         // cards: [id, title, imageUrl, badgeText, targetUri]
         String[][] cards = {
                 {"story-1", "Celtics Advance",
-                        "https://loremflickr.com/300/400/basketball,celtics?lock=101",
+                        DemoImageUrls.cardTall("celtics"),
                         null, "nba://article/celtics-advance"},
                 {"story-2", "Jokic Triple-Double",
-                        "https://loremflickr.com/300/400/basketball,nuggets?lock=102",
+                        DemoImageUrls.cardTall("nuggets"),
                         "NEW", "nba://article/jokic-triple"},
                 {"story-3", "Rookie Sensation",
-                        "https://loremflickr.com/300/400/basketball,spurs?lock=103",
+                        DemoImageUrls.cardTall("spurs"),
                         "NEW", "nba://article/wemby-record"},
                 {"story-4", "Trade Rumors",
-                        "https://loremflickr.com/300/400/basketball,trade?lock=104",
+                        DemoImageUrls.cardTall("trade"),
                         null, "nba://article/trade-rumors"},
                 {"story-5", "Draft Preview",
-                        "https://loremflickr.com/300/400/basketball,draft?lock=105",
+                        DemoImageUrls.cardTall("draft"),
                         null, "nba://article/draft-preview"}
         };
         ObjectNode rail = atomicBuilder.buildOverlayStoryRail(
@@ -225,20 +221,20 @@ public class HomeComposer {
         };
 
         ObjectNode root = atomicBuilder.container("column", null, null);
-        root.put("fillWidth", true);
+        root.put("widthMode", "fill");
         root.set("padding", atomicBuilder.padding(16, 16, 8, 8));
         ArrayNode children = objectMapper.createArrayNode();
 
         // Inline header
         children.add(atomicBuilder.text("HEADLINES", "titleMedium", "bold", ColorTokens.TEXT_PRIMARY, null));
-        children.add(atomicBuilder.spacer(12));
+        children.add(atomicBuilder.spacer(LayoutTokens.SPACING_MD));
 
         for (int i = 0; i < headlines.length; i++) {
             String headline = headlines[i][0];
             String uri = headlines[i][1];
 
             ObjectNode row = atomicBuilder.container("row", "start", "center");
-            row.put("fillWidth", true);
+            row.put("widthMode", "fill");
             row.set("padding", atomicBuilder.padding(0, 0, 12, 12));
             row.set("actions", atomicBuilder.singleActionArray(atomicBuilder.tapNavigate(uri)));
             ArrayNode rowChildren = objectMapper.createArrayNode();
@@ -330,7 +326,7 @@ public class HomeComposer {
         };
 
         ObjectNode root = atomicBuilder.container("column", null, null);
-        root.put("fillWidth", true);
+        root.put("widthMode", "fill");
         root.set("padding", atomicBuilder.padding(16, 16, 8, 8));
         ArrayNode children = objectMapper.createArrayNode();
 
@@ -344,7 +340,7 @@ public class HomeComposer {
 
             ObjectNode row = atomicBuilder.container("row", "start", "start");
             row.put("id", id);
-            row.put("fillWidth", true);
+            row.put("widthMode", "fill");
             row.set("padding", atomicBuilder.padding(0, 0, 12, 12));
             row.set("actions", atomicBuilder.singleActionArray(atomicBuilder.tapNavigate(targetUri)));
 

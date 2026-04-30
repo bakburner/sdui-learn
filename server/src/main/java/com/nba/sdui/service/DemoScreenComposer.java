@@ -341,7 +341,7 @@ public class DemoScreenComposer {
                 "demo-promo-banner", "demo_promo_banner",
                 "Welcome to SDUI", null,
                 "All 20 semantic section types rendered from a single server response.",
-                "https://loremflickr.com/800/200/basketball,nba?lock=1",
+                DemoImageUrls.cardWide("nba"),
                 "Learn More", "nba://scoreboard");
         section.set("surface", utils.subscribeSurface(
                 "#0C1B3A",
@@ -358,7 +358,7 @@ public class DemoScreenComposer {
                 "demo-content-card", "demo_content_card",
                 "Celtics Lead Series 3-1",
                 "Boston takes commanding lead after Game 4 victory",
-                "https://loremflickr.com/480/270/basketball,celtics?lock=2",
+                DemoImageUrls.cardWide("celtics"),
                 "article", null, "nba://article/celtics-lead-series");
     }
 
@@ -367,10 +367,10 @@ public class DemoScreenComposer {
      */
     private ObjectNode buildDemoContentRail() {
         String[][] cards = {
-            {"rail-1", "Top 10 Plays", "Last night's best moments", "https://loremflickr.com/480/270/basketball,highlights?lock=3", "video", null, "nba://content/rail-1"},
-            {"rail-2", "Player Spotlight", "Jayson Tatum's monster game", "https://loremflickr.com/480/270/basketball,player?lock=4", "article", null, "nba://content/rail-2"},
-            {"rail-3", "Draft Preview", "Top prospects for 2025 draft", "https://loremflickr.com/480/270/basketball,draft?lock=5", "article", null, "nba://content/rail-3"},
-            {"rail-4", "Playoff Bracket", "Updated bracket after today's results", "https://loremflickr.com/480/270/basketball,playoffs?lock=6", "interactive", null, "nba://content/rail-4"}
+            {"rail-1", "Top 10 Plays", "Last night's best moments", DemoImageUrls.cardWide("highlights"), "video", null, "nba://content/rail-1"},
+            {"rail-2", "Player Spotlight", "Jayson Tatum's monster game", DemoImageUrls.cardWide("player"), "article", null, "nba://content/rail-2"},
+            {"rail-3", "Draft Preview", "Top prospects for 2025 draft", DemoImageUrls.cardWide("draft"), "article", null, "nba://content/rail-3"},
+            {"rail-4", "Playoff Bracket", "Updated bracket after today's results", DemoImageUrls.cardWide("playoffs"), "interactive", null, "nba://content/rail-4"}
         };
         return atomicBuilder.buildContentRail(
                 "demo-content-rail", "demo_content_rail", "Featured Content", cards);
@@ -467,7 +467,7 @@ public class DemoScreenComposer {
                 "tab-overview-card", null,
                 "Season Overview",
                 "The 2024-25 season has been full of surprises",
-                "https://loremflickr.com/480/270/basketball,season?lock=7",
+                DemoImageUrls.cardWide("season"),
                 "article", null, null));
         tabContents.set("overview", overviewContent);
 
@@ -476,7 +476,7 @@ public class DemoScreenComposer {
                 "tab-stats-card", null,
                 "League Statistical Leaders",
                 "Points, rebounds, assists and more",
-                "https://loremflickr.com/480/270/basketball,stats?lock=8",
+                DemoImageUrls.cardWide("stats"),
                 "interactive", null, null));
         tabContents.set("stats", statsContent);
 
@@ -715,10 +715,10 @@ public class DemoScreenComposer {
      */
     private ObjectNode buildDemoVideoCarousel() {
         String[][] items = {
-            {"vid-1", "Dončić No-Look Dime", "Lakers vs Celtics", "https://loremflickr.com/480/270/basketball,pass?lock=10", "1:24", "NEW", "nba://video/vid-1"},
-            {"vid-2", "SGA Crossover & Finish", "Thunder vs Nuggets", "https://loremflickr.com/480/270/basketball,crossover?lock=11", "0:48", null, "nba://video/vid-2"},
-            {"vid-3", "Edwards Poster Dunk", "Timberwolves vs Suns", "https://loremflickr.com/480/270/basketball,dunk?lock=12", "0:32", "NEW", "nba://video/vid-3"},
-            {"vid-4", "Jokić Triple-Double Recap", "Full highlights", "https://loremflickr.com/480/270/basketball,triple+double?lock=13", "3:15", null, "nba://video/vid-4"}
+            {"vid-1", "Dončić No-Look Dime", "Lakers vs Celtics", DemoImageUrls.cardWide("pass"), "1:24", "NEW", "nba://video/vid-1"},
+            {"vid-2", "SGA Crossover & Finish", "Thunder vs Nuggets", DemoImageUrls.cardWide("crossover"), "0:48", null, "nba://video/vid-2"},
+            {"vid-3", "Edwards Poster Dunk", "Timberwolves vs Suns", DemoImageUrls.cardWide("dunk"), "0:32", "NEW", "nba://video/vid-3"},
+            {"vid-4", "Jokić Triple-Double Recap", "Full highlights", DemoImageUrls.cardWide("triple-double"), "3:15", null, "nba://video/vid-4"}
         };
         return atomicBuilder.buildVideoCarousel(
                 "demo-video-carousel", "demo_video_carousel",
@@ -736,7 +736,7 @@ public class DemoScreenComposer {
         };
         ObjectNode section = atomicBuilder.buildNbaTvSchedule(
                 "demo-nbatv-schedule", "demo_nbatv_schedule",
-                "https://loremflickr.com/800/400/basketball,arena?lock=14",
+                DemoImageUrls.hero("arena"),
                 "NBA TV Live",
                 "Lakers vs Celtics — Coverage begins at 7:00 PM ET",
                 true, slots);
@@ -776,7 +776,7 @@ public class DemoScreenComposer {
         children.add(atomicBuilder.text(
                 "Stream every out-of-market game live with NBA League Pass.",
                 "bodySmall", null, ColorTokens.TEXT_INVERSE, null));
-        children.add(atomicBuilder.spacer(8));
+        children.add(atomicBuilder.spacer(LayoutTokens.SPACING_MD));
         children.add(atomicBuilder.button("Subscribe Now", "primary", ctaAction.deepCopy()));
         root.set("children", children);
 
@@ -805,21 +805,21 @@ public class DemoScreenComposer {
 
         ObjectNode root = atomicBuilder.container("column", "start", "center");
         root.put("gap", 8);
-        root.put("fillWidth", true);
+        root.put("widthMode", "fill");
         ArrayNode children = objectMapper.createArrayNode();
 
         children.add(atomicBuilder.image(
                 DemoImageUrls.logoWide(), 0, 64, "contain"));
         // Logo is decorative — title below provides the accessible label.
         addHidden(objectMapper, (ObjectNode) children.get(children.size() - 1));
-        children.add(atomicBuilder.spacer(8));
+        children.add(atomicBuilder.spacer(LayoutTokens.SPACING_MD));
         ObjectNode heroTitle = atomicBuilder.text("NBA League Pass", "headlineMedium", "bold",
                 ColorTokens.TEXT_INVERSE, null);
         addHeading(objectMapper, heroTitle, "NBA League Pass", 2);
         children.add(heroTitle);
         children.add(atomicBuilder.text("Watch every game. Your way.",
                 "bodyLarge", null, ColorTokens.TEXT_INVERSE, null));
-        children.add(atomicBuilder.spacer(16));
+        children.add(atomicBuilder.spacer(LayoutTokens.SPACING_LG));
 
         String[] features = {
                 "Live & on-demand out-of-market games",
@@ -829,7 +829,7 @@ public class DemoScreenComposer {
         };
         ObjectNode featuresCol = atomicBuilder.container("column", "start", "start");
         featuresCol.put("gap", 8);
-        featuresCol.put("fillWidth", true);
+        featuresCol.put("widthMode", "fill");
         ArrayNode featureChildren = objectMapper.createArrayNode();
         for (String feature : features) {
             ObjectNode row = atomicBuilder.container("row", "start", "center");
@@ -849,7 +849,7 @@ public class DemoScreenComposer {
 
         ObjectNode tiersCol = atomicBuilder.container("column", "start", "stretch");
         tiersCol.put("gap", 16);
-        tiersCol.put("fillWidth", true);
+        tiersCol.put("widthMode", "fill");
         ArrayNode tierChildren = objectMapper.createArrayNode();
         tierChildren.add(buildDemoTierUi("League Pass", "$14.99/mo", "$22.99/mo",
                 "MOST POPULAR",
@@ -884,7 +884,7 @@ public class DemoScreenComposer {
         card.put("background", "rgba(255,255,255,0.1)");
         card.put("cornerRadius", 16);
         card.set("padding", atomicBuilder.padding(22, 22, 20, 20));
-        card.put("fillWidth", true);
+        card.put("widthMode", "fill");
 
         ArrayNode cardChildren = objectMapper.createArrayNode();
         if (badgeText != null) {

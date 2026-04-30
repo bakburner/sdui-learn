@@ -33,6 +33,10 @@ function AtomicContainerInner({ element, state, onAction, depth = 0, onStateChan
   const ff = currentFormFactor();
   const gapPx = element.gap != null ? resolveLayoutScalar(element.gap, ff) : undefined;
   const aspect = resolveAspectRatio(element.aspectRatio);
+  const wrap = element.layoutWrap === true;
+  const crossGapPx = element.crossAxisGap != null
+    ? resolveLayoutScalar(element.crossAxisGap, ff)
+    : undefined;
 
   if (element.actions?.length && !element.accessibility?.label) {
     console.warn('a11y_container_missing_label', { elementId: element.id });
@@ -46,9 +50,25 @@ function AtomicContainerInner({ element, state, onAction, depth = 0, onStateChan
   const layoutStyle: React.CSSProperties = {
     display: 'flex',
     flexDirection: isRow ? 'row' : 'column',
-    ...(gapPx != null ? { gap: gapPx } : {}),
+    ...(wrap ? { flexWrap: 'wrap' } : {}),
     ...(aspect != null ? { aspectRatio: String(aspect) } : {}),
   };
+
+  // Gap handling: when crossAxisGap is set (only meaningful with wrap),
+  // use explicit row-gap / column-gap instead of the shorthand `gap`.
+  if (crossGapPx != null && wrap) {
+    if (isRow) {
+      // Row: main axis gap is column-gap, cross axis gap is row-gap.
+      if (gapPx != null) layoutStyle.columnGap = gapPx;
+      layoutStyle.rowGap = crossGapPx;
+    } else {
+      // Column: main axis gap is row-gap, cross axis gap is column-gap.
+      if (gapPx != null) layoutStyle.rowGap = gapPx;
+      layoutStyle.columnGap = crossGapPx;
+    }
+  } else if (gapPx != null) {
+    layoutStyle.gap = gapPx;
+  }
 
   switch (element.alignment) {
     case 'center':       layoutStyle.justifyContent = 'center'; break;
@@ -77,10 +97,15 @@ function AtomicContainerInner({ element, state, onAction, depth = 0, onStateChan
       styleOverrides={handleClick ? { cursor: 'pointer' } : undefined}
     >
       {element.children?.map((child, i) => {
+        // alignSelf must be on the flex item (the wrapper div), not nested inside it
+        const childAlignSelf = child.alignSelf != null
+          ? ({ start: 'flex-start', center: 'center', end: 'flex-end', stretch: 'stretch' } as const)[child.alignSelf]
+          : undefined;
+
         const childStyle: React.CSSProperties | undefined =
           child.flex != null && child.flex > 0
-            ? { flex: `${child.flex} 1 0%`, minWidth: 0 }
-            : undefined;
+            ? { flex: `${child.flex} 1 0%`, minWidth: 0, ...(childAlignSelf ? { alignSelf: childAlignSelf } : {}) }
+            : (childAlignSelf ? { alignSelf: childAlignSelf } : undefined);
 
         return childStyle ? (
           <div key={child.id ?? i} style={childStyle}>

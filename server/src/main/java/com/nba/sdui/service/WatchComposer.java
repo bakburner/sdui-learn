@@ -425,7 +425,7 @@ public class WatchComposer {
         if (subtitle != null) {
             children.add(atomicBuilder.text(subtitle, "bodySmall", null, "rgba(255,255,255,0.85)", null));
         }
-        children.add(atomicBuilder.spacer(8));
+        children.add(atomicBuilder.spacer(LayoutTokens.SPACING_MD));
         children.add(atomicBuilder.button(ctaLabel, "primary", ctaAction.deepCopy()));
         root.set("children", children);
 
@@ -493,14 +493,14 @@ public class WatchComposer {
                                              String[] features, TierSpec[] tierSpecs) {
         ObjectNode root = atomicBuilder.container("column", "start", "center");
         root.put("gap", 8);
-        root.put("fillWidth", true);
+        root.put("widthMode", "fill");
         ArrayNode children = objectMapper.createArrayNode();
 
         if (logoUrl != null) {
             ObjectNode logoImg = atomicBuilder.image(logoUrl, 0, 64, "contain");
             addHidden(objectMapper, logoImg);
             children.add(logoImg);
-            children.add(atomicBuilder.spacer(8));
+            children.add(atomicBuilder.spacer(LayoutTokens.SPACING_MD));
         }
         ObjectNode heroTitle = atomicBuilder.text(title, "headlineMedium", "bold", ColorTokens.TEXT_INVERSE, null);
         addHeading(objectMapper, heroTitle, title, 2);
@@ -508,11 +508,11 @@ public class WatchComposer {
         if (subtitle != null) {
             children.add(atomicBuilder.text(subtitle, "bodyLarge", null, ColorTokens.TEXT_INVERSE, null));
         }
-        children.add(atomicBuilder.spacer(16));
+        children.add(atomicBuilder.spacer(LayoutTokens.SPACING_LG));
 
         ObjectNode featuresCol = atomicBuilder.container("column", "start", "start");
         featuresCol.put("gap", 8);
-        featuresCol.put("fillWidth", true);
+        featuresCol.put("widthMode", "fill");
         ArrayNode featureChildren = objectMapper.createArrayNode();
         for (String feature : features) {
             ObjectNode row = atomicBuilder.container("row", "start", "center");
@@ -530,7 +530,7 @@ public class WatchComposer {
 
         ObjectNode tiersCol = atomicBuilder.container("column", "start", "stretch");
         tiersCol.put("gap", 16);
-        tiersCol.put("fillWidth", true);
+        tiersCol.put("widthMode", "fill");
         ArrayNode tierChildren = objectMapper.createArrayNode();
         for (TierSpec t : tierSpecs) {
             tierChildren.add(buildTierUi(t));
@@ -549,7 +549,7 @@ public class WatchComposer {
         card.put("background", "rgba(255,255,255,0.1)");
         card.put("cornerRadius", 16);
         card.set("padding", atomicBuilder.padding(22, 22, 20, 20));
-        card.put("fillWidth", true);
+        card.put("widthMode", "fill");
 
         ArrayNode cardChildren = objectMapper.createArrayNode();
         if (t.badgeText != null) {

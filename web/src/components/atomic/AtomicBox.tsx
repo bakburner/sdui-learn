@@ -1,6 +1,7 @@
 import React from 'react';
 import type { AtomicElement, Shadow, Badge } from '@sdui/models';
-import { resolveBackgroundCSS, type Background } from '../../utils/background';
+import { SizingMode, CrossAlignment, ShadowType } from '@sdui/models';
+import { resolveBackgroundCSS, resolveBackgroundLayerCSS, type Background } from '../../utils/background';
 import { useColorTokenResolver } from '../../utils/ColorTokenResolver';
 import {
   resolveContainerVariant,
@@ -196,18 +197,65 @@ export function buildBoxStyle(
     if (element.padding.start != null)  style.paddingLeft   = p.left;
   }
 
-  // width / height / fillWidth — token strings resolve to pixels; numbers
-  // pass through; non-token strings (constraint primitives like `fill`,
-  // `wrap`) flow through to CSS for now (constraint primitive support is
-  // a follow-up; see implementation plan Phase 2).
-  if (element.width != null) {
-    style.width = resolveLayoutSize(element.width, ff);
-    style.flexShrink = 0;
-  } else if (element.fillWidth || variantSpec?.fillWidth) {
-    style.width = '100%';
+  // width / height — resolved via widthMode/heightMode with fillWidth as
+  // deprecated fallback. Precedence: widthMode wins over fillWidth when both
+  // are set. Token strings resolve to pixels; numbers pass through.
+  const effectiveWidthMode = element.widthMode
+    ?? (element.fillWidth || variantSpec?.fillWidth ? SizingMode.Fill : undefined);
+  switch (effectiveWidthMode) {
+    case SizingMode.Fixed:
+      if (element.width != null) {
+        style.width = resolveLayoutSize(element.width, ff);
+        style.flexShrink = 0;
+      }
+      break;
+    case SizingMode.Fill:
+      style.width = '100%';
+      break;
+    case SizingMode.Hug:
+      // Intrinsic sizing — no explicit width rule needed.
+      break;
+    default:
+      // No widthMode set and no fillWidth — fall back to explicit width if present.
+      if (element.width != null) {
+        style.width = resolveLayoutSize(element.width, ff);
+        style.flexShrink = 0;
+      }
+      break;
   }
-  if (element.height != null) {
-    style.height = resolveLayoutSize(element.height, ff);
+
+  switch (element.heightMode) {
+    case SizingMode.Fixed:
+      if (element.height != null) {
+        style.height = resolveLayoutSize(element.height, ff);
+      }
+      break;
+    case SizingMode.Fill:
+      style.height = '100%';
+      break;
+    case SizingMode.Hug:
+      break;
+    default:
+      if (element.height != null) {
+        style.height = resolveLayoutSize(element.height, ff);
+      }
+      break;
+  }
+
+  // min/max constraints
+  if (element.minWidth != null) style.minWidth = resolveLayoutSize(element.minWidth, ff);
+  if (element.maxWidth != null) style.maxWidth = resolveLayoutSize(element.maxWidth, ff);
+  if (element.minHeight != null) style.minHeight = resolveLayoutSize(element.minHeight, ff);
+  if (element.maxHeight != null) style.maxHeight = resolveLayoutSize(element.maxHeight, ff);
+
+  // alignSelf — per-child cross-axis override
+  if (element.alignSelf != null) {
+    switch (element.alignSelf) {
+      case CrossAlignment.Start:   style.alignSelf = 'flex-start'; break;
+      case CrossAlignment.Center:  style.alignSelf = 'center'; break;
+      case CrossAlignment.End:     style.alignSelf = 'flex-end'; break;
+      case CrossAlignment.Stretch: style.alignSelf = 'stretch'; break;
+    }
   }
 
   // corner radius — per-corner wins when any corner is non-zero; else
@@ -243,21 +291,42 @@ export function buildBoxStyle(
   }
 
   // background — inline wins on `allow`; variant wins on `lock`.
-  if (element.background) {
+  // Normalize: backgrounds array > singular background > empty.
+  const effectiveBackgrounds: Array<Background | string> = element.backgrounds
+    ? element.backgrounds as Array<Background | string>
+    : element.background
+      ? [element.background as unknown as Background]
+      : [];
+
+  if (effectiveBackgrounds.length > 0) {
     if (variantSpec && !axisAllowsOverride(variantSpec, 'background')) {
-      logVariantOverrideBlocked(variantName!, 'background', element.background);
+      logVariantOverrideBlocked(variantName!, 'background', effectiveBackgrounds);
       if (variantSpec.backgroundCss) {
         style.background = variantSpec.backgroundCss;
       }
+    } else if (effectiveBackgrounds.length === 1) {
+      // Single background — use existing helper for full CSSProperties support
+      Object.assign(style, resolveBackgroundCSS(effectiveBackgrounds[0] as Background, resolveColor));
     } else {
-      Object.assign(style, resolveBackgroundCSS(element.background as unknown as Background, resolveColor));
+      // Multiple backgrounds — reverse for CSS (Figma bottom-to-top → CSS top-to-bottom)
+      // and join as comma-separated background layers.
+      const cssLayers = [...effectiveBackgrounds].reverse().map(
+        (bg) => resolveBackgroundLayerCSS(bg as Background, resolveColor),
+      );
+      style.background = cssLayers.join(', ');
     }
   } else if (variantSpec?.backgroundCss) {
     style.background = variantSpec.backgroundCss;
   }
 
   // shadow — inline wins on `allow`; variant wins on `lock`.
-  applyShadow(style, element.shadow, variantSpec, variantName, resolveColor);
+  // Normalize: shadows array > singular shadow > empty.
+  const effectiveShadows: Shadow[] = element.shadows
+    ? element.shadows
+    : element.shadow
+      ? [element.shadow]
+      : [];
+  applyShadow(style, effectiveShadows, variantSpec, variantName, resolveColor);
 
   // border (variant-only today — no inline `border` prop).
   if (variantSpec?.border) {
@@ -316,21 +385,27 @@ function resolveLayoutSize(
 
 function applyShadow(
   style: React.CSSProperties,
-  inline: Shadow | null | undefined,
+  inlineShadows: Shadow[],
   variantSpec: ContainerVariantSpec | undefined,
   variantName: string | undefined,
   resolveColor: (value: string | null | undefined) => string | undefined,
 ): void {
-  if (inline) {
+  if (inlineShadows.length > 0) {
     if (variantSpec && !axisAllowsOverride(variantSpec, 'shadow')) {
-      logVariantOverrideBlocked(variantName!, 'shadow', inline);
+      logVariantOverrideBlocked(variantName!, 'shadow', inlineShadows);
       if (variantSpec.boxShadow) {
         style.boxShadow = variantSpec.boxShadow;
       }
       return;
     }
-    const shadowColor = resolveColor(inline.color) ?? 'rgba(0,0,0,0.08)';
-    style.boxShadow = `${inline.offsetX ?? 0}px ${inline.offsetY ?? 0}px ${inline.radius ?? 0}px ${shadowColor}`;
+    // CSS box-shadow: first listed paints on top — matches Figma convention
+    // (index 0 = outermost) directly; no reversal needed.
+    const parts = inlineShadows.map((s) => {
+      const color = resolveColor(s.color) ?? 'rgba(0,0,0,0.08)';
+      const inset = s.type === ShadowType.Inner ? 'inset ' : '';
+      return `${inset}${s.offsetX ?? 0}px ${s.offsetY ?? 0}px ${s.radius ?? 0}px ${color}`;
+    });
+    style.boxShadow = parts.join(', ');
     return;
   }
   if (variantSpec?.boxShadow) {

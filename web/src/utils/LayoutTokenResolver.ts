@@ -52,6 +52,17 @@ export function currentFormFactor(): FormFactor {
 }
 
 /**
+ * Returns the current OS color scheme. SSR-safe: defaults to `'light'`
+ * when `window` is unavailable.
+ */
+export function currentTheme(): string {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    return 'light';
+  }
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+/**
  * Resolve a `LayoutScalar` (number | `token:…` string) to a CSS pixel value.
  *
  * Numeric values pass through unchanged. `token:<name>` is resolved through
@@ -63,18 +74,19 @@ export function currentFormFactor(): FormFactor {
 export function resolveLayoutScalar(
   value: number | string | undefined,
   formFactor: FormFactor = currentFormFactor(),
+  theme: string = currentTheme(),
 ): number {
   if (value == null) return 0;
   if (typeof value === 'number') return value;
   if (!value.startsWith(TOKEN_PREFIX)) return 0;
   const name = value.slice(TOKEN_PREFIX.length);
-  if (!(name in PALETTE) && !(name in SEMANTIC)) {
+  if (!(name in REGISTRY) && !(name in SEMANTIC)) {
     if (typeof console !== 'undefined') {
       console.debug('token_resolver_missing', value);
     }
     return 0;
   }
-  return followAlias(name, formFactor, 0);
+  return followAlias(name, formFactor, theme, 0);
 }
 
 /**
@@ -120,13 +132,14 @@ export interface ResolvedSpacingPx {
 export function resolveSpacingPx(
   spacing: SpacingInput | undefined,
   formFactor: FormFactor = currentFormFactor(),
+  theme: string = currentTheme(),
 ): ResolvedSpacingPx {
   if (!spacing) return { top: 0, bottom: 0, left: 0, right: 0 };
   return {
-    top:    resolveLayoutScalar(spacing.top,    formFactor),
-    bottom: resolveLayoutScalar(spacing.bottom, formFactor),
-    left:   resolveLayoutScalar(spacing.start,  formFactor),
-    right:  resolveLayoutScalar(spacing.end,    formFactor),
+    top:    resolveLayoutScalar(spacing.top,    formFactor, theme),
+    bottom: resolveLayoutScalar(spacing.bottom, formFactor, theme),
+    left:   resolveLayoutScalar(spacing.start,  formFactor, theme),
+    right:  resolveLayoutScalar(spacing.end,    formFactor, theme),
   };
 }
 
@@ -143,14 +156,14 @@ export function isFormFactor(value: string): value is FormFactor {
 const SEMANTIC: Record<string, string> = {
   'nba.spacing.xs':  'nba.space.raw.2',
   'nba.spacing.sm':  'nba.space.raw.4',
-  'nba.spacing.md':  'nba.space.raw.8',
+  'nba.spacing.md':  'nba.space.raw.12',
   'nba.spacing.lg':  'nba.space.raw.16',
   'nba.spacing.xl':  'nba.space.raw.32',
   'nba.spacing.2xl': 'nba.space.raw.40',
 
   'nba.radius.xs':   'nba.radius.raw.2',
   'nba.radius.sm':   'nba.radius.raw.4',
-  'nba.radius.md':   'nba.radius.raw.8',
+  'nba.radius.md':   'nba.radius.raw.12',
   'nba.radius.lg':   'nba.radius.raw.16',
   'nba.radius.xl':   'nba.radius.raw.24',
   'nba.radius.2xl':  'nba.radius.raw.32',
@@ -159,11 +172,11 @@ const SEMANTIC: Record<string, string> = {
   // Legacy aliases (deprecated — kept for backward compat with cached payloads)
   'spacing.xs':  'nba.space.raw.2',
   'spacing.sm':  'nba.space.raw.4',
-  'spacing.md':  'nba.space.raw.8',
+  'spacing.md':  'nba.space.raw.12',
   'spacing.lg':  'nba.space.raw.16',
   'spacing.xl':  'nba.space.raw.32',
   'radius.sm':   'nba.radius.raw.4',
-  'radius.md':   'nba.radius.raw.8',
+  'radius.md':   'nba.radius.raw.12',
   'radius.lg':   'nba.radius.raw.16',
   'radius.full': 'nba.radius.raw.9999',
 };
@@ -176,12 +189,16 @@ const SEMANTIC: Record<string, string> = {
 
 type PaletteRow = readonly [number, number, number, number, number, number];
 
-const PALETTE: Record<string, PaletteRow> = {
+/** Variable-mode matrix shape: { theme: { formFactor: value } }. */
+export type RegistryEntry = Record<string, Record<string, number>>;
+
+const PALETTE_RAW: Record<string, PaletteRow> = {
   // spacing (Kinetic)
   'nba.space.raw.0':   [0,  0,  0,  0,  0,  0 ],
   'nba.space.raw.2':   [2,  2,  2,  4,  2,  2 ],
   'nba.space.raw.4':   [4,  4,  6,  6,  4,  6 ],
   'nba.space.raw.8':   [8,  8,  10, 12, 8,  10],
+  'nba.space.raw.12':  [12, 12, 15, 18, 12, 15],
   'nba.space.raw.16':  [16, 16, 20, 24, 16, 20],
   'nba.space.raw.32':  [32, 32, 40, 48, 32, 40],
   'nba.space.raw.40':  [40, 40, 48, 56, 40, 48],
@@ -191,29 +208,53 @@ const PALETTE: Record<string, PaletteRow> = {
   'nba.radius.raw.2':    [2,    2,    2,    2,    2,    2   ],
   'nba.radius.raw.4':    [4,    4,    4,    4,    4,    4   ],
   'nba.radius.raw.8':    [8,    8,    8,    8,    8,    8   ],
+  'nba.radius.raw.12':   [12,   12,   12,   12,   12,   12  ],
   'nba.radius.raw.16':   [16,   16,   16,   16,   16,   16  ],
   'nba.radius.raw.24':   [24,   24,   24,   24,   24,   24  ],
   'nba.radius.raw.32':   [32,   32,   32,   32,   32,   32  ],
   'nba.radius.raw.9999': [9999, 9999, 9999, 9999, 9999, 9999],
 };
 
-const FORM_FACTOR_INDEX: Readonly<Record<FormFactor, number>> = {
-  'phone':           0,
-  'phone.landscape': 1,
-  'tablet':          2,
-  'tv':              3,
-  'web.narrow':      4,
-  'web.wide':        5,
-};
+const FORM_FACTOR_NAMES: readonly FormFactor[] = [
+  'phone', 'phone.landscape', 'tablet', 'tv', 'web.narrow', 'web.wide',
+];
 
-function followAlias(name: string, formFactor: FormFactor, depth: number): number {
+// Build REGISTRY from compact tuples → matrix shape { "*": { formFactor: value } }
+const REGISTRY: Record<string, RegistryEntry> = {};
+for (const [key, row] of Object.entries(PALETTE_RAW)) {
+  const ffMap: Record<string, number> = {};
+  for (let i = 0; i < FORM_FACTOR_NAMES.length; i++) {
+    ffMap[FORM_FACTOR_NAMES[i]] = row[i];
+  }
+  REGISTRY[key] = { '*': ffMap };
+}
+
+function resolveEntry(entry: RegistryEntry, theme: string, formFactor: string): number {
+  // Fallback order:
+  // 1. entry[theme][formFactor] — exact match
+  // 2. entry[theme]["*"] — theme-specific, any form factor
+  // 3. entry["*"][formFactor] — any theme, form-factor-specific
+  // 4. entry["*"]["*"] — universal fallback
+  const themeRow = entry[theme];
+  if (themeRow) {
+    if (formFactor in themeRow) return themeRow[formFactor];
+    if ('*' in themeRow) return themeRow['*'];
+  }
+  const wildRow = entry['*'];
+  if (wildRow) {
+    if (formFactor in wildRow) return wildRow[formFactor];
+    if ('*' in wildRow) return wildRow['*'];
+  }
+  return 0;
+}
+
+function followAlias(name: string, formFactor: FormFactor, theme: string, depth: number): number {
   if (depth > MAX_ALIAS_DEPTH) return 0;
-  const row = PALETTE[name];
-  if (row) {
-    const idx = FORM_FACTOR_INDEX[formFactor];
-    return idx != null ? row[idx] : row[FORM_FACTOR_INDEX.phone];
+  const entry = REGISTRY[name];
+  if (entry) {
+    return resolveEntry(entry, theme, formFactor);
   }
   const next = SEMANTIC[name];
   if (!next) return 0;
-  return followAlias(next, formFactor, depth + 1);
+  return followAlias(next, formFactor, theme, depth + 1);
 }

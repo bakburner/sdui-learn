@@ -570,11 +570,11 @@ public class GameDetailComposer {
 
         ObjectNode root = atomicBuilder.container("column", "center", "center");
         root.put("fillWidth", true);
-        root.put("height", 220);
+        root.put("height", 440);
         root.put("background", "#000000");
         ArrayNode rootChildren = objectMapper.createArrayNode();
         rootChildren.add(atomicBuilder.text("▶", "displayLarge", "bold", "#FFFFFF", null));
-        rootChildren.add(atomicBuilder.spacer(8));
+        rootChildren.add(atomicBuilder.spacer(LayoutTokens.SPACING_MD));
         rootChildren.add(atomicBuilder.text("Video Player", "titleMedium", null, "#FFFFFF", null));
         rootChildren.add(atomicBuilder.text("game • " + gameId, "bodySmall", null,
                 "rgba(255,255,255,0.6)", null));
@@ -642,7 +642,7 @@ public class GameDetailComposer {
         root.put("crossAlignment", "center");
         root.set("padding", padHelper(24, 24, 32, 32));
         root.put("background", ColorTokens.SURFACE_CANVAS);
-        root.put("cornerRadius", 16);
+        root.put("cornerRadius", LayoutTokens.RADIUS_LG);
 
         ArrayNode children = objectMapper.createArrayNode();
 
@@ -655,7 +655,7 @@ public class GameDetailComposer {
 
         ObjectNode spacer1 = objectMapper.createObjectNode();
         spacer1.put("type", "Spacer");
-        spacer1.put("height", 16);
+        spacer1.put("height", LayoutTokens.SPACING_LG);
         children.add(spacer1);
 
         ObjectNode titleEl = objectMapper.createObjectNode();

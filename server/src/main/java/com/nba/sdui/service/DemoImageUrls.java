@@ -27,6 +27,22 @@ public final class DemoImageUrls {
         return query(BASE + "/card-wide.svg", "kw" + (key == null ? "" : key).replace(' ', '-'));
     }
 
+    public static String hero(String key) {
+        return query(BASE + "/card-wide.svg", "hero" + (key == null ? "" : key).replace(' ', '-'));
+    }
+
+    public static String cardTall(String key) {
+        return query(BASE + "/card-wide.svg", "tall" + (key == null ? "" : key).replace(' ', '-'));
+    }
+
+    public static String thumb(String key) {
+        return query(BASE + "/card-wide.svg", "th" + (key == null ? "" : key).replace(' ', '-'));
+    }
+
+    public static String avatar(String key) {
+        return query(BASE + "/headshot.svg", "av" + (key == null ? "" : key).replace(' ', '-'));
+    }
+
     public static String logoWide() {
         return BASE + "/logo-wide.svg";
     }

@@ -180,9 +180,11 @@ live updates).
 ## 4. Atomic Router Algorithm
 
 The router is a **pure dispatcher**. It does not apply any styling of its own.
-Every box-model concern — `margin`, `padding`, `background`, `cornerRadius`,
-`cornerRadii`, `shadow`, `border`, `opacity`, `width`, `height`, `fillWidth`,
-variant chrome, and `badge` overlay — is applied by a single helper called
+Every box-model concern — `margin`, `padding`, `background`, `backgrounds`,
+`cornerRadius`, `cornerRadii`, `shadow`, `shadows`, `border`, `opacity`,
+`width`, `height`, `widthMode`, `heightMode`, `minWidth`, `maxWidth`,
+`minHeight`, `maxHeight`, `fillWidth` (deprecated), variant chrome, and
+`badge` overlay — is applied by a single helper called
 `AtomicBox` (see §4a) that every primitive routes its output through.
 Primitives own only the content they render (typography, scroll layout,
 image scaling, flex arrangement); they never re-implement box-model logic.
@@ -252,7 +254,7 @@ margin                ← sibling-to-sibling spacing
                  └─ background (variant or inline) + optional gradient overlay
                       └─ border
                            └─ padding   ← interior padding; bg extends to its edge
-                                └─ sizing (width / height / fillWidth)
+                                └─ sizing (width / height / widthMode / heightMode / min-max constraints)
                                      └─ content (what the primitive actually renders)
 ```
 
@@ -264,13 +266,16 @@ Invariants this order guarantees:
   or `grouped` paint to the padded frame (matches CSS box-model intuition
   and the historical `Container` semantic).
 - `shadow` renders on the bg shape, not on the padded frame.
-- `fillWidth` is applied to the sized frame (border-box semantics); when
-  `width` is also set, `width` wins.
+- Sizing follows `widthMode`/`heightMode` semantics (hug / fill / fixed);
+  legacy `fillWidth` is equivalent to `widthMode: "fill"` — when both are
+  present, `widthMode` wins. Explicit `width`/`height` wins over fill mode.
+  `minWidth`/`maxWidth`/`minHeight`/`maxHeight` clamp after the primary
+  sizing pass.
 
 **Variant integration.** Before applying the stack, `AtomicBox` resolves
 `element.variant` against the platform's `ContainerVariantResolver` / 
 `ImageVariantResolver`. The resolver returns **data** (a spec with
-background role, cornerRadius, shadow, border, fillWidth, gradient overlay,
+background role, cornerRadius, shadow, shadows, border, fillWidth, gradient overlay,
 and an `overrideMatrix`), never a platform-specific modifier. `AtomicBox`
 then merges the spec with inline `element.*` props per each axis's
 override policy (`allow` → inline wins; `lock` → variant wins, inline
@@ -291,8 +296,10 @@ atomic element.
   Primitives integrate actions into their native control (SwiftUI
   `Button`, Compose `Modifier.clickable`, `<button>` element) because the
   gesture surface is primitive-specific.
-- **Layout direction / flex / gap / alignment on `Container`.** These are
-  flex-layout concerns owned by `AtomicContainer`.
+- **Layout direction / flex / gap / alignment / wrap on `Container`.** These are
+  flex-layout concerns owned by `AtomicContainer`. This includes `layoutWrap`
+  (flex-wrap), `crossAxisGap` (gap between wrapped lines), and per-child
+  `alignSelf` overrides.
 
 **Why this matters for client release cadence.** New box-model schema
 fields (a future `outline`, `elevation`, or `backdrop` property) are
@@ -310,22 +317,24 @@ FUNCTION AtomicBox(element, screenState, onAction, content):
 
     // Merge inline + variant per override policy
     effectiveCornerRadius = resolveAxis("cornerRadius", element.cornerRadius, variantSpec?.cornerRadius, variantSpec?.overrideMatrix)
-    effectiveShadow       = resolveAxis("shadow",       element.shadow,       variantSpec?.shadow,       variantSpec?.overrideMatrix)
-    useVariantBackground  = (element.background == null) OR overrideMatrix["background"] == "lock"
+    effectiveShadow       = resolveAxis("shadow",       element.shadows ?? [element.shadow], variantSpec?.shadow, variantSpec?.overrideMatrix)
+    useVariantBackground  = (element.backgrounds == null AND element.background == null) OR overrideMatrix["background"] == "lock"
 
     shape = buildShape(element.cornerRadii, effectiveCornerRadius)
-    fillW = element.fillWidth ?? variantSpec?.fillWidth
+    wMode = element.widthMode ?? (element.fillWidth ? "fill" : null) ?? variantSpec?.widthMode ?? "hug"
+    hMode = element.heightMode ?? "hug"
 
     RETURN
       APPLY margin(element.margin)
       APPLY opacity(element.opacity)
-      APPLY shadow(effectiveShadow, shape)
+      APPLY shadow(effectiveShadow, shape)    // renders array; inner shadows use inset
       APPLY clipToShape(shape)
-      APPLY background(useVariantBackground ? variantSpec.background : element.background)
+      APPLY backgrounds(useVariantBackground ? variantSpec.background : (element.backgrounds ?? [element.background]))
       APPLY gradientOverlay(variantSpec?.gradientOverlay)   // hero variant only
       APPLY border(variantSpec?.border, shape)
       APPLY padding(element.padding)
-      APPLY sizing(element.width, element.height, fillW)
+      APPLY sizing(element.width, element.height, wMode, hMode,
+                   element.minWidth, element.maxWidth, element.minHeight, element.maxHeight)
       WRAP WITH badge(element.badge) IF present
       CONTAINS content
 ```

@@ -371,6 +371,11 @@ export interface AtomicElement {
     actions?:       Action[];
     alignment?:     Alignment;
     /**
+     * Per-child cross-axis alignment override. When set, wins over parent crossAlignment for
+     * this child (matches Figma and CSS align-self semantics).
+     */
+    alignSelf?: CrossAlignment;
+    /**
      * Deprecated: use accessibility.label instead. Retained for backward compatibility; clients
      * prefer accessibility.label when present.
      */
@@ -379,7 +384,18 @@ export interface AtomicElement {
      * Aspect ratio: legacy numeric (w/h), or named ratio string for semantic layout.
      */
     aspectRatio?: number | AspectRatioEnum;
-    background?:  Background | string;
+    /**
+     * DEPRECATED — use backgrounds (array) for new payloads. Single background. If both
+     * background and backgrounds are present, backgrounds wins.
+     */
+    background?: Background | string;
+    /**
+     * Ordered array of background layers. Index 0 is the bottommost layer (Figma convention);
+     * higher indices paint on top. Web renderers must reverse the array when mapping to CSS
+     * background shorthand (CSS is top-to-bottom). When absent, falls back to singular
+     * background field.
+     */
+    backgrounds?: Array<Background | string>;
     /**
      * Z-positioned child element (e.g. 'LIVE' pill, duration label) overlaid on this element.
      */
@@ -428,15 +444,18 @@ export interface AtomicElement {
      */
     cornerRadius?:   number | string;
     crossAlignment?: CrossAlignment;
-    direction?:      UIDirection;
-    disabled?:       boolean;
-    falseChild?:     AtomicElement;
     /**
-     * When true, the element stretches along its main axis to fill the parent's available
-     * width. On Image this pairs with aspectRatio to derive a height (thumbnails in a
-     * fixed-width card). On Container it stretches the flex box to parent width regardless of
-     * child intrinsic widths. Inline value takes precedence over any variant default; element
-     * width/height, when also set, wins over fillWidth.
+     * Gap between wrapped lines when layoutWrap is true. Falls back to gap when absent. Ignored
+     * when layoutWrap is false.
+     */
+    crossAxisGap?: number | string;
+    direction?:    UIDirection;
+    disabled?:     boolean;
+    falseChild?:   AtomicElement;
+    /**
+     * DEPRECATED — use widthMode: 'fill' instead. Retained for backward compatibility. When
+     * true, equivalent to widthMode: 'fill'. If both fillWidth and widthMode are set, widthMode
+     * wins.
      */
     fillWidth?: boolean;
     fit?:       ImageFit;
@@ -458,8 +477,13 @@ export interface AtomicElement {
      * Fixed height in dp/px or layout token.
      */
     height?: number | string;
-    icon?:   string;
-    id?:     string;
+    /**
+     * Sizing behavior along the height axis. 'hug' = intrinsic, 'fill' = stretch to parent,
+     * 'fixed' = use explicit height value.
+     */
+    heightMode?: SizingMode;
+    icon?:       string;
+    id?:         string;
     /**
      * LiveClock: whether the clock is actively ticking. When true, clients run a local tick
      * loop at their platform-native refresh cadence (~10Hz) and update the displayed value.
@@ -468,12 +492,33 @@ export interface AtomicElement {
     isRunning?: boolean;
     label?:     string;
     /**
+     * When true, enables flex-wrap on a Container. Children that overflow the main axis wrap to
+     * the next line. Only meaningful on Container elements.
+     */
+    layoutWrap?: boolean;
+    /**
      * Outer space between the element and its siblings or parent edges. Applied outside the
      * element's background, border, corner radius, and shadow — use this for sibling-to-sibling
      * spacing instead of Spacer siblings when inhomogeneous gaps are needed.
      */
-    margin?:   Spacing;
-    maxLines?: number;
+    margin?: Spacing;
+    /**
+     * Maximum height constraint in dp/px or layout token.
+     */
+    maxHeight?: number | string;
+    maxLines?:  number;
+    /**
+     * Maximum width constraint in dp/px or layout token.
+     */
+    maxWidth?: number | string;
+    /**
+     * Minimum height constraint in dp/px or layout token.
+     */
+    minHeight?: number | string;
+    /**
+     * Minimum width constraint in dp/px or layout token.
+     */
+    minWidth?: number | string;
     /**
      * Use tabular/monospaced digit rendering to prevent layout shift on numeric text changes
      * (scores, clocks).
@@ -508,10 +553,16 @@ export interface AtomicElement {
      */
     section?: Section;
     /**
-     * Drop shadow applied to the element. Replaces elevation with richer CSS/SwiftUI shadow
-     * semantics.
+     * DEPRECATED — use shadows (array) for new payloads. Single shadow. If both shadow and
+     * shadows are present, shadows wins.
      */
     shadow?: Shadow;
+    /**
+     * Ordered array of shadow layers. Index 0 is the outermost shadow (Figma convention);
+     * higher indices are closer to the element. Maps directly to CSS box-shadow list order.
+     * When absent, falls back to singular shadow field.
+     */
+    shadows?: Shadow[];
     /**
      * Whether to show scroll indicators on ScrollContainer. Default false for clean carousel
      * presentation.
@@ -566,6 +617,11 @@ export interface AtomicElement {
      * Fixed width in dp/px or layout token.
      */
     width?: number | string;
+    /**
+     * Sizing behavior along the width axis. Replaces fillWidth. 'hug' = intrinsic, 'fill' =
+     * stretch to parent, 'fixed' = use explicit width value.
+     */
+    widthMode?: SizingMode;
     [property: string]: any;
 }
 
@@ -918,6 +974,17 @@ export enum Role {
     Tabpanel = "tabpanel",
 }
 
+/**
+ * Per-child cross-axis alignment override. When set, wins over parent crossAlignment for
+ * this child (matches Figma and CSS align-self semantics).
+ */
+export enum CrossAlignment {
+    Center = "center",
+    End = "end",
+    Start = "start",
+    Stretch = "stretch",
+}
+
 export enum Alignment {
     Center = "center",
     End = "end",
@@ -1041,13 +1108,6 @@ export interface CornerRadii {
     topStart?: number | string;
 }
 
-export enum CrossAlignment {
-    Center = "center",
-    End = "end",
-    Start = "start",
-    Stretch = "stretch",
-}
-
 export enum UIDirection {
     Column = "column",
     Row = "row",
@@ -1068,6 +1128,22 @@ export enum Format {
     HMmSs = "h:mm:ss",
     MSs = "m:ss",
     MmSs = "mm:ss",
+}
+
+/**
+ * Sizing behavior along the height axis. 'hug' = intrinsic, 'fill' = stretch to parent,
+ * 'fixed' = use explicit height value.
+ *
+ * Sizing behavior along one axis. 'hug' sizes to content (default). 'fill' stretches to
+ * parent available space. 'fixed' uses the explicit width/height value.
+ *
+ * Sizing behavior along the width axis. Replaces fillWidth. 'hug' = intrinsic, 'fill' =
+ * stretch to parent, 'fixed' = use explicit width value.
+ */
+export enum SizingMode {
+    Fill = "fill",
+    Fixed = "fixed",
+    Hug = "hug",
 }
 
 export enum Orientation {
@@ -1112,11 +1188,11 @@ export enum Style {
 }
 
 /**
- * Drop shadow applied to the element. Replaces elevation with richer CSS/SwiftUI shadow
- * semantics.
+ * DEPRECATED — use shadows (array) for new payloads. Single shadow. If both shadow and
+ * shadows are present, shadows wins.
  *
- * Drop shadow with CSS/SwiftUI semantics (radius + offset). Compose approximates via
- * elevation.
+ * Shadow effect with CSS/SwiftUI semantics (radius + offset). Compose approximates via
+ * elevation. Use 'type' to distinguish drop vs inner shadows.
  *
  * Drop shadow applied to the surface.
  */
@@ -1137,7 +1213,23 @@ export interface Shadow {
      * Blur radius in dp/px
      */
     radius?: number;
+    /**
+     * Shadow type. 'drop' is an outer shadow (default, backward-compatible). 'inner' is an
+     * inset shadow. Platforms without first-class inner shadow support fall back to drop with a
+     * diagnostic.
+     */
+    type?: ShadowType;
     [property: string]: any;
+}
+
+/**
+ * Shadow type. 'drop' is an outer shadow (default, backward-compatible). 'inner' is an
+ * inset shadow. Platforms without first-class inner shadow support fall back to drop with a
+ * diagnostic.
+ */
+export enum ShadowType {
+    Drop = "drop",
+    Inner = "inner",
 }
 
 /**

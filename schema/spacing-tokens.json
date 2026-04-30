@@ -1,12 +1,13 @@
 {
-  "$comment": "Spacing tokens from Kinetic Design System (Figma export). Unified gap/padding scale — values are identical. Phone is base; form-factor multipliers TBD by design team.",
-  "$version": "1.0.0-kinetic",
+  "$comment": "Spacing tokens from Kinetic Design System (Figma export). Spacing is theme-independent; form-factor values are direct.",
+  "$version": "2.0.0-matrix",
   "$source": "docs/Kinetic Design System Tokens/Spacing.html",
   "palette": {
     "nba.space.raw.0":  { "phone": 0,  "phone.landscape": 0,  "tablet": 0,  "tv": 0,  "web.narrow": 0,  "web.wide": 0  },
     "nba.space.raw.2":  { "phone": 2,  "phone.landscape": 2,  "tablet": 2,  "tv": 4,  "web.narrow": 2,  "web.wide": 2  },
     "nba.space.raw.4":  { "phone": 4,  "phone.landscape": 4,  "tablet": 6,  "tv": 6,  "web.narrow": 4,  "web.wide": 6  },
     "nba.space.raw.8":  { "phone": 8,  "phone.landscape": 8,  "tablet": 10, "tv": 12, "web.narrow": 8,  "web.wide": 10 },
+    "nba.space.raw.12": { "phone": 12, "phone.landscape": 12, "tablet": 15, "tv": 18, "web.narrow": 12, "web.wide": 15 },
     "nba.space.raw.16": { "phone": 16, "phone.landscape": 16, "tablet": 20, "tv": 24, "web.narrow": 16, "web.wide": 20 },
     "nba.space.raw.32": { "phone": 32, "phone.landscape": 32, "tablet": 40, "tv": 48, "web.narrow": 32, "web.wide": 40 },
     "nba.space.raw.40": { "phone": 40, "phone.landscape": 40, "tablet": 48, "tv": 56, "web.narrow": 40, "web.wide": 48 }
@@ -14,7 +15,7 @@
   "semantic": {
     "nba.spacing.xs":  { "aliasOf": "nba.space.raw.2" },
     "nba.spacing.sm":  { "aliasOf": "nba.space.raw.4" },
-    "nba.spacing.md":  { "aliasOf": "nba.space.raw.8" },
+    "nba.spacing.md":  { "aliasOf": "nba.space.raw.12" },
     "nba.spacing.lg":  { "aliasOf": "nba.space.raw.16" },
     "nba.spacing.xl":  { "aliasOf": "nba.space.raw.32" },
     "nba.spacing.2xl": { "aliasOf": "nba.space.raw.40" }

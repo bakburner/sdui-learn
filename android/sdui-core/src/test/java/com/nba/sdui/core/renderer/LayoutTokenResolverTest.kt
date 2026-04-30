@@ -60,9 +60,9 @@ class LayoutTokenResolverTest {
     }
 
     @Test
-    fun `unknown form factor row falls back to phone`() {
+    fun `unknown form factor row falls back to zero`() {
         val token = LayoutScalar.StringValue("token:nba.spacing.md")
-        assertEquals(8, LayoutTokenResolver.intValue(token, formFactor = "watch.tiny"))
+        assertEquals(0, LayoutTokenResolver.intValue(token, formFactor = "watch.tiny"))
     }
 
     @Test

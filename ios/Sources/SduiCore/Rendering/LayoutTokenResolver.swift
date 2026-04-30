@@ -9,25 +9,27 @@ enum LayoutTokenResolver {
     private static let tokenPrefix = "token:"
     private static let maxAliasDepth = 8
 
-    /// Resolves a layout scalar to points for the given form factor (see `RequestEnvelope.currentFormFactor`).
+    /// Resolves a layout scalar to points for the given form factor and theme.
     static func cgFloat(
         _ scalar: LayoutScalar?,
-        formFactor: String = RequestEnvelope.currentFormFactor
+        formFactor: String = RequestEnvelope.currentFormFactor,
+        theme: String = RequestEnvelope.currentTheme
     ) -> CGFloat {
         guard let s = scalar else { return 0 }
-        return CGFloat(intValue(s, formFactor: formFactor))
+        return CGFloat(intValue(s, formFactor: formFactor, theme: theme))
     }
 
     static func intValue(
         _ scalar: LayoutScalar?,
-        formFactor: String = RequestEnvelope.currentFormFactor
+        formFactor: String = RequestEnvelope.currentFormFactor,
+        theme: String = RequestEnvelope.currentTheme
     ) -> Int {
         guard let s = scalar else { return 0 }
         switch s {
         case .integer(let i):
             return i
         case .string(let str):
-            return resolveTokenString(str, formFactor: formFactor)
+            return resolveTokenString(str, formFactor: formFactor, theme: theme)
         }
     }
 
@@ -49,29 +51,33 @@ enum LayoutTokenResolver {
 
     // MARK: - Token resolution (aliasOf → palette)
 
-    private static func resolveTokenString(_ wire: String, formFactor: String) -> Int {
+    private static func resolveTokenString(_ wire: String, formFactor: String, theme: String) -> Int {
         guard wire.hasPrefix(tokenPrefix) else { return 0 }
         let name = String(wire.dropFirst(tokenPrefix.count))
         if palette[name] == nil, semantic[name] == nil {
             logger.debug("token_resolver_missing: \(wire, privacy: .public)")
         }
-        return followAlias(name, formFactor: formFactor, depth: 0)
+        return followAlias(name, formFactor: formFactor, theme: theme, depth: 0)
     }
 
-    private static func followAlias(_ name: String, formFactor: String, depth: Int) -> Int {
+    private static func followAlias(_ name: String, formFactor: String, theme: String, depth: Int) -> Int {
         if depth > maxAliasDepth { return 0 }
         if let row = palette[name] {
-            return value(for: formFactor, in: row)
+            return resolveMatrix(row, theme: theme, formFactor: formFactor)
         }
         if let next = semantic[name] {
-            return followAlias(next, formFactor: formFactor, depth: depth + 1)
+            return followAlias(next, formFactor: formFactor, theme: theme, depth: depth + 1)
         }
         return 0
     }
 
-    private static func value(for formFactor: String, in row: [String: Int]) -> Int {
-        if let v = row[formFactor] { return v }
-        return row["phone"] ?? 0
+    /// 4-step fallback: exact → theme-wildcard → formFactor-wildcard → universal
+    private static func resolveMatrix(_ matrix: [String: [String: Int]], theme: String, formFactor: String) -> Int {
+        if let themeRow = matrix[theme], let v = themeRow[formFactor] { return v }
+        if let themeRow = matrix[theme], let v = themeRow["*"] { return v }
+        if let wildRow = matrix["*"], let v = wildRow[formFactor] { return v }
+        if let wildRow = matrix["*"], let v = wildRow["*"] { return v }
+        return 0
     }
 
     // MARK: - Snapshot: semantic aliases
@@ -80,23 +86,21 @@ enum LayoutTokenResolver {
     // swiftlint:disable:next line_length
     private static let semantic: [String: String] = [
         // spacing (Kinetic)
-        "nba.spacing.xs": "nba.space.raw.2", "nba.spacing.sm": "nba.space.raw.4", "nba.spacing.md": "nba.space.raw.8", "nba.spacing.lg": "nba.space.raw.16", "nba.spacing.xl": "nba.space.raw.32", "nba.spacing.2xl": "nba.space.raw.40",
+        "nba.spacing.xs": "nba.space.raw.2", "nba.spacing.sm": "nba.space.raw.4", "nba.spacing.md": "nba.space.raw.12", "nba.spacing.lg": "nba.space.raw.16", "nba.spacing.xl": "nba.space.raw.32", "nba.spacing.2xl": "nba.space.raw.40",
         // radius (Kinetic)
-        "nba.radius.xs": "nba.radius.raw.2", "nba.radius.sm": "nba.radius.raw.4", "nba.radius.md": "nba.radius.raw.8", "nba.radius.lg": "nba.radius.raw.16", "nba.radius.xl": "nba.radius.raw.24", "nba.radius.2xl": "nba.radius.raw.32", "nba.radius.full": "nba.radius.raw.9999",
-        // Legacy aliases (deprecated — kept for backward compat with cached payloads)
-        "spacing.xs": "nba.space.raw.2", "spacing.sm": "nba.space.raw.4", "spacing.md": "nba.space.raw.8", "spacing.lg": "nba.space.raw.16", "spacing.xl": "nba.space.raw.32",
-        "radius.sm": "nba.radius.raw.4", "radius.md": "nba.radius.raw.8", "radius.lg": "nba.radius.raw.16", "radius.full": "nba.radius.raw.9999"
+        "nba.radius.xs": "nba.radius.raw.2", "nba.radius.sm": "nba.radius.raw.4", "nba.radius.md": "nba.radius.raw.12", "nba.radius.lg": "nba.radius.raw.16", "nba.radius.xl": "nba.radius.raw.24", "nba.radius.2xl": "nba.radius.raw.32", "nba.radius.full": "nba.radius.raw.9999"
     ]
 
-    // MARK: - Snapshot: palette (merged registries)
+    // MARK: - Snapshot: palette (merged registries — matrix shape: token → theme → formFactor → value)
 
-    private static let palette: [String: [String: Int]] = {
-        var m: [String: [String: Int]] = [:]
+    private static let palette: [String: [String: [String: Int]]] = {
+        var m: [String: [String: [String: Int]]] = [:]
         // spacing (Kinetic)
         addPalette(&m, "nba.space.raw.0",  0,  0,  0,  0,  0,  0)
         addPalette(&m, "nba.space.raw.2",  2,  2,  2,  4,  2,  2)
         addPalette(&m, "nba.space.raw.4",  4,  4,  6,  6,  4,  6)
         addPalette(&m, "nba.space.raw.8",  8,  8,  10, 12, 8,  10)
+        addPalette(&m, "nba.space.raw.12", 12, 12, 15, 18, 12, 15)
         addPalette(&m, "nba.space.raw.16", 16, 16, 20, 24, 16, 20)
         addPalette(&m, "nba.space.raw.32", 32, 32, 40, 48, 32, 40)
         addPalette(&m, "nba.space.raw.40", 40, 40, 48, 56, 40, 48)
@@ -105,6 +109,7 @@ enum LayoutTokenResolver {
         addPalette(&m, "nba.radius.raw.2",    2,    2,    2,    2,    2,    2)
         addPalette(&m, "nba.radius.raw.4",    4,    4,    4,    4,    4,    4)
         addPalette(&m, "nba.radius.raw.8",    8,    8,    8,    8,    8,    8)
+        addPalette(&m, "nba.radius.raw.12",   12,   12,   12,   12,   12,   12)
         addPalette(&m, "nba.radius.raw.16",   16,   16,   16,   16,   16,   16)
         addPalette(&m, "nba.radius.raw.24",   24,   24,   24,   24,   24,   24)
         addPalette(&m, "nba.radius.raw.32",   32,   32,   32,   32,   32,   32)
@@ -113,7 +118,7 @@ enum LayoutTokenResolver {
     }()
 
     private static func addPalette(
-        _ m: inout [String: [String: Int]],
+        _ m: inout [String: [String: [String: Int]]],
         _ key: String,
         _ phone: Int,
         _ phoneL: Int,
@@ -122,9 +127,9 @@ enum LayoutTokenResolver {
         _ webN: Int,
         _ webW: Int
     ) {
-        m[key] = [
+        m[key] = ["*": [
             "phone": phone, "phone.landscape": phoneL, "tablet": tablet, "tv": tv,
             "web.narrow": webN, "web.wide": webW
-        ]
+        ]]
     }
 }

@@ -47,21 +47,17 @@ import org.springframework.stereotype.Component;
 public class ForYouComposer {
 
     /**
-     * Hero key-art fallback (16:9). loremflickr returns a random basketball
-     * stock image and is more reliable than NBA's CMS URLs for a demo.
+     * Hero key-art fallback (16:9). Uses same-origin placeholder SVGs
+     * for reliable rendering in the demo.
      * Server-driven; clients never derive this URL.
      */
-    private static final String FALLBACK_KEY_ART_LIVE =
-            "https://loremflickr.com/752/428/basketball,arena?lock=70";
-    private static final String FALLBACK_KEY_ART_UPCOMING =
-            "https://loremflickr.com/752/428/basketball,court?lock=71";
+    private static final String FALLBACK_KEY_ART_LIVE = DemoImageUrls.hero("arena");
+    private static final String FALLBACK_KEY_ART_UPCOMING = DemoImageUrls.hero("court");
 
     /**
-     * Square fallback for story-circle items (avatars). loremflickr at
-     * a square aspect ratio keeps the circular crop predictable.
+     * Square fallback for story-circle items (avatars).
      */
-    private static final String FALLBACK_STORY_AVATAR =
-            "https://loremflickr.com/200/200/basketball?lock=80";
+    private static final String FALLBACK_STORY_AVATAR = DemoImageUrls.avatar("story");
 
     private static final Logger log = LoggerFactory.getLogger(ForYouComposer.class);
 
@@ -258,12 +254,10 @@ public class ForYouComposer {
                 game.path("gameStatusText").asText(""),
                 null,
                 // Slot 13 (sponsorLogoUrlsCsv) intentionally left null — the
-                // demo doesn't have real broadcaster art and the loremflickr
-                // placeholder rendered as a broken thumbnail next to the
-                // score strip on web. The broadcaster mention is already
-                // carried in the subtitle ("Live now on NBA TV" / "Tonight
-                // on NBA TV"). Restore this slot once we can source actual
-                // broadcaster logos server-side.
+                // demo doesn't have real broadcaster art. The broadcaster
+                // mention is already carried in the subtitle ("Live now on
+                // NBA TV" / "Tonight on NBA TV"). Restore this slot once we
+                // can source actual broadcaster logos server-side.
                 null,
                 "nba://game/" + gameId,
                 "nba://game/" + gameId + "/actions"
@@ -311,15 +305,15 @@ public class ForYouComposer {
         String[][] cards = {
                 {"top-1", "Five things to watch tonight",
                         "Rivalries, returns, and playoff stakes",
-                        "https://loremflickr.com/600/800/basketball,playoffs?lock=22",
+                        DemoImageUrls.cardTall("playoffs"),
                         "NEW", "nba://article/five-things"},
                 {"top-2", "Inside the MVP race",
                         "The numbers behind a tight finish",
-                        "https://loremflickr.com/600/800/basketball,mvp?lock=23",
+                        DemoImageUrls.cardTall("mvp"),
                         null, "nba://article/mvp-race"},
                 {"top-3", "Rookie of the Year tracker",
                         "Who's pulling ahead at the wire",
-                        "https://loremflickr.com/600/800/basketball,rookie?lock=24",
+                        DemoImageUrls.cardTall("rookie"),
                         "LIVE", "nba://video/rookies"}
         };
         ObjectNode section = atomicBuilder.buildEditorialOverlayRail(
@@ -348,19 +342,19 @@ public class ForYouComposer {
         String[][] cards = {
                 {"tr-1", "MVP Race Heats Up",
                         "Who's leading the charge?",
-                        "https://loremflickr.com/480/270/basketball,mvp?lock=30",
+                        DemoImageUrls.cardWide("mvp"),
                         "article", null, "nba://article/mvp-race"},
                 {"tr-2", "Rookie Spotlight",
                         "The first overall pick's breakout game",
-                        "https://loremflickr.com/480/270/basketball,rookie?lock=31",
+                        DemoImageUrls.cardWide("rookie"),
                         "video", "3:12", "nba://video/rookie-spotlight"},
                 {"tr-3", "Playoff Picture Update",
                         "Where every team stands right now",
-                        "https://loremflickr.com/480/270/basketball,standings?lock=32",
+                        DemoImageUrls.cardWide("standings"),
                         "article", null, "nba://article/playoff-picture"},
                 {"tr-4", "Coach of the Year Watch",
                         "The frontrunners with two months to go",
-                        "https://loremflickr.com/480/270/basketball,coach?lock=33",
+                        DemoImageUrls.cardWide("coach"),
                         "article", null, "nba://article/coach-of-year"}
         };
         ObjectNode section = atomicBuilder.buildContentRail(
@@ -374,19 +368,19 @@ public class ForYouComposer {
         String[][] cards = {
                 {"lp-1", "Warriors vs. Thunder",
                         "Western Conference clash",
-                        "https://loremflickr.com/480/270/basketball,warriors?lock=40",
+                        DemoImageUrls.cardWide("warriors"),
                         "article", null, "nba://article/gsw-okc-preview"},
                 {"lp-2", "Best of League Pass",
                         "Catch the top moments you missed",
-                        "https://loremflickr.com/480/270/basketball,highlights?lock=41",
+                        DemoImageUrls.cardWide("highlights"),
                         "video", "4:30", "nba://video/lp-week-20"},
                 {"lp-3", "Hidden Gem: Pacers vs. Magic",
                         "An under-the-radar rivalry renewed",
-                        "https://loremflickr.com/480/270/basketball,pacers?lock=42",
+                        DemoImageUrls.cardWide("pacers"),
                         "video", "1:58", "nba://video/ind-orl-hidden-gem"},
                 {"lp-4", "Last Two Minute Report",
                         "How the night's tightest games closed out",
-                        "https://loremflickr.com/480/270/basketball,clutch?lock=43",
+                        DemoImageUrls.cardWide("clutch"),
                         "article", null, "nba://article/l2m-report"}
         };
         ObjectNode section = atomicBuilder.buildContentRail(
@@ -399,16 +393,16 @@ public class ForYouComposer {
         // [id, title, subtitle, thumbUrl, duration, isLive, targetUri]
         String[][] rows = {
                 {"playlist-1", "Giannis goes off for 40", "Last night · Bucks vs Heat",
-                        "https://loremflickr.com/480/270/basketball,giannis?lock=50",
+                        DemoImageUrls.cardWide("giannis"),
                         "0:42", "false", "nba://video/giannis-40"},
                 {"playlist-2", "Press conference: Steve Kerr", "Warriors · Postgame",
-                        "https://loremflickr.com/480/270/basketball,press?lock=51",
+                        DemoImageUrls.cardWide("press"),
                         "6:21", "false", "nba://video/kerr-pressconf"},
                 {"playlist-3", "Lakers vs Nuggets (Live)", "On now · League Pass",
-                        "https://loremflickr.com/480/270/basketball,lakers?lock=52",
+                        DemoImageUrls.cardWide("lakers"),
                         null, "true", "nba://video/lakers-nuggets-live"},
                 {"playlist-4", "Top 10 Buzzer Beaters", "Editors' picks",
-                        "https://loremflickr.com/480/270/basketball,buzzer?lock=53",
+                        DemoImageUrls.cardWide("buzzer"),
                         "4:08", "false", "nba://video/top10-buzzer-beaters"}
         };
         ObjectNode section = atomicBuilder.buildVodPlaylist(

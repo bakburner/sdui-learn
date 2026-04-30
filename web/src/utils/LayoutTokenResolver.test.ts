@@ -40,11 +40,11 @@ describe('resolveLayoutScalar', () => {
   });
 
   it('resolves a semantic spacing token per form factor', () => {
-    // nba.spacing.md → nba.space.raw.8 → phone:8, tablet:10, web.wide:10
-    expect(resolveLayoutScalar('token:nba.spacing.md', 'phone')).toBe(8);
-    expect(resolveLayoutScalar('token:nba.spacing.md', 'tablet')).toBe(10);
-    expect(resolveLayoutScalar('token:nba.spacing.md', 'web.wide')).toBe(10);
-    expect(resolveLayoutScalar('token:nba.spacing.md', 'web.narrow')).toBe(8);
+    // nba.spacing.md → nba.space.raw.12 → phone:12, tablet:15, web.wide:15
+    expect(resolveLayoutScalar('token:nba.spacing.md', 'phone')).toBe(12);
+    expect(resolveLayoutScalar('token:nba.spacing.md', 'tablet')).toBe(15);
+    expect(resolveLayoutScalar('token:nba.spacing.md', 'web.wide')).toBe(15);
+    expect(resolveLayoutScalar('token:nba.spacing.md', 'web.narrow')).toBe(12);
   });
 
   it('resolves a semantic radius token per form factor', () => {
@@ -55,7 +55,7 @@ describe('resolveLayoutScalar', () => {
 
   it('resolves palette tokens directly', () => {
     expect(resolveLayoutScalar('token:nba.space.raw.16', 'phone')).toBe(16);
-    expect(resolveLayoutScalar('token:size.raw.40', 'tablet')).toBe(48);
+    expect(resolveLayoutScalar('token:nba.space.raw.40', 'tablet')).toBe(48);
   });
 
   it('returns 0 for unknown tokens and logs token_resolver_missing', () => {
@@ -122,17 +122,17 @@ describe('resolveSpacingPx', () => {
       {
         top:    'token:nba.spacing.xs',  // nba.space.raw.2 → tablet:2
         bottom: 'token:nba.spacing.sm',  // nba.space.raw.4 → tablet:6
-        start:  'token:nba.spacing.md',  // nba.space.raw.8 → tablet:10
+        start:  'token:nba.spacing.md',  // nba.space.raw.12 → tablet:15
         end:    'token:nba.spacing.lg',  // nba.space.raw.16 → tablet:20
       },
       'tablet',
     );
-    expect(out).toEqual({ top: 2, bottom: 6, left: 10, right: 20 });
+    expect(out).toEqual({ top: 2, bottom: 6, left: 15, right: 20 });
   });
 
   it('treats missing edges as 0 and ignores extra keys', () => {
     const out = resolveSpacingPx({ top: 'token:nba.spacing.md' }, 'phone');
-    expect(out).toEqual({ top: 8, bottom: 0, left: 0, right: 0 });
+    expect(out).toEqual({ top: 12, bottom: 0, left: 0, right: 0 });
   });
 });
 
@@ -168,7 +168,7 @@ describe('resolveLayoutScalar — form-factor default integration', () => {
   });
 
   it('uses currentFormFactor() when no form factor is supplied', () => {
-    // web.wide: nba.spacing.md → 10
-    expect(resolveLayoutScalar('token:nba.spacing.md')).toBe(10);
+    // web.wide: nba.spacing.md → 15
+    expect(resolveLayoutScalar('token:nba.spacing.md')).toBe(15);
   });
 });

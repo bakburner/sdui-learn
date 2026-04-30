@@ -64,6 +64,20 @@ class RequestEnvelopeBuilder {
                 "phone"
             }
         }
+
+        /**
+         * Best-effort theme from system UI mode. Returns "dark" or "light".
+         */
+        @JvmStatic
+        fun defaultTheme(): String {
+            return try {
+                val res = android.content.res.Resources.getSystem()
+                val nightMode = res.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+                if (nightMode == Configuration.UI_MODE_NIGHT_YES) "dark" else "light"
+            } catch (e: Exception) {
+                "light"
+            }
+        }
     }
 
     // ── Top-level params ───────────────────────────────────────────────

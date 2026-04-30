@@ -40,18 +40,20 @@ val mapper = jacksonObjectMapper().apply {
     convert(BadgeAlignment::class,         { BadgeAlignment.fromValue(it.asText()) },         { "\"${it.value}\"" })
     convert(LiveRegion::class,             { LiveRegion.fromValue(it.asText()) },             { "\"${it.value}\"" })
     convert(Role::class,                   { Role.fromValue(it.asText()) },                   { "\"${it.value}\"" })
+    convert(CrossAlignment::class,         { CrossAlignment.fromValue(it.asText()) },         { "\"${it.value}\"" })
     convert(Alignment::class,              { Alignment.fromValue(it.asText()) },              { "\"${it.value}\"" })
     convert(AspectRatioEnum::class,        { AspectRatioEnum.fromValue(it.asText()) },        { "\"${it.value}\"" })
     convert(Direction::class,              { Direction.fromValue(it.asText()) },              { "\"${it.value}\"" })
     convert(ScaleType::class,              { ScaleType.fromValue(it.asText()) },              { "\"${it.value}\"" })
     convert(Align::class,                  { Align.fromValue(it.asText()) },                  { "\"${it.value}\"" })
     convert(WidthEnum::class,              { WidthEnum.fromValue(it.asText()) },              { "\"${it.value}\"" })
-    convert(CrossAlignment::class,         { CrossAlignment.fromValue(it.asText()) },         { "\"${it.value}\"" })
     convert(UIDirection::class,            { UIDirection.fromValue(it.asText()) },            { "\"${it.value}\"" })
     convert(ImageFit::class,               { ImageFit.fromValue(it.asText()) },               { "\"${it.value}\"" })
     convert(Format::class,                 { Format.fromValue(it.asText()) },                 { "\"${it.value}\"" })
+    convert(SizingMode::class,             { SizingMode.fromValue(it.asText()) },             { "\"${it.value}\"" })
     convert(Orientation::class,            { Orientation.fromValue(it.asText()) },            { "\"${it.value}\"" })
     convert(Style::class,                  { Style.fromValue(it.asText()) },                  { "\"${it.value}\"" })
+    convert(ShadowType::class,             { ShadowType.fromValue(it.asText()) },             { "\"${it.value}\"" })
     convert(TickDirection::class,          { TickDirection.fromValue(it.asText()) },          { "\"${it.value}\"" })
     convert(TextWeight::class,             { TextWeight.fromValue(it.asText()) },             { "\"${it.value}\"" })
     convert(Capability::class,             { Capability.fromValue(it.asText()) },             { "\"${it.value}\"" })
@@ -607,6 +609,12 @@ data class AtomicElement (
     val alignment: Alignment? = null,
 
     /**
+     * Per-child cross-axis alignment override. When set, wins over parent crossAlignment for
+     * this child (matches Figma and CSS align-self semantics).
+     */
+    val alignSelf: CrossAlignment? = null,
+
+    /**
      * Deprecated: use accessibility.label instead. Retained for backward compatibility; clients
      * prefer accessibility.label when present.
      */
@@ -617,7 +625,19 @@ data class AtomicElement (
      */
     val aspectRatio: AspectRatioUnion? = null,
 
+    /**
+     * DEPRECATED — use backgrounds (array) for new payloads. Single background. If both
+     * background and backgrounds are present, backgrounds wins.
+     */
     val background: BackgroundUnion? = null,
+
+    /**
+     * Ordered array of background layers. Index 0 is the bottommost layer (Figma convention);
+     * higher indices paint on top. Web renderers must reverse the array when mapping to CSS
+     * background shorthand (CSS is top-to-bottom). When absent, falls back to singular
+     * background field.
+     */
+    val backgrounds: List<BackgroundUnion>? = null,
 
     /**
      * Z-positioned child element (e.g. 'LIVE' pill, duration label) overlaid on this element.
@@ -676,16 +696,21 @@ data class AtomicElement (
     val cornerRadius: LayoutScalar? = null,
 
     val crossAlignment: CrossAlignment? = null,
+
+    /**
+     * Gap between wrapped lines when layoutWrap is true. Falls back to gap when absent. Ignored
+     * when layoutWrap is false.
+     */
+    val crossAxisGap: LayoutScalar? = null,
+
     val direction: UIDirection? = null,
     val disabled: Boolean? = null,
     val falseChild: AtomicElement? = null,
 
     /**
-     * When true, the element stretches along its main axis to fill the parent's available
-     * width. On Image this pairs with aspectRatio to derive a height (thumbnails in a
-     * fixed-width card). On Container it stretches the flex box to parent width regardless of
-     * child intrinsic widths. Inline value takes precedence over any variant default; element
-     * width/height, when also set, wins over fillWidth.
+     * DEPRECATED — use widthMode: 'fill' instead. Retained for backward compatibility. When
+     * true, equivalent to widthMode: 'fill'. If both fillWidth and widthMode are set, widthMode
+     * wins.
      */
     val fillWidth: Boolean? = null,
 
@@ -713,6 +738,12 @@ data class AtomicElement (
      */
     val height: LayoutScalar? = null,
 
+    /**
+     * Sizing behavior along the height axis. 'hug' = intrinsic, 'fill' = stretch to parent,
+     * 'fixed' = use explicit height value.
+     */
+    val heightMode: SizingMode? = null,
+
     val icon: String? = null,
     val id: String? = null,
 
@@ -727,13 +758,39 @@ data class AtomicElement (
     val label: String? = null,
 
     /**
+     * When true, enables flex-wrap on a Container. Children that overflow the main axis wrap to
+     * the next line. Only meaningful on Container elements.
+     */
+    val layoutWrap: Boolean? = null,
+
+    /**
      * Outer space between the element and its siblings or parent edges. Applied outside the
      * element's background, border, corner radius, and shadow — use this for sibling-to-sibling
      * spacing instead of Spacer siblings when inhomogeneous gaps are needed.
      */
     val margin: Spacing? = null,
 
+    /**
+     * Maximum height constraint in dp/px or layout token.
+     */
+    val maxHeight: LayoutScalar? = null,
+
     val maxLines: Long? = null,
+
+    /**
+     * Maximum width constraint in dp/px or layout token.
+     */
+    val maxWidth: LayoutScalar? = null,
+
+    /**
+     * Minimum height constraint in dp/px or layout token.
+     */
+    val minHeight: LayoutScalar? = null,
+
+    /**
+     * Minimum width constraint in dp/px or layout token.
+     */
+    val minWidth: LayoutScalar? = null,
 
     /**
      * Use tabular/monospaced digit rendering to prevent layout shift on numeric text changes
@@ -778,10 +835,17 @@ data class AtomicElement (
     val section: Section? = null,
 
     /**
-     * Drop shadow applied to the element. Replaces elevation with richer CSS/SwiftUI shadow
-     * semantics.
+     * DEPRECATED — use shadows (array) for new payloads. Single shadow. If both shadow and
+     * shadows are present, shadows wins.
      */
     val shadow: Shadow? = null,
+
+    /**
+     * Ordered array of shadow layers. Index 0 is the outermost shadow (Figma convention);
+     * higher indices are closer to the element. Maps directly to CSS box-shadow list order.
+     * When absent, falls back to singular shadow field.
+     */
+    val shadows: List<Shadow>? = null,
 
     /**
      * Whether to show scroll indicators on ScrollContainer. Default false for clean carousel
@@ -851,7 +915,13 @@ data class AtomicElement (
     /**
      * Fixed width in dp/px or layout token.
      */
-    val width: LayoutScalar? = null
+    val width: LayoutScalar? = null,
+
+    /**
+     * Sizing behavior along the width axis. Replaces fillWidth. 'hug' = intrinsic, 'fill' =
+     * stretch to parent, 'fixed' = use explicit width value.
+     */
+    val widthMode: SizingMode? = null
 )
 
 /**
@@ -1199,9 +1269,9 @@ data class Spacing (
  * Bottom-trailing corner.
  *
  * Absolute layout value: raw dp/px integer, or a semantic layout token reference
- * token:<path> (e.g. token:nba.spacing.md, token:nba.radius.lg) resolved per platform.formFactor
- * against bundled spacing/corner/size/typography/shadow registries. Unknown tokens log
- * token_resolver_missing and fall back to 0 (or caller default).
+ * token:<path> (e.g. token:nba.spacing.md, token:nba.radius.lg) resolved per
+ * platform.formFactor against bundled spacing/corner/size/typography/shadow registries.
+ * Unknown tokens log token_resolver_missing and fall back to 0 (or caller default).
  *
  * Bottom-leading corner.
  *
@@ -1212,9 +1282,20 @@ data class Spacing (
  * Corner radius: dp/px or layout token. Applied to Container (with overflow clip) and Image
  * elements.
  *
+ * Gap between wrapped lines when layoutWrap is true. Falls back to gap when absent. Ignored
+ * when layoutWrap is false.
+ *
  * Gap between flex children (row/column), or grid gap where applicable.
  *
  * Fixed height in dp/px or layout token.
+ *
+ * Maximum height constraint in dp/px or layout token.
+ *
+ * Maximum width constraint in dp/px or layout token.
+ *
+ * Minimum height constraint in dp/px or layout token.
+ *
+ * Minimum width constraint in dp/px or layout token.
  *
  * Fixed width in dp/px or layout token.
  *
@@ -1345,6 +1426,27 @@ enum class Role(val value: String) {
     }
 }
 
+/**
+ * Per-child cross-axis alignment override. When set, wins over parent crossAlignment for
+ * this child (matches Figma and CSS align-self semantics).
+ */
+enum class CrossAlignment(val value: String) {
+    Center("center"),
+    End("end"),
+    Start("start"),
+    Stretch("stretch");
+
+    companion object {
+        fun fromValue(value: String): CrossAlignment = when (value) {
+            "center"  -> Center
+            "end"     -> End
+            "start"   -> Start
+            "stretch" -> Stretch
+            else      -> throw IllegalArgumentException()
+        }
+    }
+}
+
 enum class Alignment(val value: String) {
     Center("center"),
     End("end"),
@@ -1407,6 +1509,9 @@ enum class AspectRatioEnum(val value: String) {
 }
 
 /**
+ * DEPRECATED — use backgrounds (array) for new payloads. Single background. If both
+ * background and backgrounds are present, backgrounds wins.
+ *
  * Shared background type — solid color, gradient, or image with overlay
  *
  * Surface background (solid, gradient, or image).
@@ -1623,23 +1728,6 @@ data class CornerRadii (
     val topStart: LayoutScalar? = null
 )
 
-enum class CrossAlignment(val value: String) {
-    Center("center"),
-    End("end"),
-    Start("start"),
-    Stretch("stretch");
-
-    companion object {
-        fun fromValue(value: String): CrossAlignment = when (value) {
-            "center"  -> Center
-            "end"     -> End
-            "start"   -> Start
-            "stretch" -> Stretch
-            else      -> throw IllegalArgumentException()
-        }
-    }
-}
-
 enum class UIDirection(val value: String) {
     Column("column"),
     Row("row");
@@ -1685,6 +1773,31 @@ enum class Format(val value: String) {
             "m:ss"    -> MSs
             "mm:ss"   -> MmSs
             else      -> throw IllegalArgumentException()
+        }
+    }
+}
+
+/**
+ * Sizing behavior along the height axis. 'hug' = intrinsic, 'fill' = stretch to parent,
+ * 'fixed' = use explicit height value.
+ *
+ * Sizing behavior along one axis. 'hug' sizes to content (default). 'fill' stretches to
+ * parent available space. 'fixed' uses the explicit width/height value.
+ *
+ * Sizing behavior along the width axis. Replaces fillWidth. 'hug' = intrinsic, 'fill' =
+ * stretch to parent, 'fixed' = use explicit width value.
+ */
+enum class SizingMode(val value: String) {
+    Fill("fill"),
+    Fixed("fixed"),
+    Hug("hug");
+
+    companion object {
+        fun fromValue(value: String): SizingMode = when (value) {
+            "fill"  -> Fill
+            "fixed" -> Fixed
+            "hug"   -> Hug
+            else    -> throw IllegalArgumentException()
         }
     }
 }
@@ -1751,11 +1864,11 @@ enum class Style(val value: String) {
 }
 
 /**
- * Drop shadow applied to the element. Replaces elevation with richer CSS/SwiftUI shadow
- * semantics.
+ * DEPRECATED — use shadows (array) for new payloads. Single shadow. If both shadow and
+ * shadows are present, shadows wins.
  *
- * Drop shadow with CSS/SwiftUI semantics (radius + offset). Compose approximates via
- * elevation.
+ * Shadow effect with CSS/SwiftUI semantics (radius + offset). Compose approximates via
+ * elevation. Use 'type' to distinguish drop vs inner shadows.
  *
  * Drop shadow applied to the surface.
  */
@@ -1778,8 +1891,33 @@ data class Shadow (
     /**
      * Blur radius in dp/px
      */
-    val radius: Double? = null
+    val radius: Double? = null,
+
+    /**
+     * Shadow type. 'drop' is an outer shadow (default, backward-compatible). 'inner' is an
+     * inset shadow. Platforms without first-class inner shadow support fall back to drop with a
+     * diagnostic.
+     */
+    val type: ShadowType? = null
 )
+
+/**
+ * Shadow type. 'drop' is an outer shadow (default, backward-compatible). 'inner' is an
+ * inset shadow. Platforms without first-class inner shadow support fall back to drop with a
+ * diagnostic.
+ */
+enum class ShadowType(val value: String) {
+    Drop("drop"),
+    Inner("inner");
+
+    companion object {
+        fun fromValue(value: String): ShadowType = when (value) {
+            "drop"  -> Drop
+            "inner" -> Inner
+            else    -> throw IllegalArgumentException()
+        }
+    }
+}
 
 /**
  * LiveClock tick direction. 'down' decrements from snapshotSeconds toward stopAtSeconds

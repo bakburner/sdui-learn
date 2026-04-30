@@ -1,0 +1,119 @@
+{
+  "id": "wrap-layout-chips",
+  "schemaVersion": "1.0",
+  "title": "Wrap layout with chip elements",
+  "analyticsId": "wrap_layout_chips_fixture",
+  "sections": [
+    {
+      "id": "chips-section",
+      "type": "AtomicComposite",
+      "refreshPolicy": { "type": "static" },
+      "data": {
+        "ui": {
+          "id": "chips-root",
+          "type": "Container",
+          "direction": "row",
+          "alignment": "start",
+          "crossAlignment": "start",
+          "widthMode": "fill",
+          "layoutWrap": true,
+          "gap": "token:nba.spacing.md",
+          "crossAxisGap": "token:nba.spacing.md",
+          "padding": { "top": "token:nba.spacing.lg", "bottom": "token:nba.spacing.lg", "start": "token:nba.spacing.lg", "end": "token:nba.spacing.lg" },
+          "children": [
+            {
+              "type": "Container",
+              "direction": "row",
+              "alignment": "center",
+              "crossAlignment": "center",
+              "background": "token:color.surface.raised",
+              "cornerRadius": "token:nba.radius.full",
+              "padding": { "top": "token:nba.spacing.sm", "bottom": "token:nba.spacing.sm", "start": "token:nba.spacing.lg", "end": "token:nba.spacing.lg" },
+              "children": [
+                {
+                  "type": "Text",
+                  "content": "Highlights",
+                  "variant": "labelMedium",
+                  "weight": "semiBold",
+                  "color": "token:color.text.primary"
+                }
+              ]
+            },
+            {
+              "type": "Container",
+              "direction": "row",
+              "alignment": "center",
+              "crossAlignment": "center",
+              "background": "token:color.surface.raised",
+              "cornerRadius": "token:nba.radius.full",
+              "padding": { "top": "token:nba.spacing.sm", "bottom": "token:nba.spacing.sm", "start": "token:nba.spacing.lg", "end": "token:nba.spacing.lg" },
+              "children": [
+                {
+                  "type": "Text",
+                  "content": "Game Recaps",
+                  "variant": "labelMedium",
+                  "weight": "semiBold",
+                  "color": "token:color.text.primary"
+                }
+              ]
+            },
+            {
+              "type": "Container",
+              "direction": "row",
+              "alignment": "center",
+              "crossAlignment": "center",
+              "background": "token:color.surface.raised",
+              "cornerRadius": "token:nba.radius.full",
+              "padding": { "top": "token:nba.spacing.sm", "bottom": "token:nba.spacing.sm", "start": "token:nba.spacing.lg", "end": "token:nba.spacing.lg" },
+              "children": [
+                {
+                  "type": "Text",
+                  "content": "Player Interviews",
+                  "variant": "labelMedium",
+                  "weight": "semiBold",
+                  "color": "token:color.text.primary"
+                }
+              ]
+            },
+            {
+              "type": "Container",
+              "direction": "row",
+              "alignment": "center",
+              "crossAlignment": "center",
+              "background": "token:color.surface.raised",
+              "cornerRadius": "token:nba.radius.full",
+              "padding": { "top": "token:nba.spacing.sm", "bottom": "token:nba.spacing.sm", "start": "token:nba.spacing.lg", "end": "token:nba.spacing.lg" },
+              "children": [
+                {
+                  "type": "Text",
+                  "content": "Top 10",
+                  "variant": "labelMedium",
+                  "weight": "semiBold",
+                  "color": "token:color.text.primary"
+                }
+              ]
+            },
+            {
+              "type": "Container",
+              "direction": "row",
+              "alignment": "center",
+              "crossAlignment": "center",
+              "background": "token:color.surface.raised",
+              "cornerRadius": "token:nba.radius.full",
+              "padding": { "top": "token:nba.spacing.sm", "bottom": "token:nba.spacing.sm", "start": "token:nba.spacing.lg", "end": "token:nba.spacing.lg" },
+              "children": [
+                {
+                  "type": "Text",
+                  "content": "Press Conferences",
+                  "variant": "labelMedium",
+                  "weight": "semiBold",
+                  "color": "token:color.text.primary"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

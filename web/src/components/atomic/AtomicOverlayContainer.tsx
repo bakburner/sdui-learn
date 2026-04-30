@@ -107,17 +107,17 @@ function overlayStyle(overlay: AtomicOverlay, el?: Record<string, unknown>): Rea
       break;
   }
 
-  // When the overlay element declares fillWidth/fillHeight, stretch the
-  // absolutely-positioned wrapper so the child's percentage sizing resolves
-  // against the full parent bounds (e.g. a gradient scrim that must span
-  // the entire image width).
-  if (el?.fillWidth) {
+  // When the overlay element declares fillWidth/fillHeight or fill sizing modes,
+  // stretch the absolutely-positioned wrapper so the child's percentage sizing
+  // resolves against the full parent bounds (e.g. a gradient scrim that must
+  // span the entire image width).
+  if (el?.fillWidth || el?.widthMode === 'fill') {
     style.left = start;
     style.right = end;
     style.width = undefined;
     style.transform = undefined;
   }
-  if (el?.fillHeight) {
+  if (el?.fillHeight || el?.heightMode === 'fill') {
     style.top = top;
     style.bottom = bottom;
     // When stretched to full height, use flex to preserve the alignment

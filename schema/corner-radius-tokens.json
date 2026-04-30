@@ -1,12 +1,13 @@
 {
-  "$comment": "Corner radius tokens from Kinetic Design System (Figma export). Flat across form factors.",
-  "$version": "1.0.0-kinetic",
+  "$comment": "Corner radius tokens from Kinetic Design System (Figma export). Radius is theme-independent and form-factor-independent (flat values).",
+  "$version": "2.0.0-matrix",
   "$source": "docs/Kinetic Design System Tokens/Spacing.html",
   "palette": {
     "nba.radius.raw.0":    { "phone": 0,    "phone.landscape": 0,    "tablet": 0,    "tv": 0,    "web.narrow": 0,    "web.wide": 0    },
     "nba.radius.raw.2":    { "phone": 2,    "phone.landscape": 2,    "tablet": 2,    "tv": 2,    "web.narrow": 2,    "web.wide": 2    },
     "nba.radius.raw.4":    { "phone": 4,    "phone.landscape": 4,    "tablet": 4,    "tv": 4,    "web.narrow": 4,    "web.wide": 4    },
     "nba.radius.raw.8":    { "phone": 8,    "phone.landscape": 8,    "tablet": 8,    "tv": 8,    "web.narrow": 8,    "web.wide": 8    },
+    "nba.radius.raw.12":   { "phone": 12,   "phone.landscape": 12,   "tablet": 12,   "tv": 12,   "web.narrow": 12,   "web.wide": 12   },
     "nba.radius.raw.16":   { "phone": 16,   "phone.landscape": 16,   "tablet": 16,   "tv": 16,   "web.narrow": 16,   "web.wide": 16   },
     "nba.radius.raw.24":   { "phone": 24,   "phone.landscape": 24,   "tablet": 24,   "tv": 24,   "web.narrow": 24,   "web.wide": 24   },
     "nba.radius.raw.32":   { "phone": 32,   "phone.landscape": 32,   "tablet": 32,   "tv": 32,   "web.narrow": 32,   "web.wide": 32   },
@@ -15,7 +16,7 @@
   "semantic": {
     "nba.radius.xs":   { "aliasOf": "nba.radius.raw.2" },
     "nba.radius.sm":   { "aliasOf": "nba.radius.raw.4" },
-    "nba.radius.md":   { "aliasOf": "nba.radius.raw.8" },
+    "nba.radius.md":   { "aliasOf": "nba.radius.raw.12" },
     "nba.radius.lg":   { "aliasOf": "nba.radius.raw.16" },
     "nba.radius.xl":   { "aliasOf": "nba.radius.raw.24" },
     "nba.radius.2xl":  { "aliasOf": "nba.radius.raw.32" },

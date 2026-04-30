@@ -1,0 +1,82 @@
+{
+  "id": "align-self-override",
+  "schemaVersion": "1.0",
+  "title": "Per-child cross-axis alignment override",
+  "analyticsId": "align_self_override_fixture",
+  "sections": [
+    {
+      "id": "align-self-section",
+      "type": "AtomicComposite",
+      "refreshPolicy": { "type": "static" },
+      "data": {
+        "ui": {
+          "id": "align-self-root",
+          "type": "Container",
+          "direction": "column",
+          "crossAlignment": "start",
+          "widthMode": "fill",
+          "gap": "token:nba.spacing.lg",
+          "padding": { "top": "token:nba.spacing.lg", "bottom": "token:nba.spacing.lg", "start": "token:nba.spacing.lg", "end": "token:nba.spacing.lg" },
+          "children": [
+            {
+              "type": "Text",
+              "content": "Left-aligned (inherits crossAlignment: start)",
+              "variant": "bodyMedium",
+              "color": "token:color.text.primary"
+            },
+            {
+              "type": "Text",
+              "content": "Also left-aligned",
+              "variant": "bodyMedium",
+              "color": "token:color.text.secondary"
+            },
+            {
+              "type": "Container",
+              "direction": "row",
+              "alignment": "center",
+              "crossAlignment": "center",
+              "alignSelf": "end",
+              "background": "token:color.surface.raised",
+              "cornerRadius": "token:nba.radius.md",
+              "padding": { "top": "token:nba.spacing.md", "bottom": "token:nba.spacing.md", "start": "token:nba.spacing.lg", "end": "token:nba.spacing.lg" },
+              "children": [
+                {
+                  "type": "Text",
+                  "content": "Right-aligned via alignSelf: end",
+                  "variant": "bodyMedium",
+                  "weight": "semiBold",
+                  "color": "token:color.text.primary"
+                }
+              ]
+            },
+            {
+              "type": "Container",
+              "direction": "row",
+              "alignment": "center",
+              "crossAlignment": "center",
+              "alignSelf": "center",
+              "background": "token:color.surface.raised",
+              "cornerRadius": "token:nba.radius.md",
+              "padding": { "top": "token:nba.spacing.md", "bottom": "token:nba.spacing.md", "start": "token:nba.spacing.lg", "end": "token:nba.spacing.lg" },
+              "children": [
+                {
+                  "type": "Text",
+                  "content": "Center-aligned via alignSelf: center",
+                  "variant": "bodyMedium",
+                  "weight": "semiBold",
+                  "color": "token:color.text.primary"
+                }
+              ]
+            },
+            {
+              "type": "Text",
+              "content": "Back to left-aligned (no alignSelf)",
+              "variant": "bodyMedium",
+              "color": "token:color.text.tertiary"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

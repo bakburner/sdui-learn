@@ -104,6 +104,22 @@ For the long-form treatment of these terms, see `docs/sdui-design-system.md`.
 
 ---
 
+## Box model & layout
+
+| Term | Definition |
+| --- | --- |
+| **`SizingMode`** | Enum (`hug` / `fill` / `fixed`) controlling how an atomic element sizes along one axis. `hug` sizes to content (default), `fill` stretches to parent, `fixed` uses the explicit `width`/`height` value. Replaces the deprecated `fillWidth` boolean. |
+| **`widthMode` / `heightMode`** | Per-element sizing overrides using `SizingMode`. `widthMode: "fill"` is the canonical successor to `fillWidth: true`. When both are present, `widthMode` wins. |
+| **`minWidth` / `maxWidth` / `minHeight` / `maxHeight`** | Constraint fields on atomic elements. Accept `LayoutScalar` (raw int or token string). Let the server express responsive clamping without requiring layout-wrap heuristics. |
+| **`layoutWrap`** | Boolean on `Container`. When `true`, enables flex-wrap: children that overflow the main axis wrap to the next line. Realized per-platform (CSS `flex-wrap`, Compose `FlowRow`/`FlowColumn`, SwiftUI `WrappingFlexLayout`). |
+| **`crossAxisGap`** | `LayoutScalar` gap between wrapped lines when `layoutWrap` is `true`. Falls back to `gap` when absent. Ignored when `layoutWrap` is `false`. |
+| **`alignSelf`** | Per-child `CrossAlignment` override. When set, wins over parent `crossAlignment` for this child. Matches CSS `align-self` and Figma per-child alignment semantics. |
+| **`backgrounds`** | Ordered array of `Background` layers on an atomic element. Index 0 is the bottommost layer (Figma convention); higher indices paint on top. Supersedes the singular `background` field (which is now deprecated). |
+| **`shadows`** | Ordered array of `Shadow` layers. Index 0 is the outermost; higher indices are closer to the element. Maps to CSS `box-shadow` list. Supersedes the singular `shadow` field. |
+| **Inner shadow** | A `Shadow` with `type: "inner"`. Rendered as an inset shadow (CSS `inset`, SwiftUI `.inner`). Platforms without native inner-shadow support fall back to drop with a diagnostic. |
+
+---
+
 ## Naming patterns
 
 These prefixes and suffixes carry meaning; reading a class name like

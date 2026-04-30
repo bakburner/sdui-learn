@@ -1,0 +1,52 @@
+{
+  "id": "gradient-over-solid-bg",
+  "schemaVersion": "1.0",
+  "title": "Stacked backgrounds: solid color base with gradient overlay",
+  "analyticsId": "gradient_over_solid_bg_fixture",
+  "sections": [
+    {
+      "id": "stacked-bg-section",
+      "type": "AtomicComposite",
+      "refreshPolicy": { "type": "static" },
+      "data": {
+        "ui": {
+          "id": "stacked-bg-root",
+          "type": "Container",
+          "direction": "column",
+          "alignment": "end",
+          "crossAlignment": "start",
+          "widthMode": "fill",
+          "cornerRadius": "token:nba.radius.lg",
+          "padding": { "top": "token:nba.spacing.xl", "bottom": "token:nba.spacing.xl", "start": "token:nba.spacing.lg", "end": "token:nba.spacing.lg" },
+          "backgrounds": [
+            "token:color.surface.raised",
+            {
+              "colors": ["#00000000", "#000000CC"],
+              "direction": "vertical"
+            }
+          ],
+          "children": [
+            {
+              "type": "Text",
+              "content": "Featured Content",
+              "variant": "headlineSmall",
+              "weight": "bold",
+              "color": "token:color.text.inverse"
+            },
+            {
+              "type": "Spacer",
+              "height": 4
+            },
+            {
+              "type": "Text",
+              "content": "Solid base fill with a transparent-to-dark gradient overlay for text legibility.",
+              "variant": "bodyMedium",
+              "color": "token:color.text.inverse",
+              "maxLines": 2
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

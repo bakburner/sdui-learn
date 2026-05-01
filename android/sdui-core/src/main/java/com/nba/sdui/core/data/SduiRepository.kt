@@ -11,6 +11,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.logging.HttpLoggingInterceptor
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 /**
@@ -26,7 +27,8 @@ import java.util.concurrent.TimeUnit
  */
 class SduiRepository(
     private val baseUrl: String,
-    private val httpClient: OkHttpClient = sharedHttpClient
+    private val httpClient: OkHttpClient = sharedHttpClient,
+    private val authorizationToken: String? = null
 ) {
     companion object {
         private const val TAG = "SduiRepository"
@@ -74,17 +76,30 @@ class SduiRepository(
         val traceId = traceIdOverride ?: envelope.generateTraceId()
         val envelopeQuery = envelope.buildQueryString()
         val userQuery = encodeUserParams(userParams)
+        // Threshold includes both halves so large userParams trigger POST too.
+        val combinedLength = envelopeQuery.length + (if (userQuery.isEmpty()) 0 else userQuery.length + 1)
 
-        val request = if (envelope.exceedsGetThreshold()) {
-            // POST fallback for oversized envelopes. User params still ride
-            // the URL so the server's @RequestParam handler reads them the
-            // same way as on GET.
+        val request = if (combinedLength > 8192) {
+            // POST fallback for oversized envelopes. The envelope travels as
+            // a JSON body (same shape as SduiRequestContext) so the server's
+            // BracketParamResolver deserializes it identically to the
+            // iOS / web POST paths. User params still ride the URL so the
+            // server's @RequestParam handler reads them the same way as on GET.
             val url = if (userQuery.isEmpty()) "$baseUrl$path" else "$baseUrl$path?$userQuery"
             Log.d(TAG, "Fetching screen (POST fallback): $url")
             Request.Builder()
                 .url(url)
                 .header("X-Trace-Id", traceId)
-                .post(envelopeQuery.toRequestBody(JSON_MEDIA_TYPE))
+                .header("X-Request-Id", UUID.randomUUID().toString())
+                .apply { envelope.getDeviceId()?.let { header("X-Device-Id", it) } }
+                .header("X-Platform", envelope.getPlatformName())
+                .apply { envelope.getAppVersion()?.let { header("X-App-Version", it) } }
+                .header("X-OS-Version", envelope.getOsVersion())
+                // TODO(edge): placeholder — edge worker will set these from client IP
+                .header("X-Resolved-Country", "US")
+                .header("X-Resolved-Market-Cohort", "MARKET_UNKNOWN")
+                .apply { authorizationToken?.let { header("Authorization", "Bearer $it") } }
+                .post(envelope.buildJsonBody().toRequestBody(JSON_MEDIA_TYPE))
                 .build()
         } else {
             // Standard GET with bracket-notation query params + user params.
@@ -95,6 +110,15 @@ class SduiRepository(
             Request.Builder()
                 .url(url)
                 .header("X-Trace-Id", traceId)
+                .header("X-Request-Id", UUID.randomUUID().toString())
+                .apply { envelope.getDeviceId()?.let { header("X-Device-Id", it) } }
+                .header("X-Platform", envelope.getPlatformName())
+                .apply { envelope.getAppVersion()?.let { header("X-App-Version", it) } }
+                .header("X-OS-Version", envelope.getOsVersion())
+                // TODO(edge): placeholder — edge worker will set these from client IP
+                .header("X-Resolved-Country", "US")
+                .header("X-Resolved-Market-Cohort", "MARKET_UNKNOWN")
+                .apply { authorizationToken?.let { header("Authorization", "Bearer $it") } }
                 .build()
         }
 

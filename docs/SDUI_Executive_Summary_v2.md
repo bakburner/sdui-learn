@@ -62,7 +62,7 @@ The prototype has moved beyond architectural planning into working, demonstrable
 | **Real-time score updates** | Live scoreboard updating via Ably SSE with JSONPath-based field-level data bindings on Android. Polling fallback for stats sections with configurable intervals                                                                                                                                           | **Done**               |
 | **Graceful degradation**    | Unknown section types skipped without crash. Live data unavailable falls back to static examples                                                                                                                                                                                                          | **Done**               |
 | **Atomic rendering layer**  | 12 atomic element types composed by server and rendered by `AtomicRouter` on all platforms. `AtomicComposite` bridges section and atomic layers. Stateless surfaces (headers, rails, heroes, promos, schedules, error states) are server-composed with `bindRef` data resolution and `LiveClock` for live animation | **Done**               |
-| **Request context envelope** | Typed `SduiRequestContext` with bracket-notation GET params and POST fallback. `RequestEnvelopeBuilder` on all platforms. Fields: platform, appVersion, locale, deviceClass, experiments, traceId | **Done**               |
+| **Request context envelope** | Typed `SduiRequestContext` with bracket-notation GET params and POST fallback. `RequestEnvelopeBuilder` on all platforms. Query fields: locale, schemaVersion, deviceClass, capabilities, experiments. Headers: X-Platform, X-App-Version, X-OS-Version, X-Trace-Id, X-Request-Id | **Done**               |
 | **Experiment assignment**   | Client-authoritative model (ADR-006). Clients send `experiments` map; server resolves for composition branching. Kill switch client-side. Exposure tracking via fireAndForget | **Done**               |
 | **Internationalization (i18n)** | Server pre-translates all text per locale. Section-level `stringTable` for binding-time resolution. Parameterized strings via atomic decomposition | **Done**               |
 | **iOS renderer**            | SwiftUI `SduiCore` package. 8 section views + AtomicComposite routing, navigation shell, icon tokens, envelope builder, impression tracker, error boundary, polling. Ably gated for x86_64 simulators | **Done** (partial SSE) |
@@ -81,7 +81,7 @@ Every concept from the original roadmap's prototype validation checklist has bee
 - **Action system** — 6 action types, 8 triggers dispatched through a single handler with precedence (nested > section > screen)
 - **A/B variant composition** — server returns different section ordering/content per experiment variant
 - **Domain-typed tabular data** — `BoxscoreTable` with frozen columns/sort, `Form` with parameterized refresh, `SeasonLeadersTable` with surgical section merge
-- **Platform-aware composition** — `platform[name]` + `deviceClass` in the request envelope drives per-family tailoring
+- **Platform-aware composition** — `deviceClass` in the request envelope drives per-family tailoring
 - **Server-driven image fallback** — `fallbackThumbnailUrl` with platform-native error handling
 
 ---

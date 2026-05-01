@@ -4,9 +4,9 @@ import Foundation
 /// no special-case branching for individual screens.
 public enum UriResolver {
     private static let scheme = "nba://"
-    private static let sduiPrefix = "/sdui/"
+    private static let sduiPrefix = "/v1/sdui/"
 
-    /// Convert `nba://for-you` → `/sdui/for-you`
+    /// Convert `nba://for-you` → `/v1/sdui/for-you`
     public static func resolveEndpoint(uri: String) -> String {
         if uri.hasPrefix(scheme) {
             return sduiPrefix + uri.dropFirst(scheme.count)

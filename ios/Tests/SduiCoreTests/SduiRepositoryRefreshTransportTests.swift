@@ -48,7 +48,7 @@ final class SduiRepositoryRefreshTransportTests: XCTestCase {
         CapturingURLProtocol.respond(with: Self.emptyScreenJSON)
 
         _ = try? await repo.fetchScreen(
-            endpoint: "/sdui/refresh/stats-leaders",
+            endpoint: "/v1/sdui/refresh/stats-leaders",
             userParams: [
                 "perMode": "Totals",
                 "season": "2025-26",
@@ -61,15 +61,15 @@ final class SduiRepositoryRefreshTransportTests: XCTestCase {
         let url = try XCTUnwrap(request.url)
         XCTAssertEqual(url.scheme, "https", "must resolve against config.baseURL")
         XCTAssertEqual(url.host, "example.test")
-        XCTAssertTrue(url.path.hasSuffix("/sdui/refresh/stats-leaders"))
+        XCTAssertTrue(url.path.hasSuffix("/v1/sdui/refresh/stats-leaders"))
 
         let query = try XCTUnwrap(url.query)
         XCTAssertTrue(query.contains("perMode=Totals"))
         XCTAssertTrue(query.contains("season=2025-26"))
         XCTAssertTrue(query.contains("seasonType=Regular%20Season"),
                       "spaces in user params must be RFC-3986 encoded")
-        XCTAssertTrue(query.contains("platform%5Bname%5D=ios"),
-                      "envelope must travel as bracket-notation params")
+        XCTAssertFalse(query.contains("platform%5Bname%5D"),
+                       "platform name must not appear in query string")
         XCTAssertTrue(query.contains("locale=en"))
 
         XCTAssertEqual(request.value(forHTTPHeaderField: "X-Trace-Id"), "trace-parent",
@@ -82,7 +82,7 @@ final class SduiRepositoryRefreshTransportTests: XCTestCase {
         CapturingURLProtocol.respond(with: Self.emptyScreenJSON)
 
         _ = try? await repo.fetchScreen(
-            endpoint: "/sdui/refresh/stats-leaders",
+            endpoint: "/v1/sdui/refresh/stats-leaders",
             userParams: ["zKey": "z", "aKey": "a", "mKey": "m"]
         )
 
@@ -99,13 +99,13 @@ final class SduiRepositoryRefreshTransportTests: XCTestCase {
         let envelope = RequestEnvelope.compactTestEnvelope()
         let repoA = makeRepository(envelope: envelope)
         CapturingURLProtocol.respond(with: Self.emptyScreenJSON)
-        _ = try? await repoA.fetchScreen(endpoint: "/sdui/scoreboard")
+        _ = try? await repoA.fetchScreen(endpoint: "/v1/sdui/scoreboard")
         let screenURL = try CapturingURLProtocol.requireCaptured().url
 
         CapturingURLProtocol.reset()
         CapturingURLProtocol.respond(with: Self.emptyScreenJSON)
         let repoB = makeRepository(envelope: envelope)
-        _ = try? await repoB.fetchScreen(endpoint: "/sdui/scoreboard", userParams: ["k": "v"])
+        _ = try? await repoB.fetchScreen(endpoint: "/v1/sdui/scoreboard", userParams: ["k": "v"])
         let refreshURL = try CapturingURLProtocol.requireCaptured().url
 
         // The screen-fetch and parameterized-refresh URLs must differ ONLY by
@@ -130,7 +130,7 @@ final class SduiRepositoryRefreshTransportTests: XCTestCase {
         CapturingURLProtocol.respond(with: Self.emptyScreenJSON)
 
         _ = try? await repo.fetchScreen(
-            endpoint: "/sdui/refresh/stats-leaders",
+            endpoint: "/v1/sdui/refresh/stats-leaders",
             userParams: ["perMode": "Totals"]
         )
 
@@ -171,8 +171,6 @@ private extension RequestEnvelope {
             osVersion: "17.5",
             deviceClass: "phone",
             sseCapable: true,
-            formFactor: "phone",
-            countryCode: "US",
             experiments: [:]
         )
     }
@@ -191,8 +189,6 @@ private extension RequestEnvelope {
             osVersion: "17.5",
             deviceClass: "phone",
             sseCapable: true,
-            formFactor: "phone",
-            countryCode: "US",
             experiments: experiments
         )
     }

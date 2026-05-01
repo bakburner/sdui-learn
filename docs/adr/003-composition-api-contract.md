@@ -15,10 +15,13 @@ Composition requires deterministic inputs (screen/entity, platform, locale, capa
 ## Required Request Inputs
 
 - Screen/entity identifiers
-- Platform/app version/device class
-- Locale/region/timezone
-- Capabilities (for example SSE support)
-- Trace ID
+- deviceClass / capabilities (composition inputs, query params)
+- Locale (query param)
+- schemaVersion (query param)
+- Experiments map (query params)
+- Trace ID (`X-Trace-Id` header)
+- Request ID (`X-Request-Id` header)
+- Platform (`X-Platform` header, analytics only)
 - Auth context via `Authorization` header
 
 ## Auth Decision

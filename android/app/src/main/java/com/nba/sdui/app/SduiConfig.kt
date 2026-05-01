@@ -41,7 +41,6 @@ data class SduiConfig(
             baseUrl = baseUrl,
             ablyTokenUrl = ablyTokenUrl,
             screenId = uri,
-            gameState = "live",
             experiments = experiments
         )
 }

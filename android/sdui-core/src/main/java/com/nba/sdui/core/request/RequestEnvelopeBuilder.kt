@@ -17,7 +17,7 @@ import java.util.UUID
  * ```
  * locale=en&schemaVersion=1.0&platform[name]=android&platform[appVersion]=8.3.0
  * &platform[osVersion]=14&platform[deviceClass]=phone&platform[capabilities][sse]=true
- * &device[countryCode]=US&experiments[gd_tab_order_v2]=variant_b
+ * &experiments[gd_tab_order_v2]=variant_b
  * ```
  */
 class RequestEnvelopeBuilder {
@@ -83,22 +83,20 @@ class RequestEnvelopeBuilder {
     // ── Top-level params ───────────────────────────────────────────────
     private var locale: String = "en"
     private var schemaVersion: String = "1.0"
-    private var gameState: String? = null
 
     // ── Platform ───────────────────────────────────────────────────────
     private var platformName: String = "android"
     private var appVersion: String? = null
     private var osVersion: String = Build.VERSION.SDK_INT.toString()
     private var deviceClass: String = "phone"
+    // TODO(platform-tier): replace per-boolean capability flags with a single
+    // server-defined platform tier string (e.g. "tier:full") to reduce CDN
+    // cache-key fragmentation. Tier resolution at edge or in client.
     private var sseCapable: Boolean = true
     private var onFocusCapable: Boolean = false
-    private var formFactor: String = defaultFormFactor()
 
     // ── Device ─────────────────────────────────────────────────────────
     private var deviceId: String? = null
-    private var zipCode: String? = null
-    private var countryCode: String? = null
-    private var region: String? = null
 
     // ── Experiments (Amplitude assignments) ─────────────────────────────
     private val experiments: MutableMap<String, String> = mutableMapOf()
@@ -107,7 +105,6 @@ class RequestEnvelopeBuilder {
 
     fun locale(locale: String) = apply { this.locale = locale }
     fun schemaVersion(version: String) = apply { this.schemaVersion = version }
-    fun gameState(state: String?) = apply { this.gameState = state }
 
     fun platformName(name: String) = apply { this.platformName = name }
     fun appVersion(version: String) = apply { this.appVersion = version }
@@ -115,12 +112,8 @@ class RequestEnvelopeBuilder {
     fun deviceClass(cls: String) = apply { this.deviceClass = cls }
     fun sseCapable(capable: Boolean) = apply { this.sseCapable = capable }
     fun onFocusCapable(capable: Boolean) = apply { this.onFocusCapable = capable }
-    fun formFactor(value: String) = apply { this.formFactor = value }
 
     fun deviceId(id: String?) = apply { this.deviceId = id }
-    fun zipCode(zip: String?) = apply { this.zipCode = zip }
-    fun countryCode(code: String?) = apply { this.countryCode = code }
-    fun region(region: String?) = apply { this.region = region }
 
     fun experiment(id: String, variant: String) = apply { this.experiments[id] = variant }
     fun experiments(map: Map<String, String>) = apply { this.experiments.putAll(map) }
@@ -135,27 +128,16 @@ class RequestEnvelopeBuilder {
         // Top-level scalars
         params.add("locale" to locale)
         params.add("schemaVersion" to schemaVersion)
-        gameState?.let { params.add("gameState" to it) }
 
         // Platform (nested)
-        params.add("platform[name]" to platformName)
-        appVersion?.let { params.add("platform[appVersion]" to it) }
-        params.add("platform[osVersion]" to osVersion)
         params.add("platform[deviceClass]" to deviceClass)
         params.add("platform[capabilities][sse]" to sseCapable.toString())
         if (onFocusCapable) {
             params.add("platform[capabilities][onFocus]" to "true")
         }
-        params.add("platform[formFactor]" to formFactor)
 
-        // Device (nested, all optional)
-        deviceId?.let { params.add("device[deviceId]" to it) }
-        zipCode?.let { params.add("device[zipCode]" to it) }
-        countryCode?.let { params.add("device[countryCode]" to it) }
-        region?.let { params.add("device[region]" to it) }
-
-        // Experiments (nested map)
-        for ((id, variant) in experiments) {
+        // Experiments (nested map, sorted for deterministic CDN cache keys)
+        for ((id, variant) in experiments.toSortedMap()) {
             params.add("experiments[$id]" to variant)
         }
 
@@ -171,9 +153,44 @@ class RequestEnvelopeBuilder {
     fun exceedsGetThreshold(): Boolean = buildQueryString().length > MAX_QUERY_LENGTH
 
     /**
+     * Build the envelope as a JSON string for POST fallback.
+     *
+     * Shape matches the server's `SduiRequestContext` field layout and the
+     * iOS `RequestEnvelope.jsonBody()` / web `buildJsonBody()` output so the
+     * same `BracketParamResolver` POST path deserializes it identically on
+     * every platform.
+     */
+    fun buildJsonBody(): String {
+        val platform = mutableMapOf<String, Any>(
+            "deviceClass" to deviceClass
+        )
+        val capabilities = mutableMapOf<String, Any>("sse" to sseCapable)
+        if (onFocusCapable) capabilities["onFocus"] = true
+        platform["capabilities"] = capabilities
+
+        val body = mutableMapOf<String, Any>(
+            "locale" to locale,
+            "schemaVersion" to schemaVersion,
+            "platform" to platform,
+            "experiments" to experiments
+        )
+
+        return org.json.JSONObject(body).toString()
+    }
+
+    /**
      * Generate a trace ID for this request.
      */
     fun generateTraceId(): String = "trace-${UUID.randomUUID().toString().substring(0, 8)}"
+
+    /** Returns the deviceId for use as the X-Device-Id header value. */
+    fun getDeviceId(): String? = deviceId
+
+    fun getPlatformName(): String = platformName
+
+    fun getAppVersion(): String? = appVersion
+
+    fun getOsVersion(): String = osVersion
 
     private fun encode(value: String): String = percentEncode(value)
 }

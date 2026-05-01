@@ -18,30 +18,31 @@ public class SduiRequestContext {
 
     private String locale = "en";
     private String schemaVersion = "1.0";
-    private String gameState;
     private String traceId;
 
     // ── Nested objects ─────────────────────────────────────────────────
 
     private Platform platform;
     private Device device;
+    private String resolvedCountry;
+    private String resolvedMarketCohort;
     private Map<String, String> experiments = Collections.emptyMap();
 
     // ── Platform ───────────────────────────────────────────────────────
 
     public static class Platform {
-        private String name;
-        private String appVersion;
-        private String osVersion;
         private String deviceClass;
-        /**
-         * Layout token axis: {@code phone}, {@code phone.landscape}, {@code tablet},
-         * {@code web.narrow}, {@code web.wide}, {@code tv}. Clients must send a value
-         * on every request; when absent, the server treats it as {@code phone} for resolution only.
-         */
-        private String formFactor;
         private Capabilities capabilities;
 
+        /**
+         * Per-boolean capability flags.
+         *
+         * <p><strong>Scalability concern:</strong> individual boolean flags fragment CDN
+         * cache keys — every unique combination of {@code sse × onFocus × …} produces a
+         * distinct cache entry. Replace with a small, server-defined <em>platform tier</em>
+         * (e.g. {@code "tier:full"}, {@code "tier:passive"}) that the server maps to a
+         * capability set. Tier resolution can happen at the edge or in the client.
+         */
         public static class Capabilities {
             private boolean sse;
             private boolean onFocus;
@@ -52,16 +53,8 @@ public class SduiRequestContext {
             public void setOnFocus(boolean onFocus) { this.onFocus = onFocus; }
         }
 
-        public String getName() { return name; }
-        public void setName(String name) { this.name = name; }
-        public String getAppVersion() { return appVersion; }
-        public void setAppVersion(String appVersion) { this.appVersion = appVersion; }
-        public String getOsVersion() { return osVersion; }
-        public void setOsVersion(String osVersion) { this.osVersion = osVersion; }
         public String getDeviceClass() { return deviceClass; }
         public void setDeviceClass(String deviceClass) { this.deviceClass = deviceClass; }
-        public String getFormFactor() { return formFactor; }
-        public void setFormFactor(String formFactor) { this.formFactor = formFactor; }
         public Capabilities getCapabilities() { return capabilities; }
         public void setCapabilities(Capabilities capabilities) { this.capabilities = capabilities; }
     }
@@ -69,19 +62,16 @@ public class SduiRequestContext {
     // ── Device ─────────────────────────────────────────────────────────
 
     public static class Device {
+        /**
+         * Per-device identifier. Transported via {@code X-Device-Id} header
+         * (not in query params or JSON body) because per-device cardinality
+         * would fragment CDN cache keys. Populated by
+         * {@link com.nba.sdui.request.BracketParamResolver#applyHeaderFallbacks}.
+         */
         private String deviceId;
-        private String zipCode;
-        private String countryCode;
-        private String region;
 
         public String getDeviceId() { return deviceId; }
         public void setDeviceId(String deviceId) { this.deviceId = deviceId; }
-        public String getZipCode() { return zipCode; }
-        public void setZipCode(String zipCode) { this.zipCode = zipCode; }
-        public String getCountryCode() { return countryCode; }
-        public void setCountryCode(String countryCode) { this.countryCode = countryCode; }
-        public String getRegion() { return region; }
-        public void setRegion(String region) { this.region = region; }
     }
 
     // ── Accessors ──────────────────────────────────────────────────────
@@ -92,9 +82,6 @@ public class SduiRequestContext {
     public String getSchemaVersion() { return schemaVersion; }
     public void setSchemaVersion(String schemaVersion) { this.schemaVersion = schemaVersion; }
 
-    public String getGameState() { return gameState; }
-    public void setGameState(String gameState) { this.gameState = gameState; }
-
     public String getTraceId() { return traceId; }
     public void setTraceId(String traceId) { this.traceId = traceId; }
 
@@ -104,16 +91,17 @@ public class SduiRequestContext {
     public Device getDevice() { return device; }
     public void setDevice(Device device) { this.device = device; }
 
+    /** Resolved country from edge worker (X-Resolved-Country header). */
+    public String getResolvedCountry() { return resolvedCountry; }
+    public void setResolvedCountry(String resolvedCountry) { this.resolvedCountry = resolvedCountry; }
+
+    /** Resolved market cohort from edge worker (X-Resolved-Market-Cohort header). */
+    public String getResolvedMarketCohort() { return resolvedMarketCohort; }
+    public void setResolvedMarketCohort(String resolvedMarketCohort) { this.resolvedMarketCohort = resolvedMarketCohort; }
+
     public Map<String, String> getExperiments() { return experiments; }
     public void setExperiments(Map<String, String> experiments) {
         this.experiments = experiments != null ? experiments : Collections.emptyMap();
-    }
-
-    // ── Convenience ────────────────────────────────────────────────────
-
-    /** Returns platform name, falling back to null if platform is unset. */
-    public String getPlatformName() {
-        return platform != null ? platform.getName() : null;
     }
 
     /**

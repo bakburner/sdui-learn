@@ -61,12 +61,12 @@ open class SduiScreenViewModel(
          */
         fun resolveEndpoint(uri: String): String {
             val path = uri.removePrefix("nba://")
-            return "/sdui/$path"
+            return "/v1/sdui/$path"
         }
     }
 
     // ── Dependencies (all from sdui-core) ────────────────────────────
-    protected val repository = SduiRepository(config.baseUrl)
+    protected val repository = SduiRepository(config.baseUrl, authorizationToken = config.authorizationToken)
     protected val stateManager = StateManager()
     protected val actionHandler = ActionHandler()
     private val dataBindingResolver = DataBindingResolver()

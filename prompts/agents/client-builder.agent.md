@@ -82,7 +82,7 @@ These come from `AGENTS.md` and are non-negotiable for any platform:
 5. **Images from server** — never construct URLs from patterns
 6. **Unknown types skip gracefully** — log + skip, never crash
 7. **Single fetch method** — no `getGameDetail()` or `getScoreboard()`
-8. **Platform identity travels in the envelope** — `platform[name]` (bracket query) on GET, `platform.name` inside the JSON body on POST. Do not send `X-Platform`.
+8. **Platform identity travels in headers and envelope** — `X-Platform` header (analytics), `platform[deviceClass]` + `platform[capabilities]` as bracket-notation query params (composition inputs) on GET, same fields inside the JSON body on POST.
 9. **Never swallow exceptions** — log with context
 
 ## Platform Adaptation Patterns

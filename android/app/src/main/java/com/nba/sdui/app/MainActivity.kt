@@ -95,7 +95,9 @@ class MainActivity : ComponentActivity() {
      */
     private suspend fun fetchBootstrapUri(): String = try {
         kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
-            val conn = URL("${BuildConfig.SDUI_BASE_URL}/sdui/init").openConnection() as HttpURLConnection
+            val envelope = com.nba.sdui.core.request.RequestEnvelopeBuilder()
+            val qs = envelope.buildQueryString()
+            val conn = URL("${BuildConfig.SDUI_BASE_URL}/sdui/init?$qs").openConnection() as HttpURLConnection
             conn.connectTimeout = 5_000
             conn.readTimeout = 5_000
             try {

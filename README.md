@@ -12,7 +12,7 @@ Server-Driven UI prototype demonstrating server-composed screens with real-time 
 | **Extend the iOS client** | [ios/Sources/SduiCore/](ios/Sources/SduiCore/) — SwiftUI renderers, state, data binding. Same section types reference |
 | **Add a new server-composed screen** | [server/src/](server/src/) — add a composer, register an endpoint. Zero client changes needed |
 | **Add a new section type** | Read [AGENTS.md](AGENTS.md) first — most things should be `AtomicComposite`. Only add a section renderer if client-owned state is required |
-| **Understand the schema** | [schema/sdui-schema.json](schema/sdui-schema.json) — the contract. Hit `curl http://localhost:8080/sdui/demos` for a live 42-section example |
+| **Understand the schema** | [schema/sdui-schema.json](schema/sdui-schema.json) — the contract. Hit `curl http://localhost:8080/v1/sdui/demos` for a live 42-section example |
 | **Understand the rules** | [AGENTS.md](AGENTS.md) — development rules that govern all SDUI work |
 | **See what's built vs. what's gap** | [Requirements Summary §10](docs/sdui-requirements-summary.md) — status matrix |
 
@@ -24,7 +24,7 @@ Five principles guide every decision:
 
 1. **Schema is source of truth.** `schema/sdui-schema.json` defines the contract. Run `make codegen` after changes. Generated models are never hand-edited.
 2. **Atomic for layout, semantic for domain logic.** Atomic primitives (`Container`, `Text`, `Image`, etc.) handle server-composed layout with zero client logic. Semantic section types (`BoxscoreTable`, `TabGroup`) exist only when client-owned state or complex interaction is required. Default to atomic; promote to semantic only when you must.
-3. **No hardcoded URLs or screen-type enums on clients.** Every screen is a generic `fetchScreen(endpoint)`. Endpoints are resolved from server-provided URIs (`nba://` → `/sdui/`). New screens require zero client code.
+3. **No hardcoded URLs or screen-type enums on clients.** Every screen is a generic `fetchScreen(endpoint)`. Endpoints are resolved from server-provided URIs (`nba://` → `/v1/sdui/`). New screens require zero client code.
 4. **Graceful degradation everywhere.** Unknown section types, unknown atomic elements, and unknown action types are skipped with a log — never crash. Stale cached responses are better than blank screens.
 5. **Decision checklist before adding client code:** Can the server compose it? Can a schema/action change solve it? Can it be an `AtomicComposite`? Only if none of those work, add a client renderer.
 
@@ -109,20 +109,16 @@ make ios-run            # builds SduiDemo with SDUI_DISABLE_ABLY=1 and installs 
 
 ```bash
 # Game detail with live data (use any valid gameId)
-curl -H "X-Schema-Version: 1.0" \
-  "http://localhost:8080/sdui/game-detail/{gameId}?gameState=live"
+curl "http://localhost:8080/v1/sdui/game-detail/{gameId}?schemaVersion=1.0&gameState=live"
 
 # Scoreboard (today's games)
-curl -H "X-Schema-Version: 1.0" \
-  "http://localhost:8080/sdui/scoreboard"
+curl "http://localhost:8080/v1/sdui/scoreboard?schemaVersion=1.0"
 
 # Game detail variant B (reordered sections)
-curl -H "X-Schema-Version: 1.0" \
-  "http://localhost:8080/sdui/game-detail/{gameId}?gameState=live&variant=B"
+curl "http://localhost:8080/v1/sdui/game-detail/{gameId}?schemaVersion=1.0&gameState=live&variant=B"
 
 # Scoreboard variant E (promo banner)
-curl -H "X-Schema-Version: 1.0" \
-  "http://localhost:8080/sdui/scoreboard?variant=E"
+curl "http://localhost:8080/v1/sdui/scoreboard?schemaVersion=1.0&variant=E"
 ```
 
 ### Regenerate Models After Schema Changes
@@ -135,15 +131,15 @@ make codegen
 
 | Screen | Endpoint | Description |
 |--------|----------|-------------|
-| Scoreboard | `GET /sdui/scoreboard` | Today's games as tappable rows. Live games update via Ably SSE. |
-| Game Detail | `GET /sdui/game-detail/{gameId}` | Single game: scoreboard header, stats, tabs, editorial content. |
-| For You | `GET /sdui/for-you` | Personalised content feed with games, editorial, and promos. |
-| Watch | `GET /sdui/watch` | Video hub with Featured, NBA TV, and League Pass tabs. |
-| Live / Games | `GET /sdui/live` | Live scoreboard with real-time game panels. |
-| Leaders | `GET /sdui/leaders` | Season leaders table with form-driven season/type filters. |
-| Kitchen Sink | `GET /sdui/demos` | Demo screen showcasing all section types with sample data. |
-| Boxscore | `GET /sdui/boxscore/{gameId}` | Boxscore tables for a specific game (home and away). |
-| Refresh | `GET /sdui/refresh/{screenId}` | Parameterized refresh endpoint for form-driven section updates. |
+| Scoreboard | `GET /v1/sdui/scoreboard` | Today's games as tappable rows. Live games update via Ably SSE. |
+| Game Detail | `GET /v1/sdui/game-detail/{gameId}` | Single game: scoreboard header, stats, tabs, editorial content. |
+| For You | `GET /v1/sdui/for-you` | Personalised content feed with games, editorial, and promos. |
+| Watch | `GET /v1/sdui/watch` | Video hub with Featured, NBA TV, and League Pass tabs. |
+| Live / Games | `GET /v1/sdui/live` | Live scoreboard with real-time game panels. |
+| Leaders | `GET /v1/sdui/leaders` | Season leaders table with form-driven season/type filters. |
+| Kitchen Sink | `GET /v1/sdui/demos` | Demo screen showcasing all section types with sample data. |
+| Boxscore | `GET /v1/sdui/boxscore/{gameId}` | Boxscore tables for a specific game (home and away). |
+| Refresh | `GET /v1/sdui/refresh/{screenId}` | Parameterized refresh endpoint for form-driven section updates. |
 
 ## Section Types (9 in schema: 8 permanent + AtomicComposite)
 

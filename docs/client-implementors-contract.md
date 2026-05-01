@@ -56,7 +56,7 @@ Server  ─── HTTP GET ───→  ScreenViewModel
 
 Implement in this order. Each phase produces a testable artifact. The server
 at `localhost:8080` is the reference implementation; hit it with
-`curl -H "X-Schema-Version: 1.0" http://localhost:8080/sdui/demos` to get a
+`curl http://localhost:8080/v1/sdui/demos?schemaVersion=1.0` to get a
 42-section kitchen-sink response.
 
 ### Phase 1 — Static Rendering (render a screen from JSON)
@@ -65,7 +65,7 @@ at `localhost:8080` is the reference implementation; hit it with
 |---|-----------|--------------|
 | 1 | **Models** | Use the generated models from the platform's authoritative output location (see the table in "Shared Infrastructure" above), or regenerate from `schema/sdui-schema.json` for a new language. Deserialize `SduiScreen`, `Section`, `AtomicElement`, `Action`, `RefreshPolicy`, `DataBinding`. |
 | 2 | **SduiRepository.fetchScreen** | Single fetch primitive every composition request routes through. Builds the request envelope as bracket-notation query params; falls back to POST with the same shape in the JSON body when the query exceeds 8192 chars. Sends `X-Trace-Id` on every request. See §11 for the full transport contract. Returns `SduiScreen`. |
-| 3 | **UriResolver.resolveEndpoint** | Convert `nba://{path}` → `/sdui/{path}`. Pure string prefix swap, no branching. |
+| 3 | **UriResolver.resolveEndpoint** | Convert `nba://{path}` → `/v1/sdui/{path}`. Pure string prefix swap, no branching. |
 | 4 | **SectionRouter** | Switch on `section.type` → dispatch to renderer. Unknown types → log + skip. |
 | 5 | **AtomicRouter** | Switch on `element.type` → dispatch to atomic renderer. Depth guard at 6. |
 | 6 | **AtomicComposite bridge** | When SectionRouter sees `type: "AtomicComposite"`, parse `section.data.ui` and hand to AtomicRouter. Renderers read live fields via `bindRef` (see §4b) against `section.data.content`. |
@@ -1213,7 +1213,7 @@ The complete lifecycle for loading and maintaining a screen.
 ```
 FUNCTION loadScreen(uri):
     // 1. Resolve URI
-    endpoint = resolveEndpoint(uri)    // "nba://for-you" → "/sdui/for-you"
+    endpoint = resolveEndpoint(uri)    // "nba://for-you" → "/v1/sdui/for-you"
 
     // 2. Check offline cache
     cached = offlineCache.get(endpoint)
@@ -1243,7 +1243,7 @@ FUNCTION loadScreen(uri):
 FUNCTION resolveEndpoint(uri):
     // Pure prefix swap — no special-case branching
     IF uri STARTS_WITH "nba://":
-        RETURN "/sdui/" + REMOVE_PREFIX(uri, "nba://")
+        RETURN "/v1/sdui/" + REMOVE_PREFIX(uri, "nba://")
     RETURN uri    // Already a path
 ```
 
@@ -1269,13 +1269,8 @@ GET requests and as a **JSON body of the same shape** for POST requests:
 | `locale=en` | `locale` | Locale for i18n |
 | `schemaVersion=1.0` | `schemaVersion` | Schema version |
 | `gameState=live` | `gameState` | Optional state filter |
-| `platform[name]=android` | `platform.name` | Platform identifier |
-| `platform[appVersion]=8.3.0` | `platform.appVersion` | App version |
-| `platform[osVersion]=14` | `platform.osVersion` | OS version |
-| `platform[deviceClass]=phone` | `platform.deviceClass` | Form factor |
-| `platform[capabilities][sse]=true` | `platform.capabilities.sse` | Capability declaration |
-| `device[countryCode]=US` | `device.countryCode` | Device context |
-| `device[zipCode]=10001` | `device.zipCode` | Device context |
+| `platform[deviceClass]=phone` | `platform.deviceClass` | Form factor (composition input) |
+| `platform[capabilities]=sse` | `platform.capabilities` | Capability declaration |
 | `experiments[exp_id]=variant_b` | `experiments.exp_id` | Experiment assignment |
 
 The server resolves both shapes into one typed `SduiRequestContext` via a
@@ -1326,11 +1321,18 @@ the refresh response with the screen that triggered it.
 |--------|----------|---------|
 | `Authorization` | Yes (when authenticated) | Bearer token |
 | `X-Trace-Id` | Yes | Request correlation |
+| `X-Request-Id` | Yes | Idempotency / dedup |
+| `X-Platform` | Yes | Analytics (`android`, `ios`, `web`) |
+| `X-App-Version` | Yes | Analytics / compat |
+| `X-OS-Version` | Yes | Analytics |
+| `X-Device-Id` | Recommended | Device correlation |
+| `X-Resolved-Country` | If available | Geo context (edge-injected or client-set) |
+| `X-Resolved-Market-Cohort` | If available | Market segmentation |
 | `Content-Type: application/json` | POST only | Envelope body |
 
-`platform[name]` and `schemaVersion` are part of every composition request
-(query on GET, same fields in the JSON body on POST). Clients do not send
-`X-Platform` or `X-Schema-Version` headers.
+`schemaVersion`, `platform[deviceClass]`, `platform[capabilities]`, `locale`,
+and `experiments` are part of every composition request (query on GET, same
+fields in the JSON body on POST).
 
 ---
 
@@ -1357,7 +1359,7 @@ FUNCTION cachePut(endpoint, screen):
 
 | Decision | Behavior |
 |----------|----------|
-| Cache key | Endpoint path (e.g., `/sdui/scoreboard?variant=A`) |
+| Cache key | Endpoint path (e.g., `/v1/sdui/scoreboard?variant=A`) |
 | Stale policy | Always serve stale — a stale screen is better than a blank screen |
 | Invalidation | Overwrite on successful fetch |
 | Storage | Platform-appropriate: SQLite/Room, Core Data, IndexedDB, file system |
@@ -1629,7 +1631,7 @@ the rules in `AGENTS.md`.
 | C8 | Single generic fetch method — no `getGameDetail()` | §4.1 |
 | C9 | Refresh driven by `refreshPolicy` — no hardcoded intervals | §3.3 |
 | C10 | URI resolution is a simple prefix swap | §3.1 |
-| C11 | `platform[name]` and `schemaVersion` on every composition request (envelope) | `AGENTS.md` §3.4; §11 |
+| C11 | `platform[deviceClass]`, `schemaVersion`, and `X-Platform` header on every composition request | `AGENTS.md` §3.4; §11 |
 | C12 | Exceptions logged with context — never silently swallowed | §10.1 |
 | C13 | Schema is the wire contract — strict decoders; new enum values go into schema first, then regen | §1.3 |
 | C14 | Renderers are presentation-only — no business logic | §5 |

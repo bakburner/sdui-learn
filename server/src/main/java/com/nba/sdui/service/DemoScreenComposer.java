@@ -37,7 +37,7 @@ public class DemoScreenComposer {
      * Compose a kitchen-sink demo screen showcasing all section types (including
      * atomic primitives like DisplayGrid) with static mock data.  No external API calls.
      */
-    public ObjectNode composeDemos(String traceId, String platform, String locale) {
+    public ObjectNode composeDemos(String traceId, String deviceClass, String locale) {
         ObjectNode screen = objectMapper.createObjectNode();
         screen.put("id", "demos");
         screen.put("schemaVersion", schemaVersion);
@@ -86,7 +86,7 @@ public class DemoScreenComposer {
         sections.add(buildDemoBoxscoreTable());
         // 11. Form
         sections.add(buildTypeLabel("Form (Semantic)"));
-        sections.add(buildDemoForm(platform));
+        sections.add(buildDemoForm(deviceClass));
         // 12. SeasonLeadersTable
         sections.add(buildTypeLabel("SeasonLeadersTable (Semantic)"));
         sections.add(buildDemoLeadersTable());
@@ -141,7 +141,7 @@ public class DemoScreenComposer {
     /**
      * Compose the standalone Season Leaders screen (Form + SeasonLeadersTable).
      */
-    public ObjectNode composeLeaders(String traceId, String platform, String locale) {
+    public ObjectNode composeLeaders(String traceId, String deviceClass, String locale) {
         ObjectNode screen = objectMapper.createObjectNode();
         screen.put("id", "leaders");
         screen.put("schemaVersion", schemaVersion);
@@ -164,7 +164,7 @@ public class DemoScreenComposer {
         screen.set("state", state);
 
         ArrayNode sections = objectMapper.createArrayNode();
-        sections.add(buildDemoForm(platform));
+        sections.add(buildDemoForm(deviceClass));
         sections.add(buildLeadersTable("2025-26", "regular", "per_game", "pts"));
         screen.set("sections", sections);
 
@@ -530,10 +530,10 @@ public class DemoScreenComposer {
 
     /**
      * 10. Stats Leaders Filter Form — 4 dropdowns.
-     * Layout is platform-driven: web gets "horizontal" (single-row),
-     * mobile gets "vertical" (stacked) for better touch targets.
+    * Layout is device-class-driven: web/desktop gets "horizontal" (single-row),
+    * phone/tablet/tv gets "vertical" (stacked) for better touch targets.
      */
-    private ObjectNode buildDemoForm(String platform) {
+    private ObjectNode buildDemoForm(String deviceClass) {
         ObjectNode section = objectMapper.createObjectNode();
         section.put("id", "demo-form");
         section.put("type", "Form");
@@ -541,7 +541,9 @@ public class DemoScreenComposer {
         section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
 
         ObjectNode data = objectMapper.createObjectNode();
-        String formLayout = "web".equalsIgnoreCase(platform) ? "horizontal" : "vertical";
+        // Wide viewports (web/desktop) use horizontal form layout; narrow (phone/tablet/tv) use vertical
+        String formLayout = ("web".equalsIgnoreCase(deviceClass) || "desktop".equalsIgnoreCase(deviceClass))
+            ? "horizontal" : "vertical";
         data.put("layout", formLayout);
 
         ArrayNode fields = objectMapper.createArrayNode();
@@ -616,7 +618,7 @@ public class DemoScreenComposer {
         submitAction.put("trigger", "onSubmit");
         submitAction.put("type", "refresh");
         submitAction.put("target", "leaders-table");
-        submitAction.put("endpoint", "/sdui/refresh/stats-leaders");
+        submitAction.put("endpoint", "/v1/sdui/refresh/stats-leaders");
         submitAction.put("onFailure", "halt");
         ObjectNode submitFeedback = objectMapper.createObjectNode();
         submitFeedback.put("message", "Stats lookup failed — please try again");

@@ -18,7 +18,11 @@ import java.util.Map;
  * Composes the Game Detail SDUI screen from live NBA API data with
  * example-file fallback, and applies server-driven variant transformations
  * (B, C, D).
+ *
+ * <p>Game state (pre/live/post) is derived from the boxscore API response,
+ * not from client input.
  */
+
 @Component
 public class GameDetailComposer {
 
@@ -46,25 +50,38 @@ public class GameDetailComposer {
         this.atomicBuilder = new AtomicCompositeBuilder(objectMapper);
     }
 
+    /**
+     * Result of composing a Game Detail screen — carries both the JSON
+     * response and the server-derived game state for cache-control decisions.
+     */
+    public record GameDetailResult(JsonNode response, String derivedGameState) {}
+
     // ── Public entry point ─────────────────────────────────────────────
 
     /**
      * Compose a Game Detail SDUI screen response.
+     *
+     * <p>Game state is derived from the boxscore API ({@code game.gameStatus}):
+     * 1 → pre, 2 → live, 3 → post. The caller uses the derived state for
+     * cache-control headers.
      */
-    public JsonNode composeGameDetail(String gameId, String gameState,
-                                      String variant, String clientSchemaVersion,
-                                      String traceId, String locale) throws IOException {
-        log.info("Composing game detail: gameId={}, gameState={}, variant={}, locale={}", gameId, gameState, variant, locale);
+    public GameDetailResult composeGameDetail(String gameId,
+                                              String variant, String clientSchemaVersion,
+                                              String traceId, String locale) throws IOException {
+        log.info("Composing game detail: gameId={}, variant={}, locale={}", gameId, variant, locale);
 
+        String derivedGameState = "pre";
         JsonNode baseResponse;
-        baseResponse = composeFromLiveData(gameId, gameState);
-        if (baseResponse == null) {
-            log.warn("Live game detail unavailable, falling back to example for gameState={}", gameState);
-            baseResponse = utils.loadExampleResponse(gameState);
+        baseResponse = composeFromLiveData(gameId);
+        if (baseResponse != null) {
+            derivedGameState = deriveGameState(gameId);
+        } else {
+            log.warn("Live game detail unavailable, falling back to example for gameState={}", derivedGameState);
+            baseResponse = utils.loadExampleResponse(derivedGameState);
         }
 
         if (baseResponse == null) {
-            log.warn("No example response found for gameState={}, using 'pre' as default", gameState);
+            log.warn("No example response found for gameState={}, using 'pre' as default", derivedGameState);
             baseResponse = utils.loadExampleResponse("pre");
         }
 
@@ -102,12 +119,32 @@ public class GameDetailComposer {
                 variant, response.has("sections") ? response.get("sections").size() : 0);
 
         utils.stampStringTableOnSections(response, locale);
-        return response;
+        return new GameDetailResult(response, derivedGameState);
     }
 
     // ── Live-data composition ──────────────────────────────────────────
 
-    private JsonNode composeFromLiveData(String gameId, String gameState) {
+    /**
+     * Derive the game state string from the boxscore API for the given game.
+     * NBA API gameStatus: 1 = pre, 2 = live, 3 = post/final.
+     */
+    private String deriveGameState(String gameId) {
+        try {
+            JsonNode boxscore = statsApiClient.getBoxscore(gameId);
+            if (boxscore == null) return "pre";
+            int status = boxscore.path("game").path("gameStatus").asInt(1);
+            return switch (status) {
+                case 2 -> "live";
+                case 3 -> "post";
+                default -> "pre";
+            };
+        } catch (Exception e) {
+            log.warn("Failed to derive game state for gameId={}, defaulting to 'pre'", gameId, e);
+            return "pre";
+        }
+    }
+
+    private JsonNode composeFromLiveData(String gameId) {
         try {
             JsonNode boxscore = statsApiClient.getBoxscore(gameId);
             if (boxscore == null) {
@@ -159,13 +196,13 @@ public class GameDetailComposer {
             }
 
             // 4. ContentRail (AtomicComposite) from example
-            ObjectNode contentRail = loadSectionFromExample(gameState, "content-rail");
+            ObjectNode contentRail = loadSectionFromExample("content-rail");
             if (contentRail != null) {
                 sections.add(contentRail);
             }
 
             // 5. PromoBanner (AtomicComposite) from example
-            ObjectNode promoBanner = loadSectionFromExample(gameState, "promo-banner");
+            ObjectNode promoBanner = loadSectionFromExample("promo-banner");
             if (promoBanner != null) {
                 sections.add(promoBanner);
             }
@@ -189,9 +226,9 @@ public class GameDetailComposer {
         return null;
     }
 
-    private ObjectNode loadSectionFromExample(String gameState, String sectionId) {
+    private ObjectNode loadSectionFromExample(String sectionId) {
         try {
-            JsonNode example = utils.loadExampleResponse(gameState);
+            JsonNode example = utils.loadExampleResponse("pre");
             if (example == null) return null;
 
             ArrayNode sections = (ArrayNode) example.get("sections");

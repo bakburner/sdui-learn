@@ -74,10 +74,9 @@ public class SduiCompositionService {
 
     // ── Screen delegation ──────────────────────────────────────────────
 
-    public JsonNode composeGameDetail(String gameId, SduiRequestContext ctx) throws IOException {
-        String gameState = ctx.getGameState() != null ? ctx.getGameState() : "pre";
+    public GameDetailComposer.GameDetailResult composeGameDetail(String gameId, SduiRequestContext ctx) throws IOException {
         String variant = ctx.resolveVariant(GAME_DETAIL_EXPERIMENT, "A");
-        return gameDetailComposer.composeGameDetail(gameId, gameState, variant,
+        return gameDetailComposer.composeGameDetail(gameId, variant,
                 ctx.getSchemaVersion(), ctx.getTraceId(), ctx.getLocale());
     }
 
@@ -92,11 +91,13 @@ public class SduiCompositionService {
     }
 
     public JsonNode composeDemos(SduiRequestContext ctx) {
-        return demoScreenComposer.composeDemos(ctx.getTraceId(), ctx.getPlatformName(), ctx.getLocale());
+        String deviceClass = ctx.getPlatform() != null ? ctx.getPlatform().getDeviceClass() : "phone";
+        return demoScreenComposer.composeDemos(ctx.getTraceId(), deviceClass, ctx.getLocale());
     }
 
     public JsonNode composeLeaders(SduiRequestContext ctx) {
-        return demoScreenComposer.composeLeaders(ctx.getTraceId(), ctx.getPlatformName(), ctx.getLocale());
+        String deviceClass = ctx.getPlatform() != null ? ctx.getPlatform().getDeviceClass() : "phone";
+        return demoScreenComposer.composeLeaders(ctx.getTraceId(), deviceClass, ctx.getLocale());
     }
 
     public ObjectNode composeLeadersRefresh(String traceId, Map<String, String> params, String locale) {

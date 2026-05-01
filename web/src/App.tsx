@@ -6,8 +6,9 @@ import { TopNavigationBar } from './components/TopNavigationBar';
 import { executeActionSequence } from './runtime/ActionHandler';
 import { setColorSchemePreference, usePrefersColorScheme } from './utils/ColorTokenResolver';
 import { ToastHost } from './components/ToastHost';
+import { RequestEnvelopeBuilder } from './request/RequestEnvelopeBuilder';
 
-// Degraded-connectivity fallback only — primary bootstrap URI comes from /sdui/init.
+// Degraded-connectivity fallback only — primary bootstrap URI comes from /v1/sdui/init.
 const FALLBACK_BOOTSTRAP_URI = 'nba://for-you';
 
 /**
@@ -16,15 +17,15 @@ const FALLBACK_BOOTSTRAP_URI = 'nba://for-you';
  * Pure prefix swap — no special-casing of individual screens. The server
  * owns all routing semantics.
  *
- *   nba://scoreboard        → /sdui/scoreboard
- *   nba://game/0042300102   → /sdui/game/0042300102
- *   nba://boxscore/00423... → /sdui/boxscore/0042300102
- *   nba://demos             → /sdui/demos
- *   nba://anything/else     → /sdui/anything/else
+ *   nba://scoreboard        → /v1/sdui/scoreboard
+ *   nba://game/0042300102   → /v1/sdui/game/0042300102
+ *   nba://boxscore/00423... → /v1/sdui/boxscore/0042300102
+ *   nba://demos             → /v1/sdui/demos
+ *   nba://anything/else     → /v1/sdui/anything/else
  */
 function resolveEndpoint(uri: string): string {
   const path = uri.replace(/^nba:\/\//, '');
-  return `/sdui/${path}`;
+  return `/v1/sdui/${path}`;
 }
 
 export function App(): React.ReactElement {
@@ -35,7 +36,8 @@ export function App(): React.ReactElement {
   // Fetch bootstrap URI from the server on mount; fall back if unavailable.
   useEffect(() => {
     let cancelled = false;
-    fetch('/api/sdui/init')
+    const qs = new RequestEnvelopeBuilder().buildQueryString();
+    fetch(`/api/v1/sdui/init?${qs}`)
       .then(r => r.ok ? r.json() : Promise.reject(new Error(`init: ${r.status}`)))
       .then((data: { bootstrapUri?: string }) => {
         if (!cancelled && data.bootstrapUri) setCurrentUri(data.bootstrapUri);

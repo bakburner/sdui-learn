@@ -163,10 +163,10 @@ Navigate action URIs use the `nba://` scheme.  Clients resolve these to
 server endpoints using a simple convention:
 
 ```
-nba://{path}  →  GET /sdui/{path}
+nba://{path}  →  GET /v1/sdui/{path}
 ```
 
-> **Legacy exception:** `nba://game/{id}` → `GET /sdui/game-detail/{id}?gameState=live`
+> **Legacy exception:** `nba://game/{id}` → `GET /v1/sdui/game-detail/{id}?gameState=live`
 > preserves backward compatibility with the existing game-detail endpoint.
 > New screens must use the simple prefix swap only.
 
@@ -418,7 +418,7 @@ This enables Form submit buttons to say "refresh the screen with `season={state.
 {
   "trigger": "onTap",
   "type": "refresh",
-  "endpoint": "/sdui/stats/leaders",
+  "endpoint": "/v1/sdui/stats/leaders",
   "paramBindings": {
     "season": "season",
     "seasonType": "seasonType"
@@ -1334,7 +1334,7 @@ A `Form` section driving a `SeasonLeadersTable` refresh via parameterized server
     "submitAction": {
       "trigger": "onTap",
       "type": "refresh",
-      "endpoint": "/sdui/stats/leaders",
+      "endpoint": "/v1/sdui/stats/leaders",
       "paramBindings": {
         "season": "season",
         "seasonType": "seasonType"

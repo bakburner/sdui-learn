@@ -17,6 +17,7 @@ This directory stores architecture decisions in chronological order.
 - [ADR-011: Data Classification and Freshness Model](./011-data-classification-and-freshness-model.md)
 - [ADR-012: Client Data Architecture](./012-client-data-architecture.md)
 - [ADR-013: Style Tokens for Atomic Primitives](./013-style-tokens-for-atomic-primitives.md)
+- [ADR-014: Dynamic Conditional Properties](./014-dynamic-conditional-properties.md)
 
 ## Templates
 

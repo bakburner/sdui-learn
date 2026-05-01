@@ -3,7 +3,7 @@ import { RequestEnvelopeBuilder } from '../request/RequestEnvelopeBuilder';
 import { SDUI_PATH_PREFIX, API_PROXY_PREFIX } from '../utils/constants';
 
 export interface FetchSduiScreenOptions {
-  /** Server-relative path, e.g. `/sdui/scoreboard`. */
+  /** Server-relative path, e.g. `/v1/sdui/scoreboard`. */
   endpoint: string;
   /** Experiment assignments from Amplitude (experimentId → variant). */
   experiments?: Record<string, string>;
@@ -20,6 +20,8 @@ export interface FetchSduiScreenOptions {
    * when absent.
    */
   traceId?: string;
+  /** Optional bearer token forwarded as the Authorization header. */
+  authToken?: string;
 }
 
 export interface FetchSduiScreenResult {
@@ -50,10 +52,11 @@ export interface FetchSduiScreenResult {
 export async function fetchSduiScreen(
   options: FetchSduiScreenOptions,
 ): Promise<FetchSduiScreenResult> {
-  const { endpoint, experiments = {}, userParams = {}, traceId: parentTraceId } = options;
+  const { endpoint, experiments = {}, userParams = {}, traceId: parentTraceId, authToken } = options;
 
   const builder = new RequestEnvelopeBuilder().experiments(experiments);
   const traceId = parentTraceId ?? RequestEnvelopeBuilder.generateTraceId();
+  const requestId = crypto.randomUUID();
 
   const userQuery = encodeUserParams(userParams);
   const apiPath = endpoint.startsWith(SDUI_PATH_PREFIX) ? `${API_PROXY_PREFIX}${endpoint}` : endpoint;
@@ -62,7 +65,11 @@ export async function fetchSduiScreen(
   let url: string;
   let method: 'GET' | 'POST';
 
-  if (builder.exceedsGetThreshold()) {
+  // Threshold includes both halves so large userParams trigger POST too.
+  const envelopeQuery = builder.buildQueryString();
+  const combinedLength = envelopeQuery.length + (userQuery ? userQuery.length + 1 : 0);
+
+  if (combinedLength > 8192) {
     method = 'POST';
     url = userQuery ? `${apiPath}?${userQuery}` : apiPath;
     response = await fetch(url, {
@@ -70,18 +77,35 @@ export async function fetchSduiScreen(
       headers: {
         'Content-Type': 'application/json',
         'X-Trace-Id': traceId,
+        'X-Request-Id': requestId,
+        ...(builder.getDeviceId() ? { 'X-Device-Id': builder.getDeviceId()! } : {}),
+        'X-Platform': builder.getPlatformName(),
+        ...(builder.getAppVersion() ? { 'X-App-Version': builder.getAppVersion()! } : {}),
+        ...(builder.getOsVersion() ? { 'X-OS-Version': builder.getOsVersion()! } : {}),
+        // TODO(edge): placeholder — edge worker will set these from client IP
+        'X-Resolved-Country': 'US',
+        'X-Resolved-Market-Cohort': 'MARKET_UNKNOWN',
+        ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
       },
       body: JSON.stringify(builder.buildJsonBody()),
     });
   } else {
     method = 'GET';
-    const envelopeQuery = builder.buildQueryString();
     const combined = userQuery ? `${userQuery}&${envelopeQuery}` : envelopeQuery;
     const separator = apiPath.includes('?') ? '&' : '?';
     url = `${apiPath}${separator}${combined}`;
     response = await fetch(url, {
       headers: {
         'X-Trace-Id': traceId,
+        'X-Request-Id': requestId,
+        ...(builder.getDeviceId() ? { 'X-Device-Id': builder.getDeviceId()! } : {}),
+        'X-Platform': builder.getPlatformName(),
+        ...(builder.getAppVersion() ? { 'X-App-Version': builder.getAppVersion()! } : {}),
+        ...(builder.getOsVersion() ? { 'X-OS-Version': builder.getOsVersion()! } : {}),
+        // TODO(edge): placeholder — edge worker will set these from client IP
+        'X-Resolved-Country': 'US',
+        'X-Resolved-Market-Cohort': 'MARKET_UNKNOWN',
+        ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {}),
       },
     });
   }

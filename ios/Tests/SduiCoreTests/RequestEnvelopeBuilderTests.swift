@@ -12,8 +12,6 @@ final class RequestEnvelopeBuilderTests: XCTestCase {
             osVersion: "17.5",
             deviceClass: "phone",
             sseCapable: true,
-            formFactor: "phone",
-            countryCode: "US",
             experiments: ["gd_tab_order_v2": "variant_b"]
         )
 
@@ -21,11 +19,10 @@ final class RequestEnvelopeBuilderTests: XCTestCase {
 
         XCTAssertTrue(query.contains("locale=en"))
         XCTAssertTrue(query.contains("schemaVersion=1.0"))
-        XCTAssertTrue(query.contains("platform%5Bname%5D=ios"))
-        XCTAssertTrue(query.contains("platform%5BappVersion%5D=8.3.0"))
-        XCTAssertTrue(query.contains("device%5BcountryCode%5D=US"))
+        XCTAssertTrue(query.contains("platform%5BdeviceClass%5D=phone"))
+        XCTAssertFalse(query.contains("platform%5Bname%5D"), "platform name must not appear in query")
+        XCTAssertFalse(query.contains("platform%5BappVersion%5D"), "appVersion must not appear in query")
         XCTAssertTrue(query.contains("experiments%5Bgd_tab_order_v2%5D=variant_b"))
-        XCTAssertTrue(query.contains("platform%5BformFactor%5D=phone"))
     }
 
     func testPercentEncodingMatchesRFC3986() {
@@ -43,8 +40,6 @@ final class RequestEnvelopeBuilderTests: XCTestCase {
             osVersion: "17.5",
             deviceClass: "phone",
             sseCapable: true,
-            formFactor: "phone",
-            countryCode: "US",
             experiments: ["exp_a": "1"]
         )
 
@@ -53,12 +48,11 @@ final class RequestEnvelopeBuilderTests: XCTestCase {
         XCTAssertEqual(decoded?["locale"] as? String, "en")
 
         let platform = decoded?["platform"] as? [String: Any]
-        XCTAssertEqual(platform?["name"] as? String, "ios")
-        XCTAssertEqual(platform?["appVersion"] as? String, "8.3.0")
-        XCTAssertEqual(platform?["formFactor"] as? String, "phone")
+        XCTAssertEqual(platform?["deviceClass"] as? String, "phone")
+        XCTAssertNil(platform?["name"], "platform name must not appear in JSON body")
+        XCTAssertNil(platform?["appVersion"], "appVersion must not appear in JSON body")
 
-        let device = decoded?["device"] as? [String: Any]
-        XCTAssertEqual(device?["countryCode"] as? String, "US")
+        XCTAssertNil(decoded?["device"], "device object must not appear in JSON body")
 
         let experiments = decoded?["experiments"] as? [String: Any]
         XCTAssertEqual(experiments?["exp_a"] as? String, "1")

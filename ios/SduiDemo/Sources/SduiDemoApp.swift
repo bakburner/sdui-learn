@@ -42,7 +42,13 @@ struct SduiDemoApp: App {
 
     private func fetchBootstrapUri() async {
         do {
-            let url = config.baseURL.appendingPathComponent("sdui/init")
+            let envelope = RequestEnvelope()
+            let initURL = config.baseURL.appendingPathComponent("sdui/init")
+            let qs = envelope.buildQueryString()
+            guard let url = URL(string: initURL.absoluteString + "?" + qs) else {
+                bootstrapEndpoint = UriResolver.resolveEndpoint(uri: Self.FALLBACK_BOOTSTRAP_URI)
+                return
+            }
             let (data, response) = try await URLSession.shared.data(from: url)
             guard let http = response as? HTTPURLResponse, http.statusCode == 200,
                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],

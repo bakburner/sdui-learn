@@ -16,14 +16,14 @@ data class SduiScreenConfig(
     val ablyTokenUrl: String,
     /** Screen identifier sent to the server (e.g. game ID) */
     val screenId: String,
-    /** Game state hint sent as query param (e.g. "live", "pre", "final") */
-    val gameState: String = "live",
     /** Experiment assignments from Amplitude (experimentId → variant). */
     val experiments: Map<String, String> = emptyMap(),
     /** App version string (semver), e.g. "8.3.0" */
     val appVersion: String? = null,
     /** Device class: "phone", "tablet", "tv" */
     val deviceClass: String = "phone",
+    /** Optional bearer token forwarded as the Authorization header on every screen fetch. Null = unauthenticated. */
+    val authorizationToken: String? = null,
 ) {
     /**
      * Backwards-compatible variant accessor.

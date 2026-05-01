@@ -1,7 +1,4 @@
 import SwiftUI
-import os
-
-private let scrollLogger = Logger(subsystem: "com.nba.sdui", category: "AtomicScrollContainer")
 
 /// Renders a ScrollContainer atomic element — scrollable child list.
 /// The scroll viewport owns only its scroll layout (axis, gap, indicator
@@ -18,7 +15,6 @@ struct AtomicScrollContainerView: View {
     var body: some View {
         let isHorizontal = element.direction == .row
         let gap = LayoutTokenResolver.cgFloat(element.gap)
-        let _ = logUnsupportedScrollConstraints()
         let isPaging = element.paging == true
         let shouldShowPageIndicator = isPaging && element.pageIndicator?.style == .dots && (element.children?.count ?? 0) > 1
 
@@ -90,6 +86,7 @@ struct AtomicScrollContainerView: View {
 
     @ViewBuilder
     private func scrollView(isHorizontal: Bool, gap: CGFloat, trackPage: Bool) -> some View {
+        let needsPositionTracking = trackPage || (element.snapAlignment != nil && element.snapAlignment != .start)
         ScrollView(isHorizontal ? .horizontal : .vertical, showsIndicators: element.showIndicators ?? false) {
             AnyLayout(AtomicFlexStackLayout(
                 isRow: isHorizontal,
@@ -101,8 +98,16 @@ struct AtomicScrollContainerView: View {
             }
             .modifier(ScrollTargetLayoutModifier(enabled: element.paging == true || element.snapAlignment != nil || trackPage))
         }
-        .modifier(ScrollPositionModifier(activePage: $activePage, enabled: trackPage))
+        .modifier(ScrollPositionModifier(activePage: $activePage, enabled: needsPositionTracking, anchor: scrollAnchor(isHorizontal: isHorizontal)))
         .modifier(ScrollBehaviorModifier(paging: element.paging == true, snapAlignment: element.snapAlignment))
+    }
+
+    private func scrollAnchor(isHorizontal: Bool) -> UnitPoint? {
+        switch element.snapAlignment {
+        case .center: return .center
+        case .end: return isHorizontal ? .trailing : .bottom
+        default: return nil
+        }
     }
 
     @ViewBuilder
@@ -115,12 +120,6 @@ struct AtomicScrollContainerView: View {
                     .layoutValue(key: AtomicFlexValueKey.self, value: CGFloat(max(child.flex ?? 0, 0)))
                     .id(index)
             }
-        }
-    }
-
-    private func logUnsupportedScrollConstraints() {
-        if let snapAlignment = element.snapAlignment, snapAlignment != .start {
-            scrollLogger.warning("snapAlignment \(snapAlignment.rawValue, privacy: .public) is decoded but iOS ScrollView snapping currently aligns targets at start; elementId=\(element.id ?? "nil", privacy: .public)")
         }
     }
 
@@ -176,11 +175,16 @@ private struct ScrollBehaviorModifier: ViewModifier {
 private struct ScrollPositionModifier: ViewModifier {
     @Binding var activePage: Int?
     let enabled: Bool
+    let anchor: UnitPoint?
 
     @ViewBuilder
     func body(content: Content) -> some View {
         if enabled {
-            content.scrollPosition(id: $activePage)
+            if let anchor {
+                content.scrollPosition(id: $activePage, anchor: anchor)
+            } else {
+                content.scrollPosition(id: $activePage)
+            }
         } else {
             content
         }

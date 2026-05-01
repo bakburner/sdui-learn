@@ -1,49 +1,52 @@
-SDUI: layout overhaul (sizing/wrap/shadows), tokenize md=12, replace loremflickr, doc audit
+SDUI: Envelope Spec v1 implementation + doc consistency audit
 
---- Schema: layout constraint & sizing overhaul ---
+--- Envelope Spec v1 (server + all clients) ---
 
-- SizingMode enum (hug/fill/fixed) + widthMode/heightMode fields
-- minWidth, maxWidth, minHeight, maxHeight constraint fields
-- layoutWrap boolean + crossAxisGap for flex-wrap containers
-- alignSelf per-child cross-axis override
-- backgrounds[] array (multi-layer, deprecates singular background)
-- shadows[] array (multi-layer, deprecates singular shadow)
-- Shadow.type: "drop" | "inner" (inner shadow support)
-- fillWidth, background, shadow marked DEPRECATED in schema descriptions
+- Server: /v1/ URL prefix on all composition routes, BracketParamResolver
+  reads X-Request-Id into MDC, removed X-Schema-Version header fallback,
+  SduiRequestContext.Platform reduced to deviceClass + capabilities only,
+  top-level resolvedCountry/resolvedMarketCohort from edge headers
+- Android: RequestEnvelopeBuilder emits only locale/schemaVersion/
+  deviceClass/capabilities/experiments as query params; SduiRepository
+  sends X-Trace-Id, X-Request-Id, X-Device-Id, X-Platform, X-App-Version,
+  X-OS-Version, X-Resolved-Country, X-Resolved-Market-Cohort, Authorization
+- iOS: Same envelope shape; SduiRepository sends same header set;
+  UriResolver sduiPrefix = "/v1/sdui/"
+- Web: Same envelope shape; fetchSduiScreen sends same header set;
+  SDUI_PATH_PREFIX = '/v1/sdui/'
 
---- Client implementations ---
+--- Envelope contract documentation ---
 
-- iOS: WrappingFlexLayout.swift, AtomicBoxModifier updated for alignSelf,
-  sizingMode, min/max constraints, multi-shadows, multi-backgrounds
-- Android: AtomicBox/AtomicContainer updated, LayoutTokenResolver md=12
-- Web: AtomicBox/AtomicContainer/AtomicOverlayContainer updated,
-  LayoutTokenResolver md=12, background.ts multi-layer util
+- Created docs/sdui-envelope-spec.md — full envelope contract reference
+  covering versioning layers, URL shape, query fields, excluded fields,
+  GET/POST fallback, percent-encoding, deterministic ordering, headers,
+  edge-injected headers, trust model, server contract, caching, roadmap
 
---- Spacing token correction (md=12 base) ---
+--- Doc consistency audit (16 inconsistencies fixed) ---
 
-- GameDetailComposer overlay: cornerRadius → RADIUS_LG, spacer1 → SPACING_LG
-- AtomicCompositeBuilder.buildStatRowVertical: inter-column spacer
-  SPACING_MD → SPACING_LG (stat rows were cramped)
-- LayoutTokenResolver on all platforms: md resolves to 12 (was 8)
+- AGENTS.md §3.4: Rewrote platform identity section (X-Platform header +
+  deviceClass/capabilities query params); §4.1.1 bracket params updated
+- README.md: All curls → /v1/sdui/, screens table updated, schemaVersion
+  as query param instead of X-Schema-Version header
+- docs/SDUI_Executive_Summary_v2.md: Envelope fields and platform-aware
+  composition description
+- docs/SDUI_Technical_Proposal_v2.md: URI resolution convention, endpoint
+  JSON examples
+- docs/sdui-requirements-summary.md: Transport decisions, mermaid diagram,
+  dual-mounted route, schema versioning mechanism
+- docs/client-implementors-contract.md: Curl example, UriResolver, §11
+  wire shape table, headers table, conformance C11, pseudocode, cache key
+- docs/glossary.md: Envelope definition updated
+- docs/adr/003-composition-api-contract.md: Required inputs list
+- prompts/agents/client-builder.agent.md: Platform identity rule
+- docs/plans/plan-aggregation-demo-features.md: Cache key formula
 
---- Replace broken loremflickr.com image URLs ---
+--- Test updates ---
 
-- DemoImageUrls.java: added hero(), cardTall(), thumb(), avatar() helpers
-- HomeComposer, ForYouComposer, DemoScreenComposer: all loremflickr URLs
-  replaced with same-origin DemoImageUrls SVGs
-
---- Doc consistency audit ---
-
-- docs/sdui-design-system.md: spacing md 8→12, radius md 8→12
-- docs/glossary.md: added "Box model & layout" section (SizingMode,
-  widthMode/heightMode, min/max, layoutWrap, crossAxisGap, alignSelf,
-  backgrounds array, shadows array, inner shadow)
-- docs/client-implementors-contract.md: AtomicBox pseudocode updated for
-  widthMode/heightMode, shadows[], backgrounds[], min/max constraints,
-  layoutWrap/crossAxisGap/alignSelf
-- README.md: added "Layout constraint & sizing overhaul" to Recent Changes
-
---- Verification ---
-
-- `./gradlew compileJava` passes
-- `grep -rn loremflickr server/src/` returns zero hits
+- All platform envelope/transport tests updated for new query shape,
+  /v1/sdui/ prefix, and header assertions
+- Server: SduiRefreshTransportTest updated
+- iOS: RequestEnvelopeBuilderTests, SduiRepositoryRefreshTransportTests,
+  UriResolverTests, ActionDispatcherTests, PollingDriverTests
+- Android: SduiRepositoryRefreshTransportTest
+- Web: fetchSduiScreen.test.ts (176/176 pass)

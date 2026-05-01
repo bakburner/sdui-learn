@@ -180,18 +180,19 @@ The following are **not** valid client exceptions:
 
 ### 3.4 Platform identity travels in the request envelope
 
-- Every client identifies its platform through the request envelope, not
-  through a dedicated header. `RequestEnvelopeBuilder` emits `platform[name]`
-  (and `platform.deviceClass`) as a bracket-notation query parameter on GET
-  requests and as `platform.name` inside the JSON body on POST. See §4.1.1.
-- Allowed `platform[name]` values are `android`, `ios`, `web`.
-- Server composition reads the platform via `SduiRequestContext` /
-  `BracketParamResolver`. Composers must never assume a platform via
-  `defaultValue`; missing platforms must compose safely (e.g. form layout
+- Every client identifies its platform through the `X-Platform` header
+  (analytics/observability) and `platform[deviceClass]` +
+  `platform[capabilities]` as bracket-notation query parameters (composition
+  inputs). `RequestEnvelopeBuilder` emits the query fields on GET requests
+  and as `platform.deviceClass` / `platform.capabilities` inside the JSON
+  body on POST. See §4.1.1.
+- Allowed `X-Platform` header values are `android`, `ios`, `web`.
+- Server composition reads device context via `SduiRequestContext` /
+  `BracketParamResolver`. Composers must never assume a deviceClass via
+  `defaultValue`; missing deviceClass must compose safely (e.g. form layout
   falls back to vertical).
-- Do not set `X-Platform` on outbound requests.
-- Platform-specific composition decisions are resolved from the envelope, not
-  from hardcoded strings.
+- Platform-specific composition decisions are resolved from `deviceClass` in
+  the envelope, not from hardcoded strings.
 - **`formFactor` (roadmap):** the wire will carry a client-declared form factor
   in the same envelope (see implementation plan). Until that is required end to
   end, clients may use a **documented default** (e.g. `phone`) for
@@ -254,9 +255,9 @@ at all.
 
 The contract:
 
-- **Bracket-notation query params for the envelope.** `platform`, `device`,
-  `experiments`, `locale`, `schemaVersion`, and `gameState` are serialized
-  as `platform[name]=ios`, `device[countryCode]=US`,
+- **Bracket-notation query params for the envelope.** `platform`, `experiments`,
+  `locale`, and `schemaVersion` are serialized as
+  `platform[deviceClass]=phone`, `platform[capabilities]=sse`,
   `experiments[exp_id]=variant_b`, etc. Same bytes on every platform.
 - **GET-first, POST fallback at 8192 chars.** When the envelope query
   exceeds the threshold, the *same envelope shape* moves to a JSON body

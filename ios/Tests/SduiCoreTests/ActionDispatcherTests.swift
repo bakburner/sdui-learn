@@ -99,12 +99,12 @@ final class ActionDispatcherTests: XCTestCase {
         dispatcher.dispatch(action(
             type: .refresh,
             target: "scoreboard",
-            endpoint: "/sdui/scoreboard",
+            endpoint: "/v1/sdui/scoreboard",
             paramBindings: nil
         ))
 
         XCTAssertEqual(captured?.0, "scoreboard")
-        XCTAssertEqual(captured?.1, "/sdui/scoreboard")
+        XCTAssertEqual(captured?.1, "/v1/sdui/scoreboard")
     }
 
     @MainActor

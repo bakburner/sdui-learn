@@ -42,7 +42,6 @@ final class SduiRepository {
     ///
     /// - Parameters:
     ///   - endpoint: server-relative path (e.g. `/sdui/scoreboard`).
-    ///   - variant: optional `gameState` override.
     ///   - userParams: optional user-supplied filter params (e.g. Form submit
     ///     bindings like `season=2025-26`). Always travel in the URL query
     ///     string regardless of GET vs POST so the server reads them
@@ -52,14 +51,10 @@ final class SduiRepository {
     ///     to the config's provider when absent.
     func fetchScreen(
         endpoint: String,
-        variant: String? = nil,
         userParams: [String: String] = [:],
         traceID: String? = nil
     ) async throws -> SduiModels {
         var envelope = envelopeProvider()
-        if let variant {
-            envelope.gameState = variant
-        }
 
         let resolvedTraceID = traceID ?? config.traceIDProvider()
         let request = try buildRequest(
@@ -172,8 +167,11 @@ final class SduiRepository {
         )
 
         let userQuery = Self.encodeUserParams(userParams)
+        // Threshold includes both halves so large userParams trigger POST too.
+        let envelopeQuery = envelope.buildQueryString()
+        let combinedLength = envelopeQuery.count + (userQuery.isEmpty ? 0 : userQuery.count + 1)
 
-        if envelope.exceedsGetThreshold {
+        if combinedLength > RequestEnvelope.maxQueryLength {
             let postURL: URL
             if userQuery.isEmpty {
                 postURL = baseWithPath
@@ -187,18 +185,17 @@ final class SduiRepository {
             request.httpMethod = "POST"
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             request.httpBody = try envelope.jsonBody()
-            attachAuthHeaders(&request, traceID: traceID)
+            attachAuthHeaders(&request, traceID: traceID, envelope: envelope)
             return request
         }
 
-        let envelopeQuery = envelope.buildQueryString()
         let combined = userQuery.isEmpty ? envelopeQuery : userQuery + "&" + envelopeQuery
         let urlString = baseWithPath.absoluteString + "?" + combined
         guard let url = URL(string: urlString) else {
             throw SduiError.invalidURL(endpoint)
         }
         var request = URLRequest(url: url)
-        attachAuthHeaders(&request, traceID: traceID)
+        attachAuthHeaders(&request, traceID: traceID, envelope: envelope)
         return request
     }
 
@@ -214,11 +211,25 @@ final class SduiRepository {
             .joined(separator: "&")
     }
 
-    private func attachAuthHeaders(_ request: inout URLRequest, traceID: String) {
+    private func attachAuthHeaders(_ request: inout URLRequest, traceID: String, envelope: RequestEnvelope? = nil) {
         if let token = config.authorizationToken {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
         request.setValue(traceID, forHTTPHeaderField: "X-Trace-Id")
+        request.setValue(UUID().uuidString, forHTTPHeaderField: "X-Request-Id")
+        if let deviceID = envelope?.deviceID {
+            request.setValue(deviceID, forHTTPHeaderField: "X-Device-Id")
+        }
+        if let envelope {
+            request.setValue(envelope.platformName, forHTTPHeaderField: "X-Platform")
+            if let appVersion = envelope.appVersion {
+                request.setValue(appVersion, forHTTPHeaderField: "X-App-Version")
+            }
+            request.setValue(envelope.osVersion, forHTTPHeaderField: "X-OS-Version")
+        }
+        // TODO(edge): placeholder — edge worker will set these from client IP
+        request.setValue("US", forHTTPHeaderField: "X-Resolved-Country")
+        request.setValue("MARKET_UNKNOWN", forHTTPHeaderField: "X-Resolved-Market-Cohort")
     }
 }
 

@@ -28,7 +28,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Contract tests for {@code /sdui/refresh/{screenId}} and the form-factor
+ * Contract tests for {@code /v1/sdui/refresh/{screenId}} and the device-class
  * field carried by {@link SduiRequestContext}.
  *
  * <p>Asserts that the refresh endpoint honors the canonical SDUI transport
@@ -36,9 +36,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * with the same envelope shape in the JSON body, and user filter params on
  * the URL query string regardless of HTTP method.
  *
- * <p>Also asserts that {@code platform[formFactor]} (GET) and
- * {@code platform.formFactor} (POST JSON body) round-trip into
- * {@code ctx.getPlatform().getFormFactor()} via the shared
+ * <p>Also asserts that {@code platform[deviceClass]} (GET) and
+ * {@code platform.deviceClass} (POST JSON body) round-trip into
+ * {@code ctx.getPlatform().getDeviceClass()} via the shared
  * {@link com.nba.sdui.request.BracketParamResolver}, satisfying the Phase 3
  * envelope-transport contract.
  *
@@ -74,15 +74,16 @@ class SduiRefreshTransportTest {
     @Test
     void getRefreshAcceptsBracketEnvelopeAndExtractsUserParams() throws Exception {
         mockMvc.perform(
-                get("/sdui/refresh/stats-leaders")
+                get("/v1/sdui/refresh/stats-leaders")
                         .param("perMode", "Totals")
                         .param("season", "2025-26")
                         .param("seasonType", "Regular Season")
                         .param("locale", "en")
-                        .param("platform[name]", "ios")
-                        .param("platform[formFactor]", "tablet")
-                        .param("device[countryCode]", "US")
+                        .param("platform[deviceClass]", "tablet")
                         .param("experiments[gd_tab_order_v2]", "variant_b")
+                        .header("X-Platform", "ios")
+                        .header("X-Resolved-Country", "US")
+                        .header("X-Resolved-Market-Cohort", "MARKET_UNKNOWN")
                         .header("X-Trace-Id", "trace-123")
         ).andExpect(status().isOk());
 
@@ -112,17 +113,21 @@ class SduiRefreshTransportTest {
         envelope.put("locale", "en");
         envelope.put("schemaVersion", "1.0");
         Map<String, Object> platform = new HashMap<>();
-        platform.put("name", "ios");
-        platform.put("appVersion", "8.3.0");
-        platform.put("formFactor", "tablet");
+        platform.put("deviceClass", "tablet");
+        Map<String, Object> capabilities = new HashMap<>();
+        capabilities.put("sse", true);
+        platform.put("capabilities", capabilities);
         envelope.put("platform", platform);
 
         mockMvc.perform(
-                post("/sdui/refresh/stats-leaders")
+                post("/v1/sdui/refresh/stats-leaders")
                         .param("perMode", "Totals")
                         .param("season", "2025-26")
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsBytes(envelope))
+                        .header("X-Platform", "ios")
+                        .header("X-Resolved-Country", "US")
+                        .header("X-Resolved-Market-Cohort", "MARKET_UNKNOWN")
                         .header("X-Trace-Id", "trace-456")
         ).andExpect(status().isOk());
 
@@ -142,16 +147,18 @@ class SduiRefreshTransportTest {
 
     /**
      * GET on a route that takes {@link SduiRequestContext} end to end —
-     * proves the bracket-notation {@code platform[formFactor]} param survives
-     * Jackson's {@code convertValue} into {@code ctx.getPlatform().getFormFactor()}.
+     * proves the bracket-notation {@code platform[deviceClass]} param survives
+     * Jackson's {@code convertValue} into {@code ctx.getPlatform().getDeviceClass()}.
      */
     @Test
-    void getScoreboardCarriesFormFactorThroughEnvelope() throws Exception {
+    void getScoreboardCarriesDeviceClassThroughEnvelope() throws Exception {
         mockMvc.perform(
-                get("/sdui/scoreboard")
+                get("/v1/sdui/scoreboard")
                         .param("locale", "en")
-                        .param("platform[name]", "ios")
-                        .param("platform[formFactor]", "tablet")
+                        .param("platform[deviceClass]", "tablet")
+                        .header("X-Platform", "ios")
+                        .header("X-Resolved-Country", "US")
+                        .header("X-Resolved-Market-Cohort", "MARKET_UNKNOWN")
                         .header("X-Trace-Id", "trace-ff-get")
         ).andExpect(status().isOk());
 
@@ -161,30 +168,34 @@ class SduiRefreshTransportTest {
 
         SduiRequestContext ctx = ctxCaptor.getValue();
         assertNotNull(ctx.getPlatform(), "platform must be populated from bracket params");
-        assertEquals("ios", ctx.getPlatform().getName());
-        assertEquals("tablet", ctx.getPlatform().getFormFactor(),
-                "platform[formFactor] must round-trip into ctx.platform.formFactor");
+        assertEquals("tablet", ctx.getPlatform().getDeviceClass(),
+                "platform[deviceClass] must round-trip into ctx.platform.deviceClass");
     }
 
     /**
-     * POST symmetry: the same form-factor value carried in the JSON body
+     * POST symmetry: the same device-class value carried in the JSON body
      * must produce identical {@code ctx} state. GET/POST symmetry is part of
      * the envelope transport contract.
      */
     @Test
-    void postScoreboardCarriesFormFactorThroughJsonBody() throws Exception {
+    void postScoreboardCarriesDeviceClassThroughJsonBody() throws Exception {
         Map<String, Object> envelope = new HashMap<>();
         envelope.put("locale", "en");
         envelope.put("schemaVersion", "1.0");
         Map<String, Object> platform = new HashMap<>();
-        platform.put("name", "ios");
-        platform.put("formFactor", "tablet");
+        platform.put("deviceClass", "tablet");
+        Map<String, Object> capabilities = new HashMap<>();
+        capabilities.put("sse", true);
+        platform.put("capabilities", capabilities);
         envelope.put("platform", platform);
 
         mockMvc.perform(
-                post("/sdui/scoreboard")
+                post("/v1/sdui/scoreboard")
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsBytes(envelope))
+                        .header("X-Platform", "ios")
+                        .header("X-Resolved-Country", "US")
+                        .header("X-Resolved-Market-Cohort", "MARKET_UNKNOWN")
                         .header("X-Trace-Id", "trace-ff-post")
         ).andExpect(status().isOk());
 
@@ -194,8 +205,7 @@ class SduiRefreshTransportTest {
 
         SduiRequestContext ctx = ctxCaptor.getValue();
         assertNotNull(ctx.getPlatform(), "platform must be populated from JSON body");
-        assertEquals("ios", ctx.getPlatform().getName());
-        assertEquals("tablet", ctx.getPlatform().getFormFactor(),
-                "platform.formFactor must round-trip through JSON deserialization");
+        assertEquals("tablet", ctx.getPlatform().getDeviceClass(),
+                "platform.deviceClass must round-trip through JSON deserialization");
     }
 }

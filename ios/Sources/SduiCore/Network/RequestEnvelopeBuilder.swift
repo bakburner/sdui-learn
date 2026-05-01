@@ -29,7 +29,6 @@ public struct RequestEnvelope: Sendable, Equatable {
 
     public var locale: String
     public var schemaVersion: String
-    public var gameState: String?
 
     // MARK: Platform
 
@@ -37,17 +36,15 @@ public struct RequestEnvelope: Sendable, Equatable {
     public var appVersion: String?
     public var osVersion: String
     public var deviceClass: String
+    // TODO(platform-tier): replace per-boolean capability flags with a single
+    // server-defined platform tier string (e.g. "tier:full") to reduce CDN
+    // cache-key fragmentation. Tier resolution at edge or in client.
     public var sseCapable: Bool
     public var onFocusCapable: Bool
-    /// Layout token axis: `phone`, `phone.landscape`, `tablet`, `web.narrow`, `web.wide`, `tv`. Sent on every request.
-    public var formFactor: String
 
     // MARK: Device
 
     public var deviceID: String?
-    public var zipCode: String?
-    public var countryCode: String?
-    public var region: String?
 
     // MARK: Experiments
 
@@ -56,34 +53,24 @@ public struct RequestEnvelope: Sendable, Equatable {
     public init(
         locale: String = "en",
         schemaVersion: String = "1.0",
-        gameState: String? = nil,
         platformName: String = "ios",
         appVersion: String? = nil,
         osVersion: String = Self.currentOSVersion,
         deviceClass: String = Self.currentDeviceClass,
         sseCapable: Bool = true,
         onFocusCapable: Bool = false,
-        formFactor: String = Self.currentFormFactor,
         deviceID: String? = nil,
-        zipCode: String? = nil,
-        countryCode: String? = nil,
-        region: String? = nil,
         experiments: [String: String] = [:]
     ) {
         self.locale = locale
         self.schemaVersion = schemaVersion
-        self.gameState = gameState
         self.platformName = platformName
         self.appVersion = appVersion
         self.osVersion = osVersion
         self.deviceClass = deviceClass
         self.sseCapable = sseCapable
         self.onFocusCapable = onFocusCapable
-        self.formFactor = formFactor
         self.deviceID = deviceID
-        self.zipCode = zipCode
-        self.countryCode = countryCode
-        self.region = region
         self.experiments = experiments
     }
 
@@ -98,22 +85,14 @@ public struct RequestEnvelope: Sendable, Equatable {
 
         params.append(("locale", locale))
         params.append(("schemaVersion", schemaVersion))
-        if let gameState { params.append(("gameState", gameState)) }
 
-        params.append(("platform[name]", platformName))
-        if let appVersion { params.append(("platform[appVersion]", appVersion)) }
-        params.append(("platform[osVersion]", osVersion))
         params.append(("platform[deviceClass]", deviceClass))
         params.append(("platform[capabilities][sse]", String(sseCapable)))
         if onFocusCapable {
             params.append(("platform[capabilities][onFocus]", "true"))
         }
-        params.append(("platform[formFactor]", formFactor))
 
-        if let deviceID { params.append(("device[deviceId]", deviceID)) }
-        if let zipCode { params.append(("device[zipCode]", zipCode)) }
-        if let countryCode { params.append(("device[countryCode]", countryCode)) }
-        if let region { params.append(("device[region]", region)) }
+        // deviceID travels as X-Device-Id header, not in the envelope query.
 
         for (id, variant) in experiments.sorted(by: { $0.key < $1.key }) {
             params.append(("experiments[\(id)]", variant))
@@ -133,21 +112,13 @@ public struct RequestEnvelope: Sendable, Equatable {
     /// Shape matches the server's ``SduiRequestContext`` field layout.
     public func jsonBody() throws -> Data {
         var platform: [String: Any] = [
-            "name": platformName,
-            "osVersion": osVersion,
-            "deviceClass": deviceClass,
-            "formFactor": formFactor
+            "deviceClass": deviceClass
         ]
-        if let appVersion { platform["appVersion"] = appVersion }
         var capabilities: [String: Any] = ["sse": sseCapable]
         if onFocusCapable { capabilities["onFocus"] = true }
         platform["capabilities"] = capabilities
 
-        var device: [String: Any] = [:]
-        if let deviceID { device["deviceId"] = deviceID }
-        if let zipCode { device["zipCode"] = zipCode }
-        if let countryCode { device["countryCode"] = countryCode }
-        if let region { device["region"] = region }
+        // deviceID travels as X-Device-Id header, not in the envelope body.
 
         var body: [String: Any] = [
             "locale": locale,
@@ -155,8 +126,6 @@ public struct RequestEnvelope: Sendable, Equatable {
             "platform": platform,
             "experiments": experiments
         ]
-        if !device.isEmpty { body["device"] = device }
-        if let gameState { body["gameState"] = gameState }
 
         return try JSONSerialization.data(
             withJSONObject: body,

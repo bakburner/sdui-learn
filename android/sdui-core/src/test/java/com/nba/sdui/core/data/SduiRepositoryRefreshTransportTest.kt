@@ -66,7 +66,7 @@ class SduiRepositoryRefreshTransportTest {
     @Test
     fun `parameterized refresh resolves baseUrl and percent-encodes user params`() = runBlocking {
         repository.fetchScreen(
-            path = "/sdui/refresh/stats-leaders",
+            path = "/v1/sdui/refresh/stats-leaders",
             envelope = compactEnvelope(),
             userParams = mapOf(
                 "perMode" to "Totals",
@@ -80,7 +80,7 @@ class SduiRepositoryRefreshTransportTest {
         val url = request.url
         assertEquals("https", url.scheme)
         assertEquals("example.test", url.host)
-        assertTrue(url.encodedPath.endsWith("/sdui/refresh/stats-leaders"))
+        assertTrue(url.encodedPath.endsWith("/v1/sdui/refresh/stats-leaders"))
 
         val query = url.encodedQuery!!
         assertTrue(query.contains("perMode=Totals"))
@@ -89,10 +89,8 @@ class SduiRepositoryRefreshTransportTest {
             "spaces in user params must be RFC-3986 encoded as %20: $query",
             query.contains("seasonType=Regular%20Season")
         )
-        assertTrue("envelope must travel as bracket-notation: $query",
-            query.contains("platform%5Bname%5D=android"))
-        assertTrue("envelope must carry formFactor on every request: $query",
-            query.contains("platform%5BformFactor%5D=phone"))
+        assertTrue("envelope must carry deviceClass on every request: $query",
+            query.contains("platform%5BdeviceClass%5D=phone"))
         assertTrue(query.contains("locale=en"))
 
         assertEquals("trace-parent", request.header("X-Trace-Id"))
@@ -102,7 +100,7 @@ class SduiRepositoryRefreshTransportTest {
     @Test
     fun `refresh user params are sorted deterministically`() = runBlocking {
         repository.fetchScreen(
-            path = "/sdui/refresh/x",
+            path = "/v1/sdui/refresh/x",
             envelope = compactEnvelope(),
             userParams = mapOf("zKey" to "z", "aKey" to "a", "mKey" to "m")
         )
@@ -119,11 +117,11 @@ class SduiRepositoryRefreshTransportTest {
     fun `refresh and screen fetch produce the same encoded shape modulo user params`() = runBlocking {
         val envelope = compactEnvelope()
 
-        repository.fetchScreen("/sdui/scoreboard", envelope)
+        repository.fetchScreen("/v1/sdui/scoreboard", envelope)
         val screenQuery = captured.single().url.encodedQuery!!
         captured.clear()
 
-        repository.fetchScreen("/sdui/scoreboard", envelope, userParams = mapOf("k" to "v"))
+        repository.fetchScreen("/v1/sdui/scoreboard", envelope, userParams = mapOf("k" to "v"))
         val refreshQuery = captured.single().url.encodedQuery!!
 
         assertTrue(
@@ -145,7 +143,7 @@ class SduiRepositoryRefreshTransportTest {
         assertTrue("fixture must exceed GET threshold", oversized.exceedsGetThreshold())
 
         repository.fetchScreen(
-            path = "/sdui/refresh/stats-leaders",
+            path = "/v1/sdui/refresh/stats-leaders",
             envelope = oversized,
             userParams = mapOf("perMode" to "Totals")
         )
@@ -155,10 +153,8 @@ class SduiRepositoryRefreshTransportTest {
         assertEquals("perMode=Totals", request.url.encodedQuery)
 
         val body = readBody(request)
-        // The body is the same bracket-notation query string the GET path
-        // would have used, sent as JSON-shaped content per RequestEnvelopeBuilder.
-        assertTrue("envelope body must include platform brackets: $body",
-            body.contains("platform%5Bname%5D=android"))
+        assertTrue("envelope body must include deviceClass: $body",
+            body.contains("\"deviceClass\":\"phone\"") || body.contains("\"deviceClass\": \"phone\""))
     }
 
     // MARK: Helpers
@@ -166,14 +162,8 @@ class SduiRepositoryRefreshTransportTest {
     private fun compactEnvelope() = RequestEnvelopeBuilder()
         .locale("en")
         .schemaVersion("1.0")
-        .platformName("android")
-        .appVersion("8.3.0")
-        .osVersion("34")
         .deviceClass("phone")
         .sseCapable(true)
-        // Pin form factor for byte-stable URL assertions; production paths
-        // pick this up from the runtime classifier.
-        .formFactor("phone")
 
     private fun oversizedEnvelope(): RequestEnvelopeBuilder {
         val builder = compactEnvelope()

@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fetchSduiScreen } from './fetchSduiScreen';
-import { RequestEnvelopeBuilder } from '../request/RequestEnvelopeBuilder';
 
 /**
  * Contract tests asserting that parameterized refresh produces the *same*
@@ -93,9 +92,9 @@ describe('fetchSduiScreen — parameterized refresh transport', () => {
     vi.unstubAllGlobals();
   });
 
-  it('routes /sdui/* through the /api proxy and percent-encodes user params', async () => {
+  it('routes /v1/sdui/* through the /api proxy and percent-encodes user params', async () => {
     await fetchSduiScreen({
-      endpoint: '/sdui/refresh/stats-leaders',
+      endpoint: '/v1/sdui/refresh/stats-leaders',
       userParams: {
         perMode: 'Totals',
         season: '2025-26',
@@ -107,21 +106,23 @@ describe('fetchSduiScreen — parameterized refresh transport', () => {
     expect(captured).toHaveLength(1);
     const req = captured[0];
     expect(req.method).toBe('GET');
-    expect(req.url.startsWith('/api/sdui/refresh/stats-leaders?')).toBe(true);
+    expect(req.url.startsWith('/api/v1/sdui/refresh/stats-leaders?')).toBe(true);
 
     const query = req.url.split('?')[1];
     expect(query).toContain('perMode=Totals');
     expect(query).toContain('season=2025-26');
     expect(query).toContain('seasonType=Regular%20Season');
-    expect(query).toContain('platform%5Bname%5D=web');
     expect(query).toContain('locale=en');
 
     expect(req.headers['x-trace-id']).toBe('trace-parent');
+    expect(req.headers['x-platform']).toBe('web');
+    expect(req.headers['x-resolved-country']).toBe('US');
+    expect(req.headers['x-resolved-market-cohort']).toBe('MARKET_UNKNOWN');
   });
 
   it('sorts user params deterministically by key', async () => {
     await fetchSduiScreen({
-      endpoint: '/sdui/refresh/x',
+      endpoint: '/v1/sdui/refresh/x',
       userParams: { zKey: 'z', aKey: 'a', mKey: 'm' },
     });
 
@@ -135,78 +136,14 @@ describe('fetchSduiScreen — parameterized refresh transport', () => {
   });
 
   it('refresh and screen fetch produce the same encoded shape modulo user params', async () => {
-    await fetchSduiScreen({ endpoint: '/sdui/scoreboard' });
+    await fetchSduiScreen({ endpoint: '/v1/sdui/scoreboard' });
     const screenQuery = captured[0].url.split('?')[1];
 
     captured.length = 0;
-    await fetchSduiScreen({ endpoint: '/sdui/scoreboard', userParams: { k: 'v' } });
+    await fetchSduiScreen({ endpoint: '/v1/sdui/scoreboard', userParams: { k: 'v' } });
     const refreshQuery = captured[0].url.split('?')[1];
 
     expect(refreshQuery.startsWith('k=v&')).toBe(true);
     expect(refreshQuery.slice('k=v&'.length)).toBe(screenQuery);
-  });
-});
-
-describe('fetchSduiScreen — formFactor in request envelope', () => {
-  let captured: CapturedRequest[];
-
-  beforeEach(() => {
-    captured = [];
-    installFetchStub(captured);
-  });
-
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
-  it('emits platform[formFactor]=web.wide on GET when viewport is wide', async () => {
-    stubMatchMedia(true); // (min-width: 768px) matches → web.wide
-    await fetchSduiScreen({ endpoint: '/sdui/scoreboard' });
-
-    const req = captured[0];
-    expect(req.method).toBe('GET');
-
-    const query = req.url.split('?')[1] ?? '';
-    expect(query).toContain('platform%5BformFactor%5D=web.wide');
-
-    // formFactor must follow the capabilities block — same byte ordering
-    // as iOS / Android so the CDN cache key collides across platforms.
-    const sse = query.indexOf('platform%5Bcapabilities%5D%5Bsse%5D=');
-    const ff = query.indexOf('platform%5BformFactor%5D=');
-    expect(sse).toBeGreaterThanOrEqual(0);
-    expect(ff).toBeGreaterThan(sse);
-  });
-
-  it('emits platform[formFactor]=web.narrow on GET when viewport is narrow', async () => {
-    stubMatchMedia(false); // (min-width: 768px) does not match → web.narrow
-    await fetchSduiScreen({ endpoint: '/sdui/scoreboard' });
-
-    const query = captured[0].url.split('?')[1] ?? '';
-    expect(query).toContain('platform%5BformFactor%5D=web.narrow');
-  });
-
-  it('includes platform.formFactor in JSON body on POST fallback', async () => {
-    stubMatchMedia(true); // web.wide
-
-    // Force POST by stuffing experiments past the 8192-char threshold.
-    const bigExperiments: Record<string, string> = {};
-    for (let i = 0; i < 600; i++) {
-      bigExperiments[`exp_${i.toString().padStart(4, '0')}`] = 'variant_xyz_aaaaaaaaaaaaa';
-    }
-
-    await fetchSduiScreen({ endpoint: '/sdui/scoreboard', experiments: bigExperiments });
-    const req = captured[0];
-    expect(req.method).toBe('POST');
-    expect(req.body).toBeDefined();
-
-    const body = JSON.parse(req.body!) as { platform?: { formFactor?: string } };
-    expect(body.platform?.formFactor).toBe('web.wide');
-  });
-
-  it('builder.formFactor() override wins over the matchMedia-derived default', () => {
-    stubMatchMedia(true); // would default to web.wide
-    const qs = new RequestEnvelopeBuilder().formFactor('tablet').buildQueryString();
-    expect(qs).toContain('platform%5BformFactor%5D=tablet');
-    expect(qs).not.toContain('platform%5BformFactor%5D=web.wide');
   });
 });

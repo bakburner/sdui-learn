@@ -83,33 +83,58 @@ public class BracketParamResolver implements HandlerMethodArgumentResolver {
      * During transition: accept deprecated headers as fallback if query params are absent.
      */
     private void applyHeaderFallbacks(SduiRequestContext ctx, NativeWebRequest webRequest) {
-        // X-Platform → platform.name (deprecated header fallback)
-        if (ctx.getPlatformName() == null) {
-            String headerPlatform = webRequest.getHeader("X-Platform");
-            if (headerPlatform != null) {
-                log.debug("Using deprecated X-Platform header; migrate to platform[name] query param");
-                if (ctx.getPlatform() == null) {
-                    ctx.setPlatform(new SduiRequestContext.Platform());
-                }
-                ctx.getPlatform().setName(headerPlatform);
-            }
-        }
-
-        // X-Schema-Version → schemaVersion (deprecated header fallback)
-        if ("1.0".equals(ctx.getSchemaVersion())) {
-            String headerSchema = webRequest.getHeader("X-Schema-Version");
-            if (headerSchema != null && !"1.0".equals(headerSchema)) {
-                log.debug("Using deprecated X-Schema-Version header; migrate to schemaVersion query param");
-                ctx.setSchemaVersion(headerSchema);
-            }
-        }
-
         // X-Trace-Id → traceId
         if (ctx.getTraceId() == null) {
             String headerTraceId = webRequest.getHeader("X-Trace-Id");
             if (headerTraceId != null) {
                 ctx.setTraceId(headerTraceId);
             }
+        }
+
+        // X-Request-Id — added to MDC for request-level log correlation and dedup
+        String requestId = webRequest.getHeader("X-Request-Id");
+        if (requestId != null) {
+            org.slf4j.MDC.put("requestId", requestId);
+        }
+
+        // X-Platform — analytics/logging only, not stored on context
+        String xPlatform = webRequest.getHeader("X-Platform");
+        if (xPlatform != null) {
+            log.debug("X-Platform: {}", xPlatform);
+        }
+
+        // X-App-Version — analytics/logging only
+        String xAppVersion = webRequest.getHeader("X-App-Version");
+        if (xAppVersion != null) {
+            log.debug("X-App-Version: {}", xAppVersion);
+        }
+
+        // X-OS-Version — analytics/logging only
+        String xOsVersion = webRequest.getHeader("X-OS-Version");
+        if (xOsVersion != null) {
+            log.debug("X-OS-Version: {}", xOsVersion);
+        }
+
+        // X-Device-Id → device.deviceId (never in query/body — high cardinality
+        // would fragment CDN cache keys)
+        String headerDeviceId = webRequest.getHeader("X-Device-Id");
+        if (headerDeviceId != null) {
+            if (ctx.getDevice() == null) {
+                ctx.setDevice(new SduiRequestContext.Device());
+            }
+            ctx.getDevice().setDeviceId(headerDeviceId);
+        }
+
+        // X-Resolved-Country — edge-injected (trusted in production, placeholder in dev)
+        String resolvedCountry = webRequest.getHeader("X-Resolved-Country");
+        if (resolvedCountry != null) {
+            ctx.setResolvedCountry(resolvedCountry);
+        }
+
+        // X-Resolved-Market-Cohort — edge-injected (trusted in production, placeholder in dev)
+        String resolvedMarketCohort = webRequest.getHeader("X-Resolved-Market-Cohort");
+        if (resolvedMarketCohort != null) {
+            ctx.setResolvedMarketCohort(resolvedMarketCohort);
         }
     }
 

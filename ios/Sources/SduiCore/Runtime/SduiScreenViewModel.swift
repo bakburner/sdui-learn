@@ -31,6 +31,7 @@ public final class SduiScreenViewModel {
         case loading
         case loaded
         case failed(message: String)
+        case upgradeRequired(message: String)
     }
 
     // MARK: - Observable surface
@@ -146,6 +147,9 @@ public final class SduiScreenViewModel {
             let result = try await repository.fetchScreen(endpoint: endpoint)
             applyScreen(result)
             loadState = .loaded
+        } catch let err as SduiError where err == .upgradeRequired {
+            logger.warning("Schema version mismatch — upgrade required for \(self.endpoint, privacy: .public)")
+            loadState = .upgradeRequired(message: err.errorDescription ?? "Please update the app to continue.")
         } catch let err as SduiError {
             logger.error("load failed for \(self.endpoint, privacy: .public): \(err.localizedDescription, privacy: .public)")
             loadState = .failed(message: err.errorDescription ?? "Load failed")

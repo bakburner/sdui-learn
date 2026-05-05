@@ -29,7 +29,7 @@ public class WebConfig implements WebMvcConfigurer {
                 .allowedOrigins("*")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
-                .exposedHeaders("X-Trace-Id", "X-Schema-Version");
+                .exposedHeaders("X-Trace-Id", "X-Schema-Version", "X-Schema-Version-Mismatch");
     }
 
     @Override

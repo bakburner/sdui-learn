@@ -4,11 +4,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.nba.sdui.request.SduiRequestContext;
 import com.nba.sdui.service.SduiCompositionService;
+import com.nba.sdui.versioning.SchemaVersionChecker;
+import com.nba.sdui.versioning.SchemaVersionConfig;
+import com.nba.sdui.versioning.SchemaVersionFilter;
+import com.nba.sdui.versioning.SchemaVersionRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -47,6 +52,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * route relies on.
  */
 @WebMvcTest(SduiController.class)
+@Import({SchemaVersionChecker.class, SchemaVersionConfig.class, SchemaVersionFilter.class, SchemaVersionRegistry.class})
 class SduiRefreshTransportTest {
 
     @Autowired

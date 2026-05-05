@@ -38,6 +38,7 @@ glossary is strictly about runtime, wire, and design-system vocabulary.
 | **Endpoint** | A server-relative path that returns an SDUI screen payload. Endpoints are server-owned; clients never hardcode them. |
 | **Fixture** | A schema-validated example screen JSON kept under `ios/Tests/.../Fixtures/` and `schema/examples/`. Used for round-trip decoder tests and to seed the demo server. |
 | **Trace ID** (`X-Trace-Id`) | Per-request UUID emitted on every outbound SDUI request. Reused inside the client as the active-fetch identity so a newer fetch can dethrone an older one without inventing a parallel ID. Parameterized refreshes inherit their parent screen's trace ID so server logs correlate refresh responses with the screens that triggered them. |
+| **Schema versioning** | Server-side version routing based on the client's declared `schemaVersion` (major.minor). When a client's version is below `currentVersion`, the server strips fields/enums introduced after that version. When below `minSupportedVersion`, the server returns `X-Schema-Version-Mismatch: upgrade-required` header and an ErrorState section. Clients detect the header and display a platform-appropriate upgrade prompt. Config: `sdui.schema.current-version` / `min-supported-version` in `application.yml`. |
 
 ---
 

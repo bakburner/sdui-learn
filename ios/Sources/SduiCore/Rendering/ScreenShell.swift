@@ -94,6 +94,17 @@ private struct ScreenBody: View {
                     ErrorView(message: message) {
                         Task { await vm.load() }
                     }
+                case .upgradeRequired(let message):
+                    VStack(spacing: 12) {
+                        Text("Update Required")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                        Text(message)
+                            .font(.body)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding()
                 }
             }
             .animation(.easeInOut(duration: 0.2), value: vm.loadState)

@@ -20,7 +20,7 @@ without forking feeds or requiring client releases.
 | Section ID derivation | Partial | IDs are manually assigned per composer; no algorithmic derivation or `contentSourceId` field |
 | Capability negotiation | Partial | `Capabilities` carries `sse` and `onFocus`; no section-type or atomic-capability filtering |
 | Multi-column layout | Partial | Schema supports `Container[direction=row]` + `SectionSlot`; no form-factor branching in composers |
-| Per-feed version negotiation | Partial | `schemaVersion` in envelope/response; server always returns latest (see plan-schema-versioning.md) |
+| Per-feed version negotiation | Partial | `schemaVersion` in envelope/response; server always returns latest (see `server/plan-schema-versioning.md`) |
 | Translation resolution stub | Built | `SduiUtils.stampStringTableOnSections()` resolves locale → fully resolved strings; static map backing |
 | Pagination cursor | Gap | `LeadersTableData` has numeric `page`/`pageSize`/`totalRows`; no opaque cursor |
 | Analytics attribution | Partial | `analyticsId` on sections; `fireAndForget` actions with `params`; no `contentSourceId` in impression events |
@@ -178,6 +178,7 @@ combinations, none of which would see meaningful cache hit rates.
   }
   ```
 - [ ] Extend `SduiRequestContext.Platform.Capabilities` — add `private int tier = 3;` (full capability default)
+  - **Note:** The existing `Capabilities` Javadoc recommends replacing `sse`/`onFocus` booleans with a tier. For the demo, `tier` is **additive** (booleans remain for backward compatibility). Production migration to tier-only is tracked in `server/plan-schema-versioning.md`.
 - [ ] Add `CapabilityFilter` utility — `server/src/main/java/com/nba/sdui/service/CapabilityFilter.java`
   - `filterSections(ArrayNode sections, CapabilityTier tier)` — replaces unsupported section types with an `ErrorState` composite ("Upgrade to view this content")
   - `filterAtomicElements(ObjectNode ui, CapabilityTier tier)` — walks the atomic tree and replaces unsupported element types with a placeholder `Text` node
@@ -240,25 +241,32 @@ Example: 2 sections → 1 AtomicComposite containing 2 SectionSlots.
 - [ ] No schema changes — `Container[direction=row]` + `SectionSlot` already express multi-column
 
 #### Phase 2: Server
+
+> **Prerequisite:** `SduiRequestContext.Platform` currently has `deviceClass` (e.g.
+> `phone`, `tablet`) but no `formFactor` field. Per AGENTS.md §3.4, `formFactor` is
+> roadmap. This feature can branch on `deviceClass` for the demo (treating
+> `deviceClass=tablet` as the wide trigger). If `plan-layout-responsive.md` lands
+> first and adds a dedicated `formFactor` field, prefer that instead.
+
 - [ ] Add `MultiColumnWrapper` utility — `server/src/main/java/com/nba/sdui/service/MultiColumnWrapper.java`
-  - `wrapIfWideFormFactor(SduiRequestContext ctx, List<ObjectNode> sections, int columnsOnWide)` — when form factor is `tablet`, `web.wide`, or `tv`, replaces the input sections with a single `AtomicComposite` whose `data.ui` is a `Container[direction=row]` containing `SectionSlot` children (one per input section). On `phone` form factor, returns sections unchanged.
+  - `wrapIfWideFormFactor(SduiRequestContext ctx, List<ObjectNode> sections, int columnsOnWide)` — when `deviceClass` is `tablet`, `web.wide`, or `tv`, replaces the input sections with a single `AtomicComposite` whose `data.ui` is a `Container[direction=row]` containing `SectionSlot` children (one per input section). On `phone` deviceClass, returns sections unchanged.
   - Each column gets `flex: 1` for equal width distribution
   - Gap between columns uses `token:nba.spacing.md`
 - [ ] Apply `MultiColumnWrapper` in `ForYouComposer` — wrap the content rail + editorial rail pair as a 2-column layout on wide form factors
 - [ ] Apply in `HomeComposer` — wrap utility card sections as a 2-column grid on tablet
-- [ ] Add `Makefile` target `make demo-multi-column` that curls `/sdui/for-you?platform[formFactor]=tablet` and `/sdui/for-you?platform[formFactor]=phone` side by side
+- [ ] Add `Makefile` target `make demo-multi-column` that curls `/sdui/for-you?platform[deviceClass]=tablet` and `/sdui/for-you?platform[deviceClass]=phone` side by side
 
 #### Phase 3: Android
 - [ ] No renderer changes — `SectionSlot` inside Container already works via the bidirectional AtomicRouter ↔ SectionRouter bridge
-- [ ] Add form factor detection in `RequestEnvelopeBuilder.kt` — read screen width and send `tablet` when width ≥ 600dp
+- [ ] Add device class detection in `RequestEnvelopeBuilder.kt` — read screen width and send `deviceClass=tablet` when width ≥ 600dp (currently hardcoded or missing)
 
 #### Phase 4: Web
 - [ ] No renderer changes — SectionSlot rendering already delegates to SectionRouter
-- [ ] Add form factor detection in `RequestEnvelopeBuilder.ts` — send `web.wide` when viewport ≥ 1024px, `web.narrow` below
+- [ ] Add device class detection in `RequestEnvelopeBuilder.ts` — send `deviceClass=web.wide` when viewport ≥ 1024px, `deviceClass=web.narrow` below
 
 #### Phase 5: Tests
-- [ ] Server test: compose with `formFactor=phone` → sections are sequential (no row containers)
-- [ ] Server test: compose with `formFactor=tablet` → target sections are wrapped in Container[direction=row] with SectionSlot children
+- [ ] Server test: compose with `deviceClass=phone` → sections are sequential (no row containers)
+- [ ] Server test: compose with `deviceClass=tablet` → target sections are wrapped in Container[direction=row] with SectionSlot children
 - [ ] Visual test: render tablet response on web — two columns visible
 
 ---
@@ -271,7 +279,7 @@ v1 and v2 of the same feed coexist. A long-tail TV client on v1 receives a
 reduced schema; a modern mobile client on v2 receives the full schema.
 Demonstrates version negotiation without feed forking.
 
-> **Note:** Complements `plan-schema-versioning.md` which covers the general
+> **Note:** Complements `server/plan-schema-versioning.md` which covers the general
 > versioning protocol. This feature focuses on the concrete demo: two versions
 > of one feed running simultaneously.
 
@@ -330,7 +338,7 @@ To avoid wasted work (v2 composes full content then tier-1 strips it):
 - [ ] Server test: both v1 and v2 responses are valid against `sdui-schema.json`
 
 ### Dependencies
-- Coordinate with `plan-schema-versioning.md` — this demo is a concrete instance of that plan's Phase 2 server routing
+- Coordinate with `server/plan-schema-versioning.md` — this demo is a concrete instance of that plan's Phase 2 server routing
 
 ---
 
@@ -588,7 +596,7 @@ Feature 2 (Capability Negotiation)          [independent]
 
 Feature 3 (Multi-Column Layout)             [independent]
 
-Feature 4 (Per-Feed Versioning)             [independent, coordinates with plan-schema-versioning.md]
+Feature 4 (Per-Feed Versioning)             [independent, coordinates with server/plan-schema-versioning.md]
 
 Feature 5 (Translation Stub)                [independent, mostly refactoring existing code]
 
@@ -608,10 +616,10 @@ Feature 6 (Pagination Cursor)               [independent]
 
 | This Plan | Depends On | Notes |
 |-----------|-----------|-------|
-| Feature 4 | `plan-schema-versioning.md` | Version routing is a concrete instance of that plan's Phase 2 |
+| Feature 4 | `server/plan-schema-versioning.md` | Version routing is a concrete instance of that plan's Phase 2 |
 | Feature 7 | `plan-impression-tracking.md` | Android impression firing needs ImpressionTracker |
-| Feature 2 | None | Tier registry should inform `plan-schema-versioning.md` capability model; tier ↔ schema version may converge |
-| Feature 3 | `plan-layout-responsive.md` | Form-factor detection shares the same envelope field |
+| Feature 2 | None | Tier registry should inform `server/plan-schema-versioning.md` capability model; tier ↔ schema version may converge |
+| Feature 3 | `plan-layout-responsive.md` | Form-factor detection shares the same envelope field; see prerequisite note in Feature 3 |
 
 ## Open Questions
 

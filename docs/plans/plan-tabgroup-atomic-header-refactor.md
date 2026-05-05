@@ -8,6 +8,16 @@
 
 This plan keeps `TabGroup` as the stateful/nested-section host, but moves optional tab-header visuals toward the existing `data.ui` convention. Do not add `tabsUi`, `tabHeaderStyle`, or other tab-specific visual schema fields.
 
+**Status: Blocked.** Phases 2–3 require ADR-014 (dynamic conditional properties) to be accepted and implemented so that atomic tab buttons can visually reflect selected state. Phase 1 (schema/contract work) can proceed independently. Until ADR-014 lands, native renderer tab headers remain the correct approach.
+
+## Prerequisites
+
+| Prerequisite | Status | Notes |
+|---|---|---|
+| ADR-014 accepted with Option 2 or 4 | **Pending** | Without `enabledIf`/`visibleIf` or state-bound `disabled`/`selected`, an atomic header cannot visually distinguish active from inactive tabs. |
+| `Conditional` wrapper evaluated as interim | **Available but impractical** | Schema already has `Conditional` with `trueChild`/`falseChild`, but N tabs × 2 subtrees is prohibitively verbose. |
+| `mutate` action type verified for tab selection | **Ready** | Schema defines `ActionType: "mutate"` with `target`/`operation: "set"`/`value`. Android already fires this via `mapTabMutateAction()`. No new action type needed. |
+
 ## Current State
 
 | Aspect | Status | Notes |
@@ -40,25 +50,32 @@ Anti-pattern guards:
 
 ### Phase 2: Renderer Fallback Path
 
+**Blocked on:** ADR-014 implementation (dynamic conditional properties on all platforms).
+
 - [ ] Update web/iOS/Android `TabGroup` renderers to:
   - Render `data.ui` as the header when present.
   - Preserve the existing native tab header as the fallback when `data.ui` is absent.
   - Continue rendering `data.tabContents[selectedTab]` through the normal `SectionRouter`.
+- [ ] Ensure the renderer continues observing `screenState[stateKey]` for body switching regardless of whether the header is atomic or native. The atomic header fires `mutate` actions that update screen state; the renderer must react to that state change to swap `tabContents`.
 - [ ] Ensure the atomic header can trigger the same state update as native tabs.
-  - Preferred: server emits tab buttons with existing action semantics that mutate `stateKey`.
-  - If current atomic actions cannot express that cleanly, stop and add a separate plan for generic state-mutation actions rather than adding tab-specific behavior.
+  - Mechanism: server emits tab buttons with `onActivate → mutate(target=stateKey, operation=set, value=tabId)`. This works today.
+  - Selected-state visual feedback requires ADR-014's conditional properties so atomic buttons reflect which tab is active.
 
 Anti-pattern guards:
 - Do not parse tab labels out of the atomic tree.
 - Do not infer tab state from child order.
 - Do not add client screen-specific branching for Watch/League Pass tabs.
+- Do not add client logic that applies selected styling to atomic buttons based on state — that violates renderer-is-presentation-only.
 
 ### Phase 3: Server Composition
+
+**Blocked on:** Phase 2 completion (renderer support for `data.ui` + ADR-014 conditional properties).
 
 - [ ] Add a server helper that builds a `TabGroup` atomic header using existing atomics:
   - `ScrollContainer` or `Container` row
   - repeated `Button` or `Container` + `Text`
-  - selected/unselected presentation driven by server-declared state/action semantics
+  - selected/unselected presentation driven by ADR-014 conditional properties bound to `stateKey`
+  - each button carries `onActivate → mutate(target=stateKey, operation=set, value=tabId)`
 - [ ] Keep `tabContents` as ordinary nested section arrays.
 - [ ] Add one demo fixture that includes `TabGroup.data.ui` and one fixture that omits it to verify fallback behavior.
 
@@ -76,11 +93,18 @@ Anti-pattern guards:
 - [ ] Verify nested sections still render through existing routers.
 - [ ] Verify fallback native tab header still works when `data.ui` is absent.
 
-## Open Questions
+## Resolved Questions
 
-- [ ] Can existing atomic actions already express `stateKey` mutation cleanly enough for tab selection?
-- [ ] Should selected-tab visual state be represented by conditional atomics bound to screen state, or by a small generic selected-state primitive/property?
-- [ ] Is server-authored tab-header UI actually needed now, or should we simply document that `TabGroup` is a justified older semantic section and leave renderer visuals alone?
+| Question | Answer |
+|---|---|
+| Can existing atomic actions express `stateKey` mutation? | **Yes.** Schema has `ActionType: "mutate"` with `target`/`operation: "set"`/`value`. Android already uses this via `mapTabMutateAction()`. No new action type needed. |
+| Should selected-tab visual state use conditional atomics or a selected-state primitive? | **Conditional atomics (ADR-014 Option 4 `enabledIf`/`visibleIf`, or Option 2 widened `disabled`).** A `selected` primitive would push "what selected looks like" into the client, violating server authority over presentation. Conditional properties keep the server in control of both states. |
+| Is server-authored tab-header UI needed now? | **No.** Native tab headers work well on all platforms. This plan is future-ready for when ADR-014 lands, but is not an immediate implementation target. Phase 1 (schema contract) can proceed; Phases 2–3 wait. |
+
+## Remaining Open Questions
+
+- [ ] Which ADR-014 option will be accepted? Option 4 (`enabledIf`/`visibleIf`) covers the tab case cleanly; Option 2 (widened `disabled`) is too narrow for selected-state styling.
+- [ ] Should the `Conditional` wrapper be considered a temporary interim for 2–3 tab groups, or is it too verbose to ship even short-term?
 
 ## Completion Criteria
 

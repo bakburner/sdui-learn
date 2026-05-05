@@ -16,4 +16,10 @@ sealed class SduiScreenUiState {
 
     /** An error occurred while loading or refreshing. */
     data class Error(val message: String) : SduiScreenUiState()
+
+    /**
+     * The server signaled that this client's schema version is no longer
+     * supported. The user should be prompted to update the app.
+     */
+    data class UpgradeRequired(val message: String) : SduiScreenUiState()
 }

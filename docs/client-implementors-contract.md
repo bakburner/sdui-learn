@@ -1336,6 +1336,47 @@ fields in the JSON body on POST).
 
 ---
 
+## 11.6 Schema Version Negotiation
+
+The server uses the client's declared `schemaVersion` (major.minor format) to
+filter its response. Clients must handle the force-upgrade signal.
+
+### Version Format
+
+`schemaVersion` uses **major.minor** (e.g. `1.0`, `1.1`, `2.0`):
+- **Minor bump** = additive change (new optional fields, new section types). Safe for older clients — server strips unknown fields.
+- **Major bump** = breaking change (new required fields, structural changes). Clients below minimum are told to upgrade.
+
+### Force-Upgrade Detection
+
+After every successful fetch, check for the `X-Schema-Version-Mismatch`
+response header:
+
+```
+FUNCTION handleVersionMismatch(response):
+    mismatch = response.header("X-Schema-Version-Mismatch")
+    IF mismatch == "upgrade-required":
+        Show platform-appropriate update prompt
+        // Web: "Reload" button
+        // Mobile: link to app store
+        RETURN  // Do not render the screen normally
+```
+
+The response body still contains a valid `SduiScreen` (with an ErrorState
+section) so clients that fail to check the header still render an intelligible
+message.
+
+### Client Responsibilities
+
+| Responsibility | Notes |
+|----------------|-------|
+| Send `schemaVersion` on every request | Already part of the envelope (§11.1) |
+| Read `X-Schema-Version-Mismatch` header | Check after every successful HTTP response |
+| Display upgrade prompt when `upgrade-required` | Platform-native: app store link on mobile, reload on web |
+| Never attempt client-side leniency | Per §1.3, unknown enum values are contract violations, not graceful degradation opportunities |
+
+---
+
 ## 12. Offline Cache Strategy
 
 Cache complete screen responses keyed by endpoint. Serve stale data on

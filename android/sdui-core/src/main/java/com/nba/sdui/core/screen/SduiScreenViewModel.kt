@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.nba.sdui.core.config.SduiScreenConfig
 import com.nba.sdui.core.data.AblyChannelManager
 import com.nba.sdui.core.data.DataBindingResolver
+import com.nba.sdui.core.data.SchemaVersionMismatchException
 import com.nba.sdui.core.data.SduiRepository
 import com.nba.sdui.core.models.generated.Data
 import com.nba.sdui.core.models.generated.RefreshType
@@ -173,6 +174,11 @@ open class SduiScreenViewModel(
                 Log.d(TAG, "Loading endpoint: $endpoint")
                 val screen = repository.fetchScreen(endpoint, buildEnvelope())
                 applyScreen(screen)
+            } catch (e: SchemaVersionMismatchException) {
+                Log.w(TAG, "Schema version mismatch — upgrade required", e)
+                _uiState.value = SduiScreenUiState.UpgradeRequired(
+                    e.message ?: "Please update the app to continue."
+                )
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to load: $endpoint", e)
                 _uiState.value = SduiScreenUiState.Error(e.message ?: "Unknown error")

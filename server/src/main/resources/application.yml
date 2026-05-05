@@ -20,6 +20,8 @@ ably:
 sdui:
   schema:
     version: "1.0"
+    current-version: "1.0"
+    min-supported-version: "1.0"
   cache:
     enabled: true
     ttl-seconds: 60

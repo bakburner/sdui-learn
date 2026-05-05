@@ -32,6 +32,12 @@ export interface FetchSduiScreenResult {
   url: string;
   /** HTTP method used. */
   method: 'GET' | 'POST';
+  /**
+   * When the server signals that the client's schema version is below the
+   * minimum supported, this will be `'upgrade-required'`. Callers should
+   * display a platform-appropriate update prompt.
+   */
+  versionMismatch?: string;
 }
 
 /**
@@ -114,8 +120,13 @@ export async function fetchSduiScreen(
     throw new Error(`Failed to fetch: ${response.status} ${response.statusText}`);
   }
 
+  const versionMismatch = response.headers.get('X-Schema-Version-Mismatch') ?? undefined;
+  if (versionMismatch) {
+    console.warn(`[SDUI] Schema version mismatch: ${versionMismatch}. Client update required.`);
+  }
+
   const screen: SduiModels = await response.json();
-  return { screen, traceId, url, method };
+  return { screen, traceId, url, method, versionMismatch };
 }
 
 /**

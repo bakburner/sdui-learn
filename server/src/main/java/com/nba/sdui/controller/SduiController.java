@@ -5,6 +5,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.nba.sdui.request.SduiRequestContext;
 import com.nba.sdui.service.SduiCompositionService;
+import com.nba.sdui.versioning.SchemaVersion;
+import com.nba.sdui.versioning.SchemaVersionChecker;
+import com.nba.sdui.versioning.SchemaVersionConfig;
+import com.nba.sdui.versioning.SchemaVersionFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
@@ -36,10 +40,20 @@ public class SduiController {
 
     private final SduiCompositionService compositionService;
     private final ObjectMapper objectMapper;
+    private final SchemaVersionChecker versionChecker;
+    private final SchemaVersionConfig versionConfig;
+    private final SchemaVersionFilter versionFilter;
 
-    public SduiController(SduiCompositionService compositionService, ObjectMapper objectMapper) {
+    public SduiController(SduiCompositionService compositionService,
+                          ObjectMapper objectMapper,
+                          SchemaVersionChecker versionChecker,
+                          SchemaVersionConfig versionConfig,
+                          SchemaVersionFilter versionFilter) {
         this.compositionService = compositionService;
         this.objectMapper = objectMapper;
+        this.versionChecker = versionChecker;
+        this.versionConfig = versionConfig;
+        this.versionFilter = versionFilter;
     }
 
     // ── Game Detail ────────────────────────────────────────────────────
@@ -56,15 +70,22 @@ public class SduiController {
         log.info("SDUI request: gameId={}, locale={}, schemaVersion={}",
             gameId, ctx.getLocale(), ctx.getSchemaVersion());
 
+        // Version gate: reject clients below minimum supported version
+        ResponseEntity<JsonNode> mismatch = checkVersionMismatch(ctx, response);
+        if (mismatch != null) return mismatch;
+
         try {
             var result = compositionService.composeGameDetail(gameId, ctx);
 
             setResponseHeaders(response, ctx);
             log.info("SDUI response composed successfully");
 
+            // Apply version-aware field stripping
+            JsonNode filtered = applyVersionFilter(result.response(), ctx);
+
             // Cache-control based on server-derived game state
             CacheControl cache = resolveCacheControl(result.derivedGameState(), "pre");
-            return ResponseEntity.ok().cacheControl(cache).body(result.response());
+            return ResponseEntity.ok().cacheControl(cache).body(filtered);
 
         } catch (Exception e) {
             log.error("Error composing SDUI response", e);
@@ -94,13 +115,16 @@ public class SduiController {
 
         log.info("SDUI scoreboard request: locale={}, schemaVersion={}", ctx.getLocale(), ctx.getSchemaVersion());
 
+        ResponseEntity<JsonNode> mismatch = checkVersionMismatch(ctx, response);
+        if (mismatch != null) return mismatch;
+
         try {
             JsonNode screenResponse = compositionService.composeScoreboard(ctx);
             setResponseHeaders(response, ctx);
             log.info("SDUI scoreboard response composed successfully");
             return ResponseEntity.ok()
                     .cacheControl(CacheControl.maxAge(Duration.ofSeconds(60)).cachePublic())
-                    .body(screenResponse);
+                    .body(applyVersionFilter(screenResponse, ctx));
         } catch (Exception e) {
             log.error("Error composing SDUI scoreboard response", e);
             return ResponseEntity.internalServerError().build();
@@ -150,12 +174,15 @@ public class SduiController {
         MDC.put("traceId", ctx.getTraceId());
         log.info("SDUI for-you request: locale={}, schemaVersion={}", ctx.getLocale(), ctx.getSchemaVersion());
 
+        ResponseEntity<JsonNode> mismatch = checkVersionMismatch(ctx, response);
+        if (mismatch != null) return mismatch;
+
         try {
             JsonNode screenResponse = compositionService.composeForYou(ctx);
             setResponseHeaders(response, ctx);
             return ResponseEntity.ok()
                     .cacheControl(CacheControl.maxAge(Duration.ofSeconds(120)).cachePrivate())
-                    .body(screenResponse);
+                    .body(applyVersionFilter(screenResponse, ctx));
         } catch (Exception e) {
             log.error("Error composing for-you screen", e);
             return ResponseEntity.internalServerError().build();
@@ -180,12 +207,15 @@ public class SduiController {
         MDC.put("traceId", ctx.getTraceId());
         log.info("SDUI watch request: locale={}, schemaVersion={}", ctx.getLocale(), ctx.getSchemaVersion());
 
+        ResponseEntity<JsonNode> mismatch = checkVersionMismatch(ctx, response);
+        if (mismatch != null) return mismatch;
+
         try {
             JsonNode screenResponse = compositionService.composeWatch(ctx);
             setResponseHeaders(response, ctx);
             return ResponseEntity.ok()
                     .cacheControl(CacheControl.maxAge(Duration.ofSeconds(120)).cachePublic())
-                    .body(screenResponse);
+                    .body(applyVersionFilter(screenResponse, ctx));
         } catch (Exception e) {
             log.error("Error composing watch screen", e);
             return ResponseEntity.internalServerError().build();
@@ -210,12 +240,15 @@ public class SduiController {
         MDC.put("traceId", ctx.getTraceId());
         log.info("SDUI games request: locale={}, schemaVersion={}", ctx.getLocale(), ctx.getSchemaVersion());
 
+        ResponseEntity<JsonNode> mismatch = checkVersionMismatch(ctx, response);
+        if (mismatch != null) return mismatch;
+
         try {
             JsonNode screenResponse = compositionService.composeLive(ctx);
             setResponseHeaders(response, ctx);
             return ResponseEntity.ok()
                     .cacheControl(CacheControl.noCache())
-                    .body(screenResponse);
+                    .body(applyVersionFilter(screenResponse, ctx));
         } catch (Exception e) {
             log.error("Error composing games screen", e);
             return ResponseEntity.internalServerError().build();
@@ -240,12 +273,15 @@ public class SduiController {
         MDC.put("traceId", ctx.getTraceId());
         log.info("SDUI schedule request: locale={}, schemaVersion={}", ctx.getLocale(), ctx.getSchemaVersion());
 
+        ResponseEntity<JsonNode> mismatch = checkVersionMismatch(ctx, response);
+        if (mismatch != null) return mismatch;
+
         try {
             JsonNode screenResponse = compositionService.composeSchedule(ctx);
             setResponseHeaders(response, ctx);
             return ResponseEntity.ok()
                     .cacheControl(CacheControl.maxAge(Duration.ofSeconds(300)).cachePublic())
-                    .body(screenResponse);
+                    .body(applyVersionFilter(screenResponse, ctx));
         } catch (Exception e) {
             log.error("Error composing schedule screen", e);
             return ResponseEntity.internalServerError().build();
@@ -271,12 +307,15 @@ public class SduiController {
         log.info("SDUI demos request: locale={}, schemaVersion={}",
             ctx.getLocale(), ctx.getSchemaVersion());
 
+        ResponseEntity<JsonNode> mismatch = checkVersionMismatch(ctx, response);
+        if (mismatch != null) return mismatch;
+
         try {
             JsonNode screenResponse = compositionService.composeDemos(ctx);
             setResponseHeaders(response, ctx);
             return ResponseEntity.ok()
                     .cacheControl(CacheControl.maxAge(Duration.ofSeconds(60)).cachePublic())
-                    .body(screenResponse);
+                    .body(applyVersionFilter(screenResponse, ctx));
         } catch (Exception e) {
             log.error("Error composing demos screen", e);
             return ResponseEntity.internalServerError().build();
@@ -301,12 +340,15 @@ public class SduiController {
         MDC.put("traceId", ctx.getTraceId());
         log.info("SDUI home request: locale={}, schemaVersion={}", ctx.getLocale(), ctx.getSchemaVersion());
 
+        ResponseEntity<JsonNode> mismatch = checkVersionMismatch(ctx, response);
+        if (mismatch != null) return mismatch;
+
         try {
             JsonNode screenResponse = compositionService.composeHome(ctx);
             setResponseHeaders(response, ctx);
             return ResponseEntity.ok()
                     .cacheControl(CacheControl.maxAge(Duration.ofSeconds(120)).cachePublic())
-                    .body(screenResponse);
+                    .body(applyVersionFilter(screenResponse, ctx));
         } catch (Exception e) {
             log.error("Error composing home screen", e);
             return ResponseEntity.internalServerError().build();
@@ -332,12 +374,15 @@ public class SduiController {
         log.info("SDUI leaders request: locale={}, schemaVersion={}",
             ctx.getLocale(), ctx.getSchemaVersion());
 
+        ResponseEntity<JsonNode> mismatch = checkVersionMismatch(ctx, response);
+        if (mismatch != null) return mismatch;
+
         try {
             JsonNode screenResponse = compositionService.composeLeaders(ctx);
             setResponseHeaders(response, ctx);
             return ResponseEntity.ok()
                     .cacheControl(CacheControl.maxAge(Duration.ofSeconds(300)).cachePublic())
-                    .body(screenResponse);
+                    .body(applyVersionFilter(screenResponse, ctx));
         } catch (Exception e) {
             log.error("Error composing leaders screen", e);
             return ResponseEntity.internalServerError().build();
@@ -363,13 +408,16 @@ public class SduiController {
         MDC.put("traceId", ctx.getTraceId());
         log.info("SDUI boxscore request: gameId={}, locale={}, schemaVersion={}", gameId, ctx.getLocale(), ctx.getSchemaVersion());
 
+        ResponseEntity<JsonNode> mismatch = checkVersionMismatch(ctx, response);
+        if (mismatch != null) return mismatch;
+
         try {
             JsonNode screenResponse = compositionService.composeBoxscore(gameId, ctx);
             setResponseHeaders(response, ctx);
             log.info("SDUI boxscore response composed successfully");
             return ResponseEntity.ok()
                     .cacheControl(CacheControl.noCache())
-                    .body(screenResponse);
+                    .body(applyVersionFilter(screenResponse, ctx));
         } catch (Exception e) {
             log.error("Error composing SDUI boxscore response", e);
             return ResponseEntity.internalServerError().build();
@@ -533,6 +581,40 @@ public class SduiController {
     private void setResponseHeaders(HttpServletResponse response, SduiRequestContext ctx) {
         response.setHeader("X-Trace-Id", ctx.getTraceId());
         response.setHeader("X-Schema-Version", ctx.getSchemaVersion());
+    }
+
+    /**
+     * Check if the client's schema version is below minimum supported.
+     * If so, sets the mismatch header and returns the upgrade-required response.
+     *
+     * @return upgrade-required ResponseEntity, or null if client is supported
+     */
+    private ResponseEntity<JsonNode> checkVersionMismatch(SduiRequestContext ctx, HttpServletResponse response) {
+        if (versionChecker.isUpgradeRequired(ctx.getSchemaVersion())) {
+            log.warn("Client schema version {} is below minimum supported {}",
+                    ctx.getSchemaVersion(), versionConfig.getMinSupportedVersion());
+            response.setHeader(SchemaVersionChecker.MISMATCH_HEADER, SchemaVersionChecker.UPGRADE_REQUIRED);
+            setResponseHeaders(response, ctx);
+            JsonNode errorResponse = versionChecker.composeUpgradeRequiredResponse(
+                    ctx.getSchemaVersion(), ctx.getTraceId());
+            return ResponseEntity.ok().body(errorResponse);
+        }
+        return null;
+    }
+
+    /**
+     * Apply version-aware field stripping to a composed response.
+     * Strips fields and enum values that were introduced after the client's declared version.
+     */
+    private JsonNode applyVersionFilter(JsonNode composedResponse, SduiRequestContext ctx) {
+        try {
+            SchemaVersion clientVersion = SchemaVersion.parse(ctx.getSchemaVersion());
+            return versionFilter.apply(composedResponse, clientVersion, versionConfig.currentVersion());
+        } catch (IllegalArgumentException e) {
+            log.warn("Cannot parse client schema version '{}', returning unfiltered response",
+                    ctx.getSchemaVersion());
+            return composedResponse;
+        }
     }
 
     /**

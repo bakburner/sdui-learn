@@ -80,6 +80,12 @@ final class SduiRepository {
                 throw SduiError.httpError(statusCode: httpResponse.statusCode)
             }
 
+            // Detect server-signaled schema version mismatch
+            if httpResponse.value(forHTTPHeaderField: "X-Schema-Version-Mismatch") == "upgrade-required" {
+                logger.warning("Server signaled schema version mismatch: upgrade-required")
+                throw SduiError.upgradeRequired
+            }
+
             do {
                 let screen = try SduiModels(data: data)
                 logger.debug("Fetched screen '\(screen.id)' with \(screen.sections.count) sections")
@@ -238,6 +244,7 @@ enum SduiError: LocalizedError, Equatable {
     case invalidResponse
     case httpError(statusCode: Int)
     case decodingFailed(String)
+    case upgradeRequired
 
     var errorDescription: String? {
         switch self {
@@ -245,6 +252,7 @@ enum SduiError: LocalizedError, Equatable {
         case .invalidResponse: return "Invalid HTTP response"
         case .httpError(let code): return "HTTP error: \(code)"
         case .decodingFailed(let message): return "Decoding failed: \(message)"
+        case .upgradeRequired: return "This version of the app is no longer supported. Please update to continue."
         }
     }
 }

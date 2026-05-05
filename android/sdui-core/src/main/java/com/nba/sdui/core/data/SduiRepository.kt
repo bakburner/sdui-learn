@@ -127,6 +127,15 @@ class SduiRepository(
             throw SduiException("Failed to fetch screen: ${response.code}")
         }
 
+        // Detect server-signaled schema version mismatch (upgrade-required)
+        val versionMismatch = response.header("X-Schema-Version-Mismatch")
+        if (versionMismatch == "upgrade-required") {
+            Log.w(TAG, "Server signaled schema version mismatch: upgrade-required")
+            throw SchemaVersionMismatchException(
+                "Client schema version is no longer supported. Please update the app."
+            )
+        }
+
         val body = response.body?.string()
             ?: throw SduiException("Empty response body")
 
@@ -206,3 +215,10 @@ class SduiRepository(
  * Exception for SDUI-related errors.
  */
 class SduiException(message: String, cause: Throwable? = null) : Exception(message, cause)
+
+/**
+ * Thrown when the server signals that the client's schema version is below the
+ * minimum supported version via `X-Schema-Version-Mismatch: upgrade-required`.
+ * The ViewModel should catch this and display an app-update prompt.
+ */
+class SchemaVersionMismatchException(message: String) : Exception(message)

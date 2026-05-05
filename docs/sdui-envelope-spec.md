@@ -184,8 +184,8 @@ same encoding rule.
 ### Deterministic Key Ordering
 
 User params are sorted alphabetically by key. Envelope params follow a fixed
-order defined by the builder (locale → schemaVersion → platform → experiments).
-Experiments within the map are sorted by experiment ID.
+order defined by the builder (locale → schemaVersion → platform → market →
+experiments). Experiments within the map are sorted by experiment ID.
 
 Identical inputs must produce byte-identical URLs across platforms and across
 runs. The CDN cache key depends on it.
@@ -252,6 +252,62 @@ install, not a spoofed request. Requests failing attestation receive
 `MARKET_UNKNOWN` treatment (safe default, no region-specific content).
 
 ## Server-Side Contract
+
+### Schema Version Negotiation
+
+The server uses `schemaVersion` from the request envelope to ensure backward
+compatibility. Version format is **major.minor** (e.g. `1.0`, `1.1`, `2.0`).
+
+| Client `schemaVersion` vs. Server | Behavior |
+|---|---|
+| `>= currentVersion` | Emit full response (normal path) |
+| `< currentVersion` but `>= minSupportedVersion` | Strip fields and enum values introduced after client's version |
+| `< minSupportedVersion` | Return `X-Schema-Version-Mismatch: upgrade-required` header + ErrorState section |
+
+#### Response Header: `X-Schema-Version-Mismatch`
+
+Returned when the client's declared `schemaVersion` is below the server's
+minimum. Value is always `upgrade-required`. Clients must detect this header
+and display a platform-appropriate update prompt.
+
+```
+HTTP/1.1 200 OK
+X-Schema-Version-Mismatch: upgrade-required
+Content-Type: application/json
+
+{
+  "sections": [
+    {
+      "id": "error-upgrade-required",
+      "type": "AtomicComposite",
+      "data": { ... ErrorState prompting update ... }
+    }
+  ]
+}
+```
+
+The response body still contains a valid `SduiScreen` with an ErrorState
+section so clients that don't check the header still render something
+meaningful.
+
+#### Field Stripping
+
+When a client's version is below `currentVersion` but above
+`minSupportedVersion`, the server applies post-composition filtering:
+
+- JSON fields registered as introduced after the client's version are removed
+- Enum values registered as introduced after the client's version are nulled
+- The response for version N is always a strict subset of the response for
+  version N+1
+
+#### Server Configuration
+
+```yaml
+sdui:
+  schema:
+    current-version: "1.0"
+    min-supported-version: "1.0"
+```
 
 ### SduiRequestContext
 

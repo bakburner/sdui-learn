@@ -14,6 +14,8 @@ interface UseSduiScreenResult {
   screen: SduiModels | null;
   loading: boolean;
   error: string | null;
+  /** True when the server signals the client must update to continue. */
+  upgradeRequired: boolean;
   refetch: () => Promise<void>;
   /** Direct setter for surgical section-level updates (e.g. action-triggered refresh). */
   setScreen: React.Dispatch<React.SetStateAction<SduiModels | null>>;
@@ -31,6 +33,7 @@ export function useSduiScreen(options: UseSduiScreenOptions): UseSduiScreenResul
   const [screen, setScreen] = useState<SduiModels | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [upgradeRequired, setUpgradeRequired] = useState(false);
 
   const fetchScreen = useCallback(async () => {
     if (!endpoint) return;
@@ -38,13 +41,17 @@ export function useSduiScreen(options: UseSduiScreenOptions): UseSduiScreenResul
       setLoading(true);
       setError(null);
 
-      const { screen: data, url, method, traceId } = await fetchSduiScreen({ endpoint, experiments });
+      const { screen: data, url, method, traceId, versionMismatch } = await fetchSduiScreen({ endpoint, experiments });
       console.log(`[SDUI] Fetching (${method}):`, url);
       console.log(
         '[SDUI] Received screen:', data.id,
         '| sections:', data.sections?.length,
         '| trace:', data.traceId ?? traceId,
       );
+
+      if (versionMismatch === 'upgrade-required') {
+        setUpgradeRequired(true);
+      }
 
       setScreen(data);
     } catch (err) {
@@ -60,5 +67,5 @@ export function useSduiScreen(options: UseSduiScreenOptions): UseSduiScreenResul
     fetchScreen();
   }, [fetchScreen]);
 
-  return { screen, loading, error, refetch: fetchScreen, setScreen };
+  return { screen, loading, error, upgradeRequired, refetch: fetchScreen, setScreen };
 }

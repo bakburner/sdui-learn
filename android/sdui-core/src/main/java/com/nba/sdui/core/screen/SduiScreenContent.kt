@@ -65,6 +65,13 @@ fun SduiScreenContent(
                 )
             }
 
+            is SduiScreenUiState.UpgradeRequired -> {
+                UpgradeRequiredContent(
+                    message = uiState.message,
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            }
+
             is SduiScreenUiState.Success -> {
                 SuccessContent(
                     screen = uiState.screen,
@@ -148,6 +155,28 @@ private fun ErrorContent(
         Button(onClick = onRetry) {
             Text("Retry")
         }
+    }
+}
+
+@Composable
+private fun UpgradeRequiredContent(
+    message: String,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "Update Required",
+            style = MaterialTheme.typography.headlineSmall
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 

@@ -56,7 +56,7 @@ export function App(): React.ReactElement {
   }, [currentUri]);
 
   const endpoint = currentUri ? resolveEndpoint(currentUri) : null;
-  const { screen, loading, error, refetch, setScreen } = useSduiScreen({ endpoint, experiments });
+  const { screen, loading, error, upgradeRequired, refetch, setScreen } = useSduiScreen({ endpoint, experiments });
 
   // Read available variants from the server response (empty if not provided).
   const variantsData = (screen as Record<string, unknown> | undefined)?.variants as
@@ -183,6 +183,20 @@ export function App(): React.ReactElement {
         <p style={styles.hint}>
           Make sure the SDUI server is running at http://localhost:8080
         </p>
+      </div>
+    );
+  }
+
+  if (upgradeRequired) {
+    return (
+      <div style={styles.centered}>
+        <p style={styles.errorText}>Update Required</p>
+        <p style={styles.hint}>
+          This version of the app is no longer supported. Please reload to get the latest version.
+        </p>
+        <button style={styles.retryButton} onClick={() => window.location.reload()}>
+          Reload
+        </button>
       </div>
     );
   }

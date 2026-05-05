@@ -863,7 +863,8 @@ These limits ensure atomic trees remain a lightweight composition mechanism, not
 | SeasonLeadersTable             | Built   | —       | domain-typed leaders table with form-driven parameterized refresh |
 | Image fallback                 | Built   | —       | server-driven `fallbackThumbnailUrl` with client-side error handling |
 | Offline / degraded connectivity| Gap     | ADR-010 | stale-while-offline via platform HTTP cache; staleness UX per cacheability class |
-| Atomic rendering layer         | Built   | —       | AtomicRouter + 10 primitives (9 rendering + SectionSlot bridge) on Android, iOS, and Web. AtomicComposite section type. DisplayGrid for non-interactive grids. Performance contract enforced (depth 6, children 20, nodes 50). |
+| Atomic rendering layer         | Built   | —       | AtomicRouter + 12 primitives (10 rendering + SectionSlot bridge + LiveClock) on Android, iOS, and Web. AtomicComposite section type. DisplayGrid for non-interactive grids. Performance contract enforced (depth 6, children 20, nodes 50). |
+| Schema versioning protocol     | Built   | —       | Server-side version routing (`SchemaVersionFilter` strips fields/enums by version), force-upgrade signal (`X-Schema-Version-Mismatch: upgrade-required`), version registry (`SchemaVersionRegistry`). All clients detect header and display platform-appropriate upgrade prompt. Version format: major.minor. |
 | Style tokens (atomic primitives) | Built | ADR-013 | Three-layer design system: inline primitives (Layer 1), per-primitive variant enums with per-platform per-OS-tier realization and override matrices (Layer 2), color-token registry with light/dark resolution (Layer 3). Four diagnostics (`variant_resolver_missing`, `variant_override_blocked`, `token_resolver_missing`, `section_decode_failed`). Server `TokenRegistry` + startup consistency check. Full reference: [`sdui-design-system.md`](sdui-design-system.md). ADR-013 Accepted. |
 
 
@@ -908,6 +909,7 @@ The alternative is duplicated platform composition logic and drift in feature be
 
 | Date | Summary |
 |---|---|
+| 2026-05-05 | Doc consistency audit. §10: Atomic rendering layer count corrected 10 → 12 primitives. Added Schema versioning protocol row (Built). |
 | 2026-04-27 | Doc consistency audit: `onActivate` trigger added to §4 table, ErrorState note clarified as AtomicComposite in §10, terminology sync. |
 | 2026-04-27 | Parameterized refresh + shared transport (§4, AGENTS §4.1.1, contract §11). §0: `platform` via envelope only. §2a: 12 `AtomicElement` types in the summary table. Server `/sdui/refresh/{screenId}` GET+POST. Glossary: fetch primitive, parameterized refresh. |
 | 2026-04-26 | Doc consistency audit. Stripped historical migration narrative — §2b reframed "When a section can migrate to atomic" as "When a content surface is atomic" (forward-looking criterion only); §8 former-section note replaced with a `VideoPlayer` stub-status note; §8 atomic-element coverage table gained an `OverlayContainer` row and the dispatch-summary sentence updated to 12 element types. Doc now describes current architectural state without "former section types" framing. |

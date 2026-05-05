@@ -1,55 +1,46 @@
-SDUI: Move market cohort from edge header to envelope query string
+feat: schema versioning — server routing, field stripping, client upgrade prompt
 
---- market[cohort] as composition input (all platforms + server) ---
+End-to-end schema versioning implementation. Server never emits fields/enums
+that a client's declared schemaVersion (major.minor) cannot decode. Clients
+detect force-upgrade signal and display platform-appropriate update prompt.
 
-- Server: SduiRequestContext gains nested Market class with cohort field
-  (default "MARKET_UNKNOWN"), initialized eagerly to avoid NPE; removed
-  X-Resolved-Country and X-Resolved-Market-Cohort header reading from
-  BracketParamResolver
-- Android: RequestEnvelopeBuilder emits market[cohort] in query string
-  and POST body; default "MARKET_UNKNOWN"
-- iOS: RequestEnvelope gains marketCohort property; emitted in query
-  string and POST body; tests updated
-- Web: RequestEnvelopeBuilder emits market[cohort] in query string and
-  POST body; Market interface added
+--- Server versioning infrastructure (new) ---
 
---- Trust model change ---
+- SchemaVersion: immutable major.minor value object with comparison
+- SchemaVersionConfig: Spring @ConfigurationProperties (current-version,
+  min-supported-version) in application.yml
+- SchemaVersionRegistry: tracks per-field/per-enum introduced-in version
+- SchemaVersionFilter: post-composition JSON tree walker strips unsupported
+  fields/enums for older clients
+- SchemaVersionChecker: below-minimum detection, composes ErrorState
+  upgrade-required response, emits X-Schema-Version-Mismatch header
+- SduiController: all composition endpoints apply version check + filter
+- WebConfig: CORS exposes X-Schema-Version-Mismatch header
 
-- Market cohort trust shifts from edge IP resolution to app attestation
-  (Play Integrity / App Attest). Requests failing attestation receive
-  MARKET_UNKNOWN treatment. Edge worker geo resolution removed from
-  roadmap.
+--- Client force-upgrade detection ---
+
+- Web: fetchSduiScreen reads header → useSduiScreen exposes upgradeRequired
+  → App.tsx renders "Update Required" with reload button
+- Android: SduiRepository throws SchemaVersionMismatchException → ViewModel
+  emits UpgradeRequired state → SduiScreenContent renders prompt
+- iOS: SduiRepository throws .upgradeRequired → ViewModel emits
+  .upgradeRequired state → ScreenShell renders prompt
+
+--- Tests ---
+
+- SchemaVersionTest, SchemaVersionFilterTest, SchemaVersionCheckerTest
+- SchemaVersionIntegrationTest (field stripping + mismatch header)
+- SduiRefreshTransportTest updated with @Import for new beans
 
 --- Documentation ---
 
-- docs/sdui-envelope-spec.md: market[cohort] field added to spec,
-  trust model rewritten, edge worker scope narrowed, changelog updated
-- All client builders document fixed envelope ordering for CDN cache
-  key determinism
-
---- Unrelated (included) ---
-
-- docs/plans/plan-server-section-caching.md: new plan for three-layer
-  server-side caching (upstream data, section fragments, screen assembly)
-- docs/SDUI_Executive_Summary_v2.md: Envelope fields and platform-aware
-  composition description
-- docs/SDUI_Technical_Proposal_v2.md: URI resolution convention, endpoint
-  JSON examples
-- docs/sdui-requirements-summary.md: Transport decisions, mermaid diagram,
-  dual-mounted route, schema versioning mechanism
-- docs/client-implementors-contract.md: Curl example, UriResolver, §11
-  wire shape table, headers table, conformance C11, pseudocode, cache key
-- docs/glossary.md: Envelope definition updated
-- docs/adr/003-composition-api-contract.md: Required inputs list
-- prompts/agents/client-builder.agent.md: Platform identity rule
-- docs/plans/plan-aggregation-demo-features.md: Cache key formula
-
---- Test updates ---
-
-- All platform envelope/transport tests updated for new query shape,
-  /v1/sdui/ prefix, and header assertions
-- Server: SduiRefreshTransportTest updated
-- iOS: RequestEnvelopeBuilderTests, SduiRepositoryRefreshTransportTests,
-  UriResolverTests, ActionDispatcherTests, PollingDriverTests
-- Android: SduiRepositoryRefreshTransportTest
-- Web: fetchSduiScreen.test.ts (176/176 pass)
+- docs/sdui-envelope-spec.md: Schema Version Negotiation section
+  (header protocol, field stripping, server config)
+- docs/client-implementors-contract.md: §11.6 schema version negotiation
+  (force-upgrade detection algorithm, client responsibilities)
+- docs/glossary.md: Schema versioning entry added
+- docs/sdui-requirements-summary.md: status Partial → Built
+- docs/SDUI_Technical_Proposal_v2.md: §10 atomic count 10→12, schema
+  versioning row added
+- docs/SDUI_Executive_Summary_v2.md: risk table status updated
+- docs/plans/server/plan-schema-versioning.md: all phases marked complete

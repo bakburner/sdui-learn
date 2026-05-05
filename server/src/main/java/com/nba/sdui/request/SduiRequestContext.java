@@ -7,10 +7,10 @@ import java.util.Map;
  * Typed request envelope for all SDUI composition requests.
  *
  * <p>Populated from bracket-notation query params on GET requests
- * (e.g. {@code platform[name]=android&device[countryCode]=US})
+ * (e.g. {@code platform[deviceClass]=phone&market[cohort]=US_NY_METRO})
  * or from a JSON POST body with the same shape.
  *
- * <p>Fields mirror the contract in {@code plan-request-transport.md}.
+ * <p>Fields mirror the contract in {@code sdui-envelope-spec.md}.
  */
 public class SduiRequestContext {
 
@@ -24,8 +24,7 @@ public class SduiRequestContext {
 
     private Platform platform;
     private Device device;
-    private String resolvedCountry;
-    private String resolvedMarketCohort;
+    private Market market = new Market();
     private Map<String, String> experiments = Collections.emptyMap();
 
     // ── Platform ───────────────────────────────────────────────────────
@@ -73,7 +72,19 @@ public class SduiRequestContext {
         public String getDeviceId() { return deviceId; }
         public void setDeviceId(String deviceId) { this.deviceId = deviceId; }
     }
+    // ── Market ───────────────────────────────────────────────────────────
 
+    /**
+     * Market context. Travels as {@code market[cohort]=...} in the query string.
+     * Trust is established via app attestation (Play Integrity / App Attest).
+     * Requests failing attestation receive {@code MARKET_UNKNOWN}.
+     */
+    public static class Market {
+        private String cohort = "MARKET_UNKNOWN";
+
+        public String getCohort() { return cohort; }
+        public void setCohort(String cohort) { this.cohort = cohort; }
+    }
     // ── Accessors ──────────────────────────────────────────────────────
 
     public String getLocale() { return locale; }
@@ -91,13 +102,13 @@ public class SduiRequestContext {
     public Device getDevice() { return device; }
     public void setDevice(Device device) { this.device = device; }
 
-    /** Resolved country from edge worker (X-Resolved-Country header). */
-    public String getResolvedCountry() { return resolvedCountry; }
-    public void setResolvedCountry(String resolvedCountry) { this.resolvedCountry = resolvedCountry; }
+    public Market getMarket() { return market; }
+    public void setMarket(Market market) { this.market = market; }
 
-    /** Resolved market cohort from edge worker (X-Resolved-Market-Cohort header). */
-    public String getResolvedMarketCohort() { return resolvedMarketCohort; }
-    public void setResolvedMarketCohort(String resolvedMarketCohort) { this.resolvedMarketCohort = resolvedMarketCohort; }
+    /** Convenience accessor: returns the effective market cohort string. */
+    public String getMarketCohort() {
+        return market.getCohort();
+    }
 
     public Map<String, String> getExperiments() { return experiments; }
     public void setExperiments(Map<String, String> experiments) {

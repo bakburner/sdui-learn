@@ -35,6 +35,10 @@ interface Device {
   deviceId?: string;
 }
 
+interface Market {
+  cohort: string;
+}
+
 export class RequestEnvelopeBuilder {
   private _locale = 'en';
   private _schemaVersion = '1.0';
@@ -44,6 +48,7 @@ export class RequestEnvelopeBuilder {
     capabilities: { sse: true, onFocus: true },
   };
   private _device: Device = {};
+  private _market: Market = { cohort: 'MARKET_UNKNOWN' };
   private _experiments: Record<string, string> = {};
 
   locale(locale: string): this {
@@ -91,6 +96,11 @@ export class RequestEnvelopeBuilder {
     return this;
   }
 
+  marketCohort(cohort: string): this {
+    this._market.cohort = cohort;
+    return this;
+  }
+
   experiment(id: string, variant: string): this {
     this._experiments[id] = variant;
     return this;
@@ -108,6 +118,9 @@ export class RequestEnvelopeBuilder {
   buildQueryString(): string {
     const params: [string, string][] = [];
 
+    // Fixed envelope ordering: locale, schemaVersion, platform, market, experiments.
+    // All platforms must emit in this order for byte-identical CDN cache keys.
+
     // Top-level scalars
     params.push(['locale', this._locale]);
     params.push(['schemaVersion', this._schemaVersion]);
@@ -118,6 +131,9 @@ export class RequestEnvelopeBuilder {
     if (this._platform.capabilities.onFocus) {
       params.push(['platform[capabilities][onFocus]', 'true']);
     }
+
+    // Market
+    params.push(['market[cohort]', this._market.cohort]);
 
     // Device (nested, all optional)
     // deviceId travels as X-Device-Id header, not in the envelope query.
@@ -151,6 +167,7 @@ export class RequestEnvelopeBuilder {
       locale: this._locale,
       schemaVersion: this._schemaVersion,
       platform,
+      market: { cohort: this._market.cohort },
     };
     // deviceId travels as X-Device-Id header; strip it from the body.
     const { deviceId: _stripped, ...deviceWithoutId } = this._device;

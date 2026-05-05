@@ -15,9 +15,8 @@ import java.util.UUID
  *
  * Example output:
  * ```
- * locale=en&schemaVersion=1.0&platform[name]=android&platform[appVersion]=8.3.0
- * &platform[osVersion]=14&platform[deviceClass]=phone&platform[capabilities][sse]=true
- * &experiments[gd_tab_order_v2]=variant_b
+ * locale=en&schemaVersion=1.0&platform[deviceClass]=phone&platform[capabilities][sse]=true
+ * &market[cohort]=US_NY_METRO&experiments[gd_tab_order_v2]=variant_b
  * ```
  */
 class RequestEnvelopeBuilder {
@@ -98,6 +97,9 @@ class RequestEnvelopeBuilder {
     // ── Device ─────────────────────────────────────────────────────────
     private var deviceId: String? = null
 
+    // ── Market ─────────────────────────────────────────────────────────
+    private var marketCohort: String = "MARKET_UNKNOWN"
+
     // ── Experiments (Amplitude assignments) ─────────────────────────────
     private val experiments: MutableMap<String, String> = mutableMapOf()
 
@@ -115,6 +117,8 @@ class RequestEnvelopeBuilder {
 
     fun deviceId(id: String?) = apply { this.deviceId = id }
 
+    fun marketCohort(cohort: String) = apply { this.marketCohort = cohort }
+
     fun experiment(id: String, variant: String) = apply { this.experiments[id] = variant }
     fun experiments(map: Map<String, String>) = apply { this.experiments.putAll(map) }
 
@@ -124,6 +128,9 @@ class RequestEnvelopeBuilder {
      */
     fun buildQueryString(): String {
         val params = mutableListOf<Pair<String, String>>()
+
+        // Fixed envelope ordering: locale, schemaVersion, platform, market, experiments.
+        // All platforms must emit in this order for byte-identical CDN cache keys.
 
         // Top-level scalars
         params.add("locale" to locale)
@@ -135,6 +142,9 @@ class RequestEnvelopeBuilder {
         if (onFocusCapable) {
             params.add("platform[capabilities][onFocus]" to "true")
         }
+
+        // Market
+        params.add("market[cohort]" to marketCohort)
 
         // Experiments (nested map, sorted for deterministic CDN cache keys)
         for ((id, variant) in experiments.toSortedMap()) {
@@ -172,6 +182,7 @@ class RequestEnvelopeBuilder {
             "locale" to locale,
             "schemaVersion" to schemaVersion,
             "platform" to platform,
+            "market" to mapOf("cohort" to marketCohort),
             "experiments" to experiments
         )
 

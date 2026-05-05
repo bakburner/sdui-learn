@@ -80,10 +80,9 @@ class SduiRefreshTransportTest {
                         .param("seasonType", "Regular Season")
                         .param("locale", "en")
                         .param("platform[deviceClass]", "tablet")
+                        .param("market[cohort]", "MARKET_UNKNOWN")
                         .param("experiments[gd_tab_order_v2]", "variant_b")
                         .header("X-Platform", "ios")
-                        .header("X-Resolved-Country", "US")
-                        .header("X-Resolved-Market-Cohort", "MARKET_UNKNOWN")
                         .header("X-Trace-Id", "trace-123")
         ).andExpect(status().isOk());
 
@@ -126,8 +125,6 @@ class SduiRefreshTransportTest {
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsBytes(envelope))
                         .header("X-Platform", "ios")
-                        .header("X-Resolved-Country", "US")
-                        .header("X-Resolved-Market-Cohort", "MARKET_UNKNOWN")
                         .header("X-Trace-Id", "trace-456")
         ).andExpect(status().isOk());
 
@@ -156,9 +153,8 @@ class SduiRefreshTransportTest {
                 get("/v1/sdui/scoreboard")
                         .param("locale", "en")
                         .param("platform[deviceClass]", "tablet")
+                        .param("market[cohort]", "US_NY_METRO")
                         .header("X-Platform", "ios")
-                        .header("X-Resolved-Country", "US")
-                        .header("X-Resolved-Market-Cohort", "MARKET_UNKNOWN")
                         .header("X-Trace-Id", "trace-ff-get")
         ).andExpect(status().isOk());
 
@@ -194,8 +190,6 @@ class SduiRefreshTransportTest {
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsBytes(envelope))
                         .header("X-Platform", "ios")
-                        .header("X-Resolved-Country", "US")
-                        .header("X-Resolved-Market-Cohort", "MARKET_UNKNOWN")
                         .header("X-Trace-Id", "trace-ff-post")
         ).andExpect(status().isOk());
 

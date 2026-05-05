@@ -12,6 +12,7 @@ final class RequestEnvelopeBuilderTests: XCTestCase {
             osVersion: "17.5",
             deviceClass: "phone",
             sseCapable: true,
+            marketCohort: "US_NY_METRO",
             experiments: ["gd_tab_order_v2": "variant_b"]
         )
 
@@ -22,6 +23,7 @@ final class RequestEnvelopeBuilderTests: XCTestCase {
         XCTAssertTrue(query.contains("platform%5BdeviceClass%5D=phone"))
         XCTAssertFalse(query.contains("platform%5Bname%5D"), "platform name must not appear in query")
         XCTAssertFalse(query.contains("platform%5BappVersion%5D"), "appVersion must not appear in query")
+        XCTAssertTrue(query.contains("market%5Bcohort%5D=US_NY_METRO"))
         XCTAssertTrue(query.contains("experiments%5Bgd_tab_order_v2%5D=variant_b"))
     }
 
@@ -40,6 +42,7 @@ final class RequestEnvelopeBuilderTests: XCTestCase {
             osVersion: "17.5",
             deviceClass: "phone",
             sseCapable: true,
+            marketCohort: "US_NY_METRO",
             experiments: ["exp_a": "1"]
         )
 
@@ -53,6 +56,9 @@ final class RequestEnvelopeBuilderTests: XCTestCase {
         XCTAssertNil(platform?["appVersion"], "appVersion must not appear in JSON body")
 
         XCTAssertNil(decoded?["device"], "device object must not appear in JSON body")
+
+        let market = decoded?["market"] as? [String: Any]
+        XCTAssertEqual(market?["cohort"] as? String, "US_NY_METRO")
 
         let experiments = decoded?["experiments"] as? [String: Any]
         XCTAssertEqual(experiments?["exp_a"] as? String, "1")

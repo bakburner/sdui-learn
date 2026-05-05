@@ -15,9 +15,8 @@ import UIKit
 ///
 /// Example query output:
 /// ```text
-/// locale=en&schemaVersion=1.0&platform[name]=ios&platform[appVersion]=8.3.0
-/// &platform[osVersion]=17.5&platform[deviceClass]=phone
-/// &platform[capabilities][sse]=true&device[countryCode]=US
+/// locale=en&schemaVersion=1.0&platform[deviceClass]=phone
+/// &platform[capabilities][sse]=true&market[cohort]=US_NY_METRO
 /// &experiments[gd_tab_order_v2]=variant_b
 /// ```
 public struct RequestEnvelope: Sendable, Equatable {
@@ -46,6 +45,10 @@ public struct RequestEnvelope: Sendable, Equatable {
 
     public var deviceID: String?
 
+    // MARK: Market
+
+    public var marketCohort: String
+
     // MARK: Experiments
 
     public var experiments: [String: String]
@@ -60,6 +63,7 @@ public struct RequestEnvelope: Sendable, Equatable {
         sseCapable: Bool = true,
         onFocusCapable: Bool = false,
         deviceID: String? = nil,
+        marketCohort: String = "MARKET_UNKNOWN",
         experiments: [String: String] = [:]
     ) {
         self.locale = locale
@@ -71,6 +75,7 @@ public struct RequestEnvelope: Sendable, Equatable {
         self.sseCapable = sseCapable
         self.onFocusCapable = onFocusCapable
         self.deviceID = deviceID
+        self.marketCohort = marketCohort
         self.experiments = experiments
     }
 
@@ -78,8 +83,8 @@ public struct RequestEnvelope: Sendable, Equatable {
 
     /// Build the bracket-notation query string. Does NOT include a leading `?`.
     ///
-    /// Key ordering matches the Android builder for byte-identical outputs
-    /// when inputs align: scalars, platform, device, experiments (sorted).
+    /// Fixed envelope ordering: locale, schemaVersion, platform, market, experiments.
+    /// All platforms must emit in this order for byte-identical CDN cache keys.
     public func buildQueryString() -> String {
         var params: [(String, String)] = []
 
@@ -91,6 +96,9 @@ public struct RequestEnvelope: Sendable, Equatable {
         if onFocusCapable {
             params.append(("platform[capabilities][onFocus]", "true"))
         }
+
+        // Market
+        params.append(("market[cohort]", marketCohort))
 
         // deviceID travels as X-Device-Id header, not in the envelope query.
 
@@ -124,6 +132,7 @@ public struct RequestEnvelope: Sendable, Equatable {
             "locale": locale,
             "schemaVersion": schemaVersion,
             "platform": platform,
+            "market": ["cohort": marketCohort],
             "experiments": experiments
         ]
 

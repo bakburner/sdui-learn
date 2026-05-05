@@ -77,6 +77,7 @@ locale=en-US
 &platform[deviceClass]=phone
 &platform[capabilities][sse]=true
 &platform[capabilities][onFocus]=true
+&market[cohort]=US_NY_METRO
 &experiments[gd_tab_order_v2]=variant_b
 &experiments[gd_score_card_v3]=control
 ```
@@ -89,6 +90,7 @@ locale=en-US
 | `schemaVersion` | yes | Within-endpoint contract version. Major.minor. |
 | `platform[deviceClass]` | yes | `phone` \| `tablet` \| `tv` \| `desktop` \| `web`. Affects layout/sections. |
 | `platform[capabilities][*]` | as applicable | Runtime capability flags (e.g. `sse`, `onFocus`). Affects response shape. |
+| `market[cohort]` | yes | Edge-resolved or client-attested market cohort (e.g. `US_NY_METRO`, `INTL_CA`, `MARKET_UNKNOWN`). Encodes country. Drives regional content, blackouts, broadcast territory logic. Trust established via app attestation. |
 | `experiments[<key>]` | optional | Client-asserted Amplitude assignments. Edge filters per surface (roadmap). |
 
 #### Excluded from the Query String
@@ -98,8 +100,8 @@ locale=en-US
 | `platform[name]` | SDUI is platform-agnostic; renderer concern, not composition concern. Moved to `X-Platform` header for analytics. |
 | `platform[appVersion]` | Replaced by `schemaVersion` for contract purposes. App version is analytics-only. Moved to `X-App-Version` header. |
 | `platform[osVersion]` | Does not affect response. Analytics-only. Moved to `X-OS-Version` header. |
-| `device[zipCode]` | Server-resolved at edge. Client claims not trusted for geo. |
-| `device[countryCode]` | Server-resolved at edge. Client claims not trusted for geo. |
+| `device[zipCode]` | Raw zip is not a composition input. Market cohort is the resolved signal. |
+| `device[countryCode]` | Subsumed by `market[cohort]`, which encodes country (e.g. `US_*`, `INTL_CA`). |
 
 #### Rationale: What's In vs. Out
 
@@ -119,9 +121,13 @@ the query string; if it doesn't, it's a header.**
   in the query would triple the cache keyspace with no composition benefit.
 - `appVersion` and `osVersion` are analytics signals. The composition contract
   is governed by `schemaVersion`, not the native app version.
-- Geo (`zipCode`, `countryCode`) cannot be trusted from client claims. The edge
-  worker resolves the real geo from the client IP. Putting client-claimed geo in
-  the query would cache on untrusted data.
+- `market[cohort]` affects composition (regional content, blackouts, broadcast
+  territories) so it belongs in the query string. Trust is established via app
+  attestation (Play Integrity / App Attest), not edge IP resolution. The cohort
+  encodes country, so a separate `countryCode` param is unnecessary.
+- Raw geo (`zipCode`, `countryCode`) is excluded — `market[cohort]` is the
+  composition-relevant signal. Raw geo is available in `X-Device-Geo` for
+  analytics only.
 
 ### GET/POST Fallback
 
@@ -144,6 +150,9 @@ Content-Type: application/json
   "platform": {
     "deviceClass": "phone",
     "capabilities": { "sse": true }
+  },
+  "market": {
+    "cohort": "US_NY_METRO"
   },
   "experiments": { ... }
 }
@@ -215,35 +224,32 @@ the screen that triggered it.
 
 ### Edge-Injected Headers
 
-Resolved by the edge worker (Akamai) and forwarded to the BFF as trusted
-(signed or mTLS-verified). The BFF **must not** trust client-supplied versions
-of these headers.
+Reserved for future edge worker functionality. Currently no edge worker is
+deployed.
 
 | Header | Source | Purpose | Status |
 |---|---|---|---|
-| `X-Resolved-Country` | Edge resolves clientIP → ISO 3166-1 alpha-2 | Compliance, legal, analytics | **Placeholder** (clients send `"US"`) |
-| `X-Resolved-Market-Cohort` | Edge resolves ZIP → US cohort or country → intl cohort; `MARKET_UNKNOWN` on failure | Content decisions, blackouts, personalization | **Placeholder** (clients send `"MARKET_UNKNOWN"`) |
 | `X-Experiment-Context` | Edge passes through full client-asserted assignment set (base64 JSON) | Analytics / exposure logging | **Roadmap** |
 
-> **Current state:** No edge worker is deployed yet. Clients send placeholder
-> values for `X-Resolved-Country` (`"US"`) and `X-Resolved-Market-Cohort`
-> (`"MARKET_UNKNOWN"`). The server POJO (`SduiRequestContext.resolvedCountry`,
-> `SduiRequestContext.resolvedMarketCohort`) is wired and ready so the shape
-> doesn't change when the edge layer ships.
+> **Market cohort** moved to the query string as `market[cohort]`. Trust is
+> established via app attestation (Play Integrity / App Attest), not edge IP
+> resolution. See Field Definitions above.
 
 ### Trust Model
 
-| Source | Trusted For | Not Trusted For |
+| Source | Trusted For | Trust Mechanism |
 |---|---|---|
-| Client envelope (query string) | Locale, schema version, device class, capabilities, experiment assignments | Geo, identity, entitlements |
-| Client headers | Tracing, analytics, correlation | Decisions affecting content |
-| Edge-injected headers | Geo (country, market cohort), experiment context | — |
-| Auth context (out of scope) | Identity, entitlements | — |
+| Client envelope (query string) | Locale, schema version, device class, capabilities, experiment assignments | Standard client contract |
+| Client envelope — `market[cohort]` | Regional content, blackouts, broadcast territories | App attestation (Play Integrity / App Attest) |
+| Client headers | Tracing, analytics, correlation | Informational only — never load-bearing |
+| Auth context (out of scope) | Identity, entitlements | OAuth / JWT |
 
-Client headers carry claims and identifiers. Edge-injected headers carry
-resolved truth. The BFF trusts the second category and treats the first as
-informational. Any decision affecting content, entitlements, or compliance
-flows through edge-resolved values, not client claims.
+Most envelope fields are low-risk (locale, schema version) — a malicious
+client gains nothing by lying about them. `market[cohort]` is the exception:
+it drives content gating, blackout enforcement, and broadcast territory
+logic. App attestation ensures the value originates from a legitimate app
+install, not a spoofed request. Requests failing attestation receive
+`MARKET_UNKNOWN` treatment (safe default, no region-specific content).
 
 ## Server-Side Contract
 
@@ -258,13 +264,13 @@ SduiRequestContext
 ├── locale: String = "en"
 ├── schemaVersion: String = "1.0"
 ├── traceId: String               ← from X-Trace-Id header
-├── resolvedCountry: String       ← from X-Resolved-Country header
-├── resolvedMarketCohort: String  ← from X-Resolved-Market-Cohort header
 ├── platform
 │   ├── deviceClass: String
 │   └── capabilities
 │       ├── sse: boolean
 │       └── onFocus: boolean
+├── market
+│   └── cohort: String = "MARKET_UNKNOWN"  ← from query string market[cohort]
 ├── device
 │   └── deviceId: String          ← from X-Device-Id header
 └── experiments: Map<String, String>
@@ -352,18 +358,16 @@ BFF tier with full key control.
 
 ### Edge Worker
 
-The edge worker (Akamai) is the planned trust boundary. It transforms the
-client request into a canonical, cache-keyable URL with resolved context:
+The edge worker (Akamai) is a planned optimization layer. With market cohort
+now in the query string (trusted via app attestation), the edge worker's
+remaining responsibilities are:
 
-1. **Resolve country:** clientIP → countryCode (ISO 3166-1 alpha-2). Always present.
-2. **Resolve market cohort:**
-   - `country == US` → ZIP → US market cohort (e.g. `US_NY_METRO`)
-   - `country != US` → country → intl market cohort (e.g. `INTL_CA`, `INTL_DEFAULT`)
-   - Resolution failure → `MARKET_UNKNOWN`
-3. **Filter experiments:** drop `experiments[*]` entries not in the per-surface registry.
-4. **Canonicalize query string:** sort all params, canonical percent-encoding, compute cache key.
-5. **Inject resolved-context headers** (signed or mesh-trusted).
-6. **Forward to BFF.**
+1. **Filter experiments:** drop `experiments[*]` entries not in the per-surface registry.
+2. **Canonicalize query string:** sort all params, canonical percent-encoding, compute cache key.
+3. **Forward to BFF.**
+
+Geo resolution is no longer an edge concern — the client sends `market[cohort]`
+directly, trusted via app attestation.
 
 ### Per-Surface Experiment Registry
 
@@ -419,4 +423,5 @@ from 2^N cache entries to a small constant.
 
 | Date | Change |
 |---|---|
+| 2026-05-04 | `market[cohort]` moved from edge-injected header to query string (composition input). Trust via app attestation, not edge IP resolution. `X-Resolved-Country` and `X-Resolved-Market-Cohort` headers removed. Edge worker geo resolution removed from roadmap. |
 | 2026-05-01 | v1 implemented. Versioned paths (`/v1/`), analytics fields moved to headers, geo moved to placeholder edge headers, `X-Request-Id` added. All 4 platforms + server updated. |

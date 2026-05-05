@@ -18,15 +18,15 @@ import java.util.*;
  *
  * <h3>Bracket notation</h3>
  * <pre>
- *   platform[name]=android
+ *   platform[deviceClass]=phone
  *   platform[capabilities][sse]=true
- *   device[countryCode]=US
+ *   market[cohort]=US_NY_METRO
  *   experiments[gd_tab_order_v2]=variant_b
  * </pre>
  *
  * <h3>POST JSON body</h3>
  * <pre>
- *   { "platform": { "name": "android" }, "locale": "es" }
+ *   { "platform": { "deviceClass": "phone" }, "market": { "cohort": "US_NY_METRO" }, "locale": "es" }
  * </pre>
  */
 public class BracketParamResolver implements HandlerMethodArgumentResolver {
@@ -124,18 +124,6 @@ public class BracketParamResolver implements HandlerMethodArgumentResolver {
             }
             ctx.getDevice().setDeviceId(headerDeviceId);
         }
-
-        // X-Resolved-Country — edge-injected (trusted in production, placeholder in dev)
-        String resolvedCountry = webRequest.getHeader("X-Resolved-Country");
-        if (resolvedCountry != null) {
-            ctx.setResolvedCountry(resolvedCountry);
-        }
-
-        // X-Resolved-Market-Cohort — edge-injected (trusted in production, placeholder in dev)
-        String resolvedMarketCohort = webRequest.getHeader("X-Resolved-Market-Cohort");
-        if (resolvedMarketCohort != null) {
-            ctx.setResolvedMarketCohort(resolvedMarketCohort);
-        }
     }
 
     /**
@@ -143,8 +131,9 @@ public class BracketParamResolver implements HandlerMethodArgumentResolver {
      *
      * <p>Examples:
      * <ul>
-     *   <li>{@code platform[name]=android} → {@code {platform: {name: "android"}}}</li>
+     *   <li>{@code platform[deviceClass]=phone} → {@code {platform: {deviceClass: "phone"}}}</li>
      *   <li>{@code platform[capabilities][sse]=true} → {@code {platform: {capabilities: {sse: "true"}}}}</li>
+     *   <li>{@code market[cohort]=US_NY_METRO} → {@code {market: {cohort: "US_NY_METRO"}}}</li>
      *   <li>{@code locale=en} → {@code {locale: "en"}}</li>
      *   <li>{@code experiments[gd_tab_order]=B} → {@code {experiments: {gd_tab_order: "B"}}}</li>
      * </ul>

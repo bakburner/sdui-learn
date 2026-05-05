@@ -1,33 +1,36 @@
-SDUI: Envelope Spec v1 implementation + doc consistency audit
+SDUI: Move market cohort from edge header to envelope query string
 
---- Envelope Spec v1 (server + all clients) ---
+--- market[cohort] as composition input (all platforms + server) ---
 
-- Server: /v1/ URL prefix on all composition routes, BracketParamResolver
-  reads X-Request-Id into MDC, removed X-Schema-Version header fallback,
-  SduiRequestContext.Platform reduced to deviceClass + capabilities only,
-  top-level resolvedCountry/resolvedMarketCohort from edge headers
-- Android: RequestEnvelopeBuilder emits only locale/schemaVersion/
-  deviceClass/capabilities/experiments as query params; SduiRepository
-  sends X-Trace-Id, X-Request-Id, X-Device-Id, X-Platform, X-App-Version,
-  X-OS-Version, X-Resolved-Country, X-Resolved-Market-Cohort, Authorization
-- iOS: Same envelope shape; SduiRepository sends same header set;
-  UriResolver sduiPrefix = "/v1/sdui/"
-- Web: Same envelope shape; fetchSduiScreen sends same header set;
-  SDUI_PATH_PREFIX = '/v1/sdui/'
+- Server: SduiRequestContext gains nested Market class with cohort field
+  (default "MARKET_UNKNOWN"), initialized eagerly to avoid NPE; removed
+  X-Resolved-Country and X-Resolved-Market-Cohort header reading from
+  BracketParamResolver
+- Android: RequestEnvelopeBuilder emits market[cohort] in query string
+  and POST body; default "MARKET_UNKNOWN"
+- iOS: RequestEnvelope gains marketCohort property; emitted in query
+  string and POST body; tests updated
+- Web: RequestEnvelopeBuilder emits market[cohort] in query string and
+  POST body; Market interface added
 
---- Envelope contract documentation ---
+--- Trust model change ---
 
-- Created docs/sdui-envelope-spec.md — full envelope contract reference
-  covering versioning layers, URL shape, query fields, excluded fields,
-  GET/POST fallback, percent-encoding, deterministic ordering, headers,
-  edge-injected headers, trust model, server contract, caching, roadmap
+- Market cohort trust shifts from edge IP resolution to app attestation
+  (Play Integrity / App Attest). Requests failing attestation receive
+  MARKET_UNKNOWN treatment. Edge worker geo resolution removed from
+  roadmap.
 
---- Doc consistency audit (16 inconsistencies fixed) ---
+--- Documentation ---
 
-- AGENTS.md §3.4: Rewrote platform identity section (X-Platform header +
-  deviceClass/capabilities query params); §4.1.1 bracket params updated
-- README.md: All curls → /v1/sdui/, screens table updated, schemaVersion
-  as query param instead of X-Schema-Version header
+- docs/sdui-envelope-spec.md: market[cohort] field added to spec,
+  trust model rewritten, edge worker scope narrowed, changelog updated
+- All client builders document fixed envelope ordering for CDN cache
+  key determinism
+
+--- Unrelated (included) ---
+
+- docs/plans/plan-server-section-caching.md: new plan for three-layer
+  server-side caching (upstream data, section fragments, screen assembly)
 - docs/SDUI_Executive_Summary_v2.md: Envelope fields and platform-aware
   composition description
 - docs/SDUI_Technical_Proposal_v2.md: URI resolution convention, endpoint

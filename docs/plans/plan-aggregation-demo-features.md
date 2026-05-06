@@ -21,17 +21,17 @@ automated tests, and safe to ship behind a feature flag.
 
 | Aspect | Status | Notes |
 |--------|--------|-------|
-| Section ID derivation | Partial | IDs are manually assigned per composer; no algorithmic derivation or `contentSourceId` field |
+| Section ID derivation | Built | `SectionIdDeriver` utility + `contentSourceId` field; ForYouComposer uses derived IDs |
 | Capability negotiation | Partial | `Capabilities` carries `sse` and `onFocus`; no section-type or atomic-capability filtering |
 | Multi-column layout | Partial | Schema supports `Container[direction=row]` + `SectionSlot`; no form-factor branching in composers |
 | Per-feed version negotiation | Partial | `schemaVersion` in envelope/response; server always returns latest (see `server/plan-schema-versioning.md`) |
 | Translation resolution stub | Built | `SduiUtils.stampStringTableOnSections()` resolves locale → fully resolved strings; static map backing |
 | Pagination cursor | Gap | `LeadersTableData` has numeric `page`/`pageSize`/`totalRows`; no opaque cursor |
-| Analytics attribution | Partial | `analyticsId` on sections; `fireAndForget` actions with `params`; no `contentSourceId` in impression events |
+| Analytics attribution | Partial | `analyticsId` on sections; `fireAndForget` actions with `params`; `contentSourceId` field present (Feature 7 automates impression action attachment) |
 
 ## Requirements Addressed
 
-- [ ] **REQ-1**: Section IDs computed from content-source ID + section type + position, visible in response
+- [x] **REQ-1**: Section IDs computed from content-source ID + section type (+ slug for named-region pages), visible in response
 - [ ] **REQ-2**: Capability negotiation handshake — client sends a capability tier; server composes to that tier's vocabulary
 - [ ] **REQ-3**: Multi-column layout via section composition — same content, phone vs. tablet/XR responses differ by layout
 - [ ] **REQ-4**: Per-feed version negotiation — v1 and v2 of the same feed coexist with different section schemas
@@ -87,17 +87,17 @@ the ID.
 ### Tasks
 
 #### Phase 1: Schema & Codegen
-- [ ] Add optional `contentSourceId` field to the `Section` definition in `schema/sdui-schema.json`
+- [x] Add optional `contentSourceId` field to the `Section` definition in `schema/sdui-schema.json`
   ```json
   "contentSourceId": {
     "type": "string",
     "description": "Origin identifier for the content backing this section (e.g. 'cms:article-42', 'stats-api:leaders-2025'). Carried through to analytics for two-tier attribution."
   }
   ```
-- [ ] Run `make codegen` — verify field appears in Java, TypeScript, Swift, Kotlin outputs
+- [x] Run `make codegen` — verify field appears in Java, TypeScript, Swift, Kotlin outputs
 
 #### Phase 2: Server
-- [ ] Add `SectionIdDeriver` utility class — `server/src/main/java/com/nba/sdui/service/SectionIdDeriver.java`
+- [x] Add `SectionIdDeriver` utility class — `server/src/main/java/com/nba/sdui/service/SectionIdDeriver.java`
   ```java
   /** Feed items: contentSourceId + sectionType is sufficient. */
   public static String derive(String contentSourceId, String sectionType) {
@@ -111,20 +111,20 @@ the ID.
   ```
   The two-arg form is the default for feeds; the three-arg form is used
   only when the same `contentSourceId` + `sectionType` would collide.
-- [ ] Update `AtomicCompositeBuilder.sectionEnvelope()` to accept optional `contentSourceId` parameter and set it on the section node
-- [ ] Update `ForYouComposer` as the demo composer — call `SectionIdDeriver.derive()` for each section, set both `id` and `contentSourceId`
-- [ ] Verify in `/sdui/for-you` response: every section has a derived `id` and a visible `contentSourceId`
+- [x] Update `AtomicCompositeBuilder.sectionEnvelope()` to accept optional `contentSourceId` parameter and set it on the section node
+- [x] Update `ForYouComposer` as the demo composer — call `SectionIdDeriver.derive()` for each section, set both `id` and `contentSourceId`
+- [x] Verify in `/sdui/for-you` response: every section has a derived `id` and a visible `contentSourceId`
 
 #### Phase 3: Android
-- [ ] No client changes needed — `contentSourceId` is a pass-through field; existing `SduiModels` codegen picks it up
+- [x] No client changes needed — `contentSourceId` is a pass-through field; existing `SduiModels` codegen picks it up
 
 #### Phase 4: Web
-- [ ] No client changes needed — TypeScript codegen picks up the new field
+- [x] No client changes needed — TypeScript codegen picks up the new field
 
 #### Phase 5: Tests
-- [ ] Server unit test: `SectionIdDeriver.derive("cms:article-42", "AtomicComposite")` → `"cms:article-42::AtomicComposite"` (feed form)
-- [ ] Server unit test: `SectionIdDeriver.derive("stats-api:game-001", "AtomicComposite", "hero-card")` → `"stats-api:game-001::AtomicComposite::hero-card"` (named-region form)
-- [ ] Integration test: fetch `/sdui/for-you` → every section has non-null `contentSourceId`
+- [x] Server unit test: `SectionIdDeriver.derive("cms:article-42", "AtomicComposite")` → `"cms:article-42::AtomicComposite"` (feed form)
+- [x] Server unit test: `SectionIdDeriver.derive("stats-api:game-001", "AtomicComposite", "hero-card")` → `"stats-api:game-001::AtomicComposite::hero-card"` (named-region form)
+- [x] Integration test: fetch `/sdui/for-you` → every section has non-null `contentSourceId`
 
 ---
 

@@ -57,9 +57,12 @@ struct TabGroupView: View {
                 }
 
                 if let tabContents = data.tabContents, let sections = tabContents[selectedTab] {
-                    ForEach(sections, id: \.id) { childSection in
-                        SectionRouter(section: childSection, screenState: screenState, onAction: onAction)
+                    VStack(spacing: 0) {
+                        ForEach(sections, id: \.id) { childSection in
+                            SectionRouter(section: childSection, screenState: screenState, onAction: onAction)
+                        }
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .animation(.easeInOut(duration: 0.2), value: selectedTab)
                     .transition(.opacity)
                 }

@@ -128,7 +128,7 @@ public struct RequestEnvelope: Sendable, Equatable {
 
         // deviceID travels as X-Device-Id header, not in the envelope body.
 
-        var body: [String: Any] = [
+        let body: [String: Any] = [
             "locale": locale,
             "schemaVersion": schemaVersion,
             "platform": platform,

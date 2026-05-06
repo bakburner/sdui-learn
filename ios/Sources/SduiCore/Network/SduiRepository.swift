@@ -54,7 +54,7 @@ final class SduiRepository {
         userParams: [String: String] = [:],
         traceID: String? = nil
     ) async throws -> SduiModels {
-        var envelope = envelopeProvider()
+        let envelope = envelopeProvider()
 
         let resolvedTraceID = traceID ?? config.traceIDProvider()
         let request = try buildRequest(

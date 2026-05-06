@@ -606,7 +606,7 @@ public class GameDetailComposer {
         section.set("surface", utils.videoPlayerSurface());
 
         ObjectNode root = atomicBuilder.container("column", "center", "center");
-        root.put("fillWidth", true);
+        root.put("widthMode", "fill");
         root.put("height", 440);
         root.put("background", "#000000");
         ArrayNode rootChildren = objectMapper.createArrayNode();

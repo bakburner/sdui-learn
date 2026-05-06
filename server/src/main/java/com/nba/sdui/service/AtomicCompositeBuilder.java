@@ -1711,7 +1711,7 @@ public class AtomicCompositeBuilder {
         // Bottom scrim overlay with title text — dark black gradient for readability
         ObjectNode scrimContent = container("column", "end", "start");
         scrimContent.put("widthMode", "fill");
-        scrimContent.put("fillHeight", true);
+        scrimContent.put("heightMode", "fill");
         scrimContent.set("padding", padding(LayoutTokens.SPACING_MD, LayoutTokens.SPACING_MD, 0, LayoutTokens.SPACING_MD));
         scrimContent.set("background", gradient("#00000000", "#000000CC", "vertical"));
         scrimContent.set("cornerRadii", cornerRadii(0, 0, radius, radius));

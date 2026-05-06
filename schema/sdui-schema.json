@@ -499,12 +499,8 @@
         "alt": { "type": "string", "description": "Deprecated: use accessibility.label instead. Retained for backward compatibility; clients prefer accessibility.label when present." },
         "width": { "$ref": "#/definitions/LayoutScalar", "description": "Fixed width in dp/px or layout token." },
         "height": { "$ref": "#/definitions/LayoutScalar", "description": "Fixed height in dp/px or layout token." },
-        "widthMode": { "$ref": "#/definitions/SizingMode", "description": "Sizing behavior along the width axis. Replaces fillWidth. 'hug' = intrinsic, 'fill' = stretch to parent, 'fixed' = use explicit width value." },
+        "widthMode": { "$ref": "#/definitions/SizingMode", "description": "Sizing behavior along the width axis. 'hug' = intrinsic, 'fill' = stretch to parent, 'fixed' = use explicit width value." },
         "heightMode": { "$ref": "#/definitions/SizingMode", "description": "Sizing behavior along the height axis. 'hug' = intrinsic, 'fill' = stretch to parent, 'fixed' = use explicit height value." },
-        "fillWidth": {
-          "type": "boolean",
-          "description": "DEPRECATED — use widthMode: 'fill' instead. Retained for backward compatibility. When true, equivalent to widthMode: 'fill'. If both fillWidth and widthMode are set, widthMode wins."
-        },
         "minWidth": { "$ref": "#/definitions/LayoutScalar", "description": "Minimum width constraint in dp/px or layout token." },
         "maxWidth": { "$ref": "#/definitions/LayoutScalar", "description": "Maximum width constraint in dp/px or layout token." },
         "minHeight": { "$ref": "#/definitions/LayoutScalar", "description": "Minimum height constraint in dp/px or layout token." },

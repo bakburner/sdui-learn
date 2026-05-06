@@ -814,10 +814,6 @@ class AtomicElement: Codable {
     let direction: UIDirection?
     let disabled: Bool?
     let falseChild: AtomicElement?
-    /// DEPRECATED — use widthMode: 'fill' instead. Retained for backward compatibility. When
-    /// true, equivalent to widthMode: 'fill'. If both fillWidth and widthMode are set, widthMode
-    /// wins.
-    let fillWidth: Bool?
     let fit: ImageFit?
     /// Flex grow factor. When set on a child of a Container, the child claims proportional space
     /// along the main axis (like CSS flex or Compose weight). Default 0 (size to content).
@@ -916,11 +912,11 @@ class AtomicElement: Codable {
     let weight: TextWeight?
     /// Fixed width in dp/px or layout token.
     let width: LayoutScalar?
-    /// Sizing behavior along the width axis. Replaces fillWidth. 'hug' = intrinsic, 'fill' =
-    /// stretch to parent, 'fixed' = use explicit width value.
+    /// Sizing behavior along the width axis. 'hug' = intrinsic, 'fill' = stretch to parent,
+    /// 'fixed' = use explicit width value.
     let widthMode: SizingMode?
 
-    init(accessibility: AccessibilityProperties?, actions: [Action]?, alignment: Alignment?, alignSelf: CrossAlignment?, alt: String?, aspectRatio: AspectRatioUnion?, background: BackgroundUnion?, backgrounds: [BackgroundUnion]?, badge: Badge?, base: AtomicElement?, bindRef: String?, breakpoint: Int?, children: [AtomicElement]?, color: String?, columns: [Column]?, condition: String?, content: String?, cornerRadii: CornerRadii?, cornerRadius: LayoutScalar?, crossAlignment: CrossAlignment?, crossAxisGap: LayoutScalar?, direction: UIDirection?, disabled: Bool?, falseChild: AtomicElement?, fillWidth: Bool?, fit: ImageFit?, flex: Double?, format: Format?, gap: LayoutScalar?, height: LayoutScalar?, heightMode: SizingMode?, icon: String?, id: String?, isRunning: Bool?, label: String?, layoutWrap: Bool?, margin: Spacing?, maxHeight: LayoutScalar?, maxLines: Int?, maxWidth: LayoutScalar?, minHeight: LayoutScalar?, minWidth: LayoutScalar?, monospacedDigits: Bool?, opacity: Double?, orientation: Orientation?, overlays: [AtomicOverlay]?, padding: Spacing?, pageIndicator: PageIndicator?, paging: Bool?, placeholder: String?, rows: [[String: String]]?, section: Section?, shadow: Shadow?, shadows: [Shadow]?, showIndicators: Bool?, size: Int?, snapAlignment: Align?, snapshotAt: Date?, snapshotSeconds: Int?, src: String?, stopAtSeconds: Int?, striped: Bool?, textAlign: Align?, thickness: Int?, tickDirection: TickDirection?, trueChild: AtomicElement?, type: String, variant: String?, weight: TextWeight?, width: LayoutScalar?, widthMode: SizingMode?) {
+    init(accessibility: AccessibilityProperties?, actions: [Action]?, alignment: Alignment?, alignSelf: CrossAlignment?, alt: String?, aspectRatio: AspectRatioUnion?, background: BackgroundUnion?, backgrounds: [BackgroundUnion]?, badge: Badge?, base: AtomicElement?, bindRef: String?, breakpoint: Int?, children: [AtomicElement]?, color: String?, columns: [Column]?, condition: String?, content: String?, cornerRadii: CornerRadii?, cornerRadius: LayoutScalar?, crossAlignment: CrossAlignment?, crossAxisGap: LayoutScalar?, direction: UIDirection?, disabled: Bool?, falseChild: AtomicElement?, fit: ImageFit?, flex: Double?, format: Format?, gap: LayoutScalar?, height: LayoutScalar?, heightMode: SizingMode?, icon: String?, id: String?, isRunning: Bool?, label: String?, layoutWrap: Bool?, margin: Spacing?, maxHeight: LayoutScalar?, maxLines: Int?, maxWidth: LayoutScalar?, minHeight: LayoutScalar?, minWidth: LayoutScalar?, monospacedDigits: Bool?, opacity: Double?, orientation: Orientation?, overlays: [AtomicOverlay]?, padding: Spacing?, pageIndicator: PageIndicator?, paging: Bool?, placeholder: String?, rows: [[String: String]]?, section: Section?, shadow: Shadow?, shadows: [Shadow]?, showIndicators: Bool?, size: Int?, snapAlignment: Align?, snapshotAt: Date?, snapshotSeconds: Int?, src: String?, stopAtSeconds: Int?, striped: Bool?, textAlign: Align?, thickness: Int?, tickDirection: TickDirection?, trueChild: AtomicElement?, type: String, variant: String?, weight: TextWeight?, width: LayoutScalar?, widthMode: SizingMode?) {
         self.accessibility = accessibility
         self.actions = actions
         self.alignment = alignment
@@ -945,7 +941,6 @@ class AtomicElement: Codable {
         self.direction = direction
         self.disabled = disabled
         self.falseChild = falseChild
-        self.fillWidth = fillWidth
         self.fit = fit
         self.flex = flex
         self.format = format
@@ -1000,7 +995,7 @@ class AtomicElement: Codable {
 extension AtomicElement {
     convenience init(data: Data) throws {
         let me = try newJSONDecoder().decode(AtomicElement.self, from: data)
-        self.init(accessibility: me.accessibility, actions: me.actions, alignment: me.alignment, alignSelf: me.alignSelf, alt: me.alt, aspectRatio: me.aspectRatio, background: me.background, backgrounds: me.backgrounds, badge: me.badge, base: me.base, bindRef: me.bindRef, breakpoint: me.breakpoint, children: me.children, color: me.color, columns: me.columns, condition: me.condition, content: me.content, cornerRadii: me.cornerRadii, cornerRadius: me.cornerRadius, crossAlignment: me.crossAlignment, crossAxisGap: me.crossAxisGap, direction: me.direction, disabled: me.disabled, falseChild: me.falseChild, fillWidth: me.fillWidth, fit: me.fit, flex: me.flex, format: me.format, gap: me.gap, height: me.height, heightMode: me.heightMode, icon: me.icon, id: me.id, isRunning: me.isRunning, label: me.label, layoutWrap: me.layoutWrap, margin: me.margin, maxHeight: me.maxHeight, maxLines: me.maxLines, maxWidth: me.maxWidth, minHeight: me.minHeight, minWidth: me.minWidth, monospacedDigits: me.monospacedDigits, opacity: me.opacity, orientation: me.orientation, overlays: me.overlays, padding: me.padding, pageIndicator: me.pageIndicator, paging: me.paging, placeholder: me.placeholder, rows: me.rows, section: me.section, shadow: me.shadow, shadows: me.shadows, showIndicators: me.showIndicators, size: me.size, snapAlignment: me.snapAlignment, snapshotAt: me.snapshotAt, snapshotSeconds: me.snapshotSeconds, src: me.src, stopAtSeconds: me.stopAtSeconds, striped: me.striped, textAlign: me.textAlign, thickness: me.thickness, tickDirection: me.tickDirection, trueChild: me.trueChild, type: me.type, variant: me.variant, weight: me.weight, width: me.width, widthMode: me.widthMode)
+        self.init(accessibility: me.accessibility, actions: me.actions, alignment: me.alignment, alignSelf: me.alignSelf, alt: me.alt, aspectRatio: me.aspectRatio, background: me.background, backgrounds: me.backgrounds, badge: me.badge, base: me.base, bindRef: me.bindRef, breakpoint: me.breakpoint, children: me.children, color: me.color, columns: me.columns, condition: me.condition, content: me.content, cornerRadii: me.cornerRadii, cornerRadius: me.cornerRadius, crossAlignment: me.crossAlignment, crossAxisGap: me.crossAxisGap, direction: me.direction, disabled: me.disabled, falseChild: me.falseChild, fit: me.fit, flex: me.flex, format: me.format, gap: me.gap, height: me.height, heightMode: me.heightMode, icon: me.icon, id: me.id, isRunning: me.isRunning, label: me.label, layoutWrap: me.layoutWrap, margin: me.margin, maxHeight: me.maxHeight, maxLines: me.maxLines, maxWidth: me.maxWidth, minHeight: me.minHeight, minWidth: me.minWidth, monospacedDigits: me.monospacedDigits, opacity: me.opacity, orientation: me.orientation, overlays: me.overlays, padding: me.padding, pageIndicator: me.pageIndicator, paging: me.paging, placeholder: me.placeholder, rows: me.rows, section: me.section, shadow: me.shadow, shadows: me.shadows, showIndicators: me.showIndicators, size: me.size, snapAlignment: me.snapAlignment, snapshotAt: me.snapshotAt, snapshotSeconds: me.snapshotSeconds, src: me.src, stopAtSeconds: me.stopAtSeconds, striped: me.striped, textAlign: me.textAlign, thickness: me.thickness, tickDirection: me.tickDirection, trueChild: me.trueChild, type: me.type, variant: me.variant, weight: me.weight, width: me.width, widthMode: me.widthMode)
     }
 
     convenience init(_ json: String, using encoding: String.Encoding = .utf8) throws {
@@ -1039,7 +1034,6 @@ extension AtomicElement {
         direction: UIDirection?? = nil,
         disabled: Bool?? = nil,
         falseChild: AtomicElement?? = nil,
-        fillWidth: Bool?? = nil,
         fit: ImageFit?? = nil,
         flex: Double?? = nil,
         format: Format?? = nil,
@@ -1112,7 +1106,6 @@ extension AtomicElement {
             direction: direction ?? self.direction,
             disabled: disabled ?? self.disabled,
             falseChild: falseChild ?? self.falseChild,
-            fillWidth: fillWidth ?? self.fillWidth,
             fit: fit ?? self.fit,
             flex: flex ?? self.flex,
             format: format ?? self.format,
@@ -2205,8 +2198,8 @@ enum Format: String, Codable {
 /// Sizing behavior along one axis. 'hug' sizes to content (default). 'fill' stretches to
 /// parent available space. 'fixed' uses the explicit width/height value.
 ///
-/// Sizing behavior along the width axis. Replaces fillWidth. 'hug' = intrinsic, 'fill' =
-/// stretch to parent, 'fixed' = use explicit width value.
+/// Sizing behavior along the width axis. 'hug' = intrinsic, 'fill' = stretch to parent,
+/// 'fixed' = use explicit width value.
 enum SizingMode: String, Codable {
     case fill = "fill"
     case fixed = "fixed"

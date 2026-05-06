@@ -452,13 +452,7 @@ export interface AtomicElement {
     direction?:    UIDirection;
     disabled?:     boolean;
     falseChild?:   AtomicElement;
-    /**
-     * DEPRECATED — use widthMode: 'fill' instead. Retained for backward compatibility. When
-     * true, equivalent to widthMode: 'fill'. If both fillWidth and widthMode are set, widthMode
-     * wins.
-     */
-    fillWidth?: boolean;
-    fit?:       ImageFit;
+    fit?:          ImageFit;
     /**
      * Flex grow factor. When set on a child of a Container, the child claims proportional space
      * along the main axis (like CSS flex or Compose weight). Default 0 (size to content).
@@ -618,8 +612,8 @@ export interface AtomicElement {
      */
     width?: number | string;
     /**
-     * Sizing behavior along the width axis. Replaces fillWidth. 'hug' = intrinsic, 'fill' =
-     * stretch to parent, 'fixed' = use explicit width value.
+     * Sizing behavior along the width axis. 'hug' = intrinsic, 'fill' = stretch to parent,
+     * 'fixed' = use explicit width value.
      */
     widthMode?: SizingMode;
     [property: string]: any;
@@ -1142,8 +1136,8 @@ export enum Format {
  * Sizing behavior along one axis. 'hug' sizes to content (default). 'fill' stretches to
  * parent available space. 'fixed' uses the explicit width/height value.
  *
- * Sizing behavior along the width axis. Replaces fillWidth. 'hug' = intrinsic, 'fill' =
- * stretch to parent, 'fixed' = use explicit width value.
+ * Sizing behavior along the width axis. 'hug' = intrinsic, 'fill' = stretch to parent,
+ * 'fixed' = use explicit width value.
  */
 export enum SizingMode {
     Fill = "fill",

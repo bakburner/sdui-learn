@@ -706,14 +706,6 @@ data class AtomicElement (
     val direction: UIDirection? = null,
     val disabled: Boolean? = null,
     val falseChild: AtomicElement? = null,
-
-    /**
-     * DEPRECATED — use widthMode: 'fill' instead. Retained for backward compatibility. When
-     * true, equivalent to widthMode: 'fill'. If both fillWidth and widthMode are set, widthMode
-     * wins.
-     */
-    val fillWidth: Boolean? = null,
-
     val fit: ImageFit? = null,
 
     /**
@@ -918,8 +910,8 @@ data class AtomicElement (
     val width: LayoutScalar? = null,
 
     /**
-     * Sizing behavior along the width axis. Replaces fillWidth. 'hug' = intrinsic, 'fill' =
-     * stretch to parent, 'fixed' = use explicit width value.
+     * Sizing behavior along the width axis. 'hug' = intrinsic, 'fill' = stretch to parent,
+     * 'fixed' = use explicit width value.
      */
     val widthMode: SizingMode? = null
 )
@@ -1791,8 +1783,8 @@ enum class Format(val value: String) {
  * Sizing behavior along one axis. 'hug' sizes to content (default). 'fill' stretches to
  * parent available space. 'fixed' uses the explicit width/height value.
  *
- * Sizing behavior along the width axis. Replaces fillWidth. 'hug' = intrinsic, 'fill' =
- * stretch to parent, 'fixed' = use explicit width value.
+ * Sizing behavior along the width axis. 'hug' = intrinsic, 'fill' = stretch to parent,
+ * 'fixed' = use explicit width value.
  */
 enum class SizingMode(val value: String) {
     Fill("fill"),

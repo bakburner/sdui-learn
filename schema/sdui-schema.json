@@ -870,6 +870,10 @@
           "items": { "$ref": "#/definitions/Subsection" }
         },
         "analyticsId": { "type": "string" },
+        "contentSourceId": {
+          "type": "string",
+          "description": "Origin identifier for the content backing this section (e.g. 'cms:article-42', 'stats-api:leaders-2025'). Carried through to analytics for two-tier attribution."
+        },
         "accessibility": {
           "$ref": "#/definitions/AccessibilityProperties",
           "description": "Section-level accessibility metadata (landmark role, live region, heading)"

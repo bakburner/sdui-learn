@@ -1,17 +1,21 @@
 # Plan: Aggregation-Layer Demo Features
 
-> Source: Prototype demonstration roadmap — proving CMS/SDUI ownership boundaries,
+> Source: Production validation roadmap — proving CMS/SDUI ownership boundaries,
 > capability negotiation, layout-as-composition, version coexistence, translation
 > resolution, cursor pagination, and two-tier analytics attribution.
 
 ## Summary
 
-Seven additions to the SDUI prototype that collectively demonstrate the
-aggregation layer's core value propositions. Each feature is independently
-useful, but together they form a coherent demo narrative: a single composition
-endpoint can serve platform-unique, version-negotiated, cursor-paginated,
-fully-translated responses with transparent content-source attribution —
-without forking feeds or requiring client releases.
+Seven additions to the SDUI prototype that collectively validate the
+aggregation layer's production-readiness. Each feature is independently
+useful, but together they form the complete aggregation contract: a single
+composition endpoint can serve platform-unique, version-negotiated,
+cursor-paginated, fully-translated responses with transparent content-source
+attribution — without forking feeds or requiring client releases.
+
+This plan validates the production implementation path, not a throwaway demo.
+Each feature must be production-grade: correct under concurrency, covered by
+automated tests, and safe to ship behind a feature flag.
 
 ## Current State
 
@@ -184,15 +188,17 @@ combinations, none of which would see meaningful cache hit rates.
   - `filterAtomicElements(ObjectNode ui, CapabilityTier tier)` — walks the atomic tree and replaces unsupported element types with a placeholder `Text` node
 - [ ] Wire `CapabilityFilter` into `SduiCompositionService` — apply after each composer returns, before response is sent
 
-> **Prototype shortcut:** The post-hoc filter approach (compose maximally,
-> then strip) is simpler to implement for the demo but wasteful — the server
-> does full work then discards parts. It also risks breaking parent layout
-> assumptions when mid-tree elements are replaced with placeholders.
+> **Phase 1 implementation:** The post-hoc filter approach (compose maximally,
+> then strip) validates the contract with minimal composer changes. It is
+> wasteful — the server does full work then discards parts — and risks
+> breaking parent layout assumptions when mid-tree elements are replaced
+> with placeholders.
 >
-> In production, composers should **read the tier and compose to it** from
-> the start (the same pattern Feature 4's `ForYouComposerV1` uses).
-> The filter is acceptable as a demo-only mechanism that proves the concept
-> without requiring every composer to be tier-aware on day one.
+> **Phase 2 (production hardening):** Composers should **read the tier and
+> compose to it** from the start (the same pattern Feature 4's
+> `ForYouComposerV1` uses). The Phase 1 filter validates the tier contract
+> without requiring every composer to be tier-aware on day one; Phase 2
+> migrates composers incrementally to tier-aware composition.
 - [ ] Add `Makefile` target `make demo-capability-filter` that curls `/sdui/for-you` with `platform[capabilities][tier]=1` and `platform[capabilities][tier]=3` side by side
 
 #### Phase 3: Android
@@ -209,6 +215,19 @@ combinations, none of which would see meaningful cache hit rates.
 - [ ] Server test: compose with `tier=2` → TabGroup/Form/SeasonLeadersTable survive; BoxscoreTable/AdSlot replaced
 - [ ] Server test: tier=1 atomic tree has no LiveClock, OverlayContainer, or SectionSlot elements
 - [ ] End-to-end: Android sends `tier=1` → filtered response renders without decode errors
+
+### Startup Validation
+
+- [ ] Add a `@PostConstruct` check (or Spring `ApplicationRunner`) that asserts
+  `CapabilityTier.FULL.sectionTypes` equals the full set of section types known
+  to the schema (minus any explicitly excluded future-reserved types). If a new
+  section type is added to the schema without being assigned to a tier, the
+  server fails to start with a clear error message.
+- [ ] Same assertion for `CapabilityTier.FULL.atomicTypes` vs the schema's atomic
+  element type enum.
+
+This prevents silent drift where a newly added type falls outside all tiers
+and is unconditionally filtered for every client.
 
 ### Open Questions
 - [ ] Should filtered sections be silently removed, or replaced with an "upgrade" prompt?
@@ -244,15 +263,15 @@ Example: 2 sections → 1 AtomicComposite containing 2 SectionSlots.
 
 > **Prerequisite:** `SduiRequestContext.Platform` currently has `deviceClass` (e.g.
 > `phone`, `tablet`) but no `formFactor` field. Per AGENTS.md §3.4, `formFactor` is
-> roadmap. This feature can branch on `deviceClass` for the demo (treating
-> `deviceClass=tablet` as the wide trigger). If `plan-layout-responsive.md` lands
-> first and adds a dedicated `formFactor` field, prefer that instead.
+> roadmap. This feature branches on `deviceClass=tablet` as the wide trigger.
+> If `plan-layout-responsive.md` lands first and adds a dedicated `formFactor`
+> field, prefer that instead.
 
 - [ ] Add `MultiColumnWrapper` utility — `server/src/main/java/com/nba/sdui/service/MultiColumnWrapper.java`
-  - `wrapIfWideFormFactor(SduiRequestContext ctx, List<ObjectNode> sections, int columnsOnWide)` — when `deviceClass` is `tablet`, `web.wide`, or `tv`, replaces the input sections with a single `AtomicComposite` whose `data.ui` is a `Container[direction=row]` containing `SectionSlot` children (one per input section). On `phone` deviceClass, returns sections unchanged.
+  - `wrapIfWideFormFactor(SduiRequestContext ctx, List<ObjectNode> sections, int columnsOnWide)` — when `deviceClass` is `tablet`, replaces the input sections with a single `AtomicComposite` whose `data.ui` is a `Container[direction=row]` containing `SectionSlot` children (one per input section). On all other deviceClass values, returns sections unchanged.
   - Each column gets `flex: 1` for equal width distribution
   - Gap between columns uses `token:nba.spacing.md`
-- [ ] Apply `MultiColumnWrapper` in `ForYouComposer` — wrap the content rail + editorial rail pair as a 2-column layout on wide form factors
+- [ ] Apply `MultiColumnWrapper` in `ForYouComposer` — wrap the content rail + editorial rail pair as a 2-column layout on tablet
 - [ ] Apply in `HomeComposer` — wrap utility card sections as a 2-column grid on tablet
 - [ ] Add `Makefile` target `make demo-multi-column` that curls `/sdui/for-you?platform[deviceClass]=tablet` and `/sdui/for-you?platform[deviceClass]=phone` side by side
 
@@ -262,11 +281,12 @@ Example: 2 sections → 1 AtomicComposite containing 2 SectionSlots.
 
 #### Phase 4: Web
 - [ ] No renderer changes — SectionSlot rendering already delegates to SectionRouter
-- [ ] Add device class detection in `RequestEnvelopeBuilder.ts` — send `deviceClass=web.wide` when viewport ≥ 1024px, `deviceClass=web.narrow` below
+- [ ] Send `deviceClass=tablet` when viewport ≥ 1024px in `RequestEnvelopeBuilder.ts` (web clients are treated as tablet-class for layout purposes when the viewport is wide enough)
 
 #### Phase 5: Tests
 - [ ] Server test: compose with `deviceClass=phone` → sections are sequential (no row containers)
 - [ ] Server test: compose with `deviceClass=tablet` → target sections are wrapped in Container[direction=row] with SectionSlot children
+- [ ] Server test: compose with `deviceClass=web` → sections are sequential (web does not trigger multi-column unless explicitly tablet)
 - [ ] Visual test: render tablet response on web — two columns visible
 
 ---
@@ -277,17 +297,34 @@ Example: 2 sections → 1 AtomicComposite containing 2 SectionSlots.
 
 v1 and v2 of the same feed coexist. A long-tail TV client on v1 receives a
 reduced schema; a modern mobile client on v2 receives the full schema.
-Demonstrates version negotiation without feed forking.
+Validates that version routing produces fundamentally different composition
+output — not just field stripping — without feed forking.
 
-> **Note:** Complements `server/plan-schema-versioning.md` which covers the general
-> versioning protocol. This feature focuses on the concrete demo: two versions
-> of one feed running simultaneously.
+### Why This Is Distinct From `SchemaVersionFilter`
+
+`SchemaVersionFilter` (already built) handles **vocabulary reduction**: same
+composition structure, individual fields/enum values stripped post-hoc. It
+cannot remove entire sections, change section ordering, eliminate `dataBinding`
+graphs, or switch refresh strategies.
+
+`ForYouComposerV1` validates the harder production case: **content selection
+diverges by version**. A v1 TV client gets a completely different section list
+(AtomicComposite-only, no live data, no semantic sections) composed from
+scratch — not the v2 output with parts removed. This is necessary because:
+- Long-tail clients (TV, kiosk) will be stuck on v1 for years
+- Their feeds need to be coherent compositions, not swiss-cheese remnants
+- `SchemaVersionFilter` cannot produce a coherent reduced feed from a rich one
+
+> **Note:** Complements the schema versioning infrastructure (server routing,
+> `SchemaVersionFilter`, `SchemaVersionRegistry`). This feature validates the
+> concrete production path: two versions of one feed running simultaneously
+> under concurrent requests.
 
 ### Interaction With Feature 2 (Capability Tier)
 
 Feature 2 (tier filtering) and Feature 4 (version routing) overlap in output:
 both can produce AtomicComposite-only, basic-atomic, static-only responses.
-They prove **different concepts** — versioning selects content shape at
+They solve **different problems** — versioning selects content shape at
 composition time; capability tier filters rendering vocabulary post-hoc.
 
 To avoid wasted work (v2 composes full content then tier-1 strips it):
@@ -336,9 +373,15 @@ To avoid wasted work (v2 composes full content then tier-1 strips it):
 - [ ] Server test: `/sdui/for-you` with `schemaVersion=1.0` → response has only `AtomicComposite` sections, no `LiveClock` elements
 - [ ] Server test: `/sdui/for-you` with `schemaVersion=2.0` → response includes semantic sections and advanced atomics
 - [ ] Server test: both v1 and v2 responses are valid against `sdui-schema.json`
+- [ ] **Tier × version interaction tests:**
+  - `schemaVersion=1.0` + `tier=1` → v1 composer output returned unfiltered (v1 already constrains to tier-1 vocabulary)
+  - `schemaVersion=1.0` + `tier=3` → v1 composer output returned unfiltered (v1 only emits tier-1 content regardless)
+  - `schemaVersion=2.0` + `tier=1` → v2 composer output → tier filter applied → AtomicComposite-only result
+  - `schemaVersion=2.0` + `tier=3` → v2 composer output unfiltered (full vocabulary)
+- [ ] Concurrency test: 100 parallel requests split between v1 and v2 → no cross-contamination, correct routing for each
 
 ### Dependencies
-- Coordinate with `server/plan-schema-versioning.md` — this demo is a concrete instance of that plan's Phase 2 server routing
+- Coordinates with existing schema versioning infrastructure (`SchemaVersionFilter`, `SchemaVersionRegistry`, `SchemaVersionChecker`) — this feature validates per-feed version routing as a concrete instance of that architecture
 
 ---
 
@@ -457,7 +500,15 @@ action.
 
 ### Open Questions
 - [ ] Should cursor encoding include a version byte for forward-compatibility?
-- [ ] Should expired/invalid cursors return an error or silently reset to page 1?
+
+### Decided: Expired/Invalid Cursor Handling
+
+Expired or invalid cursors return a structured error: an `ErrorState` section
+with message "Results have changed, showing first page" and the response resets
+to page 1 (with a fresh `nextCursor`). Rationale:
+- Silent reset loses user context without explanation
+- Hard error blocks the screen entirely
+- Structured error + reset preserves renderability while informing the user
 
 ---
 
@@ -616,7 +667,8 @@ Feature 6 (Pagination Cursor)               [independent]
 
 | This Plan | Depends On | Notes |
 |-----------|-----------|-------|
-| Feature 4 | `server/plan-schema-versioning.md` | Version routing is a concrete instance of that plan's Phase 2 |
+| Feature 4 | Schema versioning infrastructure | Version routing is a concrete instance of `SchemaVersionFilter`/`SchemaVersionRegistry` architecture |
+| Feature 2 + 4 | Each other (validation pair) | Tier × version interaction matrix must be tested together |
 | Feature 7 | `plan-impression-tracking.md` | Android impression firing needs ImpressionTracker |
 | Feature 2 | None | Tier registry should inform `server/plan-schema-versioning.md` capability model; tier ↔ schema version may converge |
 | Feature 3 | `plan-layout-responsive.md` | Form-factor detection shares the same envelope field; see prerequisite note in Feature 3 |

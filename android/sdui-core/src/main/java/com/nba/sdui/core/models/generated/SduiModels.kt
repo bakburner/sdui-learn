@@ -1180,6 +1180,13 @@ data class Section (
     val backgroundColor: String? = null,
 
     /**
+     * Origin identifier for the content backing this section (e.g. 'cms:article-42',
+     * 'stats-api:leaders-2025'). Carried through to analytics for two-tier attribution.
+     */
+    @get:JsonProperty("contentSourceId")@field:JsonProperty("contentSourceId")
+    val contentSourceID: String? = null,
+
+    /**
      * Section-specific data payload
      */
     val data: Data? = null,

@@ -2787,7 +2787,7 @@ public class AtomicCompositeBuilder {
     }
 
     private ObjectNode sectionEnvelope(String id, String analyticsId) {
-        return sectionEnvelope(id, analyticsId, null);
+        return sectionEnvelope(id, analyticsId, null, null);
     }
 
     /**
@@ -2795,9 +2795,41 @@ public class AtomicCompositeBuilder {
      * Falls back to static if refreshPolicy is null.
      */
     ObjectNode sectionEnvelope(String id, String analyticsId, ObjectNode refreshPolicy) {
+        return sectionEnvelope(id, analyticsId, refreshPolicy, null);
+    }
+
+    /**
+     * Full overload that accepts refreshPolicy and contentSourceId.
+     * Falls back to static if refreshPolicy is null.
+     */
+    ObjectNode sectionEnvelope(String id, String analyticsId, ObjectNode refreshPolicy, String contentSourceId) {
         ObjectNode section = om.createObjectNode();
         section.put("id", id);
         section.put("type", "AtomicComposite");
+        if (analyticsId != null) section.put("analyticsId", analyticsId);
+        if (contentSourceId != null) section.put("contentSourceId", contentSourceId);
+        section.set("refreshPolicy", refreshPolicy != null ? refreshPolicy
+                : om.createObjectNode().put("type", "static"));
+        return section;
+    }
+
+    /**
+     * Full builder that derives section ID from contentSourceId and handles envelope setup.
+     * Centralizes ID derivation + contentSourceId assignment.
+     *
+     * @param contentSourceId origin identifier (e.g. "cms:article-42", "stats-api:leaders-2025")
+     * @param sectionType     section type (typically "AtomicComposite")
+     * @param analyticsId     analytics identifier (optional)
+     * @param refreshPolicy   refresh policy node (optional, defaults to static)
+     * @return section envelope with derived ID and contentSourceId field
+     */
+    ObjectNode sectionEnvelopeWithDerivedId(String contentSourceId, String sectionType,
+                                            String analyticsId, ObjectNode refreshPolicy) {
+        String sectionId = SectionIdDeriver.derive(contentSourceId, sectionType);
+        ObjectNode section = om.createObjectNode();
+        section.put("id", sectionId);
+        section.put("type", sectionType);
+        section.put("contentSourceId", contentSourceId);
         if (analyticsId != null) section.put("analyticsId", analyticsId);
         section.set("refreshPolicy", refreshPolicy != null ? refreshPolicy
                 : om.createObjectNode().put("type", "static"));

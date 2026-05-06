@@ -1436,6 +1436,9 @@ class Section: Codable {
     /// Section-level interaction actions
     let actions: [Action]?
     let analyticsID, backgroundColor: String?
+    /// Origin identifier for the content backing this section (e.g. 'cms:article-42',
+    /// 'stats-api:leaders-2025'). Carried through to analytics for two-tier attribution.
+    let contentSourceID: String?
     /// Section-specific data payload
     let data: DataClass?
     let dataBinding: DataBinding?
@@ -1455,14 +1458,17 @@ class Section: Codable {
     enum CodingKeys: String, CodingKey {
         case accessibility, actions
         case analyticsID = "analyticsId"
-        case backgroundColor, data, dataBinding, id, layoutHints, padding, refreshPolicy, sectionStates, stringTable, subsections, surface, type
+        case backgroundColor
+        case contentSourceID = "contentSourceId"
+        case data, dataBinding, id, layoutHints, padding, refreshPolicy, sectionStates, stringTable, subsections, surface, type
     }
 
-    init(accessibility: AccessibilityProperties?, actions: [Action]?, analyticsID: String?, backgroundColor: String?, data: DataClass?, dataBinding: DataBinding?, id: String, layoutHints: SectionLayoutHints?, padding: Spacing?, refreshPolicy: RefreshPolicy?, sectionStates: SectionStates?, stringTable: [String: String]?, subsections: [Subsection]?, surface: SectionSurface?, type: String) {
+    init(accessibility: AccessibilityProperties?, actions: [Action]?, analyticsID: String?, backgroundColor: String?, contentSourceID: String?, data: DataClass?, dataBinding: DataBinding?, id: String, layoutHints: SectionLayoutHints?, padding: Spacing?, refreshPolicy: RefreshPolicy?, sectionStates: SectionStates?, stringTable: [String: String]?, subsections: [Subsection]?, surface: SectionSurface?, type: String) {
         self.accessibility = accessibility
         self.actions = actions
         self.analyticsID = analyticsID
         self.backgroundColor = backgroundColor
+        self.contentSourceID = contentSourceID
         self.data = data
         self.dataBinding = dataBinding
         self.id = id
@@ -1482,7 +1488,7 @@ class Section: Codable {
 extension Section {
     convenience init(data: Data) throws {
         let me = try newJSONDecoder().decode(Section.self, from: data)
-        self.init(accessibility: me.accessibility, actions: me.actions, analyticsID: me.analyticsID, backgroundColor: me.backgroundColor, data: me.data, dataBinding: me.dataBinding, id: me.id, layoutHints: me.layoutHints, padding: me.padding, refreshPolicy: me.refreshPolicy, sectionStates: me.sectionStates, stringTable: me.stringTable, subsections: me.subsections, surface: me.surface, type: me.type)
+        self.init(accessibility: me.accessibility, actions: me.actions, analyticsID: me.analyticsID, backgroundColor: me.backgroundColor, contentSourceID: me.contentSourceID, data: me.data, dataBinding: me.dataBinding, id: me.id, layoutHints: me.layoutHints, padding: me.padding, refreshPolicy: me.refreshPolicy, sectionStates: me.sectionStates, stringTable: me.stringTable, subsections: me.subsections, surface: me.surface, type: me.type)
     }
 
     convenience init(_ json: String, using encoding: String.Encoding = .utf8) throws {
@@ -1501,6 +1507,7 @@ extension Section {
         actions: [Action]?? = nil,
         analyticsID: String?? = nil,
         backgroundColor: String?? = nil,
+        contentSourceID: String?? = nil,
         data: DataClass?? = nil,
         dataBinding: DataBinding?? = nil,
         id: String? = nil,
@@ -1518,6 +1525,7 @@ extension Section {
             actions: actions ?? self.actions,
             analyticsID: analyticsID ?? self.analyticsID,
             backgroundColor: backgroundColor ?? self.backgroundColor,
+            contentSourceID: contentSourceID ?? self.contentSourceID,
             data: data ?? self.data,
             dataBinding: dataBinding ?? self.dataBinding,
             id: id ?? self.id,

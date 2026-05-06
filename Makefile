@@ -1,7 +1,7 @@
 .PHONY: dev dev-server dev-web dev-android dev-all codegen server-test android-test web-test test \
 	lint-sdui-warn \
 	stop stop-server stop-web stop-android \
-	ios-test ios-test-clean ios-build ios-demo-project ios-run ios-stop ios-fixtures-sync
+	ios-test ios-test-clean ios-build ios-demo-project ios-run ios-run-max ios-stop ios-fixtures-sync
 
 # Warn if Java composers reintroduce put("trigger", "onTap") — should use onActivate.
 lint-sdui-warn:
@@ -252,6 +252,10 @@ ios-run: ios-demo-project
 	@echo "=== Tailing logs (Ctrl-C to stop) ==="
 	@xcrun simctl spawn booted log stream --level debug \
 		--predicate 'subsystem == "com.nba.sdui"'
+
+# Run on iPhone 15 Pro Max for testing larger screens / responsive layouts
+ios-run-max:
+	@$(MAKE) ios-run IOS_SIM_NAME="iPhone 15 Pro Max"
 
 ios-stop:
 	@echo "=== Stopping SduiDemo ==="

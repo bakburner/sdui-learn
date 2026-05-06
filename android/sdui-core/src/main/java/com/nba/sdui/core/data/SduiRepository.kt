@@ -37,9 +37,8 @@ class SduiRepository(
         /** Shared OkHttpClient — connection pool & thread pool reused across screens. */
         val sharedHttpClient: OkHttpClient by lazy {
             OkHttpClient.Builder()
-                .connectTimeout(30, TimeUnit.SECONDS)
-                .readTimeout(30, TimeUnit.SECONDS)
-                .writeTimeout(30, TimeUnit.SECONDS)
+                .connectTimeout(10, TimeUnit.SECONDS)
+                .readTimeout(10, TimeUnit.SECONDS)
                 .addInterceptor(HttpLoggingInterceptor().apply {
                     level = HttpLoggingInterceptor.Level.BASIC
                 })

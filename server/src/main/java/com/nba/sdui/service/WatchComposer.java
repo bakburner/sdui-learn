@@ -417,6 +417,7 @@ public class WatchComposer {
         ctaAction.put("targetUri", ctaUri);
 
         ObjectNode root = atomicBuilder.container("column", "start", "start");
+        root.put("widthMode", "fill");
         root.put("gap", 4);
         ArrayNode children = objectMapper.createArrayNode();
         ObjectNode titleText = atomicBuilder.text(title, "titleMedium", "bold", "#FFFFFF", null);

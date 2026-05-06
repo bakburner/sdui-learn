@@ -9,10 +9,11 @@ lint-sdui-warn:
 
 # ── iOS build / test config ──────────────────────────────────
 IOS_SCHEME        ?= SduiCore
-IOS_DESTINATION   ?= platform=iOS Simulator,name=iPhone 15 Pro Max,OS=latest
+# Use iPhone SE (3rd gen) for lighter resource usage on constrained hardware
+IOS_DESTINATION   ?= platform=iOS Simulator,name=iPhone SE (3rd generation),OS=latest
 IOS_DEMO_SCHEME   ?= SduiDemo
 IOS_DEMO_BUNDLE   ?= com.nba.sdui.demo
-IOS_SIM_NAME      ?= iPhone 15 Pro Max
+IOS_SIM_NAME      ?= iPhone SE (3rd generation)
 # Set SDUI_DISABLE_ABLY=0 on the command line to re-enable ably-cocoa
 # (only works on arm64 simulators; x86_64 simulators hit the ably module
 # map bug and must keep the default of 1).
@@ -238,6 +239,8 @@ ios-run: ios-demo-project
 		-skipMacroValidation | $(IOS_PIPE)
 	@echo "=== Booting simulator ==="
 	@xcrun simctl boot "$(IOS_SIM_NAME)" 2>/dev/null || true
+	@# Reduce graphics quality for better performance on constrained hardware
+	@xcrun simctl ui "$(IOS_SIM_NAME)" appearance dark 2>/dev/null || true
 	@open -a Simulator
 	@echo "=== Installing app ==="
 	@APP=$$(find ios/SduiDemo/build/Build/Products -type d -name "$(IOS_DEMO_SCHEME).app" | head -1); \

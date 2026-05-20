@@ -206,9 +206,12 @@ public class DemoScreenComposer {
      */
     public ObjectNode buildLeadersTable(String season, String seasonType,
                                          String perMode, String statCategory) {
+        String contentSourceId = "stats-api:leaders";
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "SeasonLeadersTable");
         ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "leaders-table");
+        section.put("id", sectionId);
         section.put("type", "SeasonLeadersTable");
+        section.put("contentSourceId", contentSourceId);
         section.put("analyticsId", "season_leaders_table");
         section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
 
@@ -296,11 +299,13 @@ public class DemoScreenComposer {
      * 1. Game Card (scoreboard composite) — Lakers vs Celtics, period 3, 89-94.
      */
     private ObjectNode buildDemoGamePanelScoreboard() {
+        String contentSourceId = "demo:game-panel-scoreboard";
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         AtomicCompositeBuilder.GameClockSnapshot clock = new AtomicCompositeBuilder.GameClockSnapshot(
                 4 * 60 + 32, java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString(),
                 AtomicCompositeBuilder.DEMO_INITIAL_CLOCK_RUNNING);
-        return atomicBuilder.buildGamePanelComposite(
-                "demo-game-panel-scoreboard",
+        ObjectNode section = atomicBuilder.buildGamePanelComposite(
+                sectionId,
                 "demo_game_panel_scoreboard",
                 "scoreboard",
                 "0022400999",
@@ -314,19 +319,25 @@ public class DemoScreenComposer {
                 objectMapper.createObjectNode().put("type", "static"),
                 null,
                 utils.gamePanelSurface());
+        section.put("contentSourceId", contentSourceId);
+        return section;
     }
 
     /**
      * 2. StatLine — 3 mock players with PTS/REB/AST.
      */
     private ObjectNode buildDemoStatLine() {
+        String contentSourceId = "demo:stat-line";
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         String[][] stats = {
             {"1628369", "Jayson Tatum", "BOS", "PTS", "32", DemoImageUrls.headshot("1628369")},
             {"203507", "LeBron James", "LAL", "PTS", "28", DemoImageUrls.headshot("203507")},
             {"203076", "Anthony Davis", "LAL", "REB", "14", DemoImageUrls.headshot("203076")}
         };
-        return atomicBuilder.buildStatLine(
-                "demo-stat-line", "demo_stat_line", "Top Performers", "vertical", stats);
+        ObjectNode section = atomicBuilder.buildStatLine(
+                sectionId, "demo_stat_line", "Top Performers", "vertical", stats);
+        section.put("contentSourceId", contentSourceId);
+        return section;
     }
 
     /**
@@ -337,12 +348,15 @@ public class DemoScreenComposer {
      * shadow and outer margin via the shared SectionContainer.
      */
     private ObjectNode buildDemoPromoBanner() {
+        String contentSourceId = "demo:promo-banner";
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         ObjectNode section = atomicBuilder.buildPromoBanner(
-                "demo-promo-banner", "demo_promo_banner",
+                sectionId, "demo_promo_banner",
                 "Welcome to SDUI", null,
                 "All 20 semantic section types rendered from a single server response.",
                 DemoImageUrls.cardWide("nba"),
                 "Learn More", "nba://scoreboard");
+        section.put("contentSourceId", contentSourceId);
         section.set("surface", utils.subscribeSurface(
                 "#0C1B3A",
                 ColorTokens.BRAND_NBA,
@@ -354,34 +368,44 @@ public class DemoScreenComposer {
      * 4. HeroPanel — single highlight card with thumbnail.
      */
     private ObjectNode buildDemoHeroPanel() {
-        return atomicBuilder.buildHeroPanel(
-                "demo-content-card", "demo_content_card",
+        String contentSourceId = "demo:hero-panel";
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
+        ObjectNode section = atomicBuilder.buildHeroPanel(
+                sectionId, "demo_content_card",
                 "Celtics Lead Series 3-1",
                 "Boston takes commanding lead after Game 4 victory",
                 DemoImageUrls.cardWide("celtics"),
                 "article", null, "nba://article/celtics-lead-series");
+        section.put("contentSourceId", contentSourceId);
+        return section;
     }
 
     /**
      * 5. ContentRail — 4 cards (Top Plays, Player Spotlight, etc.).
      */
     private ObjectNode buildDemoContentRail() {
+        String contentSourceId = "demo:content-rail";
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         String[][] cards = {
             {"rail-1", "Top 10 Plays", "Last night's best moments", DemoImageUrls.cardWide("highlights"), "video", null, "nba://content/rail-1"},
             {"rail-2", "Player Spotlight", "Jayson Tatum's monster game", DemoImageUrls.cardWide("player"), "article", null, "nba://content/rail-2"},
             {"rail-3", "Draft Preview", "Top prospects for 2025 draft", DemoImageUrls.cardWide("draft"), "article", null, "nba://content/rail-3"},
             {"rail-4", "Playoff Bracket", "Updated bracket after today's results", DemoImageUrls.cardWide("playoffs"), "interactive", null, "nba://content/rail-4"}
         };
-        return atomicBuilder.buildContentRail(
-                "demo-content-rail", "demo_content_rail", "Featured Content", cards);
+        ObjectNode section = atomicBuilder.buildContentRail(
+                sectionId, "demo_content_rail", "Featured Content", cards);
+        section.put("contentSourceId", contentSourceId);
+        return section;
     }
 
     /**
      * 6. Game Card — mock game tile for a single game.
      */
     private ObjectNode buildDemoGamePanel() {
-        return atomicBuilder.buildGamePanelComposite(
-                "demo-game-card",
+        String contentSourceId = "demo:game-panel";
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
+        ObjectNode section = atomicBuilder.buildGamePanelComposite(
+                sectionId,
                 "demo_game_card",
                 "standard",
                 "0022400888",
@@ -395,6 +419,8 @@ public class DemoScreenComposer {
                 objectMapper.createObjectNode().put("type", "static"),
                 null,
                 utils.gamePanelSurface());
+        section.put("contentSourceId", contentSourceId);
+        return section;
     }
 
     /**
@@ -403,6 +429,8 @@ public class DemoScreenComposer {
      * to replace the old Row section type.
      */
     private ObjectNode buildDemoResponsiveRow() {
+        String contentSourceId = "demo:responsive-row";
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         ObjectNode scoringLeader = atomicBuilder.buildStatLine(
                 "row-scoring-leader", null, "Scoring Leader", "vertical",
                 new String[][]{{"203999", "Nikola Jokić", "DEN", "PTS", "26.4",
@@ -426,16 +454,21 @@ public class DemoScreenComposer {
         children.add(rightSlot);
 
         root.set("children", children);
-        return atomicBuilder.wrapAsComposite("demo-row", "demo_row", root);
+        ObjectNode section = atomicBuilder.wrapAsComposite(sectionId, "demo_row", root);
+        section.put("contentSourceId", contentSourceId);
+        return section;
     }
 
     /**
      * 8. TabGroup — two tabs ("Overview", "Stats") each with a HeroPanel child.
      */
     private ObjectNode buildDemoTabGroup() {
+        String contentSourceId = "demo:tab-group";
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "TabGroup");
         ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "demo-tab-group");
+        section.put("id", sectionId);
         section.put("type", "TabGroup");
+        section.put("contentSourceId", contentSourceId);
         section.put("analyticsId", "demo_tab_group");
 
         ObjectNode data = objectMapper.createObjectNode();
@@ -489,9 +522,12 @@ public class DemoScreenComposer {
      * 9. BoxscoreTable — 3 players, 5 stat columns.
      */
     private ObjectNode buildDemoBoxscoreTable() {
+        String contentSourceId = "demo:boxscore-table";
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "BoxscoreTable");
         ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "demo-boxscore-table");
+        section.put("id", sectionId);
         section.put("type", "BoxscoreTable");
+        section.put("contentSourceId", contentSourceId);
         section.put("analyticsId", "demo_boxscore_table");
 
         ObjectNode data = objectMapper.createObjectNode();
@@ -534,9 +570,12 @@ public class DemoScreenComposer {
     * phone/tablet/tv gets "vertical" (stacked) for better touch targets.
      */
     private ObjectNode buildDemoForm(String deviceClass) {
+        String contentSourceId = "demo:form";
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "Form");
         ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "demo-form");
+        section.put("id", sectionId);
         section.put("type", "Form");
+        section.put("contentSourceId", contentSourceId);
         section.put("analyticsId", "demo_stats_filter_form");
         section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
 
@@ -617,7 +656,7 @@ public class DemoScreenComposer {
         ObjectNode submitAction = objectMapper.createObjectNode();
         submitAction.put("trigger", "onSubmit");
         submitAction.put("type", "refresh");
-        submitAction.put("target", "leaders-table");
+        submitAction.put("target", SectionIdDeriver.derive("stats-api:leaders", "SeasonLeadersTable"));
         submitAction.put("endpoint", "/v1/sdui/refresh/stats-leaders");
         submitAction.put("onFailure", "halt");
         ObjectNode submitFeedback = objectMapper.createObjectNode();
@@ -642,9 +681,12 @@ public class DemoScreenComposer {
      * 11. AdSlot — GAM ad placement placeholder (ADR-007).
      */
     private ObjectNode buildDemoAdSlot() {
+        String contentSourceId = "ads:gam-demo-top";
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "AdSlot");
         ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "demo-ad-slot");
+        section.put("id", sectionId);
         section.put("type", "AdSlot");
+        section.put("contentSourceId", contentSourceId);
         section.put("analyticsId", "demo_ad_slot");
         section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
         section.set("surface", utils.adSlotSurface());
@@ -692,11 +734,13 @@ public class DemoScreenComposer {
      * 13. Game Card (featured composite) — hero-sized game card with background image and badge.
      */
     private ObjectNode buildDemoFeaturedGamePanel() {
+        String contentSourceId = "demo:featured-game-panel";
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         AtomicCompositeBuilder.GameClockSnapshot clock = new AtomicCompositeBuilder.GameClockSnapshot(
                 2 * 60 + 15, java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString(),
                 AtomicCompositeBuilder.DEMO_INITIAL_CLOCK_RUNNING);
-        return atomicBuilder.buildGamePanelComposite(
-                "demo-featured-game-panel",
+        ObjectNode section = atomicBuilder.buildGamePanelComposite(
+                sectionId,
                 "demo_featured_game_panel",
                 "featured",
                 "0022400777",
@@ -710,38 +754,47 @@ public class DemoScreenComposer {
                 objectMapper.createObjectNode().put("type", "static"),
                 null,
                 null);
+        section.put("contentSourceId", contentSourceId);
+        return section;
     }
 
     /**
      * 14. VideoCarousel — 4 video thumbnails in a horizontal carousel.
      */
     private ObjectNode buildDemoVideoCarousel() {
+        String contentSourceId = "demo:video-carousel";
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         String[][] items = {
             {"vid-1", "Dončić No-Look Dime", "Lakers vs Celtics", DemoImageUrls.cardWide("pass"), "1:24", "NEW", "nba://video/vid-1"},
             {"vid-2", "SGA Crossover & Finish", "Thunder vs Nuggets", DemoImageUrls.cardWide("crossover"), "0:48", null, "nba://video/vid-2"},
             {"vid-3", "Edwards Poster Dunk", "Timberwolves vs Suns", DemoImageUrls.cardWide("dunk"), "0:32", "NEW", "nba://video/vid-3"},
             {"vid-4", "Jokić Triple-Double Recap", "Full highlights", DemoImageUrls.cardWide("triple-double"), "3:15", null, "nba://video/vid-4"}
         };
-        return atomicBuilder.buildVideoCarousel(
-                "demo-video-carousel", "demo_video_carousel",
+        ObjectNode section = atomicBuilder.buildVideoCarousel(
+                sectionId, "demo_video_carousel",
                 "Top Highlights", "Today's best plays", items);
+        section.put("contentSourceId", contentSourceId);
+        return section;
     }
 
     /**
      * 15. NbaTvSchedule — hero promo + 3 time slots.
      */
     private ObjectNode buildDemoNbaTvSchedule() {
+        String contentSourceId = "demo:nbatv-schedule";
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         String[][] slots = {
             {"slot-1", "NBA GameTime", "Pre-game analysis and predictions", "18:00", "false", null},
             {"slot-2", "LAL @ BOS", "Live game broadcast", "19:30", "true", "nba://game/0022400999"},
             {"slot-3", "NBA Inside Stuff", "Post-game interviews and highlights", "22:00", "false", null}
         };
         ObjectNode section = atomicBuilder.buildNbaTvSchedule(
-                "demo-nbatv-schedule", "demo_nbatv_schedule",
+                sectionId, "demo_nbatv_schedule",
                 DemoImageUrls.hero("arena"),
                 "NBA TV Live",
                 "Lakers vs Celtics — Coverage begins at 7:00 PM ET",
                 true, slots);
+        section.put("contentSourceId", contentSourceId);
         section.set("surface", utils.cardSurface());
         return section;
     }
@@ -752,9 +805,12 @@ public class DemoScreenComposer {
      * integration point.
      */
     private ObjectNode buildDemoSubscribeBanner() {
+        String contentSourceId = "demo:subscribe-banner";
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "SubscribeBanner");
         ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "demo-subscribe-banner");
+        section.put("id", sectionId);
         section.put("type", "SubscribeBanner");
+        section.put("contentSourceId", contentSourceId);
         section.put("analyticsId", "demo_subscribe_banner");
         section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
         section.set("surface", utils.subscribeSurface(
@@ -795,9 +851,12 @@ public class DemoScreenComposer {
      * identifiers; the renderer reads nothing from it today.
      */
     private ObjectNode buildDemoSubscribeHero() {
+        String contentSourceId = "demo:subscribe-hero";
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "SubscribeHero");
         ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "demo-subscribe-hero");
+        section.put("id", sectionId);
         section.put("type", "SubscribeHero");
+        section.put("contentSourceId", contentSourceId);
         section.put("analyticsId", "demo_subscribe_hero");
         section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
         section.set("surface", utils.subscribeSurface(
@@ -936,6 +995,8 @@ public class DemoScreenComposer {
      * 18. FollowingRail — horizontal rail of 5 followed teams/players.
      */
     private ObjectNode buildDemoFollowingRail() {
+        String contentSourceId = "demo:following-rail";
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         String[][] items = {
             {"team-lal", "Lakers", DemoImageUrls.teamLogo("1610612747"), "team", "nba://team/1610612747"},
             {"team-bos", "Celtics", DemoImageUrls.teamLogo("1610612738"), "team", "nba://team/1610612738"},
@@ -943,14 +1004,18 @@ public class DemoScreenComposer {
             {"team-gsw", "Warriors", DemoImageUrls.teamLogo("1610612744"), "team", "nba://team/1610612744"},
             {"player-sga", "Shai Gilgeous-Alexander", DemoImageUrls.headshot("1630175"), "player", "nba://player/1630175"}
         };
-        return atomicBuilder.buildFollowingRail(
-                "demo-following-rail", "demo_following_rail", "Following", items);
+        ObjectNode section = atomicBuilder.buildFollowingRail(
+                sectionId, "demo_following_rail", "Following", items);
+        section.put("contentSourceId", contentSourceId);
+        return section;
     }
 
     /**
      * 19. DisplayGrid — display-only standings table via the atomic DisplayGrid primitive.
      */
     private ObjectNode buildDemoDisplayGrid() {
+        String contentSourceId = "demo:display-grid";
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         String[][] columns = {
             {"team", "Team", "start"},
             {"w", "W", "center"},
@@ -969,23 +1034,29 @@ public class DemoScreenComposer {
             {"PHI", "35", "31", ".530", "17.0", "L3"},
             {"MIA", "33", "33", ".500", "19.0", "W1"}
         };
-        return atomicBuilder.buildDisplayGrid(
-                "demo-display-grid", "demo_display_grid",
+        ObjectNode section = atomicBuilder.buildDisplayGrid(
+                sectionId, "demo_display_grid",
                 "Eastern Conference Standings",
                 columns, rows,
                 false);
+        section.put("contentSourceId", contentSourceId);
+        return section;
     }
 
     /**
      * 20. ErrorState — server-driven error with retry action.
      */
     private ObjectNode buildDemoErrorState() {
-        return atomicBuilder.buildErrorState(
-                "demo-error-state",
+        String contentSourceId = "demo:error-state";
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
+        ObjectNode section = atomicBuilder.buildErrorState(
+                sectionId,
                 "Something went wrong",
                 "We couldn't load this content. This is a demo of the ErrorState section type.",
                 "error",
                 "nba://scoreboard");
+        section.put("contentSourceId", contentSourceId);
+        return section;
     }
 
     /**
@@ -995,9 +1066,12 @@ public class DemoScreenComposer {
      */
     private ObjectNode buildDemoSectionSlot() {
         // Build the embedded AdSlot section
+        String adContentSourceId = "ads:gam-demo-inline";
+        String adSectionId = SectionIdDeriver.derive(adContentSourceId, "AdSlot");
         ObjectNode adSection = objectMapper.createObjectNode();
-        adSection.put("id", "demo-inline-ad");
+        adSection.put("id", adSectionId);
         adSection.put("type", "AdSlot");
+        adSection.put("contentSourceId", adContentSourceId);
         adSection.set("surface", utils.adSlotSurface());
         ObjectNode adData = objectMapper.createObjectNode();
         adData.put("provider", "gam");
@@ -1063,22 +1137,31 @@ public class DemoScreenComposer {
 
         root.set("children", children);
 
-        return atomicBuilder.wrapAsComposite("demo-section-slot", "demo-section-slot", root);
+        String contentSourceId = "demo:section-slot";
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
+        ObjectNode section = atomicBuilder.wrapAsComposite(sectionId, "demo-section-slot", root);
+        section.put("contentSourceId", contentSourceId);
+        return section;
     }
 
     private ObjectNode buildDemoSectionHeaderComposite() {
+        String contentSourceId = "feed:demo";
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite", "section-header");
         ObjectNode section = atomicBuilder.buildSectionHeaderComposite(
-                "demo-section-header-composite",
+                sectionId,
                 "demo_section_header_composite",
                 "Top Stories",
                 "Fresh from around the league",
                 "More",
                 "nba://news");
+        section.put("contentSourceId", contentSourceId);
         section.set("surface", utils.sectionHeaderSurface());
         return section;
     }
 
     private ObjectNode buildDemoStoryCircleRail() {
+        String contentSourceId = "demo:story-circle-rail";
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         String[][] items = {
                 {"story-finals", "Finals", DemoImageUrls.teamLogo("1610612738"), "LIVE", "nba://stories/finals"},
                 {"story-lakers", "Lakers", DemoImageUrls.teamLogo("1610612747"), "NEW", "nba://stories/lakers"},
@@ -1086,12 +1169,15 @@ public class DemoScreenComposer {
                 {"story-nbatv", "NBA TV", DemoImageUrls.cardWide("nbatv"), "LIVE", "nba://watch/nbatv"}
         };
         ObjectNode section = atomicBuilder.buildStoryCircleRail(
-                "demo-story-circle-rail", "demo_story_circle_rail", null, items);
+                sectionId, "demo_story_circle_rail", null, items);
+        section.put("contentSourceId", contentSourceId);
         section.set("surface", utils.railSurface());
         return section;
     }
 
     private ObjectNode buildDemoEditorialOverlayRail() {
+        String contentSourceId = "demo:editorial-overlay-rail";
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         String[][] cards = {
                 {"editorial-1", "Five things to watch tonight", "Rivalries, returns, and playoff stakes",
                         DemoImageUrls.cardWide("editorial-1"), "NEW", "nba://article/five-things"},
@@ -1101,12 +1187,15 @@ public class DemoScreenComposer {
                         DemoImageUrls.cardWide("editorial-3"), "LIVE", "nba://video/rookies"}
         };
         ObjectNode section = atomicBuilder.buildEditorialOverlayRail(
-                "demo-editorial-overlay-rail", "demo_editorial_overlay_rail", null, cards);
+                sectionId, "demo_editorial_overlay_rail", null, cards);
+        section.put("contentSourceId", contentSourceId);
         section.set("surface", utils.railSurface());
         return section;
     }
 
     private ObjectNode buildDemoFeaturedLiveGameHero() {
+        String contentSourceId = "demo:featured-live-game-hero";
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         String bosLogo = DemoImageUrls.teamLogo("1610612738");
         String lalLogo = DemoImageUrls.teamLogo("1610612747");
         String okcLogo = DemoImageUrls.teamLogo("1610612760");
@@ -1123,12 +1212,15 @@ public class DemoScreenComposer {
                         DemoImageUrls.logoWide(), "nba://game/0022400778", null}
         };
         ObjectNode section = atomicBuilder.buildFeaturedLiveGameHero(
-                "demo-featured-live-game-hero", "demo_featured_live_game_hero", null, cards);
+                sectionId, "demo_featured_live_game_hero", null, cards);
+        section.put("contentSourceId", contentSourceId);
         section.set("surface", utils.railSurface());
         return section;
     }
 
     private ObjectNode buildDemoUtilityCardGrid() {
+        String contentSourceId = "demo:utility-card-grid";
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         String[][] items = {
                 {"utility-standings", "Standings", "Conference and division tables",
                         DemoImageUrls.cardWide("standings"), "nba://standings"},
@@ -1140,24 +1232,30 @@ public class DemoScreenComposer {
                         DemoImageUrls.cardWide("shop"), "nba://shop"}
         };
         ObjectNode section = atomicBuilder.buildUtilityCardGrid(
-                "demo-utility-card-grid", "demo_utility_card_grid", "Around the League", items);
+                sectionId, "demo_utility_card_grid", "Around the League", items);
+        section.put("contentSourceId", contentSourceId);
         section.set("surface", utils.cardSurface());
         return section;
     }
 
     private ObjectNode buildDemoLeagueCardRail() {
+        String contentSourceId = "demo:league-card-rail";
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         String[][] items = {
                 {"league-wnba", "WNBA", DemoImageUrls.cardWide("league-wnba"), "nba://league/wnba"},
                 {"league-gleague", "G League", DemoImageUrls.cardWide("league-gleague"), "nba://league/gleague"},
                 {"league-2k", "NBA 2K League", null, "nba://league/2k"}
         };
         ObjectNode section = atomicBuilder.buildLeagueCardRail(
-                "demo-league-card-rail", "demo_league_card_rail", "Other Leagues", items);
+                sectionId, "demo_league_card_rail", "Other Leagues", items);
+        section.put("contentSourceId", contentSourceId);
         section.set("surface", utils.railSurface());
         return section;
     }
 
     private ObjectNode buildDemoGameScheduleList() {
+        String contentSourceId = "demo:game-schedule-list";
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         String[][] rows = {
                 {"schedule-demo-1", "NYK", "Knicks", "3", "109", DemoImageUrls.teamLogo("1610612752"),
                         "BOS", "Celtics", "2", "132", DemoImageUrls.teamLogo("1610612738"),
@@ -1167,7 +1265,8 @@ public class DemoScreenComposer {
                         "Final", null, DemoImageUrls.logoWide(), "nba://game/0022400002", null}
         };
         ObjectNode section = atomicBuilder.buildGameScheduleList(
-                "demo-game-schedule-list", "demo_game_schedule_list", "Today", rows);
+                sectionId, "demo_game_schedule_list", "Today", rows);
+        section.put("contentSourceId", contentSourceId);
         section.set("surface", utils.cardSurface());
         return section;
     }
@@ -1178,8 +1277,13 @@ public class DemoScreenComposer {
      * Build a SectionHeader labelling the section type for the kitchen-sink demo.
      */
     private ObjectNode buildTypeLabel(String sectionType) {
-        return atomicBuilder.buildSectionHeader(
-                "label-" + sectionType.toLowerCase(), sectionType, null, null, null);
+        String contentSourceId = "feed:demo";
+        String slug = "label-" + sectionType.toLowerCase().replaceAll("[^a-z0-9\\-]", "-");
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite", slug);
+        ObjectNode section = atomicBuilder.buildSectionHeader(
+                sectionId, sectionType, null, null, null);
+        section.put("contentSourceId", contentSourceId);
+        return section;
     }
 
     private ObjectNode demoPlayerRow(String playerId, String name, String position,

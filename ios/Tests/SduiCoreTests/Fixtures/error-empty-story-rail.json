@@ -29,7 +29,7 @@
               "type": "Text",
               "content": "There are no story items in this module. Pull to refresh or try again.",
               "variant": "bodyMedium",
-              "color": "token:color.text.secondary"
+              "color": "token:nba.label.secondary"
             },
             { "type": "Spacer", "height": 16 },
             {

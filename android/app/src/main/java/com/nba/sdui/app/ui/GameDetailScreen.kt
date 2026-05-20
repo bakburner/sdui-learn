@@ -84,7 +84,7 @@ fun GameDetailScreen(
                     Log.d("SDUI", "FireAndForget: ${result.eventName} - ${result.params}")
                 }
                 is ActionHandler.ActionResult.RefreshResult -> {
-                    viewModel.load(config.uri, result.sectionId)
+                    viewModel.load(config.uri, result.target)
                 }
                 is ActionHandler.ActionResult.ParameterizedRefreshResult -> {
                     viewModel.refreshSections(result.endpoint, result.params)

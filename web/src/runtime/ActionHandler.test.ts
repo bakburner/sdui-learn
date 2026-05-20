@@ -1,0 +1,231 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Action, Section } from '@sdui/models';
+import { executeActionSequence } from './ActionHandler';
+
+interface TestContext {
+  state: Record<string, unknown>;
+  onStateChange: ReturnType<typeof vi.fn>;
+  onRefresh: ReturnType<typeof vi.fn>;
+  onSectionUpdate: ReturnType<typeof vi.fn>;
+  onSectionStale: ReturnType<typeof vi.fn>;
+  onNavigate: ReturnType<typeof vi.fn>;
+}
+
+function buildContext(initialState: Record<string, unknown> = {}): TestContext {
+  const state = { ...initialState };
+
+  return {
+    state,
+    onStateChange: vi.fn((key: string, value: unknown) => {
+      state[key] = value;
+    }),
+    onRefresh: vi.fn(),
+    onSectionUpdate: vi.fn((_sectionId: string, _section: Section) => {}),
+    onSectionStale: vi.fn(),
+    onNavigate: vi.fn(),
+  };
+}
+
+function mutateAction(overrides: Partial<Action> = {}): Action {
+  return {
+    trigger: 'onActivate',
+    type: 'mutate',
+    target: 'counter',
+    ...overrides,
+  } as Action;
+}
+
+function navigateAction(overrides: Partial<Action> = {}): Action {
+  return {
+    trigger: 'onActivate',
+    type: 'navigate',
+    ...overrides,
+  } as Action;
+}
+
+describe('ActionHandler', () => {
+  let warnSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    warnSpy.mockRestore();
+  });
+
+  it('applies mutate set using target/value', async () => {
+    const context = buildContext();
+
+    const result = await executeActionSequence([
+      mutateAction({ target: 'selectedTab', value: 'overview' }),
+    ], context);
+
+    expect(result.halted).toBe(false);
+    expect(context.state.selectedTab).toBe('overview');
+    expect(context.onStateChange).toHaveBeenCalledWith('selectedTab', 'overview');
+  });
+
+  it('toggles an existing boolean', async () => {
+    const context = buildContext({ expanded: true });
+
+    await executeActionSequence([
+      mutateAction({ target: 'expanded', operation: 'toggle' }),
+    ], context);
+
+    expect(context.state.expanded).toBe(false);
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
+  it('no-ops and warns when toggle targets a non-boolean', async () => {
+    const context = buildContext({ expanded: 'yes' });
+
+    await executeActionSequence([
+      mutateAction({ target: 'expanded', operation: 'toggle' }),
+    ], context);
+
+    expect(context.state.expanded).toBe('yes');
+    expect(context.onStateChange).not.toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('increments a numeric value with default and explicit deltas', async () => {
+    const context = buildContext({ counter: 2, ratio: 1.5 });
+
+    await executeActionSequence([
+      mutateAction({ target: 'counter', operation: 'increment' }),
+      mutateAction({ target: 'ratio', operation: 'increment', value: 2.25 }),
+    ], context);
+
+    expect(context.state.counter).toBe(3);
+    expect(context.state.ratio).toBe(3.75);
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
+  it('no-ops and warns when increment targets a non-numeric value', async () => {
+    const context = buildContext({ counter: 'two' });
+
+    await executeActionSequence([
+      mutateAction({ target: 'counter', operation: 'increment', value: 3 }),
+    ], context);
+
+    expect(context.state.counter).toBe('two');
+    expect(context.onStateChange).not.toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('no-ops and warns when increment targets a missing value', async () => {
+    const context = buildContext();
+
+    await executeActionSequence([
+      mutateAction({ target: 'counter', operation: 'increment' }),
+    ], context);
+
+    expect(context.state.counter).toBeUndefined();
+    expect(context.onStateChange).not.toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('appends to arrays', async () => {
+    const context = buildContext({ filters: ['live'] });
+
+    await executeActionSequence([
+      mutateAction({ target: 'filters', operation: 'append', value: 'final' }),
+    ], context);
+
+    expect(context.state.filters).toEqual(['live', 'final']);
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
+  it('concatenates strings when append receives string + string', async () => {
+    const context = buildContext({ query: 'NBA' });
+
+    await executeActionSequence([
+      mutateAction({ target: 'query', operation: 'append', value: ' Finals' }),
+    ], context);
+
+    expect(context.state.query).toBe('NBA Finals');
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
+  it('creates a singleton array when append targets a missing key', async () => {
+    const context = buildContext();
+
+    await executeActionSequence([
+      mutateAction({ target: 'filters', operation: 'append', value: 'featured' }),
+    ], context);
+
+    expect(context.state.filters).toEqual(['featured']);
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
+  it('no-ops and warns when append receives incompatible types', async () => {
+    const context = buildContext({ filters: 'featured' });
+
+    await executeActionSequence([
+      mutateAction({ target: 'filters', operation: 'append', value: 2 }),
+    ], context);
+
+    expect(context.state.filters).toBe('featured');
+    expect(context.onStateChange).not.toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('navigates with webUrl only', async () => {
+    const context = buildContext();
+
+    await executeActionSequence([
+      navigateAction({ webUrl: '/v1/sdui/scoreboard' }),
+    ], context);
+
+    expect(context.onNavigate).toHaveBeenCalledWith('/v1/sdui/scoreboard');
+  });
+
+  it('navigates with targetUri only', async () => {
+    const context = buildContext();
+
+    await executeActionSequence([
+      navigateAction({ targetUri: 'nba://game/0042300102' }),
+    ], context);
+
+    expect(context.onNavigate).toHaveBeenCalledWith('nba://game/0042300102');
+  });
+
+  it('prefers targetUri for native deeplinks when both targetUri and webUrl are present', async () => {
+    const context = buildContext();
+
+    await executeActionSequence([
+      navigateAction({
+        targetUri: 'nba://boxscore/0042300102',
+        webUrl: '/v1/sdui/boxscore/0042300102',
+      }),
+    ], context);
+
+    expect(context.onNavigate).toHaveBeenCalledWith('nba://boxscore/0042300102');
+  });
+
+  it('does not navigate when only legacy fallbackUrl is present', async () => {
+    const context = buildContext();
+
+    const result = await executeActionSequence([
+      navigateAction({ fallbackUrl: 'nba://legacy-only' } as Action),
+    ], context);
+
+    expect(result.halted).toBe(true);
+    expect(context.onNavigate).not.toHaveBeenCalled();
+  });
+
+  it('halts the sequence when a navigate action fails', async () => {
+    const context = buildContext({ counter: 1 });
+
+    const result = await executeActionSequence([
+      navigateAction(),
+      mutateAction({ target: 'counter', value: 2 }),
+    ], context);
+
+    expect(result.halted).toBe(true);
+    expect(context.onNavigate).not.toHaveBeenCalled();
+    expect(context.state.counter).toBe(1);
+    expect(context.onStateChange).not.toHaveBeenCalled();
+  });
+});

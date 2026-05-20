@@ -18,13 +18,13 @@
           "gap": 12,
           "fillWidth": true,
           "padding": { "top": 8, "bottom": 8, "start": 16, "end": 16 },
-          "background": "token:color.surface.raised",
+          "background": "token:nba.bg.secondary",
           "children": [
             {
               "type": "Text",
               "content": "Presented by",
               "variant": "labelSmall",
-              "color": "token:color.text.tertiary"
+              "color": "token:nba.label.tertiary"
             },
             {
               "type": "Image",

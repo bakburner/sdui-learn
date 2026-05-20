@@ -7,7 +7,7 @@ import { describe, it, expect } from 'vitest';
  */
 type Json = Record<string, unknown> | unknown[] | string | number | boolean | null;
 
-const SCRIM_END_HINTS = ['overlay.scrim', 'token:color.overlay.scrim', '#000000', '#000000CC'];
+const SCRIM_END_HINTS = ['overlay.scrim', 'token:nba.effect.scrim', '#000000', '#000000CC'];
 
 function walk(node: Json | undefined, visit: (o: Record<string, unknown>) => void): void {
   if (node == null) return;
@@ -148,7 +148,7 @@ describe('Overlay scrim — wire contract (static shapes)', () => {
     expect(() => assertImageOverlayTextHasScrimOrSolid(ui)).not.toThrow();
   });
 
-  it('passes for media overlay using token:color.overlay.scrim end stop', () => {
+  it('passes for media overlay using token:nba.effect.scrim end stop', () => {
     const ui = {
       type: 'OverlayContainer',
       base: { type: 'Image', src: 'https://example.com/m.jpg' },
@@ -162,7 +162,7 @@ describe('Overlay scrim — wire contract (static shapes)', () => {
               { type: 'Text', content: 'Head', variant: 'titleMedium' },
             ],
             background: {
-              colors: ['#00000000', 'token:color.overlay.scrim'],
+              colors: ['#00000000', 'token:nba.effect.scrim'],
               direction: 'vertical',
             },
           },

@@ -6,6 +6,8 @@ struct FormSectionView: View {
     let screenState: ScreenState
     let onAction: (Action) -> Void
 
+    @Environment(\.batchActionExecutor) private var batchActionExecutor
+
     var body: some View {
         if let data = section.data, let fields = data.fields {
             VStack(alignment: .leading, spacing: 12) {
@@ -25,12 +27,17 @@ struct FormSectionView: View {
                 }
             }
             .padding()
+            .environment(\.isInFormActionContext, true)
         }
     }
 
     private func handleSubmit() {
         if let submitAction = section.data?.submitAction {
-            onAction(submitAction)
+            if let batchActionExecutor {
+                batchActionExecutor([submitAction])
+            } else {
+                onAction(submitAction)
+            }
         }
     }
 }

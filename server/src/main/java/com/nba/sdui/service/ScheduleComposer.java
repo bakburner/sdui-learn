@@ -77,9 +77,12 @@ public class ScheduleComposer {
     }
 
     private ObjectNode buildFilterForm(String locale) {
+        String contentSourceId = "feed:schedule";
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "Form", "filters");
         ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "schedule-filters");
+        section.put("id", sectionId);
         section.put("type", "Form");
+        section.put("contentSourceId", contentSourceId);
         section.put("analyticsId", "schedule_filters");
         section.set("refreshPolicy", staticPolicy());
 
@@ -167,8 +170,11 @@ public class ScheduleComposer {
             String date = game.path("date").asText("");
             if (!date.equals(currentDate)) {
                 currentDate = date;
+                String headerContentSourceId = "feed:schedule";
+                String headerSectionId = SectionIdDeriver.derive(headerContentSourceId, "AtomicComposite", "header-" + date);
                 ObjectNode header = atomicBuilder.buildSectionHeader(
-                        "schedule-header-" + date, formatDate(date, locale), null, null, null);
+                        headerSectionId, formatDate(date, locale), null, null, null);
+                header.put("contentSourceId", headerContentSourceId);
                 header.set("surface", utils.sectionHeaderSurface());
                 sections.add(header);
             }
@@ -187,8 +193,12 @@ public class ScheduleComposer {
         if (targetUri == null || targetUri.isBlank()) {
             log.warn("Schedule game {} missing server targetUri; row will not declare a tap action", gameId);
         }
+
+        String contentSourceId = "stats-api:schedule-game-" + gameId;
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
+
         String[] row = {
-                "schedule-game-" + gameId,
+                sectionId,
                 away.path("teamTricode").asText(""),
                 away.path("teamName").asText(""),
                 away.path("seed").asText(null),
@@ -206,9 +216,10 @@ public class ScheduleComposer {
                 game.path("overflowUri").asText(null)
         };
         ObjectNode section = atomicBuilder.buildGameScheduleRow(
-                "schedule-game-" + gameId,
+                sectionId,
                 "schedule_game_" + gameId,
                 row);
+        section.put("contentSourceId", contentSourceId);
         section.set("surface", utils.railSurface());
         return section;
     }

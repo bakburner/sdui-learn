@@ -168,17 +168,6 @@ const SEMANTIC: Record<string, string> = {
   'nba.radius.xl':   'nba.radius.raw.24',
   'nba.radius.2xl':  'nba.radius.raw.32',
   'nba.radius.full': 'nba.radius.raw.9999',
-
-  // Legacy aliases (deprecated — kept for backward compat with cached payloads)
-  'spacing.xs':  'nba.space.raw.2',
-  'spacing.sm':  'nba.space.raw.4',
-  'spacing.md':  'nba.space.raw.12',
-  'spacing.lg':  'nba.space.raw.16',
-  'spacing.xl':  'nba.space.raw.32',
-  'radius.sm':   'nba.radius.raw.4',
-  'radius.md':   'nba.radius.raw.12',
-  'radius.lg':   'nba.radius.raw.16',
-  'radius.full': 'nba.radius.raw.9999',
 };
 
 // ────────────────────────────────────────────────────────────────────────

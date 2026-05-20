@@ -57,6 +57,8 @@ public class BoxscoreComposer {
     public JsonNode composeBoxscore(String gameId, String traceId, String locale) throws IOException {
         log.info("Composing boxscore screen: gameId={}, locale={}", gameId, locale);
 
+        String contentSourceId = "stats-api:game-" + gameId;
+
         JsonNode boxscore = statsApiClient.getBoxscore(gameId);
         JsonNode game = boxscore != null ? boxscore.path("game") : null;
 
@@ -75,7 +77,8 @@ public class BoxscoreComposer {
             response.set("state", objectMapper.createObjectNode());
             ArrayNode sections = objectMapper.createArrayNode();
             ObjectNode emptySection = objectMapper.createObjectNode();
-            emptySection.put("id", "boxscore-empty");
+            emptySection.put("id", SectionIdDeriver.derive(contentSourceId, "BoxscoreTable", "empty"));
+            emptySection.put("contentSourceId", contentSourceId);
             emptySection.put("type", "BoxscoreTable");
             ObjectNode emptyData = objectMapper.createObjectNode();
             emptyData.put("teamTricode", "");
@@ -109,13 +112,16 @@ public class BoxscoreComposer {
         ArrayNode sections = objectMapper.createArrayNode();
 
         ObjectNode awayTable = buildBoxscoreTableSection(
-                awayTeam, gameId, "boxscore_away_sortCol", "boxscore_away_sortDir", gameStatus);
+                awayTeam, gameId, contentSourceId, "away",
+                "boxscore_away_sortCol", "boxscore_away_sortDir", gameStatus);
         ObjectNode homeTable = buildBoxscoreTableSection(
-                homeTeam, gameId, "boxscore_home_sortCol", "boxscore_home_sortDir", gameStatus);
+                homeTeam, gameId, contentSourceId, "home",
+                "boxscore_home_sortCol", "boxscore_home_sortDir", gameStatus);
 
         // Wrap in TabGroup for team toggling
         ObjectNode tabGroup = objectMapper.createObjectNode();
-        tabGroup.put("id", "boxscore-team-tabs");
+        tabGroup.put("id", SectionIdDeriver.derive(contentSourceId, "TabGroup", "team-tabs"));
+        tabGroup.put("contentSourceId", contentSourceId);
         tabGroup.put("type", "TabGroup");
         tabGroup.put("analyticsId", "boxscore_team_toggle");
 
@@ -170,6 +176,7 @@ public class BoxscoreComposer {
      * Build a single {@code BoxscoreTable} section for one team.
      */
     ObjectNode buildBoxscoreTableSection(JsonNode team, String gameId,
+                                          String contentSourceId, String slug,
                                           String sortColKey, String sortDirKey,
                                           int gameStatus) {
         String teamTricode = team.path("teamTricode").asText("");
@@ -178,7 +185,8 @@ public class BoxscoreComposer {
         int teamId = team.path("teamId").asInt();
 
         ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "boxscore-table-" + teamTricode.toLowerCase());
+        section.put("id", SectionIdDeriver.derive(contentSourceId, "BoxscoreTable", slug));
+        section.put("contentSourceId", contentSourceId);
         section.put("type", "BoxscoreTable");
         section.put("analyticsId", "boxscore_table_" + teamTricode.toLowerCase());
 
@@ -192,7 +200,7 @@ public class BoxscoreComposer {
             section.set("refreshPolicy", refreshPolicy);
 
             section.set("sectionStates", utils.buildSectionStates(
-                    "boxscore-table-" + teamTricode.toLowerCase(),
+                    SectionIdDeriver.derive(contentSourceId, "BoxscoreTable", slug),
                     "Unable to load boxscore", "shimmer", 200));
         }
 

@@ -175,6 +175,7 @@ public class AtomicCompositeBuilder {
         ObjectNode section = sectionEnvelope(id, analyticsId);
 
         ObjectNode root = container("column", null, null);
+        root.put("widthMode", "fill");
         root.set("padding", padding(0, 0, 0, LayoutTokens.SPACING_MD));
         ArrayNode rootChildren = om.createArrayNode();
 
@@ -734,9 +735,7 @@ public class AtomicCompositeBuilder {
         ObjectNode section = sectionEnvelope(id, analyticsId);
 
         ObjectNode root = container("column", null, null);
-        // Matches the buildContentRail padding rhythm: 0pt top (surface
-        // margin supplies the air), 12pt bottom (so the last-card row
-        // doesn't hug the next section).
+        root.put("widthMode", "fill");
         root.set("padding", padding(0, 0, 0, LayoutTokens.SPACING_MD));
         ArrayNode rootChildren = om.createArrayNode();
 

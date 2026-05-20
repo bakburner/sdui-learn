@@ -63,7 +63,7 @@ struct AtomicImageView: View {
                 radius: shouldClip ? nil : resolvedRadius,
                 radii: shouldClip ? nil : element.cornerRadii
             ))
-            .applyActionTriggers(element.actions, onAction: onAction)
+            .applyActionTriggers(element.actions, onAction: onAction, supportsLongPress: true)
             .sduiAccessibility(element.accessibility, fallbackLabel: element.alt)
             .atomicBox(element, screenState: screenState, onAction: onAction)
             .task(id: resolvedSrc) {

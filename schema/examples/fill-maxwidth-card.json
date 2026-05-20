@@ -25,7 +25,7 @@
               "widthMode": "fill",
               "maxWidth": "token:nba.spacing.2xl",
               "cornerRadius": "token:nba.radius.lg",
-              "background": "token:color.surface.raised",
+              "background": "token:nba.bg.secondary",
               "children": [
                 {
                   "type": "Image",
@@ -51,20 +51,20 @@
                       "content": "FEATURED",
                       "variant": "labelSmall",
                       "weight": "bold",
-                      "color": "token:color.brand.live"
+                      "color": "token:nba.label.accent.live"
                     },
                     {
                       "type": "Text",
                       "content": "Lakers vs Celtics — Game 7 Preview",
                       "variant": "titleMedium",
                       "weight": "bold",
-                      "color": "token:color.text.primary"
+                      "color": "token:nba.label.primary"
                     },
                     {
                       "type": "Text",
                       "content": "The rivalry continues as both teams prepare for a historic Game 7.",
                       "variant": "bodyMedium",
-                      "color": "token:color.text.secondary",
+                      "color": "token:nba.label.secondary",
                       "maxLines": 2
                     }
                   ]

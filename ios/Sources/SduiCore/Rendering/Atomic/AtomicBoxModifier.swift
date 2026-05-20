@@ -49,8 +49,7 @@ struct AtomicBoxModifier: ViewModifier {
         let fixedWidth = element.width.map { LayoutTokenResolver.cgFloat($0) }
         let fixedHeight = element.height.map { LayoutTokenResolver.cgFloat($0) }
 
-        // widthMode/heightMode with fillWidth backward compat (widthMode wins)
-        let effectiveWidthMode = element.widthMode ?? (element.fillWidth == true ? .fill : nil)
+        let effectiveWidthMode = element.widthMode
         let effectiveHeightMode = element.heightMode
 
         // min/max constraints

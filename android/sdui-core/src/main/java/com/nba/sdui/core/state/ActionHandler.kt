@@ -1,6 +1,7 @@
 package com.nba.sdui.core.state
 
 import android.util.Log
+import com.nba.sdui.core.models.generated.MutateOperation
 
 /**
  * Sequence behavior when an action fails.
@@ -37,13 +38,13 @@ data class SduiAction(
     val trigger: String, // "onActivate", "onTap" (deprecated), "onLongPress", "onVisible", …
     val type: String, // "navigate", "fireAndForget", "mutate", "refresh", "dismiss", "toast"
     val targetUri: String? = null,
-    val fallbackUrl: String? = null,
+    val webUrl: String? = null,
     val eventName: String? = null,
     val eventParams: Map<String, Any>? = null,
-    val stateKey: String? = null,
-    val stateValue: Any? = null,
-    val sectionId: String? = null,
+    val target: String? = null,
+    val value: Any? = null,
     val endpoint: String? = null,
+    val operation: MutateOperation? = null,
     val paramBindings: Map<String, String>? = null,
     val message: String? = null,
     val onFailure: String? = null,
@@ -154,10 +155,10 @@ class ActionHandler {
     }
     
     private fun handleNavigate(action: SduiAction): ActionResult {
-        val uri = action.targetUri ?: action.fallbackUrl
+        val uri = action.targetUri?.takeIf { it.startsWith("nba://") } ?: action.webUrl ?: action.targetUri
         
         if (uri == null) {
-            Log.w(TAG, "Navigate action missing targetUri and fallbackUrl")
+            Log.w(TAG, "Navigate action missing targetUri and webUrl")
             return ActionResult.NavigateError("", "No navigation target specified", action.failureFeedback)
         }
         
@@ -173,7 +174,6 @@ class ActionHandler {
         // For the prototype, we return the URI for the UI to show in a snackbar
         return ActionResult.NavigateResult(
             uri = uri,
-            fallbackUrl = action.fallbackUrl,
             presentation = action.presentation,
             modalHeight = action.modalHeight
         )
@@ -191,27 +191,23 @@ class ActionHandler {
     }
 
     private fun handleMutate(action: SduiAction, stateManager: StateManager): ActionResult {
-        val key = action.stateKey
-        val value = action.stateValue
+        val key = action.target
+        val value = action.value
 
         if (key == null) {
-            Log.w(TAG, "Mutate action missing stateKey")
-            return ActionResult.MutateNoOp("", "No state key specified")
+            Log.w(TAG, "Mutate action missing target")
+            return ActionResult.MutateNoOp("", "No target specified")
         }
 
-        if (value != null) {
-            SduiActionLogger.debug(action, "mutate set $key=$value")
-            stateManager.setState(key, value)
-        } else {
-            SduiActionLogger.debug(action, "mutate remove $key")
-            stateManager.removeState(key)
-        }
+        val operation = action.operation?.value ?: MutateOperation.Set.value
+        SduiActionLogger.debug(action, "mutate op=$operation $key=$value")
+        stateManager.applyOperation(action.operation, key, value)
 
-        return ActionResult.MutateResult(key, value)
+        return ActionResult.MutateResult(key, stateManager.getState(key))
     }
     
     private fun handleRefresh(action: SduiAction, stateManager: StateManager): ActionResult {
-        val sectionId = action.sectionId
+        val target = action.target
         val endpoint = action.endpoint
         val paramBindings = action.paramBindings
 
@@ -227,11 +223,11 @@ class ActionHandler {
             }.filterValues { it.isNotEmpty() }
 
             SduiActionLogger.debug(action, "refresh parameterized endpoint=$endpoint params=$resolvedParams")
-            return ActionResult.ParameterizedRefreshResult(endpoint, sectionId, resolvedParams)
+            return ActionResult.ParameterizedRefreshResult(endpoint, target, resolvedParams)
         }
 
-        SduiActionLogger.debug(action, "refresh target=${sectionId ?: "screen"}")
-        return ActionResult.RefreshResult(sectionId)
+        SduiActionLogger.debug(action, "refresh target=${target ?: "screen"}")
+        return ActionResult.RefreshResult(target)
     }
 
     private fun handleDismiss(action: SduiAction): ActionResult {
@@ -254,7 +250,6 @@ class ActionHandler {
 
         data class NavigateResult(
             val uri: String,
-            val fallbackUrl: String?,
             val presentation: String? = null,
             val modalHeight: String? = null
         ) : ActionResult()
@@ -262,18 +257,18 @@ class ActionHandler {
         data class FireAndForgetResult(val eventName: String, val params: Map<String, Any>) : ActionResult()
         data class MutateResult(val key: String, val value: Any?) : ActionResult()
         data class MutateNoOp(val key: String, val reason: String) : ActionResult()
-        data class RefreshResult(val sectionId: String?) : ActionResult()
-        data class RefreshStale(val sectionId: String?, val reason: String) : ActionResult()
+        data class RefreshResult(val target: String?) : ActionResult()
+        data class RefreshStale(val target: String?, val reason: String) : ActionResult()
         /**
          * Parameterized refresh result. The viewmodel will hand
          * `(endpoint, params)` to `SduiRepository.fetchScreen`, which applies
-         * the canonical envelope/POST-fallback transport. `sectionId` (when
+         * the canonical envelope/POST-fallback transport. `target` (when
          * non-null) tells the merge step which section to surgically replace
          * if the response includes it.
          */
         data class ParameterizedRefreshResult(
             val endpoint: String,
-            val sectionId: String?,
+            val target: String?,
             val params: Map<String, String>
         ) : ActionResult()
         data object DismissResult : ActionResult()

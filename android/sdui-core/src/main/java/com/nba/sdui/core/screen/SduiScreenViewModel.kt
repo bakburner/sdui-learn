@@ -282,7 +282,7 @@ open class SduiScreenViewModel(
                         _userMessage.emit(msg)
                     }
                     is ActionHandler.ActionResult.RefreshStale -> {
-                        val id = result.sectionId
+                        val id = result.target
                         if (id != null) {
                             _staleSections.value = _staleSections.value + id
                         }

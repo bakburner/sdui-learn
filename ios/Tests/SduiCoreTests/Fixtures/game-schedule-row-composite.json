@@ -21,7 +21,7 @@
               "direction": "column",
               "crossAlignment": "stretch",
               "gap": 10,
-              "background": "token:color.surface.raised",
+              "background": "token:nba.bg.secondary",
               "cornerRadius": 12,
               "padding": { "top": 16, "bottom": 16, "start": 16, "end": 16 },
               "shadow": { "color": "#00000014", "radius": 4, "offsetX": 0, "offsetY": 2 },
@@ -60,14 +60,14 @@
                           "content": "3 NYK",
                           "variant": "titleMedium",
                           "weight": "semiBold",
-                          "color": "token:color.text.primary",
+                          "color": "token:nba.label.primary",
                           "maxLines": 1
                         },
                         {
                           "type": "Text",
                           "content": "Knicks",
                           "variant": "labelSmall",
-                          "color": "token:color.text.secondary",
+                          "color": "token:nba.label.secondary",
                           "maxLines": 1
                         },
                         {
@@ -75,7 +75,7 @@
                           "content": "109",
                           "variant": "score",
                           "weight": "bold",
-                          "color": "token:color.text.primary",
+                          "color": "token:nba.label.primary",
                           "maxLines": 1,
                           "monospacedDigits": true,
                           "bindRef": "game-row-1.awayScore"
@@ -93,7 +93,7 @@
                           "content": "Final",
                           "variant": "labelSmall",
                           "weight": "semiBold",
-                          "color": "token:color.text.secondary",
+                          "color": "token:nba.label.secondary",
                           "textAlign": "center",
                           "maxLines": 2,
                           "bindRef": "game-row-1.statusText"
@@ -120,14 +120,14 @@
                           "content": "2 BOS",
                           "variant": "titleMedium",
                           "weight": "semiBold",
-                          "color": "token:color.text.primary",
+                          "color": "token:nba.label.primary",
                           "maxLines": 1
                         },
                         {
                           "type": "Text",
                           "content": "Celtics",
                           "variant": "labelSmall",
-                          "color": "token:color.text.secondary",
+                          "color": "token:nba.label.secondary",
                           "maxLines": 1
                         },
                         {
@@ -135,7 +135,7 @@
                           "content": "132",
                           "variant": "score",
                           "weight": "bold",
-                          "color": "token:color.text.primary",
+                          "color": "token:nba.label.primary",
                           "maxLines": 1,
                           "monospacedDigits": true,
                           "bindRef": "game-row-1.homeScore"

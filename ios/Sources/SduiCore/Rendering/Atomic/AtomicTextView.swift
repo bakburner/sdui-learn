@@ -35,14 +35,14 @@ struct AtomicTextView: View {
                     fillWidth: shouldFillWidth,
                     alignment: resolvedFrameAlignment
                 ))
-                .applyActionTriggers(element.actions, onAction: onAction)
+                .applyActionTriggers(element.actions, onAction: onAction, supportsLongPress: true)
                 .sduiAccessibility(element.accessibility, fallbackLabel: content)
                 .atomicBox(element, screenState: screenState, onAction: onAction)
         }
     }
 
     private var shouldFillWidth: Bool {
-        element.textAlign != nil || element.fillWidth == true
+        element.textAlign != nil || element.widthMode == .fill
     }
 
     /// Resolve `content` from `bindRef` when present, falling back to the

@@ -126,6 +126,9 @@ public class LiveComposer {
      * its per-game SSE channel.
      */
     private ObjectNode buildLiveScheduleList(List<JsonNode> liveGames) {
+        String contentSourceId = "stats-api:live-games";
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "GameScheduleList");
+
         String[][] rows = new String[liveGames.size()][];
         Map<String, AtomicCompositeBuilder.GameClockSnapshot> clockSnapshots = new HashMap<>();
 
@@ -143,30 +146,39 @@ public class LiveComposer {
         ObjectNode dataBinding = buildScheduleListBindings(liveGames);
 
         ObjectNode section = atomicBuilder.buildGameScheduleList(
-                "live-games", "live_games", "Live Now", rows,
+                sectionId, "live_games", "Live Now", rows,
                 refreshPolicy, dataBinding, clockSnapshots);
+        section.put("contentSourceId", contentSourceId);
         section.set("surface", utils.cardSurface());
         return section;
     }
 
     /**
      * Build a static (or non-live) schedule list for upcoming / final games.
+     * Uses the 3-arg SectionIdDeriver form because multiple schedule lists
+     * share the same contentSourceId + sectionType (slug disambiguates).
      */
-    private ObjectNode buildScheduleList(String sectionId, String analyticsId,
+    private ObjectNode buildScheduleList(String slug, String analyticsId,
                                          String title, List<JsonNode> gamesList,
                                          boolean live) {
+        String contentSourceId = "stats-api:scoreboard";
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "GameScheduleList", slug);
+
         String[][] rows = new String[gamesList.size()][];
         for (int i = 0; i < gamesList.size(); i++) {
             rows[i] = gameToRow(gamesList.get(i));
         }
         ObjectNode section = atomicBuilder.buildGameScheduleList(
                 sectionId, analyticsId, title, rows, staticPolicy(), null);
+        section.put("contentSourceId", contentSourceId);
         section.set("surface", utils.cardSurface());
         return section;
     }
 
     private ObjectNode buildFeaturedGamePanel(JsonNode game) {
         String gameId = game.path("gameId").asText("0000000000");
+        String contentSourceId = "stats-api:scoreboard";
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "GamePanel", "featured-" + gameId);
         int gameStatus = game.path("gameStatus").asInt(1);
         boolean live = gameStatus == 2;
 
@@ -174,8 +186,8 @@ public class LiveComposer {
         ObjectNode bindings = live ? utils.buildCompositeLinescoreBindings() : null;
         AtomicCompositeBuilder.GameClockSnapshot clock = live ? clockSnapshotFromGame(game) : null;
 
-        return atomicBuilder.buildGamePanelComposite(
-                "live-featured-" + gameId,
+        ObjectNode section = atomicBuilder.buildGamePanelComposite(
+                sectionId,
                 "live_featured_game",
                 "featured",
                 gameId,
@@ -189,11 +201,15 @@ public class LiveComposer {
                 refreshPolicy,
                 bindings,
                 utils.gamePanelSurface());
+        section.put("contentSourceId", contentSourceId);
+        return section;
     }
 
     private ObjectNode buildMockFeaturedGame() {
-        return atomicBuilder.buildGamePanelComposite(
-                "live-featured-mock",
+        String contentSourceId = "stats-api:scoreboard";
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "GamePanel", "featured-mock");
+        ObjectNode section = atomicBuilder.buildGamePanelComposite(
+                sectionId,
                 "live_featured_game",
                 "featured",
                 "0022400050",
@@ -209,6 +225,8 @@ public class LiveComposer {
                 staticPolicy(),
                 null,
                 utils.gamePanelSurface());
+        section.put("contentSourceId", contentSourceId);
+        return section;
     }
 
     /**
@@ -216,6 +234,9 @@ public class LiveComposer {
      */
     private void addMockSections(ArrayNode sections) {
         // Mock live schedule list
+        String liveContentSourceId = "stats-api:live-games";
+        String liveSectionId = SectionIdDeriver.derive(liveContentSourceId, "GameScheduleList");
+
         String[][] liveRows = {
                 {"mock-live-1", "BOS", "Celtics", null,
                         "72", SduiUtils.teamLogoUrl("1610612738"),
@@ -238,12 +259,16 @@ public class LiveComposer {
         mockSsePolicy.put("pauseWhenOffScreen", false);
 
         ObjectNode liveSection = atomicBuilder.buildGameScheduleList(
-                "live-games", "live_games", "Live Now", liveRows,
+                liveSectionId, "live_games", "Live Now", liveRows,
                 mockSsePolicy, null, mockClocks);
+        liveSection.put("contentSourceId", liveContentSourceId);
         liveSection.set("surface", utils.cardSurface());
         sections.add(liveSection);
 
         // Mock upcoming schedule list
+        String upcomingContentSourceId = "stats-api:scoreboard";
+        String upcomingSectionId = SectionIdDeriver.derive(upcomingContentSourceId, "GameScheduleList", "upcoming");
+
         String[][] upcomingRows = {
                 {"mock-up-1", "MIL", "Bucks", null,
                         null, SduiUtils.teamLogoUrl("1610612749"),
@@ -257,8 +282,9 @@ public class LiveComposer {
                         "10:00 PM ET", null, null, "nba://game/mock-up-2", null}
         };
         ObjectNode upcomingSection = atomicBuilder.buildGameScheduleList(
-                "upcoming-games", "upcoming_games", "Upcoming Today", upcomingRows,
+                upcomingSectionId, "upcoming_games", "Upcoming Today", upcomingRows,
                 staticPolicy(), null);
+        upcomingSection.put("contentSourceId", upcomingContentSourceId);
         upcomingSection.set("surface", utils.cardSurface());
         sections.add(upcomingSection);
     }

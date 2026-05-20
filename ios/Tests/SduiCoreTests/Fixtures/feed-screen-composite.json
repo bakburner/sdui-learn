@@ -44,7 +44,7 @@
                   "content": "Editor Picks",
                   "variant": "titleMedium",
                   "weight": "bold",
-                  "color": "token:color.text.primary"
+                  "color": "token:nba.label.primary"
                 },
                 {
                   "type": "Button",
@@ -126,8 +126,8 @@
                         "content": "HIGHLIGHT",
                         "variant": "labelSmall",
                         "weight": "bold",
-                        "color": "token:color.text.inverse",
-                        "background": "token:color.brand.live",
+                        "color": "token:nba.label-inverted.primary",
+                        "background": "token:nba.label.accent.live",
                         "cornerRadius": 4,
                         "padding": {
                           "top": 2,
@@ -141,14 +141,14 @@
                         "content": "Monster Dunk by Giannis",
                         "variant": "titleMedium",
                         "weight": "bold",
-                        "color": "token:color.text.inverse",
+                        "color": "token:nba.label-inverted.primary",
                         "maxLines": 2
                       },
                       {
                         "type": "Text",
                         "content": "Bucks vs. Celtics - Q3",
                         "variant": "labelSmall",
-                        "color": "token:color.text.inverse",
+                        "color": "token:nba.label-inverted.primary",
                         "opacity": 0.8,
                         "maxLines": 1
                       }
@@ -162,7 +162,7 @@
               "content": "Stories",
               "variant": "titleMedium",
               "weight": "bold",
-              "color": "token:color.text.primary"
+              "color": "token:nba.label.primary"
             },
             {
               "type": "ScrollContainer",
@@ -205,7 +205,7 @@
                           },
                           "element": {
                             "type": "Container",
-                            "background": "token:color.brand.live",
+                            "background": "token:nba.label.accent.live",
                             "cornerRadius": 4,
                             "padding": {
                               "top": 2,
@@ -219,7 +219,7 @@
                                 "content": "LIVE",
                                 "variant": "labelSmall",
                                 "weight": "bold",
-                                "color": "token:color.text.inverse"
+                                "color": "token:nba.label-inverted.primary"
                               }
                             ]
                           }
@@ -234,7 +234,7 @@
                       "type": "Text",
                       "content": "Gameday",
                       "variant": "labelSmall",
-                      "color": "token:color.text.primary",
+                      "color": "token:nba.label.primary",
                       "maxLines": 1
                     }
                   ]
@@ -263,7 +263,7 @@
                   },
                   "element": {
                     "type": "Container",
-                    "background": "token:color.brand.nba",
+                    "background": "token:nba.label.accent.brand",
                     "cornerRadius": 4,
                     "padding": {
                       "top": 2,
@@ -277,7 +277,7 @@
                         "content": "NEW",
                         "variant": "labelSmall",
                         "weight": "bold",
-                        "color": "token:color.text.inverse"
+                        "color": "token:nba.label-inverted.primary"
                       }
                     ]
                   }
@@ -320,7 +320,7 @@
                     "background": {
                       "colors": [
                         "#00000000",
-                        "token:color.overlay.scrim"
+                        "token:nba.effect.scrim"
                       ],
                       "direction": "vertical"
                     },
@@ -334,14 +334,14 @@
                         "content": "Saturday's Stacked Slate",
                         "variant": "titleMedium",
                         "weight": "bold",
-                        "color": "token:color.text.inverse",
+                        "color": "token:nba.label-inverted.primary",
                         "maxLines": 3
                       },
                       {
                         "type": "Text",
                         "content": "11 games, no League Pass",
                         "variant": "bodySmall",
-                        "color": "token:color.text.inverse",
+                        "color": "token:nba.label-inverted.primary",
                         "maxLines": 2
                       },
                       {
@@ -352,7 +352,7 @@
                         "type": "Button",
                         "label": "View Games",
                         "variant": "secondary",
-                        "color": "token:color.text.inverse",
+                        "color": "token:nba.label-inverted.primary",
                         "actions": [
                           {
                             "trigger": "onActivate",
@@ -373,7 +373,7 @@
                   },
                   "element": {
                     "type": "Container",
-                    "background": "token:color.brand.live",
+                    "background": "token:nba.label.accent.live",
                     "cornerRadius": 4,
                     "padding": {
                       "top": 2,
@@ -387,7 +387,7 @@
                         "content": "LIVE",
                         "variant": "labelSmall",
                         "weight": "bold",
-                        "color": "token:color.text.inverse"
+                        "color": "token:nba.label-inverted.primary"
                       }
                     ]
                   }
@@ -411,7 +411,7 @@
                         "label": "",
                         "icon": "sdui:video",
                         "variant": "text",
-                        "color": "token:color.text.inverse",
+                        "color": "token:nba.label-inverted.primary",
                         "actions": [
                           {
                             "trigger": "onActivate",
@@ -425,7 +425,7 @@
                         "label": "",
                         "icon": "sdui:share",
                         "variant": "text",
-                        "color": "token:color.text.inverse",
+                        "color": "token:nba.label-inverted.primary",
                         "actions": [
                           {
                             "trigger": "onActivate",
@@ -444,7 +444,7 @@
               "content": "Featured",
               "variant": "titleMedium",
               "weight": "bold",
-              "color": "token:color.text.primary"
+              "color": "token:nba.label.primary"
             },
             {
               "id": "featured-paged-carousel",
@@ -457,8 +457,8 @@
               "pageIndicator": {
                 "style": "dots",
                 "alignment": "bottomCenter",
-                "color": "token:color.text.tertiary",
-                "activeColor": "token:color.text.inverse"
+                "color": "token:nba.label.tertiary",
+                "activeColor": "token:nba.label-inverted.primary"
               },
               "padding": {
                 "bottom": 28
@@ -519,7 +519,7 @@
                         "content": "Monster Dunk by Giannis",
                         "variant": "bodyMedium",
                         "weight": "bold",
-                        "color": "token:color.text.inverse",
+                        "color": "token:nba.label-inverted.primary",
                         "maxLines": 2
                       }
                     },
@@ -534,7 +534,7 @@
                         "type": "Button",
                         "label": "⋯",
                         "variant": "text",
-                        "color": "token:color.text.inverse",
+                        "color": "token:nba.label-inverted.primary",
                         "actions": [
                           {
                             "trigger": "onActivate",
@@ -601,7 +601,7 @@
                         "content": "Curry Buzzer Beater from Half Court",
                         "variant": "bodyMedium",
                         "weight": "bold",
-                        "color": "token:color.text.inverse",
+                        "color": "token:nba.label-inverted.primary",
                         "maxLines": 2
                       }
                     }
@@ -662,7 +662,7 @@
                         "content": "Jokic No-Look Dime",
                         "variant": "bodyMedium",
                         "weight": "bold",
-                        "color": "token:color.text.inverse",
+                        "color": "token:nba.label-inverted.primary",
                         "maxLines": 2
                       }
                     }

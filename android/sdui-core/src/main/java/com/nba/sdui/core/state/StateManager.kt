@@ -1,5 +1,7 @@
 package com.nba.sdui.core.state
 
+import android.util.Log
+import com.nba.sdui.core.models.generated.MutateOperation
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -15,6 +17,10 @@ import kotlinx.coroutines.flow.update
  * Compose's reactivity handles re-rendering automatically when state changes.
  */
 class StateManager {
+
+    companion object {
+        private const val TAG = "StateManager"
+    }
     
     private val _state = MutableStateFlow<Map<String, Any>>(emptyMap())
     val state: StateFlow<Map<String, Any>> = _state.asStateFlow()
@@ -69,4 +75,87 @@ class StateManager {
             current - key
         }
     }
+
+    /**
+     * Apply a schema-declared mutate operation to a screen state key.
+     */
+    fun applyOperation(operation: MutateOperation?, key: String, value: Any?) {
+        when (operation ?: MutateOperation.Set) {
+            MutateOperation.Set -> {
+                if (value != null) {
+                    setState(key, value)
+                } else {
+                    removeState(key)
+                }
+            }
+
+            MutateOperation.Toggle -> {
+                val current = getState(key)
+                if (current is Boolean) {
+                    setState(key, !current)
+                } else {
+                    // TODO(action-mutate): review type-mismatch semantics across platforms
+                    Log.w(TAG, "mutate toggle noop: current value is not boolean key=$key current=$current")
+                }
+            }
+
+            MutateOperation.Increment -> {
+                val current = getState(key)
+                val currentNumber = asStoredNumber(current)
+                if (currentNumber == null) {
+                    // TODO(action-mutate): review type-mismatch semantics across platforms
+                    Log.w(TAG, "mutate increment noop: current value is not numeric key=$key current=$current")
+                    return
+                }
+
+                val delta = asDouble(value) ?: 1.0
+                val next = currentNumber + delta
+                if (isWholeNumber(next) && next in Int.MIN_VALUE.toDouble()..Int.MAX_VALUE.toDouble()) {
+                    setState(key, next.toInt())
+                } else {
+                    setState(key, next)
+                }
+            }
+
+            MutateOperation.Append -> {
+                val current = getState(key)
+                when {
+                    current is List<*> -> setState(key, current + value)
+                    current is String && value is String -> setState(key, current + value)
+                    current == null && value != null -> setState(key, listOf(value))
+                    else -> {
+                        // TODO(action-mutate): review type-mismatch semantics across platforms
+                        Log.w(
+                            TAG,
+                            "mutate append noop: incompatible value types key=$key current=$current incoming=$value"
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    private fun asStoredNumber(value: Any?): Double? = when (value) {
+        is Double -> if (value.isFinite()) value else null
+        is Float -> if (value.isFinite()) value.toDouble() else null
+        is Int -> value.toDouble()
+        is Long -> value.toDouble()
+        is Short -> value.toDouble()
+        is Byte -> value.toDouble()
+        else -> null
+    }
+
+    private fun asDouble(value: Any?): Double? = when (value) {
+        is Double -> if (value.isFinite()) value else null
+        is Float -> if (value.isFinite()) value.toDouble() else null
+        is Int -> value.toDouble()
+        is Long -> value.toDouble()
+        is Short -> value.toDouble()
+        is Byte -> value.toDouble()
+        is Boolean -> if (value) 1.0 else 0.0
+        is String -> value.toDoubleOrNull()
+        else -> null
+    }
+
+    private fun isWholeNumber(value: Double): Boolean = value % 1.0 == 0.0
 }

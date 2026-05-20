@@ -29,7 +29,7 @@
               "type": "Text",
               "content": "The server could not load featured live games for this feed. Retry to refresh.",
               "variant": "bodyMedium",
-              "color": "token:color.text.secondary"
+              "color": "token:nba.label.secondary"
             },
             { "type": "Spacer", "height": 16 },
             {

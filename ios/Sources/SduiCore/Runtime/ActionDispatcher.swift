@@ -129,9 +129,6 @@ final class ActionDispatcher {
         // Debug-build visibility for the action pipeline. `os.Logger.debug`
         // streams to Xcode's console in debug runs and is filtered out of
         // release telemetry, so this stays free in production.
-        if action.trigger == .onTap {
-            logger.debug("deprecated_trigger_used: onTap is a deprecated alias for onActivate")
-        }
         logger.debug("dispatch type=\(action.type.rawValue, privacy: .public) trigger=\(action.trigger.rawValue, privacy: .public) section=\(self.sectionContext, privacy: .public)")
         switch action.type {
         case .navigate: return handleNavigate(action)
@@ -144,7 +141,7 @@ final class ActionDispatcher {
     }
 
     private func handleNavigate(_ action: Action) -> HandleResult {
-        guard let targetURI = action.targetURI ?? action.webURL else {
+        guard let targetURI = resolvedNavigationTarget(for: action) else {
             logger.debug("navigate skipped — missing targetURI/webURL")
             return .failure(action.failureFeedback)
         }
@@ -260,6 +257,16 @@ final class ActionDispatcher {
             logger.warning("failureFeedback.style=inline is decoded but not hosted inline on iOS; presenting error toast")
         }
         toasts.show(message, style: .error)
+    }
+
+    private func resolvedNavigationTarget(for action: Action) -> String? {
+        if let targetURI = action.targetURI, targetURI.hasPrefix("nba://") {
+            return targetURI
+        }
+        if let webURL = action.webURL {
+            return webURL
+        }
+        return action.targetURI
     }
 
     private func defaultFailureMessage(for action: Action) -> String {

@@ -170,6 +170,50 @@ final class ActionDispatcherTests: XCTestCase {
     }
 
     @MainActor
+    func testNavigateWithWebUrlOnly() {
+        let (dispatcher, _, nav, _) = makeDispatcher()
+
+        dispatcher.dispatch(action(type: .navigate, webURL: "nba://scoreboard"))
+
+        XCTAssertEqual(nav.path.last?.endpoint, "/sdui/scoreboard")
+    }
+
+    @MainActor
+    func testNavigateUsesTargetURIWhenWebURLIsMissing() {
+        let (dispatcher, _, nav, _) = makeDispatcher()
+
+        dispatcher.dispatch(action(type: .navigate, targetURI: "nba://game/0042300102"))
+
+        XCTAssertEqual(nav.path.last?.endpoint, "/sdui/game/0042300102")
+    }
+
+    @MainActor
+    func testNavigateWithTargetUriAndWebUrlPrefersTargetUriForNbaScheme() {
+        let (dispatcher, _, nav, _) = makeDispatcher()
+
+        dispatcher.dispatch(action(
+            type: .navigate,
+            targetURI: "nba://boxscore/0042300102",
+            webURL: "https://www.nba.com/game/0042300102"
+        ))
+
+        XCTAssertEqual(nav.path.last?.endpoint, "/sdui/boxscore/0042300102")
+    }
+
+    @MainActor
+    func testNavigateWithNonNbaTargetUriAndWebUrlPrefersWebUrl() {
+        let (dispatcher, _, nav, _) = makeDispatcher()
+
+        dispatcher.dispatch(action(
+            type: .navigate,
+            targetURI: "https://example.com/internal",
+            webURL: "nba://schedule"
+        ))
+
+        XCTAssertEqual(nav.path.last?.endpoint, "/sdui/schedule")
+    }
+
+    @MainActor
     func testToastFailureShowsFallbackMessage() {
         let (dispatcher, _, _, toasts) = makeDispatcher()
         let bad = action(type: .toast, message: nil, onFailure: .halt)

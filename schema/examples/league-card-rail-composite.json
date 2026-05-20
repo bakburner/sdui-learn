@@ -24,7 +24,7 @@
                   "content": "Other Leagues",
                   "variant": "titleMedium",
                   "weight": "bold",
-                  "color": "token:color.text.primary"
+                  "color": "token:nba.label.primary"
                 }
               ],
               "padding": { "top": 16, "bottom": 4, "start": 16, "end": 16 }
@@ -43,7 +43,7 @@
                   "crossAlignment": "center",
                   "width": 160,
                   "gap": 10,
-                  "background": "token:color.surface.raised",
+                  "background": "token:nba.bg.secondary",
                   "cornerRadius": 14,
                   "padding": { "top": 14, "bottom": 18, "start": 14, "end": 16 },
                   "shadow": { "color": "#00000014", "radius": 4, "offsetX": 0, "offsetY": 2 },
@@ -68,7 +68,7 @@
                       "content": "WNBA",
                       "variant": "bodyMedium",
                       "weight": "semiBold",
-                      "color": "token:color.text.primary",
+                      "color": "token:nba.label.primary",
                       "maxLines": 2
                     }
                   ]

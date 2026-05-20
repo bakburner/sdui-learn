@@ -1,5 +1,17 @@
 import Kingfisher
 import SwiftUI
+import os
+
+private let actionTriggerLogger = Logger(subsystem: "com.nba.sdui", category: "AtomicActionTriggers")
+
+enum AtomicActionTriggerLogProbe {
+    static var debugSink: ((String) -> Void)?
+
+    static func debug(_ message: String) {
+        actionTriggerLogger.debug("\(message, privacy: .public)")
+        debugSink?(message)
+    }
+}
 
 // MARK: - Shared helpers used across atomic renderers
 
@@ -158,21 +170,154 @@ extension View {
 
 // MARK: - Action tap modifier
 
+private func dispatchAtomicActions(
+    _ actions: [Action],
+    onAction: @escaping (Action) -> Void,
+    batchExecutor: (([Action]) -> Void)?
+) {
+    guard !actions.isEmpty else { return }
+    if let batchExecutor {
+        batchExecutor(actions)
+    } else {
+        for action in actions {
+            onAction(action)
+        }
+    }
+}
+
+enum AtomicActionTriggerDispatcher {
+    static func dispatch(
+        trigger: ActionTrigger,
+        actions: [Action]?,
+        onAction: @escaping (Action) -> Void,
+        batchExecutor: (([Action]) -> Void)?
+    ) {
+        if let reason = AtomicActionTriggerRegistry.notHosted[trigger] {
+            AtomicActionTriggerLogProbe.debug(
+                "atomic trigger not hosted at the element level: trigger=\(trigger.rawValue) reason=\(reason)"
+            )
+            return
+        }
+
+        let matchingActions = AtomicActionTriggerRegistry.actions(for: trigger, in: actions)
+        dispatchAtomicActions(matchingActions, onAction: onAction, batchExecutor: batchExecutor)
+    }
+
+    static func logUnhostedTriggers(in actions: [Action]?) {
+        let triggers = Set((actions ?? []).map(\.trigger))
+        for trigger in triggers.sorted(by: { $0.rawValue < $1.rawValue }) {
+            guard let reason = AtomicActionTriggerRegistry.notHosted[trigger] else { continue }
+            AtomicActionTriggerLogProbe.debug(
+                "atomic trigger not hosted at the element level: trigger=\(trigger.rawValue) reason=\(reason)"
+            )
+        }
+    }
+}
+
+private func logNotHostedAtomicTriggers(_ actions: [Action]?) {
+    AtomicActionTriggerDispatcher.logUnhostedTriggers(in: actions)
+}
+
+struct UnsupportedAtomicTriggerLogger: ViewModifier {
+    let actions: [Action]?
+    @State private var didLog = false
+
+    func body(content: Content) -> some View {
+        content.onAppear {
+            guard !didLog else { return }
+            didLog = true
+            logNotHostedAtomicTriggers(actions)
+        }
+    }
+}
+
 struct ActionTapModifier: ViewModifier {
     let actions: [Action]?
     let onAction: (Action) -> Void
     @Environment(\.batchActionExecutor) private var batchExecutor
 
     func body(content: Content) -> some View {
-        if let tapActions = actions?.filter(\.trigger.isPrimaryActivation), !tapActions.isEmpty {
+        if !AtomicActionTriggerRegistry.actions(for: .onActivate, in: actions).isEmpty {
             content.onTapGesture {
-                if let batch = batchExecutor {
-                    batch(tapActions)
-                } else {
-                    for action in tapActions {
-                        onAction(action)
-                    }
+                AtomicActionTriggerDispatcher.dispatch(
+                    trigger: .onActivate,
+                    actions: actions,
+                    onAction: onAction,
+                    batchExecutor: batchExecutor
+                )
+            }
+        } else {
+            content
+        }
+    }
+}
+
+struct LongPressActionModifier: ViewModifier {
+    let actions: [Action]?
+    let onAction: (Action) -> Void
+    let isEnabled: Bool
+
+    @Environment(\.batchActionExecutor) private var batchExecutor
+
+    func body(content: Content) -> some View {
+        if isEnabled, !AtomicActionTriggerRegistry.actions(for: .onLongPress, in: actions).isEmpty {
+            content.onLongPressGesture(minimumDuration: 0.5) {
+                AtomicActionTriggerDispatcher.dispatch(
+                    trigger: .onLongPress,
+                    actions: actions,
+                    onAction: onAction,
+                    batchExecutor: batchExecutor
+                )
+            }
+        } else {
+            content
+        }
+    }
+}
+
+struct FocusActionModifier: ViewModifier {
+    let actions: [Action]?
+    let onAction: (Action) -> Void
+    let isEnabled: Bool
+
+    @Environment(\.batchActionExecutor) private var batchExecutor
+    @FocusState private var isFocused: Bool
+
+    func body(content: Content) -> some View {
+        if isEnabled {
+            content
+                .focused($isFocused)
+                .onChange(of: isFocused) { _, focused in
+                    let trigger: ActionTrigger = focused ? .onFocus : .onBlur
+                    AtomicActionTriggerDispatcher.dispatch(
+                        trigger: trigger,
+                        actions: actions,
+                        onAction: onAction,
+                        batchExecutor: batchExecutor
+                    )
                 }
+        } else {
+            content
+        }
+    }
+}
+
+struct SubmitActionModifier: ViewModifier {
+    let actions: [Action]?
+    let onAction: (Action) -> Void
+    let isEnabled: Bool
+
+    @Environment(\.batchActionExecutor) private var batchExecutor
+
+    func body(content: Content) -> some View {
+        if isEnabled {
+            content.onSubmit {
+                AtomicActionTriggerDispatcher.dispatch(
+                    trigger: .onSubmit,
+                    actions: actions,
+                    onAction: onAction,
+                    batchExecutor: batchExecutor
+                )
             }
         } else {
             content
@@ -188,9 +333,19 @@ extension View {
     /// Applies both tap and visibility action handlers in one chainable call.
     /// ADR-009: 50% visibility threshold. Dwell + dedup are handled by
     /// ``ImpressionTracker`` inside the dispatcher.
-    func applyActionTriggers(_ actions: [Action]?, onAction: @escaping (Action) -> Void) -> some View {
+    func applyActionTriggers(
+        _ actions: [Action]?,
+        onAction: @escaping (Action) -> Void,
+        supportsLongPress: Bool = false,
+        supportsFocus: Bool = false,
+        supportsSubmit: Bool = false
+    ) -> some View {
         self
+            .modifier(UnsupportedAtomicTriggerLogger(actions: actions))
             .applyActions(actions, onAction: onAction)
+            .modifier(LongPressActionModifier(actions: actions, onAction: onAction, isEnabled: supportsLongPress))
+            .modifier(FocusActionModifier(actions: actions, onAction: onAction, isEnabled: supportsFocus))
+            .modifier(SubmitActionModifier(actions: actions, onAction: onAction, isEnabled: supportsSubmit))
             .modifier(VisibilityActionModifier(actions: actions, onAction: onAction))
     }
 }
@@ -201,9 +356,10 @@ struct VisibilityActionModifier: ViewModifier {
     let actions: [Action]?
     let onAction: (Action) -> Void
 
+    @Environment(\.batchActionExecutor) private var batchExecutor
+
     func body(content: Content) -> some View {
-        let visibleActions = (actions ?? []).filter { $0.trigger == .onVisible }
-        if visibleActions.isEmpty {
+        if AtomicActionTriggerRegistry.actions(for: .onVisible, in: actions).isEmpty {
             content
         } else {
             // iOS 17 fallback: `.onAppear` inside a `LazyVStack` fires when
@@ -211,7 +367,12 @@ struct VisibilityActionModifier: ViewModifier {
             // our 50% visibility intent for `onVisible` triggers. iOS 18+
             // can be upgraded to `.onScrollVisibilityChange(threshold:)`.
             content.onAppear {
-                for action in visibleActions { onAction(action) }
+                AtomicActionTriggerDispatcher.dispatch(
+                    trigger: .onVisible,
+                    actions: actions,
+                    onAction: onAction,
+                    batchExecutor: batchExecutor
+                )
             }
         }
     }

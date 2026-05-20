@@ -47,8 +47,8 @@ fun mapTabMutateAction(stateKey: String, stateValue: String): SduiAction =
     SduiAction(
         trigger = "onActivate",
         type = "mutate",
-        stateKey = stateKey,
-        stateValue = stateValue
+        target = stateKey,
+        value = stateValue
     )
 
 // ============ BoxscoreTable ============

@@ -62,6 +62,8 @@ export function TabGroup({ section, state, onAction, onStateChange }: SectionPro
 
 const styles: Record<string, React.CSSProperties> = {
   container: {
+    margin: 8,
+    borderRadius: 12,
     overflow: 'hidden',
   },
   tabBar: {
@@ -89,6 +91,7 @@ const styles: Record<string, React.CSSProperties> = {
     color: '#ffffff',
   },
   tabContent: {
+    padding: 8,
     minHeight: 64,
     position: 'relative',
   },

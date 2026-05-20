@@ -66,8 +66,7 @@ dev:
 	@$(MAKE) dev-server
 	@$(MAKE) dev-web
 	@echo "Waiting 5s for server to start..."
-	@sleep 5
-	@$(MAKE) dev-android
+
 
 dev-server:
 	@osascript -e 'tell application "Terminal" to do script "cd \"$(PWD)/server\" && ./gradlew bootRun"' >/dev/null
@@ -160,7 +159,7 @@ ios-demo-project:
 	@cd ios/SduiDemo && xcodegen generate --quiet
 
 ios-run: ios-demo-project
-	@if ! curl -sf http://localhost:8080/sdui/demos >/dev/null 2>&1; then \
+	@if ! curl -sf http://localhost:8080/v1/sdui/demos >/dev/null 2>&1; then \
 		echo "WARNING: server not reachable at http://localhost:8080"; \
 		echo "         run 'make dev-server' in another terminal first"; \
 	fi

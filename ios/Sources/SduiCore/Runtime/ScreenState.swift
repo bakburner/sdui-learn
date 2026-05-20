@@ -1,5 +1,17 @@
 import Foundation
 import Observation
+import os
+
+private let logger = Logger(subsystem: "com.nba.sdui", category: "ScreenState")
+
+enum ScreenStateLogProbe {
+    static var warningSink: ((String) -> Void)?
+
+    static func warning(_ message: String) {
+        logger.warning("\(message, privacy: .public)")
+        warningSink?(message)
+    }
+}
 
 /// Per-key value holder so the observation system can avoid treating the
 /// entire screen map as a single invalidation surface when a single key
@@ -100,17 +112,26 @@ public final class ScreenState {
     /// the operand. `nil` operation behaves as `.set` for parity with Android.
     /// `internal` because `MutateOperation` is a generated (internal) type.
     func apply(operation: MutateOperation?, key: String, value incoming: Any?) {
+        let current = slots[key]?.value
         switch operation {
         case .none, .some(.mutateOperationSet):
             set(key, value: incoming)
 
         case .some(.toggle):
-            let current = (slots[key]?.value as? Bool) ?? false
+            guard let current = current as? Bool else {
+                // TODO(action-mutate): review type-mismatch semantics across platforms
+                ScreenStateLogProbe.warning("mutate toggle noop: key=\(key) currentType=\(Self.typeName(for: current))")
+                return
+            }
             set(key, value: !current)
 
         case .some(.increment):
+            guard let existing = Self.asStoredNumber(current) else {
+                // TODO(action-mutate): review type-mismatch semantics across platforms
+                ScreenStateLogProbe.warning("mutate increment noop: key=\(key) currentType=\(Self.typeName(for: current))")
+                return
+            }
             let delta = Self.asDouble(incoming) ?? 1
-            let existing = Self.asDouble(slots[key]?.value) ?? 0
             let next = existing + delta
             if floor(next) == next, abs(next) < Double(Int64.max) {
                 set(key, value: Int64(next))
@@ -119,14 +140,30 @@ public final class ScreenState {
             }
 
         case .some(.append):
-            if var array = slots[key]?.value as? [Any] {
+            if var array = current as? [Any] {
                 if let incoming { array.append(incoming) }
                 set(key, value: array)
-            } else if let current = slots[key]?.value as? String, let appended = incoming as? String {
+            } else if let current = current as? String, let appended = incoming as? String {
                 set(key, value: current + appended)
-            } else if let incoming {
+            } else if current == nil, let incoming {
                 set(key, value: [incoming])
+            } else {
+                // TODO(action-mutate): review type-mismatch semantics across platforms
+                ScreenStateLogProbe.warning("mutate append noop: key=\(key) currentType=\(Self.typeName(for: current))")
             }
+
+        default:
+            // TODO(action-mutate): review type-mismatch semantics across platforms
+            ScreenStateLogProbe.warning("mutate noop: unknown operation key=\(key) op=\(operation?.rawValue ?? "nil") currentType=\(Self.typeName(for: current))")
+        }
+    }
+
+    private static func asStoredNumber(_ any: Any?) -> Double? {
+        switch any {
+        case let v as Double where v.isFinite: return v
+        case let v as Int64: return Double(v)
+        case let v as Int: return Double(v)
+        default: return nil
         }
     }
 
@@ -139,5 +176,10 @@ public final class ScreenState {
         case let s as String: return Double(s)
         default: return nil
         }
+    }
+
+    private static func typeName(for value: Any?) -> String {
+        guard let value else { return "nil" }
+        return String(describing: type(of: value))
     }
 }

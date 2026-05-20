@@ -37,20 +37,18 @@ object LayoutTokenResolver {
     /** Resolve a [LayoutScalar] to a Compose [Dp]. `null` → 0.dp. */
     fun dp(
         scalar: LayoutScalar?,
-        formFactor: String = RequestEnvelopeBuilder.defaultFormFactor(),
-        theme: String = RequestEnvelopeBuilder.defaultTheme()
-    ): Dp = intValue(scalar, formFactor, theme).dp
+        formFactor: String = RequestEnvelopeBuilder.defaultFormFactor()
+    ): Dp = intValue(scalar, formFactor).dp
 
     /** Resolve a [LayoutScalar] to an integer value (dp/px logical). `null` → 0. */
     fun intValue(
         scalar: LayoutScalar?,
-        formFactor: String = RequestEnvelopeBuilder.defaultFormFactor(),
-        theme: String = RequestEnvelopeBuilder.defaultTheme()
+        formFactor: String = RequestEnvelopeBuilder.defaultFormFactor()
     ): Int {
         return when (scalar) {
             null -> 0
             is LayoutScalar.IntegerValue -> scalar.value.toInt()
-            is LayoutScalar.StringValue -> resolveTokenString(scalar.value, formFactor, theme)
+            is LayoutScalar.StringValue -> resolveTokenString(scalar.value, formFactor)
         }
     }
 
@@ -76,7 +74,7 @@ object LayoutTokenResolver {
 
     // ── Token resolution ─────────────────────────────────────────────
 
-    private fun resolveTokenString(wire: String, formFactor: String, theme: String): Int {
+    private fun resolveTokenString(wire: String, formFactor: String): Int {
         if (!wire.startsWith(TOKEN_PREFIX)) {
             Log.d(TAG, "token_resolver_missing: $wire")
             return 0
@@ -85,27 +83,18 @@ object LayoutTokenResolver {
         if (palette[name] == null && semantic[name] == null) {
             Log.d(TAG, "token_resolver_missing: $wire")
         }
-        return followAlias(name, formFactor, theme, depth = 0)
+        return followAlias(name, formFactor, depth = 0)
     }
 
-    private fun followAlias(name: String, formFactor: String, theme: String, depth: Int): Int {
+    private fun followAlias(name: String, formFactor: String, depth: Int): Int {
         if (depth > MAX_ALIAS_DEPTH) return 0
-        palette[name]?.let { return valueFor(formFactor, theme, it) }
+        palette[name]?.let { return valueFor(formFactor, it) }
         val next = semantic[name] ?: return 0
-        return followAlias(next, formFactor, theme, depth + 1)
+        return followAlias(next, formFactor, depth + 1)
     }
 
-    private fun valueFor(formFactor: String, theme: String, matrix: Map<String, Map<String, Int>>): Int {
-        // 1. Exact: theme + formFactor
-        matrix[theme]?.get(formFactor)?.let { return it }
-        // 2. Theme-specific, any form factor
-        matrix[theme]?.get("*")?.let { return it }
-        // 3. Any theme, form-factor-specific
-        matrix["*"]?.get(formFactor)?.let { return it }
-        // 4. Universal fallback
-        matrix["*"]?.get("*")?.let { return it }
-        Log.w(TAG, "token_resolver_no_value: theme=$theme formFactor=$formFactor")
-        return 0
+    private fun valueFor(formFactor: String, row: Map<String, Int>): Int {
+        return row[formFactor] ?: row["phone"] ?: 0
     }
 
     // ── Snapshot: semantic aliases ───────────────────────────────────
@@ -117,7 +106,7 @@ object LayoutTokenResolver {
         // spacing-tokens.json (Kinetic)
         "nba.spacing.xs"  to "nba.space.raw.2",
         "nba.spacing.sm"  to "nba.space.raw.4",
-        "nba.spacing.md"  to "nba.space.raw.12",
+        "nba.spacing.md"  to "nba.space.raw.8",
         "nba.spacing.lg"  to "nba.space.raw.16",
         "nba.spacing.xl"  to "nba.space.raw.32",
         "nba.spacing.2xl" to "nba.space.raw.40",
@@ -125,23 +114,34 @@ object LayoutTokenResolver {
         // corner-radius-tokens.json (Kinetic)
         "nba.radius.xs"   to "nba.radius.raw.2",
         "nba.radius.sm"   to "nba.radius.raw.4",
-        "nba.radius.md"   to "nba.radius.raw.12",
+        "nba.radius.md"   to "nba.radius.raw.8",
         "nba.radius.lg"   to "nba.radius.raw.16",
         "nba.radius.xl"   to "nba.radius.raw.24",
         "nba.radius.2xl"  to "nba.radius.raw.32",
         "nba.radius.full" to "nba.radius.raw.9999",
+
+        // Legacy aliases (deprecated — kept for backward compat with cached payloads)
+        "spacing.xs"  to "nba.space.raw.2",
+        "spacing.sm"  to "nba.space.raw.4",
+        "spacing.md"  to "nba.space.raw.8",
+        "spacing.lg"  to "nba.space.raw.16",
+        "spacing.xl"  to "nba.space.raw.32",
+        "radius.sm"   to "nba.radius.raw.4",
+        "radius.md"   to "nba.radius.raw.8",
+        "radius.lg"   to "nba.radius.raw.16",
+        "radius.full" to "nba.radius.raw.9999",
+
     )
 
     // ── Snapshot: merged palette (per form factor) ───────────────────
     //
     // Order of values per row: phone, phone.landscape, tablet, tv, web.narrow, web.wide.
-    private val palette: Map<String, Map<String, Map<String, Int>>> = buildMap {
+    private val palette: Map<String, Map<String, Int>> = buildMap {
         // spacing (Kinetic)
         addRow("nba.space.raw.0",  0,  0,  0,  0,  0,  0)
         addRow("nba.space.raw.2",  2,  2,  2,  4,  2,  2)
         addRow("nba.space.raw.4",  4,  4,  6,  6,  4,  6)
         addRow("nba.space.raw.8",  8,  8,  10, 12, 8,  10)
-        addRow("nba.space.raw.12", 12, 12, 15, 18, 12, 15)
         addRow("nba.space.raw.16", 16, 16, 20, 24, 16, 20)
         addRow("nba.space.raw.32", 32, 32, 40, 48, 32, 40)
         addRow("nba.space.raw.40", 40, 40, 48, 56, 40, 48)
@@ -151,14 +151,13 @@ object LayoutTokenResolver {
         addRow("nba.radius.raw.2",    2,    2,    2,    2,    2,    2)
         addRow("nba.radius.raw.4",    4,    4,    4,    4,    4,    4)
         addRow("nba.radius.raw.8",    8,    8,    8,    8,    8,    8)
-        addRow("nba.radius.raw.12",   12,   12,   12,   12,   12,   12)
         addRow("nba.radius.raw.16",   16,   16,   16,   16,   16,   16)
         addRow("nba.radius.raw.24",   24,   24,   24,   24,   24,   24)
         addRow("nba.radius.raw.32",   32,   32,   32,   32,   32,   32)
         addRow("nba.radius.raw.9999", 9999, 9999, 9999, 9999, 9999, 9999)
     }
 
-    private fun MutableMap<String, Map<String, Map<String, Int>>>.addRow(
+    private fun MutableMap<String, Map<String, Int>>.addRow(
         key: String,
         phone: Int,
         phoneLandscape: Int,
@@ -170,14 +169,12 @@ object LayoutTokenResolver {
         put(
             key,
             mapOf(
-                "*" to mapOf(
-                    "phone" to phone,
-                    "phone.landscape" to phoneLandscape,
-                    "tablet" to tablet,
-                    "tv" to tv,
-                    "web.narrow" to webNarrow,
-                    "web.wide" to webWide
-                )
+                "phone" to phone,
+                "phone.landscape" to phoneLandscape,
+                "tablet" to tablet,
+                "tv" to tv,
+                "web.narrow" to webNarrow,
+                "web.wide" to webWide
             )
         )
     }

@@ -12,7 +12,9 @@ struct AtomicButtonView: View {
     let screenState: ScreenState
     let onAction: (Action) -> Void
 
+    @Environment(\.batchActionExecutor) private var batchExecutor
     @Environment(\.compositeContent) private var compositeContent
+    @Environment(\.isInFormActionContext) private var isInFormActionContext
 
     var body: some View {
         Button(action: handleTap) {
@@ -34,7 +36,12 @@ struct AtomicButtonView: View {
             inlineBackground: resolvedInlineBg
         ))
         .disabled(element.disabled ?? false)
-        .modifier(VisibilityActionModifier(actions: element.actions, onAction: onAction))
+        .applyActionTriggers(
+            element.actions,
+            onAction: onAction,
+            supportsFocus: true,
+            supportsSubmit: isInFormActionContext
+        )
         .sduiAccessibility(element.accessibility, fallbackLabel: element.label)
         .atomicBox(element, screenState: screenState, onAction: onAction)
     }
@@ -78,10 +85,8 @@ struct AtomicButtonView: View {
     }
 
     private func handleTap() {
-        guard let actions = element.actions else { return }
-        for action in actions where action.trigger.isPrimaryActivation {
-            onAction(action)
-        }
+        let actions = AtomicActionTriggerRegistry.actions(for: .onActivate, in: element.actions)
+        dispatchAtomicActions(actions, onAction: onAction, batchExecutor: batchExecutor)
     }
 }
 

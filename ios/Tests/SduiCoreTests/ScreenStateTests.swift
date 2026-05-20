@@ -3,6 +3,19 @@ import XCTest
 
 final class ScreenStateTests: XCTestCase {
 
+    override func tearDown() {
+        ScreenStateLogProbe.warningSink = nil
+        super.tearDown()
+    }
+
+    private func captureWarnings(_ body: () -> Void) -> [String] {
+        var warnings: [String] = []
+        ScreenStateLogProbe.warningSink = { warnings.append($0) }
+        body()
+        ScreenStateLogProbe.warningSink = nil
+        return warnings
+    }
+
     func testSetAndGetRoundTrip() {
         let state = ScreenState()
         state.set("name", value: "LeBron")
@@ -24,11 +37,12 @@ final class ScreenStateTests: XCTestCase {
 
     func testMutateToggle() {
         let state = ScreenState()
-        state.apply(operation: .toggle, key: "flag", value: nil)
-        XCTAssertEqual(state.getBool("flag"), true)
-
+        state.set("flag", value: true)
         state.apply(operation: .toggle, key: "flag", value: nil)
         XCTAssertEqual(state.getBool("flag"), false)
+
+        state.apply(operation: .toggle, key: "flag", value: nil)
+        XCTAssertEqual(state.getBool("flag"), true)
     }
 
     func testMutateIncrementPreservesIntegerType() {
@@ -83,5 +97,77 @@ final class ScreenStateTests: XCTestCase {
 
         XCTAssertNil(state.get("a"))
         XCTAssertNil(state.get("b"))
+    }
+
+    func testMutateToggleNonBoolWarnsAndNoOps() {
+        let state = ScreenState()
+        state.set("flag", value: "yes")
+
+        let warnings = captureWarnings {
+            state.apply(operation: .toggle, key: "flag", value: nil)
+        }
+
+        XCTAssertEqual(state.getString("flag"), "yes")
+        XCTAssertEqual(warnings.count, 1)
+        XCTAssertTrue(warnings[0].contains("mutate toggle noop"))
+    }
+
+    func testMutateToggleMissingWarnsAndNoOps() {
+        let state = ScreenState()
+
+        let warnings = captureWarnings {
+            state.apply(operation: .toggle, key: "flag", value: nil)
+        }
+
+        XCTAssertNil(state.get("flag"))
+        XCTAssertEqual(warnings.count, 1)
+        XCTAssertTrue(warnings[0].contains("mutate toggle noop"))
+    }
+
+    func testMutateIncrementNonNumericWarnsAndNoOps() {
+        let state = ScreenState()
+        state.set("counter", value: "two")
+
+        let warnings = captureWarnings {
+            state.apply(operation: .increment, key: "counter", value: 3)
+        }
+
+        XCTAssertEqual(state.getString("counter"), "two")
+        XCTAssertEqual(warnings.count, 1)
+        XCTAssertTrue(warnings[0].contains("mutate increment noop"))
+    }
+
+    func testMutateIncrementMissingWarnsAndNoOps() {
+        let state = ScreenState()
+
+        let warnings = captureWarnings {
+            state.apply(operation: .increment, key: "counter", value: 3)
+        }
+
+        XCTAssertNil(state.get("counter"))
+        XCTAssertEqual(warnings.count, 1)
+        XCTAssertTrue(warnings[0].contains("mutate increment noop"))
+    }
+
+    func testMutateAppendIncompatibleWarnsAndNoOps() {
+        let state = ScreenState()
+        state.set("items", value: true)
+
+        let warnings = captureWarnings {
+            state.apply(operation: .append, key: "items", value: "next")
+        }
+
+        XCTAssertEqual(state.getBool("items"), true)
+        XCTAssertEqual(warnings.count, 1)
+        XCTAssertTrue(warnings[0].contains("mutate append noop"))
+    }
+
+    func testMutateAppendNoOpsWhenStringCurrentReceivesNonStringIncoming() {
+        let state = ScreenState()
+        state.set("note", value: "hello")
+
+        state.apply(operation: .append, key: "note", value: 2)
+
+        XCTAssertEqual(state.getString("note"), "hello")
     }
 }

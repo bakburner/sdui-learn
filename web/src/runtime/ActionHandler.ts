@@ -112,9 +112,9 @@ function getDefaultErrorMessage(action: Action): string | undefined {
 }
 
 function handleNavigate(action: Action, context: ActionContext): boolean {
-  const uri = action.targetUri || action.fallbackUrl;
+  const uri = action.targetUri?.startsWith('nba://') ? action.targetUri : action.webUrl ?? action.targetUri;
   if (!uri) {
-    actionWarn('Navigate: no targetUri or fallbackUrl');
+    actionWarn('Navigate: no webUrl or targetUri');
     return false;
   }
   actionLog(`navigate uri=${uri} presentation=${action.presentation ?? 'push'}`);
@@ -123,13 +123,90 @@ function handleNavigate(action: Action, context: ActionContext): boolean {
 }
 
 function handleMutate(action: Action, context: ActionContext): boolean {
-  if (action.stateKey !== undefined) {
-    actionLog(`mutate ${action.stateKey}=${String(action.stateValue)}`);
-    context.onStateChange(action.stateKey, action.stateValue);
-    return true;
+  if (!action.target) {
+    actionWarn('Mutate: no target');
+    return false;
   }
-  actionWarn('Mutate: no stateKey');
-  return false;
+
+  const key = action.target;
+  const current = context.state[key];
+  const operation = action.operation ?? 'set';
+
+  switch (operation) {
+    case 'set':
+      actionLog(`mutate set ${key}=${String(action.value)}`);
+      context.onStateChange(key, action.value);
+      return true;
+
+    case 'toggle':
+      if (typeof current === 'boolean') {
+        actionLog(`mutate toggle ${key}=${String(!current)}`);
+        context.onStateChange(key, !current);
+        return true;
+      }
+      // TODO(action-mutate): review type-mismatch semantics across platforms
+      console.warn('[SDUI/Action] mutate toggle noop: current value is not boolean', { key, current });
+      return true;
+
+    case 'increment': {
+      if (typeof current === 'number' && Number.isFinite(current)) {
+        const delta = asDouble(action.value) ?? 1;
+        const next = current + delta;
+        const normalized = Number.isInteger(next) ? Math.trunc(next) : next;
+        actionLog(`mutate increment ${key}=${String(normalized)}`);
+        context.onStateChange(key, normalized);
+        return true;
+      }
+      // TODO(action-mutate): review type-mismatch semantics across platforms
+      console.warn('[SDUI/Action] mutate increment noop: current value is not numeric', { key, current });
+      return true;
+    }
+
+    case 'append':
+      if (Array.isArray(current)) {
+        const next = [...current, action.value];
+        actionLog(`mutate append ${key}=${String(action.value)}`);
+        context.onStateChange(key, next);
+        return true;
+      }
+      if (typeof current === 'string' && typeof action.value === 'string') {
+        actionLog(`mutate append ${key}=${current + action.value}`);
+        context.onStateChange(key, current + action.value);
+        return true;
+      }
+      if (current === undefined && action.value !== undefined) {
+        actionLog(`mutate append ${key}=[${String(action.value)}]`);
+        context.onStateChange(key, [action.value]);
+        return true;
+      }
+      // TODO(action-mutate): review type-mismatch semantics across platforms
+      console.warn('[SDUI/Action] mutate append noop: incompatible value types', {
+        key,
+        current,
+        incoming: action.value,
+      });
+      return true;
+
+    default:
+      // TODO(action-mutate): review type-mismatch semantics across platforms
+      console.warn('[SDUI/Action] mutate noop: unknown operation', { key, operation, current, incoming: action.value });
+      return true;
+  }
+}
+
+function asDouble(value: unknown): number | undefined {
+  switch (typeof value) {
+    case 'number':
+      return Number.isFinite(value) ? value : undefined;
+    case 'boolean':
+      return value ? 1 : 0;
+    case 'string': {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : undefined;
+    }
+    default:
+      return undefined;
+  }
 }
 
 async function handleRefresh(action: Action, context: ActionContext): Promise<boolean> {

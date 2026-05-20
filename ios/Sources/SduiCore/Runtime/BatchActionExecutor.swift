@@ -11,9 +11,18 @@ private struct BatchActionExecutorKey: EnvironmentKey {
     static let defaultValue: (([Action]) -> Void)? = nil
 }
 
+private struct FormActionContextKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
 extension EnvironmentValues {
     var batchActionExecutor: (([Action]) -> Void)? {
         get { self[BatchActionExecutorKey.self] }
         set { self[BatchActionExecutorKey.self] = newValue }
+    }
+
+    var isInFormActionContext: Bool {
+        get { self[FormActionContextKey.self] }
+        set { self[FormActionContextKey.self] = newValue }
     }
 }

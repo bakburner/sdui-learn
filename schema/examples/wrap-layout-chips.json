@@ -26,7 +26,7 @@
               "direction": "row",
               "alignment": "center",
               "crossAlignment": "center",
-              "background": "token:color.surface.raised",
+              "background": "token:nba.bg.secondary",
               "cornerRadius": "token:nba.radius.full",
               "padding": { "top": "token:nba.spacing.sm", "bottom": "token:nba.spacing.sm", "start": "token:nba.spacing.lg", "end": "token:nba.spacing.lg" },
               "children": [
@@ -35,7 +35,7 @@
                   "content": "Highlights",
                   "variant": "labelMedium",
                   "weight": "semiBold",
-                  "color": "token:color.text.primary"
+                  "color": "token:nba.label.primary"
                 }
               ]
             },
@@ -44,7 +44,7 @@
               "direction": "row",
               "alignment": "center",
               "crossAlignment": "center",
-              "background": "token:color.surface.raised",
+              "background": "token:nba.bg.secondary",
               "cornerRadius": "token:nba.radius.full",
               "padding": { "top": "token:nba.spacing.sm", "bottom": "token:nba.spacing.sm", "start": "token:nba.spacing.lg", "end": "token:nba.spacing.lg" },
               "children": [
@@ -53,7 +53,7 @@
                   "content": "Game Recaps",
                   "variant": "labelMedium",
                   "weight": "semiBold",
-                  "color": "token:color.text.primary"
+                  "color": "token:nba.label.primary"
                 }
               ]
             },
@@ -62,7 +62,7 @@
               "direction": "row",
               "alignment": "center",
               "crossAlignment": "center",
-              "background": "token:color.surface.raised",
+              "background": "token:nba.bg.secondary",
               "cornerRadius": "token:nba.radius.full",
               "padding": { "top": "token:nba.spacing.sm", "bottom": "token:nba.spacing.sm", "start": "token:nba.spacing.lg", "end": "token:nba.spacing.lg" },
               "children": [
@@ -71,7 +71,7 @@
                   "content": "Player Interviews",
                   "variant": "labelMedium",
                   "weight": "semiBold",
-                  "color": "token:color.text.primary"
+                  "color": "token:nba.label.primary"
                 }
               ]
             },
@@ -80,7 +80,7 @@
               "direction": "row",
               "alignment": "center",
               "crossAlignment": "center",
-              "background": "token:color.surface.raised",
+              "background": "token:nba.bg.secondary",
               "cornerRadius": "token:nba.radius.full",
               "padding": { "top": "token:nba.spacing.sm", "bottom": "token:nba.spacing.sm", "start": "token:nba.spacing.lg", "end": "token:nba.spacing.lg" },
               "children": [
@@ -89,7 +89,7 @@
                   "content": "Top 10",
                   "variant": "labelMedium",
                   "weight": "semiBold",
-                  "color": "token:color.text.primary"
+                  "color": "token:nba.label.primary"
                 }
               ]
             },
@@ -98,7 +98,7 @@
               "direction": "row",
               "alignment": "center",
               "crossAlignment": "center",
-              "background": "token:color.surface.raised",
+              "background": "token:nba.bg.secondary",
               "cornerRadius": "token:nba.radius.full",
               "padding": { "top": "token:nba.spacing.sm", "bottom": "token:nba.spacing.sm", "start": "token:nba.spacing.lg", "end": "token:nba.spacing.lg" },
               "children": [
@@ -107,7 +107,7 @@
                   "content": "Press Conferences",
                   "variant": "labelMedium",
                   "weight": "semiBold",
-                  "color": "token:color.text.primary"
+                  "color": "token:nba.label.primary"
                 }
               ]
             }

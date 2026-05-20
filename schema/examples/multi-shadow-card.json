@@ -24,7 +24,7 @@
               "crossAlignment": "stretch",
               "widthMode": "fill",
               "cornerRadius": "token:nba.radius.lg",
-              "background": "token:color.surface.raised",
+              "background": "token:nba.bg.secondary",
               "padding": { "top": "token:nba.spacing.lg", "bottom": "token:nba.spacing.lg", "start": "token:nba.spacing.lg", "end": "token:nba.spacing.lg" },
               "shadows": [
                 {
@@ -48,7 +48,7 @@
                   "content": "Elevated Card",
                   "variant": "titleMedium",
                   "weight": "bold",
-                  "color": "token:color.text.primary"
+                  "color": "token:nba.label.primary"
                 },
                 {
                   "type": "Spacer",
@@ -58,7 +58,7 @@
                   "type": "Text",
                   "content": "Two drop shadows: a subtle outer glow (large blur, light color) and a tighter contact shadow (small blur, darker color).",
                   "variant": "bodyMedium",
-                  "color": "token:color.text.secondary",
+                  "color": "token:nba.label.secondary",
                   "maxLines": 3
                 }
               ]

@@ -44,7 +44,7 @@ struct AtomicContainerView: View {
             }
         }
         .modifier(ContainerAspectRatioModifier(aspectRatio: resolvedAspectRatio))
-        .applyActionTriggers(element.actions, onAction: onAction)
+        .applyActionTriggers(element.actions, onAction: onAction, supportsLongPress: true)
         .sduiAccessibility(element.accessibility)
         .atomicBox(element, screenState: screenState, onAction: onAction)
     }

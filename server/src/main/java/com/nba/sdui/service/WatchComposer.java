@@ -66,10 +66,13 @@ public class WatchComposer {
     // ── Tab group ──────────────────────────────────────────────────────
 
     private ObjectNode buildTabGroup() {
+        String contentSourceId = "feed:watch";
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "TabGroup");
         ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "watch-tabs");
+        section.put("id", sectionId);
         section.put("type", "TabGroup");
         section.put("analyticsId", "watch_tabs");
+        section.put("contentSourceId", contentSourceId);
         section.set("refreshPolicy", staticPolicy());
 
         ObjectNode data = objectMapper.createObjectNode();
@@ -107,9 +110,9 @@ public class WatchComposer {
         ArrayNode sections = objectMapper.createArrayNode();
 
         // Ad slot at top
-        sections.add(buildAdSlot("watch-ad-top", "watch/featured/top"));
+        sections.add(buildAdSlot("watch/featured/top"));
 
-        addVideoCarousel(sections, "featured-highlights", "Tonight's Highlights", null,
+        addVideoCarousel(sections, "cms:watch-highlights", "Tonight's Highlights", null,
                 new String[][]{
                         {"fh-1", "Game Recap: BOS vs LAL", "Full game highlights",
                                 FALLBACK_THUMB,
@@ -126,13 +129,13 @@ public class WatchComposer {
                 });
 
         // Subscribe banner (inline upsell)
-        sections.add(buildSubscribeBanner("watch-subscribe-inline",
+        sections.add(buildSubscribeBanner(
                 "NBA League Pass",
                 "Watch every out-of-market game live or on demand",
                 FALLBACK_THUMB,
                 "Subscribe Now", "nba://subscribe/league-pass"));
 
-        addVideoCarousel(sections, "featured-originals", "NBA Originals", null,
+        addVideoCarousel(sections, "cms:watch-originals", "NBA Originals", null,
                 new String[][]{
                         {"fo-1", "Open Court", "Inside the NBA culture",
                                 FALLBACK_THUMB,
@@ -146,9 +149,9 @@ public class WatchComposer {
                 });
 
         // Ad slot mid-page
-        sections.add(buildAdSlot("watch-ad-mid", "watch/featured/mid"));
+        sections.add(buildAdSlot("watch/featured/mid"));
 
-        addContentRail(sections, "featured-stories", "Trending Stories",
+        addContentRail(sections, "cms:watch-stories", "Trending Stories",
                 new String[][]{
                         {"fs-1", "Trade Deadline Preview", "Who's on the move?",
                                 FALLBACK_THUMB,
@@ -172,7 +175,7 @@ public class WatchComposer {
         // NBA TV Schedule (hero + time-slot list)
         sections.add(buildNbaTvSchedule());
 
-        addVideoCarousel(sections, "nbatv-shows", "Popular Shows", null,
+        addVideoCarousel(sections, "cms:nbatv-shows", "Popular Shows", null,
                 new String[][]{
                         {"nbatv-s1", "NBA GameTime", "Nightly highlights & analysis",
                                 FALLBACK_THUMB,
@@ -185,9 +188,9 @@ public class WatchComposer {
                                 "30:00", null, "nba://watch/nba-action"}
                 });
 
-        sections.add(buildAdSlot("nbatv-ad", "watch/nbatv/mid"));
+        sections.add(buildAdSlot("watch/nbatv/mid"));
 
-        addVideoCarousel(sections, "nbatv-classics", "Classic Games", "Relive the greatest moments",
+        addVideoCarousel(sections, "cms:nbatv-classics", "Classic Games", "Relive the greatest moments",
                 new String[][]{
                         {"nbatv-c1", "2016 Finals Game 7", "CLE vs GSW — The Block, The Shot, The Stop",
                                 FALLBACK_THUMB,
@@ -211,12 +214,12 @@ public class WatchComposer {
         // Subscribe hero (full-screen upsell with pricing tiers)
         sections.add(buildSubscribeHero());
 
-        sections.add(buildSectionHeader("lp-live-header", "Live Games", null, null));
+        sections.add(buildSectionHeader("live-games", "Live Games", null, null));
 
         // Pull real games if available
         addLiveGamePanels(sections);
 
-        addVideoCarousel(sections, "lp-condensed", "Condensed Games", "Full games in ~12 minutes",
+        addVideoCarousel(sections, "cms:lp-condensed", "Condensed Games", "Full games in ~12 minutes",
                 new String[][]{
                         {"lp-c1", "BOS vs MIA Condensed", "Full condensed game",
                                 FALLBACK_THUMB,
@@ -230,7 +233,7 @@ public class WatchComposer {
                 });
 
         // Ad slot
-        sections.add(buildAdSlot("lp-ad", "watch/leaguepass/mid"));
+        sections.add(buildAdSlot("watch/leaguepass/mid"));
 
         return sections;
     }
@@ -259,16 +262,22 @@ public class WatchComposer {
 
     // ── Reusable section builders ──────────────────────────────────────
 
-    private ObjectNode buildSectionHeader(String id, String title,
+    private ObjectNode buildSectionHeader(String slug, String title,
                                            String actionLabel, String actionUri) {
-        ObjectNode section = atomicBuilder.buildSectionHeader(id, title, null, actionLabel, actionUri);
+        String contentSourceId = "feed:watch";
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite", slug + "-header");
+        ObjectNode section = atomicBuilder.buildSectionHeader(sectionId, title, null, actionLabel, actionUri);
+        section.put("contentSourceId", contentSourceId);
         section.set("surface", utils.sectionHeaderSurface());
         return section;
     }
 
-    private ObjectNode buildSectionHeader(String id, String title, String subtitle,
+    private ObjectNode buildSectionHeader(String slug, String title, String subtitle,
                                            String actionLabel, String actionUri) {
-        ObjectNode section = atomicBuilder.buildSectionHeader(id, title, subtitle, actionLabel, actionUri);
+        String contentSourceId = "feed:watch";
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite", slug + "-header");
+        ObjectNode section = atomicBuilder.buildSectionHeader(sectionId, title, subtitle, actionLabel, actionUri);
+        section.put("contentSourceId", contentSourceId);
         section.set("surface", utils.sectionHeaderSurface());
         return section;
     }
@@ -280,11 +289,13 @@ public class WatchComposer {
      * truth for the title→rail gap app-wide, so every screen has the same
      * header rhythm. Callers that pass a null title get just the rail.
      */
-    private void addContentRail(ArrayNode sections, String id, String title, String[][] cards) {
+    private void addContentRail(ArrayNode sections, String contentSourceId, String title, String[][] cards) {
         if (title != null) {
-            sections.add(buildSectionHeader(id + "-header", title, null, null));
+            sections.add(buildSectionHeader(contentSourceId, title, null, null));
         }
-        ObjectNode section = atomicBuilder.buildContentRail(id, null, null, cards);
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
+        ObjectNode section = atomicBuilder.buildContentRail(sectionId, null, null, cards);
+        section.put("contentSourceId", contentSourceId);
         section.set("surface", utils.railSurface());
         sections.add(section);
     }
@@ -295,20 +306,24 @@ public class WatchComposer {
      * Same rationale as {@link #addContentRail}: one header surface, one
      * consistent app-wide rhythm.
      */
-    private void addVideoCarousel(ArrayNode sections, String id, String title,
+    private void addVideoCarousel(ArrayNode sections, String contentSourceId, String title,
                                    String subtitle, String[][] items) {
         if (title != null) {
-            sections.add(buildSectionHeader(id + "-header", title, subtitle, null, null));
+            sections.add(buildSectionHeader(contentSourceId, title, subtitle, null, null));
         }
-        ObjectNode section = atomicBuilder.buildVideoCarousel(id, null, null, null, items);
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
+        ObjectNode section = atomicBuilder.buildVideoCarousel(sectionId, null, null, null, items);
+        section.put("contentSourceId", contentSourceId);
         section.set("surface", utils.railSurface());
         sections.add(section);
     }
 
-    private ObjectNode buildPromoBanner(String id, String headline, String subhead,
+    private ObjectNode buildPromoBanner(String contentSourceId, String headline, String subhead,
                                          String backgroundUrl, String targetUri) {
-        ObjectNode section = atomicBuilder.buildPromoBanner(id, null, null, headline, subhead,
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
+        ObjectNode section = atomicBuilder.buildPromoBanner(sectionId, null, null, headline, subhead,
                 null, "Learn More", targetUri);
+        section.put("contentSourceId", contentSourceId);
         section.set("surface", utils.subscribeSurface(
                 "#0C1B3A",
                 ColorTokens.BRAND_NBA,
@@ -318,9 +333,11 @@ public class WatchComposer {
 
     private ObjectNode buildGamePanel(JsonNode game) {
         String gameId = game.path("gameId").asText("0000000000");
+        String contentSourceId = "stats-api:game-" + gameId;
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         int gameStatus = game.path("gameStatus").asInt(1);
-        return atomicBuilder.buildGamePanelComposite(
-                "watch-game-" + gameId,
+        ObjectNode section = atomicBuilder.buildGamePanelComposite(
+                sectionId,
                 null,
                 "standard",
                 gameId,
@@ -334,46 +351,42 @@ public class WatchComposer {
                 staticPolicy(),
                 null,
                 utils.gamePanelSurface());
+        section.put("contentSourceId", contentSourceId);
+        return section;
     }
 
-    private ObjectNode mockGamePanel(String id, String awayTri, int awayTeamId,
+    private ObjectNode mockGamePanel(String mockId, String awayTri, int awayTeamId,
                                      String homeTri, int homeTeamId,
                                      String statusText, int gameStatus) {
+        String contentSourceId = "stats-api:game-" + mockId;
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         int awayScore = gameStatus == 2 ? 55 : 0;
         int homeScore = gameStatus == 2 ? 48 : 0;
-        return atomicBuilder.buildGamePanelComposite(
-                id,
+        ObjectNode section = atomicBuilder.buildGamePanelComposite(
+                sectionId,
                 null,
                 "standard",
-                id,
+                mockId,
                 gameStatus,
                 statusText,
                 null,
                 new AtomicCompositeBuilder.GamePanelTeam(awayTri, awayScore, SduiUtils.teamLogoUrl(awayTeamId)),
                 new AtomicCompositeBuilder.GamePanelTeam(homeTri, homeScore, SduiUtils.teamLogoUrl(homeTeamId)),
                 null,
-                "nba://game/" + id,
+                "nba://game/" + mockId,
                 staticPolicy(),
                 null,
                 utils.gamePanelSurface());
+        section.put("contentSourceId", contentSourceId);
+        return section;
     }
 
     // ── New section type builders ──────────────────────────────────────
 
-    /**
-     * VideoCarousel section — horizontal row of video thumbnails.
-     * items: [id, title, subtitle, thumbnailUrl, duration, badgeText, actionUri]
-     */
-
-    private ObjectNode buildVideoCarousel(String id, String title, String subtitle,
-                                           String[][] items) {
-        ObjectNode section = atomicBuilder.buildVideoCarousel(id, null, title, subtitle, items);
-        section.set("surface", utils.railSurface());
-        return section;
-    }
-
     /** NbaTvSchedule section — hero promo + time-slot list. */
     private ObjectNode buildNbaTvSchedule() {
+        String contentSourceId = "cms:nbatv-schedule";
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         String[][] slots = {
                 {"slot-1", "NBA GameTime", "Highlights & analysis", "19:00", "true", "nba://watch/nbatv-live"},
                 {"slot-2", "NBA Inside Stuff", "Player features", "20:00", "false", "nba://watch/inside-stuff"},
@@ -381,11 +394,12 @@ public class WatchComposer {
                 {"slot-4", "NBA Action", "Weekly highlights show", "23:00", "false", "nba://watch/nba-action"}
         };
         ObjectNode section = atomicBuilder.buildNbaTvSchedule(
-                "nbatv-schedule", null,
+                sectionId, null,
                 FALLBACK_THUMB,
                 "NBA GameTime",
                 "LIVE — Nightly highlights & analysis",
                 true, slots);
+        section.put("contentSourceId", contentSourceId);
         section.set("surface", utils.cardSurface());
         return section;
     }
@@ -399,12 +413,15 @@ public class WatchComposer {
      * CTA tap and reads the IAP product identifiers from a future
      * {@code data.tiers} list.
      */
-    private ObjectNode buildSubscribeBanner(String id, String title, String subtitle,
+    private ObjectNode buildSubscribeBanner(String title, String subtitle,
                                              String backgroundUrl, String ctaLabel,
                                              String ctaUri) {
+        String contentSourceId = "product:league-pass-banner";
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "SubscribeBanner");
         ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", id);
+        section.put("id", sectionId);
         section.put("type", "SubscribeBanner");
+        section.put("contentSourceId", contentSourceId);
         section.set("refreshPolicy", staticPolicy());
         section.set("surface", utils.subscribeSurface(
                 ColorTokens.BRAND_NBA,
@@ -446,9 +463,12 @@ public class WatchComposer {
      * it today.
      */
     private ObjectNode buildSubscribeHero() {
+        String contentSourceId = "product:league-pass";
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "SubscribeHero");
         ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "lp-subscribe-hero");
+        section.put("id", sectionId);
         section.put("type", "SubscribeHero");
+        section.put("contentSourceId", contentSourceId);
         section.set("refreshPolicy", staticPolicy());
         section.set("surface", utils.subscribeSurface(
                 "#0C1B3A",
@@ -604,10 +624,13 @@ public class WatchComposer {
     }
 
     /** AdSlot section — ad placement primitive (ADR-007). */
-    private ObjectNode buildAdSlot(String id, String adUnitPath) {
+    private ObjectNode buildAdSlot(String adUnitPath) {
+        String contentSourceId = "ads:gam-" + adUnitPath.replace("/", "-");
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "AdSlot");
         ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", id);
+        section.put("id", sectionId);
         section.put("type", "AdSlot");
+        section.put("contentSourceId", contentSourceId);
         section.set("refreshPolicy", staticPolicy());
         section.set("surface", utils.adSlotSurface());
 

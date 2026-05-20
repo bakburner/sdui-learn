@@ -29,7 +29,7 @@
               "type": "Text",
               "content": "The schedule is empty for the selected range. Choose another date or retry.",
               "variant": "bodyMedium",
-              "color": "token:color.text.secondary"
+              "color": "token:nba.label.secondary"
             },
             { "type": "Spacer", "height": 16 },
             {

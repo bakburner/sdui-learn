@@ -19,7 +19,7 @@
           "cornerRadius": "token:nba.radius.lg",
           "padding": { "top": "token:nba.spacing.xl", "bottom": "token:nba.spacing.xl", "start": "token:nba.spacing.lg", "end": "token:nba.spacing.lg" },
           "backgrounds": [
-            "token:color.surface.raised",
+            "token:nba.bg.secondary",
             {
               "colors": ["#00000000", "#000000CC"],
               "direction": "vertical"
@@ -31,7 +31,7 @@
               "content": "Featured Content",
               "variant": "headlineSmall",
               "weight": "bold",
-              "color": "token:color.text.inverse"
+              "color": "token:nba.label-inverted.primary"
             },
             {
               "type": "Spacer",
@@ -41,7 +41,7 @@
               "type": "Text",
               "content": "Solid base fill with a transparent-to-dark gradient overlay for text legibility.",
               "variant": "bodyMedium",
-              "color": "token:color.text.inverse",
+              "color": "token:nba.label-inverted.primary",
               "maxLines": 2
             }
           ]

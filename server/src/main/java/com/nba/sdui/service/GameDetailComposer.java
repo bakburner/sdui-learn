@@ -165,6 +165,9 @@ public class GameDetailComposer {
             response.put("schemaVersion", schemaVersion);
             response.put("parentUri", "nba://scoreboard");
 
+            // Content source for all sections derived from this game
+            String contentSourceId = "stats-api:game-" + gameId;
+
             // Default screen state — boxscore team tabs default to away (first listed)
             String awayTricode = game.path("awayTeam").path("teamTricode").asText("AWAY");
             ObjectNode screenState = objectMapper.createObjectNode();
@@ -178,19 +181,19 @@ public class GameDetailComposer {
             ArrayNode sections = objectMapper.createArrayNode();
 
             // 1. VideoPlayer — inline video for the game (platform SDK integration)
-            sections.add(buildVideoPlayerSection(gameId, game));
+            sections.add(buildVideoPlayerSection(gameId, game, contentSourceId));
 
             // 2. GamePanel (scoreboard displayConfig)
-            sections.add(buildGamePanelScoreboardFromLive(game, gameId));
+            sections.add(buildGamePanelScoreboardFromLive(game, gameId, contentSourceId));
 
             // 3. StatLine (top performers)
-            ObjectNode statLineSection = buildStatLineSectionFromLive(game, gameId);
+            ObjectNode statLineSection = buildStatLineSectionFromLive(game, gameId, contentSourceId);
             if (statLineSection != null) {
                 sections.add(statLineSection);
             }
 
             // 3b. Responsive row – home/away top performers side-by-side
-            ObjectNode rowSection = buildRowSectionFromLive(game, gameId);
+            ObjectNode rowSection = buildRowSectionFromLive(game, gameId, contentSourceId);
             if (rowSection != null) {
                 sections.add(rowSection);
             }
@@ -198,17 +201,21 @@ public class GameDetailComposer {
             // 4. ContentRail (AtomicComposite) from example
             ObjectNode contentRail = loadSectionFromExample("content-rail");
             if (contentRail != null) {
+                contentRail.put("id", SectionIdDeriver.derive(contentSourceId, "AtomicComposite", "content-rail"));
+                contentRail.put("contentSourceId", contentSourceId);
                 sections.add(contentRail);
             }
 
             // 5. PromoBanner (AtomicComposite) from example
             ObjectNode promoBanner = loadSectionFromExample("promo-banner");
             if (promoBanner != null) {
+                promoBanner.put("id", SectionIdDeriver.derive(contentSourceId, "AtomicComposite", "promo-banner"));
+                promoBanner.put("contentSourceId", contentSourceId);
                 sections.add(promoBanner);
             }
 
             // 6. TabGroup — Box Score + Highlights tabs
-            ObjectNode tabGroup = buildGameDetailTabGroupFromLive(game, gameId);
+            ObjectNode tabGroup = buildGameDetailTabGroupFromLive(game, gameId, contentSourceId);
             if (tabGroup != null) {
                 sections.add(tabGroup);
             }
@@ -216,7 +223,7 @@ public class GameDetailComposer {
             response.set("sections", sections);
 
             // Overlays — server-composed modal content triggered by SDK callbacks
-            response.set("overlays", buildOverlays(gameId));
+            response.set("overlays", buildOverlays(gameId, contentSourceId));
 
             return response;
 
@@ -247,7 +254,7 @@ public class GameDetailComposer {
 
     // ── Section builders ───────────────────────────────────────────────
 
-    private ObjectNode buildBoxscoreTabGroupFromLive(JsonNode game, String gameId) {
+    private ObjectNode buildBoxscoreTabGroupFromLive(JsonNode game, String gameId, String contentSourceId) {
         JsonNode homeTeam = game.path("homeTeam");
         JsonNode awayTeam = game.path("awayTeam");
         if (homeTeam.isMissingNode() || awayTeam.isMissingNode()) return null;
@@ -257,7 +264,8 @@ public class GameDetailComposer {
         int gameStatus = game.path("gameStatus").asInt(1);
 
         ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "game-detail-boxscore-tabs");
+        section.put("id", SectionIdDeriver.derive(contentSourceId, "TabGroup", "boxscore-tabs"));
+        section.put("contentSourceId", contentSourceId);
         section.put("type", "TabGroup");
         section.put("analyticsId", "game_detail_boxscore_tabs");
 
@@ -285,9 +293,11 @@ public class GameDetailComposer {
 
         // Reuse the full BoxscoreTable builder from BoxscoreComposer
         ObjectNode awayTable = boxscoreComposer.buildBoxscoreTableSection(
-                awayTeam, gameId, "gd_boxscore_away_sortCol", "gd_boxscore_away_sortDir", gameStatus);
+                awayTeam, gameId, contentSourceId, "away",
+                "gd_boxscore_away_sortCol", "gd_boxscore_away_sortDir", gameStatus);
         ObjectNode homeTable = boxscoreComposer.buildBoxscoreTableSection(
-                homeTeam, gameId, "gd_boxscore_home_sortCol", "gd_boxscore_home_sortDir", gameStatus);
+                homeTeam, gameId, contentSourceId, "home",
+                "gd_boxscore_home_sortCol", "gd_boxscore_home_sortDir", gameStatus);
 
         ObjectNode tabContents = objectMapper.createObjectNode();
         ArrayNode awayContent = objectMapper.createArrayNode();
@@ -411,7 +421,7 @@ public class GameDetailComposer {
                 teamCity + " " + teamName, "vertical", stats);
     }
 
-    private ObjectNode buildGamePanelScoreboardFromLive(JsonNode game, String gameId) {
+    private ObjectNode buildGamePanelScoreboardFromLive(JsonNode game, String gameId, String contentSourceId) {
         int gameStatus = game.path("gameStatus").asInt();
         boolean live = gameStatus == 2;
 
@@ -427,8 +437,9 @@ public class GameDetailComposer {
                         AtomicCompositeBuilder.DEMO_INITIAL_CLOCK_RUNNING)
                 : null;
 
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite", "scoreboard");
         ObjectNode section = atomicBuilder.buildGamePanelComposite(
-                "scoreboard",
+                sectionId,
                 null,
                 "scoreboard",
                 game.path("gameId").asText(),
@@ -443,8 +454,9 @@ public class GameDetailComposer {
                 utils.buildCompositeLinescoreBindings(),
                 utils.gamePanelSurface());
 
+        section.put("contentSourceId", contentSourceId);
         section.set("sectionStates", utils.buildSectionStates(
-                "scoreboard", "Unable to load live scores", "shimmer", 180));
+                sectionId, "Unable to load live scores", "shimmer", 180));
         return section;
     }
 
@@ -457,7 +469,7 @@ public class GameDetailComposer {
         }
     }
 
-    private ObjectNode buildStatLineSectionFromLive(JsonNode game, String gameId) {
+    private ObjectNode buildStatLineSectionFromLive(JsonNode game, String gameId, String contentSourceId) {
         ArrayNode stats = objectMapper.createArrayNode();
 
         List<ObjectNode> homePerformers = getTopPerformersFromTeam(game.path("homeTeam"), 3);
@@ -470,8 +482,10 @@ public class GameDetailComposer {
             return null;
         }
 
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite", "top-performers");
         ObjectNode section = atomicBuilder.buildStatLineFromNodes(
-                "top-performers", null, "Top Performers", "vertical", stats);
+                sectionId, null, "Top Performers", "vertical", stats);
+        section.put("contentSourceId", contentSourceId);
 
         // No refreshPolicy / sectionStates: this stat line is an
         // AtomicComposite whose ui tree is composed with literal player
@@ -486,7 +500,7 @@ public class GameDetailComposer {
         return section;
     }
 
-    private ObjectNode buildRowSectionFromLive(JsonNode game, String gameId) {
+    private ObjectNode buildRowSectionFromLive(JsonNode game, String gameId, String contentSourceId) {
         try {
             List<ObjectNode> homePerformers = getTopPerformersFromTeam(game.path("homeTeam"), 2);
             List<ObjectNode> awayPerformers = getTopPerformersFromTeam(game.path("awayTeam"), 2);
@@ -510,7 +524,10 @@ public class GameDetailComposer {
             children.add(awaySlot);
 
             root.set("children", children);
-            return atomicBuilder.wrapAsComposite("team-leaders-row", null, root);
+            String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite", "team-leaders-row");
+            ObjectNode section = atomicBuilder.wrapAsComposite(sectionId, null, root);
+            section.put("contentSourceId", contentSourceId);
+            return section;
         } catch (Exception e) {
             log.warn("Failed to build responsive row from live data: {}", e.getMessage());
             return null;
@@ -595,11 +612,12 @@ public class GameDetailComposer {
      * {@code capabilities}) live at the top of {@code data} so the SDK reads
      * them without walking the tree.
      */
-    private ObjectNode buildVideoPlayerSection(String gameId, JsonNode game) {
+    private ObjectNode buildVideoPlayerSection(String gameId, JsonNode game, String contentSourceId) {
         int gameStatus = game.path("gameStatus").asInt(1);
 
         ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "video-player-" + gameId);
+        section.put("id", SectionIdDeriver.derive(contentSourceId, "VideoPlayer", "video-player"));
+        section.put("contentSourceId", contentSourceId);
         section.put("type", "VideoPlayer");
         section.put("analyticsId", "game_detail_video_player");
         section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
@@ -637,11 +655,11 @@ public class GameDetailComposer {
 
     // ── Overlays (server-composed modal content) ─────────────────────
 
-    private ObjectNode buildOverlays(String gameId) {
+    private ObjectNode buildOverlays(String gameId, String contentSourceId) {
         ObjectNode overlays = objectMapper.createObjectNode();
 
         overlays.set("couchRightsWarning", buildOverlaySection(
-                "couch-rights-warning",
+                contentSourceId, "couch-rights-warning",
                 "sdui:warning",
                 "Viewing Time Limited",
                 "Your couch rights viewing window is active. You have limited time remaining on this stream.",
@@ -650,7 +668,7 @@ public class GameDetailComposer {
         ));
 
         overlays.set("couchRightsExpired", buildOverlaySection(
-                "couch-rights-expired",
+                contentSourceId, "couch-rights-expired",
                 "sdui:warning",
                 "Viewing Time Expired",
                 "Your couch rights viewing window has ended. Subscribe to League Pass for unlimited access.",
@@ -659,7 +677,7 @@ public class GameDetailComposer {
         ));
 
         overlays.set("unentitled", buildOverlaySection(
-                "unentitled",
+                contentSourceId, "unentitled",
                 "sdui:lock",
                 "Subscription Required",
                 "This content requires an active NBA League Pass subscription.",
@@ -670,7 +688,7 @@ public class GameDetailComposer {
         return overlays;
     }
 
-    private ObjectNode buildOverlaySection(String id, String icon, String title,
+    private ObjectNode buildOverlaySection(String contentSourceId, String slug, String icon, String title,
                                             String message, String ctaLabel, String ctaTarget) {
         ObjectNode root = objectMapper.createObjectNode();
         root.put("type", "Container");
@@ -742,7 +760,8 @@ public class GameDetailComposer {
         root.set("children", children);
 
         ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", id);
+        section.put("id", SectionIdDeriver.derive(contentSourceId, "AtomicComposite", slug));
+        section.put("contentSourceId", contentSourceId);
         section.put("type", "AtomicComposite");
         section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
         ObjectNode data = objectMapper.createObjectNode();
@@ -762,7 +781,7 @@ public class GameDetailComposer {
 
     // ── Extended TabGroup with Highlights tab ─────────────────────────
 
-    private ObjectNode buildGameDetailTabGroupFromLive(JsonNode game, String gameId) {
+    private ObjectNode buildGameDetailTabGroupFromLive(JsonNode game, String gameId, String contentSourceId) {
         JsonNode homeTeam = game.path("homeTeam");
         JsonNode awayTeam = game.path("awayTeam");
         if (homeTeam.isMissingNode() || awayTeam.isMissingNode()) return null;
@@ -772,7 +791,8 @@ public class GameDetailComposer {
         int gameStatus = game.path("gameStatus").asInt(1);
 
         ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "game-detail-tabs");
+        section.put("id", SectionIdDeriver.derive(contentSourceId, "TabGroup", "game-detail-tabs"));
+        section.put("contentSourceId", contentSourceId);
         section.put("type", "TabGroup");
         section.put("analyticsId", "game_detail_tabs");
 
@@ -802,7 +822,7 @@ public class GameDetailComposer {
 
         // Box Score tab — team sub-tabs with boxscore tables
         ArrayNode boxscoreContent = objectMapper.createArrayNode();
-        ObjectNode teamTabGroup = buildBoxscoreTabGroupFromLive(game, gameId);
+        ObjectNode teamTabGroup = buildBoxscoreTabGroupFromLive(game, gameId, contentSourceId);
         if (teamTabGroup != null) {
             boxscoreContent.add(teamTabGroup);
         }
@@ -810,7 +830,7 @@ public class GameDetailComposer {
 
         // Highlights tab — VOD cards with mutate actions (1.5 player-adjacent content)
         ArrayNode highlightsContent = objectMapper.createArrayNode();
-        highlightsContent.add(buildHighlightsSection(gameId));
+        highlightsContent.add(buildHighlightsSection(gameId, contentSourceId));
         tabContents.set("highlights", highlightsContent);
 
         data.set("tabContents", tabContents);
@@ -824,7 +844,7 @@ public class GameDetailComposer {
      * be bound to this state key via Conditional, enabling player-adjacent content switching
      * without navigation (Gap 6 / Phase 1.5).
      */
-    private ObjectNode buildHighlightsSection(String gameId) {
+    private ObjectNode buildHighlightsSection(String gameId, String contentSourceId) {
         String[][] highlights = {
                 {"hl-1", "Monster Dunk", "https://cdn.nba.com/manage/2025/02/giannis-dunk-752x428.jpg", "0:32", "media-0029400101"},
                 {"hl-2", "Buzzer Beater", "https://cdn.nba.com/manage/2025/02/curry-buzzer-752x428.jpg", "0:45", "media-0029400102"},
@@ -934,7 +954,8 @@ public class GameDetailComposer {
         root.set("children", rootChildren);
 
         ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "highlights-" + gameId);
+        section.put("id", SectionIdDeriver.derive(contentSourceId, "AtomicComposite", "highlights"));
+        section.put("contentSourceId", contentSourceId);
         section.put("type", "AtomicComposite");
         section.put("analyticsId", "game_detail_highlights");
         section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
@@ -973,8 +994,8 @@ public class GameDetailComposer {
 
         for (int i = 0; i < sections.size(); i++) {
             String id = sections.get(i).path("id").asText();
-            if ("content-rail".equals(id)) contentRailIndex = i;
-            if ("game-tabs".equals(id)) tabGroupIndex = i;
+            if (id.endsWith("::content-rail")) contentRailIndex = i;
+            if (id.endsWith("::game-detail-tabs")) tabGroupIndex = i;
         }
 
         if (contentRailIndex >= 0 && tabGroupIndex >= 0 && contentRailIndex < tabGroupIndex) {
@@ -994,7 +1015,7 @@ public class GameDetailComposer {
 
         for (JsonNode section : sections) {
             String id = section.path("id").asText();
-            if (!"promo-banner".equals(id) && !"player-stats".equals(id)) {
+            if (!id.endsWith("::promo-banner") && !id.endsWith("::player-stats")) {
                 filtered.add(section);
             }
         }
@@ -1023,7 +1044,7 @@ public class GameDetailComposer {
         ArrayNode updated = objectMapper.createArrayNode();
         for (JsonNode section : sections) {
             updated.add(section);
-            if ("content-rail".equals(section.path("id").asText())) {
+            if (section.path("id").asText().endsWith("::content-rail")) {
                 updated.add(extraHeader);
                 updated.add(extraRail);
             }

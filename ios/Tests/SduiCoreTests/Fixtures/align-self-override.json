@@ -22,13 +22,13 @@
               "type": "Text",
               "content": "Left-aligned (inherits crossAlignment: start)",
               "variant": "bodyMedium",
-              "color": "token:color.text.primary"
+              "color": "token:nba.label.primary"
             },
             {
               "type": "Text",
               "content": "Also left-aligned",
               "variant": "bodyMedium",
-              "color": "token:color.text.secondary"
+              "color": "token:nba.label.secondary"
             },
             {
               "type": "Container",
@@ -36,7 +36,7 @@
               "alignment": "center",
               "crossAlignment": "center",
               "alignSelf": "end",
-              "background": "token:color.surface.raised",
+              "background": "token:nba.bg.secondary",
               "cornerRadius": "token:nba.radius.md",
               "padding": { "top": "token:nba.spacing.md", "bottom": "token:nba.spacing.md", "start": "token:nba.spacing.lg", "end": "token:nba.spacing.lg" },
               "children": [
@@ -45,7 +45,7 @@
                   "content": "Right-aligned via alignSelf: end",
                   "variant": "bodyMedium",
                   "weight": "semiBold",
-                  "color": "token:color.text.primary"
+                  "color": "token:nba.label.primary"
                 }
               ]
             },
@@ -55,7 +55,7 @@
               "alignment": "center",
               "crossAlignment": "center",
               "alignSelf": "center",
-              "background": "token:color.surface.raised",
+              "background": "token:nba.bg.secondary",
               "cornerRadius": "token:nba.radius.md",
               "padding": { "top": "token:nba.spacing.md", "bottom": "token:nba.spacing.md", "start": "token:nba.spacing.lg", "end": "token:nba.spacing.lg" },
               "children": [
@@ -64,7 +64,7 @@
                   "content": "Center-aligned via alignSelf: center",
                   "variant": "bodyMedium",
                   "weight": "semiBold",
-                  "color": "token:color.text.primary"
+                  "color": "token:nba.label.primary"
                 }
               ]
             },
@@ -72,7 +72,7 @@
               "type": "Text",
               "content": "Back to left-aligned (no alignSelf)",
               "variant": "bodyMedium",
-              "color": "token:color.text.tertiary"
+              "color": "token:nba.label.tertiary"
             }
           ]
         }

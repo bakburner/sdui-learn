@@ -432,9 +432,20 @@ public class GameDetailComposer {
         boolean live = gameStatus == 2;
 
         ObjectNode refreshPolicy = objectMapper.createObjectNode();
-        refreshPolicy.put("type", "sse");
-        refreshPolicy.put("channel", gameId + ":linescore");
-        refreshPolicy.put("pauseWhenOffScreen", false);
+        if (live) {
+            refreshPolicy.put("type", "sse");
+            refreshPolicy.put("channel", gameId + ":linescore");
+            refreshPolicy.put("pauseWhenOffScreen", false);
+        } else if (gameStatus == 1) {
+            // Pre-game: poll the SDUI screen endpoint every 5 minutes so the
+            // client re-composes the section. When the game goes live the server
+            // returns sse policy and the client transitions the subscription.
+            refreshPolicy.put("type", "poll");
+            refreshPolicy.put("intervalMs", 300_000);
+            refreshPolicy.put("pauseWhenOffScreen", true);
+        } else {
+            refreshPolicy.put("type", "static");
+        }
 
         AtomicCompositeBuilder.GameClockSnapshot clock = live
                 ? new AtomicCompositeBuilder.GameClockSnapshot(

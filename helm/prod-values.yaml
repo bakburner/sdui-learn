@@ -1,0 +1,61 @@
+nameOverride: "sdui-prototype"
+fullnameOverride: ""
+replicaCount: 1
+image:
+  repository: "ottnpue2imageci002.azurecr.io/devops/sdui-prototype"
+  pullPolicy: Always
+  tag: "latest"
+imagePullSecrets:
+  - name: "ottnpue2imageci002"
+podSecurityContext: {}
+securityContext:
+  capabilities:
+    drop:
+      - ALL
+  runAsNonRoot: true
+  readOnlyRootFilesystem: false
+  allowPrivilegeEscalation: false
+  seccompProfile:
+    type: RuntimeDefault
+podLabels: {}
+service:
+  type: ClusterIP
+  port: 8080
+ingress:
+  enabled: true
+  className: nginx-internal
+  annotations:
+    kubernetes.io/tls-acme: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+  hosts:
+    - host: sdui-prototype.tools.internal.nba.com
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+          backend:
+            service:
+              name: sdui-prototype
+  tls:
+    - hosts:
+        - sdui-prototype.tools.internal.nba.com
+resources:
+  requests:
+    cpu: 500m
+    memory: 512Mi
+  limits:
+    memory: 1Gi
+autoscaling:
+  enabled: false
+env:
+  - name: STATS_API_KEY
+    valueFrom:
+      secretKeyRef:
+        name: sdui-prototype
+        key: STATS_API_KEY
+  - name: ABLY_SUBSCRIBE_API_KEY
+    valueFrom:
+      secretKeyRef:
+        name: sdui-prototype
+        key: ABLY_SUBSCRIBE_API_KEY

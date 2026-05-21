@@ -98,7 +98,7 @@ public class WatchComposer {
 
         section.set("data", data);
         section.set("subsections", utils.tabSelectSubsections(tabs, "watch_active_tab"));
-        section.set("surface", utils.secondaryStripSurface());
+        section.set("surface", utils.stripSurfaceWithoutBackground());
 
         ObjectNode layoutHints = objectMapper.createObjectNode();
         layoutHints.put("marginTop", 0);

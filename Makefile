@@ -1,7 +1,7 @@
 .PHONY: dev dev-server dev-web dev-android dev-all codegen server-test android-test web-test test \
 	lint-sdui-warn \
 	stop stop-server stop-web stop-android \
-	ios-test ios-test-clean ios-build ios-demo-project ios-run ios-run-max ios-stop ios-fixtures-sync
+	ios-test ios-test-clean ios-build ios-demo-project ios-run ios-run-max ios-stop ios-fixtures-sync ios-sim-preflight
 
 # Warn if Java composers reintroduce put("trigger", "onTap") — should use onActivate.
 lint-sdui-warn:
@@ -9,11 +9,11 @@ lint-sdui-warn:
 
 # ── iOS build / test config ──────────────────────────────────
 IOS_SCHEME        ?= SduiCore
-# Use iPhone SE (3rd gen) for lighter resource usage on constrained hardware
-IOS_DESTINATION   ?= platform=iOS Simulator,name=iPhone SE (3rd generation),OS=latest
 IOS_DEMO_SCHEME   ?= SduiDemo
 IOS_DEMO_BUNDLE   ?= com.nba.sdui.demo
 IOS_SIM_NAME      ?= iPhone SE (3rd generation)
+# Use iPhone SE (3rd gen) for lighter resource usage on constrained hardware
+IOS_DESTINATION   ?= platform=iOS Simulator,name=$(IOS_SIM_NAME),OS=latest
 # Set SDUI_DISABLE_ABLY=0 on the command line to re-enable ably-cocoa
 # (only works on arm64 simulators; x86_64 simulators hit the ably module
 # map bug and must keep the default of 1).
@@ -139,7 +139,21 @@ stop-android:
 # and pipes output through xcbeautify (if installed) so errors appear as
 # `file:line: error:` instead of Xcode's default noise. `brew install
 # xcbeautify` to enable — without it we fall back to raw xcodebuild.
-ios-test: ios-fixtures-sync
+ios-sim-preflight:
+	@if ! xcrun simctl list runtimes | grep -Eq '^iOS '; then \
+		echo "ERROR: No iOS Simulator runtime is installed for Xcode."; \
+		echo "       Install one from Xcode > Settings > Components, then re-run make ios-run."; \
+		exit 1; \
+	fi
+	@if ! xcrun simctl list devices available | grep -Fq "$(IOS_SIM_NAME) ("; then \
+		echo "ERROR: Simulator '$(IOS_SIM_NAME)' is not available."; \
+		echo "       Available simulators:"; \
+		xcrun simctl list devices available | sed 's/^/         /'; \
+		echo "       Override with: make ios-run IOS_SIM_NAME=\"<available simulator>\""; \
+		exit 1; \
+	fi
+
+ios-test: ios-fixtures-sync ios-sim-preflight
 	@if [ -z "$(XCBEAUTIFY)" ]; then \
 		echo "(tip: brew install xcbeautify for human-readable output)"; \
 	fi
@@ -156,7 +170,7 @@ ios-test-clean:
 	@$(MAKE) ios-test
 
 # Build only (no tests) — faster signal while iterating on library code.
-ios-build: ios-fixtures-sync
+ios-build: ios-fixtures-sync ios-sim-preflight
 	@cd ios && set -o pipefail && SDUI_DISABLE_ABLY=$(SDUI_DISABLE_ABLY) xcodebuild build \
 		-scheme "$(IOS_SCHEME)" \
 		-destination "$(IOS_DESTINATION)" \
@@ -171,7 +185,7 @@ ios-demo-project:
 	@echo "=== Regenerating SduiDemo.xcodeproj ==="
 	@cd ios/SduiDemo && xcodegen generate --quiet
 
-ios-run: ios-demo-project
+ios-run: ios-sim-preflight ios-demo-project
 	@if ! curl -sf http://localhost:8080/v1/sdui/demos >/dev/null 2>&1; then \
 		echo "WARNING: server not reachable at http://localhost:8080"; \
 		echo "         run 'make dev-server' in another terminal first"; \

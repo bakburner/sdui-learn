@@ -85,8 +85,12 @@ struct AtomicButtonView: View {
     }
 
     private func handleTap() {
-        let actions = AtomicActionTriggerRegistry.actions(for: .onActivate, in: element.actions)
-        dispatchAtomicActions(actions, onAction: onAction, batchExecutor: batchExecutor)
+        AtomicActionTriggerDispatcher.dispatch(
+            trigger: .onActivate,
+            actions: element.actions,
+            onAction: onAction,
+            batchExecutor: batchExecutor
+        )
     }
 }
 

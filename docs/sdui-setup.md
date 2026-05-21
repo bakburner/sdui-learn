@@ -451,11 +451,62 @@ xcodebuild -version
 brew install xcodegen xcbeautify
 ```
 
-**Verify — list simulators:**
+4. Install an iOS simulator runtime and ensure at least one simulator exists.
+Use either the Xcode UI or the CLI.
+
+| | Path A — Xcode UI (default) | Path B — Command line |
+|---|---|---|
+| Best if | You already use Xcode interactively | You want a shell-only setup |
+| Runtime install | **Xcode** → **Settings** → **Components** | `xcodebuild -downloadPlatform iOS` |
+| Simulator creation | **Xcode** → **Window** → **Devices and Simulators** | `xcrun simctl create ...` |
+| Extra first-run step | None | `sudo xcodebuild -runFirstLaunch` |
+
+After either path, both converge on the same check:
 
 ```bash
+xcrun simctl list runtimes
 xcrun simctl list devices available
 ```
+
+You need at least one `iOS ...` runtime before `make ios-run` can build for a simulator.
+
+### Path A — Xcode UI
+
+1. Open **Xcode** → **Settings** → **Components**.
+2. Download any available **iOS xx.x Simulator** runtime.
+3. If no simulator exists yet, open **Xcode** → **Window** → **Devices and Simulators** → **Simulators** and create one.
+
+### Path B — Command line (`xcodebuild` + `simctl`)
+
+Run first-launch setup once if this Xcode install has not completed it yet:
+
+```bash
+sudo xcodebuild -runFirstLaunch
+```
+
+Download the iOS simulator runtime:
+
+```bash
+xcodebuild -downloadPlatform iOS
+```
+
+If `xcrun simctl list devices available` is still empty after the runtime installs,
+create a simulator from the shell:
+
+```bash
+xcrun simctl create "iPhone SE (3rd generation)" \
+  com.apple.CoreSimulator.SimDeviceType.iPhone-SE-3rd-generation \
+  "$(xcrun simctl list runtimes | awk '/^iOS / { print $NF; exit }')"
+```
+
+**Verify — runtime + simulator present:**
+
+```bash
+xcrun simctl list runtimes
+xcrun simctl list devices available
+```
+
+If the runtimes list is empty, `make ios-run` cannot boot or build for a simulator yet.
 
 ---
 
@@ -509,7 +560,7 @@ make ios-run IOS_SIM_NAME="iPhone 15 Pro Max"
 | Variable | Default | Purpose |
 |---|---|---|
 | `IOS_SIM_NAME` | `iPhone SE (3rd generation)` | Simulator to boot |
-| `IOS_DESTINATION` | SE + latest OS | `xcodebuild` destination |
+| `IOS_DESTINATION` | `platform=iOS Simulator,name=$(IOS_SIM_NAME),OS=latest` | `xcodebuild` destination |
 | `SDUI_DISABLE_ABLY` | `1` | Keeps Ably off on simulator by default |
 
 ---
@@ -569,10 +620,20 @@ yes | sdkmanager --licenses
 ### `make ios-run` — simulator not found
 
 ```bash
+xcrun simctl list runtimes
 xcrun simctl list devices available
-make ios-run IOS_SIM_NAME="iPhone 15 Pro" \
-  IOS_DESTINATION='platform=iOS Simulator,name=iPhone 15 Pro,OS=latest'
+make ios-run IOS_SIM_NAME="iPhone 15 Pro"
 ```
+
+If `xcrun simctl list runtimes` prints no `iOS ...` entries, install an iOS Simulator runtime first.
+Use either **Xcode** → **Settings** → **Components** or:
+
+```bash
+sudo xcodebuild -runFirstLaunch
+xcodebuild -downloadPlatform iOS
+```
+
+If the runtime exists but `xcrun simctl list devices available` is still empty, create a simulator in **Xcode** → **Window** → **Devices and Simulators** or with `xcrun simctl create` from [Step 11](#step-11--xcode-and-ios-tools).
 
 ### iOS app cannot reach the server
 

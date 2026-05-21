@@ -528,6 +528,22 @@ public class SduiUtils {
     }
 
     /**
+     * Same strip spacing as {@link #secondaryStripSurface()} but without an
+     * explicit wrapper background, so the section sits on the screen's default
+     * surface.
+     */
+    public ObjectNode stripSurfaceWithoutBackground() {
+        ObjectNode surface = objectMapper.createObjectNode();
+        surface.put("cornerRadius", 0);
+        surface.set("padding", spacingTokens(
+                LayoutTokens.SPACING_SM,
+                LayoutTokens.SPACING_MD,
+                LayoutTokens.SPACING_XS,
+                LayoutTokens.SPACING_MD));
+        return surface;
+    }
+
+    /**
      * One {@code section.subsections} entry per tab, each carrying an
      * {@code onActivate → mutate} action for tab selection (core action semantic).
      */

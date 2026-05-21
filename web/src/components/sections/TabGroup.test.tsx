@@ -56,4 +56,38 @@ describe('TabGroup', () => {
     } satisfies Action);
     expect(onStateChange).not.toHaveBeenCalled();
   });
+
+  it('clears the previous active tab underline when selection changes', () => {
+    const onAction = vi.fn();
+    const onStateChange = vi.fn();
+
+    const { rerender } = render(
+      <TabGroup
+        section={tabSection()}
+        state={{ active_tab: 'a' }}
+        onAction={onAction}
+        onStateChange={onStateChange}
+      />,
+    );
+
+    const tabA = screen.getByRole('tab', { name: 'A' });
+    const tabB = screen.getByRole('tab', { name: 'B' });
+    expect(tabA).toHaveAttribute('aria-selected', 'true');
+    expect(tabB).toHaveAttribute('aria-selected', 'false');
+    expect((tabA as HTMLButtonElement).style.borderBottomColor).not.toBe('transparent');
+
+    rerender(
+      <TabGroup
+        section={tabSection()}
+        state={{ active_tab: 'b' }}
+        onAction={onAction}
+        onStateChange={onStateChange}
+      />,
+    );
+
+    expect(tabA).toHaveAttribute('aria-selected', 'false');
+    expect(tabB).toHaveAttribute('aria-selected', 'true');
+    expect((tabA as HTMLButtonElement).style.borderBottomColor).toBe('transparent');
+    expect((tabB as HTMLButtonElement).style.borderBottomColor).not.toBe('transparent');
+  });
 });

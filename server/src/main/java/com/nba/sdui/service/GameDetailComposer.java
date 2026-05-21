@@ -163,7 +163,6 @@ public class GameDetailComposer {
 
             ObjectNode response = objectMapper.createObjectNode();
             response.put("id", "game-detail-" + gameId);
-            response.put("type", "game_detail");
             response.put("schemaVersion", schemaVersion);
             response.put("parentUri", "nba://scoreboard");
 
@@ -315,7 +314,7 @@ public class GameDetailComposer {
         data.set("tabContents", tabContents);
         section.set("data", data);
         section.set("subsections", utils.tabSelectSubsections(tabs, "gd_boxscore_team"));
-        section.set("surface", utils.secondaryStripSurface());
+        section.set("surface", utils.stripSurfaceWithoutBackground());
         return section;
     }
 
@@ -843,7 +842,7 @@ public class GameDetailComposer {
         data.set("tabContents", tabContents);
         section.set("data", data);
         section.set("subsections", utils.tabSelectSubsections(tabs, "gd_active_tab"));
-        section.set("surface", utils.secondaryStripSurface());
+        section.set("surface", utils.stripSurfaceWithoutBackground());
 
         ObjectNode layoutHints = objectMapper.createObjectNode();
         layoutHints.put("marginTop", 0);

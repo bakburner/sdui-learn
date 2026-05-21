@@ -164,7 +164,7 @@ public class BoxscoreComposer {
         tabData.set("tabContents", tabContents);
         tabGroup.set("data", tabData);
         tabGroup.set("subsections", utils.tabSelectSubsections(tabs, "boxscore_team"));
-        tabGroup.set("surface", utils.secondaryStripSurface());
+        tabGroup.set("surface", utils.stripSurfaceWithoutBackground());
 
         sections.add(tabGroup);
         response.set("sections", sections);

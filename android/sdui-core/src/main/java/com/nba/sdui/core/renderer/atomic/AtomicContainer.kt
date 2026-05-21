@@ -68,6 +68,7 @@ fun AtomicContainer(
     } else {
         element.direction == UIDirection.Row
     }
+    val stackBelowBreakpoint = element.breakpoint != null && element.direction == UIDirection.Row && !isRow
 
     // TODO(phase3): swap for `LocalSduiFormFactor.current` once the
     // form-factor classifier is plumbed end-to-end.
@@ -139,7 +140,7 @@ fun AtomicContainer(
                 verticalAlignment = crossAxis as ComposeAlignment.Vertical
             ) {
                 element.children?.forEachIndexed { index, child ->
-                    val flex = child.flex
+                    val flex = if (stackBelowBreakpoint) null else child.flex
                     val childModifier = if (flex != null && flex > 0.0) {
                         Modifier
                             .weight(flex.toFloat())
@@ -164,7 +165,7 @@ fun AtomicContainer(
                 horizontalAlignment = crossAxis as ComposeAlignment.Horizontal
             ) {
                 element.children?.forEachIndexed { index, child ->
-                    val flex = child.flex
+                    val flex = if (stackBelowBreakpoint) null else child.flex
                     val childModifier = if (flex != null && flex > 0.0) {
                         Modifier
                             .weight(flex.toFloat())

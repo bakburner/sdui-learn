@@ -81,8 +81,8 @@ private struct ScreenBody: View {
                                         })
                                     }
                                 }
+                                .padding(edgeInsets(from: screen.contentInsets))
                             }
-                            .padding(edgeInsets(from: screen.contentInsets))
                             .refreshable { await vm.load() }
                             .environment(\.wireAssetBaseURL, vm.wireAssetBaseURL)
                         }
@@ -151,7 +151,7 @@ private struct ScreenBody: View {
     }
 
     @ViewBuilder
-    private func shellWrapped<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+    private func shellWrapped<Content: View>(@ViewBuilder content: @escaping () -> Content) -> some View {
         SduiNavigationShell(
             navigation: vm.shellScreen?.navigation,
             onNavigate: { uri in

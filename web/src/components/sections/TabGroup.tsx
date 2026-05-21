@@ -47,6 +47,7 @@ export function TabGroup({ section, state, onAction, onStateChange }: SectionPro
       tab: {
         padding: `${padV}px ${padH}px`,
         color: resolveColor(TAB_LABEL_SECONDARY) ?? 'var(--text-secondary)',
+        borderBottomColor: 'transparent',
       },
       tabActive: {
         color: resolveColor(TAB_LABEL_PRIMARY) ?? 'var(--text-primary)',
@@ -68,10 +69,19 @@ export function TabGroup({ section, state, onAction, onStateChange }: SectionPro
     if (action) {
       onAction(action);
     } else {
-      console.warn('[TabGroup] missing subsection mutate action', {
-        sectionId: section.id,
-        tabId,
-      });
+      const tab = model?.tabs.find((t) => t.id === tabId);
+      if (tab && model) {
+        console.warn('[TabGroup] missing subsection mutate action; falling back to tab stateValue', {
+          sectionId: section.id,
+          tabId,
+        });
+        onStateChange(model.stateKey, tab.stateValue);
+      } else {
+        console.warn('[TabGroup] missing subsection mutate action', {
+          sectionId: section.id,
+          tabId,
+        });
+      }
     }
   };
 
@@ -146,7 +156,9 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 600,
     cursor: 'pointer',
     whiteSpace: 'nowrap',
-    borderBottom: '2px solid transparent',
+    borderBottomStyle: 'solid',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
     marginBottom: -1,
   },
   tabActive: {},

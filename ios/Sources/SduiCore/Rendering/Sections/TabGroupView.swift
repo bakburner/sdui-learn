@@ -71,7 +71,7 @@ struct TabGroupView: View {
                         let value = tab.stateValue ?? tab.id
                         let isSelected = value == selectedTab
                         Button {
-                            dispatchTabSelect(tabId: tabId)
+                            dispatchTabSelect(tabId: tabId, stateValue: value)
                         } label: {
                             Text(tab.label)
                                 .fontWeight(isSelected ? .bold : .regular)
@@ -113,15 +113,17 @@ struct TabGroupView: View {
         return (primary, secondary, accent, divider)
     }
 
-    private func dispatchTabSelect(tabId: String) {
-        guard let action = SectionInteractions.subsectionPrimaryAction(
-            for: section,
-            subsectionID: tabId
-        ) else {
-            logger.warning("missing subsection mutate action sectionId=\(section.id, privacy: .public) tabId=\(tabId, privacy: .public)")
-            return
+    private func dispatchTabSelect(tabId: String, stateValue: String) {
+        if let action = SectionInteractions.subsectionPrimaryAction(for: section, subsectionID: tabId) {
+            onAction(action)
+        } else {
+            guard let stateKey = section.data?.stateKey else {
+                logger.warning("missing subsection mutate action and stateKey sectionId=\(section.id, privacy: .public) tabId=\(tabId, privacy: .public)")
+                return
+            }
+            logger.warning("missing subsection mutate action sectionId=\(section.id, privacy: .public) tabId=\(tabId, privacy: .public); falling back to tab stateValue")
+            screenState.set(stateKey, value: stateValue)
         }
-        onAction(action)
     }
 
     private func scrollToActiveTab(

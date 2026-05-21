@@ -1,6 +1,5 @@
 {
   "id": "game-detail-0042300102",
-  "type": "game_detail",
   "schemaVersion": "1.0",
   "parentUri": "nba://scoreboard",
   "state": {
@@ -1321,7 +1320,7 @@
                       "content": "Game 4 Preview",
                       "variant": "bodySmall",
                       "weight": "semiBold",
-                      "color": "#FFFFFF",
+                      "color": "token:nba.label.primary",
                       "maxLines": 2
                     }
                   ]
@@ -1371,7 +1370,7 @@
                       "content": "Tatum Pre-Game Interview",
                       "variant": "bodySmall",
                       "weight": "semiBold",
-                      "color": "#FFFFFF",
+                      "color": "token:nba.label.primary",
                       "maxLines": 2
                     }
                   ]

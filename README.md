@@ -86,7 +86,7 @@ A shared SDUI composition server is deployed and accessible to all developers on
 the corporate VPN:
 
 ```
-https://sdui.tools.internal.nba.com
+https://sdui-prototype.tools.internal.nba.com
 ```
 
 All clients default to this server. **No local server setup is required** to run
@@ -109,7 +109,7 @@ deployed composition server automatically. Vite serves the React app with HMR.
 #### Android
 
 Open `android/` in Android Studio and run on an emulator or device. The app
-defaults to `https://sdui.tools.internal.nba.com` with no configuration needed.
+defaults to `https://sdui-prototype.tools.internal.nba.com` with no configuration needed.
 
 #### iOS
 

@@ -5,7 +5,7 @@ import path from 'path';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
-  const sduiServer = env.SDUI_SERVER || 'https://sdui.tools.internal.nba.com';
+  const sduiServer = env.SDUI_SERVER || 'https://sdui-prototype.tools.internal.nba.com';
 
   return {
     plugins: [react()],

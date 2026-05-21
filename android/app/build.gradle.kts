@@ -20,7 +20,7 @@ android {
         // Server URL for SDUI composition service
         // Override with: ./gradlew :app:installDebug -PSDUI_BASE_URL=http://10.0.2.2:8080
         val sduiUrl = project.findProperty("SDUI_BASE_URL")?.toString()
-            ?: "https://sdui.tools.internal.nba.com"
+            ?: "https://sdui-prototype.tools.internal.nba.com"
         buildConfigField("String", "SDUI_BASE_URL", "\"$sduiUrl\"")
         buildConfigField("String", "ABLY_TOKEN_URL", "\"https://identity.nba.com/rttoken\"")
     }

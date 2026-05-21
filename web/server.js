@@ -8,7 +8,7 @@ const __dirname = dirname(__filename);
 
 const app = express();
 const PORT = 3000;
-const SDUI_SERVER = process.env.SDUI_SERVER || 'https://sdui.tools.internal.nba.com';
+const SDUI_SERVER = process.env.SDUI_SERVER || 'https://sdui-prototype.tools.internal.nba.com';
 const VITE_DEV_SERVER = process.env.VITE_DEV_SERVER || 'http://localhost:5173';
 const isDev = process.env.NODE_ENV !== 'production';
 

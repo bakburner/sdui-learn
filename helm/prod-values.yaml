@@ -30,7 +30,7 @@ ingress:
     nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
   hosts:
-    - host: sdui.tools.internal.nba.com
+    - host: sdui-prototype.tools.internal.nba.com
       paths:
         - path: /
           pathType: ImplementationSpecific
@@ -39,7 +39,7 @@ ingress:
               name: sdui
   tls:
     - hosts:
-        - sdui.tools.internal.nba.com
+        - sdui-prototype.tools.internal.nba.com
 resources:
   requests:
     cpu: 500m

@@ -91,6 +91,7 @@ public class BoxscoreComposer {
             response.set("sections", sections);
             response.put("title", "Box Score");
             utils.prependAppBarHeaderIfNeeded(response);
+            utils.ensureScreenContentInsets(response);
             utils.stampStringTableOnSections(response, locale);
             return response;
         }
@@ -174,6 +175,7 @@ public class BoxscoreComposer {
 
         response.put("title", awayTricode + " @ " + homeTricode);
         utils.prependAppBarHeaderIfNeeded(response);
+        utils.ensureScreenContentInsets(response);
         utils.stampStringTableOnSections(response, locale);
         return response;
     }

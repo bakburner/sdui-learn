@@ -384,7 +384,39 @@ class AtomicCompositeBuilderFeedModulesTest {
             JsonNode colors = bg.get("colors");
             if (colors != null && colors.isArray() && colors.size() >= 2) {
                 String last = colors.get(colors.size() - 1).asText("");
-                return last.contains("overlay.scrim") || last.equals(OVERLAY_SCRIM_TOKEN);
+                if (last.contains("overlay.scrim") || last.equals(OVERLAY_SCRIM_TOKEN)) {
+                    return true;
+                }
+                // Production `mediaBottomScrimGradient` emits a hardcoded
+                // ARGB gradient (alpha-byte first) ending in an opaque-dark
+                // color rather than the token, because `overlay.scrim`
+                // inverts in dark mode and defeats the darkening intent.
+                // Accept any gradient whose final color is an opaque-dark
+                // hex value as a valid scrim backing.
+                return isOpaqueDarkHex(last);
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Returns true for ARGB or RGB hex strings whose alpha byte is high enough
+     * (≥ 0xC0) to provide a darkening scrim. 6-char #RRGGBB is always opaque.
+     */
+    private static boolean isOpaqueDarkHex(String hex) {
+        if (hex == null || !hex.startsWith("#")) {
+            return false;
+        }
+        String body = hex.substring(1);
+        if (body.length() == 6) {
+            return true; // #RRGGBB → fully opaque
+        }
+        if (body.length() == 8) {
+            try {
+                int alpha = Integer.parseInt(body.substring(0, 2), 16);
+                return alpha >= 0xC0;
+            } catch (NumberFormatException ignored) {
+                return false;
             }
         }
         return false;

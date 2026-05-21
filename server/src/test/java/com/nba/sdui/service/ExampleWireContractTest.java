@@ -24,7 +24,9 @@ class ExampleWireContractTest {
 
     @Test
     void schemaExamplesMustNotEmitDeprecatedSizingFields() throws IOException {
-        Path root = Path.of("schema/examples");
+        // Gradle runs tests with `server/` as cwd, so resolve schema/examples
+        // relative to the repo root.
+        Path root = resolveSchemaExamplesPath();
         List<String> violations = new ArrayList<>();
         try (var paths = Files.walk(root)) {
             paths.filter(p -> p.toString().endsWith(".json")).forEach(p -> {
@@ -38,6 +40,25 @@ class ExampleWireContractTest {
         }
         assertTrue(violations.isEmpty(),
                 "Deprecated sizing keys found in schema/examples: " + violations);
+    }
+
+    /**
+     * Locate {@code schema/examples} relative to the test working directory.
+     * Gradle runs from {@code server/} but the path works from the repo root
+     * as well, so we try both.
+     */
+    private static Path resolveSchemaExamplesPath() {
+        Path[] candidates = {
+                Path.of("..", "schema", "examples"),
+                Path.of("schema", "examples")
+        };
+        for (Path candidate : candidates) {
+            if (Files.isDirectory(candidate)) {
+                return candidate;
+            }
+        }
+        throw new IllegalStateException(
+                "Could not locate schema/examples relative to cwd=" + Path.of("").toAbsolutePath());
     }
 
     private void collectForbiddenKeys(JsonNode node, String path, List<String> violations) {

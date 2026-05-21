@@ -113,6 +113,7 @@ public class LiveComposer {
         }
 
         response.set("sections", sections);
+        utils.ensureScreenContentInsets(response);
         utils.stampStringTableOnSections(response, locale);
         return response;
     }

@@ -71,6 +71,9 @@ export function useSduiScreen(options: UseSduiScreenOptions): UseSduiScreenResul
     setScreen(null);
     setError(null);
     setUpgradeRequired(false);
+    if (endpoint) {
+      setLoading(true);
+    }
   }, [endpoint]);
 
   useEffect(() => {

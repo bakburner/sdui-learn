@@ -105,14 +105,13 @@ public class SduiUtils {
     }
 
     /**
-     * When the screen carries {@code title} and/or {@code parentUri}, prepend an
-     * {@code AtomicComposite} app-bar section (token spacing, back navigate action)
-     * and remove top-level {@code title} so clients do not render a platform app bar.
-     */
-    /**
      * Default scroll-feed padding when the composer did not set {@code contentInsets}.
      * Matches former client hardcodes: horizontal {@link LayoutTokens#SPACING_MD},
      * bottom {@link LayoutTokens#SPACING_LG}.
+     *
+     * <p>Call this explicitly at the end of every composer that emits a scrollable
+     * feed. Tab-destination composers (bottom-nav screens) in particular need this
+     * so the last card does not sit flush against the bottom navigation.
      */
     public void ensureScreenContentInsets(ObjectNode response) {
         if (response.has("contentInsets")) {
@@ -125,6 +124,11 @@ public class SduiUtils {
         response.set("contentInsets", insets);
     }
 
+    /**
+     * When the screen carries {@code title} and/or {@code parentUri}, prepend an
+     * {@code AtomicComposite} app-bar section (token spacing, back navigate action)
+     * and remove top-level {@code title} so clients do not render a platform app bar.
+     */
     public void prependAppBarHeaderIfNeeded(ObjectNode response) {
         String screenId = response.path("id").asText("screen");
         String title = response.has("title") ? response.path("title").asText(null) : null;
@@ -883,7 +887,6 @@ public class SduiUtils {
      * Sections that already have a stringTable are left unchanged.
      */
     public void stampStringTableOnSections(ObjectNode response, String locale) {
-        ensureScreenContentInsets(response);
         JsonNode sections = response.get("sections");
         if (sections == null || !sections.isArray()) return;
         ObjectNode table = buildStringTable(locale);

@@ -265,7 +265,7 @@ private struct ErrorView: View {
     let message: String
     let canNavigateBack: Bool
     let onNavigateBack: () -> Void
-    let retry: () -> Void
+    let onRetry: () -> Void
 
     var body: some View {
         VStack(spacing: ClientChromeSpacing.lg) {
@@ -281,7 +281,7 @@ private struct ErrorView: View {
             HStack(spacing: ClientChromeSpacing.md) {
                 Button(canNavigateBack ? "Go back" : "Home", action: onNavigateBack)
                     .buttonStyle(.bordered)
-                Button("Retry", action: retry)
+                Button("Retry", action: onRetry)
                     .buttonStyle(.borderedProminent)
             }
         }

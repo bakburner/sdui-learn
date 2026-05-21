@@ -71,9 +71,11 @@ export function App(): React.ReactElement {
     experiments,
   });
 
-  const displayScreen = screen ?? shellScreen;
-  // Read available variants from the server response (empty if not provided).
-  const variantsData = (displayScreen as Record<string, unknown> | undefined)?.variants as
+  // Variants are scoped to the *currently loaded* screen. We deliberately do
+  // NOT fall back to `shellScreen` here — that would surface the previous
+  // screen's variant chips next to a "Failed to load" message for the new
+  // endpoint, which reads as stale state.
+  const variantsData = (screen as Record<string, unknown> | undefined)?.variants as
     { experimentId?: string; options?: ReadonlyArray<{ id: string; label: string; description: string }> } | undefined;
   const variantOptions = variantsData?.options ?? [];
   const variantExperimentId = variantsData?.experimentId ?? 'variant';

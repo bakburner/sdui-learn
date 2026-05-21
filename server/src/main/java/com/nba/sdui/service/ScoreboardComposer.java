@@ -73,6 +73,7 @@ public class ScoreboardComposer {
             }
         }
 
+        utils.ensureScreenContentInsets(response);
         utils.stampStringTableOnSections(response, locale);
         return response;
     }

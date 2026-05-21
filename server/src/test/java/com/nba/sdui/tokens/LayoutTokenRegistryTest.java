@@ -34,8 +34,10 @@ class LayoutTokenRegistryTest {
     /** Confirms the registry actually loads from the runtime classpath. */
     @Test
     void registryLoadsFromClasspath() {
-        assertEquals(8, registry.resolveInt("token:nba.spacing.md", "phone"),
-                "nba.spacing.md should resolve to 8 on phone if classpath load succeeded");
+        // Canonical mapping (schema/spacing-tokens.json):
+        // nba.spacing.md → nba.space.raw.12 → 12 on phone.
+        assertEquals(12, registry.resolveInt("token:nba.spacing.md", "phone"),
+                "nba.spacing.md should resolve to 12 on phone if classpath load succeeded");
     }
 
     @Test
@@ -47,10 +49,11 @@ class LayoutTokenRegistryTest {
 
     @Test
     void spacingMdResolvesPerFormFactor() {
-        assertEquals(8, registry.resolveInt("token:nba.spacing.md", "phone"));
-        assertEquals(10, registry.resolveInt("token:nba.spacing.md", "tablet"));
-        assertEquals(12, registry.resolveInt("token:nba.spacing.md", "tv"));
-        assertEquals(10, registry.resolveInt("token:nba.spacing.md", "web.wide"));
+        // nba.spacing.md → nba.space.raw.12 per schema/spacing-tokens.json.
+        assertEquals(12, registry.resolveInt("token:nba.spacing.md", "phone"));
+        assertEquals(15, registry.resolveInt("token:nba.spacing.md", "tablet"));
+        assertEquals(18, registry.resolveInt("token:nba.spacing.md", "tv"));
+        assertEquals(15, registry.resolveInt("token:nba.spacing.md", "web.wide"));
     }
 
     @Test

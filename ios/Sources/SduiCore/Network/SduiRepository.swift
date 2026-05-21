@@ -152,6 +152,30 @@ final class SduiRepository {
         return try JSONSerialization.jsonObject(with: data)
     }
 
+    /// Fetch raw (non-screen) JSON from an SDUI endpoint using the canonical
+    /// request envelope. Used by ``BootstrapFetcher`` so the cold-start init
+    /// call travels the same transport (envelope, GET/POST length fallback,
+    /// `X-Trace-Id`) as every screen fetch — no hand-rolled URL strings.
+    func fetchRawJson(endpoint: String, traceID: String? = nil) async throws -> Any {
+        let envelope = envelopeProvider()
+        let resolvedTraceID = traceID ?? config.traceIDProvider()
+        let request = try buildRequest(
+            endpoint: endpoint,
+            envelope: envelope,
+            userParams: [:],
+            traceID: resolvedTraceID
+        )
+
+        let (data, response) = try await session.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200...299).contains(httpResponse.statusCode) else {
+            throw SduiError.invalidResponse
+        }
+
+        return try JSONSerialization.jsonObject(with: data)
+    }
+
     // MARK: - Request assembly
 
     /// Build a request for the canonical SDUI transport. The envelope owns the

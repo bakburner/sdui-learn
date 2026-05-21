@@ -119,6 +119,7 @@ public class GameDetailComposer {
                 variant, response.has("sections") ? response.get("sections").size() : 0);
 
         utils.prependAppBarHeaderIfNeeded(response);
+        utils.ensureScreenContentInsets(response);
         utils.stampStringTableOnSections(response, locale);
         return new GameDetailResult(response, derivedGameState);
     }

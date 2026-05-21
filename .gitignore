@@ -36,3 +36,6 @@ docs/page1.jpg
 docs/page2.jpg
 docs/page3.jpg
 docs/discovery/
+
+# Ad-hoc commit message drafts; the canonical history lives in `git log`.
+COMMIT_MESSAGE.md

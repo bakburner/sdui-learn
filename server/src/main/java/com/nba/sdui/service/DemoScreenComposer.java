@@ -135,6 +135,7 @@ public class DemoScreenComposer {
 
         screen.set("sections", sections);
         utils.prependAppBarHeaderIfNeeded(screen);
+        utils.ensureScreenContentInsets(screen);
         utils.stampStringTableOnSections(screen, locale);
         return screen;
     }
@@ -170,6 +171,7 @@ public class DemoScreenComposer {
         screen.set("sections", sections);
 
         utils.prependAppBarHeaderIfNeeded(screen);
+        utils.ensureScreenContentInsets(screen);
         utils.stampStringTableOnSections(screen, locale);
         return screen;
     }

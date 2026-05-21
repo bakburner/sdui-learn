@@ -71,6 +71,7 @@ public class ScheduleComposer {
         }
 
         response.set("sections", sections);
+        utils.ensureScreenContentInsets(response);
         utils.stampStringTableOnSections(response, locale);
         return response;
     }

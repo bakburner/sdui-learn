@@ -45,24 +45,8 @@ struct SduiDemoApp: App {
     }
 
     private func fetchBootstrapUri() async {
-        do {
-            let envelope = RequestEnvelope()
-            let initURL = config.baseURL.appendingPathComponent("sdui/init")
-            let qs = envelope.buildQueryString()
-            guard let url = URL(string: initURL.absoluteString + "?" + qs) else {
-                bootstrapEndpoint = UriResolver.resolveEndpoint(uri: Self.FALLBACK_BOOTSTRAP_URI)
-                return
-            }
-            let (data, response) = try await URLSession.shared.data(from: url)
-            guard let http = response as? HTTPURLResponse, http.statusCode == 200,
-                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                  let uri = json["bootstrapUri"] as? String else {
-                bootstrapEndpoint = UriResolver.resolveEndpoint(uri: Self.FALLBACK_BOOTSTRAP_URI)
-                return
-            }
-            bootstrapEndpoint = UriResolver.resolveEndpoint(uri: uri)
-        } catch {
-            bootstrapEndpoint = UriResolver.resolveEndpoint(uri: Self.FALLBACK_BOOTSTRAP_URI)
-        }
+        let uri = await BootstrapFetcher.fetchBootstrapUri(config: config)
+            ?? Self.FALLBACK_BOOTSTRAP_URI
+        bootstrapEndpoint = UriResolver.resolveEndpoint(uri: uri)
     }
 }

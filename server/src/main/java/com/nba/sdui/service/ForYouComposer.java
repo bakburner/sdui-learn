@@ -131,6 +131,7 @@ public class ForYouComposer {
         sections.add(buildVodPlaylistSection());
 
         response.set("sections", sections);
+        utils.ensureScreenContentInsets(response);
         utils.stampStringTableOnSections(response, locale);
         return response;
     }

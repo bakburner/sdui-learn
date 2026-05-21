@@ -41,6 +41,8 @@ EMU_MEMORY  ?= 1536
 EMU_CORES   ?= 1
 # Omit -no-snapshot-load so Quick Boot reuses state after the first cold boot.
 EMU_FLAGS   ?= -memory $(EMU_MEMORY) -cores $(EMU_CORES) -gpu $(EMU_GPU) -no-boot-anim -no-audio
+# Local dev server URL for Android emulator (10.0.2.2 = host loopback inside AVD)
+SDUI_ANDROID_BASE_URL ?= http://10.0.2.2:8080
 
 # ── Codegen ──────────────────────────────────────────────────
 codegen:
@@ -104,7 +106,7 @@ dev-android:
 		echo "=== Emulator ready ==="; \
 	fi
 	@echo "=== Building & installing Android app ==="
-	@cd android && ./gradlew installDebug
+	@cd android && ./gradlew installDebug -PSDUI_BASE_URL=$(SDUI_ANDROID_BASE_URL)
 	@echo "=== Launching app ==="
 	@$(ADB) shell am force-stop com.nba.sdui.app 2>/dev/null || true
 	@$(ADB) shell am start -n com.nba.sdui.app/.MainActivity

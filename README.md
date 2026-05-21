@@ -80,34 +80,70 @@ sdui-prototype/
 
 ## Quick Start
 
-See [Development Setup](docs/sdui-setup.md) first for prerequisites, local
-dependencies, secrets, and how to override the default Android emulator or iOS
-simulator used by the Make targets.
+### SDUI Composition Server
 
-### Start Everything
+A shared SDUI composition server is deployed and accessible to all developers on
+the corporate VPN:
 
-```bash
-make dev    # Starts server + web in separate Terminal sessions
+```
+https://sdui.tools.internal.nba.com
 ```
 
-### Or Individually
+All clients default to this server. **No local server setup is required** to run
+any client unless you are actively developing server-side composers.
+
+### Running Clients
+
+#### Web
 
 ```bash
-# Server (http://localhost:8080)
-cd server
-cp .env.template .env   # Add your STATS_API_KEY
-./gradlew bootRun
-
-# Web (http://localhost:3000)
 cd web
 npm install
 npm run dev
+# Open http://localhost:3000
+```
 
-# Android — open android/ in Android Studio, run on emulator
-# (connects to http://10.0.2.2:8080)
+The Express dev server proxies `/api/*` and `/sdui-demo/*` requests to the
+deployed composition server automatically. Vite serves the React app with HMR.
 
-# iOS (simulator, CLI-driven)
-make ios-run            # builds SduiDemo and installs on the configured simulator
+#### Android
+
+Open `android/` in Android Studio and run on an emulator or device. The app
+defaults to `https://sdui.tools.internal.nba.com` with no configuration needed.
+
+#### iOS
+
+```bash
+make ios-run   # builds SduiDemo and installs on the configured simulator
+```
+
+Or open `ios/SduiDemo` in Xcode and run. Defaults to the deployed server.
+
+### Overriding to a Local Server
+
+If you're developing server-side composers and need to test against a local
+Spring Boot instance:
+
+```bash
+# Start the server locally
+cd server
+cp .env.template .env   # Add your STATS_API_KEY
+./gradlew bootRun       # Starts on http://localhost:8080
+
+# Web — override the proxy target
+SDUI_SERVER=http://localhost:8080 npm run dev
+
+# Android — pass Gradle property
+./gradlew :app:installDebug -PSDUI_BASE_URL=http://10.0.2.2:8080
+
+# iOS — set environment variable before launching
+SDUI_BASE_URL=http://localhost:8080   # read by ProcessInfo in SduiDemoApp
+```
+
+### Start Everything (Local Server + Web)
+
+```bash
+make dev    # Starts server + web in separate Terminal sessions
 ```
 
 ### Test the API

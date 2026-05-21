@@ -41,7 +41,7 @@ fun GameDetailScreen(
     onToggleTheme: () -> Unit = {},
     viewModel: GameDetailViewModel = viewModel {
         GameDetailViewModel(
-            baseUrl = BuildConfig.SDUI_BASE_URL,
+            baseUrl = BuildConfig.SDUI_ANDROID_BASE_URL,
             ablyTokenUrl = BuildConfig.ABLY_TOKEN_URL,
             config = config
         )

@@ -97,9 +97,7 @@ any client unless you are actively developing server-side composers.
 #### Web
 
 ```bash
-cd web
-npm install
-npm run dev
+make dev-web-remote
 # Open http://localhost:3000
 ```
 
@@ -108,37 +106,58 @@ deployed composition server automatically. Vite serves the React app with HMR.
 
 #### Android
 
-Open `android/` in Android Studio and run on an emulator or device. The app
-defaults to `https://sdui-prototype.tools.internal.nba.com` with no configuration needed.
+```bash
+make dev-android-remote
+```
+
+The target boots an emulator if needed, installs the app, launches it, and tails
+SDUI logs. The app points at the deployed composition server.
 
 #### iOS
 
 ```bash
-make ios-run   # builds SduiDemo and installs on the configured simulator
+make dev-ios-remote
 ```
 
-Or open `ios/SduiDemo` in Xcode and run. Defaults to the deployed server.
+The target builds `SduiDemo`, installs it on the configured simulator, launches
+it against the deployed composition server, and tails SDUI logs.
 
-### Overriding to a Local Server
+### Local Server Development
 
 If you're developing server-side composers and need to test against a local
-Spring Boot instance:
+Spring Boot instance, use the local Make targets. They encode the platform-specific
+hostnames for you (`localhost` for web/iOS, `10.0.2.2` for the Android emulator).
+Client-specific backend inputs stay separate so web, Android, and iOS can run
+concurrently against different endpoints when needed.
 
 ```bash
-# Start the server locally
-cd server
-cp .env.template .env   # Add your STATS_API_KEY
-./gradlew bootRun       # Starts on http://localhost:8080
+# One-time server env setup
+cp server/.env.example server/.env   # Add your STATS_API_KEY
 
-# Web — override the proxy target
-SDUI_SERVER=http://localhost:8080 npm run dev
+# Start the local composition server
+make dev-server
 
-# Android — pass Gradle property
-./gradlew :app:installDebug -PSDUI_BASE_URL=http://10.0.2.2:8080
-
-# iOS — set environment variable before launching
-SDUI_BASE_URL=http://localhost:8080   # read by ProcessInfo in SduiDemoApp
+# Pick the client you want to run against that local server
+make dev-web-local
+make dev-android-local
+make dev-ios-local
 ```
+
+Remote equivalents are available when you want the deployed backend:
+
+```bash
+make dev-web-remote
+make dev-android-remote
+make dev-ios-remote
+```
+
+The Makefile variables are intentionally client-specific:
+
+| Client | Local target | Remote target | Override variable |
+|--------|--------------|---------------|-------------------|
+| Web | `make dev-web-local` | `make dev-web-remote` | `SDUI_WEB_LOCAL_SERVER` / `SDUI_WEB_REMOTE_SERVER` |
+| Android | `make dev-android-local` | `make dev-android-remote` | `SDUI_ANDROID_LOCAL_SERVER` / `SDUI_ANDROID_REMOTE_SERVER` |
+| iOS | `make dev-ios-local` | `make dev-ios-remote` | `SDUI_IOS_LOCAL_SERVER` / `SDUI_IOS_REMOTE_SERVER` |
 
 ### Start Everything (Local Server + Web)
 

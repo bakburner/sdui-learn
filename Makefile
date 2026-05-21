@@ -1,4 +1,7 @@
-.PHONY: dev dev-server dev-web dev-android dev-all codegen server-test android-test web-test test \
+.PHONY: dev dev-server dev-web dev-web-local dev-web-remote \
+	dev-android dev-android-local dev-android-remote _dev-android \
+	dev-ios-local dev-ios-remote ios-run-local ios-run-remote _dev-ios \
+	dev-all codegen server-test android-test web-test test \
 	lint-sdui-warn \
 	stop stop-server stop-web stop-android \
 	ios-test ios-test-clean ios-build ios-demo-project ios-run ios-run-max ios-stop ios-fixtures-sync ios-sim-preflight
@@ -8,12 +11,24 @@ lint-sdui-warn:
 	@./scripts/warn-onTap-in-composers.sh
 
 # ── iOS build / test config ──────────────────────────────────
+SDUI_REMOTE_SERVER        ?= https://sdui-prototype.tools.internal.nba.com
+SDUI_LOCAL_SERVER         ?= http://localhost:8080
+SDUI_WEB_LOCAL_SERVER     ?= $(SDUI_LOCAL_SERVER)
+SDUI_WEB_REMOTE_SERVER    ?= $(SDUI_REMOTE_SERVER)
+# Android emulator loopback for host localhost.
+SDUI_ANDROID_LOCAL_SERVER ?= http://10.0.2.2:8080
+SDUI_ANDROID_REMOTE_SERVER ?= $(SDUI_REMOTE_SERVER)
+SDUI_IOS_LOCAL_SERVER     ?= $(SDUI_LOCAL_SERVER)
+SDUI_IOS_REMOTE_SERVER    ?= $(SDUI_REMOTE_SERVER)
+
 IOS_SCHEME        ?= SduiCore
 IOS_DEMO_SCHEME   ?= SduiDemo
 IOS_DEMO_BUNDLE   ?= com.nba.sdui.demo
+# IOS_SIM_NAME is used by ios-test and ios-build — kept lightweight intentionally.
 IOS_SIM_NAME      ?= iPhone SE (3rd generation)
-# Use iPhone SE (3rd gen) for lighter resource usage on constrained hardware
 IOS_DESTINATION   ?= platform=iOS Simulator,name=$(IOS_SIM_NAME),OS=latest
+# DEV_IOS_SIM_NAME is used by dev-ios-local / dev-ios-remote only.
+DEV_IOS_SIM_NAME  ?= iPhone 17 Pro
 # Set SDUI_DISABLE_ABLY=0 on the command line to re-enable ably-cocoa
 # (only works on arm64 simulators; x86_64 simulators hit the ably module
 # map bug and must keep the default of 1).
@@ -30,7 +45,7 @@ ANDROID_SDK ?= $(or $(ANDROID_HOME),$(HOME)/Library/Android/sdk)
 ADB          = $(ANDROID_SDK)/platform-tools/adb
 EMU          = $(ANDROID_SDK)/emulator/emulator
 AVD_NAME    ?= $(shell $(EMU) -list-avds 2>/dev/null | head -1)
-# Lightweight defaults for local SDUI dev (override: make dev-android EMU_MEMORY=2048)
+# Lightweight defaults for local SDUI dev (override: make dev-android-local EMU_MEMORY=2048)
 UNAME_M     := $(shell uname -m)
 ifeq ($(UNAME_M),arm64)
 EMU_GPU     ?= host
@@ -76,18 +91,37 @@ ios-fixtures-sync:
 dev:
 	@echo "=== Starting full stack ==="
 	@$(MAKE) dev-server
-	@$(MAKE) dev-web
+	@$(MAKE) dev-web-local
 	@echo "Waiting 5s for server to start..."
 
 
 dev-server:
 	@osascript -e 'tell application "Terminal" to do script "cd \"$(PWD)/server\" && ./gradlew bootRun"' >/dev/null
 
-dev-web:
-	@osascript -e 'tell application "Terminal" to do script "cd \"$(PWD)/web\" && npm run dev"' >/dev/null
+dev-web: dev-web-remote
+
+dev-web-local:
+	@if ! curl -sf $(SDUI_LOCAL_SERVER)/v1/sdui/demos >/dev/null 2>&1; then \
+		echo "WARNING: local server not reachable at $(SDUI_LOCAL_SERVER)"; \
+		echo "         run 'make dev-server' in another terminal first"; \
+	fi
+	@echo "=== Starting web against local SDUI server: $(SDUI_WEB_LOCAL_SERVER) ==="
+	@osascript -e 'tell application "Terminal" to do script "cd \"$(PWD)/web\" && SDUI_SERVER=$(SDUI_WEB_LOCAL_SERVER) npm run dev"' >/dev/null
+
+dev-web-remote:
+	@echo "=== Starting web against remote SDUI server: $(SDUI_WEB_REMOTE_SERVER) ==="
+	@osascript -e 'tell application "Terminal" to do script "cd \"$(PWD)/web\" && SDUI_SERVER=$(SDUI_WEB_REMOTE_SERVER) npm run dev"' >/dev/null
 
 # ── Android (auto-launches emulator if none connected) ───────
-dev-android:
+dev-android: dev-android-remote
+
+dev-android-local:
+	@$(MAKE) _dev-android SDUI_ANDROID_BASE_URL="$(SDUI_ANDROID_LOCAL_SERVER)"
+
+dev-android-remote:
+	@$(MAKE) _dev-android SDUI_ANDROID_BASE_URL="$(SDUI_ANDROID_REMOTE_SERVER)"
+
+_dev-android:
 	@if $(ADB) devices 2>/dev/null | tail -n +2 | grep -qw 'device'; then \
 		echo "=== Device/emulator already connected ==="; \
 	else \
@@ -104,8 +138,8 @@ dev-android:
 		while [ "$$($(ADB) shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" != "1" ]; do sleep 1; done; \
 		echo "=== Emulator ready ==="; \
 	fi
-	@echo "=== Building & installing Android app ==="
-	@cd android && ./gradlew installDebug
+	@echo "=== Building & installing Android app ($(SDUI_ANDROID_BASE_URL)) ==="
+	@cd android && ./gradlew installDebug -PSDUI_ANDROID_BASE_URL="$(SDUI_ANDROID_BASE_URL)"
 	@echo "=== Launching app ==="
 	@$(ADB) shell am force-stop com.nba.sdui.app 2>/dev/null || true
 	@$(ADB) shell am start -n com.nba.sdui.app/.MainActivity
@@ -150,7 +184,7 @@ ios-sim-preflight:
 		echo "ERROR: Simulator '$(IOS_SIM_NAME)' is not available."; \
 		echo "       Available simulators:"; \
 		xcrun simctl list devices available | sed 's/^/         /'; \
-		echo "       Override with: make ios-run IOS_SIM_NAME=\"<available simulator>\""; \
+		echo "       Override with: make dev-ios-local IOS_SIM_NAME=\"<available simulator>\""; \
 		exit 1; \
 	fi
 
@@ -177,18 +211,30 @@ ios-build: ios-fixtures-sync ios-sim-preflight
 		-destination "$(IOS_DESTINATION)" \
 		-skipMacroValidation | $(IOS_PIPE)
 
-# `make ios-run` builds and launches the SduiDemo host app in the iOS
-# simulator. Mirrors `make dev-android`. Ably stays disabled on the x86_64
-# simulator (Intel hosts) — set SDUI_DISABLE_ABLY=0 on arm64 to enable it.
+# `make dev-ios-local` / `make dev-ios-remote` builds and launches the
+# SduiDemo host app in the iOS simulator. Mirrors `make dev-android-*`.
+# Ably stays disabled on the x86_64 simulator (Intel hosts) — set
+# SDUI_DISABLE_ABLY=0 on arm64 to enable it.
 #
 # Pre-req: `make dev-server` so the app has something to hit at localhost:8080.
 ios-demo-project:
 	@echo "=== Regenerating SduiDemo.xcodeproj ==="
 	@cd ios/SduiDemo && xcodegen generate --quiet
 
-ios-run: ios-sim-preflight ios-demo-project
-	@if ! curl -sf http://localhost:8080/v1/sdui/demos >/dev/null 2>&1; then \
-		echo "WARNING: server not reachable at http://localhost:8080"; \
+ios-run: dev-ios-local
+ios-run-local: dev-ios-local
+ios-run-remote: dev-ios-remote
+
+dev-ios-local:
+	@$(MAKE) _dev-ios SDUI_IOS_BASE_URL="$(SDUI_IOS_LOCAL_SERVER)" CHECK_LOCAL_SERVER=1 IOS_SIM_NAME="$(DEV_IOS_SIM_NAME)"
+
+dev-ios-remote:
+	@$(MAKE) _dev-ios SDUI_IOS_BASE_URL="$(SDUI_IOS_REMOTE_SERVER)" CHECK_LOCAL_SERVER=0 IOS_SIM_NAME="$(DEV_IOS_SIM_NAME)"
+
+_dev-ios: ios-sim-preflight ios-demo-project
+	@echo "=== Launching iOS against SDUI server: $(SDUI_IOS_BASE_URL) ==="
+	@if [ "$(CHECK_LOCAL_SERVER)" = "1" ] && ! curl -sf $(SDUI_LOCAL_SERVER)/v1/sdui/demos >/dev/null 2>&1; then \
+		echo "WARNING: local server not reachable at $(SDUI_LOCAL_SERVER)"; \
 		echo "         run 'make dev-server' in another terminal first"; \
 	fi
 	@echo "=== Cleaning package caches ==="
@@ -275,14 +321,14 @@ ios-run: ios-sim-preflight ios-demo-project
 	 xcrun simctl install booted "$$APP"
 	@echo "=== Launching app ==="
 	@xcrun simctl terminate booted $(IOS_DEMO_BUNDLE) 2>/dev/null || true
-	@xcrun simctl launch booted $(IOS_DEMO_BUNDLE)
+	@SIMCTL_CHILD_SDUI_IOS_BASE_URL="$(SDUI_IOS_BASE_URL)" xcrun simctl launch booted $(IOS_DEMO_BUNDLE)
 	@echo "=== Tailing logs (Ctrl-C to stop) ==="
 	@xcrun simctl spawn booted log stream --level debug \
 		--predicate 'subsystem == "com.nba.sdui"'
 
 # Run on iPhone 15 Pro Max for testing larger screens / responsive layouts
 ios-run-max:
-	@$(MAKE) ios-run IOS_SIM_NAME="iPhone 15 Pro Max"
+	@$(MAKE) dev-ios-local IOS_SIM_NAME="iPhone 15 Pro Max"
 
 ios-stop:
 	@echo "=== Stopping SduiDemo ==="

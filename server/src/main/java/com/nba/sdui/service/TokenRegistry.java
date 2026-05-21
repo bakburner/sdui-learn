@@ -105,13 +105,19 @@ public class TokenRegistry {
             Map.Entry<String, JsonNode> e = it.next();
             if (e.getKey().startsWith("$")) continue;
             JsonNode v = e.getValue();
-            String light = v.path("light").asText(null);
-            String dark = v.path("dark").asText(null);
+            String light = extractUiValue(v.path("light"));
+            String dark = extractUiValue(v.path("dark"));
             if (light != null && dark != null) {
                 palette.put(e.getKey(), new PaletteEntry(light, dark));
                 allTokenNames.add(e.getKey());
             }
         }
+    }
+
+    private String extractUiValue(JsonNode node) {
+        if (node.isTextual()) return node.asText();
+        if (node.isObject() && node.has("*")) return node.path("*").asText(null);
+        return null;
     }
 
     /**

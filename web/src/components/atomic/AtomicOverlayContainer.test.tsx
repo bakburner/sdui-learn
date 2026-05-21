@@ -11,7 +11,7 @@ describe('AtomicOverlayContainer — DOM structure', () => {
       type: UIType.Image,
       src: 'https://example.com/hero.jpg',
       fit: 'cover',
-      fillWidth: true,
+      widthMode: 'fill',
     } as AtomicElement;
 
     const element: AtomicElement = {

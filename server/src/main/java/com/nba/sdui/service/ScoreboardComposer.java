@@ -58,13 +58,12 @@ public class ScoreboardComposer {
         if (response == null) {
             response = objectMapper.createObjectNode();
             response.put("id", "scoreboard-live");
-            response.put("title", "Today's Games");
             response.set("sections", objectMapper.createArrayNode());
         }
 
         response.put("traceId", traceId);
         response.put("schemaVersion", schemaVersion);
-        response.set("navigation", utils.buildNavigation("scoreboard"));
+        utils.applyTabDestinationNavigation(response, "scoreboard");
 
         if (variant != null) {
             switch (variant.toUpperCase()) {
@@ -94,7 +93,6 @@ public class ScoreboardComposer {
 
             ObjectNode response = objectMapper.createObjectNode();
             response.put("id", "scoreboard-live");
-            response.put("title", "Today's Games");
             response.put("analyticsId", "scoreboard_live");
 
             ArrayNode sections = objectMapper.createArrayNode();

@@ -201,7 +201,9 @@ class ActionHandler {
 
         val operation = action.operation?.value ?: MutateOperation.Set.value
         SduiActionLogger.debug(action, "mutate op=$operation $key=$value")
-        stateManager.applyOperation(action.operation, key, value)
+        if (!stateManager.applyOperation(action.operation, key, value)) {
+            return ActionResult.MutateNoOp(key, "Operation had no effect")
+        }
 
         return ActionResult.MutateResult(key, stateManager.getState(key))
     }

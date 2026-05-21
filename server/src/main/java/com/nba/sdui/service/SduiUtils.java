@@ -95,6 +95,62 @@ public class SduiUtils {
         return navigation;
     }
 
+    /**
+     * Bottom-nav tab destinations: wire navigation and strip legacy {@code title}.
+     * Header chrome is omitted — the selected tab label is sufficient.
+     */
+    public void applyTabDestinationNavigation(ObjectNode response, String activeScreenId) {
+        response.remove("title");
+        response.set("navigation", buildNavigation(activeScreenId));
+    }
+
+    /**
+     * When the screen carries {@code title} and/or {@code parentUri}, prepend an
+     * {@code AtomicComposite} app-bar section (token spacing, back navigate action)
+     * and remove top-level {@code title} so clients do not render a platform app bar.
+     */
+    /**
+     * Default scroll-feed padding when the composer did not set {@code contentInsets}.
+     * Matches former client hardcodes: horizontal {@link LayoutTokens#SPACING_MD},
+     * bottom {@link LayoutTokens#SPACING_LG}.
+     */
+    public void ensureScreenContentInsets(ObjectNode response) {
+        if (response.has("contentInsets")) {
+            return;
+        }
+        ObjectNode insets = objectMapper.createObjectNode();
+        insets.put("start", LayoutTokens.SPACING_MD);
+        insets.put("end", LayoutTokens.SPACING_MD);
+        insets.put("bottom", LayoutTokens.SPACING_LG);
+        response.set("contentInsets", insets);
+    }
+
+    public void prependAppBarHeaderIfNeeded(ObjectNode response) {
+        String screenId = response.path("id").asText("screen");
+        String title = response.has("title") ? response.path("title").asText(null) : null;
+        String backUri = response.has("parentUri") ? response.path("parentUri").asText(null) : null;
+        boolean hasTitle = title != null && !title.isBlank();
+        boolean hasBack = backUri != null && !backUri.isBlank();
+        if (!hasTitle && !hasBack) {
+            response.remove("title");
+            return;
+        }
+
+        String sectionId = screenId + ":app-bar";
+        ObjectNode header = atomicBuilder.buildAppBarHeaderComposite(
+                sectionId, screenId + "_app_bar", title, backUri);
+        header.set("surface", flushSurface());
+
+        ArrayNode sections = response.has("sections") && response.get("sections").isArray()
+                ? (ArrayNode) response.get("sections")
+                : objectMapper.createArrayNode();
+        ArrayNode merged = objectMapper.createArrayNode();
+        merged.add(header);
+        sections.forEach(merged::add);
+        response.set("sections", merged);
+        response.remove("title");
+    }
+
     // ── Boxscore column definitions ────────────────────────────────────
 
     /**
@@ -326,56 +382,68 @@ public class SduiUtils {
             case "final" -> "game-detail-final.json";
             default -> "game-detail-pre.json";
         };
+        return loadExampleJsonFile(filename);
+    }
 
+    public ObjectNode loadExampleByFilename(String filename) throws IOException {
+        JsonNode loaded = loadExampleJsonFile(filename);
+        return loaded instanceof ObjectNode objectNode ? objectNode : null;
+    }
+
+    private JsonNode loadExampleJsonFile(String filename) throws IOException {
+        JsonNode loaded = null;
         try {
             ClassPathResource resource = new ClassPathResource("examples/" + filename);
             if (resource.exists()) {
                 try (InputStream is = resource.getInputStream()) {
-                    return objectMapper.readTree(is);
+                    loaded = objectMapper.readTree(is);
                 }
             }
         } catch (Exception e) {
             log.debug("Could not load from classpath, trying file system");
         }
 
-        Path filePath = Path.of("../schema/examples/" + filename);
-        if (Files.exists(filePath)) {
-            return objectMapper.readTree(Files.readString(filePath));
+        if (loaded == null) {
+            Path filePath = Path.of("../schema/examples/" + filename);
+            if (Files.exists(filePath)) {
+                loaded = objectMapper.readTree(Files.readString(filePath));
+            }
         }
 
-        filePath = Path.of("schema/examples/" + filename);
-        if (Files.exists(filePath)) {
-            return objectMapper.readTree(Files.readString(filePath));
+        if (loaded == null) {
+            Path filePath = Path.of("schema/examples/" + filename);
+            if (Files.exists(filePath)) {
+                loaded = objectMapper.readTree(Files.readString(filePath));
+            }
         }
 
-        log.error("Could not load example file: {}", filename);
-        return null;
+        if (loaded == null) {
+            log.error("Could not load example file: {}", filename);
+            return null;
+        }
+        return normalizeLegacyNavigateFields(loaded);
     }
 
-    public ObjectNode loadExampleByFilename(String filename) throws IOException {
-        try {
-            ClassPathResource resource = new ClassPathResource("examples/" + filename);
-            if (resource.exists()) {
-                try (InputStream is = resource.getInputStream()) {
-                    return (ObjectNode) objectMapper.readTree(is);
+    /**
+     * Example fixtures may still carry pre-schema {@code fallbackUrl} on navigate
+     * actions; clients decode strictly on {@code webUrl}.
+     */
+    private JsonNode normalizeLegacyNavigateFields(JsonNode node) {
+        if (node.isObject()) {
+            ObjectNode obj = (ObjectNode) node;
+            if (obj.has("fallbackUrl")) {
+                if (!obj.has("webUrl")) {
+                    obj.set("webUrl", obj.get("fallbackUrl"));
                 }
+                obj.remove("fallbackUrl");
             }
-        } catch (Exception e) {
-            log.debug("Could not load {} from classpath, trying file system", filename);
+            obj.properties().forEach(entry -> normalizeLegacyNavigateFields(entry.getValue()));
+        } else if (node.isArray()) {
+            for (JsonNode child : node) {
+                normalizeLegacyNavigateFields(child);
+            }
         }
-
-        Path filePath = Path.of("../schema/examples/" + filename);
-        if (Files.exists(filePath)) {
-            return (ObjectNode) objectMapper.readTree(Files.readString(filePath));
-        }
-
-        filePath = Path.of("schema/examples/" + filename);
-        if (Files.exists(filePath)) {
-            return (ObjectNode) objectMapper.readTree(Files.readString(filePath));
-        }
-
-        log.error("Could not load example file: {}", filename);
-        return null;
+        return node;
     }
 
     // ── Section surface (server-driven wrapper around section content) ─
@@ -437,6 +505,58 @@ public class SduiUtils {
      */
     public ObjectNode flushSurface() {
         return objectMapper.createObjectNode();
+    }
+
+    /**
+     * Square, full-bleed strip: token secondary background and padding, no margin.
+     * Composed from standard {@link SectionSurface} fields (not a tab-specific wire type).
+     */
+    public ObjectNode secondaryStripSurface() {
+        ObjectNode surface = objectMapper.createObjectNode();
+        surface.put("cornerRadius", 0);
+        surface.put("background", "token:nba.bg.secondary");
+        surface.set("padding", spacingTokens(
+                LayoutTokens.SPACING_SM,
+                LayoutTokens.SPACING_MD,
+                LayoutTokens.SPACING_XS,
+                LayoutTokens.SPACING_MD));
+        return surface;
+    }
+
+    /**
+     * One {@code section.subsections} entry per tab, each carrying an
+     * {@code onActivate → mutate} action for tab selection (core action semantic).
+     */
+    public ArrayNode tabSelectSubsections(ArrayNode tabs, String stateKey) {
+        ArrayNode subsections = objectMapper.createArrayNode();
+        for (JsonNode tab : tabs) {
+            String tabId = tab.path("id").asText();
+            String stateValue = tab.path("stateValue").asText(tabId);
+            ObjectNode sub = objectMapper.createObjectNode();
+            sub.put("id", tabId);
+            ArrayNode actions = objectMapper.createArrayNode();
+            ObjectNode mutate = objectMapper.createObjectNode();
+            mutate.put("trigger", "onActivate");
+            mutate.put("type", "mutate");
+            mutate.put("target", stateKey);
+            mutate.put("value", stateValue);
+            actions.add(mutate);
+            sub.set("actions", actions);
+            subsections.add(sub);
+        }
+        return subsections;
+    }
+
+    /**
+     * Build a Spacing node whose edges are layout-token wire strings.
+     */
+    public ObjectNode spacingTokens(String top, String end, String bottom, String start) {
+        ObjectNode s = objectMapper.createObjectNode();
+        if (top != null && !top.isBlank()) s.put("top", top);
+        if (end != null && !end.isBlank()) s.put("end", end);
+        if (bottom != null && !bottom.isBlank()) s.put("bottom", bottom);
+        if (start != null && !start.isBlank()) s.put("start", start);
+        return s;
     }
 
     /**
@@ -763,6 +883,7 @@ public class SduiUtils {
      * Sections that already have a stringTable are left unchanged.
      */
     public void stampStringTableOnSections(ObjectNode response, String locale) {
+        ensureScreenContentInsets(response);
         JsonNode sections = response.get("sections");
         if (sections == null || !sections.isArray()) return;
         ObjectNode table = buildStringTable(locale);

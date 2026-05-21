@@ -1,11 +1,12 @@
-import React, { memo } from 'react';
+import React, { useEffect, memo } from 'react';
 import type { Action } from '@sdui/models';
 import type { AtomicProps } from './AtomicRouter';
 import { AtomicRouter } from './AtomicRouter';
 import { AtomicBox, AtomicBoxBadge } from './AtomicBox';
 import { accessibilityProps } from '../../utils/accessibility';
 import { areAtomicPropsEqual } from './areAtomicPropsEqual';
-import { getActivateActions } from './getActivateActions';
+import { activationKeyboardProps, longPressPointerProps } from './atomicActionHandlers';
+import { logUnsupportedAtomicTriggers, selectActions } from './getActivateActions';
 import {
   currentFormFactor,
   resolveAspectRatio,
@@ -27,6 +28,10 @@ import {
  * below the breakpoint width using a CSS media query.
  */
 function AtomicContainerInner({ element, state, onAction, depth = 0, onStateChange, sectionSlotDepth }: AtomicProps): React.ReactElement {
+  useEffect(() => {
+    logUnsupportedAtomicTriggers(element.actions as Action[] | undefined, element.id);
+  }, [element.actions, element.id]);
+
   const isRow = element.direction === 'row';
   const hasBreakpoint = isRow && element.breakpoint != null;
   const className = hasBreakpoint ? `sdui-ac-${element.id ?? depth}` : undefined;
@@ -42,9 +47,16 @@ function AtomicContainerInner({ element, state, onAction, depth = 0, onStateChan
     console.warn('a11y_container_missing_label', { elementId: element.id });
   }
 
-  const activateActions = getActivateActions(element.actions as Action[] | undefined);
+  const activateActions = selectActions(element.actions as Action[] | undefined, 'onActivate');
+  const longPressActions = selectActions(element.actions as Action[] | undefined, 'onLongPress');
+  const focusActions = selectActions(element.actions as Action[] | undefined, 'onFocus');
+  const blurActions = selectActions(element.actions as Action[] | undefined, 'onBlur');
+  const isFocusable = focusActions.length > 0 || blurActions.length > 0;
   const handleClick = activateActions.length > 0
     ? () => { onAction(activateActions); }
+    : undefined;
+  const handleLongPress = longPressActions.length > 0
+    ? () => { onAction(longPressActions); }
     : undefined;
 
   const layoutStyle: React.CSSProperties = {
@@ -93,7 +105,14 @@ function AtomicContainerInner({ element, state, onAction, depth = 0, onStateChan
       className={className}
       onClick={handleClick}
       role={handleClick ? 'button' : undefined}
-      extraProps={accessibilityProps(element.accessibility) as Record<string, unknown>}
+      extraProps={{
+        ...(accessibilityProps(element.accessibility) as Record<string, unknown>),
+        ...(isFocusable ? { tabIndex: 0 } : {}),
+        ...(handleClick ? activationKeyboardProps(handleClick) : {}),
+        ...(handleLongPress ? longPressPointerProps(handleLongPress) : {}),
+        ...(focusActions.length > 0 ? { onFocus: () => onAction(focusActions) } : {}),
+        ...(blurActions.length > 0 ? { onBlur: () => onAction(blurActions) } : {}),
+      }}
       styleOverrides={handleClick ? { cursor: 'pointer' } : undefined}
     >
       {element.children?.map((child, i) => {

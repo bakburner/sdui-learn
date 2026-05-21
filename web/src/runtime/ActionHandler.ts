@@ -144,9 +144,8 @@ function handleMutate(action: Action, context: ActionContext): boolean {
         context.onStateChange(key, !current);
         return true;
       }
-      // TODO(action-mutate): review type-mismatch semantics across platforms
       console.warn('[SDUI/Action] mutate toggle noop: current value is not boolean', { key, current });
-      return true;
+      return false;
 
     case 'increment': {
       if (typeof current === 'number' && Number.isFinite(current)) {
@@ -157,9 +156,8 @@ function handleMutate(action: Action, context: ActionContext): boolean {
         context.onStateChange(key, normalized);
         return true;
       }
-      // TODO(action-mutate): review type-mismatch semantics across platforms
       console.warn('[SDUI/Action] mutate increment noop: current value is not numeric', { key, current });
-      return true;
+      return false;
     }
 
     case 'append':
@@ -179,18 +177,16 @@ function handleMutate(action: Action, context: ActionContext): boolean {
         context.onStateChange(key, [action.value]);
         return true;
       }
-      // TODO(action-mutate): review type-mismatch semantics across platforms
       console.warn('[SDUI/Action] mutate append noop: incompatible value types', {
         key,
         current,
         incoming: action.value,
       });
-      return true;
+      return false;
 
     default:
-      // TODO(action-mutate): review type-mismatch semantics across platforms
       console.warn('[SDUI/Action] mutate noop: unknown operation', { key, operation, current, incoming: action.value });
-      return true;
+      return false;
   }
 }
 

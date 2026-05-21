@@ -111,25 +111,27 @@ public final class ScreenState {
     /// Apply a schema-declared `MutateOperation` at `key` using `incoming` as
     /// the operand. `nil` operation behaves as `.set` for parity with Android.
     /// `internal` because `MutateOperation` is a generated (internal) type.
-    func apply(operation: MutateOperation?, key: String, value incoming: Any?) {
+    /// @return `true` when state was updated; `false` for a logged no-op.
+    @discardableResult
+    func apply(operation: MutateOperation?, key: String, value incoming: Any?) -> Bool {
         let current = slots[key]?.value
         switch operation {
         case .none, .some(.mutateOperationSet):
             set(key, value: incoming)
+            return true
 
         case .some(.toggle):
             guard let current = current as? Bool else {
-                // TODO(action-mutate): review type-mismatch semantics across platforms
                 ScreenStateLogProbe.warning("mutate toggle noop: key=\(key) currentType=\(Self.typeName(for: current))")
-                return
+                return false
             }
             set(key, value: !current)
+            return true
 
         case .some(.increment):
             guard let existing = Self.asStoredNumber(current) else {
-                // TODO(action-mutate): review type-mismatch semantics across platforms
                 ScreenStateLogProbe.warning("mutate increment noop: key=\(key) currentType=\(Self.typeName(for: current))")
-                return
+                return false
             }
             let delta = Self.asDouble(incoming) ?? 1
             let next = existing + delta
@@ -138,23 +140,27 @@ public final class ScreenState {
             } else {
                 set(key, value: next)
             }
+            return true
 
         case .some(.append):
             if var array = current as? [Any] {
                 if let incoming { array.append(incoming) }
                 set(key, value: array)
+                return true
             } else if let current = current as? String, let appended = incoming as? String {
                 set(key, value: current + appended)
+                return true
             } else if current == nil, let incoming {
                 set(key, value: [incoming])
+                return true
             } else {
-                // TODO(action-mutate): review type-mismatch semantics across platforms
                 ScreenStateLogProbe.warning("mutate append noop: key=\(key) currentType=\(Self.typeName(for: current))")
+                return false
             }
 
         default:
-            // TODO(action-mutate): review type-mismatch semantics across platforms
             ScreenStateLogProbe.warning("mutate noop: unknown operation key=\(key) op=\(operation?.rawValue ?? "nil") currentType=\(Self.typeName(for: current))")
+            return false
         }
     }
 

@@ -34,11 +34,25 @@ struct AtomicOverlayContainerView: View {
 
     @ViewBuilder
     private func overlayLayer(_ overlay: AtomicOverlay) -> some View {
+        let el = overlay.element
+        let fillWidth = el.widthMode == .fill
+        let fillHeight = el.heightMode == .fill
+        let stretchToBase = fillWidth || fillHeight
+
         ZStack(alignment: swiftUIAlignment(for: overlay.alignment)) {
-            Color.clear
-            AtomicRouter(element: overlay.element, screenState: screenState, onAction: onAction, depth: depth)
-                .padding(edgeInsets(from: overlay.inset))
+            if stretchToBase {
+                Color.clear
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            AtomicRouter(element: el, screenState: screenState, onAction: onAction, depth: depth)
+                .frame(
+                    maxWidth: fillWidth ? .infinity : nil,
+                    maxHeight: fillHeight ? .infinity : nil,
+                    alignment: swiftUIAlignment(for: overlay.alignment)
+                )
         }
+        .frame(maxWidth: stretchToBase ? .infinity : nil, maxHeight: stretchToBase ? .infinity : nil)
+        .padding(edgeInsets(from: overlay.inset))
     }
 
     private func swiftUIAlignment(for alignment: BadgeAlignment?) -> SwiftUI.Alignment {

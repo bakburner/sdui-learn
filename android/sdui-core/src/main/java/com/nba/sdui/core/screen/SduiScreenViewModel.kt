@@ -47,6 +47,9 @@ open class SduiScreenViewModel(
     private val config: SduiScreenConfig
 ) : ViewModel() {
 
+    /** Origin for resolving root-relative wire asset URLs (e.g. `/sdui-demo/...`). */
+    val wireAssetBaseUrl: String get() = config.baseUrl
+
     companion object {
         private const val TAG = "SduiScreenViewModel"
         private const val POLL_FAILURE_THRESHOLD = 2
@@ -120,6 +123,13 @@ open class SduiScreenViewModel(
     // ── Internal bookkeeping ─────────────────────────────────────────
     private var currentScreen: SduiModels? = null
     private var currentEndpoint: String? = null   // resolved server path — used for refresh / polling
+
+    /**
+     * Last successfully loaded screen payload. Kept when a later fetch fails so
+     * shell navigation (bottom bar) and [parentUri] remain available for escape.
+     */
+    val shellScreen: SduiModels?
+        get() = currentScreen
     private val pollingJobs = mutableMapOf<String, Job>()
 
     init {

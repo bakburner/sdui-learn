@@ -11,6 +11,10 @@ struct SduiModels: Codable {
     /// Screen-level actions (e.g. analytics beacons, lifecycle hooks)
     let actions: [Action]?
     let analyticsID: String?
+    /// Outer padding around the scrollable section feed (start/end/top/bottom). Server emits
+    /// semantic layout tokens (e.g. token:nba.spacing.md); clients resolve via
+    /// LayoutTokenResolver. Omit only when the screen is intentionally edge-to-edge.
+    let contentInsets: Spacing?
     let defaultRefreshPolicy: RefreshPolicy?
     let id: String
     let navigation: Navigation?
@@ -25,7 +29,11 @@ struct SduiModels: Codable {
     let schemaVersion: String
     let sections: [Section]
     let state: [String: JSONAny]?
-    let title, traceID: String?
+    /// Legacy headline consumed at composition time to build the first AtomicComposite app-bar
+    /// section (see prependAppBarHeader). Not rendered from screen.title by clients. Omit on
+    /// bottom-nav tab destinations.
+    let title: String?
+    let traceID: String?
     /// Server-exposed A/B / experiment variants available for this screen. Clients read
     /// `options` to render a variant picker (dev UI, QA tooling) and pass the selected id back
     /// to the server on subsequent requests. Omit for screens without active experiments.
@@ -34,7 +42,7 @@ struct SduiModels: Codable {
     enum CodingKeys: String, CodingKey {
         case actions
         case analyticsID = "analyticsId"
-        case defaultRefreshPolicy, id, navigation, overlays
+        case contentInsets, defaultRefreshPolicy, id, navigation, overlays
         case parentURI = "parentUri"
         case schemaVersion, sections, state, title
         case traceID = "traceId"
@@ -63,6 +71,7 @@ extension SduiModels {
     func with(
         actions: [Action]?? = nil,
         analyticsID: String?? = nil,
+        contentInsets: Spacing?? = nil,
         defaultRefreshPolicy: RefreshPolicy?? = nil,
         id: String? = nil,
         navigation: Navigation?? = nil,
@@ -78,6 +87,7 @@ extension SduiModels {
         return SduiModels(
             actions: actions ?? self.actions,
             analyticsID: analyticsID ?? self.analyticsID,
+            contentInsets: contentInsets ?? self.contentInsets,
             defaultRefreshPolicy: defaultRefreshPolicy ?? self.defaultRefreshPolicy,
             id: id ?? self.id,
             navigation: navigation ?? self.navigation,
@@ -459,6 +469,129 @@ enum ActionType: String, Codable {
     case toast = "toast"
 }
 
+/// Outer padding around the scrollable section feed (start/end/top/bottom). Server emits
+/// semantic layout tokens (e.g. token:nba.spacing.md); clients resolve via
+/// LayoutTokenResolver. Omit only when the screen is intentionally edge-to-edge.
+///
+/// Outer space between the element and its siblings or parent edges. Applied outside the
+/// element's background, border, corner radius, and shadow — use this for sibling-to-sibling
+/// spacing instead of Spacer siblings when inhomogeneous gaps are needed.
+///
+/// Optional edge offsets from the aligned base bounds.
+///
+/// Inner space between the element's own background/border and its content.
+///
+/// Outer margin (space between the surface and its siblings / screen edge).
+///
+/// Inner padding (space between the surface edge and the content it wraps).
+// MARK: - Spacing
+struct Spacing: Codable {
+    let bottom, end, start, top: LayoutScalar?
+}
+
+// MARK: Spacing convenience initializers and mutators
+
+extension Spacing {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(Spacing.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        bottom: LayoutScalar?? = nil,
+        end: LayoutScalar?? = nil,
+        start: LayoutScalar?? = nil,
+        top: LayoutScalar?? = nil
+    ) -> Spacing {
+        return Spacing(
+            bottom: bottom ?? self.bottom,
+            end: end ?? self.end,
+            start: start ?? self.start,
+            top: top ?? self.top
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+/// Absolute layout value: raw dp/px integer, or a semantic layout token reference
+/// token:<path> (e.g. token:nba.spacing.md, token:nba.radius.lg) resolved per
+/// platform.formFactor against bundled spacing/corner/size/typography/shadow registries.
+/// Unknown tokens log token_resolver_missing and fall back to 0 (or caller default).
+///
+/// Bottom-trailing corner.
+///
+/// Bottom-leading corner.
+///
+/// Top-trailing corner (top-right in LTR, top-left in RTL).
+///
+/// Top-leading corner (top-left in LTR, top-right in RTL).
+///
+/// Corner radius: dp/px or layout token. Applied to Container (with overflow clip) and Image
+/// elements.
+///
+/// Gap between wrapped lines when layoutWrap is true. Falls back to gap when absent. Ignored
+/// when layoutWrap is false.
+///
+/// Gap between flex children (row/column), or grid gap where applicable.
+///
+/// Fixed height in dp/px or layout token.
+///
+/// Maximum height constraint in dp/px or layout token.
+///
+/// Maximum width constraint in dp/px or layout token.
+///
+/// Minimum height constraint in dp/px or layout token.
+///
+/// Minimum width constraint in dp/px or layout token.
+///
+/// Fixed width in dp/px or layout token.
+///
+/// Corner radius: dp/px or layout token, applied to the surface (with overflow clip).
+enum LayoutScalar: Codable {
+    case integer(Int)
+    case string(String)
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if let x = try? container.decode(Int.self) {
+            self = .integer(x)
+            return
+        }
+        if let x = try? container.decode(String.self) {
+            self = .string(x)
+            return
+        }
+        throw DecodingError.typeMismatch(LayoutScalar.self, DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Wrong type for LayoutScalar"))
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self {
+        case .integer(let x):
+            try container.encode(x)
+        case .string(let x):
+            try container.encode(x)
+        }
+    }
+}
+
 // MARK: - RefreshPolicy
 struct RefreshPolicy: Codable {
     /// For sse type: Ably channel name pattern (e.g., '{gameId}:linescore')
@@ -732,9 +865,9 @@ extension Badge {
     }
 }
 
-/// Atomic tree describing the banner's full visible surface. Renderer walks this tree
-/// exactly as an AtomicComposite would; no client-side chrome defaults are permitted. See
-/// AGENTS.md §15.1.
+/// Optional atomic tree for the tab header row. When present, renderers walk it via
+/// AtomicRouter; when absent, a minimal platform-native tab row is used. Selected-tab
+/// styling in atomics requires state-bound conditionals (ADR-014).
 ///
 /// Atomic UI primitive — server-composed building block for the atomic rendering layer
 ///
@@ -743,6 +876,10 @@ extension Badge {
 /// OverlayContainer base element. Rendered first and sized by its own atomic box model.
 ///
 /// Atomic element to render in this overlay layer.
+///
+/// Atomic tree describing the banner's full visible surface. Renderer walks this tree
+/// exactly as an AtomicComposite would; no client-side chrome defaults are permitted. See
+/// AGENTS.md §15.1.
 ///
 /// Atomic tree describing the hero's full visible surface — logo, title, subtitle, feature
 /// list, tier cards, CTAs. Renderer walks this tree exactly as an AtomicComposite would.
@@ -1166,7 +1303,9 @@ extension AtomicElement {
 
 /// Section-specific data payload
 ///
-/// Tabbed navigation with dynamic content sections per tab
+/// Tabbed navigation with dynamic content sections per tab. Optional ui is the tab
+/// header/control row only; tabContents hosts nested sections. Tab selection uses
+/// section.subsections mutate actions.
 ///
 /// Typed tabular data for an NBA-style boxscore (one per team)
 ///
@@ -1199,6 +1338,24 @@ struct DataClass: Codable {
     let defaultTab, stateKey: String?
     let tabContents: [String: [Section]]?
     let tabs: [TabData]?
+    /// Optional atomic tree for the tab header row. When present, renderers walk it via
+    /// AtomicRouter; when absent, a minimal platform-native tab row is used. Selected-tab
+    /// styling in atomics requires state-bound conditionals (ADR-014).
+    ///
+    /// Atomic tree describing the banner's full visible surface. Renderer walks this tree
+    /// exactly as an AtomicComposite would; no client-side chrome defaults are permitted. See
+    /// AGENTS.md §15.1.
+    ///
+    /// Atomic tree describing the hero's full visible surface — logo, title, subtitle, feature
+    /// list, tier cards, CTAs. Renderer walks this tree exactly as an AtomicComposite would.
+    ///
+    /// Root node of the atomic element tree — the rendering instructions
+    ///
+    /// Atomic tree describing the pre-SDK placeholder surface (e.g. play-glyph column framed at
+    /// the player's aspectRatio). Renderer walks this tree exactly as an AtomicComposite would;
+    /// no client-side chrome defaults are permitted. Once the video SDK lands this tree becomes
+    /// the loading/error placeholder the SDK overlays.
+    let ui: AtomicElement?
     /// Ordered list of column definitions; clients render left-to-right
     ///
     /// Ordered column definitions; clients render left-to-right
@@ -1265,20 +1422,6 @@ struct DataClass: Codable {
     /// IAP product identifiers + server-emitted prices. Consumed by the IAP SDK when it lands;
     /// not used by the renderer.
     let tiers: [SubscriptionTier]?
-    /// Atomic tree describing the banner's full visible surface. Renderer walks this tree
-    /// exactly as an AtomicComposite would; no client-side chrome defaults are permitted. See
-    /// AGENTS.md §15.1.
-    ///
-    /// Atomic tree describing the hero's full visible surface — logo, title, subtitle, feature
-    /// list, tier cards, CTAs. Renderer walks this tree exactly as an AtomicComposite would.
-    ///
-    /// Root node of the atomic element tree — the rendering instructions
-    ///
-    /// Atomic tree describing the pre-SDK placeholder surface (e.g. play-glyph column framed at
-    /// the player's aspectRatio). Renderer walks this tree exactly as an AtomicComposite would;
-    /// no client-side chrome defaults are permitted. Once the video SDK lands this tree becomes
-    /// the loading/error placeholder the SDK overlays.
-    let ui: AtomicElement?
     /// Optional domain data (strings, URLs, flags) to populate the ui tree. Reserved for future
     /// data-binding support.
     let content: [String: JSONAny]?
@@ -1294,11 +1437,11 @@ struct DataClass: Codable {
     let playerType: PlayerType?
 
     enum CodingKeys: String, CodingKey {
-        case defaultTab, stateKey, tabContents, tabs, columns, emptyMessage, players, sortDirectionStateKey, sortStateKey, teamColor
+        case defaultTab, stateKey, tabContents, tabs, ui, columns, emptyMessage, players, sortDirectionStateKey, sortStateKey, teamColor
         case teamLogoURL = "teamLogoUrl"
         case teamName, teamTotals, teamTricode, fields, layout, submitAction, submitLabel, adUnitPath, collapseOnEmpty, label, placeholder, provider
         case refreshIntervalSEC = "refreshIntervalSec"
-        case sizes, targeting, page, pageSize, sortColumn, sortDirection, subtitle, title, totalRows, ctaAction, tiers, ui, content, autoplay, capabilities
+        case sizes, targeting, page, pageSize, sortColumn, sortDirection, subtitle, title, totalRows, ctaAction, tiers, content, autoplay, capabilities
         case contentID = "contentId"
         case displayConfig, playerType
     }
@@ -1327,6 +1470,7 @@ extension DataClass {
         stateKey: String?? = nil,
         tabContents: [String: [Section]]?? = nil,
         tabs: [TabData]?? = nil,
+        ui: AtomicElement?? = nil,
         columns: [BoxscoreColumnDefinition]?? = nil,
         emptyMessage: String?? = nil,
         players: [PlayerRow]?? = nil,
@@ -1358,7 +1502,6 @@ extension DataClass {
         totalRows: Int?? = nil,
         ctaAction: Action?? = nil,
         tiers: [SubscriptionTier]?? = nil,
-        ui: AtomicElement?? = nil,
         content: [String: JSONAny]?? = nil,
         autoplay: Bool?? = nil,
         capabilities: [Capability]?? = nil,
@@ -1371,6 +1514,7 @@ extension DataClass {
             stateKey: stateKey ?? self.stateKey,
             tabContents: tabContents ?? self.tabContents,
             tabs: tabs ?? self.tabs,
+            ui: ui ?? self.ui,
             columns: columns ?? self.columns,
             emptyMessage: emptyMessage ?? self.emptyMessage,
             players: players ?? self.players,
@@ -1402,7 +1546,6 @@ extension DataClass {
             totalRows: totalRows ?? self.totalRows,
             ctaAction: ctaAction ?? self.ctaAction,
             tiers: tiers ?? self.tiers,
-            ui: ui ?? self.ui,
             content: content ?? self.content,
             autoplay: autoplay ?? self.autoplay,
             capabilities: capabilities ?? self.capabilities,
@@ -1557,125 +1700,6 @@ enum BadgeAlignment: String, Codable {
     case topCenter = "topCenter"
     case topEnd = "topEnd"
     case topStart = "topStart"
-}
-
-/// Outer space between the element and its siblings or parent edges. Applied outside the
-/// element's background, border, corner radius, and shadow — use this for sibling-to-sibling
-/// spacing instead of Spacer siblings when inhomogeneous gaps are needed.
-///
-/// Optional edge offsets from the aligned base bounds.
-///
-/// Inner space between the element's own background/border and its content.
-///
-/// Outer margin (space between the surface and its siblings / screen edge).
-///
-/// Inner padding (space between the surface edge and the content it wraps).
-// MARK: - Spacing
-struct Spacing: Codable {
-    let bottom, end, start, top: LayoutScalar?
-}
-
-// MARK: Spacing convenience initializers and mutators
-
-extension Spacing {
-    init(data: Data) throws {
-        self = try newJSONDecoder().decode(Spacing.self, from: data)
-    }
-
-    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
-        guard let data = json.data(using: encoding) else {
-            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
-        }
-        try self.init(data: data)
-    }
-
-    init(fromURL url: URL) throws {
-        try self.init(data: try Data(contentsOf: url))
-    }
-
-    func with(
-        bottom: LayoutScalar?? = nil,
-        end: LayoutScalar?? = nil,
-        start: LayoutScalar?? = nil,
-        top: LayoutScalar?? = nil
-    ) -> Spacing {
-        return Spacing(
-            bottom: bottom ?? self.bottom,
-            end: end ?? self.end,
-            start: start ?? self.start,
-            top: top ?? self.top
-        )
-    }
-
-    func jsonData() throws -> Data {
-        return try newJSONEncoder().encode(self)
-    }
-
-    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
-        return String(data: try self.jsonData(), encoding: encoding)
-    }
-}
-
-/// Bottom-trailing corner.
-///
-/// Absolute layout value: raw dp/px integer, or a semantic layout token reference
-/// token:<path> (e.g. token:nba.spacing.md, token:nba.radius.lg) resolved per
-/// platform.formFactor against bundled spacing/corner/size/typography/shadow registries.
-/// Unknown tokens log token_resolver_missing and fall back to 0 (or caller default).
-///
-/// Bottom-leading corner.
-///
-/// Top-trailing corner (top-right in LTR, top-left in RTL).
-///
-/// Top-leading corner (top-left in LTR, top-right in RTL).
-///
-/// Corner radius: dp/px or layout token. Applied to Container (with overflow clip) and Image
-/// elements.
-///
-/// Gap between wrapped lines when layoutWrap is true. Falls back to gap when absent. Ignored
-/// when layoutWrap is false.
-///
-/// Gap between flex children (row/column), or grid gap where applicable.
-///
-/// Fixed height in dp/px or layout token.
-///
-/// Maximum height constraint in dp/px or layout token.
-///
-/// Maximum width constraint in dp/px or layout token.
-///
-/// Minimum height constraint in dp/px or layout token.
-///
-/// Minimum width constraint in dp/px or layout token.
-///
-/// Fixed width in dp/px or layout token.
-///
-/// Corner radius: dp/px or layout token, applied to the surface (with overflow clip).
-enum LayoutScalar: Codable {
-    case integer(Int)
-    case string(String)
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer()
-        if let x = try? container.decode(Int.self) {
-            self = .integer(x)
-            return
-        }
-        if let x = try? container.decode(String.self) {
-            self = .string(x)
-            return
-        }
-        throw DecodingError.typeMismatch(LayoutScalar.self, DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Wrong type for LayoutScalar"))
-    }
-
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.singleValueContainer()
-        switch self {
-        case .integer(let x):
-            try container.encode(x)
-        case .string(let x):
-            try container.encode(x)
-        }
-    }
 }
 
 /// Section-level accessibility metadata (landmark role, live region, heading)

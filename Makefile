@@ -30,6 +30,17 @@ ANDROID_SDK ?= $(or $(ANDROID_HOME),$(HOME)/Library/Android/sdk)
 ADB          = $(ANDROID_SDK)/platform-tools/adb
 EMU          = $(ANDROID_SDK)/emulator/emulator
 AVD_NAME    ?= $(shell $(EMU) -list-avds 2>/dev/null | head -1)
+# Lightweight defaults for local SDUI dev (override: make dev-android EMU_MEMORY=2048)
+UNAME_M     := $(shell uname -m)
+ifeq ($(UNAME_M),arm64)
+EMU_GPU     ?= host
+else
+EMU_GPU     ?= swiftshader_indirect
+endif
+EMU_MEMORY  ?= 1536
+EMU_CORES   ?= 1
+# Omit -no-snapshot-load so Quick Boot reuses state after the first cold boot.
+EMU_FLAGS   ?= -memory $(EMU_MEMORY) -cores $(EMU_CORES) -gpu $(EMU_GPU) -no-boot-anim -no-audio
 
 # ── Codegen ──────────────────────────────────────────────────
 codegen:
@@ -80,11 +91,13 @@ dev-android:
 		echo "=== Device/emulator already connected ==="; \
 	else \
 		if [ -z "$(AVD_NAME)" ]; then \
-			echo "ERROR: No AVDs found. Create one via Android Studio > Device Manager."; \
+			echo "ERROR: No AVDs found. See docs/sdui-setup.md Step 9 (Android Studio UI or: brew install --cask android-commandlinetools)."; \
 			exit 1; \
 		fi; \
-		echo "=== Launching emulator: $(AVD_NAME) ==="; \
-		$(EMU) -avd "$(AVD_NAME)" -no-snapshot-load -memory 2048 -gpu swiftshader_indirect -no-boot-anim -no-audio -cores 2 &>/dev/null & \
+		echo "=== Launching emulator: $(AVD_NAME) ($(EMU_MEMORY)MB, $(EMU_CORES) core(s), gpu=$(EMU_GPU)) ==="; \
+		$(EMU) -avd "$(AVD_NAME)" $(EMU_FLAGS) & \
+		sleep 3; \
+		$(ADB) start-server >/dev/null 2>&1; \
 		echo "Waiting for emulator to boot..."; \
 		$(ADB) wait-for-device; \
 		while [ "$$($(ADB) shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" != "1" ]; do sleep 1; done; \

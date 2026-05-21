@@ -12,6 +12,8 @@ interface UseSduiScreenOptions {
 
 interface UseSduiScreenResult {
   screen: SduiModels | null;
+  /** Last successful screen; kept after fetch failures for shell navigation escape. */
+  shellScreen: SduiModels | null;
   loading: boolean;
   error: string | null;
   /** True when the server signals the client must update to continue. */
@@ -31,6 +33,7 @@ export function useSduiScreen(options: UseSduiScreenOptions): UseSduiScreenResul
   const { endpoint, experiments = {} } = options;
 
   const [screen, setScreen] = useState<SduiModels | null>(null);
+  const [shellScreen, setShellScreen] = useState<SduiModels | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [upgradeRequired, setUpgradeRequired] = useState(false);
@@ -53,6 +56,7 @@ export function useSduiScreen(options: UseSduiScreenOptions): UseSduiScreenResul
         setUpgradeRequired(true);
       }
 
+      setShellScreen(data);
       setScreen(data);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
@@ -64,8 +68,22 @@ export function useSduiScreen(options: UseSduiScreenOptions): UseSduiScreenResul
   }, [endpoint, JSON.stringify(experiments)]);
 
   useEffect(() => {
+    setScreen(null);
+    setError(null);
+    setUpgradeRequired(false);
+  }, [endpoint]);
+
+  useEffect(() => {
     fetchScreen();
   }, [fetchScreen]);
 
-  return { screen, loading, error, upgradeRequired, refetch: fetchScreen, setScreen };
+  return {
+    screen,
+    shellScreen,
+    loading,
+    error,
+    upgradeRequired,
+    refetch: fetchScreen,
+    setScreen,
+  };
 }

@@ -1,59 +1,48 @@
 import SwiftUI
+import os
 
-/// TabGroup renderer — owns the selected-tab state. The selection must
-/// persist locally across server refreshes, and nested sections need the
-/// current tab to resolve their content.
-/// The selected tab ID is mirrored into ``ScreenState`` under the
-/// server-declared `stateKey` so mutate/refresh actions can react to
-/// it (`paramBindings` resolve `{{form_selected_tab}}` etc.).
+private let logger = Logger(subsystem: "com.nba.sdui", category: "TabGroup")
+
+/// Native tab-row tokens (aligned with server `secondaryStripSurface`).
+private enum TabStripTokens {
+    static let labelPrimary = "token:nba.label.primary"
+    static let labelSecondary = "token:nba.label.secondary"
+    static let accentBrand = "token:nba.label.accent.brand"
+    static let divider = "token:nba.divider.moderate"
+    static let padH = "token:nba.spacing.md"
+    static let padV = "token:nba.spacing.sm"
+}
+
+/// TabGroup — thin host for tabbed section routing.
+///
+/// Server-owned: ``Section/surface``, ``Section/subsections`` (per-tab mutate),
+/// tab metadata and ``TabGroupData/tabContents``. Optional ``TabGroupData/ui`` is
+/// the tab header only.
+///
+/// Platform-native tab controls when `ui` is absent are client-realized
+/// presentation; selection still dispatches declared subsection actions.
 struct TabGroupView: View {
     let section: Section
     let screenState: ScreenState
     let onAction: (Action) -> Void
 
+    @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
-        if let data = section.data, let tabs = data.tabs {
-            let stateKey = data.stateKey ?? "tab"
-            let selectedTab = screenState.getString(stateKey)
-                ?? data.defaultTab
-                ?? tabs.first?.stateValue
-                ?? tabs.first?.id
-                ?? ""
+        if let data = section.data,
+           let stateKey = data.stateKey,
+           let tabs = data.tabs,
+           !tabs.isEmpty,
+           let selectedTab = screenState.getString(stateKey)
+               ?? data.defaultTab
+               ?? tabs.first?.stateValue
+               ?? tabs.first?.id {
 
             VStack(spacing: 0) {
-                // ScrollViewReader pins the strip's scroll offset to the
-                // active tab on every selection change. We anchor by the
-                // tab's position in the list — tabs in the leading half use
-                // `.leading`, tabs in the trailing half use `.trailing` —
-                // so the ScrollView clamps at its natural bounds whenever
-                // the strip fits the viewport. That keeps leading tabs
-                // (e.g. "Featured" on Watch) from losing their first letter
-                // when a trailing tab (e.g. "League Pass") is selected.
-                // Cropping only kicks in when the strip is genuinely wider
-                // than the viewport and a trailing tab is selected — the
-                // only case where it's unavoidable.
-                ScrollViewReader { proxy in
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 16) {
-                            ForEach(tabs, id: \.id) { tab in
-                                tabButton(
-                                    tab: tab,
-                                    isSelected: (tab.stateValue ?? tab.id) == selectedTab,
-                                    onSelect: {
-                                        screenState.set(stateKey, value: tab.stateValue ?? tab.id)
-                                    }
-                                )
-                                .id(tab.id)
-                            }
-                        }
-                        .padding(.horizontal)
-                    }
-                    .onAppear {
-                        scrollToActiveTab(tabs: tabs, selectedTab: selectedTab, proxy: proxy, animated: false)
-                    }
-                    .onChange(of: selectedTab) { _, newValue in
-                        scrollToActiveTab(tabs: tabs, selectedTab: newValue, proxy: proxy, animated: true)
-                    }
+                if let headerUi = data.ui {
+                    AtomicRouter(element: headerUi, screenState: screenState, onAction: onAction, depth: 0)
+                } else {
+                    nativeTabBar(tabs: tabs, selectedTab: selectedTab)
                 }
 
                 if let tabContents = data.tabContents, let sections = tabContents[selectedTab] {
@@ -68,16 +57,83 @@ struct TabGroupView: View {
         }
     }
 
-    private func scrollToActiveTab(tabs: [TabData], selectedTab: String,
-                                   proxy: ScrollViewProxy, animated: Bool) {
+    @ViewBuilder
+    private func nativeTabBar(tabs: [TabData], selectedTab: String) -> some View {
+        let colors = tabStripColors
+        let padH = LayoutTokenResolver.cgFloat(.string(TabStripTokens.padH))
+        let padV = LayoutTokenResolver.cgFloat(.string(TabStripTokens.padV))
+
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 0) {
+                    ForEach(tabs, id: \.id) { tab in
+                        let tabId = tab.id
+                        let value = tab.stateValue ?? tab.id
+                        let isSelected = value == selectedTab
+                        Button {
+                            dispatchTabSelect(tabId: tabId)
+                        } label: {
+                            Text(tab.label)
+                                .fontWeight(isSelected ? .bold : .regular)
+                                .foregroundColor(isSelected ? colors.primary : colors.secondary)
+                                .padding(.horizontal, padH)
+                                .padding(.vertical, padV)
+                                .overlay(alignment: .bottom) {
+                                    Rectangle()
+                                        .frame(height: 2)
+                                        .foregroundColor(isSelected ? colors.accent : .clear)
+                                }
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
+                        .id(tabId)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .overlay(alignment: .bottom) {
+                Rectangle()
+                    .frame(height: 1)
+                    .foregroundColor(colors.divider)
+            }
+            .onAppear {
+                scrollToActiveTab(tabs: tabs, selectedTab: selectedTab, proxy: proxy, animated: false)
+            }
+            .onChange(of: selectedTab) { _, newValue in
+                scrollToActiveTab(tabs: tabs, selectedTab: newValue, proxy: proxy, animated: true)
+            }
+        }
+    }
+
+    private var tabStripColors: (primary: Color, secondary: Color, accent: Color, divider: Color) {
+        let primary = ColorTokenResolver.resolve(TabStripTokens.labelPrimary, colorScheme: colorScheme) ?? .primary
+        let secondary = ColorTokenResolver.resolve(TabStripTokens.labelSecondary, colorScheme: colorScheme) ?? .secondary
+        let accent = ColorTokenResolver.resolve(TabStripTokens.accentBrand, colorScheme: colorScheme) ?? Color.accentColor
+        let divider = ColorTokenResolver.resolve(TabStripTokens.divider, colorScheme: colorScheme) ?? Color.secondary.opacity(0.3)
+        return (primary, secondary, accent, divider)
+    }
+
+    private func dispatchTabSelect(tabId: String) {
+        guard let action = SectionInteractions.subsectionPrimaryAction(
+            for: section,
+            subsectionID: tabId
+        ) else {
+            logger.warning("missing subsection mutate action sectionId=\(section.id, privacy: .public) tabId=\(tabId, privacy: .public)")
+            return
+        }
+        onAction(action)
+    }
+
+    private func scrollToActiveTab(
+        tabs: [TabData],
+        selectedTab: String,
+        proxy: ScrollViewProxy,
+        animated: Bool
+    ) {
         guard let activeIndex = tabs.firstIndex(where: {
             ($0.stateValue ?? $0.id) == selectedTab
         }) ?? (tabs.isEmpty ? nil : 0) else { return }
         let active = tabs[activeIndex]
-        // Leading-half tabs clamp to `.leading` (offset 0 when the strip
-        // fits), trailing-half tabs clamp to `.trailing`. With (n+1)/2 as
-        // the split, an odd-length strip puts the middle tab on the
-        // leading side, which keeps Featured-style first tabs un-cropped.
         let anchor: UnitPoint = activeIndex < (tabs.count + 1) / 2 ? .leading : .trailing
         let scroll = { proxy.scrollTo(active.id, anchor: anchor) }
         if animated {
@@ -85,23 +141,5 @@ struct TabGroupView: View {
         } else {
             scroll()
         }
-    }
-
-    @ViewBuilder
-    private func tabButton(tab: TabData, isSelected: Bool, onSelect: @escaping () -> Void) -> some View {
-        Button(action: onSelect) {
-            Text(tab.label)
-                .fontWeight(isSelected ? .bold : .regular)
-                .foregroundColor(isSelected ? .primary : .secondary)
-                .padding(.vertical, 8)
-                .overlay(
-                    Rectangle()
-                        .frame(height: 2)
-                        .foregroundColor(isSelected ? .accentColor : .clear),
-                    alignment: .bottom
-                )
-        }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
     }
 }

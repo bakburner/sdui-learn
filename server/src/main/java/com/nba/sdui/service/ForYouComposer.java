@@ -83,11 +83,10 @@ public class ForYouComposer {
 
         ObjectNode response = objectMapper.createObjectNode();
         response.put("id", "for-you");
-        response.put("title", "For You");
         response.put("analyticsId", "for_you");
         response.put("traceId", traceId);
         response.put("schemaVersion", schemaVersion);
-        response.set("navigation", utils.buildNavigation("for-you"));
+        utils.applyTabDestinationNavigation(response, "for-you");
 
         ArrayNode sections = objectMapper.createArrayNode();
 

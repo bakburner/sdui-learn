@@ -7,7 +7,9 @@
     {
       "id": "sponsor-row-section",
       "type": "AtomicComposite",
-      "refreshPolicy": { "type": "static" },
+      "refreshPolicy": {
+        "type": "static"
+      },
       "data": {
         "ui": {
           "id": "sponsor-row-root",
@@ -16,8 +18,12 @@
           "alignment": "center",
           "crossAlignment": "center",
           "gap": 12,
-          "fillWidth": true,
-          "padding": { "top": 8, "bottom": 8, "start": 16, "end": 16 },
+          "padding": {
+            "top": 8,
+            "bottom": 8,
+            "start": 16,
+            "end": 16
+          },
           "background": "token:nba.bg.secondary",
           "children": [
             {
@@ -40,7 +46,8 @@
               "height": 24,
               "fit": "contain"
             }
-          ]
+          ],
+          "widthMode": "fill"
         }
       }
     }

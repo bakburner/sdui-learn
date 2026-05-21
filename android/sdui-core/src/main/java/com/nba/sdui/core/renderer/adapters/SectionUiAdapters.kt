@@ -43,14 +43,6 @@ fun mapTabGroup(section: Section, screenState: Map<String, Any>): TabGroupUiMode
     )
 }
 
-fun mapTabMutateAction(stateKey: String, stateValue: String): SduiAction =
-    SduiAction(
-        trigger = "onActivate",
-        type = "mutate",
-        target = stateKey,
-        value = stateValue
-    )
-
 // ============ BoxscoreTable ============
 
 data class BoxscoreColumnDef(

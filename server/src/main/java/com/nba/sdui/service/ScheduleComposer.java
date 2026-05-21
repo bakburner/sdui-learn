@@ -45,11 +45,10 @@ public class ScheduleComposer {
 
         ObjectNode response = objectMapper.createObjectNode();
         response.put("id", "schedule");
-        response.put("title", SduiUtils.getLocalizedString(locale, "screen.schedule"));
         response.put("analyticsId", "schedule");
         response.put("traceId", traceId);
         response.put("schemaVersion", schemaVersion);
-        response.set("navigation", utils.buildNavigation("schedule"));
+        utils.applyTabDestinationNavigation(response, "schedule");
 
         // Initial chip selections. See Phase D.1 scope note in
         // docs/plans/ios-led-ux-rebuild.md — /sdui/schedule does not yet parse

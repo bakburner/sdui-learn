@@ -58,11 +58,10 @@ public class HomeComposer {
 
         ObjectNode response = objectMapper.createObjectNode();
         response.put("id", "home");
-        response.put("title", "Home");
         response.put("analyticsId", "home");
         response.put("traceId", traceId);
         response.put("schemaVersion", schemaVersion);
-        response.set("navigation", utils.buildNavigation("home"));
+        utils.applyTabDestinationNavigation(response, "home");
 
         ArrayNode sections = objectMapper.createArrayNode();
 

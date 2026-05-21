@@ -47,11 +47,10 @@ public class WatchComposer {
 
         ObjectNode response = objectMapper.createObjectNode();
         response.put("id", "watch");
-        response.put("title", "Watch");
         response.put("analyticsId", "watch");
         response.put("traceId", traceId);
         response.put("schemaVersion", schemaVersion);
-        response.set("navigation", utils.buildNavigation("watch"));
+        utils.applyTabDestinationNavigation(response, "watch");
 
         ArrayNode sections = objectMapper.createArrayNode();
 
@@ -59,6 +58,12 @@ public class WatchComposer {
         sections.add(buildTabGroup());
 
         response.set("sections", sections);
+
+        // Subnav is edge-to-edge under top navigation — no horizontal screen inset.
+        ObjectNode insets = objectMapper.createObjectNode();
+        insets.put("bottom", LayoutTokens.SPACING_LG);
+        response.set("contentInsets", insets);
+
         utils.stampStringTableOnSections(response, locale);
         return response;
     }
@@ -92,6 +97,14 @@ public class WatchComposer {
         data.set("tabContents", tabContents);
 
         section.set("data", data);
+        section.set("subsections", utils.tabSelectSubsections(tabs, "watch_active_tab"));
+        section.set("surface", utils.secondaryStripSurface());
+
+        ObjectNode layoutHints = objectMapper.createObjectNode();
+        layoutHints.put("marginTop", 0);
+        layoutHints.put("marginBottom", 0);
+        section.set("layoutHints", layoutHints);
+
         return section;
     }
 
@@ -523,11 +536,11 @@ public class WatchComposer {
             children.add(logoImg);
             children.add(atomicBuilder.spacer(LayoutTokens.SPACING_MD));
         }
-        ObjectNode heroTitle = atomicBuilder.text(title, "headlineMedium", "bold", ColorTokens.TEXT_INVERSE, null);
+        ObjectNode heroTitle = atomicBuilder.text(title, "headlineMedium", "bold", ColorTokens.TEXT_ON_DARK_MEDIA, null);
         addHeading(objectMapper, heroTitle, title, 2);
         children.add(heroTitle);
         if (subtitle != null) {
-            children.add(atomicBuilder.text(subtitle, "bodyLarge", null, ColorTokens.TEXT_INVERSE, null));
+            children.add(atomicBuilder.text(subtitle, "bodyLarge", null, ColorTokens.TEXT_ON_DARK_MEDIA, null));
         }
         children.add(atomicBuilder.spacer(LayoutTokens.SPACING_LG));
 
@@ -540,7 +553,7 @@ public class WatchComposer {
             row.put("gap", 8);
             ArrayNode rowChildren = objectMapper.createArrayNode();
             rowChildren.add(atomicBuilder.text("✓", "bodyLarge", "bold", "token:nba.color.feedback.success.70", null));
-            rowChildren.add(atomicBuilder.text(feature, "bodyLarge", null, ColorTokens.TEXT_INVERSE, null));
+            rowChildren.add(atomicBuilder.text(feature, "bodyLarge", null, ColorTokens.TEXT_ON_DARK_MEDIA, null));
             row.set("children", rowChildren);
             featureChildren.add(row);
         }
@@ -567,23 +580,23 @@ public class WatchComposer {
     private ObjectNode buildTierUi(TierSpec t) {
         ObjectNode card = atomicBuilder.container("column", "start", "start");
         card.put("gap", 6);
-        card.put("background", "rgba(255,255,255,0.1)");
+        card.put("background", ColorTokens.SURFACE_TIER_ON_DARK);
         card.put("cornerRadius", 16);
         card.set("padding", atomicBuilder.padding(22, 22, 20, 20));
         card.put("widthMode", "fill");
 
         ArrayNode cardChildren = objectMapper.createArrayNode();
         if (t.badgeText != null) {
-            cardChildren.add(atomicBuilder.text(t.badgeText, "labelMedium", "bold", "token:nba.color.secondary.50", null));
+            cardChildren.add(atomicBuilder.text(t.badgeText, "labelMedium", "bold", ColorTokens.LABEL_ACCENT_GOLD_ON_DARK, null));
         }
-        ObjectNode tierName = atomicBuilder.text(t.name, "titleLarge", "bold", ColorTokens.TEXT_INVERSE, null);
+        ObjectNode tierName = atomicBuilder.text(t.name, "titleLarge", "bold", ColorTokens.TEXT_ON_DARK_MEDIA, null);
         addHeading(objectMapper, tierName, t.name, 3);
         cardChildren.add(tierName);
-        cardChildren.add(atomicBuilder.text(t.price, "headlineSmall", "bold", ColorTokens.TEXT_INVERSE, null));
+        cardChildren.add(atomicBuilder.text(t.price, "headlineSmall", "bold", ColorTokens.TEXT_ON_DARK_MEDIA, null));
 
         if (t.features != null) {
             for (String f : t.features) {
-                cardChildren.add(atomicBuilder.text("• " + f, "bodyMedium", null, ColorTokens.TEXT_INVERSE, null));
+                cardChildren.add(atomicBuilder.text("• " + f, "bodyMedium", null, ColorTokens.TEXT_ON_DARK_MEDIA, null));
             }
         }
         cardChildren.add(atomicBuilder.spacer(10));

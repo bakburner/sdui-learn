@@ -197,11 +197,9 @@ export function buildBoxStyle(
     if (element.padding.start != null)  style.paddingLeft   = p.left;
   }
 
-  // width / height — resolved via widthMode/heightMode with fillWidth as
-  // deprecated fallback. Precedence: widthMode wins over fillWidth when both
-  // are set. Token strings resolve to pixels; numbers pass through.
+  // width / height — resolved via widthMode/heightMode (wire contract).
   const effectiveWidthMode = element.widthMode
-    ?? (element.fillWidth || variantSpec?.fillWidth ? SizingMode.Fill : undefined);
+    ?? (variantSpec?.fillWidth ? SizingMode.Fill : undefined);
   switch (effectiveWidthMode) {
     case SizingMode.Fixed:
       if (element.width != null) {
@@ -216,7 +214,7 @@ export function buildBoxStyle(
       // Intrinsic sizing — no explicit width rule needed.
       break;
     default:
-      // No widthMode set and no fillWidth — fall back to explicit width if present.
+      // No widthMode — fall back to explicit width if present.
       if (element.width != null) {
         style.width = resolveLayoutSize(element.width, ff);
         style.flexShrink = 0;

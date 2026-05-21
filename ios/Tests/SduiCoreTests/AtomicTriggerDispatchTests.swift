@@ -85,6 +85,23 @@ final class AtomicTriggerDispatchTests: XCTestCase {
         XCTAssertEqual(dispatchedBatch, ["blur"])
     }
 
+    func testOnSubmitDispatchesMatchingActionsThroughBatchExecutor() {
+        let actions = [
+            action(trigger: .onSubmit, event: "submit"),
+            action(trigger: .onActivate, event: "activate")
+        ]
+        var dispatchedBatch: [String] = []
+
+        AtomicActionTriggerDispatcher.dispatch(
+            trigger: .onSubmit,
+            actions: actions,
+            onAction: { _ in XCTFail("Expected batch executor path") },
+            batchExecutor: { dispatchedBatch = $0.compactMap(\.event) }
+        )
+
+        XCTAssertEqual(dispatchedBatch, ["submit"])
+    }
+
     func testOnSwipeLogsNotHostedAndDoesNothing() {
         let actions = [action(trigger: .onSwipe, event: "swipe")]
         var logs: [String] = []

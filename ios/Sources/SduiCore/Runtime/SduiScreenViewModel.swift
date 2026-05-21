@@ -45,11 +45,18 @@ public final class SduiScreenViewModel {
     /// external consumers observe `loadState` / `title` instead.
     private(set) var screen: SduiModels?
 
+    /// Last successfully loaded screen; retained when a later fetch fails so
+    /// shell navigation and ``SduiModels/parentURI`` stay available for escape.
+    private(set) var shellScreen: SduiModels?
+
     // These are owned here so views (including sheet/overlay hosts) can
     // re-use them across re-renders.
     public let screenState: ScreenState
     public let toasts: ToastHost
     public let visibility: SectionVisibilityTracker
+
+    /// Origin for absolutizing relative demo/static paths from the server payload.
+    public var wireAssetBaseURL: String { config.baseURL.absoluteString }
 
     // MARK: - Dependencies
 
@@ -259,6 +266,7 @@ public final class SduiScreenViewModel {
     private func applyScreen(_ newScreen: SduiModels) {
         let firstLoad = self.screen == nil
         self.screen = newScreen
+        self.shellScreen = newScreen
         self.title = newScreen.title
         self.navigationItems = newScreen.navigation?.items?.count ?? 0
 

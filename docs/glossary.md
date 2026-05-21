@@ -46,8 +46,8 @@ glossary is strictly about runtime, wire, and design-system vocabulary.
 
 | Term | Definition |
 | --- | --- |
-| **Action** | Server-declared command attached to an interactive or visible element. Always has a `type` and a `trigger` plus type-specific payload fields. Executes through the platform's Dispatcher / Handler. |
-| **Trigger** | When an action fires: `onActivate` (preferred), `onTap` (deprecated alias for onActivate), `onLongPress`, `onVisible`, `onSwipe`, `onFocus`, `onBlur`, `onSubmit`. `onVisible` triggers route through Impression policy for dedup; the others fire on every occurrence. |
+| **Action** | Server-declared command attached to an interactive or visible element. Always has a `type` and a `trigger` plus type-specific payload fields. Canonical wire names are `targetUri` / `webUrl` for `navigate`, `target` / `operation` / `value` for `mutate`, and `target` for `refresh`. Executes through the platform's Dispatcher / Handler. |
+| **Trigger** | When an action fires: `onActivate` (preferred), `onTap` (deprecated alias for onActivate), `onLongPress`, `onVisible`, `onSwipe`, `onFocus`, `onBlur`, `onSubmit`. `onVisible` routes through Impression policy for dedup. Current hosting: `onActivate`/`onTap` and `onVisible` dispatch at element level on web, Android, and iOS; `onLongPress` dispatches at element level on Android/iOS and is not hosted on web atomics; `onFocus`/`onBlur` dispatch on focusable primitives; `onSubmit` is form-context only; `onSwipe` remains `ScrollContainer`-level rather than a generic atomic trigger. |
 | **onActivate** | Preferred activation trigger. Neutral name for tap, click, keyboard Enter, or TV select. Replaces legacy `onTap`. |
 | **Beacon** | An emitted `fireAndForget` event. Cross-platform synonym for "an analytics ping". Has no on-screen effect, so during local testing it is verifiable only via the Action logger. |
 | **Failure policy** | Sequence-control verb on a failed action: `halt` / `continue` / `silent`. When the server omits `onFailure`, per-type defaults apply (navigate → halt; mutate/refresh → continue; fireAndForget/dismiss/toast → silent). See ADR-005. |
@@ -60,7 +60,7 @@ glossary is strictly about runtime, wire, and design-system vocabulary.
 | --- | --- |
 | **`navigate`** | Change route (push / replace / external / modal / fullscreen). |
 | **`fireAndForget`** | Emit a Beacon (analytics event). No UI side effect. |
-| **`mutate`** | Apply a `set` / `merge` / `delete` operation to Screen state. |
+| **`mutate`** | Apply a `set` / `toggle` / `increment` / `append` operation to Screen state. `set` with `value: null` removes the key. |
 | **`refresh`** | Re-fetch a section or full screen, optionally with Param bindings. |
 | **`dismiss`** | Close the current presented host (modal / sheet / overlay). |
 | **`toast`** | Show a transient banner. |
@@ -75,7 +75,7 @@ glossary is strictly about runtime, wire, and design-system vocabulary.
 | **Data binding** (`DataBindingPath`) | Declarative mapping from a path in an incoming live-data payload to a path inside a section's `data`. The binding runtime walks these and patches sections with structural sharing so unrelated subtrees keep their object identity. |
 | **BindRef** | Dot-path on an atomic primitive (`Text`, `Button`, `Image`, `LiveClock`) that points into the enclosing `AtomicComposite`'s `data.content` object. Renderers resolve the leaf's canonical field from `data.content[bindRef]` at render time and fall back to the inline value when the path is absent (Text → `content`, Button → `label`, Image → `src`, LiveClock → `{snapshotSeconds, snapshotAt, isRunning}`). Lets composers reshape the `ui` tree without breaking real-time updates: live bindings continue to write into `content.*`, and any leaf carrying a `bindRef` to that path picks up the new value automatically. |
 | **String table** | Section-scoped translation map (`stringTable: { key → localized }`) emitted by the server. Live-data bindings can deliver string keys instead of resolved strings; the runtime swaps them through the section's table at apply time. |
-| **Mutate operation** | Verb a `mutate` action applies to Screen state: `set` (replace), `merge` (object-merge into an existing entry), `delete` (remove the key). Defaults to `set` when omitted. |
+| **Mutate operation** | Verb a `mutate` action applies to Screen state: `set`, `toggle`, `increment`, or `append`. Defaults to `set` when omitted. `set` with `value: null` removes the key. |
 
 ---
 

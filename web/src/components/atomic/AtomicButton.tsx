@@ -1,4 +1,4 @@
-import React, { useContext, memo } from 'react';
+import React, { useContext, useEffect, memo } from 'react';
 import type { Action } from '@sdui/models';
 import type { AtomicProps } from './AtomicRouter';
 import { AtomicBox } from './AtomicBox';
@@ -6,7 +6,8 @@ import { accessibilityProps } from '../../utils/accessibility';
 import { useColorTokenResolver } from '../../utils/ColorTokenResolver';
 import { CompositeContentContext, resolveBindRefString } from '../../utils/BindRefResolver';
 import { areAtomicPropsEqual } from './areAtomicPropsEqual';
-import { getActivateActions } from './getActivateActions';
+import { logUnsupportedAtomicTriggers, selectActions } from './getActivateActions';
+import { IconTokenResolver } from '../../utils/IconTokenResolver';
 
 const baseButtonStyle: React.CSSProperties = {
   cursor: 'pointer',
@@ -46,6 +47,10 @@ const variantStyles: Record<KnownButtonVariant, React.CSSProperties> = {
  * extended rather than using element.padding.
  */
 function AtomicButtonInner({ element, onAction }: AtomicProps): React.ReactElement {
+  useEffect(() => {
+    logUnsupportedAtomicTriggers(element.actions as Action[] | undefined, element.id);
+  }, [element.actions, element.id]);
+
   const resolveColor = useColorTokenResolver();
   const rawVariant = element.variant;
   let resolvedVariant: KnownButtonVariant = 'primary';
@@ -60,16 +65,35 @@ function AtomicButtonInner({ element, onAction }: AtomicProps): React.ReactEleme
   const resolvedBg = element.background && 'color' in (element.background as Record<string, unknown>)
     ? resolveColor((element.background as Record<string, unknown>).color as string)
     : undefined;
+  const isTextLike = resolvedVariant === 'text' || resolvedVariant === 'tertiary';
   const buttonStyle: React.CSSProperties = {
     ...variantStyles[resolvedVariant],
     ...(resolvedColor ? { color: resolvedColor } : {}),
-    ...(resolvedBg ? { backgroundColor: resolvedBg } : {}),
+    ...(resolvedBg
+      ? { backgroundColor: resolvedBg }
+      : isTextLike
+        ? { backgroundColor: 'transparent' }
+        : {}),
   };
 
-  const handleClick = () => {
-    const actions = getActivateActions(element.actions as Action[] | undefined);
-    if (actions.length > 0) {
-      onAction(actions);
+  const iconLigature = element.icon ? IconTokenResolver.resolve(element.icon) : undefined;
+  if (element.icon && !iconLigature) {
+    console.warn('[AtomicButton] icon not mapped', { icon: element.icon, elementId: element.id });
+  }
+
+  const activateActions = selectActions(element.actions as Action[] | undefined, 'onActivate');
+  const focusActions = selectActions(element.actions as Action[] | undefined, 'onFocus');
+  const blurActions = selectActions(element.actions as Action[] | undefined, 'onBlur');
+  const submitActions = selectActions(element.actions as Action[] | undefined, 'onSubmit');
+
+  const handleClick: React.MouseEventHandler<HTMLButtonElement> = (event) => {
+    if (submitActions.length > 0 && event.currentTarget.form) {
+      event.preventDefault();
+      onAction(submitActions);
+      return;
+    }
+    if (activateActions.length > 0) {
+      onAction(activateActions);
     }
   };
 
@@ -78,16 +102,30 @@ function AtomicButtonInner({ element, onAction }: AtomicProps): React.ReactEleme
   // the ui tree.
   const compositeContent = useContext(CompositeContentContext);
   const resolvedLabel = resolveBindRefString(element.bindRef, compositeContent) ?? element.label ?? '';
+  const showLabel = resolvedLabel.trim().length > 0;
 
   const button = (
     <button
-      style={buttonStyle}
+      type={submitActions.length > 0 ? 'submit' : 'button'}
+      style={{
+        ...buttonStyle,
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: iconLigature && showLabel ? 8 : 0,
+      }}
       disabled={element.disabled}
       onClick={handleClick}
-      aria-label={element.accessibility?.label ?? resolvedLabel}
+      onFocus={focusActions.length > 0 ? () => onAction(focusActions) : undefined}
+      onBlur={blurActions.length > 0 ? () => onAction(blurActions) : undefined}
+      aria-label={element.accessibility?.label ?? (showLabel ? resolvedLabel : iconLigature ?? '')}
       {...accessibilityProps(element.accessibility)}
     >
-      {resolvedLabel}
+      {iconLigature != null && (
+        <span className="material-icons" style={{ fontSize: 20, lineHeight: 1 }}>
+          {iconLigature}
+        </span>
+      )}
+      {showLabel ? resolvedLabel : null}
     </button>
   );
 

@@ -2,11 +2,10 @@ package com.nba.sdui.app.ui
 
 import android.util.Log
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -15,6 +14,8 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.nba.sdui.app.BuildConfig
 import com.nba.sdui.app.SduiConfig
+import com.nba.sdui.core.models.generated.LayoutScalar
+import com.nba.sdui.core.renderer.LayoutTokenResolver
 import com.nba.sdui.core.screen.SduiNavigationShell
 import com.nba.sdui.core.screen.SduiScreenContent
 import com.nba.sdui.core.screen.SduiScreenUiState
@@ -24,14 +25,10 @@ import com.nba.sdui.core.renderer.atomic.LocalActionExecutor
 /**
  * SDUI Screen — app-level wrapper.
  *
- * This Composable adds app-specific chrome (TopAppBar, variant chips,
- * and back navigation when applicable) and then delegates all SDUI
- * rendering to [SduiScreenContent] from sdui-core.
- *
- * There is **no ScreenType dispatch** — every screen goes through the
- * same URI-based load path.
+ * Screen title and back affordances are server-composed as the first
+ * {@code AtomicComposite} section. This layer keeps only prototype dev controls
+ * (theme toggle, variant chips) outside the SDUI payload.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GameDetailScreen(
     config: SduiConfig,
@@ -54,7 +51,6 @@ fun GameDetailScreen(
     val screenState by viewModel.screenState.collectAsState()
     val isRefreshing by viewModel.isRefreshing.collectAsState()
 
-    // Observe app lifecycle for background/foreground pause
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner, viewModel) {
         val observer = LifecycleEventObserver { _, event ->
@@ -68,12 +64,10 @@ fun GameDetailScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    // Fetch SDUI response on first composition (keyed on full config)
     LaunchedEffect(config) {
         viewModel.load(config.uri)
     }
 
-    // Handle action results (app-level side-effects)
     LaunchedEffect(viewModel) {
         viewModel.actionResults.collect { result ->
             when (result) {
@@ -97,75 +91,77 @@ fun GameDetailScreen(
         }
     }
 
-    Column(modifier = modifier.fillMaxSize()) {
-        // ── App-specific chrome ──────────────────────────────────────
-        TopAppBar(
-            title = {
-                Text(
-                    text = (uiState as? SduiScreenUiState.Success)?.screen?.title ?: "NBA"
-                )
-            },
-            navigationIcon = {
-                val parentUri = (uiState as? SduiScreenUiState.Success)?.screen?.parentURI
-                if (parentUri != null) {
-                    IconButton(onClick = {
-                        onNavigateUri(parentUri)
-                    }) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+    val successScreen = (uiState as? SduiScreenUiState.Success)?.screen
+    val shellScreen = viewModel.shellScreen
+    val themePad = LayoutTokenResolver.dp(LayoutScalar.StringValue("token:nba.spacing.sm"))
+
+    val handleNavigateBack: () -> Unit = {
+        val parent = shellScreen?.parentUri
+        if (!parent.isNullOrBlank()) {
+            onNavigateUri(parent)
+        } else {
+            onBack()
+        }
+    }
+
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            val variantsData = successScreen?.variants
+            val serverVariants = variantsData?.options ?: emptyList()
+            val experimentId = variantsData?.experimentID ?: "variant"
+            if (serverVariants.isNotEmpty()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    serverVariants.forEach { v ->
+                        FilterChip(
+                            selected = config.experiments[experimentId] == v.id,
+                            onClick = { onVariantChange(v.id) },
+                            label = { Text(v.label) }
                         )
                     }
                 }
-            },
-            actions = {
-                TextButton(onClick = onToggleTheme) {
-                    Text(if (darkTheme) "Light" else "Dark")
-                }
             }
-        )
 
-        // Server-driven variant chips — no client-side URI sniffing.
-        val variantsData = (uiState as? SduiScreenUiState.Success)?.screen?.variants
-        val serverVariants = variantsData?.options ?: emptyList()
-        val experimentId = variantsData?.experimentID ?: "variant"
-        if (serverVariants.isNotEmpty()) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                serverVariants.forEach { v ->
-                    FilterChip(
-                        selected = config.experiments[experimentId] == v.id,
-                        onClick = { onVariantChange(v.id) },
-                        label = { Text(v.label) }
+            SduiNavigationShell(
+                navigation = shellScreen?.navigation,
+                onNavigate = onNavigateUri,
+                modifier = Modifier.weight(1f)
+            ) { contentModifier ->
+                CompositionLocalProvider(
+                    LocalActionExecutor provides { actions -> viewModel.handleActions(actions) }
+                ) {
+                    SduiScreenContent(
+                        uiState = uiState,
+                        screenState = screenState,
+                        isRefreshing = isRefreshing,
+                        onRefresh = { viewModel.refresh() },
+                        onRetry = { viewModel.load(config.uri) },
+                        onAction = { viewModel.handleAction(it) },
+                        onStateChange = { key, value -> viewModel.updateState(key, value) },
+                        onNavigateBack = handleNavigateBack,
+                        parentUri = shellScreen?.parentUri,
+                        visibilityTracker = viewModel.visibilityTracker,
+                        wireAssetBaseUrl = viewModel.wireAssetBaseUrl,
+                        modifier = contentModifier
                     )
                 }
             }
         }
 
-        // ── Library-provided SDUI content ────────────────────────────
-        val currentScreen = (uiState as? SduiScreenUiState.Success)?.screen
-        SduiNavigationShell(
-            navigation = currentScreen?.navigation,
-            onNavigate = onNavigateUri,
-            modifier = Modifier.weight(1f)
-        ) { contentModifier ->
-            CompositionLocalProvider(LocalActionExecutor provides { actions -> viewModel.handleActions(actions) }) {
-                SduiScreenContent(
-                    uiState = uiState,
-                    screenState = screenState,
-                    isRefreshing = isRefreshing,
-                    onRefresh = { viewModel.refresh() },
-                    onRetry = { viewModel.load(config.uri) },
-                    onAction = { viewModel.handleAction(it) },
-                    onStateChange = { key, value -> viewModel.updateState(key, value) },
-                    visibilityTracker = viewModel.visibilityTracker,
-                    modifier = contentModifier
-                )
-            }
+        TextButton(
+            onClick = onToggleTheme,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(top = themePad, end = themePad)
+        ) {
+            Text(
+                if (darkTheme) "Light" else "Dark",
+                style = MaterialTheme.typography.labelMedium
+            )
         }
     }
 }

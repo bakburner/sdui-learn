@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.SportsBasketball
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Widgets
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
@@ -96,50 +97,8 @@ fun SduiNavigationShell(
 }
 
 private fun navIcon(item: NavigationItem): ImageVector {
-    val resolved = IconTokenResolver.resolve(item.icon) ?: return Icons.Default.Info
-    return materialNameToImageVector(resolved) ?: run {
-        Log.w(TAG, "no ImageVector mapping for material name '$resolved'; falling back to Info")
-        Icons.Default.Info
+    return IconTokenResolver.imageVector(item.icon) ?: run {
+        Log.w(TAG, "no ImageVector for nav icon '${item.icon}'; falling back to Info")
+        Icons.Filled.Info
     }
-}
-
-/**
- * Reflection-free lookup from the Material icon class name emitted by
- * [IconTokenResolver] (mirroring the `material` column of
- * `schema/icon-tokens.json`) to the corresponding
- * `androidx.compose.material.icons.Icons` field.
- *
- * New tokens added to `icon-tokens.json` must be mirrored here; unknown
- * names return `null` and the caller falls back to a placeholder icon.
- */
-private fun materialNameToImageVector(name: String): ImageVector? = when (name) {
-    "PlayArrow"         -> Icons.Default.PlayArrow
-    "Pause"             -> Icons.Default.Pause
-    "ArrowBack"         -> Icons.Filled.ArrowBack
-    "ArrowForward"      -> Icons.Filled.ArrowForward
-    "Settings"          -> Icons.Default.Settings
-    "KeyboardArrowDown" -> Icons.Default.KeyboardArrowDown
-    "KeyboardArrowUp"   -> Icons.Default.KeyboardArrowUp
-    "Check"             -> Icons.Default.Check
-    "Warning"           -> Icons.Default.Warning
-    "Sensors"           -> Icons.Default.Sensors
-    "AccountCircle"     -> Icons.Default.AccountCircle
-    "Close"             -> Icons.Default.Close
-    "Search"            -> Icons.Default.Search
-    "Share"             -> Icons.Default.Share
-    "FavoriteBorder"    -> Icons.Default.FavoriteBorder
-    "Favorite"          -> Icons.Default.Favorite
-    "Fullscreen"        -> Icons.Default.Fullscreen
-    "PictureInPicture"  -> Icons.Default.PictureInPicture
-    "Cast"              -> Icons.Default.Cast
-    "Info"              -> Icons.Default.Info
-    "CalendarToday"     -> Icons.Default.CalendarToday
-    "Refresh"           -> Icons.Default.Refresh
-    "Home"              -> Icons.Default.Home
-    "SportsBasketball"  -> Icons.Default.SportsBasketball
-    "PlayCircle"        -> Icons.Default.PlayCircle
-    "Leaderboard"       -> Icons.Default.Leaderboard
-    "Widgets"           -> Icons.Default.Widgets
-    "List"              -> Icons.AutoMirrored.Filled.List
-    else                -> null
 }

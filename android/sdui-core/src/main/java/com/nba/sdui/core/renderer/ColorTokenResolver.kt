@@ -341,7 +341,7 @@ object ColorTokenResolver {
         val cacheKey = value to useDark
         resolveCache[cacheKey]?.let { return it }
         val resolved = if (!value.startsWith(TOKEN_PREFIX)) {
-            parseHex(value)
+            parseColorLiteral(value)
         } else {
             val name = value.removePrefix(TOKEN_PREFIX)
             val entry = followAlias(name)
@@ -383,6 +383,15 @@ object ColorTokenResolver {
         return followAlias(next, depth + 1)
     }
 
+    /** Parse wire literals: `#RRGGBB`, `#RRGGBBAA`, or `rgba(r,g,b,a)`. */
+    private fun parseColorLiteral(raw: String): Color {
+        val trimmed = raw.trim()
+        if (trimmed.startsWith("rgba(", ignoreCase = true)) {
+            return parseRgba(trimmed)
+        }
+        return parseHex(trimmed)
+    }
+
     /** Parse a `#RRGGBB` / `#RRGGBBAA` string into a Compose [Color]. */
     private fun parseHex(hex: String): Color {
         return try {
@@ -390,9 +399,24 @@ object ColorTokenResolver {
             val argb = when (stripped.length) {
                 6 -> "FF$stripped"
                 8 -> stripped
-                else -> "FF000000"
+                else -> return Color.Unspecified
             }
             Color(argb.toLong(16))
+        } catch (_: Exception) {
+            Color.Unspecified
+        }
+    }
+
+    private fun parseRgba(rgba: String): Color {
+        val inner = rgba.substringAfter('(').substringBeforeLast(')').trim()
+        val parts = inner.split(',').map { it.trim() }
+        if (parts.size != 4) return Color.Unspecified
+        return try {
+            val r = parts[0].toFloat()
+            val g = parts[1].toFloat()
+            val b = parts[2].toFloat()
+            val a = parts[3].toFloat().coerceIn(0f, 1f)
+            Color(red = r / 255f, green = g / 255f, blue = b / 255f, alpha = a)
         } catch (_: Exception) {
             Color.Unspecified
         }

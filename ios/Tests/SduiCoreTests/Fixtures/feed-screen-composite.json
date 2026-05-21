@@ -37,7 +37,6 @@
               "direction": "row",
               "alignment": "spaceBetween",
               "crossAlignment": "center",
-              "fillWidth": true,
               "children": [
                 {
                   "type": "Text",
@@ -58,7 +57,8 @@
                     }
                   ]
                 }
-              ]
+              ],
+              "widthMode": "fill"
             },
             {
               "id": "editorial-overlay-card",
@@ -76,13 +76,13 @@
                 "src": "https://cdn.nba.com/manage/2025/02/giannis-dunk-752x428.jpg",
                 "variant": "thumbnail",
                 "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
-                "fillWidth": true,
                 "height": 220,
                 "fit": "cover",
                 "cornerRadius": 16,
                 "accessibility": {
                   "label": "Giannis dunk highlight"
-                }
+                },
+                "widthMode": "fill"
               },
               "overlays": [
                 {
@@ -94,7 +94,6 @@
                   },
                   "element": {
                     "type": "Container",
-                    "fillWidth": true,
                     "height": 128,
                     "background": {
                       "colors": [
@@ -106,7 +105,8 @@
                     "cornerRadii": {
                       "bottomStart": 16,
                       "bottomEnd": 16
-                    }
+                    },
+                    "widthMode": "fill"
                   }
                 },
                 {
@@ -248,10 +248,10 @@
               "base": {
                 "type": "Image",
                 "src": "https://cdn.nba.com/manage/2025/02/nba-standings-graphic-752x428.jpg",
-                "fillWidth": true,
                 "height": 120,
                 "fit": "cover",
-                "cornerRadius": 12
+                "cornerRadius": 12,
+                "widthMode": "fill"
               },
               "overlays": [
                 {
@@ -298,11 +298,11 @@
               "base": {
                 "type": "Image",
                 "src": "https://cdn.nba.com/manage/2025/02/warriors-thunder-preview-752x428.jpg",
-                "fillWidth": true,
                 "height": 0,
                 "fit": "cover",
                 "aspectRatio": 1.7777777777777777,
-                "cornerRadius": 12
+                "cornerRadius": 12,
+                "widthMode": "fill"
               },
               "overlays": [
                 {
@@ -310,7 +310,6 @@
                   "element": {
                     "type": "Container",
                     "direction": "column",
-                    "fillWidth": true,
                     "padding": {
                       "start": 16,
                       "end": 16,
@@ -361,7 +360,8 @@
                           }
                         ]
                       }
-                    ]
+                    ],
+                    "widthMode": "fill"
                   }
                 },
                 {
@@ -492,7 +492,6 @@
                       },
                       "element": {
                         "type": "Container",
-                        "fillWidth": true,
                         "height": 96,
                         "background": {
                           "colors": [
@@ -504,7 +503,8 @@
                         "cornerRadii": {
                           "bottomStart": 16,
                           "bottomEnd": 16
-                        }
+                        },
+                        "widthMode": "fill"
                       }
                     },
                     {
@@ -532,7 +532,7 @@
                       },
                       "element": {
                         "type": "Button",
-                        "label": "⋯",
+                        "label": "\u22ef",
                         "variant": "text",
                         "color": "token:nba.label-inverted.primary",
                         "actions": [
@@ -574,7 +574,6 @@
                       },
                       "element": {
                         "type": "Container",
-                        "fillWidth": true,
                         "height": 96,
                         "background": {
                           "colors": [
@@ -586,7 +585,8 @@
                         "cornerRadii": {
                           "bottomStart": 16,
                           "bottomEnd": 16
-                        }
+                        },
+                        "widthMode": "fill"
                       }
                     },
                     {
@@ -635,7 +635,6 @@
                       },
                       "element": {
                         "type": "Container",
-                        "fillWidth": true,
                         "height": 96,
                         "background": {
                           "colors": [
@@ -647,7 +646,8 @@
                         "cornerRadii": {
                           "bottomStart": 16,
                           "bottomEnd": 16
-                        }
+                        },
+                        "widthMode": "fill"
                       }
                     },
                     {

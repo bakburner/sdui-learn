@@ -20,7 +20,9 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.nba.sdui.core.models.generated.SectionSurface
 import com.nba.sdui.core.models.generated.Spacing
+import com.nba.sdui.core.network.WireUrlResolver
 import com.nba.sdui.core.renderer.adapters.BackgroundViewModel
+import com.nba.sdui.core.renderer.atomic.LocalSduiWireAssetBaseUrl
 import com.nba.sdui.core.renderer.adapters.toViewModel
 import com.nba.sdui.core.request.RequestEnvelopeBuilder
 
@@ -99,7 +101,7 @@ fun SectionContainer(
             val placeholder = ColorPainter(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f))
             val errorPainter = ColorPainter(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.12f))
             AsyncImage(
-                model = bg.imageUrl,
+                model = WireUrlResolver.resolve(bg.imageUrl, LocalSduiWireAssetBaseUrl.current),
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,

@@ -5,8 +5,14 @@ export interface SduiModels {
     /**
      * Screen-level actions (e.g. analytics beacons, lifecycle hooks)
      */
-    actions?:              Action[];
-    analyticsId?:          string;
+    actions?:     Action[];
+    analyticsId?: string;
+    /**
+     * Outer padding around the scrollable section feed (start/end/top/bottom). Server emits
+     * semantic layout tokens (e.g. token:nba.spacing.md); clients resolve via
+     * LayoutTokenResolver. Omit only when the screen is intentionally edge-to-edge.
+     */
+    contentInsets?:        Spacing;
     defaultRefreshPolicy?: RefreshPolicy;
     id:                    string;
     navigation?:           Navigation;
@@ -25,8 +31,13 @@ export interface SduiModels {
     schemaVersion: string;
     sections:      Section[];
     state?:        { [key: string]: any };
-    title?:        string;
-    traceId?:      string;
+    /**
+     * Legacy headline consumed at composition time to build the first AtomicComposite app-bar
+     * section (see prependAppBarHeader). Not rendered from screen.title by clients. Omit on
+     * bottom-nav tab destinations.
+     */
+    title?:   string;
+    traceId?: string;
     /**
      * Server-exposed A/B / experiment variants available for this screen. Clients read
      * `options` to render a variant picker (dev UI, QA tooling) and pass the selected id back
@@ -254,6 +265,31 @@ export enum ActionType {
     Toast = "toast",
 }
 
+/**
+ * Outer padding around the scrollable section feed (start/end/top/bottom). Server emits
+ * semantic layout tokens (e.g. token:nba.spacing.md); clients resolve via
+ * LayoutTokenResolver. Omit only when the screen is intentionally edge-to-edge.
+ *
+ * Outer space between the element and its siblings or parent edges. Applied outside the
+ * element's background, border, corner radius, and shadow — use this for sibling-to-sibling
+ * spacing instead of Spacer siblings when inhomogeneous gaps are needed.
+ *
+ * Optional edge offsets from the aligned base bounds.
+ *
+ * Inner space between the element's own background/border and its content.
+ *
+ * Outer margin (space between the surface and its siblings / screen edge).
+ *
+ * Inner padding (space between the surface edge and the content it wraps).
+ */
+export interface Spacing {
+    bottom?: number | string;
+    end?:    number | string;
+    start?:  number | string;
+    top?:    number | string;
+    [property: string]: any;
+}
+
 export interface RefreshPolicy {
     /**
      * For sse type: Ably channel name pattern (e.g., '{gameId}:linescore')
@@ -341,9 +377,9 @@ export interface Badge {
 }
 
 /**
- * Atomic tree describing the banner's full visible surface. Renderer walks this tree
- * exactly as an AtomicComposite would; no client-side chrome defaults are permitted. See
- * AGENTS.md §15.1.
+ * Optional atomic tree for the tab header row. When present, renderers walk it via
+ * AtomicRouter; when absent, a minimal platform-native tab row is used. Selected-tab
+ * styling in atomics requires state-bound conditionals (ADR-014).
  *
  * Atomic UI primitive — server-composed building block for the atomic rendering layer
  *
@@ -352,6 +388,10 @@ export interface Badge {
  * OverlayContainer base element. Rendered first and sized by its own atomic box model.
  *
  * Atomic element to render in this overlay layer.
+ *
+ * Atomic tree describing the banner's full visible surface. Renderer walks this tree
+ * exactly as an AtomicComposite would; no client-side chrome defaults are permitted. See
+ * AGENTS.md §15.1.
  *
  * Atomic tree describing the hero's full visible surface — logo, title, subtitle, feature
  * list, tier cards, CTAs. Renderer walks this tree exactly as an AtomicComposite would.
@@ -622,7 +662,9 @@ export interface AtomicElement {
 /**
  * Section-specific data payload
  *
- * Tabbed navigation with dynamic content sections per tab
+ * Tabbed navigation with dynamic content sections per tab. Optional ui is the tab
+ * header/control row only; tabContents hosts nested sections. Tab selection uses
+ * section.subsections mutate actions.
  *
  * Typed tabular data for an NBA-style boxscore (one per team)
  *
@@ -656,6 +698,26 @@ export interface Data {
     stateKey?:    string;
     tabContents?: { [key: string]: Section[] };
     tabs?:        TabData[];
+    /**
+     * Optional atomic tree for the tab header row. When present, renderers walk it via
+     * AtomicRouter; when absent, a minimal platform-native tab row is used. Selected-tab
+     * styling in atomics requires state-bound conditionals (ADR-014).
+     *
+     * Atomic tree describing the banner's full visible surface. Renderer walks this tree
+     * exactly as an AtomicComposite would; no client-side chrome defaults are permitted. See
+     * AGENTS.md §15.1.
+     *
+     * Atomic tree describing the hero's full visible surface — logo, title, subtitle, feature
+     * list, tier cards, CTAs. Renderer walks this tree exactly as an AtomicComposite would.
+     *
+     * Root node of the atomic element tree — the rendering instructions
+     *
+     * Atomic tree describing the pre-SDK placeholder surface (e.g. play-glyph column framed at
+     * the player's aspectRatio). Renderer walks this tree exactly as an AtomicComposite would;
+     * no client-side chrome defaults are permitted. Once the video SDK lands this tree becomes
+     * the loading/error placeholder the SDK overlays.
+     */
+    ui?: AtomicElement;
     /**
      * Ordered list of column definitions; clients render left-to-right
      *
@@ -776,22 +838,6 @@ export interface Data {
      */
     tiers?: SubscriptionTier[];
     /**
-     * Atomic tree describing the banner's full visible surface. Renderer walks this tree
-     * exactly as an AtomicComposite would; no client-side chrome defaults are permitted. See
-     * AGENTS.md §15.1.
-     *
-     * Atomic tree describing the hero's full visible surface — logo, title, subtitle, feature
-     * list, tier cards, CTAs. Renderer walks this tree exactly as an AtomicComposite would.
-     *
-     * Root node of the atomic element tree — the rendering instructions
-     *
-     * Atomic tree describing the pre-SDK placeholder surface (e.g. play-glyph column framed at
-     * the player's aspectRatio). Renderer walks this tree exactly as an AtomicComposite would;
-     * no client-side chrome defaults are permitted. Once the video SDK lands this tree becomes
-     * the loading/error placeholder the SDK overlays.
-     */
-    ui?: AtomicElement;
-    /**
      * Optional domain data (strings, URLs, flags) to populate the ui tree. Reserved for future
      * data-binding support.
      */
@@ -875,27 +921,6 @@ export enum BadgeAlignment {
     TopCenter = "topCenter",
     TopEnd = "topEnd",
     TopStart = "topStart",
-}
-
-/**
- * Outer space between the element and its siblings or parent edges. Applied outside the
- * element's background, border, corner radius, and shadow — use this for sibling-to-sibling
- * spacing instead of Spacer siblings when inhomogeneous gaps are needed.
- *
- * Optional edge offsets from the aligned base bounds.
- *
- * Inner space between the element's own background/border and its content.
- *
- * Outer margin (space between the surface and its siblings / screen edge).
- *
- * Inner padding (space between the surface edge and the content it wraps).
- */
-export interface Spacing {
-    bottom?: number | string;
-    end?:    number | string;
-    start?:  number | string;
-    top?:    number | string;
-    [property: string]: any;
 }
 
 /**

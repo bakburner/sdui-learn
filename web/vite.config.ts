@@ -24,6 +24,10 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
       },
+      '/sdui-demo': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
       '/ably-token': {
         target: 'https://identity.nba.com',
         changeOrigin: true,

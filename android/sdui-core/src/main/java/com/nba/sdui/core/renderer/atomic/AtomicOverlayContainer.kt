@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.nba.sdui.core.models.generated.AtomicElement
 import com.nba.sdui.core.models.generated.BadgeAlignment
+import com.nba.sdui.core.models.generated.SizingMode
 import com.nba.sdui.core.models.generated.Spacing
 import com.nba.sdui.core.renderer.LayoutTokenResolver
 import com.nba.sdui.core.renderer.applyAccessibility
@@ -34,12 +35,16 @@ fun AtomicOverlayContainer(
         Box(modifier = boxModifier.applyAccessibility(element.accessibility)) {
             AtomicRouter(base, screenState, onAction, depth = depth + 1, onStateChange = onStateChange, sectionSlotDepth = sectionSlotDepth)
             element.overlays.orEmpty().forEach { overlay ->
+                val overlayEl = overlay.element
+                val stretchToBase = overlayEl.heightMode == SizingMode.Fill ||
+                    overlayEl.widthMode == SizingMode.Fill
                 Box(
                     modifier = Modifier
                         .align(composeAlignment(overlay.alignment))
+                        .then(if (stretchToBase) Modifier.matchParentSize() else Modifier)
                         .then(insetModifier(overlay.inset))
                 ) {
-                    AtomicRouter(overlay.element, screenState, onAction, depth = depth + 1, onStateChange = onStateChange, sectionSlotDepth = sectionSlotDepth)
+                    AtomicRouter(overlayEl, screenState, onAction, depth = depth + 1, onStateChange = onStateChange, sectionSlotDepth = sectionSlotDepth)
                 }
             }
         }

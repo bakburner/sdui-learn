@@ -43,29 +43,42 @@ func edgeInsets(from spacing: Spacing?, formFactor: String = RequestEnvelope.cur
 @MainActor
 @ViewBuilder
 func backgroundView(for bg: BackgroundUnion?, colorScheme: ColorScheme) -> some View {
-    switch bg {
-    case .none:
-        Color.clear
-    case .some(.string(let value)):
-        ColorTokenResolver.resolve(value, colorScheme: colorScheme) ?? Color.clear
-    case .some(.background(let bgObj)):
-        if let imageUrl = bgObj.imageURL, let url = URL(string: imageUrl) {
-            KFImage(url)
-                .placeholder { Color.clear }
-                .resizable()
-                .scaledToFill()
-        } else if let colors = bgObj.colors, colors.count > 1 {
-            LinearGradient(
-                gradient: Gradient(colors: colors.map {
-                    ColorTokenResolver.resolve($0, colorScheme: colorScheme) ?? .clear
-                }),
-                startPoint: backgroundGradientStart(bgObj.direction),
-                endPoint: backgroundGradientEnd(bgObj.direction)
-            )
-        } else if let first = bgObj.colors?.first {
-            ColorTokenResolver.resolve(first, colorScheme: colorScheme) ?? Color.clear
-        } else {
+    BackgroundUnionView(bg: bg, colorScheme: colorScheme)
+}
+
+@MainActor
+private struct BackgroundUnionView: View {
+    let bg: BackgroundUnion?
+    let colorScheme: ColorScheme
+    @Environment(\.wireAssetBaseURL) private var wireAssetBaseURL
+
+    var body: some View {
+        switch bg {
+        case .none:
             Color.clear
+        case .some(.string(let value)):
+            ColorTokenResolver.resolve(value, colorScheme: colorScheme) ?? Color.clear
+        case .some(.background(let bgObj)):
+            if let imageUrl = bgObj.imageURL,
+               let resolved = WireUrlResolver.resolve(imageUrl, baseURL: wireAssetBaseURL),
+               let url = URL(string: resolved) {
+                KFImage(url)
+                    .placeholder { Color.clear }
+                    .resizable()
+                    .scaledToFill()
+            } else if let colors = bgObj.colors, colors.count > 1 {
+                LinearGradient(
+                    gradient: Gradient(colors: colors.map {
+                        ColorTokenResolver.resolve($0, colorScheme: colorScheme) ?? .clear
+                    }),
+                    startPoint: backgroundGradientStart(bgObj.direction),
+                    endPoint: backgroundGradientEnd(bgObj.direction)
+                )
+            } else if let first = bgObj.colors?.first {
+                ColorTokenResolver.resolve(first, colorScheme: colorScheme) ?? Color.clear
+            } else {
+                Color.clear
+            }
         }
     }
 }

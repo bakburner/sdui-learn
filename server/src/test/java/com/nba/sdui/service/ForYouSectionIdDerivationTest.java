@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -83,5 +84,15 @@ class ForYouSectionIdDerivationTest {
             assertFalse(sectionId.matches(".*::\\d+$"),
                     "Section id '" + sectionId + "' must not use positional indices");
         }
+    }
+
+    @Test
+    void stampStringTableAppliesDefaultContentInsets() {
+        JsonNode response = composer.composeForYou("test-trace-id", "en");
+        JsonNode insets = response.get("contentInsets");
+        assertNotNull(insets, "Screen must carry server-owned contentInsets");
+        assertEquals(LayoutTokens.SPACING_MD, insets.path("start").asText());
+        assertEquals(LayoutTokens.SPACING_MD, insets.path("end").asText());
+        assertEquals(LayoutTokens.SPACING_LG, insets.path("bottom").asText());
     }
 }

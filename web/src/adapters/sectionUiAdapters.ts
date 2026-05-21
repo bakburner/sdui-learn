@@ -23,22 +23,28 @@ export function mapTabGroup(section: Section, state: Record<string, unknown>): T
   const data = section.data as Data | undefined;
   if (!data?.tabs?.length) return null;
 
-  const stateKey = data.stateKey || `${section.id}_activeTab`;
-  const activeValue = (state[stateKey] as string) || data.defaultTab || data.tabs[0]?.id || '';
+  const stateKey = data.stateKey;
+  if (!stateKey) return null;
 
-  const tabs = (data.tabs as TabData[]).map((tab) => {
-    const value = tab.stateValue || tab.id;
+  const tabs = data.tabs as TabData[];
+  const fallbackTabValue = tabs[0]?.stateValue ?? tabs[0]?.id;
+  const activeValue =
+    (state[stateKey] as string | undefined) ?? data.defaultTab ?? fallbackTabValue;
+  if (!activeValue) return null;
+
+  const uiTabs = tabs.map((tab) => {
+    const stateValue = tab.stateValue ?? tab.id;
     return {
       id: tab.id,
       label: tab.label,
-      stateValue: value,
-      isActive: tab.id === activeValue || value === activeValue,
+      stateValue,
+      isActive: stateValue === activeValue,
     };
   });
 
   return {
-    tabs,
-    activeSections: data.tabContents?.[activeValue] || [],
+    tabs: uiTabs,
+    activeSections: data.tabContents?.[activeValue] ?? [],
     stateKey,
   };
 }

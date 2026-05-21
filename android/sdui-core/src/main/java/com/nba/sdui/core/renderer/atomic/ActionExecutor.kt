@@ -19,12 +19,30 @@ import com.nba.sdui.core.state.SduiAction
 val LocalActionExecutor = compositionLocalOf<((List<SduiAction>) -> Unit)?> { null }
 
 /**
- * Filter an element's actions to those matching the primary activation trigger
- * (onActivate or the deprecated alias onTap). Returns them in declared order.
+ * Filter an element's actions to those matching the requested trigger.
+ * Primary activation preserves the onActivate/onTap alias contract.
  */
-fun getActivateActions(actions: List<Action>?): List<SduiAction> {
+fun selectActions(actions: List<Action>?, trigger: ActionTrigger): List<SduiAction> {
     if (actions.isNullOrEmpty()) return emptyList()
-    return actions.filter { action ->
-        action.trigger == ActionTrigger.OnActivate || action.trigger == ActionTrigger.OnTap
-    }.map { it.toSduiAction() }
+    val filtered = if (trigger == ActionTrigger.OnActivate) {
+        actions.filter { action ->
+            action.trigger == ActionTrigger.OnActivate || action.trigger == ActionTrigger.OnTap
+        }
+    } else {
+        actions.filter { action -> action.trigger == trigger }
+    }
+    return filtered.map { it.toSduiAction() }
+}
+
+fun dispatchActions(
+    actions: List<SduiAction>,
+    batchExecutor: ((List<SduiAction>) -> Unit)?,
+    onAction: (SduiAction) -> Unit
+) {
+    if (actions.isEmpty()) return
+    if (batchExecutor != null) {
+        batchExecutor(actions)
+    } else {
+        actions.forEach(onAction)
+    }
 }

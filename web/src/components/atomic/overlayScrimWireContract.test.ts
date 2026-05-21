@@ -134,7 +134,7 @@ describe('Overlay scrim — wire contract (static shapes)', () => {
               alignment: 'bottomStart',
               element: {
                 type: 'Container',
-                fillWidth: true,
+                widthMode: 'fill',
                 background: { colors: ['#00000000', '#000000CC'], direction: 'vertical' },
                 children: [
                   { type: 'Text', content: 'Title', variant: 'bodyMedium' },

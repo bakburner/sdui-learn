@@ -1,4 +1,4 @@
-import React, { useContext, memo, useMemo } from 'react';
+import React, { useContext, useEffect, memo, useMemo } from 'react';
 import type { Action } from '@sdui/models';
 import type { AtomicProps } from './AtomicRouter';
 import { AtomicBox, AtomicBoxBadge } from './AtomicBox';
@@ -6,8 +6,11 @@ import { accessibilityProps } from '../../utils/accessibility';
 import { resolveImageVariant } from '../../utils/ImageVariantResolver';
 import { currentFormFactor } from '../../utils/LayoutTokenResolver';
 import { CompositeContentContext, resolveBindRefString } from '../../utils/BindRefResolver';
+import { useWireAssetBaseUrl } from '../../context/WireAssetBaseUrlContext';
+import { resolveWireAssetUrl } from '../../utils/WireUrlResolver';
 import { areAtomicPropsEqual } from './areAtomicPropsEqual';
-import { getActivateActions } from './getActivateActions';
+import { longPressPointerProps } from './atomicActionHandlers';
+import { logUnsupportedAtomicTriggers, selectActions } from './getActivateActions';
 
 const fitToObjectFit: Record<string, React.CSSProperties['objectFit']> = {
   cover: 'cover',
@@ -28,6 +31,10 @@ const fitToObjectFit: Record<string, React.CSSProperties['objectFit']> = {
  * and `object-fit` stay on the <img> to preserve the intended framing.
  */
 function AtomicImageInner({ element, onAction }: AtomicProps): React.ReactElement {
+  useEffect(() => {
+    logUnsupportedAtomicTriggers(element.actions as Action[] | undefined, element.id);
+  }, [element.actions, element.id]);
+
   const variantSpec = resolveImageVariant(element.variant, currentFormFactor());
 
   const resolvedObjectFit: React.CSSProperties['objectFit'] =
@@ -73,26 +80,33 @@ function AtomicImageInner({ element, onAction }: AtomicProps): React.ReactElemen
   };
 
   const hasActions = element.actions && element.actions.length > 0;
+  const activateActions = selectActions(element.actions as Action[] | undefined, 'onActivate');
+  const longPressActions = selectActions(element.actions as Action[] | undefined, 'onLongPress');
   const handleClick = hasActions
     ? () => {
-        const actions = getActivateActions(element.actions as Action[] | undefined);
-        if (actions.length > 0) onAction(actions);
+        if (activateActions.length > 0) onAction(activateActions);
       }
     : undefined;
+  const longPressHandlers = longPressActions.length > 0
+    ? longPressPointerProps(() => onAction(longPressActions))
+    : {};
 
-  const fallbackUrl = element.placeholder;
+  const wireBase = useWireAssetBaseUrl();
+
+  // Resolve `src` from `bindRef` when present, falling back to the
+  // inline `src`. Lets composers rebind image URLs in flight without
+  // touching the ui tree.
+  const compositeContent = useContext(CompositeContentContext);
+  const rawSrc = resolveBindRefString(element.bindRef, compositeContent) ?? element.src;
+  const resolvedSrc = resolveWireAssetUrl(rawSrc, wireBase);
+  const fallbackUrl = resolveWireAssetUrl(element.placeholder, wireBase);
+
   const handleError = (e: React.SyntheticEvent<HTMLImageElement>) => {
     const img = e.currentTarget;
     if (fallbackUrl && img.src !== fallbackUrl) {
       img.src = fallbackUrl;
     }
   };
-
-  // Resolve `src` from `bindRef` when present, falling back to the
-  // inline `src`. Lets composers rebind image URLs in flight without
-  // touching the ui tree.
-  const compositeContent = useContext(CompositeContentContext);
-  const resolvedSrc = resolveBindRefString(element.bindRef, compositeContent) ?? element.src;
 
   const a11y = element.accessibility;
   const altText = a11y?.hidden ? '' : (a11y?.label ?? element.alt ?? '');
@@ -103,6 +117,7 @@ function AtomicImageInner({ element, onAction }: AtomicProps): React.ReactElemen
       alt={altText}
       style={{ ...imgStyle, ...(hasActions ? { cursor: 'pointer' } : {}) }}
       onClick={handleClick}
+      {...longPressHandlers}
       onError={handleError}
       loading="lazy"
       {...(intrinsicSize

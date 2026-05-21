@@ -611,9 +611,13 @@
     },
     "TabGroupData": {
       "type": "object",
-      "description": "Tabbed navigation with dynamic content sections per tab",
+      "description": "Tabbed navigation with dynamic content sections per tab. Optional ui is the tab header/control row only; tabContents hosts nested sections. Tab selection uses section.subsections mutate actions.",
       "required": ["tabs"],
       "properties": {
+        "ui": {
+          "$ref": "#/definitions/AtomicElement",
+          "description": "Optional atomic tree for the tab header row. When present, renderers walk it via AtomicRouter; when absent, a minimal platform-native tab row is used. Selected-tab styling in atomics requires state-bound conditionals (ADR-014)."
+        },
         "tabs": {
           "type": "array",
           "items": { "$ref": "#/definitions/TabData" }
@@ -1215,7 +1219,10 @@
       "properties": {
         "id": { "type": "string" },
         "schemaVersion": { "type": "string" },
-        "title": { "type": "string" },
+        "title": {
+          "type": "string",
+          "description": "Legacy headline consumed at composition time to build the first AtomicComposite app-bar section (see prependAppBarHeader). Not rendered from screen.title by clients. Omit on bottom-nav tab destinations."
+        },
         "analyticsId": { "type": "string" },
         "traceId": { "type": "string" },
         "parentUri": {
@@ -1229,6 +1236,10 @@
           "type": "array",
           "description": "Screen-level actions (e.g. analytics beacons, lifecycle hooks)",
           "items": { "$ref": "#/definitions/Action" }
+        },
+        "contentInsets": {
+          "$ref": "#/definitions/Spacing",
+          "description": "Outer padding around the scrollable section feed (start/end/top/bottom). Server emits semantic layout tokens (e.g. token:nba.spacing.md); clients resolve via LayoutTokenResolver. Omit only when the screen is intentionally edge-to-edge."
         },
         "sections": {
           "type": "array",

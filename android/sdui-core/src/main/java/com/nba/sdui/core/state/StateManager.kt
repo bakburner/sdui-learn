@@ -78,24 +78,29 @@ class StateManager {
 
     /**
      * Apply a schema-declared mutate operation to a screen state key.
+     *
+     * @return `true` when state was updated; `false` when the operation was a
+     *         logged no-op (type mismatch or unknown op).
      */
-    fun applyOperation(operation: MutateOperation?, key: String, value: Any?) {
-        when (operation ?: MutateOperation.Set) {
+    fun applyOperation(operation: MutateOperation?, key: String, value: Any?): Boolean {
+        return when (operation ?: MutateOperation.Set) {
             MutateOperation.Set -> {
                 if (value != null) {
                     setState(key, value)
                 } else {
                     removeState(key)
                 }
+                true
             }
 
             MutateOperation.Toggle -> {
                 val current = getState(key)
                 if (current is Boolean) {
                     setState(key, !current)
+                    true
                 } else {
-                    // TODO(action-mutate): review type-mismatch semantics across platforms
                     Log.w(TAG, "mutate toggle noop: current value is not boolean key=$key current=$current")
+                    false
                 }
             }
 
@@ -103,9 +108,8 @@ class StateManager {
                 val current = getState(key)
                 val currentNumber = asStoredNumber(current)
                 if (currentNumber == null) {
-                    // TODO(action-mutate): review type-mismatch semantics across platforms
                     Log.w(TAG, "mutate increment noop: current value is not numeric key=$key current=$current")
-                    return
+                    return false
                 }
 
                 val delta = asDouble(value) ?: 1.0
@@ -115,20 +119,30 @@ class StateManager {
                 } else {
                     setState(key, next)
                 }
+                true
             }
 
             MutateOperation.Append -> {
                 val current = getState(key)
                 when {
-                    current is List<*> -> setState(key, current + value)
-                    current is String && value is String -> setState(key, current + value)
-                    current == null && value != null -> setState(key, listOf(value))
+                    current is List<*> -> {
+                        setState(key, current + value)
+                        true
+                    }
+                    current is String && value is String -> {
+                        setState(key, current + value)
+                        true
+                    }
+                    current == null && value != null -> {
+                        setState(key, listOf(value))
+                        true
+                    }
                     else -> {
-                        // TODO(action-mutate): review type-mismatch semantics across platforms
                         Log.w(
                             TAG,
                             "mutate append noop: incompatible value types key=$key current=$current incoming=$value"
                         )
+                        false
                     }
                 }
             }

@@ -208,11 +208,13 @@ final class ActionDispatcher {
         }
         let op = action.operation?.rawValue ?? "set"
         logger.debug("mutate op=\(op, privacy: .public) key=\(key, privacy: .public) value=\(String(describing: action.value?.value), privacy: .public)")
-        screenState.apply(
+        guard screenState.apply(
             operation: action.operation,
             key: key,
             value: action.value?.value
-        )
+        ) else {
+            return .failure(action.failureFeedback)
+        }
         return .success
     }
 

@@ -380,6 +380,19 @@ graph LR
     style EX fill:#8E44AD,color:#fff
 ```
 
+  ### Current Trigger Hosting Matrix
+
+  | Trigger | Web | Android | iOS |
+  |---|---|---|---|
+  | `onActivate` / `onTap` | Element-level | Element-level | Element-level |
+  | `onVisible` | Element-level | Element-level | Element-level |
+  | `onLongPress` | Not hosted on atomic primitives; debug-log only | Element-level on supported atomics | Element-level on supported atomics |
+  | `onFocus` / `onBlur` | Focusable primitives only | Focusable primitives only | Focusable primitives only |
+  | `onSubmit` | Form-context submit path | Form section submit path through shared executor | Form-context submit path |
+  | `onSwipe` | `ScrollContainer`-level only | `ScrollContainer`-level only | `ScrollContainer`-level only |
+
+  Action-field alignment is tracked in [docs/plans/plan-action-trigger-and-mutate-alignment.md](plans/plan-action-trigger-and-mutate-alignment.md). Owner follow-up: `docs/appendix-kitchen-sink.md` needs a manual sweep for the same trigger/field terminology.
+
 ### Action Types (6 categories)
 
 | Type | Purpose | Key Fields |
@@ -1160,7 +1173,7 @@ Until approved, these remain directional requirements and may be refined.
 | Web renderer (React) | **Built** | React section router + 8 semantic section renderers + AtomicRouter with 12 atomic primitives incl. `LiveClock`, `OverlayContainer`, and live data wrappers. `IconTokenResolver` + Material Symbols font for top navigation bar. |
 | iOS renderer (SwiftUI) | **Built** | Swift Package (`ios/`) with SwiftUI section router + 8 semantic section views + AtomicRouter with 12 atomic primitives incl. `LiveClock` and `OverlayContainer`. Server-declared bottom `SduiNavigationShell` resolves `sdui:*` icon tokens to SF Symbols. Real-time via Ably (`AblyChannelManager` actor) + `PollingDriver`. `SectionVisibilityTracker` wired. Demo app (`SduiDemo`, XcodeGen, `make ios-run`) bootstraps `nba://for-you`. |
 | Data binding (SSE/poll, field-level) | **Built** | Ably for SSE, direct-URL polling, DataBindingResolver class exists but live updates use hardcoded mapping |
-| Action system (navigate, fireAndForget, mutate) | **Built** | ActionHandler dispatches all 6 action types |
+| Action system (navigate, fireAndForget, mutate) | **Built** | All clients dispatch the 6 action types with canonical wire fields (`targetUri`/`webUrl`, `target`/`operation`/`value`). Trigger-alignment follow-up tracked in `docs/plans/plan-action-trigger-and-mutate-alignment.md`. |
 | Screen state management (tabs, toggles) | **Built** | StateManager, TabGroup wired |
 | Composition service (server-side) | **Built** | Spring Boot, demo + live mode, A/B variants |
 | Accessibility descriptors | **Built** | Schema `accessibility` field on Section, Subsection, AtomicElement. Android Compose `semantics{}`, web ARIA attributes. All renderers wired. |
@@ -1221,6 +1234,7 @@ The alternative — maintaining five parallel native implementations of the game
 
 | Date | Summary |
 |---|---|
+| 2026-05-20 | Doc consistency audit: synced the action-system docs to canonical wire fields (`targetUri`/`webUrl`, `target`/`operation`/`value`), added the current trigger-hosting matrix, and noted the required manual appendix sweep. |
 | 2026-05-05 | Doc consistency audit. Schema versioning protocol: Partial → Built (server version routing, field stripping, force-upgrade signal implemented across all platforms). |
 | 2026-04-28 | Requirements audit: onTap → onActivate in all diagrams/tables. §9g theming and §9s Figma trimmed to requirement statements (implementation detail moved to sdui-design-system.md). §9i impression status corrected (visibility infra built all platforms; server analytics composition gap). §7 codegen diagram fixed (quicktype → Kotlin). §6 system count corrected (3 → 4). §9b/§9c stale "Decision required" tags resolved. Dead plan references removed (7 files). §11b next steps removed. Appendix A removed (dead reference). Footer date removed. |
 | 2026-04-27 | Doc consistency audit: trigger counts (6 → 8, all in schema), onActivate + onSubmit added, "Future (TV)" distinction removed, terminology sync. |

@@ -15,6 +15,18 @@ extension EnvironmentValues {
     }
 }
 
+/// SDUI composition service origin for resolving relative wire asset paths.
+private struct WireAssetBaseURLKey: EnvironmentKey {
+    static let defaultValue: String = ""
+}
+
+extension EnvironmentValues {
+    var wireAssetBaseURL: String {
+        get { self[WireAssetBaseURLKey.self] }
+        set { self[WireAssetBaseURLKey.self] = newValue }
+    }
+}
+
 /// Resolver for the `bindRef` property on atomic leaf elements.
 ///
 /// `bindRef` is a dot-path into the enclosing `AtomicComposite`'s

@@ -12,6 +12,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.nba.sdui.core.models.generated.Section
 import com.nba.sdui.core.renderer.applyAccessibility
+import com.nba.sdui.core.renderer.atomic.LocalActionExecutor
+import com.nba.sdui.core.renderer.atomic.dispatchActions
 import com.nba.sdui.core.renderer.adapters.FormFieldUi
 import com.nba.sdui.core.renderer.adapters.FormUiModel
 import com.nba.sdui.core.renderer.adapters.mapForm
@@ -35,6 +37,7 @@ fun FormRenderer(
     modifier: Modifier = Modifier
 ) {
     val model = mapForm(section, screenState)
+    val batchExecutor = LocalActionExecutor.current
 
     if (model == null) {
         Log.w(TAG, "Unable to parse form data for section ${section.id}")
@@ -87,7 +90,7 @@ fun FormRenderer(
             Button(
                 onClick = {
                     Log.d(TAG, "Form submit: ${model.submitAction}")
-                    onAction(model.submitAction)
+                    dispatchActions(listOf(model.submitAction), batchExecutor, onAction)
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {

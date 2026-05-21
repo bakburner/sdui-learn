@@ -39,6 +39,11 @@ describe('resolveLayoutScalar', () => {
     expect(resolveLayoutScalar(undefined)).toBe(0);
   });
 
+  it('resolves legacy spacing.md alias to the same value as nba.spacing.md', () => {
+    expect(resolveLayoutScalar('token:spacing.md', 'phone')).toBe(12);
+    expect(resolveLayoutScalar('token:spacing.md', 'tablet')).toBe(15);
+  });
+
   it('resolves a semantic spacing token per form factor', () => {
     // nba.spacing.md → nba.space.raw.12 → phone:12, tablet:15, web.wide:15
     expect(resolveLayoutScalar('token:nba.spacing.md', 'phone')).toBe(12);

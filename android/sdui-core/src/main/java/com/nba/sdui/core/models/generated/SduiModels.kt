@@ -84,6 +84,13 @@ data class SduiModels (
     @get:JsonProperty("analyticsId")@field:JsonProperty("analyticsId")
     val analyticsID: String? = null,
 
+    /**
+     * Outer padding around the scrollable section feed (start/end/top/bottom). Server emits
+     * semantic layout tokens (e.g. token:nba.spacing.md); clients resolve via
+     * LayoutTokenResolver. Omit only when the screen is intentionally edge-to-edge.
+     */
+    val contentInsets: Spacing? = null,
+
     val defaultRefreshPolicy: RefreshPolicy? = null,
 
     @get:JsonProperty(required=true)@field:JsonProperty(required=true)
@@ -113,6 +120,12 @@ data class SduiModels (
     val sections: List<Section>,
 
     val state: Map<String, Any?>? = null,
+
+    /**
+     * Legacy headline consumed at composition time to build the first AtomicComposite app-bar
+     * section (see prependAppBarHeader). Not rendered from screen.title by clients. Omit on
+     * bottom-nav tab destinations.
+     */
     val title: String? = null,
 
     @get:JsonProperty("traceId")@field:JsonProperty("traceId")
@@ -467,6 +480,84 @@ enum class ActionType(val value: String) {
     }
 }
 
+/**
+ * Outer padding around the scrollable section feed (start/end/top/bottom). Server emits
+ * semantic layout tokens (e.g. token:nba.spacing.md); clients resolve via
+ * LayoutTokenResolver. Omit only when the screen is intentionally edge-to-edge.
+ *
+ * Outer space between the element and its siblings or parent edges. Applied outside the
+ * element's background, border, corner radius, and shadow — use this for sibling-to-sibling
+ * spacing instead of Spacer siblings when inhomogeneous gaps are needed.
+ *
+ * Optional edge offsets from the aligned base bounds.
+ *
+ * Inner space between the element's own background/border and its content.
+ *
+ * Outer margin (space between the surface and its siblings / screen edge).
+ *
+ * Inner padding (space between the surface edge and the content it wraps).
+ */
+data class Spacing (
+    val bottom: LayoutScalar? = null,
+    val end: LayoutScalar? = null,
+    val start: LayoutScalar? = null,
+    val top: LayoutScalar? = null
+)
+
+/**
+ * Absolute layout value: raw dp/px integer, or a semantic layout token reference
+ * token:<path> (e.g. token:nba.spacing.md, token:nba.radius.lg) resolved per
+ * platform.formFactor against bundled spacing/corner/size/typography/shadow registries.
+ * Unknown tokens log token_resolver_missing and fall back to 0 (or caller default).
+ *
+ * Bottom-trailing corner.
+ *
+ * Bottom-leading corner.
+ *
+ * Top-trailing corner (top-right in LTR, top-left in RTL).
+ *
+ * Top-leading corner (top-left in LTR, top-right in RTL).
+ *
+ * Corner radius: dp/px or layout token. Applied to Container (with overflow clip) and Image
+ * elements.
+ *
+ * Gap between wrapped lines when layoutWrap is true. Falls back to gap when absent. Ignored
+ * when layoutWrap is false.
+ *
+ * Gap between flex children (row/column), or grid gap where applicable.
+ *
+ * Fixed height in dp/px or layout token.
+ *
+ * Maximum height constraint in dp/px or layout token.
+ *
+ * Maximum width constraint in dp/px or layout token.
+ *
+ * Minimum height constraint in dp/px or layout token.
+ *
+ * Minimum width constraint in dp/px or layout token.
+ *
+ * Fixed width in dp/px or layout token.
+ *
+ * Corner radius: dp/px or layout token, applied to the surface (with overflow clip).
+ */
+sealed class LayoutScalar {
+    class IntegerValue(val value: Long)  : LayoutScalar()
+    class StringValue(val value: String) : LayoutScalar()
+
+    fun toJson(): String = mapper.writeValueAsString(when (this) {
+        is IntegerValue -> this.value
+        is StringValue  -> this.value
+    })
+
+    companion object {
+        fun fromJson(jn: JsonNode): LayoutScalar = when (jn) {
+            is IntNode, is LongNode -> IntegerValue(mapper.treeToValue(jn))
+            is TextNode             -> StringValue(mapper.treeToValue(jn))
+            else                    -> throw IllegalArgumentException()
+        }
+    }
+}
+
 data class RefreshPolicy (
     /**
      * For sse type: Ably channel name pattern (e.g., '{gameId}:linescore')
@@ -577,9 +668,9 @@ data class Badge (
 )
 
 /**
- * Atomic tree describing the banner's full visible surface. Renderer walks this tree
- * exactly as an AtomicComposite would; no client-side chrome defaults are permitted. See
- * AGENTS.md §15.1.
+ * Optional atomic tree for the tab header row. When present, renderers walk it via
+ * AtomicRouter; when absent, a minimal platform-native tab row is used. Selected-tab
+ * styling in atomics requires state-bound conditionals (ADR-014).
  *
  * Atomic UI primitive — server-composed building block for the atomic rendering layer
  *
@@ -588,6 +679,10 @@ data class Badge (
  * OverlayContainer base element. Rendered first and sized by its own atomic box model.
  *
  * Atomic element to render in this overlay layer.
+ *
+ * Atomic tree describing the banner's full visible surface. Renderer walks this tree
+ * exactly as an AtomicComposite would; no client-side chrome defaults are permitted. See
+ * AGENTS.md §15.1.
  *
  * Atomic tree describing the hero's full visible surface — logo, title, subtitle, feature
  * list, tier cards, CTAs. Renderer walks this tree exactly as an AtomicComposite would.
@@ -919,7 +1014,9 @@ data class AtomicElement (
 /**
  * Section-specific data payload
  *
- * Tabbed navigation with dynamic content sections per tab
+ * Tabbed navigation with dynamic content sections per tab. Optional ui is the tab
+ * header/control row only; tabContents hosts nested sections. Tab selection uses
+ * section.subsections mutate actions.
  *
  * Typed tabular data for an NBA-style boxscore (one per team)
  *
@@ -953,6 +1050,27 @@ data class Data (
     val stateKey: String? = null,
     val tabContents: Map<String, List<Section>>? = null,
     val tabs: List<TabData>? = null,
+
+    /**
+     * Optional atomic tree for the tab header row. When present, renderers walk it via
+     * AtomicRouter; when absent, a minimal platform-native tab row is used. Selected-tab
+     * styling in atomics requires state-bound conditionals (ADR-014).
+     *
+     * Atomic tree describing the banner's full visible surface. Renderer walks this tree
+     * exactly as an AtomicComposite would; no client-side chrome defaults are permitted. See
+     * AGENTS.md §15.1.
+     *
+     * Atomic tree describing the hero's full visible surface — logo, title, subtitle, feature
+     * list, tier cards, CTAs. Renderer walks this tree exactly as an AtomicComposite would.
+     *
+     * Root node of the atomic element tree — the rendering instructions
+     *
+     * Atomic tree describing the pre-SDK placeholder surface (e.g. play-glyph column framed at
+     * the player's aspectRatio). Renderer walks this tree exactly as an AtomicComposite would;
+     * no client-side chrome defaults are permitted. Once the video SDK lands this tree becomes
+     * the loading/error placeholder the SDK overlays.
+     */
+    val ui: AtomicElement? = null,
 
     /**
      * Ordered list of column definitions; clients render left-to-right
@@ -1107,23 +1225,6 @@ data class Data (
     val tiers: List<SubscriptionTier>? = null,
 
     /**
-     * Atomic tree describing the banner's full visible surface. Renderer walks this tree
-     * exactly as an AtomicComposite would; no client-side chrome defaults are permitted. See
-     * AGENTS.md §15.1.
-     *
-     * Atomic tree describing the hero's full visible surface — logo, title, subtitle, feature
-     * list, tier cards, CTAs. Renderer walks this tree exactly as an AtomicComposite would.
-     *
-     * Root node of the atomic element tree — the rendering instructions
-     *
-     * Atomic tree describing the pre-SDK placeholder surface (e.g. play-glyph column framed at
-     * the player's aspectRatio). Renderer walks this tree exactly as an AtomicComposite would;
-     * no client-side chrome defaults are permitted. Once the video SDK lands this tree becomes
-     * the loading/error placeholder the SDK overlays.
-     */
-    val ui: AtomicElement? = null,
-
-    /**
      * Optional domain data (strings, URLs, flags) to populate the ui tree. Reserved for future
      * data-binding support.
      */
@@ -1240,80 +1341,6 @@ enum class BadgeAlignment(val value: String) {
             "topEnd"       -> TopEnd
             "topStart"     -> TopStart
             else           -> throw IllegalArgumentException()
-        }
-    }
-}
-
-/**
- * Outer space between the element and its siblings or parent edges. Applied outside the
- * element's background, border, corner radius, and shadow — use this for sibling-to-sibling
- * spacing instead of Spacer siblings when inhomogeneous gaps are needed.
- *
- * Optional edge offsets from the aligned base bounds.
- *
- * Inner space between the element's own background/border and its content.
- *
- * Outer margin (space between the surface and its siblings / screen edge).
- *
- * Inner padding (space between the surface edge and the content it wraps).
- */
-data class Spacing (
-    val bottom: LayoutScalar? = null,
-    val end: LayoutScalar? = null,
-    val start: LayoutScalar? = null,
-    val top: LayoutScalar? = null
-)
-
-/**
- * Bottom-trailing corner.
- *
- * Absolute layout value: raw dp/px integer, or a semantic layout token reference
- * token:<path> (e.g. token:nba.spacing.md, token:nba.radius.lg) resolved per
- * platform.formFactor against bundled spacing/corner/size/typography/shadow registries.
- * Unknown tokens log token_resolver_missing and fall back to 0 (or caller default).
- *
- * Bottom-leading corner.
- *
- * Top-trailing corner (top-right in LTR, top-left in RTL).
- *
- * Top-leading corner (top-left in LTR, top-right in RTL).
- *
- * Corner radius: dp/px or layout token. Applied to Container (with overflow clip) and Image
- * elements.
- *
- * Gap between wrapped lines when layoutWrap is true. Falls back to gap when absent. Ignored
- * when layoutWrap is false.
- *
- * Gap between flex children (row/column), or grid gap where applicable.
- *
- * Fixed height in dp/px or layout token.
- *
- * Maximum height constraint in dp/px or layout token.
- *
- * Maximum width constraint in dp/px or layout token.
- *
- * Minimum height constraint in dp/px or layout token.
- *
- * Minimum width constraint in dp/px or layout token.
- *
- * Fixed width in dp/px or layout token.
- *
- * Corner radius: dp/px or layout token, applied to the surface (with overflow clip).
- */
-sealed class LayoutScalar {
-    class IntegerValue(val value: Long)  : LayoutScalar()
-    class StringValue(val value: String) : LayoutScalar()
-
-    fun toJson(): String = mapper.writeValueAsString(when (this) {
-        is IntegerValue -> this.value
-        is StringValue  -> this.value
-    })
-
-    companion object {
-        fun fromJson(jn: JsonNode): LayoutScalar = when (jn) {
-            is IntNode, is LongNode -> IntegerValue(mapper.treeToValue(jn))
-            is TextNode             -> StringValue(mapper.treeToValue(jn))
-            else                    -> throw IllegalArgumentException()
         }
     }
 }

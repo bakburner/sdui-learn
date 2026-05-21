@@ -35,8 +35,27 @@ public final class ColorTokens {
     public static final String TEXT_PRIMARY   = "token:nba.label.primary";
     public static final String TEXT_SECONDARY = "token:nba.label.secondary";
     public static final String TEXT_TERTIARY  = "token:nba.label.tertiary";
+    /**
+     * Theme-inverted label (swaps with light/dark mode). Use on surfaces that
+     * invert with the app theme — not on fixed dark media scrims.
+     */
     public static final String TEXT_INVERSE   = "token:nba.label-inverted.primary";
-    public static final String TEXT_ON_BRAND  = "token:nba.label-dark.primary";
+    /**
+     * Light label on a known-dark surface (hero scrim, key art overlay). Stable
+     * across light/dark app themes — prefer this over {@link #TEXT_INVERSE} on
+     * media cards.
+     */
+    public static final String TEXT_ON_DARK_MEDIA = "token:nba.label-dark.primary";
+    /** @deprecated Prefer {@link #TEXT_ON_DARK_MEDIA} for scrim copy; kept for call-site migration. */
+    public static final String TEXT_ON_BRAND  = TEXT_ON_DARK_MEDIA;
+    /**
+     * Gold accent for tier badges on subscribe surfaces (stable across light/dark app theme).
+     */
+    public static final String LABEL_ACCENT_GOLD_ON_DARK = "token:nba.color.secondary.70";
+    /** Translucent white fill for tier cards on dark brand gradients. */
+    public static final String SURFACE_TIER_ON_DARK = "token:nba.color.t-white.10";
+    /** Dimmed strikethrough / secondary price on dark surfaces. */
+    public static final String TEXT_DIM_ON_DARK = "token:nba.color.t-white.60";
 
     // Divider / Border
     public static final String BORDER_DEFAULT = "token:nba.divider.moderate";

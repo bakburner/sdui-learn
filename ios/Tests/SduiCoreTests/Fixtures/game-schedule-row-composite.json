@@ -8,12 +8,19 @@
       "id": "schedule-row-section",
       "type": "AtomicComposite",
       "analyticsId": "schedule_row",
-      "refreshPolicy": { "type": "static" },
+      "refreshPolicy": {
+        "type": "static"
+      },
       "data": {
         "ui": {
           "type": "Container",
           "direction": "column",
-          "padding": { "top": 0, "bottom": 4, "start": 16, "end": 16 },
+          "padding": {
+            "top": 0,
+            "bottom": 4,
+            "start": 16,
+            "end": 16
+          },
           "children": [
             {
               "id": "game-row-1",
@@ -23,8 +30,18 @@
               "gap": 10,
               "background": "token:nba.bg.secondary",
               "cornerRadius": 12,
-              "padding": { "top": 16, "bottom": 16, "start": 16, "end": 16 },
-              "shadow": { "color": "#00000014", "radius": 4, "offsetX": 0, "offsetY": 2 },
+              "padding": {
+                "top": 16,
+                "bottom": 16,
+                "start": 16,
+                "end": 16
+              },
+              "shadow": {
+                "color": "#00000014",
+                "radius": 4,
+                "offsetX": 0,
+                "offsetY": 2
+              },
               "actions": [
                 {
                   "trigger": "onActivate",
@@ -38,7 +55,6 @@
                   "direction": "row",
                   "alignment": "spaceBetween",
                   "crossAlignment": "center",
-                  "fillWidth": true,
                   "children": [
                     {
                       "type": "Container",
@@ -54,7 +70,10 @@
                           "height": 48,
                           "fit": "contain"
                         },
-                        { "type": "Spacer", "height": 4 },
+                        {
+                          "type": "Spacer",
+                          "height": 4
+                        },
                         {
                           "type": "Text",
                           "content": "3 NYK",
@@ -114,7 +133,10 @@
                           "height": 48,
                           "fit": "contain"
                         },
-                        { "type": "Spacer", "height": 4 },
+                        {
+                          "type": "Spacer",
+                          "height": 4
+                        },
                         {
                           "type": "Text",
                           "content": "2 BOS",
@@ -142,7 +164,8 @@
                         }
                       ]
                     }
-                  ]
+                  ],
+                  "widthMode": "fill"
                 }
               ]
             }

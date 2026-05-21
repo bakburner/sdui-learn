@@ -48,6 +48,7 @@ public struct ScreenShell: View {
 private struct ScreenBody: View {
     @Bindable var vm: SduiScreenViewModel
     @Environment(\.navCoordinator) private var navCoordinator
+    @Environment(\.sduiNavigateHome) private var navigateHome
     @Environment(\.colorScheme) private var colorScheme
     @AppStorage("sdui_color_scheme") private var colorSchemePreference = "system"
 
@@ -56,15 +57,12 @@ private struct ScreenBody: View {
             Group {
                 switch vm.loadState {
                 case .idle, .loading:
-                    ProgressView("Loading…")
+                    shellWrapped {
+                        ProgressView("Loading…")
+                    }
                 case .loaded:
                     if let screen = vm.screen {
-                        SduiNavigationShell(
-                            navigation: screen.navigation,
-                            onNavigate: { uri in
-                                navCoordinator.push(endpoint: UriResolver.resolveEndpoint(uri: uri))
-                            }
-                        ) {
+                        shellWrapped {
                             ScrollView {
                                 LazyVStack(spacing: 0) {
                                     ForEach(screen.sections, id: \.id) { section in
@@ -84,27 +82,32 @@ private struct ScreenBody: View {
                                     }
                                 }
                             }
+                            .padding(edgeInsets(from: screen.contentInsets))
                             .refreshable { await vm.load() }
+                            .environment(\.wireAssetBaseURL, vm.wireAssetBaseURL)
                         }
-                        .navigationTitle(screen.title ?? "")
                     } else {
-                        ProgressView("Loading…")
+                        shellWrapped {
+                            ProgressView("Loading…")
+                        }
                     }
                 case .failed(let message):
-                    ErrorView(message: message) {
-                        Task { await vm.load() }
+                    shellWrapped {
+                        ErrorView(
+                            message: message,
+                            canNavigateBack: !navCoordinator.path.isEmpty
+                                || (vm.shellScreen?.parentURI?.isEmpty == false),
+                            onNavigateBack: { navigateBack() },
+                            onRetry: { Task { await vm.load() } }
+                        )
                     }
                 case .upgradeRequired(let message):
-                    VStack(spacing: 12) {
-                        Text("Update Required")
-                            .font(.title2)
-                            .fontWeight(.bold)
-                        Text(message)
-                            .font(.body)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
+                    shellWrapped {
+                        UpgradeRequiredView(
+                            message: message,
+                            onNavigateHome: { navigateBack() }
+                        )
                     }
-                    .padding()
                 }
             }
             .animation(.easeInOut(duration: 0.2), value: vm.loadState)
@@ -112,8 +115,9 @@ private struct ScreenBody: View {
             ToastOverlay(host: vm.toasts)
         }
         .preferredColorScheme(preferredColorScheme)
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
+            ToolbarItem(placement: .topBarTrailing) {
                 Button(themeToggleTitle) {
                     toggleColorScheme()
                 }
@@ -144,6 +148,29 @@ private struct ScreenBody: View {
 
     private func toggleColorScheme() {
         colorSchemePreference = effectiveColorScheme == .dark ? "light" : "dark"
+    }
+
+    @ViewBuilder
+    private func shellWrapped<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        SduiNavigationShell(
+            navigation: vm.shellScreen?.navigation,
+            onNavigate: { uri in
+                navCoordinator.push(endpoint: UriResolver.resolveEndpoint(uri: uri))
+            },
+            content: content
+        )
+    }
+
+    private func navigateBack() {
+        if !navCoordinator.path.isEmpty {
+            navCoordinator.pop()
+        } else if let parent = vm.shellScreen?.parentURI, !parent.isEmpty {
+            navCoordinator.push(endpoint: UriResolver.resolveEndpoint(uri: parent))
+        } else if let navigateHome {
+            navigateHome()
+        } else {
+            navCoordinator.popToRoot()
+        }
     }
 }
 
@@ -228,21 +255,56 @@ private struct SectionLayout: View {
     }
 }
 
+private enum ClientChromeSpacing {
+    static let lg = LayoutTokenResolver.cgFloat(.string("token:nba.spacing.lg"))
+    static let md = LayoutTokenResolver.cgFloat(.string("token:nba.spacing.md"))
+    static let sm = LayoutTokenResolver.cgFloat(.string("token:nba.spacing.sm"))
+}
+
 private struct ErrorView: View {
     let message: String
+    let canNavigateBack: Bool
+    let onNavigateBack: () -> Void
     let retry: () -> Void
 
     var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: ClientChromeSpacing.lg) {
             Image(systemName: "exclamationmark.triangle")
                 .font(.largeTitle)
                 .foregroundStyle(.secondary)
+            Text("Failed to load screen")
+                .font(.headline)
             Text(message)
                 .font(.body)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
-            Button("Retry", action: retry)
+            HStack(spacing: ClientChromeSpacing.md) {
+                Button(canNavigateBack ? "Go back" : "Home", action: onNavigateBack)
+                    .buttonStyle(.bordered)
+                Button("Retry", action: retry)
+                    .buttonStyle(.borderedProminent)
+            }
         }
-        .padding()
+        .padding(ClientChromeSpacing.lg)
+    }
+}
+
+private struct UpgradeRequiredView: View {
+    let message: String
+    let onNavigateHome: () -> Void
+
+    var body: some View {
+        VStack(spacing: ClientChromeSpacing.md) {
+            Text("Update Required")
+                .font(.title2)
+                .fontWeight(.bold)
+            Text(message)
+                .font(.body)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+            Button("Home", action: onNavigateHome)
+                .buttonStyle(.bordered)
+        }
+        .padding(ClientChromeSpacing.lg)
     }
 }

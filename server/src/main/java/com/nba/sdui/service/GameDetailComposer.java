@@ -118,6 +118,7 @@ public class GameDetailComposer {
         log.debug("SDUI response composed: variant={}, sections={}",
                 variant, response.has("sections") ? response.get("sections").size() : 0);
 
+        utils.prependAppBarHeaderIfNeeded(response);
         utils.stampStringTableOnSections(response, locale);
         return new GameDetailResult(response, derivedGameState);
     }
@@ -295,9 +296,11 @@ public class GameDetailComposer {
         ObjectNode awayTable = boxscoreComposer.buildBoxscoreTableSection(
                 awayTeam, gameId, contentSourceId, "away",
                 "gd_boxscore_away_sortCol", "gd_boxscore_away_sortDir", gameStatus);
+        awayTable.set("surface", utils.flushSurface());
         ObjectNode homeTable = boxscoreComposer.buildBoxscoreTableSection(
                 homeTeam, gameId, contentSourceId, "home",
                 "gd_boxscore_home_sortCol", "gd_boxscore_home_sortDir", gameStatus);
+        homeTable.set("surface", utils.flushSurface());
 
         ObjectNode tabContents = objectMapper.createObjectNode();
         ArrayNode awayContent = objectMapper.createArrayNode();
@@ -310,6 +313,8 @@ public class GameDetailComposer {
 
         data.set("tabContents", tabContents);
         section.set("data", data);
+        section.set("subsections", utils.tabSelectSubsections(tabs, "gd_boxscore_team"));
+        section.set("surface", utils.secondaryStripSurface());
         return section;
     }
 
@@ -368,6 +373,7 @@ public class GameDetailComposer {
 
         data.set("tabContents", tabContents);
         section.set("data", data);
+        section.set("subsections", utils.tabSelectSubsections(tabs, "activeTab"));
 
         return section;
     }
@@ -835,6 +841,13 @@ public class GameDetailComposer {
 
         data.set("tabContents", tabContents);
         section.set("data", data);
+        section.set("subsections", utils.tabSelectSubsections(tabs, "gd_active_tab"));
+        section.set("surface", utils.secondaryStripSurface());
+
+        ObjectNode layoutHints = objectMapper.createObjectNode();
+        layoutHints.put("marginTop", 0);
+        section.set("layoutHints", layoutHints);
+
         return section;
     }
 

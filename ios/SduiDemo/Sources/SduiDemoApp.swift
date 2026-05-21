@@ -30,6 +30,10 @@ struct SduiDemoApp: App {
             }
             .sduiConfig(config)
             .environment(\.navCoordinator, nav)
+            .environment(\.sduiNavigateHome) {
+                nav.popToRoot()
+                bootstrapEndpoint = UriResolver.resolveEndpoint(uri: Self.FALLBACK_BOOTSTRAP_URI)
+            }
             .task { await fetchBootstrapUri() }
             .onChange(of: nav.pendingExternalURL) { _, newValue in
                 if let url = newValue {

@@ -23,7 +23,7 @@ struct AtomicButtonView: View {
                    let symbol = IconTokenResolver.shared.resolve(icon) {
                     Image(systemName: symbol)
                 }
-                if let label = resolvedLabel {
+                if let label = resolvedLabel, !label.isEmpty {
                     Text(label)
                 }
             }
@@ -96,10 +96,11 @@ struct SduiButtonStyle: ButtonStyle {
     var inlineBackground: Color? = nil
 
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
+        let bg = inlineBackground ?? backgroundColor
+        return configuration.label
             .foregroundColor(inlineForeground ?? foregroundColor)
-            .background((inlineBackground ?? backgroundColor).opacity(configuration.isPressed ? 0.7 : 1.0))
-            .cornerRadius(8)
+            .background(bg.opacity(configuration.isPressed ? 0.7 : 1.0))
+            .cornerRadius(variant == .text || variant == .tertiary ? 0 : 8)
     }
 
     private var foregroundColor: Color {

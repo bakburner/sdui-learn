@@ -3,17 +3,9 @@ import type { Action, Section } from '@sdui/models';
 /**
  * Shared section interaction helpers to keep section components
  * focused on rendering, not action parsing.
- *
- * Resolves from schema-level section.actions first, falling back
- * to legacy section.data.actions for backward compatibility.
  */
 export function getSectionActions(section: Section): Action[] {
-  if (section.actions?.length) {
-    return section.actions;
-  }
-  const data = section.data as Record<string, unknown> | undefined;
-  const actions = data?.actions as Action[] | undefined;
-  return actions ?? [];
+  return section.actions ?? [];
 }
 
 export function getPrimarySectionAction(section: Section, trigger: string = 'onActivate'): Action | undefined {

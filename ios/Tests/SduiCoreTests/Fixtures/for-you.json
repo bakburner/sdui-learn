@@ -1,1 +1,2860 @@
-{"id":"for-you","title":"For You","analyticsId":"for_you","traceId":"trace-bf7bef73","schemaVersion":"1.0","navigation":{"items":[{"id":"for-you","label":"For You","icon":"sdui:home","targetUri":"nba://for-you","selected":true},{"id":"games","label":"Games","icon":"sdui:basketball","targetUri":"nba://games","selected":false},{"id":"watch","label":"Watch","icon":"sdui:video","targetUri":"nba://watch","selected":false},{"id":"leaders","label":"Leaders","icon":"sdui:leaderboard","targetUri":"nba://leaders","selected":false},{"id":"demos","label":"Kitchen","icon":"sdui:grid","targetUri":"nba://demos","selected":false}]},"sections":[{"id":"following-rail","type":"AtomicComposite","analyticsId":"for_you_following","refreshPolicy":{"type":"static"},"data":{"ui":{"type":"Container","direction":"column","padding":{"start":0,"end":0,"top":0,"bottom":12},"children":[{"type":"Text","content":"Following","variant":"titleMedium","weight":"bold","padding":{"start":16,"end":16,"top":4,"bottom":4}},{"type":"ScrollContainer","direction":"row","gap":16,"showIndicators":false,"children":[{"type":"Container","direction":"column","alignment":"center","crossAlignment":"center","id":"lebron","actions":[{"trigger":"onTap","type":"navigate","targetUri":"nba://player/2544"}],"children":[{"type":"Image","src":"https://cdn.nba.com/headshots/nba/latest/260x190/2544.png","width":56,"height":56,"fit":"cover","placeholder":"https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png","cornerRadius":28},{"type":"Spacer","height":4},{"type":"Text","content":"L. James","variant":"labelSmall","maxLines":1}]},{"type":"Container","direction":"column","alignment":"center","crossAlignment":"center","id":"cavaliers","actions":[{"trigger":"onTap","type":"navigate","targetUri":"nba://team/1610612739"}],"children":[{"type":"Image","src":"https://cdn.nba.com/logos/nba/1610612739/primary/D/512x512/logo.png","width":56,"height":56,"fit":"cover","placeholder":"https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png","cornerRadius":28},{"type":"Spacer","height":4},{"type":"Text","content":"Cavaliers","variant":"labelSmall","maxLines":1}]},{"type":"Container","direction":"column","alignment":"center","crossAlignment":"center","id":"curry","actions":[{"trigger":"onTap","type":"navigate","targetUri":"nba://player/201939"}],"children":[{"type":"Image","src":"https://cdn.nba.com/headshots/nba/latest/260x190/201939.png","width":56,"height":56,"fit":"cover","placeholder":"https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png","cornerRadius":28},{"type":"Spacer","height":4},{"type":"Text","content":"S. Curry","variant":"labelSmall","maxLines":1}]},{"type":"Container","direction":"column","alignment":"center","crossAlignment":"center","id":"nba-news","actions":[{"trigger":"onTap","type":"navigate","targetUri":"nba://news"}],"children":[{"type":"Image","src":"https://loremflickr.com/260/190/basketball,news?lock=20","width":56,"height":56,"fit":"cover","placeholder":"https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png","cornerRadius":28},{"type":"Spacer","height":4},{"type":"Text","content":"NBA News","variant":"labelSmall","maxLines":1}]},{"type":"Container","direction":"column","alignment":"center","crossAlignment":"center","id":"twitter","actions":[{"trigger":"onTap","type":"navigate","targetUri":"nba://social/twitter"}],"children":[{"type":"Image","src":"https://loremflickr.com/260/190/basketball,social?lock=21","width":56,"height":56,"fit":"cover","placeholder":"https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png","cornerRadius":28},{"type":"Spacer","height":4},{"type":"Text","content":"Twitter","variant":"labelSmall","maxLines":1}]}]}]}},"surface":{"margin":{"top":16,"bottom":16}},"stringTable":{"status.final":"Final","status.halftime":"Halftime","period.ot":"OT","status.live":"Live","status.pre":"Upcoming","period.q4":"Q4","period.q3":"Q3","period.q2":"Q2","period.q1":"Q1"}},{"id":"upcoming-header","type":"AtomicComposite","refreshPolicy":{"type":"static"},"data":{"ui":{"type":"Container","direction":"row","alignment":"spaceBetween","crossAlignment":"center","padding":{"start":16,"end":16,"top":12,"bottom":4},"children":[{"type":"Text","content":"Upcoming Games","variant":"titleMedium","weight":"bold"},{"type":"Button","label":"See Full Schedule","variant":"text","actions":[{"trigger":"onTap","type":"navigate","targetUri":"nba://scoreboard"}]}]}},"surface":{"margin":{"top":16,"bottom":8}},"stringTable":{"status.final":"Final","status.halftime":"Halftime","period.ot":"OT","status.live":"Live","status.pre":"Upcoming","period.q4":"Q4","period.q3":"Q3","period.q2":"Q2","period.q1":"Q1"}},{"id":"upcoming-games-carousel","type":"AtomicComposite","analyticsId":"for_you_upcoming_carousel","refreshPolicy":{"type":"static"},"data":{"ui":{"type":"ScrollContainer","direction":"row","gap":12,"showIndicators":false,"padding":{"start":16,"end":16,"top":4,"bottom":4},"children":[{"type":"Container","direction":"column","width":280,"children":[{"type":"SectionSlot","id":"carousel-slot-0","section":{"id":"game-0042500113","type":"AtomicComposite","analyticsId":"for_you_game_0042500113","refreshPolicy":{"type":"static"},"data":{"ui":{"type":"Container","direction":"column","crossAlignment":"stretch","id":"game-0042500113-root","cornerRadius":12,"padding":{"start":16,"end":16,"top":16,"bottom":16},"actions":[{"trigger":"onTap","type":"navigate","targetUri":"nba://game/0042500113"}],"children":[{"type":"Container","direction":"row","alignment":"spaceBetween","crossAlignment":"center","fillWidth":true,"children":[{"type":"Container","direction":"column","alignment":"center","crossAlignment":"center","children":[{"type":"Image","src":"https://cdn.nba.com/logos/nba/1610612738/primary/D/512x512/logo.png","width":48,"height":48,"fit":"contain","placeholder":"https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png"},{"type":"Spacer","height":4},{"type":"Text","content":"BOS","variant":"titleMedium","weight":"semiBold","color":"token:nba.label.primary","maxLines":1},{"type":"Text","content":"0","variant":"score","weight":"bold","color":"token:nba.label.primary","maxLines":1,"bindRef":"awayTeam.score"}]},{"type":"Text","content":"7:00 pm ET","variant":"labelSmall","weight":"regular","color":"token:nba.label.primary","maxLines":1,"opacity":0.7,"bindRef":"gameStatusText"},{"type":"Container","direction":"column","alignment":"center","crossAlignment":"center","children":[{"type":"Image","src":"https://cdn.nba.com/logos/nba/1610612755/primary/D/512x512/logo.png","width":48,"height":48,"fit":"contain","placeholder":"https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png"},{"type":"Spacer","height":4},{"type":"Text","content":"PHI","variant":"titleMedium","weight":"semiBold","color":"token:nba.label.primary","maxLines":1},{"type":"Text","content":"0","variant":"score","weight":"bold","color":"token:nba.label.primary","maxLines":1,"bindRef":"homeTeam.score"}]}]}]},"content":{"gameStatusText":"7:00 pm ET","gameStatus":1,"homeTeam":{"score":0,"tricode":"PHI"},"awayTeam":{"score":0,"tricode":"BOS"}},"variant":"featured"}}}]},{"type":"Container","direction":"column","width":200,"children":[{"type":"SectionSlot","id":"carousel-slot-1","section":{"id":"game-0042500173","type":"AtomicComposite","analyticsId":"for_you_game_0042500173","refreshPolicy":{"type":"static"},"data":{"ui":{"type":"Container","direction":"column","crossAlignment":"stretch","id":"game-0042500173-root","cornerRadius":12,"padding":{"start":16,"end":16,"top":16,"bottom":16},"actions":[{"trigger":"onTap","type":"navigate","targetUri":"nba://game/0042500173"}],"children":[{"type":"Container","direction":"row","alignment":"spaceBetween","crossAlignment":"center","fillWidth":true,"children":[{"type":"Container","direction":"column","alignment":"center","crossAlignment":"center","children":[{"type":"Image","src":"https://cdn.nba.com/logos/nba/1610612747/primary/D/512x512/logo.png","width":48,"height":48,"fit":"contain","placeholder":"https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png"},{"type":"Spacer","height":4},{"type":"Text","content":"LAL","variant":"titleMedium","weight":"semiBold","color":"token:nba.label.primary","maxLines":1},{"type":"Text","content":"0","variant":"score","weight":"bold","color":"token:nba.label.primary","maxLines":1,"bindRef":"awayTeam.score"}]},{"type":"Text","content":"8:00 pm ET","variant":"labelSmall","weight":"regular","color":"token:nba.label.primary","maxLines":1,"opacity":0.7,"bindRef":"gameStatusText"},{"type":"Container","direction":"column","alignment":"center","crossAlignment":"center","children":[{"type":"Image","src":"https://cdn.nba.com/logos/nba/1610612745/primary/D/512x512/logo.png","width":48,"height":48,"fit":"contain","placeholder":"https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png"},{"type":"Spacer","height":4},{"type":"Text","content":"HOU","variant":"titleMedium","weight":"semiBold","color":"token:nba.label.primary","maxLines":1},{"type":"Text","content":"0","variant":"score","weight":"bold","color":"token:nba.label.primary","maxLines":1,"bindRef":"homeTeam.score"}]}]}]},"content":{"gameStatusText":"8:00 pm ET","gameStatus":1,"homeTeam":{"score":0,"tricode":"HOU"},"awayTeam":{"score":0,"tricode":"LAL"}},"variant":"standard"}}}]},{"type":"Container","direction":"column","width":200,"children":[{"type":"SectionSlot","id":"carousel-slot-2","section":{"id":"game-0042500153","type":"AtomicComposite","analyticsId":"for_you_game_0042500153","refreshPolicy":{"type":"static"},"data":{"ui":{"type":"Container","direction":"column","crossAlignment":"stretch","id":"game-0042500153-root","cornerRadius":12,"padding":{"start":16,"end":16,"top":16,"bottom":16},"actions":[{"trigger":"onTap","type":"navigate","targetUri":"nba://game/0042500153"}],"children":[{"type":"Container","direction":"row","alignment":"spaceBetween","crossAlignment":"center","fillWidth":true,"children":[{"type":"Container","direction":"column","alignment":"center","crossAlignment":"center","children":[{"type":"Image","src":"https://cdn.nba.com/logos/nba/1610612759/primary/D/512x512/logo.png","width":48,"height":48,"fit":"contain","placeholder":"https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png"},{"type":"Spacer","height":4},{"type":"Text","content":"SAS","variant":"titleMedium","weight":"semiBold","color":"token:nba.label.primary","maxLines":1},{"type":"Text","content":"0","variant":"score","weight":"bold","color":"token:nba.label.primary","maxLines":1,"bindRef":"awayTeam.score"}]},{"type":"Text","content":"10:30 pm ET","variant":"labelSmall","weight":"regular","color":"token:nba.label.primary","maxLines":1,"opacity":0.7,"bindRef":"gameStatusText"},{"type":"Container","direction":"column","alignment":"center","crossAlignment":"center","children":[{"type":"Image","src":"https://cdn.nba.com/logos/nba/1610612757/primary/D/512x512/logo.png","width":48,"height":48,"fit":"contain","placeholder":"https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png"},{"type":"Spacer","height":4},{"type":"Text","content":"POR","variant":"titleMedium","weight":"semiBold","color":"token:nba.label.primary","maxLines":1},{"type":"Text","content":"0","variant":"score","weight":"bold","color":"token:nba.label.primary","maxLines":1,"bindRef":"homeTeam.score"}]}]}]},"content":{"gameStatusText":"10:30 pm ET","gameStatus":1,"homeTeam":{"score":0,"tricode":"POR"},"awayTeam":{"score":0,"tricode":"SAS"}},"variant":"standard"}}}]}]}},"stringTable":{"status.final":"Final","status.halftime":"Halftime","period.ot":"OT","status.live":"Live","status.pre":"Upcoming","period.q4":"Q4","period.q3":"Q3","period.q2":"Q2","period.q1":"Q1"}},{"id":"featured-game-0042500113","type":"AtomicComposite","analyticsId":"for_you_featured_game","refreshPolicy":{"type":"static"},"data":{"ui":{"type":"Container","direction":"column","crossAlignment":"stretch","id":"featured-game-0042500113-root","cornerRadius":16,"padding":{"start":20,"end":20,"top":20,"bottom":20},"actions":[{"trigger":"onTap","type":"navigate","targetUri":"nba://game/0042500113"}],"children":[{"type":"Text","content":"UP NEXT","variant":"labelSmall","weight":"bold","color":"#FFFFFF","background":"#E03131","cornerRadius":4,"padding":{"start":8,"end":8,"top":2,"bottom":2}},{"type":"Spacer","height":8},{"type":"Container","direction":"row","alignment":"spaceBetween","crossAlignment":"center","fillWidth":true,"children":[{"type":"Container","direction":"column","alignment":"center","crossAlignment":"center","children":[{"type":"Image","src":"https://cdn.nba.com/logos/nba/1610612738/primary/D/512x512/logo.png","width":48,"height":48,"fit":"contain","placeholder":"https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png"},{"type":"Spacer","height":4},{"type":"Text","content":"BOS","variant":"titleMedium","weight":"semiBold","color":"token:nba.label.primary","maxLines":1},{"type":"Text","content":"0","variant":"score","weight":"bold","color":"token:nba.label.primary","maxLines":1,"bindRef":"awayTeam.score"}]},{"type":"Text","content":"7:00 pm ET","variant":"titleSmall","weight":"semiBold","color":"token:nba.label.primary","maxLines":1,"opacity":0.7,"bindRef":"gameStatusText"},{"type":"Container","direction":"column","alignment":"center","crossAlignment":"center","children":[{"type":"Image","src":"https://cdn.nba.com/logos/nba/1610612755/primary/D/512x512/logo.png","width":48,"height":48,"fit":"contain","placeholder":"https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png"},{"type":"Spacer","height":4},{"type":"Text","content":"PHI","variant":"titleMedium","weight":"semiBold","color":"token:nba.label.primary","maxLines":1},{"type":"Text","content":"0","variant":"score","weight":"bold","color":"token:nba.label.primary","maxLines":1,"bindRef":"homeTeam.score"}]}]}]},"content":{"gameStatusText":"7:00 pm ET","gameStatus":1,"homeTeam":{"score":0,"tricode":"PHI"},"awayTeam":{"score":0,"tricode":"BOS"}}},"surface":{"margin":{"top":16,"end":16,"bottom":16,"start":16},"background":{"colors":["#F5F7FA","#DDE4EE"],"direction":"diagonal"},"cornerRadius":12,"shadow":{"color":"#00000014","radius":6,"offsetX":0,"offsetY":2}},"stringTable":{"status.final":"Final","status.halftime":"Halftime","period.ot":"OT","status.live":"Live","status.pre":"Upcoming","period.q4":"Q4","period.q3":"Q3","period.q2":"Q2","period.q1":"Q1"}},{"id":"top-stories-header","type":"AtomicComposite","refreshPolicy":{"type":"static"},"data":{"ui":{"type":"Container","direction":"row","alignment":"spaceBetween","crossAlignment":"center","padding":{"start":16,"end":16,"top":12,"bottom":4},"children":[{"type":"Text","content":"Top Stories","variant":"titleMedium","weight":"bold"}]}},"surface":{"margin":{"top":16,"bottom":8}},"stringTable":{"status.final":"Final","status.halftime":"Halftime","period.ot":"OT","status.live":"Live","status.pre":"Upcoming","period.q4":"Q4","period.q3":"Q3","period.q2":"Q2","period.q1":"Q1"}},{"id":"for-you-highlights","type":"AtomicComposite","analyticsId":"for_you_highlights","refreshPolicy":{"type":"static"},"data":{"ui":{"type":"Container","direction":"column","padding":{"start":0,"end":0,"top":0,"bottom":12},"children":[{"type":"ScrollContainer","direction":"row","gap":12,"showIndicators":false,"children":[{"type":"Container","direction":"column","id":"hl-1","width":200,"cornerRadius":12,"background":{"colors":["token:nba.bg.secondary","token:nba.bg.tertiary"],"direction":"vertical"},"actions":[{"trigger":"onTap","type":"navigate","targetUri":"nba://video/top10-plays"}],"children":[{"type":"Image","src":"https://loremflickr.com/480/270/basketball,highlights?lock=22","variant":"thumbnail","placeholder":"https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png","padding":{"start":8,"end":8,"top":8,"bottom":0},"fillWidth":true,"aspectRatio":1.7777777777777777,"cornerRadius":6,"badge":{"element":{"type":"Container","direction":"row","alignment":"center","crossAlignment":"center","cornerRadius":4,"background":"#000000B3","opacity":0.7,"padding":{"start":4,"end":4,"top":2,"bottom":2},"children":[{"type":"Text","content":"2:45","variant":"labelSmall","weight":"semiBold","color":"token:nba.label-inverted.primary"}]},"alignment":"bottomEnd"}},{"type":"Spacer","height":4},{"type":"Text","content":"Top 10 Plays of the Night","variant":"bodySmall","weight":"semiBold","color":"token:nba.label.primary","maxLines":2,"padding":{"start":16,"end":16,"top":8,"bottom":8}}]},{"type":"Container","direction":"column","id":"hl-2","width":200,"cornerRadius":12,"background":{"colors":["token:nba.bg.secondary","token:nba.bg.tertiary"],"direction":"vertical"},"actions":[{"trigger":"onTap","type":"navigate","targetUri":"nba://video/dunk-night"}],"children":[{"type":"Image","src":"https://loremflickr.com/480/270/basketball,dunk?lock=23","variant":"thumbnail","placeholder":"https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png","padding":{"start":8,"end":8,"top":8,"bottom":0},"fillWidth":true,"aspectRatio":1.7777777777777777,"cornerRadius":6,"badge":{"element":{"type":"Container","direction":"row","alignment":"center","crossAlignment":"center","cornerRadius":4,"background":"#000000B3","opacity":0.7,"padding":{"start":4,"end":4,"top":2,"bottom":2},"children":[{"type":"Text","content":"0:32","variant":"labelSmall","weight":"semiBold","color":"token:nba.label-inverted.primary"}]},"alignment":"bottomEnd"}},{"type":"Spacer","height":4},{"type":"Text","content":"Dunk of the Night","variant":"bodySmall","weight":"semiBold","color":"token:nba.label.primary","maxLines":2,"padding":{"start":16,"end":16,"top":8,"bottom":8}}]},{"type":"Container","direction":"column","id":"hl-3","width":200,"cornerRadius":12,"background":{"colors":["token:nba.bg.secondary","token:nba.bg.tertiary"],"direction":"vertical"},"actions":[{"trigger":"onTap","type":"navigate","targetUri":"nba://article/trade-recap"}],"children":[{"type":"Image","src":"https://loremflickr.com/480/270/basketball,trade?lock=24","variant":"thumbnail","placeholder":"https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png","padding":{"start":8,"end":8,"top":8,"bottom":0},"fillWidth":true,"aspectRatio":1.7777777777777777,"cornerRadius":6},{"type":"Spacer","height":4},{"type":"Text","content":"Trade Deadline Recap","variant":"bodySmall","weight":"semiBold","color":"token:nba.label.primary","maxLines":2,"padding":{"start":16,"end":16,"top":8,"bottom":8}}]}]}]}},"surface":{"margin":{"top":16,"bottom":16}},"stringTable":{"status.final":"Final","status.halftime":"Halftime","period.ot":"OT","status.live":"Live","status.pre":"Upcoming","period.q4":"Q4","period.q3":"Q3","period.q2":"Q2","period.q1":"Q1"}},{"id":"for-you-ad-1","type":"AdSlot","analyticsId":"for_you_ad_1","refreshPolicy":{"type":"static"},"surface":{"margin":{"top":16,"end":16,"bottom":16,"start":16},"background":"token:nba.bg.secondary","cornerRadius":12,"shadow":{"color":"#00000014","radius":6,"offsetX":0,"offsetY":2}},"data":{"provider":"gam","adUnitPath":"/21234567/sports/nba/homepage_mid1","sizes":[[320,50],[728,90]],"targeting":{"section":"for_you","position":"mid_feed_1"},"collapseOnEmpty":true,"label":"Advertisement","placeholder":{"backgroundColor":"token:nba.bg.tertiary","text":"Advertisement"}},"stringTable":{"status.final":"Final","status.halftime":"Halftime","period.ot":"OT","status.live":"Live","status.pre":"Upcoming","period.q4":"Q4","period.q3":"Q3","period.q2":"Q2","period.q1":"Q1"}},{"id":"trending-header","type":"AtomicComposite","refreshPolicy":{"type":"static"},"data":{"ui":{"type":"Container","direction":"row","alignment":"spaceBetween","crossAlignment":"center","padding":{"start":16,"end":16,"top":12,"bottom":4},"children":[{"type":"Text","content":"Trending Now","variant":"titleMedium","weight":"bold"}]}},"surface":{"margin":{"top":16,"bottom":8}},"stringTable":{"status.final":"Final","status.halftime":"Halftime","period.ot":"OT","status.live":"Live","status.pre":"Upcoming","period.q4":"Q4","period.q3":"Q3","period.q2":"Q2","period.q1":"Q1"}},{"id":"for-you-trending","type":"AtomicComposite","analyticsId":"for_you_trending","refreshPolicy":{"type":"static"},"data":{"ui":{"type":"Container","direction":"column","padding":{"start":0,"end":0,"top":0,"bottom":12},"children":[{"type":"ScrollContainer","direction":"row","gap":12,"showIndicators":false,"children":[{"type":"Container","direction":"column","id":"tr-1","width":200,"cornerRadius":12,"background":{"colors":["token:nba.bg.secondary","token:nba.bg.tertiary"],"direction":"vertical"},"actions":[{"trigger":"onTap","type":"navigate","targetUri":"nba://article/mvp-race"}],"children":[{"type":"Image","src":"https://cdn.nba.com/manage/2025/02/jokic-allstar-iso-752x428.jpg","variant":"thumbnail","placeholder":"https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png","padding":{"start":8,"end":8,"top":8,"bottom":0},"fillWidth":true,"aspectRatio":1.7777777777777777,"cornerRadius":6},{"type":"Spacer","height":4},{"type":"Text","content":"MVP Race Heats Up","variant":"bodySmall","weight":"semiBold","color":"token:nba.label.primary","maxLines":2,"padding":{"start":16,"end":16,"top":8,"bottom":8}}]},{"type":"Container","direction":"column","id":"tr-2","width":200,"cornerRadius":12,"background":{"colors":["token:nba.bg.secondary","token:nba.bg.tertiary"],"direction":"vertical"},"actions":[{"trigger":"onTap","type":"navigate","targetUri":"nba://video/rookie-spotlight"}],"children":[{"type":"Image","src":"https://cdn.nba.com/manage/2025/02/risacher-hawks-drives-752x428.jpg","variant":"thumbnail","placeholder":"https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png","padding":{"start":8,"end":8,"top":8,"bottom":0},"fillWidth":true,"aspectRatio":1.7777777777777777,"cornerRadius":6,"badge":{"element":{"type":"Container","direction":"row","alignment":"center","crossAlignment":"center","cornerRadius":4,"background":"#000000B3","opacity":0.7,"padding":{"start":4,"end":4,"top":2,"bottom":2},"children":[{"type":"Text","content":"3:12","variant":"labelSmall","weight":"semiBold","color":"token:nba.label-inverted.primary"}]},"alignment":"bottomEnd"}},{"type":"Spacer","height":4},{"type":"Text","content":"Rookie Spotlight: Zaccharie Risacher","variant":"bodySmall","weight":"semiBold","color":"token:nba.label.primary","maxLines":2,"padding":{"start":16,"end":16,"top":8,"bottom":8}}]},{"type":"Container","direction":"column","id":"tr-3","width":200,"cornerRadius":12,"background":{"colors":["token:nba.bg.secondary","token:nba.bg.tertiary"],"direction":"vertical"},"actions":[{"trigger":"onTap","type":"navigate","targetUri":"nba://article/playoff-picture"}],"children":[{"type":"Image","src":"https://cdn.nba.com/manage/2025/02/nba-standings-graphic-752x428.jpg","variant":"thumbnail","placeholder":"https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png","padding":{"start":8,"end":8,"top":8,"bottom":0},"fillWidth":true,"aspectRatio":1.7777777777777777,"cornerRadius":6},{"type":"Spacer","height":4},{"type":"Text","content":"Playoff Picture Update","variant":"bodySmall","weight":"semiBold","color":"token:nba.label.primary","maxLines":2,"padding":{"start":16,"end":16,"top":8,"bottom":8}}]}]}]}},"surface":{"margin":{"top":16,"bottom":16}},"stringTable":{"status.final":"Final","status.halftime":"Halftime","period.ot":"OT","status.live":"Live","status.pre":"Upcoming","period.q4":"Q4","period.q3":"Q3","period.q2":"Q2","period.q1":"Q1"}},{"id":"for-you-ad-2","type":"AdSlot","analyticsId":"for_you_ad_2","refreshPolicy":{"type":"static"},"surface":{"margin":{"top":16,"end":16,"bottom":16,"start":16},"background":"token:nba.bg.secondary","cornerRadius":12,"shadow":{"color":"#00000014","radius":6,"offsetX":0,"offsetY":2}},"data":{"provider":"gam","adUnitPath":"/21234567/sports/nba/homepage_mid2","sizes":[[320,50],[728,90]],"targeting":{"section":"for_you","position":"mid_feed_2"},"collapseOnEmpty":true,"label":"Advertisement","placeholder":{"backgroundColor":"token:nba.bg.tertiary","text":"Advertisement"}},"stringTable":{"status.final":"Final","status.halftime":"Halftime","period.ot":"OT","status.live":"Live","status.pre":"Upcoming","period.q4":"Q4","period.q3":"Q3","period.q2":"Q2","period.q1":"Q1"}},{"id":"lp-picks-header","type":"AtomicComposite","refreshPolicy":{"type":"static"},"data":{"ui":{"type":"Container","direction":"row","alignment":"spaceBetween","crossAlignment":"center","padding":{"start":16,"end":16,"top":12,"bottom":4},"children":[{"type":"Text","content":"League Pass Picks","variant":"titleMedium","weight":"bold"},{"type":"Button","label":"Browse League Pass","variant":"text","actions":[{"trigger":"onTap","type":"navigate","targetUri":"nba://leaguepass"}]}]}},"surface":{"margin":{"top":16,"bottom":8}},"stringTable":{"status.final":"Final","status.halftime":"Halftime","period.ot":"OT","status.live":"Live","status.pre":"Upcoming","period.q4":"Q4","period.q3":"Q3","period.q2":"Q2","period.q1":"Q1"}},{"id":"for-you-lp-picks","type":"AtomicComposite","analyticsId":"for_you_lp_picks","refreshPolicy":{"type":"static"},"data":{"ui":{"type":"Container","direction":"column","padding":{"start":0,"end":0,"top":0,"bottom":12},"children":[{"type":"ScrollContainer","direction":"row","gap":12,"showIndicators":false,"children":[{"type":"Container","direction":"column","id":"lp-1","width":200,"cornerRadius":12,"background":{"colors":["token:nba.bg.secondary","token:nba.bg.tertiary"],"direction":"vertical"},"actions":[{"trigger":"onTap","type":"navigate","targetUri":"nba://article/gsw-okc-preview"}],"children":[{"type":"Image","src":"https://cdn.nba.com/manage/2025/02/warriors-thunder-preview-752x428.jpg","variant":"thumbnail","placeholder":"https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png","padding":{"start":8,"end":8,"top":8,"bottom":0},"fillWidth":true,"aspectRatio":1.7777777777777777,"cornerRadius":6},{"type":"Spacer","height":4},{"type":"Text","content":"Warriors vs. Thunder Preview","variant":"bodySmall","weight":"semiBold","color":"token:nba.label.primary","maxLines":2,"padding":{"start":16,"end":16,"top":8,"bottom":8}}]},{"type":"Container","direction":"column","id":"lp-2","width":200,"cornerRadius":12,"background":{"colors":["token:nba.bg.secondary","token:nba.bg.tertiary"],"direction":"vertical"},"actions":[{"trigger":"onTap","type":"navigate","targetUri":"nba://video/lp-week-20"}],"children":[{"type":"Image","src":"https://cdn.nba.com/manage/2025/02/lp-best-of-week-752x428.jpg","variant":"thumbnail","placeholder":"https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png","padding":{"start":8,"end":8,"top":8,"bottom":0},"fillWidth":true,"aspectRatio":1.7777777777777777,"cornerRadius":6,"badge":{"element":{"type":"Container","direction":"row","alignment":"center","crossAlignment":"center","cornerRadius":4,"background":"#000000B3","opacity":0.7,"padding":{"start":4,"end":4,"top":2,"bottom":2},"children":[{"type":"Text","content":"4:30","variant":"labelSmall","weight":"semiBold","color":"token:nba.label-inverted.primary"}]},"alignment":"bottomEnd"}},{"type":"Spacer","height":4},{"type":"Text","content":"Best of League Pass: Week 20","variant":"bodySmall","weight":"semiBold","color":"token:nba.label.primary","maxLines":2,"padding":{"start":16,"end":16,"top":8,"bottom":8}}]},{"type":"Container","direction":"column","id":"lp-3","width":200,"cornerRadius":12,"background":{"colors":["token:nba.bg.secondary","token:nba.bg.tertiary"],"direction":"vertical"},"actions":[{"trigger":"onTap","type":"navigate","targetUri":"nba://video/ind-orl-hidden-gem"}],"children":[{"type":"Image","src":"https://cdn.nba.com/manage/2025/02/pacers-magic-rivalry-752x428.jpg","variant":"thumbnail","placeholder":"https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png","padding":{"start":8,"end":8,"top":8,"bottom":0},"fillWidth":true,"aspectRatio":1.7777777777777777,"cornerRadius":6,"badge":{"element":{"type":"Container","direction":"row","alignment":"center","crossAlignment":"center","cornerRadius":4,"background":"#000000B3","opacity":0.7,"padding":{"start":4,"end":4,"top":2,"bottom":2},"children":[{"type":"Text","content":"1:58","variant":"labelSmall","weight":"semiBold","color":"token:nba.label-inverted.primary"}]},"alignment":"bottomEnd"}},{"type":"Spacer","height":4},{"type":"Text","content":"Hidden Gem: Pacers vs. Magic","variant":"bodySmall","weight":"semiBold","color":"token:nba.label.primary","maxLines":2,"padding":{"start":16,"end":16,"top":8,"bottom":8}}]}]}]}},"surface":{"margin":{"top":16,"bottom":16}},"stringTable":{"status.final":"Final","status.halftime":"Halftime","period.ot":"OT","status.live":"Live","status.pre":"Upcoming","period.q4":"Q4","period.q3":"Q3","period.q2":"Q2","period.q1":"Q1"}},{"id":"for-you-ad-3","type":"AdSlot","analyticsId":"for_you_ad_3","refreshPolicy":{"type":"static"},"surface":{"margin":{"top":16,"end":16,"bottom":16,"start":16},"background":"token:nba.bg.secondary","cornerRadius":12,"shadow":{"color":"#00000014","radius":6,"offsetX":0,"offsetY":2}},"data":{"provider":"gam","adUnitPath":"/21234567/sports/nba/homepage_mid3","sizes":[[320,50],[728,90]],"targeting":{"section":"for_you","position":"mid_feed_3"},"collapseOnEmpty":true,"label":"Advertisement","placeholder":{"backgroundColor":"token:nba.bg.tertiary","text":"Advertisement"}},"stringTable":{"status.final":"Final","status.halftime":"Halftime","period.ot":"OT","status.live":"Live","status.pre":"Upcoming","period.q4":"Q4","period.q3":"Q3","period.q2":"Q2","period.q1":"Q1"}},{"id":"around-league-header","type":"AtomicComposite","refreshPolicy":{"type":"static"},"data":{"ui":{"type":"Container","direction":"row","alignment":"spaceBetween","crossAlignment":"center","padding":{"start":16,"end":16,"top":12,"bottom":4},"children":[{"type":"Text","content":"Around the League","variant":"titleMedium","weight":"bold"},{"type":"Button","label":"More Stories","variant":"text","actions":[{"trigger":"onTap","type":"navigate","targetUri":"nba://news"}]}]}},"surface":{"margin":{"top":16,"bottom":8}},"stringTable":{"status.final":"Final","status.halftime":"Halftime","period.ot":"OT","status.live":"Live","status.pre":"Upcoming","period.q4":"Q4","period.q3":"Q3","period.q2":"Q2","period.q1":"Q1"}},{"id":"for-you-around-league","type":"AtomicComposite","analyticsId":"for_you_around_league","refreshPolicy":{"type":"static"},"data":{"ui":{"type":"Container","direction":"column","padding":{"start":0,"end":0,"top":0,"bottom":12},"children":[{"type":"ScrollContainer","direction":"row","gap":12,"showIndicators":false,"children":[{"type":"Container","direction":"column","id":"al-1","width":200,"cornerRadius":12,"background":{"colors":["token:nba.bg.secondary","token:nba.bg.tertiary"],"direction":"vertical"},"actions":[{"trigger":"onTap","type":"navigate","targetUri":"nba://article/injury-report"}],"children":[{"type":"Image","src":"https://cdn.nba.com/manage/2025/02/injury-report-graphic-752x428.jpg","variant":"thumbnail","placeholder":"https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png","padding":{"start":8,"end":8,"top":8,"bottom":0},"fillWidth":true,"aspectRatio":1.7777777777777777,"cornerRadius":6},{"type":"Spacer","height":4},{"type":"Text","content":"Injury Report Roundup","variant":"bodySmall","weight":"semiBold","color":"token:nba.label.primary","maxLines":2,"padding":{"start":16,"end":16,"top":8,"bottom":8}}]},{"type":"Container","direction":"column","id":"al-2","width":200,"cornerRadius":12,"background":{"colors":["token:nba.bg.secondary","token:nba.bg.tertiary"],"direction":"vertical"},"actions":[{"trigger":"onTap","type":"navigate","targetUri":"nba://article/power-rankings-march"}],"children":[{"type":"Image","src":"https://cdn.nba.com/manage/2025/02/power-rankings-march-752x428.jpg","variant":"thumbnail","placeholder":"https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png","padding":{"start":8,"end":8,"top":8,"bottom":0},"fillWidth":true,"aspectRatio":1.7777777777777777,"cornerRadius":6},{"type":"Spacer","height":4},{"type":"Text","content":"Power Rankings: March Edition","variant":"bodySmall","weight":"semiBold","color":"token:nba.label.primary","maxLines":2,"padding":{"start":16,"end":16,"top":8,"bottom":8}}]},{"type":"Container","direction":"column","id":"al-3","width":200,"cornerRadius":12,"background":{"colors":["token:nba.bg.secondary","token:nba.bg.tertiary"],"direction":"vertical"},"actions":[{"trigger":"onTap","type":"navigate","targetUri":"nba://video/allstar-recap"}],"children":[{"type":"Image","src":"https://cdn.nba.com/manage/2025/02/allstar-weekend-recap-752x428.jpg","variant":"thumbnail","placeholder":"https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png","padding":{"start":8,"end":8,"top":8,"bottom":0},"fillWidth":true,"aspectRatio":1.7777777777777777,"cornerRadius":6,"badge":{"element":{"type":"Container","direction":"row","alignment":"center","crossAlignment":"center","cornerRadius":4,"background":"#000000B3","opacity":0.7,"padding":{"start":4,"end":4,"top":2,"bottom":2},"children":[{"type":"Text","content":"5:10","variant":"labelSmall","weight":"semiBold","color":"token:nba.label-inverted.primary"}]},"alignment":"bottomEnd"}},{"type":"Spacer","height":4},{"type":"Text","content":"All-Star Weekend Recap","variant":"bodySmall","weight":"semiBold","color":"token:nba.label.primary","maxLines":2,"padding":{"start":16,"end":16,"top":8,"bottom":8}}]}]}]}},"surface":{"margin":{"top":16,"bottom":16}},"stringTable":{"status.final":"Final","status.halftime":"Halftime","period.ot":"OT","status.live":"Live","status.pre":"Upcoming","period.q4":"Q4","period.q3":"Q3","period.q2":"Q2","period.q1":"Q1"}},{"id":"for-you-vod-playlist","type":"AtomicComposite","analyticsId":"for_you_vod_playlist","refreshPolicy":{"type":"static"},"data":{"ui":{"type":"Container","direction":"column","padding":{"start":16,"end":16,"top":0,"bottom":0},"children":[{"type":"Container","direction":"column","variant":"grouped","cornerRadius":12,"padding":{"start":0,"end":0,"top":4,"bottom":4},"children":[{"type":"Text","content":"More to Watch","variant":"titleSmall","weight":"semiBold","padding":{"start":16,"end":16,"top":12,"bottom":8}},{"type":"Container","direction":"row","crossAlignment":"center","id":"playlist-1","gap":12,"padding":{"start":12,"end":12,"top":10,"bottom":10},"actions":[{"trigger":"onTap","type":"navigate","targetUri":"nba://video/giannis-40"}],"children":[{"type":"Image","src":"https://loremflickr.com/480/270/basketball,giannis?lock=50","variant":"thumbnail","placeholder":"https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png","width":80,"height":52,"cornerRadius":6,"badge":{"element":{"type":"Container","direction":"row","alignment":"center","crossAlignment":"center","cornerRadius":4,"background":"#000000B3","opacity":0.7,"padding":{"start":4,"end":4,"top":2,"bottom":2},"children":[{"type":"Text","content":"0:42","variant":"labelSmall","weight":"semiBold","color":"token:nba.label-inverted.primary"}]},"alignment":"bottomEnd"}},{"type":"Container","direction":"column","crossAlignment":"start","gap":2,"flex":1.0,"children":[{"type":"Text","content":"Giannis goes off for 40","variant":"bodyMedium","weight":"semiBold","maxLines":2},{"type":"Text","content":"Last night · Bucks vs Heat","variant":"labelSmall","color":"token:nba.label.secondary","maxLines":1}]},{"type":"Text","content":"›","variant":"titleMedium","color":"token:nba.label.secondary"}]},{"type":"Divider","thickness":1,"padding":{"start":104,"end":0,"top":0,"bottom":0}},{"type":"Container","direction":"row","crossAlignment":"center","id":"playlist-2","gap":12,"padding":{"start":12,"end":12,"top":10,"bottom":10},"actions":[{"trigger":"onTap","type":"navigate","targetUri":"nba://video/kerr-pressconf"}],"children":[{"type":"Image","src":"https://loremflickr.com/480/270/basketball,press?lock=51","variant":"thumbnail","placeholder":"https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png","width":80,"height":52,"cornerRadius":6,"badge":{"element":{"type":"Container","direction":"row","alignment":"center","crossAlignment":"center","cornerRadius":4,"background":"#000000B3","opacity":0.7,"padding":{"start":4,"end":4,"top":2,"bottom":2},"children":[{"type":"Text","content":"6:21","variant":"labelSmall","weight":"semiBold","color":"token:nba.label-inverted.primary"}]},"alignment":"bottomEnd"}},{"type":"Container","direction":"column","crossAlignment":"start","gap":2,"flex":1.0,"children":[{"type":"Text","content":"Press conference: Steve Kerr","variant":"bodyMedium","weight":"semiBold","maxLines":2},{"type":"Text","content":"Warriors · Postgame","variant":"labelSmall","color":"token:nba.label.secondary","maxLines":1}]},{"type":"Text","content":"›","variant":"titleMedium","color":"token:nba.label.secondary"}]},{"type":"Divider","thickness":1,"padding":{"start":104,"end":0,"top":0,"bottom":0}},{"type":"Container","direction":"row","crossAlignment":"center","id":"playlist-3","gap":12,"padding":{"start":12,"end":12,"top":10,"bottom":10},"actions":[{"trigger":"onTap","type":"navigate","targetUri":"nba://video/lakers-nuggets-live"}],"children":[{"type":"Image","src":"https://loremflickr.com/480/270/basketball,lakers?lock=52","variant":"thumbnail","placeholder":"https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png","width":80,"height":52,"cornerRadius":6,"badge":{"element":{"type":"Container","direction":"row","alignment":"center","crossAlignment":"center","cornerRadius":4,"background":"token:nba.label.accent.live","padding":{"start":6,"end":6,"top":2,"bottom":2},"children":[{"type":"Text","content":"LIVE","variant":"labelSmall","weight":"bold","color":"token:nba.label-inverted.primary"}]},"alignment":"topStart"}},{"type":"Container","direction":"column","crossAlignment":"start","gap":2,"flex":1.0,"children":[{"type":"Text","content":"Lakers vs Nuggets (Live)","variant":"bodyMedium","weight":"semiBold","maxLines":2},{"type":"Text","content":"On now · League Pass","variant":"labelSmall","color":"token:nba.label.secondary","maxLines":1}]},{"type":"Text","content":"›","variant":"titleMedium","color":"token:nba.label.secondary"}]},{"type":"Divider","thickness":1,"padding":{"start":104,"end":0,"top":0,"bottom":0}},{"type":"Container","direction":"row","crossAlignment":"center","id":"playlist-4","gap":12,"padding":{"start":12,"end":12,"top":10,"bottom":10},"actions":[{"trigger":"onTap","type":"navigate","targetUri":"nba://video/top10-buzzer-beaters"}],"children":[{"type":"Image","src":"https://loremflickr.com/480/270/basketball,buzzer?lock=53","variant":"thumbnail","placeholder":"https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png","width":80,"height":52,"cornerRadius":6,"badge":{"element":{"type":"Container","direction":"row","alignment":"center","crossAlignment":"center","cornerRadius":4,"background":"#000000B3","opacity":0.7,"padding":{"start":4,"end":4,"top":2,"bottom":2},"children":[{"type":"Text","content":"4:08","variant":"labelSmall","weight":"semiBold","color":"token:nba.label-inverted.primary"}]},"alignment":"bottomEnd"}},{"type":"Container","direction":"column","crossAlignment":"start","gap":2,"flex":1.0,"children":[{"type":"Text","content":"Top 10 Buzzer Beaters","variant":"bodyMedium","weight":"semiBold","maxLines":2},{"type":"Text","content":"Editors' picks","variant":"labelSmall","color":"token:nba.label.secondary","maxLines":1}]},{"type":"Text","content":"›","variant":"titleMedium","color":"token:nba.label.secondary"}]}]}]}},"surface":{"margin":{"top":16,"bottom":16}},"stringTable":{"status.final":"Final","status.halftime":"Halftime","period.ot":"OT","status.live":"Live","status.pre":"Upcoming","period.q4":"Q4","period.q3":"Q3","period.q2":"Q2","period.q1":"Q1"}}]}
+{
+  "id": "for-you",
+  "title": "For You",
+  "analyticsId": "for_you",
+  "traceId": "trace-bf7bef73",
+  "schemaVersion": "1.0",
+  "navigation": {
+    "items": [
+      {
+        "id": "for-you",
+        "label": "For You",
+        "icon": "sdui:home",
+        "targetUri": "nba://for-you",
+        "selected": true
+      },
+      {
+        "id": "games",
+        "label": "Games",
+        "icon": "sdui:basketball",
+        "targetUri": "nba://games",
+        "selected": false
+      },
+      {
+        "id": "watch",
+        "label": "Watch",
+        "icon": "sdui:video",
+        "targetUri": "nba://watch",
+        "selected": false
+      },
+      {
+        "id": "leaders",
+        "label": "Leaders",
+        "icon": "sdui:leaderboard",
+        "targetUri": "nba://leaders",
+        "selected": false
+      },
+      {
+        "id": "demos",
+        "label": "Kitchen",
+        "icon": "sdui:grid",
+        "targetUri": "nba://demos",
+        "selected": false
+      }
+    ]
+  },
+  "sections": [
+    {
+      "id": "following-rail",
+      "type": "AtomicComposite",
+      "analyticsId": "for_you_following",
+      "refreshPolicy": {
+        "type": "static"
+      },
+      "data": {
+        "ui": {
+          "type": "Container",
+          "direction": "column",
+          "padding": {
+            "start": 0,
+            "end": 0,
+            "top": 0,
+            "bottom": 12
+          },
+          "children": [
+            {
+              "type": "Text",
+              "content": "Following",
+              "variant": "titleMedium",
+              "weight": "bold",
+              "padding": {
+                "start": 16,
+                "end": 16,
+                "top": 4,
+                "bottom": 4
+              }
+            },
+            {
+              "type": "ScrollContainer",
+              "direction": "row",
+              "gap": 16,
+              "showIndicators": false,
+              "children": [
+                {
+                  "type": "Container",
+                  "direction": "column",
+                  "alignment": "center",
+                  "crossAlignment": "center",
+                  "id": "lebron",
+                  "actions": [
+                    {
+                      "trigger": "onTap",
+                      "type": "navigate",
+                      "targetUri": "nba://player/2544"
+                    }
+                  ],
+                  "children": [
+                    {
+                      "type": "Image",
+                      "src": "https://cdn.nba.com/headshots/nba/latest/260x190/2544.png",
+                      "width": 56,
+                      "height": 56,
+                      "fit": "cover",
+                      "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
+                      "cornerRadius": 28
+                    },
+                    {
+                      "type": "Spacer",
+                      "height": 4
+                    },
+                    {
+                      "type": "Text",
+                      "content": "L. James",
+                      "variant": "labelSmall",
+                      "maxLines": 1
+                    }
+                  ]
+                },
+                {
+                  "type": "Container",
+                  "direction": "column",
+                  "alignment": "center",
+                  "crossAlignment": "center",
+                  "id": "cavaliers",
+                  "actions": [
+                    {
+                      "trigger": "onTap",
+                      "type": "navigate",
+                      "targetUri": "nba://team/1610612739"
+                    }
+                  ],
+                  "children": [
+                    {
+                      "type": "Image",
+                      "src": "https://cdn.nba.com/logos/nba/1610612739/primary/D/512x512/logo.png",
+                      "width": 56,
+                      "height": 56,
+                      "fit": "cover",
+                      "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
+                      "cornerRadius": 28
+                    },
+                    {
+                      "type": "Spacer",
+                      "height": 4
+                    },
+                    {
+                      "type": "Text",
+                      "content": "Cavaliers",
+                      "variant": "labelSmall",
+                      "maxLines": 1
+                    }
+                  ]
+                },
+                {
+                  "type": "Container",
+                  "direction": "column",
+                  "alignment": "center",
+                  "crossAlignment": "center",
+                  "id": "curry",
+                  "actions": [
+                    {
+                      "trigger": "onTap",
+                      "type": "navigate",
+                      "targetUri": "nba://player/201939"
+                    }
+                  ],
+                  "children": [
+                    {
+                      "type": "Image",
+                      "src": "https://cdn.nba.com/headshots/nba/latest/260x190/201939.png",
+                      "width": 56,
+                      "height": 56,
+                      "fit": "cover",
+                      "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
+                      "cornerRadius": 28
+                    },
+                    {
+                      "type": "Spacer",
+                      "height": 4
+                    },
+                    {
+                      "type": "Text",
+                      "content": "S. Curry",
+                      "variant": "labelSmall",
+                      "maxLines": 1
+                    }
+                  ]
+                },
+                {
+                  "type": "Container",
+                  "direction": "column",
+                  "alignment": "center",
+                  "crossAlignment": "center",
+                  "id": "nba-news",
+                  "actions": [
+                    {
+                      "trigger": "onTap",
+                      "type": "navigate",
+                      "targetUri": "nba://news"
+                    }
+                  ],
+                  "children": [
+                    {
+                      "type": "Image",
+                      "src": "https://loremflickr.com/260/190/basketball,news?lock=20",
+                      "width": 56,
+                      "height": 56,
+                      "fit": "cover",
+                      "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
+                      "cornerRadius": 28
+                    },
+                    {
+                      "type": "Spacer",
+                      "height": 4
+                    },
+                    {
+                      "type": "Text",
+                      "content": "NBA News",
+                      "variant": "labelSmall",
+                      "maxLines": 1
+                    }
+                  ]
+                },
+                {
+                  "type": "Container",
+                  "direction": "column",
+                  "alignment": "center",
+                  "crossAlignment": "center",
+                  "id": "twitter",
+                  "actions": [
+                    {
+                      "trigger": "onTap",
+                      "type": "navigate",
+                      "targetUri": "nba://social/twitter"
+                    }
+                  ],
+                  "children": [
+                    {
+                      "type": "Image",
+                      "src": "https://loremflickr.com/260/190/basketball,social?lock=21",
+                      "width": 56,
+                      "height": 56,
+                      "fit": "cover",
+                      "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
+                      "cornerRadius": 28
+                    },
+                    {
+                      "type": "Spacer",
+                      "height": 4
+                    },
+                    {
+                      "type": "Text",
+                      "content": "Twitter",
+                      "variant": "labelSmall",
+                      "maxLines": 1
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "surface": {
+        "margin": {
+          "top": 16,
+          "bottom": 16
+        }
+      },
+      "stringTable": {
+        "status.final": "Final",
+        "status.halftime": "Halftime",
+        "period.ot": "OT",
+        "status.live": "Live",
+        "status.pre": "Upcoming",
+        "period.q4": "Q4",
+        "period.q3": "Q3",
+        "period.q2": "Q2",
+        "period.q1": "Q1"
+      }
+    },
+    {
+      "id": "upcoming-header",
+      "type": "AtomicComposite",
+      "refreshPolicy": {
+        "type": "static"
+      },
+      "data": {
+        "ui": {
+          "type": "Container",
+          "direction": "row",
+          "alignment": "spaceBetween",
+          "crossAlignment": "center",
+          "padding": {
+            "start": 16,
+            "end": 16,
+            "top": 12,
+            "bottom": 4
+          },
+          "children": [
+            {
+              "type": "Text",
+              "content": "Upcoming Games",
+              "variant": "titleMedium",
+              "weight": "bold"
+            },
+            {
+              "type": "Button",
+              "label": "See Full Schedule",
+              "variant": "text",
+              "actions": [
+                {
+                  "trigger": "onTap",
+                  "type": "navigate",
+                  "targetUri": "nba://scoreboard"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "surface": {
+        "margin": {
+          "top": 16,
+          "bottom": 8
+        }
+      },
+      "stringTable": {
+        "status.final": "Final",
+        "status.halftime": "Halftime",
+        "period.ot": "OT",
+        "status.live": "Live",
+        "status.pre": "Upcoming",
+        "period.q4": "Q4",
+        "period.q3": "Q3",
+        "period.q2": "Q2",
+        "period.q1": "Q1"
+      }
+    },
+    {
+      "id": "upcoming-games-carousel",
+      "type": "AtomicComposite",
+      "analyticsId": "for_you_upcoming_carousel",
+      "refreshPolicy": {
+        "type": "static"
+      },
+      "data": {
+        "ui": {
+          "type": "ScrollContainer",
+          "direction": "row",
+          "gap": 12,
+          "showIndicators": false,
+          "padding": {
+            "start": 16,
+            "end": 16,
+            "top": 4,
+            "bottom": 4
+          },
+          "children": [
+            {
+              "type": "Container",
+              "direction": "column",
+              "width": 280,
+              "children": [
+                {
+                  "type": "SectionSlot",
+                  "id": "carousel-slot-0",
+                  "section": {
+                    "id": "game-0042500113",
+                    "type": "AtomicComposite",
+                    "analyticsId": "for_you_game_0042500113",
+                    "refreshPolicy": {
+                      "type": "static"
+                    },
+                    "data": {
+                      "ui": {
+                        "type": "Container",
+                        "direction": "column",
+                        "crossAlignment": "stretch",
+                        "id": "game-0042500113-root",
+                        "cornerRadius": 12,
+                        "padding": {
+                          "start": 16,
+                          "end": 16,
+                          "top": 16,
+                          "bottom": 16
+                        },
+                        "actions": [
+                          {
+                            "trigger": "onTap",
+                            "type": "navigate",
+                            "targetUri": "nba://game/0042500113"
+                          }
+                        ],
+                        "children": [
+                          {
+                            "type": "Container",
+                            "direction": "row",
+                            "alignment": "spaceBetween",
+                            "crossAlignment": "center",
+                            "children": [
+                              {
+                                "type": "Container",
+                                "direction": "column",
+                                "alignment": "center",
+                                "crossAlignment": "center",
+                                "children": [
+                                  {
+                                    "type": "Image",
+                                    "src": "https://cdn.nba.com/logos/nba/1610612738/primary/D/512x512/logo.png",
+                                    "width": 48,
+                                    "height": 48,
+                                    "fit": "contain",
+                                    "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png"
+                                  },
+                                  {
+                                    "type": "Spacer",
+                                    "height": 4
+                                  },
+                                  {
+                                    "type": "Text",
+                                    "content": "BOS",
+                                    "variant": "titleMedium",
+                                    "weight": "semiBold",
+                                    "color": "token:nba.label.primary",
+                                    "maxLines": 1
+                                  },
+                                  {
+                                    "type": "Text",
+                                    "content": "0",
+                                    "variant": "score",
+                                    "weight": "bold",
+                                    "color": "token:nba.label.primary",
+                                    "maxLines": 1,
+                                    "bindRef": "awayTeam.score"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "Text",
+                                "content": "7:00 pm ET",
+                                "variant": "labelSmall",
+                                "weight": "regular",
+                                "color": "token:nba.label.primary",
+                                "maxLines": 1,
+                                "opacity": 0.7,
+                                "bindRef": "gameStatusText"
+                              },
+                              {
+                                "type": "Container",
+                                "direction": "column",
+                                "alignment": "center",
+                                "crossAlignment": "center",
+                                "children": [
+                                  {
+                                    "type": "Image",
+                                    "src": "https://cdn.nba.com/logos/nba/1610612755/primary/D/512x512/logo.png",
+                                    "width": 48,
+                                    "height": 48,
+                                    "fit": "contain",
+                                    "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png"
+                                  },
+                                  {
+                                    "type": "Spacer",
+                                    "height": 4
+                                  },
+                                  {
+                                    "type": "Text",
+                                    "content": "PHI",
+                                    "variant": "titleMedium",
+                                    "weight": "semiBold",
+                                    "color": "token:nba.label.primary",
+                                    "maxLines": 1
+                                  },
+                                  {
+                                    "type": "Text",
+                                    "content": "0",
+                                    "variant": "score",
+                                    "weight": "bold",
+                                    "color": "token:nba.label.primary",
+                                    "maxLines": 1,
+                                    "bindRef": "homeTeam.score"
+                                  }
+                                ]
+                              }
+                            ],
+                            "widthMode": "fill"
+                          }
+                        ]
+                      },
+                      "content": {
+                        "gameStatusText": "7:00 pm ET",
+                        "gameStatus": 1,
+                        "homeTeam": {
+                          "score": 0,
+                          "tricode": "PHI"
+                        },
+                        "awayTeam": {
+                          "score": 0,
+                          "tricode": "BOS"
+                        }
+                      },
+                      "variant": "featured"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "type": "Container",
+              "direction": "column",
+              "width": 200,
+              "children": [
+                {
+                  "type": "SectionSlot",
+                  "id": "carousel-slot-1",
+                  "section": {
+                    "id": "game-0042500173",
+                    "type": "AtomicComposite",
+                    "analyticsId": "for_you_game_0042500173",
+                    "refreshPolicy": {
+                      "type": "static"
+                    },
+                    "data": {
+                      "ui": {
+                        "type": "Container",
+                        "direction": "column",
+                        "crossAlignment": "stretch",
+                        "id": "game-0042500173-root",
+                        "cornerRadius": 12,
+                        "padding": {
+                          "start": 16,
+                          "end": 16,
+                          "top": 16,
+                          "bottom": 16
+                        },
+                        "actions": [
+                          {
+                            "trigger": "onTap",
+                            "type": "navigate",
+                            "targetUri": "nba://game/0042500173"
+                          }
+                        ],
+                        "children": [
+                          {
+                            "type": "Container",
+                            "direction": "row",
+                            "alignment": "spaceBetween",
+                            "crossAlignment": "center",
+                            "children": [
+                              {
+                                "type": "Container",
+                                "direction": "column",
+                                "alignment": "center",
+                                "crossAlignment": "center",
+                                "children": [
+                                  {
+                                    "type": "Image",
+                                    "src": "https://cdn.nba.com/logos/nba/1610612747/primary/D/512x512/logo.png",
+                                    "width": 48,
+                                    "height": 48,
+                                    "fit": "contain",
+                                    "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png"
+                                  },
+                                  {
+                                    "type": "Spacer",
+                                    "height": 4
+                                  },
+                                  {
+                                    "type": "Text",
+                                    "content": "LAL",
+                                    "variant": "titleMedium",
+                                    "weight": "semiBold",
+                                    "color": "token:nba.label.primary",
+                                    "maxLines": 1
+                                  },
+                                  {
+                                    "type": "Text",
+                                    "content": "0",
+                                    "variant": "score",
+                                    "weight": "bold",
+                                    "color": "token:nba.label.primary",
+                                    "maxLines": 1,
+                                    "bindRef": "awayTeam.score"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "Text",
+                                "content": "8:00 pm ET",
+                                "variant": "labelSmall",
+                                "weight": "regular",
+                                "color": "token:nba.label.primary",
+                                "maxLines": 1,
+                                "opacity": 0.7,
+                                "bindRef": "gameStatusText"
+                              },
+                              {
+                                "type": "Container",
+                                "direction": "column",
+                                "alignment": "center",
+                                "crossAlignment": "center",
+                                "children": [
+                                  {
+                                    "type": "Image",
+                                    "src": "https://cdn.nba.com/logos/nba/1610612745/primary/D/512x512/logo.png",
+                                    "width": 48,
+                                    "height": 48,
+                                    "fit": "contain",
+                                    "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png"
+                                  },
+                                  {
+                                    "type": "Spacer",
+                                    "height": 4
+                                  },
+                                  {
+                                    "type": "Text",
+                                    "content": "HOU",
+                                    "variant": "titleMedium",
+                                    "weight": "semiBold",
+                                    "color": "token:nba.label.primary",
+                                    "maxLines": 1
+                                  },
+                                  {
+                                    "type": "Text",
+                                    "content": "0",
+                                    "variant": "score",
+                                    "weight": "bold",
+                                    "color": "token:nba.label.primary",
+                                    "maxLines": 1,
+                                    "bindRef": "homeTeam.score"
+                                  }
+                                ]
+                              }
+                            ],
+                            "widthMode": "fill"
+                          }
+                        ]
+                      },
+                      "content": {
+                        "gameStatusText": "8:00 pm ET",
+                        "gameStatus": 1,
+                        "homeTeam": {
+                          "score": 0,
+                          "tricode": "HOU"
+                        },
+                        "awayTeam": {
+                          "score": 0,
+                          "tricode": "LAL"
+                        }
+                      },
+                      "variant": "standard"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "type": "Container",
+              "direction": "column",
+              "width": 200,
+              "children": [
+                {
+                  "type": "SectionSlot",
+                  "id": "carousel-slot-2",
+                  "section": {
+                    "id": "game-0042500153",
+                    "type": "AtomicComposite",
+                    "analyticsId": "for_you_game_0042500153",
+                    "refreshPolicy": {
+                      "type": "static"
+                    },
+                    "data": {
+                      "ui": {
+                        "type": "Container",
+                        "direction": "column",
+                        "crossAlignment": "stretch",
+                        "id": "game-0042500153-root",
+                        "cornerRadius": 12,
+                        "padding": {
+                          "start": 16,
+                          "end": 16,
+                          "top": 16,
+                          "bottom": 16
+                        },
+                        "actions": [
+                          {
+                            "trigger": "onTap",
+                            "type": "navigate",
+                            "targetUri": "nba://game/0042500153"
+                          }
+                        ],
+                        "children": [
+                          {
+                            "type": "Container",
+                            "direction": "row",
+                            "alignment": "spaceBetween",
+                            "crossAlignment": "center",
+                            "children": [
+                              {
+                                "type": "Container",
+                                "direction": "column",
+                                "alignment": "center",
+                                "crossAlignment": "center",
+                                "children": [
+                                  {
+                                    "type": "Image",
+                                    "src": "https://cdn.nba.com/logos/nba/1610612759/primary/D/512x512/logo.png",
+                                    "width": 48,
+                                    "height": 48,
+                                    "fit": "contain",
+                                    "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png"
+                                  },
+                                  {
+                                    "type": "Spacer",
+                                    "height": 4
+                                  },
+                                  {
+                                    "type": "Text",
+                                    "content": "SAS",
+                                    "variant": "titleMedium",
+                                    "weight": "semiBold",
+                                    "color": "token:nba.label.primary",
+                                    "maxLines": 1
+                                  },
+                                  {
+                                    "type": "Text",
+                                    "content": "0",
+                                    "variant": "score",
+                                    "weight": "bold",
+                                    "color": "token:nba.label.primary",
+                                    "maxLines": 1,
+                                    "bindRef": "awayTeam.score"
+                                  }
+                                ]
+                              },
+                              {
+                                "type": "Text",
+                                "content": "10:30 pm ET",
+                                "variant": "labelSmall",
+                                "weight": "regular",
+                                "color": "token:nba.label.primary",
+                                "maxLines": 1,
+                                "opacity": 0.7,
+                                "bindRef": "gameStatusText"
+                              },
+                              {
+                                "type": "Container",
+                                "direction": "column",
+                                "alignment": "center",
+                                "crossAlignment": "center",
+                                "children": [
+                                  {
+                                    "type": "Image",
+                                    "src": "https://cdn.nba.com/logos/nba/1610612757/primary/D/512x512/logo.png",
+                                    "width": 48,
+                                    "height": 48,
+                                    "fit": "contain",
+                                    "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png"
+                                  },
+                                  {
+                                    "type": "Spacer",
+                                    "height": 4
+                                  },
+                                  {
+                                    "type": "Text",
+                                    "content": "POR",
+                                    "variant": "titleMedium",
+                                    "weight": "semiBold",
+                                    "color": "token:nba.label.primary",
+                                    "maxLines": 1
+                                  },
+                                  {
+                                    "type": "Text",
+                                    "content": "0",
+                                    "variant": "score",
+                                    "weight": "bold",
+                                    "color": "token:nba.label.primary",
+                                    "maxLines": 1,
+                                    "bindRef": "homeTeam.score"
+                                  }
+                                ]
+                              }
+                            ],
+                            "widthMode": "fill"
+                          }
+                        ]
+                      },
+                      "content": {
+                        "gameStatusText": "10:30 pm ET",
+                        "gameStatus": 1,
+                        "homeTeam": {
+                          "score": 0,
+                          "tricode": "POR"
+                        },
+                        "awayTeam": {
+                          "score": 0,
+                          "tricode": "SAS"
+                        }
+                      },
+                      "variant": "standard"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "stringTable": {
+        "status.final": "Final",
+        "status.halftime": "Halftime",
+        "period.ot": "OT",
+        "status.live": "Live",
+        "status.pre": "Upcoming",
+        "period.q4": "Q4",
+        "period.q3": "Q3",
+        "period.q2": "Q2",
+        "period.q1": "Q1"
+      }
+    },
+    {
+      "id": "featured-game-0042500113",
+      "type": "AtomicComposite",
+      "analyticsId": "for_you_featured_game",
+      "refreshPolicy": {
+        "type": "static"
+      },
+      "data": {
+        "ui": {
+          "type": "Container",
+          "direction": "column",
+          "crossAlignment": "stretch",
+          "id": "featured-game-0042500113-root",
+          "cornerRadius": 16,
+          "padding": {
+            "start": 20,
+            "end": 20,
+            "top": 20,
+            "bottom": 20
+          },
+          "actions": [
+            {
+              "trigger": "onTap",
+              "type": "navigate",
+              "targetUri": "nba://game/0042500113"
+            }
+          ],
+          "children": [
+            {
+              "type": "Text",
+              "content": "UP NEXT",
+              "variant": "labelSmall",
+              "weight": "bold",
+              "color": "#FFFFFF",
+              "background": "#E03131",
+              "cornerRadius": 4,
+              "padding": {
+                "start": 8,
+                "end": 8,
+                "top": 2,
+                "bottom": 2
+              }
+            },
+            {
+              "type": "Spacer",
+              "height": 8
+            },
+            {
+              "type": "Container",
+              "direction": "row",
+              "alignment": "spaceBetween",
+              "crossAlignment": "center",
+              "children": [
+                {
+                  "type": "Container",
+                  "direction": "column",
+                  "alignment": "center",
+                  "crossAlignment": "center",
+                  "children": [
+                    {
+                      "type": "Image",
+                      "src": "https://cdn.nba.com/logos/nba/1610612738/primary/D/512x512/logo.png",
+                      "width": 48,
+                      "height": 48,
+                      "fit": "contain",
+                      "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png"
+                    },
+                    {
+                      "type": "Spacer",
+                      "height": 4
+                    },
+                    {
+                      "type": "Text",
+                      "content": "BOS",
+                      "variant": "titleMedium",
+                      "weight": "semiBold",
+                      "color": "token:nba.label.primary",
+                      "maxLines": 1
+                    },
+                    {
+                      "type": "Text",
+                      "content": "0",
+                      "variant": "score",
+                      "weight": "bold",
+                      "color": "token:nba.label.primary",
+                      "maxLines": 1,
+                      "bindRef": "awayTeam.score"
+                    }
+                  ]
+                },
+                {
+                  "type": "Text",
+                  "content": "7:00 pm ET",
+                  "variant": "titleSmall",
+                  "weight": "semiBold",
+                  "color": "token:nba.label.primary",
+                  "maxLines": 1,
+                  "opacity": 0.7,
+                  "bindRef": "gameStatusText"
+                },
+                {
+                  "type": "Container",
+                  "direction": "column",
+                  "alignment": "center",
+                  "crossAlignment": "center",
+                  "children": [
+                    {
+                      "type": "Image",
+                      "src": "https://cdn.nba.com/logos/nba/1610612755/primary/D/512x512/logo.png",
+                      "width": 48,
+                      "height": 48,
+                      "fit": "contain",
+                      "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png"
+                    },
+                    {
+                      "type": "Spacer",
+                      "height": 4
+                    },
+                    {
+                      "type": "Text",
+                      "content": "PHI",
+                      "variant": "titleMedium",
+                      "weight": "semiBold",
+                      "color": "token:nba.label.primary",
+                      "maxLines": 1
+                    },
+                    {
+                      "type": "Text",
+                      "content": "0",
+                      "variant": "score",
+                      "weight": "bold",
+                      "color": "token:nba.label.primary",
+                      "maxLines": 1,
+                      "bindRef": "homeTeam.score"
+                    }
+                  ]
+                }
+              ],
+              "widthMode": "fill"
+            }
+          ]
+        },
+        "content": {
+          "gameStatusText": "7:00 pm ET",
+          "gameStatus": 1,
+          "homeTeam": {
+            "score": 0,
+            "tricode": "PHI"
+          },
+          "awayTeam": {
+            "score": 0,
+            "tricode": "BOS"
+          }
+        }
+      },
+      "surface": {
+        "margin": {
+          "top": 16,
+          "end": 16,
+          "bottom": 16,
+          "start": 16
+        },
+        "background": {
+          "colors": [
+            "#F5F7FA",
+            "#DDE4EE"
+          ],
+          "direction": "diagonal"
+        },
+        "cornerRadius": 12,
+        "shadow": {
+          "color": "#00000014",
+          "radius": 6,
+          "offsetX": 0,
+          "offsetY": 2
+        }
+      },
+      "stringTable": {
+        "status.final": "Final",
+        "status.halftime": "Halftime",
+        "period.ot": "OT",
+        "status.live": "Live",
+        "status.pre": "Upcoming",
+        "period.q4": "Q4",
+        "period.q3": "Q3",
+        "period.q2": "Q2",
+        "period.q1": "Q1"
+      }
+    },
+    {
+      "id": "top-stories-header",
+      "type": "AtomicComposite",
+      "refreshPolicy": {
+        "type": "static"
+      },
+      "data": {
+        "ui": {
+          "type": "Container",
+          "direction": "row",
+          "alignment": "spaceBetween",
+          "crossAlignment": "center",
+          "padding": {
+            "start": 16,
+            "end": 16,
+            "top": 12,
+            "bottom": 4
+          },
+          "children": [
+            {
+              "type": "Text",
+              "content": "Top Stories",
+              "variant": "titleMedium",
+              "weight": "bold"
+            }
+          ]
+        }
+      },
+      "surface": {
+        "margin": {
+          "top": 16,
+          "bottom": 8
+        }
+      },
+      "stringTable": {
+        "status.final": "Final",
+        "status.halftime": "Halftime",
+        "period.ot": "OT",
+        "status.live": "Live",
+        "status.pre": "Upcoming",
+        "period.q4": "Q4",
+        "period.q3": "Q3",
+        "period.q2": "Q2",
+        "period.q1": "Q1"
+      }
+    },
+    {
+      "id": "for-you-highlights",
+      "type": "AtomicComposite",
+      "analyticsId": "for_you_highlights",
+      "refreshPolicy": {
+        "type": "static"
+      },
+      "data": {
+        "ui": {
+          "type": "Container",
+          "direction": "column",
+          "padding": {
+            "start": 0,
+            "end": 0,
+            "top": 0,
+            "bottom": 12
+          },
+          "children": [
+            {
+              "type": "ScrollContainer",
+              "direction": "row",
+              "gap": 12,
+              "showIndicators": false,
+              "children": [
+                {
+                  "type": "Container",
+                  "direction": "column",
+                  "id": "hl-1",
+                  "width": 200,
+                  "cornerRadius": 12,
+                  "background": {
+                    "colors": [
+                      "token:nba.bg.secondary",
+                      "token:nba.bg.tertiary"
+                    ],
+                    "direction": "vertical"
+                  },
+                  "actions": [
+                    {
+                      "trigger": "onTap",
+                      "type": "navigate",
+                      "targetUri": "nba://video/top10-plays"
+                    }
+                  ],
+                  "children": [
+                    {
+                      "type": "Image",
+                      "src": "https://loremflickr.com/480/270/basketball,highlights?lock=22",
+                      "variant": "thumbnail",
+                      "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
+                      "padding": {
+                        "start": 8,
+                        "end": 8,
+                        "top": 8,
+                        "bottom": 0
+                      },
+                      "aspectRatio": 1.7777777777777777,
+                      "cornerRadius": 6,
+                      "badge": {
+                        "element": {
+                          "type": "Container",
+                          "direction": "row",
+                          "alignment": "center",
+                          "crossAlignment": "center",
+                          "cornerRadius": 4,
+                          "background": "#000000B3",
+                          "opacity": 0.7,
+                          "padding": {
+                            "start": 4,
+                            "end": 4,
+                            "top": 2,
+                            "bottom": 2
+                          },
+                          "children": [
+                            {
+                              "type": "Text",
+                              "content": "2:45",
+                              "variant": "labelSmall",
+                              "weight": "semiBold",
+                              "color": "token:nba.label-inverted.primary"
+                            }
+                          ]
+                        },
+                        "alignment": "bottomEnd"
+                      },
+                      "widthMode": "fill"
+                    },
+                    {
+                      "type": "Spacer",
+                      "height": 4
+                    },
+                    {
+                      "type": "Text",
+                      "content": "Top 10 Plays of the Night",
+                      "variant": "bodySmall",
+                      "weight": "semiBold",
+                      "color": "token:nba.label.primary",
+                      "maxLines": 2,
+                      "padding": {
+                        "start": 16,
+                        "end": 16,
+                        "top": 8,
+                        "bottom": 8
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "Container",
+                  "direction": "column",
+                  "id": "hl-2",
+                  "width": 200,
+                  "cornerRadius": 12,
+                  "background": {
+                    "colors": [
+                      "token:nba.bg.secondary",
+                      "token:nba.bg.tertiary"
+                    ],
+                    "direction": "vertical"
+                  },
+                  "actions": [
+                    {
+                      "trigger": "onTap",
+                      "type": "navigate",
+                      "targetUri": "nba://video/dunk-night"
+                    }
+                  ],
+                  "children": [
+                    {
+                      "type": "Image",
+                      "src": "https://loremflickr.com/480/270/basketball,dunk?lock=23",
+                      "variant": "thumbnail",
+                      "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
+                      "padding": {
+                        "start": 8,
+                        "end": 8,
+                        "top": 8,
+                        "bottom": 0
+                      },
+                      "aspectRatio": 1.7777777777777777,
+                      "cornerRadius": 6,
+                      "badge": {
+                        "element": {
+                          "type": "Container",
+                          "direction": "row",
+                          "alignment": "center",
+                          "crossAlignment": "center",
+                          "cornerRadius": 4,
+                          "background": "#000000B3",
+                          "opacity": 0.7,
+                          "padding": {
+                            "start": 4,
+                            "end": 4,
+                            "top": 2,
+                            "bottom": 2
+                          },
+                          "children": [
+                            {
+                              "type": "Text",
+                              "content": "0:32",
+                              "variant": "labelSmall",
+                              "weight": "semiBold",
+                              "color": "token:nba.label-inverted.primary"
+                            }
+                          ]
+                        },
+                        "alignment": "bottomEnd"
+                      },
+                      "widthMode": "fill"
+                    },
+                    {
+                      "type": "Spacer",
+                      "height": 4
+                    },
+                    {
+                      "type": "Text",
+                      "content": "Dunk of the Night",
+                      "variant": "bodySmall",
+                      "weight": "semiBold",
+                      "color": "token:nba.label.primary",
+                      "maxLines": 2,
+                      "padding": {
+                        "start": 16,
+                        "end": 16,
+                        "top": 8,
+                        "bottom": 8
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "Container",
+                  "direction": "column",
+                  "id": "hl-3",
+                  "width": 200,
+                  "cornerRadius": 12,
+                  "background": {
+                    "colors": [
+                      "token:nba.bg.secondary",
+                      "token:nba.bg.tertiary"
+                    ],
+                    "direction": "vertical"
+                  },
+                  "actions": [
+                    {
+                      "trigger": "onTap",
+                      "type": "navigate",
+                      "targetUri": "nba://article/trade-recap"
+                    }
+                  ],
+                  "children": [
+                    {
+                      "type": "Image",
+                      "src": "https://loremflickr.com/480/270/basketball,trade?lock=24",
+                      "variant": "thumbnail",
+                      "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
+                      "padding": {
+                        "start": 8,
+                        "end": 8,
+                        "top": 8,
+                        "bottom": 0
+                      },
+                      "aspectRatio": 1.7777777777777777,
+                      "cornerRadius": 6,
+                      "widthMode": "fill"
+                    },
+                    {
+                      "type": "Spacer",
+                      "height": 4
+                    },
+                    {
+                      "type": "Text",
+                      "content": "Trade Deadline Recap",
+                      "variant": "bodySmall",
+                      "weight": "semiBold",
+                      "color": "token:nba.label.primary",
+                      "maxLines": 2,
+                      "padding": {
+                        "start": 16,
+                        "end": 16,
+                        "top": 8,
+                        "bottom": 8
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "surface": {
+        "margin": {
+          "top": 16,
+          "bottom": 16
+        }
+      },
+      "stringTable": {
+        "status.final": "Final",
+        "status.halftime": "Halftime",
+        "period.ot": "OT",
+        "status.live": "Live",
+        "status.pre": "Upcoming",
+        "period.q4": "Q4",
+        "period.q3": "Q3",
+        "period.q2": "Q2",
+        "period.q1": "Q1"
+      }
+    },
+    {
+      "id": "for-you-ad-1",
+      "type": "AdSlot",
+      "analyticsId": "for_you_ad_1",
+      "refreshPolicy": {
+        "type": "static"
+      },
+      "surface": {
+        "margin": {
+          "top": 16,
+          "end": 16,
+          "bottom": 16,
+          "start": 16
+        },
+        "background": "token:nba.bg.secondary",
+        "cornerRadius": 12,
+        "shadow": {
+          "color": "#00000014",
+          "radius": 6,
+          "offsetX": 0,
+          "offsetY": 2
+        }
+      },
+      "data": {
+        "provider": "gam",
+        "adUnitPath": "/21234567/sports/nba/homepage_mid1",
+        "sizes": [
+          [
+            320,
+            50
+          ],
+          [
+            728,
+            90
+          ]
+        ],
+        "targeting": {
+          "section": "for_you",
+          "position": "mid_feed_1"
+        },
+        "collapseOnEmpty": true,
+        "label": "Advertisement",
+        "placeholder": {
+          "backgroundColor": "token:nba.bg.tertiary",
+          "text": "Advertisement"
+        }
+      },
+      "stringTable": {
+        "status.final": "Final",
+        "status.halftime": "Halftime",
+        "period.ot": "OT",
+        "status.live": "Live",
+        "status.pre": "Upcoming",
+        "period.q4": "Q4",
+        "period.q3": "Q3",
+        "period.q2": "Q2",
+        "period.q1": "Q1"
+      }
+    },
+    {
+      "id": "trending-header",
+      "type": "AtomicComposite",
+      "refreshPolicy": {
+        "type": "static"
+      },
+      "data": {
+        "ui": {
+          "type": "Container",
+          "direction": "row",
+          "alignment": "spaceBetween",
+          "crossAlignment": "center",
+          "padding": {
+            "start": 16,
+            "end": 16,
+            "top": 12,
+            "bottom": 4
+          },
+          "children": [
+            {
+              "type": "Text",
+              "content": "Trending Now",
+              "variant": "titleMedium",
+              "weight": "bold"
+            }
+          ]
+        }
+      },
+      "surface": {
+        "margin": {
+          "top": 16,
+          "bottom": 8
+        }
+      },
+      "stringTable": {
+        "status.final": "Final",
+        "status.halftime": "Halftime",
+        "period.ot": "OT",
+        "status.live": "Live",
+        "status.pre": "Upcoming",
+        "period.q4": "Q4",
+        "period.q3": "Q3",
+        "period.q2": "Q2",
+        "period.q1": "Q1"
+      }
+    },
+    {
+      "id": "for-you-trending",
+      "type": "AtomicComposite",
+      "analyticsId": "for_you_trending",
+      "refreshPolicy": {
+        "type": "static"
+      },
+      "data": {
+        "ui": {
+          "type": "Container",
+          "direction": "column",
+          "padding": {
+            "start": 0,
+            "end": 0,
+            "top": 0,
+            "bottom": 12
+          },
+          "children": [
+            {
+              "type": "ScrollContainer",
+              "direction": "row",
+              "gap": 12,
+              "showIndicators": false,
+              "children": [
+                {
+                  "type": "Container",
+                  "direction": "column",
+                  "id": "tr-1",
+                  "width": 200,
+                  "cornerRadius": 12,
+                  "background": {
+                    "colors": [
+                      "token:nba.bg.secondary",
+                      "token:nba.bg.tertiary"
+                    ],
+                    "direction": "vertical"
+                  },
+                  "actions": [
+                    {
+                      "trigger": "onTap",
+                      "type": "navigate",
+                      "targetUri": "nba://article/mvp-race"
+                    }
+                  ],
+                  "children": [
+                    {
+                      "type": "Image",
+                      "src": "https://cdn.nba.com/manage/2025/02/jokic-allstar-iso-752x428.jpg",
+                      "variant": "thumbnail",
+                      "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
+                      "padding": {
+                        "start": 8,
+                        "end": 8,
+                        "top": 8,
+                        "bottom": 0
+                      },
+                      "aspectRatio": 1.7777777777777777,
+                      "cornerRadius": 6,
+                      "widthMode": "fill"
+                    },
+                    {
+                      "type": "Spacer",
+                      "height": 4
+                    },
+                    {
+                      "type": "Text",
+                      "content": "MVP Race Heats Up",
+                      "variant": "bodySmall",
+                      "weight": "semiBold",
+                      "color": "token:nba.label.primary",
+                      "maxLines": 2,
+                      "padding": {
+                        "start": 16,
+                        "end": 16,
+                        "top": 8,
+                        "bottom": 8
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "Container",
+                  "direction": "column",
+                  "id": "tr-2",
+                  "width": 200,
+                  "cornerRadius": 12,
+                  "background": {
+                    "colors": [
+                      "token:nba.bg.secondary",
+                      "token:nba.bg.tertiary"
+                    ],
+                    "direction": "vertical"
+                  },
+                  "actions": [
+                    {
+                      "trigger": "onTap",
+                      "type": "navigate",
+                      "targetUri": "nba://video/rookie-spotlight"
+                    }
+                  ],
+                  "children": [
+                    {
+                      "type": "Image",
+                      "src": "https://cdn.nba.com/manage/2025/02/risacher-hawks-drives-752x428.jpg",
+                      "variant": "thumbnail",
+                      "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
+                      "padding": {
+                        "start": 8,
+                        "end": 8,
+                        "top": 8,
+                        "bottom": 0
+                      },
+                      "aspectRatio": 1.7777777777777777,
+                      "cornerRadius": 6,
+                      "badge": {
+                        "element": {
+                          "type": "Container",
+                          "direction": "row",
+                          "alignment": "center",
+                          "crossAlignment": "center",
+                          "cornerRadius": 4,
+                          "background": "#000000B3",
+                          "opacity": 0.7,
+                          "padding": {
+                            "start": 4,
+                            "end": 4,
+                            "top": 2,
+                            "bottom": 2
+                          },
+                          "children": [
+                            {
+                              "type": "Text",
+                              "content": "3:12",
+                              "variant": "labelSmall",
+                              "weight": "semiBold",
+                              "color": "token:nba.label-inverted.primary"
+                            }
+                          ]
+                        },
+                        "alignment": "bottomEnd"
+                      },
+                      "widthMode": "fill"
+                    },
+                    {
+                      "type": "Spacer",
+                      "height": 4
+                    },
+                    {
+                      "type": "Text",
+                      "content": "Rookie Spotlight: Zaccharie Risacher",
+                      "variant": "bodySmall",
+                      "weight": "semiBold",
+                      "color": "token:nba.label.primary",
+                      "maxLines": 2,
+                      "padding": {
+                        "start": 16,
+                        "end": 16,
+                        "top": 8,
+                        "bottom": 8
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "Container",
+                  "direction": "column",
+                  "id": "tr-3",
+                  "width": 200,
+                  "cornerRadius": 12,
+                  "background": {
+                    "colors": [
+                      "token:nba.bg.secondary",
+                      "token:nba.bg.tertiary"
+                    ],
+                    "direction": "vertical"
+                  },
+                  "actions": [
+                    {
+                      "trigger": "onTap",
+                      "type": "navigate",
+                      "targetUri": "nba://article/playoff-picture"
+                    }
+                  ],
+                  "children": [
+                    {
+                      "type": "Image",
+                      "src": "https://cdn.nba.com/manage/2025/02/nba-standings-graphic-752x428.jpg",
+                      "variant": "thumbnail",
+                      "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
+                      "padding": {
+                        "start": 8,
+                        "end": 8,
+                        "top": 8,
+                        "bottom": 0
+                      },
+                      "aspectRatio": 1.7777777777777777,
+                      "cornerRadius": 6,
+                      "widthMode": "fill"
+                    },
+                    {
+                      "type": "Spacer",
+                      "height": 4
+                    },
+                    {
+                      "type": "Text",
+                      "content": "Playoff Picture Update",
+                      "variant": "bodySmall",
+                      "weight": "semiBold",
+                      "color": "token:nba.label.primary",
+                      "maxLines": 2,
+                      "padding": {
+                        "start": 16,
+                        "end": 16,
+                        "top": 8,
+                        "bottom": 8
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "surface": {
+        "margin": {
+          "top": 16,
+          "bottom": 16
+        }
+      },
+      "stringTable": {
+        "status.final": "Final",
+        "status.halftime": "Halftime",
+        "period.ot": "OT",
+        "status.live": "Live",
+        "status.pre": "Upcoming",
+        "period.q4": "Q4",
+        "period.q3": "Q3",
+        "period.q2": "Q2",
+        "period.q1": "Q1"
+      }
+    },
+    {
+      "id": "for-you-ad-2",
+      "type": "AdSlot",
+      "analyticsId": "for_you_ad_2",
+      "refreshPolicy": {
+        "type": "static"
+      },
+      "surface": {
+        "margin": {
+          "top": 16,
+          "end": 16,
+          "bottom": 16,
+          "start": 16
+        },
+        "background": "token:nba.bg.secondary",
+        "cornerRadius": 12,
+        "shadow": {
+          "color": "#00000014",
+          "radius": 6,
+          "offsetX": 0,
+          "offsetY": 2
+        }
+      },
+      "data": {
+        "provider": "gam",
+        "adUnitPath": "/21234567/sports/nba/homepage_mid2",
+        "sizes": [
+          [
+            320,
+            50
+          ],
+          [
+            728,
+            90
+          ]
+        ],
+        "targeting": {
+          "section": "for_you",
+          "position": "mid_feed_2"
+        },
+        "collapseOnEmpty": true,
+        "label": "Advertisement",
+        "placeholder": {
+          "backgroundColor": "token:nba.bg.tertiary",
+          "text": "Advertisement"
+        }
+      },
+      "stringTable": {
+        "status.final": "Final",
+        "status.halftime": "Halftime",
+        "period.ot": "OT",
+        "status.live": "Live",
+        "status.pre": "Upcoming",
+        "period.q4": "Q4",
+        "period.q3": "Q3",
+        "period.q2": "Q2",
+        "period.q1": "Q1"
+      }
+    },
+    {
+      "id": "lp-picks-header",
+      "type": "AtomicComposite",
+      "refreshPolicy": {
+        "type": "static"
+      },
+      "data": {
+        "ui": {
+          "type": "Container",
+          "direction": "row",
+          "alignment": "spaceBetween",
+          "crossAlignment": "center",
+          "padding": {
+            "start": 16,
+            "end": 16,
+            "top": 12,
+            "bottom": 4
+          },
+          "children": [
+            {
+              "type": "Text",
+              "content": "League Pass Picks",
+              "variant": "titleMedium",
+              "weight": "bold"
+            },
+            {
+              "type": "Button",
+              "label": "Browse League Pass",
+              "variant": "text",
+              "actions": [
+                {
+                  "trigger": "onTap",
+                  "type": "navigate",
+                  "targetUri": "nba://leaguepass"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "surface": {
+        "margin": {
+          "top": 16,
+          "bottom": 8
+        }
+      },
+      "stringTable": {
+        "status.final": "Final",
+        "status.halftime": "Halftime",
+        "period.ot": "OT",
+        "status.live": "Live",
+        "status.pre": "Upcoming",
+        "period.q4": "Q4",
+        "period.q3": "Q3",
+        "period.q2": "Q2",
+        "period.q1": "Q1"
+      }
+    },
+    {
+      "id": "for-you-lp-picks",
+      "type": "AtomicComposite",
+      "analyticsId": "for_you_lp_picks",
+      "refreshPolicy": {
+        "type": "static"
+      },
+      "data": {
+        "ui": {
+          "type": "Container",
+          "direction": "column",
+          "padding": {
+            "start": 0,
+            "end": 0,
+            "top": 0,
+            "bottom": 12
+          },
+          "children": [
+            {
+              "type": "ScrollContainer",
+              "direction": "row",
+              "gap": 12,
+              "showIndicators": false,
+              "children": [
+                {
+                  "type": "Container",
+                  "direction": "column",
+                  "id": "lp-1",
+                  "width": 200,
+                  "cornerRadius": 12,
+                  "background": {
+                    "colors": [
+                      "token:nba.bg.secondary",
+                      "token:nba.bg.tertiary"
+                    ],
+                    "direction": "vertical"
+                  },
+                  "actions": [
+                    {
+                      "trigger": "onTap",
+                      "type": "navigate",
+                      "targetUri": "nba://article/gsw-okc-preview"
+                    }
+                  ],
+                  "children": [
+                    {
+                      "type": "Image",
+                      "src": "https://cdn.nba.com/manage/2025/02/warriors-thunder-preview-752x428.jpg",
+                      "variant": "thumbnail",
+                      "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
+                      "padding": {
+                        "start": 8,
+                        "end": 8,
+                        "top": 8,
+                        "bottom": 0
+                      },
+                      "aspectRatio": 1.7777777777777777,
+                      "cornerRadius": 6,
+                      "widthMode": "fill"
+                    },
+                    {
+                      "type": "Spacer",
+                      "height": 4
+                    },
+                    {
+                      "type": "Text",
+                      "content": "Warriors vs. Thunder Preview",
+                      "variant": "bodySmall",
+                      "weight": "semiBold",
+                      "color": "token:nba.label.primary",
+                      "maxLines": 2,
+                      "padding": {
+                        "start": 16,
+                        "end": 16,
+                        "top": 8,
+                        "bottom": 8
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "Container",
+                  "direction": "column",
+                  "id": "lp-2",
+                  "width": 200,
+                  "cornerRadius": 12,
+                  "background": {
+                    "colors": [
+                      "token:nba.bg.secondary",
+                      "token:nba.bg.tertiary"
+                    ],
+                    "direction": "vertical"
+                  },
+                  "actions": [
+                    {
+                      "trigger": "onTap",
+                      "type": "navigate",
+                      "targetUri": "nba://video/lp-week-20"
+                    }
+                  ],
+                  "children": [
+                    {
+                      "type": "Image",
+                      "src": "https://cdn.nba.com/manage/2025/02/lp-best-of-week-752x428.jpg",
+                      "variant": "thumbnail",
+                      "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
+                      "padding": {
+                        "start": 8,
+                        "end": 8,
+                        "top": 8,
+                        "bottom": 0
+                      },
+                      "aspectRatio": 1.7777777777777777,
+                      "cornerRadius": 6,
+                      "badge": {
+                        "element": {
+                          "type": "Container",
+                          "direction": "row",
+                          "alignment": "center",
+                          "crossAlignment": "center",
+                          "cornerRadius": 4,
+                          "background": "#000000B3",
+                          "opacity": 0.7,
+                          "padding": {
+                            "start": 4,
+                            "end": 4,
+                            "top": 2,
+                            "bottom": 2
+                          },
+                          "children": [
+                            {
+                              "type": "Text",
+                              "content": "4:30",
+                              "variant": "labelSmall",
+                              "weight": "semiBold",
+                              "color": "token:nba.label-inverted.primary"
+                            }
+                          ]
+                        },
+                        "alignment": "bottomEnd"
+                      },
+                      "widthMode": "fill"
+                    },
+                    {
+                      "type": "Spacer",
+                      "height": 4
+                    },
+                    {
+                      "type": "Text",
+                      "content": "Best of League Pass: Week 20",
+                      "variant": "bodySmall",
+                      "weight": "semiBold",
+                      "color": "token:nba.label.primary",
+                      "maxLines": 2,
+                      "padding": {
+                        "start": 16,
+                        "end": 16,
+                        "top": 8,
+                        "bottom": 8
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "Container",
+                  "direction": "column",
+                  "id": "lp-3",
+                  "width": 200,
+                  "cornerRadius": 12,
+                  "background": {
+                    "colors": [
+                      "token:nba.bg.secondary",
+                      "token:nba.bg.tertiary"
+                    ],
+                    "direction": "vertical"
+                  },
+                  "actions": [
+                    {
+                      "trigger": "onTap",
+                      "type": "navigate",
+                      "targetUri": "nba://video/ind-orl-hidden-gem"
+                    }
+                  ],
+                  "children": [
+                    {
+                      "type": "Image",
+                      "src": "https://cdn.nba.com/manage/2025/02/pacers-magic-rivalry-752x428.jpg",
+                      "variant": "thumbnail",
+                      "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
+                      "padding": {
+                        "start": 8,
+                        "end": 8,
+                        "top": 8,
+                        "bottom": 0
+                      },
+                      "aspectRatio": 1.7777777777777777,
+                      "cornerRadius": 6,
+                      "badge": {
+                        "element": {
+                          "type": "Container",
+                          "direction": "row",
+                          "alignment": "center",
+                          "crossAlignment": "center",
+                          "cornerRadius": 4,
+                          "background": "#000000B3",
+                          "opacity": 0.7,
+                          "padding": {
+                            "start": 4,
+                            "end": 4,
+                            "top": 2,
+                            "bottom": 2
+                          },
+                          "children": [
+                            {
+                              "type": "Text",
+                              "content": "1:58",
+                              "variant": "labelSmall",
+                              "weight": "semiBold",
+                              "color": "token:nba.label-inverted.primary"
+                            }
+                          ]
+                        },
+                        "alignment": "bottomEnd"
+                      },
+                      "widthMode": "fill"
+                    },
+                    {
+                      "type": "Spacer",
+                      "height": 4
+                    },
+                    {
+                      "type": "Text",
+                      "content": "Hidden Gem: Pacers vs. Magic",
+                      "variant": "bodySmall",
+                      "weight": "semiBold",
+                      "color": "token:nba.label.primary",
+                      "maxLines": 2,
+                      "padding": {
+                        "start": 16,
+                        "end": 16,
+                        "top": 8,
+                        "bottom": 8
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "surface": {
+        "margin": {
+          "top": 16,
+          "bottom": 16
+        }
+      },
+      "stringTable": {
+        "status.final": "Final",
+        "status.halftime": "Halftime",
+        "period.ot": "OT",
+        "status.live": "Live",
+        "status.pre": "Upcoming",
+        "period.q4": "Q4",
+        "period.q3": "Q3",
+        "period.q2": "Q2",
+        "period.q1": "Q1"
+      }
+    },
+    {
+      "id": "for-you-ad-3",
+      "type": "AdSlot",
+      "analyticsId": "for_you_ad_3",
+      "refreshPolicy": {
+        "type": "static"
+      },
+      "surface": {
+        "margin": {
+          "top": 16,
+          "end": 16,
+          "bottom": 16,
+          "start": 16
+        },
+        "background": "token:nba.bg.secondary",
+        "cornerRadius": 12,
+        "shadow": {
+          "color": "#00000014",
+          "radius": 6,
+          "offsetX": 0,
+          "offsetY": 2
+        }
+      },
+      "data": {
+        "provider": "gam",
+        "adUnitPath": "/21234567/sports/nba/homepage_mid3",
+        "sizes": [
+          [
+            320,
+            50
+          ],
+          [
+            728,
+            90
+          ]
+        ],
+        "targeting": {
+          "section": "for_you",
+          "position": "mid_feed_3"
+        },
+        "collapseOnEmpty": true,
+        "label": "Advertisement",
+        "placeholder": {
+          "backgroundColor": "token:nba.bg.tertiary",
+          "text": "Advertisement"
+        }
+      },
+      "stringTable": {
+        "status.final": "Final",
+        "status.halftime": "Halftime",
+        "period.ot": "OT",
+        "status.live": "Live",
+        "status.pre": "Upcoming",
+        "period.q4": "Q4",
+        "period.q3": "Q3",
+        "period.q2": "Q2",
+        "period.q1": "Q1"
+      }
+    },
+    {
+      "id": "around-league-header",
+      "type": "AtomicComposite",
+      "refreshPolicy": {
+        "type": "static"
+      },
+      "data": {
+        "ui": {
+          "type": "Container",
+          "direction": "row",
+          "alignment": "spaceBetween",
+          "crossAlignment": "center",
+          "padding": {
+            "start": 16,
+            "end": 16,
+            "top": 12,
+            "bottom": 4
+          },
+          "children": [
+            {
+              "type": "Text",
+              "content": "Around the League",
+              "variant": "titleMedium",
+              "weight": "bold"
+            },
+            {
+              "type": "Button",
+              "label": "More Stories",
+              "variant": "text",
+              "actions": [
+                {
+                  "trigger": "onTap",
+                  "type": "navigate",
+                  "targetUri": "nba://news"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "surface": {
+        "margin": {
+          "top": 16,
+          "bottom": 8
+        }
+      },
+      "stringTable": {
+        "status.final": "Final",
+        "status.halftime": "Halftime",
+        "period.ot": "OT",
+        "status.live": "Live",
+        "status.pre": "Upcoming",
+        "period.q4": "Q4",
+        "period.q3": "Q3",
+        "period.q2": "Q2",
+        "period.q1": "Q1"
+      }
+    },
+    {
+      "id": "for-you-around-league",
+      "type": "AtomicComposite",
+      "analyticsId": "for_you_around_league",
+      "refreshPolicy": {
+        "type": "static"
+      },
+      "data": {
+        "ui": {
+          "type": "Container",
+          "direction": "column",
+          "padding": {
+            "start": 0,
+            "end": 0,
+            "top": 0,
+            "bottom": 12
+          },
+          "children": [
+            {
+              "type": "ScrollContainer",
+              "direction": "row",
+              "gap": 12,
+              "showIndicators": false,
+              "children": [
+                {
+                  "type": "Container",
+                  "direction": "column",
+                  "id": "al-1",
+                  "width": 200,
+                  "cornerRadius": 12,
+                  "background": {
+                    "colors": [
+                      "token:nba.bg.secondary",
+                      "token:nba.bg.tertiary"
+                    ],
+                    "direction": "vertical"
+                  },
+                  "actions": [
+                    {
+                      "trigger": "onTap",
+                      "type": "navigate",
+                      "targetUri": "nba://article/injury-report"
+                    }
+                  ],
+                  "children": [
+                    {
+                      "type": "Image",
+                      "src": "https://cdn.nba.com/manage/2025/02/injury-report-graphic-752x428.jpg",
+                      "variant": "thumbnail",
+                      "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
+                      "padding": {
+                        "start": 8,
+                        "end": 8,
+                        "top": 8,
+                        "bottom": 0
+                      },
+                      "aspectRatio": 1.7777777777777777,
+                      "cornerRadius": 6,
+                      "widthMode": "fill"
+                    },
+                    {
+                      "type": "Spacer",
+                      "height": 4
+                    },
+                    {
+                      "type": "Text",
+                      "content": "Injury Report Roundup",
+                      "variant": "bodySmall",
+                      "weight": "semiBold",
+                      "color": "token:nba.label.primary",
+                      "maxLines": 2,
+                      "padding": {
+                        "start": 16,
+                        "end": 16,
+                        "top": 8,
+                        "bottom": 8
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "Container",
+                  "direction": "column",
+                  "id": "al-2",
+                  "width": 200,
+                  "cornerRadius": 12,
+                  "background": {
+                    "colors": [
+                      "token:nba.bg.secondary",
+                      "token:nba.bg.tertiary"
+                    ],
+                    "direction": "vertical"
+                  },
+                  "actions": [
+                    {
+                      "trigger": "onTap",
+                      "type": "navigate",
+                      "targetUri": "nba://article/power-rankings-march"
+                    }
+                  ],
+                  "children": [
+                    {
+                      "type": "Image",
+                      "src": "https://cdn.nba.com/manage/2025/02/power-rankings-march-752x428.jpg",
+                      "variant": "thumbnail",
+                      "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
+                      "padding": {
+                        "start": 8,
+                        "end": 8,
+                        "top": 8,
+                        "bottom": 0
+                      },
+                      "aspectRatio": 1.7777777777777777,
+                      "cornerRadius": 6,
+                      "widthMode": "fill"
+                    },
+                    {
+                      "type": "Spacer",
+                      "height": 4
+                    },
+                    {
+                      "type": "Text",
+                      "content": "Power Rankings: March Edition",
+                      "variant": "bodySmall",
+                      "weight": "semiBold",
+                      "color": "token:nba.label.primary",
+                      "maxLines": 2,
+                      "padding": {
+                        "start": 16,
+                        "end": 16,
+                        "top": 8,
+                        "bottom": 8
+                      }
+                    }
+                  ]
+                },
+                {
+                  "type": "Container",
+                  "direction": "column",
+                  "id": "al-3",
+                  "width": 200,
+                  "cornerRadius": 12,
+                  "background": {
+                    "colors": [
+                      "token:nba.bg.secondary",
+                      "token:nba.bg.tertiary"
+                    ],
+                    "direction": "vertical"
+                  },
+                  "actions": [
+                    {
+                      "trigger": "onTap",
+                      "type": "navigate",
+                      "targetUri": "nba://video/allstar-recap"
+                    }
+                  ],
+                  "children": [
+                    {
+                      "type": "Image",
+                      "src": "https://cdn.nba.com/manage/2025/02/allstar-weekend-recap-752x428.jpg",
+                      "variant": "thumbnail",
+                      "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
+                      "padding": {
+                        "start": 8,
+                        "end": 8,
+                        "top": 8,
+                        "bottom": 0
+                      },
+                      "aspectRatio": 1.7777777777777777,
+                      "cornerRadius": 6,
+                      "badge": {
+                        "element": {
+                          "type": "Container",
+                          "direction": "row",
+                          "alignment": "center",
+                          "crossAlignment": "center",
+                          "cornerRadius": 4,
+                          "background": "#000000B3",
+                          "opacity": 0.7,
+                          "padding": {
+                            "start": 4,
+                            "end": 4,
+                            "top": 2,
+                            "bottom": 2
+                          },
+                          "children": [
+                            {
+                              "type": "Text",
+                              "content": "5:10",
+                              "variant": "labelSmall",
+                              "weight": "semiBold",
+                              "color": "token:nba.label-inverted.primary"
+                            }
+                          ]
+                        },
+                        "alignment": "bottomEnd"
+                      },
+                      "widthMode": "fill"
+                    },
+                    {
+                      "type": "Spacer",
+                      "height": 4
+                    },
+                    {
+                      "type": "Text",
+                      "content": "All-Star Weekend Recap",
+                      "variant": "bodySmall",
+                      "weight": "semiBold",
+                      "color": "token:nba.label.primary",
+                      "maxLines": 2,
+                      "padding": {
+                        "start": 16,
+                        "end": 16,
+                        "top": 8,
+                        "bottom": 8
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "surface": {
+        "margin": {
+          "top": 16,
+          "bottom": 16
+        }
+      },
+      "stringTable": {
+        "status.final": "Final",
+        "status.halftime": "Halftime",
+        "period.ot": "OT",
+        "status.live": "Live",
+        "status.pre": "Upcoming",
+        "period.q4": "Q4",
+        "period.q3": "Q3",
+        "period.q2": "Q2",
+        "period.q1": "Q1"
+      }
+    },
+    {
+      "id": "for-you-vod-playlist",
+      "type": "AtomicComposite",
+      "analyticsId": "for_you_vod_playlist",
+      "refreshPolicy": {
+        "type": "static"
+      },
+      "data": {
+        "ui": {
+          "type": "Container",
+          "direction": "column",
+          "padding": {
+            "start": 16,
+            "end": 16,
+            "top": 0,
+            "bottom": 0
+          },
+          "children": [
+            {
+              "type": "Container",
+              "direction": "column",
+              "variant": "grouped",
+              "cornerRadius": 12,
+              "padding": {
+                "start": 0,
+                "end": 0,
+                "top": 4,
+                "bottom": 4
+              },
+              "children": [
+                {
+                  "type": "Text",
+                  "content": "More to Watch",
+                  "variant": "titleSmall",
+                  "weight": "semiBold",
+                  "padding": {
+                    "start": 16,
+                    "end": 16,
+                    "top": 12,
+                    "bottom": 8
+                  }
+                },
+                {
+                  "type": "Container",
+                  "direction": "row",
+                  "crossAlignment": "center",
+                  "id": "playlist-1",
+                  "gap": 12,
+                  "padding": {
+                    "start": 12,
+                    "end": 12,
+                    "top": 10,
+                    "bottom": 10
+                  },
+                  "actions": [
+                    {
+                      "trigger": "onTap",
+                      "type": "navigate",
+                      "targetUri": "nba://video/giannis-40"
+                    }
+                  ],
+                  "children": [
+                    {
+                      "type": "Image",
+                      "src": "https://loremflickr.com/480/270/basketball,giannis?lock=50",
+                      "variant": "thumbnail",
+                      "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
+                      "width": 80,
+                      "height": 52,
+                      "cornerRadius": 6,
+                      "badge": {
+                        "element": {
+                          "type": "Container",
+                          "direction": "row",
+                          "alignment": "center",
+                          "crossAlignment": "center",
+                          "cornerRadius": 4,
+                          "background": "#000000B3",
+                          "opacity": 0.7,
+                          "padding": {
+                            "start": 4,
+                            "end": 4,
+                            "top": 2,
+                            "bottom": 2
+                          },
+                          "children": [
+                            {
+                              "type": "Text",
+                              "content": "0:42",
+                              "variant": "labelSmall",
+                              "weight": "semiBold",
+                              "color": "token:nba.label-inverted.primary"
+                            }
+                          ]
+                        },
+                        "alignment": "bottomEnd"
+                      }
+                    },
+                    {
+                      "type": "Container",
+                      "direction": "column",
+                      "crossAlignment": "start",
+                      "gap": 2,
+                      "flex": 1.0,
+                      "children": [
+                        {
+                          "type": "Text",
+                          "content": "Giannis goes off for 40",
+                          "variant": "bodyMedium",
+                          "weight": "semiBold",
+                          "maxLines": 2
+                        },
+                        {
+                          "type": "Text",
+                          "content": "Last night \u00b7 Bucks vs Heat",
+                          "variant": "labelSmall",
+                          "color": "token:nba.label.secondary",
+                          "maxLines": 1
+                        }
+                      ]
+                    },
+                    {
+                      "type": "Text",
+                      "content": "\u203a",
+                      "variant": "titleMedium",
+                      "color": "token:nba.label.secondary"
+                    }
+                  ]
+                },
+                {
+                  "type": "Divider",
+                  "thickness": 1,
+                  "padding": {
+                    "start": 104,
+                    "end": 0,
+                    "top": 0,
+                    "bottom": 0
+                  }
+                },
+                {
+                  "type": "Container",
+                  "direction": "row",
+                  "crossAlignment": "center",
+                  "id": "playlist-2",
+                  "gap": 12,
+                  "padding": {
+                    "start": 12,
+                    "end": 12,
+                    "top": 10,
+                    "bottom": 10
+                  },
+                  "actions": [
+                    {
+                      "trigger": "onTap",
+                      "type": "navigate",
+                      "targetUri": "nba://video/kerr-pressconf"
+                    }
+                  ],
+                  "children": [
+                    {
+                      "type": "Image",
+                      "src": "https://loremflickr.com/480/270/basketball,press?lock=51",
+                      "variant": "thumbnail",
+                      "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
+                      "width": 80,
+                      "height": 52,
+                      "cornerRadius": 6,
+                      "badge": {
+                        "element": {
+                          "type": "Container",
+                          "direction": "row",
+                          "alignment": "center",
+                          "crossAlignment": "center",
+                          "cornerRadius": 4,
+                          "background": "#000000B3",
+                          "opacity": 0.7,
+                          "padding": {
+                            "start": 4,
+                            "end": 4,
+                            "top": 2,
+                            "bottom": 2
+                          },
+                          "children": [
+                            {
+                              "type": "Text",
+                              "content": "6:21",
+                              "variant": "labelSmall",
+                              "weight": "semiBold",
+                              "color": "token:nba.label-inverted.primary"
+                            }
+                          ]
+                        },
+                        "alignment": "bottomEnd"
+                      }
+                    },
+                    {
+                      "type": "Container",
+                      "direction": "column",
+                      "crossAlignment": "start",
+                      "gap": 2,
+                      "flex": 1.0,
+                      "children": [
+                        {
+                          "type": "Text",
+                          "content": "Press conference: Steve Kerr",
+                          "variant": "bodyMedium",
+                          "weight": "semiBold",
+                          "maxLines": 2
+                        },
+                        {
+                          "type": "Text",
+                          "content": "Warriors \u00b7 Postgame",
+                          "variant": "labelSmall",
+                          "color": "token:nba.label.secondary",
+                          "maxLines": 1
+                        }
+                      ]
+                    },
+                    {
+                      "type": "Text",
+                      "content": "\u203a",
+                      "variant": "titleMedium",
+                      "color": "token:nba.label.secondary"
+                    }
+                  ]
+                },
+                {
+                  "type": "Divider",
+                  "thickness": 1,
+                  "padding": {
+                    "start": 104,
+                    "end": 0,
+                    "top": 0,
+                    "bottom": 0
+                  }
+                },
+                {
+                  "type": "Container",
+                  "direction": "row",
+                  "crossAlignment": "center",
+                  "id": "playlist-3",
+                  "gap": 12,
+                  "padding": {
+                    "start": 12,
+                    "end": 12,
+                    "top": 10,
+                    "bottom": 10
+                  },
+                  "actions": [
+                    {
+                      "trigger": "onTap",
+                      "type": "navigate",
+                      "targetUri": "nba://video/lakers-nuggets-live"
+                    }
+                  ],
+                  "children": [
+                    {
+                      "type": "Image",
+                      "src": "https://loremflickr.com/480/270/basketball,lakers?lock=52",
+                      "variant": "thumbnail",
+                      "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
+                      "width": 80,
+                      "height": 52,
+                      "cornerRadius": 6,
+                      "badge": {
+                        "element": {
+                          "type": "Container",
+                          "direction": "row",
+                          "alignment": "center",
+                          "crossAlignment": "center",
+                          "cornerRadius": 4,
+                          "background": "token:nba.label.accent.live",
+                          "padding": {
+                            "start": 6,
+                            "end": 6,
+                            "top": 2,
+                            "bottom": 2
+                          },
+                          "children": [
+                            {
+                              "type": "Text",
+                              "content": "LIVE",
+                              "variant": "labelSmall",
+                              "weight": "bold",
+                              "color": "token:nba.label-inverted.primary"
+                            }
+                          ]
+                        },
+                        "alignment": "topStart"
+                      }
+                    },
+                    {
+                      "type": "Container",
+                      "direction": "column",
+                      "crossAlignment": "start",
+                      "gap": 2,
+                      "flex": 1.0,
+                      "children": [
+                        {
+                          "type": "Text",
+                          "content": "Lakers vs Nuggets (Live)",
+                          "variant": "bodyMedium",
+                          "weight": "semiBold",
+                          "maxLines": 2
+                        },
+                        {
+                          "type": "Text",
+                          "content": "On now \u00b7 League Pass",
+                          "variant": "labelSmall",
+                          "color": "token:nba.label.secondary",
+                          "maxLines": 1
+                        }
+                      ]
+                    },
+                    {
+                      "type": "Text",
+                      "content": "\u203a",
+                      "variant": "titleMedium",
+                      "color": "token:nba.label.secondary"
+                    }
+                  ]
+                },
+                {
+                  "type": "Divider",
+                  "thickness": 1,
+                  "padding": {
+                    "start": 104,
+                    "end": 0,
+                    "top": 0,
+                    "bottom": 0
+                  }
+                },
+                {
+                  "type": "Container",
+                  "direction": "row",
+                  "crossAlignment": "center",
+                  "id": "playlist-4",
+                  "gap": 12,
+                  "padding": {
+                    "start": 12,
+                    "end": 12,
+                    "top": 10,
+                    "bottom": 10
+                  },
+                  "actions": [
+                    {
+                      "trigger": "onTap",
+                      "type": "navigate",
+                      "targetUri": "nba://video/top10-buzzer-beaters"
+                    }
+                  ],
+                  "children": [
+                    {
+                      "type": "Image",
+                      "src": "https://loremflickr.com/480/270/basketball,buzzer?lock=53",
+                      "variant": "thumbnail",
+                      "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
+                      "width": 80,
+                      "height": 52,
+                      "cornerRadius": 6,
+                      "badge": {
+                        "element": {
+                          "type": "Container",
+                          "direction": "row",
+                          "alignment": "center",
+                          "crossAlignment": "center",
+                          "cornerRadius": 4,
+                          "background": "#000000B3",
+                          "opacity": 0.7,
+                          "padding": {
+                            "start": 4,
+                            "end": 4,
+                            "top": 2,
+                            "bottom": 2
+                          },
+                          "children": [
+                            {
+                              "type": "Text",
+                              "content": "4:08",
+                              "variant": "labelSmall",
+                              "weight": "semiBold",
+                              "color": "token:nba.label-inverted.primary"
+                            }
+                          ]
+                        },
+                        "alignment": "bottomEnd"
+                      }
+                    },
+                    {
+                      "type": "Container",
+                      "direction": "column",
+                      "crossAlignment": "start",
+                      "gap": 2,
+                      "flex": 1.0,
+                      "children": [
+                        {
+                          "type": "Text",
+                          "content": "Top 10 Buzzer Beaters",
+                          "variant": "bodyMedium",
+                          "weight": "semiBold",
+                          "maxLines": 2
+                        },
+                        {
+                          "type": "Text",
+                          "content": "Editors' picks",
+                          "variant": "labelSmall",
+                          "color": "token:nba.label.secondary",
+                          "maxLines": 1
+                        }
+                      ]
+                    },
+                    {
+                      "type": "Text",
+                      "content": "\u203a",
+                      "variant": "titleMedium",
+                      "color": "token:nba.label.secondary"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "surface": {
+        "margin": {
+          "top": 16,
+          "bottom": 16
+        }
+      },
+      "stringTable": {
+        "status.final": "Final",
+        "status.halftime": "Halftime",
+        "period.ot": "OT",
+        "status.live": "Live",
+        "status.pre": "Upcoming",
+        "period.q4": "Q4",
+        "period.q3": "Q3",
+        "period.q2": "Q2",
+        "period.q1": "Q1"
+      }
+    }
+  ]
+}

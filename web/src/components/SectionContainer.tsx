@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
-import type { SectionSurface, Spacing, Background } from '@sdui/models';
+import type { LayoutScalar, SectionSurface, Spacing, Background } from '@sdui/models';
 import { resolveColorToken, usePrefersColorScheme } from '../utils/ColorTokenResolver';
+import { currentFormFactor, resolveLayoutScalar, resolveSpacingPx } from '../utils/LayoutTokenResolver';
 
 export interface SectionContainerProps {
   surface?: SectionSurface;
@@ -13,20 +14,17 @@ export interface SectionContainerProps {
  * background, cornerRadius, shadow, border) and applies it as
  * CSS, so semantic-section renderers never set their own outer
  * chrome.
- *
- * Shared wrapper enforcing server-driven outer chrome for every section.
- * See `SduiUtils.defaultSurface()` on the server for the default
- * surface values composers emit.
  */
 export function SectionContainer({ surface, children }: SectionContainerProps): React.ReactElement {
   const scheme = usePrefersColorScheme();
+  const formFactor = currentFormFactor();
 
   if (!surface) {
     return <>{children}</>;
   }
 
-  const marginStyle = spacingToCss(surface.margin, 'margin');
-  const paddingStyle = spacingToCss(surface.padding, 'padding');
+  const marginStyle = spacingToCss(surface.margin, 'margin', formFactor, scheme);
+  const paddingStyle = spacingToCss(surface.padding, 'padding', formFactor, scheme);
 
   const background = useMemo(
     () => resolveBackgroundCss(surface.background, scheme),
@@ -49,26 +47,36 @@ export function SectionContainer({ surface, children }: SectionContainerProps): 
     return `${surface.shadow.offsetX ?? 0}px ${surface.shadow.offsetY ?? 2}px ${surface.shadow.radius ?? 4}px 0 ${shadowColor}`;
   }, [surface.shadow, scheme]);
 
+  const cornerRadiusPx = surface.cornerRadius != null
+    ? resolveLayoutScalar(surface.cornerRadius as LayoutScalar, formFactor, scheme)
+    : undefined;
+
   const style: React.CSSProperties = {
     ...marginStyle,
     ...paddingStyle,
     background,
-    borderRadius: surface.cornerRadius,
+    borderRadius: cornerRadiusPx,
     border: borderStyle,
     boxShadow,
-    overflow: surface.cornerRadius ? 'hidden' : undefined,
+    overflow: cornerRadiusPx ? 'hidden' : undefined,
   };
 
   return <div style={style}>{children}</div>;
 }
 
-function spacingToCss(s: Spacing | undefined, prefix: 'margin' | 'padding'): React.CSSProperties {
+function spacingToCss(
+  s: Spacing | undefined,
+  prefix: 'margin' | 'padding',
+  formFactor: ReturnType<typeof currentFormFactor>,
+  theme: string,
+): React.CSSProperties {
   if (!s) return {};
+  const resolved = resolveSpacingPx(s, formFactor, theme);
   return {
-    [`${prefix}Top`]: s.top,
-    [`${prefix}Bottom`]: s.bottom,
-    [`${prefix}Left`]: s.start,
-    [`${prefix}Right`]: s.end,
+    [`${prefix}Top`]: resolved.top,
+    [`${prefix}Bottom`]: resolved.bottom,
+    [`${prefix}Left`]: resolved.left,
+    [`${prefix}Right`]: resolved.right,
   };
 }
 

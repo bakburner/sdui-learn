@@ -46,7 +46,6 @@
               "direction": "row",
               "justifyContent": "spaceBetween",
               "alignment": "center",
-              "fillWidth": true,
               "children": [
                 {
                   "type": "Container",
@@ -129,7 +128,8 @@
                     }
                   ]
                 }
-              ]
+              ],
+              "widthMode": "fill"
             }
           ]
         },
@@ -231,7 +231,6 @@
               "direction": "row",
               "justifyContent": "spaceBetween",
               "alignment": "center",
-              "fillWidth": true,
               "children": [
                 {
                   "type": "Container",
@@ -314,7 +313,8 @@
                     }
                   ]
                 }
-              ]
+              ],
+              "widthMode": "fill"
             }
           ]
         },
@@ -379,7 +379,6 @@
               "direction": "row",
               "justifyContent": "spaceBetween",
               "alignment": "center",
-              "fillWidth": true,
               "children": [
                 {
                   "type": "Container",
@@ -462,7 +461,8 @@
                     }
                   ]
                 }
-              ]
+              ],
+              "widthMode": "fill"
             }
           ]
         },

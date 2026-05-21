@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import type { Action, Section } from '@sdui/models';
 import { useSduiScreen } from './hooks/useSduiScreen';
 import { SectionRouter } from './components/SectionRouter';
@@ -7,6 +7,9 @@ import { executeActionSequence } from './runtime/ActionHandler';
 import { setColorSchemePreference, usePrefersColorScheme } from './utils/ColorTokenResolver';
 import { ToastHost } from './components/ToastHost';
 import { RequestEnvelopeBuilder } from './request/RequestEnvelopeBuilder';
+import { resolveLayoutScalar, resolveSpacingPx } from './utils/LayoutTokenResolver';
+import type { Spacing } from '@sdui/models';
+import { WireAssetBaseUrlProvider } from './context/WireAssetBaseUrlContext';
 
 // Degraded-connectivity fallback only — primary bootstrap URI comes from /v1/sdui/init.
 const FALLBACK_BOOTSTRAP_URI = 'nba://for-you';
@@ -31,6 +34,7 @@ function resolveEndpoint(uri: string): string {
 export function App(): React.ReactElement {
   const [experiments, setExperiments] = useState<Record<string, string>>({});
   const [currentUri, setCurrentUri] = useState<string | null>(null);
+  const [bootstrapUri, setBootstrapUri] = useState<string | null>(null);
   const colorScheme = usePrefersColorScheme();
 
   // Fetch bootstrap URI from the server on mount; fall back if unavailable.
@@ -40,10 +44,16 @@ export function App(): React.ReactElement {
     fetch(`/api/v1/sdui/init?${qs}`)
       .then(r => r.ok ? r.json() : Promise.reject(new Error(`init: ${r.status}`)))
       .then((data: { bootstrapUri?: string }) => {
-        if (!cancelled && data.bootstrapUri) setCurrentUri(data.bootstrapUri);
+        if (cancelled) return;
+        const uri = data.bootstrapUri ?? FALLBACK_BOOTSTRAP_URI;
+        setBootstrapUri(uri);
+        setCurrentUri(uri);
       })
       .catch(() => {
-        if (!cancelled) setCurrentUri(FALLBACK_BOOTSTRAP_URI);
+        if (!cancelled) {
+          setBootstrapUri(FALLBACK_BOOTSTRAP_URI);
+          setCurrentUri(FALLBACK_BOOTSTRAP_URI);
+        }
       });
     return () => { cancelled = true; };
   }, []);
@@ -56,10 +66,14 @@ export function App(): React.ReactElement {
   }, [currentUri]);
 
   const endpoint = currentUri ? resolveEndpoint(currentUri) : null;
-  const { screen, loading, error, upgradeRequired, refetch, setScreen } = useSduiScreen({ endpoint, experiments });
+  const { screen, shellScreen, loading, error, upgradeRequired, refetch, setScreen } = useSduiScreen({
+    endpoint,
+    experiments,
+  });
 
+  const displayScreen = screen ?? shellScreen;
   // Read available variants from the server response (empty if not provided).
-  const variantsData = (screen as Record<string, unknown> | undefined)?.variants as
+  const variantsData = (displayScreen as Record<string, unknown> | undefined)?.variants as
     { experimentId?: string; options?: ReadonlyArray<{ id: string; label: string; description: string }> } | undefined;
   const variantOptions = variantsData?.options ?? [];
   const variantExperimentId = variantsData?.experimentId ?? 'variant';
@@ -131,6 +145,25 @@ export function App(): React.ReactElement {
     setCurrentUri(uri);
   }, []);
 
+  const chromeSpacing = useMemo(
+    () => ({
+      sm: resolveLayoutScalar('token:nba.spacing.sm'),
+      md: resolveLayoutScalar('token:nba.spacing.md'),
+      lg: resolveLayoutScalar('token:nba.spacing.lg'),
+      xl: resolveLayoutScalar('token:nba.spacing.xl'),
+    }),
+    [],
+  );
+
+  const handleNavigateBack = useCallback(() => {
+    const parent = shellScreen?.parentUri;
+    if (parent) {
+      setCurrentUri(parent);
+    } else if (bootstrapUri) {
+      setCurrentUri(bootstrapUri);
+    }
+  }, [shellScreen?.parentUri, bootstrapUri]);
+
   const handleSectionStale = useCallback((sectionId: string) => {
     setStaleSections((prev) => new Set(prev).add(sectionId));
   }, []);
@@ -164,52 +197,27 @@ export function App(): React.ReactElement {
     setColorSchemePreference(colorScheme === 'dark' ? 'light' : 'dark');
   }, [colorScheme]);
 
-  if (loading && !screen) {
+  const navShell = shellScreen ?? screen;
+  const parentUri = shellScreen?.parentUri;
+  const showFeedError = Boolean(error || upgradeRequired);
+  const feedInsets = resolveSpacingPx(
+    (screen?.contentInsets ?? shellScreen?.contentInsets) as Spacing | undefined,
+  );
+
+  if (!currentUri && loading && !navShell) {
     return (
-      <div style={styles.centered}>
+      <div style={{ ...styles.centered, padding: chromeSpacing.xl }}>
         <div style={styles.spinner} />
-        <p style={styles.loadingText}>Loading Game Detail...</p>
+        <p style={styles.loadingText}>Loading...</p>
       </div>
     );
   }
 
-  if (error && !screen) {
-    return (
-      <div style={styles.centered}>
-        <p style={styles.errorText}>Error: {error}</p>
-        <button style={styles.retryButton} onClick={refetch}>
-          Retry
-        </button>
-        <p style={styles.hint}>
-          Make sure the SDUI server is running at http://localhost:8080
-        </p>
-      </div>
-    );
-  }
-
-  if (upgradeRequired) {
-    return (
-      <div style={styles.centered}>
-        <p style={styles.errorText}>Update Required</p>
-        <p style={styles.hint}>
-          This version of the app is no longer supported. Please reload to get the latest version.
-        </p>
-        <button style={styles.retryButton} onClick={() => window.location.reload()}>
-          Reload
-        </button>
-      </div>
-    );
-  }
-
-  if (!screen) {
-    return (
-      <div style={styles.centered}>
-        <p style={styles.errorText}>No screen data available</p>
-      </div>
-    );
-  }
+  const wireAssetBaseUrl =
+    typeof window !== 'undefined' ? `${window.location.origin}` : '';
 
   return (
+    <WireAssetBaseUrlProvider baseUrl={wireAssetBaseUrl}>
     <div style={styles.container}>
       <ToastHost />
       {loading && (
@@ -222,7 +230,7 @@ export function App(): React.ReactElement {
           <div style={styles.spinner} />
         </div>
       )}
-      {error && (
+      {error && screen && (
         <div style={styles.navErrorBanner}>
           <span style={styles.navErrorText}>{error}</span>
           <button type="button" style={styles.navErrorRetry} onClick={() => { void refetch(); }}>
@@ -230,36 +238,23 @@ export function App(): React.ReactElement {
           </button>
         </div>
       )}
-      {/* Header */}
-      <header style={styles.header}>
-        {screen.parentUri && (
-          <button
-            style={styles.backButton}
-            onClick={() => handleUriNavigate(screen.parentUri!)}
-            aria-label="Back"
-          >
-            ←
-          </button>
-        )}
-        <h1 style={styles.title}>{screen.title || 'NBA'}</h1>
-        <div style={styles.headerActions}>
-          <button
-            type="button"
-            style={styles.themeButton}
-            onClick={handleThemeToggle}
-            aria-label={`Switch to ${colorScheme === 'dark' ? 'light' : 'dark'} mode`}
-            title={`Switch to ${colorScheme === 'dark' ? 'light' : 'dark'} mode`}
-          >
-            {colorScheme === 'dark' ? 'Light' : 'Dark'}
-          </button>
-          <span style={styles.schemaVersion}>Schema v{screen.schemaVersion}</span>
-        </div>
-      </header>
+      {/* App bar title/back are server-composed (:app-bar AtomicComposite). */}
+      <button
+        type="button"
+        style={styles.themeFloating}
+        onClick={handleThemeToggle}
+        aria-label={`Switch to ${colorScheme === 'dark' ? 'light' : 'dark'} mode`}
+        title={`Switch to ${colorScheme === 'dark' ? 'light' : 'dark'} mode`}
+      >
+        {colorScheme === 'dark' ? 'Light' : 'Dark'}
+      </button>
 
-      <TopNavigationBar
-        navigation={screen.navigation}
-        onNavigate={handleUriNavigate}
-      />
+      {navShell?.navigation && (
+        <TopNavigationBar
+          navigation={navShell.navigation}
+          onNavigate={handleUriNavigate}
+        />
+      )}
 
       {/* Variant Selector - proves composability with zero client rendering changes */}
       {variantOptions.length > 0 && (
@@ -286,14 +281,84 @@ export function App(): React.ReactElement {
         </div>
       )}
 
-      {/* Sections */}
       <main
         style={{
           ...styles.main,
+          paddingTop: feedInsets.top,
+          paddingRight: feedInsets.right,
+          paddingBottom: feedInsets.bottom,
+          paddingLeft: feedInsets.left,
           ...(loading ? styles.mainWhileLoading : {}),
         }}
       >
-        {screen.sections?.length ? (
+        {loading && !screen && (
+          <div style={styles.centeredInline}>
+            <div style={styles.spinner} />
+            <p style={styles.loadingText}>Loading...</p>
+          </div>
+        )}
+        {showFeedError && (
+          <div
+            style={{
+              ...styles.centeredInline,
+              padding: chromeSpacing.xl,
+              gap: chromeSpacing.sm,
+            }}
+          >
+            {upgradeRequired ? (
+              <>
+                <p style={styles.errorText}>Update Required</p>
+                <p style={styles.hint}>
+                  This version of the app is no longer supported. Please reload to get the latest
+                  version.
+                </p>
+                <div
+                  style={{
+                    ...styles.errorActions,
+                    gap: chromeSpacing.md,
+                    marginTop: chromeSpacing.sm,
+                  }}
+                >
+                  <button type="button" style={styles.retryButton} onClick={handleNavigateBack}>
+                    Home
+                  </button>
+                  <button
+                    type="button"
+                    style={styles.retryButton}
+                    onClick={() => window.location.reload()}
+                  >
+                    Reload
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p style={styles.errorText}>Failed to load screen</p>
+                <p style={styles.hint}>{error}</p>
+                <div
+                  style={{
+                    ...styles.errorActions,
+                    gap: chromeSpacing.md,
+                    marginTop: chromeSpacing.sm,
+                  }}
+                >
+                  <button type="button" style={styles.outlineButton} onClick={handleNavigateBack}>
+                    {parentUri ? 'Go back' : 'Home'}
+                  </button>
+                  <button type="button" style={styles.retryButton} onClick={() => { void refetch(); }}>
+                    Retry
+                  </button>
+                </div>
+                {!navShell && (
+                  <p style={styles.hint}>
+                    Make sure the SDUI server is running at http://localhost:8080
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+        )}
+        {!showFeedError && screen?.sections?.length ? (
           screen.sections.map((section) => (
             <div
               key={section.id}
@@ -317,28 +382,32 @@ export function App(): React.ReactElement {
               {section.layoutHints?.dividerBelow && <hr className="sdui-divider" />}
             </div>
           ))
-        ) : (
+        ) : null}
+        {!showFeedError && !loading && screen && !screen.sections?.length && (
           <div style={styles.emptyState}>No games available right now.</div>
         )}
       </main>
 
-      {/* Debug Footer */}
-      <footer style={styles.footer}>
-        <span>TraceId: {screen.traceId}</span>
-        <span>Sections: {screen.sections?.length || 0}</span>
-      </footer>
+      {(screen ?? shellScreen) && (
+        <footer style={styles.footer}>
+          <span>TraceId: {(screen ?? shellScreen)?.traceId}</span>
+          <span>Sections: {(screen ?? shellScreen)?.sections?.length || 0}</span>
+        </footer>
+      )}
     </div>
+    </WireAssetBaseUrlProvider>
   );
 }
 
 const styles: Record<string, React.CSSProperties> = {
   container: {
+    position: 'relative',
     minHeight: '100vh',
     display: 'flex',
     flexDirection: 'column',
     maxWidth: 1200,
     margin: '0 auto',
-    padding: '0 16px',
+    padding: 0,
     backgroundColor: 'var(--canvas)',
     overflowX: 'hidden',
     position: 'relative',
@@ -379,44 +448,11 @@ const styles: Record<string, React.CSSProperties> = {
     opacity: 0.5,
     transition: 'opacity 0.2s ease',
   },
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '12px 16px',
-    backgroundColor: 'var(--surface)',
-    borderBottom: '1px solid var(--divider)',
-  },
-  backButton: {
-    background: 'none',
-    border: 'none',
-    color: 'var(--text-primary)',
-    fontSize: 20,
-    cursor: 'pointer',
-    padding: '4px 8px',
-    marginRight: 8,
-    borderRadius: 'var(--rounded-base)',
-    transition: 'background var(--duration-fast) var(--ease-default)',
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: 700,
-    fontFamily: 'var(--font-body)',
-    color: 'var(--text-primary)',
-    margin: 0,
-    letterSpacing: '-0.01em',
-  },
-  schemaVersion: {
-    fontSize: 11,
-    color: 'var(--text-secondary)',
-    fontFamily: 'var(--font-mono)',
-  },
-  headerActions: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 10,
-  },
-  themeButton: {
+  themeFloating: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    zIndex: 20,
     border: '1px solid var(--divider)',
     borderRadius: 'var(--rounded-full)',
     backgroundColor: 'var(--surface-alt)',
@@ -504,6 +540,26 @@ const styles: Record<string, React.CSSProperties> = {
     minHeight: '100vh',
     padding: 24,
     backgroundColor: 'var(--canvas)',
+  },
+  centeredInline: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  errorActions: {
+    display: 'flex',
+  },
+  outlineButton: {
+    padding: '12px 24px',
+    border: '1px solid var(--divider)',
+    borderRadius: 'var(--rounded-base)',
+    backgroundColor: 'var(--surface)',
+    color: 'var(--text-primary)',
+    fontSize: 14,
+    fontWeight: 600,
+    cursor: 'pointer',
+    fontFamily: 'var(--font-body)',
   },
   spinner: {
     width: 40,

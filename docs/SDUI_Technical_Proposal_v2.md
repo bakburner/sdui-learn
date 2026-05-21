@@ -371,11 +371,12 @@ Binding semantics must be behaviorally identical across Android, iOS, and Web th
 
 ## 4. Action System
 
-Actions are supported at three scopes:
+Actions are supported at four scopes:
 
 - screen defaults (optional)
 - section actions
 - nested/subsection actions
+- element-level actions on atomic primitives (`Container`, `Button`, `Image`, `Text`)
 
 ### Triggers
 
@@ -390,6 +391,17 @@ Actions are supported at three scopes:
 | `onFocus`     | TV focus enters item                                 |
 | `onBlur`      | TV focus leaves item                                 |
 | `onSubmit`    | form submission (Enter, return key, submit button)   |
+
+### Current Trigger Hosting Matrix
+
+| Trigger | Web | Android | iOS |
+| --- | --- | --- | --- |
+| `onActivate` / `onTap` | Element-level on interactive atomics | Element-level on interactive atomics | Element-level on interactive atomics |
+| `onVisible` | Element-level | Element-level | Element-level |
+| `onLongPress` | Not hosted on atomic primitives; debug-log only | Element-level on supported atomics | Element-level on supported atomics |
+| `onFocus` / `onBlur` | Focusable primitives only | Focusable primitives only | Focusable primitives only |
+| `onSubmit` | Form-context submit path | Form section submit path through shared executor | Form-context submit path |
+| `onSwipe` | `ScrollContainer`-level only | `ScrollContainer`-level only | `ScrollContainer`-level only |
 
 
 ### Action Types
@@ -909,6 +921,7 @@ The alternative is duplicated platform composition logic and drift in feature be
 
 | Date | Summary |
 |---|---|
+| 2026-05-20 | Doc consistency audit: added element-level action scope to §4, added the current cross-platform trigger-hosting matrix, and synced the action-system narrative with the trigger-alignment work. |
 | 2026-05-05 | Doc consistency audit. §10: Atomic rendering layer count corrected 10 → 12 primitives. Added Schema versioning protocol row (Built). |
 | 2026-04-27 | Doc consistency audit: `onActivate` trigger added to §4 table, ErrorState note clarified as AtomicComposite in §10, terminology sync. |
 | 2026-04-27 | Parameterized refresh + shared transport (§4, AGENTS §4.1.1, contract §11). §0: `platform` via envelope only. §2a: 12 `AtomicElement` types in the summary table. Server `/sdui/refresh/{screenId}` GET+POST. Glossary: fetch primitive, parameterized refresh. |

@@ -1,6 +1,36 @@
 package com.nba.sdui.core.renderer
 
 import android.util.Log
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Cast
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.Fullscreen
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Leaderboard
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PictureInPicture
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.PlayCircle
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Sensors
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.SportsBasketball
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.Widgets
+import androidx.compose.ui.graphics.vector.ImageVector
 
 /**
  * Resolves cross-platform SDUI icon tokens (e.g. `sdui:play`) to the
@@ -75,5 +105,49 @@ object IconTokenResolver {
         tokens[token]?.let { return it }
         Log.w(TAG, "unknown icon token $token; falling back to $FALLBACK_TOKEN")
         return tokens[FALLBACK_TOKEN]
+    }
+
+    /**
+     * Resolve a wire icon token to a Compose [ImageVector], or null when
+     * the token cannot be mapped (caller supplies a fallback).
+     *
+     * Each branch uses [Icons.Filled] with explicit `filled.*` imports so
+     * extended Material icons are in scope at compile time.
+     */
+    fun imageVector(token: String?): ImageVector? {
+        val materialName = resolve(token) ?: return null
+        return materialNameToImageVector(materialName)
+    }
+
+    private fun materialNameToImageVector(name: String): ImageVector? = when (name) {
+        "PlayArrow"         -> Icons.Filled.PlayArrow
+        "Pause"             -> Icons.Filled.Pause
+        "ArrowBack"         -> Icons.Filled.ArrowBack
+        "ArrowForward"      -> Icons.Filled.ArrowForward
+        "Settings"          -> Icons.Filled.Settings
+        "KeyboardArrowDown" -> Icons.Filled.KeyboardArrowDown
+        "KeyboardArrowUp"   -> Icons.Filled.KeyboardArrowUp
+        "Check"             -> Icons.Filled.Check
+        "Warning"           -> Icons.Filled.Warning
+        "Sensors"           -> Icons.Filled.Sensors
+        "AccountCircle"     -> Icons.Filled.AccountCircle
+        "Close"             -> Icons.Filled.Close
+        "Search"            -> Icons.Filled.Search
+        "Share"             -> Icons.Filled.Share
+        "FavoriteBorder"    -> Icons.Filled.FavoriteBorder
+        "Favorite"          -> Icons.Filled.Favorite
+        "Fullscreen"        -> Icons.Filled.Fullscreen
+        "PictureInPicture"  -> Icons.Filled.PictureInPicture
+        "Cast"              -> Icons.Filled.Cast
+        "Info"              -> Icons.Filled.Info
+        "CalendarToday"     -> Icons.Filled.CalendarToday
+        "Refresh"           -> Icons.Filled.Refresh
+        "Home"              -> Icons.Filled.Home
+        "SportsBasketball"  -> Icons.Filled.SportsBasketball
+        "PlayCircle"        -> Icons.Filled.PlayCircle
+        "Leaderboard"       -> Icons.Filled.Leaderboard
+        "Widgets"           -> Icons.Filled.Widgets
+        "List"              -> Icons.AutoMirrored.Filled.List
+        else                -> null
     }
 }

@@ -86,7 +86,8 @@ describe('ActionHandler', () => {
 
     expect(context.state.expanded).toBe('yes');
     expect(context.onStateChange).not.toHaveBeenCalled();
-    expect(warnSpy).toHaveBeenCalledTimes(1);
+    // mutate noop console.warn + sequence continue policy actionWarn
+    expect(warnSpy).toHaveBeenCalledTimes(2);
   });
 
   it('increments a numeric value with default and explicit deltas', async () => {
@@ -111,7 +112,7 @@ describe('ActionHandler', () => {
 
     expect(context.state.counter).toBe('two');
     expect(context.onStateChange).not.toHaveBeenCalled();
-    expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(warnSpy).toHaveBeenCalledTimes(2);
   });
 
   it('no-ops and warns when increment targets a missing value', async () => {
@@ -123,7 +124,7 @@ describe('ActionHandler', () => {
 
     expect(context.state.counter).toBeUndefined();
     expect(context.onStateChange).not.toHaveBeenCalled();
-    expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(warnSpy).toHaveBeenCalledTimes(2);
   });
 
   it('appends to arrays', async () => {
@@ -168,7 +169,7 @@ describe('ActionHandler', () => {
 
     expect(context.state.filters).toBe('featured');
     expect(context.onStateChange).not.toHaveBeenCalled();
-    expect(warnSpy).toHaveBeenCalledTimes(1);
+    expect(warnSpy).toHaveBeenCalledTimes(2);
   });
 
   it('navigates with webUrl only', async () => {

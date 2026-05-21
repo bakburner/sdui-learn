@@ -61,3 +61,16 @@ public extension EnvironmentValues {
         set { self[NavCoordinatorKey.self] = newValue }
     }
 }
+
+/// Optional app-provided escape when fetch fails and stack pop is unavailable
+/// (e.g. root screen 404). Demo hosts set this to reload the bootstrap endpoint.
+private struct SduiNavigateHomeKey: EnvironmentKey {
+    static let defaultValue: (() -> Void)? = nil
+}
+
+public extension EnvironmentValues {
+    var sduiNavigateHome: (() -> Void)? {
+        get { self[SduiNavigateHomeKey.self] }
+        set { self[SduiNavigateHomeKey.self] = newValue }
+    }
+}

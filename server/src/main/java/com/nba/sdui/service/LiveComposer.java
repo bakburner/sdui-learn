@@ -55,11 +55,10 @@ public class LiveComposer {
 
         ObjectNode response = objectMapper.createObjectNode();
         response.put("id", "games");
-        response.put("title", "Games");
         response.put("analyticsId", "games");
         response.put("traceId", traceId);
         response.put("schemaVersion", schemaVersion);
-        response.set("navigation", utils.buildNavigation("games"));
+        utils.applyTabDestinationNavigation(response, "games");
 
         ArrayNode sections = objectMapper.createArrayNode();
 
@@ -149,7 +148,7 @@ public class LiveComposer {
                 sectionId, "live_games", "Live Now", rows,
                 refreshPolicy, dataBinding, clockSnapshots);
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", utils.cardSurface());
+        section.set("surface", utils.flushSurface());
         return section;
     }
 
@@ -171,7 +170,7 @@ public class LiveComposer {
         ObjectNode section = atomicBuilder.buildGameScheduleList(
                 sectionId, analyticsId, title, rows, staticPolicy(), null);
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", utils.cardSurface());
+        section.set("surface", utils.flushSurface());
         return section;
     }
 
@@ -262,7 +261,7 @@ public class LiveComposer {
                 liveSectionId, "live_games", "Live Now", liveRows,
                 mockSsePolicy, null, mockClocks);
         liveSection.put("contentSourceId", liveContentSourceId);
-        liveSection.set("surface", utils.cardSurface());
+        liveSection.set("surface", utils.flushSurface());
         sections.add(liveSection);
 
         // Mock upcoming schedule list
@@ -285,7 +284,7 @@ public class LiveComposer {
                 upcomingSectionId, "upcoming_games", "Upcoming Today", upcomingRows,
                 staticPolicy(), null);
         upcomingSection.put("contentSourceId", upcomingContentSourceId);
-        upcomingSection.set("surface", utils.cardSurface());
+        upcomingSection.set("surface", utils.flushSurface());
         sections.add(upcomingSection);
     }
 

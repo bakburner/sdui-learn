@@ -1,4 +1,4 @@
-import React, { useContext, memo } from 'react';
+import React, { useContext, useEffect, memo } from 'react';
 import type { Action } from '@sdui/models';
 import type { AtomicProps } from './AtomicRouter';
 import { AtomicBox } from './AtomicBox';
@@ -6,7 +6,8 @@ import { accessibilityProps } from '../../utils/accessibility';
 import { useColorTokenResolver } from '../../utils/ColorTokenResolver';
 import { CompositeContentContext, resolveBindRefString } from '../../utils/BindRefResolver';
 import { areAtomicPropsEqual } from './areAtomicPropsEqual';
-import { getActivateActions } from './getActivateActions';
+import { activationKeyboardProps, longPressPointerProps } from './atomicActionHandlers';
+import { logUnsupportedAtomicTriggers, selectActions } from './getActivateActions';
 
 /** Map schema variant strings to CSS font sizes / weights — NBA typography system.
  *  Display/Headline use Roboto Condensed (approximating Knockout/Action NBA).
@@ -42,6 +43,10 @@ const weightMap: Record<string, number> = {
  * variant chrome are applied by AtomicBox.
  */
 function AtomicTextInner({ element, onAction }: AtomicProps): React.ReactElement {
+  useEffect(() => {
+    logUnsupportedAtomicTriggers(element.actions as Action[] | undefined, element.id);
+  }, [element.actions, element.id]);
+
   const textAlignMap: Record<string, React.CSSProperties['textAlign']> = {
     start: 'left', center: 'center', end: 'right',
   };
@@ -88,11 +93,15 @@ function AtomicTextInner({ element, onAction }: AtomicProps): React.ReactElement
   }
 
   const hasActions = element.actions && element.actions.length > 0;
-  const handleClick = hasActions
+  const activateActions = selectActions(element.actions as Action[] | undefined, 'onActivate');
+  const longPressActions = selectActions(element.actions as Action[] | undefined, 'onLongPress');
+  const handleActivate = activateActions.length > 0
+    ? () => { onAction(activateActions); }
+    : undefined;
+  const handleClick = handleActivate
     ? (e: React.MouseEvent) => {
         e.stopPropagation();
-        const actions = getActivateActions(element.actions as Action[] | undefined);
-        if (actions.length > 0) onAction(actions);
+        handleActivate();
       }
     : undefined;
 
@@ -100,6 +109,13 @@ function AtomicTextInner({ element, onAction }: AtomicProps): React.ReactElement
     <AtomicBox
       element={element}
       onClick={handleClick}
+      role={handleActivate ? 'button' : undefined}
+      extraProps={{
+        ...(handleActivate ? activationKeyboardProps(handleActivate) : {}),
+        ...(longPressActions.length > 0
+          ? longPressPointerProps(() => onAction(longPressActions))
+          : {}),
+      }}
       styleOverrides={hasActions ? { cursor: 'pointer' } : undefined}
     >
       {inner}

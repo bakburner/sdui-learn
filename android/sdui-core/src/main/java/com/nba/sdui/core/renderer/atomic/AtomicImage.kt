@@ -1,6 +1,8 @@
 package com.nba.sdui.core.renderer.atomic
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -10,9 +12,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.ColorPainter
 import coil.compose.AsyncImage
+import com.nba.sdui.core.models.generated.ActionTrigger
+import com.nba.sdui.core.network.WireUrlResolver
 import com.nba.sdui.core.models.generated.AtomicElement
 import com.nba.sdui.core.models.generated.ImageFit
 import com.nba.sdui.core.renderer.ImageVariantResolver
@@ -29,6 +35,7 @@ import com.nba.sdui.core.state.SduiAction
  * this renderer only owns the content-scale and aspect-ratio concerns
  * that are semantically tied to the image itself.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AtomicImage(
     element: AtomicElement,
@@ -52,9 +59,13 @@ fun AtomicImage(
         currentSrc = boundSrc
         triedFallback = false
     }
-    val modelUrl = currentSrc ?: boundSrc
-    val neutralPlaceholder = ColorPainter(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f))
-    val neutralError = ColorPainter(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f))
+    val wireBase = LocalSduiWireAssetBaseUrl.current
+    val modelUrl = WireUrlResolver.resolve(currentSrc ?: boundSrc, wireBase)
+    val placeholderUrl = WireUrlResolver.resolve(element.placeholder, wireBase)
+    // Dark neutral frame when bytes fail — keeps on-media (light) labels readable
+    // if the bottom scrim gradient is still transparent toward the top.
+    val neutralPlaceholder = ColorPainter(Color(0xFF2A3038))
+    val neutralError = ColorPainter(Color(0xFF1A1F2E))
 
     val contentScale: ContentScale = element.fit?.let { mapContentScale(it) }
         ?: variantSpec?.contentScaleHint?.let(::mapContentScaleHint)
@@ -62,21 +73,38 @@ fun AtomicImage(
 
     val hasActions = !element.actions.isNullOrEmpty()
     val batchExecutor = LocalActionExecutor.current
+    val activateActions = selectActions(element.actions, ActionTrigger.OnActivate)
+    val longPressActions = selectActions(element.actions, ActionTrigger.OnLongPress)
+    val focusActions = selectActions(element.actions, ActionTrigger.OnFocus)
+    val blurActions = selectActions(element.actions, ActionTrigger.OnBlur)
+    val isFocusable = focusActions.isNotEmpty() || blurActions.isNotEmpty()
+    var hadFocus by remember(element.id) { mutableStateOf(false) }
 
     AtomicBox(element, screenState, onAction) { boxModifier ->
         var imageModifier = boxModifier
         effectiveAspectRatio?.let { imageModifier = imageModifier.aspectRatio(it) }
-        if (hasActions) {
-            imageModifier = imageModifier.clickable {
-                val activateActions = getActivateActions(element.actions)
-                if (activateActions.isNotEmpty()) {
-                    if (batchExecutor != null) {
-                        batchExecutor(activateActions)
+        if (hasActions || longPressActions.isNotEmpty()) {
+            imageModifier = imageModifier.combinedClickable(
+                onClick = { dispatchActions(activateActions, batchExecutor, onAction) },
+                onLongClick = if (longPressActions.isNotEmpty()) {
+                    { dispatchActions(longPressActions, batchExecutor, onAction) }
+                } else {
+                    null
+                }
+            )
+        }
+        if (isFocusable) {
+            imageModifier = imageModifier
+                .focusable()
+                .onFocusChanged { focusState ->
+                    if (focusState.isFocused == hadFocus) return@onFocusChanged
+                    hadFocus = focusState.isFocused
+                    if (focusState.isFocused) {
+                        dispatchActions(focusActions, batchExecutor, onAction)
                     } else {
-                        activateActions.forEach(onAction)
+                        dispatchActions(blurActions, batchExecutor, onAction)
                     }
                 }
-            }
         }
         AsyncImage(
             model = modelUrl,
@@ -86,10 +114,9 @@ fun AtomicImage(
             placeholder = neutralPlaceholder,
             error = neutralError,
             onError = {
-                val fallbackUrl = element.placeholder
-                if (!triedFallback && !fallbackUrl.isNullOrBlank() && fallbackUrl != modelUrl) {
+                if (!triedFallback && !placeholderUrl.isNullOrBlank() && placeholderUrl != modelUrl) {
                     triedFallback = true
-                    currentSrc = fallbackUrl
+                    currentSrc = element.placeholder
                 }
             }
         )

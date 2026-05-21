@@ -672,17 +672,16 @@ Action:
     type: "navigate" | "fireAndForget" | "mutate" | "refresh" | "dismiss" | "toast"
     trigger: "onActivate" | "onTap" | "onLongPress" | "onVisible" | "onSwipe" | "onFocus" | "onBlur" | "onSubmit"
     targetUri: string?          // For navigate
-    webUrl: string?             // Fallback URL for navigate
+    webUrl: string?             // Platform-appropriate web destination for navigate
     presentation: "push" | "modal" | "fullscreen" | "replace" | "external"?
     modalHeight: "compact" | "half" | "full"?     // For modal presentation
     event: string?              // For fireAndForget (analytics event name)
     params: map<string, any>?   // For fireAndForget (analytics params)
-    stateKey: string?           // For mutate
-    stateValue: any?            // For mutate (null = remove key)
-    mutateOperation: "set" | "toggle" | "increment" | "append"?  // Default: "set"
-    sectionId: string?          // For refresh (which section to refresh)
+    target: string?             // For mutate / refresh (state key or section id)
+    value: any?                 // For mutate (null = remove key on set)
+    operation: "set" | "toggle" | "increment" | "append"?  // Default: "set"
     endpoint: string?           // For parameterized refresh
-    paramBindings: map?         // For refresh: key → "{{stateKey}}" template
+    paramBindings: map?         // For refresh: key → "{{screenStateKey}}" template
     onFailure: "halt" | "continue" | "silent"?
     failureFeedback: FailureFeedback?  // UI feedback on failure
     impression: ImpressionPolicy?
@@ -734,7 +733,7 @@ FUNCTION executeActionSequence(actions, stateManager):
 FUNCTION dispatchSingleAction(action, stateManager):
     SWITCH action.type:
         "navigate":
-            uri = action.targetUri OR action.webUrl
+            uri = RESOLVE_PLATFORM_NAVIGATION_TARGET(action.targetUri, action.webUrl)
             IF uri IS NULL:
                 RETURN failure("No target URI")
             presentation = action.presentation OR "push"
@@ -748,26 +747,32 @@ FUNCTION dispatchSingleAction(action, stateManager):
             RETURN FireAndForgetResult(event, params)
 
         "mutate":
-            IF action.stateKey IS NULL:
-                RETURN failure("No state key")
-            operation = action.mutateOperation OR "set"
+            IF action.target IS NULL:
+                RETURN failure("No mutate target")
+            operation = action.operation OR "set"
             SWITCH operation:
                 "set":
-                    IF action.stateValue IS NOT NULL:
-                        stateManager.setState(action.stateKey, action.stateValue)
+                    IF action.value IS NOT NULL:
+                        stateManager.setState(action.target, action.value)
                     ELSE:
-                        stateManager.removeState(action.stateKey)
+                        stateManager.removeState(action.target)
                 "toggle":
-                    current = stateManager.getState(action.stateKey)
-                    stateManager.setState(action.stateKey, NOT current)
+                    current = stateManager.getState(action.target)
+                    stateManager.setState(action.target, NOT current)
                 "increment":
-                    current = stateManager.getState(action.stateKey) AS NUMBER OR 0
-                    delta = action.stateValue AS NUMBER OR 1
-                    stateManager.setState(action.stateKey, current + delta)
+                    current = stateManager.getState(action.target)
+                    delta = action.value AS NUMBER OR 1
+                    IF current IS NUMBER:
+                        stateManager.setState(action.target, current + delta)
+                    ELSE:
+                        LOG_WARNING("mutate increment noop")
                 "append":
-                    current = stateManager.getState(action.stateKey) AS LIST OR []
-                    stateManager.setState(action.stateKey, APPEND(current, action.stateValue))
-            RETURN MutateResult(action.stateKey, stateManager.getState(action.stateKey))
+                    current = stateManager.getState(action.target)
+                    IF current IS LIST OR current IS STRING OR current IS NULL:
+                        stateManager.setState(action.target, APPEND(current, action.value))
+                    ELSE:
+                        LOG_WARNING("mutate append noop")
+            RETURN MutateResult(action.target, stateManager.getState(action.target))
 
         "refresh":
             IF action.paramBindings IS NOT EMPTY AND action.endpoint IS NOT NULL:
@@ -784,8 +789,8 @@ FUNCTION dispatchSingleAction(action, stateManager):
                     value = stateManager.getState(stateKey)
                     IF value IS NOT NULL AND value != "":
                         resolvedParams[key] = value
-                RETURN ParameterizedRefreshResult(action.endpoint, action.sectionId, resolvedParams)
-            RETURN RefreshResult(action.sectionId)
+                RETURN ParameterizedRefreshResult(action.endpoint, action.target, resolvedParams)
+            RETURN RefreshResult(action.target)
 
         "dismiss":
             RETURN DismissResult()
@@ -809,7 +814,7 @@ that trigger as a single ordered batch — not just the first match.
 ```
 FUNCTION handleElementTrigger(element, trigger, stateManager):
     // Filter: collect all actions declared on this element whose trigger matches
-    matching = FILTER(element.actions, a -> a.trigger == trigger)
+    matching = SELECT_ACTIONS(element.actions, trigger)
 
     IF matching IS EMPTY:
         RETURN
@@ -831,12 +836,25 @@ FUNCTION handleElementTrigger(element, trigger, stateManager):
    tap/click gestures and execute their action batch on activation.
 
 **Platform realization:**
-- **iOS:** `ActionTapModifier` filters `onActivate`/`onTap` actions, batches
-  through the `batchActionExecutor` environment value.
-- **Android:** `getActivateActions()` helper filters, then dispatches through
-  `LocalActionExecutor`.
-- **Web:** `ActionWrapper` component filters by trigger and calls
-  `executeActions()` with the matching subset.
+- **iOS:** `AtomicActionTriggerRegistry` + `applyActionTriggers(...)` batch
+    matching actions through the `batchActionExecutor` environment value.
+- **Android:** `selectActions(...)` filters by trigger and dispatches through
+    `LocalActionExecutor`.
+- **Web:** `selectActions(...)` filters by trigger and hands the matching batch
+    to `executeActionSequence(...)`.
+
+### Trigger Hosting Matrix
+
+| Trigger | Web | Android | iOS |
+|---|---|---|---|
+| `onActivate` / `onTap` | Element-level on interactive atomics | Element-level on interactive atomics | Element-level on interactive atomics |
+| `onVisible` | Element-level | Element-level | Element-level |
+| `onLongPress` | Not hosted on atomic primitives; debug-log only | Element-level on supported atomics | Element-level on supported atomics |
+| `onFocus` / `onBlur` | Focusable primitives only | Focusable primitives only | Focusable primitives only |
+| `onSubmit` | Form-context submit path | Form section submit path through shared executor | Form-context submit path |
+| `onSwipe` | `ScrollContainer`-level only | `ScrollContainer`-level only | `ScrollContainer`-level only |
+
+Owner note: `docs/appendix-kitchen-sink.md` needs a manual sweep for this trigger matrix and canonical action-field naming. Do not edit that file via agent automation.
 
 ---
 
@@ -1556,16 +1574,16 @@ image URLs from patterns.
 
 ```
 FUNCTION loadImage(imageElement):
-    url = imageElement.url                     // Primary URL from server
-    fallbackUrl = imageElement.fallbackUrl     // Optional fallback
+    src = imageElement.src                     // Primary URL from server
+    placeholder = imageElement.placeholder     // Optional payload fallback
     alt = imageElement.alt                      // Accessibility text
 
     TRY:
-        LOAD_AND_DISPLAY(url)
+        LOAD_AND_DISPLAY(src)
     CATCH:
-        IF fallbackUrl IS NOT NULL:
+        IF placeholder IS NOT NULL:
             TRY:
-                LOAD_AND_DISPLAY(fallbackUrl)
+                LOAD_AND_DISPLAY(placeholder)
             CATCH:
                 DISPLAY_PLACEHOLDER(alt)
         ELSE:

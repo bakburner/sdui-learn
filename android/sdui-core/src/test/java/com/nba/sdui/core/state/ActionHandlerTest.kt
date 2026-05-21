@@ -197,6 +197,27 @@ class ActionHandlerTest {
     }
 
     @Test
+    fun `mutate toggle on non boolean returns MutateNoOp`() {
+        stateManager.setState("expanded", "yes")
+
+        val result = actionHandler.handle(
+            SduiAction(
+                trigger = "onActivate",
+                type = "mutate",
+                target = "expanded",
+                operation = MutateOperation.Toggle
+            ),
+            stateManager
+        )
+
+        assertEquals(
+            ActionHandler.ActionResult.MutateNoOp("expanded", "Operation had no effect"),
+            result
+        )
+        assertEquals("yes", stateManager.getState("expanded"))
+    }
+
+    @Test
     fun `mutate increment applies operation`() {
         stateManager.setState("count", 2)
 

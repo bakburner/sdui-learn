@@ -1,17 +1,24 @@
 package com.nba.sdui.core.renderer.atomic
 
 import android.util.Log
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.focusable
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.foundation.clickable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import com.nba.sdui.core.models.generated.Align
+import com.nba.sdui.core.models.generated.ActionTrigger
 import com.nba.sdui.core.models.generated.AtomicElement
 import com.nba.sdui.core.models.generated.TextWeight
 import com.nba.sdui.core.renderer.ColorTokenResolver
@@ -24,6 +31,7 @@ import com.nba.sdui.core.state.SduiAction
  * line clamp); margin / padding / bg / cornerRadius / shadow / opacity
  * / fillWidth / badge come from [AtomicBox].
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun AtomicText(
     element: AtomicElement,
@@ -61,20 +69,37 @@ fun AtomicText(
 
     val hasActions = !element.actions.isNullOrEmpty()
     val batchExecutor = LocalActionExecutor.current
+    val activateActions = selectActions(element.actions, ActionTrigger.OnActivate)
+    val longPressActions = selectActions(element.actions, ActionTrigger.OnLongPress)
+    val focusActions = selectActions(element.actions, ActionTrigger.OnFocus)
+    val blurActions = selectActions(element.actions, ActionTrigger.OnBlur)
+    val isFocusable = focusActions.isNotEmpty() || blurActions.isNotEmpty()
+    var hadFocus by remember(element.id) { mutableStateOf(false) }
 
     AtomicBox(element, screenState, onAction) { boxModifier ->
         var textModifier = boxModifier
-        if (hasActions) {
-            textModifier = textModifier.clickable {
-                val activateActions = getActivateActions(element.actions)
-                if (activateActions.isNotEmpty()) {
-                    if (batchExecutor != null) {
-                        batchExecutor(activateActions)
+        if (hasActions || longPressActions.isNotEmpty()) {
+            textModifier = textModifier.combinedClickable(
+                onClick = { dispatchActions(activateActions, batchExecutor, onAction) },
+                onLongClick = if (longPressActions.isNotEmpty()) {
+                    { dispatchActions(longPressActions, batchExecutor, onAction) }
+                } else {
+                    null
+                }
+            )
+        }
+        if (isFocusable) {
+            textModifier = textModifier
+                .focusable()
+                .onFocusChanged { focusState ->
+                    if (focusState.isFocused == hadFocus) return@onFocusChanged
+                    hadFocus = focusState.isFocused
+                    if (focusState.isFocused) {
+                        dispatchActions(focusActions, batchExecutor, onAction)
                     } else {
-                        activateActions.forEach(onAction)
+                        dispatchActions(blurActions, batchExecutor, onAction)
                     }
                 }
-            }
         }
         Text(
             text = resolvedContent,

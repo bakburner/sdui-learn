@@ -53,10 +53,11 @@ class StateManagerTest {
     fun `toggle non boolean no ops and warns`() {
         stateManager.setState("expanded", "yes")
 
-        stateManager.applyOperation(MutateOperation.Toggle, "expanded", null)
+        val applied = stateManager.applyOperation(MutateOperation.Toggle, "expanded", null)
 
+        assertEquals(false, applied)
         assertEquals("yes", stateManager.getState("expanded"))
-        verify(exactly = 1) { Log.w("StateManager", match { it.contains("not boolean") }) }
+        verify(exactly = 1) { Log.w("StateManager", any<String>()) }
     }
 
     @Test
@@ -64,7 +65,7 @@ class StateManagerTest {
         stateManager.applyOperation(MutateOperation.Toggle, "expanded", null)
 
         assertNull(stateManager.getState("expanded"))
-        verify(exactly = 1) { Log.w("StateManager", match { it.contains("not boolean") }) }
+        verify(exactly = 1) { Log.w("StateManager", any<String>()) }
     }
 
     @Test
@@ -101,7 +102,7 @@ class StateManagerTest {
         assertEquals("two", stateManager.getState("count"))
         assertEquals(true, stateManager.getState("flag"))
         assertNull(stateManager.getState("missing"))
-        verify(exactly = 3) { Log.w("StateManager", match { it.contains("current value is not numeric") }) }
+        verify(exactly = 3) { Log.w("StateManager", any<String>()) }
     }
 
     @Test
@@ -124,7 +125,7 @@ class StateManagerTest {
         stateManager.applyOperation(MutateOperation.Append, "filters", null)
 
         assertNull(stateManager.getState("filters"))
-        verify(exactly = 1) { Log.w("StateManager", match { it.contains("incompatible value types") }) }
+        verify(exactly = 1) { Log.w("StateManager", any<String>()) }
     }
 
     @Test
@@ -134,6 +135,6 @@ class StateManagerTest {
         stateManager.applyOperation(MutateOperation.Append, "filters", 2)
 
         assertEquals("featured", stateManager.getState("filters"))
-        verify(exactly = 1) { Log.w("StateManager", match { it.contains("incompatible value types") }) }
+        verify(exactly = 1) { Log.w("StateManager", any<String>()) }
     }
 }

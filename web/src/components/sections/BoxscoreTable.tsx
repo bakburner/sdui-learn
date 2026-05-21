@@ -258,8 +258,7 @@ export function BoxscoreTable({ section, state, onAction, onStateChange }: Secti
 
 const styles: Record<string, React.CSSProperties> = {
   container: {
-    borderRadius: 8,
-    margin: 8,
+    width: '100%',
     overflow: 'hidden',
   },
   teamHeader: {

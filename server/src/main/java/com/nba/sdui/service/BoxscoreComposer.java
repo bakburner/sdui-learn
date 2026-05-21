@@ -89,6 +89,8 @@ public class BoxscoreComposer {
             emptySection.set("data", emptyData);
             sections.add(emptySection);
             response.set("sections", sections);
+            response.put("title", "Box Score");
+            utils.prependAppBarHeaderIfNeeded(response);
             utils.stampStringTableOnSections(response, locale);
             return response;
         }
@@ -114,9 +116,11 @@ public class BoxscoreComposer {
         ObjectNode awayTable = buildBoxscoreTableSection(
                 awayTeam, gameId, contentSourceId, "away",
                 "boxscore_away_sortCol", "boxscore_away_sortDir", gameStatus);
+        awayTable.set("surface", utils.flushSurface());
         ObjectNode homeTable = buildBoxscoreTableSection(
                 homeTeam, gameId, contentSourceId, "home",
                 "boxscore_home_sortCol", "boxscore_home_sortDir", gameStatus);
+        homeTable.set("surface", utils.flushSurface());
 
         // Wrap in TabGroup for team toggling
         ObjectNode tabGroup = objectMapper.createObjectNode();
@@ -158,6 +162,8 @@ public class BoxscoreComposer {
 
         tabData.set("tabContents", tabContents);
         tabGroup.set("data", tabData);
+        tabGroup.set("subsections", utils.tabSelectSubsections(tabs, "boxscore_team"));
+        tabGroup.set("surface", utils.secondaryStripSurface());
 
         sections.add(tabGroup);
         response.set("sections", sections);
@@ -166,6 +172,8 @@ public class BoxscoreComposer {
                 awayTricode, homeTricode, gameStatus,
                 awayTeam.path("players").size(), homeTeam.path("players").size());
 
+        response.put("title", awayTricode + " @ " + homeTricode);
+        utils.prependAppBarHeaderIfNeeded(response);
         utils.stampStringTableOnSections(response, locale);
         return response;
     }

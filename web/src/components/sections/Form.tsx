@@ -81,14 +81,22 @@ export function Form({ section, state, onAction, onStateChange }: SectionProps):
       }
     }
     if (model.submitAction) {
-      onAction(model.submitAction);
+      onAction([model.submitAction]);
     }
   };
 
   const isHorizontal = model.layout === 'horizontal' || model.layout === 'inline';
 
   return (
-    <div role="form" style={{ ...styles.container, backgroundColor: section.backgroundColor || 'var(--surface)' }} {...accessibilityProps(section.accessibility)}>
+    <form
+      role="form"
+      onSubmit={(event) => {
+        event.preventDefault();
+        handleSubmit();
+      }}
+      style={{ ...styles.container, backgroundColor: section.backgroundColor || 'var(--surface)' }}
+      {...accessibilityProps(section.accessibility)}
+    >
       <div style={{ ...styles.fields, flexDirection: isHorizontal ? 'row' : 'column' }}>
         {model.fields.map((field) => {
           const value = isTextLikeField(field.fieldType)
@@ -260,11 +268,11 @@ export function Form({ section, state, onAction, onStateChange }: SectionProps):
 
       {/* Submit button */}
       {model.submitAction && (
-        <button style={styles.submitButton} onClick={handleSubmit}>
+        <button type="submit" style={styles.submitButton}>
           {model.submitLabel || 'Submit'}
         </button>
       )}
-    </div>
+    </form>
   );
 }
 

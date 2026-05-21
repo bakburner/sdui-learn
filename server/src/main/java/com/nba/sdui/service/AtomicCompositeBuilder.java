@@ -1878,6 +1878,42 @@ public class AtomicCompositeBuilder {
     }
 
     /**
+     * Screen-level app bar as an {@code AtomicComposite} section (first row in
+     * {@code sections}). Spacing uses layout tokens so clients resolve height via
+     * {@code LayoutTokenResolver}. Omit on bottom-nav tab roots — the selected tab
+     * label is sufficient.
+     *
+     * @param title   optional headline (e.g. game detail); pass null to omit
+     * @param backUri optional {@code nba://} target for the back affordance
+     */
+    public ObjectNode buildAppBarHeaderComposite(String sectionId, String analyticsId,
+                                                 String title, String backUri) {
+        requireNonBlank(sectionId, "sectionId");
+
+        ObjectNode root = container("row", "start", "center");
+        root.put("widthMode", "fill");
+        root.set("padding", padding(
+                LayoutTokens.SPACING_MD, LayoutTokens.SPACING_MD,
+                LayoutTokens.SPACING_SM, LayoutTokens.SPACING_XS));
+
+        ArrayNode children = om.createArrayNode();
+        if (backUri != null && !backUri.isBlank()) {
+            ObjectNode back = appBarIconButton("sdui:back", tapNavigate(backUri));
+            AccessibilityHelper.addButton(om, back, "Back");
+            children.add(back);
+            children.add(hSpacer(LayoutTokens.SPACING_SM));
+        }
+        if (title != null && !title.isBlank()) {
+            ObjectNode titleEl = text(title, "titleMedium", "bold", ColorTokens.TEXT_PRIMARY, null);
+            AccessibilityHelper.addHeading(om, titleEl, title, 1);
+            children.add(titleEl);
+        }
+
+        root.set("children", children);
+        return wrapAsComposite(sectionId, analyticsId, root);
+    }
+
+    /**
      * Two-column utility grid.
      * items: [id, label, subtitle, imageUrl, targetUri]
      */
@@ -2088,19 +2124,20 @@ public class AtomicCompositeBuilder {
 
         List<ObjectNode> layers = new ArrayList<>();
 
-        ObjectNode copyCol = container("column", null, "start");
+        ObjectNode copyCol = container("column", "end", "start");
         copyCol.put("widthMode", "fill");
+        copyCol.put("heightMode", "fill");
         copyCol.set("padding", padding(LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG));
         copyCol.set("background", mediaBottomScrimGradient());
         copyCol.set("cornerRadii", cornerRadii(0, 0, radius, radius));
         ArrayNode copyChildren = om.createArrayNode();
-        copyChildren.add(text(title, "titleMedium", "bold", ColorTokens.TEXT_INVERSE, 3));
+        copyChildren.add(text(title, "titleMedium", "bold", ColorTokens.TEXT_ON_DARK_MEDIA, 3));
         if (subtitle != null) {
-            copyChildren.add(text(subtitle, "bodySmall", null, ColorTokens.TEXT_INVERSE, 3));
+            copyChildren.add(text(subtitle, "bodySmall", null, ColorTokens.TEXT_ON_DARK_MEDIA, 3));
         }
         if (ctaLabel != null && ctaTargetUri != null) {
             ObjectNode cta = button(ctaLabel, "secondary", tapNavigate(ctaTargetUri));
-            cta.put("color", ColorTokens.TEXT_INVERSE);
+            cta.put("color", ColorTokens.TEXT_ON_DARK_MEDIA);
             cta.put("background", "#00000000");
             copyChildren.add(spacer(LayoutTokens.SPACING_MD));
             copyChildren.add(cta);
@@ -2134,13 +2171,26 @@ public class AtomicCompositeBuilder {
         return wrapAsComposite(sectionId, analyticsId, root);
     }
 
+    /** Icon-only control on light app-bar surfaces (back affordance). */
+    private ObjectNode appBarIconButton(String iconToken, ObjectNode action) {
+        ObjectNode b = om.createObjectNode();
+        b.put("type", "Button");
+        b.put("label", "");
+        b.put("icon", iconToken);
+        b.put("variant", "text");
+        b.put("color", ColorTokens.TEXT_PRIMARY);
+        b.set("actions", singleActionArray(action));
+        return b;
+    }
+
+    /** Icon-only control on dark media scrims (video hero overlays). */
     private ObjectNode mediaOverlayIconButton(String iconToken, ObjectNode action) {
         ObjectNode b = om.createObjectNode();
         b.put("type", "Button");
         b.put("label", "");
         b.put("icon", iconToken);
         b.put("variant", "text");
-        b.put("color", ColorTokens.TEXT_INVERSE);
+        b.put("color", ColorTokens.TEXT_ON_DARK_MEDIA);
         b.set("actions", singleActionArray(action));
         return b;
     }
@@ -2154,7 +2204,8 @@ public class AtomicCompositeBuilder {
         ObjectNode g = om.createObjectNode();
         ArrayNode colors = om.createArrayNode();
         colors.add("#00000000");
-        colors.add("#000000CC");
+        colors.add("#99000000");
+        colors.add("#F0000000");
         g.set("colors", colors);
         g.put("direction", "vertical");
         return g;
@@ -2226,9 +2277,10 @@ public class AtomicCompositeBuilder {
         base.put("cornerRadius", radius);
         if (imageUrl != null) AccessibilityHelper.addImage(om, base, title);
 
-        ObjectNode scrimContent = container("column", null, "start");
+        ObjectNode scrimContent = container("column", "end", "start");
         scrimContent.put("widthMode", "fill");
-        scrimContent.set("padding", padding(LayoutTokens.SPACING_MD, LayoutTokens.SPACING_MD, 72, LayoutTokens.SPACING_MD));
+        scrimContent.put("heightMode", "fill");
+        scrimContent.set("padding", padding(LayoutTokens.SPACING_MD, LayoutTokens.SPACING_MD, LayoutTokens.SPACING_MD, LayoutTokens.SPACING_MD));
         scrimContent.set("background", mediaBottomScrimGradient());
         scrimContent.set("cornerRadii", cornerRadii(0, 0, radius, radius));
         ArrayNode children = om.createArrayNode();
@@ -2236,9 +2288,9 @@ public class AtomicCompositeBuilder {
             children.add(pillBadge(badgeText, ColorTokens.BRAND_LIVE));
             children.add(spacer(LayoutTokens.SPACING_SM));
         }
-        children.add(text(title, "titleSmall", "bold", ColorTokens.TEXT_INVERSE, 3));
+        children.add(text(title, "titleSmall", "bold", ColorTokens.TEXT_ON_DARK_MEDIA, 3));
         if (subtitle != null) {
-            children.add(text(subtitle, "bodySmall", null, ColorTokens.TEXT_INVERSE, 3));
+            children.add(text(subtitle, "bodySmall", null, ColorTokens.TEXT_ON_DARK_MEDIA, 3));
         }
         scrimContent.set("children", children);
 
@@ -2254,12 +2306,12 @@ public class AtomicCompositeBuilder {
         b.put("type", "Button");
         b.put("label", "⋯");
         b.put("variant", "text");
-        b.put("color", ColorTokens.TEXT_INVERSE);
+        b.put("color", ColorTokens.TEXT_ON_DARK_MEDIA);
         b.set("actions", singleActionArray(navigateAction));
         return b;
     }
 
-    private ObjectNode featuredLiveGameHeroCard(String[] card, boolean fillWidth) {
+    private ObjectNode featuredLiveGameHeroCard(String[] card, boolean stretchToParentWidth) {
         String cardId = value(card, 0);
         int heroRadius = 12;
         ObjectNode hero = container("column", null, "stretch");
@@ -2267,7 +2319,7 @@ public class AtomicCompositeBuilder {
         // Single-card section: card fills its surface (no fixed width).
         // Multi-card paged carousel: cards snap at a fixed width so a
         // peek of the next card is visible at the edge.
-        if (fillWidth) {
+        if (stretchToParentWidth) {
             hero.put("widthMode", "fill");
         } else {
             hero.put("width", 338);
@@ -2286,18 +2338,19 @@ public class AtomicCompositeBuilder {
         art.set("cornerRadii", cornerRadii(heroRadius, heroRadius, 0, 0));
         if (value(card, 4) != null) AccessibilityHelper.addImage(om, art, value(card, 2));
 
-        ObjectNode titleOverlay = container("column", null, "start");
+        ObjectNode titleOverlay = container("column", "end", "start");
         titleOverlay.put("widthMode", "fill");
-        titleOverlay.set("padding", padding(LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, 52, LayoutTokens.SPACING_MD));
+        titleOverlay.put("heightMode", "fill");
+        titleOverlay.set("padding", padding(LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, LayoutTokens.SPACING_MD, LayoutTokens.SPACING_MD));
         titleOverlay.set("background", mediaBottomScrimGradient());
         ArrayNode overlayChildren = om.createArrayNode();
         if (value(card, 1) != null) {
             overlayChildren.add(pillBadge(value(card, 1), ColorTokens.BRAND_LIVE));
             overlayChildren.add(spacer(LayoutTokens.SPACING_SM));
         }
-        overlayChildren.add(text(value(card, 2), "titleMedium", "bold", ColorTokens.TEXT_INVERSE, 2));
+        overlayChildren.add(text(value(card, 2), "titleMedium", "bold", ColorTokens.TEXT_ON_DARK_MEDIA, 2));
         if (value(card, 3) != null) {
-            overlayChildren.add(text(value(card, 3), "bodySmall", null, ColorTokens.TEXT_INVERSE, 2));
+            overlayChildren.add(text(value(card, 3), "bodySmall", null, ColorTokens.TEXT_ON_DARK_MEDIA, 2));
         }
         titleOverlay.set("children", overlayChildren);
 

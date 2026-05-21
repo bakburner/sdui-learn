@@ -106,7 +106,7 @@ object LayoutTokenResolver {
         // spacing-tokens.json (Kinetic)
         "nba.spacing.xs"  to "nba.space.raw.2",
         "nba.spacing.sm"  to "nba.space.raw.4",
-        "nba.spacing.md"  to "nba.space.raw.8",
+        "nba.spacing.md"  to "nba.space.raw.12",
         "nba.spacing.lg"  to "nba.space.raw.16",
         "nba.spacing.xl"  to "nba.space.raw.32",
         "nba.spacing.2xl" to "nba.space.raw.40",
@@ -114,7 +114,7 @@ object LayoutTokenResolver {
         // corner-radius-tokens.json (Kinetic)
         "nba.radius.xs"   to "nba.radius.raw.2",
         "nba.radius.sm"   to "nba.radius.raw.4",
-        "nba.radius.md"   to "nba.radius.raw.8",
+        "nba.radius.md"   to "nba.radius.raw.12",
         "nba.radius.lg"   to "nba.radius.raw.16",
         "nba.radius.xl"   to "nba.radius.raw.24",
         "nba.radius.2xl"  to "nba.radius.raw.32",
@@ -123,11 +123,11 @@ object LayoutTokenResolver {
         // Legacy aliases (deprecated — kept for backward compat with cached payloads)
         "spacing.xs"  to "nba.space.raw.2",
         "spacing.sm"  to "nba.space.raw.4",
-        "spacing.md"  to "nba.space.raw.8",
+        "spacing.md"  to "nba.space.raw.12",
         "spacing.lg"  to "nba.space.raw.16",
         "spacing.xl"  to "nba.space.raw.32",
         "radius.sm"   to "nba.radius.raw.4",
-        "radius.md"   to "nba.radius.raw.8",
+        "radius.md"   to "nba.radius.raw.12",
         "radius.lg"   to "nba.radius.raw.16",
         "radius.full" to "nba.radius.raw.9999",
 
@@ -142,6 +142,7 @@ object LayoutTokenResolver {
         addRow("nba.space.raw.2",  2,  2,  2,  4,  2,  2)
         addRow("nba.space.raw.4",  4,  4,  6,  6,  4,  6)
         addRow("nba.space.raw.8",  8,  8,  10, 12, 8,  10)
+        addRow("nba.space.raw.12", 12, 12, 15, 18, 12, 15)
         addRow("nba.space.raw.16", 16, 16, 20, 24, 16, 20)
         addRow("nba.space.raw.32", 32, 32, 40, 48, 32, 40)
         addRow("nba.space.raw.40", 40, 40, 48, 56, 40, 48)
@@ -151,6 +152,7 @@ object LayoutTokenResolver {
         addRow("nba.radius.raw.2",    2,    2,    2,    2,    2,    2)
         addRow("nba.radius.raw.4",    4,    4,    4,    4,    4,    4)
         addRow("nba.radius.raw.8",    8,    8,    8,    8,    8,    8)
+        addRow("nba.radius.raw.12",   12,   12,   12,   12,   12,   12)
         addRow("nba.radius.raw.16",   16,   16,   16,   16,   16,   16)
         addRow("nba.radius.raw.24",   24,   24,   24,   24,   24,   24)
         addRow("nba.radius.raw.32",   32,   32,   32,   32,   32,   32)

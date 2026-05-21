@@ -22,12 +22,15 @@ struct AtomicImageView: View {
     var onAction: (Action) -> Void = { _ in }
 
     @Environment(\.compositeContent) private var compositeContent
+    @Environment(\.wireAssetBaseURL) private var wireAssetBaseURL
     @State private var activeSrc: String?
     @State private var triedPayloadFallback = false
     @State private var finalImageFailed = false
 
     var body: some View {
-        if let src = currentSrc, let url = URL(string: src) {
+        if let src = currentSrc,
+           let resolved = WireUrlResolver.resolve(src, baseURL: wireAssetBaseURL),
+           let url = URL(string: resolved) {
             let spec = ImageVariantResolver.resolve(element.variant)
             let resolvedAspectRatio = LayoutTokenResolver.aspectRatio(element.aspectRatio) ?? spec?.aspectRatio
             let resolvedContentMode = contentMode(spec: spec)
@@ -80,7 +83,7 @@ struct AtomicImageView: View {
         if let fallback = element.placeholder,
            !triedPayloadFallback,
            fallback != currentSrc,
-           URL(string: fallback) != nil {
+           WireUrlResolver.resolve(fallback, baseURL: wireAssetBaseURL) != nil {
             triedPayloadFallback = true
             activeSrc = fallback
         } else {

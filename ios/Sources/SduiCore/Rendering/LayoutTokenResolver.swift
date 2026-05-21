@@ -88,7 +88,10 @@ enum LayoutTokenResolver {
         // spacing (Kinetic)
         "nba.spacing.xs": "nba.space.raw.2", "nba.spacing.sm": "nba.space.raw.4", "nba.spacing.md": "nba.space.raw.12", "nba.spacing.lg": "nba.space.raw.16", "nba.spacing.xl": "nba.space.raw.32", "nba.spacing.2xl": "nba.space.raw.40",
         // radius (Kinetic)
-        "nba.radius.xs": "nba.radius.raw.2", "nba.radius.sm": "nba.radius.raw.4", "nba.radius.md": "nba.radius.raw.12", "nba.radius.lg": "nba.radius.raw.16", "nba.radius.xl": "nba.radius.raw.24", "nba.radius.2xl": "nba.radius.raw.32", "nba.radius.full": "nba.radius.raw.9999"
+        "nba.radius.xs": "nba.radius.raw.2", "nba.radius.sm": "nba.radius.raw.4", "nba.radius.md": "nba.radius.raw.12", "nba.radius.lg": "nba.radius.raw.16", "nba.radius.xl": "nba.radius.raw.24", "nba.radius.2xl": "nba.radius.raw.32", "nba.radius.full": "nba.radius.raw.9999",
+        // Legacy aliases (deprecated — backward compat with cached payloads)
+        "spacing.xs": "nba.space.raw.2", "spacing.sm": "nba.space.raw.4", "spacing.md": "nba.space.raw.12", "spacing.lg": "nba.space.raw.16", "spacing.xl": "nba.space.raw.32",
+        "radius.sm": "nba.radius.raw.4", "radius.md": "nba.radius.raw.12", "radius.lg": "nba.radius.raw.16", "radius.full": "nba.radius.raw.9999"
     ]
 
     // MARK: - Snapshot: palette (merged registries — matrix shape: token → theme → formFactor → value)

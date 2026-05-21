@@ -55,14 +55,14 @@ class LayoutTokenResolverTest {
     @Test
     fun `spacing md resolves per form factor`() {
         val token = LayoutScalar.StringValue("token:nba.spacing.md")
-        assertEquals(8, LayoutTokenResolver.intValue(token, formFactor = "phone"))
-        assertEquals(10, LayoutTokenResolver.intValue(token, formFactor = "tablet"))
+        assertEquals(12, LayoutTokenResolver.intValue(token, formFactor = "phone"))
+        assertEquals(15, LayoutTokenResolver.intValue(token, formFactor = "tablet"))
     }
 
     @Test
     fun `unknown form factor row falls back to phone`() {
         val token = LayoutScalar.StringValue("token:nba.spacing.md")
-        assertEquals(8, LayoutTokenResolver.intValue(token, formFactor = "watch.tiny"))
+        assertEquals(12, LayoutTokenResolver.intValue(token, formFactor = "watch.tiny"))
     }
 
     @Test

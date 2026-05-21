@@ -7,6 +7,7 @@ Server-Driven UI prototype demonstrating server-composed screens with real-time 
 | I want to… | Start with |
 |------------|------------|
 | **Build a new client** (iOS, Flutter, TV, desktop) | [Client Implementor's Contract](docs/client-implementors-contract.md) — platform-agnostic blueprint with build phases, pseudocode algorithms, and conformance checklist |
+| **Set up local tooling / prerequisites** | [Development Setup](docs/sdui-setup.md) — prerequisites, dependency bootstrap, secrets, and Makefile device overrides |
 | **Extend the Android client** | [android/sdui-core/](android/sdui-core/) — renderers, state, data binding. See [Section Types](#section-types-9-in-schema-8-permanent--atomiccomposite) below for what exists |
 | **Extend the Web client** | [web/src/](web/src/) — React components, hooks, runtime. Same section types reference |
 | **Extend the iOS client** | [ios/Sources/SduiCore/](ios/Sources/SduiCore/) — SwiftUI renderers, state, data binding. Same section types reference |
@@ -79,10 +80,14 @@ sdui-prototype/
 
 ## Quick Start
 
+See [Development Setup](docs/sdui-setup.md) first for prerequisites, local
+dependencies, secrets, and how to override the default Android emulator or iOS
+simulator used by the Make targets.
+
 ### Start Everything
 
 ```bash
-make dev    # Opens Terminal sessions for server and web
+make dev    # Starts server + web in separate Terminal sessions
 ```
 
 ### Or Individually
@@ -102,7 +107,7 @@ npm run dev
 # (connects to http://10.0.2.2:8080)
 
 # iOS (simulator, CLI-driven)
-make ios-run            # builds SduiDemo with SDUI_DISABLE_ABLY=1 and installs on the configured simulator
+make ios-run            # builds SduiDemo and installs on the configured simulator
 ```
 
 ### Test the API
@@ -248,5 +253,6 @@ make codegen
 | [Requirements Summary](docs/sdui-requirements-summary.md) | Full requirements, gap analysis, ADR tracking |
 | [Kitchen Sink Appendix](docs/appendix-kitchen-sink.md) | Full 42-section demo response (Android platform) |
 | [Client Implementor's Contract](docs/client-implementors-contract.md) | Platform-agnostic build guide for new clients (any language/framework) |
+| [Development Setup](docs/sdui-setup.md) | Prerequisites, secrets, dependency bootstrap, and Makefile runtime overrides |
 | [ADR Index](docs/adr/README.md) | Architecture Decision Records (001–013) |
 | [Accessibility Plan](docs/plans/plan-accessibility.md) | Accessibility strategy and implementation plan |

@@ -96,7 +96,7 @@ fun GameDetailScreen(
     val themePad = LayoutTokenResolver.dp(LayoutScalar.StringValue("token:nba.spacing.sm"))
 
     val handleNavigateBack: () -> Unit = {
-        val parent = shellScreen?.parentUri
+        val parent = shellScreen?.parentURI
         if (!parent.isNullOrBlank()) {
             onNavigateUri(parent)
         } else {
@@ -143,7 +143,7 @@ fun GameDetailScreen(
                         onAction = { viewModel.handleAction(it) },
                         onStateChange = { key, value -> viewModel.updateState(key, value) },
                         onNavigateBack = handleNavigateBack,
-                        parentUri = shellScreen?.parentUri,
+                        parentUri = shellScreen?.parentURI,
                         visibilityTracker = viewModel.visibilityTracker,
                         wireAssetBaseUrl = viewModel.wireAssetBaseUrl,
                         modifier = contentModifier

@@ -565,6 +565,16 @@ public class SduiController {
         return ResponseEntity.ok("OK");
     }
 
+    @GetMapping("/healthz")
+    public ResponseEntity<String> healthz() {
+        return ResponseEntity.ok("OK");
+    }
+
+    @GetMapping("/readyz")
+    public ResponseEntity<String> readyz() {
+        return ResponseEntity.ok("OK");
+    }
+
     // ── Private helpers ────────────────────────────────────────────────
 
     /**

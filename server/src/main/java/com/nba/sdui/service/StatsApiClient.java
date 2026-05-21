@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 /**
  * Client for NBA Stats APIs.
@@ -28,6 +29,8 @@ public class StatsApiClient {
     // Public CDN endpoints (no auth)
     private static final String CDN_BASE = "https://cdn.nba.com/static/json/liveData";
     private static final String SCOREBOARD_URL = CDN_BASE + "/scoreboard/todaysScoreboard_00.json";
+    // Game IDs are 10-digit numeric strings (e.g., "0022400892")
+    private static final Pattern GAME_ID_PATTERN = Pattern.compile("^\\d{10}$");
     
     // Stats Trafficcop (OPIM auth required)
     @Value("${stats.api.base-url:https://stats-trafficcop-prod.nba.com/v0/api}")
@@ -61,6 +64,7 @@ public class StatsApiClient {
      * @return Boxscore JSON or null if unavailable
      */
     public JsonNode getBoxscore(String gameId) throws IOException {
+        validateGameId(gameId);
         String url = CDN_BASE + "/boxscore/boxscore_" + gameId + ".json";
         return fetchCdnJson(url);
     }
@@ -72,6 +76,7 @@ public class StatsApiClient {
      * @return Detailed boxscore or null if unavailable
      */
     public JsonNode getDetailedBoxscore(String gameId) throws IOException {
+        validateGameId(gameId);
         if (subscriptionKey == null || subscriptionKey.isBlank()) {
             log.warn("Stats API subscription key not configured, falling back to CDN");
             return getBoxscore(gameId);
@@ -88,6 +93,7 @@ public class StatsApiClient {
      * @return Linescore data or null if unavailable
      */
     public JsonNode getLinescore(String gameId) throws IOException {
+        validateGameId(gameId);
         if (subscriptionKey == null || subscriptionKey.isBlank()) {
             log.warn("Stats API subscription key not configured");
             return null;
@@ -104,6 +110,7 @@ public class StatsApiClient {
      * @return Game data or null if not found
      */
     public JsonNode getGameFromScoreboard(String gameId) throws IOException {
+        validateGameId(gameId);
         JsonNode scoreboard = getScoreboard();
         if (scoreboard == null) {
             return null;
@@ -167,6 +174,12 @@ public class StatsApiClient {
         } catch (Exception e) {
             log.error("Failed to fetch {}: {}", url, e.getMessage());
             return null;
+        }
+    }
+
+    private void validateGameId(String gameId) {
+        if (gameId == null || !GAME_ID_PATTERN.matcher(gameId).matches()) {
+            throw new IllegalArgumentException("Invalid game ID format: " + gameId);
         }
     }
 }

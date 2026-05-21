@@ -9,10 +9,14 @@ struct SduiDemoApp: App {
     @State private var nav = NavCoordinator()
     @State private var bootstrapEndpoint: String?
 
-    private let config = SduiConfig(
-        baseURL: URL(string: "http://localhost:8080")!,
-        ablyTokenURL: URL(string: "http://localhost:8080/rttoken")!
-    )
+    private let config: SduiConfig = {
+        let urlString = ProcessInfo.processInfo.environment["SDUI_BASE_URL"]
+            ?? "https://sdui.tools.internal.nba.com"
+        return SduiConfig(
+            baseURL: URL(string: urlString)!,
+            ablyTokenURL: URL(string: "https://identity.nba.com/rttoken")!
+        )
+    }()
 
     var body: some Scene {
         WindowGroup {

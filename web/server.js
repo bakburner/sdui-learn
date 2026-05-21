@@ -12,6 +12,14 @@ const SDUI_SERVER = process.env.SDUI_SERVER || 'http://localhost:8080';
 const VITE_DEV_SERVER = process.env.VITE_DEV_SERVER || 'http://localhost:5173';
 const isDev = process.env.NODE_ENV !== 'production';
 
+// Security headers
+app.use((req, res, next) => {
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  next();
+});
+
 // Proxy Ably token requests to avoid CORS issues in the browser
 app.use('/ably-token', createProxyMiddleware({
   target: 'https://identity.nba.com',

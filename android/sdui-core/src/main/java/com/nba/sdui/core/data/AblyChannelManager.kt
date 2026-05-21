@@ -121,10 +121,18 @@ class AblyChannelManager(
             val jwt = json.path("data").path("accessToken").asText()
             if (jwt.isNotBlank()) {
                 Log.d(TAG, "Extracted JWT (${jwt.length} chars)")
+                // Validate JWT structure (header.payload.signature) before passing to SDK
+                require(jwt.matches(Regex("^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]*$"))) {
+                    "Token response is not a valid JWT format"
+                }
                 return jwt
             }
 
-            Log.d(TAG, "No wrapper detected, returning raw body to SDK")
+            // Validate raw body is also JWT-shaped if no wrapper detected
+            Log.d(TAG, "No wrapper detected, validating raw body as JWT")
+            require(body.matches(Regex("^[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]*$"))) {
+                "Raw token response is not a valid JWT format"
+            }
             return body
         } finally {
             conn.disconnect()

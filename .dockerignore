@@ -1,0 +1,16 @@
+.git
+.gitignore
+.github
+android/
+ios/
+web/
+codegen/
+docs/
+prompts/
+tools/
+scripts/
+server/build/
+server/.gradle
+server/.vscode
+server/.env
+*.md

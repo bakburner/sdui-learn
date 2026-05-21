@@ -4,7 +4,7 @@ replicaCount: 1
 image:
   repository: "ottnpue2imageci002.azurecr.io/devops/sdui-prototype"
   pullPolicy: Always
-  tag: "sha-136eaec"
+  tag: "sha-8068b15"
 imagePullSecrets:
   - name: "ottnpue2imageci002"
 podSecurityContext: {}

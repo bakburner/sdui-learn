@@ -46,6 +46,13 @@ export function App(): React.ReactElement {
       .then((data: { bootstrapUri?: string }) => {
         if (cancelled) return;
         const uri = data.bootstrapUri ?? FALLBACK_BOOTSTRAP_URI;
+        // Validate URI matches expected nba:// scheme to prevent SSRF
+        if (!/^nba:\/\/[a-zA-Z0-9\-_/]+$/.test(uri)) {
+          console.warn('Invalid bootstrap URI from server, using fallback');
+          setBootstrapUri(FALLBACK_BOOTSTRAP_URI);
+          setCurrentUri(FALLBACK_BOOTSTRAP_URI);
+          return;
+        }
         setBootstrapUri(uri);
         setCurrentUri(uri);
       })

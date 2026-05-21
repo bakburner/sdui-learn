@@ -91,7 +91,14 @@ public class SduiRequestContext {
     public void setLocale(String locale) { this.locale = locale; }
 
     public String getSchemaVersion() { return schemaVersion; }
-    public void setSchemaVersion(String schemaVersion) { this.schemaVersion = schemaVersion; }
+    public void setSchemaVersion(String schemaVersion) {
+        // Validate schema version format (e.g. "1.0", "2.1")
+        if (schemaVersion != null && !schemaVersion.matches("^\\d+\\.\\d+$")) {
+            this.schemaVersion = "1.0";
+            return;
+        }
+        this.schemaVersion = schemaVersion != null ? schemaVersion : "1.0";
+    }
 
     public String getTraceId() { return traceId; }
     public void setTraceId(String traceId) { this.traceId = traceId; }

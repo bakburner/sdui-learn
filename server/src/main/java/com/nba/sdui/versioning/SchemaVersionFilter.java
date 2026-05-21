@@ -68,10 +68,20 @@ public class SchemaVersionFilter {
         return response;
     }
 
+    private static final int MAX_RECURSION_DEPTH = 50;
+
     /**
      * Recursively strip fields from the JSON tree that match registered paths.
      */
     private void stripFields(JsonNode node, Set<String> unsupportedPaths, String currentPath) {
+        stripFields(node, unsupportedPaths, currentPath, 0);
+    }
+
+    private void stripFields(JsonNode node, Set<String> unsupportedPaths, String currentPath, int depth) {
+        if (depth > MAX_RECURSION_DEPTH) {
+            log.warn("stripFields: max recursion depth reached at path={}", currentPath);
+            return;
+        }
         if (node.isObject()) {
             ObjectNode obj = (ObjectNode) node;
             Iterator<Map.Entry<String, JsonNode>> fields = obj.fields();
@@ -86,14 +96,14 @@ public class SchemaVersionFilter {
                 }
 
                 // Recurse
-                stripFields(entry.getValue(), unsupportedPaths, fieldPath);
+                stripFields(entry.getValue(), unsupportedPaths, fieldPath, depth + 1);
             }
         } else if (node.isArray()) {
             ArrayNode arr = (ArrayNode) node;
             // For arrays, use [*] wildcard path notation
             String arrayItemPath = currentPath + "[*]";
             for (int i = 0; i < arr.size(); i++) {
-                stripFields(arr.get(i), unsupportedPaths, arrayItemPath);
+                stripFields(arr.get(i), unsupportedPaths, arrayItemPath, depth + 1);
             }
         }
     }
@@ -103,6 +113,14 @@ public class SchemaVersionFilter {
      * the client's version.
      */
     private void stripEnumValues(JsonNode node, Map<String, Set<String>> unsupportedEnums, String currentPath) {
+        stripEnumValues(node, unsupportedEnums, currentPath, 0);
+    }
+
+    private void stripEnumValues(JsonNode node, Map<String, Set<String>> unsupportedEnums, String currentPath, int depth) {
+        if (depth > MAX_RECURSION_DEPTH) {
+            log.warn("stripEnumValues: max recursion depth reached at path={}", currentPath);
+            return;
+        }
         if (node.isObject()) {
             ObjectNode obj = (ObjectNode) node;
             Iterator<Map.Entry<String, JsonNode>> fields = obj.fields();
@@ -123,7 +141,7 @@ public class SchemaVersionFilter {
                 }
 
                 // Recurse
-                stripEnumValues(value, unsupportedEnums, fieldPath);
+                stripEnumValues(value, unsupportedEnums, fieldPath, depth + 1);
             }
 
             // Apply nullifications after iteration
@@ -134,7 +152,7 @@ public class SchemaVersionFilter {
             ArrayNode arr = (ArrayNode) node;
             String arrayItemPath = currentPath + "[*]";
             for (int i = 0; i < arr.size(); i++) {
-                stripEnumValues(arr.get(i), unsupportedEnums, arrayItemPath);
+                stripEnumValues(arr.get(i), unsupportedEnums, arrayItemPath, depth + 1);
             }
         }
     }

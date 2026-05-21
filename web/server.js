@@ -44,6 +44,17 @@ app.use('/api', createProxyMiddleware({
   },
 }));
 
+// Proxy static assets served by the SDUI server (e.g. /sdui-demo/*.svg)
+app.use('/sdui-demo', createProxyMiddleware({
+  target: SDUI_SERVER,
+  changeOrigin: true,
+  secure: true,
+  onError: (err, req, res) => {
+    console.error('[Asset Proxy Error]', err.message);
+    res.status(502).end();
+  },
+}));
+
 if (isDev) {
   // In development, proxy all non-/api requests to Vite dev server
   app.use(createProxyMiddleware({

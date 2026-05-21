@@ -11,7 +11,7 @@ struct SduiDemoApp: App {
 
     private let config: SduiConfig = {
         let urlString = ProcessInfo.processInfo.environment["SDUI_BASE_URL"]
-            ?? "https://sdui-prototype.tools.internal.nba.com"
+            ?? "https://sdui.tools.internal.nba.com"
         return SduiConfig(
             baseURL: URL(string: urlString)!,
             ablyTokenURL: URL(string: "https://identity.nba.com/rttoken")!

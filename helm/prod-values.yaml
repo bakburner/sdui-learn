@@ -1,4 +1,4 @@
-nameOverride: "sdui-prototype"
+nameOverride: "sdui"
 fullnameOverride: ""
 replicaCount: 1
 image:
@@ -30,16 +30,16 @@ ingress:
     nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
   hosts:
-    - host: sdui-prototype.tools.internal.nba.com
+    - host: sdui.tools.internal.nba.com
       paths:
         - path: /
           pathType: ImplementationSpecific
           backend:
             service:
-              name: sdui-prototype
+              name: sdui
   tls:
     - hosts:
-        - sdui-prototype.tools.internal.nba.com
+        - sdui.tools.internal.nba.com
 resources:
   requests:
     cpu: 500m
@@ -52,10 +52,10 @@ env:
   - name: STATS_API_KEY
     valueFrom:
       secretKeyRef:
-        name: sdui-prototype
+        name: sdui
         key: STATS_API_KEY
   - name: ABLY_SUBSCRIBE_API_KEY
     valueFrom:
       secretKeyRef:
-        name: sdui-prototype
+        name: sdui
         key: ABLY_SUBSCRIBE_API_KEY

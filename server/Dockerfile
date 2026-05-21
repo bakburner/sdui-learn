@@ -14,6 +14,8 @@ COPY server/gradle/ gradle/
 COPY server/build.gradle.kts server/settings.gradle.kts ./
 
 # Download dependencies (cached unless build files change)
+# Increase JVM heap for cross-platform builds (arm64 emulation needs more memory)
+ENV GRADLE_OPTS="-Xmx2g -XX:MaxMetaspaceSize=512m"
 RUN chmod +x gradlew && ./gradlew dependencies --no-daemon
 
 # Copy schema tokens (referenced by processResources as ../schema)
@@ -28,7 +30,7 @@ ARG GIT_BRANCH_NAME
 ENV GIT_SHA=$GIT_SHA \
     GIT_BRANCH_NAME=$GIT_BRANCH_NAME
 
-RUN ./gradlew bootJar --no-daemon
+RUN ./gradlew bootJar --no-daemon -Dorg.gradle.jvmargs="-Xmx2g"
 
 # ================================
 # Runtime stage -- minimal JRE, non-root

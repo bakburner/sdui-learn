@@ -43,6 +43,7 @@ jobs:
     runs-on: nba-ubuntu-latest
     outputs:
       docker_meta_outputs: ${{ steps.docker_meta.outputs.json }}
+      docker_meta_tags: ${{ steps.docker_meta.outputs.tags }}
     steps:
       - uses: actions/checkout@v6
 

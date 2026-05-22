@@ -65,24 +65,26 @@ jobs:
             *.cache-to=type=gha,mode=min
             *.cache-from=type=gha
 
-      - name: Update Helm image tag
+      - name: Deploy to environment branch
         env:
           IMAGE_TAG: ${{ steps.docker_meta.outputs.version }}
-          GH_TOKEN: ${{ github.token }}
         run: |
-          BRANCH="deploy/sdui-$IMAGE_TAG"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
-          git checkout -b "$BRANCH"
+          git fetch origin environment/dev && git checkout -B environment/dev origin/environment/dev || {
+            git checkout --orphan environment/dev
+            git rm -rf . || true
+            git clean -fdx
+          }
+          git checkout main -- helm/prod-values.yaml
           yq -i ".image.tag = \"$IMAGE_TAG\"" helm/prod-values.yaml
           git add helm/prod-values.yaml
-          git commit -m "deploy: update SDUI image tag to $IMAGE_TAG"
-          git push origin "$BRANCH"
-          gh pr create \
-            --base main \
-            --head "$BRANCH" \
-            --title "deploy: SDUI $IMAGE_TAG" \
-            --body "Automated deploy PR -- updates \`helm/prod-values.yaml\` image tag to \`$IMAGE_TAG\`.\n\nMerge this PR to trigger ArgoCD sync."
+          if git diff --cached --quiet; then
+            echo "No changes to deploy (tag already up to date)"
+          else
+            git commit -m "deploy: update image tag to $IMAGE_TAG"
+            git push origin environment/dev
+          fi
 
   # -------------------------------------------------------
   # Container Scan -- Wiz image scanning after build

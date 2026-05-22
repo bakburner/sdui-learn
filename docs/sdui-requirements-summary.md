@@ -881,7 +881,7 @@ sequenceDiagram
     participant App as Client (v2.3)
     participant Server as Composition Service
     
-    App->>Server: GET /v1/sdui/game-detail/123?schemaVersion=2.3
+    App->>Server: GET /v1/sdui/screen/game-detail/123?schemaVersion=2.3
     Server->>Server: Check v2.3 capabilities
     Server->>Server: Exclude v2.4+ section types
     Server-->>App: Response (v2.3 compatible)
@@ -1289,7 +1289,7 @@ The alternative — maintaining five parallel native implementations of the game
 
 | Date | Summary |
 |---|---|
-| 2026-05-20 | Doc consistency audit: synced the action-system docs to canonical wire fields (`targetUri`/`webUrl`, `target`/`operation`/`value`), added the current trigger-hosting matrix, and noted the required manual appendix sweep. |
+| 2026-05-22 | Doc consistency audit: updated URL namespace across requirements summary, README, envelope spec, client contract, and technical proposal — all screen paths now use `/v1/sdui/screen/` prefix, section paths `/v1/sdui/section/`, data paths `/v1/api/`. Fixed stale `refresh/{screenId}` → `screen/refresh/{handlerId}`. Added 3-tier URL namespace table, parameterized refresh contract, mock-data SSE policy rule, and GameDetail section refresh policies. Fixed stale color tokens in JSON fixtures (`nba.text.secondary` → `nba.label.secondary`, `nba.brand.live` → `nba.label.accent.live`). | Doc consistency audit: synced the action-system docs to canonical wire fields (`targetUri`/`webUrl`, `target`/`operation`/`value`), added the current trigger-hosting matrix, and noted the required manual appendix sweep. |
 | 2026-05-05 | Doc consistency audit. Schema versioning protocol: Partial → Built (server version routing, field stripping, force-upgrade signal implemented across all platforms). |
 | 2026-04-28 | Requirements audit: onTap → onActivate in all diagrams/tables. §9g theming and §9s Figma trimmed to requirement statements (implementation detail moved to sdui-design-system.md). §9i impression status corrected (visibility infra built all platforms; server analytics composition gap). §7 codegen diagram fixed (quicktype → Kotlin). §6 system count corrected (3 → 4). §9b/§9c stale "Decision required" tags resolved. Dead plan references removed (7 files). §11b next steps removed. Appendix A removed (dead reference). Footer date removed. |
 | 2026-04-27 | Doc consistency audit: trigger counts (6 → 8, all in schema), onActivate + onSubmit added, "Future (TV)" distinction removed, terminology sync. |

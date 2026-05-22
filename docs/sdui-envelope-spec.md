@@ -44,16 +44,16 @@ Per-surface endpoints with explicit controller methods. No generic surface
 dispatcher.
 
 ```
-GET /v1/sdui/scoreboard?{canonical-query-string}
-GET /v1/sdui/game-detail/{gameId}?{canonical-query-string}
-GET /v1/sdui/for-you?{canonical-query-string}
-GET /v1/sdui/watch?{canonical-query-string}
-GET /v1/sdui/games?{canonical-query-string}
-GET /v1/sdui/schedule?{canonical-query-string}
-GET /v1/sdui/home?{canonical-query-string}
-GET /v1/sdui/leaders?{canonical-query-string}
-GET /v1/sdui/refresh/{screenId}?{canonical-query-string}
-GET /v1/sdui/init
+GET /v1/sdui/screen/scoreboard?{canonical-query-string}
+GET /v1/sdui/screen/game-detail/{gameId}?{canonical-query-string}
+GET /v1/sdui/screen/for-you?{canonical-query-string}
+GET /v1/sdui/screen/watch?{canonical-query-string}
+GET /v1/sdui/screen/games?{canonical-query-string}
+GET /v1/sdui/screen/schedule?{canonical-query-string}
+GET /v1/sdui/screen/home?{canonical-query-string}
+GET /v1/sdui/screen/leaders?{canonical-query-string}
+GET /v1/sdui/screen/refresh/{handlerId}?{canonical-query-string}
+GET /v1/sdui/screen/init
 ```
 
 Per-surface routes are intentional: surface-specific path parameters
@@ -139,10 +139,10 @@ so the server reads them through `@RequestParam` on both paths.
 
 ```
 // GET (normal)
-GET /v1/sdui/refresh/stats-leaders?perMode=Totals&season=2025-26&locale=en&...
+GET /v1/sdui/screen/refresh/stats-leaders?perMode=Totals&season=2025-26&locale=en&...
 
 // POST (oversized envelope)
-POST /v1/sdui/refresh/stats-leaders?perMode=Totals&season=2025-26
+POST /v1/sdui/screen/refresh/stats-leaders?perMode=Totals&season=2025-26
 Content-Type: application/json
 {
   "locale": "en",

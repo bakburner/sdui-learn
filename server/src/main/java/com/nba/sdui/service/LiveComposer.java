@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import jakarta.annotation.PostConstruct;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -37,17 +38,37 @@ public class LiveComposer {
     private final StatsApiClient statsApiClient;
     private final SduiUtils utils;
     private final AtomicCompositeBuilder atomicBuilder;
+    private final SectionRefreshService sectionRefreshService;
 
     @Value("${sdui.schema.version:1.0}")
     private String schemaVersion;
 
     public LiveComposer(ObjectMapper objectMapper,
                         StatsApiClient statsApiClient,
-                        SduiUtils utils) {
+                        SduiUtils utils,
+                        SectionRefreshService sectionRefreshService) {
         this.objectMapper = objectMapper;
         this.statsApiClient = statsApiClient;
         this.utils = utils;
         this.atomicBuilder = new AtomicCompositeBuilder(objectMapper);
+        this.sectionRefreshService = sectionRefreshService;
+    }
+
+    @PostConstruct
+    private void registerSectionResolvers() {
+        String sectionId = SectionIdDeriver.derive("stats-api:live-games", "GameScheduleList");
+        sectionRefreshService.registerResolver(sectionId, (id, ctx) -> {
+            JsonNode scoreboard = safeGetScoreboard();
+            List<JsonNode> liveGames = new ArrayList<>();
+            if (scoreboard != null) {
+                for (JsonNode game : scoreboard.path("scoreboard").path("games")) {
+                    if (game.path("gameStatus").asInt(1) == 2) {
+                        liveGames.add(game);
+                    }
+                }
+            }
+            return liveGames.isEmpty() ? buildMockLiveScheduleList() : buildLiveScheduleList(liveGames);
+        });
     }
 
     public JsonNode composeLive(String traceId, String locale) {
@@ -233,37 +254,7 @@ public class LiveComposer {
      * Mock sections for when the CDN scoreboard is unreachable.
      */
     private void addMockSections(ArrayNode sections) {
-        // Mock live schedule list
-        String liveContentSourceId = "stats-api:live-games";
-        String liveSectionId = SectionIdDeriver.derive(liveContentSourceId, "GameScheduleList");
-
-        String[][] liveRows = {
-                {"mock-live-1", "BOS", "Celtics", null,
-                        "72", SduiUtils.teamLogoUrl("1610612738"),
-                        "LAL", "Lakers", null,
-                        "68", SduiUtils.teamLogoUrl("1610612747"),
-                        "Q3 4:22", null, null, "nba://game/mock-live-1", null},
-                {"mock-live-2", "GSW", "Warriors", null,
-                        "31", SduiUtils.teamLogoUrl("1610612744"),
-                        "PHX", "Suns", null,
-                        "28", SduiUtils.teamLogoUrl("1610612756"),
-                        "Q1 9:15", null, null, "nba://game/mock-live-2", null}
-        };
-        Map<String, AtomicCompositeBuilder.GameClockSnapshot> mockClocks = new HashMap<>();
-        mockClocks.put("mock-live-1", mockClockSnapshotFromStatus("Q3 4:22"));
-        mockClocks.put("mock-live-2", mockClockSnapshotFromStatus("Q1 9:15"));
-
-        ObjectNode mockSsePolicy = objectMapper.createObjectNode();
-        mockSsePolicy.put("type", "sse");
-        mockSsePolicy.put("channel", "mock-live-1:linescore");
-        mockSsePolicy.put("pauseWhenOffScreen", false);
-
-        ObjectNode liveSection = atomicBuilder.buildGameScheduleList(
-                liveSectionId, "live_games", "Live Now", liveRows,
-                mockSsePolicy, null, mockClocks);
-        liveSection.put("contentSourceId", liveContentSourceId);
-        liveSection.set("surface", utils.flushSurface());
-        sections.add(liveSection);
+        sections.add(buildMockLiveScheduleList());
 
         // Mock upcoming schedule list
         String upcomingContentSourceId = "stats-api:scoreboard";
@@ -287,6 +278,46 @@ public class LiveComposer {
         upcomingSection.put("contentSourceId", upcomingContentSourceId);
         upcomingSection.set("surface", utils.flushSurface());
         sections.add(upcomingSection);
+    }
+
+    /**
+     * Mock "Live Now" schedule list — used both as the initial mock composition
+     * and as the section-refresh response when no real live games are available.
+     * Uses a poll sectionEndpoint instead of SSE so mock data never opens an
+     * Ably connection.
+     */
+    private ObjectNode buildMockLiveScheduleList() {
+        String liveContentSourceId = "stats-api:live-games";
+        String liveSectionId = SectionIdDeriver.derive(liveContentSourceId, "GameScheduleList");
+
+        String[][] liveRows = {
+                {"mock-live-1", "BOS", "Celtics", null,
+                        "72", SduiUtils.teamLogoUrl("1610612738"),
+                        "LAL", "Lakers", null,
+                        "68", SduiUtils.teamLogoUrl("1610612747"),
+                        "Q3 4:22", null, null, "nba://game/mock-live-1", null},
+                {"mock-live-2", "GSW", "Warriors", null,
+                        "31", SduiUtils.teamLogoUrl("1610612744"),
+                        "PHX", "Suns", null,
+                        "28", SduiUtils.teamLogoUrl("1610612756"),
+                        "Q1 9:15", null, null, "nba://game/mock-live-2", null}
+        };
+        Map<String, AtomicCompositeBuilder.GameClockSnapshot> mockClocks = new HashMap<>();
+        mockClocks.put("mock-live-1", mockClockSnapshotFromStatus("Q3 4:22"));
+        mockClocks.put("mock-live-2", mockClockSnapshotFromStatus("Q1 9:15"));
+
+        ObjectNode mockPollPolicy = objectMapper.createObjectNode();
+        mockPollPolicy.put("type", "poll");
+        mockPollPolicy.put("sectionEndpoint", "/v1/sdui/section/" + liveSectionId);
+        mockPollPolicy.put("intervalMs", 30_000);
+        mockPollPolicy.put("pauseWhenOffScreen", true);
+
+        ObjectNode liveSection = atomicBuilder.buildGameScheduleList(
+                liveSectionId, "live_games", "Live Now", liveRows,
+                mockPollPolicy, null, mockClocks);
+        liveSection.put("contentSourceId", liveContentSourceId);
+        liveSection.set("surface", utils.flushSurface());
+        return liveSection;
     }
 
     // ── Row conversion ─────────────────────────────────────────────────

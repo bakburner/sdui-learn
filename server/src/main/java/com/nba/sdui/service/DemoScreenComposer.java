@@ -3,6 +3,7 @@ package com.nba.sdui.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -21,14 +22,25 @@ public class DemoScreenComposer {
     private final ObjectMapper objectMapper;
     private final SduiUtils utils;
     private final AtomicCompositeBuilder atomicBuilder;
+    private final ParameterizedRefreshService parameterizedRefreshService;
 
     @Value("${sdui.schema.version:1.0}")
     private String schemaVersion;
 
-    public DemoScreenComposer(ObjectMapper objectMapper, SduiUtils utils) {
+    public DemoScreenComposer(ObjectMapper objectMapper,
+                               SduiUtils utils,
+                               ParameterizedRefreshService parameterizedRefreshService) {
         this.objectMapper = objectMapper;
         this.utils = utils;
         this.atomicBuilder = new AtomicCompositeBuilder(objectMapper);
+        this.parameterizedRefreshService = parameterizedRefreshService;
+    }
+
+    @PostConstruct
+    void registerParameterizedRefreshResolvers() {
+        parameterizedRefreshService.registerResolver("stats-leaders",
+                (traceId, params, ctx) -> composeLeadersRefresh(
+                        traceId, params, ctx.getLocale() != null ? ctx.getLocale() : "en"));
     }
 
     // ── Public entry points ────────────────────────────────────────────
@@ -664,7 +676,7 @@ public class DemoScreenComposer {
         submitAction.put("trigger", "onSubmit");
         submitAction.put("type", "refresh");
         submitAction.put("target", SectionIdDeriver.derive("stats-api:leaders", "SeasonLeadersTable"));
-        submitAction.put("endpoint", "/v1/sdui/refresh/stats-leaders");
+        submitAction.put("endpoint", "/v1/sdui/screen/refresh/stats-leaders");
         submitAction.put("onFailure", "halt");
         ObjectNode submitFeedback = objectMapper.createObjectNode();
         submitFeedback.put("message", "Stats lookup failed — please try again");

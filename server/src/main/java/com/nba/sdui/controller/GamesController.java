@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
  * Provides simplified game data for client consumption.
  */
 @RestController
-@RequestMapping("/api/games")
+@RequestMapping("/v1/api/games")
 public class GamesController {
 
     private static final Logger log = LoggerFactory.getLogger(GamesController.class);

@@ -4,7 +4,7 @@ import os
 private let logger = Logger(subsystem: "com.nba.sdui", category: "BootstrapFetcher")
 
 /// Public entry point for the very first composition request a host makes
-/// (typically `/sdui/init`, which returns `{ "bootstrapUri": "nba://..." }`).
+/// (typically `/v1/sdui/screen/init`, which returns `{ "bootstrapUri": "nba://..." }`).
 ///
 /// Routes through the same envelope + GET/POST + `X-Trace-Id` transport as
 /// every other composition request so the bootstrap call is not a parallel,
@@ -19,7 +19,7 @@ public enum BootstrapFetcher {
     /// string — the caller is expected to fall back to a hard-coded URI.
     public static func fetchBootstrapUri(
         config: SduiConfig,
-        endpoint: String = "/sdui/init"
+        endpoint: String = "/v1/sdui/screen/init"
     ) async -> String? {
         let repository = SduiRepository(config: config)
         do {

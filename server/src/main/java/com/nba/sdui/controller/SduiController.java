@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.nba.sdui.request.SduiRequestContext;
+import com.nba.sdui.service.ParameterizedRefreshService;
 import com.nba.sdui.service.SectionRefreshService;
 import com.nba.sdui.service.SduiCompositionService;
 import com.nba.sdui.service.UnsupportedSectionException;
@@ -42,6 +43,7 @@ public class SduiController {
 
     private final SduiCompositionService compositionService;
     private final SectionRefreshService sectionRefreshService;
+    private final ParameterizedRefreshService parameterizedRefreshService;
     private final ObjectMapper objectMapper;
     private final SchemaVersionChecker versionChecker;
     private final SchemaVersionConfig versionConfig;
@@ -49,12 +51,14 @@ public class SduiController {
 
     public SduiController(SduiCompositionService compositionService,
                           SectionRefreshService sectionRefreshService,
+                          ParameterizedRefreshService parameterizedRefreshService,
                           ObjectMapper objectMapper,
                           SchemaVersionChecker versionChecker,
                           SchemaVersionConfig versionConfig,
                           SchemaVersionFilter versionFilter) {
         this.compositionService = compositionService;
         this.sectionRefreshService = sectionRefreshService;
+        this.parameterizedRefreshService = parameterizedRefreshService;
         this.objectMapper = objectMapper;
         this.versionChecker = versionChecker;
         this.versionConfig = versionConfig;
@@ -63,7 +67,7 @@ public class SduiController {
 
     // ── Game Detail ────────────────────────────────────────────────────
 
-    @GetMapping(value = {"/v1/sdui/game-detail/{gameId}", "/v1/sdui/game/{gameId}"}, produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/v1/sdui/screen/game/{gameId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<JsonNode> getGameDetail(
             @PathVariable String gameId,
             SduiRequestContext ctx,
@@ -100,7 +104,7 @@ public class SduiController {
         }
     }
 
-    @PostMapping(value = {"/v1/sdui/game-detail/{gameId}", "/v1/sdui/game/{gameId}"}, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/v1/sdui/screen/game/{gameId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<JsonNode> postGameDetail(
             @PathVariable String gameId,
             SduiRequestContext ctx,
@@ -110,7 +114,7 @@ public class SduiController {
 
     // ── Scoreboard ─────────────────────────────────────────────────────
 
-    @GetMapping(value = "/v1/sdui/scoreboard", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/v1/sdui/screen/scoreboard", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<JsonNode> getScoreboard(
             SduiRequestContext ctx,
             HttpServletResponse response) {
@@ -138,14 +142,14 @@ public class SduiController {
         }
     }
 
-    @PostMapping(value = "/v1/sdui/scoreboard", produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/v1/sdui/screen/scoreboard", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<JsonNode> postScoreboard(SduiRequestContext ctx, HttpServletResponse response) {
         return getScoreboard(ctx, response);
     }
 
     // ── Stats (polling endpoint — not a composition endpoint) ──────────
 
-    @GetMapping(value = "/stats/{gameId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/v1/api/stats/{gameId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<JsonNode> getStats(
             @PathVariable String gameId) {
 
@@ -170,7 +174,7 @@ public class SduiController {
 
     // ── For You ────────────────────────────────────────────────────────
 
-    @GetMapping(value = "/v1/sdui/for-you", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/v1/sdui/screen/for-you", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<JsonNode> getForYou(
             SduiRequestContext ctx,
             HttpServletResponse response) {
@@ -196,14 +200,14 @@ public class SduiController {
         }
     }
 
-    @PostMapping(value = "/v1/sdui/for-you", produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/v1/sdui/screen/for-you", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<JsonNode> postForYou(SduiRequestContext ctx, HttpServletResponse response) {
         return getForYou(ctx, response);
     }
 
     // ── Watch ──────────────────────────────────────────────────────────
 
-    @GetMapping(value = "/v1/sdui/watch", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/v1/sdui/screen/watch", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<JsonNode> getWatch(
             SduiRequestContext ctx,
             HttpServletResponse response) {
@@ -229,14 +233,14 @@ public class SduiController {
         }
     }
 
-    @PostMapping(value = "/v1/sdui/watch", produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/v1/sdui/screen/watch", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<JsonNode> postWatch(SduiRequestContext ctx, HttpServletResponse response) {
         return getWatch(ctx, response);
     }
 
     // ── Games / Live ───────────────────────────────────────────────────
 
-    @GetMapping(value = {"/v1/sdui/games", "/v1/sdui/live"}, produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/v1/sdui/screen/games", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<JsonNode> getGames(
             SduiRequestContext ctx,
             HttpServletResponse response) {
@@ -262,14 +266,14 @@ public class SduiController {
         }
     }
 
-    @PostMapping(value = {"/v1/sdui/games", "/v1/sdui/live"}, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/v1/sdui/screen/games", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<JsonNode> postGames(SduiRequestContext ctx, HttpServletResponse response) {
         return getGames(ctx, response);
     }
 
     // ── Schedule ───────────────────────────────────────────────────────
 
-    @GetMapping(value = "/v1/sdui/schedule", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/v1/sdui/screen/schedule", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<JsonNode> getSchedule(
             SduiRequestContext ctx,
             HttpServletResponse response) {
@@ -295,14 +299,14 @@ public class SduiController {
         }
     }
 
-    @PostMapping(value = "/v1/sdui/schedule", produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/v1/sdui/screen/schedule", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<JsonNode> postSchedule(SduiRequestContext ctx, HttpServletResponse response) {
         return getSchedule(ctx, response);
     }
 
     // ── Demos ──────────────────────────────────────────────────────────
 
-    @GetMapping(value = "/v1/sdui/demos", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/v1/sdui/screen/demos", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<JsonNode> getDemos(
             SduiRequestContext ctx,
             HttpServletResponse response) {
@@ -329,14 +333,14 @@ public class SduiController {
         }
     }
 
-    @PostMapping(value = "/v1/sdui/demos", produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/v1/sdui/screen/demos", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<JsonNode> postDemos(SduiRequestContext ctx, HttpServletResponse response) {
         return getDemos(ctx, response);
     }
 
     // ── Home (NBA.com style) ───────────────────────────────────────────
 
-    @GetMapping(value = "/v1/sdui/home", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/v1/sdui/screen/home", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<JsonNode> getHome(
             SduiRequestContext ctx,
             HttpServletResponse response) {
@@ -362,14 +366,14 @@ public class SduiController {
         }
     }
 
-    @PostMapping(value = "/v1/sdui/home", produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/v1/sdui/screen/home", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<JsonNode> postHome(SduiRequestContext ctx, HttpServletResponse response) {
         return getHome(ctx, response);
     }
 
     // ── Leaders ────────────────────────────────────────────────────────
 
-    @GetMapping(value = "/v1/sdui/leaders", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/v1/sdui/screen/leaders", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<JsonNode> getLeaders(
             SduiRequestContext ctx,
             HttpServletResponse response) {
@@ -396,14 +400,14 @@ public class SduiController {
         }
     }
 
-    @PostMapping(value = "/v1/sdui/leaders", produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/v1/sdui/screen/leaders", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<JsonNode> postLeaders(SduiRequestContext ctx, HttpServletResponse response) {
         return getLeaders(ctx, response);
     }
 
     // ── Boxscore ───────────────────────────────────────────────────────
 
-    @GetMapping(value = "/v1/sdui/boxscore/{gameId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/v1/sdui/screen/boxscore/{gameId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<JsonNode> getBoxscore(
             @PathVariable String gameId,
             SduiRequestContext ctx,
@@ -431,7 +435,7 @@ public class SduiController {
         }
     }
 
-    @PostMapping(value = "/v1/sdui/boxscore/{gameId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/v1/sdui/screen/boxscore/{gameId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<JsonNode> postBoxscore(
             @PathVariable String gameId, SduiRequestContext ctx, HttpServletResponse response) {
         return getBoxscore(gameId, ctx, response);
@@ -496,7 +500,7 @@ public class SduiController {
      * notation in the query for GET, JSON body for POST when the envelope is
      * large or sensitive.
      */
-    @GetMapping(value = "/v1/sdui/refresh/{screenId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/v1/sdui/screen/refresh/{screenId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<JsonNode> getRefreshScreen(
             @PathVariable String screenId,
             @RequestParam Map<String, String> allParams,
@@ -506,7 +510,7 @@ public class SduiController {
         return refreshScreen(screenId, allParams, ctx, request, response);
     }
 
-    @PostMapping(value = "/v1/sdui/refresh/{screenId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/v1/sdui/screen/refresh/{screenId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<JsonNode> postRefreshScreen(
             @PathVariable String screenId,
             @RequestParam Map<String, String> allParams,
@@ -534,23 +538,12 @@ public class SduiController {
                 screenId, userParams, request.getMethod());
 
         try {
-            JsonNode screenResponse;
-
-            if ("stats-leaders".equals(screenId)) {
-                String locale = ctx.getLocale() != null ? ctx.getLocale() : "en";
-                screenResponse = compositionService.composeLeadersRefresh(traceId, userParams, locale);
-            } else {
-                ObjectNode placeholder = objectMapper.createObjectNode();
-                placeholder.put("id", screenId);
-                placeholder.put("traceId", traceId);
-                placeholder.put("schemaVersion", "1.0");
-
-                ObjectNode state = objectMapper.createObjectNode();
-                userParams.forEach(state::put);
-                placeholder.set("state", state);
-                placeholder.set("sections", objectMapper.createArrayNode());
-                screenResponse = placeholder;
+            var resolved = parameterizedRefreshService.refreshScreen(screenId, traceId, userParams, ctx);
+            if (resolved.isEmpty()) {
+                log.warn("Parameterized refresh: no resolver for screenId='{}'", screenId);
+                return ResponseEntity.notFound().build();
             }
+            JsonNode screenResponse = resolved.get();
 
             response.setHeader("X-Trace-Id", traceId);
             response.setHeader("X-Schema-Version", "1.0");
@@ -594,7 +587,7 @@ public class SduiController {
      * Bootstrap endpoint — returns the initial navigation URI so clients
      * do not need to hardcode a starting screen.
      */
-    @GetMapping(value = "/v1/sdui/init", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(value = "/v1/sdui/screen/init", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<JsonNode> init(SduiRequestContext ctx, HttpServletResponse response) {
         ensureTraceId(ctx);
         setResponseHeaders(response, ctx);
@@ -607,7 +600,7 @@ public class SduiController {
                 .body(body);
     }
 
-    @PostMapping(value = "/v1/sdui/init", produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "/v1/sdui/screen/init", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<JsonNode> postInit(SduiRequestContext ctx, HttpServletResponse response) {
         return init(ctx, response);
     }

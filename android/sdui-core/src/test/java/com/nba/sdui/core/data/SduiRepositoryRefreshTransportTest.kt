@@ -66,7 +66,7 @@ class SduiRepositoryRefreshTransportTest {
     @Test
     fun `parameterized refresh resolves baseUrl and percent-encodes user params`() = runBlocking {
         repository.fetchScreen(
-            path = "/v1/sdui/refresh/stats-leaders",
+            path = "/v1/sdui/screen/refresh/stats-leaders",
             envelope = compactEnvelope(),
             userParams = mapOf(
                 "perMode" to "Totals",
@@ -80,7 +80,7 @@ class SduiRepositoryRefreshTransportTest {
         val url = request.url
         assertEquals("https", url.scheme)
         assertEquals("example.test", url.host)
-        assertTrue(url.encodedPath.endsWith("/v1/sdui/refresh/stats-leaders"))
+        assertTrue(url.encodedPath.endsWith("/v1/sdui/screen/refresh/stats-leaders"))
 
         val query = url.encodedQuery!!
         assertTrue(query.contains("perMode=Totals"))
@@ -100,7 +100,7 @@ class SduiRepositoryRefreshTransportTest {
     @Test
     fun `refresh user params are sorted deterministically`() = runBlocking {
         repository.fetchScreen(
-            path = "/v1/sdui/refresh/x",
+            path = "/v1/sdui/screen/refresh/x",
             envelope = compactEnvelope(),
             userParams = mapOf("zKey" to "z", "aKey" to "a", "mKey" to "m")
         )
@@ -117,11 +117,11 @@ class SduiRepositoryRefreshTransportTest {
     fun `refresh and screen fetch produce the same encoded shape modulo user params`() = runBlocking {
         val envelope = compactEnvelope()
 
-        repository.fetchScreen("/v1/sdui/scoreboard", envelope)
+        repository.fetchScreen("/v1/sdui/screen/scoreboard", envelope)
         val screenQuery = captured.single().url.encodedQuery!!
         captured.clear()
 
-        repository.fetchScreen("/v1/sdui/scoreboard", envelope, userParams = mapOf("k" to "v"))
+        repository.fetchScreen("/v1/sdui/screen/scoreboard", envelope, userParams = mapOf("k" to "v"))
         val refreshQuery = captured.single().url.encodedQuery!!
 
         assertTrue(
@@ -143,7 +143,7 @@ class SduiRepositoryRefreshTransportTest {
         assertTrue("fixture must exceed GET threshold", oversized.exceedsGetThreshold())
 
         repository.fetchScreen(
-            path = "/v1/sdui/refresh/stats-leaders",
+            path = "/v1/sdui/screen/refresh/stats-leaders",
             envelope = oversized,
             userParams = mapOf("perMode" to "Totals")
         )

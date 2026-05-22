@@ -85,9 +85,12 @@ public class GameDetailComposer {
         String derivedGameState = "pre";
         JsonNode baseResponse;
         baseResponse = composeFromLiveData(gameId);
+        final boolean isMock;
         if (baseResponse != null) {
+            isMock = false;
             derivedGameState = deriveGameState(gameId);
         } else {
+            isMock = true;
             log.warn("Live game detail unavailable, falling back to example for gameState={}", derivedGameState);
             baseResponse = utils.loadExampleResponse(derivedGameState);
         }
@@ -136,6 +139,8 @@ public class GameDetailComposer {
 
         log.debug("SDUI response composed: variant={}, sections={}",
                 variant, response.has("sections") ? response.get("sections").size() : 0);
+
+        applyGameSectionRefreshPolicies(response, derivedGameState, isMock, gameId);
 
         utils.prependAppBarHeaderIfNeeded(response);
         prependVariantChipsIfPresent(response, gameId, variant);
@@ -312,7 +317,10 @@ public class GameDetailComposer {
 
         JsonNode boxscore = statsApiClient.getBoxscore(gameId);
         if (boxscore == null) {
-            throw new IOException("No boxscore data available for gameId=" + gameId);
+            // Mock game: no live data available. Return the example scoreboard so
+            // the client receives a valid section and continues polling.
+            log.warn("No live boxscore for gameId={} — returning mock scoreboard for section refresh", gameId);
+            return buildMockScoreboardSectionForRefresh(gameId, parsed.source());
         }
 
         JsonNode game = boxscore.path("game");
@@ -320,7 +328,38 @@ public class GameDetailComposer {
             throw new IOException("No game data in boxscore for gameId=" + gameId);
         }
 
-        return buildGamePanelScoreboardFromLive(game, gameId, parsed.source());
+        ObjectNode section = buildGamePanelScoreboardFromLive(game, gameId, parsed.source());
+        // Override the section's refresh policy to the canonical game-state-aware policy
+        // so the returned section always carries consistent 60 s poll or SSE semantics.
+        String gameState = deriveGameState(gameId);
+        section.set("refreshPolicy",
+                buildRefreshPolicyForGameSection(gameState, false, section.path("id").asText(""), gameId));
+        return section;
+    }
+
+    /**
+     * Return the scoreboard section from the pre-game example JSON with a section-poll
+     * refresh policy. Used by {@link #refreshGameDetailSection} when the live API is
+     * unavailable (mock game) so the client receives a valid response and keeps polling.
+     */
+    private ObjectNode buildMockScoreboardSectionForRefresh(String gameId, String contentSourceId)
+            throws IOException {
+        JsonNode example = utils.loadExampleResponse("pre");
+        if (example != null && example.has("sections")) {
+            for (JsonNode node : (ArrayNode) example.get("sections")) {
+                if (!node.isObject()) continue;
+                String slug = SectionIdDeriver.extractSlug(node.path("id").asText(""));
+                if (!"scoreboard".equals(slug)) continue;
+                ObjectNode section = node.deepCopy();
+                String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite", "scoreboard");
+                section.put("id", sectionId);
+                section.put("contentSourceId", contentSourceId);
+                section.set("refreshPolicy",
+                        buildRefreshPolicyForGameSection("pre", true, sectionId, gameId));
+                return section;
+            }
+        }
+        throw new IOException("Scoreboard section not found in pre-game example for gameId=" + gameId);
     }
 
     private ObjectNode loadSectionFromExample(String sectionId) {
@@ -969,6 +1008,68 @@ public class GameDetailComposer {
         data.set("ui", root);
         section.set("data", data);
         return section;
+    }
+
+    // ── Section refresh policy ─────────────────────────────────────────
+
+    /**
+     * Override the {@code refreshPolicy} on every scoreboard section to match the
+     * canonical rules for the current game state:
+     *
+     * <ul>
+     *   <li><b>Pre-game (any data source)</b> — section-level poll every 60 s.
+     *       When the game goes live the server returns {@code sse} policy on the
+     *       next poll and the client transitions automatically.</li>
+     *   <li><b>Live, real data</b> — SSE via Ably channel ({@code gameId:linescore}).</li>
+     *   <li><b>Live, mock data</b> — section-level poll every 60 s; no real Ably
+     *       channel is available for mock games.</li>
+     *   <li><b>Post-game (any data source)</b> — section-level poll every 60 s so
+     *       E2E tests can verify the refresh lifecycle end to end.</li>
+     * </ul>
+     *
+     * <p>Called at the end of {@link #composeGameDetail} after all variant
+     * transforms so every code path that produces sections is covered uniformly.
+     */
+    private void applyGameSectionRefreshPolicies(ObjectNode response, String gameState,
+                                                  boolean isMock, String gameId) {
+        JsonNode sections = response.get("sections");
+        if (sections == null || !sections.isArray()) return;
+        for (JsonNode node : sections) {
+            if (!node.isObject()) continue;
+            ObjectNode section = (ObjectNode) node;
+            String slug = SectionIdDeriver.extractSlug(section.path("id").asText(""));
+            if (!"scoreboard".equals(slug)) continue;
+            String sectionId = section.path("id").asText("");
+            section.set("refreshPolicy",
+                    buildRefreshPolicyForGameSection(gameState, isMock, sectionId, gameId));
+        }
+    }
+
+    /**
+     * Build the {@code refreshPolicy} node for a scoreboard-type section.
+     *
+     * @param gameState  {@code "pre"}, {@code "live"}, or {@code "post"}
+     * @param isMock     {@code true} when the section was composed from example/fallback
+     *                   data rather than live API data
+     * @param sectionId  fully-derived section ID (used to build {@code sectionEndpoint})
+     * @param gameId     NBA game ID (used to build the Ably channel name for real live games)
+     */
+    private ObjectNode buildRefreshPolicyForGameSection(String gameState, boolean isMock,
+                                                        String sectionId, String gameId) {
+        ObjectNode policy = objectMapper.createObjectNode();
+        if ("live".equals(gameState) && !isMock) {
+            policy.put("type", "sse");
+            policy.put("channel", gameId + ":linescore");
+            policy.put("pauseWhenOffScreen", false);
+        } else {
+            // pre, post, or live with mock data: section-level poll every 60 s.
+            policy.put("type", "poll");
+            policy.put("sectionEndpoint", "/v1/sdui/section/" + sectionId);
+            policy.put("intervalMs", 60_000);
+            // Pause when off-screen for pre/post; keep running for live mock so updates are visible.
+            policy.put("pauseWhenOffScreen", !"live".equals(gameState));
+        }
+        return policy;
     }
 
     // ── Channel resolution ─────────────────────────────────────────────

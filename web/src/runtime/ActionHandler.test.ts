@@ -169,10 +169,10 @@ describe('ActionHandler', () => {
     const context = buildContext();
 
     await executeActionSequence([
-      navigateAction({ webUrl: '/v1/sdui/scoreboard' }),
+      navigateAction({ webUrl: '/v1/sdui/screen/scoreboard' }),
     ], context);
 
-    expect(context.onNavigate).toHaveBeenCalledWith('/v1/sdui/scoreboard');
+    expect(context.onNavigate).toHaveBeenCalledWith('/v1/sdui/screen/scoreboard');
   });
 
   it('navigates with targetUri only', async () => {
@@ -191,7 +191,7 @@ describe('ActionHandler', () => {
     await executeActionSequence([
       navigateAction({
         targetUri: 'nba://boxscore/0042300102',
-        webUrl: '/v1/sdui/boxscore/0042300102',
+        webUrl: '/v1/sdui/screen/boxscore/0042300102',
       }),
     ], context);
 

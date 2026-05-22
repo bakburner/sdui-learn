@@ -345,7 +345,7 @@
                       "type": "Text",
                       "content": "BOS",
                       "variant": "labelSmall",
-                      "color": "token:nba.text.secondary"
+                      "color": "token:nba.label.secondary"
                     }
                   ]
                 },
@@ -359,14 +359,14 @@
                       "type": "Text",
                       "content": "PTS",
                       "variant": "bodySmall",
-                      "color": "token:nba.text.secondary"
+                      "color": "token:nba.label.secondary"
                     },
                     {
                       "type": "Text",
                       "content": "33",
                       "variant": "titleSmall",
                       "weight": "bold",
-                      "color": "token:nba.brand.live"
+                      "color": "token:nba.label.accent.live"
                     }
                   ]
                 }
@@ -407,7 +407,7 @@
                       "type": "Text",
                       "content": "BOS",
                       "variant": "labelSmall",
-                      "color": "token:nba.text.secondary"
+                      "color": "token:nba.label.secondary"
                     }
                   ]
                 },
@@ -421,14 +421,14 @@
                       "type": "Text",
                       "content": "PTS",
                       "variant": "bodySmall",
-                      "color": "token:nba.text.secondary"
+                      "color": "token:nba.label.secondary"
                     },
                     {
                       "type": "Text",
                       "content": "28",
                       "variant": "titleSmall",
                       "weight": "bold",
-                      "color": "token:nba.brand.live"
+                      "color": "token:nba.label.accent.live"
                     }
                   ]
                 }
@@ -469,7 +469,7 @@
                       "type": "Text",
                       "content": "BOS",
                       "variant": "labelSmall",
-                      "color": "token:nba.text.secondary"
+                      "color": "token:nba.label.secondary"
                     }
                   ]
                 },
@@ -483,14 +483,14 @@
                       "type": "Text",
                       "content": "PTS",
                       "variant": "bodySmall",
-                      "color": "token:nba.text.secondary"
+                      "color": "token:nba.label.secondary"
                     },
                     {
                       "type": "Text",
                       "content": "13",
                       "variant": "titleSmall",
                       "weight": "bold",
-                      "color": "token:nba.brand.live"
+                      "color": "token:nba.label.accent.live"
                     }
                   ]
                 }
@@ -531,7 +531,7 @@
                       "type": "Text",
                       "content": "MIA",
                       "variant": "labelSmall",
-                      "color": "token:nba.text.secondary"
+                      "color": "token:nba.label.secondary"
                     }
                   ]
                 },
@@ -545,14 +545,14 @@
                       "type": "Text",
                       "content": "PTS",
                       "variant": "bodySmall",
-                      "color": "token:nba.text.secondary"
+                      "color": "token:nba.label.secondary"
                     },
                     {
                       "type": "Text",
                       "content": "24",
                       "variant": "titleSmall",
                       "weight": "bold",
-                      "color": "token:nba.brand.live"
+                      "color": "token:nba.label.accent.live"
                     }
                   ]
                 }
@@ -593,7 +593,7 @@
                       "type": "Text",
                       "content": "MIA",
                       "variant": "labelSmall",
-                      "color": "token:nba.text.secondary"
+                      "color": "token:nba.label.secondary"
                     }
                   ]
                 },
@@ -607,14 +607,14 @@
                       "type": "Text",
                       "content": "PTS",
                       "variant": "bodySmall",
-                      "color": "token:nba.text.secondary"
+                      "color": "token:nba.label.secondary"
                     },
                     {
                       "type": "Text",
                       "content": "21",
                       "variant": "titleSmall",
                       "weight": "bold",
-                      "color": "token:nba.brand.live"
+                      "color": "token:nba.label.accent.live"
                     }
                   ]
                 }
@@ -655,7 +655,7 @@
                       "type": "Text",
                       "content": "MIA",
                       "variant": "labelSmall",
-                      "color": "token:nba.text.secondary"
+                      "color": "token:nba.label.secondary"
                     }
                   ]
                 },
@@ -669,14 +669,14 @@
                       "type": "Text",
                       "content": "PTS",
                       "variant": "bodySmall",
-                      "color": "token:nba.text.secondary"
+                      "color": "token:nba.label.secondary"
                     },
                     {
                       "type": "Text",
                       "content": "21",
                       "variant": "titleSmall",
                       "weight": "bold",
-                      "color": "token:nba.brand.live"
+                      "color": "token:nba.label.accent.live"
                     }
                   ]
                 }
@@ -778,7 +778,7 @@
                                 "type": "Text",
                                 "content": "BOS",
                                 "variant": "labelSmall",
-                                "color": "token:nba.text.secondary"
+                                "color": "token:nba.label.secondary"
                               }
                             ]
                           },
@@ -792,14 +792,14 @@
                                 "type": "Text",
                                 "content": "PTS",
                                 "variant": "bodySmall",
-                                "color": "token:nba.text.secondary"
+                                "color": "token:nba.label.secondary"
                               },
                               {
                                 "type": "Text",
                                 "content": "33",
                                 "variant": "titleSmall",
                                 "weight": "bold",
-                                "color": "token:nba.brand.live"
+                                "color": "token:nba.label.accent.live"
                               }
                             ]
                           }
@@ -840,7 +840,7 @@
                                 "type": "Text",
                                 "content": "BOS",
                                 "variant": "labelSmall",
-                                "color": "token:nba.text.secondary"
+                                "color": "token:nba.label.secondary"
                               }
                             ]
                           },
@@ -854,14 +854,14 @@
                                 "type": "Text",
                                 "content": "PTS",
                                 "variant": "bodySmall",
-                                "color": "token:nba.text.secondary"
+                                "color": "token:nba.label.secondary"
                               },
                               {
                                 "type": "Text",
                                 "content": "28",
                                 "variant": "titleSmall",
                                 "weight": "bold",
-                                "color": "token:nba.brand.live"
+                                "color": "token:nba.label.accent.live"
                               }
                             ]
                           }
@@ -941,7 +941,7 @@
                                 "type": "Text",
                                 "content": "MIA",
                                 "variant": "labelSmall",
-                                "color": "token:nba.text.secondary"
+                                "color": "token:nba.label.secondary"
                               }
                             ]
                           },
@@ -955,14 +955,14 @@
                                 "type": "Text",
                                 "content": "PTS",
                                 "variant": "bodySmall",
-                                "color": "token:nba.text.secondary"
+                                "color": "token:nba.label.secondary"
                               },
                               {
                                 "type": "Text",
                                 "content": "24",
                                 "variant": "titleSmall",
                                 "weight": "bold",
-                                "color": "token:nba.brand.live"
+                                "color": "token:nba.label.accent.live"
                               }
                             ]
                           }
@@ -1003,7 +1003,7 @@
                                 "type": "Text",
                                 "content": "MIA",
                                 "variant": "labelSmall",
-                                "color": "token:nba.text.secondary"
+                                "color": "token:nba.label.secondary"
                               }
                             ]
                           },
@@ -1017,14 +1017,14 @@
                                 "type": "Text",
                                 "content": "PTS",
                                 "variant": "bodySmall",
-                                "color": "token:nba.text.secondary"
+                                "color": "token:nba.label.secondary"
                               },
                               {
                                 "type": "Text",
                                 "content": "21",
                                 "variant": "titleSmall",
                                 "weight": "bold",
-                                "color": "token:nba.brand.live"
+                                "color": "token:nba.label.accent.live"
                               }
                             ]
                           }

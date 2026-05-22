@@ -71,6 +71,7 @@ jobs:
         run: |
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
+          git remote set-url origin https://x-access-token:${{ secrets.DEPLOY_PAT }}@github.com/${{ github.repository }}.git
           git fetch origin environment/dev && git checkout -B environment/dev origin/environment/dev || {
             git checkout --orphan environment/dev
             git rm -rf . || true

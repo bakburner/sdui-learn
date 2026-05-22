@@ -163,12 +163,8 @@ Navigate action URIs use the `nba://` scheme.  Clients resolve these to
 server endpoints using a simple convention:
 
 ```
-nba://{path}  →  GET /v1/sdui/{path}
+nba://{path}  →  GET /v1/sdui/screen/{path}
 ```
-
-> **Legacy exception:** `nba://game/{id}` → `GET /v1/sdui/game-detail/{id}?gameState=live`
-> preserves backward compatibility with the existing game-detail endpoint.
-> New screens must use the simple prefix swap only.
 
 This convention means new screens require **no client code changes** —
 adding a server endpoint and including its URI in navigation items or
@@ -929,7 +925,7 @@ The alternative is duplicated platform composition logic and drift in feature be
 
 | Date | Summary |
 |---|---|
-| 2026-05-20 | Doc consistency audit: added element-level action scope to §4, added the current cross-platform trigger-hosting matrix, and synced the action-system narrative with the trigger-alignment work. |
+| 2026-05-22 | Doc consistency audit: updated URI resolution convention to `/v1/sdui/screen/{path}` — removed stale legacy exception note (old game-detail path retired). Updated GET/POST fallback examples in envelope spec. | Doc consistency audit: added element-level action scope to §4, added the current cross-platform trigger-hosting matrix, and synced the action-system narrative with the trigger-alignment work. |
 | 2026-05-05 | Doc consistency audit. §10: Atomic rendering layer count corrected 10 → 12 primitives. Added Schema versioning protocol row (Built). |
 | 2026-04-27 | Doc consistency audit: `onActivate` trigger added to §4 table, ErrorState note clarified as AtomicComposite in §10, terminology sync. |
 | 2026-04-27 | Parameterized refresh + shared transport (§4, AGENTS §4.1.1, contract §11). §0: `platform` via envelope only. §2a: 12 `AtomicElement` types in the summary table. Server `/sdui/refresh/{screenId}` GET+POST. Glossary: fetch primitive, parameterized refresh. |

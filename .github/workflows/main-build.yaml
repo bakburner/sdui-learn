@@ -71,14 +71,20 @@ jobs:
         run: |
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
-          git fetch origin environment/dev || true
-          git checkout environment/dev 2>/dev/null || git checkout --orphan environment/dev
-          git reset --hard
+          git fetch origin environment/dev && git checkout -B environment/dev origin/environment/dev || {
+            git checkout --orphan environment/dev
+            git rm -rf . || true
+            git clean -fdx
+          }
           git checkout main -- helm/prod-values.yaml
           yq -i ".image.tag = \"$IMAGE_TAG\"" helm/prod-values.yaml
           git add helm/prod-values.yaml
-          git commit -m "deploy: update image tag to $IMAGE_TAG"
-          git push origin environment/dev
+          if git diff --cached --quiet; then
+            echo "No changes to deploy (tag already up to date)"
+          else
+            git commit -m "deploy: update image tag to $IMAGE_TAG"
+            git push origin environment/dev
+          fi
 
   # -------------------------------------------------------
   # Container Scan -- Wiz image scanning after build

@@ -4,7 +4,7 @@ import type { SduiModels, Section } from '@sdui/models';
 import { fetchSduiScreen } from '../runtime/fetchSduiScreen';
 
 interface UseSduiScreenOptions {
-  /** Server endpoint path, e.g. "/v1/sdui/scoreboard". Null skips the fetch. */
+  /** Server endpoint path, e.g. "/v1/sdui/screen/scoreboard". Null skips the fetch. */
   endpoint: string | null;
   /** Experiment assignments from Amplitude (experimentId → variant). */
   experiments?: Record<string, string>;

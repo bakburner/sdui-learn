@@ -3,7 +3,7 @@ import { RequestEnvelopeBuilder } from '../request/RequestEnvelopeBuilder';
 import { SDUI_PATH_PREFIX, API_PROXY_PREFIX } from '../utils/constants';
 
 export interface FetchSduiScreenOptions {
-  /** Server-relative path, e.g. `/v1/sdui/scoreboard`. */
+  /** Server-relative path, e.g. `/v1/sdui/screen/scoreboard`. */
   endpoint: string;
   /** Experiment assignments from Amplitude (experimentId → variant). */
   experiments?: Record<string, string>;

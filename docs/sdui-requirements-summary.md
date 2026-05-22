@@ -401,8 +401,22 @@ graph LR
 | **fireAndForget** | Fire a beacon | `event` (name), `params` (arbitrary k/v), `destinations` (adobe/firebase/internal/all) |
 | **mutate** | Change local UI state | `target` (state key), `operation` (set/toggle/increment/append), `value` |
 | **dismiss** | Close modal/overlay/screen | `target` (modal/overlay/screen) |
-| **refresh** | Force re-fetch | `target` (section ID, or omit for full screen) |
+| **refresh** | Force re-fetch | `target` (section ID, or omit for full screen); `endpoint` + `paramBindings` for parameterized form-submit refresh |
 | **toast** | Show notification | `message`, `duration` |
+
+### Parameterized Refresh (Form Submit)
+
+A `refresh` action may carry an `endpoint` and `paramBindings` map. This is the mechanism used by `Form` sections to re-fetch server-composed content with user-selected filter values.
+
+**Request:** the client appends resolved `paramBindings` values as URL query params and calls the shared `fetchScreen` primitive — same transport as every other composition fetch.
+
+**Response contract:** the server returns a **screen-shaped envelope** (`id`, `schemaVersion`, `state`, `sections[]`) containing _all visually affected sections_ — both the re-composed data section(s) and the re-composed form section with the new selections already reflected. The client merges the returned sections into the current screen in place; no navigation occurs.
+
+**Endpoint namespace:** `/v1/sdui/screen/refresh/{handlerId}` — screen prefix because the response is a screen-shaped envelope consumed by `fetchScreen`. The `handlerId` is a server-assigned identifier, not a navigable screen name.
+
+**Why the form section must be in the response:** the form's chip/field selections are embedded in the server-composed section. Omitting the form from the response and relying on a `state` echo side-channel instead creates two owners for the same visual concern. Including the form in the response keeps the server as the single source of truth for what is displayed.
+
+**Registry:** server-side `ParameterizedRefreshService` maps handler IDs to resolver lambdas registered at startup (`@PostConstruct`). Unknown handler IDs return 404.
 
 ### Composability — Single Trigger, Multiple Actions
 
@@ -833,6 +847,15 @@ Airbnb and DoorDash implement section-level lazy loading for long scrolling scre
 - Clients: `fetchSection()` / `fetchSduiSection()` via shared envelope transport; `restartRealtimeForSection(sectionId)` for scoped teardown before merge; poll loop with error semantics (404→stop, 5xx→backoff+stale); re-evaluates new section's `refreshPolicy` enabling poll→SSE transition
 - Web: policy fingerprint key (`sectionPolicyKey`) for React remount on policy change
 
+**Mock data must not use SSE/Ably.** When a section displays mock or fallback data (i.e., the real data source is unavailable), the server MUST emit a poll `sectionEndpoint` refresh policy, not an SSE channel. Connecting Ably for data that will never arrive wastes a connection slot and creates confusing log noise. Section resolvers that serve mock data as a fallback must also return the poll policy — when real data becomes available, the resolver switches to the SSE policy on the next poll cycle, enabling a clean mock→live transition without a client release.
+
+**GameDetail section refresh policies (implemented):**
+- Pre-game: 60 s poll via `sectionEndpoint`, `pauseWhenOffScreen: true`
+- Live game + real data: SSE (`{gameId}:linescore` channel), `pauseWhenOffScreen: false`
+- Live game + mock/fallback data: 60 s poll via `sectionEndpoint`, `pauseWhenOffScreen: false`
+- Post-game: 60 s poll via `sectionEndpoint`, `pauseWhenOffScreen: true`
+- Screen-level `defaultRefreshPolicy` is `static` on the GameDetail screen; all refresh is section-owned.
+
 ### 9e. Caching & Offline Support
 
 **What's needed:**
@@ -1005,7 +1028,11 @@ sequenceDiagram
 - All timestamps in UTC — no timezone in the request envelope. Timezone-aware formatting is a client presentation concern.
 - `variant` query param removed — all variant resolution uses the `experiments` map exclusively.
 - Cache-Control headers set per route cacheability class: `public` (shared screens), `contextual` (locale-varying), `personalized` (user-specific), `live` (real-time, `no-cache`). See D7 route→cacheability mapping.
-- **All composition routes are dual-mounted GET + POST to the same handler.** This includes `/v1/sdui/refresh/{screenId}`, the parameterized-refresh endpoint that backs Form-driven section refreshes. There are no GET-only or POST-only composition endpoints.
+- **URL namespace — three prefixes, three response shapes:**
+  - `/v1/sdui/screen/` — SDUI screen compositions. Response is a full screen envelope (`id`, `navigation`, `sections[]`, `state`). Used for initial loads, navigation, pull-to-refresh, and parameterized form-submit refresh (`/v1/sdui/screen/refresh/{handlerId}`).
+  - `/v1/sdui/section/` — SDUI section re-compositions. Response is a single `Section` object. Used for section-level polling and SSE-triggered re-composition.
+  - `/v1/api/` — Raw domain data (not SDUI-shaped). Consumed via `dataBinding` path rules; never decoded as a screen or section.
+- **All composition routes are dual-mounted GET + POST to the same handler.** This includes `/v1/sdui/screen/refresh/{handlerId}`, the parameterized-refresh endpoint that backs Form-driven section refreshes. There are no GET-only or POST-only composition endpoints.
 - **Every composition fetch on every client routes through one shared primitive** (`SduiRepository.fetchScreen` / `fetchSduiScreen` on web), regardless of whether it's an initial load, a navigation, a pull-to-refresh, or an action-driven `refresh` with `paramBindings`. That primitive owns baseURL resolution, envelope serialization, GET/POST length-fallback, RFC-3986 percent-encoding, deterministic key ordering, and `X-Trace-Id` propagation. Hand-rolled URL strings or per-action transports are not allowed.
 - **User-supplied filter params** (Form bindings such as `season=2025-26`, refresh `paramBindings`) ride the URL query string regardless of HTTP method, so the server reads them through `@RequestParam` on either side. They participate in the GET/POST length decision alongside the envelope.
 

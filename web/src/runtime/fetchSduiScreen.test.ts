@@ -106,7 +106,7 @@ describe('fetchSduiScreen — parameterized refresh transport', () => {
     expect(captured).toHaveLength(1);
     const req = captured[0];
     expect(req.method).toBe('GET');
-    expect(req.url.startsWith('/api/v1/sdui/refresh/stats-leaders?')).toBe(true);
+    expect(req.url.startsWith('/api/v1/sdui/screen/refresh/stats-leaders?')).toBe(true);
 
     const query = req.url.split('?')[1];
     expect(query).toContain('perMode=Totals');
@@ -122,7 +122,7 @@ describe('fetchSduiScreen — parameterized refresh transport', () => {
 
   it('sorts user params deterministically by key', async () => {
     await fetchSduiScreen({
-      endpoint: '/v1/sdui/refresh/x',
+      endpoint: '/v1/sdui/screen/refresh/x',
       userParams: { zKey: 'z', aKey: 'a', mKey: 'm' },
     });
 
@@ -136,11 +136,11 @@ describe('fetchSduiScreen — parameterized refresh transport', () => {
   });
 
   it('refresh and screen fetch produce the same encoded shape modulo user params', async () => {
-    await fetchSduiScreen({ endpoint: '/v1/sdui/scoreboard' });
+    await fetchSduiScreen({ endpoint: '/v1/sdui/screen/scoreboard' });
     const screenQuery = captured[0].url.split('?')[1];
 
     captured.length = 0;
-    await fetchSduiScreen({ endpoint: '/v1/sdui/scoreboard', userParams: { k: 'v' } });
+    await fetchSduiScreen({ endpoint: '/v1/sdui/screen/scoreboard', userParams: { k: 'v' } });
     const refreshQuery = captured[0].url.split('?')[1];
 
     expect(refreshQuery.startsWith('k=v&')).toBe(true);

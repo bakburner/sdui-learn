@@ -3,6 +3,7 @@ package com.nba.sdui.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.nba.sdui.request.SduiRequestContext;
+import com.nba.sdui.service.ParameterizedRefreshService;
 import com.nba.sdui.service.SduiCompositionService;
 import com.nba.sdui.service.SectionRefreshService;
 import com.nba.sdui.versioning.SchemaVersionChecker;
@@ -20,6 +21,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -68,12 +70,15 @@ class SduiRefreshTransportTest {
     @MockBean
     private SectionRefreshService sectionRefreshService;
 
+    @MockBean
+    private ParameterizedRefreshService parameterizedRefreshService;
+
     @BeforeEach
     void setUp() throws Exception {
         ObjectNode refreshResponse = (ObjectNode) objectMapper.readTree(
                 "{\"id\":\"stats-leaders\",\"schemaVersion\":\"1.0\",\"sections\":[]}");
-        when(compositionService.composeLeadersRefresh(anyString(), any(), anyString()))
-                .thenReturn(refreshResponse);
+        when(parameterizedRefreshService.refreshScreen(eq("stats-leaders"), anyString(), any(), any()))
+                .thenReturn(Optional.of(refreshResponse));
 
         ObjectNode scoreboardResponse = (ObjectNode) objectMapper.readTree(
                 "{\"id\":\"scoreboard\",\"schemaVersion\":\"1.0\",\"sections\":[]}");
@@ -84,7 +89,7 @@ class SduiRefreshTransportTest {
     @Test
     void getRefreshAcceptsBracketEnvelopeAndExtractsUserParams() throws Exception {
         mockMvc.perform(
-                get("/v1/sdui/refresh/stats-leaders")
+                get("/v1/sdui/screen/refresh/stats-leaders")
                         .param("perMode", "Totals")
                         .param("season", "2025-26")
                         .param("seasonType", "Regular Season")
@@ -97,10 +102,11 @@ class SduiRefreshTransportTest {
         ).andExpect(status().isOk());
 
         ArgumentCaptor<Map<String, String>> userParams = ArgumentCaptor.forClass(Map.class);
-        verify(compositionService).composeLeadersRefresh(
+        verify(parameterizedRefreshService).refreshScreen(
+                eq("stats-leaders"),
                 eq("trace-123"),
                 userParams.capture(),
-                eq("en")
+                any()
         );
 
         Map<String, String> captured = userParams.getValue();
@@ -129,7 +135,7 @@ class SduiRefreshTransportTest {
         envelope.put("platform", platform);
 
         mockMvc.perform(
-                post("/v1/sdui/refresh/stats-leaders")
+                post("/v1/sdui/screen/refresh/stats-leaders")
                         .param("perMode", "Totals")
                         .param("season", "2025-26")
                         .contentType("application/json")
@@ -139,10 +145,11 @@ class SduiRefreshTransportTest {
         ).andExpect(status().isOk());
 
         ArgumentCaptor<Map<String, String>> userParams = ArgumentCaptor.forClass(Map.class);
-        verify(compositionService).composeLeadersRefresh(
+        verify(parameterizedRefreshService).refreshScreen(
+                eq("stats-leaders"),
                 eq("trace-456"),
                 userParams.capture(),
-                eq("en")
+                any()
         );
 
         Map<String, String> captured = userParams.getValue();
@@ -150,6 +157,23 @@ class SduiRefreshTransportTest {
         assertEquals("2025-26", captured.get("season"));
         assertFalse(captured.containsKey("platform"),
                 "envelope keys from JSON body must not leak into user params: " + captured);
+    }
+
+    /**
+     * An unknown screenId must return 404 (no resolver registered) rather than
+     * a silent empty placeholder response. Clients treat 404 as "this screen ID
+     * is gone" and surface an error state rather than silently showing nothing.
+     */
+    @Test
+    void unknownScreenIdReturns404() throws Exception {
+        when(parameterizedRefreshService.refreshScreen(eq("unknown-screen"), anyString(), any(), any()))
+                .thenReturn(Optional.empty());
+
+        mockMvc.perform(
+                get("/v1/sdui/screen/refresh/unknown-screen")
+                        .param("locale", "en")
+                        .header("X-Platform", "web")
+        ).andExpect(status().isNotFound());
     }
 
     /**

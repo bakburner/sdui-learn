@@ -68,7 +68,7 @@ open class SduiScreenViewModel(
          */
         fun resolveEndpoint(uri: String): String {
             val path = uri.removePrefix("nba://")
-            return "/v1/sdui/$path"
+            return "/v1/sdui/screen/$path"
         }
     }
 

@@ -28,7 +28,7 @@ import org.json.JSONObject
 class MainActivity : ComponentActivity() {
     companion object {
         private const val TAG = "SDUI_MainActivity"
-        // Degraded-connectivity fallback only — primary bootstrap URI comes from /sdui/init.
+        // Degraded-connectivity fallback only — primary bootstrap URI comes from /v1/sdui/screen/init.
         private const val FALLBACK_BOOTSTRAP_URI = "nba://for-you"
     }
 
@@ -92,7 +92,7 @@ class MainActivity : ComponentActivity() {
         kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
             val envelope = com.nba.sdui.core.request.RequestEnvelopeBuilder()
             val qs = envelope.buildQueryString()
-            val conn = URL("${BuildConfig.SDUI_ANDROID_BASE_URL}/sdui/init?$qs").openConnection() as HttpURLConnection
+            val conn = URL("${BuildConfig.SDUI_ANDROID_BASE_URL}/v1/sdui/screen/init?$qs").openConnection() as HttpURLConnection
             conn.connectTimeout = 5_000
             conn.readTimeout = 5_000
             try {
@@ -103,7 +103,7 @@ class MainActivity : ComponentActivity() {
             }
         }
     } catch (e: Exception) {
-        Log.w(TAG, "Failed to fetch /sdui/init, using fallback", e)
+        Log.w(TAG, "Failed to fetch /v1/sdui/screen/init, using fallback", e)
         FALLBACK_BOOTSTRAP_URI
     }
 }

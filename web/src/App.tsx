@@ -11,7 +11,7 @@ import { resolveLayoutScalar, resolveSpacingPx } from './utils/LayoutTokenResolv
 import type { Spacing } from '@sdui/models';
 import { WireAssetBaseUrlProvider } from './context/WireAssetBaseUrlContext';
 
-// Degraded-connectivity fallback only — primary bootstrap URI comes from /v1/sdui/init.
+// Degraded-connectivity fallback only — primary bootstrap URI comes from /v1/sdui/screen/init.
 const FALLBACK_BOOTSTRAP_URI = 'nba://for-you';
 
 /**
@@ -20,15 +20,15 @@ const FALLBACK_BOOTSTRAP_URI = 'nba://for-you';
  * Pure prefix swap — no special-casing of individual screens. The server
  * owns all routing semantics.
  *
- *   nba://scoreboard        → /v1/sdui/scoreboard
- *   nba://game/0042300102   → /v1/sdui/game/0042300102
- *   nba://boxscore/00423... → /v1/sdui/boxscore/0042300102
- *   nba://demos             → /v1/sdui/demos
- *   nba://anything/else     → /v1/sdui/anything/else
+ *   nba://scoreboard        → /v1/sdui/screen/scoreboard
+ *   nba://game/0042300102   → /v1/sdui/screen/game/0042300102
+ *   nba://boxscore/00423... → /v1/sdui/screen/boxscore/0042300102
+ *   nba://demos             → /v1/sdui/screen/demos
+ *   nba://anything/else     → /v1/sdui/screen/anything/else
  */
 function resolveEndpoint(uri: string): string {
   const path = uri.replace(/^nba:\/\//, '');
-  return `/v1/sdui/${path}`;
+  return `/v1/sdui/screen/${path}`;
 }
 
 export function App(): React.ReactElement {
@@ -40,7 +40,7 @@ export function App(): React.ReactElement {
   useEffect(() => {
     let cancelled = false;
     const qs = new RequestEnvelopeBuilder().buildQueryString();
-    fetch(`/api/v1/sdui/init?${qs}`)
+    fetch(`/api/v1/sdui/screen/init?${qs}`)
       .then(r => r.ok ? r.json() : Promise.reject(new Error(`init: ${r.status}`)))
       .then((data: { bootstrapUri?: string }) => {
         if (cancelled) return;

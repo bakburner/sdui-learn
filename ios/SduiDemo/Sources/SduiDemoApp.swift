@@ -10,7 +10,7 @@ struct SduiDemoApp: App {
     @State private var bootstrapEndpoint: String?
 
     private let config: SduiConfig = {
-        let urlString = ProcessInfo.processInfo.environment["SDUI_BASE_URL"]
+        let urlString = ProcessInfo.processInfo.environment["SDUI_IOS_BASE_URL"]
             ?? "https://sdui-prototype.tools.internal.nba.com"
         return SduiConfig(
             baseURL: URL(string: urlString)!,

@@ -739,6 +739,10 @@ Reference: ADR-009
 
 ### 9j. A/B Testing Integration
 
+**Status: Built** (ADR-006 Accepted). Clients send `experiments` in envelope; server branches composition; kill switch client-side; exposure via `fireAndForget`.
+
+Operational-hardening items remaining:
+
 - Client-authoritative assignment via Amplitude SDK.
 - Server trusts assignments and uses them for composition branching.
 - Server kill switch can reject disabled variants (fallback to control).
@@ -785,9 +789,11 @@ References: ADR-003, ADR-004
 
 ### 9p. Internationalization (i18n)
 
+**Status: Built.** Server pre-translates via locale + section `stringTable`; `stringKeys` on `dataBinding` supports dynamic binding translation.
+
 The composition server pre-translates all text in the initial response based on locale (`locale` query parameter on GET, body field on POST; default `en`). However, real-time updates (Ably SSE) and direct CDN polling bypass the server — the DataBindingApplier writes external source values directly into section data with no translation opportunity.
 
-**Proposed implementation: server default + optional string keys on data bindings.**
+**Implementation (built): server default + optional string keys on data bindings.**
 
 - **Initial load:** Server resolves locale from the request and sends pre-translated text in all string fields. Clients render as-is.
 - **Binding updates from external sources:** An optional `stringKeys` map on `DataBinding` allows the server to attach translation keys to any bound field where the external source may deliver untranslated strings. After applying a binding, the client checks for a corresponding string key and resolves via platform-native i18n (Android `strings.xml`, iOS `Localizable.strings`, web i18n library). Falls back to the raw value if no local translation exists.
@@ -878,6 +884,8 @@ These limits ensure atomic trees remain a lightweight composition mechanism, not
 | Atomic rendering layer         | Built   | —       | AtomicRouter + 12 primitives (10 rendering + SectionSlot bridge + LiveClock) on Android, iOS, and Web. AtomicComposite section type. DisplayGrid for non-interactive grids. Performance contract enforced (depth 6, children 20, nodes 50). |
 | Schema versioning protocol     | Built   | —       | Server-side version routing (`SchemaVersionFilter` strips fields/enums by version), force-upgrade signal (`X-Schema-Version-Mismatch: upgrade-required`), version registry (`SchemaVersionRegistry`). All clients detect header and display platform-appropriate upgrade prompt. Version format: major.minor. |
 | Style tokens (atomic primitives) | Built | ADR-013 | Three-layer design system: inline primitives (Layer 1), per-primitive variant enums with per-platform per-OS-tier realization and override matrices (Layer 2), color-token registry with light/dark resolution (Layer 3). Four diagnostics (`variant_resolver_missing`, `variant_override_blocked`, `token_resolver_missing`, `section_decode_failed`). Server `TokenRegistry` + startup consistency check. Full reference: [`sdui-design-system.md`](sdui-design-system.md). ADR-013 Accepted. |
+| Section-level refresh (`sectionEndpoint`) | Built | — | `RefreshPolicy.sectionEndpoint` + `GET/POST /v1/sdui/section/{sectionId}` + `SectionRefreshService`; all three clients; poll→SSE transition |
+| Screen-level `defaultRefreshPolicy` handler | Built | — | Clients honor `screen.defaultRefreshPolicy.type: poll`; `GameDetailComposer` emits `static` |
 
 
 ---
@@ -887,7 +895,7 @@ These limits ensure atomic trees remain a lightweight composition mechanism, not
 All ADR statuses are tracked in the Requirement Status table above and in the Requirements Summary.
 
 - **Accepted:** ADR-006 (Experiment Assignment Model), ADR-008 (Form-Factor Layout Manager — Option C Hybrid), ADR-009 (Impression Dedup and Visibility Semantics), ADR-013 (Style Tokens for Atomic Primitives).
-- **Proposed:** ADR-001, ADR-002, ADR-003, ADR-004, ADR-005, ADR-007, ADR-010.
+- **Proposed:** ADR-001, ADR-002, ADR-003, ADR-004, ADR-005, ADR-007, ADR-010, ADR-014 (Dynamic Conditional Properties).
 - **Proposed (draft):** ADR-011 (Data Classification and Freshness Model), ADR-012 (Client Data Architecture).
 
 

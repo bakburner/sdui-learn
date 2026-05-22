@@ -1,6 +1,5 @@
 {
   "id": "game-detail-0042300102",
-  "type": "game_detail",
   "schemaVersion": "1.0",
   "parentUri": "nba://scoreboard",
   "state": {
@@ -313,80 +312,61 @@
             },
             {
               "type": "Container",
-              "direction": "column",
-              "padding": {
-                "start": 0,
-                "end": 0,
-                "top": 6,
-                "bottom": 6
-              },
+              "direction": "row",
+              "crossAlignment": "center",
+              "widthMode": "fill",
+              "gap": "token:nba.spacing.sm",
               "children": [
                 {
+                  "type": "Image",
+                  "src": "https://cdn.nba.com/headshots/nba/latest/1040x760/1627759.png",
+                  "width": 32,
+                  "height": 32,
+                  "fit": "cover",
+                  "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
+                  "cornerRadius": "token:nba.radius.full",
+                  "accessibility": {
+                    "label": "Jaylen Brown headshot",
+                    "role": "image"
+                  }
+                },
+                {
                   "type": "Container",
-                  "direction": "row",
-                  "crossAlignment": "center",
+                  "direction": "column",
+                  "flex": 1,
                   "children": [
                     {
-                      "type": "Image",
-                      "src": "https://cdn.nba.com/headshots/nba/latest/1040x760/1627759.png",
-                      "width": 40,
-                      "height": 40,
-                      "fit": "cover",
-                      "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
-                      "cornerRadius": 20
+                      "type": "Text",
+                      "content": "Jaylen Brown",
+                      "variant": "bodyMedium",
+                      "weight": "medium"
                     },
                     {
-                      "type": "Spacer",
-                      "height": 12
-                    },
-                    {
-                      "type": "Container",
-                      "direction": "column",
-                      "children": [
-                        {
-                          "type": "Text",
-                          "content": "Jaylen Brown",
-                          "variant": "bodyLarge",
-                          "weight": "medium"
-                        },
-                        {
-                          "type": "Text",
-                          "content": "BOS",
-                          "variant": "bodySmall",
-                          "color": "token:nba.label.secondary"
-                        }
-                      ]
+                      "type": "Text",
+                      "content": "BOS",
+                      "variant": "labelSmall",
+                      "color": "token:nba.text.secondary"
                     }
                   ]
                 },
                 {
                   "type": "Container",
                   "direction": "row",
-                  "alignment": "end",
                   "crossAlignment": "center",
-                  "padding": {
-                    "start": 0,
-                    "end": 0,
-                    "top": 4,
-                    "bottom": 0
-                  },
+                  "gap": "token:nba.spacing.xs",
                   "children": [
                     {
                       "type": "Text",
                       "content": "PTS",
-                      "variant": "bodyMedium",
-                      "color": "token:nba.label.secondary"
-                    },
-                    {
-                      "type": "Spacer",
-                      "height": 8
+                      "variant": "bodySmall",
+                      "color": "token:nba.text.secondary"
                     },
                     {
                       "type": "Text",
                       "content": "33",
-                      "variant": "titleMedium",
+                      "variant": "titleSmall",
                       "weight": "bold",
-                      "color": "token:nba.label.accent.live"
+                      "color": "token:nba.brand.live"
                     }
                   ]
                 }
@@ -394,80 +374,61 @@
             },
             {
               "type": "Container",
-              "direction": "column",
-              "padding": {
-                "start": 0,
-                "end": 0,
-                "top": 6,
-                "bottom": 6
-              },
+              "direction": "row",
+              "crossAlignment": "center",
+              "widthMode": "fill",
+              "gap": "token:nba.spacing.sm",
               "children": [
                 {
+                  "type": "Image",
+                  "src": "https://cdn.nba.com/headshots/nba/latest/1040x760/1628369.png",
+                  "width": 32,
+                  "height": 32,
+                  "fit": "cover",
+                  "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
+                  "cornerRadius": "token:nba.radius.full",
+                  "accessibility": {
+                    "label": "Jayson Tatum headshot",
+                    "role": "image"
+                  }
+                },
+                {
                   "type": "Container",
-                  "direction": "row",
-                  "crossAlignment": "center",
+                  "direction": "column",
+                  "flex": 1,
                   "children": [
                     {
-                      "type": "Image",
-                      "src": "https://cdn.nba.com/headshots/nba/latest/1040x760/1628369.png",
-                      "width": 40,
-                      "height": 40,
-                      "fit": "cover",
-                      "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
-                      "cornerRadius": 20
+                      "type": "Text",
+                      "content": "Jayson Tatum",
+                      "variant": "bodyMedium",
+                      "weight": "medium"
                     },
                     {
-                      "type": "Spacer",
-                      "height": 12
-                    },
-                    {
-                      "type": "Container",
-                      "direction": "column",
-                      "children": [
-                        {
-                          "type": "Text",
-                          "content": "Jayson Tatum",
-                          "variant": "bodyLarge",
-                          "weight": "medium"
-                        },
-                        {
-                          "type": "Text",
-                          "content": "BOS",
-                          "variant": "bodySmall",
-                          "color": "token:nba.label.secondary"
-                        }
-                      ]
+                      "type": "Text",
+                      "content": "BOS",
+                      "variant": "labelSmall",
+                      "color": "token:nba.text.secondary"
                     }
                   ]
                 },
                 {
                   "type": "Container",
                   "direction": "row",
-                  "alignment": "end",
                   "crossAlignment": "center",
-                  "padding": {
-                    "start": 0,
-                    "end": 0,
-                    "top": 4,
-                    "bottom": 0
-                  },
+                  "gap": "token:nba.spacing.xs",
                   "children": [
                     {
                       "type": "Text",
                       "content": "PTS",
-                      "variant": "bodyMedium",
-                      "color": "token:nba.label.secondary"
-                    },
-                    {
-                      "type": "Spacer",
-                      "height": 8
+                      "variant": "bodySmall",
+                      "color": "token:nba.text.secondary"
                     },
                     {
                       "type": "Text",
                       "content": "28",
-                      "variant": "titleMedium",
+                      "variant": "titleSmall",
                       "weight": "bold",
-                      "color": "token:nba.label.accent.live"
+                      "color": "token:nba.brand.live"
                     }
                   ]
                 }
@@ -475,80 +436,61 @@
             },
             {
               "type": "Container",
-              "direction": "column",
-              "padding": {
-                "start": 0,
-                "end": 0,
-                "top": 6,
-                "bottom": 6
-              },
+              "direction": "row",
+              "crossAlignment": "center",
+              "widthMode": "fill",
+              "gap": "token:nba.spacing.sm",
               "children": [
                 {
+                  "type": "Image",
+                  "src": "https://cdn.nba.com/headshots/nba/latest/1040x760/1628401.png",
+                  "width": 32,
+                  "height": 32,
+                  "fit": "cover",
+                  "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
+                  "cornerRadius": "token:nba.radius.full",
+                  "accessibility": {
+                    "label": "Derrick White headshot",
+                    "role": "image"
+                  }
+                },
+                {
                   "type": "Container",
-                  "direction": "row",
-                  "crossAlignment": "center",
+                  "direction": "column",
+                  "flex": 1,
                   "children": [
                     {
-                      "type": "Image",
-                      "src": "https://cdn.nba.com/headshots/nba/latest/1040x760/1628401.png",
-                      "width": 40,
-                      "height": 40,
-                      "fit": "cover",
-                      "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
-                      "cornerRadius": 20
+                      "type": "Text",
+                      "content": "Derrick White",
+                      "variant": "bodyMedium",
+                      "weight": "medium"
                     },
                     {
-                      "type": "Spacer",
-                      "height": 12
-                    },
-                    {
-                      "type": "Container",
-                      "direction": "column",
-                      "children": [
-                        {
-                          "type": "Text",
-                          "content": "Derrick White",
-                          "variant": "bodyLarge",
-                          "weight": "medium"
-                        },
-                        {
-                          "type": "Text",
-                          "content": "BOS",
-                          "variant": "bodySmall",
-                          "color": "token:nba.label.secondary"
-                        }
-                      ]
+                      "type": "Text",
+                      "content": "BOS",
+                      "variant": "labelSmall",
+                      "color": "token:nba.text.secondary"
                     }
                   ]
                 },
                 {
                   "type": "Container",
                   "direction": "row",
-                  "alignment": "end",
                   "crossAlignment": "center",
-                  "padding": {
-                    "start": 0,
-                    "end": 0,
-                    "top": 4,
-                    "bottom": 0
-                  },
+                  "gap": "token:nba.spacing.xs",
                   "children": [
                     {
                       "type": "Text",
                       "content": "PTS",
-                      "variant": "bodyMedium",
-                      "color": "token:nba.label.secondary"
-                    },
-                    {
-                      "type": "Spacer",
-                      "height": 8
+                      "variant": "bodySmall",
+                      "color": "token:nba.text.secondary"
                     },
                     {
                       "type": "Text",
                       "content": "13",
-                      "variant": "titleMedium",
+                      "variant": "titleSmall",
                       "weight": "bold",
-                      "color": "token:nba.label.accent.live"
+                      "color": "token:nba.brand.live"
                     }
                   ]
                 }
@@ -556,80 +498,61 @@
             },
             {
               "type": "Container",
-              "direction": "column",
-              "padding": {
-                "start": 0,
-                "end": 0,
-                "top": 6,
-                "bottom": 6
-              },
+              "direction": "row",
+              "crossAlignment": "center",
+              "widthMode": "fill",
+              "gap": "token:nba.spacing.sm",
               "children": [
                 {
+                  "type": "Image",
+                  "src": "https://cdn.nba.com/headshots/nba/latest/1040x760/1629639.png",
+                  "width": 32,
+                  "height": 32,
+                  "fit": "cover",
+                  "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
+                  "cornerRadius": "token:nba.radius.full",
+                  "accessibility": {
+                    "label": "Tyler Herro headshot",
+                    "role": "image"
+                  }
+                },
+                {
                   "type": "Container",
-                  "direction": "row",
-                  "crossAlignment": "center",
+                  "direction": "column",
+                  "flex": 1,
                   "children": [
                     {
-                      "type": "Image",
-                      "src": "https://cdn.nba.com/headshots/nba/latest/1040x760/1629639.png",
-                      "width": 40,
-                      "height": 40,
-                      "fit": "cover",
-                      "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
-                      "cornerRadius": 20
+                      "type": "Text",
+                      "content": "Tyler Herro",
+                      "variant": "bodyMedium",
+                      "weight": "medium"
                     },
                     {
-                      "type": "Spacer",
-                      "height": 12
-                    },
-                    {
-                      "type": "Container",
-                      "direction": "column",
-                      "children": [
-                        {
-                          "type": "Text",
-                          "content": "Tyler Herro",
-                          "variant": "bodyLarge",
-                          "weight": "medium"
-                        },
-                        {
-                          "type": "Text",
-                          "content": "MIA",
-                          "variant": "bodySmall",
-                          "color": "token:nba.label.secondary"
-                        }
-                      ]
+                      "type": "Text",
+                      "content": "MIA",
+                      "variant": "labelSmall",
+                      "color": "token:nba.text.secondary"
                     }
                   ]
                 },
                 {
                   "type": "Container",
                   "direction": "row",
-                  "alignment": "end",
                   "crossAlignment": "center",
-                  "padding": {
-                    "start": 0,
-                    "end": 0,
-                    "top": 4,
-                    "bottom": 0
-                  },
+                  "gap": "token:nba.spacing.xs",
                   "children": [
                     {
                       "type": "Text",
                       "content": "PTS",
-                      "variant": "bodyMedium",
-                      "color": "token:nba.label.secondary"
-                    },
-                    {
-                      "type": "Spacer",
-                      "height": 8
+                      "variant": "bodySmall",
+                      "color": "token:nba.text.secondary"
                     },
                     {
                       "type": "Text",
                       "content": "24",
-                      "variant": "titleMedium",
+                      "variant": "titleSmall",
                       "weight": "bold",
-                      "color": "token:nba.label.accent.live"
+                      "color": "token:nba.brand.live"
                     }
                   ]
                 }
@@ -637,80 +560,61 @@
             },
             {
               "type": "Container",
-              "direction": "column",
-              "padding": {
-                "start": 0,
-                "end": 0,
-                "top": 6,
-                "bottom": 6
-              },
+              "direction": "row",
+              "crossAlignment": "center",
+              "widthMode": "fill",
+              "gap": "token:nba.spacing.sm",
               "children": [
                 {
+                  "type": "Image",
+                  "src": "https://cdn.nba.com/headshots/nba/latest/1040x760/1628389.png",
+                  "width": 32,
+                  "height": 32,
+                  "fit": "cover",
+                  "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
+                  "cornerRadius": "token:nba.radius.full",
+                  "accessibility": {
+                    "label": "Bam Adebayo headshot",
+                    "role": "image"
+                  }
+                },
+                {
                   "type": "Container",
-                  "direction": "row",
-                  "crossAlignment": "center",
+                  "direction": "column",
+                  "flex": 1,
                   "children": [
                     {
-                      "type": "Image",
-                      "src": "https://cdn.nba.com/headshots/nba/latest/1040x760/1628389.png",
-                      "width": 40,
-                      "height": 40,
-                      "fit": "cover",
-                      "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
-                      "cornerRadius": 20
+                      "type": "Text",
+                      "content": "Bam Adebayo",
+                      "variant": "bodyMedium",
+                      "weight": "medium"
                     },
                     {
-                      "type": "Spacer",
-                      "height": 12
-                    },
-                    {
-                      "type": "Container",
-                      "direction": "column",
-                      "children": [
-                        {
-                          "type": "Text",
-                          "content": "Bam Adebayo",
-                          "variant": "bodyLarge",
-                          "weight": "medium"
-                        },
-                        {
-                          "type": "Text",
-                          "content": "MIA",
-                          "variant": "bodySmall",
-                          "color": "token:nba.label.secondary"
-                        }
-                      ]
+                      "type": "Text",
+                      "content": "MIA",
+                      "variant": "labelSmall",
+                      "color": "token:nba.text.secondary"
                     }
                   ]
                 },
                 {
                   "type": "Container",
                   "direction": "row",
-                  "alignment": "end",
                   "crossAlignment": "center",
-                  "padding": {
-                    "start": 0,
-                    "end": 0,
-                    "top": 4,
-                    "bottom": 0
-                  },
+                  "gap": "token:nba.spacing.xs",
                   "children": [
                     {
                       "type": "Text",
                       "content": "PTS",
-                      "variant": "bodyMedium",
-                      "color": "token:nba.label.secondary"
-                    },
-                    {
-                      "type": "Spacer",
-                      "height": 8
+                      "variant": "bodySmall",
+                      "color": "token:nba.text.secondary"
                     },
                     {
                       "type": "Text",
                       "content": "21",
-                      "variant": "titleMedium",
+                      "variant": "titleSmall",
                       "weight": "bold",
-                      "color": "token:nba.label.accent.live"
+                      "color": "token:nba.brand.live"
                     }
                   ]
                 }
@@ -718,86 +622,68 @@
             },
             {
               "type": "Container",
-              "direction": "column",
-              "padding": {
-                "start": 0,
-                "end": 0,
-                "top": 6,
-                "bottom": 6
-              },
+              "direction": "row",
+              "crossAlignment": "center",
+              "widthMode": "fill",
+              "gap": "token:nba.spacing.sm",
               "children": [
                 {
+                  "type": "Image",
+                  "src": "https://cdn.nba.com/headshots/nba/latest/1040x760/1628997.png",
+                  "width": 32,
+                  "height": 32,
+                  "fit": "cover",
+                  "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
+                  "cornerRadius": "token:nba.radius.full",
+                  "accessibility": {
+                    "label": "Caleb Martin headshot",
+                    "role": "image"
+                  }
+                },
+                {
                   "type": "Container",
-                  "direction": "row",
-                  "crossAlignment": "center",
+                  "direction": "column",
+                  "flex": 1,
                   "children": [
                     {
-                      "type": "Image",
-                      "src": "https://cdn.nba.com/headshots/nba/latest/1040x760/1628997.png",
-                      "width": 40,
-                      "height": 40,
-                      "fit": "cover",
-                      "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
-                      "cornerRadius": 20
+                      "type": "Text",
+                      "content": "Caleb Martin",
+                      "variant": "bodyMedium",
+                      "weight": "medium"
                     },
                     {
-                      "type": "Spacer",
-                      "height": 12
-                    },
-                    {
-                      "type": "Container",
-                      "direction": "column",
-                      "children": [
-                        {
-                          "type": "Text",
-                          "content": "Caleb Martin",
-                          "variant": "bodyLarge",
-                          "weight": "medium"
-                        },
-                        {
-                          "type": "Text",
-                          "content": "MIA",
-                          "variant": "bodySmall",
-                          "color": "token:nba.label.secondary"
-                        }
-                      ]
+                      "type": "Text",
+                      "content": "MIA",
+                      "variant": "labelSmall",
+                      "color": "token:nba.text.secondary"
                     }
                   ]
                 },
                 {
                   "type": "Container",
                   "direction": "row",
-                  "alignment": "end",
                   "crossAlignment": "center",
-                  "padding": {
-                    "start": 0,
-                    "end": 0,
-                    "top": 4,
-                    "bottom": 0
-                  },
+                  "gap": "token:nba.spacing.xs",
                   "children": [
                     {
                       "type": "Text",
                       "content": "PTS",
-                      "variant": "bodyMedium",
-                      "color": "token:nba.label.secondary"
-                    },
-                    {
-                      "type": "Spacer",
-                      "height": 8
+                      "variant": "bodySmall",
+                      "color": "token:nba.text.secondary"
                     },
                     {
                       "type": "Text",
                       "content": "21",
-                      "variant": "titleMedium",
+                      "variant": "titleSmall",
                       "weight": "bold",
-                      "color": "token:nba.label.accent.live"
+                      "color": "token:nba.brand.live"
                     }
                   ]
                 }
               ]
             }
-          ]
+          ],
+          "widthMode": "fill"
         }
       },
       "stringTable": {
@@ -859,80 +745,61 @@
                       },
                       {
                         "type": "Container",
-                        "direction": "column",
-                        "padding": {
-                          "start": 0,
-                          "end": 0,
-                          "top": 6,
-                          "bottom": 6
-                        },
+                        "direction": "row",
+                        "crossAlignment": "center",
+                        "widthMode": "fill",
+                        "gap": "token:nba.spacing.sm",
                         "children": [
                           {
+                            "type": "Image",
+                            "src": "https://cdn.nba.com/headshots/nba/latest/1040x760/1627759.png",
+                            "width": 32,
+                            "height": 32,
+                            "fit": "cover",
+                            "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
+                            "cornerRadius": "token:nba.radius.full",
+                            "accessibility": {
+                              "label": "Jaylen Brown headshot",
+                              "role": "image"
+                            }
+                          },
+                          {
                             "type": "Container",
-                            "direction": "row",
-                            "crossAlignment": "center",
+                            "direction": "column",
+                            "flex": 1,
                             "children": [
                               {
-                                "type": "Image",
-                                "src": "https://cdn.nba.com/headshots/nba/latest/1040x760/1627759.png",
-                                "width": 40,
-                                "height": 40,
-                                "fit": "cover",
-                                "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
-                                "cornerRadius": 20
+                                "type": "Text",
+                                "content": "Jaylen Brown",
+                                "variant": "bodyMedium",
+                                "weight": "medium"
                               },
                               {
-                                "type": "Spacer",
-                                "height": 12
-                              },
-                              {
-                                "type": "Container",
-                                "direction": "column",
-                                "children": [
-                                  {
-                                    "type": "Text",
-                                    "content": "Jaylen Brown",
-                                    "variant": "bodyLarge",
-                                    "weight": "medium"
-                                  },
-                                  {
-                                    "type": "Text",
-                                    "content": "BOS",
-                                    "variant": "bodySmall",
-                                    "color": "token:nba.label.secondary"
-                                  }
-                                ]
+                                "type": "Text",
+                                "content": "BOS",
+                                "variant": "labelSmall",
+                                "color": "token:nba.text.secondary"
                               }
                             ]
                           },
                           {
                             "type": "Container",
                             "direction": "row",
-                            "alignment": "end",
                             "crossAlignment": "center",
-                            "padding": {
-                              "start": 0,
-                              "end": 0,
-                              "top": 4,
-                              "bottom": 0
-                            },
+                            "gap": "token:nba.spacing.xs",
                             "children": [
                               {
                                 "type": "Text",
                                 "content": "PTS",
-                                "variant": "bodyMedium",
-                                "color": "token:nba.label.secondary"
-                              },
-                              {
-                                "type": "Spacer",
-                                "height": 8
+                                "variant": "bodySmall",
+                                "color": "token:nba.text.secondary"
                               },
                               {
                                 "type": "Text",
                                 "content": "33",
-                                "variant": "titleMedium",
+                                "variant": "titleSmall",
                                 "weight": "bold",
-                                "color": "token:nba.label.accent.live"
+                                "color": "token:nba.brand.live"
                               }
                             ]
                           }
@@ -940,86 +807,68 @@
                       },
                       {
                         "type": "Container",
-                        "direction": "column",
-                        "padding": {
-                          "start": 0,
-                          "end": 0,
-                          "top": 6,
-                          "bottom": 6
-                        },
+                        "direction": "row",
+                        "crossAlignment": "center",
+                        "widthMode": "fill",
+                        "gap": "token:nba.spacing.sm",
                         "children": [
                           {
+                            "type": "Image",
+                            "src": "https://cdn.nba.com/headshots/nba/latest/1040x760/1628369.png",
+                            "width": 32,
+                            "height": 32,
+                            "fit": "cover",
+                            "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
+                            "cornerRadius": "token:nba.radius.full",
+                            "accessibility": {
+                              "label": "Jayson Tatum headshot",
+                              "role": "image"
+                            }
+                          },
+                          {
                             "type": "Container",
-                            "direction": "row",
-                            "crossAlignment": "center",
+                            "direction": "column",
+                            "flex": 1,
                             "children": [
                               {
-                                "type": "Image",
-                                "src": "https://cdn.nba.com/headshots/nba/latest/1040x760/1628369.png",
-                                "width": 40,
-                                "height": 40,
-                                "fit": "cover",
-                                "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
-                                "cornerRadius": 20
+                                "type": "Text",
+                                "content": "Jayson Tatum",
+                                "variant": "bodyMedium",
+                                "weight": "medium"
                               },
                               {
-                                "type": "Spacer",
-                                "height": 12
-                              },
-                              {
-                                "type": "Container",
-                                "direction": "column",
-                                "children": [
-                                  {
-                                    "type": "Text",
-                                    "content": "Jayson Tatum",
-                                    "variant": "bodyLarge",
-                                    "weight": "medium"
-                                  },
-                                  {
-                                    "type": "Text",
-                                    "content": "BOS",
-                                    "variant": "bodySmall",
-                                    "color": "token:nba.label.secondary"
-                                  }
-                                ]
+                                "type": "Text",
+                                "content": "BOS",
+                                "variant": "labelSmall",
+                                "color": "token:nba.text.secondary"
                               }
                             ]
                           },
                           {
                             "type": "Container",
                             "direction": "row",
-                            "alignment": "end",
                             "crossAlignment": "center",
-                            "padding": {
-                              "start": 0,
-                              "end": 0,
-                              "top": 4,
-                              "bottom": 0
-                            },
+                            "gap": "token:nba.spacing.xs",
                             "children": [
                               {
                                 "type": "Text",
                                 "content": "PTS",
-                                "variant": "bodyMedium",
-                                "color": "token:nba.label.secondary"
-                              },
-                              {
-                                "type": "Spacer",
-                                "height": 8
+                                "variant": "bodySmall",
+                                "color": "token:nba.text.secondary"
                               },
                               {
                                 "type": "Text",
                                 "content": "28",
-                                "variant": "titleMedium",
+                                "variant": "titleSmall",
                                 "weight": "bold",
-                                "color": "token:nba.label.accent.live"
+                                "color": "token:nba.brand.live"
                               }
                             ]
                           }
                         ]
                       }
-                    ]
+                    ],
+                    "widthMode": "fill"
                   }
                 }
               },
@@ -1059,80 +908,61 @@
                       },
                       {
                         "type": "Container",
-                        "direction": "column",
-                        "padding": {
-                          "start": 0,
-                          "end": 0,
-                          "top": 6,
-                          "bottom": 6
-                        },
+                        "direction": "row",
+                        "crossAlignment": "center",
+                        "widthMode": "fill",
+                        "gap": "token:nba.spacing.sm",
                         "children": [
                           {
+                            "type": "Image",
+                            "src": "https://cdn.nba.com/headshots/nba/latest/1040x760/1629639.png",
+                            "width": 32,
+                            "height": 32,
+                            "fit": "cover",
+                            "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
+                            "cornerRadius": "token:nba.radius.full",
+                            "accessibility": {
+                              "label": "Tyler Herro headshot",
+                              "role": "image"
+                            }
+                          },
+                          {
                             "type": "Container",
-                            "direction": "row",
-                            "crossAlignment": "center",
+                            "direction": "column",
+                            "flex": 1,
                             "children": [
                               {
-                                "type": "Image",
-                                "src": "https://cdn.nba.com/headshots/nba/latest/1040x760/1629639.png",
-                                "width": 40,
-                                "height": 40,
-                                "fit": "cover",
-                                "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
-                                "cornerRadius": 20
+                                "type": "Text",
+                                "content": "Tyler Herro",
+                                "variant": "bodyMedium",
+                                "weight": "medium"
                               },
                               {
-                                "type": "Spacer",
-                                "height": 12
-                              },
-                              {
-                                "type": "Container",
-                                "direction": "column",
-                                "children": [
-                                  {
-                                    "type": "Text",
-                                    "content": "Tyler Herro",
-                                    "variant": "bodyLarge",
-                                    "weight": "medium"
-                                  },
-                                  {
-                                    "type": "Text",
-                                    "content": "MIA",
-                                    "variant": "bodySmall",
-                                    "color": "token:nba.label.secondary"
-                                  }
-                                ]
+                                "type": "Text",
+                                "content": "MIA",
+                                "variant": "labelSmall",
+                                "color": "token:nba.text.secondary"
                               }
                             ]
                           },
                           {
                             "type": "Container",
                             "direction": "row",
-                            "alignment": "end",
                             "crossAlignment": "center",
-                            "padding": {
-                              "start": 0,
-                              "end": 0,
-                              "top": 4,
-                              "bottom": 0
-                            },
+                            "gap": "token:nba.spacing.xs",
                             "children": [
                               {
                                 "type": "Text",
                                 "content": "PTS",
-                                "variant": "bodyMedium",
-                                "color": "token:nba.label.secondary"
-                              },
-                              {
-                                "type": "Spacer",
-                                "height": 8
+                                "variant": "bodySmall",
+                                "color": "token:nba.text.secondary"
                               },
                               {
                                 "type": "Text",
                                 "content": "24",
-                                "variant": "titleMedium",
+                                "variant": "titleSmall",
                                 "weight": "bold",
-                                "color": "token:nba.label.accent.live"
+                                "color": "token:nba.brand.live"
                               }
                             ]
                           }
@@ -1140,86 +970,68 @@
                       },
                       {
                         "type": "Container",
-                        "direction": "column",
-                        "padding": {
-                          "start": 0,
-                          "end": 0,
-                          "top": 6,
-                          "bottom": 6
-                        },
+                        "direction": "row",
+                        "crossAlignment": "center",
+                        "widthMode": "fill",
+                        "gap": "token:nba.spacing.sm",
                         "children": [
                           {
+                            "type": "Image",
+                            "src": "https://cdn.nba.com/headshots/nba/latest/1040x760/1628389.png",
+                            "width": 32,
+                            "height": 32,
+                            "fit": "cover",
+                            "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
+                            "cornerRadius": "token:nba.radius.full",
+                            "accessibility": {
+                              "label": "Bam Adebayo headshot",
+                              "role": "image"
+                            }
+                          },
+                          {
                             "type": "Container",
-                            "direction": "row",
-                            "crossAlignment": "center",
+                            "direction": "column",
+                            "flex": 1,
                             "children": [
                               {
-                                "type": "Image",
-                                "src": "https://cdn.nba.com/headshots/nba/latest/1040x760/1628389.png",
-                                "width": 40,
-                                "height": 40,
-                                "fit": "cover",
-                                "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
-                                "cornerRadius": 20
+                                "type": "Text",
+                                "content": "Bam Adebayo",
+                                "variant": "bodyMedium",
+                                "weight": "medium"
                               },
                               {
-                                "type": "Spacer",
-                                "height": 12
-                              },
-                              {
-                                "type": "Container",
-                                "direction": "column",
-                                "children": [
-                                  {
-                                    "type": "Text",
-                                    "content": "Bam Adebayo",
-                                    "variant": "bodyLarge",
-                                    "weight": "medium"
-                                  },
-                                  {
-                                    "type": "Text",
-                                    "content": "MIA",
-                                    "variant": "bodySmall",
-                                    "color": "token:nba.label.secondary"
-                                  }
-                                ]
+                                "type": "Text",
+                                "content": "MIA",
+                                "variant": "labelSmall",
+                                "color": "token:nba.text.secondary"
                               }
                             ]
                           },
                           {
                             "type": "Container",
                             "direction": "row",
-                            "alignment": "end",
                             "crossAlignment": "center",
-                            "padding": {
-                              "start": 0,
-                              "end": 0,
-                              "top": 4,
-                              "bottom": 0
-                            },
+                            "gap": "token:nba.spacing.xs",
                             "children": [
                               {
                                 "type": "Text",
                                 "content": "PTS",
-                                "variant": "bodyMedium",
-                                "color": "token:nba.label.secondary"
-                              },
-                              {
-                                "type": "Spacer",
-                                "height": 8
+                                "variant": "bodySmall",
+                                "color": "token:nba.text.secondary"
                               },
                               {
                                 "type": "Text",
                                 "content": "21",
-                                "variant": "titleMedium",
+                                "variant": "titleSmall",
                                 "weight": "bold",
-                                "color": "token:nba.label.accent.live"
+                                "color": "token:nba.brand.live"
                               }
                             ]
                           }
                         ]
                       }
-                    ]
+                    ],
+                    "widthMode": "fill"
                   }
                 }
               },

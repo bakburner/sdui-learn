@@ -1,35 +1,28 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Action, Section } from '@sdui/models';
+import { ActionTrigger, ActionType, MutateOperation } from '@sdui/models';
+import type { ActionContext } from './ActionHandler';
 import { executeActionSequence } from './ActionHandler';
 
-interface TestContext {
-  state: Record<string, unknown>;
-  onStateChange: ReturnType<typeof vi.fn>;
-  onRefresh: ReturnType<typeof vi.fn>;
-  onSectionUpdate: ReturnType<typeof vi.fn>;
-  onSectionStale: ReturnType<typeof vi.fn>;
-  onNavigate: ReturnType<typeof vi.fn>;
-}
-
-function buildContext(initialState: Record<string, unknown> = {}): TestContext {
+function buildContext(initialState: Record<string, unknown> = {}): ActionContext {
   const state = { ...initialState };
 
   return {
     state,
     onStateChange: vi.fn((key: string, value: unknown) => {
       state[key] = value;
-    }),
-    onRefresh: vi.fn(),
-    onSectionUpdate: vi.fn((_sectionId: string, _section: Section) => {}),
-    onSectionStale: vi.fn(),
-    onNavigate: vi.fn(),
+    }) as unknown as ActionContext['onStateChange'],
+    onRefresh: vi.fn() as unknown as ActionContext['onRefresh'],
+    onSectionUpdate: vi.fn((_sectionId: string, _section: Section) => {}) as unknown as ActionContext['onSectionUpdate'],
+    onSectionStale: vi.fn() as unknown as ActionContext['onSectionStale'],
+    onNavigate: vi.fn() as unknown as ActionContext['onNavigate'],
   };
 }
 
 function mutateAction(overrides: Partial<Action> = {}): Action {
   return {
-    trigger: 'onActivate',
-    type: 'mutate',
+    trigger: ActionTrigger.OnActivate,
+    type: ActionType.Mutate,
     target: 'counter',
     ...overrides,
   } as Action;
@@ -37,8 +30,8 @@ function mutateAction(overrides: Partial<Action> = {}): Action {
 
 function navigateAction(overrides: Partial<Action> = {}): Action {
   return {
-    trigger: 'onActivate',
-    type: 'navigate',
+    trigger: ActionTrigger.OnActivate,
+    type: ActionType.Navigate,
     ...overrides,
   } as Action;
 }
@@ -70,7 +63,7 @@ describe('ActionHandler', () => {
     const context = buildContext({ expanded: true });
 
     await executeActionSequence([
-      mutateAction({ target: 'expanded', operation: 'toggle' }),
+      mutateAction({ target: 'expanded', operation: MutateOperation.Toggle }),
     ], context);
 
     expect(context.state.expanded).toBe(false);
@@ -81,7 +74,7 @@ describe('ActionHandler', () => {
     const context = buildContext({ expanded: 'yes' });
 
     await executeActionSequence([
-      mutateAction({ target: 'expanded', operation: 'toggle' }),
+      mutateAction({ target: 'expanded', operation: MutateOperation.Toggle }),
     ], context);
 
     expect(context.state.expanded).toBe('yes');
@@ -94,8 +87,8 @@ describe('ActionHandler', () => {
     const context = buildContext({ counter: 2, ratio: 1.5 });
 
     await executeActionSequence([
-      mutateAction({ target: 'counter', operation: 'increment' }),
-      mutateAction({ target: 'ratio', operation: 'increment', value: 2.25 }),
+      mutateAction({ target: 'counter', operation: MutateOperation.Increment }),
+      mutateAction({ target: 'ratio', operation: MutateOperation.Increment, value: 2.25 }),
     ], context);
 
     expect(context.state.counter).toBe(3);
@@ -107,7 +100,7 @@ describe('ActionHandler', () => {
     const context = buildContext({ counter: 'two' });
 
     await executeActionSequence([
-      mutateAction({ target: 'counter', operation: 'increment', value: 3 }),
+      mutateAction({ target: 'counter', operation: MutateOperation.Increment, value: 3 }),
     ], context);
 
     expect(context.state.counter).toBe('two');
@@ -119,7 +112,7 @@ describe('ActionHandler', () => {
     const context = buildContext();
 
     await executeActionSequence([
-      mutateAction({ target: 'counter', operation: 'increment' }),
+      mutateAction({ target: 'counter', operation: MutateOperation.Increment }),
     ], context);
 
     expect(context.state.counter).toBeUndefined();
@@ -131,7 +124,7 @@ describe('ActionHandler', () => {
     const context = buildContext({ filters: ['live'] });
 
     await executeActionSequence([
-      mutateAction({ target: 'filters', operation: 'append', value: 'final' }),
+      mutateAction({ target: 'filters', operation: MutateOperation.Append, value: 'final' }),
     ], context);
 
     expect(context.state.filters).toEqual(['live', 'final']);
@@ -142,7 +135,7 @@ describe('ActionHandler', () => {
     const context = buildContext({ query: 'NBA' });
 
     await executeActionSequence([
-      mutateAction({ target: 'query', operation: 'append', value: ' Finals' }),
+      mutateAction({ target: 'query', operation: MutateOperation.Append, value: ' Finals' }),
     ], context);
 
     expect(context.state.query).toBe('NBA Finals');
@@ -153,7 +146,7 @@ describe('ActionHandler', () => {
     const context = buildContext();
 
     await executeActionSequence([
-      mutateAction({ target: 'filters', operation: 'append', value: 'featured' }),
+      mutateAction({ target: 'filters', operation: MutateOperation.Append, value: 'featured' }),
     ], context);
 
     expect(context.state.filters).toEqual(['featured']);
@@ -164,7 +157,7 @@ describe('ActionHandler', () => {
     const context = buildContext({ filters: 'featured' });
 
     await executeActionSequence([
-      mutateAction({ target: 'filters', operation: 'append', value: 2 }),
+      mutateAction({ target: 'filters', operation: MutateOperation.Append, value: 2 }),
     ], context);
 
     expect(context.state.filters).toBe('featured');
@@ -209,7 +202,7 @@ describe('ActionHandler', () => {
     const context = buildContext();
 
     const result = await executeActionSequence([
-      navigateAction({ fallbackUrl: 'nba://legacy-only' } as Action),
+      navigateAction({ fallbackUrl: 'nba://legacy-only' } as unknown as Partial<Action>),
     ], context);
 
     expect(result.halted).toBe(true);

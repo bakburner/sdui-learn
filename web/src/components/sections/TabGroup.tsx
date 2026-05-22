@@ -29,7 +29,7 @@ const TAB_EMPTY_PAD = 'token:nba.spacing.lg';
  * absent — presentation realization only; selection still flows through
  * declared mutate actions, not ad-hoc state writes.
  */
-export function TabGroup({ section, state, onAction, onStateChange }: SectionProps): React.ReactElement {
+export function TabGroup({ section, state, onAction, onStateChange, onSectionReplace, onSectionGone }: SectionProps): React.ReactElement {
   const model = mapTabGroup(section, state);
   const data = section.data as Data | undefined;
   const scheme = usePrefersColorScheme();
@@ -47,6 +47,7 @@ export function TabGroup({ section, state, onAction, onStateChange }: SectionPro
       tab: {
         padding: `${padV}px ${padH}px`,
         color: resolveColor(TAB_LABEL_SECONDARY) ?? 'var(--text-secondary)',
+        borderBottomColor: 'transparent',
       },
       tabActive: {
         color: resolveColor(TAB_LABEL_PRIMARY) ?? 'var(--text-primary)',
@@ -68,10 +69,19 @@ export function TabGroup({ section, state, onAction, onStateChange }: SectionPro
     if (action) {
       onAction(action);
     } else {
-      console.warn('[TabGroup] missing subsection mutate action', {
-        sectionId: section.id,
-        tabId,
-      });
+      const tab = model?.tabs.find((t) => t.id === tabId);
+      if (tab && model) {
+        console.warn('[TabGroup] missing subsection mutate action; falling back to tab stateValue', {
+          sectionId: section.id,
+          tabId,
+        });
+        onStateChange(model.stateKey, tab.stateValue);
+      } else {
+        console.warn('[TabGroup] missing subsection mutate action', {
+          sectionId: section.id,
+          tabId,
+        });
+      }
     }
   };
 
@@ -85,6 +95,8 @@ export function TabGroup({ section, state, onAction, onStateChange }: SectionPro
           state={state}
           onAction={onAction}
           onStateChange={onStateChange}
+          onSectionReplace={onSectionReplace}
+          onSectionGone={onSectionGone}
         />
       ) : (
         <div style={{ ...styles.tabBar, ...tokenStyles.tabBar }} role="tablist">
@@ -115,6 +127,8 @@ export function TabGroup({ section, state, onAction, onStateChange }: SectionPro
               state={state}
               onAction={onAction}
               onStateChange={onStateChange}
+              onSectionReplace={onSectionReplace}
+              onSectionGone={onSectionGone}
             />
           </div>
         ) : (
@@ -146,7 +160,9 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 600,
     cursor: 'pointer',
     whiteSpace: 'nowrap',
-    borderBottom: '2px solid transparent',
+    borderBottomStyle: 'solid',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
     marginBottom: -1,
   },
   tabActive: {},

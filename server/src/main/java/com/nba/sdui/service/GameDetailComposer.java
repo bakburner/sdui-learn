@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.nba.sdui.request.SduiRequestContext;
+import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -11,8 +13,10 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Composes the Game Detail SDUI screen from live NBA API data with
@@ -33,6 +37,7 @@ public class GameDetailComposer {
     private final ObjectMapper objectMapper;
     private final StatsApiClient statsApiClient;
     private final BoxscoreComposer boxscoreComposer;
+    private final SectionRefreshService sectionRefreshService;
     private final SduiUtils utils;
     private final AtomicCompositeBuilder atomicBuilder;
 
@@ -42,12 +47,19 @@ public class GameDetailComposer {
     public GameDetailComposer(ObjectMapper objectMapper,
                               StatsApiClient statsApiClient,
                               BoxscoreComposer boxscoreComposer,
+                              SectionRefreshService sectionRefreshService,
                               SduiUtils utils) {
         this.objectMapper = objectMapper;
         this.statsApiClient = statsApiClient;
         this.boxscoreComposer = boxscoreComposer;
+        this.sectionRefreshService = sectionRefreshService;
         this.utils = utils;
         this.atomicBuilder = new AtomicCompositeBuilder(objectMapper);
+    }
+
+    @PostConstruct
+    void registerSectionRefreshResolvers() {
+        sectionRefreshService.registerResolver("stats-api:game-", this::refreshGameDetailSection);
     }
 
     /**
@@ -87,7 +99,14 @@ public class GameDetailComposer {
 
         ObjectNode response = baseResponse.deepCopy();
 
+        String contentSourceId = "stats-api:game-" + gameId;
+        rederiveSectionIds(response, contentSourceId);
+
         response.put("id", "game-detail-" + gameId);
+        // Screen-level default refresh is static; sections own pre-game polling and live SSE.
+        ObjectNode defaultRefreshPolicy = objectMapper.createObjectNode();
+        defaultRefreshPolicy.put("type", "static");
+        response.set("defaultRefreshPolicy", defaultRefreshPolicy);
         response.put("traceId", traceId);
         response.put("schemaVersion", schemaVersion);
         response.put("parentUri", "nba://scoreboard");
@@ -97,7 +116,7 @@ public class GameDetailComposer {
         ArrayNode variants = objectMapper.createArrayNode();
         variants.add(objectMapper.createObjectNode().put("id", "A").put("label", "Default").put("description", "All sections, standard order"));
         variants.add(objectMapper.createObjectNode().put("id", "B").put("label", "Reorder").put("description", "Content rail and TabGroup swapped"));
-        variants.add(objectMapper.createObjectNode().put("id", "C").put("label", "Minimal").put("description", "Player stats and promo banner removed"));
+        variants.add(objectMapper.createObjectNode().put("id", "C").put("label", "Minimal").put("description", "Video player, scoreboard, and tabs only"));
         variants.add(objectMapper.createObjectNode().put("id", "D").put("label", "Extra Rail").put("description", "Trending videos rail added after content rail"));
         ObjectNode variantsWrapper = objectMapper.createObjectNode();
         variantsWrapper.put("experimentId", "game_detail_variant");
@@ -119,9 +138,54 @@ public class GameDetailComposer {
                 variant, response.has("sections") ? response.get("sections").size() : 0);
 
         utils.prependAppBarHeaderIfNeeded(response);
+        prependVariantChipsIfPresent(response, gameId, variant);
         utils.ensureScreenContentInsets(response);
         utils.stampStringTableOnSections(response, locale);
         return new GameDetailResult(response, derivedGameState);
+    }
+
+    /**
+     * Prepend a server-composed variant chip section to the screen when the
+     * response declares {@code variants}. Replaces the per-client variant picker
+     * UIs: every platform just renders the chip buttons via existing atomics and
+     * dispatches the {@code navigate} action whose targetUri carries the chosen
+     * variant in the {@code experiments[<experimentId>]} query param.
+     */
+    private void prependVariantChipsIfPresent(ObjectNode response, String gameId, String activeVariant) {
+        if (!response.has("variants")) return;
+        ObjectNode variants = (ObjectNode) response.get("variants");
+        String experimentId = variants.path("experimentId").asText(null);
+        ArrayNode options = variants.has("options") && variants.get("options").isArray()
+                ? (ArrayNode) variants.get("options") : null;
+        if (experimentId == null || experimentId.isBlank() || options == null || options.isEmpty()) return;
+
+        String currentUri = "nba://game/" + gameId;
+        String normalized = (activeVariant == null || activeVariant.isBlank())
+                ? "A" : activeVariant.toUpperCase();
+        ObjectNode chips = atomicBuilder.buildVariantChipsComposite(
+                "game-detail-variant-chips", "game_detail_variant_chips",
+                currentUri, experimentId, options, normalized);
+        chips.set("surface", utils.flushSurface());
+
+        ArrayNode sections = response.has("sections") && response.get("sections").isArray()
+                ? (ArrayNode) response.get("sections")
+                : objectMapper.createArrayNode();
+        ArrayNode merged = objectMapper.createArrayNode();
+        // Insert after the app-bar (index 0) so the chips sit just below the
+        // header. If no app-bar is present, the chips go at the very top.
+        int insertAt = 0;
+        if (sections.size() > 0) {
+            String firstId = sections.get(0).path("id").asText("");
+            if (firstId.endsWith(":app-bar")) {
+                merged.add(sections.get(0));
+                insertAt = 1;
+            }
+        }
+        merged.add(chips);
+        for (int i = insertAt; i < sections.size(); i++) {
+            merged.add(sections.get(i));
+        }
+        response.set("sections", merged);
     }
 
     // ── Live-data composition ──────────────────────────────────────────
@@ -163,7 +227,6 @@ public class GameDetailComposer {
 
             ObjectNode response = objectMapper.createObjectNode();
             response.put("id", "game-detail-" + gameId);
-            response.put("type", "game_detail");
             response.put("schemaVersion", schemaVersion);
             response.put("parentUri", "nba://scoreboard");
 
@@ -233,6 +296,31 @@ public class GameDetailComposer {
             log.error("Failed to compose from live data for gameId={}: {}", gameId, e.getMessage(), e);
         }
         return null;
+    }
+
+    private JsonNode refreshGameDetailSection(String sectionId, SduiRequestContext ctx) throws IOException {
+        SectionIdDeriver.Parsed parsed = SectionIdDeriver.parse(sectionId);
+        if (!parsed.isDerived() || !parsed.source().startsWith("stats-api:game-")) {
+            throw new IllegalArgumentException("Invalid game detail sectionId: " + sectionId);
+        }
+
+        String gameId = parsed.source().substring("stats-api:game-".length());
+        if (!"scoreboard".equals(parsed.slug())) {
+            throw new UnsupportedSectionException(
+                "Game detail composer does not support section refresh for slug='" + parsed.slug() + "'");
+        }
+
+        JsonNode boxscore = statsApiClient.getBoxscore(gameId);
+        if (boxscore == null) {
+            throw new IOException("No boxscore data available for gameId=" + gameId);
+        }
+
+        JsonNode game = boxscore.path("game");
+        if (game.isMissingNode()) {
+            throw new IOException("No game data in boxscore for gameId=" + gameId);
+        }
+
+        return buildGamePanelScoreboardFromLive(game, gameId, parsed.source());
     }
 
     private ObjectNode loadSectionFromExample(String sectionId) {
@@ -315,127 +403,32 @@ public class GameDetailComposer {
         data.set("tabContents", tabContents);
         section.set("data", data);
         section.set("subsections", utils.tabSelectSubsections(tabs, "gd_boxscore_team"));
-        section.set("surface", utils.secondaryStripSurface());
+        section.set("surface", utils.stripSurfaceWithoutBackground());
         return section;
     }
 
-    private ObjectNode buildTabGroupFromLive(JsonNode game, String gameId) {
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", "game-tabs");
-        section.put("type", "TabGroup");
-        section.put("analyticsId", "game_tabs");
-
-        ObjectNode refreshPolicy = objectMapper.createObjectNode();
-        refreshPolicy.put("type", "poll");
-        refreshPolicy.put("intervalMs", 30000);
-        refreshPolicy.put("url", "https://cdn.nba.com/static/json/liveData/boxscore/boxscore_" + gameId + ".json");
-        refreshPolicy.put("dataPath", "game");
-        section.set("refreshPolicy", refreshPolicy);
-
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("stateKey", "activeTab");
-        data.put("defaultTab", "boxscore");
-
-        ArrayNode tabs = objectMapper.createArrayNode();
-
-        ObjectNode boxscoreTab = objectMapper.createObjectNode();
-        boxscoreTab.put("id", "tab-boxscore");
-        boxscoreTab.put("label", "Box Score");
-        boxscoreTab.put("stateKey", "activeTab");
-        boxscoreTab.put("stateValue", "boxscore");
-        tabs.add(boxscoreTab);
-
-        ObjectNode playByPlayTab = objectMapper.createObjectNode();
-        playByPlayTab.put("id", "tab-playbyplay");
-        playByPlayTab.put("label", "Play-by-Play");
-        playByPlayTab.put("stateKey", "activeTab");
-        playByPlayTab.put("stateValue", "playbyplay");
-        tabs.add(playByPlayTab);
-
-        data.set("tabs", tabs);
-
-        ObjectNode tabContents = objectMapper.createObjectNode();
-
-        ArrayNode boxscoreContent = objectMapper.createArrayNode();
-        ObjectNode homeBoxscore = buildTeamBoxscoreStatLine(game.path("homeTeam"));
-        if (homeBoxscore != null) {
-            boxscoreContent.add(homeBoxscore);
-        }
-        ObjectNode awayBoxscore = buildTeamBoxscoreStatLine(game.path("awayTeam"));
-        if (awayBoxscore != null) {
-            boxscoreContent.add(awayBoxscore);
-        }
-        tabContents.set("boxscore", boxscoreContent);
-
-        ArrayNode playByPlayContent = objectMapper.createArrayNode();
-        playByPlayContent.add(atomicBuilder.buildStatLine(
-                "play-by-play", null, "Play-by-Play", "vertical", new String[][]{}));
-        tabContents.set("playbyplay", playByPlayContent);
-
-        data.set("tabContents", tabContents);
-        section.set("data", data);
-        section.set("subsections", utils.tabSelectSubsections(tabs, "activeTab"));
-
-        return section;
-    }
-
-    private ObjectNode buildTeamBoxscoreStatLine(JsonNode team) {
-        if (team.isMissingNode() || !team.has("players")) {
-            return null;
-        }
-
-        String teamName = team.path("teamName").asText();
-        String teamCity = team.path("teamCity").asText();
-        String teamTricode = team.path("teamTricode").asText();
-        int teamId = team.path("teamId").asInt();
-
-        ArrayNode stats = objectMapper.createArrayNode();
-        ArrayNode players = (ArrayNode) team.get("players");
-
-        for (JsonNode player : players) {
-            JsonNode playerStats = player.path("statistics");
-            String minutes = playerStats.path("minutes").asText();
-
-            if (minutes == null || minutes.isEmpty() || "00:00".equals(minutes) || "PT00M00.00S".equals(minutes)) {
-                continue;
-            }
-
-            ObjectNode statItem = objectMapper.createObjectNode();
-            statItem.put("playerId", player.path("personId").asInt());
-
-            String playerName = player.path("name").asText();
-            if (playerName.isEmpty()) {
-                String firstName = player.path("firstName").asText();
-                String familyName = player.path("familyName").asText();
-                playerName = firstName + " " + familyName;
-            }
-            statItem.put("playerName", playerName);
-            statItem.put("teamTricode", teamTricode);
-
-            String formattedMinutes = SduiUtils.formatMinutes(minutes);
-            statItem.put("statCategory", "MIN");
-            statItem.put("statValue", formattedMinutes);
-
-            String imgUrl = "https://cdn.nba.com/headshots/nba/latest/1040x760/"
-                    + player.path("personId").asInt() + ".png";
-            statItem.put("playerImageUrl", imgUrl);
-
-            stats.add(statItem);
-        }
-
-        return atomicBuilder.buildStatLineFromNodes(
-                "boxscore-" + teamTricode.toLowerCase(), null,
-                teamCity + " " + teamName, "vertical", stats);
-    }
 
     private ObjectNode buildGamePanelScoreboardFromLive(JsonNode game, String gameId, String contentSourceId) {
         int gameStatus = game.path("gameStatus").asInt();
         boolean live = gameStatus == 2;
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite", "scoreboard");
 
         ObjectNode refreshPolicy = objectMapper.createObjectNode();
-        refreshPolicy.put("type", "sse");
-        refreshPolicy.put("channel", gameId + ":linescore");
-        refreshPolicy.put("pauseWhenOffScreen", false);
+        if (live) {
+            refreshPolicy.put("type", "sse");
+            refreshPolicy.put("channel", gameId + ":linescore");
+            refreshPolicy.put("pauseWhenOffScreen", false);
+        } else if (gameStatus == 1) {
+            // Pre-game: poll the SDUI section endpoint every 5 minutes so the
+            // client re-composes the section. When the game goes live the server
+            // returns sse policy and the client transitions the subscription.
+            refreshPolicy.put("type", "poll");
+            refreshPolicy.put("sectionEndpoint", "/v1/sdui/section/" + sectionId);
+            refreshPolicy.put("intervalMs", 300_000);
+            refreshPolicy.put("pauseWhenOffScreen", true);
+        } else {
+            refreshPolicy.put("type", "static");
+        }
 
         AtomicCompositeBuilder.GameClockSnapshot clock = live
                 ? new AtomicCompositeBuilder.GameClockSnapshot(
@@ -444,7 +437,6 @@ public class GameDetailComposer {
                         AtomicCompositeBuilder.DEMO_INITIAL_CLOCK_RUNNING)
                 : null;
 
-        String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite", "scoreboard");
         ObjectNode section = atomicBuilder.buildGamePanelComposite(
                 sectionId,
                 null,
@@ -843,7 +835,7 @@ public class GameDetailComposer {
         data.set("tabContents", tabContents);
         section.set("data", data);
         section.set("subsections", utils.tabSelectSubsections(tabs, "gd_active_tab"));
-        section.set("surface", utils.secondaryStripSurface());
+        section.set("surface", utils.stripSurfaceWithoutBackground());
 
         ObjectNode layoutHints = objectMapper.createObjectNode();
         layoutHints.put("marginTop", 0);
@@ -997,22 +989,61 @@ public class GameDetailComposer {
         }
     }
 
+    // ── Section ID normalization ────────────────────────────────────────
+
+    /**
+     * Re-derive section IDs so every section — whether from live composition
+     * or from an example fallback JSON — carries the canonical
+     * {@code contentSourceId~type=SectionType~slug=name} format.
+     *
+     * <p>For sections that already carry a derived ID (contains {@code ~type=}),
+     * the ID is left untouched. For flat-ID sections (example JSON), the
+     * existing ID is treated as the slug, the section's {@code type} is read,
+     * and {@link SectionIdDeriver#derive} produces the canonical form.
+     *
+     * <p>This runs once at the top of {@link #composeGameDetail} so that every
+     * downstream consumer (variant transforms, section refresh routing,
+     * client-side merge-by-id) sees a uniform ID format.
+     */
+    private void rederiveSectionIds(ObjectNode response, String contentSourceId) {
+        if (!response.has("sections") || !response.get("sections").isArray()) return;
+        ArrayNode sections = (ArrayNode) response.get("sections");
+        for (int i = 0; i < sections.size(); i++) {
+            ObjectNode section = (ObjectNode) sections.get(i);
+            String id = section.path("id").asText("");
+            if (SectionIdDeriver.isDerived(id)) continue;
+            String type = section.path("type").asText("AtomicComposite");
+            section.put("id", SectionIdDeriver.derive(contentSourceId, type, id));
+            if (!section.has("contentSourceId")) {
+                section.put("contentSourceId", contentSourceId);
+            }
+        }
+    }
+
     // ── Variant transformations ────────────────────────────────────────
+
+    /**
+     * Build a slug→index lookup for the sections array. Variant transforms
+     * use this instead of scanning by raw ID, making them ID-format-agnostic.
+     */
+    private static Map<String, Integer> buildSlugIndex(ArrayNode sections) {
+        Map<String, Integer> index = new HashMap<>();
+        for (int i = 0; i < sections.size(); i++) {
+            String id = sections.get(i).path("id").asText();
+            index.put(SectionIdDeriver.extractSlug(id), i);
+        }
+        return index;
+    }
 
     private void applyVariantB(ObjectNode response) {
         if (!response.has("sections")) return;
 
         ArrayNode sections = (ArrayNode) response.get("sections");
-        int contentRailIndex = -1;
-        int tabGroupIndex = -1;
+        Map<String, Integer> slugIndex = buildSlugIndex(sections);
+        Integer contentRailIndex = slugIndex.get("content-rail");
+        Integer tabGroupIndex = slugIndex.get("game-detail-tabs");
 
-        for (int i = 0; i < sections.size(); i++) {
-            String id = sections.get(i).path("id").asText();
-            if (id.endsWith("::content-rail")) contentRailIndex = i;
-            if (id.endsWith("::game-detail-tabs")) tabGroupIndex = i;
-        }
-
-        if (contentRailIndex >= 0 && tabGroupIndex >= 0 && contentRailIndex < tabGroupIndex) {
+        if (contentRailIndex != null && tabGroupIndex != null && contentRailIndex < tabGroupIndex) {
             JsonNode contentRail = sections.get(contentRailIndex);
             JsonNode tabGroup = sections.get(tabGroupIndex);
             sections.set(contentRailIndex, tabGroup);
@@ -1021,6 +1052,10 @@ public class GameDetailComposer {
         }
     }
 
+    private static final Set<String> VARIANT_C_KEEP = Set.of(
+            "scoreboard", "game-detail-tabs"
+    );
+
     private void applyVariantC(ObjectNode response) {
         if (!response.has("sections")) return;
 
@@ -1028,20 +1063,22 @@ public class GameDetailComposer {
         ArrayNode filtered = objectMapper.createArrayNode();
 
         for (JsonNode section : sections) {
-            String id = section.path("id").asText();
-            if (!id.endsWith("::promo-banner") && !id.endsWith("::player-stats")) {
+            String slug = SectionIdDeriver.extractSlug(section.path("id").asText());
+            String type = section.path("type").asText("");
+            if ("VideoPlayer".equals(type) || VARIANT_C_KEEP.contains(slug)) {
                 filtered.add(section);
             }
         }
 
         response.set("sections", filtered);
-        log.debug("Applied variant C: removed promo-banner and player-stats, {} sections remaining", filtered.size());
+        log.debug("Applied variant C (minimal): kept VideoPlayer + whitelist, {} sections remaining", filtered.size());
     }
 
     private void applyVariantD(ObjectNode response) {
         if (!response.has("sections")) return;
 
         ArrayNode sections = (ArrayNode) response.get("sections");
+        Map<String, Integer> slugIndex = buildSlugIndex(sections);
 
         String[][] trendingCards = {
             {"trending-1", "Top 10 Plays of the Night", "Last night's best moments", FALLBACK_THUMB, "video", "4:30", "nba://video/top10-plays"},
@@ -1055,16 +1092,20 @@ public class GameDetailComposer {
                 "trending_videos_rail", null, trendingCards);
         extraRail.set("surface", utils.railSurface());
 
-        ArrayNode updated = objectMapper.createArrayNode();
-        for (JsonNode section : sections) {
-            updated.add(section);
-            if (section.path("id").asText().endsWith("::content-rail")) {
-                updated.add(extraHeader);
-                updated.add(extraRail);
+        Integer insertAfter = slugIndex.get("content-rail");
+        if (insertAfter != null) {
+            ArrayNode updated = objectMapper.createArrayNode();
+            for (int i = 0; i < sections.size(); i++) {
+                updated.add(sections.get(i));
+                if (i == insertAfter) {
+                    updated.add(extraHeader);
+                    updated.add(extraRail);
+                }
             }
+            response.set("sections", updated);
+            log.debug("Applied variant D: added Trending Videos rail, {} sections total", updated.size());
+        } else {
+            log.debug("Applied variant D: content-rail not found, skipping insertion");
         }
-
-        response.set("sections", updated);
-        log.debug("Applied variant D: added Trending Videos rail, {} sections total", updated.size());
     }
 }

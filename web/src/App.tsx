@@ -32,7 +32,6 @@ function resolveEndpoint(uri: string): string {
 }
 
 export function App(): React.ReactElement {
-  const [experiments, setExperiments] = useState<Record<string, string>>({});
   const [currentUri, setCurrentUri] = useState<string | null>(null);
   const [bootstrapUri, setBootstrapUri] = useState<string | null>(null);
   const colorScheme = usePrefersColorScheme();
@@ -65,27 +64,25 @@ export function App(): React.ReactElement {
     return () => { cancelled = true; };
   }, []);
 
-  // Variants come from the server response — no client-side URI sniffing.
-  // We read screen.variants after the first fetch below.
-
-  useEffect(() => {
-    setExperiments({});
-  }, [currentUri]);
+  // Variant selection (A/B/C/...) is server-composed as an `AtomicComposite`
+  // chip section emitted alongside the rest of `screen.sections`. Each chip's
+  // navigate action re-fetches the same screen URI with the chosen variant in
+  // its `experiments[<id>]` query param, so there is no client variant state.
 
   const endpoint = currentUri ? resolveEndpoint(currentUri) : null;
-  const { screen, shellScreen, loading, error, upgradeRequired, refetch, setScreen } = useSduiScreen({
+  const {
+    screen,
+    shellScreen,
+    loading,
+    error,
+    upgradeRequired,
+    refetch,
+    setScreen,
+    onSectionReplace,
+    onSectionGone,
+  } = useSduiScreen({
     endpoint,
-    experiments,
   });
-
-  // Variants are scoped to the *currently loaded* screen. We deliberately do
-  // NOT fall back to `shellScreen` here — that would surface the previous
-  // screen's variant chips next to a "Failed to load" message for the new
-  // endpoint, which reads as stale state.
-  const variantsData = (screen as Record<string, unknown> | undefined)?.variants as
-    { experimentId?: string; options?: ReadonlyArray<{ id: string; label: string; description: string }> } | undefined;
-  const variantOptions = variantsData?.options ?? [];
-  const variantExperimentId = variantsData?.experimentId ?? 'variant';
 
   // Screen-level state for TabGroup and other stateful sections
   const [screenState, setScreenState] = useState<Record<string, unknown>>({});
@@ -265,31 +262,6 @@ export function App(): React.ReactElement {
         />
       )}
 
-      {/* Variant Selector - proves composability with zero client rendering changes */}
-      {variantOptions.length > 0 && (
-        <div style={styles.variantBar}>
-          <span style={styles.variantLabel}>Variant:</span>
-          {variantOptions.map((v) => (
-            <button
-              key={v.id}
-              style={{
-                ...styles.variantButton,
-                ...(experiments[variantExperimentId] === v.id ? styles.variantButtonActive : {}),
-              }}
-              onClick={() =>
-                setExperiments((prev) => ({
-                  ...prev,
-                  [variantExperimentId]: v.id,
-                }))
-              }
-              title={v.description}
-            >
-              {v.label}
-            </button>
-          ))}
-        </div>
-      )}
-
       <main
         style={{
           ...styles.main,
@@ -385,6 +357,8 @@ export function App(): React.ReactElement {
                 state={screenState}
                 onAction={handleAction}
                 onStateChange={handleStateChange}
+                onSectionReplace={onSectionReplace}
+                onSectionGone={onSectionGone}
                 onStalenessChange={handleStalenessChange}
                 traceId={screen.traceId ?? undefined}
               />
@@ -419,7 +393,6 @@ const styles: Record<string, React.CSSProperties> = {
     padding: 0,
     backgroundColor: 'var(--canvas)',
     overflowX: 'hidden',
-    position: 'relative',
   },
   navLoadingOverlay: {
     position: 'absolute',
@@ -471,42 +444,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 12,
     fontWeight: 600,
     padding: '5px 12px',
-  },
-  variantBar: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 6,
-    padding: '8px 16px',
-    backgroundColor: 'var(--surface)',
-    borderBottom: '1px solid var(--divider)',
-    overflowX: 'auto',
-  },
-  variantLabel: {
-    fontSize: 11,
-    color: 'var(--text-secondary)',
-    marginRight: 4,
-    whiteSpace: 'nowrap',
-    textTransform: 'uppercase' as const,
-    fontWeight: 600,
-    letterSpacing: '0.05em',
-  },
-  variantButton: {
-    padding: '4px 12px',
-    border: '1px solid var(--divider)',
-    borderRadius: 'var(--rounded-full)',
-    backgroundColor: 'transparent',
-    color: 'var(--text-secondary)',
-    fontSize: 12,
-    cursor: 'pointer',
-    whiteSpace: 'nowrap',
-    fontFamily: 'var(--font-body)',
-    transition: 'all var(--duration-fast) var(--ease-default)',
-  },
-  variantButtonActive: {
-    backgroundColor: 'var(--nba-tint)',
-    borderColor: 'var(--nba-tint)',
-    color: 'var(--nba-on-tint)',
-    fontWeight: 600,
   },
   main: {
     flex: 1,

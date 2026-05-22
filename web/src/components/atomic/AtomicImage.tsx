@@ -1,10 +1,11 @@
 import React, { useContext, useEffect, memo, useMemo } from 'react';
 import type { Action } from '@sdui/models';
+import { ActionTrigger } from '@sdui/models';
 import type { AtomicProps } from './AtomicRouter';
 import { AtomicBox, AtomicBoxBadge } from './AtomicBox';
 import { accessibilityProps } from '../../utils/accessibility';
 import { resolveImageVariant } from '../../utils/ImageVariantResolver';
-import { currentFormFactor } from '../../utils/LayoutTokenResolver';
+import { currentFormFactor, resolveLayoutScalar as resolveLS } from '../../utils/LayoutTokenResolver';
 import { CompositeContentContext, resolveBindRefString } from '../../utils/BindRefResolver';
 import { useWireAssetBaseUrl } from '../../context/WireAssetBaseUrlContext';
 import { resolveWireAssetUrl } from '../../utils/WireUrlResolver';
@@ -42,15 +43,20 @@ function AtomicImageInner({ element, onAction }: AtomicProps): React.ReactElemen
 
   const arFromVariant =
     variantSpec?.aspectRatio != null ? Number(variantSpec.aspectRatio) : undefined;
-  const aspectRatioForDims =
-    element.aspectRatio ??
-    (arFromVariant != null && !Number.isNaN(arFromVariant) && arFromVariant > 0
+  const aspectRatioForDims: number | undefined = (() => {
+    if (element.aspectRatio != null) {
+      const n = Number(element.aspectRatio);
+      return !Number.isNaN(n) && n > 0 ? n : undefined;
+    }
+    return arFromVariant != null && !Number.isNaN(arFromVariant) && arFromVariant > 0
       ? arFromVariant
-      : undefined);
+      : undefined;
+  })();
 
   const intrinsicSize = useMemo((): { w: number; h: number } | undefined => {
-    const w = element.width;
-    const h = element.height;
+    const ff = currentFormFactor();
+    const w = element.width != null ? resolveLS(element.width, ff) : undefined;
+    const h = element.height != null ? resolveLS(element.height, ff) : undefined;
     const ar = aspectRatioForDims;
     if (w != null && h != null) {
       return { w, h };
@@ -80,8 +86,8 @@ function AtomicImageInner({ element, onAction }: AtomicProps): React.ReactElemen
   };
 
   const hasActions = element.actions && element.actions.length > 0;
-  const activateActions = selectActions(element.actions as Action[] | undefined, 'onActivate');
-  const longPressActions = selectActions(element.actions as Action[] | undefined, 'onLongPress');
+  const activateActions = selectActions(element.actions as Action[] | undefined, ActionTrigger.OnActivate);
+  const longPressActions = selectActions(element.actions as Action[] | undefined, ActionTrigger.OnLongPress);
   const handleClick = hasActions
     ? () => {
         if (activateActions.length > 0) onAction(activateActions);

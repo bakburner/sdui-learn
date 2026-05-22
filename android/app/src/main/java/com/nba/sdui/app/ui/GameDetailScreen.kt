@@ -18,16 +18,15 @@ import com.nba.sdui.core.models.generated.LayoutScalar
 import com.nba.sdui.core.renderer.LayoutTokenResolver
 import com.nba.sdui.core.screen.SduiNavigationShell
 import com.nba.sdui.core.screen.SduiScreenContent
-import com.nba.sdui.core.screen.SduiScreenUiState
 import com.nba.sdui.core.state.ActionHandler
 import com.nba.sdui.core.renderer.atomic.LocalActionExecutor
 
 /**
  * SDUI Screen — app-level wrapper.
  *
- * Screen title and back affordances are server-composed as the first
- * {@code AtomicComposite} section. This layer keeps only prototype dev controls
- * (theme toggle, variant chips) outside the SDUI payload.
+ * Screen title, back affordances, and variant chips are all server-composed as
+ * {@code AtomicComposite} sections. This layer keeps only the prototype dev
+ * controls (theme toggle) outside the SDUI payload.
  */
 @Composable
 fun GameDetailScreen(
@@ -36,12 +35,11 @@ fun GameDetailScreen(
     modifier: Modifier = Modifier,
     onNavigateUri: (String) -> Unit = {},
     onShowToast: (String) -> Unit = {},
-    onVariantChange: (String) -> Unit = {},
     onBack: () -> Unit = {},
     onToggleTheme: () -> Unit = {},
     viewModel: GameDetailViewModel = viewModel {
         GameDetailViewModel(
-            baseUrl = BuildConfig.SDUI_BASE_URL,
+            baseUrl = BuildConfig.SDUI_ANDROID_BASE_URL,
             ablyTokenUrl = BuildConfig.ABLY_TOKEN_URL,
             config = config
         )
@@ -91,7 +89,6 @@ fun GameDetailScreen(
         }
     }
 
-    val successScreen = (uiState as? SduiScreenUiState.Success)?.screen
     val shellScreen = viewModel.shellScreen
     val themePad = LayoutTokenResolver.dp(LayoutScalar.StringValue("token:nba.spacing.sm"))
 
@@ -106,26 +103,6 @@ fun GameDetailScreen(
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
-            val variantsData = successScreen?.variants
-            val serverVariants = variantsData?.options ?: emptyList()
-            val experimentId = variantsData?.experimentID ?: "variant"
-            if (serverVariants.isNotEmpty()) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    serverVariants.forEach { v ->
-                        FilterChip(
-                            selected = config.experiments[experimentId] == v.id,
-                            onClick = { onVariantChange(v.id) },
-                            label = { Text(v.label) }
-                        )
-                    }
-                }
-            }
-
             SduiNavigationShell(
                 navigation = shellScreen?.navigation,
                 onNavigate = onNavigateUri,

@@ -1,6 +1,7 @@
 package com.nba.sdui.core.data
 
 import android.util.Log
+import com.nba.sdui.core.models.generated.Section
 import com.nba.sdui.core.models.generated.SduiModels
 import com.nba.sdui.core.models.generated.mapper
 import com.nba.sdui.core.request.RequestEnvelopeBuilder
@@ -148,6 +149,81 @@ class SduiRepository(
     }
 
     /**
+     * Fetch a single section from an SDUI section endpoint. The transport shape
+     * matches [fetchScreen] exactly, but the response body is the section itself.
+     */
+    suspend fun fetchSection(
+        path: String,
+        envelope: RequestEnvelopeBuilder,
+        traceIdOverride: String? = null
+    ): Section = withContext(Dispatchers.IO) {
+        val traceId = traceIdOverride ?: envelope.generateTraceId()
+        val envelopeQuery = envelope.buildQueryString()
+
+        val request = if (envelopeQuery.length > 8192) {
+            val url = "$baseUrl$path"
+            Log.d(TAG, "Fetching section (POST fallback): $url")
+            Request.Builder()
+                .url(url)
+                .header("X-Trace-Id", traceId)
+                .header("X-Request-Id", UUID.randomUUID().toString())
+                .apply { envelope.getDeviceId()?.let { header("X-Device-Id", it) } }
+                .header("X-Platform", envelope.getPlatformName())
+                .apply { envelope.getAppVersion()?.let { header("X-App-Version", it) } }
+                .header("X-OS-Version", envelope.getOsVersion())
+                // TODO(edge): placeholder — edge worker will set these from client IP
+                .header("X-Resolved-Country", "US")
+                .header("X-Resolved-Market-Cohort", "MARKET_UNKNOWN")
+                .apply { authorizationToken?.let { header("Authorization", "Bearer $it") } }
+                .post(envelope.buildJsonBody().toRequestBody(JSON_MEDIA_TYPE))
+                .build()
+        } else {
+            val separator = if (path.contains("?")) "&" else "?"
+            val url = "$baseUrl$path$separator$envelopeQuery"
+            Log.d(TAG, "Fetching section: $url")
+            Request.Builder()
+                .url(url)
+                .header("X-Trace-Id", traceId)
+                .header("X-Request-Id", UUID.randomUUID().toString())
+                .apply { envelope.getDeviceId()?.let { header("X-Device-Id", it) } }
+                .header("X-Platform", envelope.getPlatformName())
+                .apply { envelope.getAppVersion()?.let { header("X-App-Version", it) } }
+                .header("X-OS-Version", envelope.getOsVersion())
+                // TODO(edge): placeholder — edge worker will set these from client IP
+                .header("X-Resolved-Country", "US")
+                .header("X-Resolved-Market-Cohort", "MARKET_UNKNOWN")
+                .apply { authorizationToken?.let { header("Authorization", "Bearer $it") } }
+                .build()
+        }
+
+        val response = httpClient.newCall(request).execute()
+        if (!response.isSuccessful) {
+            if (response.code == 404) {
+                throw SectionNotFoundException("Section not found: $path")
+            }
+            throw SduiException("Failed to fetch section: ${response.code}")
+        }
+
+        val versionMismatch = response.header("X-Schema-Version-Mismatch")
+        if (versionMismatch == "upgrade-required") {
+            Log.w(TAG, "Server signaled schema version mismatch on section fetch: upgrade-required")
+            throw SchemaVersionMismatchException(
+                "Client schema version is no longer supported. Please update the app."
+            )
+        }
+
+        val body = response.body?.string()
+            ?: throw SduiException("Empty response body")
+
+        try {
+            mapper.readValue(body, Section::class.java)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to parse section response", e)
+            throw SduiException("Failed to parse section response: ${e.message}")
+        }
+    }
+
+    /**
      * Percent-encode user params with the same RFC-3986 rule the envelope
      * uses, sorted by key so the encoded URL is stable across calls (matters
      * for parity tests and CDN cache keys).
@@ -214,11 +290,18 @@ class SduiRepository(
 /**
  * Exception for SDUI-related errors.
  */
-class SduiException(message: String, cause: Throwable? = null) : Exception(message, cause)
+open class SduiException(message: String, cause: Throwable? = null) : Exception(message, cause)
 
 /**
  * Thrown when the server signals that the client's schema version is below the
  * minimum supported version via `X-Schema-Version-Mismatch: upgrade-required`.
  * The ViewModel should catch this and display an app-update prompt.
  */
-class SchemaVersionMismatchException(message: String) : Exception(message)
+class SchemaVersionMismatchException(message: String) : SduiException(message)
+
+/**
+ * Thrown when a section endpoint returns 404 — the section is gone (e.g. game
+ * ended, content unpublished). The poll loop must stop and the section should
+ * be marked stale; do not back off and retry.
+ */
+class SectionNotFoundException(message: String) : SduiException(message)

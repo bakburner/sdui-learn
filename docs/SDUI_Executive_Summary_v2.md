@@ -66,7 +66,7 @@ The prototype has moved beyond architectural planning into working, demonstrable
 | **Experiment assignment**   | Client-authoritative model (ADR-006). Clients send `experiments` map; server resolves for composition branching. Kill switch client-side. Exposure tracking via fireAndForget | **Done**               |
 | **Internationalization (i18n)** | Server pre-translates all text per locale. Section-level `stringTable` for binding-time resolution. Parameterized strings via atomic decomposition | **Done**               |
 | **iOS renderer**            | SwiftUI `SduiCore` package. 8 section views + AtomicComposite routing, navigation shell, icon tokens, envelope builder, impression tracker, error boundary, polling. Ably gated for x86_64 simulators | **Done** (partial SSE) |
-| **Test coverage**           | No unit, integration, or contract tests                                                                                                                                                                                                                                                                   | **Gap**                |
+| **Test coverage**           | Unit/integration tests exist on server, Android, iOS, and web (transport, refresh, schema contract); comprehensive golden-fixture suite + CI dashboards pending | **Partial**            |
 
 
 ### Key Architectural Concepts Demonstrated
@@ -289,6 +289,7 @@ To preserve continuity with the original executive summary, this section explici
 | Data classification and freshness    | **ADR-011 Proposed** (draft)      |
 | Client data architecture             | **ADR-012 Proposed** (draft)      |
 | Style tokens for atomic primitives   | **ADR-013 Accepted**              |
+| Dynamic conditional properties       | **ADR-014 Proposed**              |
 
 
 ---

@@ -175,6 +175,15 @@ The following are **not** valid client exceptions:
 - `refreshPolicy` tells the client when and how to refresh.
 - Clients must not decide which screens poll, which sections subscribe, or what
   interval to use based on screen identity.
+- `refreshPolicy.sectionEndpoint` is a server-declared path for section-level
+  SDUI re-composition; the client replaces the section in place and re-evaluates
+  the new section's `refreshPolicy` (enabling transitions such as poll→SSE).
+- `screen.defaultRefreshPolicy` is server-declared screen-level refresh; clients
+  must honor its `type` and `intervalMs`.
+- A non-static `screen.defaultRefreshPolicy` and section-level
+  `sectionEndpoint` are mutually exclusive on the same screen. Clients must skip
+  `sectionEndpoint` polls when the screen-level policy is non-static (log and
+  defer to the screen policy).
 - Real-time payloads are opaque JSON and are applied only through shared
   data-binding infrastructure.
 
@@ -234,14 +243,18 @@ The following are **not** valid client exceptions:
 
 ### 4.1 One fetch path
 
-- `SduiRepository` exposes one generic screen-fetch method and `fetchRawJson()`
-  for direct polling URLs.
+- `SduiRepository` exposes three generic fetch primitives: `fetchScreen()` for
+  full screen composition, `fetchSection()` for section-level SDUI re-composition
+  (returns a single `Section`), and `fetchRawJson()` for direct polling URLs
+  (raw data applied via `dataBinding`).
 - Dedicated repository methods for specific screens are prohibited.
 - **Every** composition request — initial loads, navigation transitions,
   pull-to-refresh, action-driven `refresh` (including parameterized refresh
-  with `paramBindings`), and any future variant — routes through that single
-  fetch primitive. Hand-rolled URL strings, bespoke `fetch`/`URLRequest`
-  calls, or per-action transports for composition responses are prohibited.
+  with `paramBindings`), section-level polls via `sectionEndpoint`, and
+  screen-level polls via `defaultRefreshPolicy` — routes through the shared
+  fetch primitives in `SduiRepository`. Hand-rolled URL strings, bespoke
+  `fetch`/`URLRequest` calls, or per-action transports for composition
+  responses are prohibited.
 
 ### 4.1.1 Request envelope is the transport contract
 

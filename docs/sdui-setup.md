@@ -17,8 +17,8 @@ download Android zips by hand.
 | Goal | Follow these steps |
 |---|---|
 | Server + web only | [Steps 1–4](#step-1--check-what-is-already-installed), then [5–7](#step-5--install-web-dependencies) |
-| Android app (`make dev-android`) | Steps 1–4, [8–10](#step-8--android-sdk-on-your-path-both-setup-paths), then 5–7 |
-| iOS app (`make ios-run`) | Steps 1–4, [11–12](#step-11--xcode-and-ios-tools), then 5–7 (Android steps 8–10 optional) |
+| Android app (`make dev-android-local` / `make dev-android-remote`) | Steps 1–4, [8–10](#step-8--android-sdk-on-your-path-both-setup-paths), then 5–7 |
+| iOS app (`make dev-ios-local` / `make dev-ios-remote`) | Steps 1–4, [11–12](#step-11--xcode-and-ios-tools), then 5–7 (Android steps 8–10 optional) |
 | Full stack | All steps |
 
 You can skip steps you have already done. Re-run the **verify** blocks after
@@ -49,7 +49,7 @@ command -v xcodegen
 | `adb` / `emulator` | Android | Paths under your Android SDK |
 | `sdkmanager` / `avdmanager` | Android Path B | Under `$(brew --prefix)/share/android-commandlinetools/...` |
 | `xcodebuild` | iOS | Prints Xcode version |
-| `xcodegen` | `make ios-run` | Prints a path |
+| `xcodegen` | `make dev-ios-local` / `make dev-ios-remote` | Prints a path |
 
 **Verify:** note which rows are missing; the steps below install only what you
 need.
@@ -64,7 +64,7 @@ If Step 1 showed gaps, install with Homebrew:
 brew install openjdk@21 node xcodegen xcbeautify
 ```
 
-**Android** (`make dev-android`) — install both casks, then open Android Studio
+**Android** (`make dev-android-local` / `make dev-android-remote`) — install both casks, then open Android Studio
 once so it creates `~/Library/Android/sdk`:
 
 ```bash
@@ -152,7 +152,7 @@ In **two terminals** at the repo root:
 make dev-server
 
 # Terminal 2
-make dev-web
+make dev-web-local
 ```
 
 | Service | URL |
@@ -168,9 +168,9 @@ You can stop here if you only need server + web.
 
 ## Step 8 — Android SDK on your PATH (both setup paths)
 
-Skip if you are not using `make dev-android`.
+Skip if you are not using `make dev-android-local` or `make dev-android-remote`.
 
-`make dev-android` looks for the SDK at `$ANDROID_HOME`, or by default at
+`make dev-android-local` / `make dev-android-remote` look for the SDK at `$ANDROID_HOME`, or by default at
 `$HOME/Library/Android/sdk` on macOS.
 
 **8.1 — Confirm the SDK directory exists**
@@ -222,7 +222,7 @@ Both should point under `$(brew --prefix)/share/android-commandlinetools/`.
 
 ## Step 9 — Android emulator: pick one path
 
-`make dev-android` needs **one AVD** (a named virtual device). Use **either**
+`make dev-android-local` / `make dev-android-remote` need **one AVD** (a named virtual device). Use **either**
 the Android Studio UI **or** the terminal — not both unless you want extra
 AVDs.
 
@@ -383,10 +383,10 @@ adb shell getprop sys.boot_completed   # prints 1 when boot finished
 With the server running (`make dev-server` in another terminal):
 
 ```bash
-make dev-android
+make dev-android-local
 ```
 
-`make dev-android` will:
+`make dev-android-local` will:
 
 1. Launch the first listed AVD if no device is connected (or use `AVD_NAME`)
 2. Build and install the debug APK
@@ -395,18 +395,18 @@ make dev-android
 Use a specific AVD:
 
 ```bash
-make dev-android AVD_NAME=Pixel_API_35
+make dev-android-local AVD_NAME=Pixel_API_35
 ```
 
 **Verify:** emulator shows the SDUI app; logcat streams in the terminal.
 
 ### Lighter emulator (optional)
 
-`make dev-android` already uses modest defaults (**1536 MB RAM**, **1 CPU core**,
+`make dev-android-local` already uses modest defaults (**1536 MB RAM**, **1 CPU core**,
 **no audio**, **host GPU** on Apple Silicon). Override if you need more headroom:
 
 ```bash
-make dev-android EMU_MEMORY=2048 EMU_CORES=2
+make dev-android-local EMU_MEMORY=2048 EMU_CORES=2
 ```
 
 For a smaller AVD (less disk and RAM at rest), create a phone profile one size
@@ -425,17 +425,17 @@ Example CLI AVD (Path B) with a smaller device profile:
 avdmanager create avd -n SDUI_Lite_API_35 \
   -k "system-images;android-35;google_apis;arm64-v8a" \
   -d pixel_4 --force
-make dev-android AVD_NAME=SDUI_Lite_API_35
+make dev-android-local AVD_NAME=SDUI_Lite_API_35
 ```
 
-**Lightest option:** a physical device over USB — `make dev-android` skips
+**Lightest option:** a physical device over USB — `make dev-android-local` skips
 launching an emulator when `adb devices` already shows one.
 
 ---
 
 ## Step 11 — Xcode and iOS tools
 
-Skip if you are not using `make ios-run`.
+Skip if you are not using `make dev-ios-local` or `make dev-ios-remote`.
 
 1. Install **Xcode** from the App Store.
 2. Select the full Xcode app as the active developer directory:
@@ -451,11 +451,62 @@ xcodebuild -version
 brew install xcodegen xcbeautify
 ```
 
-**Verify — list simulators:**
+4. Install an iOS simulator runtime and ensure at least one simulator exists.
+Use either the Xcode UI or the CLI.
+
+| | Path A — Xcode UI (default) | Path B — Command line |
+|---|---|---|
+| Best if | You already use Xcode interactively | You want a shell-only setup |
+| Runtime install | **Xcode** → **Settings** → **Components** | `xcodebuild -downloadPlatform iOS` |
+| Simulator creation | **Xcode** → **Window** → **Devices and Simulators** | `xcrun simctl create ...` |
+| Extra first-run step | None | `sudo xcodebuild -runFirstLaunch` |
+
+After either path, both converge on the same check:
 
 ```bash
+xcrun simctl list runtimes
 xcrun simctl list devices available
 ```
+
+You need at least one `iOS ...` runtime before `make dev-ios-local` / `make dev-ios-remote` can build for a simulator.
+
+### Path A — Xcode UI
+
+1. Open **Xcode** → **Settings** → **Components**.
+2. Download any available **iOS xx.x Simulator** runtime.
+3. If no simulator exists yet, open **Xcode** → **Window** → **Devices and Simulators** → **Simulators** and create one.
+
+### Path B — Command line (`xcodebuild` + `simctl`)
+
+Run first-launch setup once if this Xcode install has not completed it yet:
+
+```bash
+sudo xcodebuild -runFirstLaunch
+```
+
+Download the iOS simulator runtime:
+
+```bash
+xcodebuild -downloadPlatform iOS
+```
+
+If `xcrun simctl list devices available` is still empty after the runtime installs,
+create a simulator from the shell:
+
+```bash
+xcrun simctl create "iPhone SE (3rd generation)" \
+  com.apple.CoreSimulator.SimDeviceType.iPhone-SE-3rd-generation \
+  "$(xcrun simctl list runtimes | awk '/^iOS / { print $NF; exit }')"
+```
+
+**Verify — runtime + simulator present:**
+
+```bash
+xcrun simctl list runtimes
+xcrun simctl list devices available
+```
+
+If the runtimes list is empty, `make dev-ios-local` / `make dev-ios-remote` cannot boot or build for a simulator yet.
 
 ---
 
@@ -468,13 +519,13 @@ Server must be running first:
 make dev-server
 
 # Terminal 2
-make ios-run
+make dev-ios-local
 ```
 
 Default simulator is **iPhone SE (3rd generation)**. Override:
 
 ```bash
-make ios-run IOS_SIM_NAME="iPhone 15 Pro Max"
+make dev-ios-local IOS_SIM_NAME="iPhone 15 Pro Max"
 ```
 
 **Verify:** simulator opens with the demo app.
@@ -487,9 +538,12 @@ make ios-run IOS_SIM_NAME="iPhone 15 Pro Max"
 |---|---|
 | Server + web | `make dev` |
 | Server only | `make dev-server` |
-| Web only | `make dev-web` |
-| Android on emulator | `make dev-android` |
-| iOS demo | `make ios-run` |
+| Web against local server | `make dev-web-local` |
+| Web against remote server | `make dev-web-remote` |
+| Android against local server | `make dev-android-local` |
+| Android against remote server | `make dev-android-remote` |
+| iOS demo against local server | `make dev-ios-local` |
+| iOS demo against remote server | `make dev-ios-remote` |
 | All tests | `make test` |
 | Regenerate models after schema change | `make codegen` |
 | Stop server + web + Android | `make stop` |
@@ -503,14 +557,18 @@ make ios-run IOS_SIM_NAME="iPhone 15 Pro Max"
 | `EMU_MEMORY` | `1536` | Emulator RAM (MB) |
 | `EMU_CORES` | `1` | Host CPU cores for the VM |
 | `EMU_GPU` | `host` (arm64 Mac) / `swiftshader_indirect` (Intel) | Graphics backend |
+| `SDUI_ANDROID_LOCAL_SERVER` | `http://10.0.2.2:8080` | Android local-server endpoint (emulator loopback) |
+| `SDUI_ANDROID_REMOTE_SERVER` | deployed SDUI server | Android remote endpoint |
 
 ### iOS overrides
 
 | Variable | Default | Purpose |
 |---|---|---|
 | `IOS_SIM_NAME` | `iPhone SE (3rd generation)` | Simulator to boot |
-| `IOS_DESTINATION` | SE + latest OS | `xcodebuild` destination |
+| `IOS_DESTINATION` | `platform=iOS Simulator,name=$(IOS_SIM_NAME),OS=latest` | `xcodebuild` destination |
 | `SDUI_DISABLE_ABLY` | `1` | Keeps Ably off on simulator by default |
+| `SDUI_IOS_LOCAL_SERVER` | `http://localhost:8080` | iOS local-server endpoint |
+| `SDUI_IOS_REMOTE_SERVER` | deployed SDUI server | iOS remote endpoint |
 
 ---
 
@@ -546,13 +604,13 @@ command -v sdkmanager
 
 See [Step 8.2](#82--add-sdk-tools-to-your-shell) and [Path B, B.1](#path-b--command-line-sdkmanager--avdmanager).
 
-### `make dev-android` — No AVDs found
+### `make dev-android-local` — No AVDs found
 
 No emulator defined yet. Complete [Step 9](#step-9--android-emulator-pick-one-path) (Path A or Path B), then:
 
 ```bash
 emulator -list-avds
-make dev-android AVD_NAME=Pixel_API_35
+make dev-android-local AVD_NAME=Pixel_API_35
 ```
 
 ### `sdkmanager` fails with license error
@@ -566,21 +624,31 @@ yes | sdkmanager --licenses
 - Use an **arm64-v8a** system image, not x86_64.
 - Ensure `-d pixel_7` (or another profile from `avdmanager list device`) was used when creating the AVD.
 
-### `make ios-run` — simulator not found
+### `make dev-ios-local` — simulator not found
 
 ```bash
+xcrun simctl list runtimes
 xcrun simctl list devices available
-make ios-run IOS_SIM_NAME="iPhone 15 Pro" \
-  IOS_DESTINATION='platform=iOS Simulator,name=iPhone 15 Pro,OS=latest'
+make dev-ios-local IOS_SIM_NAME="iPhone 15 Pro"
 ```
+
+If `xcrun simctl list runtimes` prints no `iOS ...` entries, install an iOS Simulator runtime first.
+Use either **Xcode** → **Settings** → **Components** or:
+
+```bash
+sudo xcodebuild -runFirstLaunch
+xcodebuild -downloadPlatform iOS
+```
+
+If the runtime exists but `xcrun simctl list devices available` is still empty, create a simulator in **Xcode** → **Window** → **Devices and Simulators** or with `xcrun simctl create` from [Step 11](#step-11--xcode-and-ios-tools).
 
 ### iOS app cannot reach the server
 
-Start the server before `make ios-run`:
+Start the server before `make dev-ios-local`:
 
 ```bash
 make dev-server
-make ios-run
+make dev-ios-local
 ```
 
 ### Missing command quick map

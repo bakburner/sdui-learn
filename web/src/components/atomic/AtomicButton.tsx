@@ -1,5 +1,6 @@
 import React, { useContext, useEffect, memo } from 'react';
 import type { Action } from '@sdui/models';
+import { ActionTrigger } from '@sdui/models';
 import type { AtomicProps } from './AtomicRouter';
 import { AtomicBox } from './AtomicBox';
 import { accessibilityProps } from '../../utils/accessibility';
@@ -81,10 +82,10 @@ function AtomicButtonInner({ element, onAction }: AtomicProps): React.ReactEleme
     console.warn('[AtomicButton] icon not mapped', { icon: element.icon, elementId: element.id });
   }
 
-  const activateActions = selectActions(element.actions as Action[] | undefined, 'onActivate');
-  const focusActions = selectActions(element.actions as Action[] | undefined, 'onFocus');
-  const blurActions = selectActions(element.actions as Action[] | undefined, 'onBlur');
-  const submitActions = selectActions(element.actions as Action[] | undefined, 'onSubmit');
+  const activateActions = selectActions(element.actions as Action[] | undefined, ActionTrigger.OnActivate);
+  const focusActions = selectActions(element.actions as Action[] | undefined, ActionTrigger.OnFocus);
+  const blurActions = selectActions(element.actions as Action[] | undefined, ActionTrigger.OnBlur);
+  const submitActions = selectActions(element.actions as Action[] | undefined, ActionTrigger.OnSubmit);
 
   const handleClick: React.MouseEventHandler<HTMLButtonElement> = (event) => {
     if (submitActions.length > 0 && event.currentTarget.form) {

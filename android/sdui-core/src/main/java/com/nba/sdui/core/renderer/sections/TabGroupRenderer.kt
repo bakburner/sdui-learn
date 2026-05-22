@@ -28,6 +28,7 @@ import com.nba.sdui.core.renderer.ColorTokenResolver
 import com.nba.sdui.core.renderer.SectionRouter
 import com.nba.sdui.core.renderer.applyAccessibility
 import com.nba.sdui.core.renderer.atomic.AtomicRouter
+import com.nba.sdui.core.renderer.adapters.TabUiModel
 import com.nba.sdui.core.renderer.adapters.mapTabGroup
 import com.nba.sdui.core.renderer.interactions.SectionInteractions
 import com.nba.sdui.core.state.SduiAction
@@ -104,7 +105,15 @@ fun TabGroupRenderer(
                     key(tab.id) {
                         Tab(
                             selected = index == activeTabIndex,
-                            onClick = { dispatchTabSelect(section, tab.id, onAction) },
+                            onClick = {
+                                dispatchTabSelect(
+                                    section = section,
+                                    stateKey = data.stateKey,
+                                    tab = tab,
+                                    onAction = onAction,
+                                    onStateChange = onStateChange
+                                )
+                            },
                             selectedContentColor = tabColors.labelPrimary,
                             unselectedContentColor = tabColors.labelSecondary,
                             text = { Text(text = tab.label) }
@@ -166,13 +175,16 @@ private data class TabStripColors(
 
 private fun dispatchTabSelect(
     section: Section,
-    tabId: String,
-    onAction: (SduiAction) -> Unit
+    stateKey: String,
+    tab: TabUiModel,
+    onAction: (SduiAction) -> Unit,
+    onStateChange: (String, Any) -> Unit
 ) {
-    val action = SectionInteractions.subsectionPrimaryAction(section, tabId)
+    val action = SectionInteractions.subsectionPrimaryAction(section, tab.id)
     if (action != null) {
         onAction(action)
     } else {
-        Log.w(TAG, "missing subsection mutate action sectionId=${section.id} tabId=$tabId")
+        Log.w(TAG, "missing subsection mutate action sectionId=${section.id} tabId=${tab.id}; falling back to tab stateValue")
+        onStateChange(stateKey, tab.stateValue)
     }
 }

@@ -81,7 +81,7 @@ These come from `AGENTS.md` and are non-negotiable for any platform:
 4. **Ably messages are opaque** — `Map<String, Any>`, never typed data classes
 5. **Images from server** — never construct URLs from patterns
 6. **Unknown types skip gracefully** — log + skip, never crash
-7. **Single fetch method** — no `getGameDetail()` or `getScoreboard()`
+7. **Generic fetch primitives only** — `fetchScreen(endpoint)` for full screens, `fetchSection(path)` for section-level SDUI re-composition (returns a single `Section`), `fetchRawJson(url)` for CDN data overlay. No screen-specific methods like `getGameDetail()` or `getScoreboard()`.
 8. **Platform identity travels in headers and envelope** — `X-Platform` header (analytics), `platform[deviceClass]` + `platform[capabilities]` as bracket-notation query params (composition inputs) on GET, same fields inside the JSON body on POST.
 9. **Never swallow exceptions** — log with context
 
@@ -107,7 +107,7 @@ For any platform, the developer ends up with:
 ```
 {project}/
 ├── models/           Generated or ported from schema
-├── network/          fetchScreen(), fetchRawJson(), UriResolver
+├── network/          fetchScreen(), fetchSection(), fetchRawJson(), UriResolver
 ├── state/            StateManager, ActionDispatcher
 ├── routing/          SectionRouter, AtomicRouter
 ├── renderers/
@@ -117,6 +117,10 @@ For any platform, the developer ends up with:
 │   ├── DataBindingResolver
 │   ├── RealTimeManager (Ably)
 │   ├── RefreshOrchestrator
+│   │     • Branch on sectionEndpoint vs url poll targets
+│   │     • Call restartRealtimeForSection(sectionId) before merging a replaced section
+│   │     • Handle screen.defaultRefreshPolicy for screen-level periodic reload
+│   │     • Error semantics: 404→stop poll, 5xx→exponential backoff+stale, schema mismatch→stop+upgrade signal
 │   └── ImpressionTracker
 ├── cache/            Offline storage
 └── shell/            App lifecycle, navigation host, theme

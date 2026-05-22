@@ -11,7 +11,7 @@ import { VideoPlayerStub } from './sections/VideoPlayerStub';
 import { AtomicRouter } from './atomic';
 import type { AtomicCompositeData } from './atomic';
 import { CompositeContentContext } from '../utils/BindRefResolver';
-import { LiveSectionWrapper } from './LiveSectionWrapper';
+import { LiveSectionWrapper, sectionPolicyKey } from './LiveSectionWrapper';
 import { SectionErrorBoundary } from './SectionErrorBoundary';
 import { SectionContainer } from './SectionContainer';
 import { useImpressionTracking } from '../hooks/useImpressionTracking';
@@ -21,6 +21,10 @@ export interface SectionProps {
   state: Record<string, unknown>;
   onAction: (action: Action | Action[]) => void;
   onStateChange: (key: string, value: unknown) => void;
+  /** Callback when a sectionEndpoint refresh returns a replacement section */
+  onSectionReplace?: (section: Section) => void;
+  /** Callback when a sectionEndpoint refresh returns 404 — section is gone */
+  onSectionGone?: (sectionId: string) => void;
   /** React key (passed by parent, not used in component) */
   key?: React.Key;
 }
@@ -30,6 +34,8 @@ export interface SectionRouterProps extends SectionProps {
   defaultRefreshPolicy?: RefreshPolicy;
   /** Callback when section data channel becomes stale or recovers */
   onStalenessChange?: (sectionId: string, isStale: boolean) => void;
+  /** Callback when the section endpoint signals the client schema is too old */
+  onUpgradeRequired?: () => void;
   /** Screen-level traceId for log correlation */
   traceId?: string;
 }
@@ -41,9 +47,11 @@ function SectionRenderer({
   section, 
   state, 
   onAction, 
-  onStateChange 
+  onStateChange,
+  onSectionReplace,
+  onSectionGone,
 }: SectionProps): React.ReactElement | null {
-  const commonProps = { section, state, onAction, onStateChange };
+  const commonProps = { section, state, onAction, onStateChange, onSectionReplace, onSectionGone };
   // Every section, permanent or AtomicComposite, is wrapped by
   // SectionContainer so outer chrome is server-driven via
   // `section.surface`. `SectionContainer` is a no-op when
@@ -88,7 +96,14 @@ function SectionRenderer({
       }
       return wrap(
         <CompositeContentContext.Provider value={compositeData.content as Record<string, unknown> | undefined}>
-          <AtomicRouter element={compositeData.ui} state={state} onAction={onAction} onStateChange={onStateChange} />
+          <AtomicRouter
+            element={compositeData.ui}
+            state={state}
+            onAction={onAction}
+            onStateChange={onStateChange}
+            onSectionReplace={onSectionReplace}
+            onSectionGone={onSectionGone}
+          />
         </CompositeContentContext.Provider>
       );
     }
@@ -111,8 +126,11 @@ export function SectionRouter({
   state, 
   onAction, 
   onStateChange,
+  onSectionReplace,
+  onSectionGone,
   defaultRefreshPolicy,
   onStalenessChange,
+  onUpgradeRequired,
   traceId,
 }: SectionRouterProps): React.ReactElement | null {
   const trackingRef = useRef<HTMLDivElement>(null);
@@ -135,12 +153,16 @@ export function SectionRouter({
   if (needsLiveWrapper) {
     content = (
       <LiveSectionWrapper
+        key={sectionPolicyKey(section)}
         section={section}
         state={state}
         onAction={onAction}
         onStateChange={onStateChange}
         defaultRefreshPolicy={defaultRefreshPolicy}
         onStalenessChange={onStalenessChange}
+        onSectionReplace={onSectionReplace}
+        onSectionGone={onSectionGone}
+        onUpgradeRequired={onUpgradeRequired}
         traceId={traceId}
       >
         {(liveData: Data | undefined) => {
@@ -154,6 +176,8 @@ export function SectionRouter({
               state={state}
               onAction={onAction}
               onStateChange={onStateChange}
+              onSectionReplace={onSectionReplace}
+              onSectionGone={onSectionGone}
             />
           );
         }}
@@ -166,6 +190,8 @@ export function SectionRouter({
         state={state}
         onAction={onAction}
         onStateChange={onStateChange}
+        onSectionReplace={onSectionReplace}
+        onSectionGone={onSectionGone}
       />
     );
   }
@@ -192,13 +218,23 @@ export function SectionList({
   state, 
   onAction, 
   onStateChange,
+  onSectionReplace,
+  onSectionGone,
+  onStalenessChange,
+  onUpgradeRequired,
   defaultRefreshPolicy,
+  traceId,
 }: { 
   sections: Section[]; 
   state: Record<string, unknown>;
   onAction: (action: Action | Action[]) => void;
   onStateChange: (key: string, value: unknown) => void;
+  onSectionReplace?: (section: Section) => void;
+  onSectionGone?: (sectionId: string) => void;
+  onStalenessChange?: (sectionId: string, isStale: boolean) => void;
+  onUpgradeRequired?: () => void;
   defaultRefreshPolicy?: RefreshPolicy;
+  traceId?: string;
 }): React.ReactElement {
   return (
     <>
@@ -216,7 +252,12 @@ export function SectionList({
             state={state}
             onAction={onAction}
             onStateChange={onStateChange}
+            onSectionReplace={onSectionReplace}
+            onSectionGone={onSectionGone}
+            onStalenessChange={onStalenessChange}
+            onUpgradeRequired={onUpgradeRequired}
             defaultRefreshPolicy={defaultRefreshPolicy}
+            traceId={traceId}
           />
           {section.layoutHints?.dividerBelow && <hr className="sdui-divider" />}
         </div>

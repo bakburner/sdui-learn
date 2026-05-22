@@ -13,7 +13,7 @@ describe('AtomicBox sizing (widthMode / heightMode)', () => {
     };
 
     const { container } = render(
-      <AtomicBox element={element} screenState={{}} onAction={() => {}}>
+      <AtomicBox element={element}>
         <span>child</span>
       </AtomicBox>,
     );
@@ -31,7 +31,7 @@ describe('AtomicBox sizing (widthMode / heightMode)', () => {
     } as AtomicElement;
 
     const { container } = render(
-      <AtomicBox element={element} screenState={{}} onAction={() => {}}>
+      <AtomicBox element={element}>
         <span>child</span>
       </AtomicBox>,
     );

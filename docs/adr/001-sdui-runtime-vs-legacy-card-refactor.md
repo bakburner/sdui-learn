@@ -10,7 +10,7 @@
 |---|---|
 | 2026-02-20 | Initial draft — decision, context, options, and recommendation. |
 | 2026-02-27 | Trimmed evidence to summary table with appendix. Removed "What Requires an App Update" and "Organizational Drivers" sections. Merged defect risk into Option A cons. Added library-vs-inline comparison for new section types. |
-| 2026-03-13 | Qualified "new section types" cost model; added atomic composition layer as Option B advantage (reflects implemented AtomicComposite + 10-element atomic primitives). |
+| 2026-03-13 | Qualified "new section types" cost model; added atomic composition layer as Option B advantage (reflects implemented AtomicComposite + 12-element atomic primitives). |
 
 ## Decision
 
@@ -70,7 +70,7 @@ See [Appendix: Evidence Details](#appendix-evidence-details) for full per-platfo
 
 **Note on new section types:** Both options use semantic section types, so introducing a wholly new visual component *with client-owned state* (e.g., sort controls, form input, frozen-column tables) requires a renderer update and app release regardless of approach. The difference is where that renderer code lives and how it is maintained.
 
-However, the SDUI runtime (Option B) enables a second path: **AtomicComposite** sections composed entirely from server-defined primitives (`Container`, `Text`, `Image`, `Button`, `Spacer`, `Divider`, `ScrollContainer`, `Conditional`, `DisplayGrid`). These require zero client code — the server describes layout and content using a fixed set of atomic elements, and the client renders them generically. New visual components that are primarily presentational (promo banners, content rails, stat lines, hero panels) can ship without an app release. Only sections that need truly native interaction patterns remain in the semantic tier.
+However, the SDUI runtime (Option B) enables a second path: **AtomicComposite** sections composed entirely from server-defined primitives (`Button`, `Conditional`, `Container`, `DisplayGrid`, `Divider`, `Image`, `LiveClock`, `OverlayContainer`, `ScrollContainer`, `SectionSlot`, `Spacer`, `Text`). These require zero client code — the server describes layout and content using a fixed set of atomic elements, and the client renders them generically. New visual components that are primarily presentational (promo banners, content rails, stat lines, hero panels) can ship without an app release. Only sections that need truly native interaction patterns remain in the semantic tier.
 
 ## Options
 

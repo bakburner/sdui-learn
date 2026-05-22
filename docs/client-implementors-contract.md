@@ -1058,6 +1058,32 @@ viewport. When `false`, the client keeps refreshing regardless. The server
 sets `false` on critical live sections (e.g. live-score composites feeding
 a `LiveClock`) that should never go stale.
 
+### sectionEndpoint and screen.defaultRefreshPolicy are mutually exclusive
+
+A section's `refreshPolicy.sectionEndpoint` and a non-static
+`screen.defaultRefreshPolicy` MUST NOT appear together on the same screen.
+
+When the screen has a non-static `defaultRefreshPolicy`, the screen is
+re-fetched as a whole. Every section — including any section that might
+otherwise warrant a `sectionEndpoint` poll — is replaced by the new
+server composition. Adding per-section `sectionEndpoint` polls on top
+creates two owners for the same section content, with conflicting
+lifecycles and race conditions.
+
+**Allowed combinations:**
+
+| `screen.defaultRefreshPolicy` | Section can use |
+|-------------------------------|-----------------|
+| `static` | `sectionEndpoint`, `url`, `channel` |
+| `poll` or `sse` | `url`, `channel` only |
+
+**Client guard (required):** Before starting a `sectionEndpoint` poll for
+any section, the client MUST check whether `screen.defaultRefreshPolicy.type`
+is non-static. If it is, the client MUST:
+1. Emit a warning log identifying the screen and section IDs.
+2. Skip the `sectionEndpoint` poll for those sections.
+3. Defer to the screen-level refresh policy for that section's content.
+
 ### App Background / Foreground (Phase 0)
 
 Before scroll-based visibility, gate **all** refresh on app lifecycle:

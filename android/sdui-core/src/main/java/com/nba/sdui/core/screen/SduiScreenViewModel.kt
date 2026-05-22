@@ -7,6 +7,8 @@ import com.nba.sdui.core.config.SduiScreenConfig
 import com.nba.sdui.core.data.AblyChannelManager
 import com.nba.sdui.core.data.DataBindingResolver
 import com.nba.sdui.core.data.SchemaVersionMismatchException
+import com.nba.sdui.core.data.SduiException
+import com.nba.sdui.core.data.SectionNotFoundException
 import com.nba.sdui.core.data.SduiRepository
 import com.nba.sdui.core.models.generated.Data
 import com.nba.sdui.core.models.generated.RefreshType
@@ -22,6 +24,7 @@ import io.ably.lib.realtime.ConnectionState
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
@@ -123,6 +126,7 @@ open class SduiScreenViewModel(
     // ── Internal bookkeeping ─────────────────────────────────────────
     private var currentScreen: SduiModels? = null
     private var currentEndpoint: String? = null   // resolved server path — used for refresh / polling
+    private var screenLevelPollJob: Job? = null
 
     /**
      * Last successfully loaded screen payload. Kept when a later fetch fails so
@@ -173,6 +177,8 @@ open class SduiScreenViewModel(
         if (isNewScreen) {
             stopAbly()
             stopAllPolling()
+            screenLevelPollJob?.cancel()
+            screenLevelPollJob = null
         }
 
         viewModelScope.launch {
@@ -337,14 +343,42 @@ open class SduiScreenViewModel(
             setupPolling(screen)
             setupAbly(screen)
         }
+
+        val defaultPolicy = screen.defaultRefreshPolicy
+        val intervalMs = defaultPolicy?.intervalMS?.toLong()
+        if (defaultPolicy?.type == RefreshType.Poll && intervalMs != null) {
+            startScreenLevelPoll(intervalMs)
+        } else {
+            screenLevelPollJob?.cancel()
+            screenLevelPollJob = null
+        }
     }
 
     // ── Polling ──────────────────────────────────────────────────────
 
     private val pollFailureCounts = mutableMapOf<String, Int>()
 
+    private fun startScreenLevelPoll(intervalMs: Long) {
+        screenLevelPollJob?.cancel()
+        screenLevelPollJob = viewModelScope.launch {
+            while (isActive) {
+                _isAppForeground.first { it }
+                delay(intervalMs)
+                try {
+                    val endpoint = currentEndpoint ?: continue
+                    val updated = repository.fetchScreen(endpoint, buildEnvelope())
+                    applyScreen(updated)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Screen-level poll failed", e)
+                }
+            }
+        }
+    }
+
     private fun setupPolling(screen: SduiModels) {
         stopAllPolling()
+
+        val screenIsRefreshing = screen.defaultRefreshPolicy?.type == RefreshType.Poll
 
         screen.sections.forEach { section ->
             val policy = section.refreshPolicy
@@ -352,57 +386,119 @@ open class SduiScreenViewModel(
             if (policy?.type == RefreshType.Poll && policyIntervalMs != null) {
                 val baseIntervalMs: Long = policyIntervalMs
                 val pollUrl = policy.url
+                val sectionEndpoint = policy.sectionEndpoint
                 val dataPath = policy.dataPath
                 val shouldPause = policy.pauseWhenOffScreen ?: true
 
-                if (pollUrl != null) {
+                // Guard: sectionEndpoint and a non-static screen defaultRefreshPolicy are mutually exclusive.
+                if (sectionEndpoint != null && screenIsRefreshing) {
+                    Log.w(TAG, "Section '${section.id}' has sectionEndpoint but screen defaultRefreshPolicy " +
+                        "is Poll — skipping sectionEndpoint poll; screen-level refresh owns this section.")
+                    return@forEach
+                }
+
+                // sectionEndpoint takes precedence over url when both are set (schema §RefreshPolicy).
+                if (sectionEndpoint != null) {
+                    Log.i(TAG, "SECTION poll: section='${section.id}' sectionEndpoint=$sectionEndpoint every ${baseIntervalMs}ms pauseWhenOffScreen=$shouldPause")
+                } else if (pollUrl != null) {
                     Log.i(TAG, "DIRECT poll: section='${section.id}' url=$pollUrl every ${baseIntervalMs}ms pauseWhenOffScreen=$shouldPause")
                 } else {
-                    Log.i(TAG, "SDUI poll: section='${section.id}' every ${baseIntervalMs}ms pauseWhenOffScreen=$shouldPause")
+                    Log.w(TAG, "POLL section='${section.id}' has neither url nor sectionEndpoint — ticks will no-op")
                 }
 
                 pollFailureCounts[section.id] = 0
 
                 pollingJobs[section.id] = viewModelScope.launch {
-                    var currentIntervalMs: Long = baseIntervalMs
-                    while (isActive) {
-                        // Gate: wait for app foreground
-                        _isAppForeground.first { it }
-
-                        // Gate: wait for section to be near viewport (if pauseWhenOffScreen)
-                        if (shouldPause) {
-                            visibilityTracker.awaitNearViewport(section.id)
-                        }
-
-                        delay(currentIntervalMs)
-                        try {
-                            if (pollUrl != null) {
-                                val data = repository.fetchRawJson(pollUrl, dataPath, screen.traceID)
-                                updateSectionData(section.id, data)
-                            } else {
-                                val endpoint = currentEndpoint ?: continue
-                                val updated = repository.fetchScreen(endpoint, buildEnvelope())
-                                applyScreen(updated)
-                            }
-                            // Success — reset failure count and backoff
-                            pollFailureCounts[section.id] = 0
-                            currentIntervalMs = baseIntervalMs
-                            _staleSections.value = _staleSections.value - section.id
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Poll failed for section: ${section.id}", e)
-                            val failures = (pollFailureCounts[section.id] ?: 0) + 1
-                            pollFailureCounts[section.id] = failures
-                            // Exponential backoff: double on failure, cap at MAX_BACKOFF_MS
-                            currentIntervalMs = (currentIntervalMs * 2).coerceAtMost(MAX_BACKOFF_MS)
-                            if (failures >= POLL_FAILURE_THRESHOLD) {
-                                _staleSections.value = _staleSections.value + section.id
-                            }
-                        }
-                    }
+                    startSectionPollJob(section, baseIntervalMs, pollUrl, sectionEndpoint, dataPath, shouldPause)
                 }
             }
         }
         if (pollingJobs.isNotEmpty()) Log.i(TAG, "Active polls: ${pollingJobs.keys}")
+    }
+
+    private suspend fun startSectionPollJob(
+        section: Section,
+        baseIntervalMs: Long,
+        pollUrl: String?,
+        sectionEndpoint: String?,
+        dataPath: String?,
+        shouldPause: Boolean
+    ) {
+        var currentIntervalMs: Long = baseIntervalMs
+        while (currentCoroutineContext().isActive) {
+            // Gate: wait for app foreground
+            _isAppForeground.first { it }
+
+            // Gate: wait for section to be near viewport (if pauseWhenOffScreen)
+            if (shouldPause) {
+                visibilityTracker.awaitNearViewport(section.id)
+            }
+
+            delay(currentIntervalMs)
+            try {
+                // sectionEndpoint takes precedence over url when both are set (schema §RefreshPolicy).
+                if (sectionEndpoint != null) {
+                    try {
+                        val newSection = repository.fetchSection(sectionEndpoint, buildEnvelope(), currentScreen?.traceID)
+                        // Load-bearing ordering: restartRealtimeForSection cancels THIS coroutine
+                        // via pollingJobs[section.id]?.cancel(). Cancellation is cooperative, so
+                        // we keep running until the next suspending call. The remaining statements
+                        // here (mergeSingleSection, _staleSections update, return) are all
+                        // non-suspending. Do NOT insert any suspending call between this line
+                        // and `return` — a suspension would observe the cancellation and abort
+                        // the merge, leaving the screen in an inconsistent state.
+                        restartRealtimeForSection(section.id, newSection)
+                        mergeSingleSection(newSection)
+                        _staleSections.value = _staleSections.value - section.id
+                        return
+                    } catch (e: SchemaVersionMismatchException) {
+                        Log.w(TAG, "Schema version mismatch on section '${section.id}' — upgrade required", e)
+                        _uiState.value = SduiScreenUiState.UpgradeRequired(
+                            e.message ?: "Please update the app to continue."
+                        )
+                        return
+                    } catch (e: SectionNotFoundException) {
+                        Log.w(TAG, "Section '${section.id}' returned 404 — stopping poll", e)
+                        pollingJobs[section.id]?.cancel()
+                        pollingJobs.remove(section.id)
+                        _staleSections.value = _staleSections.value + section.id
+                        return
+                    }
+                } else if (pollUrl != null) {
+                    val data = repository.fetchRawJson(pollUrl, dataPath, currentScreen?.traceID)
+                    updateSectionData(section.id, data)
+                } else {
+                    Log.w(TAG, "Poll section '${section.id}' has neither url nor sectionEndpoint — skipping tick")
+                }
+                // Success — reset failure count and backoff
+                pollFailureCounts[section.id] = 0
+                currentIntervalMs = baseIntervalMs
+                _staleSections.value = _staleSections.value - section.id
+            } catch (e: Exception) {
+                Log.e(TAG, "Poll failed for section: ${section.id}", e)
+                val failures = (pollFailureCounts[section.id] ?: 0) + 1
+                pollFailureCounts[section.id] = failures
+                // Exponential backoff: double on failure, cap at MAX_BACKOFF_MS
+                currentIntervalMs = (currentIntervalMs * 2).coerceAtMost(MAX_BACKOFF_MS)
+                if (failures >= POLL_FAILURE_THRESHOLD) {
+                    _staleSections.value = _staleSections.value + section.id
+                }
+            }
+        }
+    }
+
+    private fun mergeSingleSection(newSection: Section) {
+        val screen = currentScreen ?: return
+        val mergedSections = screen.sections.toMutableList()
+        val idx = mergedSections.indexOfFirst { it.id == newSection.id }
+        if (idx >= 0) {
+            mergedSections[idx] = newSection
+        } else {
+            mergedSections.add(newSection)
+        }
+        val mergedScreen = screen.copy(sections = mergedSections)
+        currentScreen = mergedScreen
+        _uiState.value = SduiScreenUiState.Success(mergedScreen)
     }
 
     /**
@@ -441,6 +537,40 @@ open class SduiScreenViewModel(
         }
         pollingJobs.clear()
         pollFailureCounts.clear()
+    }
+
+    private fun restartRealtimeForSection(sectionId: String, newSection: Section) {
+        // Cancel old poll job for this section only
+        pollingJobs[sectionId]?.cancel()
+        pollingJobs.remove(sectionId)
+        pollFailureCounts.remove(sectionId)
+
+        // Cancel old Ably job for this section only
+        ablyJobs[sectionId]?.cancel()
+        ablyJobs.remove(sectionId)
+        sseMessageBuffer.remove(sectionId)
+
+        // Start the new section's policy
+        val policy = newSection.refreshPolicy ?: return
+        when (policy.type) {
+            RefreshType.Poll -> {
+                val policyIntervalMs = policy.intervalMS ?: return
+                val pollUrl = policy.url
+                val sectionEndpoint = policy.sectionEndpoint
+                val dataPath = policy.dataPath
+                val shouldPause = policy.pauseWhenOffScreen ?: true
+
+                pollFailureCounts[sectionId] = 0
+                pollingJobs[sectionId] = viewModelScope.launch {
+                    startSectionPollJob(newSection, policyIntervalMs.toLong(), pollUrl, sectionEndpoint, dataPath, shouldPause)
+                }
+            }
+            RefreshType.SSE -> {
+                val channel = policy.channel ?: return
+                subscribeToChannel(newSection, channel)
+            }
+            else -> { /* static — no action */ }
+        }
     }
 
     // ── Ably ─────────────────────────────────────────────────────────
@@ -639,6 +769,7 @@ open class SduiScreenViewModel(
 
     override fun onCleared() {
         super.onCleared()
+        screenLevelPollJob?.cancel()
         stopAllPolling()
         stopAbly()
         Log.d(TAG, "Cleared — data channels cleaned up")

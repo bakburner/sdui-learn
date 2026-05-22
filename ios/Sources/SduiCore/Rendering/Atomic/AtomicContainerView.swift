@@ -52,12 +52,16 @@ struct AtomicContainerView: View {
     @ViewBuilder
     private var children: some View {
         let kids = element.children ?? []
+        let stackBelowBreakpoint = element.direction == .row && resolvedDirection != .row && element.breakpoint != nil
         let rows = kids.enumerated().map { i, c in
             AtomicContainerChild(id: c.id.map { "e:\($0)" } ?? "i:\(i)", child: c)
         }
         ForEach(rows) { item in
             AtomicRouter(element: item.child, screenState: screenState, onAction: onAction, depth: depth)
-                .layoutValue(key: AtomicFlexValueKey.self, value: CGFloat(max(item.child.flex ?? 0, 0)))
+                .layoutValue(
+                    key: AtomicFlexValueKey.self,
+                    value: stackBelowBreakpoint ? 0 : CGFloat(max(item.child.flex ?? 0, 0))
+                )
                 .layoutValue(key: AtomicAlignSelfKey.self, value: item.child.alignSelf)
         }
     }

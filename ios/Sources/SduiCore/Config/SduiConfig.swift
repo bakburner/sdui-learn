@@ -21,22 +21,43 @@ public struct SduiConfig: Sendable, Equatable {
     /// per-request if nil.
     public let traceIDProvider: @Sendable () -> String
 
+    /// A/B experiment assignments forwarded as `experiments[<id>]=<variant>` in
+    /// every request envelope. Mirrors Android's `SduiScreenConfig.experiments`.
+    public let experiments: [String: String]
+
     public init(
         baseURL: URL,
         ablyTokenURL: URL,
         authorizationToken: String? = nil,
-        traceIDProvider: @Sendable @escaping () -> String = { UUID().uuidString }
+        traceIDProvider: @Sendable @escaping () -> String = { UUID().uuidString },
+        experiments: [String: String] = [:]
     ) {
         self.baseURL = baseURL
         self.ablyTokenURL = ablyTokenURL
         self.authorizationToken = authorizationToken
         self.traceIDProvider = traceIDProvider
+        self.experiments = experiments
+    }
+
+    /// Returns a copy with the given experiment assigned, replacing any
+    /// previous value for the same id.
+    public func withExperiment(_ id: String, variant: String) -> SduiConfig {
+        var updated = experiments
+        updated[id] = variant
+        return SduiConfig(
+            baseURL: baseURL,
+            ablyTokenURL: ablyTokenURL,
+            authorizationToken: authorizationToken,
+            traceIDProvider: traceIDProvider,
+            experiments: updated
+        )
     }
 
     public static func == (lhs: SduiConfig, rhs: SduiConfig) -> Bool {
         lhs.baseURL == rhs.baseURL
             && lhs.ablyTokenURL == rhs.ablyTokenURL
             && lhs.authorizationToken == rhs.authorizationToken
+            && lhs.experiments == rhs.experiments
     }
 }
 

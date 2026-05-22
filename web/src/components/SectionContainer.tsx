@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import type { LayoutScalar, SectionSurface, Spacing, Background } from '@sdui/models';
+import type { SectionSurface, Spacing, Background } from '@sdui/models';
 import { resolveColorToken, usePrefersColorScheme } from '../utils/ColorTokenResolver';
 import { currentFormFactor, resolveLayoutScalar, resolveSpacingPx } from '../utils/LayoutTokenResolver';
 
@@ -48,7 +48,7 @@ export function SectionContainer({ surface, children }: SectionContainerProps): 
   }, [surface.shadow, scheme]);
 
   const cornerRadiusPx = surface.cornerRadius != null
-    ? resolveLayoutScalar(surface.cornerRadius as LayoutScalar, formFactor, scheme)
+    ? resolveLayoutScalar(surface.cornerRadius, formFactor, scheme)
     : undefined;
 
   const style: React.CSSProperties = {

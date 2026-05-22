@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nba.sdui.request.SduiRequestContext;
 import com.nba.sdui.service.SduiCompositionService;
+import com.nba.sdui.service.SectionRefreshService;
 import com.nba.sdui.versioning.SchemaVersionChecker;
 import com.nba.sdui.versioning.SchemaVersionConfig;
 import com.nba.sdui.versioning.SchemaVersionFilter;
@@ -43,6 +44,9 @@ class SchemaVersionIntegrationTest {
 
     @MockBean
     private SduiCompositionService compositionService;
+
+    @MockBean
+    private SectionRefreshService sectionRefreshService;
 
     @Autowired
     private SchemaVersionConfig versionConfig;

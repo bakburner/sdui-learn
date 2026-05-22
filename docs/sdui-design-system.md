@@ -469,8 +469,11 @@ For tokens to round-trip between Figma and the wire:
 
 1. **A token library** with color styles, text styles, spacing/size
    variables, and corner radius variables matching the registry names above.
-2. **Atomic primitive components** — Container, Text, Image, Button, Icon,
-   Divider, Spacer, Badge — with variant props matching the schema enums.
+2. **Atomic primitive components** — Button, Conditional, Container,
+   DisplayGrid, Divider, Image, LiveClock, OverlayContainer,
+   ScrollContainer, SectionSlot, Spacer, Text — with variant props matching
+   the schema enums. (Icon rendering is handled via icon tokens on
+   `Button`/`Image`; badge overlays use `OverlayContainer`.)
 3. **Composed examples** showing how primitives assemble into common
    patterns (hero card, list row, promo banner).
 

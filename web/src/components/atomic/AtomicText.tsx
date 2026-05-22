@@ -1,5 +1,6 @@
 import React, { useContext, useEffect, memo } from 'react';
 import type { Action } from '@sdui/models';
+import { ActionTrigger } from '@sdui/models';
 import type { AtomicProps } from './AtomicRouter';
 import { AtomicBox } from './AtomicBox';
 import { accessibilityProps } from '../../utils/accessibility';
@@ -93,8 +94,8 @@ function AtomicTextInner({ element, onAction }: AtomicProps): React.ReactElement
   }
 
   const hasActions = element.actions && element.actions.length > 0;
-  const activateActions = selectActions(element.actions as Action[] | undefined, 'onActivate');
-  const longPressActions = selectActions(element.actions as Action[] | undefined, 'onLongPress');
+  const activateActions = selectActions(element.actions as Action[] | undefined, ActionTrigger.OnActivate);
+  const longPressActions = selectActions(element.actions as Action[] | undefined, ActionTrigger.OnLongPress);
   const handleActivate = activateActions.length > 0
     ? () => { onAction(activateActions); }
     : undefined;

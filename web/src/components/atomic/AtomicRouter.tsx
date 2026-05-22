@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Action, AtomicElement } from '@sdui/models';
+import type { Action, AtomicElement, Section } from '@sdui/models';
 
 import { AtomicContainer } from './AtomicContainer';
 import { AtomicText } from './AtomicText';
@@ -23,6 +23,9 @@ export interface AtomicProps {
   depth?: number;
   onStateChange?: (key: string, value: unknown) => void;
   sectionSlotDepth?: number;
+  /** Section refresh callbacks propagated to nested SectionSlot children. */
+  onSectionReplace?: (section: Section) => void;
+  onSectionGone?: (sectionId: string) => void;
 }
 
 /**
@@ -37,13 +40,22 @@ export interface AtomicProps {
  * DOM trees or render loops. Server-side validation is the primary
  * enforcement; this is a safety net for stale caches or manual JSON.
  */
-export function AtomicRouter({ element, state, onAction, depth = 0, onStateChange, sectionSlotDepth = 0 }: AtomicProps): React.ReactElement | null {
+export function AtomicRouter({
+  element,
+  state,
+  onAction,
+  depth = 0,
+  onStateChange,
+  sectionSlotDepth = 0,
+  onSectionReplace,
+  onSectionGone,
+}: AtomicProps): React.ReactElement | null {
   if (depth > MAX_TREE_DEPTH) {
     console.warn(`[AtomicRouter] Max tree depth (${MAX_TREE_DEPTH}) exceeded — skipping element: ${element.type}`);
     return null;
   }
   const childDepth = depth + 1;
-  const childProps = { state, onAction, onStateChange, sectionSlotDepth };
+  const childProps = { state, onAction, onStateChange, sectionSlotDepth, onSectionReplace, onSectionGone };
 
   switch (element.type) {
     case 'Container':

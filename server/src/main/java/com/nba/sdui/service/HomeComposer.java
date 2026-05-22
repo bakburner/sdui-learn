@@ -416,7 +416,7 @@ public class HomeComposer {
         section.put("id", sectionId);
         section.put("contentSourceId", contentSourceId);
         section.put("type", "AdSlot");
-        section.put("analyticsId", sectionId.replace("::", "_").replace(":", "_"));
+        section.put("analyticsId", sectionId.replaceAll("[~:=]", "_"));
         section.set("surface", utils.adSlotSurface());
 
         ObjectNode data = objectMapper.createObjectNode();

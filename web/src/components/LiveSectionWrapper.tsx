@@ -15,6 +15,12 @@ interface LiveSectionWrapperProps {
   defaultRefreshPolicy?: Section['refreshPolicy'];
   /** Callback when section data channel becomes stale or recovers */
   onStalenessChange?: (sectionId: string, isStale: boolean) => void;
+  /** Callback when a sectionEndpoint refresh returns a replacement section */
+  onSectionReplace?: (section: Section) => void;
+  /** Callback when a sectionEndpoint refresh returns 404 — section is gone */
+  onSectionGone?: (sectionId: string) => void;
+  /** Callback when the section endpoint signals the client schema is too old */
+  onUpgradeRequired?: () => void;
   /** Screen-level traceId for log correlation */
   traceId?: string;
   children: (effectiveData: Data | undefined) => React.ReactElement | null;
@@ -32,6 +38,9 @@ export function LiveSectionWrapper({
   section,
   defaultRefreshPolicy,
   onStalenessChange,
+  onSectionReplace,
+  onSectionGone,
+  onUpgradeRequired,
   traceId,
   children,
 }: LiveSectionWrapperProps): React.ReactElement | null {
@@ -48,7 +57,19 @@ export function LiveSectionWrapper({
   }, [section.data]);
 
   // Get effective refresh policy (section-level takes precedence)
-  const effectivePolicy = getEffectiveRefreshPolicy(section, defaultRefreshPolicy);
+  const baseEffectivePolicy = getEffectiveRefreshPolicy(section, defaultRefreshPolicy);
+
+  // Guard: sectionEndpoint and a non-static screen defaultRefreshPolicy are mutually exclusive.
+  // The screen-level refresh owns the section when both are present.
+  const screenIsRefreshing = defaultRefreshPolicy && defaultRefreshPolicy.type !== 'static';
+  if (section.refreshPolicy?.sectionEndpoint && screenIsRefreshing) {
+    console.warn(
+      `[LiveSectionWrapper] Section '${section.id}' has sectionEndpoint but screen defaultRefreshPolicy ` +
+      `is '${defaultRefreshPolicy?.type}' — skipping sectionEndpoint poll; screen-level refresh owns this section.`
+    );
+  }
+  const effectivePolicy =
+    section.refreshPolicy?.sectionEndpoint && screenIsRefreshing ? undefined : baseEffectivePolicy;
 
   // Determine if this section has refresh/binding capabilities
   const hasRefreshPolicy = Boolean(effectivePolicy?.type && effectivePolicy.type !== 'static');
@@ -87,12 +108,20 @@ export function LiveSectionWrapper({
       return currentData;
     });
   }, [section.id, section.dataBinding, hasDataBindings, section.stringTable, traceId]);
+  const handleSectionGone = useCallback(() => {
+    onSectionGone?.(section.id);
+  }, [onSectionGone, section.id]);
+
   useRefreshPolicy({
     sectionId: section.id,
     refreshPolicy: effectivePolicy,
     onUpdate: handleUpdate,
+    onSectionReplace,
+    onSectionGone: handleSectionGone,
     onStalenessChange,
+    onUpgradeRequired,
     enabled,
+    traceId,
   });
 
   if (!liveData && hasRefreshPolicy) {
@@ -100,6 +129,17 @@ export function LiveSectionWrapper({
   }
 
   return <div ref={sectionRef}>{children(liveData)}</div>;
+}
+
+/**
+ * Derive a stable policy fingerprint for use as a React key on LiveSectionWrapper.
+ * The parent render site must use this key so policy changes remount the wrapper,
+ * tearing down the old useRefreshPolicy instance and starting fresh with the new policy.
+ */
+export function sectionPolicyKey(section: Section): string {
+  const p = section.refreshPolicy;
+  if (!p) return `${section.id}::static`;
+  return `${section.id}::${p.type}::${p.channel ?? p.sectionEndpoint ?? ''}`;
 }
 
 /**
@@ -152,6 +192,7 @@ export function useLiveData(
     refreshPolicy: effectivePolicy,
     onUpdate: handleUpdate,
     enabled: hasRefreshPolicy,
+    traceId,
   });
 
   return liveData;

@@ -758,7 +758,7 @@ Server-driven platforms need to show or hide sections based on conditions that v
 
 Production SDUI screens need graceful degradation when individual sections fail.
 
-**Built:** `ErrorState` section type (Android, iOS, and web). The server can compose an explicit error section at composition time with `title`, `message`, `icon`, and optional `retryAction`. This handles cases where the server knows at composition time that data is unavailable. Server utility `SduiUtils.buildErrorSection()` standardizes error section construction.
+**Built:** server-composed `ErrorState` surfaces (via `AtomicComposite` / `SduiUtils.buildErrorSection()`) on Android, iOS, and web. The server can compose an explicit error section at composition time with `title`, `message`, `icon`, and optional `retryAction`. This handles cases where the server knows at composition time that data is unavailable. Server utility `SduiUtils.buildErrorSection()` standardizes error section construction.
 
 **Built (runtime error/loading states):** `SectionStates` added to schema and codegen. The server declares `sectionStates` on each section with live data, specifying:
 - `loading.skeleton` (shimmer, spinner, placeholder, none) and `loading.minHeightDp` for loading UX
@@ -807,6 +807,31 @@ Airbnb and DoorDash implement section-level lazy loading for long scrolling scre
 
 **Remaining:** Eager/lazy initial-load trigger (§9d original `loading` field) is not yet built — the current implementation gates ongoing refresh but does not defer initial data fetch.
 
+### 9d-ii. Section-Level Refresh — Mutual Exclusivity Requirement
+
+> **Status: Built** (section-level refresh via `sectionEndpoint`).
+
+`sectionEndpoint` section-level refresh and a non-static `screen.defaultRefreshPolicy` are **mutually exclusive** and MUST NOT appear together on the same screen.
+
+**Rule:** A screen whose sections carry `sectionEndpoint` MUST declare `screen.defaultRefreshPolicy.type = "static"`. A screen with a non-static `defaultRefreshPolicy` (poll or SSE) MUST NOT emit `sectionEndpoint` on any of its sections.
+
+**Rationale:** When the screen refreshes periodically, every section is replaced by the new server composition. Adding independent per-section `sectionEndpoint` polls alongside a screen-level refresh creates duplicate refreshes, conflicting lifecycle ownership (two owners for the same section content), and race conditions between screen-level and section-level results arriving at different times.
+
+**Allowed combinations:**
+- `screen.defaultRefreshPolicy: static` + sections with `sectionEndpoint` (section-level targeted refresh)
+- `screen.defaultRefreshPolicy: poll/SSE` + sections with `url` (raw data overlay) or `channel` (SSE data overlay)
+- `screen.defaultRefreshPolicy: static` + sections with `url` or `channel`
+
+**Not allowed:**
+- `screen.defaultRefreshPolicy: poll/SSE` + sections with `sectionEndpoint`
+
+**Client defensive guard:** If a client receives a screen violating this rule, it MUST log a warning, skip the `sectionEndpoint` poll for the offending sections, and let the screen-level refresh policy own those sections. This prevents silent double-refresh and undefined behavior on malformed server payloads.
+
+**What's built:**
+- Schema: `sectionEndpoint` field on `RefreshPolicy` (mutually exclusive with `url`; `sectionEndpoint` takes precedence)
+- Server: dual-mounted `GET/POST /v1/sdui/section/{sectionId}`; `SectionRefreshService` content-source-prefix registry; `GameDetailComposer` registers resolver at startup
+- Clients: `fetchSection()` / `fetchSduiSection()` via shared envelope transport; `restartRealtimeForSection(sectionId)` for scoped teardown before merge; poll loop with error semantics (404→stop, 5xx→backoff+stale); re-evaluates new section's `refreshPolicy` enabling poll→SSE transition
+- Web: policy fingerprint key (`sectionPolicyKey`) for React remount on policy change
 
 ### 9e. Caching & Offline Support
 
@@ -1158,6 +1183,7 @@ The following requirements are tracked via ADRs. Some remain pending final cross
 | Data classification and freshness model | [ADR-011](adr/011-data-classification-and-freshness-model.md) | Proposed (draft) |
 | Client data architecture | [ADR-012](adr/012-client-data-architecture.md) | Proposed (draft) |
 | Style tokens for atomic primitives | [ADR-013](adr/013-style-tokens-for-atomic-primitives.md) | Accepted |
+| Dynamic conditional properties | [ADR-014](adr/014-dynamic-conditional-properties.md) | Proposed |
 
 Until approved, these remain directional requirements and may be refined.
 
@@ -1198,6 +1224,8 @@ Until approved, these remain directional requirements and may be refined.
 | Internationalization (i18n) | **Built** | Section-level `stringTable` stamped by server per locale. Server pre-translates initial text. Clients consume `stringTable` from each section. Parameterized strings via atomic decomposition. `stringKeys` on data bindings deferred to production server requirements. |
 | Tabular data sections (BoxscoreTable) | **Built** | Semantic table type with domain-typed data, client-side sort, frozen column/totals row. Built on Android, iOS, and web. |
 | Form section (generic) | **Built** | Extensible field types (picker, segmented, toggle, datePicker, text), parameterized refresh on submit. Built on Android, iOS, and web. |
+| Section-level refresh (`sectionEndpoint`) | **Built** | Schema field on `RefreshPolicy`; `GET/POST /v1/sdui/section/{sectionId}` via `SectionRefreshService` prefix registry; all three clients poll via `fetchSection`, replace section in place, re-evaluate new `refreshPolicy` (poll→SSE transition); mutual exclusivity with non-static screen policy enforced |
+| Screen-level `defaultRefreshPolicy` handler | **Built** | `type: poll` + `intervalMs` triggers full-screen re-fetch on all three platforms; `GameDetailComposer` emits `type: static` (sections own refresh independently) |
 | Parameterized refresh (Action extension) | **Built** | `endpoint` + `paramBindings` resolved from screen state at action time. Working via Form submit. |
 | ErrorState section | **Built** | Server-composed error sections with title, message, icon, retry action. Built on Android, iOS, and web. |
 | SectionLayoutHints | **Partial** | Schema + codegen done. Web client applies margins/dividers. Android and iOS wiring pending. |

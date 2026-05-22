@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeAll } from 'vitest';
 import { render } from '@testing-library/react';
 import type { AtomicElement, AccessibilityProperties } from '@sdui/models';
-import { UIType } from '@sdui/models';
+import { ActionTrigger, ActionType, Align, UIDirection, UIType } from '@sdui/models';
 import { AtomicText } from './AtomicText';
 import { AtomicImage } from './AtomicImage';
 import { AtomicContainer } from './AtomicContainer';
@@ -15,8 +15,9 @@ vi.mock('../../utils/ColorTokenResolver', () => ({
 beforeAll(() => {
   global.ResizeObserver = class {
     observe(): void {}
+    unobserve(): void {}
     disconnect(): void {}
-  };
+  } as unknown as typeof ResizeObserver;
 });
 
 const noop = () => {};
@@ -150,7 +151,7 @@ describe('AtomicContainer — accessibility', () => {
   const baseContainer: Partial<AtomicElement> = {
     id: 'ctr-1',
     type: UIType.Container,
-    direction: 'column',
+    direction: UIDirection.Column,
     children: [],
   };
 
@@ -194,8 +195,8 @@ describe('AtomicContainer — accessibility', () => {
     const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const el = {
       ...baseContainer,
-      actions: [{ type: 'navigate', url: 'nba://home' }],
-    } as AtomicElement;
+      actions: [{ trigger: ActionTrigger.OnActivate, type: ActionType.Navigate, targetUri: 'nba://home' }],
+    } as unknown as AtomicElement;
     render(<AtomicContainer element={el} state={{}} onAction={noop} depth={0} />);
     expect(spy).toHaveBeenCalledWith('a11y_container_missing_label', { elementId: 'ctr-1' });
     spy.mockRestore();
@@ -204,7 +205,7 @@ describe('AtomicContainer — accessibility', () => {
   it('does not warn when container has actions AND accessibility.label', () => {
     const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const el = withA11y(
-      { ...baseContainer, actions: [{ type: 'navigate', url: 'nba://home' }] },
+      { ...baseContainer, actions: [{ trigger: ActionTrigger.OnActivate, type: ActionType.Navigate, targetUri: 'nba://home' }] },
       { label: 'Go home' },
     );
     render(<AtomicContainer element={el} state={{}} onAction={noop} depth={0} />);
@@ -224,7 +225,7 @@ describe('AtomicScrollContainer — accessibility', () => {
   const baseScroll: Partial<AtomicElement> = {
     id: 'scroll-a11y',
     type: UIType.ScrollContainer,
-    direction: 'row',
+    direction: UIDirection.Row,
     children: [leafText('c1', 'A'), leafText('c2', 'B')],
   };
 
@@ -268,7 +269,7 @@ describe('AtomicDisplayGrid — accessibility', () => {
     type: UIType.DisplayGrid,
     columns: [
       { key: 'name', label: 'Name' },
-      { key: 'pts', label: 'PTS', align: 'end' },
+      { key: 'pts', label: 'PTS', align: Align.End },
     ],
     rows: [
       { name: 'LeBron James', pts: '30' },

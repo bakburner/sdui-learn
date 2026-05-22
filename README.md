@@ -97,9 +97,7 @@ any client unless you are actively developing server-side composers.
 #### Web
 
 ```bash
-cd web
-npm install
-npm run dev
+make dev-web-remote
 # Open http://localhost:3000
 ```
 
@@ -108,37 +106,58 @@ deployed composition server automatically. Vite serves the React app with HMR.
 
 #### Android
 
-Open `android/` in Android Studio and run on an emulator or device. The app
-defaults to `https://sdui-prototype.tools.internal.nba.com` with no configuration needed.
+```bash
+make dev-android-remote
+```
+
+The target boots an emulator if needed, installs the app, launches it, and tails
+SDUI logs. The app points at the deployed composition server.
 
 #### iOS
 
 ```bash
-make ios-run   # builds SduiDemo and installs on the configured simulator
+make dev-ios-remote
 ```
 
-Or open `ios/SduiDemo` in Xcode and run. Defaults to the deployed server.
+The target builds `SduiDemo`, installs it on the configured simulator, launches
+it against the deployed composition server, and tails SDUI logs.
 
-### Overriding to a Local Server
+### Local Server Development
 
 If you're developing server-side composers and need to test against a local
-Spring Boot instance:
+Spring Boot instance, use the local Make targets. They encode the platform-specific
+hostnames for you (`localhost` for web/iOS, `10.0.2.2` for the Android emulator).
+Client-specific backend inputs stay separate so web, Android, and iOS can run
+concurrently against different endpoints when needed.
 
 ```bash
-# Start the server locally
-cd server
-cp .env.template .env   # Add your STATS_API_KEY
-./gradlew bootRun       # Starts on http://localhost:8080
+# One-time server env setup
+cp server/.env.example server/.env   # Add your STATS_API_KEY
 
-# Web — override the proxy target
-SDUI_SERVER=http://localhost:8080 npm run dev
+# Start the local composition server
+make dev-server
 
-# Android — pass Gradle property
-./gradlew :app:installDebug -PSDUI_BASE_URL=http://10.0.2.2:8080
-
-# iOS — set environment variable before launching
-SDUI_BASE_URL=http://localhost:8080   # read by ProcessInfo in SduiDemoApp
+# Pick the client you want to run against that local server
+make dev-web-local
+make dev-android-local
+make dev-ios-local
 ```
+
+Remote equivalents are available when you want the deployed backend:
+
+```bash
+make dev-web-remote
+make dev-android-remote
+make dev-ios-remote
+```
+
+The Makefile variables are intentionally client-specific:
+
+| Client | Local target | Remote target | Override variable |
+|--------|--------------|---------------|-------------------|
+| Web | `make dev-web-local` | `make dev-web-remote` | `SDUI_WEB_LOCAL_SERVER` / `SDUI_WEB_REMOTE_SERVER` |
+| Android | `make dev-android-local` | `make dev-android-remote` | `SDUI_ANDROID_LOCAL_SERVER` / `SDUI_ANDROID_REMOTE_SERVER` |
+| iOS | `make dev-ios-local` | `make dev-ios-remote` | `SDUI_IOS_LOCAL_SERVER` / `SDUI_IOS_REMOTE_SERVER` |
 
 ### Start Everything (Local Server + Web)
 
@@ -181,6 +200,7 @@ make codegen
 | Kitchen Sink | `GET /v1/sdui/demos` | Demo screen showcasing all section types with sample data. |
 | Boxscore | `GET /v1/sdui/boxscore/{gameId}` | Boxscore tables for a specific game (home and away). |
 | Refresh | `GET /v1/sdui/refresh/{screenId}` | Parameterized refresh endpoint for form-driven section updates. |
+| Section refresh | `GET/POST /v1/sdui/section/{sectionId}` | Re-composes a single section via `SectionRefreshService`; used with `refreshPolicy.sectionEndpoint` |
 
 ## Section Types (9 in schema: 8 permanent + AtomicComposite)
 
@@ -233,6 +253,7 @@ make codegen
 
 ## Recent Changes
 
+- **Section-level SDUI refresh** — `RefreshPolicy.sectionEndpoint`, `GET/POST /v1/sdui/section/{sectionId}`, `SectionRefreshService` prefix registry, `screen.defaultRefreshPolicy` (static on Game Detail), implemented on Android, iOS, and Web
 - **Layout constraint & sizing overhaul** (2026-04-30) — `SizingMode` enum (hug/fill/fixed), `widthMode`/`heightMode` fields, `minWidth`/`maxWidth`/`minHeight`/`maxHeight` constraints, `layoutWrap` for flex-wrap, `crossAxisGap`, per-child `alignSelf`. Multi-layer `backgrounds` and `shadows` arrays with inner-shadow support (`Shadow.type: "inner"`). Deprecated `fillWidth`, singular `background`, singular `shadow`. Updated `LayoutTokenResolver` across all platforms for corrected `md=12` base. Replaced all broken loremflickr demo image URLs with same-origin `DemoImageUrls` SVGs.
 - **Per-section error handling** (2026-04-01) — `SectionErrorBoundary` on Android (catch-at-dispatch + pre-validation) and web (React ErrorBoundary). `SectionSkeleton` with 4 generic styles. Typed `SectionStates` model. Retry budget (client-side, default 5). `hideOnError` support. Error-handling contract rewritten.
 - **Accessibility** (2026-03-26) — `AccessibilityProperties` on Section, Subsection, AtomicElement. Android Compose `semantics{}`, web ARIA attributes, iOS `.accessibilityLabel`/traits. All 8 semantic section renderers and 12 atomic primitives wired on every platform.
@@ -265,6 +286,17 @@ make codegen
 | `poll` | Periodic refresh from SDUI server | Player stats (transformed data) |
 | `poll` + `url` | Direct polling to data feed | Boxscore from CDN (lower latency) |
 | `sse` | Real-time via Ably channel | Live scores |
+
+### Screen-Level and Section-Level Refresh
+
+| Field | Description |
+|-------|-------------|
+| `screen.defaultRefreshPolicy` | Screen-level periodic re-fetch (type: `poll` + `intervalMs`). `GameDetailComposer` emits `static` (sections own their refresh). |
+| `section.refreshPolicy.sectionEndpoint` | Server-relative path polled on `intervalMs`; response is a single `Section` (not a screen envelope) that replaces the section in place. Client re-evaluates the new section's `refreshPolicy` (enables poll→SSE transition). |
+
+**Mutual exclusivity:** `sectionEndpoint` and a non-static `screen.defaultRefreshPolicy` must not coexist; clients skip `sectionEndpoint` polls and log when violated.
+
+**Precedence:** when both `url` and `sectionEndpoint` are set, `sectionEndpoint` wins.
 
 ## Tech Stack
 

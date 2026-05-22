@@ -64,11 +64,13 @@ private struct ScreenBody: View {
                     if let screen = vm.screen {
                         shellWrapped {
                             ScrollView {
-                                LazyVStack(spacing: 0) {
+                                let insets = edgeInsets(from: screen.contentInsets)
+                                LazyVStack(alignment: .leading, spacing: 0) {
                                     ForEach(screen.sections, id: \.id) { section in
                                         let sectionDispatcher = vm.makeActionDispatcher().scoped(to: section.id)
                                         SectionLayout(
                                             section: section,
+                                            horizontalInsets: EdgeInsets(top: 0, leading: insets.leading, bottom: 0, trailing: insets.trailing),
                                             screenState: vm.screenState,
                                             staleness: vm.stalenessPublisher,
                                             dispatcher: sectionDispatcher,
@@ -81,8 +83,9 @@ private struct ScreenBody: View {
                                         })
                                     }
                                 }
+                                .padding(.top, insets.top)
+                                .padding(.bottom, insets.bottom)
                             }
-                            .padding(edgeInsets(from: screen.contentInsets))
                             .refreshable { await vm.load() }
                             .environment(\.wireAssetBaseURL, vm.wireAssetBaseURL)
                         }
@@ -151,7 +154,7 @@ private struct ScreenBody: View {
     }
 
     @ViewBuilder
-    private func shellWrapped<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+    private func shellWrapped<Content: View>(@ViewBuilder content: @escaping () -> Content) -> some View {
         SduiNavigationShell(
             navigation: vm.shellScreen?.navigation,
             onNavigate: { uri in
@@ -179,6 +182,7 @@ private struct ScreenBody: View {
 /// `ScreenBody` stays a pure list.
 private struct SectionLayout: View {
     let section: Section
+    let horizontalInsets: EdgeInsets
     let screenState: ScreenState
     let staleness: SectionStalenessTracker
     let dispatcher: ActionDispatcher
@@ -208,12 +212,15 @@ private struct SectionLayout: View {
                         onAction: { dispatcher.dispatch($0) }
                     )
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(edgeInsets(from: section.padding))
                 .background(ColorTokenResolver.resolve(section.backgroundColor, colorScheme: colorScheme) ?? .clear)
                 .sduiAccessibility(section.accessibility)
 
                 StalenessBadge(sectionID: section.id, tracker: staleness)
             }
+            .padding(.leading, horizontalInsets.leading)
+            .padding(.trailing, horizontalInsets.trailing)
             .padding(.top, marginTop)
             .padding(.bottom, marginBottom)
 
@@ -308,3 +315,4 @@ private struct UpgradeRequiredView: View {
         .padding(ClientChromeSpacing.lg)
     }
 }
+

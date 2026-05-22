@@ -55,7 +55,7 @@ final class PollingDriverTests: XCTestCase {
             sectionID: "s1",
             intervalMs: 60_000, // Long interval so it doesn't actually fire
             directURL: nil,
-            screenEndpoint: "/v1/sdui/test",
+            sectionEndpoint: "/v1/sdui/test",
             dataPath: nil,
             pauseWhenOffScreen: true
         )
@@ -81,7 +81,7 @@ final class PollingDriverTests: XCTestCase {
             sectionID: "gamepanel",
             intervalMs: 60_000,
             directURL: nil,
-            screenEndpoint: "/v1/sdui/test",
+            sectionEndpoint: "/v1/sdui/test",
             dataPath: nil,
             pauseWhenOffScreen: false
         )
@@ -106,11 +106,11 @@ final class PollingDriverTests: XCTestCase {
 
         await driver.start(
             sectionID: "s1", intervalMs: 60_000, directURL: nil,
-            screenEndpoint: "/v1/sdui/test", dataPath: nil, pauseWhenOffScreen: true
+            sectionEndpoint: "/v1/sdui/test", dataPath: nil, pauseWhenOffScreen: true
         )
         await driver.start(
             sectionID: "s2", intervalMs: 60_000, directURL: nil,
-            screenEndpoint: "/v1/sdui/test", dataPath: nil, pauseWhenOffScreen: true
+            sectionEndpoint: "/v1/sdui/test", dataPath: nil, pauseWhenOffScreen: true
         )
 
         await driver.stopAll()

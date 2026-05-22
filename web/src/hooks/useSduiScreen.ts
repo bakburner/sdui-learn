@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type React from 'react';
-import type { SduiModels } from '@sdui/models';
+import type { SduiModels, Section } from '@sdui/models';
 import { fetchSduiScreen } from '../runtime/fetchSduiScreen';
 
 interface UseSduiScreenOptions {
@@ -21,6 +21,11 @@ interface UseSduiScreenResult {
   refetch: () => Promise<void>;
   /** Direct setter for surgical section-level updates (e.g. action-triggered refresh). */
   setScreen: React.Dispatch<React.SetStateAction<SduiModels | null>>;
+  /** Merge a replacement section into the current screen by section ID. */
+  onSectionReplace: (section: Section) => void;
+  /** Remove a section from the current screen by section ID (used when a
+   *  section endpoint returns 404 — the section is gone from the feed). */
+  onSectionGone: (sectionId: string) => void;
 }
 
 /**
@@ -37,6 +42,7 @@ export function useSduiScreen(options: UseSduiScreenOptions): UseSduiScreenResul
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [upgradeRequired, setUpgradeRequired] = useState(false);
+  const screenIntervalRef = useRef<number | null>(null);
 
   const fetchScreen = useCallback(async () => {
     if (!endpoint) return;
@@ -80,6 +86,55 @@ export function useSduiScreen(options: UseSduiScreenOptions): UseSduiScreenResul
     fetchScreen();
   }, [fetchScreen]);
 
+  useEffect(() => {
+    if (screenIntervalRef.current !== null) {
+      clearInterval(screenIntervalRef.current);
+      screenIntervalRef.current = null;
+    }
+
+    const defaultPolicy = screen?.defaultRefreshPolicy;
+    if (!defaultPolicy || defaultPolicy.type !== 'poll' || !defaultPolicy.intervalMs) return;
+
+    const intervalMs = defaultPolicy.intervalMs;
+    screenIntervalRef.current = window.setInterval(() => {
+      fetchScreen();
+    }, intervalMs);
+
+    return () => {
+      if (screenIntervalRef.current !== null) {
+        clearInterval(screenIntervalRef.current);
+        screenIntervalRef.current = null;
+      }
+    };
+  }, [screen?.defaultRefreshPolicy, fetchScreen]);
+
+  const handleSectionReplace = useCallback((newSection: Section) => {
+    setScreen((current) => {
+      if (!current) return current;
+      const idx = current.sections.findIndex((s) => s.id === newSection.id);
+      const sections = [...current.sections];
+      if (idx >= 0) {
+        sections[idx] = newSection;
+      } else {
+        // Cross-platform aligned: a section refresh response with an id not
+        // currently in the screen is treated as an append (server may add a
+        // previously-absent section into the feed as state changes).
+        sections.push(newSection);
+      }
+      return { ...current, sections };
+    });
+  }, []);
+
+  const handleSectionGone = useCallback((sectionId: string) => {
+    setScreen((current) => {
+      if (!current) return current;
+      const idx = current.sections.findIndex((s) => s.id === sectionId);
+      if (idx < 0) return current;
+      const sections = current.sections.filter((s) => s.id !== sectionId);
+      return { ...current, sections };
+    });
+  }, []);
+
   return {
     screen,
     shellScreen,
@@ -88,5 +143,7 @@ export function useSduiScreen(options: UseSduiScreenOptions): UseSduiScreenResul
     upgradeRequired,
     refetch: fetchScreen,
     setScreen,
+    onSectionReplace: handleSectionReplace,
+    onSectionGone: handleSectionGone,
   };
 }

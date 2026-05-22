@@ -139,7 +139,13 @@ struct AtomicBoxModifier: ViewModifier {
             case .stretch: return .center
             }
         }
-        if element.direction == .row { return .center }
+        if element.direction == .row {
+            switch element.alignment {
+            case .center: return .center
+            case .end: return .trailing
+            default: return .leading
+            }
+        }
         switch element.crossAlignment {
         case .center: return .center
         case .end: return .trailing

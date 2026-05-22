@@ -83,8 +83,10 @@ glossary is strictly about runtime, wire, and design-system vocabulary.
 
 | Term | Definition |
 | --- | --- |
-| **Refresh policy** | Section-level `{ source: poll\|sse, intervalSec, endpoint, … }` block declaring how the section should re-fetch itself. The shared lifecycle infrastructure honours it; renderers do not schedule their own refreshes. |
+| **Refresh policy** | Section-level `{ type: static | poll | sse, intervalMs?, url?, sectionEndpoint?, channel?, dataPath?, pauseWhenOffScreen? }` block declaring how the section stays fresh. For `poll`, either `url` (raw data overlay via `dataBinding`) or `sectionEndpoint` (SDUI section re-fetch); `sectionEndpoint` takes precedence when both are set. The shared lifecycle infrastructure honours it; renderers do not schedule their own refreshes. |
 | **Live data** / **realtime** | Umbrella term for the three push paths the runtime supports: server-sent events (SSE), interval polling, and Ably channels. All three feed the same Data-binding pipeline. |
+| **`sectionEndpoint`** | Server-relative SDUI path on `RefreshPolicy` (e.g. `/v1/sdui/section/…`) polled on `intervalMs`; response is a single `Section` that replaces the existing section; client re-evaluates the new section's `refreshPolicy` (enables poll→SSE transition). Distinct from `url` (raw data overlay) and from action-triggered `paramBindings` refresh. |
+| **`defaultRefreshPolicy`** | Optional field on `Screen`; when `type: poll`, client runs a screen-level poll loop via `fetchScreen`; mutually exclusive with section-level `sectionEndpoint` polls on the same screen. |
 | **Impression policy** | Per-`fireAndForget` dedup config attached to `onVisible` actions. Determines whether a beacon fires on every visibility entry, once per session, once per `dedupKey`, etc. |
 
 ---

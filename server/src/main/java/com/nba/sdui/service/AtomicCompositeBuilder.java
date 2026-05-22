@@ -873,12 +873,14 @@ public class AtomicCompositeBuilder {
         ObjectNode section = sectionEnvelope(id, analyticsId);
 
         ObjectNode root = container("column", null, null);
-        root.set("padding", padding(LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, LayoutTokens.SPACING_SM, LayoutTokens.SPACING_SM));
+        root.put("widthMode", "fill");
+        root.set("padding", padding(LayoutTokens.SPACING_MD, LayoutTokens.SPACING_MD, LayoutTokens.SPACING_SM, LayoutTokens.SPACING_SM));
+        root.put("gap", LayoutTokens.SPACING_XS);
         ArrayNode rootChildren = om.createArrayNode();
 
         if (title != null) {
             ObjectNode titleEl = text(title, "titleMedium", "bold", null, null);
-            titleEl.set("padding", padding(0, 0, 0, LayoutTokens.SPACING_MD));
+            titleEl.set("padding", padding(0, 0, 0, LayoutTokens.SPACING_SM));
             rootChildren.add(titleEl);
         }
 
@@ -930,74 +932,54 @@ public class AtomicCompositeBuilder {
     private ObjectNode buildStatRowHorizontal(String playerId, String playerName,
                                                 String teamTricode, String statCategory,
                                                 String statValue, String playerImageUrl) {
-        ObjectNode row = container("row", null, "center");
-        row.set("padding", padding(0, 0, LayoutTokens.SPACING_XS, LayoutTokens.SPACING_XS));
-        ArrayNode children = om.createArrayNode();
-
-        if (playerImageUrl != null) {
-            ObjectNode img = image(playerImageUrl, 40, 40, "cover");
-            img.put("cornerRadius", LayoutTokens.RADIUS_LG);
-            AccessibilityHelper.addImage(om, img, playerName + " headshot");
-            children.add(img);
-            children.add(hSpacer(LayoutTokens.SPACING_MD));
-        }
-
-        ObjectNode nameCol = container("column", null, null);
-        nameCol.put("flex", 1);
-        ArrayNode nameChildren = om.createArrayNode();
-        nameChildren.add(text(playerName, "bodyLarge", "medium", null, null));
-        if (teamTricode != null) {
-            nameChildren.add(text(teamTricode, "bodySmall", null, ColorTokens.TEXT_SECONDARY, null));
-        }
-        nameCol.set("children", nameChildren);
-        children.add(nameCol);
-
-        children.add(hSpacer(LayoutTokens.SPACING_MD));
-        children.add(text(statCategory, "bodyMedium", null, ColorTokens.TEXT_SECONDARY, null));
-        children.add(hSpacer(LayoutTokens.SPACING_SM));
-        children.add(text(statValue, "titleMedium", "bold", ColorTokens.BRAND_LIVE, null));
-
-        row.set("children", children);
-        return row;
+        return buildCompactStatRow(playerId, playerName, teamTricode, statCategory, statValue, playerImageUrl);
     }
 
     private ObjectNode buildStatRowVertical(String playerId, String playerName,
                                               String teamTricode, String statCategory,
                                               String statValue, String playerImageUrl) {
-        ObjectNode col = container("column", null, null);
-        col.set("padding", padding(0, 0, LayoutTokens.SPACING_XS, LayoutTokens.SPACING_XS));
+        return buildCompactStatRow(playerId, playerName, teamTricode, statCategory, statValue, playerImageUrl);
+    }
+
+    /**
+     * Single compact row: [headshot] [name / team] [STAT VALUE]
+     * Name+team stack vertically in a flex column; stat is right-aligned.
+     */
+    private ObjectNode buildCompactStatRow(String playerId, String playerName,
+                                            String teamTricode, String statCategory,
+                                            String statValue, String playerImageUrl) {
+        ObjectNode row = container("row", null, "center");
+        row.put("widthMode", "fill");
+        row.put("gap", LayoutTokens.SPACING_SM);
         ArrayNode children = om.createArrayNode();
 
-        ObjectNode topRow = container("row", null, "center");
-        ArrayNode topChildren = om.createArrayNode();
-
         if (playerImageUrl != null) {
-            ObjectNode img = image(playerImageUrl, 40, 40, "cover");
-            img.put("cornerRadius", LayoutTokens.RADIUS_LG);
+            ObjectNode img = image(playerImageUrl, 32, 32, "cover");
+            img.put("cornerRadius", LayoutTokens.RADIUS_FULL);
             AccessibilityHelper.addImage(om, img, playerName + " headshot");
-            topChildren.add(img);
-            topChildren.add(hSpacer(LayoutTokens.SPACING_MD));
+            children.add(img);
         }
 
         ObjectNode nameCol = container("column", null, null);
         nameCol.put("flex", 1);
         ArrayNode nameChildren = om.createArrayNode();
-        nameChildren.add(text(playerName, "bodyLarge", "medium", null, null));
+        nameChildren.add(text(playerName, "bodyMedium", "medium", null, null));
         if (teamTricode != null) {
-            nameChildren.add(text(teamTricode, "bodySmall", null, ColorTokens.TEXT_SECONDARY, null));
+            nameChildren.add(text(teamTricode, "labelSmall", null, ColorTokens.TEXT_SECONDARY, null));
         }
         nameCol.set("children", nameChildren);
-        topChildren.add(nameCol);
+        children.add(nameCol);
 
-        topChildren.add(hSpacer(LayoutTokens.SPACING_LG));
-        topChildren.add(text(statCategory, "bodyMedium", null, ColorTokens.TEXT_SECONDARY, null));
-        topChildren.add(hSpacer(LayoutTokens.SPACING_SM));
-        topChildren.add(text(statValue, "titleMedium", "bold", ColorTokens.BRAND_LIVE, null));
-        topRow.set("children", topChildren);
-        children.add(topRow);
+        ObjectNode statGroup = container("row", null, "center");
+        statGroup.put("gap", LayoutTokens.SPACING_XS);
+        ArrayNode statChildren = om.createArrayNode();
+        statChildren.add(text(statCategory, "bodySmall", null, ColorTokens.TEXT_SECONDARY, null));
+        statChildren.add(text(statValue, "titleSmall", "bold", ColorTokens.BRAND_LIVE, null));
+        statGroup.set("children", statChildren);
+        children.add(statGroup);
 
-        col.set("children", children);
-        return col;
+        row.set("children", children);
+        return row;
     }
 
     // ── NbaTvSchedule ────────────────────────────────────────────────────
@@ -1911,6 +1893,97 @@ public class AtomicCompositeBuilder {
 
         root.set("children", children);
         return wrapAsComposite(sectionId, analyticsId, root);
+    }
+
+    /**
+     * Horizontally-scrollable row of variant-selection chips.
+     *
+     * <p>Each chip is a {@code Button} atomic whose {@code onActivate} fires a
+     * {@code navigate} action pointing at {@code currentUri} with the experiment
+     * query param replaced by the chip's variant id. The currently active variant
+     * renders with the {@code primary} button variant; others render as
+     * {@code secondary} so the active chip is visually distinguished. Clients do
+     * not need any variant-aware code: they just dispatch the navigate action and
+     * the server returns the screen composed for the selected variant.
+     *
+     * <p>Bracket characters in the query param key are percent-encoded so the
+     * emitted URI is parseable by client URL libraries (Foundation's
+     * {@code URL(string:)} rejects unencoded {@code [} / {@code ]}).
+     */
+    public ObjectNode buildVariantChipsComposite(String sectionId, String analyticsId,
+                                                  String currentUri, String experimentId,
+                                                  ArrayNode options, String activeVariantId) {
+        requireNonBlank(sectionId, "sectionId");
+        requireNonBlank(currentUri, "currentUri");
+        requireNonBlank(experimentId, "experimentId");
+
+        ObjectNode scroll = scrollRow(8, false);
+        scroll.put("widthMode", "fill");
+        scroll.set("padding", padding(
+                LayoutTokens.SPACING_MD, LayoutTokens.SPACING_MD,
+                LayoutTokens.SPACING_XS, LayoutTokens.SPACING_XS));
+
+        ArrayNode chips = om.createArrayNode();
+        boolean anyMatch = false;
+        for (var option : options) {
+            String id = option.path("id").asText();
+            if (id == null || id.isBlank()) continue;
+            if (id.equals(activeVariantId)) anyMatch = true;
+        }
+        for (var option : options) {
+            String id = option.path("id").asText();
+            String label = option.path("label").asText(id);
+            if (id == null || id.isBlank()) continue;
+
+            boolean isSelected = id.equals(activeVariantId)
+                    || (!anyMatch && options.get(0) == option);
+
+            String targetUri = withReplacedExperimentParam(currentUri, experimentId, id);
+            ObjectNode chip = button(label, isSelected ? "primary" : "secondary", tapNavigate(targetUri));
+            AccessibilityHelper.addButton(om, chip, label + (isSelected ? " (selected)" : ""));
+            chips.add(chip);
+        }
+        scroll.set("children", chips);
+
+        return wrapAsComposite(sectionId, analyticsId, scroll);
+    }
+
+    /**
+     * Returns {@code uri} with the experiment query param set to {@code variantId},
+     * replacing any existing value for the same experiment. Brackets in the param
+     * key are percent-encoded so clients can parse the resulting URI without an
+     * extra escaping step.
+     */
+    private String withReplacedExperimentParam(String uri, String experimentId, String variantId) {
+        String paramKey = "experiments%5B" + experimentId + "%5D";
+        String pair = paramKey + "=" + variantId;
+        int qIndex = uri.indexOf('?');
+        if (qIndex < 0) {
+            return uri + "?" + pair;
+        }
+        String base = uri.substring(0, qIndex);
+        String existingQuery = uri.substring(qIndex + 1);
+        StringBuilder rebuilt = new StringBuilder();
+        boolean replaced = false;
+        for (String part : existingQuery.split("&")) {
+            if (part.isEmpty()) continue;
+            // Treat encoded and unencoded forms of `experiments[<id>]` as the same key.
+            if (part.startsWith(paramKey + "=") || part.startsWith("experiments[" + experimentId + "]=")) {
+                if (!replaced) {
+                    if (rebuilt.length() > 0) rebuilt.append('&');
+                    rebuilt.append(pair);
+                    replaced = true;
+                }
+            } else {
+                if (rebuilt.length() > 0) rebuilt.append('&');
+                rebuilt.append(part);
+            }
+        }
+        if (!replaced) {
+            if (rebuilt.length() > 0) rebuilt.append('&');
+            rebuilt.append(pair);
+        }
+        return base + "?" + rebuilt;
     }
 
     /**

@@ -13,7 +13,15 @@ const MAX_SECTION_SLOT_DEPTH = 2;
  * AtomicSectionSlot → SectionRouter) is safe because all imports are only
  * used inside React component functions, not at module evaluation time.
  */
-export function AtomicSectionSlot({ element, state, onAction, onStateChange, sectionSlotDepth = 0 }: AtomicProps): React.ReactElement | null {
+export function AtomicSectionSlot({
+  element,
+  state,
+  onAction,
+  onStateChange,
+  sectionSlotDepth = 0,
+  onSectionReplace,
+  onSectionGone,
+}: AtomicProps): React.ReactElement | null {
   if (sectionSlotDepth >= MAX_SECTION_SLOT_DEPTH) {
     console.warn(`[AtomicSectionSlot] Max SectionSlot depth (${MAX_SECTION_SLOT_DEPTH}) exceeded — skipping element: ${element.id}`);
     return null;
@@ -33,6 +41,8 @@ export function AtomicSectionSlot({ element, state, onAction, onStateChange, sec
       state={state}
       onAction={onAction}
       onStateChange={noopStateChange}
+      onSectionReplace={onSectionReplace}
+      onSectionGone={onSectionGone}
     />
   );
 }

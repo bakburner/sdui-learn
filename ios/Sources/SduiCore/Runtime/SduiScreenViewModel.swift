@@ -61,7 +61,11 @@ public final class SduiScreenViewModel {
     // MARK: - Dependencies
 
     private let endpoint: String
-    private let config: SduiConfig
+    /// Read-only access to the config the VM was constructed with. Consumers may
+    /// inspect runtime state on it (e.g. current experiment assignments for UI
+    /// highlighting); mutation requires constructing a new VM so polling, SSE,
+    /// and section state tear down cleanly.
+    public let config: SduiConfig
     private let nav: NavCoordinator
     private let analytics: AnalyticsDispatcher
     private let repository: SduiRepository
@@ -74,6 +78,7 @@ public final class SduiScreenViewModel {
     // MARK: - Internal bookkeeping
 
     private var pollEventsTask: Task<Void, Never>?
+    @ObservationIgnored private nonisolated(unsafe) var screenLevelPollTask: Task<Void, Never>?
     private var ablyTasks: [String: Task<Void, Never>] = [:]
     private var ablyConnectionTask: Task<Void, Never>?
     private var visibilityEventsTask: Task<Void, Never>?
@@ -97,7 +102,11 @@ public final class SduiScreenViewModel {
         self.config = config
         self.nav = nav
         self.analytics = analytics
-        self.repository = SduiRepository(config: config)
+        let experiments = config.experiments
+        self.repository = SduiRepository(
+            config: config,
+            envelopeProvider: { RequestEnvelope(experiments: experiments) }
+        )
         self.screenState = ScreenState()
         self.toasts = ToastHost()
         self.stalenessTracker = SectionStalenessTracker()
@@ -106,6 +115,10 @@ public final class SduiScreenViewModel {
         self.polling = PollingDriver(repository: self.repository)
         self.ably = AblyChannelManager(tokenURL: config.ablyTokenURL)
         self.startVisibilityForwarder()
+    }
+
+    deinit {
+        screenLevelPollTask?.cancel()
     }
 
     // MARK: - Publicly accessible components
@@ -234,6 +247,7 @@ public final class SduiScreenViewModel {
         case .background:
             isForegroundActive = false
             Task { await polling.setForegroundActive(false) }
+            screenLevelPollTask?.cancel()
             cancelAllAbly()
             logger.debug("scenePhase background — paused polls + disconnected Ably")
             // On re-foreground the view's `.task` re-runs, which restarts
@@ -282,7 +296,30 @@ public final class SduiScreenViewModel {
             }
         }
 
+        // Cancel any existing screen-level poll before starting a new one.
+        screenLevelPollTask?.cancel()
+        screenLevelPollTask = nil
+
+        // Start screen-level default refresh policy if present.
+        if let defaultPolicy = newScreen.defaultRefreshPolicy,
+           defaultPolicy.type == .poll,
+           let intervalMs = defaultPolicy.intervalMS {
+            startScreenLevelPoll(intervalMs: intervalMs)
+        }
+
         restartRealtime(for: newScreen)
+    }
+
+    private func startScreenLevelPoll(intervalMs: Int) {
+        screenLevelPollTask?.cancel()
+        screenLevelPollTask = Task { [weak self] in
+            guard let self else { return }
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(intervalMs))
+                if Task.isCancelled { return }
+                await self.load()
+            }
+        }
     }
 
     // MARK: - Real-time wiring
@@ -303,11 +340,13 @@ public final class SduiScreenViewModel {
             }
         }
 
+        let screenIsRefreshing = screen.defaultRefreshPolicy?.type == .poll
+
         for section in screen.sections {
             guard let policy = section.refreshPolicy else { continue }
             switch policy.type {
             case .poll:
-                startPolling(section: section, policy: policy)
+                startPolling(section: section, policy: policy, screenIsRefreshing: screenIsRefreshing)
             case .sse:
                 startSSE(section: section, policy: policy)
             case .refreshTypeStatic:
@@ -316,10 +355,37 @@ public final class SduiScreenViewModel {
         }
     }
 
-    private func startPolling(section: Section, policy: RefreshPolicy) {
+    private func restartRealtimeForSection(_ sectionID: String, newSection: Section) async {
+        // Stop the existing poll for this section only.
+        await polling.stop(sectionID: sectionID)
+
+        // Stop the existing Ably task for this section only.
+        ablyTasks[sectionID]?.cancel()
+        ablyTasks.removeValue(forKey: sectionID)
+        sectionAblyChannels.removeValue(forKey: sectionID)
+        alwaysRefreshSections.remove(sectionID)
+
+        // Start the new section's policy.
+        guard let policy = newSection.refreshPolicy else { return }
+        switch policy.type {
+        case .poll:
+            startPolling(section: newSection, policy: policy)
+        case .sse:
+            startSSE(section: newSection, policy: policy)
+        case .refreshTypeStatic:
+            break
+        }
+    }
+
+    private func startPolling(section: Section, policy: RefreshPolicy, screenIsRefreshing: Bool = false) {
+        // Guard: sectionEndpoint and a non-static screen defaultRefreshPolicy are mutually exclusive.
+        if policy.sectionEndpoint != nil && screenIsRefreshing {
+            logger.warning("Section '\(section.id)' has sectionEndpoint but screen defaultRefreshPolicy is Poll — skipping sectionEndpoint poll; screen-level refresh owns this section.")
+            return
+        }
         guard let intervalMs = policy.intervalMS else { return }
         let directURL = policy.url.flatMap(URL.init(string:))
-        let screenEndpoint = self.endpoint
+        let sectionEndpointPath = policy.sectionEndpoint
         let sectionID = section.id
         let dataPath = policy.dataPath
         let shouldPause = policy.pauseWhenOffScreen ?? true
@@ -334,7 +400,7 @@ public final class SduiScreenViewModel {
                 sectionID: sectionID,
                 intervalMs: intervalMs,
                 directURL: directURL,
-                screenEndpoint: directURL == nil ? screenEndpoint : nil,
+                sectionEndpoint: sectionEndpointPath,
                 dataPath: dataPath,
                 pauseWhenOffScreen: shouldPause,
                 traceID: self.screen?.traceID
@@ -403,9 +469,25 @@ public final class SduiScreenViewModel {
             } else if let newScreen = success.payload as? SduiModels {
                 applyScreen(newScreen)
             }
+        case .sectionSuccess(let sectionID, let newSection):
+            // Cancel old jobs before merging so the replacement policy owns future ticks.
+            await restartRealtimeForSection(sectionID, newSection: newSection)
+            stalenessTracker.clear(sectionID)
+            replaceSectionInScreen(sectionID: sectionID, with: newSection)
         case .failure(let failure):
-            if failure.consecutiveFailures >= PollingDriver.failureThreshold {
+            switch failure.kind {
+            case .sectionNotFound:
+                logger.warning("Section \(failure.sectionID, privacy: .public) returned 404 — stopping poll")
+                await polling.stop(sectionID: failure.sectionID)
                 stalenessTracker.markStale(failure.sectionID)
+            case .upgradeRequired:
+                logger.warning("Section \(failure.sectionID, privacy: .public) signaled upgrade-required — stopping poll")
+                await polling.stop(sectionID: failure.sectionID)
+                loadState = .upgradeRequired(message: SduiError.upgradeRequired.errorDescription ?? "Please update the app to continue.")
+            case .other:
+                if failure.consecutiveFailures >= PollingDriver.failureThreshold {
+                    stalenessTracker.markStale(failure.sectionID)
+                }
             }
         }
     }
@@ -475,6 +557,20 @@ public final class SduiScreenViewModel {
     }
 
     // MARK: - Mutation helpers
+
+    private func replaceSectionInScreen(sectionID: String, with newSection: Section) {
+        guard let current = screen else { return }
+        var newSections = current.sections
+        if let idx = newSections.firstIndex(where: { $0.id == sectionID }) {
+            newSections[idx] = newSection
+        } else {
+            // Cross-platform aligned: a section refresh response with an id not
+            // currently in the screen is treated as an append (server may add
+            // a previously-absent section into the feed as game state changes).
+            newSections.append(newSection)
+        }
+        screen = current.with(sections: newSections)
+    }
 
     /// Replace a section's `data` with the merged payload.
     private func updateSectionData(sectionID: String, newData: [String: Any]) async {

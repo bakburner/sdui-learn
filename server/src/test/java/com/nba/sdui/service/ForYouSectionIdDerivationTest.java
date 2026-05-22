@@ -68,8 +68,8 @@ class ForYouSectionIdDerivationTest {
         ArrayNode sections = (ArrayNode) response.get("sections");
         for (JsonNode section : sections) {
             String sectionId = section.path("id").asText("");
-            assertTrue(sectionId.contains("::"),
-                    "Section id '" + sectionId + "' must use '::' separator");
+            assertTrue(SectionIdDeriver.isDerived(sectionId),
+                    "Section id '" + sectionId + "' must use '~type=' derived format");
         }
     }
 
@@ -80,9 +80,8 @@ class ForYouSectionIdDerivationTest {
         ArrayNode sections = (ArrayNode) response.get("sections");
         for (JsonNode section : sections) {
             String sectionId = section.path("id").asText("");
-            // IDs should not end with positional indices like ::0, ::1, ::2
-            assertFalse(sectionId.matches(".*::\\d+$"),
-                    "Section id '" + sectionId + "' must not use positional indices");
+            assertFalse(sectionId.matches(".*~slug=\\d+$"),
+                    "Section id '" + sectionId + "' must not use positional indices as slug");
         }
     }
 

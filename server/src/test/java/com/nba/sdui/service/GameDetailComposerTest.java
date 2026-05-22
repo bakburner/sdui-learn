@@ -25,7 +25,8 @@ class GameDetailComposerTest {
         StatsApiClient statsApiClient = mock(StatsApiClient.class);
         BoxscoreComposer boxscoreComposer = mock(BoxscoreComposer.class);
         SduiUtils utils = new SduiUtils(objectMapper);
-        GameDetailComposer composer = new GameDetailComposer(objectMapper, statsApiClient, boxscoreComposer, utils);
+        SectionRefreshService sectionRefreshService = mock(SectionRefreshService.class);
+        GameDetailComposer composer = new GameDetailComposer(objectMapper, statsApiClient, boxscoreComposer, sectionRefreshService, utils);
         ReflectionTestUtils.setField(composer, "schemaVersion", "1.0");
 
         JsonNode liveBoxscore = objectMapper.readTree("""

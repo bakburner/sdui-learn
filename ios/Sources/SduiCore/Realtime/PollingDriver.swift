@@ -26,22 +26,31 @@ actor PollingDriver {
     struct PollSuccess: @unchecked Sendable {
         let sectionID: String
         /// When the poll hits a direct URL, the JSON payload after
-        /// applying `dataPath`. When polling the full SDUI endpoint, the
-        /// whole `SduiModels` JSON as `[String: Any]`.
+        /// applying `dataPath`.
         let payload: Any
-        /// `true` when this was a direct-URL poll (payload is section data);
-        /// `false` when the VM should re-apply the full screen response.
+        /// `true` when this was a direct-URL poll.
         let isDirect: Bool
+    }
+
+    /// Categorical kind of a poll failure. Consumers should switch on `kind`
+    /// rather than substring-match against `reason`, which is a free-form
+    /// localized string.
+    enum PollFailureKind: Sendable {
+        case sectionNotFound
+        case upgradeRequired
+        case other
     }
 
     struct PollFailure: Sendable {
         let sectionID: String
         let consecutiveFailures: Int
         let reason: String
+        let kind: PollFailureKind
     }
 
-    enum PollEvent: Sendable {
+    enum PollEvent: @unchecked Sendable {
         case success(PollSuccess)
+        case sectionSuccess(sectionID: String, section: Section)
         case failure(PollFailure)
     }
 
@@ -107,9 +116,9 @@ actor PollingDriver {
     /// - Parameters:
     ///   - intervalMs: base cadence from `RefreshPolicy.intervalMs`.
     ///   - directURL: when non-nil, poll this URL and emit raw payload
-    ///     (applying `dataPath` if provided). Otherwise, re-fetch the full
-    ///     screen endpoint.
-    ///   - screenEndpoint: SDUI endpoint for full-screen re-fetch.
+    ///     (applying `dataPath` if provided). Otherwise, re-fetch the section
+    ///     endpoint.
+    ///   - sectionEndpoint: SDUI endpoint for single-section re-fetch.
     ///   - dataPath: JSONPath applied to `directURL` responses.
     ///   - pauseWhenOffScreen: when `true`, skips ticks while the section is
     ///     not in ``visibleSections``. Foreground gating always applies.
@@ -117,7 +126,7 @@ actor PollingDriver {
         sectionID: String,
         intervalMs: Int,
         directURL: URL?,
-        screenEndpoint: String?,
+        sectionEndpoint: String?,
         dataPath: String?,
         pauseWhenOffScreen: Bool,
         traceID: String? = nil
@@ -139,16 +148,17 @@ actor PollingDriver {
 
                 do {
                     let event: PollEvent
-                    if let directURL {
+                    // sectionEndpoint takes precedence over directURL when both are set (schema §RefreshPolicy).
+                    if let sectionEndpoint {
+                        let section = try await repository.fetchSection(endpoint: sectionEndpoint, traceID: traceID)
+                        event = .sectionSuccess(sectionID: sectionID, section: section)
+                    } else if let directURL {
                         let raw = try await repository.fetchRawJson(url: directURL, traceID: traceID)
                         let trimmed = Self.extract(dataPath: dataPath, from: raw)
                         event = .success(PollSuccess(sectionID: sectionID, payload: trimmed, isDirect: true))
-                    } else if let screenEndpoint {
-                        let screen = try await repository.fetchScreen(endpoint: screenEndpoint)
-                        event = .success(PollSuccess(sectionID: sectionID, payload: screen, isDirect: false))
                     } else {
                         throw NSError(domain: "PollingDriver", code: 0, userInfo: [
-                            NSLocalizedDescriptionKey: "no directURL and no screenEndpoint for section \(sectionID)"
+                            NSLocalizedDescriptionKey: "no directURL and no sectionEndpoint for section \(sectionID)"
                         ])
                     }
                     await self?.emitSuccess(event)
@@ -156,10 +166,21 @@ actor PollingDriver {
                 } catch {
                     let failures = await self?.recordFailure(sectionID: sectionID) ?? 1
                     currentInterval = Self.doubled(currentInterval, cap: Self.maxBackoff)
+                    let kind: PollFailureKind
+                    if let sduiError = error as? SduiError {
+                        switch sduiError {
+                        case .sectionNotFound: kind = .sectionNotFound
+                        case .upgradeRequired: kind = .upgradeRequired
+                        default: kind = .other
+                        }
+                    } else {
+                        kind = .other
+                    }
                     let failure = PollFailure(
                         sectionID: sectionID,
                         consecutiveFailures: failures,
-                        reason: error.localizedDescription
+                        reason: error.localizedDescription,
+                        kind: kind
                     )
                     await self?.emit(.failure(failure))
                     logger.warning("poll failed section=\(sectionID, privacy: .public) attempt=\(failures) reason=\(error.localizedDescription, privacy: .public)")
@@ -202,8 +223,13 @@ actor PollingDriver {
     }
 
     private func emitSuccess(_ event: PollEvent) {
-        if case let .success(success) = event {
+        switch event {
+        case .success(let success):
             failureCounts[success.sectionID] = 0
+        case .sectionSuccess(let sectionID, _):
+            failureCounts[sectionID] = 0
+        case .failure:
+            break
         }
         emit(event)
     }

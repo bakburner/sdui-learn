@@ -4,7 +4,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.nba.sdui.request.SduiRequestContext;
+import com.nba.sdui.service.SectionRefreshService;
 import com.nba.sdui.service.SduiCompositionService;
+import com.nba.sdui.service.UnsupportedSectionException;
 import com.nba.sdui.versioning.SchemaVersion;
 import com.nba.sdui.versioning.SchemaVersionChecker;
 import com.nba.sdui.versioning.SchemaVersionConfig;
@@ -39,17 +41,20 @@ public class SduiController {
     private static final Logger log = LoggerFactory.getLogger(SduiController.class);
 
     private final SduiCompositionService compositionService;
+    private final SectionRefreshService sectionRefreshService;
     private final ObjectMapper objectMapper;
     private final SchemaVersionChecker versionChecker;
     private final SchemaVersionConfig versionConfig;
     private final SchemaVersionFilter versionFilter;
 
     public SduiController(SduiCompositionService compositionService,
+                          SectionRefreshService sectionRefreshService,
                           ObjectMapper objectMapper,
                           SchemaVersionChecker versionChecker,
                           SchemaVersionConfig versionConfig,
                           SchemaVersionFilter versionFilter) {
         this.compositionService = compositionService;
+        this.sectionRefreshService = sectionRefreshService;
         this.objectMapper = objectMapper;
         this.versionChecker = versionChecker;
         this.versionConfig = versionConfig;
@@ -430,6 +435,55 @@ public class SduiController {
     public ResponseEntity<JsonNode> postBoxscore(
             @PathVariable String gameId, SduiRequestContext ctx, HttpServletResponse response) {
         return getBoxscore(gameId, ctx, response);
+    }
+
+    // ── Section Refresh ────────────────────────────────────────────────
+
+    @GetMapping(value = "/v1/sdui/section/{sectionId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<JsonNode> getSection(
+            @PathVariable String sectionId,
+            SduiRequestContext ctx,
+            HttpServletResponse response) {
+
+        ensureTraceId(ctx);
+        MDC.put("traceId", ctx.getTraceId());
+        log.info("SDUI section refresh request: sectionId={}, locale={}, schemaVersion={}",
+                sectionId, ctx.getLocale(), ctx.getSchemaVersion());
+
+        try {
+            ResponseEntity<JsonNode> mismatch = checkVersionMismatch(ctx, response);
+            if (mismatch != null) return mismatch;
+
+            var section = sectionRefreshService.refreshSection(sectionId, ctx);
+            setResponseHeaders(response, ctx);
+            if (section.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+
+            JsonNode filtered = applyVersionFilter(section.get(), ctx);
+            log.info("SDUI section refresh response composed: sectionId={}", sectionId);
+
+            // Section refresh returns a single Section JSON object, not a screen envelope.
+            return ResponseEntity.ok()
+                    .cacheControl(CacheControl.noCache())
+                    .body(filtered);
+        } catch (UnsupportedSectionException e) {
+            log.warn("Unsupported section refresh for sectionId={}: {}", sectionId, e.getMessage());
+            return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            log.error("Error composing SDUI section refresh response for sectionId={}", sectionId, e);
+            return ResponseEntity.internalServerError().build();
+        } finally {
+            MDC.clear();
+        }
+    }
+
+    @PostMapping(value = "/v1/sdui/section/{sectionId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<JsonNode> postSection(
+            @PathVariable String sectionId,
+            SduiRequestContext ctx,
+            HttpServletResponse response) {
+        return getSection(sectionId, ctx, response);
     }
 
     // ── Parameterized Refresh (Form submit support) ────────────────────

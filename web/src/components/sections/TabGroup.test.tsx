@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import type { Action, Section } from '@sdui/models';
+import { ActionTrigger, ActionType } from '@sdui/models';
 import { TabGroup } from './TabGroup';
 
 function tabSection(): Section {
@@ -22,11 +23,11 @@ function tabSection(): Section {
     subsections: [
       {
         id: 'tab-a',
-        actions: [{ trigger: 'onActivate', type: 'mutate', target: 'active_tab', value: 'a' }],
+        actions: [{ trigger: ActionTrigger.OnActivate, type: ActionType.Mutate, target: 'active_tab', value: 'a' }],
       },
       {
         id: 'tab-b',
-        actions: [{ trigger: 'onActivate', type: 'mutate', target: 'active_tab', value: 'b' }],
+        actions: [{ trigger: ActionTrigger.OnActivate, type: ActionType.Mutate, target: 'active_tab', value: 'b' }],
       },
     ],
   } as Section;
@@ -49,8 +50,8 @@ describe('TabGroup', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'B' }));
 
     expect(onAction).toHaveBeenCalledWith({
-      trigger: 'onActivate',
-      type: 'mutate',
+      trigger: ActionTrigger.OnActivate,
+      type: ActionType.Mutate,
       target: 'active_tab',
       value: 'b',
     } satisfies Action);

@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useRefreshPolicy } from '../useRefreshPolicy';
 import { subscribeToChannel } from '../../runtime/AblyClient';
+import * as fetchSduiScreenModule from '../../runtime/fetchSduiScreen';
 import type { Section } from '@sdui/models';
 import { RefreshType } from '@sdui/models';
 
@@ -80,14 +81,20 @@ describe('useRefreshPolicy — poll', () => {
       { initialProps: { enabled: true } },
     );
 
-    // Initial fetch fires
+    // Cross-platform aligned: first fetch waits `intervalMs`. Nothing fires at t=0.
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
+    });
+    expect(fetch).not.toHaveBeenCalled();
+
+    // First poll tick fires at intervalMs
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
     });
     expect(fetch).toHaveBeenCalledTimes(1);
     expect(onUpdate).toHaveBeenCalledWith({ score: 100 });
 
-    // Advance to first poll tick
+    // Second tick fires at 2 * intervalMs
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1000);
     });
@@ -125,12 +132,13 @@ describe('useRefreshPolicy — poll', () => {
       }),
     );
 
-    // Initial fetch (fails)
+    // First fetch fires at intervalMs (fails)
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(0);
+      await vi.advanceTimersByTimeAsync(1000);
     });
+    expect(fetch).toHaveBeenCalledTimes(1);
 
-    // First retry scheduled after 2000ms (backoff from 1000ms)
+    // Backoff doubles to 2000ms; second fetch fires after another 2000ms (fails)
     await act(async () => {
       await vi.advanceTimersByTimeAsync(2000);
     });
@@ -156,6 +164,54 @@ describe('useRefreshPolicy — poll', () => {
     );
 
     expect(fetch).not.toHaveBeenCalled();
+  });
+});
+
+describe('useRefreshPolicy — sectionEndpoint precedence', () => {
+  it('routes to sectionEndpoint when both url and sectionEndpoint are present', async () => {
+    const replacedSection: Section = {
+      id: 'test-section',
+      type: 'AtomicComposite',
+      data: { live: true },
+      refreshPolicy: { type: RefreshType.Static },
+    } as Section;
+
+    const fetchSduiSectionSpy = vi
+      .spyOn(fetchSduiScreenModule, 'fetchSduiSection')
+      .mockResolvedValue(replacedSection);
+
+    const onSectionReplace = vi.fn();
+    const policy = {
+      type: RefreshType.Poll,
+      intervalMs: 1000,
+      url: '/cdn/should-not-be-called',
+      sectionEndpoint: '/v1/sdui/section/stats-api:game-123::AtomicComposite::scoreboard',
+    };
+
+    renderHook(() =>
+      useRefreshPolicy({
+        sectionId: 'test-section',
+        refreshPolicy: policy,
+        onUpdate: vi.fn(),
+        onSectionReplace,
+        enabled: true,
+      }),
+    );
+
+    // First fetch fires at intervalMs (cross-platform aligned)
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+
+    // fetchSduiSection (sectionEndpoint) must have been called, not the raw url fetch
+    expect(fetchSduiSectionSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ endpoint: policy.sectionEndpoint }),
+    );
+    expect(onSectionReplace).toHaveBeenCalledWith(replacedSection);
+    // Raw fetch must not have been called for the CDN url
+    expect(fetch).not.toHaveBeenCalledWith('/cdn/should-not-be-called', expect.anything());
+
+    fetchSduiSectionSpy.mockRestore();
   });
 });
 

@@ -604,14 +604,22 @@ struct RefreshPolicy: Codable {
     /// viewport. Default true. Set false for critical live sections (e.g., live-score panels)
     /// that should refresh continuously.
     let pauseWhenOffScreen: Bool?
+    /// For poll type: server-relative SDUI path to re-fetch this section (e.g.
+    /// '/v1/sdui/section/stats-api:game-123::AtomicComposite::scoreboard'). The response is a
+    /// single Section object that replaces this section in place; the client then re-evaluates
+    /// the new section's refreshPolicy (enabling poll→SSE transition). Mutually exclusive with
+    /// url; sectionEndpoint takes precedence when both are present.
+    let sectionEndpoint: String?
     let type: RefreshType
-    /// For poll/sse type: URL to poll or connect to. If omitted, polls the SDUI endpoint.
+    /// For poll type: external URL to poll (e.g. CDN stats endpoint). Data is applied via
+    /// dataBinding. Mutually exclusive with sectionEndpoint; if both are present,
+    /// sectionEndpoint takes precedence.
     let url: String?
 
     enum CodingKeys: String, CodingKey {
         case channel, dataPath
         case intervalMS = "intervalMs"
-        case pauseWhenOffScreen, type, url
+        case pauseWhenOffScreen, sectionEndpoint, type, url
     }
 }
 
@@ -638,6 +646,7 @@ extension RefreshPolicy {
         dataPath: String?? = nil,
         intervalMS: Int?? = nil,
         pauseWhenOffScreen: Bool?? = nil,
+        sectionEndpoint: String?? = nil,
         type: RefreshType? = nil,
         url: String?? = nil
     ) -> RefreshPolicy {
@@ -646,6 +655,7 @@ extension RefreshPolicy {
             dataPath: dataPath ?? self.dataPath,
             intervalMS: intervalMS ?? self.intervalMS,
             pauseWhenOffScreen: pauseWhenOffScreen ?? self.pauseWhenOffScreen,
+            sectionEndpoint: sectionEndpoint ?? self.sectionEndpoint,
             type: type ?? self.type,
             url: url ?? self.url
         )

@@ -111,6 +111,54 @@ final class SduiRepository {
         return try await task.value
     }
 
+    /// Fetch a single section from an SDUI endpoint using the same canonical
+    /// transport as full-screen composition requests.
+    func fetchSection(
+        endpoint: String,
+        traceID: String? = nil
+    ) async throws -> Section {
+        let envelope = envelopeProvider()
+        let resolvedTraceID = traceID ?? config.traceIDProvider()
+        let request = try buildRequest(
+            endpoint: endpoint,
+            envelope: envelope,
+            userParams: [:],
+            traceID: resolvedTraceID
+        )
+        logger.debug("Fetching section \(request.httpMethod ?? "GET"): \(request.url?.absoluteString ?? endpoint) [trace=\(resolvedTraceID, privacy: .public)]")
+
+        let (data, response) = try await session.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw SduiError.invalidResponse
+        }
+
+        if httpResponse.statusCode == 404 {
+            logger.warning("Section endpoint returned 404: \(endpoint, privacy: .public)")
+            throw SduiError.sectionNotFound(endpoint: endpoint)
+        }
+
+        guard (200...299).contains(httpResponse.statusCode) else {
+            logger.error("HTTP \(httpResponse.statusCode) for section endpoint \(endpoint)")
+            throw SduiError.httpError(statusCode: httpResponse.statusCode)
+        }
+
+        if httpResponse.value(forHTTPHeaderField: "X-Schema-Version-Mismatch") == "upgrade-required" {
+            logger.warning("Server signaled schema version mismatch on section fetch: upgrade-required")
+            throw SduiError.upgradeRequired
+        }
+
+        do {
+            let section = try newJSONDecoder().decode(Section.self, from: data)
+            logger.debug("Fetched section '\(section.id)'")
+            return section
+        } catch {
+            let detail = Self.describeDecodingError(error)
+            logger.error("Failed to decode section from \(endpoint, privacy: .public): \(detail, privacy: .public)")
+            throw SduiError.decodingFailed(detail)
+        }
+    }
+
     /// Expand a `DecodingError` into `keyNotFound/typeMismatch/valueNotFound/dataCorrupted`
     /// with the failing JSON path and the underlying reason. `localizedDescription`
     /// hides that detail, which makes on-device decode failures unreadable.
@@ -191,22 +239,43 @@ final class SduiRepository {
         userParams: [String: String],
         traceID: String
     ) throws -> URLRequest {
-        let path = endpoint.hasPrefix("/") ? endpoint : "/\(endpoint)"
+        // Endpoints may already carry a query string when emitted by the server
+        // (e.g. a server-composed variant chip's `navigate` targetUri:
+        // `nba://game/X?experiments[game_detail_variant]=B` resolves to
+        // `/v1/sdui/game/X?experiments[game_detail_variant]=B`). Splitting on
+        // `?` lets us treat the embedded query as caller-owned filter params
+        // that ride the URL alongside any explicit `userParams`, with the
+        // envelope query appended afterwards.
+        let (path, embeddedQuery): (String, String) = {
+            let raw = endpoint.hasPrefix("/") ? endpoint : "/\(endpoint)"
+            if let q = raw.firstIndex(of: "?") {
+                return (String(raw[..<q]), String(raw[raw.index(after: q)...]))
+            }
+            return (raw, "")
+        }()
         let baseWithPath = config.baseURL.appendingPathComponent(
             String(path.dropFirst())
         )
 
         let userQuery = Self.encodeUserParams(userParams)
-        // Threshold includes both halves so large userParams trigger POST too.
+        let mergedUserHalf: String = {
+            switch (embeddedQuery.isEmpty, userQuery.isEmpty) {
+            case (true, true): return ""
+            case (false, true): return embeddedQuery
+            case (true, false): return userQuery
+            case (false, false): return embeddedQuery + "&" + userQuery
+            }
+        }()
+
         let envelopeQuery = envelope.buildQueryString()
-        let combinedLength = envelopeQuery.count + (userQuery.isEmpty ? 0 : userQuery.count + 1)
+        let combinedLength = envelopeQuery.count + (mergedUserHalf.isEmpty ? 0 : mergedUserHalf.count + 1)
 
         if combinedLength > RequestEnvelope.maxQueryLength {
             let postURL: URL
-            if userQuery.isEmpty {
+            if mergedUserHalf.isEmpty {
                 postURL = baseWithPath
             } else {
-                guard let url = URL(string: baseWithPath.absoluteString + "?" + userQuery) else {
+                guard let url = URL(string: baseWithPath.absoluteString + "?" + mergedUserHalf) else {
                     throw SduiError.invalidURL(endpoint)
                 }
                 postURL = url
@@ -219,7 +288,7 @@ final class SduiRepository {
             return request
         }
 
-        let combined = userQuery.isEmpty ? envelopeQuery : userQuery + "&" + envelopeQuery
+        let combined = mergedUserHalf.isEmpty ? envelopeQuery : mergedUserHalf + "&" + envelopeQuery
         let urlString = baseWithPath.absoluteString + "?" + combined
         guard let url = URL(string: urlString) else {
             throw SduiError.invalidURL(endpoint)
@@ -269,6 +338,7 @@ enum SduiError: LocalizedError, Equatable {
     case httpError(statusCode: Int)
     case decodingFailed(String)
     case upgradeRequired
+    case sectionNotFound(endpoint: String)
 
     var errorDescription: String? {
         switch self {
@@ -277,6 +347,7 @@ enum SduiError: LocalizedError, Equatable {
         case .httpError(let code): return "HTTP error: \(code)"
         case .decodingFailed(let message): return "Decoding failed: \(message)"
         case .upgradeRequired: return "This version of the app is no longer supported. Please update to continue."
+        case .sectionNotFound(let endpoint): return "Section not found: \(endpoint)"
         }
     }
 }

@@ -70,11 +70,6 @@ class MainActivity : ComponentActivity() {
                         onShowToast = { message ->
                             scope.launch { snackbarHostState.showSnackbar(message) }
                         },
-                        onVariantChange = { nextVariant ->
-                            currentConfig = config.copy(
-                                experiments = config.experiments + ("game_detail_variant" to nextVariant)
-                            )
-                        },
                         onBack = {
                             scope.launch {
                                 currentConfig = SduiConfig.fromUri(fetchBootstrapUri())

@@ -1,5 +1,6 @@
 import React, { useEffect, memo } from 'react';
 import type { Action } from '@sdui/models';
+import { ActionTrigger } from '@sdui/models';
 import type { AtomicProps } from './AtomicRouter';
 import { AtomicRouter } from './AtomicRouter';
 import { AtomicBox, AtomicBoxBadge } from './AtomicBox';
@@ -47,10 +48,10 @@ function AtomicContainerInner({ element, state, onAction, depth = 0, onStateChan
     console.warn('a11y_container_missing_label', { elementId: element.id });
   }
 
-  const activateActions = selectActions(element.actions as Action[] | undefined, 'onActivate');
-  const longPressActions = selectActions(element.actions as Action[] | undefined, 'onLongPress');
-  const focusActions = selectActions(element.actions as Action[] | undefined, 'onFocus');
-  const blurActions = selectActions(element.actions as Action[] | undefined, 'onBlur');
+  const activateActions = selectActions(element.actions as Action[] | undefined, ActionTrigger.OnActivate);
+  const longPressActions = selectActions(element.actions as Action[] | undefined, ActionTrigger.OnLongPress);
+  const focusActions = selectActions(element.actions as Action[] | undefined, ActionTrigger.OnFocus);
+  const blurActions = selectActions(element.actions as Action[] | undefined, ActionTrigger.OnBlur);
   const isFocusable = focusActions.length > 0 || blurActions.length > 0;
   const handleClick = activateActions.length > 0
     ? () => { onAction(activateActions); }

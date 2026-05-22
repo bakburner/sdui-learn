@@ -1,10 +1,12 @@
 import type { Action } from '@sdui/models';
+import { ActionTrigger } from '@sdui/models';
 
-type AtomicTrigger = NonNullable<Action['trigger']>;
-
-const PRIMARY_ACTIVATION_TRIGGERS = new Set<AtomicTrigger>(['onActivate', 'onTap']);
-const UNSUPPORTED_ATOMIC_TRIGGER_MESSAGES: Partial<Record<AtomicTrigger, string>> = {
-  onSwipe: 'not_hosted_atomic_trigger',
+const PRIMARY_ACTIVATION_TRIGGERS = new Set<ActionTrigger>([
+  ActionTrigger.OnActivate,
+  ActionTrigger.OnTap,
+]);
+const UNSUPPORTED_ATOMIC_TRIGGER_MESSAGES: Partial<Record<ActionTrigger, string>> = {
+  [ActionTrigger.OnSwipe]: 'not_hosted_atomic_trigger',
 };
 
 /**
@@ -13,10 +15,10 @@ const UNSUPPORTED_ATOMIC_TRIGGER_MESSAGES: Partial<Record<AtomicTrigger, string>
  */
 export function selectActions(
   actions: Action[] | undefined | null,
-  trigger: AtomicTrigger,
+  trigger: ActionTrigger,
 ): Action[] {
   if (!actions || actions.length === 0) return [];
-  if (trigger === 'onActivate') {
+  if (trigger === ActionTrigger.OnActivate) {
     return actions.filter((action) => PRIMARY_ACTIVATION_TRIGGERS.has(action.trigger));
   }
   return actions.filter((action) => action.trigger === trigger);
@@ -27,7 +29,7 @@ export function logUnsupportedAtomicTriggers(
   elementId: string | undefined,
 ): void {
   if (!actions || actions.length === 0) return;
-  const loggedTriggers = new Set<AtomicTrigger>();
+  const loggedTriggers = new Set<ActionTrigger>();
   for (const action of actions) {
     const message = UNSUPPORTED_ATOMIC_TRIGGER_MESSAGES[action.trigger];
     if (!message || loggedTriggers.has(action.trigger)) continue;
@@ -35,7 +37,7 @@ export function logUnsupportedAtomicTriggers(
     console.debug(message, {
       trigger: action.trigger,
       elementId,
-      hostedAt: action.trigger === 'onSwipe' ? 'ScrollContainer' : 'none',
+      hostedAt: action.trigger === ActionTrigger.OnSwipe ? 'ScrollContainer' : 'none',
     });
   }
 }

@@ -29,7 +29,7 @@ const TAB_EMPTY_PAD = 'token:nba.spacing.lg';
  * absent — presentation realization only; selection still flows through
  * declared mutate actions, not ad-hoc state writes.
  */
-export function TabGroup({ section, state, onAction, onStateChange }: SectionProps): React.ReactElement {
+export function TabGroup({ section, state, onAction, onStateChange, onSectionReplace, onSectionGone }: SectionProps): React.ReactElement {
   const model = mapTabGroup(section, state);
   const data = section.data as Data | undefined;
   const scheme = usePrefersColorScheme();
@@ -95,6 +95,8 @@ export function TabGroup({ section, state, onAction, onStateChange }: SectionPro
           state={state}
           onAction={onAction}
           onStateChange={onStateChange}
+          onSectionReplace={onSectionReplace}
+          onSectionGone={onSectionGone}
         />
       ) : (
         <div style={{ ...styles.tabBar, ...tokenStyles.tabBar }} role="tablist">
@@ -125,6 +127,8 @@ export function TabGroup({ section, state, onAction, onStateChange }: SectionPro
               state={state}
               onAction={onAction}
               onStateChange={onStateChange}
+              onSectionReplace={onSectionReplace}
+              onSectionGone={onSectionGone}
             />
           </div>
         ) : (

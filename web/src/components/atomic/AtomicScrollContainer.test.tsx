@@ -11,8 +11,9 @@ vi.mock('../../utils/ColorTokenResolver', () => ({
 beforeAll(() => {
   global.ResizeObserver = class {
     observe(): void {}
+    unobserve(): void {}
     disconnect(): void {}
-  };
+  } as unknown as typeof ResizeObserver;
 });
 
 describe('AtomicScrollContainer — page indicators', () => {

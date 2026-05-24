@@ -44,13 +44,13 @@ Implement stale-while-revalidate caching and offline-first fallback so SDUI scre
   2. Fetch from network in background
   3. On success: update cache + update UI
   4. On failure: keep stale data visible, log error
-- [ ] Add fire-and-forget queue for offline analytics events (store in Room, flush on reconnect)
+- [ ] Add `fireAndForget` queue for offline analytics events (store in Room, flush on reconnect)
 
 ### Phase 4: Web
 - [ ] Implement IndexedDB cache wrapper — `web/src/runtime/ScreenCache.ts`
 - [ ] Update `useSduiScreen` hook with cache-then-network strategy
 - [ ] Add service worker for offline fallback (return cached SDUI responses)
-- [ ] Add fire-and-forget analytics queue (store in IndexedDB, flush on `navigator.onLine`)
+- [ ] Add `fireAndForget` analytics queue (store in IndexedDB, flush on `navigator.onLine`)
 
 ### Phase 5: Documentation & Tests
 - [ ] Update `docs/sdui-requirements-summary.md` status: §9e Gap → Partial/Built
@@ -59,7 +59,7 @@ Implement stale-while-revalidate caching and offline-first fallback so SDUI scre
 
 ## Dependencies
 
-- ADR-010 (Offline & Degraded Connectivity) should be accepted before finalizing fire-and-forget queue semantics
+- ADR-010 (Offline & Degraded Connectivity) should be accepted before finalizing `fireAndForget` queue semantics
 - ADR-004 (Transport & Caching) should clarify GET/POST governance and cache header strategy
 
 ## Open Questions
@@ -67,4 +67,4 @@ Implement stale-while-revalidate caching and offline-first fallback so SDUI scre
 - [ ] Should cache TTL be server-controlled (via response header or schema field) or client-controlled?
 - [ ] Should stale cache entries ever be explicitly evicted, or only overwritten on successful fetch?
 - [ ] What is the maximum cache size budget per platform?
-- [ ] Should the fire-and-forget queue have a max depth or age limit?
+- [ ] Should the `fireAndForget` queue have a max depth or age limit?

@@ -125,7 +125,7 @@ Options A and C are deferred. Option A's cost is disproportionate to value for a
   - Sections with `cacheability: "live"` that are stale show a "Data unavailable — pull to refresh" placeholder instead of stale data.
   - Actions that require network (navigate to deep link, refresh, mutate) show a "No connection" message on failure rather than silently failing.
 - Medium term:
-  - Analytics queue: fire-and-forget analytics actions are queued locally and flushed when connectivity resumes (prevents analytics data loss during brief outages).
+  - Analytics queue: `fireAndForget` analytics actions are queued locally and flushed when connectivity resumes (prevents analytics data loss during brief outages).
   - Web: evaluate service worker addition (Option C) for SPA shell caching.
 - Long term:
   - If offline demand grows (e.g., international users with poor connectivity), revisit Option A. The stale-cache approach does not preclude a future migration to a local DB — the server-authoritative model is preserved either way.

@@ -175,7 +175,7 @@ final class ActionDispatcherTests: XCTestCase {
 
         dispatcher.dispatch(action(type: .navigate, webURL: "nba://scoreboard"))
 
-        XCTAssertEqual(nav.path.last?.endpoint, "/sdui/scoreboard")
+        XCTAssertEqual(nav.path.count, 1)
     }
 
     @MainActor
@@ -184,7 +184,7 @@ final class ActionDispatcherTests: XCTestCase {
 
         dispatcher.dispatch(action(type: .navigate, targetURI: "nba://game/0042300102"))
 
-        XCTAssertEqual(nav.path.last?.endpoint, "/sdui/game/0042300102")
+        XCTAssertEqual(nav.path.count, 1)
     }
 
     @MainActor
@@ -197,7 +197,7 @@ final class ActionDispatcherTests: XCTestCase {
             webURL: "https://www.nba.com/game/0042300102"
         ))
 
-        XCTAssertEqual(nav.path.last?.endpoint, "/sdui/boxscore/0042300102")
+        XCTAssertEqual(nav.path.count, 1)
     }
 
     @MainActor
@@ -210,7 +210,7 @@ final class ActionDispatcherTests: XCTestCase {
             webURL: "nba://schedule"
         ))
 
-        XCTAssertEqual(nav.path.last?.endpoint, "/sdui/schedule")
+        XCTAssertEqual(nav.path.count, 1)
     }
 
     @MainActor

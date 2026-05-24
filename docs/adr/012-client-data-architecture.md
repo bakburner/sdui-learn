@@ -175,4 +175,4 @@ Existing visibility-gated refresh work proceeds against the in-memory model (Pha
 - **ADR-010 offline strategy** is enhanced: stale-while-offline reads directly from the section store instead of a separate HTTP cache snapshot.
 - **iOS client** (Phase 2 of implementation plan) builds on SwiftData from day one instead of replicating the in-memory model and later migrating.
 - **Cross-section data sharing** becomes possible in the future: two sections observing the same store row get consistent data.
-- **Analytics queue** (ADR-010 medium-term consequence): fire-and-forget events can be queued in a sibling table in the same store.
+- **Analytics queue** (ADR-010 medium-term consequence): `fireAndForget` events can be queued in a sibling table in the same store.

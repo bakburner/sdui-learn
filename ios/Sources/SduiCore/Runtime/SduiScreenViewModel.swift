@@ -117,6 +117,34 @@ public final class SduiScreenViewModel {
         self.startVisibilityForwarder()
     }
 
+    /// Test seam — not public API. Allows injecting pre-built dependencies
+    /// so tests can control network responses without a live server.
+    ///
+    /// Use the `public init` in production code.
+    internal init(
+        endpoint: String,
+        config: SduiConfig,
+        nav: NavCoordinator,
+        repository: SduiRepository,
+        polling: PollingDriver,
+        ably: AblyChannelManager,
+        analytics: AnalyticsDispatcher = LoggerAnalyticsDispatcher()
+    ) {
+        self.endpoint = endpoint
+        self.config = config
+        self.nav = nav
+        self.analytics = analytics
+        self.repository = repository
+        self.screenState = ScreenState()
+        self.toasts = ToastHost()
+        self.stalenessTracker = SectionStalenessTracker()
+        self.visibility = SectionVisibilityTracker()
+        self.impressions = ImpressionTracker()
+        self.polling = polling
+        self.ably = ably
+        self.startVisibilityForwarder()
+    }
+
     deinit {
         screenLevelPollTask?.cancel()
     }

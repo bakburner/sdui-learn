@@ -20,7 +20,7 @@ Amplitude SDK performs experiment bucketing on-device. Clients already fire Ampl
 - Server **trusts** the assignments and uses them for composition branching via `resolveVariant(experimentId, default)`.
 - **Kill switch is client-side.** To disable a variant, the client stops sending that experiment. The server never sees it and falls back to default.
 - **No response echo.** The client already knows its assignments — the server does not echo them back.
-- **Exposure tracking is client-side** via fire-and-forget actions. No server-side exposure logging.
+- **Exposure tracking is client-side** via `fireAndForget` actions. No server-side exposure logging.
 - Analytics attribution flows through Amplitude beacons, which the client fires independently.
 
 ## Why
@@ -30,7 +30,7 @@ Amplitude SDK performs experiment bucketing on-device. Clients already fire Ampl
 - Server does not need its own experiment resolution service — just reads the map and branches
 - Client-side kill switch is simpler and maintains single ownership — no server-side disabled-variant storage or propagation needed
 - No echo avoids redundant data and a response schema field that adds no value
-- No server exposure logging avoids duplicate tracking (client already tracks via fire-and-forget)
+- No server exposure logging avoids duplicate tracking (client already tracks via `fireAndForget`)
 
 ## Caching
 

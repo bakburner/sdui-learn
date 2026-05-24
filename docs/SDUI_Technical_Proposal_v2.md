@@ -76,7 +76,7 @@ What the SDUI response payload carries and what each subsystem does. Each row li
 |---|---|---|---|
 | **Hybrid rendering** | Dual-layer section model: semantic section types (`BoxscoreTable`, `Form`, `TabGroup`, …) for domain renderers with client-owned state, plus `AtomicComposite` trees of 12 atomic element types for server-composed layouts. `SectionSlot` bridges atomic → section; `data.ui` carries the atomic tree, `data.content` carries bindable domain data. Semantic sections may carry an optional `data.ui` — when present the server owns presentation (visual redesigns without releases) while the client owns only the stateful behavior that justified the section. | `SectionRouter` dispatches by `type`; `AtomicRouter` renders atomic trees generically. No business logic in atomic renderers. | [§2 Schema Design](#2-schema-design), [§2a Atomic Element Layer](#2a-atomic-element-layer), [§2b Section vs. Atomic Decision Framework](#2b-section-vs-atomic-decision-framework) |
 | **Data binding & refresh** | `refreshPolicy` (static / poll / sse), field-level `dataBindings` with JSONPath source → target mappings, `stringKeys` for i18n on bound fields, `pauseWhenOffScreen` | Opens channels, patches fields, tracks staleness per section, pauses off-screen sections | [§3 Data Binding System](#3-data-binding-system) |
-| **Action system** | `actions` array on sections and subsections — 6 action types (`navigate`, `fireAndForget`, `mutate`, `dismiss`, `refresh`, `toast`), 8 interaction triggers (`onActivate`, `onTap` (deprecated), `onLongPress`, `onVisible`, `onSwipe`, `onFocus`, `onBlur`, `onSubmit`), per-action `onFailure` policy, ordered execution | Generic executor dispatches in declared order; fire-and-forget before navigate; failure policy halts or continues the chain | [§4 Action System](#4-action-system) |
+| **Action system** | `actions` array on sections and subsections — 6 action types (`navigate`, `fireAndForget`, `mutate`, `dismiss`, `refresh`, `toast`), 8 interaction triggers (`onActivate`, `onTap` (deprecated), `onLongPress`, `onVisible`, `onSwipe`, `onFocus`, `onBlur`, `onSubmit`), per-action `onFailure` policy, ordered execution | Generic executor dispatches in declared order; `fireAndForget` before navigate; failure policy halts or continues the chain | [§4 Action System](#4-action-system) |
 | **Screen state** | `state` field on sections — initial values for tabs, toggles, accordions, sort columns; `mutate` actions write to state keys | `ScreenStateManager` holds mutable state, drives recomposition on change | [§5 Screen-Level State Management](#5-screen-level-state-management) |
 | **Design system** | Three-layer token architecture: inline style primitives, semantic `variant` per element type, `token:nba.color.*` / `token:nba.label.*` references. Registries: `style-tokens.json`, `color-tokens.json` | Per-platform `AtomicBox` execution path resolves variants to native idioms (Liquid Glass / Material 3 / CSS); `ColorTokenResolver` picks light/dark at render time | [§2c Design System Integration](#2c-design-system-integration), [`sdui-design-system.md`](sdui-design-system.md) |
 | **Accessibility** | `accessibility` field on Section, Subsection, and AtomicElement — `label`, `role`, `hidden`, `headingLevel`, `liveRegion`, `sortOrder`, `hint` | Maps to platform a11y APIs (Compose `semantics{}`, ARIA attributes, SwiftUI accessibility modifiers) | [§9a Accessibility](sdui-requirements-summary.md#9a-accessibility-a11y-descriptors) |
@@ -835,7 +835,7 @@ See Section 2 (Schema Design) for data shapes and Section 4 (Action System) for 
 
 ### 9r. Offline and Degraded Connectivity
 
-Approach: **stale-while-offline** — serve the last-known-good response from platform HTTP cache when the network is unavailable, show a connectivity indicator, allow pull-to-refresh. Sections with `cacheability: "live"` show a placeholder instead of stale data; other sections serve stale content with a timestamp. Network-dependent actions show a "No connection" message; fire-and-forget events queue locally and flush on reconnect.
+Approach: **stale-while-offline** — serve the last-known-good response from platform HTTP cache when the network is unavailable, show a connectivity indicator, allow pull-to-refresh. Sections with `cacheability: "live"` show a placeholder instead of stale data; other sections serve stale content with a timestamp. Network-dependent actions show a "No connection" message; `fireAndForget` events queue locally and flush on reconnect.
 
 Rejected alternatives: offline-first local DB (cost disproportionate to value), server-side SSE proxy. Deferred: service worker for Web, pre-seeded bundled content.
 
@@ -891,8 +891,7 @@ These limits ensure atomic trees remain a lightweight composition mechanism, not
 All ADR statuses are tracked in the Requirement Status table above and in the Requirements Summary.
 
 - **Accepted:** ADR-006 (Experiment Assignment Model), ADR-008 (Form-Factor Layout Manager — Option C Hybrid), ADR-009 (Impression Dedup and Visibility Semantics), ADR-013 (Style Tokens for Atomic Primitives).
-- **Proposed:** ADR-001, ADR-002, ADR-003, ADR-004, ADR-005, ADR-007, ADR-010, ADR-014 (Dynamic Conditional Properties).
-- **Proposed (draft):** ADR-011 (Data Classification and Freshness Model), ADR-012 (Client Data Architecture).
+- **Proposed:** ADR-001, ADR-002, ADR-003, ADR-004, ADR-005, ADR-007, ADR-010, ADR-011 (Data Classification and Freshness Model), ADR-012 (Client Data Architecture), ADR-014 (Dynamic Conditional Properties).
 
 
 ---
@@ -916,7 +915,7 @@ The alternative is duplicated platform composition logic and drift in feature be
 3. Ship subsection actions with broader fixtures.
 4. Introduce ad primitive (ADR-007). Layout strategy already accepted (ADR-008, Option C).
 5. Implement impression tracking per ADR-009 (accepted). Android/iOS pending.
-6. Implement offline/degraded connectivity strategy per ADR-010 — platform cache fallback, staleness UX, fire-and-forget queue.
+6. Implement offline/degraded connectivity strategy per ADR-010 — platform cache fallback, staleness UX, `fireAndForget` queue.
 7. Style-token strategy per ADR-013 — **shipped and Accepted.** Three-layer design system (inline primitives, per-primitive variant enums with platform-native realization, color-token registry) built on all platforms. Figma export pipeline deferred — registry is ref-app-seeded with a Kinetic-compatible shape. Reference: [`sdui-design-system.md`](sdui-design-system.md).
 
 ---
@@ -925,7 +924,7 @@ The alternative is duplicated platform composition logic and drift in feature be
 
 | Date | Summary |
 |---|---|
-| 2026-05-22 | Doc consistency audit: updated URI resolution convention to `/v1/sdui/screen/{path}` — removed stale legacy exception note (old game-detail path retired). Updated GET/POST fallback examples in envelope spec. | Doc consistency audit: added element-level action scope to §4, added the current cross-platform trigger-hosting matrix, and synced the action-system narrative with the trigger-alignment work. |
+| 2026-05-24 | Doc consistency audit. Terminology: `fire-and-forget` → `` `fireAndForget` `` (×3, in capability map and §11). ADR Status Summary: merged `Proposed (draft)` tier into `Proposed` — ADR-011 and ADR-012 listed as `Proposed` (matches actual ADR file headers). | Doc consistency audit: updated URI resolution convention to `/v1/sdui/screen/{path}` — removed stale legacy exception note (old game-detail path retired). Updated GET/POST fallback examples in envelope spec. | Doc consistency audit: added element-level action scope to §4, added the current cross-platform trigger-hosting matrix, and synced the action-system narrative with the trigger-alignment work. |
 | 2026-05-05 | Doc consistency audit. §10: Atomic rendering layer count corrected 10 → 12 primitives. Added Schema versioning protocol row (Built). |
 | 2026-04-27 | Doc consistency audit: `onActivate` trigger added to §4 table, ErrorState note clarified as AtomicComposite in §10, terminology sync. |
 | 2026-04-27 | Parameterized refresh + shared transport (§4, AGENTS §4.1.1, contract §11). §0: `platform` via envelope only. §2a: 12 `AtomicElement` types in the summary table. Server `/sdui/refresh/{screenId}` GET+POST. Glossary: fetch primitive, parameterized refresh. |

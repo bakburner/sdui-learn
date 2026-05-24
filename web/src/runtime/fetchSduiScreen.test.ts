@@ -106,7 +106,7 @@ describe('fetchSduiScreen — parameterized refresh transport', () => {
     expect(captured).toHaveLength(1);
     const req = captured[0];
     expect(req.method).toBe('GET');
-    expect(req.url.startsWith('/api/v1/sdui/screen/refresh/stats-leaders?')).toBe(true);
+    expect(req.url.startsWith('/api/v1/sdui/refresh/stats-leaders?')).toBe(true);
 
     const query = req.url.split('?')[1];
     expect(query).toContain('perMode=Totals');

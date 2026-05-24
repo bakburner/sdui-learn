@@ -2,7 +2,7 @@
 
 **Status:** Proposed
 **Created:** 2026-05-08
-**Scope:** Typography, motion, shadow, and font token registries
+**Scope:** Typography, motion, shadow, and font token registries + client resolver updates + example fixture audit
 **Depends on:** plan-design-token-adoption.md (spacing/radius/color already covered there)
 **Source:** Sitebuilder `assets/brand-nba.yml` + `backend/src/services/design_tokens.rs`
 
@@ -20,6 +20,8 @@
 
 ## Acceptance Criteria
 
+### Token registries (Phases 1–4)
+
 - [ ] `schema/typography-tokens.json` exists in `2.0.0-matrix` format with entries for all 16 `TextVariant` enum values plus `data`, `button`, `caption`
 - [ ] Each typography entry includes `familyRef`, `weight`, `lineHeight`, `textCase`, and `size` with per-form-factor values
 - [ ] Web column values match sitebuilder's `brand-nba.yml` Kinetic typography system exactly
@@ -28,17 +30,39 @@
 - [ ] `schema/shadow-tokens.json` exists with at least 3 elevation tiers (`sm`, `md`, `lg`)
 - [ ] `schema/font-tokens.json` exists with Knockout, Roboto, Roboto Condensed entries and platform resolution hints
 - [ ] `LayoutTokenRegistry.java` loads and validates all new files at startup
-- [ ] `docs/sdui-design-system.md` updated to reflect new registries (§2 additions, §9 gap items checked off)
 - [ ] Server composers can reference tokens via constants (e.g. `TypographyTokens.HEADLINE_LARGE`)
 - [ ] `tokens_to_sdui_export()` in sitebuilder produces output compatible with new registry shapes (validation test)
+
+### Client resolver updates (Phase 6)
+
+- [ ] All three `LayoutTokenResolver` implementations (iOS, Android, Web) resolve `nba.typography.*`, `nba.motion.*`, and `nba.shadow.*` namespaces
+- [ ] Shadow token shorthand (`"token:nba.shadow.md"`) resolves to the full structured `Shadow` object on each platform
+- [ ] Motion token strings resolve to platform-native animation values (easing curves, duration milliseconds)
+- [ ] `TextVariant` enum updated on all platforms to include `data`, `button`, `caption`; renderers map them to platform fonts
+- [ ] iOS `LayoutTokenResolver` has a test file (`LayoutTokenResolverTests.swift`) with parity to existing Android/Web tests
+- [ ] All three platforms have token resolver tests covering the new namespaces (typography, motion, shadow)
+- [ ] No legacy aliases or backward-compat shims — resolvers use the canonical `nba.*` token names only
+
+### Example fixture audit (Phase 7)
+
+- [ ] All 27 `schema/examples/*.json` files use `"token:nba.spacing.*"` / `"token:nba.radius.*"` for padding, gap, and cornerRadius values (no raw integers where a token exists)
+- [ ] Shadow values in example files use `"token:nba.shadow.*"` shorthand where applicable
+- [ ] All 27 `ios/Tests/SduiCoreTests/Fixtures/*.json` files synced with updated `schema/examples/`
+- [ ] Round-trip tests on all platforms pass with the updated fixtures
+
+### Documentation updates (Phase 8)
+
+- [ ] `docs/sdui-design-system.md` updated: §2.4 typography populated, §2.6 shadow populated, new §2.7 motion registry, new §2.8 font registry, §9 gap items checked off
+- [ ] `docs/client-implementors-contract.md` updated: token resolver contract documented, new `TextVariant` values listed
+- [ ] `docs/sdui-requirements-summary.md` updated: §9s token integration status reflects new registries and client resolver work
 
 ---
 
 ## Non-Goals
 
 - Migrating existing composers to use typography/motion tokens (separate PR per composer)
-- Client-side rendering changes (clients already resolve `TextVariant`; new registries add data backing)
 - Replacing `TextVariant` enum — it stays as the wire value; the registry provides the spec behind each variant
+- Legacy aliases or backward-compat bridges — all clients and fixtures update to canonical `nba.*` tokens directly
 
 ---
 
@@ -102,7 +126,7 @@ Phone/tablet/tv sizes: use 0.5x/0.67x/1.0x of web.wide as initial placeholders. 
 
 ### 1.3 Add `data`, `button`, `caption` to `TextVariant` enum
 
-Update `schema/sdui-schema.json` → add 3 new enum values → run `make codegen` → update client renderers with fallback handling.
+Update `schema/sdui-schema.json` → add 3 new enum values → run `make codegen` → update client renderers on all platforms (see Phase 6.4 for platform-specific details).
 
 ### 1.4 Create `TypographyTokens.java`
 
@@ -269,3 +293,184 @@ Platform resolution is informational — clients already bundle fonts. This regi
 ### 5.3 Cross-validate with sitebuilder
 
 Add a test that loads `brand-nba.yml`, runs `yaml_brand_spec_to_tokens()`, and asserts the web column values in SDUI's typography registry match sitebuilder's extracted values. Prevents drift between the two systems.
+
+---
+
+## Phase 6: Client Token Resolver Updates and Tests
+
+All three client `LayoutTokenResolver` implementations currently handle only `nba.spacing.*` and `nba.radius.*`. They need to resolve the new namespaces introduced in Phases 1–3 and support the 3 new `TextVariant` enum values from Phase 1.3.
+
+### 6.1 Add typography token resolution
+
+Each platform's `LayoutTokenResolver` adds the `nba.typography.*` palette and semantic entries from `schema/typography-tokens.json`. Typography tokens resolve to structured objects (not single integers), so each resolver needs a new `resolveTypography(tokenName, formFactor)` method that returns `{ familyRef, weight, textCase, lineHeight, size }`.
+
+| Platform | File | Method to add |
+|---|---|---|
+| Web | `web/src/utils/LayoutTokenResolver.ts` | `resolveTypography(token, formFactor): TypographySpec` |
+| Android | `android/sdui-core/src/.../LayoutTokenResolver.kt` | `typography(token, formFactor): TypographySpec` |
+| iOS | `ios/Sources/SduiCore/Rendering/LayoutTokenResolver.swift` | `typography(_ token:, formFactor:) -> TypographySpec` |
+
+### 6.2 Add shadow token resolution
+
+Shadow tokens resolve to structured `Shadow` objects, not scalars. Each resolver adds a `resolveShadow(tokenName)` method that expands `"token:nba.shadow.md"` into the full `{ type, x, y, blur, spread, color }` struct. Shadows are form-factor-flat (`"*"` wildcard).
+
+| Platform | File | Method to add |
+|---|---|---|
+| Web | `web/src/utils/LayoutTokenResolver.ts` | `resolveShadowToken(token): Shadow \| undefined` |
+| Android | `android/sdui-core/src/.../LayoutTokenResolver.kt` | `shadowSpec(token): ShadowSpec?` |
+| iOS | `ios/Sources/SduiCore/Rendering/LayoutTokenResolver.swift` | `shadowSpec(_ token:) -> ShadowSpec?` |
+
+Wire integration: `AtomicBox` on each platform checks whether a `shadow` value is a `"token:…"` string and routes it through the shadow resolver before applying.
+
+### 6.3 Add motion token resolution
+
+Motion tokens resolve to platform-native animation values. Duration tokens resolve to milliseconds (integer). Easing tokens resolve to platform-native curve representations.
+
+| Platform | Duration resolves to | Easing resolves to |
+|---|---|---|
+| Web | `number` (ms) for CSS `transition-duration` | `string` for CSS `transition-timing-function` |
+| Android | `Int` (ms) for `tween(durationMillis)` | `Easing` for `tween(easing)` |
+| iOS | `TimeInterval` (seconds) for `withAnimation(.easeInOut(duration:))` | `Animation` curve |
+
+### 6.4 Add `data`, `button`, `caption` to `TextVariant` on all platforms
+
+After `make codegen` regenerates the models, update each platform's `TextVariant` renderer to map the 3 new values to native fonts:
+
+| Platform | File(s) to update |
+|---|---|
+| iOS | `ios/Sources/SduiCore/Rendering/TextVariantResolver.swift` — add `case data, button, caption` with font mappings |
+| Android | Codegen handles the enum; renderer's `when` block adds the 3 new branches |
+| Web | Codegen handles the type; renderer's switch adds the 3 new branches |
+
+**Pre-existing bug fix (Android):** `AtomicText.kt` is missing a mapping for the existing `score` variant — it currently falls back to `bodyMedium` instead of monospaced/tabular-numeral typography. Fix this in the same pass: add `score` to Android's `mapTypographyVariant()` with bold tabular-numeral treatment matching the iOS (48pt bold rounded) and Web (28px/800, tabular nums) implementations.
+
+### 6.5 Create iOS `LayoutTokenResolverTests.swift`
+
+iOS is the only platform missing a `LayoutTokenResolver` test file. Create `ios/Tests/SduiCoreTests/LayoutTokenResolverTests.swift` with parity to the existing Android (`LayoutTokenResolverTest.kt`) and Web (`LayoutTokenResolver.test.ts`) tests:
+
+- Numeric scalar passes through unchanged
+- `null` resolves to 0
+- Semantic spacing/radius tokens resolve per form factor
+- Unknown tokens return 0 and log `token_resolver_missing`
+- Alias chain resolves (e.g. `nba.radius.full` → `nba.radius.raw.9999`)
+
+### 6.6 Add tests for new token namespaces on all platforms
+
+Extend tests on all three platforms to cover the new namespaces:
+
+**Typography resolver tests:**
+- `resolveTypography("token:nba.typography.headlineLarge", "phone")` returns correct size, family, weight
+- `resolveTypography("token:nba.typography.data", "web.wide")` returns Roboto Condensed, 400, uppercase, 14px
+- Unknown typography token returns `null`/`undefined`
+
+**Shadow resolver tests:**
+- `resolveShadowToken("token:nba.shadow.md")` returns `{ type: "drop", x: 0, y: 2, blur: 8, spread: 0, color: "rgba(0,0,0,0.15)" }`
+- Unknown shadow token returns `null`/`undefined`
+- Non-`token:` string returns `null`/`undefined`
+
+**Motion resolver tests:**
+- `resolveMotionDuration("token:nba.motion.duration.fast", "phone")` returns 150
+- `resolveMotionEasing("token:nba.motion.easing.default")` returns the platform-native curve value
+- Unknown motion token returns fallback
+
+**`TextVariant` renderer tests:**
+- `data`, `button`, `caption` render with the correct font family and weight on each platform
+
+---
+
+## Phase 7: Example JSON Fixture Audit and Update
+
+27 example files in `schema/examples/` and 27 mirrored iOS test fixtures in `ios/Tests/SduiCoreTests/Fixtures/` contain a mix of raw integer values and token strings. All tokenizable values must be updated to use the canonical `nba.*` token strings.
+
+### 7.1 Audit scope
+
+Current state (from codebase search):
+
+| Property | Files with raw integers | Files with tokens | Action |
+|---|---|---|---|
+| `padding` (`top`/`bottom`/`start`/`end`) | 15+ files, ~500 raw values | 6 files, ~64 token refs | Replace raw integers with `"token:nba.spacing.*"` where a semantic token exists |
+| `gap` | 15+ files | Included in above | Same |
+| `cornerRadius` | 10+ files | 0 | Replace with `"token:nba.radius.*"` where a semantic tier matches |
+| `shadow` | 9 files (structured objects) | 0 | Replace with `"token:nba.shadow.*"` shorthand where a tier matches |
+
+### 7.2 Replacement rules
+
+| Raw value | Token replacement | Notes |
+|---|---|---|
+| `0` | Keep as `0` | No semantic value for zero (AGENTS.md §3.6 exception) |
+| `2` | `"token:nba.spacing.xs"` | |
+| `4` | `"token:nba.spacing.sm"` | |
+| `8` | Keep raw or map to `nba.space.raw.8` | No semantic alias; evaluate per-usage |
+| `12` | `"token:nba.spacing.md"` | |
+| `16` | `"token:nba.spacing.lg"` | |
+| `32` | `"token:nba.spacing.xl"` | |
+| `40` | `"token:nba.spacing.2xl"` | |
+| Corner radius `4` | `"token:nba.radius.sm"` | |
+| Corner radius `12` | `"token:nba.radius.md"` | |
+| Corner radius `16` | `"token:nba.radius.lg"` | |
+| Corner radius `9999` | `"token:nba.radius.full"` | |
+| Component-specific dimensions (card widths, image sizes) | Keep raw | Per AGENTS.md §3.6 exceptions |
+
+### 7.3 Shadow shorthand migration
+
+Replace structured shadow objects in example files with token shorthand where a tier matches:
+
+```json
+// Before
+"shadow": { "color": "rgba(0,0,0,0.15)", "radius": 8, "offsetX": 0, "offsetY": 2 }
+
+// After
+"shadow": "token:nba.shadow.md"
+```
+
+Shadows that don't match a tier (custom values) remain as structured objects.
+
+### 7.4 Sync iOS test fixtures
+
+After updating `schema/examples/`, copy all 27 files to `ios/Tests/SduiCoreTests/Fixtures/` to keep them in sync. Verify round-trip tests pass on all platforms:
+
+- Web: `web/src/__tests__/schemaRoundTrip.test.ts`
+- Android: `android/sdui-core/src/test/java/com/nba/sdui/core/SchemaRoundTripTest.kt`
+- iOS: `ios/Tests/SduiCoreTests/SduiModelsRoundTripTests.swift`
+
+### 7.5 Validate no regressions
+
+Run the full test suite on each platform after fixture updates to confirm:
+- All round-trip decode/re-encode tests pass with token strings in place of raw integers
+- `LayoutTokenResolver` correctly resolves the token strings that now appear in fixtures
+- No visual regressions (dev server renders identically)
+
+---
+
+## Phase 8: Documentation Updates
+
+### 8.1 Update `docs/sdui-design-system.md`
+
+| Section | Change |
+|---|---|
+| Related files table | Add `schema/typography-tokens.json`, `schema/motion-tokens.json`, `schema/shadow-tokens.json`, `schema/font-tokens.json`, `TypographyTokens.java`, `MotionTokens.java` |
+| "Planned" callout | Remove — typography, shadow, and motion registries are no longer awaiting design validation |
+| §2.4 Typography tokens | Replace "planned/awaiting" status with full registry reference: the 19 `TextVariant` values (16 original + `data`, `button`, `caption`), family references, weights, text cases, and per-form-factor size table |
+| §2.6 Shadow tokens | Replace "planned/awaiting" status with the 4-tier registry (`sm`, `md`, `lg`, `xl`) and the `"token:nba.shadow.*"` shorthand expansion contract |
+| New §2.7 Motion token registry | Add section documenting easing curves and 4 duration tiers with per-form-factor values |
+| New §2.8 Font family registry | Add section documenting Knockout 360/395, Roboto, Roboto Condensed with per-platform resolution hints |
+| §4 Figma-to-wire mapping | Add rows for shadow tokens (`"token:nba.shadow.md"`) and motion tokens |
+| §9 Gaps checklist | Check off: typography token registry, shadow token registry, size token disposition |
+
+### 8.2 Update `docs/client-implementors-contract.md`
+
+| Section | Change |
+|---|---|
+| §16 Codegen Quick Reference | Note the 3 new `TextVariant` values (`data`, `button`, `caption`) |
+| §17 Renderer Animation Guidelines | Reference motion tokens for timing values instead of hardcoded milliseconds (e.g. "Content transitions: `token:nba.motion.duration.default`" instead of "300ms") |
+| §18 Conformance Checklist | Add item: `C21` — Client `LayoutTokenResolver` resolves all token namespaces: `nba.spacing.*`, `nba.radius.*`, `nba.typography.*`, `nba.motion.*`, `nba.shadow.*` |
+| New subsection under §4a or standalone | Document the shadow token shorthand expansion contract: `AtomicBox` receives `"token:nba.shadow.md"` as a shadow value → resolver expands to the full `Shadow` struct before applying |
+
+### 8.3 Update `docs/sdui-requirements-summary.md`
+
+| Section | Change |
+|---|---|
+| §9g Theming & Dark Mode | Add mention of typography, motion, and shadow token registries alongside the existing color/variant description |
+| §9s Figma Design Token Integration | Update status from "Deferred" to "Partial" — note that typography, motion, shadow, and font registries are now built from Kinetic/sitebuilder data; spacing and radius already covered by sibling plan; Figma export pipeline remains deferred |
+| §9s requirements list | Expand from "Two machine-readable token registries" to list all 8 token families with their registry files |
+| Implementation status table (§10) | Update "Theming / dark mode" row to reference all token families and the new client resolver work |

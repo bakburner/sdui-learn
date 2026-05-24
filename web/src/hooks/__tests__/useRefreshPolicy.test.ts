@@ -3,6 +3,7 @@ import { renderHook, act } from '@testing-library/react';
 import { useRefreshPolicy } from '../useRefreshPolicy';
 import { subscribeToChannel } from '../../runtime/AblyClient';
 import * as fetchSduiScreenModule from '../../runtime/fetchSduiScreen';
+import { SectionNotFoundError } from '../../runtime/fetchSduiScreen';
 import type { Section } from '@sdui/models';
 import { RefreshType } from '@sdui/models';
 
@@ -210,6 +211,89 @@ describe('useRefreshPolicy — sectionEndpoint precedence', () => {
     expect(onSectionReplace).toHaveBeenCalledWith(replacedSection);
     // Raw fetch must not have been called for the CDN url
     expect(fetch).not.toHaveBeenCalledWith('/cdn/should-not-be-called', expect.anything());
+
+    fetchSduiSectionSpy.mockRestore();
+  });
+});
+
+describe('useRefreshPolicy — sectionEndpoint error semantics', () => {
+  it('calls onSectionGone and stops polling when sectionEndpoint returns 404', async () => {
+    const fetchSduiSectionSpy = vi
+      .spyOn(fetchSduiScreenModule, 'fetchSduiSection')
+      .mockRejectedValue(new SectionNotFoundError('Section not found: /v1/sdui/section/gone'));
+
+    const onSectionGone = vi.fn();
+    const section = makeSection();
+    const policy = {
+      type: RefreshType.Poll,
+      intervalMs: 1000,
+      sectionEndpoint: '/v1/sdui/section/gone',
+    };
+
+    renderHook(() =>
+      useRefreshPolicy({
+        sectionId: section.id,
+        refreshPolicy: policy,
+        onUpdate: vi.fn(),
+        onSectionGone,
+        enabled: true,
+      }),
+    );
+
+    // First poll fires at intervalMs — throws SectionNotFoundError
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+    expect(onSectionGone).toHaveBeenCalledTimes(1);
+
+    const callCountAfterGone = fetchSduiSectionSpy.mock.calls.length;
+
+    // No further polls — isSectionGoneRef stops rescheduling
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+    expect(fetchSduiSectionSpy.mock.calls.length).toBe(callCountAfterGone);
+
+    fetchSduiSectionSpy.mockRestore();
+  });
+
+  it('marks section stale after POLL_FAILURE_THRESHOLD consecutive sectionEndpoint failures', async () => {
+    const POLL_FAILURE_THRESHOLD = 2;
+
+    const fetchSduiSectionSpy = vi
+      .spyOn(fetchSduiScreenModule, 'fetchSduiSection')
+      .mockRejectedValue(new Error('Server error'));
+
+    const onStalenessChange = vi.fn();
+    const section = makeSection();
+    const policy = {
+      type: RefreshType.Poll,
+      intervalMs: 1000,
+      sectionEndpoint: '/v1/sdui/section/scoreboard',
+    };
+
+    renderHook(() =>
+      useRefreshPolicy({
+        sectionId: section.id,
+        refreshPolicy: policy,
+        onUpdate: vi.fn(),
+        onStalenessChange,
+        enabled: true,
+      }),
+    );
+
+    // First failure at 1000ms — below threshold, not yet stale
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+    expect(onStalenessChange).not.toHaveBeenCalledWith(section.id, true);
+
+    // Backoff doubles to 2000ms — second failure reaches POLL_FAILURE_THRESHOLD
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+    expect(fetchSduiSectionSpy.mock.calls.length).toBeGreaterThanOrEqual(POLL_FAILURE_THRESHOLD);
+    expect(onStalenessChange).toHaveBeenCalledWith(section.id, true);
 
     fetchSduiSectionSpy.mockRestore();
   });

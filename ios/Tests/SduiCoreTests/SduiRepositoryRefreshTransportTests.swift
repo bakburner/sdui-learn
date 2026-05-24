@@ -211,15 +211,24 @@ final class CapturingURLProtocol: URLProtocol {
 
     private static let lock = NSLock()
     private static var stubbedResponse: Data = Data()
+    private static var stubbedStatusCode: Int = 200
     private static var captured: Captured?
 
     static func respond(with data: Data) {
         lock.withLock { stubbedResponse = data }
     }
 
+    static func respond(with data: Data, statusCode: Int) {
+        lock.withLock {
+            stubbedResponse = data
+            stubbedStatusCode = statusCode
+        }
+    }
+
     static func reset() {
         lock.withLock {
             stubbedResponse = Data()
+            stubbedStatusCode = 200
             captured = nil
         }
     }
@@ -251,9 +260,10 @@ final class CapturingURLProtocol: URLProtocol {
                 bodyData: body
             )
         }
+        let statusCode = Self.lock.withLock { Self.stubbedStatusCode }
         let response = HTTPURLResponse(
             url: request.url ?? URL(string: "https://example.test")!,
-            statusCode: 200,
+            statusCode: statusCode,
             httpVersion: "HTTP/1.1",
             headerFields: ["Content-Type": "application/json"]
         )!

@@ -190,12 +190,6 @@ Section position is implicit in the `sections[]` array index. When an upstream c
 - `placement` would be for analytics/debugging only — clients must not use it for layout or rendering
 - Until that integration exists, the array index is sufficient for position tracking in beacons
 
-### Prototype Concession (Open)
-
-| Concession | Rationale | Migration Path |
-|-----------|-----------|----------------|
-| Variant selector is a developer tool | Variant chips are hardcoded client-side UI, not server-driven. Real A/B would use experiment assignment. | Remove variant selector; server resolves variant via the request-envelope `experiments` map. |
-
 ---
 
 ## 3. Data Binding System
@@ -941,7 +935,7 @@ sequenceDiagram
 - **Server trusts assignments.** `resolveVariant(experimentId, default)` reads the experiments map and branches composition. No server-side experiment resolution service.
 - **Kill switch is client-side.** To disable a variant, the client stops sending that experiment. Server never sees it, falls back to default.
 - **No response echo.** The client already knows its assignments — the server does not echo them back.
-- **Exposure tracking is client-side** via fire-and-forget actions. No server-side exposure logging — tracking once is sufficient.
+- **Exposure tracking is client-side** via `fireAndForget` actions. No server-side exposure logging — tracking once is sufficient.
 - **Experiments are natural cache keys.** Assignments travel as query parameters, so different variants produce different cache entries.
 - **`variant` param removed.** Replaced by `experiments[variant]` placeholder that exercises the real experiment code path.
 - **Amplitude SDK integration deferred** — not part of this plan. Experiments are manually set for now.
@@ -1207,8 +1201,8 @@ The following requirements are tracked via ADRs. Some remain pending final cross
 | Form-factor layout manager | [ADR-008](adr/008-form-factor-layout-manager.md) | Accepted (Option C) |
 | Impression dedup and visibility semantics | [ADR-009](adr/009-impression-dedup-and-visibility-semantics.md) | Accepted |
 | Offline and degraded connectivity | [ADR-010](adr/010-offline-and-degraded-connectivity.md) | Proposed |
-| Data classification and freshness model | [ADR-011](adr/011-data-classification-and-freshness-model.md) | Proposed (draft) |
-| Client data architecture | [ADR-012](adr/012-client-data-architecture.md) | Proposed (draft) |
+| Data classification and freshness model | [ADR-011](adr/011-data-classification-and-freshness-model.md) | Proposed |
+| Client data architecture | [ADR-012](adr/012-client-data-architecture.md) | Proposed |
 | Style tokens for atomic primitives | [ADR-013](adr/013-style-tokens-for-atomic-primitives.md) | Accepted |
 | Dynamic conditional properties | [ADR-014](adr/014-dynamic-conditional-properties.md) | Proposed |
 
@@ -1244,7 +1238,7 @@ Until approved, these remain directional requirements and may be refined.
 | Theming / dark mode | **Built** | Three-layer design system (inline primitives, variants, color tokens). Layer 1 inline primitives now flow through a single per-platform `AtomicBox` helper so margin, opacity, shadow, corner clip, background, border, padding, sizing, and badge semantics apply consistently across atomic primitives. Variants ship per-primitive with per-OS-tier realization and override matrices (`schema/style-tokens.json`); `ColorToken` wire type + two-tier palette/semantic registry (`schema/color-tokens.json`) resolve on each client against the OS color scheme. Server composers emit tokens via `ColorTokens` constants with startup consistency-checked against the registry. Reference docs: `sdui-design-system.md`, `client-implementors-contract.md` §4a. Figma export pipeline deferred — registry is ref-app-seeded with a Kinetic-compatible shape. |
 | Animation hints | **Gap** | Entry/exit + data-change animations |
 | Impression deduplication | **Partial** | Visibility infrastructure (`SectionVisibilityTracker`, `onVisible` dispatch, dedup registry) built on all platforms. Server does not yet compose `fireAndForget` impression beacons on `onVisible` triggers. ADR-009 accepted. |
-| A/B testing integration | **Built** | Fully client-authoritative (ADR-006 Accepted). `experiments` map replaces `variant` param. Kill switch is client-side. Exposure tracking via fire-and-forget actions. Amplitude SDK integration deferred. |
+| A/B testing integration | **Built** | Fully client-authoritative (ADR-006 Accepted). `experiments` map replaces `variant` param. Kill switch is client-side. Exposure tracking via `fireAndForget` actions. Amplitude SDK integration deferred. |
 | Pagination / infinite scroll | **Gap** | Cursor-based, server-defined |
 | Debugging / observability | **Partial** | traceId in responses; structured Logcat; no dashboards |
 | Contract testing | **Gap** | No automated contract tests yet. Contract tests verify cross-platform conformance (schema ↔ server ↔ clients) and are distinct from per-requirement unit tests. All other requirements should have appropriate unit and integration tests when productionized. |
@@ -1289,7 +1283,7 @@ The alternative — maintaining five parallel native implementations of the game
 
 | Date | Summary |
 |---|---|
-| 2026-05-22 | Doc consistency audit: updated URL namespace across requirements summary, README, envelope spec, client contract, and technical proposal — all screen paths now use `/v1/sdui/screen/` prefix, section paths `/v1/sdui/section/`, data paths `/v1/api/`. Fixed stale `refresh/{screenId}` → `screen/refresh/{handlerId}`. Added 3-tier URL namespace table, parameterized refresh contract, mock-data SSE policy rule, and GameDetail section refresh policies. Fixed stale color tokens in JSON fixtures (`nba.text.secondary` → `nba.label.secondary`, `nba.brand.live` → `nba.label.accent.live`). | Doc consistency audit: synced the action-system docs to canonical wire fields (`targetUri`/`webUrl`, `target`/`operation`/`value`), added the current trigger-hosting matrix, and noted the required manual appendix sweep. |
+| 2026-05-24 | Doc consistency audit. Removed resolved Prototype Concession (variant selector — migration path completed: client-side picker removed, server now composes variant chip sections). Terminology: `fire-and-forget` → `fireAndForget` (×2). ADR Status Summary: ADR-011 and ADR-012 `Proposed (draft)` → `Proposed` (matches actual ADR file headers). | Doc consistency audit: updated URL namespace across requirements summary, README, envelope spec, client contract, and technical proposal — all screen paths now use `/v1/sdui/screen/` prefix, section paths `/v1/sdui/section/`, data paths `/v1/api/`. Fixed stale `refresh/{screenId}` → `screen/refresh/{handlerId}`. Added 3-tier URL namespace table, parameterized refresh contract, mock-data SSE policy rule, and GameDetail section refresh policies. Fixed stale color tokens in JSON fixtures (`nba.text.secondary` → `nba.label.secondary`, `nba.brand.live` → `nba.label.accent.live`). | Doc consistency audit: synced the action-system docs to canonical wire fields (`targetUri`/`webUrl`, `target`/`operation`/`value`), added the current trigger-hosting matrix, and noted the required manual appendix sweep. |
 | 2026-05-05 | Doc consistency audit. Schema versioning protocol: Partial → Built (server version routing, field stripping, force-upgrade signal implemented across all platforms). |
 | 2026-04-28 | Requirements audit: onTap → onActivate in all diagrams/tables. §9g theming and §9s Figma trimmed to requirement statements (implementation detail moved to sdui-design-system.md). §9i impression status corrected (visibility infra built all platforms; server analytics composition gap). §7 codegen diagram fixed (quicktype → Kotlin). §6 system count corrected (3 → 4). §9b/§9c stale "Decision required" tags resolved. Dead plan references removed (7 files). §11b next steps removed. Appendix A removed (dead reference). Footer date removed. |
 | 2026-04-27 | Doc consistency audit: trigger counts (6 → 8, all in schema), onActivate + onSubmit added, "Future (TV)" distinction removed, terminology sync. |

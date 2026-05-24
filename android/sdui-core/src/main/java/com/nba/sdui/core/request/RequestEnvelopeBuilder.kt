@@ -186,7 +186,7 @@ class RequestEnvelopeBuilder {
             "experiments" to experiments
         )
 
-        return org.json.JSONObject(body).toString()
+        return com.fasterxml.jackson.module.kotlin.jacksonObjectMapper().writeValueAsString(body)
     }
 
     /**

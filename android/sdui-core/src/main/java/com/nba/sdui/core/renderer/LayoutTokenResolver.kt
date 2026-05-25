@@ -9,10 +9,9 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.nba.sdui.core.generated.FormFactorMatrix
-import com.nba.sdui.core.generated.LayoutTokenRegistry
-import com.nba.sdui.core.generated.ShadowSpec
-import com.nba.sdui.core.generated.WebSize
+import com.nba.sdui.core.tokens.FormFactorMatrix
+import com.nba.sdui.core.tokens.LayoutTokenRegistry
+import com.nba.sdui.core.tokens.ShadowSpec
 import com.nba.sdui.core.models.generated.AspectRatioEnum
 import com.nba.sdui.core.models.generated.AspectRatioUnion
 import com.nba.sdui.core.models.generated.LayoutScalar
@@ -42,8 +41,7 @@ object LayoutTokenResolver {
     enum class FormFactor {
         PHONE,
         TABLET,
-        TV,
-        WEB
+        TV
     }
 
     data class TypographySpec(
@@ -51,13 +49,8 @@ object LayoutTokenResolver {
         val weight: Int,
         val textCase: String,
         val lineHeight: Double,
-        val size: Size
-    ) {
-        sealed class Size {
-            data class Scalar(val value: Int) : Size()
-            data class Web(val value: WebSize) : Size()
-        }
-    }
+        val size: Int
+    )
 
     val LocalFormFactor: ProvidableCompositionLocal<FormFactor> = staticCompositionLocalOf { FormFactor.PHONE }
 
@@ -150,10 +143,9 @@ object LayoutTokenResolver {
         }
 
         val resolvedSize = when (formFactor) {
-            FormFactor.PHONE -> TypographySpec.Size.Scalar(variant.size.phone)
-            FormFactor.TABLET -> TypographySpec.Size.Scalar(variant.size.tablet)
-            FormFactor.TV -> TypographySpec.Size.Scalar(variant.size.tv)
-            FormFactor.WEB -> TypographySpec.Size.Web(variant.size.web)
+            FormFactor.PHONE -> variant.size.phone
+            FormFactor.TABLET -> variant.size.tablet
+            FormFactor.TV -> variant.size.tv
         }
 
         return TypographySpec(
@@ -244,8 +236,6 @@ object LayoutTokenResolver {
         return when (formFactor) {
             "tablet" -> FormFactor.TABLET
             "tv" -> FormFactor.TV
-            "web", "web.narrow", "web.wide" -> FormFactor.WEB
-            "phone", "phone.landscape" -> FormFactor.PHONE
             else -> FormFactor.PHONE
         }
     }
@@ -255,7 +245,6 @@ object LayoutTokenResolver {
             FormFactor.PHONE -> row.phone
             FormFactor.TABLET -> row.tablet
             FormFactor.TV -> row.tv
-            FormFactor.WEB -> row.web
         }
     }
 

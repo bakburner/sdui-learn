@@ -25,14 +25,12 @@ final class LayoutTokenResolverTests: XCTestCase {
         XCTAssertEqual(LayoutTokenResolver.resolveSpacing("token:nba.spacing.lg", formFactor: .phone), 16)
         XCTAssertEqual(LayoutTokenResolver.resolveSpacing("token:nba.spacing.lg", formFactor: .tablet), 20)
         XCTAssertEqual(LayoutTokenResolver.resolveSpacing("token:nba.spacing.lg", formFactor: .tv), 24)
-        XCTAssertEqual(LayoutTokenResolver.resolveSpacing("token:nba.spacing.lg", formFactor: .web), 16)
     }
 
     func testRadiusTokenResolvesByFormFactor() {
         XCTAssertEqual(LayoutTokenResolver.resolveRadius("token:nba.radius.full", formFactor: .phone), 9999)
         XCTAssertEqual(LayoutTokenResolver.resolveRadius("token:nba.radius.full", formFactor: .tablet), 9999)
         XCTAssertEqual(LayoutTokenResolver.resolveRadius("token:nba.radius.full", formFactor: .tv), 9999)
-        XCTAssertEqual(LayoutTokenResolver.resolveRadius("token:nba.radius.full", formFactor: .web), 9999)
     }
 
     func testUnknownLayoutTokenReturnsZeroAndLogsMissing() {
@@ -52,37 +50,7 @@ final class LayoutTokenResolverTests: XCTestCase {
         XCTAssertEqual(spec?.weight, 360)
         XCTAssertEqual(spec?.textCase, "uppercase")
         XCTAssertEqual(spec?.lineHeight ?? 0, 0.8, accuracy: 0.0001)
-
-        guard let size = spec?.size else {
-            XCTFail("Expected typography size")
-            return
-        }
-        switch size {
-        case .scalar(let value):
-            XCTAssertEqual(value, 32)
-        case .envelope:
-            XCTFail("Expected scalar size for phone form factor")
-        }
-    }
-
-    func testTypographyBodyMediumWebReturnsEnvelopeSize() {
-        let spec = LayoutTokenResolver.typography("token:nba.typography.bodyMedium", formFactor: .web)
-
-        XCTAssertNotNil(spec)
-        guard let size = spec?.size else {
-            XCTFail("Expected typography size")
-            return
-        }
-
-        switch size {
-        case .scalar:
-            XCTFail("Expected web envelope size for bodyMedium")
-        case .envelope(let envelope):
-            XCTAssertEqual(envelope.min, 14)
-            XCTAssertEqual(envelope.max, 18)
-            XCTAssertEqual(envelope.minVw, 320)
-            XCTAssertEqual(envelope.maxVw, 1440)
-        }
+        XCTAssertEqual(spec?.size, 32)
     }
 
     func testUnknownTypographyTokenReturnsNil() {

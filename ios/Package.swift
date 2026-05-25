@@ -61,6 +61,7 @@ let package = Package(
             ] + ablyTargetDependencies,
             path: "Sources/SduiCore",
             resources: [
+                // Includes Resources/Tokens/*.json consumed by LayoutTokenRegistry.
                 .process("Resources")
             ],
             swiftSettings: sduiCoreSwiftSettings

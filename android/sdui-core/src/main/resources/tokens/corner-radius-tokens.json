@@ -1,0 +1,14 @@
+{
+  "$comment": "Corner radius tokens from Kinetic Design System (Figma export). Radius is theme-independent and form-factor-independent (flat values).",
+  "$version": "3.0.0-matrix",
+  "$source": "Kinetic Design System (Figma)",
+  "radius": {
+    "nba.radius.xs": { "phone": 2, "tablet": 2, "tv": 2, "web": 2 },
+    "nba.radius.sm": { "phone": 4, "tablet": 4, "tv": 4, "web": 4 },
+    "nba.radius.md": { "phone": 12, "tablet": 12, "tv": 12, "web": 12 },
+    "nba.radius.lg": { "phone": 16, "tablet": 16, "tv": 16, "web": 16 },
+    "nba.radius.xl": { "phone": 24, "tablet": 24, "tv": 24, "web": 24 },
+    "nba.radius.2xl": { "phone": 32, "tablet": 32, "tv": 32, "web": 32 },
+    "nba.radius.full": { "phone": 9999, "tablet": 9999, "tv": 9999, "web": 9999 }
+  }
+}

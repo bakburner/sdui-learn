@@ -5,7 +5,7 @@ import {
   type TypographyCategorySpec,
   type TypographyVariantSpec,
   type WebSizeEnvelope,
-} from '../generated/LayoutTokenRegistry';
+} from '../tokens/LayoutTokenRegistry';
 import type { Shadow, ShadowType } from '../generated/SduiModels';
 
 const TOKEN_PREFIX = 'token:';

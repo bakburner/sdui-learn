@@ -63,22 +63,14 @@ public enum LayoutTokenResolver {
             return nil
         }
 
-        let size: TypographySizeValue
+        let size: Int
         switch formFactor {
         case .phone:
-            size = .scalar(variant.size.phone)
+            size = variant.size.phone
         case .tablet:
-            size = .scalar(variant.size.tablet)
+            size = variant.size.tablet
         case .tv:
-            size = .scalar(variant.size.tv)
-        case .web:
-            switch variant.size.web {
-            case .scalar(let value):
-                size = .scalar(value)
-            case .envelope(let envelope):
-                // iOS is not a web renderer; keep web envelopes opaque for pass-through.
-                size = .envelope(envelope)
-            }
+            size = variant.size.tv
         }
 
         return TypographySpec(
@@ -139,7 +131,7 @@ public enum LayoutTokenResolver {
 #if os(tvOS)
         return .tv
 #elseif targetEnvironment(macCatalyst)
-        return .web
+        return .tablet
 #else
         let traits = activeTraitCollection()
         _ = UIDevice.current.orientation
@@ -186,7 +178,6 @@ public enum LayoutTokenResolver {
         case .phone: return matrix.phone
         case .tablet: return matrix.tablet
         case .tv: return matrix.tv
-        case .web: return matrix.web
         }
     }
 
@@ -209,7 +200,6 @@ public enum FormFactor: String, CaseIterable {
     case phone
     case tablet
     case tv
-    case web
 
     static func fromWireValue(_ rawValue: String) -> FormFactor {
         switch rawValue {
@@ -217,17 +207,10 @@ public enum FormFactor: String, CaseIterable {
             return .tablet
         case FormFactor.tv.rawValue:
             return .tv
-        case FormFactor.web.rawValue, "web.narrow", "web.wide":
-            return .web
         default:
             return .phone
         }
     }
-}
-
-public enum TypographySizeValue {
-    case scalar(Int)
-    case envelope(WebSizeEnvelope)
 }
 
 public struct TypographySpec {
@@ -235,7 +218,7 @@ public struct TypographySpec {
     public let weight: Int
     public let textCase: String
     public let lineHeight: Double
-    public let size: TypographySizeValue
+    public let size: Int
 }
 
 public final class FormFactorObserver: ObservableObject {

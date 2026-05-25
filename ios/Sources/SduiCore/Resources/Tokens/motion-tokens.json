@@ -1,0 +1,15 @@
+{
+  "$comment": "Motion tokens sourced from sitebuilder brand spec. Easing is form-factor-flat; duration varies by device class.",
+  "$version": "3.0.0-matrix",
+  "$source": "sitebuilder/assets/brand-nba.yml",
+  "easing": {
+    "nba.motion.easing.default": "cubic-bezier(0.16, 1, 0.3, 1)",
+    "nba.motion.easing.linear": "linear"
+  },
+  "duration": {
+    "nba.motion.duration.fast": { "phone": 150, "tablet": 180, "tv": 250, "web": 200 },
+    "nba.motion.duration.default": { "phone": 200, "tablet": 250, "tv": 350, "web": 300 },
+    "nba.motion.duration.slow": { "phone": 400, "tablet": 500, "tv": 700, "web": 600 },
+    "nba.motion.duration.hero": { "phone": 500, "tablet": 600, "tv": 900, "web": 800 }
+  }
+}

@@ -79,10 +79,10 @@ The lower rule never weakens the higher one.
   neutral default) — that does not relax JSON decoding.
 - Renderer fallbacks happen after successful decode; they do not weaken the
   schema contract.
-- Adding a new token name follows the same client-release sequence as a new
-  enum value: schema first, codegen second, client resolvers third, composer
-  last. Until the registry update ships, an unknown token resolves to a
-  neutral default; the composer must not emit it.
+- Adding a new token name follows a similar release sequence: add to the
+  token schema JSON first, update client bundles (so resolvers can find it),
+  then emit from composers. Until the bundle update ships, an unknown token
+  resolves to a neutral default; the composer must not emit it.
 
 ### 1.4 One owner per concern
 
@@ -238,10 +238,12 @@ The following are **not** valid client exceptions:
   (primitive + semantic, because theming swaps the primitive). Other families
   expose semantic names only; raw, step-indexed, or category-internal
   sub-vocabularies stay server-internal.
-- Token resolution is fully client-local. Clients carry the registry in their
-  build; routine form-factor changes — rotation, resize, split-screen,
+- Token resolution is fully client-local. Clients bundle the raw JSON token
+  schemas (`schema/*-tokens.json`) in their build artifacts and parse them at
+  startup. Routine form-factor changes — rotation, resize, split-screen,
   same-`deviceClass` foldable transitions — re-resolve locally with zero
-  network traffic.
+  network traffic. The bundled-JSON approach keeps the door open to a future
+  remote-updatable registry without a schema change.
 - Raw integers / inline structs remain acceptable only for: `0`;
   runtime-calculated values; intentionally non-responsive component
   dimensions; values with no semantic token (cite the gap inline). When
@@ -270,23 +272,25 @@ a registry entry. Both forms decode and both render correctly.
   single resolver helper (`resolveShadowOrToken`, etc.) that returns a fully
   resolved struct. Renderers do not branch on the union; they consume the
   normalized value.
-- **The union keeps the door open to remote-updatable registries.** If a
-  future enhancement serves the token registry over the wire instead of
-  baking it into builds, the union is the shape that supports both
-  token-driven (re-resolves on registry update) and inline (immutable)
-  values without a schema change.
+- **The union keeps the door open to remote-updatable registries.** Because
+  clients already parse JSON at runtime (bundled from the build), a future
+  enhancement can serve updated registry JSON over the wire. The union is
+  the shape that supports both token-driven (re-resolves on registry update)
+  and inline (immutable) values without a schema change.
 
 ### 3.7 Token form-factor matrix
 
-- The token registry uses the four native deviceClasses as columns: `phone`,
-  `tablet`, `tv`, `web`. Native platforms handle intra-deviceClass
-  fragmentation through their own density, font-scale, and size-class
-  systems. Composition decisions that vary by orientation or viewport stay
-  in composer logic keyed off `deviceClass`, not in the token shape.
-- The `web` column is the exception: because CSS units are absolute and the
-  viewport is continuous, a `web` value may be a single scalar or a fluid
-  envelope (`{min, max, minVw, maxVw}`) that resolves to `clamp(...)` at
-  use site.
+- The token registry JSON uses four columns: `phone`, `tablet`, `tv`, `web`.
+  Each client parses only the columns relevant to its platform:
+  - **iOS / Android:** parse `phone`, `tablet`, `tv`. The `web` column is
+    skipped entirely — mobile resolvers have no `FormFactor.web` case.
+  - **Web:** parses all four columns. The `web` value may be a scalar or a
+    fluid envelope (`{min, max, minVw, maxVw}`) that resolves to `clamp(...)`
+    at use site.
+- Native platforms handle intra-column fragmentation through their own density,
+  font-scale, and size-class systems. Composition decisions that vary by
+  orientation or viewport stay in composer logic keyed off `deviceClass`, not
+  in the token shape.
 - Earlier breakpoint-style columns (orientation suffixes, narrow/wide
   splits) were speculative and are not canonical. New form-factor columns
   require a doctrine update, not just a schema edit.

@@ -11,7 +11,6 @@ import io.mockk.verify
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -59,7 +58,6 @@ class LayoutTokenResolverTest {
         assertEquals(12, LayoutTokenResolver.intValue(token, formFactor = "phone"))
         assertEquals(15, LayoutTokenResolver.intValue(token, formFactor = "tablet"))
         assertEquals(18, LayoutTokenResolver.intValue(token, formFactor = "tv"))
-        assertEquals(12, LayoutTokenResolver.intValue(token, formFactor = "web"))
     }
 
     @Test
@@ -114,7 +112,6 @@ class LayoutTokenResolverTest {
         val token = LayoutScalar.StringValue("token:nba.radius.full")
         assertEquals(9999, LayoutTokenResolver.intValue(token, formFactor = "phone"))
         assertEquals(9999, LayoutTokenResolver.intValue(token, formFactor = "tablet"))
-        assertEquals(9999, LayoutTokenResolver.intValue(token, formFactor = "web"))
     }
 
     @Test
@@ -128,19 +125,7 @@ class LayoutTokenResolverTest {
         assertEquals(360, spec.weight)
         assertEquals("uppercase", spec.textCase)
         assertEquals(0.8, spec.lineHeight, 0.0001)
-        val size = spec.size as LayoutTokenResolver.TypographySpec.Size.Scalar
-        assertEquals(32, size.value)
-    }
-
-    @Test
-    fun `typography bodyMedium web returns opaque envelope size`() {
-        val spec = LayoutTokenResolver.typography(
-            token = "token:nba.typography.bodyMedium",
-            formFactor = LayoutTokenResolver.FormFactor.WEB
-        )
-        requireNotNull(spec)
-        val webSize = spec.size as LayoutTokenResolver.TypographySpec.Size.Web
-        assertTrue(webSize.value is com.nba.sdui.core.generated.WebSize.Envelope)
+        assertEquals(32, spec.size)
     }
 
     @Test
@@ -188,11 +173,6 @@ class LayoutTokenResolverTest {
 
     @Test
     fun `form factor changes resolve from baked registry without network`() {
-        // The registry is a compile-time object; switching form factor cannot
-        // reach any I/O path. We assert the resolver returns the expected
-        // per-form-factor values and treat the absence of any HTTP dependency
-        // on the resolver call graph as the structural guarantee that resize
-        // never hits the network.
         val token = LayoutScalar.StringValue("token:nba.spacing.lg")
         val phoneValue = LayoutTokenResolver.intValue(
             scalar = token,
@@ -206,14 +186,9 @@ class LayoutTokenResolverTest {
             scalar = token,
             formFactor = LayoutTokenResolver.FormFactor.TV
         )
-        val webValue = LayoutTokenResolver.intValue(
-            scalar = token,
-            formFactor = LayoutTokenResolver.FormFactor.WEB
-        )
 
         assertEquals(16, phoneValue)
         assertEquals(20, tabletValue)
         assertEquals(24, tvValue)
-        assertEquals(16, webValue)
     }
 }

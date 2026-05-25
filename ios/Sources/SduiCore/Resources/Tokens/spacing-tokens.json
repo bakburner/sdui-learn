@@ -1,0 +1,13 @@
+{
+  "$comment": "Spacing tokens from Kinetic Design System (Figma export). Spacing is theme-independent; form-factor values are direct.",
+  "$version": "3.0.0-matrix",
+  "$source": "Kinetic Design System (Figma)",
+  "spacing": {
+    "nba.spacing.xs": { "phone": 2, "tablet": 2, "tv": 4, "web": 2 },
+    "nba.spacing.sm": { "phone": 4, "tablet": 6, "tv": 6, "web": 4 },
+    "nba.spacing.md": { "phone": 12, "tablet": 15, "tv": 18, "web": 12 },
+    "nba.spacing.lg": { "phone": 16, "tablet": 20, "tv": 24, "web": 16 },
+    "nba.spacing.xl": { "phone": 32, "tablet": 40, "tv": 48, "web": 32 },
+    "nba.spacing.2xl": { "phone": 40, "tablet": 48, "tv": 56, "web": 40 }
+  }
+}

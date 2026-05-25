@@ -96,7 +96,7 @@ dev:
 
 
 dev-server:
-	@osascript -e 'tell application "Terminal" to do script "cd \"$(PWD)/server\" && ./gradlew bootRun"' >/dev/null
+	cd server && ./gradlew bootRun
 
 dev-web: dev-web-remote
 

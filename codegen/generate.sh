@@ -2,7 +2,7 @@
 
 # SDUI Multi-Platform Code Generation Script
 # 1) Generates typed SduiModels from schema/sdui-schema.json for all platforms.
-# 2) Generates typed LayoutTokenRegistry files from schema/*-tokens.json.
+# 2) Generates typed LayoutTokenRegistry files for iOS/web from schema/*-tokens.json.
 
 set -e
 
@@ -34,13 +34,63 @@ mkdir -p "$(dirname "$IOS_MODELS_OUT")"
 mkdir -p "$(dirname "$WEB_MODELS_OUT")"
 mkdir -p "$(dirname "$ANDROID_MODELS_OUT")"
 
-echo "0. Generating LayoutTokenRegistry files (iOS/Android/Web)..."
+echo "0. Generating LayoutTokenRegistry files (iOS/Web only)..."
 if ! command -v python3 &> /dev/null; then
     echo "Error: python3 is required to generate layout token registries."
     echo "Install Python 3 and re-run this script."
     exit 1
 fi
-python3 "$TOKEN_REGISTRY_GENERATOR"
+TOKEN_REGISTRY_GENERATOR_PATH="$TOKEN_REGISTRY_GENERATOR" python3 - <<'PY'
+import os
+import importlib.util
+from pathlib import Path
+
+script_path = Path(os.environ["TOKEN_REGISTRY_GENERATOR_PATH"])
+spec = importlib.util.spec_from_file_location("layout_token_registry_generator", script_path)
+if spec is None or spec.loader is None:
+    raise RuntimeError(f"Unable to load token registry generator: {script_path}")
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+
+spacing_data = module.read_json(module.SPACING_SCHEMA)
+radius_data = module.read_json(module.RADIUS_SCHEMA)
+typography_data = module.read_json(module.TYPOGRAPHY_SCHEMA)
+motion_data = module.read_json(module.MOTION_SCHEMA)
+shadow_data = module.read_json(module.SHADOW_SCHEMA)
+
+spacing = spacing_data["spacing"]
+radius = radius_data["radius"]
+typography_categories = typography_data["categories"]
+typography_variants = typography_data["variants"]
+motion_duration = motion_data["duration"]
+motion_easing = motion_data["easing"]
+shadows = shadow_data["shadows"]
+
+module.write_file(
+    module.IOS_OUT,
+    module.generate_swift(
+        spacing=spacing,
+        radius=radius,
+        typography_categories=typography_categories,
+        typography_variants=typography_variants,
+        motion_duration=motion_duration,
+        motion_easing=motion_easing,
+        shadows=shadows,
+    ),
+)
+module.write_file(
+    module.WEB_OUT,
+    module.generate_typescript(
+        spacing=spacing,
+        radius=radius,
+        typography_categories=typography_categories,
+        typography_variants=typography_variants,
+        motion_duration=motion_duration,
+        motion_easing=motion_easing,
+        shadows=shadows,
+    ),
+)
+PY
 
 # Check if quicktype is installed
 if ! command -v quicktype &> /dev/null; then

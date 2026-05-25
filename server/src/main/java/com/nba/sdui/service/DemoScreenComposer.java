@@ -914,11 +914,14 @@ public class DemoScreenComposer {
         for (String feature : features) {
             ObjectNode row = atomicBuilder.container("row", "start", "center");
             row.put("gap", 8); // §3.6: no semantic spacing token for 8
+            row.put("widthMode", "fill");
             ArrayNode rowChildren = objectMapper.createArrayNode();
             rowChildren.add(atomicBuilder.text("✓", "bodyLarge", "bold",
                     "token:nba.color.feedback.success.70", null));
-            rowChildren.add(atomicBuilder.text(feature, "bodyLarge", null,
-                    ColorTokens.TEXT_ON_DARK_MEDIA, null));
+            ObjectNode featureText = atomicBuilder.text(feature, "bodyLarge", null,
+                    ColorTokens.TEXT_ON_DARK_MEDIA, null);
+            featureText.put("flex", 1);
+            rowChildren.add(featureText);
             row.set("children", rowChildren);
             featureChildren.add(row);
         }

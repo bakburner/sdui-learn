@@ -7,7 +7,11 @@
 - Related ADRs: ADR-005 (Action Scope and Precedence — precedence vocabulary and
   the contrast that variants do **not** cascade parent→child the way actions
   do screen→section→subsection→atomic), ADR-008 (Layout Manager — `layoutHints`
-  pattern precedent)
+  pattern precedent; **superseded by ADR-015** as of 2026-05-25, which removed
+  the `layoutHints` mechanism in favor of `Section.surface`), ADR-015
+  (Section Chrome Single Ownership — closed the open question about a
+  section-level variant; sections gained `Section.surface` consumed by
+  `SectionContainer`, not a `*Variant` enum)
 
 ## Decision
 
@@ -504,7 +508,16 @@ the governance rules below.
 5. Capture before/after payload size and visual screenshots per
    platform as ADR acceptance evidence.
 
-### Implementation status (2026-04-22)
+### Implementation status (2026-04-22; updated 2026-05-25)
+
+> **Update (2026-05-25):** ADR-015 closed the open question about a
+> section-level variant. Sections gained `Section.surface` (margin,
+> padding, background, cornerRadius, shadow, border — all inline)
+> consumed by the shared `SectionContainer`, and the legacy
+> `Section.layoutHints` field was removed. This ADR's variant model
+> remains scoped to atomic primitives only; section chrome is owned
+> by `Section.surface`, not by a `*Variant` enum. No changes to the
+> primitive-level variant rollout below.
 
 The initial rollout landed with a smaller **wire** vocabulary than the
 Option D examples above. The authoritative enum is `schema/sdui-schema.json`
@@ -696,11 +709,18 @@ Metrics:
   bites.) If composition ever lands, **precedence between composed
   variants** becomes an open design question — left-to-right, most-
   specific-wins, or explicit layer order in the registry.
-- Is `AtomicComposite` (section-level) genuinely out of scope, or
+- ~~Is `AtomicComposite` (section-level) genuinely out of scope, or
   should *sections* also gain a variant for things like section
-  background / container chrome? (Initial position: out of scope;
-  sections already have `layoutHints` per ADR-008 and `sectionStates`
-  for runtime state. A third knob is over-provisioning.)
+  background / container chrome?~~ **Resolved by ADR-015 (2026-05-25):**
+  sections gained `Section.surface` (margin, padding, background,
+  cornerRadius, shadow, border — all inline) consumed by the shared
+  `SectionContainer`. A section-level `*Variant` was rejected because
+  the section envelope is already a wrapper, not a renderable surface
+  in its own right; adding a variant on top of `surface` would create
+  a second chrome-ownership path. `sectionStates` continues to own
+  loading / error presentation. The original rationale's reference
+  to `layoutHints per ADR-008` is now stale (`layoutHints` was
+  removed in the same PR that introduced `Section.surface`).
 - Override-matrix granularity: do we need per-axis `allow` / `lock`,
   or does a simpler per-variant "strict" / "permissive" toggle cover
   real cases? (Initial position: per-axis, because
@@ -724,20 +744,47 @@ Metrics:
 
 ## Follow-ups
 
-- [ ] Finalize the initial `ContainerVariant` token set with design.
-- [ ] Create `schema/style-tokens.json` with initial entries,
+- [x] Finalize the initial `ContainerVariant` token set with design.
+      *(Phase 1, 2026-04-25: shipped as `hero` and `grouped` —
+      `schema/sdui-schema.json` enum at `ContainerVariant`.)*
+- [x] Create `schema/style-tokens.json` with initial entries,
       cross-platform specs, and per-variant override matrices.
-- [ ] Implement the `ContainerVariant` vocabulary on the schema
+      *(File present with `ContainerVariant.hero`,
+      `ContainerVariant.grouped`, and `ImageVariant.thumbnail` —
+      full per-OS-tier, light/dark, and override-matrix coverage.)*
+- [x] Implement the `ContainerVariant` vocabulary on the schema
       (emitted on the wire via the uniform `variant` property) and
       regenerate codegen.
-- [ ] Pilot implementation on iOS, Android, web for the initial
+      *(`variant: string` on every `AtomicElement`; `ContainerVariant`,
+      `ImageVariant`, `SelectVariant` enums codegen-generated to
+      Swift / Kotlin / TS / Java.)*
+- [x] Pilot implementation on iOS, Android, web for the initial
       tokens, including dark-mode and the
       `variant_override_blocked` diagnostic.
-- [ ] Migrate `HeroPanel` composition in `GameDetailComposer` as the
+      *(`ContainerVariantResolver` and `ImageVariantResolver` on
+      all three clients; both diagnostics — `variant_resolver_missing`
+      and `variant_override_blocked` — are emitted by the atomic
+      renderers, see `AtomicText`, `AtomicButton`, `AtomicLiveClock`,
+      `ContainerVariantResolver`.)*
+- [x] Migrate `HeroPanel` composition in `GameDetailComposer` as the
       pilot and capture payload-size + visual-parity evidence.
+      *(Migrated; `AtomicCompositeBuilder.buildHeroPanel` is the
+      shared helper used by `HomeComposer` and `DemoScreenComposer`.
+      Pilot composer set extended to `PromoBanner`, `ContentRail`,
+      `VideoCarousel` cards.)*
 - [ ] Write the quarterly override-rate audit script over the
       composers (identify candidate new tokens + outlier override
-      patterns).
+      patterns). *(Open. `scripts/validate-style-tokens.js` covers
+      registry structural validation but not composer call-site
+      override telemetry.)*
 - [ ] Document the governance workflow (PR template, review
-      checklist, dark-mode requirement).
-- [ ] Revisit open questions above after pilot lands.
+      checklist, dark-mode requirement). *(Open. Governance text
+      lives in this ADR's §Governance; no separate PR template /
+      reviewer checklist artifact yet.)*
+- [x] Revisit open questions above after pilot lands.
+      *(2026-05-25 sweep: `AtomicComposite` section-level variant
+      question resolved by ADR-015 — sections gained `surface`,
+      not a variant. Remaining open questions —
+      `DividerVariant`, `Spacer`, pressed/focused/hovered state,
+      variant composition, override-matrix granularity,
+      pixel-parity escape hatch — kept open pending product input.)*

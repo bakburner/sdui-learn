@@ -31,24 +31,35 @@ public class SectionSurfaces {
      * here retunes the entire app's rhythm (card inset, elevation, corner
      * radius) without a client release.
      *
-     * <p>Default: 16px horizontal margin, 16px vertical margin, raised
-     * surface background with a 12px corner radius and a soft 6px-radius
-     * shadow at y=2. Matches the reference-app feed card treatment.
+     * <p>Default: {@code nba.spacing.lg} on all four edges of the
+     * margin, raised surface background with {@code nba.radius.md}
+     * corner radius and a soft 6px-radius shadow at y=2. Matches the
+     * reference-app feed card treatment.
      *
-     * <p>Vertical margin is 16 (not 8) so a card-chromed section is
-     * separated from a flush-to-edge section (like a content rail)
-     * by 32pt of air — rail contributes 16pt bottom, card contributes
-     * 16pt top. 8pt on the card side read as "no spacing" next to a
-     * rail because a flush rail has no visible bottom edge for the
-     * eye to latch onto; 16pt makes the break read as an intentional
-     * module boundary.
+     * <p>Vertical margin is the {@code lg} step (not {@code md}) so a
+     * card-chromed section is separated from a flush-to-edge section
+     * (like a content rail) by 2× {@code lg} of air — rail contributes
+     * {@code lg} bottom, card contributes {@code lg} top. The {@code md}
+     * step on the card side reads as "no spacing" next to a rail because
+     * a flush rail has no visible bottom edge for the eye to latch onto;
+     * the {@code lg} step makes the break read as an intentional module
+     * boundary.
      */
     public ObjectNode defaultSurface() {
         ObjectNode surface = objectMapper.createObjectNode();
-        surface.set("margin", utils.spacing(16, 16, 16, 16));
+        surface.set("margin", utils.spacingTokens(
+                LayoutTokens.SPACING_LG,
+                LayoutTokens.SPACING_LG,
+                LayoutTokens.SPACING_LG,
+                LayoutTokens.SPACING_LG));
         surface.put("background", "token:nba.bg.secondary");
-        surface.put("cornerRadius", 12);
+        surface.put("cornerRadius", LayoutTokens.RADIUS_MD);
 
+        // Inline shadow struct (no exact token match): radius:6, offsetY:2 falls
+        // between nba.shadow.sm (radius:3, offsetY:1) and nba.shadow.md
+        // (radius:8, offsetY:2). Schema permits the inline struct as the
+        // documented escape hatch for one-off values that don't deserve a
+        // registry entry; clients normalize at the edge via resolveShadowOrToken.
         ObjectNode shadow = objectMapper.createObjectNode();
         shadow.put("color", "#00000014");
         shadow.put("radius", 6);
@@ -61,15 +72,24 @@ public class SectionSurfaces {
 
     /**
      * Surface for {@code AdSlot} sections — server-owned outer chrome per
-     * AGENTS.md §4.2. Sharp corners, no shadow; 16px column margin; inner
-     * padding 12px horizontal and 16px top/bottom (equal vertical rhythm for
-     * the disclosure label + creative). The client fills the padded width and
-     * derives height from {@code data.sizes[0]} aspect ratio only.
+     * AGENTS.md §4.2. Sharp corners, no shadow; {@code nba.spacing.lg}
+     * margin on all edges; inner padding {@code md} horizontal and
+     * {@code lg} top/bottom (equal vertical rhythm for the disclosure
+     * label + creative). The client fills the padded width and derives
+     * height from {@code data.sizes[0]} aspect ratio only.
      */
     public ObjectNode adSlotSurface() {
         ObjectNode surface = objectMapper.createObjectNode();
-        surface.set("margin", utils.spacing(16, 16, 16, 16));
-        surface.set("padding", utils.spacing(16, 12, 16, 12));
+        surface.set("margin", utils.spacingTokens(
+                LayoutTokens.SPACING_LG,
+                LayoutTokens.SPACING_LG,
+                LayoutTokens.SPACING_LG,
+                LayoutTokens.SPACING_LG));
+        surface.set("padding", utils.spacingTokens(
+                LayoutTokens.SPACING_LG,
+                LayoutTokens.SPACING_MD,
+                LayoutTokens.SPACING_LG,
+                LayoutTokens.SPACING_MD));
         surface.put("background", "token:nba.bg.secondary");
         surface.put("cornerRadius", 0);
         return surface;
@@ -120,6 +140,13 @@ public class SectionSurfaces {
      * section rhythm + branded gradient background + inner padding so
      * the caller's content lays out flush against the surface edges.
      * Used by SubscribeBanner and SubscribeHero composers.
+     *
+     * <p>The {@code padding} parameter is a raw integer because callers
+     * pass values (20, 24) that fall between {@code nba.spacing.lg} (16)
+     * and {@code nba.spacing.xl} (32). These are intentional one-off
+     * promo-card insets with no exact token mapping; if the callsites
+     * converge on a single value, promote it to a new spacing token
+     * rather than continuing to pass it inline.
      */
     public ObjectNode subscribeSurface(String topColor, String bottomColor, int padding) {
         ObjectNode surface = defaultSurface();
@@ -152,9 +179,10 @@ public class SectionSurfaces {
 
     /**
      * Build a surface block for a card-chromed, vertically-stacked
-     * composite section (e.g. {@code NbaTvSchedule}) — same 16pt vertical
-     * rhythm as {@link #railSurface()}, plus 16pt horizontal margin, a
-     * rounded sunken-surface background, and a 12pt corner radius. Use
+     * composite section (e.g. {@code NbaTvSchedule}) — same {@code lg}
+     * vertical rhythm as {@link #railSurface()}, plus {@code lg}
+     * horizontal margin, a rounded sunken-surface background, and an
+     * {@code nba.radius.md} corner radius. Use
      * this for composites that are NOT horizontal-scrolling: rails bleed
      * edge-to-edge on purpose (so off-screen cards peek in), but a
      * vertical-list composite should sit inside a card like {@code AdSlot}
@@ -164,9 +192,13 @@ public class SectionSurfaces {
      */
     public ObjectNode cardSurface() {
         ObjectNode surface = objectMapper.createObjectNode();
-        surface.set("margin", utils.spacing(16, 16, 16, 16));
+        surface.set("margin", utils.spacingTokens(
+                LayoutTokens.SPACING_LG,
+                LayoutTokens.SPACING_LG,
+                LayoutTokens.SPACING_LG,
+                LayoutTokens.SPACING_LG));
         surface.put("background", "token:nba.bg.tertiary");
-        surface.put("cornerRadius", 12);
+        surface.put("cornerRadius", LayoutTokens.RADIUS_MD);
         return surface;
     }
 
@@ -185,14 +217,15 @@ public class SectionSurfaces {
     public ObjectNode railSurface() {
         ObjectNode surface = objectMapper.createObjectNode();
         ObjectNode margin = objectMapper.createObjectNode();
-        // 16pt top/bottom — pairs with the 16pt vertical margin on
-        // `defaultSurface` (AdSlot) to give 32pt of air between a rail
-        // and the card-chromed section that follows it. A flush rail
-        // has no visible bottom edge, so the eye reads less spacing
-        // than the pixel count suggests; 32pt reads as an intentional
-        // module boundary rather than an orphan row.
-        margin.put("top", 16);
-        margin.put("bottom", 16);
+        // nba.spacing.lg (phone:16) top/bottom — pairs with the same
+        // token on `defaultSurface` (AdSlot) to give 2× spacing.lg of
+        // air between a rail and the card-chromed section that follows
+        // it. A flush rail has no visible bottom edge, so the eye reads
+        // less spacing than the pixel count suggests; the doubled lg
+        // step reads as an intentional module boundary rather than an
+        // orphan row.
+        margin.put("top", LayoutTokens.SPACING_LG);
+        margin.put("bottom", LayoutTokens.SPACING_LG);
         surface.set("margin", margin);
         return surface;
     }
@@ -209,24 +242,28 @@ public class SectionSurfaces {
      * than tweaking {@link #railSurface()} — that one is scoped to
      * rail→preceding-section spacing, which is a different rhythm.
      *
-     * <p>Emits {@code margin.top = 16, margin.bottom = 8}:
+     * <p>Emits {@code margin.top = nba.spacing.lg (phone 16), margin.bottom = nba.spacing.md (phone 12)}:
      * <ul>
-     *   <li>Top 16 — pairs with 16pt bottom on preceding card-chromed
-     *       sections (AdSlot, GamePanel) to produce a 32pt module
-     *       break before the header.</li>
-     *   <li>Bottom 8 — combined with the following rail's 16pt top
-     *       margin this produces 24pt between the header surface and
-     *       the rail surface. Previously this was 0 (header→rail gap =
-     *       16pt) but on device the header's title line sat too close
-     *       to the top of the first rail card. 8pt here reads as "the
-     *       title belongs to the rail" without looking flush.</li>
+     *   <li>Top {@code nba.spacing.lg} — pairs with the same token on
+     *       preceding card-chromed sections (AdSlot, GamePanel) to
+     *       produce a 2× spacing.lg module break before the header.</li>
+     *   <li>Bottom {@code nba.spacing.md} — combined with the following
+     *       rail's {@code spacing.lg} top margin this produces
+     *       lg + md (28pt on phone) between the header surface and the
+     *       rail surface. Previously this was 0 (header→rail gap was
+     *       just the rail's own top margin) but on device the header's
+     *       title line sat too close to the top of the first rail card.
+     *       The {@code md} step here reads as "the title belongs to the
+     *       rail" without looking flush. Originally tried 8pt raw — was
+     *       snapped up to {@code md} (12) so every surface scalar is a
+     *       design-token reference per AGENTS.md §3.6.</li>
      * </ul>
      */
     public ObjectNode sectionHeaderSurface() {
         ObjectNode surface = objectMapper.createObjectNode();
         ObjectNode margin = objectMapper.createObjectNode();
-        margin.put("top", 16);
-        margin.put("bottom", 8);
+        margin.put("top", LayoutTokens.SPACING_LG);
+        margin.put("bottom", LayoutTokens.SPACING_MD);
         surface.set("margin", margin);
         return surface;
     }

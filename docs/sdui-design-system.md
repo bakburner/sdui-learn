@@ -234,13 +234,23 @@ and the root `Container`.
     "background": { "color": "token:nba.bg.tertiary" },
     "cornerRadius": "token:nba.radius.lg",
     "shadow": "token:nba.shadow.md",
-    "margin": { "top": 8, "bottom": 8, "start": 16, "end": 16 }
+    "margin": {
+      "top": "token:nba.spacing.md",
+      "bottom": "token:nba.spacing.md",
+      "start": "token:nba.spacing.lg",
+      "end": "token:nba.spacing.lg"
+    }
   },
   "data": {
     "ui": {
       "type": "Container",
       "background": { "color": "token:nba.bg.tertiary" },
-      "padding": { "top": 16, "bottom": 16, "start": 16, "end": 16 },
+      "padding": {
+        "top": "token:nba.spacing.lg",
+        "bottom": "token:nba.spacing.lg",
+        "start": "token:nba.spacing.lg",
+        "end": "token:nba.spacing.lg"
+      },
       "children": ["..."]
     }
   }
@@ -262,8 +272,18 @@ module renders flat instead of card-framed.
     "background": { "color": "token:nba.bg.tertiary" },
     "cornerRadius": "token:nba.radius.lg",
     "shadow": "token:nba.shadow.md",
-    "margin": { "top": 8, "bottom": 8, "start": 16, "end": 16 },
-    "padding": { "top": 16, "bottom": 16, "start": 16, "end": 16 }
+    "margin": {
+      "top": "token:nba.spacing.md",
+      "bottom": "token:nba.spacing.md",
+      "start": "token:nba.spacing.lg",
+      "end": "token:nba.spacing.lg"
+    },
+    "padding": {
+      "top": "token:nba.spacing.lg",
+      "bottom": "token:nba.spacing.lg",
+      "start": "token:nba.spacing.lg",
+      "end": "token:nba.spacing.lg"
+    }
   },
   "data": {
     "ui": {

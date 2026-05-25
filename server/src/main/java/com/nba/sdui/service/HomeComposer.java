@@ -147,7 +147,7 @@ public class HomeComposer {
         section.put("contentSourceId", rowContentSourceId);
         ObjectNode surface = surfaces.flushSurface();
         ObjectNode margin = objectMapper.createObjectNode();
-        margin.put("top", 16);
+        margin.put("top", LayoutTokens.SPACING_LG);
         surface.set("margin", margin);
         section.set("surface", surface);
         return section;

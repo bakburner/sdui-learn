@@ -77,7 +77,7 @@ Concrete repo facts supporting the decision:
 
 - **Schema diff:** Removed the `Section.layoutHints` optional property and the entire `SectionLayoutHints` definition (`marginTop`, `marginBottom`, `dividerAbove`, `dividerBelow`, `priority`) from `schema/sdui-schema.json`.
 - **Server emit-site audit:** 3 emit sites pre-cleanup, all in tabbed semantic sections:
-  - `HomeComposer.composeMoreGamesRow` — non-zero `marginTop: 16`, migrated to `surface.margin.top: 16` (composer sets the margin field directly on the existing `flushSurface()` ObjectNode).
+  - `HomeComposer.composeMoreGamesRow` — non-zero `marginTop: 16`, migrated to `surface.margin.top: "token:nba.spacing.lg"` (composer sets the margin field directly on the existing `flushSurface()` ObjectNode; per AGENTS.md §3.6 the wire form is the spacing-token reference, not the raw integer).
   - `GameDetailComposer.composeTabs` — all-zero block, deleted.
   - `WatchComposer.composeTabs` — all-zero block, deleted.
 - **Client diff:**

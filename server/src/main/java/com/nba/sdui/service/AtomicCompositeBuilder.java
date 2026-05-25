@@ -73,11 +73,12 @@ public class AtomicCompositeBuilder {
 
         ObjectNode root = container("row", "spaceBetween", "center");
         root.put("widthMode", "fill");
-        // Header internal padding: 12pt top (air above title), 4pt bottom.
-        // The vertical rhythm between the header title and the next section
-        // is produced by the surface-level margin on the *next* section's
-        // surface (typically `railSurface.margin.top = 16pt`), not by extra
-        // padding inside the header. Keeping bottom tight here avoids the
+        // Header internal padding: nba.spacing.md top (air above title),
+        // nba.spacing.xs bottom. The vertical rhythm between the header
+        // title and the next section is produced by the surface-level
+        // margin on the *next* section's surface (typically
+        // `railSurface.margin.top = nba.spacing.lg`), not by extra padding
+        // inside the header. Keeping bottom tight here avoids the
         // "double-gap" look where header-bottom-padding + next-section-
         // top-margin + next-section-internal-top-padding all stack.
         root.set("padding", padding(LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, LayoutTokens.SPACING_MD, LayoutTokens.SPACING_XS));

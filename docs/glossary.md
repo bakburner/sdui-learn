@@ -37,18 +37,23 @@ Section outer chrome flows through `SectionContainer` per ADR-015
 (`docs/adr/015-section-chrome-single-ownership.md`); see also
 `docs/sdui-design-system.md` §2 (Box-model cascade).
 
+All scalar values below are emitted as `token:nba.…` references on the wire
+(per AGENTS.md §3.6); clients resolve them per form factor against the
+bundled spacing/radius registries. Phone-resolved pixel equivalents are
+shown in parentheses.
+
 | Factory | Shape |
 | --- | --- |
-| **`defaultSurface()`** | Card-chromed: 16pt margin all sides + raised secondary background + 12pt corner radius + soft drop shadow (6px radius, y=2). Default for permanent sections. |
+| **`defaultSurface()`** | Card-chromed: `nba.spacing.lg` margin all sides (phone 16) + raised secondary background + `nba.radius.md` corner radius (phone 12) + soft drop shadow (inline struct: 6px radius, y=2 — between `nba.shadow.sm` and `nba.shadow.md`, no exact token). Default for permanent sections. |
 | **`flushSurface()`** | Empty surface block. Renders edge-to-edge with no margin, padding, or background. |
-| **`cardSurface()`** | Sunken card chrome: 16pt margin + tertiary background + 12pt corner radius (no shadow). For non-rail composites that should sit inside a card. |
-| **`railSurface()`** | Vertical margin only (16pt top/bottom). For flush-edge composites whose root container owns its own inner chrome; 16pt pairs with `defaultSurface`'s 16pt to produce 32pt of air at module boundaries. |
-| **`sectionHeaderSurface()`** | Header rhythm: 16pt top, 8pt bottom. The 8pt bottom (not 0) gives the header→rail gap 24pt total so the title reads as belonging to its rail without looking flush. |
-| **`adSlotSurface()`** | Ad chrome: sharp corners (radius 0), no shadow, 16pt margin, asymmetric inner padding (16pt vertical, 12pt horizontal) for disclosure-label rhythm. |
+| **`cardSurface()`** | Sunken card chrome: `nba.spacing.lg` margin (phone 16) + tertiary background + `nba.radius.md` corner radius (phone 12), no shadow. For non-rail composites that should sit inside a card. |
+| **`railSurface()`** | Vertical margin only (`nba.spacing.lg` top/bottom; phone 16). For flush-edge composites whose root container owns its own inner chrome; the `lg` step pairs with `defaultSurface`'s `lg` to produce 2× `lg` of air at module boundaries. |
+| **`sectionHeaderSurface()`** | Header rhythm: `nba.spacing.lg` top (phone 16), `nba.spacing.md` bottom (phone 12). Combined with the rail's `lg` top margin gives a `lg + md` (28pt on phone) header→rail gap so the title reads as belonging to its rail without looking flush. |
+| **`adSlotSurface()`** | Ad chrome: sharp corners (radius 0, §3.6 exception #1), no shadow, `nba.spacing.lg` margin all sides, asymmetric inner padding (`lg` vertical, `md` horizontal) for disclosure-label rhythm. |
 | **`gamePanelSurface()`** | `defaultSurface()` + diagonal raised→promo gradient background. Token-backed so themes resolve. For matchup cards across all GamePanel sites. |
-| **`subscribeSurface(top, bottom, padding)`** | `defaultSurface()` + vertical gradient (caller-supplied colors) + symmetric padding. For subscription upsell sections (SubscribeBanner, SubscribeHero). |
-| **`videoPlayerSurface()`** | Flush dark background (`#1A1F2E`), no margin, no corners. Embedded-player presentation; sizing owned by renderer / `data.displayConfig`. |
-| **`secondaryStripSurface()`** | Full-bleed strip: token secondary background + token padding (sm/md/xs/md), no corners or margin. |
+| **`subscribeSurface(top, bottom, padding)`** | `defaultSurface()` + vertical gradient (caller-supplied colors) + symmetric padding. The `padding` parameter is a raw integer because callers pass values (20, 24) that fall between `nba.spacing.lg` and `nba.spacing.xl`; promote to a new spacing token if callsites converge. For subscription upsell sections (SubscribeBanner, SubscribeHero). |
+| **`videoPlayerSurface()`** | Flush dark background (`#1A1F2E`, raw hex — no `nba.bg.player` token in the registry), no margin, no corners. Embedded-player presentation; sizing owned by renderer / `data.displayConfig`. |
+| **`secondaryStripSurface()`** | Full-bleed strip: token secondary background + token padding (`sm` top, `md` end, `xs` bottom, `md` start), no corners or margin. |
 | **`stripSurfaceWithoutBackground()`** | Same strip padding as `secondaryStripSurface()` but no explicit background — sits on the screen's default surface. |
 
 ---

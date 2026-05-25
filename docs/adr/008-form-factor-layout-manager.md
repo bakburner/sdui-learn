@@ -117,4 +117,12 @@ Server uses semantic layout types for structural composition. Individual section
 
 ## Addendum: Row → Container Migration (2026-03-13)
 
-The `Row` section type referenced in Options B and C above was subsequently replaced by `Container` in the atomic rendering layer (see `AtomicElement` in `sdui-schema.json`). `Container` supports flex layout with `direction`, `justify`, `align`, `wrap`, and `breakpoint` properties, serving the same structural composition role with richer primitives. The `layoutHints` mechanism from this ADR remains valid and is orthogonal to this change.
+The `Row` section type referenced in Options B and C above was subsequently replaced by `Container` in the atomic rendering layer (see `AtomicElement` in `sdui-schema.json`). `Container` supports flex layout with `direction`, `justify`, `align`, `wrap`, and `breakpoint` properties, serving the same structural composition role with richer primitives.
+
+> **Editorial note (2026-05-25):** The original sentence in this addendum
+> claimed "the `layoutHints` mechanism from this ADR remains valid and is
+> orthogonal to this change." That claim was true between 2026-03-13 and
+> 2026-05-25, but `layoutHints` has since been removed in favor of
+> `Section.surface` consumed by `SectionContainer`. See ADR-015 for the
+> active section-chrome ownership model. The structural Row → Container
+> migration is unaffected.

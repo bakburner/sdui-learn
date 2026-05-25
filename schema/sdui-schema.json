@@ -422,6 +422,30 @@
       "pattern": "^token:nba\\.motion\\.easing\\..+$",
       "description": "Motion easing token reference (for example, token:nba.motion.easing.default) resolved by clients against schema/motion-tokens.json."
     },
+    "MotionDuration": {
+      "description": "Duration value for client-owned runtime animations: raw milliseconds or a motion duration token.",
+      "oneOf": [
+        { "type": "integer", "minimum": 0 },
+        { "$ref": "#/definitions/DurationToken" }
+      ]
+    },
+    "MotionEasing": {
+      "description": "Easing curve for client-owned runtime animations: named curve or a motion easing token.",
+      "oneOf": [
+        { "type": "string", "enum": ["linear", "easeIn", "easeOut", "easeInOut"] },
+        { "$ref": "#/definitions/EasingToken" }
+      ]
+    },
+    "AnimationTiming": {
+      "type": "object",
+      "description": "Timing specification for a client-owned runtime animation. Used only on known client-owned timing fields (lifecycle transitions, carousel paging, etc.), not as a free-form animation bag on every element.",
+      "additionalProperties": false,
+      "properties": {
+        "duration": { "$ref": "#/definitions/MotionDuration" },
+        "easing":   { "$ref": "#/definitions/MotionEasing" },
+        "delayMs":  { "type": "integer", "minimum": 0, "default": 0 }
+      }
+    },
     "ShadowToken": {
       "type": "string",
       "pattern": "^token:nba\\.shadow\\..+$",

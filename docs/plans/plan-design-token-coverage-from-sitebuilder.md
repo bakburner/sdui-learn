@@ -1,7 +1,7 @@
 # Plan: Design Token System — End-to-End Adoption and Coverage
 
-**Status:** Proposed (revised)
-**Created:** 2026-05-24 · **Revised:** 2026-05-24
+**Status:** In progress
+**Created:** 2026-05-24 · **Revised:** 2026-05-25
 **Supersedes:** prior version of this file (and the deleted `plan-design-token-adoption.md`)
 **Scope:** Schema, server registries, client resolvers, fixtures, docs, doctrine
 **Sources:** Kinetic Design System (Figma export) for web; Material Design 3 (Android); Apple HIG / Dynamic Type (iOS); tvOS HIG + Google TV Material You (TV)
@@ -13,7 +13,7 @@
 
 The design-token system is partially built. Color, icon, and style/variant are complete end-to-end. Spacing and radius have working infrastructure but only `AtomicCompositeBuilder` has heavy adoption. Typography, motion, shadow, and font have no registries at all. The previous version of this plan over-engineered the data shape (6-column form-factor matrix, two parallel typography wire vocabularies, multiple alias layers) in ways that fragmented the cache, multiplied resolver paths, and committed the project to envelope changes that were never justified.
 
-This revision closes the registry gaps using platform-native conventions, collapses the matrix to the four canonical deviceClasses, drops every alias layer that wasn't doing work, and bakes the registry into each client build so routine form-factor changes never trigger a network call.
+This revision closes the registry gaps using platform-native conventions, collapses the matrix to the four canonical deviceClasses, drops every alias layer that wasn't doing work, and bakes the registry into each client build so routine form-factor changes never trigger a network call. It also reconciles the existing team-color comment in `schema/color-tokens.json`: team palettes are bundled registry data selected by team and mode, not runtime-fetched data.
 
 ## Goals
 
@@ -48,7 +48,7 @@ We do not compute mobile values as multipliers of web, or TV as multipliers of m
 
 | Family | Wire form | Layers |
 |---|---|---|
-| Color | `nba.color.text.primary` (semantic), `nba.color.blue.50` (primitive escape) | **2** (primitive + semantic — theming swaps the primitive) |
+| Color | `nba.color.text.primary` (semantic), `nba.color.blue.50` (primitive escape), `nba.team.bg` / `nba.team.accent` (team-context semantic) | **2** (primitive + semantic — theming swaps the primitive; team semantics select from bundled team palette by team/mode) |
 | Spacing | `nba.spacing.lg` | 1 |
 | Radius | `nba.radius.md` | 1 |
 | Typography | `nba.typography.headlineLarge` (Material 3 semantic names) | 1 |
@@ -63,7 +63,7 @@ Raw / step-indexed sub-vocabularies (`nba.space.raw.*`, `nba.radius.raw.*`, `nba
 
 The token registry is a **client build artifact**, not a runtime fetch. Routine form-factor changes (rotation, browser resize, foldable expand within the same `deviceClass`, split-screen, TV overscan) resolve **entirely on the client**:
 
-- `make codegen` bakes the registry into each client (typed maps; not parsed JSON at runtime).
+- `make codegen` bakes the registry into each client (typed maps; not parsed JSON at runtime), including team color palettes and team UI mode mappings.
 - Form-factor signals come from platform-native observers; framework reactivity (SwiftUI `Environment`, Compose `CompositionLocal`, React `Context`) invalidates downstream views when the form factor changes.
 - The wire payload is stable across every routine form-factor change; only the resolved pixel value changes.
 - **No fetch** is triggered by rotation, resize, or split-screen. The client never appends size/orientation parameters to composition requests.
@@ -90,6 +90,17 @@ The matrix uses the four native deviceClasses as columns: **`phone`, `tablet`, `
 
 Earlier columns (`phone.landscape`, `web.narrow`, `web.wide`) were speculative and are removed everywhere. Composition-level orientation or breakpoint decisions stay in composer logic keyed off `deviceClass`, not in token columns.
 
+### 6. Accessibility scaling composes with token resolution
+
+Typography tokens resolve to a platform-unit base size, then the platform's accessibility scale applies locally:
+
+- iOS: resolver returns points; SwiftUI / UIKit applies Dynamic Type where the text style opts into scaling.
+- Android: resolver returns `sp`; the OS `fontScale` applies through Compose / TextView.
+- Web: resolver returns a CSS size or `clamp()` expression; browser zoom and user font-size preferences apply normally.
+- TV: resolver returns TV-safe base sizes; platform text-scale settings apply where supported.
+
+The server does not receive, store, or branch on accessibility text-scale settings. Changing text scale must not trigger a composition fetch.
+
 ---
 
 ## Naming convention
@@ -114,7 +125,7 @@ Every token name carries the `nba.` prefix. Icons retain `sdui:` because they're
 
 | Family | Registry | Server constants | Composer adoption | Client resolver | Status |
 |---|---|---|---|---|---|
-| Color | `schema/color-tokens.json` | `ColorTokens.java` | Heavy | iOS / Android / Web | Complete (2 bugs in separate PR) |
+| Color | `schema/color-tokens.json` | `ColorTokens.java` | Heavy | iOS / Android / Web | Complete except team-mode bundling update (this plan) + 2 bugs in separate PR |
 | Icon | `schema/icon-tokens.json` | `IconTokens.java` | Active | iOS / Android / Web | Complete |
 | Style / Variant | `schema/style-tokens.json` | inline | Active | iOS / Android / Web | Complete |
 | Spacing | `schema/spacing-tokens.json` (Kinetic, 6-col matrix) | `LayoutTokens.SPACING_*` | `AtomicCompositeBuilder` heavy; others partial | iOS / Android / Web | Migrate matrix to 4-col; finish composers |
@@ -130,37 +141,44 @@ Every token name carries the `nba.` prefix. Icons retain `sdui:` because they're
 
 ### Schema and registries
 
-- [ ] `schema/typography-tokens.json` exists with a `variants` map for the existing `TextVariant` enum values plus any new values added per the Phase 1 audit; each variant has a `categoryRef` and a 4-column `size` matrix (`phone`, `tablet`, `tv`, `web`); web entries may be a scalar or a `{min, max, minVw, maxVw}` envelope
-- [ ] Typography categories (Kinetic-faithful: `headline`, `display`, `title`, `body`, `label`, `data`, `score`, `button`, `caption`) live in the same file as server-internal spec data with `familyRef`, `weight`, `textCase`, `lineHeight`; they are **not** addressable on the wire
-- [ ] `schema/motion-tokens.json` exists with `nba.motion.easing.default` + `nba.motion.easing.linear` and 4 duration tiers (`fast`, `default`, `slow`, `hero`); each duration is a 4-column matrix
-- [ ] `schema/shadow-tokens.json` exists with 4 tiers (`sm`, `md`, `lg`, `xl`); shadows are form-factor-flat (`"*"` wildcard)
-- [ ] `schema/font-tokens.json` exists with one entry per typeface (`nba.font.knockout`, `nba.font.roboto`, `nba.font.roboto.condensed`); weight map keyed by the values typography references
-- [ ] `schema/spacing-tokens.json` and `schema/corner-radius-tokens.json` migrated from 6-column to 4-column matrix; raw layer (`nba.space.raw.*`, `nba.radius.raw.*`) deleted; semantic entries hold matrices inline
-- [ ] `LayoutTokenRegistry.java` loads all token files at startup and fails fast on: missing variant categories, unresolved `familyRef`, invalid easing curves, malformed shadow structs, unknown aliases
+- [x] `schema/typography-tokens.json` exists with a `variants` map for the existing `TextVariant` enum values plus any new values added per the Phase 1 audit; each variant has a `categoryRef` and a 4-column `size` matrix (`phone`, `tablet`, `tv`, `web`); web entries may be a scalar or a `{min, max, minVw, maxVw}` envelope
+- [x] Typography categories (Kinetic-faithful: `headline`, `display`, `title`, `body`, `label`, `data`, `score`, `button`, `caption`) live in the same file as server-internal spec data with `familyRef`, `weight`, `textCase`, `lineHeight`; they are **not** addressable on the wire
+- [x] For every typography variant, `size.web` uses values present in that variant's Kinetic category step map: scalar `web` values must equal one category step; envelope `min` and `max` must each equal a category step. Any exception requires an inline `$reason` and a doc note.
+- [x] `schema/motion-tokens.json` exists with `nba.motion.easing.default` + `nba.motion.easing.linear` and 4 duration tiers (`fast`, `default`, `slow`, `hero`); each duration is a 4-column matrix
+- [x] `sdui-schema.json` defines `MotionDuration`, `MotionEasing`, and `AnimationTiming` explicitly; motion tokens are accepted only in known timing fields for client-owned runtime behaviors, not as a free-form animation bag on every element
+- [x] `schema/shadow-tokens.json` exists with 4 tiers (`sm`, `md`, `lg`, `xl`); shadows are form-factor-flat (`"*"` wildcard)
+- [x] `schema/font-tokens.json` exists with one entry per typeface (`nba.font.knockout`, `nba.font.roboto`, `nba.font.roboto.condensed`); weight map keyed by the values typography references
+- [x] `schema/color-tokens.json` replaces the current team-color runtime-loading comment with bundled team palette data from `Kinetic Design System Tokens - NBA Team Colors.csv` plus team UI mode mappings from `Kinetic Design System Tokens - Teams UI Modes.csv`; team semantic tokens (`nba.team.bg`, `nba.team.label`, `nba.team.accent`, `nba.team.accent-label`) resolve locally from `(teamId, teamMode)`
+- [x] `schema/spacing-tokens.json` and `schema/corner-radius-tokens.json` migrated from 6-column to 4-column matrix; raw layer (`nba.space.raw.*`, `nba.radius.raw.*`) deleted; semantic entries hold matrices inline
+- [x] `LayoutTokenRegistry.java` loads all token files at startup and fails fast on: missing variant categories, unresolved `familyRef`, invalid easing curves, malformed shadow structs, unknown aliases
 
 ### Server constants
 
-- [ ] `TypographyTokens.java` exists with semantic-variant constants only (no category+step shortcuts)
-- [ ] `MotionTokens.java` exists with duration + easing constants (no `transition.*` semantic bundles)
-- [ ] `ShadowTokens.java` exists with `SM`, `MD`, `LG`, `XL`
+- [x] `TypographyTokens.java` exists with semantic-variant constants only (no category+step shortcuts)
+- [x] `MotionTokens.java` exists with duration + easing constants (no `transition.*` semantic bundles)
+- [x] `ShadowTokens.java` exists with `SM`, `MD`, `LG`, `XL`
 
 ### Composer adoption
 
-- [ ] Every composer (`AtomicCompositeBuilder`, `ForYouComposer`, `ScheduleComposer`, `LiveComposer`, `HomeComposer`, `WatchComposer`, `GameDetailComposer`, `DemoScreenComposer`, `BoxscoreComposer`, `ScoreboardComposer`) emits `LayoutTokens.SPACING_*` / `RADIUS_*` constants for every padding/gap/cornerRadius value that maps to a semantic tier
-- [ ] Raw integers remain only where AGENTS.md §3.6 exceptions apply (`0`, calculated values, non-responsive component dimensions, no semantic mapping)
-- [ ] `IconTokens.java` covers every icon string emitted by any composer; no inline `"sdui:..."` literals remain in composer code
+- [x] Every composer (`AtomicCompositeBuilder`, `ForYouComposer`, `ScheduleComposer`, `LiveComposer`, `HomeComposer`, `WatchComposer`, `GameDetailComposer`, `DemoScreenComposer`, `BoxscoreComposer`, `ScoreboardComposer`) emits `LayoutTokens.SPACING_*` / `RADIUS_*` constants for every padding/gap/cornerRadius value that maps to a semantic tier
+- [x] Raw integers remain only where AGENTS.md §3.6 exceptions apply (`0`, calculated values, non-responsive component dimensions, no semantic mapping)
+- [x] `IconTokens.java` covers every icon string emitted by any composer; no inline `"sdui:..."` literals remain in composer code
 
 ### Client resolvers and codegen
 
-- [ ] `make codegen` emits typed `LayoutTokenRegistry` per platform (`LayoutTokenRegistry.swift`, `LayoutTokenRegistry.kt`, `LayoutTokenRegistry.ts`) covering every namespace; hand-written token tables in current resolvers are deleted
-- [ ] All three `LayoutTokenResolver` implementations resolve every namespace using a single wire form per family
+- [ ] `make codegen` emits typed `LayoutTokenRegistry` per platform (`LayoutTokenRegistry.swift`, `LayoutTokenRegistry.kt`, `LayoutTokenRegistry.ts`) covering every namespace, including bundled team color palettes and team UI mode mappings; hand-written token tables in current resolvers are deleted
+- [ ] The client token resolver stack resolves every namespace using a single wire form per family: `LayoutTokenResolver` handles layout/typography/motion/shadow, and `ColorTokenResolver` handles color/team tokens
+- [ ] All three `ColorTokenResolver` implementations resolve team semantic tokens locally from a caller-supplied team context (`teamId` + `teamMode`) and never fetch team palettes at runtime; missing context logs and falls back to neutral color semantics
 - [ ] Web resolvers translate the fluid envelope (`{min, max, minVw, maxVw}`) into CSS `clamp()`; iOS and Android resolvers treat web as opaque (not their column)
 - [ ] Shadow shorthand (`"token:nba.shadow.md"`) resolves to the full structured shadow object on each platform
 - [ ] Motion tokens resolve to platform-native animation values
 - [ ] Each resolver reads form factor from platform-native signals and exposes it through the framework's reactivity primitive
+- [ ] Typography resolution composes with platform accessibility scaling (iOS Dynamic Type, Android `fontScale`/`sp`, browser zoom/user font settings, TV text-scale settings where available) without changing the wire payload or issuing a fetch
 - [ ] **Zero network requests** issued by any resolver during rotation, resize, or split-screen transitions within the same `deviceClass`; asserted by tests that stub the HTTP layer
 - [ ] iOS gains a `LayoutTokenResolverTests.swift` with parity to existing Android/Web tests
 - [ ] All three platforms test typography, motion, and shadow resolution
+- [ ] All three platforms test accessibility text-scale changes: resolved base token remains stable, rendered platform size changes through the platform's accessibility mechanism, and the HTTP layer receives zero calls
+- [ ] All three platforms test team-color resolution for at least one light mode, one dark mode, and one CSV hex override (e.g. the Spurs `#BEC9CF` entry), with no network call
 
 ### Example fixtures
 
@@ -174,6 +192,73 @@ Every token name carries the `nba.` prefix. Icons retain `sdui:` because they're
 - [ ] `docs/sdui-design-system.md`, `docs/client-implementors-contract.md`, `docs/sdui-requirements-summary.md` updated to reflect the 4-column matrix, semantic-only wire vocabularies, and the four new registries
 - [ ] Standing rule recorded: changes to `schema/*-tokens.json` and `docs/sdui-design-system.md` ship in the same PR
 - [ ] AGENTS.md doctrine updated per Phase 10 (lands last)
+
+---
+
+## Phase 0 — Team color modes: bundled registry update
+
+The existing `schema/color-tokens.json` ends with a comment saying team colors are mode-specific and that resolvers load the team-specific palette at runtime. That comment predates the bundled-registry decision and must be replaced by actual bundled data.
+
+### 0.1 Import the Kinetic team palette and mode maps
+
+Sources:
+
+- `docs/Kinetic Design System Tokens/Kinetic Design System Tokens - NBA Team Colors.csv`
+- `docs/Kinetic Design System Tokens/Kinetic Design System Tokens - Teams UI Modes.csv`
+
+`schema/color-tokens.json` gains a `team` section with:
+
+```json
+{
+  "team": {
+    "palettes": {
+      "atl": {
+        "primary": "#...",
+        "secondary": "#...",
+        "tertiary": "#..."
+      }
+    },
+    "modes": {
+      "team-background": {
+        "atl": { "ref": "team.atl.primary" },
+        "sas": { "ref": "team.sas.tertiary" }
+      },
+      "team-accent--dark": {
+        "sas": { "value": "#BEC9CF" }
+      }
+    },
+    "semantic": {
+      "nba.team.bg": { "mode": "team-background" },
+      "nba.team.label": { "mode": "team-label" },
+      "nba.team.accent": {
+        "dark": "team-accent--dark",
+        "light": "team-accent--light"
+      },
+      "nba.team.accent-label": {
+        "dark": "team-accent-label--dark",
+        "light": "team-accent-label--light"
+      }
+    }
+  }
+}
+```
+
+The exact JSON shape can change during implementation, but it must preserve these invariants:
+
+- The full team palette and all mode mappings are bundled into each client by codegen.
+- Resolver inputs are `(token, teamId, teamMode/theme)`; no network call is allowed.
+- CSV literals (for example the Spurs `#BEC9CF` override) are preserved exactly.
+- Missing `teamId`, missing mode, or unknown team logs `token_resolver_missing` and falls back to the neutral color semantic chosen by the caller.
+
+### 0.2 Resolver API
+
+Each platform's color resolver adds a team-aware entry point, for example:
+
+```text
+resolveColor(token: "token:nba.team.accent", teamId: "sas", theme: "dark") -> Color
+```
+
+The ordinary color resolver remains unchanged for non-team tokens. Team context is passed from server-declared payload data (e.g. a card or section bound to a team), not inferred from screen identity.
 
 ---
 
@@ -225,7 +310,7 @@ Each existing `TextVariant` enum value gets a variant entry. Sizes per column co
 
 Notes:
 - TV values reflect 10-foot-UI viewing distance (Material You / tvOS HIG envelope), not arithmetic scaling.
-- Web envelopes give designers fluid behavior between 320px and 1440px viewport widths; scalar entries are used for variants where designers explicitly want no fluid scaling.
+- Web envelopes give designers fluid behavior between 320px and 1440px viewport widths. To keep the web surface Kinetic-compatible without exposing step tokens on the wire, every web scalar must equal a valid step value in the variant's category, and every envelope `min` / `max` must equal valid step values in that category. Intermediate `clamp()` values may be non-step values during interpolation.
 - Native platforms handle intra-deviceClass fragmentation (iPad mini vs iPad Pro, 1080p vs 4K TV) through their own density and font-scale systems; no SDUI-level intervention is needed.
 
 ### 1.3 Schema file shape
@@ -318,7 +403,39 @@ TV durations are longer than phone because animations traverse a larger viewport
 
 ### 2.2 Wire integration
 
-Add motion-token strings as valid values for animation-related properties in `sdui-schema.json`. Clients resolve to platform animation APIs (`UIView.animate` / Compose `tween` / CSS `transition-*`).
+Make the schema targets explicit; do not leave "animation-related properties" as an implementation guess.
+
+Add / normalize these definitions in `sdui-schema.json`:
+
+```json
+{
+  "MotionDuration": {
+    "oneOf": [
+      { "type": "integer", "minimum": 0 },
+      { "$ref": "#/definitions/DurationToken" }
+    ]
+  },
+  "MotionEasing": {
+    "oneOf": [
+      { "type": "string", "enum": ["linear", "easeIn", "easeOut", "easeInOut"] },
+      { "$ref": "#/definitions/EasingToken" }
+    ]
+  },
+  "AnimationTiming": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "duration": { "$ref": "#/definitions/MotionDuration" },
+      "easing": { "$ref": "#/definitions/MotionEasing" },
+      "delayMs": { "type": "integer", "minimum": 0, "default": 0 }
+    }
+  }
+}
+```
+
+Then apply `AnimationTiming` only to fields that already declare client-owned runtime behavior (for example lifecycle/visibility animation, paged-carousel transition timing, and any existing transition field introduced by `plan-lifecycle-animation-pagination.md`). Do **not** add a broad free-form `animation` bag to every `AtomicElement`; motion tokens are timing values for known client-owned runtime behaviors, not a new server-owned animation scripting surface.
+
+Generated models must preserve the richer shape: duration can be either an integer or a `token:nba.motion.duration.*` string, and easing can be either a closed enum value or a `token:nba.motion.easing.*` string. Clients resolve to platform animation APIs (`UIView.animate` / Compose `tween` / CSS `transition-*`) only at execution time.
 
 ### 2.3 Create `MotionTokens.java`
 
@@ -469,7 +586,7 @@ Run `./gradlew test` plus composer-output goldens. Round-trip tests on the clien
 
 ## Phase 7 — Client token resolver + codegen-baked registry
 
-All three client `LayoutTokenResolver` implementations currently handle only `nba.spacing.*` and `nba.radius.*` and embed their data as hand-written tables in code. This phase replaces the hand-written tables with codegen-baked typed registries, extends every resolver to cover typography / motion / shadow, and wires the resolvers into platform-native form-factor change signals.
+All three client `LayoutTokenResolver` implementations currently handle only `nba.spacing.*` and `nba.radius.*` and embed their data as hand-written tables in code. The color resolvers also rely on the current color registry shape, whose team section is only a comment. This phase replaces hand-written token tables with codegen-baked typed registries, extends layout resolvers to cover typography / motion / shadow, extends color resolvers to cover bundled team palettes, and wires the relevant resolvers into platform-native form-factor change signals.
 
 ### 7.1 Codegen the registry into each client
 
@@ -480,6 +597,7 @@ All three client `LayoutTokenResolver` implementations currently handle only `nb
 | iOS | `ios/Sources/SduiCore/Generated/LayoutTokenRegistry.swift` | `enum LayoutTokenRegistry { static let spacing: [String: FormFactorMatrix<Int>] = … }` |
 | Android | `android/sdui-core/src/main/java/com/nba/sdui/core/generated/LayoutTokenRegistry.kt` | `object LayoutTokenRegistry { val spacing: Map<String, FormFactorMatrix<Int>> = … }` |
 | Web | `web/src/generated/LayoutTokenRegistry.ts` | `export const LayoutTokenRegistry = { spacing: { … }, radius: { … }, typography: { … }, motion: { … }, shadow: { … } } as const;` |
+| iOS / Android / Web | existing generated color registry output or new `GeneratedColorTokenRegistry.*` | Includes primitive/semantic color tokens plus bundled `team.palettes`, `team.modes`, and `team.semantic` data consumed by `ColorTokenResolver` |
 
 Hand-written tables in today's resolvers are deleted. Generated files are checked in (same as `SduiModels`) so the build is reproducible.
 
@@ -494,6 +612,8 @@ Each resolver exposes a `currentFormFactor()` accessor backed by platform-native
 | Web | `window.matchMedia` listeners + `ResizeObserver` on `<body>` |
 
 **Prohibition:** no resolver may issue a network request as part of form-factor change handling. Tests in 7.6 assert zero outbound calls during simulated rotation / resize.
+
+Accessibility scaling is handled in the same local layer. The resolver returns the token's base size in the platform's native text unit (`pt`, `sp`, CSS `px`/`clamp()`), and the platform text system applies Dynamic Type, Android `fontScale`, browser zoom/user font settings, or TV text-scale settings. Accessibility changes must invalidate local rendering only; they never append text-scale parameters to the SDUI request envelope and never re-fetch composition.
 
 ### 7.3 Typography resolution
 
@@ -524,6 +644,11 @@ Each resolver adds two methods (or one with branching) to resolve `nba.motion.du
 - Stub the HTTP layer
 - Resolve a token, simulate rotation / resize / split-screen, resolve again
 - Assert resolved value reflects the new form factor; HTTP layer received zero calls
+
+**Accessibility scaling (no round-trips):**
+- iOS: simulate a Dynamic Type category change; rendered text size changes while the resolved base token and HTTP call count remain unchanged
+- Android: simulate `fontScale`; `sp` rendering changes while the resolved base token and HTTP call count remain unchanged
+- Web: simulate browser zoom / root font setting where testable; CSS `clamp()` / token output remains stable and no fetch occurs
 
 **Shadow:**
 - `resolveShadowToken("token:nba.shadow.md")` returns the full structured shadow
@@ -574,6 +699,7 @@ Run the full test suite on each platform:
 |---|---|
 | Related-files table | Add the four new schema files and three new constant classes |
 | §2.2 Spacing tokens | Update to 4-column matrix; reaffirm semantic-only wire |
+| §2.3 Color / team tokens | Document bundled team palettes, team UI modes, and `nba.team.*` semantic resolution from `(teamId, teamMode/theme)` |
 | §2.4 Typography tokens | Replace "planned" with the full registry; semantic variants only on the wire |
 | §2.5 Corner radius tokens | Update to 4-column matrix |
 | §2.6 Shadow tokens | Replace "planned" with the 4-tier registry + shorthand expansion contract |
@@ -587,15 +713,15 @@ Run the full test suite on each platform:
 |---|---|
 | §16 Codegen Quick Reference | Note the codegen-baked `LayoutTokenRegistry` per platform |
 | §17 Animation Guidelines | Reference motion tokens instead of hardcoded milliseconds |
-| §18 Conformance Checklist | New item: `LayoutTokenResolver` resolves all token namespaces; zero network on rotation/resize |
+| §18 Conformance Checklist | New item: `LayoutTokenResolver` resolves all token namespaces; zero network on rotation/resize/text-scale changes; team palettes are bundled |
 | New subsection | Shadow shorthand expansion contract |
 
 ### 9.3 `docs/sdui-requirements-summary.md`
 
 | Section | Change |
 |---|---|
-| §9g Theming & Dark Mode | Add typography / motion / shadow registries alongside color |
-| §9s Figma Design Token Integration | Update status from "Deferred" to "Partial"; list all 8 families with their registry files; note Figma export pipeline remains deferred |
+| §9g Theming & Dark Mode | Add typography / motion / shadow registries alongside color; document bundled team-color mode selection |
+| §9s Figma Design Token Integration | Update status from "Deferred" to "Partial"; list all token families with their registry files; note Figma export pipeline remains deferred |
 | §10 Implementation status table | Update theming/dark-mode row to reference all families |
 
 ### 9.4 Standing doc-sync rule
@@ -623,6 +749,8 @@ Replace the existing §3.6 with:
 > - Composed payloads emit semantic token strings (e.g. `"token:nba.spacing.lg"`) for spacing, radius, typography, motion, shadow, color, and icon — never raw pixels or platform-native names.
 > - One wire vocabulary per family. Color is the only family with two layers (primitive + semantic, because theming swaps the primitive); other families expose semantic names only. Raw or step-indexed sub-vocabularies stay server-internal.
 > - Token resolution is fully client-local. Clients carry the registry in their build; no runtime fetch. Routine form-factor changes — rotation, resize, split-screen, same-`deviceClass` foldable transitions — re-resolve locally with no network call.
+> - Team color tokens are bundled registry data. Clients resolve `nba.team.*` from server-declared team context and theme/mode; they never fetch team palettes at runtime.
+> - Accessibility text scaling is client-local. Dynamic Type, Android font scale, browser zoom/user font settings, and TV text-scale settings apply after token resolution and must not change the request envelope.
 > - Raw integers remain acceptable only for: `0`; runtime-calculated values; intentionally non-responsive component dimensions; values with no semantic token (cite the gap in a comment).
 > - Applies to all layout scalars and the structured fields `shadow`, `typography`, `animation`, `color`.
 
@@ -648,11 +776,18 @@ Append to §1.3:
 
 ### 11.1 Sitebuilder ↔ SDUI web parity (web column only)
 
-Add a test that loads `brand-nba.yml`, runs `yaml_brand_spec_to_tokens()`, and asserts that every Kinetic step referenced by a SDUI variant's `web` envelope or scalar resolves to the same pixel value sitebuilder produces. Mobile and TV columns are not asserted — those have different sources of truth and are intentionally allowed to diverge.
+Add a test that loads `brand-nba.yml`, runs `yaml_brand_spec_to_tokens()`, and asserts:
+
+- Every SDUI typography category (`headline`, `display`, `title`, `body`, `label`, `data`, `score`, `button`, `caption`) has the same base metadata (`familyRef`, `weight`, `lineHeight`, `textCase`) as the corresponding sitebuilder category after family-ref normalization.
+- Every scalar `size.web` equals one pixel value in that variant's Kinetic category step map.
+- Every fluid `size.web` envelope has `min` and `max` equal to pixel values in that variant's Kinetic category step map; interpolation values between them are allowed to be non-step values.
+- Any literal web value that is not in the category step map must carry an inline `$reason` and must be listed in `docs/sdui-design-system.md`.
+
+Mobile and TV columns are not asserted — those have different sources of truth and are intentionally allowed to diverge.
 
 ### 11.2 Startup registry validation
 
-`LayoutTokenRegistry.java` loads all 8 token files and fails fast on:
+`LayoutTokenRegistry.java` loads all token registry files and fails fast on:
 
 - Missing `TextVariant` enum values in the typography variant map
 - Variants whose `categoryRef` doesn't resolve
@@ -661,6 +796,17 @@ Add a test that loads `brand-nba.yml`, runs `yaml_brand_spec_to_tokens()`, and a
 - Invalid easing curve syntax
 - Missing shadow struct fields
 - Unknown aliases in color tokens
+- Team mode mappings that reference missing team palette entries
+- Team mode mappings whose literal CSV colors are not valid hex colors
+
+### 11.2.1 Team color parity
+
+Add a test that loads the two Kinetic team CSVs and asserts:
+
+- Every team column in `Teams UI Modes.csv` has a matching palette entry imported from `NBA Team Colors.csv`.
+- Every `team/*/{primary|secondary|tertiary}` reference resolves to a bundled palette value.
+- Every literal CSV override (for example Spurs `#BEC9CF`) is preserved exactly.
+- The four public team semantic tokens (`nba.team.bg`, `nba.team.label`, `nba.team.accent`, `nba.team.accent-label`) resolve for all 30 teams in both light and dark modes without runtime I/O.
 
 ### 11.3 Final regression sweep
 
@@ -668,8 +814,8 @@ Add a test that loads `brand-nba.yml`, runs `yaml_brand_spec_to_tokens()`, and a
 2. `./gradlew test` — server tests pass including new registry tests
 3. `make codegen` — emits per-platform registries; regenerated outputs commit cleanly
 4. `npx tsc --noEmit` in `web/` — no client-side regressions
-5. Web / Android / iOS test suites pass with updated fixtures, new resolver tests, zero-network-on-resize assertions
-6. Visual smoke: rotate device / resize browser / open split-screen; confirm typography, spacing, shadow reflow without a fetch
+5. Web / Android / iOS test suites pass with updated fixtures, new resolver tests, zero-network-on-resize assertions, zero-network-on-text-scale assertions, and team-color resolver tests
+6. Visual smoke: rotate device / resize browser / open split-screen / change text scale; confirm typography, spacing, shadow, and team colors re-resolve without a fetch
 7. Network spot-check: composed payloads contain canonical token strings (`"token:nba.spacing.lg"`, `"token:nba.typography.headlineLarge"`, `"token:nba.shadow.md"`)
 8. Doc consistency: `docs/sdui-design-system.md` tables match the corresponding `schema/*-tokens.json` files
 
@@ -681,15 +827,17 @@ Add a test that loads `brand-nba.yml`, runs `yaml_brand_spec_to_tokens()`, and a
 2. **Wire vocabulary:** one layer per family, except color (primitive + semantic for theming). Raw and step-indexed sub-vocabularies are not on the wire.
 3. **Typography wire form:** semantic variants only (`nba.typography.headlineLarge`). Categories exist as server-internal spec data, not addressable on the wire.
 4. **Bundled registry:** all token data ships in the client build via `make codegen`. No runtime fetch.
-5. **Client-local form factor:** rotation, resize, split-screen, same-`deviceClass` foldable transitions resolve entirely on-device. Re-fetch only when `deviceClass` changes.
-6. **`formFactor` not on the envelope:** keeps the envelope cache keyspace from fragmenting; `deviceClass` is sufficient because the server doesn't branch on finer-grained form factor.
-7. **Matrix shape:** 4 columns (`phone`, `tablet`, `tv`, `web`). Earlier columns retired. `web` supports a fluid envelope.
-8. **New `TextVariant` enum values:** deferred — audit composer needs first, add only where existing variants can't express the design intent.
-9. **`schema/size-tokens.json`:** already deleted; no plan work.
-10. **Color bug fixes (scrim, brand.nba) and Android `score` variant bug:** out of scope; ship in a separate PR.
-11. **Legacy aliases / back-compat:** none. All code and fixtures update directly to canonical `nba.*` tokens.
-12. **Doc-sync rule:** mandatory — token JSON and `docs/sdui-design-system.md` change in the same PR.
-13. **AGENTS.md doctrine update:** lands last, principle-first, codifies what was built.
+5. **Team colors are bundled:** `nba.team.*` semantics resolve from bundled Kinetic team palettes and UI mode maps using server-declared team context. No runtime palette loading.
+6. **Client-local form factor:** rotation, resize, split-screen, same-`deviceClass` foldable transitions resolve entirely on-device. Re-fetch only when `deviceClass` changes.
+7. **Client-local accessibility scaling:** Dynamic Type, Android `fontScale`, browser zoom/user font settings, and TV text-scale settings apply locally after token resolution. No envelope fields and no fetches.
+8. **`formFactor` not on the envelope:** keeps the envelope cache keyspace from fragmenting; `deviceClass` is sufficient because the server doesn't branch on finer-grained form factor.
+9. **Matrix shape:** 4 columns (`phone`, `tablet`, `tv`, `web`). Earlier columns retired. `web` supports a fluid envelope.
+10. **New `TextVariant` enum values:** deferred — audit composer needs first, add only where existing variants can't express the design intent.
+11. **`schema/size-tokens.json`:** already deleted; no plan work.
+12. **Color bug fixes (scrim, brand.nba) and Android `score` variant bug:** out of scope; ship in a separate PR.
+13. **Legacy aliases / back-compat:** none. All code and fixtures update directly to canonical `nba.*` tokens.
+14. **Doc-sync rule:** mandatory — token JSON and `docs/sdui-design-system.md` change in the same PR.
+15. **AGENTS.md doctrine update:** lands last, principle-first, codifies what was built.
 
 ---
 
@@ -703,6 +851,8 @@ Add a test that loads `brand-nba.yml`, runs `yaml_brand_spec_to_tokens()`, and a
 | `schema/corner-radius-tokens.json` | Design-sourced; migrate to 4-column in Phase 5 |
 | `schema/icon-tokens.json` | Code-derived |
 | `schema/style-tokens.json` | Code-derived |
+| `docs/Kinetic Design System Tokens/Kinetic Design System Tokens - NBA Team Colors.csv` | Source for bundled team palettes |
+| `docs/Kinetic Design System Tokens/Kinetic Design System Tokens - Teams UI Modes.csv` | Source for bundled team mode mappings |
 | **Schema — new** | |
 | `schema/typography-tokens.json` | Phase 1 |
 | `schema/motion-tokens.json` | Phase 2 |

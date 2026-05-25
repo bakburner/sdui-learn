@@ -105,7 +105,7 @@
                     },
                     {
                       "type": "Spacer",
-                      "height": 4
+                      "height": "token:nba.spacing.xs"
                     },
                     {
                       "type": "Text",
@@ -140,7 +140,7 @@
                     },
                     {
                       "type": "Spacer",
-                      "height": 4
+                      "height": "token:nba.spacing.xs"
                     },
                     {
                       "type": "Text",
@@ -175,7 +175,7 @@
                     },
                     {
                       "type": "Spacer",
-                      "height": 4
+                      "height": "token:nba.spacing.xs"
                     },
                     {
                       "type": "Text",
@@ -210,7 +210,7 @@
                     },
                     {
                       "type": "Spacer",
-                      "height": 4
+                      "height": "token:nba.spacing.xs"
                     },
                     {
                       "type": "Text",
@@ -245,7 +245,7 @@
                     },
                     {
                       "type": "Spacer",
-                      "height": 4
+                      "height": "token:nba.spacing.xs"
                     },
                     {
                       "type": "Text",
@@ -414,7 +414,7 @@
                                   },
                                   {
                                     "type": "Spacer",
-                                    "height": 4
+                                    "height": "token:nba.spacing.xs"
                                   },
                                   {
                                     "type": "Text",
@@ -461,7 +461,7 @@
                                   },
                                   {
                                     "type": "Spacer",
-                                    "height": 4
+                                    "height": "token:nba.spacing.xs"
                                   },
                                   {
                                     "type": "Text",
@@ -563,7 +563,7 @@
                                   },
                                   {
                                     "type": "Spacer",
-                                    "height": 4
+                                    "height": "token:nba.spacing.xs"
                                   },
                                   {
                                     "type": "Text",
@@ -610,7 +610,7 @@
                                   },
                                   {
                                     "type": "Spacer",
-                                    "height": 4
+                                    "height": "token:nba.spacing.xs"
                                   },
                                   {
                                     "type": "Text",
@@ -712,7 +712,7 @@
                                   },
                                   {
                                     "type": "Spacer",
-                                    "height": 4
+                                    "height": "token:nba.spacing.xs"
                                   },
                                   {
                                     "type": "Text",
@@ -759,7 +759,7 @@
                                   },
                                   {
                                     "type": "Spacer",
-                                    "height": 4
+                                    "height": "token:nba.spacing.xs"
                                   },
                                   {
                                     "type": "Text",
@@ -863,7 +863,7 @@
             },
             {
               "type": "Spacer",
-              "height": 8
+              "height": "token:nba.spacing.sm"
             },
             {
               "type": "Container",
@@ -887,7 +887,7 @@
                     },
                     {
                       "type": "Spacer",
-                      "height": 4
+                      "height": "token:nba.spacing.xs"
                     },
                     {
                       "type": "Text",
@@ -934,7 +934,7 @@
                     },
                     {
                       "type": "Spacer",
-                      "height": 4
+                      "height": "token:nba.spacing.xs"
                     },
                     {
                       "type": "Text",
@@ -1142,7 +1142,7 @@
                     },
                     {
                       "type": "Spacer",
-                      "height": 4
+                      "height": "token:nba.spacing.xs"
                     },
                     {
                       "type": "Text",
@@ -1225,7 +1225,7 @@
                     },
                     {
                       "type": "Spacer",
-                      "height": 4
+                      "height": "token:nba.spacing.xs"
                     },
                     {
                       "type": "Text",
@@ -1281,7 +1281,7 @@
                     },
                     {
                       "type": "Spacer",
-                      "height": 4
+                      "height": "token:nba.spacing.xs"
                     },
                     {
                       "type": "Text",
@@ -1489,7 +1489,7 @@
                     },
                     {
                       "type": "Spacer",
-                      "height": 4
+                      "height": "token:nba.spacing.xs"
                     },
                     {
                       "type": "Text",
@@ -1572,7 +1572,7 @@
                     },
                     {
                       "type": "Spacer",
-                      "height": 4
+                      "height": "token:nba.spacing.xs"
                     },
                     {
                       "type": "Text",
@@ -1628,7 +1628,7 @@
                     },
                     {
                       "type": "Spacer",
-                      "height": 4
+                      "height": "token:nba.spacing.xs"
                     },
                     {
                       "type": "Text",
@@ -1848,7 +1848,7 @@
                     },
                     {
                       "type": "Spacer",
-                      "height": 4
+                      "height": "token:nba.spacing.xs"
                     },
                     {
                       "type": "Text",
@@ -1931,7 +1931,7 @@
                     },
                     {
                       "type": "Spacer",
-                      "height": 4
+                      "height": "token:nba.spacing.xs"
                     },
                     {
                       "type": "Text",
@@ -2014,7 +2014,7 @@
                     },
                     {
                       "type": "Spacer",
-                      "height": 4
+                      "height": "token:nba.spacing.xs"
                     },
                     {
                       "type": "Text",
@@ -2234,7 +2234,7 @@
                     },
                     {
                       "type": "Spacer",
-                      "height": 4
+                      "height": "token:nba.spacing.xs"
                     },
                     {
                       "type": "Text",
@@ -2290,7 +2290,7 @@
                     },
                     {
                       "type": "Spacer",
-                      "height": 4
+                      "height": "token:nba.spacing.xs"
                     },
                     {
                       "type": "Text",
@@ -2373,7 +2373,7 @@
                     },
                     {
                       "type": "Spacer",
-                      "height": 4
+                      "height": "token:nba.spacing.xs"
                     },
                     {
                       "type": "Text",

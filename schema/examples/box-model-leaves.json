@@ -110,7 +110,7 @@
             {
               "id": "leaf-spacer",
               "type": "Spacer",
-              "height": 8,
+              "height": "token:nba.spacing.sm",
               "padding": {
                 "top": 0,
                 "bottom": 0,
@@ -128,7 +128,7 @@
               "id": "nested-container",
               "type": "Container",
               "direction": "row",
-              "gap": 8,
+              "gap": "token:nba.spacing.sm",
               "padding": {
                 "top": "token:nba.spacing.md",
                 "bottom": "token:nba.spacing.md",
@@ -136,7 +136,7 @@
                 "end": "token:nba.spacing.md"
               },
               "background": "#FFFFFF",
-              "cornerRadius": 8,
+              "cornerRadius": "token:nba.radius.md",
               "shadow": {
                 "color": "#000000",
                 "offsetX": 0,
@@ -181,7 +181,7 @@
                 "end": 0
               },
               "background": "#FFFFFF",
-              "cornerRadius": 8,
+              "cornerRadius": "token:nba.radius.md",
               "columns": [
                 {
                   "id": "col-a",

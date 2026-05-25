@@ -30,7 +30,7 @@
             },
             {
               "type": "Spacer",
-              "height": 12
+              "height": "token:nba.spacing.md"
             },
             {
               "type": "Text",
@@ -40,7 +40,7 @@
             },
             {
               "type": "Spacer",
-              "height": 8
+              "height": "token:nba.spacing.sm"
             },
             {
               "type": "Text",
@@ -50,7 +50,7 @@
             },
             {
               "type": "Spacer",
-              "height": 16
+              "height": "token:nba.spacing.lg"
             },
             {
               "type": "Button",

@@ -681,6 +681,20 @@ has drifted.
 - Upstream data quirks with ticket references
 - Product-decision intent the code itself cannot convey
 
+### 10.4 Documentation sync after schema or token changes
+
+After any change to `schema/sdui-schema.json` or `schema/*-tokens.json`:
+
+1. Re-run `make codegen` so generated models stay in sync.
+2. Copy updated token JSON files to each client bundle
+   (`ios/Sources/SduiCore/Resources/Tokens/`,
+   `android/sdui-core/src/main/resources/tokens/`).
+3. Verify that docs referencing token families or schema shapes
+   (`docs/client-implementors-contract.md`, plan files, and any
+   platform-specific docs) still reflect the current structure. Update
+   prose if the change introduced new token families, renamed fields, or
+   altered resolution semantics.
+
 ## 11. Variant Discipline
 
 - Prefer expressible over named.

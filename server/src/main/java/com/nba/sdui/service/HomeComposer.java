@@ -128,7 +128,7 @@ public class HomeComposer {
         // Compose as responsive row
         String rowContentSourceId = "feed:home";
         String rowSectionId = SectionIdDeriver.derive(rowContentSourceId, "AtomicComposite", "row1");
-        ObjectNode row = atomicBuilder.responsiveRow(16, 768);
+        ObjectNode row = atomicBuilder.responsiveRow(LayoutTokens.SPACING_LG, 768);
         row.put("id", rowSectionId);
         ArrayNode children = objectMapper.createArrayNode();
 
@@ -164,7 +164,7 @@ public class HomeComposer {
         // Compose as responsive row
         String rowContentSourceId = "feed:home";
         String rowSectionId = SectionIdDeriver.derive(rowContentSourceId, "AtomicComposite", "row2");
-        ObjectNode row = atomicBuilder.responsiveRow(16, 768);
+        ObjectNode row = atomicBuilder.responsiveRow(LayoutTokens.SPACING_LG, 768);
         row.put("id", rowSectionId);
         ArrayNode children = objectMapper.createArrayNode();
 

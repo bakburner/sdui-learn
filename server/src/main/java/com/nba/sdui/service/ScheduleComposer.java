@@ -245,7 +245,7 @@ public class ScheduleComposer {
 
         ObjectNode spacer = objectMapper.createObjectNode();
         spacer.put("type", "Spacer");
-        spacer.put("height", 4);
+        spacer.put("height", LayoutTokens.SPACING_SM);
         children.add(spacer);
 
         ObjectNode name = objectMapper.createObjectNode();

@@ -345,7 +345,7 @@
                       },
                       {
                         "type": "Spacer",
-                        "height": 8
+                        "height": "token:nba.spacing.sm"
                       },
                       {
                         "type": "Button",
@@ -404,7 +404,7 @@
                     "direction": "row",
                     "alignment": "end",
                     "crossAlignment": "center",
-                    "gap": 8,
+                    "gap": "token:nba.spacing.sm",
                     "children": [
                       {
                         "type": "Button",

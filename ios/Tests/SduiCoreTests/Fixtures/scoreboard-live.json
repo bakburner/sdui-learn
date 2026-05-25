@@ -53,7 +53,7 @@
                     },
                     {
                       "type": "Spacer",
-                      "height": 4
+                      "height": "token:nba.spacing.xs"
                     },
                     {
                       "type": "Text",
@@ -100,7 +100,7 @@
                     },
                     {
                       "type": "Spacer",
-                      "height": 4
+                      "height": "token:nba.spacing.xs"
                     },
                     {
                       "type": "Text",
@@ -141,10 +141,10 @@
       },
       "surface": {
         "margin": {
-          "top": 16,
-          "end": 16,
-          "bottom": 16,
-          "start": 16
+          "top": "token:nba.spacing.lg",
+          "end": "token:nba.spacing.lg",
+          "bottom": "token:nba.spacing.lg",
+          "start": "token:nba.spacing.lg"
         },
         "background": {
           "colors": [
@@ -223,7 +223,7 @@
                     },
                     {
                       "type": "Spacer",
-                      "height": 4
+                      "height": "token:nba.spacing.xs"
                     },
                     {
                       "type": "Text",
@@ -270,7 +270,7 @@
                     },
                     {
                       "type": "Spacer",
-                      "height": 4
+                      "height": "token:nba.spacing.xs"
                     },
                     {
                       "type": "Text",
@@ -311,10 +311,10 @@
       },
       "surface": {
         "margin": {
-          "top": 16,
-          "end": 16,
-          "bottom": 16,
-          "start": 16
+          "top": "token:nba.spacing.lg",
+          "end": "token:nba.spacing.lg",
+          "bottom": "token:nba.spacing.lg",
+          "start": "token:nba.spacing.lg"
         },
         "background": {
           "colors": [
@@ -393,7 +393,7 @@
                     },
                     {
                       "type": "Spacer",
-                      "height": 4
+                      "height": "token:nba.spacing.xs"
                     },
                     {
                       "type": "Text",
@@ -440,7 +440,7 @@
                     },
                     {
                       "type": "Spacer",
-                      "height": 4
+                      "height": "token:nba.spacing.xs"
                     },
                     {
                       "type": "Text",
@@ -481,10 +481,10 @@
       },
       "surface": {
         "margin": {
-          "top": 16,
-          "end": 16,
-          "bottom": 16,
-          "start": 16
+          "top": "token:nba.spacing.lg",
+          "end": "token:nba.spacing.lg",
+          "bottom": "token:nba.spacing.lg",
+          "start": "token:nba.spacing.lg"
         },
         "background": {
           "colors": [

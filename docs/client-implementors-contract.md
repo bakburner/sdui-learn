@@ -1647,6 +1647,13 @@ client alongside `SduiModels`:
 
 These registries are self-contained snapshots used by `LayoutTokenResolver` at runtime.
 
+**Team color resolution:** `ColorTokenResolver` on each platform also provides
+`resolveTeamColor(token, teamId, theme)` using the bundled `team` section in
+`schema/color-tokens.json`. Team tokens (`nba.team.bg`, `nba.team.label`,
+`nba.team.accent`, `nba.team.accent-label`) resolve from `(teamId, theme)` via
+palettes, mode overrides, and semantic mappings — entirely offline, no network
+call. Platform-specific `TeamColorRegistry` modules own parsing and lookup.
+
 ### 16a. Shadow shorthand expansion contract
 
 Wire `shadow` and `shadows[]` fields accept `Shadow | string`. The string form

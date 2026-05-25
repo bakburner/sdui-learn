@@ -71,6 +71,7 @@
         "tv": 96,
         "web": {
           "min": 45,
+          "$reason:min": "Display category smallest step is 48; 45 is a viewport-optimized interpolation target for 320px screens",
           "max": 96,
           "minVw": 320,
           "maxVw": 1440
@@ -85,6 +86,7 @@
         "tv": 80,
         "web": {
           "min": 36,
+          "$reason:min": "Display category smallest step is 40; 36 is a viewport-optimized interpolation target for 320px screens",
           "max": 80,
           "minVw": 320,
           "maxVw": 1440
@@ -99,6 +101,7 @@
         "tv": 64,
         "web": {
           "min": 32,
+          "$reason:min": "Display category smallest step is 40; 32 is a viewport-optimized interpolation target for 320px screens",
           "max": 64,
           "minVw": 320,
           "maxVw": 1440
@@ -141,6 +144,7 @@
         "tv": 40,
         "web": {
           "min": 22,
+          "$reason:min": "Headline steps are 20, 24; 22 optimizes mobile readability between those steps",
           "max": 40,
           "minVw": 320,
           "maxVw": 1440
@@ -188,6 +192,7 @@
         "web": {
           "min": 16,
           "max": 18,
+          "$reason:max": "Body category steps are 14, 16, 20; 18 caps large body text for readability",
           "minVw": 320,
           "maxVw": 1440
         }
@@ -202,6 +207,7 @@
         "web": {
           "min": 14,
           "max": 18,
+          "$reason:max": "Body category steps are 14, 16, 20; 18 caps medium body text for readability",
           "minVw": 320,
           "maxVw": 1440
         }
@@ -209,6 +215,7 @@
     },
     "nba.typography.bodySmall": {
       "categoryRef": "nba.typography.body",
+      "$reason:web": "Body category starts at 14; 12 matches caption baseline for compact secondary text",
       "size": {
         "phone": 12,
         "tablet": 14,
@@ -227,6 +234,7 @@
     },
     "nba.typography.labelMedium": {
       "categoryRef": "nba.typography.label",
+      "$reason:web": "Label category steps are 10, 14; 12 is the standard compact label size across platforms",
       "size": {
         "phone": 12,
         "tablet": 12,
@@ -236,6 +244,7 @@
     },
     "nba.typography.labelSmall": {
       "categoryRef": "nba.typography.label",
+      "$reason:web": "Label category steps are 10, 14; 11 is the smallest readable UI text size",
       "size": {
         "phone": 11,
         "tablet": 11,

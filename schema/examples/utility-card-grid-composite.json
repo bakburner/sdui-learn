@@ -42,7 +42,7 @@
                   "type": "Container",
                   "direction": "column",
                   "crossAlignment": "center",
-                  "gap": 8,
+                  "gap": "token:nba.spacing.sm",
                   "background": "token:nba.bg.secondary",
                   "cornerRadius": 14,
                   "padding": {
@@ -87,7 +87,7 @@
                   "type": "Container",
                   "direction": "column",
                   "crossAlignment": "center",
-                  "gap": 8,
+                  "gap": "token:nba.spacing.sm",
                   "background": "token:nba.bg.secondary",
                   "cornerRadius": 14,
                   "padding": {

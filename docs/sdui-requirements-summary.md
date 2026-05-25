@@ -896,7 +896,7 @@ sequenceDiagram
 - **Color token resolution:** `ColorToken` wire type accepts literal hex (`#RRGGBB` / `#RRGGBBAA`) or semantic reference (`token:color.*`). Clients resolve at render time against the OS color scheme using the registry's palette/semantic alias chain. Unknown tokens log and fall back to caller default. Registry: [`schema/color-tokens.json`](../schema/color-tokens.json)
 - **Codified token families:** The theming/runtime surface now includes explicit registries for spacing, radius, typography, motion, and shadow (plus font-family metadata) in addition to color and style variants; these are all build-time codified registries, not ad-hoc runtime values.
 - **Scope boundary:** Variant surface colors resolve through the platform's native semantic palette (not the color-token registry). Brand and content colors on atomic element properties resolve through `ColorTokenResolver`. No overlap
-- **Inline exemptions:** Alpha-bearing hex literals (compositing alpha) and team brand primary colors (per NBA brand guidelines, team colors are brand assets) stay inline — not tokens
+- **Inline exemptions:** Alpha-bearing hex literals (compositing alpha) stay inline — not tokens. Team brand colors are now in the bundled registry (`schema/color-tokens.json` `team` section) and resolved via `nba.team.*` tokens
 - **Dark mode is client-owned:** No `X-Theme` header exists or is planned. The server is not told which mode the user is in
 - **Brand theme takeovers** (All-Star, Playoffs, sponsor windows) are out of scope by design — not deferral
 - **Figma pipeline:** Deferred. Registry is ref-app-seeded with a Kinetic-compatible shape. See §9s

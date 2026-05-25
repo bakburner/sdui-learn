@@ -5,6 +5,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import com.nba.sdui.core.tokens.TeamColorRegistry
 
 /**
  * Resolves SDUI color values to a Compose [Color].
@@ -420,5 +421,45 @@ object ColorTokenResolver {
         } catch (_: Exception) {
             Color.Unspecified
         }
+    }
+
+    // ── Team color resolution ─────────────────────────────────────────────
+
+    /**
+     * Resolve an `nba.team.*` token for a specific team and theme.
+     *
+     * Delegates to [TeamColorRegistry] for the team-specific palette/mode
+     * lookup. Returns null if the token or team is unknown.
+     *
+     * @param token Full token name (e.g. `nba.team.bg`)
+     * @param teamId Three-letter lowercase team abbreviation (e.g. `atl`)
+     * @param theme `"dark"` or `"light"`
+     */
+    fun resolveTeamColor(token: String, teamId: String, theme: String): String? {
+        return TeamColorRegistry.resolveTeamColor(token, teamId, theme)
+    }
+
+    /**
+     * Resolve a palette/semantic token name to its hex color string without
+     * requiring a Compose context. Used by [TeamColorRegistry] for `ref`-type
+     * mode values (e.g. `nba.color.primary.10`).
+     *
+     * Walks the semantic → palette alias chain and returns the light-mode hex
+     * value (team refs always point to mode-independent primitives).
+     */
+    internal fun resolveTokenToHex(name: String): String? {
+        return walkAliasChainToHex(name, 0)
+    }
+
+    private fun walkAliasChainToHex(name: String, depth: Int): String? {
+        if (depth > MAX_DEPTH) return null
+        if (name.startsWith("#")) return name
+        val entry = palette[name]
+        if (entry != null) {
+            val value = entry.light
+            return if (value.startsWith("#")) value else walkAliasChainToHex(value, depth + 1)
+        }
+        val alias = semantic[name] ?: return null
+        return walkAliasChainToHex(alias, depth + 1)
     }
 }

@@ -458,7 +458,7 @@ public class DemoScreenComposer {
                 new String[][]{{"201566", "Trae Young", "ATL", "AST", "11.1",
                         DemoImageUrls.headshot("201566")}});
 
-        ObjectNode root = atomicBuilder.responsiveRow(16, 600);
+        ObjectNode root = atomicBuilder.responsiveRow(LayoutTokens.SPACING_LG, 600);
         root.put("id", "demo-row-container");
         ArrayNode children = objectMapper.createArrayNode();
 

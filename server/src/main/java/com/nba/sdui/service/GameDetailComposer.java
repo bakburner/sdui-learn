@@ -550,7 +550,7 @@ public class GameDetailComposer {
             ObjectNode homeChild = buildStatLineChild("row-home-stats", homeTricode + " Leaders", homePerformers);
             ObjectNode awayChild = buildStatLineChild("row-away-stats", awayTricode + " Leaders", awayPerformers);
 
-            ObjectNode root = atomicBuilder.responsiveRow(16, 600);
+            ObjectNode root = atomicBuilder.responsiveRow(LayoutTokens.SPACING_LG, 600);
             ArrayNode children = objectMapper.createArrayNode();
 
             ObjectNode homeSlot = atomicBuilder.sectionSlot("row-home", homeChild);

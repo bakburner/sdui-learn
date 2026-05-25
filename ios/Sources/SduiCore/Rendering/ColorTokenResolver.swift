@@ -70,6 +70,31 @@ public enum ColorTokenResolver {
         return followAlias(next, depth: depth + 1)
     }
 
+    // MARK: - Hex resolution for cross-registry use
+
+    /// Resolve a palette/semantic token name to its hex string (mode-independent
+    /// primitives only — uses the light value). Used by `TeamColorRegistry` for
+    /// `{ "ref": "nba.color.primary.N" }` lookups.
+    static func resolveTokenNameToHex(_ name: String) -> String? {
+        guard let entry = followAlias(name) else { return nil }
+        return resolveIndirectionToHex(entry.light)
+    }
+
+    private static func resolveIndirectionToHex(_ value: String, depth: Int = 0) -> String? {
+        guard depth < maxAliasDepth else { return nil }
+        if value.hasPrefix("#") { return value }
+        guard let entry = followAlias(value) else { return nil }
+        return resolveIndirectionToHex(entry.light, depth: depth + 1)
+    }
+
+    // MARK: - Team color bridge
+
+    /// Resolve an `nba.team.*` token for a specific team and theme.
+    /// Returns a hex string (`#RRGGBB`) or `nil` if the token/team is unknown.
+    public static func resolveTeamColor(token: String, teamId: String, theme: String) -> String? {
+        TeamColorRegistry.resolveTeamColor(token: token, teamId: teamId, theme: theme)
+    }
+
     /// Parse `#RRGGBB` or `#RRGGBBAA`. Leading `#` is optional.
     /// Returns `nil` for any other length.
     private static func colorFromHex(_ hex: String) -> Color? {

@@ -14,9 +14,9 @@
       "surface": {
         "margin": {
           "top": 0,
-          "bottom": 12,
-          "start": 16,
-          "end": 16
+          "bottom": "token:nba.spacing.md",
+          "start": "token:nba.spacing.lg",
+          "end": "token:nba.spacing.lg"
         }
       },
       "data": {
@@ -180,9 +180,9 @@
       "surface": {
         "margin": {
           "top": 0,
-          "bottom": 12,
-          "start": 16,
-          "end": 16
+          "bottom": "token:nba.spacing.md",
+          "start": "token:nba.spacing.lg",
+          "end": "token:nba.spacing.lg"
         }
       },
       "data": {
@@ -217,8 +217,8 @@
               "padding": {
                 "top": "token:nba.spacing.xs",
                 "bottom": "token:nba.spacing.xs",
-                "start": 8,
-                "end": 8
+                "start": "token:nba.spacing.sm",
+                "end": "token:nba.spacing.sm"
               }
             },
             {
@@ -347,9 +347,9 @@
       "surface": {
         "margin": {
           "top": 0,
-          "bottom": 12,
-          "start": 16,
-          "end": 16
+          "bottom": "token:nba.spacing.md",
+          "start": "token:nba.spacing.lg",
+          "end": "token:nba.spacing.lg"
         }
       },
       "data": {

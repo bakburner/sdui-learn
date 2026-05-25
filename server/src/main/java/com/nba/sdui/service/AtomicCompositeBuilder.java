@@ -1670,7 +1670,7 @@ public class AtomicCompositeBuilder {
 
     private ObjectNode overlayStoryCard(String id, String title, String imageUrl,
                                          String badgeText, String targetUri) {
-        int radius = 12;
+        String radius = LayoutTokens.RADIUS_MD;
         ObjectNode card = container("column", null, null);
         card.put("id", id);
         card.put("width", 180);
@@ -1810,7 +1810,7 @@ public class AtomicCompositeBuilder {
             wrapper.set("children", wrapperChildren);
             rootChildren.add(wrapper);
         } else {
-            ObjectNode scroll = pagedHorizontalScroll(12, validCards.size(), padding(LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, 0, 0),
+            ObjectNode scroll = pagedHorizontalScroll(LayoutTokens.SPACING_MD, validCards.size(), padding(LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, 0, 0),
                     "bottomCenter", null, null);
             scroll.set("children", scrollChildren);
             rootChildren.add(scroll);
@@ -1880,7 +1880,7 @@ public class AtomicCompositeBuilder {
 
         ArrayNode children = om.createArrayNode();
         if (backUri != null && !backUri.isBlank()) {
-            ObjectNode back = appBarIconButton("sdui:back", tapNavigate(backUri));
+            ObjectNode back = appBarIconButton(IconTokens.BACK, tapNavigate(backUri));
             AccessibilityHelper.addButton(om, back, "Back");
             children.add(back);
             children.add(hSpacer(LayoutTokens.SPACING_SM));
@@ -2048,7 +2048,7 @@ public class AtomicCompositeBuilder {
             rootChildren.add(header);
         }
 
-        ObjectNode scroll = scrollRow(12, false);
+        ObjectNode scroll = scrollRow(LayoutTokens.SPACING_MD, false);
         scroll.set("padding", padding(LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, 0, 0));
         ArrayNode children = om.createArrayNode();
         for (String[] item : items) {
@@ -2188,7 +2188,7 @@ public class AtomicCompositeBuilder {
         requireNonBlank(imageUrl, "imageUrl");
         requireNonBlank(title, "title");
 
-        int radius = 12;
+        String radius = LayoutTokens.RADIUS_MD;
         ObjectNode base = image(imageUrl, 0, 0, "cover", null);
         base.put("widthMode", "fill");
         base.put("aspectRatio", 16.0 / 9.0);
@@ -2231,10 +2231,10 @@ public class AtomicCompositeBuilder {
             iconRow.put("gap", LayoutTokens.SPACING_SM);
             ArrayNode iconKids = om.createArrayNode();
             if (audioActionUri != null) {
-                iconKids.add(mediaOverlayIconButton("sdui:video", tapNavigate(audioActionUri)));
+                iconKids.add(mediaOverlayIconButton(IconTokens.VIDEO, tapNavigate(audioActionUri)));
             }
             if (shareActionUri != null) {
-                iconKids.add(mediaOverlayIconButton("sdui:share", tapNavigate(shareActionUri)));
+                iconKids.add(mediaOverlayIconButton(IconTokens.SHARE, tapNavigate(shareActionUri)));
             }
             iconRow.set("children", iconKids);
             layers.add(overlay("topEnd", padding(LayoutTokens.SPACING_MD, LayoutTokens.SPACING_MD, 0, 0), iconRow));
@@ -2332,7 +2332,7 @@ public class AtomicCompositeBuilder {
 
     private ObjectNode editorialOverlayCard(String id, String title, String subtitle,
                                             String imageUrl, String badgeText, String targetUri) {
-        int radius = 12;
+        String radius = LayoutTokens.RADIUS_MD;
         ObjectNode card = container("column", null, null);
         card.put("id", id);
         card.put("width", 200);
@@ -2386,7 +2386,7 @@ public class AtomicCompositeBuilder {
 
     private ObjectNode featuredLiveGameHeroCard(String[] card, boolean stretchToParentWidth) {
         String cardId = value(card, 0);
-        int heroRadius = 12;
+        String heroRadius = LayoutTokens.RADIUS_MD;
         ObjectNode hero = container("column", null, "stretch");
         hero.put("id", cardId);
         // Single-card section: card fills its surface (no fixed width).
@@ -2757,11 +2757,11 @@ public class AtomicCompositeBuilder {
         return d;
     }
 
-    private ObjectNode scrollRow(int gap, boolean showIndicators) {
+    private ObjectNode scrollRow(Object gap, boolean showIndicators) {
         ObjectNode scroll = om.createObjectNode();
         scroll.put("type", "ScrollContainer");
         scroll.put("direction", "row");
-        scroll.put("gap", gap);
+        putLayoutScalar(scroll, "gap", gap);
         scroll.put("showIndicators", showIndicators);
         return scroll;
     }
@@ -2771,7 +2771,7 @@ public class AtomicCompositeBuilder {
      * and {@code pageIndicator} only when {@code childCount > 1}. Dot colors
      * default to tertiary/inverse; pass non-null overrides to customize.
      */
-    private ObjectNode pagedHorizontalScroll(int gap, int childCount, ObjectNode padding,
+    private ObjectNode pagedHorizontalScroll(Object gap, int childCount, ObjectNode padding,
                                             String indicatorAlignment,
                                             String inactiveDotColor, String activeDotColor) {
         ObjectNode scroll = scrollRow(gap, false);
@@ -2819,15 +2819,15 @@ public class AtomicCompositeBuilder {
         return gradient;
     }
 
-    private ObjectNode neutralInitials(String label, int width, int radius) {
+    private ObjectNode neutralInitials(String label, int width, Object radius) {
         return neutralInitialsRect(label, width, width, radius);
     }
 
-    private ObjectNode neutralInitialsRect(String label, int width, int height, int radius) {
+    private ObjectNode neutralInitialsRect(String label, int width, int height, Object radius) {
         ObjectNode box = container("row", "center", "center");
         box.put("width", width);
         box.put("height", height);
-        box.put("cornerRadius", radius);
+        putLayoutScalar(box, "cornerRadius", radius);
         box.put("background", ColorTokens.SURFACE_SUNKEN);
         ArrayNode children = om.createArrayNode();
         children.add(text(initials(label), "labelSmall", "bold", ColorTokens.TEXT_SECONDARY, 1));
@@ -3090,9 +3090,9 @@ public class AtomicCompositeBuilder {
      * Children are flexed equally (flex=1) and the direction flips row→column at the breakpoint.
      * widthMode is "fill" by default to maintain parity with the old Row renderer.
      */
-    ObjectNode responsiveRow(int gap, int breakpoint) {
+    ObjectNode responsiveRow(Object gap, int breakpoint) {
         ObjectNode node = container("row", null, null);
-        node.put("gap", gap);
+        putLayoutScalar(node, "gap", gap);
         node.put("breakpoint", breakpoint);
         node.put("widthMode", "fill");
         return node;

@@ -173,8 +173,9 @@ Multi-tier structure sourced from the Kinetic Design System:
   `nba.bg-dark.*`, `nba.bg-inverted.*`, `nba.bg-tint.*`.
 - **Button** — `nba.button.primary.label`, `nba.button.secondary.label`,
   `nba.button.tint.label`, `nba.button.focus-ring`.
-- **Team** — team brand colors injected at composition time (e.g.
-  BOS `#007A33`, GSW `#1D428A`).
+- **Team** — `nba.team.bg`, `nba.team.label`, `nba.team.accent`,
+  `nba.team.accent-label`. Resolved locally from bundled palettes in
+  `schema/color-tokens.json` (see **Team color resolution** below).
 
 **Palette families:**
 
@@ -214,8 +215,23 @@ palette primitive at render time based on OS color scheme.
 modes (typically white). They mean "right text color on a known-brightness
 surface," not "opposite of current mode."
 
-**Team brand colors** are not in this registry. They are inline brand assets
-owned per-team (e.g. BOS `#007A33`, GSW `#1D428A`).
+**Team color resolution:** Team brand colors are bundled in the `team`
+section of `schema/color-tokens.json`. The structure is:
+
+- **`palettes`** — hex values for each team's `primary`, `secondary`,
+  and optional `tertiary` colors (30 teams total).
+- **`modes`** — six mode objects (`team-background`, `team-label`,
+  `team-accent--dark`, `team-accent--light`, `team-accent-label--dark`,
+  `team-accent-label--light`). Each mode has a `_default` plus per-team
+  overrides. Values are a palette role string, a `{ "ref": ... }` to a
+  global color token, or a `{ "value": "#HEX" }` literal.
+- **`semantic`** — maps the four wire tokens (`nba.team.bg`, etc.) to
+  their mode lookup, with `nba.team.accent` and `nba.team.accent-label`
+  splitting by dark/light theme.
+
+Clients resolve team tokens locally from the bundled JSON using
+`(teamId, theme)` — no network call. `TeamColorRegistry` on each
+platform owns this resolution.
 
 Color tokens are **not** form-factor-aware — only light/dark.
 

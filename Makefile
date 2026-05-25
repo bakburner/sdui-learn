@@ -96,12 +96,12 @@ dev:
 
 
 dev-server:
-	@osascript -e 'tell application "Terminal" to do script "cd \"$(PWD)/server\" && ./gradlew bootRun"' >/dev/null
+	cd server && ./gradlew bootRun
 
 dev-web: dev-web-remote
 
 dev-web-local:
-	@if ! curl -sf $(SDUI_LOCAL_SERVER)/v1/sdui/demos >/dev/null 2>&1; then \
+	@if ! curl -sf $(SDUI_LOCAL_SERVER)/health >/dev/null 2>&1; then \
 		echo "WARNING: local server not reachable at $(SDUI_LOCAL_SERVER)"; \
 		echo "         run 'make dev-server' in another terminal first"; \
 	fi
@@ -233,7 +233,7 @@ dev-ios-remote:
 
 _dev-ios: ios-sim-preflight ios-demo-project
 	@echo "=== Launching iOS against SDUI server: $(SDUI_IOS_BASE_URL) ==="
-	@if [ "$(CHECK_LOCAL_SERVER)" = "1" ] && ! curl -sf $(SDUI_LOCAL_SERVER)/v1/sdui/demos >/dev/null 2>&1; then \
+	@if [ "$(CHECK_LOCAL_SERVER)" = "1" ] && ! curl -sf $(SDUI_LOCAL_SERVER)/health >/dev/null 2>&1; then \
 		echo "WARNING: local server not reachable at $(SDUI_LOCAL_SERVER)"; \
 		echo "         run 'make dev-server' in another terminal first"; \
 	fi

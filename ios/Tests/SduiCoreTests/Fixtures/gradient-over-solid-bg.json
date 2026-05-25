@@ -35,7 +35,7 @@
             },
             {
               "type": "Spacer",
-              "height": 4
+              "height": "token:nba.spacing.xs"
             },
             {
               "type": "Text",

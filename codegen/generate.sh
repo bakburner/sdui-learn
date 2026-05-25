@@ -1,7 +1,14 @@
 #!/bin/bash
 
 # SDUI Multi-Platform Code Generation Script
-# Generates typed models from the JSON Schema for multiple platforms
+# Generates typed SduiModels from schema/sdui-schema.json for all platforms.
+#
+# Token registries (LayoutTokenRegistry, color, etc.) are not codegen-baked.
+# Each client bundles the raw `schema/*-tokens.json` files and parses them
+# at startup (see AGENTS.md §3.6). The hand-written runtime parsers live at:
+#   iOS     — ios/Sources/SduiCore/Tokens/LayoutTokenRegistry.swift
+#   Android — android/sdui-core/src/main/java/com/nba/sdui/core/tokens/LayoutTokenRegistry.kt
+#   Web     — web/src/tokens/LayoutTokenRegistry.ts
 
 set -e
 
@@ -29,7 +36,7 @@ mkdir -p "$(dirname "$ANDROID_MODELS_OUT")"
 # Check if quicktype is installed
 if ! command -v quicktype &> /dev/null; then
     echo "Warning: quicktype not found. Install with: npm install -g quicktype"
-    echo "Skipping Swift and TypeScript generation."
+    echo "Skipping Swift, TypeScript, and Kotlin model generation."
     echo ""
     echo "Running Java generation via Gradle..."
     cd "$SCRIPT_DIR"
@@ -39,7 +46,7 @@ if ! command -v quicktype &> /dev/null; then
     exit 0
 fi
 
-echo "1. Generating Swift models (iOS SduiCore)..."
+echo "Generating Swift models (iOS SduiCore)..."
 # Writes directly into the iOS SwiftPM source tree. The iOS client
 # consumes this file as its authoritative model layer; there is no
 # intermediate copy. Renderer-level helper enums (TextVariant,
@@ -55,7 +62,7 @@ quicktype \
     --out "$IOS_MODELS_OUT" \
     2>/dev/null || echo "   Swift generation completed with warnings"
 
-echo "2. Generating TypeScript models (web src tree)..."
+echo "Generating TypeScript models (web src tree)..."
 # Writes directly into web/src/generated/. The web client consumes this
 # file through the '@sdui/models' Vite/tsconfig alias; there is no
 # intermediate copy. Renderer-level helper enums and resolvers
@@ -70,7 +77,7 @@ quicktype \
     --out "$WEB_MODELS_OUT" \
     2>/dev/null || echo "   TypeScript generation completed with warnings"
 
-echo "3. Generating Kotlin models (Android sdui-core)..."
+echo "Generating Kotlin models (Android sdui-core)..."
 # Writes directly into the Android sdui-core source tree. The Android
 # client consumes this file as its authoritative model layer; there is
 # no intermediate copy. Renderer-level helper enums and resolvers
@@ -94,7 +101,7 @@ quicktype \
     2>/dev/null || echo "   Kotlin generation completed with warnings"
 
 echo ""
-echo "4. Post-processing Kotlin models (Android lenient routing types)..."
+echo "Post-processing Kotlin models (Android lenient routing types)..."
 # Same rationale as the Swift post-process (see next step): rewrite the
 # two routing-type fields — `Section.type` (quicktype name: OverlayType)
 # and `AtomicElement.type` (quicktype name: UIType) — as plain `String`
@@ -117,7 +124,7 @@ sed -e '/^enum class OverlayType/,/^}/d' \
     "$ANDROID_MODELS_OUT" > "$TMP_KOTLIN" && mv "$TMP_KOTLIN" "$ANDROID_MODELS_OUT"
 
 echo ""
-echo "5. Post-processing Swift models (iOS lenient routing types)..."
+echo "Post-processing Swift models (iOS lenient routing types)..."
 # Strip the strict `String, Codable` enums that quicktype emits for
 # the two routing-type fields — `Section.type` (quicktype name:
 # `OverlayType`) and `AtomicElement.type` (quicktype name: `UIType`) —
@@ -160,7 +167,7 @@ sed '/^enum OverlayType:/,/^}/d
     "$IOS_MODELS_OUT" > "$TMP_SWIFT" && mv "$TMP_SWIFT" "$IOS_MODELS_OUT"
 
 echo ""
-echo "5b. Appending ActionTrigger isPrimaryActivation extension..."
+echo "Appending ActionTrigger isPrimaryActivation extension..."
 # Two call sites (RenderingHelpers.swift, AtomicButtonView.swift) use
 # `action.trigger.isPrimaryActivation` to detect the primary user
 # activation intent (onActivate or legacy onTap). The extension must
@@ -178,7 +185,7 @@ extension ActionTrigger {
 SWIFT_EXT
 
 echo ""
-echo "6. Generating Java POJOs (via jsonschema2pojo)..."
+echo "Generating Java POJOs (via jsonschema2pojo)..."
 cd "$SCRIPT_DIR"
 ./gradlew generateJsonSchema2Pojo --quiet
 

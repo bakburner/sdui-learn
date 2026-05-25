@@ -1,6 +1,15 @@
 # ADR-008: Form-Factor Layout Manager
 
-- Status: Accepted (Option C — Hybrid)
+> **Superseded by [ADR-015](./015-section-chrome-single-ownership.md) (2026-05-25).**
+> The `SectionLayoutHints` mechanism this ADR introduced was removed in favor
+> of a single section-outer-chrome ownership path (`Section.surface` consumed
+> by `SectionContainer`). The structural layout decisions in this ADR
+> (semantic section types vs hints) remain historically valid as the rationale
+> for the hybrid approach; the hybrid's `layoutHints` half is no longer
+> active. See `docs/sdui-design-system.md §2` for the active box-model
+> cascade.
+
+- Status: Superseded by ADR-015
 - Date: 2026-02-20
 - Accepted: 2026-03-11
 - Decision owners: Adrian Robinson (interim), platform leads, backend leads
@@ -108,4 +117,12 @@ Server uses semantic layout types for structural composition. Individual section
 
 ## Addendum: Row → Container Migration (2026-03-13)
 
-The `Row` section type referenced in Options B and C above was subsequently replaced by `Container` in the atomic rendering layer (see `AtomicElement` in `sdui-schema.json`). `Container` supports flex layout with `direction`, `justify`, `align`, `wrap`, and `breakpoint` properties, serving the same structural composition role with richer primitives. The `layoutHints` mechanism from this ADR remains valid and is orthogonal to this change.
+The `Row` section type referenced in Options B and C above was subsequently replaced by `Container` in the atomic rendering layer (see `AtomicElement` in `sdui-schema.json`). `Container` supports flex layout with `direction`, `justify`, `align`, `wrap`, and `breakpoint` properties, serving the same structural composition role with richer primitives.
+
+> **Editorial note (2026-05-25):** The original sentence in this addendum
+> claimed "the `layoutHints` mechanism from this ADR remains valid and is
+> orthogonal to this change." That claim was true between 2026-03-13 and
+> 2026-05-25, but `layoutHints` has since been removed in favor of
+> `Section.surface` consumed by `SectionContainer`. See ADR-015 for the
+> active section-chrome ownership model. The structural Row → Container
+> migration is unaffected.

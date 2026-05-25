@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.nba.sdui.core.models.generated.AtomicElement
 import com.nba.sdui.core.models.generated.BadgeAlignment
+import com.nba.sdui.core.models.generated.Shadow
 import com.nba.sdui.core.models.generated.ShadowType
 import com.nba.sdui.core.models.generated.SizingMode
 import com.nba.sdui.core.renderer.ColorTokenResolver
@@ -132,8 +133,8 @@ fun Modifier.buildAtomicBox(element: AtomicElement): Modifier {
     )
 
     // --- Shadow normalization: array wins over deprecated singular ---
-    val effectiveShadows = element.shadows
-        ?: element.shadow?.let { listOf(it) }
+    val effectiveShadows: List<Shadow> = element.shadows?.let { LayoutTokenResolver.resolveShadowOrTokens(it) }
+        ?: element.shadow?.let { LayoutTokenResolver.resolveShadowOrToken(it)?.let { s -> listOf(s) } }
         ?: emptyList()
     val shadowAxisLocked = variantSpec?.overrideMatrix?.get("shadow") == OverridePolicy.LOCK
 

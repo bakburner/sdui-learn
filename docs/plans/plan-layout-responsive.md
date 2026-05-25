@@ -1,5 +1,13 @@
 # Plan: Layout & Responsive
 
+> **Status: Superseded (2026-05-25).** `SectionLayoutHints` has been
+> removed from the schema. Inter-section margins now route through
+> `Section.surface.margin`; section outer chrome is owned by
+> `SectionContainer` reading `section.surface`. See
+> `docs/sdui-design-system.md §2` (Box-model cascade) for the active
+> model. ADR-008's successor (in flight) replaces this plan's
+> assumptions.
+
 > Source requirements: §9m, §9b from sdui-requirements-summary.md, ADR-008 (Accepted, Option C)
 
 ## Status

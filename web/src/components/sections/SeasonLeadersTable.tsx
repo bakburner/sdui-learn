@@ -50,7 +50,7 @@ export function SeasonLeadersTable({ section }: SectionProps): React.ReactElemen
   const { columns, players, title, subtitle, totalRows, page, pageSize, sortColumn, sortDirection } = data;
 
   return (
-    <div style={{ ...styles.container, backgroundColor: section.backgroundColor || 'var(--surface)' }} {...accessibilityProps(section.accessibility)}>
+    <div style={{ ...styles.container, backgroundColor: 'var(--surface)' }} {...accessibilityProps(section.accessibility)}>
       {/* Header */}
       {(title || subtitle) && (
         <div style={styles.header}>

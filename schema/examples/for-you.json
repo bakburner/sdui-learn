@@ -59,7 +59,7 @@
             "start": 0,
             "end": 0,
             "top": 0,
-            "bottom": 12
+            "bottom": "token:nba.spacing.md"
           },
           "children": [
             {
@@ -68,16 +68,16 @@
               "variant": "titleMedium",
               "weight": "bold",
               "padding": {
-                "start": 16,
-                "end": 16,
-                "top": 4,
-                "bottom": 4
+                "start": "token:nba.spacing.lg",
+                "end": "token:nba.spacing.lg",
+                "top": "token:nba.spacing.sm",
+                "bottom": "token:nba.spacing.sm"
               }
             },
             {
               "type": "ScrollContainer",
               "direction": "row",
-              "gap": 16,
+              "gap": "token:nba.spacing.lg",
               "showIndicators": false,
               "children": [
                 {
@@ -105,7 +105,7 @@
                     },
                     {
                       "type": "Spacer",
-                      "height": 4
+                      "height": "token:nba.spacing.xs"
                     },
                     {
                       "type": "Text",
@@ -140,7 +140,7 @@
                     },
                     {
                       "type": "Spacer",
-                      "height": 4
+                      "height": "token:nba.spacing.xs"
                     },
                     {
                       "type": "Text",
@@ -175,7 +175,7 @@
                     },
                     {
                       "type": "Spacer",
-                      "height": 4
+                      "height": "token:nba.spacing.xs"
                     },
                     {
                       "type": "Text",
@@ -210,7 +210,7 @@
                     },
                     {
                       "type": "Spacer",
-                      "height": 4
+                      "height": "token:nba.spacing.xs"
                     },
                     {
                       "type": "Text",
@@ -245,7 +245,7 @@
                     },
                     {
                       "type": "Spacer",
-                      "height": 4
+                      "height": "token:nba.spacing.xs"
                     },
                     {
                       "type": "Text",
@@ -291,10 +291,10 @@
           "alignment": "spaceBetween",
           "crossAlignment": "center",
           "padding": {
-            "start": 16,
-            "end": 16,
-            "top": 12,
-            "bottom": 4
+            "start": "token:nba.spacing.lg",
+            "end": "token:nba.spacing.lg",
+            "top": "token:nba.spacing.md",
+            "bottom": "token:nba.spacing.sm"
           },
           "children": [
             {
@@ -347,13 +347,13 @@
         "ui": {
           "type": "ScrollContainer",
           "direction": "row",
-          "gap": 12,
+          "gap": "token:nba.spacing.md",
           "showIndicators": false,
           "padding": {
-            "start": 16,
-            "end": 16,
-            "top": 4,
-            "bottom": 4
+            "start": "token:nba.spacing.lg",
+            "end": "token:nba.spacing.lg",
+            "top": "token:nba.spacing.sm",
+            "bottom": "token:nba.spacing.sm"
           },
           "children": [
             {
@@ -377,12 +377,12 @@
                         "direction": "column",
                         "crossAlignment": "stretch",
                         "id": "game-0042500113-root",
-                        "cornerRadius": 12,
+                        "cornerRadius": "token:nba.radius.md",
                         "padding": {
-                          "start": 16,
-                          "end": 16,
-                          "top": 16,
-                          "bottom": 16
+                          "start": "token:nba.spacing.lg",
+                          "end": "token:nba.spacing.lg",
+                          "top": "token:nba.spacing.lg",
+                          "bottom": "token:nba.spacing.lg"
                         },
                         "actions": [
                           {
@@ -414,7 +414,7 @@
                                   },
                                   {
                                     "type": "Spacer",
-                                    "height": 4
+                                    "height": "token:nba.spacing.xs"
                                   },
                                   {
                                     "type": "Text",
@@ -461,7 +461,7 @@
                                   },
                                   {
                                     "type": "Spacer",
-                                    "height": 4
+                                    "height": "token:nba.spacing.xs"
                                   },
                                   {
                                     "type": "Text",
@@ -526,12 +526,12 @@
                         "direction": "column",
                         "crossAlignment": "stretch",
                         "id": "game-0042500173-root",
-                        "cornerRadius": 12,
+                        "cornerRadius": "token:nba.radius.md",
                         "padding": {
-                          "start": 16,
-                          "end": 16,
-                          "top": 16,
-                          "bottom": 16
+                          "start": "token:nba.spacing.lg",
+                          "end": "token:nba.spacing.lg",
+                          "top": "token:nba.spacing.lg",
+                          "bottom": "token:nba.spacing.lg"
                         },
                         "actions": [
                           {
@@ -563,7 +563,7 @@
                                   },
                                   {
                                     "type": "Spacer",
-                                    "height": 4
+                                    "height": "token:nba.spacing.xs"
                                   },
                                   {
                                     "type": "Text",
@@ -610,7 +610,7 @@
                                   },
                                   {
                                     "type": "Spacer",
-                                    "height": 4
+                                    "height": "token:nba.spacing.xs"
                                   },
                                   {
                                     "type": "Text",
@@ -675,12 +675,12 @@
                         "direction": "column",
                         "crossAlignment": "stretch",
                         "id": "game-0042500153-root",
-                        "cornerRadius": 12,
+                        "cornerRadius": "token:nba.radius.md",
                         "padding": {
-                          "start": 16,
-                          "end": 16,
-                          "top": 16,
-                          "bottom": 16
+                          "start": "token:nba.spacing.lg",
+                          "end": "token:nba.spacing.lg",
+                          "top": "token:nba.spacing.lg",
+                          "bottom": "token:nba.spacing.lg"
                         },
                         "actions": [
                           {
@@ -712,7 +712,7 @@
                                   },
                                   {
                                     "type": "Spacer",
-                                    "height": 4
+                                    "height": "token:nba.spacing.xs"
                                   },
                                   {
                                     "type": "Text",
@@ -759,7 +759,7 @@
                                   },
                                   {
                                     "type": "Spacer",
-                                    "height": 4
+                                    "height": "token:nba.spacing.xs"
                                   },
                                   {
                                     "type": "Text",
@@ -831,7 +831,7 @@
           "direction": "column",
           "crossAlignment": "stretch",
           "id": "featured-game-0042500113-root",
-          "cornerRadius": 16,
+          "cornerRadius": "token:nba.radius.lg",
           "padding": {
             "start": 20,
             "end": 20,
@@ -853,17 +853,17 @@
               "weight": "bold",
               "color": "#FFFFFF",
               "background": "#E03131",
-              "cornerRadius": 4,
+              "cornerRadius": "token:nba.radius.sm",
               "padding": {
                 "start": 8,
                 "end": 8,
-                "top": 2,
-                "bottom": 2
+                "top": "token:nba.spacing.xs",
+                "bottom": "token:nba.spacing.xs"
               }
             },
             {
               "type": "Spacer",
-              "height": 8
+              "height": "token:nba.spacing.sm"
             },
             {
               "type": "Container",
@@ -887,7 +887,7 @@
                     },
                     {
                       "type": "Spacer",
-                      "height": 4
+                      "height": "token:nba.spacing.xs"
                     },
                     {
                       "type": "Text",
@@ -934,7 +934,7 @@
                     },
                     {
                       "type": "Spacer",
-                      "height": 4
+                      "height": "token:nba.spacing.xs"
                     },
                     {
                       "type": "Text",
@@ -987,7 +987,7 @@
           ],
           "direction": "diagonal"
         },
-        "cornerRadius": 12,
+        "cornerRadius": "token:nba.radius.md",
         "shadow": {
           "color": "#00000014",
           "radius": 6,
@@ -1020,10 +1020,10 @@
           "alignment": "spaceBetween",
           "crossAlignment": "center",
           "padding": {
-            "start": 16,
-            "end": 16,
-            "top": 12,
-            "bottom": 4
+            "start": "token:nba.spacing.lg",
+            "end": "token:nba.spacing.lg",
+            "top": "token:nba.spacing.md",
+            "bottom": "token:nba.spacing.sm"
           },
           "children": [
             {
@@ -1068,13 +1068,13 @@
             "start": 0,
             "end": 0,
             "top": 0,
-            "bottom": 12
+            "bottom": "token:nba.spacing.md"
           },
           "children": [
             {
               "type": "ScrollContainer",
               "direction": "row",
-              "gap": 12,
+              "gap": "token:nba.spacing.md",
               "showIndicators": false,
               "children": [
                 {
@@ -1082,7 +1082,7 @@
                   "direction": "column",
                   "id": "hl-1",
                   "width": 200,
-                  "cornerRadius": 12,
+                  "cornerRadius": "token:nba.radius.md",
                   "background": {
                     "colors": [
                       "token:nba.bg.secondary",
@@ -1117,14 +1117,14 @@
                           "direction": "row",
                           "alignment": "center",
                           "crossAlignment": "center",
-                          "cornerRadius": 4,
+                          "cornerRadius": "token:nba.radius.sm",
                           "background": "#000000B3",
                           "opacity": 0.7,
                           "padding": {
-                            "start": 4,
-                            "end": 4,
-                            "top": 2,
-                            "bottom": 2
+                            "start": "token:nba.spacing.sm",
+                            "end": "token:nba.spacing.sm",
+                            "top": "token:nba.spacing.xs",
+                            "bottom": "token:nba.spacing.xs"
                           },
                           "children": [
                             {
@@ -1142,7 +1142,7 @@
                     },
                     {
                       "type": "Spacer",
-                      "height": 4
+                      "height": "token:nba.spacing.xs"
                     },
                     {
                       "type": "Text",
@@ -1152,8 +1152,8 @@
                       "color": "token:nba.label.primary",
                       "maxLines": 2,
                       "padding": {
-                        "start": 16,
-                        "end": 16,
+                        "start": "token:nba.spacing.lg",
+                        "end": "token:nba.spacing.lg",
                         "top": 8,
                         "bottom": 8
                       }
@@ -1165,7 +1165,7 @@
                   "direction": "column",
                   "id": "hl-2",
                   "width": 200,
-                  "cornerRadius": 12,
+                  "cornerRadius": "token:nba.radius.md",
                   "background": {
                     "colors": [
                       "token:nba.bg.secondary",
@@ -1200,14 +1200,14 @@
                           "direction": "row",
                           "alignment": "center",
                           "crossAlignment": "center",
-                          "cornerRadius": 4,
+                          "cornerRadius": "token:nba.radius.sm",
                           "background": "#000000B3",
                           "opacity": 0.7,
                           "padding": {
-                            "start": 4,
-                            "end": 4,
-                            "top": 2,
-                            "bottom": 2
+                            "start": "token:nba.spacing.sm",
+                            "end": "token:nba.spacing.sm",
+                            "top": "token:nba.spacing.xs",
+                            "bottom": "token:nba.spacing.xs"
                           },
                           "children": [
                             {
@@ -1225,7 +1225,7 @@
                     },
                     {
                       "type": "Spacer",
-                      "height": 4
+                      "height": "token:nba.spacing.xs"
                     },
                     {
                       "type": "Text",
@@ -1235,8 +1235,8 @@
                       "color": "token:nba.label.primary",
                       "maxLines": 2,
                       "padding": {
-                        "start": 16,
-                        "end": 16,
+                        "start": "token:nba.spacing.lg",
+                        "end": "token:nba.spacing.lg",
                         "top": 8,
                         "bottom": 8
                       }
@@ -1248,7 +1248,7 @@
                   "direction": "column",
                   "id": "hl-3",
                   "width": 200,
-                  "cornerRadius": 12,
+                  "cornerRadius": "token:nba.radius.md",
                   "background": {
                     "colors": [
                       "token:nba.bg.secondary",
@@ -1281,7 +1281,7 @@
                     },
                     {
                       "type": "Spacer",
-                      "height": 4
+                      "height": "token:nba.spacing.xs"
                     },
                     {
                       "type": "Text",
@@ -1291,8 +1291,8 @@
                       "color": "token:nba.label.primary",
                       "maxLines": 2,
                       "padding": {
-                        "start": 16,
-                        "end": 16,
+                        "start": "token:nba.spacing.lg",
+                        "end": "token:nba.spacing.lg",
                         "top": 8,
                         "bottom": 8
                       }
@@ -1337,7 +1337,7 @@
           "start": 16
         },
         "background": "token:nba.bg.secondary",
-        "cornerRadius": 12,
+        "cornerRadius": "token:nba.radius.md",
         "shadow": {
           "color": "#00000014",
           "radius": 6,
@@ -1394,10 +1394,10 @@
           "alignment": "spaceBetween",
           "crossAlignment": "center",
           "padding": {
-            "start": 16,
-            "end": 16,
-            "top": 12,
-            "bottom": 4
+            "start": "token:nba.spacing.lg",
+            "end": "token:nba.spacing.lg",
+            "top": "token:nba.spacing.md",
+            "bottom": "token:nba.spacing.sm"
           },
           "children": [
             {
@@ -1442,13 +1442,13 @@
             "start": 0,
             "end": 0,
             "top": 0,
-            "bottom": 12
+            "bottom": "token:nba.spacing.md"
           },
           "children": [
             {
               "type": "ScrollContainer",
               "direction": "row",
-              "gap": 12,
+              "gap": "token:nba.spacing.md",
               "showIndicators": false,
               "children": [
                 {
@@ -1456,7 +1456,7 @@
                   "direction": "column",
                   "id": "tr-1",
                   "width": 200,
-                  "cornerRadius": 12,
+                  "cornerRadius": "token:nba.radius.md",
                   "background": {
                     "colors": [
                       "token:nba.bg.secondary",
@@ -1489,7 +1489,7 @@
                     },
                     {
                       "type": "Spacer",
-                      "height": 4
+                      "height": "token:nba.spacing.xs"
                     },
                     {
                       "type": "Text",
@@ -1499,8 +1499,8 @@
                       "color": "token:nba.label.primary",
                       "maxLines": 2,
                       "padding": {
-                        "start": 16,
-                        "end": 16,
+                        "start": "token:nba.spacing.lg",
+                        "end": "token:nba.spacing.lg",
                         "top": 8,
                         "bottom": 8
                       }
@@ -1512,7 +1512,7 @@
                   "direction": "column",
                   "id": "tr-2",
                   "width": 200,
-                  "cornerRadius": 12,
+                  "cornerRadius": "token:nba.radius.md",
                   "background": {
                     "colors": [
                       "token:nba.bg.secondary",
@@ -1547,14 +1547,14 @@
                           "direction": "row",
                           "alignment": "center",
                           "crossAlignment": "center",
-                          "cornerRadius": 4,
+                          "cornerRadius": "token:nba.radius.sm",
                           "background": "#000000B3",
                           "opacity": 0.7,
                           "padding": {
-                            "start": 4,
-                            "end": 4,
-                            "top": 2,
-                            "bottom": 2
+                            "start": "token:nba.spacing.sm",
+                            "end": "token:nba.spacing.sm",
+                            "top": "token:nba.spacing.xs",
+                            "bottom": "token:nba.spacing.xs"
                           },
                           "children": [
                             {
@@ -1572,7 +1572,7 @@
                     },
                     {
                       "type": "Spacer",
-                      "height": 4
+                      "height": "token:nba.spacing.xs"
                     },
                     {
                       "type": "Text",
@@ -1582,8 +1582,8 @@
                       "color": "token:nba.label.primary",
                       "maxLines": 2,
                       "padding": {
-                        "start": 16,
-                        "end": 16,
+                        "start": "token:nba.spacing.lg",
+                        "end": "token:nba.spacing.lg",
                         "top": 8,
                         "bottom": 8
                       }
@@ -1595,7 +1595,7 @@
                   "direction": "column",
                   "id": "tr-3",
                   "width": 200,
-                  "cornerRadius": 12,
+                  "cornerRadius": "token:nba.radius.md",
                   "background": {
                     "colors": [
                       "token:nba.bg.secondary",
@@ -1628,7 +1628,7 @@
                     },
                     {
                       "type": "Spacer",
-                      "height": 4
+                      "height": "token:nba.spacing.xs"
                     },
                     {
                       "type": "Text",
@@ -1638,8 +1638,8 @@
                       "color": "token:nba.label.primary",
                       "maxLines": 2,
                       "padding": {
-                        "start": 16,
-                        "end": 16,
+                        "start": "token:nba.spacing.lg",
+                        "end": "token:nba.spacing.lg",
                         "top": 8,
                         "bottom": 8
                       }
@@ -1684,7 +1684,7 @@
           "start": 16
         },
         "background": "token:nba.bg.secondary",
-        "cornerRadius": 12,
+        "cornerRadius": "token:nba.radius.md",
         "shadow": {
           "color": "#00000014",
           "radius": 6,
@@ -1741,10 +1741,10 @@
           "alignment": "spaceBetween",
           "crossAlignment": "center",
           "padding": {
-            "start": 16,
-            "end": 16,
-            "top": 12,
-            "bottom": 4
+            "start": "token:nba.spacing.lg",
+            "end": "token:nba.spacing.lg",
+            "top": "token:nba.spacing.md",
+            "bottom": "token:nba.spacing.sm"
           },
           "children": [
             {
@@ -1801,13 +1801,13 @@
             "start": 0,
             "end": 0,
             "top": 0,
-            "bottom": 12
+            "bottom": "token:nba.spacing.md"
           },
           "children": [
             {
               "type": "ScrollContainer",
               "direction": "row",
-              "gap": 12,
+              "gap": "token:nba.spacing.md",
               "showIndicators": false,
               "children": [
                 {
@@ -1815,7 +1815,7 @@
                   "direction": "column",
                   "id": "lp-1",
                   "width": 200,
-                  "cornerRadius": 12,
+                  "cornerRadius": "token:nba.radius.md",
                   "background": {
                     "colors": [
                       "token:nba.bg.secondary",
@@ -1848,7 +1848,7 @@
                     },
                     {
                       "type": "Spacer",
-                      "height": 4
+                      "height": "token:nba.spacing.xs"
                     },
                     {
                       "type": "Text",
@@ -1858,8 +1858,8 @@
                       "color": "token:nba.label.primary",
                       "maxLines": 2,
                       "padding": {
-                        "start": 16,
-                        "end": 16,
+                        "start": "token:nba.spacing.lg",
+                        "end": "token:nba.spacing.lg",
                         "top": 8,
                         "bottom": 8
                       }
@@ -1871,7 +1871,7 @@
                   "direction": "column",
                   "id": "lp-2",
                   "width": 200,
-                  "cornerRadius": 12,
+                  "cornerRadius": "token:nba.radius.md",
                   "background": {
                     "colors": [
                       "token:nba.bg.secondary",
@@ -1906,14 +1906,14 @@
                           "direction": "row",
                           "alignment": "center",
                           "crossAlignment": "center",
-                          "cornerRadius": 4,
+                          "cornerRadius": "token:nba.radius.sm",
                           "background": "#000000B3",
                           "opacity": 0.7,
                           "padding": {
-                            "start": 4,
-                            "end": 4,
-                            "top": 2,
-                            "bottom": 2
+                            "start": "token:nba.spacing.sm",
+                            "end": "token:nba.spacing.sm",
+                            "top": "token:nba.spacing.xs",
+                            "bottom": "token:nba.spacing.xs"
                           },
                           "children": [
                             {
@@ -1931,7 +1931,7 @@
                     },
                     {
                       "type": "Spacer",
-                      "height": 4
+                      "height": "token:nba.spacing.xs"
                     },
                     {
                       "type": "Text",
@@ -1941,8 +1941,8 @@
                       "color": "token:nba.label.primary",
                       "maxLines": 2,
                       "padding": {
-                        "start": 16,
-                        "end": 16,
+                        "start": "token:nba.spacing.lg",
+                        "end": "token:nba.spacing.lg",
                         "top": 8,
                         "bottom": 8
                       }
@@ -1954,7 +1954,7 @@
                   "direction": "column",
                   "id": "lp-3",
                   "width": 200,
-                  "cornerRadius": 12,
+                  "cornerRadius": "token:nba.radius.md",
                   "background": {
                     "colors": [
                       "token:nba.bg.secondary",
@@ -1989,14 +1989,14 @@
                           "direction": "row",
                           "alignment": "center",
                           "crossAlignment": "center",
-                          "cornerRadius": 4,
+                          "cornerRadius": "token:nba.radius.sm",
                           "background": "#000000B3",
                           "opacity": 0.7,
                           "padding": {
-                            "start": 4,
-                            "end": 4,
-                            "top": 2,
-                            "bottom": 2
+                            "start": "token:nba.spacing.sm",
+                            "end": "token:nba.spacing.sm",
+                            "top": "token:nba.spacing.xs",
+                            "bottom": "token:nba.spacing.xs"
                           },
                           "children": [
                             {
@@ -2014,7 +2014,7 @@
                     },
                     {
                       "type": "Spacer",
-                      "height": 4
+                      "height": "token:nba.spacing.xs"
                     },
                     {
                       "type": "Text",
@@ -2024,8 +2024,8 @@
                       "color": "token:nba.label.primary",
                       "maxLines": 2,
                       "padding": {
-                        "start": 16,
-                        "end": 16,
+                        "start": "token:nba.spacing.lg",
+                        "end": "token:nba.spacing.lg",
                         "top": 8,
                         "bottom": 8
                       }
@@ -2070,7 +2070,7 @@
           "start": 16
         },
         "background": "token:nba.bg.secondary",
-        "cornerRadius": 12,
+        "cornerRadius": "token:nba.radius.md",
         "shadow": {
           "color": "#00000014",
           "radius": 6,
@@ -2127,10 +2127,10 @@
           "alignment": "spaceBetween",
           "crossAlignment": "center",
           "padding": {
-            "start": 16,
-            "end": 16,
-            "top": 12,
-            "bottom": 4
+            "start": "token:nba.spacing.lg",
+            "end": "token:nba.spacing.lg",
+            "top": "token:nba.spacing.md",
+            "bottom": "token:nba.spacing.sm"
           },
           "children": [
             {
@@ -2187,13 +2187,13 @@
             "start": 0,
             "end": 0,
             "top": 0,
-            "bottom": 12
+            "bottom": "token:nba.spacing.md"
           },
           "children": [
             {
               "type": "ScrollContainer",
               "direction": "row",
-              "gap": 12,
+              "gap": "token:nba.spacing.md",
               "showIndicators": false,
               "children": [
                 {
@@ -2201,7 +2201,7 @@
                   "direction": "column",
                   "id": "al-1",
                   "width": 200,
-                  "cornerRadius": 12,
+                  "cornerRadius": "token:nba.radius.md",
                   "background": {
                     "colors": [
                       "token:nba.bg.secondary",
@@ -2234,7 +2234,7 @@
                     },
                     {
                       "type": "Spacer",
-                      "height": 4
+                      "height": "token:nba.spacing.xs"
                     },
                     {
                       "type": "Text",
@@ -2244,8 +2244,8 @@
                       "color": "token:nba.label.primary",
                       "maxLines": 2,
                       "padding": {
-                        "start": 16,
-                        "end": 16,
+                        "start": "token:nba.spacing.lg",
+                        "end": "token:nba.spacing.lg",
                         "top": 8,
                         "bottom": 8
                       }
@@ -2257,7 +2257,7 @@
                   "direction": "column",
                   "id": "al-2",
                   "width": 200,
-                  "cornerRadius": 12,
+                  "cornerRadius": "token:nba.radius.md",
                   "background": {
                     "colors": [
                       "token:nba.bg.secondary",
@@ -2290,7 +2290,7 @@
                     },
                     {
                       "type": "Spacer",
-                      "height": 4
+                      "height": "token:nba.spacing.xs"
                     },
                     {
                       "type": "Text",
@@ -2300,8 +2300,8 @@
                       "color": "token:nba.label.primary",
                       "maxLines": 2,
                       "padding": {
-                        "start": 16,
-                        "end": 16,
+                        "start": "token:nba.spacing.lg",
+                        "end": "token:nba.spacing.lg",
                         "top": 8,
                         "bottom": 8
                       }
@@ -2313,7 +2313,7 @@
                   "direction": "column",
                   "id": "al-3",
                   "width": 200,
-                  "cornerRadius": 12,
+                  "cornerRadius": "token:nba.radius.md",
                   "background": {
                     "colors": [
                       "token:nba.bg.secondary",
@@ -2348,14 +2348,14 @@
                           "direction": "row",
                           "alignment": "center",
                           "crossAlignment": "center",
-                          "cornerRadius": 4,
+                          "cornerRadius": "token:nba.radius.sm",
                           "background": "#000000B3",
                           "opacity": 0.7,
                           "padding": {
-                            "start": 4,
-                            "end": 4,
-                            "top": 2,
-                            "bottom": 2
+                            "start": "token:nba.spacing.sm",
+                            "end": "token:nba.spacing.sm",
+                            "top": "token:nba.spacing.xs",
+                            "bottom": "token:nba.spacing.xs"
                           },
                           "children": [
                             {
@@ -2373,7 +2373,7 @@
                     },
                     {
                       "type": "Spacer",
-                      "height": 4
+                      "height": "token:nba.spacing.xs"
                     },
                     {
                       "type": "Text",
@@ -2383,8 +2383,8 @@
                       "color": "token:nba.label.primary",
                       "maxLines": 2,
                       "padding": {
-                        "start": 16,
-                        "end": 16,
+                        "start": "token:nba.spacing.lg",
+                        "end": "token:nba.spacing.lg",
                         "top": 8,
                         "bottom": 8
                       }
@@ -2426,8 +2426,8 @@
           "type": "Container",
           "direction": "column",
           "padding": {
-            "start": 16,
-            "end": 16,
+            "start": "token:nba.spacing.lg",
+            "end": "token:nba.spacing.lg",
             "top": 0,
             "bottom": 0
           },
@@ -2436,12 +2436,12 @@
               "type": "Container",
               "direction": "column",
               "variant": "grouped",
-              "cornerRadius": 12,
+              "cornerRadius": "token:nba.radius.md",
               "padding": {
                 "start": 0,
                 "end": 0,
-                "top": 4,
-                "bottom": 4
+                "top": "token:nba.spacing.sm",
+                "bottom": "token:nba.spacing.sm"
               },
               "children": [
                 {
@@ -2450,9 +2450,9 @@
                   "variant": "titleSmall",
                   "weight": "semiBold",
                   "padding": {
-                    "start": 16,
-                    "end": 16,
-                    "top": 12,
+                    "start": "token:nba.spacing.lg",
+                    "end": "token:nba.spacing.lg",
+                    "top": "token:nba.spacing.md",
                     "bottom": 8
                   }
                 },
@@ -2461,10 +2461,10 @@
                   "direction": "row",
                   "crossAlignment": "center",
                   "id": "playlist-1",
-                  "gap": 12,
+                  "gap": "token:nba.spacing.md",
                   "padding": {
-                    "start": 12,
-                    "end": 12,
+                    "start": "token:nba.spacing.md",
+                    "end": "token:nba.spacing.md",
                     "top": 10,
                     "bottom": 10
                   },
@@ -2490,14 +2490,14 @@
                           "direction": "row",
                           "alignment": "center",
                           "crossAlignment": "center",
-                          "cornerRadius": 4,
+                          "cornerRadius": "token:nba.radius.sm",
                           "background": "#000000B3",
                           "opacity": 0.7,
                           "padding": {
-                            "start": 4,
-                            "end": 4,
-                            "top": 2,
-                            "bottom": 2
+                            "start": "token:nba.spacing.sm",
+                            "end": "token:nba.spacing.sm",
+                            "top": "token:nba.spacing.xs",
+                            "bottom": "token:nba.spacing.xs"
                           },
                           "children": [
                             {
@@ -2516,7 +2516,7 @@
                       "type": "Container",
                       "direction": "column",
                       "crossAlignment": "start",
-                      "gap": 2,
+                      "gap": "token:nba.spacing.xs",
                       "flex": 1.0,
                       "children": [
                         {
@@ -2528,7 +2528,7 @@
                         },
                         {
                           "type": "Text",
-                          "content": "Last night \u00b7 Bucks vs Heat",
+                          "content": "Last night · Bucks vs Heat",
                           "variant": "labelSmall",
                           "color": "token:nba.label.secondary",
                           "maxLines": 1
@@ -2537,7 +2537,7 @@
                     },
                     {
                       "type": "Text",
-                      "content": "\u203a",
+                      "content": "›",
                       "variant": "titleMedium",
                       "color": "token:nba.label.secondary"
                     }
@@ -2558,10 +2558,10 @@
                   "direction": "row",
                   "crossAlignment": "center",
                   "id": "playlist-2",
-                  "gap": 12,
+                  "gap": "token:nba.spacing.md",
                   "padding": {
-                    "start": 12,
-                    "end": 12,
+                    "start": "token:nba.spacing.md",
+                    "end": "token:nba.spacing.md",
                     "top": 10,
                     "bottom": 10
                   },
@@ -2587,14 +2587,14 @@
                           "direction": "row",
                           "alignment": "center",
                           "crossAlignment": "center",
-                          "cornerRadius": 4,
+                          "cornerRadius": "token:nba.radius.sm",
                           "background": "#000000B3",
                           "opacity": 0.7,
                           "padding": {
-                            "start": 4,
-                            "end": 4,
-                            "top": 2,
-                            "bottom": 2
+                            "start": "token:nba.spacing.sm",
+                            "end": "token:nba.spacing.sm",
+                            "top": "token:nba.spacing.xs",
+                            "bottom": "token:nba.spacing.xs"
                           },
                           "children": [
                             {
@@ -2613,7 +2613,7 @@
                       "type": "Container",
                       "direction": "column",
                       "crossAlignment": "start",
-                      "gap": 2,
+                      "gap": "token:nba.spacing.xs",
                       "flex": 1.0,
                       "children": [
                         {
@@ -2625,7 +2625,7 @@
                         },
                         {
                           "type": "Text",
-                          "content": "Warriors \u00b7 Postgame",
+                          "content": "Warriors · Postgame",
                           "variant": "labelSmall",
                           "color": "token:nba.label.secondary",
                           "maxLines": 1
@@ -2634,7 +2634,7 @@
                     },
                     {
                       "type": "Text",
-                      "content": "\u203a",
+                      "content": "›",
                       "variant": "titleMedium",
                       "color": "token:nba.label.secondary"
                     }
@@ -2655,10 +2655,10 @@
                   "direction": "row",
                   "crossAlignment": "center",
                   "id": "playlist-3",
-                  "gap": 12,
+                  "gap": "token:nba.spacing.md",
                   "padding": {
-                    "start": 12,
-                    "end": 12,
+                    "start": "token:nba.spacing.md",
+                    "end": "token:nba.spacing.md",
                     "top": 10,
                     "bottom": 10
                   },
@@ -2684,13 +2684,13 @@
                           "direction": "row",
                           "alignment": "center",
                           "crossAlignment": "center",
-                          "cornerRadius": 4,
+                          "cornerRadius": "token:nba.radius.sm",
                           "background": "token:nba.label.accent.live",
                           "padding": {
                             "start": 6,
                             "end": 6,
-                            "top": 2,
-                            "bottom": 2
+                            "top": "token:nba.spacing.xs",
+                            "bottom": "token:nba.spacing.xs"
                           },
                           "children": [
                             {
@@ -2709,7 +2709,7 @@
                       "type": "Container",
                       "direction": "column",
                       "crossAlignment": "start",
-                      "gap": 2,
+                      "gap": "token:nba.spacing.xs",
                       "flex": 1.0,
                       "children": [
                         {
@@ -2721,7 +2721,7 @@
                         },
                         {
                           "type": "Text",
-                          "content": "On now \u00b7 League Pass",
+                          "content": "On now · League Pass",
                           "variant": "labelSmall",
                           "color": "token:nba.label.secondary",
                           "maxLines": 1
@@ -2730,7 +2730,7 @@
                     },
                     {
                       "type": "Text",
-                      "content": "\u203a",
+                      "content": "›",
                       "variant": "titleMedium",
                       "color": "token:nba.label.secondary"
                     }
@@ -2751,10 +2751,10 @@
                   "direction": "row",
                   "crossAlignment": "center",
                   "id": "playlist-4",
-                  "gap": 12,
+                  "gap": "token:nba.spacing.md",
                   "padding": {
-                    "start": 12,
-                    "end": 12,
+                    "start": "token:nba.spacing.md",
+                    "end": "token:nba.spacing.md",
                     "top": 10,
                     "bottom": 10
                   },
@@ -2780,14 +2780,14 @@
                           "direction": "row",
                           "alignment": "center",
                           "crossAlignment": "center",
-                          "cornerRadius": 4,
+                          "cornerRadius": "token:nba.radius.sm",
                           "background": "#000000B3",
                           "opacity": 0.7,
                           "padding": {
-                            "start": 4,
-                            "end": 4,
-                            "top": 2,
-                            "bottom": 2
+                            "start": "token:nba.spacing.sm",
+                            "end": "token:nba.spacing.sm",
+                            "top": "token:nba.spacing.xs",
+                            "bottom": "token:nba.spacing.xs"
                           },
                           "children": [
                             {
@@ -2806,7 +2806,7 @@
                       "type": "Container",
                       "direction": "column",
                       "crossAlignment": "start",
-                      "gap": 2,
+                      "gap": "token:nba.spacing.xs",
                       "flex": 1.0,
                       "children": [
                         {
@@ -2827,7 +2827,7 @@
                     },
                     {
                       "type": "Text",
-                      "content": "\u203a",
+                      "content": "›",
                       "variant": "titleMedium",
                       "color": "token:nba.label.secondary"
                     }

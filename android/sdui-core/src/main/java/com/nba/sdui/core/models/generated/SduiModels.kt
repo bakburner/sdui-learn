@@ -63,13 +63,13 @@ val mapper = jacksonObjectMapper().apply {
     convert(PlayerType::class,             { PlayerType.fromValue(it.asText()) },             { "\"${it.value}\"" })
     convert(SortDirection::class,          { SortDirection.fromValue(it.asText()) },          { "\"${it.value}\"" })
     convert(Transform::class,              { Transform.fromValue(it.asText()) },              { "\"${it.value}\"" })
-    convert(Priority::class,               { Priority.fromValue(it.asText()) },               { "\"${it.value}\"" })
     convert(Skeleton::class,               { Skeleton.fromValue(it.asText()) },               { "\"${it.value}\"" })
     convert(LayoutScalar::class,           { LayoutScalar.fromJson(it) },                     { it.toJson() }, true)
     convert(AspectRatioUnion::class,       { AspectRatioUnion.fromJson(it) },                 { it.toJson() }, true)
     convert(BackgroundUnion::class,        { BackgroundUnion.fromJson(it) },                  { it.toJson() }, true)
     convert(Overlay::class,                { Overlay.fromJson(it) },                          { it.toJson() }, true)
     convert(WidthUnion::class,             { WidthUnion.fromJson(it) },                       { it.toJson() }, true)
+    convert(ShadowOrToken::class,          { ShadowOrToken.fromJson(it) },                    { it.toJson() }, true)
 }
 
 /**
@@ -936,14 +936,14 @@ data class AtomicElement (
      * DEPRECATED — use shadows (array) for new payloads. Single shadow. If both shadow and
      * shadows are present, shadows wins.
      */
-    val shadow: Shadow? = null,
+    val shadow: ShadowOrToken? = null,
 
     /**
      * Ordered array of shadow layers. Index 0 is the outermost shadow (Figma convention);
      * higher indices are closer to the element. Maps directly to CSS box-shadow list order.
      * When absent, falls back to singular shadow field.
      */
-    val shadows: List<Shadow>? = null,
+    val shadows: List<ShadowOrToken>? = null,
 
     /**
      * Whether to show scroll indicators on ScrollContainer. Default false for clean carousel
@@ -1281,8 +1281,6 @@ data class Section (
     @get:JsonProperty("analyticsId")@field:JsonProperty("analyticsId")
     val analyticsID: String? = null,
 
-    val backgroundColor: String? = null,
-
     /**
      * Origin identifier for the content backing this section (e.g. 'cms:article-42',
      * 'stats-api:leaders-2025'). Carried through to analytics for two-tier attribution.
@@ -1300,8 +1298,6 @@ data class Section (
     @get:JsonProperty(required=true)@field:JsonProperty(required=true)
     val id: String,
 
-    val layoutHints: SectionLayoutHints? = null,
-    val padding: Spacing? = null,
     val refreshPolicy: RefreshPolicy? = null,
     val sectionStates: SectionStates? = null,
 
@@ -1904,10 +1900,32 @@ enum class Style(val value: String) {
  * DEPRECATED — use shadows (array) for new payloads. Single shadow. If both shadow and
  * shadows are present, shadows wins.
  *
- * Shadow effect with CSS/SwiftUI semantics (radius + offset). Compose approximates via
- * elevation. Use 'type' to distinguish drop vs inner shadows.
+ * Either a full Shadow struct or a shorthand token. Clients expand shorthand tokens to the
+ * full Shadow struct at resolve time.
  *
  * Drop shadow applied to the surface.
+ */
+sealed class ShadowOrToken {
+    class ShadowValue(val value: Shadow) : ShadowOrToken()
+    class StringValue(val value: String) : ShadowOrToken()
+
+    fun toJson(): String = mapper.writeValueAsString(when (this) {
+        is ShadowValue -> this.value
+        is StringValue -> this.value
+    })
+
+    companion object {
+        fun fromJson(jn: JsonNode): ShadowOrToken = when (jn) {
+            is ObjectNode -> ShadowValue(mapper.treeToValue(jn))
+            is TextNode   -> StringValue(mapper.treeToValue(jn))
+            else          -> throw IllegalArgumentException()
+        }
+    }
+}
+
+/**
+ * Shadow effect with CSS/SwiftUI semantics (radius + offset). Compose approximates via
+ * elevation. Use 'type' to distinguish drop vs inner shadows.
  */
 data class Shadow (
     /**
@@ -2368,55 +2386,6 @@ enum class Transform(val value: String) {
 }
 
 /**
- * Optional layout hints for section placement. Clients apply best-effort; unknown hints are
- * ignored.
- */
-data class SectionLayoutHints (
-    /**
-     * Render a divider line above this section
-     */
-    val dividerAbove: Boolean? = null,
-
-    /**
-     * Render a divider line below this section
-     */
-    val dividerBelow: Boolean? = null,
-
-    /**
-     * Bottom margin in dp/points
-     */
-    val marginBottom: Long? = null,
-
-    /**
-     * Top margin in dp/points (0 = flush)
-     */
-    val marginTop: Long? = null,
-
-    /**
-     * Rendering priority hint — clients may use for lazy loading or viewport priority
-     */
-    val priority: Priority? = null
-)
-
-/**
- * Rendering priority hint — clients may use for lazy loading or viewport priority
- */
-enum class Priority(val value: String) {
-    High("high"),
-    Low("low"),
-    Normal("normal");
-
-    companion object {
-        fun fromValue(value: String): Priority = when (value) {
-            "high"   -> High
-            "low"    -> Low
-            "normal" -> Normal
-            else     -> throw IllegalArgumentException()
-        }
-    }
-}
-
-/**
  * Server-declared loading and error presentation for a section. Clients render these states
  * when applicable.
  */
@@ -2545,7 +2514,7 @@ data class SectionSurface (
     /**
      * Drop shadow applied to the surface.
      */
-    val shadow: Shadow? = null
+    val shadow: ShadowOrToken? = null
 )
 
 /**

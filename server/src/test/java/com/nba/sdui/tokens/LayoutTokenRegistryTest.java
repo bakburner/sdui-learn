@@ -10,10 +10,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * Unit tests for {@link LayoutTokenRegistry}.
  *
- * <p>Covers numeric pass-through, semantic-alias resolution per form factor,
- * unknown-token / non-token / null inputs (lenient resolver, never throws),
- * and the form-factor fallback path when a palette row is missing for the
- * requested form factor.
+ * <p>Covers numeric pass-through, semantic resolution against the 4-column
+ * form-factor matrix (phone / tablet / tv / web), unknown-token / non-token /
+ * null inputs (lenient resolver, never throws), and form-factor fallback when
+ * the requested column is missing.
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class LayoutTokenRegistryTest {
@@ -21,21 +21,12 @@ class LayoutTokenRegistryTest {
     private LayoutTokenRegistry registry;
 
     @BeforeAll
-    void buildRegistry() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        this.registry = new LayoutTokenRegistry(mapper);
-        // Inject a synthetic registry whose only palette entry has a `phone`
-        // row, so we can prove the form-factor fallback path explicitly.
-        registry.loadRegistry("schema/test-fallback-tokens.json");
+    void buildRegistry() {
+        this.registry = new LayoutTokenRegistry(new ObjectMapper());
     }
 
-    // ── Pass-through and basic resolution ──────────────────────────────
-
-    /** Confirms the registry actually loads from the runtime classpath. */
     @Test
     void registryLoadsFromClasspath() {
-        // Canonical mapping (schema/spacing-tokens.json):
-        // nba.spacing.md → nba.space.raw.12 → 12 on phone.
         assertEquals(12, registry.resolveInt("token:nba.spacing.md", "phone"),
                 "nba.spacing.md should resolve to 12 on phone if classpath load succeeded");
     }
@@ -44,29 +35,40 @@ class LayoutTokenRegistryTest {
     void numericInputPassesThrough() {
         assertEquals(12, registry.resolveInt(12, "phone"));
         assertEquals(0, registry.resolveInt(0, "tablet"));
-        assertEquals(99, registry.resolveInt(99, "web.wide"));
+        assertEquals(99, registry.resolveInt(99, "web"));
     }
 
     @Test
     void spacingMdResolvesPerFormFactor() {
-        // nba.spacing.md → nba.space.raw.12 per schema/spacing-tokens.json.
         assertEquals(12, registry.resolveInt("token:nba.spacing.md", "phone"));
         assertEquals(15, registry.resolveInt("token:nba.spacing.md", "tablet"));
         assertEquals(18, registry.resolveInt("token:nba.spacing.md", "tv"));
-        assertEquals(15, registry.resolveInt("token:nba.spacing.md", "web.wide"));
+        assertEquals(12, registry.resolveInt("token:nba.spacing.md", "web"));
     }
 
     @Test
-    void radiusFullResolvesThroughAliasOnEveryFormFactor() {
-        for (String ff : new String[] {
-                "phone", "phone.landscape", "tablet", "tv", "web.narrow", "web.wide"
-        }) {
+    void spacingLgResolvesPerFormFactor() {
+        assertEquals(16, registry.resolveInt("token:nba.spacing.lg", "phone"));
+        assertEquals(20, registry.resolveInt("token:nba.spacing.lg", "tablet"));
+        assertEquals(24, registry.resolveInt("token:nba.spacing.lg", "tv"));
+        assertEquals(16, registry.resolveInt("token:nba.spacing.lg", "web"));
+    }
+
+    @Test
+    void radiusFullResolvesOnEveryFormFactor() {
+        for (String ff : new String[] {"phone", "tablet", "tv", "web"}) {
             assertEquals(9999, registry.resolveInt("token:nba.radius.full", ff),
-                    "nba.radius.full should alias to 9999 for " + ff);
+                    "nba.radius.full should resolve to 9999 for " + ff);
         }
     }
 
-    // ── Lenient resolver: never throws on bad input ────────────────────
+    @Test
+    void radiusMdResolvesPerFormFactor() {
+        for (String ff : new String[] {"phone", "tablet", "tv", "web"}) {
+            assertEquals(12, registry.resolveInt("token:nba.radius.md", ff),
+                    "nba.radius.md is form-factor-flat at 12");
+        }
+    }
 
     @Test
     void unknownTokenNameReturnsZero() {
@@ -90,17 +92,13 @@ class LayoutTokenRegistryTest {
         assertEquals(0, registry.resolveInt(null, "phone"));
     }
 
-    // ── Form-factor fallback ───────────────────────────────────────────
-
     @Test
-    void missingFormFactorRowFallsBackToPhone() {
-        // Synthetic palette only carries a `phone` row; resolution on tablet/tv/web
-        // must fall back to phone instead of throwing or returning 0.
-        assertEquals(7, registry.resolveInt("token:test.fallback.only", "tablet"));
-        assertEquals(7, registry.resolveInt("token:test.fallback.only", "tv"));
-        assertEquals(7, registry.resolveInt("token:test.fallback.only", "web.wide"));
-        assertEquals(7, registry.resolveInt("token:test.fallback.only", "phone.landscape"));
-        // And exact match on phone still works.
-        assertEquals(7, registry.resolveInt("token:test.fallback.only", "phone"));
+    void unknownFormFactorFallsBackToPhone() {
+        assertEquals(12, registry.resolveInt("token:nba.spacing.md", "smartwatch"),
+                "unknown form factors fall back to the phone column");
+        assertEquals(12, registry.resolveInt("token:nba.spacing.md", ""),
+                "empty form factor coerces to phone");
+        assertEquals(12, registry.resolveInt("token:nba.spacing.md", null),
+                "null form factor coerces to phone");
     }
 }

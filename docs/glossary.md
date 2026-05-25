@@ -19,10 +19,42 @@ glossary is strictly about runtime, wire, and design-system vocabulary.
 | **Atomic primitive** | `AtomicElement` `type` from the schema enum: `Container`, `Text`, `Image`, `Button`, `Spacer`, `Divider`, `ScrollContainer`, `Conditional`, `DisplayGrid`, `SectionSlot`, `LiveClock`, `OverlayContainer`. Each has one `AtomicRouter` branch per platform. Product-specific layout belongs in `AtomicComposite` trees, not new primitives, unless the schema gains a type. |
 | **AtomicComposite section** | Section whose `type` is `"AtomicComposite"` and whose `data.ui` is a server-composed tree of atomic primitives rather than a fixed-shape payload. The default section type for stateless layout surfaces. Lets the server build new product surfaces without shipping new client renderers. |
 | **Semantic section** | A section type with a dedicated client renderer (not `AtomicComposite`). The allowed set is the schema `Section` enum minus `AtomicComposite`. Justified by client-owned state, SDK hosting, or runtime lifecycle. |
-| **Surface** | Design-system tier-adaptive container (e.g. `hero` surface, `canvas` surface). Realized natively per OS tier (Liquid Glass on iOS 26+, blur-fallback below; Material 3 expressive on Android; CSS filter on Web). Distinct from `Section`: a surface is presentational, a section is structural. See `docs/sdui-design-system.md` §5. |
-| **Section frame** / **outer frame** | The wrapper styling owned by `SectionContainer` (margins, dividers, surface, error/loading scaffolding). Renderers do not paint the frame themselves; ownership of this layer is shared infrastructure, not per-section. |
+| **Surface** | Design-system tier-adaptive container (e.g. `hero` surface, `canvas` surface). Realized natively per OS tier (Liquid Glass on iOS 26+, blur-fallback below; Material 3 expressive on Android; CSS filter on Web). Distinct from `Section`: a surface is presentational, a section is structural. See `docs/sdui-design-system.md` §4. |
+| **Section frame** / **outer frame** | The wrapper styling owned by `SectionContainer` (margin, padding, background, cornerRadius, shadow, border via `section.surface`, plus error/loading scaffolding). Renderers do not paint the frame themselves; ownership of this layer is shared infrastructure, not per-section. See ADR-015 and `docs/sdui-design-system.md §2` for the cascade. |
 | **Skeleton** | Loading-state placeholder shape declared via `sectionStates.loading.skeleton`. One of `shimmer` / `spinner` / `placeholder` / `none`. |
 | **ErrorState** | The section's server-declared error presentation (`message`, `retryAction`, `hideOnError`) under `sectionStates.error`. Schema name avoids colliding with host `Error` types in generated code. |
+
+---
+
+## Section surface vocabulary
+
+The named factory methods on `SectionSurfaces`
+(`server/src/main/java/com/nba/sdui/service/SectionSurfaces.java`) compose
+canonical `Section.surface` shapes. Each factory expresses a tuned
+design-system rhythm (margins, padding, background, corner radius, shadow) so
+composers pick a named treatment instead of inlining margin/padding constants.
+Section outer chrome flows through `SectionContainer` per ADR-015
+(`docs/adr/015-section-chrome-single-ownership.md`); see also
+`docs/sdui-design-system.md` §2 (Box-model cascade).
+
+All scalar values below are emitted as `token:nba.…` references on the wire
+(per AGENTS.md §3.6); clients resolve them per form factor against the
+bundled spacing/radius registries. Phone-resolved pixel equivalents are
+shown in parentheses.
+
+| Factory | Shape |
+| --- | --- |
+| **`defaultSurface()`** | Card-chromed: `nba.spacing.lg` margin all sides (phone 16) + raised secondary background + `nba.radius.md` corner radius (phone 12) + soft drop shadow (inline struct: 6px radius, y=2 — between `nba.shadow.sm` and `nba.shadow.md`, no exact token). Default for permanent sections. |
+| **`flushSurface()`** | Empty surface block. Renders edge-to-edge with no margin, padding, or background. |
+| **`cardSurface()`** | Sunken card chrome: `nba.spacing.lg` margin (phone 16) + tertiary background + `nba.radius.md` corner radius (phone 12), no shadow. For non-rail composites that should sit inside a card. |
+| **`railSurface()`** | Vertical margin only (`nba.spacing.lg` top/bottom; phone 16). For flush-edge composites whose root container owns its own inner chrome; the `lg` step pairs with `defaultSurface`'s `lg` to produce 2× `lg` of air at module boundaries. |
+| **`sectionHeaderSurface()`** | Header rhythm: `nba.spacing.lg` top (phone 16), `nba.spacing.md` bottom (phone 12). Combined with the rail's `lg` top margin gives a `lg + md` (28pt on phone) header→rail gap so the title reads as belonging to its rail without looking flush. |
+| **`adSlotSurface()`** | Ad chrome: sharp corners (radius 0, §3.6 exception #1), no shadow, `nba.spacing.lg` margin all sides, asymmetric inner padding (`lg` vertical, `md` horizontal) for disclosure-label rhythm. |
+| **`gamePanelSurface()`** | `defaultSurface()` + diagonal raised→promo gradient background. Token-backed so themes resolve. For matchup cards across all GamePanel sites. |
+| **`subscribeSurface(top, bottom, padding)`** | `defaultSurface()` + vertical gradient (caller-supplied colors) + symmetric padding. The `padding` parameter is a raw integer because callers pass values (20, 24) that fall between `nba.spacing.lg` and `nba.spacing.xl`; promote to a new spacing token if callsites converge. For subscription upsell sections (SubscribeBanner, SubscribeHero). |
+| **`videoPlayerSurface()`** | Flush dark background (`#1A1F2E`, raw hex — no `nba.bg.player` token in the registry), no margin, no corners. Embedded-player presentation; sizing owned by renderer / `data.displayConfig`. |
+| **`secondaryStripSurface()`** | Full-bleed strip: token secondary background + token padding (`sm` top, `md` end, `xs` bottom, `md` start), no corners or margin. |
+| **`stripSurfaceWithoutBackground()`** | Same strip padding as `secondaryStripSurface()` but no explicit background — sits on the screen's default surface. |
 
 ---
 

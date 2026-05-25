@@ -184,7 +184,7 @@ class SduiRefreshTransportTest {
     @Test
     void getScoreboardCarriesDeviceClassThroughEnvelope() throws Exception {
         mockMvc.perform(
-                get("/v1/sdui/scoreboard")
+                get("/v1/sdui/screen/scoreboard")
                         .param("locale", "en")
                         .param("platform[deviceClass]", "tablet")
                         .param("market[cohort]", "US_NY_METRO")
@@ -220,7 +220,7 @@ class SduiRefreshTransportTest {
         envelope.put("platform", platform);
 
         mockMvc.perform(
-                post("/v1/sdui/scoreboard")
+                post("/v1/sdui/screen/scoreboard")
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsBytes(envelope))
                         .header("X-Platform", "ios")

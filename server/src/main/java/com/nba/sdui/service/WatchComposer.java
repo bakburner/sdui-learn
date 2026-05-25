@@ -28,6 +28,7 @@ public class WatchComposer {
     private final ObjectMapper objectMapper;
     private final StatsApiClient statsApiClient;
     private final SduiUtils utils;
+    private final SectionSurfaces surfaces;
     private final AtomicCompositeBuilder atomicBuilder;
 
     @Value("${sdui.schema.version:1.0}")
@@ -35,10 +36,12 @@ public class WatchComposer {
 
     public WatchComposer(ObjectMapper objectMapper,
                          StatsApiClient statsApiClient,
-                         SduiUtils utils) {
+                         SduiUtils utils,
+                         SectionSurfaces surfaces) {
         this.objectMapper = objectMapper;
         this.statsApiClient = statsApiClient;
         this.utils = utils;
+        this.surfaces = surfaces;
         this.atomicBuilder = new AtomicCompositeBuilder(objectMapper);
     }
 
@@ -98,12 +101,7 @@ public class WatchComposer {
 
         section.set("data", data);
         section.set("subsections", utils.tabSelectSubsections(tabs, "watch_active_tab"));
-        section.set("surface", utils.stripSurfaceWithoutBackground());
-
-        ObjectNode layoutHints = objectMapper.createObjectNode();
-        layoutHints.put("marginTop", 0);
-        layoutHints.put("marginBottom", 0);
-        section.set("layoutHints", layoutHints);
+        section.set("surface", surfaces.stripSurfaceWithoutBackground());
 
         return section;
     }
@@ -281,7 +279,7 @@ public class WatchComposer {
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite", slug + "-header");
         ObjectNode section = atomicBuilder.buildSectionHeader(sectionId, title, null, actionLabel, actionUri);
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", utils.sectionHeaderSurface());
+        section.set("surface", surfaces.sectionHeaderSurface());
         return section;
     }
 
@@ -291,7 +289,7 @@ public class WatchComposer {
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite", slug + "-header");
         ObjectNode section = atomicBuilder.buildSectionHeader(sectionId, title, subtitle, actionLabel, actionUri);
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", utils.sectionHeaderSurface());
+        section.set("surface", surfaces.sectionHeaderSurface());
         return section;
     }
 
@@ -309,7 +307,7 @@ public class WatchComposer {
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         ObjectNode section = atomicBuilder.buildContentRail(sectionId, null, null, cards);
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", utils.railSurface());
+        section.set("surface", surfaces.railSurface());
         sections.add(section);
     }
 
@@ -327,7 +325,7 @@ public class WatchComposer {
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         ObjectNode section = atomicBuilder.buildVideoCarousel(sectionId, null, null, null, items);
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", utils.railSurface());
+        section.set("surface", surfaces.railSurface());
         sections.add(section);
     }
 
@@ -337,7 +335,7 @@ public class WatchComposer {
         ObjectNode section = atomicBuilder.buildPromoBanner(sectionId, null, null, headline, subhead,
                 null, "Learn More", targetUri);
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", utils.subscribeSurface(
+        section.set("surface", surfaces.subscribeSurface(
                 "#0C1B3A",
                 ColorTokens.BRAND_NBA,
                 20));
@@ -363,7 +361,7 @@ public class WatchComposer {
                 "nba://game/" + gameId,
                 staticPolicy(),
                 null,
-                utils.gamePanelSurface());
+                surfaces.gamePanelSurface());
         section.put("contentSourceId", contentSourceId);
         return section;
     }
@@ -389,7 +387,7 @@ public class WatchComposer {
                 "nba://game/" + mockId,
                 staticPolicy(),
                 null,
-                utils.gamePanelSurface());
+                surfaces.gamePanelSurface());
         section.put("contentSourceId", contentSourceId);
         return section;
     }
@@ -413,7 +411,7 @@ public class WatchComposer {
                 "LIVE — Nightly highlights & analysis",
                 true, slots);
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", utils.cardSurface());
+        section.set("surface", surfaces.cardSurface());
         return section;
     }
 
@@ -436,7 +434,7 @@ public class WatchComposer {
         section.put("type", "SubscribeBanner");
         section.put("contentSourceId", contentSourceId);
         section.set("refreshPolicy", staticPolicy());
-        section.set("surface", utils.subscribeSurface(
+        section.set("surface", surfaces.subscribeSurface(
                 ColorTokens.BRAND_NBA,
                 "#862633",
                 20));
@@ -448,7 +446,7 @@ public class WatchComposer {
 
         ObjectNode root = atomicBuilder.container("column", "start", "start");
         root.put("widthMode", "fill");
-        root.put("gap", 4);
+        root.put("gap", LayoutTokens.SPACING_SM);
         ArrayNode children = objectMapper.createArrayNode();
         ObjectNode titleText = atomicBuilder.text(title, "titleMedium", "bold", "#FFFFFF", null);
         addHeading(objectMapper, titleText, title, 2);
@@ -483,7 +481,7 @@ public class WatchComposer {
         section.put("type", "SubscribeHero");
         section.put("contentSourceId", contentSourceId);
         section.set("refreshPolicy", staticPolicy());
-        section.set("surface", utils.subscribeSurface(
+        section.set("surface", surfaces.subscribeSurface(
                 "#0C1B3A",
                 ColorTokens.BRAND_NBA,
                 24));
@@ -526,7 +524,7 @@ public class WatchComposer {
     private ObjectNode buildSubscribeHeroUi(String title, String subtitle, String logoUrl,
                                              String[] features, TierSpec[] tierSpecs) {
         ObjectNode root = atomicBuilder.container("column", "start", "center");
-        root.put("gap", 8);
+        root.put("gap", 8); // §3.6: no semantic spacing token for 8
         root.put("widthMode", "fill");
         ArrayNode children = objectMapper.createArrayNode();
 
@@ -545,15 +543,18 @@ public class WatchComposer {
         children.add(atomicBuilder.spacer(LayoutTokens.SPACING_LG));
 
         ObjectNode featuresCol = atomicBuilder.container("column", "start", "start");
-        featuresCol.put("gap", 8);
+        featuresCol.put("gap", 8); // §3.6: no semantic spacing token for 8
         featuresCol.put("widthMode", "fill");
         ArrayNode featureChildren = objectMapper.createArrayNode();
         for (String feature : features) {
             ObjectNode row = atomicBuilder.container("row", "start", "center");
-            row.put("gap", 8);
+            row.put("gap", 8); // §3.6: no semantic spacing token for 8
+            row.put("widthMode", "fill");
             ArrayNode rowChildren = objectMapper.createArrayNode();
             rowChildren.add(atomicBuilder.text("✓", "bodyLarge", "bold", "token:nba.color.feedback.success.70", null));
-            rowChildren.add(atomicBuilder.text(feature, "bodyLarge", null, ColorTokens.TEXT_ON_DARK_MEDIA, null));
+            ObjectNode featureText = atomicBuilder.text(feature, "bodyLarge", null, ColorTokens.TEXT_ON_DARK_MEDIA, null);
+            featureText.put("flex", 1);
+            rowChildren.add(featureText);
             row.set("children", rowChildren);
             featureChildren.add(row);
         }
@@ -563,7 +564,7 @@ public class WatchComposer {
         children.add(atomicBuilder.spacer(20));
 
         ObjectNode tiersCol = atomicBuilder.container("column", "start", "stretch");
-        tiersCol.put("gap", 16);
+        tiersCol.put("gap", LayoutTokens.SPACING_LG);
         tiersCol.put("widthMode", "fill");
         ArrayNode tierChildren = objectMapper.createArrayNode();
         for (TierSpec t : tierSpecs) {
@@ -579,10 +580,15 @@ public class WatchComposer {
     /** Build an atomic Container that visually represents one subscription tier. */
     private ObjectNode buildTierUi(TierSpec t) {
         ObjectNode card = atomicBuilder.container("column", "start", "start");
-        card.put("gap", 6);
+        card.put("gap", 6); // §3.6: no semantic spacing token for 6
         card.put("background", ColorTokens.SURFACE_TIER_ON_DARK);
-        card.put("cornerRadius", 16);
-        card.set("padding", atomicBuilder.padding(22, 22, 20, 20));
+        card.put("cornerRadius", LayoutTokens.RADIUS_LG);
+        card.set("padding", atomicBuilder.padding(
+                22, // §3.6: no semantic spacing token for 22
+                22, // §3.6: no semantic spacing token for 22
+                20, // §3.6: no semantic spacing token for 20
+                20  // §3.6: no semantic spacing token for 20
+        ));
         card.put("widthMode", "fill");
 
         ArrayNode cardChildren = objectMapper.createArrayNode();
@@ -645,7 +651,7 @@ public class WatchComposer {
         section.put("type", "AdSlot");
         section.put("contentSourceId", contentSourceId);
         section.set("refreshPolicy", staticPolicy());
-        section.set("surface", utils.adSlotSurface());
+        section.set("surface", surfaces.adSlotSurface());
 
         ObjectNode data = objectMapper.createObjectNode();
         data.put("provider", "gam");

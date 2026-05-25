@@ -600,13 +600,13 @@ export interface AtomicElement {
      * DEPRECATED — use shadows (array) for new payloads. Single shadow. If both shadow and
      * shadows are present, shadows wins.
      */
-    shadow?: Shadow;
+    shadow?: Shadow | string;
     /**
      * Ordered array of shadow layers. Index 0 is the outermost shadow (Figma convention);
      * higher indices are closer to the element. Maps directly to CSS box-shadow list order.
      * When absent, falls back to singular shadow field.
      */
-    shadows?: Shadow[];
+    shadows?: Array<Shadow | string>;
     /**
      * Whether to show scroll indicators on ScrollContainer. Default false for clean carousel
      * presentation.
@@ -882,9 +882,8 @@ export interface Section {
     /**
      * Section-level interaction actions
      */
-    actions?:         Action[];
-    analyticsId?:     string;
-    backgroundColor?: string;
+    actions?:     Action[];
+    analyticsId?: string;
     /**
      * Origin identifier for the content backing this section (e.g. 'cms:article-42',
      * 'stats-api:leaders-2025'). Carried through to analytics for two-tier attribution.
@@ -896,8 +895,6 @@ export interface Section {
     data?:          Data;
     dataBinding?:   DataBinding;
     id:             string;
-    layoutHints?:   SectionLayoutHints;
-    padding?:       Spacing;
     refreshPolicy?: RefreshPolicy;
     sectionStates?: SectionStates;
     /**
@@ -1222,13 +1219,8 @@ export enum Style {
 }
 
 /**
- * DEPRECATED — use shadows (array) for new payloads. Single shadow. If both shadow and
- * shadows are present, shadows wins.
- *
  * Shadow effect with CSS/SwiftUI semantics (radius + offset). Compose approximates via
  * elevation. Use 'type' to distinguish drop vs inner shadows.
- *
- * Drop shadow applied to the surface.
  */
 export interface Shadow {
     /**
@@ -1563,43 +1555,6 @@ export enum Transform {
 }
 
 /**
- * Optional layout hints for section placement. Clients apply best-effort; unknown hints are
- * ignored.
- */
-export interface SectionLayoutHints {
-    /**
-     * Render a divider line above this section
-     */
-    dividerAbove?: boolean;
-    /**
-     * Render a divider line below this section
-     */
-    dividerBelow?: boolean;
-    /**
-     * Bottom margin in dp/points
-     */
-    marginBottom?: number;
-    /**
-     * Top margin in dp/points (0 = flush)
-     */
-    marginTop?: number;
-    /**
-     * Rendering priority hint — clients may use for lazy loading or viewport priority
-     */
-    priority?: Priority;
-    [property: string]: any;
-}
-
-/**
- * Rendering priority hint — clients may use for lazy loading or viewport priority
- */
-export enum Priority {
-    High = "high",
-    Low = "low",
-    Normal = "normal",
-}
-
-/**
  * Server-declared loading and error presentation for a section. Clients render these states
  * when applicable.
  */
@@ -1708,7 +1663,7 @@ export interface SectionSurface {
     /**
      * Drop shadow applied to the surface.
      */
-    shadow?: Shadow;
+    shadow?: Shadow | string;
     [property: string]: any;
 }
 

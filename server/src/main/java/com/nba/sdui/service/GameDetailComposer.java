@@ -39,6 +39,7 @@ public class GameDetailComposer {
     private final BoxscoreComposer boxscoreComposer;
     private final SectionRefreshService sectionRefreshService;
     private final SduiUtils utils;
+    private final SectionSurfaces surfaces;
     private final AtomicCompositeBuilder atomicBuilder;
 
     @Value("${sdui.schema.version:1.0}")
@@ -48,12 +49,14 @@ public class GameDetailComposer {
                               StatsApiClient statsApiClient,
                               BoxscoreComposer boxscoreComposer,
                               SectionRefreshService sectionRefreshService,
-                              SduiUtils utils) {
+                              SduiUtils utils,
+                              SectionSurfaces surfaces) {
         this.objectMapper = objectMapper;
         this.statsApiClient = statsApiClient;
         this.boxscoreComposer = boxscoreComposer;
         this.sectionRefreshService = sectionRefreshService;
         this.utils = utils;
+        this.surfaces = surfaces;
         this.atomicBuilder = new AtomicCompositeBuilder(objectMapper);
     }
 
@@ -170,7 +173,7 @@ public class GameDetailComposer {
         ObjectNode chips = atomicBuilder.buildVariantChipsComposite(
                 "game-detail-variant-chips", "game_detail_variant_chips",
                 currentUri, experimentId, options, normalized);
-        chips.set("surface", utils.flushSurface());
+        chips.set("surface", surfaces.flushSurface());
 
         ArrayNode sections = response.has("sections") && response.get("sections").isArray()
                 ? (ArrayNode) response.get("sections")
@@ -424,11 +427,11 @@ public class GameDetailComposer {
         ObjectNode awayTable = boxscoreComposer.buildBoxscoreTableSection(
                 awayTeam, gameId, contentSourceId, "away",
                 "gd_boxscore_away_sortCol", "gd_boxscore_away_sortDir", gameStatus);
-        awayTable.set("surface", utils.flushSurface());
+        awayTable.set("surface", surfaces.flushSurface());
         ObjectNode homeTable = boxscoreComposer.buildBoxscoreTableSection(
                 homeTeam, gameId, contentSourceId, "home",
                 "gd_boxscore_home_sortCol", "gd_boxscore_home_sortDir", gameStatus);
-        homeTable.set("surface", utils.flushSurface());
+        homeTable.set("surface", surfaces.flushSurface());
 
         ObjectNode tabContents = objectMapper.createObjectNode();
         ArrayNode awayContent = objectMapper.createArrayNode();
@@ -442,7 +445,7 @@ public class GameDetailComposer {
         data.set("tabContents", tabContents);
         section.set("data", data);
         section.set("subsections", utils.tabSelectSubsections(tabs, "gd_boxscore_team"));
-        section.set("surface", utils.stripSurfaceWithoutBackground());
+        section.set("surface", surfaces.stripSurfaceWithoutBackground());
         return section;
     }
 
@@ -490,7 +493,7 @@ public class GameDetailComposer {
                 null,
                 refreshPolicy,
                 utils.buildCompositeLinescoreBindings(),
-                utils.gamePanelSurface());
+                surfaces.gamePanelSurface());
 
         section.put("contentSourceId", contentSourceId);
         section.set("sectionStates", utils.buildSectionStates(
@@ -550,7 +553,7 @@ public class GameDetailComposer {
             ObjectNode homeChild = buildStatLineChild("row-home-stats", homeTricode + " Leaders", homePerformers);
             ObjectNode awayChild = buildStatLineChild("row-away-stats", awayTricode + " Leaders", awayPerformers);
 
-            ObjectNode root = atomicBuilder.responsiveRow(16, 600);
+            ObjectNode root = atomicBuilder.responsiveRow(LayoutTokens.SPACING_LG, 600);
             ArrayNode children = objectMapper.createArrayNode();
 
             ObjectNode homeSlot = atomicBuilder.sectionSlot("row-home", homeChild);
@@ -659,7 +662,7 @@ public class GameDetailComposer {
         section.put("type", "VideoPlayer");
         section.put("analyticsId", "game_detail_video_player");
         section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
-        section.set("surface", utils.videoPlayerSurface());
+        section.set("surface", surfaces.videoPlayerSurface());
 
         ObjectNode root = atomicBuilder.container("column", "center", "center");
         root.put("widthMode", "fill");
@@ -698,7 +701,7 @@ public class GameDetailComposer {
 
         overlays.set("couchRightsWarning", buildOverlaySection(
                 contentSourceId, "couch-rights-warning",
-                "sdui:warning",
+                IconTokens.WARNING,
                 "Viewing Time Limited",
                 "Your couch rights viewing window is active. You have limited time remaining on this stream.",
                 "Got It",
@@ -707,7 +710,7 @@ public class GameDetailComposer {
 
         overlays.set("couchRightsExpired", buildOverlaySection(
                 contentSourceId, "couch-rights-expired",
-                "sdui:warning",
+                IconTokens.WARNING,
                 "Viewing Time Expired",
                 "Your couch rights viewing window has ended. Subscribe to League Pass for unlimited access.",
                 "Subscribe Now",
@@ -716,7 +719,7 @@ public class GameDetailComposer {
 
         overlays.set("unentitled", buildOverlaySection(
                 contentSourceId, "unentitled",
-                "sdui:lock",
+                IconTokens.LOCK,
                 "Subscription Required",
                 "This content requires an active NBA League Pass subscription.",
                 "View Plans",
@@ -733,7 +736,12 @@ public class GameDetailComposer {
         root.put("direction", "column");
         root.put("alignment", "center");
         root.put("crossAlignment", "center");
-        root.set("padding", padHelper(24, 24, 32, 32));
+        root.set("padding", atomicBuilder.padding(
+                24, // §3.6: no semantic spacing token for 24
+                24, // §3.6: no semantic spacing token for 24
+                LayoutTokens.SPACING_XL,
+                LayoutTokens.SPACING_XL
+        ));
         root.put("background", ColorTokens.SURFACE_CANVAS);
         root.put("cornerRadius", LayoutTokens.RADIUS_LG);
 
@@ -874,11 +882,7 @@ public class GameDetailComposer {
         data.set("tabContents", tabContents);
         section.set("data", data);
         section.set("subsections", utils.tabSelectSubsections(tabs, "gd_active_tab"));
-        section.set("surface", utils.stripSurfaceWithoutBackground());
-
-        ObjectNode layoutHints = objectMapper.createObjectNode();
-        layoutHints.put("marginTop", 0);
-        section.set("layoutHints", layoutHints);
+        section.set("surface", surfaces.stripSurfaceWithoutBackground());
 
         return section;
     }
@@ -900,7 +904,7 @@ public class GameDetailComposer {
         ObjectNode scroll = objectMapper.createObjectNode();
         scroll.put("type", "ScrollContainer");
         scroll.put("direction", "row");
-        scroll.put("gap", 12);
+        scroll.put("gap", LayoutTokens.SPACING_MD);
         scroll.put("showIndicators", false);
         ArrayNode scrollChildren = objectMapper.createArrayNode();
 
@@ -909,7 +913,7 @@ public class GameDetailComposer {
             card.put("type", "Container");
             card.put("direction", "column");
             card.put("id", hl[0]);
-            card.put("cornerRadius", 8);
+            card.put("cornerRadius", 8); // §3.6: no semantic token mapping for corner radius 8
             card.put("background", ColorTokens.SURFACE_CANVAS);
 
             ObjectNode shadowObj = objectMapper.createObjectNode();
@@ -937,17 +941,20 @@ public class GameDetailComposer {
             img.put("width", 200);
             img.put("height", 112);
             img.put("fit", "cover");
-            img.put("cornerRadius", 8);
+            img.put("cornerRadius", 8); // §3.6: no semantic token mapping for corner radius 8
             AccessibilityHelper.addImage(objectMapper, img, hl[0]);
 
             ObjectNode durationBadgeEl = objectMapper.createObjectNode();
             durationBadgeEl.put("type", "Container");
             durationBadgeEl.put("direction", "row");
-            durationBadgeEl.put("cornerRadius", 4);
+            durationBadgeEl.put("cornerRadius", LayoutTokens.RADIUS_SM);
             durationBadgeEl.put("background", "#000000B3");
             durationBadgeEl.put("opacity", 0.85);
             ObjectNode dbPad = objectMapper.createObjectNode();
-            dbPad.put("start", 4); dbPad.put("end", 4); dbPad.put("top", 2); dbPad.put("bottom", 2);
+            dbPad.put("start", LayoutTokens.SPACING_SM);
+            dbPad.put("end", LayoutTokens.SPACING_SM);
+            dbPad.put("top", LayoutTokens.SPACING_XS);
+            dbPad.put("bottom", LayoutTokens.SPACING_XS);
             durationBadgeEl.set("padding", dbPad);
             ArrayNode dbChildren = objectMapper.createArrayNode();
             ObjectNode dbText = objectMapper.createObjectNode();
@@ -978,7 +985,10 @@ public class GameDetailComposer {
             title.put("color", ColorTokens.TEXT_PRIMARY);
             title.put("maxLines", 2);
             ObjectNode titlePad = objectMapper.createObjectNode();
-            titlePad.put("start", 8); titlePad.put("end", 8); titlePad.put("top", 0); titlePad.put("bottom", 4);
+            titlePad.put("start", 8); // §3.6: no semantic spacing token for 8
+            titlePad.put("end", 8); // §3.6: no semantic spacing token for 8
+            titlePad.put("top", 0); // §3.6: no semantic value for zero
+            titlePad.put("bottom", LayoutTokens.SPACING_SM);
             title.set("padding", titlePad);
             cardChildren.add(title);
 
@@ -992,7 +1002,10 @@ public class GameDetailComposer {
         root.put("type", "Container");
         root.put("direction", "column");
         ObjectNode rootPad = objectMapper.createObjectNode();
-        rootPad.put("start", 0); rootPad.put("end", 0); rootPad.put("top", 8); rootPad.put("bottom", 8);
+        rootPad.put("start", 0); // §3.6: no semantic value for zero
+        rootPad.put("end", 0); // §3.6: no semantic value for zero
+        rootPad.put("top", 8); // §3.6: no semantic spacing token for 8
+        rootPad.put("bottom", 8); // §3.6: no semantic spacing token for 8
         root.set("padding", rootPad);
         ArrayNode rootChildren = objectMapper.createArrayNode();
         rootChildren.add(scroll);
@@ -1188,10 +1201,10 @@ public class GameDetailComposer {
         };
         ObjectNode extraHeader = atomicBuilder.buildSectionHeader(
                 "trending-videos-header", "Trending Videos", null, null, null);
-        extraHeader.set("surface", utils.sectionHeaderSurface());
+        extraHeader.set("surface", surfaces.sectionHeaderSurface());
         ObjectNode extraRail = atomicBuilder.buildContentRail("trending-videos",
                 "trending_videos_rail", null, trendingCards);
-        extraRail.set("surface", utils.railSurface());
+        extraRail.set("surface", surfaces.railSurface());
 
         Integer insertAfter = slugIndex.get("content-rail");
         if (insertAfter != null) {

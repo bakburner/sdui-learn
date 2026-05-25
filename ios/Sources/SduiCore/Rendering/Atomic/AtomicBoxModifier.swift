@@ -87,8 +87,10 @@ struct AtomicBoxModifier: ViewModifier {
             ?? []
 
         // Effective shadows: plural field wins, else wrap singular, else empty.
-        let effectiveShadows: [Shadow] = element.shadows
-            ?? element.shadow.map { [$0] }
+        let effectiveShadows: [Shadow] = element.shadows.map { LayoutTokenResolver.resolveShadowOrTokens($0) }
+            ?? element.shadow
+                .flatMap { LayoutTokenResolver.resolveShadowOrToken($0) }
+                .map { [$0] }
             ?? []
 
         let primaryBackground = effectiveBackgrounds.first

@@ -7,31 +7,51 @@
     {
       "id": "featured-live-empty",
       "type": "AtomicComposite",
-      "refreshPolicy": { "type": "static" },
+      "refreshPolicy": {
+        "type": "static"
+      },
       "data": {
         "ui": {
           "type": "Container",
           "direction": "column",
           "alignment": "center",
           "crossAlignment": "center",
-          "padding": { "top": 16, "bottom": 32, "start": 16, "end": 16 },
+          "padding": {
+            "top": "token:nba.spacing.lg",
+            "bottom": "token:nba.spacing.xl",
+            "start": "token:nba.spacing.lg",
+            "end": "token:nba.spacing.lg"
+          },
           "children": [
-            { "type": "Text", "content": "📡", "variant": "titleLarge" },
-            { "type": "Spacer", "height": 12 },
+            {
+              "type": "Text",
+              "content": "📡",
+              "variant": "titleLarge"
+            },
+            {
+              "type": "Spacer",
+              "height": "token:nba.spacing.md"
+            },
             {
               "type": "Text",
               "content": "Live games unavailable",
               "variant": "titleMedium",
               "weight": "bold"
             },
-            { "type": "Spacer", "height": 8 },
+            {
+              "type": "Spacer",
+              "height": "token:nba.spacing.sm"
+            },
             {
               "type": "Text",
               "content": "The server could not load featured live games for this feed. Retry to refresh.",
               "variant": "bodyMedium",
               "color": "token:nba.label.secondary"
             },
-            { "type": "Spacer", "height": 16 },
+            {
+              "type": "Spacer",
+              "height": "token:nba.spacing.lg"
+            },
             {
               "type": "Button",
               "label": "Try Again",

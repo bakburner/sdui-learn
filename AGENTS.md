@@ -79,6 +79,10 @@ The lower rule never weakens the higher one.
   neutral default) — that does not relax JSON decoding.
 - Renderer fallbacks happen after successful decode; they do not weaken the
   schema contract.
+- Adding a new token name follows a similar release sequence: add to the
+  token schema JSON first, update client bundles (so resolvers can find it),
+  then emit from composers. Until the bundle update ships, an unknown token
+  resolves to a neutral default; the composer must not emit it.
 
 ### 1.4 One owner per concern
 
@@ -202,11 +206,12 @@ The following are **not** valid client exceptions:
   falls back to vertical).
 - Platform-specific composition decisions are resolved from `deviceClass` in
   the envelope, not from hardcoded strings.
-- **`formFactor` (roadmap):** the wire will carry a client-declared form factor
-  in the same envelope (see implementation plan). Until that is required end to
-  end, clients may use a **documented default** (e.g. `phone`) for
-  form-factor-scoped **presentational** resolution (e.g. layout tokens) —
-  **temporary;** do not use it to override server content choices.
+- **`formFactor` is client-local, not a wire field.** Orientation, viewport,
+  and breakpoint are resolved on the client at render time. They are
+  intentionally absent from the request envelope because adding them would
+  fragment the cache keyspace without composition benefit — the server does
+  not branch on them. `deviceClass` remains the only platform input the
+  server reads.
 
 ### 3.5 Action semantics are server-declared
 
@@ -222,22 +227,73 @@ The following are **not** valid client exceptions:
   be explicit and temporary rather than silently normalized into a weaker
   runtime contract.
 
-### 3.6 Composers emit design-system tokens, not raw pixels
+### 3.6 Composers emit design-system tokens, not raw values
 
-- Composed payloads must emit semantic token strings (e.g. `"token:nba.spacing.lg"`)
-  for spacing, corner radius, and size values — not hardcoded integers.
-- Clients resolve token strings to concrete pixel values via the form-factor-aware
-  `LayoutTokenResolver`; emitting raw integers bypasses form-factor adaptation.
-- **Narrow exceptions where raw integers remain acceptable:**
-  - `0` (no semantic value for zero spacing).
-  - Calculated values that depend on runtime state (e.g. circle radius = width/2).
-  - Component-specific fixed dimensions that are intentionally non-responsive
-    (e.g. card carousel item widths).
-  - Values for which no design-system token exists (rare; document why).
-- `LayoutTokens.java` is the server-side source of truth for wire-form token
-  strings; composers reference constants from that class.
-- This rule applies to all layout-scalar fields: `padding`, `cornerRadius`,
-  `gap`, `width`, `height`, `minWidth`, `minHeight`, `maxWidth`, `maxHeight`.
+- Composed payloads emit semantic token strings (e.g. `"token:nba.spacing.lg"`,
+  `"token:nba.shadow.md"`) for every family the registry covers — spacing,
+  radius, typography, motion, shadow, color, and icon. Raw pixels, raw
+  millisecond counts, hex colors, and platform-native names do not belong on
+  the wire.
+- One wire vocabulary per family. Color is the only family with two layers
+  (primitive + semantic, because theming swaps the primitive). Other families
+  expose semantic names only; raw, step-indexed, or category-internal
+  sub-vocabularies stay server-internal.
+- Token resolution is fully client-local. Clients bundle the raw JSON token
+  schemas (`schema/*-tokens.json`) in their build artifacts and parse them at
+  startup. Routine form-factor changes — rotation, resize, split-screen,
+  same-`deviceClass` foldable transitions — re-resolve locally with zero
+  network traffic. The bundled-JSON approach keeps the door open to a future
+  remote-updatable registry without a schema change.
+- Raw integers / inline structs remain acceptable only for: `0`;
+  runtime-calculated values; intentionally non-responsive component
+  dimensions; values with no semantic token (cite the gap inline). When
+  exercising the inline escape hatch on a tokenizable structured field
+  (`shadow`, etc.), the wire still decodes through the registry-aware
+  resolver — see §3.6.1.
+- `LayoutTokens.java`, `MotionTokens.java`, `ShadowTokens.java`,
+  `TypographyTokens.java`, and `IconTokens.java` are the server-side sources
+  of truth for wire-form token strings; composers reference those constants.
+- Applies to all layout-scalar fields (`padding`, `cornerRadius`, `gap`,
+  `width`, `height`, `minWidth`, `minHeight`, `maxWidth`, `maxHeight`) and to
+  the structured presentational fields `shadow`, `typography`, `animation`,
+  `color`.
+
+### 3.6.1 Token-first wire shapes with an inline escape hatch
+
+Structured presentational fields use a token-or-struct union (e.g.
+`shadow: Shadow | string`). The token reference is the preferred form; the
+inline struct exists as an escape hatch for one-off values that don't deserve
+a registry entry. Both forms decode and both render correctly.
+
+- **Prefer the token.** Composers default to the registry reference; the
+  inline struct is justified only when no existing token expresses the value
+  and a new token isn't warranted (one-off, transient, experimental).
+- **Clients normalize at the edge.** Every consumer of the union calls a
+  single resolver helper (`resolveShadowOrToken`, etc.) that returns a fully
+  resolved struct. Renderers do not branch on the union; they consume the
+  normalized value.
+- **The union keeps the door open to remote-updatable registries.** Because
+  clients already parse JSON at runtime (bundled from the build), a future
+  enhancement can serve updated registry JSON over the wire. The union is
+  the shape that supports both token-driven (re-resolves on registry update)
+  and inline (immutable) values without a schema change.
+
+### 3.7 Token form-factor matrix
+
+- The token registry JSON uses four columns: `phone`, `tablet`, `tv`, `web`.
+  Each client parses only the columns relevant to its platform:
+  - **iOS / Android:** parse `phone`, `tablet`, `tv`. The `web` column is
+    skipped entirely — mobile resolvers have no `FormFactor.web` case.
+  - **Web:** parses all four columns. The `web` value may be a scalar or a
+    fluid envelope (`{min, max, minVw, maxVw}`) that resolves to `clamp(...)`
+    at use site.
+- Native platforms handle intra-column fragmentation through their own density,
+  font-scale, and size-class systems. Composition decisions that vary by
+  orientation or viewport stay in composer logic keyed off `deviceClass`, not
+  in the token shape.
+- Earlier breakpoint-style columns (orientation suffixes, narrow/wide
+  splits) were speculative and are not canonical. New form-factor columns
+  require a doctrine update, not just a schema edit.
 
 ## 4. Shared Infrastructure Owns Shared Concerns
 
@@ -624,6 +680,20 @@ has drifted.
 - Partner / sponsor constraints with expiration dates
 - Upstream data quirks with ticket references
 - Product-decision intent the code itself cannot convey
+
+### 10.4 Documentation sync after schema or token changes
+
+After any change to `schema/sdui-schema.json` or `schema/*-tokens.json`:
+
+1. Re-run `make codegen` so generated models stay in sync.
+2. Copy updated token JSON files to each client bundle
+   (`ios/Sources/SduiCore/Resources/Tokens/`,
+   `android/sdui-core/src/main/resources/tokens/`).
+3. Verify that docs referencing token families or schema shapes
+   (`docs/client-implementors-contract.md`, plan files, and any
+   platform-specific docs) still reflect the current structure. Update
+   prose if the change introduced new token families, renamed fields, or
+   altered resolution semantics.
 
 ## 11. Variant Discipline
 

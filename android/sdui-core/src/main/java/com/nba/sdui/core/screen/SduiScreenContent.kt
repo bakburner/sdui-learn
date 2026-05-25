@@ -108,7 +108,6 @@ private fun SectionItem(
     onStateChange: (String, Any) -> Unit
 ) {
     val density = LocalDensity.current
-    val hints = section.layoutHints
     Column(
         modifier = Modifier.onSizeChanged { sz ->
             val h = sz.height
@@ -117,10 +116,6 @@ private fun SectionItem(
             }
         }
     ) {
-        if (hints?.dividerAbove == true) {
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-        }
-        Spacer(modifier = Modifier.height((hints?.marginTop ?: 0L).toInt().dp))
         SectionErrorBoundary(
             sectionId = section.id,
             sectionType = section.type,
@@ -134,10 +129,6 @@ private fun SectionItem(
                 onAction = onAction,
                 onStateChange = onStateChange
             )
-        }
-        Spacer(modifier = Modifier.height((hints?.marginBottom ?: 0L).toInt().dp))
-        if (hints?.dividerBelow == true) {
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         }
     }
 }

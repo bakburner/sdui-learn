@@ -239,28 +239,19 @@ export function SectionList({
   return (
     <>
       {sections.map((section) => (
-        <div
+        <SectionRouter
           key={section.id}
-          style={{
-            marginTop: section.layoutHints?.marginTop ?? 0,
-            marginBottom: section.layoutHints?.marginBottom ?? 0,
-          }}
-        >
-          {section.layoutHints?.dividerAbove && <hr className="sdui-divider" />}
-          <SectionRouter
-            section={section}
-            state={state}
-            onAction={onAction}
-            onStateChange={onStateChange}
-            onSectionReplace={onSectionReplace}
-            onSectionGone={onSectionGone}
-            onStalenessChange={onStalenessChange}
-            onUpgradeRequired={onUpgradeRequired}
-            defaultRefreshPolicy={defaultRefreshPolicy}
-            traceId={traceId}
-          />
-          {section.layoutHints?.dividerBelow && <hr className="sdui-divider" />}
-        </div>
+          section={section}
+          state={state}
+          onAction={onAction}
+          onStateChange={onStateChange}
+          onSectionReplace={onSectionReplace}
+          onSectionGone={onSectionGone}
+          onStalenessChange={onStalenessChange}
+          onUpgradeRequired={onUpgradeRequired}
+          defaultRefreshPolicy={defaultRefreshPolicy}
+          traceId={traceId}
+        />
       ))}
     </>
   );

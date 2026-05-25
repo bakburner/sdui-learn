@@ -16,6 +16,7 @@ public final class IconTokens {
     public static final String VIDEO       = "sdui:video";
     public static final String LEADERBOARD = "sdui:leaderboard";
     public static final String GRID        = "sdui:grid";
+    public static final String BACK        = "sdui:back";
     public static final String SHARE       = "sdui:share";
     public static final String WARNING     = "sdui:warning";
     public static final String LOCK        = "sdui:lock";

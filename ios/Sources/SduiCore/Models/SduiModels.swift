@@ -1018,11 +1018,11 @@ class AtomicElement: Codable {
     let section: Section?
     /// DEPRECATED — use shadows (array) for new payloads. Single shadow. If both shadow and
     /// shadows are present, shadows wins.
-    let shadow: Shadow?
+    let shadow: ShadowOrToken?
     /// Ordered array of shadow layers. Index 0 is the outermost shadow (Figma convention);
     /// higher indices are closer to the element. Maps directly to CSS box-shadow list order.
     /// When absent, falls back to singular shadow field.
-    let shadows: [Shadow]?
+    let shadows: [ShadowOrToken]?
     /// Whether to show scroll indicators on ScrollContainer. Default false for clean carousel
     /// presentation.
     let showIndicators: Bool?
@@ -1063,7 +1063,7 @@ class AtomicElement: Codable {
     /// 'fixed' = use explicit width value.
     let widthMode: SizingMode?
 
-    init(accessibility: AccessibilityProperties?, actions: [Action]?, alignment: Alignment?, alignSelf: CrossAlignment?, alt: String?, aspectRatio: AspectRatioUnion?, background: BackgroundUnion?, backgrounds: [BackgroundUnion]?, badge: Badge?, base: AtomicElement?, bindRef: String?, breakpoint: Int?, children: [AtomicElement]?, color: String?, columns: [Column]?, condition: String?, content: String?, cornerRadii: CornerRadii?, cornerRadius: LayoutScalar?, crossAlignment: CrossAlignment?, crossAxisGap: LayoutScalar?, direction: UIDirection?, disabled: Bool?, falseChild: AtomicElement?, fit: ImageFit?, flex: Double?, format: Format?, gap: LayoutScalar?, height: LayoutScalar?, heightMode: SizingMode?, icon: String?, id: String?, isRunning: Bool?, label: String?, layoutWrap: Bool?, margin: Spacing?, maxHeight: LayoutScalar?, maxLines: Int?, maxWidth: LayoutScalar?, minHeight: LayoutScalar?, minWidth: LayoutScalar?, monospacedDigits: Bool?, opacity: Double?, orientation: Orientation?, overlays: [AtomicOverlay]?, padding: Spacing?, pageIndicator: PageIndicator?, paging: Bool?, placeholder: String?, rows: [[String: String]]?, section: Section?, shadow: Shadow?, shadows: [Shadow]?, showIndicators: Bool?, size: Int?, snapAlignment: Align?, snapshotAt: Date?, snapshotSeconds: Int?, src: String?, stopAtSeconds: Int?, striped: Bool?, textAlign: Align?, thickness: Int?, tickDirection: TickDirection?, trueChild: AtomicElement?, type: String, variant: String?, weight: TextWeight?, width: LayoutScalar?, widthMode: SizingMode?) {
+    init(accessibility: AccessibilityProperties?, actions: [Action]?, alignment: Alignment?, alignSelf: CrossAlignment?, alt: String?, aspectRatio: AspectRatioUnion?, background: BackgroundUnion?, backgrounds: [BackgroundUnion]?, badge: Badge?, base: AtomicElement?, bindRef: String?, breakpoint: Int?, children: [AtomicElement]?, color: String?, columns: [Column]?, condition: String?, content: String?, cornerRadii: CornerRadii?, cornerRadius: LayoutScalar?, crossAlignment: CrossAlignment?, crossAxisGap: LayoutScalar?, direction: UIDirection?, disabled: Bool?, falseChild: AtomicElement?, fit: ImageFit?, flex: Double?, format: Format?, gap: LayoutScalar?, height: LayoutScalar?, heightMode: SizingMode?, icon: String?, id: String?, isRunning: Bool?, label: String?, layoutWrap: Bool?, margin: Spacing?, maxHeight: LayoutScalar?, maxLines: Int?, maxWidth: LayoutScalar?, minHeight: LayoutScalar?, minWidth: LayoutScalar?, monospacedDigits: Bool?, opacity: Double?, orientation: Orientation?, overlays: [AtomicOverlay]?, padding: Spacing?, pageIndicator: PageIndicator?, paging: Bool?, placeholder: String?, rows: [[String: String]]?, section: Section?, shadow: ShadowOrToken?, shadows: [ShadowOrToken]?, showIndicators: Bool?, size: Int?, snapAlignment: Align?, snapshotAt: Date?, snapshotSeconds: Int?, src: String?, stopAtSeconds: Int?, striped: Bool?, textAlign: Align?, thickness: Int?, tickDirection: TickDirection?, trueChild: AtomicElement?, type: String, variant: String?, weight: TextWeight?, width: LayoutScalar?, widthMode: SizingMode?) {
         self.accessibility = accessibility
         self.actions = actions
         self.alignment = alignment
@@ -1208,8 +1208,8 @@ extension AtomicElement {
         placeholder: String?? = nil,
         rows: [[String: String]]?? = nil,
         section: Section?? = nil,
-        shadow: Shadow?? = nil,
-        shadows: [Shadow]?? = nil,
+        shadow: ShadowOrToken?? = nil,
+        shadows: [ShadowOrToken]?? = nil,
         showIndicators: Bool?? = nil,
         size: Int?? = nil,
         snapAlignment: Align?? = nil,
@@ -1581,7 +1581,7 @@ class Section: Codable {
     let accessibility: AccessibilityProperties?
     /// Section-level interaction actions
     let actions: [Action]?
-    let analyticsID, backgroundColor: String?
+    let analyticsID: String?
     /// Origin identifier for the content backing this section (e.g. 'cms:article-42',
     /// 'stats-api:leaders-2025'). Carried through to analytics for two-tier attribution.
     let contentSourceID: String?
@@ -1589,8 +1589,6 @@ class Section: Codable {
     let data: DataClass?
     let dataBinding: DataBinding?
     let id: String
-    let layoutHints: SectionLayoutHints?
-    let padding: Spacing?
     let refreshPolicy: RefreshPolicy?
     let sectionStates: SectionStates?
     /// Section-level map of translation key to localized string. Used by DataBindingResolver to
@@ -1604,22 +1602,18 @@ class Section: Codable {
     enum CodingKeys: String, CodingKey {
         case accessibility, actions
         case analyticsID = "analyticsId"
-        case backgroundColor
         case contentSourceID = "contentSourceId"
-        case data, dataBinding, id, layoutHints, padding, refreshPolicy, sectionStates, stringTable, subsections, surface, type
+        case data, dataBinding, id, refreshPolicy, sectionStates, stringTable, subsections, surface, type
     }
 
-    init(accessibility: AccessibilityProperties?, actions: [Action]?, analyticsID: String?, backgroundColor: String?, contentSourceID: String?, data: DataClass?, dataBinding: DataBinding?, id: String, layoutHints: SectionLayoutHints?, padding: Spacing?, refreshPolicy: RefreshPolicy?, sectionStates: SectionStates?, stringTable: [String: String]?, subsections: [Subsection]?, surface: SectionSurface?, type: String) {
+    init(accessibility: AccessibilityProperties?, actions: [Action]?, analyticsID: String?, contentSourceID: String?, data: DataClass?, dataBinding: DataBinding?, id: String, refreshPolicy: RefreshPolicy?, sectionStates: SectionStates?, stringTable: [String: String]?, subsections: [Subsection]?, surface: SectionSurface?, type: String) {
         self.accessibility = accessibility
         self.actions = actions
         self.analyticsID = analyticsID
-        self.backgroundColor = backgroundColor
         self.contentSourceID = contentSourceID
         self.data = data
         self.dataBinding = dataBinding
         self.id = id
-        self.layoutHints = layoutHints
-        self.padding = padding
         self.refreshPolicy = refreshPolicy
         self.sectionStates = sectionStates
         self.stringTable = stringTable
@@ -1634,7 +1628,7 @@ class Section: Codable {
 extension Section {
     convenience init(data: Data) throws {
         let me = try newJSONDecoder().decode(Section.self, from: data)
-        self.init(accessibility: me.accessibility, actions: me.actions, analyticsID: me.analyticsID, backgroundColor: me.backgroundColor, contentSourceID: me.contentSourceID, data: me.data, dataBinding: me.dataBinding, id: me.id, layoutHints: me.layoutHints, padding: me.padding, refreshPolicy: me.refreshPolicy, sectionStates: me.sectionStates, stringTable: me.stringTable, subsections: me.subsections, surface: me.surface, type: me.type)
+        self.init(accessibility: me.accessibility, actions: me.actions, analyticsID: me.analyticsID, contentSourceID: me.contentSourceID, data: me.data, dataBinding: me.dataBinding, id: me.id, refreshPolicy: me.refreshPolicy, sectionStates: me.sectionStates, stringTable: me.stringTable, subsections: me.subsections, surface: me.surface, type: me.type)
     }
 
     convenience init(_ json: String, using encoding: String.Encoding = .utf8) throws {
@@ -1652,13 +1646,10 @@ extension Section {
         accessibility: AccessibilityProperties?? = nil,
         actions: [Action]?? = nil,
         analyticsID: String?? = nil,
-        backgroundColor: String?? = nil,
         contentSourceID: String?? = nil,
         data: DataClass?? = nil,
         dataBinding: DataBinding?? = nil,
         id: String? = nil,
-        layoutHints: SectionLayoutHints?? = nil,
-        padding: Spacing?? = nil,
         refreshPolicy: RefreshPolicy?? = nil,
         sectionStates: SectionStates?? = nil,
         stringTable: [String: String]?? = nil,
@@ -1670,13 +1661,10 @@ extension Section {
             accessibility: accessibility ?? self.accessibility,
             actions: actions ?? self.actions,
             analyticsID: analyticsID ?? self.analyticsID,
-            backgroundColor: backgroundColor ?? self.backgroundColor,
             contentSourceID: contentSourceID ?? self.contentSourceID,
             data: data ?? self.data,
             dataBinding: dataBinding ?? self.dataBinding,
             id: id ?? self.id,
-            layoutHints: layoutHints ?? self.layoutHints,
-            padding: padding ?? self.padding,
             refreshPolicy: refreshPolicy ?? self.refreshPolicy,
             sectionStates: sectionStates ?? self.sectionStates,
             stringTable: stringTable ?? self.stringTable,
@@ -2313,10 +2301,40 @@ enum Style: String, Codable {
 /// DEPRECATED — use shadows (array) for new payloads. Single shadow. If both shadow and
 /// shadows are present, shadows wins.
 ///
-/// Shadow effect with CSS/SwiftUI semantics (radius + offset). Compose approximates via
-/// elevation. Use 'type' to distinguish drop vs inner shadows.
+/// Either a full Shadow struct or a shorthand token. Clients expand shorthand tokens to the
+/// full Shadow struct at resolve time.
 ///
 /// Drop shadow applied to the surface.
+enum ShadowOrToken: Codable {
+    case shadow(Shadow)
+    case string(String)
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if let x = try? container.decode(String.self) {
+            self = .string(x)
+            return
+        }
+        if let x = try? container.decode(Shadow.self) {
+            self = .shadow(x)
+            return
+        }
+        throw DecodingError.typeMismatch(ShadowOrToken.self, DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Wrong type for ShadowOrToken"))
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self {
+        case .shadow(let x):
+            try container.encode(x)
+        case .string(let x):
+            try container.encode(x)
+        }
+    }
+}
+
+/// Shadow effect with CSS/SwiftUI semantics (radius + offset). Compose approximates via
+/// elevation. Use 'type' to distinguish drop vs inner shadows.
 // MARK: - Shadow
 struct Shadow: Codable {
     /// Shadow color (hex with alpha, or token reference)
@@ -3030,72 +3048,6 @@ enum Transform: String, Codable {
     case liveClockSnapshot = "liveClockSnapshot"
 }
 
-/// Optional layout hints for section placement. Clients apply best-effort; unknown hints are
-/// ignored.
-// MARK: - SectionLayoutHints
-struct SectionLayoutHints: Codable {
-    /// Render a divider line above this section
-    let dividerAbove: Bool?
-    /// Render a divider line below this section
-    let dividerBelow: Bool?
-    /// Bottom margin in dp/points
-    let marginBottom: Int?
-    /// Top margin in dp/points (0 = flush)
-    let marginTop: Int?
-    /// Rendering priority hint — clients may use for lazy loading or viewport priority
-    let priority: Priority?
-}
-
-// MARK: SectionLayoutHints convenience initializers and mutators
-
-extension SectionLayoutHints {
-    init(data: Data) throws {
-        self = try newJSONDecoder().decode(SectionLayoutHints.self, from: data)
-    }
-
-    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
-        guard let data = json.data(using: encoding) else {
-            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
-        }
-        try self.init(data: data)
-    }
-
-    init(fromURL url: URL) throws {
-        try self.init(data: try Data(contentsOf: url))
-    }
-
-    func with(
-        dividerAbove: Bool?? = nil,
-        dividerBelow: Bool?? = nil,
-        marginBottom: Int?? = nil,
-        marginTop: Int?? = nil,
-        priority: Priority?? = nil
-    ) -> SectionLayoutHints {
-        return SectionLayoutHints(
-            dividerAbove: dividerAbove ?? self.dividerAbove,
-            dividerBelow: dividerBelow ?? self.dividerBelow,
-            marginBottom: marginBottom ?? self.marginBottom,
-            marginTop: marginTop ?? self.marginTop,
-            priority: priority ?? self.priority
-        )
-    }
-
-    func jsonData() throws -> Data {
-        return try newJSONEncoder().encode(self)
-    }
-
-    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
-        return String(data: try self.jsonData(), encoding: encoding)
-    }
-}
-
-/// Rendering priority hint — clients may use for lazy loading or viewport priority
-enum Priority: String, Codable {
-    case high = "high"
-    case low = "low"
-    case normal = "normal"
-}
-
 /// Server-declared loading and error presentation for a section. Clients render these states
 /// when applicable.
 // MARK: - SectionStates
@@ -3327,7 +3279,7 @@ struct SectionSurface: Codable {
     /// Inner padding (space between the surface edge and the content it wraps).
     let padding: Spacing?
     /// Drop shadow applied to the surface.
-    let shadow: Shadow?
+    let shadow: ShadowOrToken?
 }
 
 // MARK: SectionSurface convenience initializers and mutators
@@ -3354,7 +3306,7 @@ extension SectionSurface {
         cornerRadius: LayoutScalar?? = nil,
         margin: Spacing?? = nil,
         padding: Spacing?? = nil,
-        shadow: Shadow?? = nil
+        shadow: ShadowOrToken?? = nil
     ) -> SectionSurface {
         return SectionSurface(
             background: background ?? self.background,

@@ -1,13 +1,19 @@
 import CoreGraphics
+import Foundation
+import SwiftUI
+import UIKit
 import os
 
-/// Resolves [LayoutScalar] and `token:…` layout references against the bundled
-/// registries in `schema/*-tokens.json` (inline snapshot; regenerate when those files change).
-enum LayoutTokenResolver {
+/// Resolves layout and design tokens using `LayoutTokenRegistry`, which parses
+/// the bundled `schema/*-tokens.json` resources at startup (see AGENTS.md §3.6).
+/// Token data is bundled (no runtime fetch), and form-factor updates are
+/// propagated through SwiftUI reactivity (`FormFactorObserver` + `Environment`).
+public enum LayoutTokenResolver {
 
-    private static let logger = Logger(subsystem: "com.nba.sdui", category: "LayoutTokenResolver")
+    static let logger = Logger(subsystem: "com.nba.sdui", category: "LayoutTokenResolver")
     private static let tokenPrefix = "token:"
-    private static let maxAliasDepth = 8
+
+    static var missingTokenHook: ((String) -> Void)?
 
     /// Resolves a layout scalar to points for the given form factor and theme.
     static func cgFloat(
@@ -15,8 +21,16 @@ enum LayoutTokenResolver {
         formFactor: String = RequestEnvelope.currentFormFactor,
         theme: String = RequestEnvelope.currentTheme
     ) -> CGFloat {
-        guard let s = scalar else { return 0 }
-        return CGFloat(intValue(s, formFactor: formFactor, theme: theme))
+        CGFloat(intValue(scalar, formFactor: formFactor, theme: theme))
+    }
+
+    /// Preserved entry point for existing callers.
+    static func resolve(
+        _ scalar: LayoutScalar?,
+        formFactor: FormFactor = currentFormFactor(),
+        theme: String = RequestEnvelope.currentTheme
+    ) -> Int {
+        intValue(scalar, formFactor: formFactor.rawValue, theme: theme)
     }
 
     static func intValue(
@@ -24,22 +38,87 @@ enum LayoutTokenResolver {
         formFactor: String = RequestEnvelope.currentFormFactor,
         theme: String = RequestEnvelope.currentTheme
     ) -> Int {
-        guard let s = scalar else { return 0 }
-        switch s {
-        case .integer(let i):
-            return i
-        case .string(let str):
-            return resolveTokenString(str, formFactor: formFactor, theme: theme)
+        guard let scalar else { return 0 }
+        switch scalar {
+        case .integer(let value):
+            return value
+        case .string(let wire):
+            return resolveTokenString(wire, formFactor: FormFactor.fromWireValue(formFactor), theme: theme)
         }
     }
 
+    static func resolveSpacing(_ token: String, formFactor: FormFactor = currentFormFactor()) -> Int? {
+        guard let name = tokenName(from: token) else { return nil }
+        return value(for: LayoutTokenRegistry.spacing[name], formFactor: formFactor)
+    }
+
+    static func resolveRadius(_ token: String, formFactor: FormFactor = currentFormFactor()) -> Int? {
+        guard let name = tokenName(from: token) else { return nil }
+        return value(for: LayoutTokenRegistry.radius[name], formFactor: formFactor)
+    }
+
+    static func typography(_ token: String, formFactor: FormFactor = currentFormFactor()) -> TypographySpec? {
+        guard let name = tokenName(from: token),
+              let variant = LayoutTokenRegistry.typographyVariants[name],
+              let category = LayoutTokenRegistry.typographyCategories[variant.categoryRef] else {
+            return nil
+        }
+
+        let size: Int
+        switch formFactor {
+        case .phone:
+            size = variant.size.phone
+        case .tablet:
+            size = variant.size.tablet
+        case .tv:
+            size = variant.size.tv
+        }
+
+        return TypographySpec(
+            familyRef: category.familyRef,
+            weight: category.weight,
+            textCase: category.textCase,
+            lineHeight: category.lineHeight,
+            size: size
+        )
+    }
+
+    static func shadowSpec(_ token: String) -> ShadowSpec? {
+        guard let name = tokenName(from: token) else { return nil }
+        return LayoutTokenRegistry.shadows[name]
+    }
+
+    static func resolveShadowOrToken(_ value: ShadowOrToken?) -> Shadow? {
+        guard let value else { return nil }
+        switch value {
+        case .shadow(let shadow):
+            return shadow
+        case .string(let token):
+            return tokenToShadow(token)
+        }
+    }
+
+    static func resolveShadowOrTokens(_ values: [ShadowOrToken]?) -> [Shadow] {
+        values?.compactMap { resolveShadowOrToken($0) } ?? []
+    }
+
+    static func motionDuration(_ token: String, formFactor: FormFactor = currentFormFactor()) -> Int? {
+        guard let name = tokenName(from: token) else { return nil }
+        return value(for: LayoutTokenRegistry.motionDuration[name], formFactor: formFactor)
+    }
+
+    static func motionEasing(_ token: String) -> String? {
+        guard let name = tokenName(from: token) else { return nil }
+        return LayoutTokenRegistry.motionEasing[name]
+    }
+
     static func aspectRatio(_ union: AspectRatioUnion?) -> CGFloat? {
-        guard let u = union else { return nil }
-        switch u {
-        case .double(let d):
-            return CGFloat(d)
-        case .enumeration(let e):
-            switch e {
+        guard let union else { return nil }
+        switch union {
+        case .double(let value):
+            return CGFloat(value)
+        case .enumeration(let value):
+            switch value {
             case .the169: return 16.0 / 9.0
             case .the43: return 4.0 / 3.0
             case .the11: return 1.0
@@ -49,90 +128,173 @@ enum LayoutTokenResolver {
         }
     }
 
-    // MARK: - Token resolution (aliasOf → palette)
-
-    private static func resolveTokenString(_ wire: String, formFactor: String, theme: String) -> Int {
-        guard wire.hasPrefix(tokenPrefix) else { return 0 }
-        let name = String(wire.dropFirst(tokenPrefix.count))
-        if palette[name] == nil, semantic[name] == nil {
-            logger.debug("token_resolver_missing: \(wire, privacy: .public)")
+    public static func currentFormFactor() -> FormFactor {
+#if os(tvOS)
+        return .tv
+#elseif targetEnvironment(macCatalyst)
+        return .tablet
+#else
+        let traits = activeTraitCollection()
+        _ = UIDevice.current.orientation
+        switch (traits.horizontalSizeClass, traits.verticalSizeClass) {
+        case (.compact, .regular):
+            return .phone
+        case (.regular, .regular):
+            return .tablet
+        default:
+            return .phone
         }
-        return followAlias(name, formFactor: formFactor, theme: theme, depth: 0)
+#endif
     }
 
-    private static func followAlias(_ name: String, formFactor: String, theme: String, depth: Int) -> Int {
-        if depth > maxAliasDepth { return 0 }
-        if let row = palette[name] {
-            return resolveMatrix(row, theme: theme, formFactor: formFactor)
-        }
-        if let next = semantic[name] {
-            return followAlias(next, formFactor: formFactor, theme: theme, depth: depth + 1)
-        }
+    private static func resolveTokenString(_ wire: String, formFactor: FormFactor, theme: String) -> Int {
+        _ = theme
+
+        if let spacing = resolveSpacing(wire, formFactor: formFactor) { return spacing }
+        if let radius = resolveRadius(wire, formFactor: formFactor) { return radius }
+
+        logMissingToken(wire)
         return 0
     }
 
-    /// 4-step fallback: exact → theme-wildcard → formFactor-wildcard → universal
-    private static func resolveMatrix(_ matrix: [String: [String: Int]], theme: String, formFactor: String) -> Int {
-        if let themeRow = matrix[theme], let v = themeRow[formFactor] { return v }
-        if let themeRow = matrix[theme], let v = themeRow["*"] { return v }
-        if let wildRow = matrix["*"], let v = wildRow[formFactor] { return v }
-        if let wildRow = matrix["*"], let v = wildRow["*"] { return v }
-        return 0
+    private static func tokenToShadow(_ token: String) -> Shadow? {
+        guard let spec = shadowSpec(token) else { return nil }
+        return Shadow(
+            color: spec.color,
+            offsetX: Double(spec.offsetX),
+            offsetY: Double(spec.offsetY),
+            radius: Double(spec.radius),
+            type: spec.type.lowercased() == "inner" ? .inner : .drop
+        )
     }
 
-    // MARK: - Snapshot: semantic aliases
+    private static func tokenName(from wire: String) -> String? {
+        guard wire.hasPrefix(tokenPrefix) else { return nil }
+        return String(wire.dropFirst(tokenPrefix.count))
+    }
 
-    // swiftformat:disable:next
-    // swiftlint:disable:next line_length
-    private static let semantic: [String: String] = [
-        // spacing (Kinetic)
-        "nba.spacing.xs": "nba.space.raw.2", "nba.spacing.sm": "nba.space.raw.4", "nba.spacing.md": "nba.space.raw.12", "nba.spacing.lg": "nba.space.raw.16", "nba.spacing.xl": "nba.space.raw.32", "nba.spacing.2xl": "nba.space.raw.40",
-        // radius (Kinetic)
-        "nba.radius.xs": "nba.radius.raw.2", "nba.radius.sm": "nba.radius.raw.4", "nba.radius.md": "nba.radius.raw.12", "nba.radius.lg": "nba.radius.raw.16", "nba.radius.xl": "nba.radius.raw.24", "nba.radius.2xl": "nba.radius.raw.32", "nba.radius.full": "nba.radius.raw.9999",
-        // Legacy aliases (deprecated — backward compat with cached payloads)
-        "spacing.xs": "nba.space.raw.2", "spacing.sm": "nba.space.raw.4", "spacing.md": "nba.space.raw.12", "spacing.lg": "nba.space.raw.16", "spacing.xl": "nba.space.raw.32",
-        "radius.sm": "nba.radius.raw.4", "radius.md": "nba.radius.raw.12", "radius.lg": "nba.radius.raw.16", "radius.full": "nba.radius.raw.9999"
-    ]
+    private static func value(for matrix: FormFactorMatrix<Int>?, formFactor: FormFactor) -> Int? {
+        guard let matrix else { return nil }
+        switch formFactor {
+        case .phone: return matrix.phone
+        case .tablet: return matrix.tablet
+        case .tv: return matrix.tv
+        }
+    }
 
-    // MARK: - Snapshot: palette (merged registries — matrix shape: token → theme → formFactor → value)
+    private static func logMissingToken(_ wire: String) {
+        logger.debug("token_resolver_missing: \(wire, privacy: .public)")
+        missingTokenHook?(wire)
+    }
 
-    private static let palette: [String: [String: [String: Int]]] = {
-        var m: [String: [String: [String: Int]]] = [:]
-        // spacing (Kinetic)
-        addPalette(&m, "nba.space.raw.0",  0,  0,  0,  0,  0,  0)
-        addPalette(&m, "nba.space.raw.2",  2,  2,  2,  4,  2,  2)
-        addPalette(&m, "nba.space.raw.4",  4,  4,  6,  6,  4,  6)
-        addPalette(&m, "nba.space.raw.8",  8,  8,  10, 12, 8,  10)
-        addPalette(&m, "nba.space.raw.12", 12, 12, 15, 18, 12, 15)
-        addPalette(&m, "nba.space.raw.16", 16, 16, 20, 24, 16, 20)
-        addPalette(&m, "nba.space.raw.32", 32, 32, 40, 48, 32, 40)
-        addPalette(&m, "nba.space.raw.40", 40, 40, 48, 56, 40, 48)
-        // corner radius (Kinetic — flat across form factors)
-        addPalette(&m, "nba.radius.raw.0",    0,    0,    0,    0,    0,    0)
-        addPalette(&m, "nba.radius.raw.2",    2,    2,    2,    2,    2,    2)
-        addPalette(&m, "nba.radius.raw.4",    4,    4,    4,    4,    4,    4)
-        addPalette(&m, "nba.radius.raw.8",    8,    8,    8,    8,    8,    8)
-        addPalette(&m, "nba.radius.raw.12",   12,   12,   12,   12,   12,   12)
-        addPalette(&m, "nba.radius.raw.16",   16,   16,   16,   16,   16,   16)
-        addPalette(&m, "nba.radius.raw.24",   24,   24,   24,   24,   24,   24)
-        addPalette(&m, "nba.radius.raw.32",   32,   32,   32,   32,   32,   32)
-        addPalette(&m, "nba.radius.raw.9999", 9999, 9999, 9999, 9999, 9999, 9999)
-        return m
-    }()
+    private static func activeTraitCollection() -> UITraitCollection {
+        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+        let keyWindow = scenes
+            .flatMap(\.windows)
+            .first(where: \.isKeyWindow)
 
-    private static func addPalette(
-        _ m: inout [String: [String: [String: Int]]],
-        _ key: String,
-        _ phone: Int,
-        _ phoneL: Int,
-        _ tablet: Int,
-        _ tv: Int,
-        _ webN: Int,
-        _ webW: Int
-    ) {
-        m[key] = ["*": [
-            "phone": phone, "phone.landscape": phoneL, "tablet": tablet, "tv": tv,
-            "web.narrow": webN, "web.wide": webW
-        ]]
+        return keyWindow?.traitCollection ?? UIScreen.main.traitCollection
+    }
+}
+
+public enum FormFactor: String, CaseIterable {
+    case phone
+    case tablet
+    case tv
+
+    static func fromWireValue(_ rawValue: String) -> FormFactor {
+        switch rawValue {
+        case FormFactor.tablet.rawValue:
+            return .tablet
+        case FormFactor.tv.rawValue:
+            return .tv
+        default:
+            return .phone
+        }
+    }
+}
+
+public struct TypographySpec {
+    public let familyRef: String
+    public let weight: Int
+    public let textCase: String
+    public let lineHeight: Double
+    public let size: Int
+}
+
+public final class FormFactorObserver: ObservableObject {
+    @Published public var formFactor: FormFactor
+
+    private var notificationObservers: [NSObjectProtocol] = []
+
+    public init(initialFormFactor: FormFactor = LayoutTokenResolver.currentFormFactor()) {
+        formFactor = initialFormFactor
+        UIDevice.current.beginGeneratingDeviceOrientationNotifications()
+
+        let center = NotificationCenter.default
+        notificationObservers.append(
+            center.addObserver(
+                forName: UIDevice.orientationDidChangeNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                self?.refresh()
+            }
+        )
+        notificationObservers.append(
+            center.addObserver(
+                forName: FormFactorObserver.traitCollectionDidChangeNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                self?.refresh()
+            }
+        )
+    }
+
+    deinit {
+        let center = NotificationCenter.default
+        notificationObservers.forEach(center.removeObserver)
+        UIDevice.current.endGeneratingDeviceOrientationNotifications()
+    }
+
+    public func refresh() {
+        formFactor = LayoutTokenResolver.currentFormFactor()
+    }
+
+    public static let traitCollectionDidChangeNotification = Notification.Name("com.nba.sdui.formFactor.traitsDidChange")
+}
+
+private struct FormFactorEnvironmentKey: EnvironmentKey {
+    static let defaultValue: FormFactor = LayoutTokenResolver.currentFormFactor()
+}
+
+public extension EnvironmentValues {
+    var formFactor: FormFactor {
+        get { self[FormFactorEnvironmentKey.self] }
+        set { self[FormFactorEnvironmentKey.self] = newValue }
+    }
+}
+
+private struct FormFactorTraitBridge: UIViewControllerRepresentable {
+    func makeUIViewController(context: Context) -> FormFactorTraitBridgeController {
+        FormFactorTraitBridgeController()
+    }
+
+    func updateUIViewController(_ uiViewController: FormFactorTraitBridgeController, context: Context) {}
+}
+
+private final class FormFactorTraitBridgeController: UIViewController {
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        NotificationCenter.default.post(name: FormFactorObserver.traitCollectionDidChangeNotification, object: nil)
+    }
+}
+
+public extension View {
+    func withFormFactorEnvironment(_ observer: FormFactorObserver) -> some View {
+        environmentObject(observer)
+            .environment(\.formFactor, observer.formFactor)
+            .background(FormFactorTraitBridge().frame(width: 0, height: 0))
     }
 }

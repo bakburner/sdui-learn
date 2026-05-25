@@ -57,6 +57,7 @@ class LayoutTokenResolverTest {
         val token = LayoutScalar.StringValue("token:nba.spacing.md")
         assertEquals(12, LayoutTokenResolver.intValue(token, formFactor = "phone"))
         assertEquals(15, LayoutTokenResolver.intValue(token, formFactor = "tablet"))
+        assertEquals(18, LayoutTokenResolver.intValue(token, formFactor = "tv"))
     }
 
     @Test
@@ -107,10 +108,87 @@ class LayoutTokenResolverTest {
     }
 
     @Test
-    fun `radius full alias chain resolves to 9999`() {
+    fun `radius full token resolves to 9999`() {
         val token = LayoutScalar.StringValue("token:nba.radius.full")
         assertEquals(9999, LayoutTokenResolver.intValue(token, formFactor = "phone"))
         assertEquals(9999, LayoutTokenResolver.intValue(token, formFactor = "tablet"))
-        assertEquals(9999, LayoutTokenResolver.intValue(token, formFactor = "web.wide"))
+    }
+
+    @Test
+    fun `typography headlineLarge resolves category and phone scalar size`() {
+        val spec = LayoutTokenResolver.typography(
+            token = "token:nba.typography.headlineLarge",
+            formFactor = LayoutTokenResolver.FormFactor.PHONE
+        )
+        requireNotNull(spec)
+        assertEquals("nba.font.knockout", spec.familyRef)
+        assertEquals(360, spec.weight)
+        assertEquals("uppercase", spec.textCase)
+        assertEquals(0.8, spec.lineHeight, 0.0001)
+        assertEquals(32, spec.size)
+    }
+
+    @Test
+    fun `unknown typography token returns null`() {
+        val spec = LayoutTokenResolver.typography(
+            token = "token:nba.typography.unknown",
+            formFactor = LayoutTokenResolver.FormFactor.PHONE
+        )
+        assertNull(spec)
+    }
+
+    @Test
+    fun `shadow md resolves structured shadow`() {
+        val shadow = LayoutTokenResolver.shadowSpec("token:nba.shadow.md")
+        requireNotNull(shadow)
+        assertEquals(8, shadow.radius)
+        assertEquals(2, shadow.offsetY)
+        assertEquals("rgba(0,0,0,0.15)", shadow.color)
+    }
+
+    @Test
+    fun `unknown shadow token returns null`() {
+        assertNull(LayoutTokenResolver.shadowSpec("token:nba.shadow.unknown"))
+    }
+
+    @Test
+    fun `non token shadow string returns null`() {
+        assertNull(LayoutTokenResolver.shadowSpec("nba.shadow.md"))
+    }
+
+    @Test
+    fun `motion duration fast resolves for phone`() {
+        val duration = LayoutTokenResolver.motionDuration(
+            token = "token:nba.motion.duration.fast",
+            formFactor = LayoutTokenResolver.FormFactor.PHONE
+        )
+        assertEquals(150, duration)
+    }
+
+    @Test
+    fun `motion easing default resolves`() {
+        val easing = LayoutTokenResolver.motionEasing("token:nba.motion.easing.default")
+        assertEquals("cubic-bezier(0.16, 1, 0.3, 1)", easing)
+    }
+
+    @Test
+    fun `form factor changes resolve from baked registry without network`() {
+        val token = LayoutScalar.StringValue("token:nba.spacing.lg")
+        val phoneValue = LayoutTokenResolver.intValue(
+            scalar = token,
+            formFactor = LayoutTokenResolver.FormFactor.PHONE
+        )
+        val tabletValue = LayoutTokenResolver.intValue(
+            scalar = token,
+            formFactor = LayoutTokenResolver.FormFactor.TABLET
+        )
+        val tvValue = LayoutTokenResolver.intValue(
+            scalar = token,
+            formFactor = LayoutTokenResolver.FormFactor.TV
+        )
+
+        assertEquals(16, phoneValue)
+        assertEquals(20, tabletValue)
+        assertEquals(24, tvValue)
     }
 }

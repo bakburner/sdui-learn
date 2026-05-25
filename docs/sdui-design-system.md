@@ -6,6 +6,9 @@ mapping that power SDUI atomic composition.
 **Audience:** designers maintaining the Figma source of truth and engineers
 syncing tokens between Figma and the schema registries.
 
+> **Maintenance discipline:** Changes to `schema/*-tokens.json` and
+> `docs/sdui-design-system.md` ship in the same PR.
+
 ### Where this doc fits
 
 The SDUI architecture has two complementary layers:
@@ -30,16 +33,21 @@ A given screen mixes both. This document covers the atomic layer only.
 | `schema/color-tokens.json` | Color palette + semantic aliases (light/dark) |
 | `schema/spacing-tokens.json` | Spacing scale per form factor (Kinetic v1.0.0) |
 | `schema/corner-radius-tokens.json` | Corner radii — flat across form factors (Kinetic v1.0.0) |
+| `schema/typography-tokens.json` | Typography categories + semantic variants per form factor |
+| `schema/motion-tokens.json` | Easing + duration scales per form factor |
+| `schema/shadow-tokens.json` | Shadow tiers in wire `Shadow` shape |
+| `schema/font-tokens.json` | Font-family registry + per-platform source metadata |
 | `schema/icon-tokens.json` | Icon name → per-platform symbol mapping |
 | `schema/style-tokens.json` | Variant definitions + override matrices |
 | `schema/sdui-schema.json` | Wire contract (enum values, element types) |
 | `server/.../LayoutTokens.java` | Server-side wire-form token constants (spacing + radius) |
 | `server/.../IconTokens.java` | Server-side wire-form icon token constants |
-
-> **Planned (awaiting design validation):** Size tokens, typography tokens,
-> and shadow tokens are not yet validated by the design team. The speculative
-> registry files were removed. These will be rebuilt from Kinetic design
-> exports when the design team provides validated scales.
+| `server/src/main/java/com/nba/sdui/service/TypographyTokens.java` | Server-side wire-form typography constants |
+| `server/src/main/java/com/nba/sdui/service/MotionTokens.java` | Server-side wire-form motion constants |
+| `server/src/main/java/com/nba/sdui/service/ShadowTokens.java` | Server-side wire-form shadow constants |
+| `android/sdui-core/src/main/java/com/nba/sdui/core/generated/LayoutTokenRegistry.kt` | Android codegen-baked token registry |
+| `ios/Sources/SduiCore/Generated/LayoutTokenRegistry.swift` | iOS codegen-baked token registry |
+| `web/src/generated/LayoutTokenRegistry.ts` | Web codegen-baked token registry |
 
 ---
 
@@ -87,7 +95,212 @@ content, and surface colors.
 
 ---
 
-## 2. Token registries
+## 2. Box-model cascade
+
+The token and variant vocabulary (§§3–4) describes *what* styling values are
+available. This section describes *where* in the render tree each layer of
+chrome is applied — the spatial nesting order from screen to element.
+
+### Cascade diagram
+
+```
+Screen.contentInsets        (scroll feed insets — screen-level)
+  Section.surface           (section outer chrome — SectionContainer wrapper)
+    AtomicElement box model  (element-level chrome — AtomicBox)
+      Nested AtomicElement   (recursive — same rules)
+```
+
+| Level | What it owns | Applied by |
+|---|---|---|
+| `Screen.contentInsets` | Horizontal and vertical insets on the scroll feed; declared once per screen | Screen shell — not by individual sections |
+| `Section.surface` (`SectionSurface`) | Section-level margin, padding, background, `cornerRadius`, shadow, border | Shared `SectionContainer` wrapper, before the section's content is rendered |
+| `AtomicElement` box model (`AtomicBox`) | Per-element margin, opacity, shadow, background, border, `cornerRadius`, backdrop-filter, padding, sizing, and content | Shared `AtomicBox` helper — same implementation on web, Android, and iOS |
+| Nested `AtomicElement` | Same fields; recursive to depth 6 | Same `AtomicBox` path |
+
+### Additive composition rule
+
+Each level wraps the next. No level overrides or cancels a parent level's
+chrome. Visual properties from adjacent levels stack in their natural nesting
+order: `Screen.contentInsets` creates the scroll feed inset; `surface.margin`
+positions the section within that feed; `surface.padding` separates the
+section's content from its surface edge; `AtomicElement.padding` adds interior
+spacing inside that content area. All four accumulate — none cancels another.
+
+Because each level is physically distinct in the render tree, there is no
+precedence question between levels: `surface.padding` and a root `Container`'s
+`padding` are not in conflict — they are two separate boxes, one wrapping the
+other.
+
+### What each level owns
+
+**`Screen.contentInsets`** applies horizontal and vertical insets to the scroll
+feed as a whole. These insets are declared once at the screen level and affect
+every section uniformly, as if the scroll area has interior padding. The screen
+shell applies them; individual section renderers must not replicate this effect
+by adding their own horizontal margin.
+
+**`Section.surface` (`SectionSurface`)** is the section's outer chrome frame.
+It owns:
+
+- `margin` — space between the section and adjacent sections or the screen edge
+- `padding` — space between the surface boundary and the section's content tree
+- `background` — the surface fill (solid, gradient, or image)
+- `cornerRadius` — applied to the surface with overflow clip
+- `shadow` — drop shadow on the surface shape
+- `border` — outer stroke around the surface
+
+`SectionContainer` — the shared wrapper that every renderer is routed through
+by `SectionRouter` — reads these fields and applies them before the section
+content is rendered. Semantic-section renderers (`BoxscoreTable`, `Form`,
+`SeasonLeadersTable`, and all others) must not set their own outer padding,
+margin, corner radius, shadow, border, or background. That responsibility
+belongs exclusively to `SectionContainer` (see AGENTS.md §4.2).
+
+**`AtomicElement` box model (`AtomicBox`)** applies per-element chrome in a
+fixed order, outer to inner:
+
+```
+margin                ← sibling-to-sibling spacing
+  └─ opacity          ← applied once; affects everything below
+       └─ shadow      ← casts from the background shape
+            └─ corner clip + background + border + backdrop-filter
+                 └─ padding   ← interior padding; background extends to its edge
+                      └─ sizing (width / height / sizing modes / min-max)
+                           └─ content
+```
+
+This order is identical on web, Android, and iOS. Shadow casts from the
+background shape, not from the padded content area. Padding lives inside the
+corner clip so variant fills (e.g. `hero`) paint flush to the rounded frame.
+Every rendering primitive — `Container`, `Text`, `Image`, `Button`, `Divider`,
+`DisplayGrid`, `ScrollContainer`, `OverlayContainer` — applies its chrome
+through `AtomicBox`. Pure layout devices — `Spacer`, `Conditional`,
+`SectionSlot` — bypass it because they render no chrome of their own.
+
+### Level-preference guidance
+
+`Section.surface` and an `AtomicElement` root `Container` both accept `padding`
+and `background`. Authoring mistakes at this boundary are the most common source
+of double-chrome bugs.
+
+**Padding:**
+
+- Use `surface.padding` for framing that is uniform regardless of the section's
+  internal layout — for example, a 16pt inset applied identically around an
+  entire promotional module.
+- Use the root `Container`'s `padding` for spacing that interacts with the
+  section's internal layout — for example, padding that a horizontal row of
+  chips or a column of rows needs to vary per edge based on content structure.
+- Do not set both. Padding on `surface` and padding on the root `Container`
+  nest inside one another, producing double whitespace with no single owner.
+
+**Background:**
+
+- Use `surface.background` for the module-frame background — the card, strip,
+  or tile surface that contains the section's content tree.
+- Use an inner element's `background` for a contrasting fill inside the module —
+  for example, a chip, a colored tag, or an image fill on a nested container.
+- Do not set the same background on both `surface` and the root `Container`.
+  The inner background covers the surface's `cornerRadius` clip area and
+  occludes the surface's `shadow` at the corners, producing flat paint where a
+  card treatment was intended.
+
+**The guiding distinction:** `surface` frames the module; the root `Container`
+arranges content inside it. Properties that belong to the frame go on `surface`;
+properties that belong to content arrangement go on the root element.
+
+### Inter-section dividers
+
+There is no dedicated divider primitive on `Section`. Section-boundary
+separators are expressed through atomic composition, consistent with the
+expressibility rule in AGENTS.md §11.1: a composer that wants a visible divider
+between two sections either sets a top `border` on the lower section's
+`surface.border` or emits a 1pt `Container` element at the section boundary in
+the adjacent section's content tree. This keeps the chrome path single —
+`SectionContainer` remains the one owner of section-level chrome — and avoids
+a separate field that would create a second chrome path at the same level.
+
+### Counterexample: double-chrome
+
+The most common cascade error is placing the card treatment on both `surface`
+and the root `Container`.
+
+**Wrong — background set at both levels:**
+
+```json
+{
+  "type": "AtomicComposite",
+  "surface": {
+    "background": { "color": "token:nba.bg.tertiary" },
+    "cornerRadius": "token:nba.radius.lg",
+    "shadow": "token:nba.shadow.md",
+    "margin": {
+      "top": "token:nba.spacing.md",
+      "bottom": "token:nba.spacing.md",
+      "start": "token:nba.spacing.lg",
+      "end": "token:nba.spacing.lg"
+    }
+  },
+  "data": {
+    "ui": {
+      "type": "Container",
+      "background": { "color": "token:nba.bg.tertiary" },
+      "padding": {
+        "top": "token:nba.spacing.lg",
+        "bottom": "token:nba.spacing.lg",
+        "start": "token:nba.spacing.lg",
+        "end": "token:nba.spacing.lg"
+      },
+      "children": ["..."]
+    }
+  }
+}
+```
+
+What goes wrong: the root `Container`'s background paints on top of the surface
+paint. The surface's `cornerRadius` clip no longer rounds the fill — the inner
+background is a rectangle that extends to the container's own edges. The
+surface's `shadow` is occluded at the corners by the inner rectangle. The
+module renders flat instead of card-framed.
+
+**Right — background only on surface:**
+
+```json
+{
+  "type": "AtomicComposite",
+  "surface": {
+    "background": { "color": "token:nba.bg.tertiary" },
+    "cornerRadius": "token:nba.radius.lg",
+    "shadow": "token:nba.shadow.md",
+    "margin": {
+      "top": "token:nba.spacing.md",
+      "bottom": "token:nba.spacing.md",
+      "start": "token:nba.spacing.lg",
+      "end": "token:nba.spacing.lg"
+    },
+    "padding": {
+      "top": "token:nba.spacing.lg",
+      "bottom": "token:nba.spacing.lg",
+      "start": "token:nba.spacing.lg",
+      "end": "token:nba.spacing.lg"
+    }
+  },
+  "data": {
+    "ui": {
+      "type": "Container",
+      "children": ["..."]
+    }
+  }
+}
+```
+
+The surface owns the full card treatment — fill, radius, shadow, and framing
+insets. The root `Container` owns only internal layout. Corner clip and shadow
+compose correctly.
+
+---
+
+## 3. Token registries
 
 **Registry version:** `2.0.0-matrix`
 
@@ -129,8 +342,7 @@ off-size spacing still renders correctly).
     "phone": 16,
     "tablet": 20,
     "tv": 24,
-    "web.narrow": 16,
-    "web.wide": 20
+    "web": 16
   }
 }
 
@@ -145,7 +357,7 @@ The matrix is intentionally sparse — most tokens vary on only one axis
 and use `"*"` for the other. The resolver's fallback chain means registries
 need not enumerate every combination.
 
-### 2.1 Color tokens
+### 3.1 Color tokens
 
 **File:** `schema/color-tokens.json` · **Figma connection:** Figma
 color styles should match semantic alias names 1:1.
@@ -166,8 +378,9 @@ Multi-tier structure sourced from the Kinetic Design System:
   `nba.bg-dark.*`, `nba.bg-inverted.*`, `nba.bg-tint.*`.
 - **Button** — `nba.button.primary.label`, `nba.button.secondary.label`,
   `nba.button.tint.label`, `nba.button.focus-ring`.
-- **Team** — team brand colors injected at composition time (e.g.
-  BOS `#007A33`, GSW `#1D428A`).
+- **Team** — `nba.team.bg`, `nba.team.label`, `nba.team.accent`,
+  `nba.team.accent-label`. Resolved locally from bundled palettes in
+  `schema/color-tokens.json` (see **Team color resolution** below).
 
 **Palette families:**
 
@@ -207,8 +420,23 @@ palette primitive at render time based on OS color scheme.
 modes (typically white). They mean "right text color on a known-brightness
 surface," not "opposite of current mode."
 
-**Team brand colors** are not in this registry. They are inline brand assets
-owned per-team (e.g. BOS `#007A33`, GSW `#1D428A`).
+**Team color resolution:** Team brand colors are bundled in the `team`
+section of `schema/color-tokens.json`. The structure is:
+
+- **`palettes`** — hex values for each team's `primary`, `secondary`,
+  and optional `tertiary` colors (30 teams total).
+- **`modes`** — six mode objects (`team-background`, `team-label`,
+  `team-accent--dark`, `team-accent--light`, `team-accent-label--dark`,
+  `team-accent-label--light`). Each mode has a `_default` plus per-team
+  overrides. Values are a palette role string, a `{ "ref": ... }` to a
+  global color token, or a `{ "value": "#HEX" }` literal.
+- **`semantic`** — maps the four wire tokens (`nba.team.bg`, etc.) to
+  their mode lookup, with `nba.team.accent` and `nba.team.accent-label`
+  splitting by dark/light theme.
+
+Clients resolve team tokens locally from the bundled JSON using
+`(teamId, theme)` — no network call. `TeamColorRegistry` on each
+platform owns this resolution.
 
 Color tokens are **not** form-factor-aware — only light/dark.
 
@@ -216,7 +444,7 @@ Color tokens are **not** form-factor-aware — only light/dark.
 > resolution). The backgrounds/shadows array work does not change the color
 > token registry — it uses existing color token references inline.
 
-### 2.2 Spacing tokens
+### 3.2 Spacing tokens
 
 **File:** `schema/spacing-tokens.json` (v1.0.0-kinetic) · **Server constants:** `LayoutTokens.java` ·
 **Figma connection:** Figma auto-layout spacing values should use these semantic names.
@@ -224,19 +452,22 @@ Color tokens are **not** form-factor-aware — only light/dark.
 Sourced from the Kinetic Design System. Phone is the base scale;
 form-factor multipliers are applied by each client's `LayoutTokenResolver`.
 
-| Wire token | Phone | Tablet | TV | Web narrow | Web wide |
-|---|---|---|---|---|---|
-| `nba.spacing.xs` | 2 | 2 | 4 | 2 | 2 |
-| `nba.spacing.sm` | 4 | 6 | 6 | 4 | 6 |
-| `nba.spacing.md` | 12 | 15 | 18 | 12 | 15 |
-| `nba.spacing.lg` | 16 | 20 | 24 | 16 | 20 |
-| `nba.spacing.xl` | 32 | 40 | 48 | 32 | 40 |
-| `nba.spacing.2xl` | 40 | 48 | 56 | 40 | 48 |
+The wire vocabulary is semantic-only:
+`nba.spacing.{xs,sm,md,lg,xl,2xl}`.
+
+| Wire token | Phone | Tablet | TV | Web |
+|---|---|---|---|---|
+| `nba.spacing.xs` | 2 | 2 | 4 | 2 |
+| `nba.spacing.sm` | 4 | 6 | 6 | 4 |
+| `nba.spacing.md` | 12 | 15 | 18 | 12 |
+| `nba.spacing.lg` | 16 | 20 | 24 | 16 |
+| `nba.spacing.xl` | 32 | 40 | 48 | 32 |
+| `nba.spacing.2xl` | 40 | 48 | 56 | 40 |
 
 Used for `padding`, `gap`, and `spacing` properties on atomic elements.
 Composers emit these via `LayoutTokens.SPACING_*` constants.
 
-### 2.3 Size tokens (planned)
+### 3.3 Size tokens (planned)
 
 > **Status:** Awaiting validated design input. The speculative
 > `schema/size-tokens.json` was removed — values were engineering
@@ -245,14 +476,11 @@ Composers emit these via `LayoutTokens.SPACING_*` constants.
 When rebuilt, this registry will cover icon sizes, logo sizes, avatar
 sizes, and thumbnail dimensions with per-form-factor values.
 
-### 2.4 Typography tokens (planned)
+### 3.4 Typography tokens
 
-> **Status:** Awaiting validated design input. The speculative
-> `schema/typography-tokens.json` was removed.
+**File:** `schema/typography-tokens.json` · **Server constants:** `TypographyTokens.java`
 
-Typography is currently expressed through the `TextVariant` enum on the
-schema. The future token registry will provide per-form-factor type
-scales that variants can reference.
+The wire typography vocabulary is 16 semantic variants:
 
 **Schema `TextVariant` enum** (used on `Text` and `LiveClock` elements):
 
@@ -261,39 +489,94 @@ scales that variants can reference.
 `titleSmall`, `bodyLarge`, `bodyMedium`, `bodySmall`, `labelLarge`,
 `labelMedium`, `labelSmall`, `score`
 
+The registry also carries 9 internal categories used to compose those
+wire variants: `nba.typography.{display,headline,title,body,label,data,score,button,caption}`.
+These categories are server-side design metadata and are not wire token names.
+
+Typography size values are form-factor-aware (`phone`, `tablet`, `tv`, `web`).
+The `web` column supports either a scalar or a fluid envelope
+`{min, max, minVw, maxVw}` for viewport interpolation.
+
 The `score` variant carries monospaced/tabular-numeral typography for live
 scores and clocks.
 
 **`TextWeight` values:** `regular`, `medium`, `semiBold`, `bold`
 
-### 2.5 Corner radius tokens
+### 3.5 Corner radius tokens
 
 **File:** `schema/corner-radius-tokens.json` (v1.0.0-kinetic) · **Server constants:** `LayoutTokens.java` ·
 **Figma connection:** Figma corner radius variables should use these names.
 
-Sourced from the Kinetic Design System. Flat across all form factors —
-corner radii do not scale with device class.
+Sourced from the Kinetic Design System.
+The wire vocabulary is semantic-only:
+`nba.radius.{xs,sm,md,lg,xl,2xl,full}`.
 
-| Wire token | Value (all form factors) |
-|---|---|
-| `nba.radius.xs` | 2 |
-| `nba.radius.sm` | 4 |
-| `nba.radius.md` | 12 |
-| `nba.radius.lg` | 16 |
-| `nba.radius.xl` | 24 |
-| `nba.radius.2xl` | 32 |
-| `nba.radius.full` | 9999 |
+| Wire token | Phone | Tablet | TV | Web |
+|---|---|---|---|---|
+| `nba.radius.xs` | 2 | 2 | 2 | 2 |
+| `nba.radius.sm` | 4 | 4 | 4 | 4 |
+| `nba.radius.md` | 12 | 12 | 12 | 12 |
+| `nba.radius.lg` | 16 | 16 | 16 | 16 |
+| `nba.radius.xl` | 24 | 24 | 24 | 24 |
+| `nba.radius.2xl` | 32 | 32 | 32 | 32 |
+| `nba.radius.full` | 9999 | 9999 | 9999 | 9999 |
 
 `nba.radius.full` produces a pill/circle shape. The `shape: "circle"` schema
 field remains available as a shorthand for `cornerRadius: "token:nba.radius.full"`.
 Composers emit these via `LayoutTokens.RADIUS_*` constants.
 
-### 2.6 Shadow tokens (planned)
+### 3.6 Shadow tokens
 
-> **Status:** Awaiting validated design input. The speculative
-> `schema/shadow-tokens.json` was removed.
+**File:** `schema/shadow-tokens.json` · **Server constants:** `ShadowTokens.java`
 
-### 2.7 Icon tokens
+Four semantic tiers are built and available on the wire:
+`nba.shadow.{sm,md,lg,xl}`.
+
+Wire fields `shadow` and `shadows[]` accept either:
+
+- A structured `Shadow` object (`type`, `color`, `radius`, `offsetX`, `offsetY`)
+- A token string (`token:nba.shadow.*`)
+
+Clients normalize both forms to a concrete `Shadow` object through
+`LayoutTokenResolver.resolveShadowOrToken(...)` before rendering.
+
+### 3.7 Motion tokens
+
+**File:** `schema/motion-tokens.json` · **Server constants:** `MotionTokens.java`
+
+Easing tokens are form-factor-flat:
+
+- `nba.motion.easing.default` → `cubic-bezier(0.16, 1, 0.3, 1)`
+- `nba.motion.easing.linear` → `linear`
+
+Duration tokens are form-factor-aware:
+
+| Wire token | Phone | Tablet | TV | Web |
+|---|---|---|---|---|
+| `nba.motion.duration.fast` | 150 | 180 | 250 | 200 |
+| `nba.motion.duration.default` | 200 | 250 | 350 | 300 |
+| `nba.motion.duration.slow` | 400 | 500 | 700 | 600 |
+| `nba.motion.duration.hero` | 500 | 600 | 900 | 800 |
+
+### 3.8 Font registry
+
+**File:** `schema/font-tokens.json`
+
+The font registry defines three semantic families:
+
+- `nba.font.knockout`
+- `nba.font.roboto`
+- `nba.font.roboto.condensed`
+
+Platform resolution contract:
+
+- **Android:** bundled asset font files where required (for example Knockout),
+  with system fallbacks for Roboto families.
+- **iOS:** bundled or system fonts resolved by PostScript name metadata.
+- **Web:** Google Fonts for Roboto families; local/bundled sources for
+  Knockout where licensed.
+
+### 3.9 Icon tokens
 
 **File:** `schema/icon-tokens.json` · **Server constants:** `IconTokens.java` ·
 **Figma connection:** Figma icon components should use the `sdui:` prefix name
@@ -336,7 +619,7 @@ Directional icons (`back`, `forward`) auto-mirror in RTL locales.
 
 ---
 
-## 3. Variants
+## 4. Variants
 
 Variants carry platform-native treatments that inline properties cannot
 express: materials, interaction states, OS-adaptive surfaces, and
@@ -366,7 +649,7 @@ After Workstream B, the boundary between inline and variant is:
 | Multi-layer drop shadow | `shadows` array, `type: "drop"` |
 | Inner shadow | `shadows` array, `type: "inner"` |
 
-### 3.1 Container variants
+### 4.1 Container variants
 
 **`hero`** — Featured content surface.
 
@@ -402,22 +685,22 @@ Override matrix:
 
 **`grouped`** — Inset-grouped list surface. All axes allow override.
 
-### 3.2 Image variants
+### 4.2 Image variants
 
 **`thumbnail`** — Cropped media tile with platform-native cross-fade and
 placeholder reservation. All axes allow override.
 
-### 3.3 Button variants
+### 4.3 Button variants
 
 `primary`, `secondary`, `tertiary`, `text` — each platform maps to its
 native button style.
 
-### 3.4 Select variants (Form fields)
+### 4.4 Select variants (Form fields)
 
 `dropdown` (default platform menu), `chips` (horizontal capsule row).
 Applies when `FormField.fieldType == "select"`.
 
-### 3.5 Form-factor adaptation
+### 4.5 Form-factor adaptation
 
 Variants adapt per form factor. Example for `hero` on Android 15+:
 
@@ -431,7 +714,7 @@ Variants adapt per form factor. Example for `hero` on Android 15+:
 
 ---
 
-## 4. Figma-to-wire mapping
+## 5. Figma-to-wire mapping
 
 ### How Figma structures map to the wire format
 
@@ -487,7 +770,7 @@ For tokens to round-trip between Figma and the wire:
 
 ---
 
-## 5. Accessibility checklist for designers
+## 6. Accessibility checklist for designers
 
 Every interactive or informational element needs an `a11y.label`. Decorative
 images should be marked `hidden: true`.
@@ -505,7 +788,7 @@ The full `AccessibilityProperties` schema defines 7 fields: `label`, `hint`, `ro
 
 ---
 
-## 6. Internationalization
+## 7. Internationalization
 
 **i18n core (implemented):**
 
@@ -521,7 +804,7 @@ RTL layout support — including directional icon auto-mirroring (`rtl: "mirror"
 
 ---
 
-## 7. Form factors
+## 8. Form factors
 
 All token registries (except color) have per-form-factor values.
 
@@ -536,7 +819,7 @@ All token registries (except color) have per-form-factor values.
 
 > **Token resolution and form factors (v2.0.0-matrix):** The token resolver
 > now supports joint theme × form-factor variation through the matrix shape
-> described in §2. In practice today, spacing tokens remain theme-independent
+> described in §3. In practice today, spacing tokens remain theme-independent
 > (they use `"*"` for the theme axis) and color UI tokens remain
 > form-factor-independent (they use `"*"` for the form-factor axis). However,
 > the resolver handles both axes, so future tokens that need simultaneous
@@ -546,7 +829,7 @@ All token registries (except color) have per-form-factor values.
 
 ---
 
-## 8. Diagnostics
+## 9. Diagnostics
 
 Clients emit four diagnostics for design-system mismatches:
 
@@ -561,7 +844,7 @@ All are non-fatal. The renderer falls back to defaults and logs the issue.
 
 ---
 
-## 9. Gaps and completion checklist
+## 10. Gaps and completion checklist
 
 ### Figma integration
 
@@ -574,12 +857,16 @@ All are non-fatal. The renderer falls back to defaults and logs the issue.
 
 ### Token coverage
 
-- [ ] Typography token registry removed (awaiting Kinetic design validation)
-      — currently expressed only as `TextVariant` enum (16 values)
-- [ ] Shadow token registry removed (awaiting Kinetic design validation)
-      — evaluate tiers needed when rebuilt
-- [ ] Size token registry removed (awaiting Kinetic design validation)
-      — evaluate icon/logo/avatar/thumbnail sizes when rebuilt
+- [x] Typography token registry built (`schema/typography-tokens.json`) with
+      wire `TextVariant` parity (16 semantic variants)
+- [x] Shadow token registry built (`schema/shadow-tokens.json`) with 4 tiers
+      (`nba.shadow.{sm,md,lg,xl}`)
+- [x] Motion token registry built (`schema/motion-tokens.json`) with easing
+      + duration tiers
+- [x] Font registry built (`schema/font-tokens.json`) with cross-platform
+      family metadata
+- [x] Size token registry intentionally absent — speculative
+      `schema/size-tokens.json` was removed in commit `172eb65` (2026-04-29)
 - [ ] No `opacity` token registry — decide if one is needed
 
 ### Variant coverage

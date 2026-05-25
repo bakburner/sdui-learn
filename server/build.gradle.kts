@@ -57,11 +57,16 @@ tasks.register<Copy>("copyGeneratedModels") {
 // can load them from the classpath. Rebuild when the schema/ files change.
 tasks.named<ProcessResources>("processResources") {
     from("${projectDir}/../schema") {
+        include("sdui-schema.json")
         include("color-tokens.json")
         include("style-tokens.json")
         include("icon-tokens.json")
         include("spacing-tokens.json")
         include("corner-radius-tokens.json")
+        include("motion-tokens.json")
+        include("shadow-tokens.json")
+        include("font-tokens.json")
+        include("typography-tokens.json")
         into("schema")
     }
 }

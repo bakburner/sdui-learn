@@ -118,7 +118,14 @@ struct AtomicFlexStackLayout: SwiftUI.Layout {
             natural: naturalMain,
             hasFlexibleLayout: totalFlex > 0 || alignment?.usesRemainingMainAxisSpace == true
         )
-        let resolvedCross = crossAlignment == .stretch ? (crossProposal ?? naturalCross) : naturalCross
+        let resolvedCross: CGFloat
+        if crossAlignment == .stretch {
+            resolvedCross = crossProposal ?? naturalCross
+        } else if let cp = crossProposal {
+            resolvedCross = min(naturalCross, cp)
+        } else {
+            resolvedCross = naturalCross
+        }
 
         return isRow
             ? CGSize(width: resolvedMain, height: resolvedCross)
@@ -151,7 +158,7 @@ struct AtomicFlexStackLayout: SwiftUI.Layout {
             let measuredCross = crossLength(sizes[index])
             let childAlignSelf = subviews[index][AtomicAlignSelfKey.self]
             let effectiveCrossAlignment = childAlignSelf ?? crossAlignment
-            let cross = effectiveCrossAlignment == .stretch ? containerCross : measuredCross
+            let cross = effectiveCrossAlignment == .stretch ? containerCross : min(measuredCross, containerCross)
             let crossOffset = crossAxisOffset(containerCross: containerCross, childCross: cross, effectiveAlignment: effectiveCrossAlignment)
             let origin = isRow
                 ? CGPoint(x: bounds.minX + cursor, y: bounds.minY + crossOffset)
@@ -183,7 +190,7 @@ struct AtomicFlexStackLayout: SwiftUI.Layout {
 
     private func resolvedContainerMain(proposed: CGFloat?, natural: CGFloat, hasFlexibleLayout: Bool) -> CGFloat {
         guard let proposed else { return natural }
-        return hasFlexibleLayout ? max(proposed, natural) : natural
+        return hasFlexibleLayout ? proposed : min(natural, proposed)
     }
 
     private func crossAxisOffset(containerCross: CGFloat, childCross: CGFloat, effectiveAlignment: CrossAlignment?) -> CGFloat {

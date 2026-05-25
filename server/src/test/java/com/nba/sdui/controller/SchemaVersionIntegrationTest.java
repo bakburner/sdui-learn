@@ -71,7 +71,7 @@ class SchemaVersionIntegrationTest {
     @Test
     void clientAtCurrentVersionReceivesNormalResponse() throws Exception {
         mockMvc.perform(
-                get("/v1/sdui/scoreboard")
+                get("/v1/sdui/screen/scoreboard")
                         .param("schemaVersion", "1.0")
         )
                 .andExpect(status().isOk())
@@ -89,7 +89,7 @@ class SchemaVersionIntegrationTest {
 
         try {
             mockMvc.perform(
-                    get("/v1/sdui/scoreboard")
+                    get("/v1/sdui/screen/scoreboard")
                             .param("schemaVersion", "1.0")
             )
                     .andExpect(status().isOk())
@@ -110,7 +110,7 @@ class SchemaVersionIntegrationTest {
 
         try {
             mockMvc.perform(
-                    get("/v1/sdui/for-you")
+                    get("/v1/sdui/screen/for-you")
                             .param("schemaVersion", "1.0")
             )
                     .andExpect(status().isOk())
@@ -123,7 +123,7 @@ class SchemaVersionIntegrationTest {
     @Test
     void clientWithoutSchemaVersionUsesDefault() throws Exception {
         // Default is 1.0 per SduiRequestContext, should work fine with minSupportedVersion=1.0
-        mockMvc.perform(get("/v1/sdui/scoreboard"))
+        mockMvc.perform(get("/v1/sdui/screen/scoreboard"))
                 .andExpect(status().isOk())
                 .andExpect(header().string("X-Schema-Version", "1.0"))
                 .andExpect(header().doesNotExist(SchemaVersionChecker.MISMATCH_HEADER));
@@ -132,7 +132,7 @@ class SchemaVersionIntegrationTest {
     @Test
     void responseEchoesServerCurrentVersionInHeader() throws Exception {
         mockMvc.perform(
-                get("/v1/sdui/scoreboard")
+                get("/v1/sdui/screen/scoreboard")
                         .param("schemaVersion", "1.0")
         )
                 .andExpect(status().isOk())

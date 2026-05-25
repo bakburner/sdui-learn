@@ -21,6 +21,7 @@ public class DemoScreenComposer {
 
     private final ObjectMapper objectMapper;
     private final SduiUtils utils;
+    private final SectionSurfaces surfaces;
     private final AtomicCompositeBuilder atomicBuilder;
     private final ParameterizedRefreshService parameterizedRefreshService;
 
@@ -29,9 +30,11 @@ public class DemoScreenComposer {
 
     public DemoScreenComposer(ObjectMapper objectMapper,
                                SduiUtils utils,
+                               SectionSurfaces surfaces,
                                ParameterizedRefreshService parameterizedRefreshService) {
         this.objectMapper = objectMapper;
         this.utils = utils;
+        this.surfaces = surfaces;
         this.atomicBuilder = new AtomicCompositeBuilder(objectMapper);
         this.parameterizedRefreshService = parameterizedRefreshService;
     }
@@ -335,7 +338,7 @@ public class DemoScreenComposer {
                 "nba://game/0022400999",
                 objectMapper.createObjectNode().put("type", "static"),
                 null,
-                utils.gamePanelSurface());
+                surfaces.gamePanelSurface());
         section.put("contentSourceId", contentSourceId);
         return section;
     }
@@ -374,7 +377,7 @@ public class DemoScreenComposer {
                 DemoImageUrls.cardWide("nba"),
                 "Learn More", "nba://scoreboard");
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", utils.subscribeSurface(
+        section.set("surface", surfaces.subscribeSurface(
                 "#0C1B3A",
                 ColorTokens.BRAND_NBA,
                 20));
@@ -435,7 +438,7 @@ public class DemoScreenComposer {
                 "nba://game/0022400888",
                 objectMapper.createObjectNode().put("type", "static"),
                 null,
-                utils.gamePanelSurface());
+                surfaces.gamePanelSurface());
         section.put("contentSourceId", contentSourceId);
         return section;
     }
@@ -458,7 +461,7 @@ public class DemoScreenComposer {
                 new String[][]{{"201566", "Trae Young", "ATL", "AST", "11.1",
                         DemoImageUrls.headshot("201566")}});
 
-        ObjectNode root = atomicBuilder.responsiveRow(16, 600);
+        ObjectNode root = atomicBuilder.responsiveRow(LayoutTokens.SPACING_LG, 600);
         root.put("id", "demo-row-container");
         ArrayNode children = objectMapper.createArrayNode();
 
@@ -533,7 +536,7 @@ public class DemoScreenComposer {
         data.set("tabContents", tabContents);
         section.set("data", data);
         section.set("subsections", utils.tabSelectSubsections(tabs, "demo_active_tab"));
-        section.set("surface", utils.secondaryStripSurface());
+        section.set("surface", surfaces.secondaryStripSurface());
         return section;
     }
 
@@ -708,7 +711,7 @@ public class DemoScreenComposer {
         section.put("contentSourceId", contentSourceId);
         section.put("analyticsId", "demo_ad_slot");
         section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
-        section.set("surface", utils.adSlotSurface());
+        section.set("surface", surfaces.adSlotSurface());
 
         ObjectNode data = objectMapper.createObjectNode();
         data.put("provider", "gam");
@@ -814,7 +817,7 @@ public class DemoScreenComposer {
                 "Lakers vs Celtics — Coverage begins at 7:00 PM ET",
                 true, slots);
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", utils.cardSurface());
+        section.set("surface", surfaces.cardSurface());
         return section;
     }
 
@@ -832,7 +835,7 @@ public class DemoScreenComposer {
         section.put("contentSourceId", contentSourceId);
         section.put("analyticsId", "demo_subscribe_banner");
         section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
-        section.set("surface", utils.subscribeSurface(
+        section.set("surface", surfaces.subscribeSurface(
                 ColorTokens.BRAND_NBA,
                 "#862633",
                 20));
@@ -844,7 +847,7 @@ public class DemoScreenComposer {
         ctaAction.put("presentation", "modal");
 
         ObjectNode root = atomicBuilder.container("column", "start", "start");
-        root.put("gap", 4);
+        root.put("gap", LayoutTokens.SPACING_SM);
         ArrayNode children = objectMapper.createArrayNode();
         ObjectNode bannerTitle = atomicBuilder.text("Never Miss a Game", "titleMedium", "bold",
                 ColorTokens.TEXT_ON_DARK_MEDIA, null);
@@ -878,13 +881,13 @@ public class DemoScreenComposer {
         section.put("contentSourceId", contentSourceId);
         section.put("analyticsId", "demo_subscribe_hero");
         section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
-        section.set("surface", utils.subscribeSurface(
+        section.set("surface", surfaces.subscribeSurface(
                 "#0C1B3A",
                 ColorTokens.BRAND_NBA,
                 24));
 
         ObjectNode root = atomicBuilder.container("column", "start", "center");
-        root.put("gap", 8);
+        root.put("gap", 8); // §3.6: no semantic spacing token for 8
         root.put("widthMode", "fill");
         ArrayNode children = objectMapper.createArrayNode();
 
@@ -908,17 +911,20 @@ public class DemoScreenComposer {
                 "Compatible with all major devices"
         };
         ObjectNode featuresCol = atomicBuilder.container("column", "start", "start");
-        featuresCol.put("gap", 8);
+        featuresCol.put("gap", 8); // §3.6: no semantic spacing token for 8
         featuresCol.put("widthMode", "fill");
         ArrayNode featureChildren = objectMapper.createArrayNode();
         for (String feature : features) {
             ObjectNode row = atomicBuilder.container("row", "start", "center");
-            row.put("gap", 8);
+            row.put("gap", 8); // §3.6: no semantic spacing token for 8
+            row.put("widthMode", "fill");
             ArrayNode rowChildren = objectMapper.createArrayNode();
             rowChildren.add(atomicBuilder.text("✓", "bodyLarge", "bold",
                     "token:nba.color.feedback.success.70", null));
-            rowChildren.add(atomicBuilder.text(feature, "bodyLarge", null,
-                    ColorTokens.TEXT_ON_DARK_MEDIA, null));
+            ObjectNode featureText = atomicBuilder.text(feature, "bodyLarge", null,
+                    ColorTokens.TEXT_ON_DARK_MEDIA, null);
+            featureText.put("flex", 1);
+            rowChildren.add(featureText);
             row.set("children", rowChildren);
             featureChildren.add(row);
         }
@@ -928,7 +934,7 @@ public class DemoScreenComposer {
         children.add(atomicBuilder.spacer(20));
 
         ObjectNode tiersCol = atomicBuilder.container("column", "start", "stretch");
-        tiersCol.put("gap", 16);
+        tiersCol.put("gap", LayoutTokens.SPACING_LG);
         tiersCol.put("widthMode", "fill");
         ArrayNode tierChildren = objectMapper.createArrayNode();
         tierChildren.add(buildDemoTierUi("League Pass", "$14.99/mo", "$22.99/mo",
@@ -960,10 +966,15 @@ public class DemoScreenComposer {
                                             String badgeText, String[] features,
                                             String ctaLabel, String ctaUri) {
         ObjectNode card = atomicBuilder.container("column", "start", "start");
-        card.put("gap", 6);
+        card.put("gap", 6); // §3.6: no semantic spacing token for 6
         card.put("background", ColorTokens.SURFACE_TIER_ON_DARK);
-        card.put("cornerRadius", 16);
-        card.set("padding", atomicBuilder.padding(22, 22, 20, 20));
+        card.put("cornerRadius", LayoutTokens.RADIUS_LG);
+        card.set("padding", atomicBuilder.padding(
+                22, // §3.6: no semantic spacing token for 22
+                22, // §3.6: no semantic spacing token for 22
+                20, // §3.6: no semantic spacing token for 20
+                20  // §3.6: no semantic spacing token for 20
+        ));
         card.put("widthMode", "fill");
 
         ArrayNode cardChildren = objectMapper.createArrayNode();
@@ -1088,7 +1099,7 @@ public class DemoScreenComposer {
         adSection.put("id", adSectionId);
         adSection.put("type", "AdSlot");
         adSection.put("contentSourceId", adContentSourceId);
-        adSection.set("surface", utils.adSlotSurface());
+        adSection.set("surface", surfaces.adSlotSurface());
         ObjectNode adData = objectMapper.createObjectNode();
         adData.put("provider", "gam");
         adData.put("adUnitPath", "/nba/game-card-inline");
@@ -1118,10 +1129,12 @@ public class DemoScreenComposer {
         root.put("type", "Container");
         root.put("direction", "column");
         root.put("background", ColorTokens.SURFACE_CANVAS);
-        root.put("cornerRadius", 12);
+        root.put("cornerRadius", LayoutTokens.RADIUS_MD);
         ObjectNode padding = objectMapper.createObjectNode();
-        padding.put("start", 16); padding.put("end", 16);
-        padding.put("top", 12); padding.put("bottom", 12);
+        padding.put("start", LayoutTokens.SPACING_LG);
+        padding.put("end", LayoutTokens.SPACING_LG);
+        padding.put("top", LayoutTokens.SPACING_MD);
+        padding.put("bottom", LayoutTokens.SPACING_MD);
         root.set("padding", padding);
 
         ArrayNode children = objectMapper.createArrayNode();
@@ -1171,7 +1184,7 @@ public class DemoScreenComposer {
                 "More",
                 "nba://news");
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", utils.sectionHeaderSurface());
+        section.set("surface", surfaces.sectionHeaderSurface());
         return section;
     }
 
@@ -1187,7 +1200,7 @@ public class DemoScreenComposer {
         ObjectNode section = atomicBuilder.buildStoryCircleRail(
                 sectionId, "demo_story_circle_rail", null, items);
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", utils.railSurface());
+        section.set("surface", surfaces.railSurface());
         return section;
     }
 
@@ -1205,7 +1218,7 @@ public class DemoScreenComposer {
         ObjectNode section = atomicBuilder.buildEditorialOverlayRail(
                 sectionId, "demo_editorial_overlay_rail", null, cards);
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", utils.railSurface());
+        section.set("surface", surfaces.railSurface());
         return section;
     }
 
@@ -1230,7 +1243,7 @@ public class DemoScreenComposer {
         ObjectNode section = atomicBuilder.buildFeaturedLiveGameHero(
                 sectionId, "demo_featured_live_game_hero", null, cards);
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", utils.railSurface());
+        section.set("surface", surfaces.railSurface());
         return section;
     }
 
@@ -1250,7 +1263,7 @@ public class DemoScreenComposer {
         ObjectNode section = atomicBuilder.buildUtilityCardGrid(
                 sectionId, "demo_utility_card_grid", "Around the League", items);
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", utils.cardSurface());
+        section.set("surface", surfaces.cardSurface());
         return section;
     }
 
@@ -1265,7 +1278,7 @@ public class DemoScreenComposer {
         ObjectNode section = atomicBuilder.buildLeagueCardRail(
                 sectionId, "demo_league_card_rail", "Other Leagues", items);
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", utils.railSurface());
+        section.set("surface", surfaces.railSurface());
         return section;
     }
 
@@ -1283,7 +1296,7 @@ public class DemoScreenComposer {
         ObjectNode section = atomicBuilder.buildGameScheduleList(
                 sectionId, "demo_game_schedule_list", "Today", rows);
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", utils.flushSurface());
+        section.set("surface", surfaces.flushSurface());
         return section;
     }
 

@@ -69,7 +69,7 @@ fun SeasonLeadersTableRenderer(
         return
     }
 
-    val bgColor = section.backgroundColor?.let { parseHex(it) } ?: DARK_BG
+    val bgColor = DARK_BG
     val scrollState = rememberScrollState()
 
     Column(
@@ -309,19 +309,5 @@ private fun formatStatValue(value: Any?): String {
         is Float -> String.format("%.1f", value)
         is Number -> value.toString()
         else -> value?.toString() ?: "-"
-    }
-}
-
-private fun parseHex(hex: String): Color? {
-    return try {
-        val cleaned = hex.removePrefix("#")
-        val argb = when (cleaned.length) {
-            6 -> "FF$cleaned"
-            8 -> cleaned
-            else -> return null
-        }
-        Color(argb.toLong(16))
-    } catch (_: Exception) {
-        null
     }
 }

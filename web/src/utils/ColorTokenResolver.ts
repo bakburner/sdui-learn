@@ -16,6 +16,7 @@
  */
 
 import { useEffect, useState } from 'react';
+import { resolveTeamColor } from '../tokens/TeamColorRegistry';
 
 export type ColorScheme = 'light' | 'dark';
 
@@ -462,6 +463,20 @@ export function usePrefersColorScheme(): ColorScheme {
   }, []);
 
   return scheme;
+}
+
+/**
+ * Resolve a team-specific color token (e.g. "nba.team.bg") to a hex string.
+ * Delegates to the TeamColorRegistry for bundled team palette/mode data.
+ *
+ * Returns `undefined` when the token or teamId cannot be resolved.
+ */
+export function resolveTeamColorToken(
+  token: string,
+  teamId: string,
+  theme: ColorScheme,
+): string | undefined {
+  return resolveTeamColor(token, teamId, theme) ?? undefined;
 }
 
 /**

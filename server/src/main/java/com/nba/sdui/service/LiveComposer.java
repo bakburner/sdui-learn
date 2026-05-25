@@ -37,6 +37,7 @@ public class LiveComposer {
     private final ObjectMapper objectMapper;
     private final StatsApiClient statsApiClient;
     private final SduiUtils utils;
+    private final SectionSurfaces surfaces;
     private final AtomicCompositeBuilder atomicBuilder;
     private final SectionRefreshService sectionRefreshService;
 
@@ -46,10 +47,12 @@ public class LiveComposer {
     public LiveComposer(ObjectMapper objectMapper,
                         StatsApiClient statsApiClient,
                         SduiUtils utils,
+                        SectionSurfaces surfaces,
                         SectionRefreshService sectionRefreshService) {
         this.objectMapper = objectMapper;
         this.statsApiClient = statsApiClient;
         this.utils = utils;
+        this.surfaces = surfaces;
         this.atomicBuilder = new AtomicCompositeBuilder(objectMapper);
         this.sectionRefreshService = sectionRefreshService;
     }
@@ -170,7 +173,7 @@ public class LiveComposer {
                 sectionId, "live_games", "Live Now", rows,
                 refreshPolicy, dataBinding, clockSnapshots);
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", utils.flushSurface());
+        section.set("surface", surfaces.flushSurface());
         return section;
     }
 
@@ -192,7 +195,7 @@ public class LiveComposer {
         ObjectNode section = atomicBuilder.buildGameScheduleList(
                 sectionId, analyticsId, title, rows, staticPolicy(), null);
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", utils.flushSurface());
+        section.set("surface", surfaces.flushSurface());
         return section;
     }
 
@@ -221,7 +224,7 @@ public class LiveComposer {
                 "nba://game/" + gameId,
                 refreshPolicy,
                 bindings,
-                utils.gamePanelSurface());
+                surfaces.gamePanelSurface());
         section.put("contentSourceId", contentSourceId);
         return section;
     }
@@ -245,7 +248,7 @@ public class LiveComposer {
                 "nba://game/0022400050",
                 staticPolicy(),
                 null,
-                utils.gamePanelSurface());
+                surfaces.gamePanelSurface());
         section.put("contentSourceId", contentSourceId);
         return section;
     }
@@ -276,7 +279,7 @@ public class LiveComposer {
                 upcomingSectionId, "upcoming_games", "Upcoming Today", upcomingRows,
                 staticPolicy(), null);
         upcomingSection.put("contentSourceId", upcomingContentSourceId);
-        upcomingSection.set("surface", utils.flushSurface());
+        upcomingSection.set("surface", surfaces.flushSurface());
         sections.add(upcomingSection);
     }
 
@@ -316,7 +319,7 @@ public class LiveComposer {
                 liveSectionId, "live_games", "Live Now", liveRows,
                 mockPollPolicy, null, mockClocks);
         liveSection.put("contentSourceId", liveContentSourceId);
-        liveSection.set("surface", utils.flushSurface());
+        liveSection.set("surface", surfaces.flushSurface());
         return liveSection;
     }
 

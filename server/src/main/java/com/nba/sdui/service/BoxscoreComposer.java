@@ -26,14 +26,16 @@ public class BoxscoreComposer {
     private final ObjectMapper objectMapper;
     private final StatsApiClient statsApiClient;
     private final SduiUtils utils;
+    private final SectionSurfaces surfaces;
 
     @Value("${sdui.schema.version:1.0}")
     private String schemaVersion;
 
-    public BoxscoreComposer(ObjectMapper objectMapper, StatsApiClient statsApiClient, SduiUtils utils) {
+    public BoxscoreComposer(ObjectMapper objectMapper, StatsApiClient statsApiClient, SduiUtils utils, SectionSurfaces surfaces) {
         this.objectMapper = objectMapper;
         this.statsApiClient = statsApiClient;
         this.utils = utils;
+        this.surfaces = surfaces;
     }
 
     // ── Public entry point ─────────────────────────────────────────────
@@ -117,11 +119,11 @@ public class BoxscoreComposer {
         ObjectNode awayTable = buildBoxscoreTableSection(
                 awayTeam, gameId, contentSourceId, "away",
                 "boxscore_away_sortCol", "boxscore_away_sortDir", gameStatus);
-        awayTable.set("surface", utils.flushSurface());
+        awayTable.set("surface", surfaces.flushSurface());
         ObjectNode homeTable = buildBoxscoreTableSection(
                 homeTeam, gameId, contentSourceId, "home",
                 "boxscore_home_sortCol", "boxscore_home_sortDir", gameStatus);
-        homeTable.set("surface", utils.flushSurface());
+        homeTable.set("surface", surfaces.flushSurface());
 
         // Wrap in TabGroup for team toggling
         ObjectNode tabGroup = objectMapper.createObjectNode();
@@ -164,7 +166,7 @@ public class BoxscoreComposer {
         tabData.set("tabContents", tabContents);
         tabGroup.set("data", tabData);
         tabGroup.set("subsections", utils.tabSelectSubsections(tabs, "boxscore_team"));
-        tabGroup.set("surface", utils.stripSurfaceWithoutBackground());
+        tabGroup.set("surface", surfaces.stripSurfaceWithoutBackground());
 
         sections.add(tabGroup);
         response.set("sections", sections);

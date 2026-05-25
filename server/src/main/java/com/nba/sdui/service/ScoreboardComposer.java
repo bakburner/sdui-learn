@@ -26,6 +26,7 @@ public class ScoreboardComposer {
     private final ObjectMapper objectMapper;
     private final StatsApiClient statsApiClient;
     private final SduiUtils utils;
+    private final SectionSurfaces surfaces;
     private final AtomicCompositeBuilder atomicBuilder;
 
     @Value("${sdui.schema.version:1.0}")
@@ -33,10 +34,12 @@ public class ScoreboardComposer {
 
     public ScoreboardComposer(ObjectMapper objectMapper,
                               StatsApiClient statsApiClient,
-                              SduiUtils utils) {
+                              SduiUtils utils,
+                              SectionSurfaces surfaces) {
         this.objectMapper = objectMapper;
         this.statsApiClient = statsApiClient;
         this.utils = utils;
+        this.surfaces = surfaces;
         this.atomicBuilder = new AtomicCompositeBuilder(objectMapper);
     }
 
@@ -156,7 +159,7 @@ public class ScoreboardComposer {
                 "nba://game/" + gameId,
                 refreshPolicy,
                 bindings,
-                utils.gamePanelSurface());
+                surfaces.gamePanelSurface());
         section.put("contentSourceId", contentSourceId);
         return section;
     }
@@ -224,7 +227,7 @@ public class ScoreboardComposer {
                 "Watch every out-of-market game live or on demand.",
                 FALLBACK_THUMB, "Learn More", "nba://leaguepass");
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", utils.subscribeSurface(
+        section.set("surface", surfaces.subscribeSurface(
                 "#0C1B3A",
                 ColorTokens.BRAND_NBA,
                 20));
@@ -245,7 +248,7 @@ public class ScoreboardComposer {
         ObjectNode header = atomicBuilder.buildSectionHeader(
                 headerSectionId, "Around the League", null, null, null);
         header.put("contentSourceId", headerContentSourceId);
-        header.set("surface", utils.sectionHeaderSurface());
+        header.set("surface", surfaces.sectionHeaderSurface());
         sections.add(header);
 
         String railContentSourceId = "feed:scoreboard";
@@ -253,7 +256,7 @@ public class ScoreboardComposer {
         ObjectNode rail = atomicBuilder.buildContentRail(railSectionId,
                 "scoreboard_content_rail", null, cards);
         rail.put("contentSourceId", railContentSourceId);
-        rail.set("surface", utils.railSurface());
+        rail.set("surface", surfaces.railSurface());
         sections.add(rail);
     }
 }

@@ -167,8 +167,8 @@ Every token name carries the `nba.` prefix. Icons retain `sdui:` because they're
 ### Client resolvers and codegen
 
 - [ ] `make codegen` emits typed `LayoutTokenRegistry` per platform (`LayoutTokenRegistry.swift`, `LayoutTokenRegistry.kt`, `LayoutTokenRegistry.ts`) covering every namespace, including bundled team color palettes and team UI mode mappings; hand-written token tables in current resolvers are deleted
-- [ ] The client token resolver stack resolves every namespace using a single wire form per family: `LayoutTokenResolver` handles layout/typography/motion/shadow, and `ColorTokenResolver` handles color/team tokens
-- [ ] All three `ColorTokenResolver` implementations resolve team semantic tokens locally from a caller-supplied team context (`teamId` + `teamMode`) and never fetch team palettes at runtime; missing context logs and falls back to neutral color semantics
+- [x] The client token resolver stack resolves every namespace using a single wire form per family: `LayoutTokenResolver` handles layout/typography/motion/shadow, and `ColorTokenResolver` handles color/team tokens
+- [x] All three `ColorTokenResolver` implementations resolve team semantic tokens locally from a caller-supplied team context (`teamId` + `teamMode`) and never fetch team palettes at runtime; missing context logs and falls back to neutral color semantics
 - [ ] Web resolvers translate the fluid envelope (`{min, max, minVw, maxVw}`) into CSS `clamp()`; iOS and Android resolvers treat web as opaque (not their column)
 - [ ] Shadow shorthand (`"token:nba.shadow.md"`) resolves to the full structured shadow object on each platform
 - [ ] Motion tokens resolve to platform-native animation values
@@ -178,20 +178,20 @@ Every token name carries the `nba.` prefix. Icons retain `sdui:` because they're
 - [ ] iOS gains a `LayoutTokenResolverTests.swift` with parity to existing Android/Web tests
 - [ ] All three platforms test typography, motion, and shadow resolution
 - [ ] All three platforms test accessibility text-scale changes: resolved base token remains stable, rendered platform size changes through the platform's accessibility mechanism, and the HTTP layer receives zero calls
-- [ ] All three platforms test team-color resolution for at least one light mode, one dark mode, and one CSV hex override (e.g. the Spurs `#BEC9CF` entry), with no network call
+- [x] All three platforms test team-color resolution for at least one light mode, one dark mode, and one CSV hex override (e.g. the Spurs `#BEC9CF` entry), with no network call
 
 ### Example fixtures
 
-- [ ] All 27 `schema/examples/*.json` files use canonical `"token:nba.*"` strings for padding, gap, cornerRadius, shadow, and typography values where a semantic tier applies
-- [ ] All 27 `ios/Tests/SduiCoreTests/Fixtures/*.json` files are synced byte-for-byte with `schema/examples/`
+- [x] All 27 `schema/examples/*.json` files use canonical `"token:nba.*"` strings for padding, gap, cornerRadius, shadow, and typography values where a semantic tier applies
+- [x] All 27 `ios/Tests/SduiCoreTests/Fixtures/*.json` files are synced byte-for-byte with `schema/examples/`
 - [ ] Round-trip tests pass on all three platforms with the updated fixtures
 - [ ] No fixture references legacy columns (`phone.landscape`, `web.narrow`, `web.wide`)
 
 ### Documentation
 
-- [ ] `docs/sdui-design-system.md`, `docs/client-implementors-contract.md`, `docs/sdui-requirements-summary.md` updated to reflect the 4-column matrix, semantic-only wire vocabularies, and the four new registries
-- [ ] Standing rule recorded: changes to `schema/*-tokens.json` and `docs/sdui-design-system.md` ship in the same PR
-- [ ] AGENTS.md doctrine updated per Phase 10 (lands last)
+- [x] `docs/sdui-design-system.md`, `docs/client-implementors-contract.md`, `docs/sdui-requirements-summary.md` updated to reflect the 4-column matrix, semantic-only wire vocabularies, and the four new registries
+- [x] Standing rule recorded: changes to `schema/*-tokens.json` and `docs/sdui-design-system.md` ship in the same PR
+- [x] AGENTS.md doctrine updated per Phase 10 (lands last)
 
 ---
 

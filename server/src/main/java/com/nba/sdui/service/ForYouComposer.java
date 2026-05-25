@@ -64,6 +64,7 @@ public class ForYouComposer {
     private final ObjectMapper objectMapper;
     private final StatsApiClient statsApiClient;
     private final SduiUtils utils;
+    private final SectionSurfaces surfaces;
     private final AtomicCompositeBuilder atomicBuilder;
 
     @Value("${sdui.schema.version:1.0}")
@@ -71,10 +72,12 @@ public class ForYouComposer {
 
     public ForYouComposer(ObjectMapper objectMapper,
                           StatsApiClient statsApiClient,
-                          SduiUtils utils) {
+                          SduiUtils utils,
+                          SectionSurfaces surfaces) {
         this.objectMapper = objectMapper;
         this.statsApiClient = statsApiClient;
         this.utils = utils;
+        this.surfaces = surfaces;
         this.atomicBuilder = new AtomicCompositeBuilder(objectMapper);
     }
 
@@ -166,7 +169,7 @@ public class ForYouComposer {
         ObjectNode section = atomicBuilder.buildStoryCircleRail(
                 sectionId, "for_you_following", "Following", items);
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", utils.railSurface());
+        section.set("surface", surfaces.railSurface());
         return section;
     }
 
@@ -238,7 +241,7 @@ public class ForYouComposer {
                 refreshPolicy,
                 liveBindings);
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", utils.railSurface());
+        section.set("surface", surfaces.railSurface());
         return section;
     }
 
@@ -327,7 +330,7 @@ public class ForYouComposer {
         ObjectNode section = atomicBuilder.buildEditorialOverlayRail(
                 sectionId, "for_you_top_stories", null, cards);
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", utils.railSurface());
+        section.set("surface", surfaces.railSurface());
         return section;
     }
 
@@ -345,7 +348,7 @@ public class ForYouComposer {
                 sectionId, "for_you_other_leagues",
                 "Other Leagues", items);
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", utils.railSurface());
+        section.set("surface", surfaces.railSurface());
         return section;
     }
 
@@ -374,7 +377,7 @@ public class ForYouComposer {
         ObjectNode section = atomicBuilder.buildContentRail(
                 sectionId, "for_you_trending", null, cards);
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", utils.railSurface());
+        section.set("surface", surfaces.railSurface());
         return section;
     }
 
@@ -403,7 +406,7 @@ public class ForYouComposer {
         ObjectNode section = atomicBuilder.buildContentRail(
                 sectionId, "for_you_lp_picks", null, cards);
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", utils.railSurface());
+        section.set("surface", surfaces.railSurface());
         return section;
     }
 
@@ -429,7 +432,7 @@ public class ForYouComposer {
                 sectionId, "for_you_vod_playlist",
                 "More to Watch", rows);
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", utils.railSurface());
+        section.set("surface", surfaces.railSurface());
         return section;
     }
 
@@ -457,7 +460,7 @@ public class ForYouComposer {
         section.put("contentSourceId", contentSourceId);
         // railSurface (margin-only) — the grid's cells are individually
         // card-chromed, so the section doesn't need an outer card.
-        section.set("surface", utils.railSurface());
+        section.set("surface", surfaces.railSurface());
         return section;
     }
 
@@ -469,7 +472,7 @@ public class ForYouComposer {
         ObjectNode section = atomicBuilder.buildSectionHeaderComposite(
                 sectionId, analyticsId, title, subtitle, actionLabel, actionUri);
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", utils.sectionHeaderSurface());
+        section.set("surface", surfaces.sectionHeaderSurface());
         return section;
     }
 
@@ -495,7 +498,7 @@ public class ForYouComposer {
         section.put("analyticsId", analyticsId);
         section.put("contentSourceId", contentSourceId);
         section.set("refreshPolicy", staticPolicy());
-        section.set("surface", utils.adSlotSurface());
+        section.set("surface", surfaces.adSlotSurface());
 
         ObjectNode data = objectMapper.createObjectNode();
         data.put("provider", "gam");

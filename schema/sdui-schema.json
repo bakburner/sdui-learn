@@ -928,10 +928,7 @@
           "$ref": "#/definitions/AccessibilityProperties",
           "description": "Section-level accessibility metadata (landmark role, live region, heading)"
         },
-        "padding": { "$ref": "#/definitions/Spacing" },
-        "backgroundColor": { "type": "string" },
         "surface": { "$ref": "#/definitions/SectionSurface" },
-        "layoutHints": { "$ref": "#/definitions/SectionLayoutHints" },
         "sectionStates": { "$ref": "#/definitions/SectionStates" },
         "stringTable": {
           "type": "object",
@@ -964,36 +961,6 @@
         "cornerRadius": { "$ref": "#/definitions/LayoutScalar", "description": "Corner radius: dp/px or layout token, applied to the surface (with overflow clip)." },
         "shadow":       { "$ref": "#/definitions/ShadowOrToken", "description": "Drop shadow applied to the surface." },
         "border":       { "$ref": "#/definitions/Border", "description": "Outer stroke applied around the surface." }
-      }
-    },
-    "SectionLayoutHints": {
-      "type": "object",
-      "description": "Optional layout hints for section placement. Clients apply best-effort; unknown hints are ignored.",
-      "properties": {
-        "marginTop": {
-          "type": "integer",
-          "description": "Top margin in dp/points (0 = flush)"
-        },
-        "marginBottom": {
-          "type": "integer",
-          "description": "Bottom margin in dp/points"
-        },
-        "dividerAbove": {
-          "type": "boolean",
-          "description": "Render a divider line above this section",
-          "default": false
-        },
-        "dividerBelow": {
-          "type": "boolean",
-          "description": "Render a divider line below this section",
-          "default": false
-        },
-        "priority": {
-          "type": "string",
-          "enum": ["high", "normal", "low"],
-          "default": "normal",
-          "description": "Rendering priority hint — clients may use for lazy loading or viewport priority"
-        }
       }
     },
     "SectionStates": {

@@ -94,7 +94,7 @@ export function Form({ section, state, onAction, onStateChange }: SectionProps):
         event.preventDefault();
         handleSubmit();
       }}
-      style={{ ...styles.container, backgroundColor: section.backgroundColor || 'var(--surface)' }}
+      style={{ ...styles.container, backgroundColor: 'var(--surface)' }}
       {...accessibilityProps(section.accessibility)}
     >
       <div style={{ ...styles.fields, flexDirection: isHorizontal ? 'row' : 'column' }}>

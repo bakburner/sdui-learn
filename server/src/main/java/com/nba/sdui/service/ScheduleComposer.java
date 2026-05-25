@@ -29,14 +29,16 @@ public class ScheduleComposer {
 
     private final ObjectMapper objectMapper;
     private final SduiUtils utils;
+    private final SectionSurfaces surfaces;
     private final AtomicCompositeBuilder atomicBuilder;
 
     @Value("${sdui.schema.version:1.0}")
     private String schemaVersion;
 
-    public ScheduleComposer(ObjectMapper objectMapper, SduiUtils utils) {
+    public ScheduleComposer(ObjectMapper objectMapper, SduiUtils utils, SectionSurfaces surfaces) {
         this.objectMapper = objectMapper;
         this.utils = utils;
+        this.surfaces = surfaces;
         this.atomicBuilder = new AtomicCompositeBuilder(objectMapper);
     }
 
@@ -175,7 +177,7 @@ public class ScheduleComposer {
                 ObjectNode header = atomicBuilder.buildSectionHeader(
                         headerSectionId, formatDate(date, locale), null, null, null);
                 header.put("contentSourceId", headerContentSourceId);
-                header.set("surface", utils.sectionHeaderSurface());
+                header.set("surface", surfaces.sectionHeaderSurface());
                 sections.add(header);
             }
             sections.add(buildGameCard(game));
@@ -220,7 +222,7 @@ public class ScheduleComposer {
                 "schedule_game_" + gameId,
                 row);
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", utils.railSurface());
+        section.set("surface", surfaces.railSurface());
         return section;
     }
 

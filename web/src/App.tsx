@@ -341,14 +341,7 @@ export function App(): React.ReactElement {
         )}
         {!showFeedError && screen?.sections?.length ? (
           screen.sections.map((section) => (
-            <div
-              key={section.id}
-              style={{
-                marginTop: section.layoutHints?.marginTop ?? 0,
-                marginBottom: section.layoutHints?.marginBottom ?? 0,
-              }}
-            >
-              {section.layoutHints?.dividerAbove && <hr className="sdui-divider" />}
+            <React.Fragment key={section.id}>
               {staleSections.has(section.id) && (
                 <div style={styles.staleBanner}>⚠ This section may be out of date</div>
               )}
@@ -362,8 +355,7 @@ export function App(): React.ReactElement {
                 onStalenessChange={handleStalenessChange}
                 traceId={screen.traceId ?? undefined}
               />
-              {section.layoutHints?.dividerBelow && <hr className="sdui-divider" />}
-            </div>
+            </React.Fragment>
           ))
         ) : null}
         {!showFeedError && !loading && screen && !screen.sections?.length && (

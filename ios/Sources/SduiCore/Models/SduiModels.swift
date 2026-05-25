@@ -1581,7 +1581,7 @@ class Section: Codable {
     let accessibility: AccessibilityProperties?
     /// Section-level interaction actions
     let actions: [Action]?
-    let analyticsID, backgroundColor: String?
+    let analyticsID: String?
     /// Origin identifier for the content backing this section (e.g. 'cms:article-42',
     /// 'stats-api:leaders-2025'). Carried through to analytics for two-tier attribution.
     let contentSourceID: String?
@@ -1589,8 +1589,6 @@ class Section: Codable {
     let data: DataClass?
     let dataBinding: DataBinding?
     let id: String
-    let layoutHints: SectionLayoutHints?
-    let padding: Spacing?
     let refreshPolicy: RefreshPolicy?
     let sectionStates: SectionStates?
     /// Section-level map of translation key to localized string. Used by DataBindingResolver to
@@ -1604,22 +1602,18 @@ class Section: Codable {
     enum CodingKeys: String, CodingKey {
         case accessibility, actions
         case analyticsID = "analyticsId"
-        case backgroundColor
         case contentSourceID = "contentSourceId"
-        case data, dataBinding, id, layoutHints, padding, refreshPolicy, sectionStates, stringTable, subsections, surface, type
+        case data, dataBinding, id, refreshPolicy, sectionStates, stringTable, subsections, surface, type
     }
 
-    init(accessibility: AccessibilityProperties?, actions: [Action]?, analyticsID: String?, backgroundColor: String?, contentSourceID: String?, data: DataClass?, dataBinding: DataBinding?, id: String, layoutHints: SectionLayoutHints?, padding: Spacing?, refreshPolicy: RefreshPolicy?, sectionStates: SectionStates?, stringTable: [String: String]?, subsections: [Subsection]?, surface: SectionSurface?, type: String) {
+    init(accessibility: AccessibilityProperties?, actions: [Action]?, analyticsID: String?, contentSourceID: String?, data: DataClass?, dataBinding: DataBinding?, id: String, refreshPolicy: RefreshPolicy?, sectionStates: SectionStates?, stringTable: [String: String]?, subsections: [Subsection]?, surface: SectionSurface?, type: String) {
         self.accessibility = accessibility
         self.actions = actions
         self.analyticsID = analyticsID
-        self.backgroundColor = backgroundColor
         self.contentSourceID = contentSourceID
         self.data = data
         self.dataBinding = dataBinding
         self.id = id
-        self.layoutHints = layoutHints
-        self.padding = padding
         self.refreshPolicy = refreshPolicy
         self.sectionStates = sectionStates
         self.stringTable = stringTable
@@ -1634,7 +1628,7 @@ class Section: Codable {
 extension Section {
     convenience init(data: Data) throws {
         let me = try newJSONDecoder().decode(Section.self, from: data)
-        self.init(accessibility: me.accessibility, actions: me.actions, analyticsID: me.analyticsID, backgroundColor: me.backgroundColor, contentSourceID: me.contentSourceID, data: me.data, dataBinding: me.dataBinding, id: me.id, layoutHints: me.layoutHints, padding: me.padding, refreshPolicy: me.refreshPolicy, sectionStates: me.sectionStates, stringTable: me.stringTable, subsections: me.subsections, surface: me.surface, type: me.type)
+        self.init(accessibility: me.accessibility, actions: me.actions, analyticsID: me.analyticsID, contentSourceID: me.contentSourceID, data: me.data, dataBinding: me.dataBinding, id: me.id, refreshPolicy: me.refreshPolicy, sectionStates: me.sectionStates, stringTable: me.stringTable, subsections: me.subsections, surface: me.surface, type: me.type)
     }
 
     convenience init(_ json: String, using encoding: String.Encoding = .utf8) throws {
@@ -1652,13 +1646,10 @@ extension Section {
         accessibility: AccessibilityProperties?? = nil,
         actions: [Action]?? = nil,
         analyticsID: String?? = nil,
-        backgroundColor: String?? = nil,
         contentSourceID: String?? = nil,
         data: DataClass?? = nil,
         dataBinding: DataBinding?? = nil,
         id: String? = nil,
-        layoutHints: SectionLayoutHints?? = nil,
-        padding: Spacing?? = nil,
         refreshPolicy: RefreshPolicy?? = nil,
         sectionStates: SectionStates?? = nil,
         stringTable: [String: String]?? = nil,
@@ -1670,13 +1661,10 @@ extension Section {
             accessibility: accessibility ?? self.accessibility,
             actions: actions ?? self.actions,
             analyticsID: analyticsID ?? self.analyticsID,
-            backgroundColor: backgroundColor ?? self.backgroundColor,
             contentSourceID: contentSourceID ?? self.contentSourceID,
             data: data ?? self.data,
             dataBinding: dataBinding ?? self.dataBinding,
             id: id ?? self.id,
-            layoutHints: layoutHints ?? self.layoutHints,
-            padding: padding ?? self.padding,
             refreshPolicy: refreshPolicy ?? self.refreshPolicy,
             sectionStates: sectionStates ?? self.sectionStates,
             stringTable: stringTable ?? self.stringTable,
@@ -3058,72 +3046,6 @@ extension DataBindingPath {
 /// snapshotSeconds, snapshotAt, isRunning }.
 enum Transform: String, Codable {
     case liveClockSnapshot = "liveClockSnapshot"
-}
-
-/// Optional layout hints for section placement. Clients apply best-effort; unknown hints are
-/// ignored.
-// MARK: - SectionLayoutHints
-struct SectionLayoutHints: Codable {
-    /// Render a divider line above this section
-    let dividerAbove: Bool?
-    /// Render a divider line below this section
-    let dividerBelow: Bool?
-    /// Bottom margin in dp/points
-    let marginBottom: Int?
-    /// Top margin in dp/points (0 = flush)
-    let marginTop: Int?
-    /// Rendering priority hint — clients may use for lazy loading or viewport priority
-    let priority: Priority?
-}
-
-// MARK: SectionLayoutHints convenience initializers and mutators
-
-extension SectionLayoutHints {
-    init(data: Data) throws {
-        self = try newJSONDecoder().decode(SectionLayoutHints.self, from: data)
-    }
-
-    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
-        guard let data = json.data(using: encoding) else {
-            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
-        }
-        try self.init(data: data)
-    }
-
-    init(fromURL url: URL) throws {
-        try self.init(data: try Data(contentsOf: url))
-    }
-
-    func with(
-        dividerAbove: Bool?? = nil,
-        dividerBelow: Bool?? = nil,
-        marginBottom: Int?? = nil,
-        marginTop: Int?? = nil,
-        priority: Priority?? = nil
-    ) -> SectionLayoutHints {
-        return SectionLayoutHints(
-            dividerAbove: dividerAbove ?? self.dividerAbove,
-            dividerBelow: dividerBelow ?? self.dividerBelow,
-            marginBottom: marginBottom ?? self.marginBottom,
-            marginTop: marginTop ?? self.marginTop,
-            priority: priority ?? self.priority
-        )
-    }
-
-    func jsonData() throws -> Data {
-        return try newJSONEncoder().encode(self)
-    }
-
-    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
-        return String(data: try self.jsonData(), encoding: encoding)
-    }
-}
-
-/// Rendering priority hint — clients may use for lazy loading or viewport priority
-enum Priority: String, Codable {
-    case high = "high"
-    case low = "low"
-    case normal = "normal"
 }
 
 /// Server-declared loading and error presentation for a section. Clients render these states

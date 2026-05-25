@@ -969,11 +969,11 @@ sequenceDiagram
 
 **Settled (cross-platform):** Cross-form-factor differences (phone vs. TV vs. web) are handled by platform-aware composition — each platform family receives a response composed for its form factor. The server owns section selection and ordering per platform.
 
-**Built (within-family layout hints):** `SectionLayoutHints` added to schema and codegen. Server can specify per-section `marginTop`, `marginBottom`, `dividerAbove`, `dividerBelow`, and `priority` without client releases. Web client reads layout hints in `SectionList` and applies margins/dividers. ADR-008 accepted (Option C — hybrid: server hints + client layout engine).
+**Within-family layout hints:** The prior `SectionLayoutHints` mechanism was removed (2026-05-25) because it duplicated the chrome ownership that `Section.surface` already provides. Inter-section margins now route through `Section.surface.margin`; section outer chrome is owned exclusively by `SectionContainer` reading `section.surface`. See `docs/sdui-design-system.md §2` (Box-model cascade) for the active model.
 
-**Remaining gap:** Android layout hints rendering (schema and codegen done; renderer wiring pending). Advanced layout features (multi-column, placement slots) deferred to surface expansion.
+**Remaining gap:** Advanced layout features (multi-column, placement slots) deferred to surface expansion.
 
-**ADR tracking:** [ADR-008](adr/008-form-factor-layout-manager.md) — **Accepted (Option C)**
+**ADR tracking:** [ADR-008](adr/008-form-factor-layout-manager.md) — **Superseded by [ADR-015](adr/015-section-chrome-single-ownership.md)**, which ratifies the single-ownership path for section outer chrome (`Section.surface` consumed by `SectionContainer`) and references the box-model cascade in `docs/sdui-design-system.md §2`.
 
 ### 9n. Ad Support as First-Class Primitive
 
@@ -1209,13 +1209,14 @@ The following requirements are tracked via ADRs. Some remain pending final cross
 | Action scope and precedence | [ADR-005](adr/005-action-scope-and-precedence.md) | Proposed |
 | Experiment assignment model | [ADR-006](adr/006-experiment-assignment-model.md) | Accepted |
 | Ads boundary and contract | [ADR-007](adr/007-ad-boundary-and-contract.md) | Proposed |
-| Form-factor layout manager | [ADR-008](adr/008-form-factor-layout-manager.md) | Accepted (Option C) |
+| Form-factor layout manager | [ADR-008](adr/008-form-factor-layout-manager.md) | Superseded by ADR-015 |
 | Impression dedup and visibility semantics | [ADR-009](adr/009-impression-dedup-and-visibility-semantics.md) | Accepted |
 | Offline and degraded connectivity | [ADR-010](adr/010-offline-and-degraded-connectivity.md) | Proposed |
 | Data classification and freshness model | [ADR-011](adr/011-data-classification-and-freshness-model.md) | Proposed |
 | Client data architecture | [ADR-012](adr/012-client-data-architecture.md) | Proposed |
 | Style tokens for atomic primitives | [ADR-013](adr/013-style-tokens-for-atomic-primitives.md) | Accepted |
 | Dynamic conditional properties | [ADR-014](adr/014-dynamic-conditional-properties.md) | Proposed |
+| Section chrome single ownership | [ADR-015](adr/015-section-chrome-single-ownership.md) | Accepted |
 
 Until approved, these remain directional requirements and may be refined.
 
@@ -1244,7 +1245,7 @@ Until approved, these remain directional requirements and may be refined.
 | Request context envelope for composition | **Built** | `SduiRequestContext` POJO + `BracketParamResolver` (bracket-notation GET, POST fallback). Android, iOS, and web `RequestEnvelopeBuilder`. All fields optional with defaults. |
 | Composition API contract (auth, method, cacheability) | **Built** | GET-first with bracket-notation params; POST fallback >8192 chars; `Authorization` header only; Cache-Control per D7 route mapping; `X-Trace-Id` header for observability |
 | Actions at subsection level | **Partial** | Supported conceptually; needs explicit schema examples and conformance tests |
-| Form-factor layout manager | **Partial** | Cross-platform: settled. Within-family: `SectionLayoutHints` built on web (margins, dividers, priority). ADR-008 accepted (Option C). Android wiring pending. |
+| Form-factor layout manager | **Partial** | Cross-platform: settled (server-side composition). Within-family margins route through `Section.surface.margin`; section outer chrome via `Section.surface` and `SectionContainer`. Within-family responsive layout still requires design (see §9b). |
 | Ad support as first-class primitive | **Gap** | Needs ad primitive definition and fallback behavior |
 | Theming / dark mode | **Built** | Three-layer design system (inline primitives, variants, token registries). Layer 1 inline primitives now flow through a single per-platform `AtomicBox` helper so margin, opacity, shadow, corner clip, background, border, padding, sizing, and badge semantics apply consistently across atomic primitives. Variants ship per-primitive with per-OS-tier realization and override matrices (`schema/style-tokens.json`). Token families are codified across color (`schema/color-tokens.json`), spacing (`schema/spacing-tokens.json`), radius (`schema/corner-radius-tokens.json`), typography (`schema/typography-tokens.json`), motion (`schema/motion-tokens.json`), and shadow (`schema/shadow-tokens.json`), with font metadata in `schema/font-tokens.json`; clients resolve these registries locally against form factor and OS theme. Server composers emit token constants with startup consistency checks against registries. Figma export pipeline remains deferred (downstream integration target). |
 | Animation hints | **Gap** | Entry/exit + data-change animations |
@@ -1260,7 +1261,6 @@ Until approved, these remain directional requirements and may be refined.
 | Screen-level `defaultRefreshPolicy` handler | **Built** | `type: poll` + `intervalMs` triggers full-screen re-fetch on all three platforms; `GameDetailComposer` emits `type: static` (sections own refresh independently) |
 | Parameterized refresh (Action extension) | **Built** | `endpoint` + `paramBindings` resolved from screen state at action time. Working via Form submit. |
 | ErrorState section | **Built** | Server-composed error sections with title, message, icon, retry action. Built on Android, iOS, and web. |
-| SectionLayoutHints | **Partial** | Schema + codegen done. Web client applies margins/dividers. Android and iOS wiring pending. |
 | SectionStates (runtime error/loading) | **Partial** | Schema + codegen done. Web and iOS: `SectionErrorBoundary` + `SectionSkeleton` built. Server emits on live sections. Android wiring pending. |
 | Atomic rendering layer | **Built** | `AtomicRouter` over 12 schema `AtomicElement` types on Android, iOS, and web. `AtomicComposite` bridges section and atomic layers. `AtomicCompositeBuilder` composes stateless layout surfaces (headers, rails, hero panels, promo banners, stat lines, video carousels, schedule layouts, error states, live-score cards) as server-composed atomic trees. Performance contract: depth 6, children 20, nodes 50. |
 

@@ -25,7 +25,8 @@ class ForYouSectionIdDerivationTest {
         ObjectMapper om = new ObjectMapper();
         StatsApiClient statsApiClient = new StatsApiClient(om);
         SduiUtils utils = new SduiUtils(om);
-        composer = new ForYouComposer(om, statsApiClient, utils);
+        SectionSurfaces surfaces = new SectionSurfaces(om, utils);
+        composer = new ForYouComposer(om, statsApiClient, utils, surfaces);
     }
 
     @Test

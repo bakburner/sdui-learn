@@ -63,7 +63,6 @@ val mapper = jacksonObjectMapper().apply {
     convert(PlayerType::class,             { PlayerType.fromValue(it.asText()) },             { "\"${it.value}\"" })
     convert(SortDirection::class,          { SortDirection.fromValue(it.asText()) },          { "\"${it.value}\"" })
     convert(Transform::class,              { Transform.fromValue(it.asText()) },              { "\"${it.value}\"" })
-    convert(Priority::class,               { Priority.fromValue(it.asText()) },               { "\"${it.value}\"" })
     convert(Skeleton::class,               { Skeleton.fromValue(it.asText()) },               { "\"${it.value}\"" })
     convert(LayoutScalar::class,           { LayoutScalar.fromJson(it) },                     { it.toJson() }, true)
     convert(AspectRatioUnion::class,       { AspectRatioUnion.fromJson(it) },                 { it.toJson() }, true)
@@ -1282,8 +1281,6 @@ data class Section (
     @get:JsonProperty("analyticsId")@field:JsonProperty("analyticsId")
     val analyticsID: String? = null,
 
-    val backgroundColor: String? = null,
-
     /**
      * Origin identifier for the content backing this section (e.g. 'cms:article-42',
      * 'stats-api:leaders-2025'). Carried through to analytics for two-tier attribution.
@@ -1301,8 +1298,6 @@ data class Section (
     @get:JsonProperty(required=true)@field:JsonProperty(required=true)
     val id: String,
 
-    val layoutHints: SectionLayoutHints? = null,
-    val padding: Spacing? = null,
     val refreshPolicy: RefreshPolicy? = null,
     val sectionStates: SectionStates? = null,
 
@@ -2386,55 +2381,6 @@ enum class Transform(val value: String) {
         fun fromValue(value: String): Transform = when (value) {
             "liveClockSnapshot" -> LiveClockSnapshot
             else                -> throw IllegalArgumentException()
-        }
-    }
-}
-
-/**
- * Optional layout hints for section placement. Clients apply best-effort; unknown hints are
- * ignored.
- */
-data class SectionLayoutHints (
-    /**
-     * Render a divider line above this section
-     */
-    val dividerAbove: Boolean? = null,
-
-    /**
-     * Render a divider line below this section
-     */
-    val dividerBelow: Boolean? = null,
-
-    /**
-     * Bottom margin in dp/points
-     */
-    val marginBottom: Long? = null,
-
-    /**
-     * Top margin in dp/points (0 = flush)
-     */
-    val marginTop: Long? = null,
-
-    /**
-     * Rendering priority hint — clients may use for lazy loading or viewport priority
-     */
-    val priority: Priority? = null
-)
-
-/**
- * Rendering priority hint — clients may use for lazy loading or viewport priority
- */
-enum class Priority(val value: String) {
-    High("high"),
-    Low("low"),
-    Normal("normal");
-
-    companion object {
-        fun fromValue(value: String): Priority = when (value) {
-            "high"   -> High
-            "low"    -> Low
-            "normal" -> Normal
-            else     -> throw IllegalArgumentException()
         }
     }
 }

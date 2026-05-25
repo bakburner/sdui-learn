@@ -882,9 +882,8 @@ export interface Section {
     /**
      * Section-level interaction actions
      */
-    actions?:         Action[];
-    analyticsId?:     string;
-    backgroundColor?: string;
+    actions?:     Action[];
+    analyticsId?: string;
     /**
      * Origin identifier for the content backing this section (e.g. 'cms:article-42',
      * 'stats-api:leaders-2025'). Carried through to analytics for two-tier attribution.
@@ -896,8 +895,6 @@ export interface Section {
     data?:          Data;
     dataBinding?:   DataBinding;
     id:             string;
-    layoutHints?:   SectionLayoutHints;
-    padding?:       Spacing;
     refreshPolicy?: RefreshPolicy;
     sectionStates?: SectionStates;
     /**
@@ -1555,43 +1552,6 @@ export interface DataBindingPath {
  */
 export enum Transform {
     LiveClockSnapshot = "liveClockSnapshot",
-}
-
-/**
- * Optional layout hints for section placement. Clients apply best-effort; unknown hints are
- * ignored.
- */
-export interface SectionLayoutHints {
-    /**
-     * Render a divider line above this section
-     */
-    dividerAbove?: boolean;
-    /**
-     * Render a divider line below this section
-     */
-    dividerBelow?: boolean;
-    /**
-     * Bottom margin in dp/points
-     */
-    marginBottom?: number;
-    /**
-     * Top margin in dp/points (0 = flush)
-     */
-    marginTop?: number;
-    /**
-     * Rendering priority hint — clients may use for lazy loading or viewport priority
-     */
-    priority?: Priority;
-    [property: string]: any;
-}
-
-/**
- * Rendering priority hint — clients may use for lazy loading or viewport priority
- */
-export enum Priority {
-    High = "high",
-    Low = "low",
-    Normal = "normal",
 }
 
 /**

@@ -244,6 +244,15 @@ layout devices — `Spacer`, `Conditional`, `SectionSlot` — bypass it because
 they render no chrome of their own (the chosen child / hosted section
 carries the box model).
 
+`AtomicBox` operates at the innermost level of a three-level chrome cascade:
+`Screen.contentInsets` (scroll feed insets, applied by the screen shell) →
+`Section.surface` (section outer chrome, applied by `SectionContainer` before
+any renderer runs) → `AtomicElement` box model (`AtomicBox`). Each level wraps
+the next and no level overrides a parent level's chrome. The full cascade —
+including the ownership rules for each level, level-preference guidance for
+`padding` and `background`, and a worked double-chrome counterexample — is
+documented in `docs/sdui-design-system.md §2`.
+
 **The canonical modifier order (outer → inner):**
 
 ```
@@ -1699,7 +1708,7 @@ easing curves come from `LayoutTokenResolver.motionEasing(token)`.
 ## 17a. Non-atomic variant tokens (FormField select)
 
 Most variant tokens live on atomic primitives and carry the vocabularies
-documented in `docs/sdui-design-system.md` §3 Layer 2. One vocabulary
+documented in `docs/sdui-design-system.md` §4 Layer 2. One vocabulary
 lives on a non-atomic carrier — a field-data object (`FormField` when
 `fieldType == "select"`). It obeys the same rules (strict-decode on the
 typed field, renderer realizes natively, absent value falls through to

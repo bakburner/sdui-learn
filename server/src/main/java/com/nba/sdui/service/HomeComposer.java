@@ -42,14 +42,16 @@ public class HomeComposer {
 
     private final ObjectMapper objectMapper;
     private final SduiUtils utils;
+    private final SectionSurfaces surfaces;
     private final AtomicCompositeBuilder atomicBuilder;
 
     @Value("${sdui.schema.version:1.0}")
     private String schemaVersion;
 
-    public HomeComposer(ObjectMapper objectMapper, SduiUtils utils) {
+    public HomeComposer(ObjectMapper objectMapper, SduiUtils utils, SectionSurfaces surfaces) {
         this.objectMapper = objectMapper;
         this.utils = utils;
+        this.surfaces = surfaces;
         this.atomicBuilder = new AtomicCompositeBuilder(objectMapper);
     }
 
@@ -120,7 +122,7 @@ public class HomeComposer {
         ObjectNode heroSection = atomicBuilder.buildCinematicHeroCarousel(
                 heroSectionId, "home_hero", heroSlides);
         heroSection.put("contentSourceId", heroContentSourceId);
-        heroSection.set("surface", utils.flushSurface());
+        heroSection.set("surface", surfaces.flushSurface());
 
         // Headlines content (embedded as SectionSlot)
         ObjectNode headlinesSection = buildHeadlinesList();
@@ -143,10 +145,11 @@ public class HomeComposer {
         row.set("children", children);
         ObjectNode section = atomicBuilder.wrapAsComposite(rowSectionId, "home_row1", row);
         section.put("contentSourceId", rowContentSourceId);
-        section.set("surface", utils.flushSurface());
-        ObjectNode hints = objectMapper.createObjectNode();
-        hints.put("marginTop", 16);
-        section.set("layoutHints", hints);
+        ObjectNode surface = surfaces.flushSurface();
+        ObjectNode margin = objectMapper.createObjectNode();
+        margin.put("top", 16);
+        surface.set("margin", margin);
+        section.set("surface", surface);
         return section;
     }
 
@@ -179,7 +182,7 @@ public class HomeComposer {
         row.set("children", children);
         ObjectNode section = atomicBuilder.wrapAsComposite(rowSectionId, "home_row2", row);
         section.put("contentSourceId", rowContentSourceId);
-        section.set("surface", utils.flushSurface());
+        section.set("surface", surfaces.flushSurface());
         return section;
     }
 
@@ -189,7 +192,7 @@ public class HomeComposer {
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite", slug);
         ObjectNode header = atomicBuilder.buildSectionHeader(sectionId, title, null, actionLabel, actionUri);
         header.put("contentSourceId", contentSourceId);
-        header.set("surface", utils.sectionHeaderSurface());
+        header.set("surface", surfaces.sectionHeaderSurface());
         return header;
     }
 
@@ -217,7 +220,7 @@ public class HomeComposer {
         ObjectNode rail = atomicBuilder.buildOverlayStoryRail(
                 sectionId, "home_stories", "STORIES", cards);
         rail.put("contentSourceId", contentSourceId);
-        rail.set("surface", utils.railSurface());
+        rail.set("surface", surfaces.railSurface());
         return rail;
     }
 
@@ -277,7 +280,7 @@ public class HomeComposer {
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         ObjectNode section = atomicBuilder.wrapAsComposite(sectionId, "home_headlines", root);
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", utils.railSurface());
+        section.set("surface", surfaces.railSurface());
         return section;
     }
 
@@ -297,7 +300,7 @@ public class HomeComposer {
         ObjectNode rail = atomicBuilder.buildVideoCarousel(
                 sectionId, "home_trending", null, null, videos);
         rail.put("contentSourceId", contentSourceId);
-        rail.set("surface", utils.railSurface());
+        rail.set("surface", surfaces.railSurface());
         return rail;
     }
 
@@ -318,7 +321,7 @@ public class HomeComposer {
         ObjectNode rail = atomicBuilder.buildEditorialOverlayRail(
                 sectionId, "home_postseason", null, cards);
         rail.put("contentSourceId", contentSourceId);
-        rail.set("surface", utils.railSurface());
+        rail.set("surface", surfaces.railSurface());
         return rail;
     }
 
@@ -338,7 +341,7 @@ public class HomeComposer {
         ObjectNode rail = atomicBuilder.buildVideoCarousel(
                 sectionId, "home_recaps", null, null, videos);
         rail.put("contentSourceId", contentSourceId);
-        rail.set("surface", utils.railSurface());
+        rail.set("surface", surfaces.railSurface());
         return rail;
     }
 
@@ -427,7 +430,7 @@ public class HomeComposer {
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         ObjectNode section = atomicBuilder.wrapAsComposite(sectionId, "home_around", root);
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", utils.railSurface());
+        section.set("surface", surfaces.railSurface());
         return section;
     }
 
@@ -442,7 +445,7 @@ public class HomeComposer {
         section.put("contentSourceId", contentSourceId);
         section.put("type", "AdSlot");
         section.put("analyticsId", sectionId.replaceAll("[~:=]", "_"));
-        section.set("surface", utils.adSlotSurface());
+        section.set("surface", surfaces.adSlotSurface());
 
         ObjectNode data = objectMapper.createObjectNode();
         data.put("provider", "gam");

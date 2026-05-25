@@ -1,6 +1,15 @@
 # ADR-008: Form-Factor Layout Manager
 
-- Status: Accepted (Option C — Hybrid)
+> **Superseded by [ADR-015](./015-section-chrome-single-ownership.md) (2026-05-25).**
+> The `SectionLayoutHints` mechanism this ADR introduced was removed in favor
+> of a single section-outer-chrome ownership path (`Section.surface` consumed
+> by `SectionContainer`). The structural layout decisions in this ADR
+> (semantic section types vs hints) remain historically valid as the rationale
+> for the hybrid approach; the hybrid's `layoutHints` half is no longer
+> active. See `docs/sdui-design-system.md §2` for the active box-model
+> cascade.
+
+- Status: Superseded by ADR-015
 - Date: 2026-02-20
 - Accepted: 2026-03-11
 - Decision owners: Adrian Robinson (interim), platform leads, backend leads

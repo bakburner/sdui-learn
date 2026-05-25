@@ -21,6 +21,7 @@ public class DemoScreenComposer {
 
     private final ObjectMapper objectMapper;
     private final SduiUtils utils;
+    private final SectionSurfaces surfaces;
     private final AtomicCompositeBuilder atomicBuilder;
     private final ParameterizedRefreshService parameterizedRefreshService;
 
@@ -29,9 +30,11 @@ public class DemoScreenComposer {
 
     public DemoScreenComposer(ObjectMapper objectMapper,
                                SduiUtils utils,
+                               SectionSurfaces surfaces,
                                ParameterizedRefreshService parameterizedRefreshService) {
         this.objectMapper = objectMapper;
         this.utils = utils;
+        this.surfaces = surfaces;
         this.atomicBuilder = new AtomicCompositeBuilder(objectMapper);
         this.parameterizedRefreshService = parameterizedRefreshService;
     }
@@ -335,7 +338,7 @@ public class DemoScreenComposer {
                 "nba://game/0022400999",
                 objectMapper.createObjectNode().put("type", "static"),
                 null,
-                utils.gamePanelSurface());
+                surfaces.gamePanelSurface());
         section.put("contentSourceId", contentSourceId);
         return section;
     }
@@ -374,7 +377,7 @@ public class DemoScreenComposer {
                 DemoImageUrls.cardWide("nba"),
                 "Learn More", "nba://scoreboard");
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", utils.subscribeSurface(
+        section.set("surface", surfaces.subscribeSurface(
                 "#0C1B3A",
                 ColorTokens.BRAND_NBA,
                 20));
@@ -435,7 +438,7 @@ public class DemoScreenComposer {
                 "nba://game/0022400888",
                 objectMapper.createObjectNode().put("type", "static"),
                 null,
-                utils.gamePanelSurface());
+                surfaces.gamePanelSurface());
         section.put("contentSourceId", contentSourceId);
         return section;
     }
@@ -533,7 +536,7 @@ public class DemoScreenComposer {
         data.set("tabContents", tabContents);
         section.set("data", data);
         section.set("subsections", utils.tabSelectSubsections(tabs, "demo_active_tab"));
-        section.set("surface", utils.secondaryStripSurface());
+        section.set("surface", surfaces.secondaryStripSurface());
         return section;
     }
 
@@ -708,7 +711,7 @@ public class DemoScreenComposer {
         section.put("contentSourceId", contentSourceId);
         section.put("analyticsId", "demo_ad_slot");
         section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
-        section.set("surface", utils.adSlotSurface());
+        section.set("surface", surfaces.adSlotSurface());
 
         ObjectNode data = objectMapper.createObjectNode();
         data.put("provider", "gam");
@@ -814,7 +817,7 @@ public class DemoScreenComposer {
                 "Lakers vs Celtics — Coverage begins at 7:00 PM ET",
                 true, slots);
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", utils.cardSurface());
+        section.set("surface", surfaces.cardSurface());
         return section;
     }
 
@@ -832,7 +835,7 @@ public class DemoScreenComposer {
         section.put("contentSourceId", contentSourceId);
         section.put("analyticsId", "demo_subscribe_banner");
         section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
-        section.set("surface", utils.subscribeSurface(
+        section.set("surface", surfaces.subscribeSurface(
                 ColorTokens.BRAND_NBA,
                 "#862633",
                 20));
@@ -878,7 +881,7 @@ public class DemoScreenComposer {
         section.put("contentSourceId", contentSourceId);
         section.put("analyticsId", "demo_subscribe_hero");
         section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
-        section.set("surface", utils.subscribeSurface(
+        section.set("surface", surfaces.subscribeSurface(
                 "#0C1B3A",
                 ColorTokens.BRAND_NBA,
                 24));
@@ -1096,7 +1099,7 @@ public class DemoScreenComposer {
         adSection.put("id", adSectionId);
         adSection.put("type", "AdSlot");
         adSection.put("contentSourceId", adContentSourceId);
-        adSection.set("surface", utils.adSlotSurface());
+        adSection.set("surface", surfaces.adSlotSurface());
         ObjectNode adData = objectMapper.createObjectNode();
         adData.put("provider", "gam");
         adData.put("adUnitPath", "/nba/game-card-inline");
@@ -1181,7 +1184,7 @@ public class DemoScreenComposer {
                 "More",
                 "nba://news");
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", utils.sectionHeaderSurface());
+        section.set("surface", surfaces.sectionHeaderSurface());
         return section;
     }
 
@@ -1197,7 +1200,7 @@ public class DemoScreenComposer {
         ObjectNode section = atomicBuilder.buildStoryCircleRail(
                 sectionId, "demo_story_circle_rail", null, items);
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", utils.railSurface());
+        section.set("surface", surfaces.railSurface());
         return section;
     }
 
@@ -1215,7 +1218,7 @@ public class DemoScreenComposer {
         ObjectNode section = atomicBuilder.buildEditorialOverlayRail(
                 sectionId, "demo_editorial_overlay_rail", null, cards);
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", utils.railSurface());
+        section.set("surface", surfaces.railSurface());
         return section;
     }
 
@@ -1240,7 +1243,7 @@ public class DemoScreenComposer {
         ObjectNode section = atomicBuilder.buildFeaturedLiveGameHero(
                 sectionId, "demo_featured_live_game_hero", null, cards);
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", utils.railSurface());
+        section.set("surface", surfaces.railSurface());
         return section;
     }
 
@@ -1260,7 +1263,7 @@ public class DemoScreenComposer {
         ObjectNode section = atomicBuilder.buildUtilityCardGrid(
                 sectionId, "demo_utility_card_grid", "Around the League", items);
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", utils.cardSurface());
+        section.set("surface", surfaces.cardSurface());
         return section;
     }
 
@@ -1275,7 +1278,7 @@ public class DemoScreenComposer {
         ObjectNode section = atomicBuilder.buildLeagueCardRail(
                 sectionId, "demo_league_card_rail", "Other Leagues", items);
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", utils.railSurface());
+        section.set("surface", surfaces.railSurface());
         return section;
     }
 
@@ -1293,7 +1296,7 @@ public class DemoScreenComposer {
         ObjectNode section = atomicBuilder.buildGameScheduleList(
                 sectionId, "demo_game_schedule_list", "Today", rows);
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", utils.flushSurface());
+        section.set("surface", surfaces.flushSurface());
         return section;
     }
 

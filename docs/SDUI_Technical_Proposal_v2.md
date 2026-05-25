@@ -748,11 +748,11 @@ Reference: ADR-006
 
 ### 9m. Form-Factor Layout Manager
 
-- Server provides layout intent.
-- Client applies native best-fit rules.
-- Contract defines fallback behavior for unsupported hints.
+- Section outer chrome (margin, padding, background, cornerRadius, shadow, border) flows through `Section.surface` consumed by the shared `SectionContainer`.
+- Inter-section margins live in `Section.surface.margin`; renderers do not paint section outer chrome themselves.
+- See `docs/sdui-design-system.md` §2 (Box-model cascade) for the cascade rules and ownership boundaries at each level (`Screen.contentInsets` → `Section.surface` → `AtomicBox`).
 
-Reference: ADR-008
+Reference: ADR-015 (supersedes ADR-008)
 
 ### 9n. Ad Support as First-Class Primitive
 
@@ -866,7 +866,7 @@ These limits ensure atomic trees remain a lightweight composition mechanism, not
 | Action scope and precedence    | Partial | ADR-005 | rule set clear; needs broader fixtures              |
 | Experiment conflict handling   | Built   | ADR-006 | ADR-006 Accepted. Client-authoritative assignment via experiment SDK. Server trusts `experiments` map from request envelope. Kill switch is client-side. Exposure tracking via fireAndForget actions. |
 | Ad primitive contract          | Gap     | ADR-007 | required field policy + fallback semantics pending  |
-| Layout manager contract        | Partial | ADR-008 | SectionLayoutHints built on Web (margins, dividers, priority). ADR-008 accepted (Option C). Android wiring pending. |
+| Layout manager contract        | Partial | ADR-008 (superseded) | Within-family margins via `Section.surface.margin`. Cross-platform composition settled. `SectionLayoutHints` removed — single chrome path through `SectionContainer`. |
 | Impression semantics           | Partial | ADR-009 | Built on web (IntersectionObserver + dedup registry), Android (`SectionVisibilityTracker`), and iOS (`ImpressionTracker` + `SectionVisibilityTracker`). ADR-009 accepted. Cross-platform dedup registry + analytics forwarding still in progress. |
 | Error handling (ErrorState)    | Built   | —       | server-composed `ErrorState` now served via `AtomicComposite` (migrated from standalone section type). Built on Web, Android, and iOS (`SectionErrorBoundary` / skeleton on iOS). Per-section runtime error/loading states (`sectionStates`) planned. |
 | Contract testing/observability | Gap     | —       | broader test corpus + dashboards pending            |
@@ -890,8 +890,9 @@ These limits ensure atomic trees remain a lightweight composition mechanism, not
 
 All ADR statuses are tracked in the Requirement Status table above and in the Requirements Summary.
 
-- **Accepted:** ADR-006 (Experiment Assignment Model), ADR-008 (Form-Factor Layout Manager — Option C Hybrid), ADR-009 (Impression Dedup and Visibility Semantics), ADR-013 (Style Tokens for Atomic Primitives).
+- **Accepted:** ADR-006 (Experiment Assignment Model), ADR-009 (Impression Dedup and Visibility Semantics), ADR-013 (Style Tokens for Atomic Primitives), ADR-015 (Section Chrome Single Ownership).
 - **Proposed:** ADR-001, ADR-002, ADR-003, ADR-004, ADR-005, ADR-007, ADR-010, ADR-011 (Data Classification and Freshness Model), ADR-012 (Client Data Architecture), ADR-014 (Dynamic Conditional Properties).
+- **Superseded:** ADR-008 (Form-Factor Layout Manager) — superseded by ADR-015 on 2026-05-25.
 
 
 ---
@@ -913,7 +914,7 @@ The alternative is duplicated platform composition logic and drift in feature be
 1. Lock transport/cache policy (ADR-003, ADR-004). Request envelope already built.
 2. Lock action scope/precedence (ADR-005). Experiment model already accepted (ADR-006) and built.
 3. Ship subsection actions with broader fixtures.
-4. Introduce ad primitive (ADR-007). Layout strategy already accepted (ADR-008, Option C).
+4. Introduce ad primitive (ADR-007). Section chrome ownership already accepted (ADR-015 supersedes ADR-008).
 5. Implement impression tracking per ADR-009 (accepted). Android/iOS pending.
 6. Implement offline/degraded connectivity strategy per ADR-010 — platform cache fallback, staleness UX, `fireAndForget` queue.
 7. Style-token strategy per ADR-013 — **shipped and Accepted.** Three-layer design system (inline primitives, per-primitive variant enums with platform-native realization, color-token registry) built on all platforms. Figma export pipeline deferred — registry is ref-app-seeded with a Kinetic-compatible shape. Reference: [`sdui-design-system.md`](sdui-design-system.md).
@@ -924,6 +925,7 @@ The alternative is duplicated platform composition logic and drift in feature be
 
 | Date | Summary |
 |---|---|
+| 2026-05-25 | Box-model architectural cleanup. Removed `SectionLayoutHints` from the schema. Section outer chrome (margin, padding, background, cornerRadius, shadow, border) now flows through a single ownership path: `Section.surface` consumed by the shared `SectionContainer`. Inter-section margins live in `Section.surface.margin`. ADR-008 superseded; successor ADR documents the box-model cascade (`docs/sdui-design-system.md §2`). | Doc consistency audit. §9m bullets rewritten from the stale layoutHints model (`Server provides layout intent` / `Client applies native best-fit rules` / `Contract defines fallback behavior for unsupported hints`) to the single chrome path (`Section.surface` → `SectionContainer`, inter-section margins via `Section.surface.margin`, cross-reference to design-system §2). §9m reference updated from ADR-008 to ADR-015 (supersedes ADR-008). ADR Status Summary: ADR-008 moved from Accepted to a new Superseded line; ADR-015 added under Accepted. §11b roadmap item: layout strategy reference updated from ADR-008/Option C to ADR-015 supersedes ADR-008. |
 | 2026-05-24 | Doc consistency audit. Terminology: `fire-and-forget` → `` `fireAndForget` `` (×3, in capability map and §11). ADR Status Summary: merged `Proposed (draft)` tier into `Proposed` — ADR-011 and ADR-012 listed as `Proposed` (matches actual ADR file headers). | Doc consistency audit: updated URI resolution convention to `/v1/sdui/screen/{path}` — removed stale legacy exception note (old game-detail path retired). Updated GET/POST fallback examples in envelope spec. | Doc consistency audit: added element-level action scope to §4, added the current cross-platform trigger-hosting matrix, and synced the action-system narrative with the trigger-alignment work. |
 | 2026-05-05 | Doc consistency audit. §10: Atomic rendering layer count corrected 10 → 12 primitives. Added Schema versioning protocol row (Built). |
 | 2026-04-27 | Doc consistency audit: `onActivate` trigger added to §4 table, ErrorState note clarified as AtomicComposite in §10, terminology sync. |

@@ -1,14 +1,19 @@
 #!/bin/bash
 
 # SDUI Multi-Platform Code Generation Script
-# 1) Generates typed SduiModels from schema/sdui-schema.json for all platforms.
-# 2) Generates typed LayoutTokenRegistry files for iOS/web from schema/*-tokens.json.
+# Generates typed SduiModels from schema/sdui-schema.json for all platforms.
+#
+# Token registries (LayoutTokenRegistry, color, etc.) are not codegen-baked.
+# Each client bundles the raw `schema/*-tokens.json` files and parses them
+# at startup (see AGENTS.md §3.6). The hand-written runtime parsers live at:
+#   iOS     — ios/Sources/SduiCore/Tokens/LayoutTokenRegistry.swift
+#   Android — android/sdui-core/src/main/java/com/nba/sdui/core/tokens/LayoutTokenRegistry.kt
+#   Web     — web/src/tokens/LayoutTokenRegistry.ts
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCHEMA_FILE="$SCRIPT_DIR/../schema/sdui-schema.json"
-TOKEN_REGISTRY_GENERATOR="$SCRIPT_DIR/token-registry/generate_layout_token_registry.py"
 IOS_MODELS_OUT="$SCRIPT_DIR/../ios/Sources/SduiCore/Models/SduiModels.swift"
 WEB_MODELS_OUT="$SCRIPT_DIR/../web/src/generated/SduiModels.ts"
 ANDROID_MODELS_OUT="$SCRIPT_DIR/../android/sdui-core/src/main/java/com/nba/sdui/core/models/generated/SduiModels.kt"
@@ -23,74 +28,10 @@ if [ ! -f "$SCHEMA_FILE" ]; then
     exit 1
 fi
 
-# Check if token registry generator exists
-if [ ! -f "$TOKEN_REGISTRY_GENERATOR" ]; then
-    echo "Error: Token registry generator not found at $TOKEN_REGISTRY_GENERATOR"
-    exit 1
-fi
-
 # Create output directories
 mkdir -p "$(dirname "$IOS_MODELS_OUT")"
 mkdir -p "$(dirname "$WEB_MODELS_OUT")"
 mkdir -p "$(dirname "$ANDROID_MODELS_OUT")"
-
-echo "0. Generating LayoutTokenRegistry files (iOS/Web only)..."
-if ! command -v python3 &> /dev/null; then
-    echo "Error: python3 is required to generate layout token registries."
-    echo "Install Python 3 and re-run this script."
-    exit 1
-fi
-TOKEN_REGISTRY_GENERATOR_PATH="$TOKEN_REGISTRY_GENERATOR" python3 - <<'PY'
-import os
-import importlib.util
-from pathlib import Path
-
-script_path = Path(os.environ["TOKEN_REGISTRY_GENERATOR_PATH"])
-spec = importlib.util.spec_from_file_location("layout_token_registry_generator", script_path)
-if spec is None or spec.loader is None:
-    raise RuntimeError(f"Unable to load token registry generator: {script_path}")
-module = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(module)
-
-spacing_data = module.read_json(module.SPACING_SCHEMA)
-radius_data = module.read_json(module.RADIUS_SCHEMA)
-typography_data = module.read_json(module.TYPOGRAPHY_SCHEMA)
-motion_data = module.read_json(module.MOTION_SCHEMA)
-shadow_data = module.read_json(module.SHADOW_SCHEMA)
-
-spacing = spacing_data["spacing"]
-radius = radius_data["radius"]
-typography_categories = typography_data["categories"]
-typography_variants = typography_data["variants"]
-motion_duration = motion_data["duration"]
-motion_easing = motion_data["easing"]
-shadows = shadow_data["shadows"]
-
-module.write_file(
-    module.IOS_OUT,
-    module.generate_swift(
-        spacing=spacing,
-        radius=radius,
-        typography_categories=typography_categories,
-        typography_variants=typography_variants,
-        motion_duration=motion_duration,
-        motion_easing=motion_easing,
-        shadows=shadows,
-    ),
-)
-module.write_file(
-    module.WEB_OUT,
-    module.generate_typescript(
-        spacing=spacing,
-        radius=radius,
-        typography_categories=typography_categories,
-        typography_variants=typography_variants,
-        motion_duration=motion_duration,
-        motion_easing=motion_easing,
-        shadows=shadows,
-    ),
-)
-PY
 
 # Check if quicktype is installed
 if ! command -v quicktype &> /dev/null; then
@@ -105,7 +46,7 @@ if ! command -v quicktype &> /dev/null; then
     exit 0
 fi
 
-echo "1. Generating Swift models (iOS SduiCore)..."
+echo "Generating Swift models (iOS SduiCore)..."
 # Writes directly into the iOS SwiftPM source tree. The iOS client
 # consumes this file as its authoritative model layer; there is no
 # intermediate copy. Renderer-level helper enums (TextVariant,
@@ -121,7 +62,7 @@ quicktype \
     --out "$IOS_MODELS_OUT" \
     2>/dev/null || echo "   Swift generation completed with warnings"
 
-echo "2. Generating TypeScript models (web src tree)..."
+echo "Generating TypeScript models (web src tree)..."
 # Writes directly into web/src/generated/. The web client consumes this
 # file through the '@sdui/models' Vite/tsconfig alias; there is no
 # intermediate copy. Renderer-level helper enums and resolvers
@@ -136,7 +77,7 @@ quicktype \
     --out "$WEB_MODELS_OUT" \
     2>/dev/null || echo "   TypeScript generation completed with warnings"
 
-echo "3. Generating Kotlin models (Android sdui-core)..."
+echo "Generating Kotlin models (Android sdui-core)..."
 # Writes directly into the Android sdui-core source tree. The Android
 # client consumes this file as its authoritative model layer; there is
 # no intermediate copy. Renderer-level helper enums and resolvers
@@ -160,7 +101,7 @@ quicktype \
     2>/dev/null || echo "   Kotlin generation completed with warnings"
 
 echo ""
-echo "4. Post-processing Kotlin models (Android lenient routing types)..."
+echo "Post-processing Kotlin models (Android lenient routing types)..."
 # Same rationale as the Swift post-process (see next step): rewrite the
 # two routing-type fields — `Section.type` (quicktype name: OverlayType)
 # and `AtomicElement.type` (quicktype name: UIType) — as plain `String`
@@ -183,7 +124,7 @@ sed -e '/^enum class OverlayType/,/^}/d' \
     "$ANDROID_MODELS_OUT" > "$TMP_KOTLIN" && mv "$TMP_KOTLIN" "$ANDROID_MODELS_OUT"
 
 echo ""
-echo "5. Post-processing Swift models (iOS lenient routing types)..."
+echo "Post-processing Swift models (iOS lenient routing types)..."
 # Strip the strict `String, Codable` enums that quicktype emits for
 # the two routing-type fields — `Section.type` (quicktype name:
 # `OverlayType`) and `AtomicElement.type` (quicktype name: `UIType`) —
@@ -226,7 +167,7 @@ sed '/^enum OverlayType:/,/^}/d
     "$IOS_MODELS_OUT" > "$TMP_SWIFT" && mv "$TMP_SWIFT" "$IOS_MODELS_OUT"
 
 echo ""
-echo "5b. Appending ActionTrigger isPrimaryActivation extension..."
+echo "Appending ActionTrigger isPrimaryActivation extension..."
 # Two call sites (RenderingHelpers.swift, AtomicButtonView.swift) use
 # `action.trigger.isPrimaryActivation` to detect the primary user
 # activation intent (onActivate or legacy onTap). The extension must
@@ -244,7 +185,7 @@ extension ActionTrigger {
 SWIFT_EXT
 
 echo ""
-echo "6. Generating Java POJOs (via jsonschema2pojo)..."
+echo "Generating Java POJOs (via jsonschema2pojo)..."
 cd "$SCRIPT_DIR"
 ./gradlew generateJsonSchema2Pojo --quiet
 

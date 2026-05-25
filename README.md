@@ -322,5 +322,5 @@ make codegen
 | [Kitchen Sink Appendix](docs/appendix-kitchen-sink.md) | Full 42-section demo response (Android platform) |
 | [Client Implementor's Contract](docs/client-implementors-contract.md) | Platform-agnostic build guide for new clients (any language/framework) |
 | [Development Setup](docs/sdui-setup.md) | Prerequisites, secrets, dependency bootstrap, and Makefile runtime overrides |
-| [ADR Index](docs/adr/README.md) | Architecture Decision Records (001–014) |
+| [ADR Index](docs/adr/README.md) | Architecture Decision Records (001–015) |
 | [Accessibility Plan](docs/plans/plan-accessibility.md) | Accessibility strategy and implementation plan |

@@ -283,13 +283,14 @@ To preserve continuity with the original executive summary, this section explici
 | Action scope and precedence          | **ADR-005 Proposed**              |
 | Experiment assignment strategy       | **ADR-006 Accepted** (2026-03-30) |
 | Ads boundary and contract            | **ADR-007 Proposed**              |
-| Form-factor layout manager           | **ADR-008 Accepted** (Option C — Hybrid) |
+| Form-factor layout manager           | **ADR-008 Superseded** by ADR-015 (2026-05-25) |
 | Impression dedup and visibility      | **ADR-009 Accepted** (2026-03-11) |
 | Offline and degraded connectivity    | **ADR-010 Proposed**              |
-| Data classification and freshness    | **ADR-011 Proposed** (draft)      |
-| Client data architecture             | **ADR-012 Proposed** (draft)      |
+| Data classification and freshness    | **ADR-011 Proposed**              |
+| Client data architecture             | **ADR-012 Proposed**              |
 | Style tokens for atomic primitives   | **ADR-013 Accepted**              |
 | Dynamic conditional properties       | **ADR-014 Proposed**              |
+| Section chrome single ownership      | **ADR-015 Accepted** (2026-05-25) |
 
 
 ---
@@ -309,6 +310,7 @@ To preserve continuity with the original executive summary, this section explici
 
 | Date | Summary |
 |---|---|
+| 2026-05-25 | Box-model cleanup. `SectionLayoutHints` removed from schema; section chrome now flows through a single path (`Section.surface` → `SectionContainer`). Inter-section margins via `Section.surface.margin`. ADR-008 superseded; successor ADR in flight. | Doc consistency audit. Decision Continuity table: ADR-008 Accepted → Superseded by ADR-015; new ADR-015 row added (Section Chrome Single Ownership — Accepted). Dropped stale `(draft)` annotation on ADR-011 and ADR-012 (matches actual ADR file headers and the 2026-05-24 audit on the technical proposal). |
 | 2026-05-05 | Doc consistency audit. Schema evolution risk status updated: "Version header working" → "Built" (server version routing + field stripping + client force-upgrade prompt). |
 | 2026-04-27 | Doc consistency audit: trigger counts (7 → 8), ADR-010 row added to Decision Continuity, terminology sync. |
 | 2026-04-27 | Feature table: second column title → `Description`. Schema version + platform bullets: envelope-only (`platform[name]`, `schemaVersion`). |

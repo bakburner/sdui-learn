@@ -4,9 +4,10 @@ import SwiftUI
 import UIKit
 import os
 
-/// Resolves layout and design tokens using the codegen-baked `LayoutTokenRegistry`.
-/// The registry is compiled into the app (no runtime fetch), and form-factor updates
-/// are propagated through SwiftUI reactivity (`FormFactorObserver` + `Environment`).
+/// Resolves layout and design tokens using `LayoutTokenRegistry`, which parses
+/// the bundled `schema/*-tokens.json` resources at startup (see AGENTS.md §3.6).
+/// Token data is bundled (no runtime fetch), and form-factor updates are
+/// propagated through SwiftUI reactivity (`FormFactorObserver` + `Environment`).
 public enum LayoutTokenResolver {
 
     static let logger = Logger(subsystem: "com.nba.sdui", category: "LayoutTokenResolver")

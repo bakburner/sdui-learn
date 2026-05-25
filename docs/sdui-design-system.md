@@ -95,7 +95,192 @@ content, and surface colors.
 
 ---
 
-## 2. Token registries
+## 2. Box-model cascade
+
+The token and variant vocabulary (§§3–4) describes *what* styling values are
+available. This section describes *where* in the render tree each layer of
+chrome is applied — the spatial nesting order from screen to element.
+
+### Cascade diagram
+
+```
+Screen.contentInsets        (scroll feed insets — screen-level)
+  Section.surface           (section outer chrome — SectionContainer wrapper)
+    AtomicElement box model  (element-level chrome — AtomicBox)
+      Nested AtomicElement   (recursive — same rules)
+```
+
+| Level | What it owns | Applied by |
+|---|---|---|
+| `Screen.contentInsets` | Horizontal and vertical insets on the scroll feed; declared once per screen | Screen shell — not by individual sections |
+| `Section.surface` (`SectionSurface`) | Section-level margin, padding, background, `cornerRadius`, shadow, border | Shared `SectionContainer` wrapper, before the section's content is rendered |
+| `AtomicElement` box model (`AtomicBox`) | Per-element margin, opacity, shadow, background, border, `cornerRadius`, backdrop-filter, padding, sizing, and content | Shared `AtomicBox` helper — same implementation on web, Android, and iOS |
+| Nested `AtomicElement` | Same fields; recursive to depth 6 | Same `AtomicBox` path |
+
+### Additive composition rule
+
+Each level wraps the next. No level overrides or cancels a parent level's
+chrome. Visual properties from adjacent levels stack in their natural nesting
+order: `Screen.contentInsets` creates the scroll feed inset; `surface.margin`
+positions the section within that feed; `surface.padding` separates the
+section's content from its surface edge; `AtomicElement.padding` adds interior
+spacing inside that content area. All four accumulate — none cancels another.
+
+Because each level is physically distinct in the render tree, there is no
+precedence question between levels: `surface.padding` and a root `Container`'s
+`padding` are not in conflict — they are two separate boxes, one wrapping the
+other.
+
+### What each level owns
+
+**`Screen.contentInsets`** applies horizontal and vertical insets to the scroll
+feed as a whole. These insets are declared once at the screen level and affect
+every section uniformly, as if the scroll area has interior padding. The screen
+shell applies them; individual section renderers must not replicate this effect
+by adding their own horizontal margin.
+
+**`Section.surface` (`SectionSurface`)** is the section's outer chrome frame.
+It owns:
+
+- `margin` — space between the section and adjacent sections or the screen edge
+- `padding` — space between the surface boundary and the section's content tree
+- `background` — the surface fill (solid, gradient, or image)
+- `cornerRadius` — applied to the surface with overflow clip
+- `shadow` — drop shadow on the surface shape
+- `border` — outer stroke around the surface
+
+`SectionContainer` — the shared wrapper that every renderer is routed through
+by `SectionRouter` — reads these fields and applies them before the section
+content is rendered. Semantic-section renderers (`BoxscoreTable`, `Form`,
+`SeasonLeadersTable`, and all others) must not set their own outer padding,
+margin, corner radius, shadow, border, or background. That responsibility
+belongs exclusively to `SectionContainer` (see AGENTS.md §4.2).
+
+**`AtomicElement` box model (`AtomicBox`)** applies per-element chrome in a
+fixed order, outer to inner:
+
+```
+margin                ← sibling-to-sibling spacing
+  └─ opacity          ← applied once; affects everything below
+       └─ shadow      ← casts from the background shape
+            └─ corner clip + background + border + backdrop-filter
+                 └─ padding   ← interior padding; background extends to its edge
+                      └─ sizing (width / height / sizing modes / min-max)
+                           └─ content
+```
+
+This order is identical on web, Android, and iOS. Shadow casts from the
+background shape, not from the padded content area. Padding lives inside the
+corner clip so variant fills (e.g. `hero`) paint flush to the rounded frame.
+Every rendering primitive — `Container`, `Text`, `Image`, `Button`, `Divider`,
+`DisplayGrid`, `ScrollContainer`, `OverlayContainer` — applies its chrome
+through `AtomicBox`. Pure layout devices — `Spacer`, `Conditional`,
+`SectionSlot` — bypass it because they render no chrome of their own.
+
+### Level-preference guidance
+
+`Section.surface` and an `AtomicElement` root `Container` both accept `padding`
+and `background`. Authoring mistakes at this boundary are the most common source
+of double-chrome bugs.
+
+**Padding:**
+
+- Use `surface.padding` for framing that is uniform regardless of the section's
+  internal layout — for example, a 16pt inset applied identically around an
+  entire promotional module.
+- Use the root `Container`'s `padding` for spacing that interacts with the
+  section's internal layout — for example, padding that a horizontal row of
+  chips or a column of rows needs to vary per edge based on content structure.
+- Do not set both. Padding on `surface` and padding on the root `Container`
+  nest inside one another, producing double whitespace with no single owner.
+
+**Background:**
+
+- Use `surface.background` for the module-frame background — the card, strip,
+  or tile surface that contains the section's content tree.
+- Use an inner element's `background` for a contrasting fill inside the module —
+  for example, a chip, a colored tag, or an image fill on a nested container.
+- Do not set the same background on both `surface` and the root `Container`.
+  The inner background covers the surface's `cornerRadius` clip area and
+  occludes the surface's `shadow` at the corners, producing flat paint where a
+  card treatment was intended.
+
+**The guiding distinction:** `surface` frames the module; the root `Container`
+arranges content inside it. Properties that belong to the frame go on `surface`;
+properties that belong to content arrangement go on the root element.
+
+### Inter-section dividers
+
+There is no dedicated divider primitive on `Section`. Section-boundary
+separators are expressed through atomic composition, consistent with the
+expressibility rule in AGENTS.md §11.1: a composer that wants a visible divider
+between two sections either sets a top `border` on the lower section's
+`surface.border` or emits a 1pt `Container` element at the section boundary in
+the adjacent section's content tree. This keeps the chrome path single —
+`SectionContainer` remains the one owner of section-level chrome — and avoids
+a separate field that would create a second chrome path at the same level.
+
+### Counterexample: double-chrome
+
+The most common cascade error is placing the card treatment on both `surface`
+and the root `Container`.
+
+**Wrong — background set at both levels:**
+
+```json
+{
+  "type": "AtomicComposite",
+  "surface": {
+    "background": { "color": "token:nba.bg.tertiary" },
+    "cornerRadius": "token:nba.radius.lg",
+    "shadow": "token:nba.shadow.md",
+    "margin": { "top": 8, "bottom": 8, "start": 16, "end": 16 }
+  },
+  "data": {
+    "ui": {
+      "type": "Container",
+      "background": { "color": "token:nba.bg.tertiary" },
+      "padding": { "top": 16, "bottom": 16, "start": 16, "end": 16 },
+      "children": ["..."]
+    }
+  }
+}
+```
+
+What goes wrong: the root `Container`'s background paints on top of the surface
+paint. The surface's `cornerRadius` clip no longer rounds the fill — the inner
+background is a rectangle that extends to the container's own edges. The
+surface's `shadow` is occluded at the corners by the inner rectangle. The
+module renders flat instead of card-framed.
+
+**Right — background only on surface:**
+
+```json
+{
+  "type": "AtomicComposite",
+  "surface": {
+    "background": { "color": "token:nba.bg.tertiary" },
+    "cornerRadius": "token:nba.radius.lg",
+    "shadow": "token:nba.shadow.md",
+    "margin": { "top": 8, "bottom": 8, "start": 16, "end": 16 },
+    "padding": { "top": 16, "bottom": 16, "start": 16, "end": 16 }
+  },
+  "data": {
+    "ui": {
+      "type": "Container",
+      "children": ["..."]
+    }
+  }
+}
+```
+
+The surface owns the full card treatment — fill, radius, shadow, and framing
+insets. The root `Container` owns only internal layout. Corner clip and shadow
+compose correctly.
+
+---
+
+## 3. Token registries
 
 **Registry version:** `2.0.0-matrix`
 
@@ -152,7 +337,7 @@ The matrix is intentionally sparse — most tokens vary on only one axis
 and use `"*"` for the other. The resolver's fallback chain means registries
 need not enumerate every combination.
 
-### 2.1 Color tokens
+### 3.1 Color tokens
 
 **File:** `schema/color-tokens.json` · **Figma connection:** Figma
 color styles should match semantic alias names 1:1.
@@ -239,7 +424,7 @@ Color tokens are **not** form-factor-aware — only light/dark.
 > resolution). The backgrounds/shadows array work does not change the color
 > token registry — it uses existing color token references inline.
 
-### 2.2 Spacing tokens
+### 3.2 Spacing tokens
 
 **File:** `schema/spacing-tokens.json` (v1.0.0-kinetic) · **Server constants:** `LayoutTokens.java` ·
 **Figma connection:** Figma auto-layout spacing values should use these semantic names.
@@ -262,7 +447,7 @@ The wire vocabulary is semantic-only:
 Used for `padding`, `gap`, and `spacing` properties on atomic elements.
 Composers emit these via `LayoutTokens.SPACING_*` constants.
 
-### 2.3 Size tokens (planned)
+### 3.3 Size tokens (planned)
 
 > **Status:** Awaiting validated design input. The speculative
 > `schema/size-tokens.json` was removed — values were engineering
@@ -271,7 +456,7 @@ Composers emit these via `LayoutTokens.SPACING_*` constants.
 When rebuilt, this registry will cover icon sizes, logo sizes, avatar
 sizes, and thumbnail dimensions with per-form-factor values.
 
-### 2.4 Typography tokens
+### 3.4 Typography tokens
 
 **File:** `schema/typography-tokens.json` · **Server constants:** `TypographyTokens.java`
 
@@ -297,7 +482,7 @@ scores and clocks.
 
 **`TextWeight` values:** `regular`, `medium`, `semiBold`, `bold`
 
-### 2.5 Corner radius tokens
+### 3.5 Corner radius tokens
 
 **File:** `schema/corner-radius-tokens.json` (v1.0.0-kinetic) · **Server constants:** `LayoutTokens.java` ·
 **Figma connection:** Figma corner radius variables should use these names.
@@ -320,7 +505,7 @@ The wire vocabulary is semantic-only:
 field remains available as a shorthand for `cornerRadius: "token:nba.radius.full"`.
 Composers emit these via `LayoutTokens.RADIUS_*` constants.
 
-### 2.6 Shadow tokens
+### 3.6 Shadow tokens
 
 **File:** `schema/shadow-tokens.json` · **Server constants:** `ShadowTokens.java`
 
@@ -335,7 +520,7 @@ Wire fields `shadow` and `shadows[]` accept either:
 Clients normalize both forms to a concrete `Shadow` object through
 `LayoutTokenResolver.resolveShadowOrToken(...)` before rendering.
 
-### 2.7 Motion tokens
+### 3.7 Motion tokens
 
 **File:** `schema/motion-tokens.json` · **Server constants:** `MotionTokens.java`
 
@@ -353,7 +538,7 @@ Duration tokens are form-factor-aware:
 | `nba.motion.duration.slow` | 400 | 500 | 700 | 600 |
 | `nba.motion.duration.hero` | 500 | 600 | 900 | 800 |
 
-### 2.8 Font registry
+### 3.8 Font registry
 
 **File:** `schema/font-tokens.json`
 
@@ -371,7 +556,7 @@ Platform resolution contract:
 - **Web:** Google Fonts for Roboto families; local/bundled sources for
   Knockout where licensed.
 
-### 2.9 Icon tokens
+### 3.9 Icon tokens
 
 **File:** `schema/icon-tokens.json` · **Server constants:** `IconTokens.java` ·
 **Figma connection:** Figma icon components should use the `sdui:` prefix name
@@ -414,7 +599,7 @@ Directional icons (`back`, `forward`) auto-mirror in RTL locales.
 
 ---
 
-## 3. Variants
+## 4. Variants
 
 Variants carry platform-native treatments that inline properties cannot
 express: materials, interaction states, OS-adaptive surfaces, and
@@ -444,7 +629,7 @@ After Workstream B, the boundary between inline and variant is:
 | Multi-layer drop shadow | `shadows` array, `type: "drop"` |
 | Inner shadow | `shadows` array, `type: "inner"` |
 
-### 3.1 Container variants
+### 4.1 Container variants
 
 **`hero`** — Featured content surface.
 
@@ -480,22 +665,22 @@ Override matrix:
 
 **`grouped`** — Inset-grouped list surface. All axes allow override.
 
-### 3.2 Image variants
+### 4.2 Image variants
 
 **`thumbnail`** — Cropped media tile with platform-native cross-fade and
 placeholder reservation. All axes allow override.
 
-### 3.3 Button variants
+### 4.3 Button variants
 
 `primary`, `secondary`, `tertiary`, `text` — each platform maps to its
 native button style.
 
-### 3.4 Select variants (Form fields)
+### 4.4 Select variants (Form fields)
 
 `dropdown` (default platform menu), `chips` (horizontal capsule row).
 Applies when `FormField.fieldType == "select"`.
 
-### 3.5 Form-factor adaptation
+### 4.5 Form-factor adaptation
 
 Variants adapt per form factor. Example for `hero` on Android 15+:
 
@@ -509,7 +694,7 @@ Variants adapt per form factor. Example for `hero` on Android 15+:
 
 ---
 
-## 4. Figma-to-wire mapping
+## 5. Figma-to-wire mapping
 
 ### How Figma structures map to the wire format
 
@@ -565,7 +750,7 @@ For tokens to round-trip between Figma and the wire:
 
 ---
 
-## 5. Accessibility checklist for designers
+## 6. Accessibility checklist for designers
 
 Every interactive or informational element needs an `a11y.label`. Decorative
 images should be marked `hidden: true`.
@@ -583,7 +768,7 @@ The full `AccessibilityProperties` schema defines 7 fields: `label`, `hint`, `ro
 
 ---
 
-## 6. Internationalization
+## 7. Internationalization
 
 **i18n core (implemented):**
 
@@ -599,7 +784,7 @@ RTL layout support — including directional icon auto-mirroring (`rtl: "mirror"
 
 ---
 
-## 7. Form factors
+## 8. Form factors
 
 All token registries (except color) have per-form-factor values.
 
@@ -614,7 +799,7 @@ All token registries (except color) have per-form-factor values.
 
 > **Token resolution and form factors (v2.0.0-matrix):** The token resolver
 > now supports joint theme × form-factor variation through the matrix shape
-> described in §2. In practice today, spacing tokens remain theme-independent
+> described in §3. In practice today, spacing tokens remain theme-independent
 > (they use `"*"` for the theme axis) and color UI tokens remain
 > form-factor-independent (they use `"*"` for the form-factor axis). However,
 > the resolver handles both axes, so future tokens that need simultaneous
@@ -624,7 +809,7 @@ All token registries (except color) have per-form-factor values.
 
 ---
 
-## 8. Diagnostics
+## 9. Diagnostics
 
 Clients emit four diagnostics for design-system mismatches:
 
@@ -639,7 +824,7 @@ All are non-fatal. The renderer falls back to defaults and logs the issue.
 
 ---
 
-## 9. Gaps and completion checklist
+## 10. Gaps and completion checklist
 
 ### Figma integration
 

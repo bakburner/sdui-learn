@@ -177,9 +177,10 @@ private struct ScreenBody: View {
     }
 }
 
-/// Wraps a single section with its layout hints (margins, dividers,
-/// background, padding). Renderer-internal logic lives here so
-/// `ScreenBody` stays a pure list.
+/// Wraps a single section with the screen's horizontal insets and dispatches
+/// `onVisible` actions on appear/disappear. Section outer chrome (margin,
+/// padding, background, cornerRadius, shadow, border) is owned by
+/// `SectionContainer` reading `section.surface`.
 private struct SectionLayout: View {
     let section: Section
     let horizontalInsets: EdgeInsets
@@ -188,44 +189,28 @@ private struct SectionLayout: View {
     let dispatcher: ActionDispatcher
     let onVisibilityChange: (Bool) -> Void
 
-    @Environment(\.colorScheme) private var colorScheme
-
     var body: some View {
-        let hints = section.layoutHints
-        let marginTop = CGFloat(hints?.marginTop ?? 0)
-        let marginBottom = CGFloat(hints?.marginBottom ?? 0)
-
-        VStack(spacing: 0) {
-            if hints?.dividerAbove == true { Divider() }
-
-            ZStack(alignment: .topTrailing) {
-                SectionErrorBoundary(
-                    sectionID: section.id,
-                    sectionType: section.type,
-                    sectionStates: section.sectionStates,
-                    data: sectionDataDict(section),
+        ZStack(alignment: .topTrailing) {
+            SectionErrorBoundary(
+                sectionID: section.id,
+                sectionType: section.type,
+                sectionStates: section.sectionStates,
+                data: sectionDataDict(section),
+                onAction: { dispatcher.dispatch($0) }
+            ) {
+                SectionRouter(
+                    section: section,
+                    screenState: screenState,
                     onAction: { dispatcher.dispatch($0) }
-                ) {
-                    SectionRouter(
-                        section: section,
-                        screenState: screenState,
-                        onAction: { dispatcher.dispatch($0) }
-                    )
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(edgeInsets(from: section.padding))
-                .background(ColorTokenResolver.resolve(section.backgroundColor, colorScheme: colorScheme) ?? .clear)
-                .sduiAccessibility(section.accessibility)
-
-                StalenessBadge(sectionID: section.id, tracker: staleness)
+                )
             }
-            .padding(.leading, horizontalInsets.leading)
-            .padding(.trailing, horizontalInsets.trailing)
-            .padding(.top, marginTop)
-            .padding(.bottom, marginBottom)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .sduiAccessibility(section.accessibility)
 
-            if hints?.dividerBelow == true { Divider() }
+            StalenessBadge(sectionID: section.id, tracker: staleness)
         }
+        .padding(.leading, horizontalInsets.leading)
+        .padding(.trailing, horizontalInsets.trailing)
         // ADR-009: 50% visibility threshold. Dwell + dedup live in
         // `ImpressionTracker`, triggered from `onVisible` fireAndForget
         // actions inside the router. iOS 17 lacks a first-class visibility

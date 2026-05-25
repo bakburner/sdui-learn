@@ -24,7 +24,7 @@ export function BoxscoreTable({ section, state, onAction, onStateChange }: Secti
   // ── Empty state ──────────────────────────────────────────────────
   if (model.players.length === 0 && model.emptyMessage) {
     return (
-      <div style={{ ...styles.container, backgroundColor: section.backgroundColor || 'var(--surface)' }}>
+      <div style={{ ...styles.container, backgroundColor: 'var(--surface)' }}>
         {model.teamName && <div style={styles.teamHeader}>{model.teamName}</div>}
         <div style={styles.emptyMessage}>{model.emptyMessage}</div>
       </div>
@@ -91,7 +91,7 @@ export function BoxscoreTable({ section, state, onAction, onStateChange }: Secti
   };
 
   return (
-    <div style={{ ...styles.container, backgroundColor: section.backgroundColor || 'var(--surface)' }} {...accessibilityProps(section.accessibility)}>
+    <div style={{ ...styles.container, backgroundColor: 'var(--surface)' }} {...accessibilityProps(section.accessibility)}>
       {/* Team header */}
       {model.teamName && (
         <div style={styles.teamHeader}>

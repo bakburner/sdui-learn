@@ -5,9 +5,6 @@ on:
   workflow_dispatch:
   pull_request:
     branches: [main]
-    paths:
-      - "server/**"
-      - "docker-bake.hcl"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

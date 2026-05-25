@@ -6,10 +6,6 @@ on:
   push:
     branches:
       - "main"
-    paths:
-      - "server/**"
-      - "docker-bake.hcl"
-      - "helm/**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

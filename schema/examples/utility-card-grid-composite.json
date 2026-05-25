@@ -16,12 +16,12 @@
           "type": "Container",
           "direction": "column",
           "crossAlignment": "stretch",
-          "gap": 12,
+          "gap": "token:nba.spacing.md",
           "padding": {
-            "top": 16,
+            "top": "token:nba.spacing.lg",
             "bottom": 0,
-            "start": 16,
-            "end": 16
+            "start": "token:nba.spacing.lg",
+            "end": "token:nba.spacing.lg"
           },
           "children": [
             {
@@ -35,7 +35,7 @@
               "type": "Container",
               "direction": "row",
               "crossAlignment": "stretch",
-              "gap": 12,
+              "gap": "token:nba.spacing.md",
               "children": [
                 {
                   "id": "util-a",
@@ -49,7 +49,7 @@
                     "top": 14,
                     "bottom": 20,
                     "start": 14,
-                    "end": 16
+                    "end": "token:nba.spacing.lg"
                   },
                   "shadow": {
                     "color": "#00000014",
@@ -94,7 +94,7 @@
                     "top": 14,
                     "bottom": 20,
                     "start": 14,
-                    "end": 16
+                    "end": "token:nba.spacing.lg"
                   },
                   "shadow": {
                     "color": "#00000014",

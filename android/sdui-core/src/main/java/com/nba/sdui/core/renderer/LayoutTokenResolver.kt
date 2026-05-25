@@ -1,49 +1,95 @@
 package com.nba.sdui.core.renderer
 
+import android.content.res.Configuration
 import android.util.Log
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.ProvidableCompositionLocal
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.nba.sdui.core.generated.FormFactorMatrix
+import com.nba.sdui.core.generated.LayoutTokenRegistry
+import com.nba.sdui.core.generated.ShadowSpec
+import com.nba.sdui.core.generated.WebSize
 import com.nba.sdui.core.models.generated.AspectRatioEnum
 import com.nba.sdui.core.models.generated.AspectRatioUnion
 import com.nba.sdui.core.models.generated.LayoutScalar
+import com.nba.sdui.core.models.generated.Shadow
+import com.nba.sdui.core.models.generated.ShadowOrToken
+import com.nba.sdui.core.models.generated.ShadowType
 import com.nba.sdui.core.request.RequestEnvelopeBuilder
 
 /**
- * Resolves [LayoutScalar] values and `token:…` layout references against
- * a hand-mirrored snapshot of the bundled token registries under `schema/`
- * (spacing, corner radius, size, typography, shadow). Mirrors
- * `ios/Sources/SduiCore/Rendering/LayoutTokenResolver.swift`.
+ * Resolves [LayoutScalar] values and token references against the codegen-baked
+ * [LayoutTokenRegistry]. Registry data is bundled at build time and never fetched at runtime.
+ * Form-factor changes are observed through Compose and trigger recomposition-driven invalidation.
  *
  * Rules of the road:
  *   - `LayoutScalar.IntegerValue` is returned as-is (raw dp/px on the wire).
- *   - `LayoutScalar.StringValue` must start with the `token:` prefix; the
- *     remainder is resolved through the alias chain (depth ≤ 8) into the
- *     palette and selected by the supplied form factor.
+ *   - `LayoutScalar.StringValue` must start with the `token:` prefix and resolve through
+ *     spacing/radius token maps selected by form factor.
  *   - Strings without the `token:` prefix log a debug diagnostic and
  *     resolve to 0 (lenient resolver — strict decode happened upstream).
  *   - Unknown token names log `token_resolver_missing` and return 0.
- *   - Missing form factor row falls back to the `phone` row.
- *
- * Today the form factor comes from [RequestEnvelopeBuilder.defaultFormFactor].
- * TODO: switch to a `LocalSduiFormFactor` `CompositionLocal` once the
- * form-factor classifier is plumbed end-to-end (Phase 3 of the SDUI plan).
  */
 object LayoutTokenResolver {
 
     private const val TAG = "LayoutTokenResolver"
     private const val TOKEN_PREFIX = "token:"
-    private const val MAX_ALIAS_DEPTH = 8
+
+    enum class FormFactor {
+        PHONE,
+        TABLET,
+        TV,
+        WEB
+    }
+
+    data class TypographySpec(
+        val familyRef: String,
+        val weight: Int,
+        val textCase: String,
+        val lineHeight: Double,
+        val size: Size
+    ) {
+        sealed class Size {
+            data class Scalar(val value: Int) : Size()
+            data class Web(val value: WebSize) : Size()
+        }
+    }
+
+    val LocalFormFactor: ProvidableCompositionLocal<FormFactor> = staticCompositionLocalOf { FormFactor.PHONE }
+
+    @Composable
+    fun FormFactorProvider(content: @Composable () -> Unit) {
+        val configuration = LocalConfiguration.current
+        val formFactor = currentFormFactor(configuration)
+        CompositionLocalProvider(LocalFormFactor provides formFactor, content = content)
+    }
 
     /** Resolve a [LayoutScalar] to a Compose [Dp]. `null` → 0.dp. */
     fun dp(
         scalar: LayoutScalar?,
         formFactor: String = RequestEnvelopeBuilder.defaultFormFactor()
+    ): Dp = intValue(scalar, toFormFactor(formFactor)).dp
+
+    /** Resolve a [LayoutScalar] to a Compose [Dp]. `null` → 0.dp. */
+    fun dp(
+        scalar: LayoutScalar?,
+        formFactor: FormFactor
     ): Dp = intValue(scalar, formFactor).dp
 
     /** Resolve a [LayoutScalar] to an integer value (dp/px logical). `null` → 0. */
     fun intValue(
         scalar: LayoutScalar?,
         formFactor: String = RequestEnvelopeBuilder.defaultFormFactor()
+    ): Int = intValue(scalar, toFormFactor(formFactor))
+
+    /** Resolve a [LayoutScalar] to an integer value (dp/px logical). `null` → 0. */
+    fun intValue(
+        scalar: LayoutScalar?,
+        formFactor: FormFactor
     ): Int {
         return when (scalar) {
             null -> 0
@@ -72,112 +118,145 @@ object LayoutTokenResolver {
         }
     }
 
-    // ── Token resolution ─────────────────────────────────────────────
-
-    private fun resolveTokenString(wire: String, formFactor: String): Int {
-        if (!wire.startsWith(TOKEN_PREFIX)) {
-            Log.d(TAG, "token_resolver_missing: $wire")
-            return 0
+    /**
+     * Derives current form factor from platform-native signals.
+     *
+     * Resolution precedence:
+     * 1) TV uiMode
+     * 2) screen width dp (`>= 600` => TABLET, otherwise PHONE)
+     * 3) Fallback PHONE
+     */
+    fun currentFormFactor(config: Configuration?): FormFactor {
+        val modeType = config?.uiMode?.and(Configuration.UI_MODE_TYPE_MASK)
+        if (modeType == Configuration.UI_MODE_TYPE_TELEVISION) {
+            return FormFactor.TV
         }
-        val name = wire.removePrefix(TOKEN_PREFIX)
-        if (palette[name] == null && semantic[name] == null) {
-            Log.d(TAG, "token_resolver_missing: $wire")
+        val widthDp = config?.screenWidthDp ?: 0
+        return if (widthDp >= 600) FormFactor.TABLET else FormFactor.PHONE
+    }
+
+    fun typography(token: String, formFactor: FormFactor): TypographySpec? {
+        val tokenName = tokenName(token) ?: return null
+        val variant = LayoutTokenRegistry.typographyVariants[tokenName]
+        if (variant == null) {
+            Log.d(TAG, "token_resolver_missing: $token")
+            return null
         }
-        return followAlias(name, formFactor, depth = 0)
-    }
 
-    private fun followAlias(name: String, formFactor: String, depth: Int): Int {
-        if (depth > MAX_ALIAS_DEPTH) return 0
-        palette[name]?.let { return valueFor(formFactor, it) }
-        val next = semantic[name] ?: return 0
-        return followAlias(next, formFactor, depth + 1)
-    }
+        val category = LayoutTokenRegistry.typographyCategories[variant.categoryRef]
+        if (category == null) {
+            Log.d(TAG, "token_resolver_missing: $token")
+            return null
+        }
 
-    private fun valueFor(formFactor: String, row: Map<String, Int>): Int {
-        return row[formFactor] ?: row["phone"] ?: 0
-    }
+        val resolvedSize = when (formFactor) {
+            FormFactor.PHONE -> TypographySpec.Size.Scalar(variant.size.phone)
+            FormFactor.TABLET -> TypographySpec.Size.Scalar(variant.size.tablet)
+            FormFactor.TV -> TypographySpec.Size.Scalar(variant.size.tv)
+            FormFactor.WEB -> TypographySpec.Size.Web(variant.size.web)
+        }
 
-    // ── Snapshot: semantic aliases ───────────────────────────────────
-    //
-    // Mirror of the schema/<kind>-tokens.json semantic maps. Regenerate
-    // (by hand for now) when those files change; keep deterministic
-    // ordering so diffs are reviewable.
-    private val semantic: Map<String, String> = mapOf(
-        // spacing-tokens.json (Kinetic)
-        "nba.spacing.xs"  to "nba.space.raw.2",
-        "nba.spacing.sm"  to "nba.space.raw.4",
-        "nba.spacing.md"  to "nba.space.raw.12",
-        "nba.spacing.lg"  to "nba.space.raw.16",
-        "nba.spacing.xl"  to "nba.space.raw.32",
-        "nba.spacing.2xl" to "nba.space.raw.40",
-
-        // corner-radius-tokens.json (Kinetic)
-        "nba.radius.xs"   to "nba.radius.raw.2",
-        "nba.radius.sm"   to "nba.radius.raw.4",
-        "nba.radius.md"   to "nba.radius.raw.12",
-        "nba.radius.lg"   to "nba.radius.raw.16",
-        "nba.radius.xl"   to "nba.radius.raw.24",
-        "nba.radius.2xl"  to "nba.radius.raw.32",
-        "nba.radius.full" to "nba.radius.raw.9999",
-
-        // Legacy aliases (deprecated — kept for backward compat with cached payloads)
-        "spacing.xs"  to "nba.space.raw.2",
-        "spacing.sm"  to "nba.space.raw.4",
-        "spacing.md"  to "nba.space.raw.12",
-        "spacing.lg"  to "nba.space.raw.16",
-        "spacing.xl"  to "nba.space.raw.32",
-        "radius.sm"   to "nba.radius.raw.4",
-        "radius.md"   to "nba.radius.raw.12",
-        "radius.lg"   to "nba.radius.raw.16",
-        "radius.full" to "nba.radius.raw.9999",
-
-    )
-
-    // ── Snapshot: merged palette (per form factor) ───────────────────
-    //
-    // Order of values per row: phone, phone.landscape, tablet, tv, web.narrow, web.wide.
-    private val palette: Map<String, Map<String, Int>> = buildMap {
-        // spacing (Kinetic)
-        addRow("nba.space.raw.0",  0,  0,  0,  0,  0,  0)
-        addRow("nba.space.raw.2",  2,  2,  2,  4,  2,  2)
-        addRow("nba.space.raw.4",  4,  4,  6,  6,  4,  6)
-        addRow("nba.space.raw.8",  8,  8,  10, 12, 8,  10)
-        addRow("nba.space.raw.12", 12, 12, 15, 18, 12, 15)
-        addRow("nba.space.raw.16", 16, 16, 20, 24, 16, 20)
-        addRow("nba.space.raw.32", 32, 32, 40, 48, 32, 40)
-        addRow("nba.space.raw.40", 40, 40, 48, 56, 40, 48)
-
-        // corner radius (Kinetic — flat across form factors)
-        addRow("nba.radius.raw.0",    0,    0,    0,    0,    0,    0)
-        addRow("nba.radius.raw.2",    2,    2,    2,    2,    2,    2)
-        addRow("nba.radius.raw.4",    4,    4,    4,    4,    4,    4)
-        addRow("nba.radius.raw.8",    8,    8,    8,    8,    8,    8)
-        addRow("nba.radius.raw.12",   12,   12,   12,   12,   12,   12)
-        addRow("nba.radius.raw.16",   16,   16,   16,   16,   16,   16)
-        addRow("nba.radius.raw.24",   24,   24,   24,   24,   24,   24)
-        addRow("nba.radius.raw.32",   32,   32,   32,   32,   32,   32)
-        addRow("nba.radius.raw.9999", 9999, 9999, 9999, 9999, 9999, 9999)
-    }
-
-    private fun MutableMap<String, Map<String, Int>>.addRow(
-        key: String,
-        phone: Int,
-        phoneLandscape: Int,
-        tablet: Int,
-        tv: Int,
-        webNarrow: Int,
-        webWide: Int
-    ) {
-        put(
-            key,
-            mapOf(
-                "phone" to phone,
-                "phone.landscape" to phoneLandscape,
-                "tablet" to tablet,
-                "tv" to tv,
-                "web.narrow" to webNarrow,
-                "web.wide" to webWide
-            )
+        return TypographySpec(
+            familyRef = category.familyRef,
+            weight = category.weight,
+            textCase = category.textCase,
+            lineHeight = category.lineHeight,
+            size = resolvedSize
         )
     }
+
+    fun shadowSpec(token: String): ShadowSpec? {
+        val tokenName = tokenName(token) ?: return null
+        val spec = LayoutTokenRegistry.shadows[tokenName]
+        if (spec == null) {
+            Log.d(TAG, "token_resolver_missing: $token")
+        }
+        return spec
+    }
+
+    fun resolveShadowOrToken(value: ShadowOrToken?): Shadow? {
+        return when (value) {
+            null -> null
+            is ShadowOrToken.ShadowValue -> value.value
+            is ShadowOrToken.StringValue -> tokenToShadow(value.value)
+        }
+    }
+
+    fun resolveShadowOrTokens(values: List<ShadowOrToken>?): List<Shadow> {
+        return values?.mapNotNull { resolveShadowOrToken(it) } ?: emptyList()
+    }
+
+    fun motionDuration(token: String, formFactor: FormFactor): Int? {
+        val tokenName = tokenName(token) ?: return null
+        val row = LayoutTokenRegistry.motionDuration[tokenName]
+        if (row == null) {
+            Log.d(TAG, "token_resolver_missing: $token")
+            return null
+        }
+        return valueFor(formFactor, row)
+    }
+
+    fun motionEasing(token: String): String? {
+        val tokenName = tokenName(token) ?: return null
+        val easing = LayoutTokenRegistry.motionEasing[tokenName]
+        if (easing == null) {
+            Log.d(TAG, "token_resolver_missing: $token")
+        }
+        return easing
+    }
+
+    private fun resolveTokenString(wire: String, formFactor: FormFactor): Int {
+        val tokenName = tokenName(wire) ?: return 0
+        val spacing = LayoutTokenRegistry.spacing[tokenName]
+        if (spacing != null) {
+            return valueFor(formFactor, spacing)
+        }
+
+        val radius = LayoutTokenRegistry.radius[tokenName]
+        if (radius != null) {
+            return valueFor(formFactor, radius)
+        }
+
+        Log.d(TAG, "token_resolver_missing: $wire")
+        return 0
+    }
+
+    private fun tokenToShadow(token: String): Shadow? {
+        val spec = shadowSpec(token) ?: return null
+        return Shadow(
+            type = if (spec.type.equals("inner", ignoreCase = true)) ShadowType.Inner else ShadowType.Drop,
+            color = spec.color,
+            radius = spec.radius.toDouble(),
+            offsetX = spec.offsetX.toDouble(),
+            offsetY = spec.offsetY.toDouble()
+        )
+    }
+
+    private fun tokenName(wire: String): String? {
+        if (!wire.startsWith(TOKEN_PREFIX)) {
+            Log.d(TAG, "token_resolver_missing: $wire")
+            return null
+        }
+        return wire.removePrefix(TOKEN_PREFIX)
+    }
+
+    private fun toFormFactor(formFactor: String): FormFactor {
+        return when (formFactor) {
+            "tablet" -> FormFactor.TABLET
+            "tv" -> FormFactor.TV
+            "web", "web.narrow", "web.wide" -> FormFactor.WEB
+            "phone", "phone.landscape" -> FormFactor.PHONE
+            else -> FormFactor.PHONE
+        }
+    }
+
+    private fun valueFor(formFactor: FormFactor, row: FormFactorMatrix<Int>): Int {
+        return when (formFactor) {
+            FormFactor.PHONE -> row.phone
+            FormFactor.TABLET -> row.tablet
+            FormFactor.TV -> row.tv
+            FormFactor.WEB -> row.web
+        }
+    }
+
 }

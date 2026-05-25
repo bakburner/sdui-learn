@@ -1,0 +1,134 @@
+{
+  "$version": "3.0.0-matrix",
+  "$source": "sitebuilder/assets/brand-nba.yml",
+  "families": {
+    "nba.font.knockout": {
+      "family": "Knockout",
+      "fallback": "Arial Black, Impact, sans-serif",
+      "weights": {
+        "360": {
+          "platform": {
+            "ios": {
+              "bundled": true,
+              "postscriptName": "Knockout-HTF360FlyWeight"
+            },
+            "android": {
+              "bundled": true,
+              "assetPath": "fonts/Knockout-49Liteweight.otf"
+            },
+            "web": {
+              "src": "assets/fonts/Knockout/Knockout-49Liteweight.otf",
+              "format": "opentype"
+            }
+          }
+        },
+        "395": {
+          "platform": {
+            "ios": {
+              "bundled": true,
+              "postscriptName": "Knockout-HTF395FlyWeight"
+            },
+            "android": {
+              "bundled": true,
+              "assetPath": "fonts/Knockout-67FullBantamwt.otf"
+            },
+            "web": {
+              "src": "assets/fonts/Knockout/Knockout-67FullBantamwt.otf",
+              "format": "opentype"
+            }
+          }
+        }
+      }
+    },
+    "nba.font.roboto": {
+      "family": "Roboto",
+      "fallback": "Helvetica Neue, Arial, sans-serif",
+      "weights": {
+        "400": {
+          "platform": {
+            "ios": {
+              "system": true
+            },
+            "android": {
+              "system": true
+            },
+            "web": {
+              "googleFonts": true
+            }
+          }
+        },
+        "500": {
+          "platform": {
+            "ios": {
+              "system": true
+            },
+            "android": {
+              "system": true
+            },
+            "web": {
+              "googleFonts": true
+            }
+          }
+        },
+        "700": {
+          "platform": {
+            "ios": {
+              "system": true
+            },
+            "android": {
+              "system": true
+            },
+            "web": {
+              "googleFonts": true
+            }
+          }
+        },
+        "900": {
+          "platform": {
+            "ios": {
+              "system": true
+            },
+            "android": {
+              "system": true
+            },
+            "web": {
+              "googleFonts": true
+            }
+          }
+        }
+      }
+    },
+    "nba.font.roboto.condensed": {
+      "family": "Roboto Condensed",
+      "fallback": "Arial Narrow, sans-serif",
+      "weights": {
+        "400": {
+          "platform": {
+            "ios": {
+              "system": true
+            },
+            "android": {
+              "system": true
+            },
+            "web": {
+              "googleFonts": true
+            }
+          }
+        },
+        "700": {
+          "platform": {
+            "ios": {
+              "system": true
+            },
+            "android": {
+              "system": true
+            },
+            "web": {
+              "googleFonts": true
+            }
+          }
+        }
+      }
+    }
+  }
+}

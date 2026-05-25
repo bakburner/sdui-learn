@@ -25,12 +25,12 @@
           "type": "Container",
           "direction": "column",
           "alignment": "stretch",
-          "cornerRadius": 12,
+          "cornerRadius": "token:nba.radius.md",
           "padding": {
-            "top": 16,
-            "bottom": 16,
-            "start": 16,
-            "end": 16
+            "top": "token:nba.spacing.lg",
+            "bottom": "token:nba.spacing.lg",
+            "start": "token:nba.spacing.lg",
+            "end": "token:nba.spacing.lg"
           },
           "actions": [
             {
@@ -191,7 +191,7 @@
           "type": "Container",
           "direction": "column",
           "alignment": "stretch",
-          "cornerRadius": 16,
+          "cornerRadius": "token:nba.radius.lg",
           "padding": {
             "top": 20,
             "bottom": 20,
@@ -213,10 +213,10 @@
               "fontWeight": "bold",
               "color": "#FFFFFF",
               "background": "#E03131",
-              "cornerRadius": 4,
+              "cornerRadius": "token:nba.radius.sm",
               "padding": {
-                "top": 2,
-                "bottom": 2,
+                "top": "token:nba.spacing.xs",
+                "bottom": "token:nba.spacing.xs",
                 "start": 8,
                 "end": 8
               }
@@ -358,12 +358,12 @@
           "type": "Container",
           "direction": "column",
           "alignment": "stretch",
-          "cornerRadius": 12,
+          "cornerRadius": "token:nba.radius.md",
           "padding": {
-            "top": 16,
-            "bottom": 16,
-            "start": 16,
-            "end": 16
+            "top": "token:nba.spacing.lg",
+            "bottom": "token:nba.spacing.lg",
+            "start": "token:nba.spacing.lg",
+            "end": "token:nba.spacing.lg"
           },
           "actions": [
             {

@@ -8,19 +8,31 @@
       "id": "box-model-composite",
       "type": "AtomicComposite",
       "analyticsId": "box_model_composite",
-      "refreshPolicy": { "type": "static" },
+      "refreshPolicy": {
+        "type": "static"
+      },
       "surface": {
-        "margin": { "top": 16, "bottom": 16, "start": 16, "end": 16 }
+        "margin": {
+          "top": 16,
+          "bottom": 16,
+          "start": 16,
+          "end": 16
+        }
       },
       "data": {
         "ui": {
           "id": "root",
           "type": "Container",
           "direction": "column",
-          "gap": 12,
-          "padding": { "top": 16, "bottom": 16, "start": 16, "end": 16 },
+          "gap": "token:nba.spacing.md",
+          "padding": {
+            "top": "token:nba.spacing.lg",
+            "bottom": "token:nba.spacing.lg",
+            "start": "token:nba.spacing.lg",
+            "end": "token:nba.spacing.lg"
+          },
           "background": "#0A1933",
-          "cornerRadius": 12,
+          "cornerRadius": "token:nba.radius.md",
           "children": [
             {
               "id": "leaf-text",
@@ -28,8 +40,18 @@
               "content": "Padded leaf text",
               "variant": "titleMedium",
               "color": "#FFFFFF",
-              "padding": { "top": 8, "bottom": 8, "start": 12, "end": 12 },
-              "margin":  { "top": 0, "bottom": 4, "start": 0, "end": 0 }
+              "padding": {
+                "top": 8,
+                "bottom": 8,
+                "start": "token:nba.spacing.md",
+                "end": "token:nba.spacing.md"
+              },
+              "margin": {
+                "top": 0,
+                "bottom": 4,
+                "start": 0,
+                "end": 0
+              }
             },
             {
               "id": "leaf-image",
@@ -37,41 +59,96 @@
               "url": "https://cdn.nba.com/test.png",
               "width": 120,
               "height": 60,
-              "padding": { "top": 4, "bottom": 4, "start": 4, "end": 4 },
-              "margin":  { "top": 0, "bottom": 4, "start": 0, "end": 0 }
+              "padding": {
+                "top": "token:nba.spacing.sm",
+                "bottom": "token:nba.spacing.sm",
+                "start": "token:nba.spacing.sm",
+                "end": "token:nba.spacing.sm"
+              },
+              "margin": {
+                "top": 0,
+                "bottom": 4,
+                "start": 0,
+                "end": 0
+              }
             },
             {
               "id": "leaf-button",
               "type": "Button",
               "label": "Click me",
               "variant": "primary",
-              "padding": { "top": 10, "bottom": 10, "start": 16, "end": 16 },
-              "margin":  { "top": 0, "bottom": 4, "start": 0, "end": 0 }
+              "padding": {
+                "top": 10,
+                "bottom": 10,
+                "start": "token:nba.spacing.lg",
+                "end": "token:nba.spacing.lg"
+              },
+              "margin": {
+                "top": 0,
+                "bottom": 4,
+                "start": 0,
+                "end": 0
+              }
             },
             {
               "id": "leaf-divider",
               "type": "Divider",
               "color": "#666666",
-              "padding": { "top": 2, "bottom": 2, "start": 0, "end": 0 },
-              "margin":  { "top": 4, "bottom": 4, "start": 0, "end": 0 }
+              "padding": {
+                "top": "token:nba.spacing.xs",
+                "bottom": "token:nba.spacing.xs",
+                "start": 0,
+                "end": 0
+              },
+              "margin": {
+                "top": 4,
+                "bottom": 4,
+                "start": 0,
+                "end": 0
+              }
             },
             {
               "id": "leaf-spacer",
               "type": "Spacer",
               "height": 8,
-              "padding": { "top": 0, "bottom": 0, "start": 0, "end": 0 },
-              "margin":  { "top": 0, "bottom": 0, "start": 0, "end": 0 }
+              "padding": {
+                "top": 0,
+                "bottom": 0,
+                "start": 0,
+                "end": 0
+              },
+              "margin": {
+                "top": 0,
+                "bottom": 0,
+                "start": 0,
+                "end": 0
+              }
             },
             {
               "id": "nested-container",
               "type": "Container",
               "direction": "row",
               "gap": 8,
-              "padding": { "top": 12, "bottom": 12, "start": 12, "end": 12 },
+              "padding": {
+                "top": "token:nba.spacing.md",
+                "bottom": "token:nba.spacing.md",
+                "start": "token:nba.spacing.md",
+                "end": "token:nba.spacing.md"
+              },
               "background": "#FFFFFF",
               "cornerRadius": 8,
-              "shadow": { "color": "#000000", "offsetX": 0, "offsetY": 2, "radius": 4 },
-              "margin":  { "top": 4, "bottom": 0, "start": 0, "end": 0 },
+              "shadow": {
+                "color": "#000000",
+                "offsetX": 0,
+                "offsetY": 2,
+                "radius": 4
+              },
+              "margin": {
+                "top": 4,
+                "bottom": 0,
+                "start": 0,
+                "end": 0
+              },
               "children": [
                 {
                   "id": "nested-leaf",
@@ -79,27 +156,64 @@
                   "content": "Nested leaf inside padded container",
                   "variant": "bodyMedium",
                   "color": "#000000",
-                  "padding": { "top": 2, "bottom": 2, "start": 4, "end": 4 }
+                  "padding": {
+                    "top": "token:nba.spacing.xs",
+                    "bottom": "token:nba.spacing.xs",
+                    "start": "token:nba.spacing.sm",
+                    "end": "token:nba.spacing.sm"
+                  }
                 }
               ]
             },
             {
               "id": "leaf-display-grid",
               "type": "DisplayGrid",
-              "padding": { "top": 8, "bottom": 8, "start": 8, "end": 8 },
-              "margin":  { "top": 4, "bottom": 0, "start": 0, "end": 0 },
+              "padding": {
+                "top": 8,
+                "bottom": 8,
+                "start": 8,
+                "end": 8
+              },
+              "margin": {
+                "top": 4,
+                "bottom": 0,
+                "start": 0,
+                "end": 0
+              },
               "background": "#FFFFFF",
               "cornerRadius": 8,
               "columns": [
-                { "id": "col-a", "width": 0.5 },
-                { "id": "col-b", "width": 0.5 }
+                {
+                  "id": "col-a",
+                  "width": 0.5
+                },
+                {
+                  "id": "col-b",
+                  "width": 0.5
+                }
               ],
               "rows": [
                 {
                   "id": "row-1",
                   "cells": [
-                    { "columnId": "col-a", "element": { "id": "cell-a", "type": "Text", "content": "A", "color": "#000000" } },
-                    { "columnId": "col-b", "element": { "id": "cell-b", "type": "Text", "content": "B", "color": "#000000" } }
+                    {
+                      "columnId": "col-a",
+                      "element": {
+                        "id": "cell-a",
+                        "type": "Text",
+                        "content": "A",
+                        "color": "#000000"
+                      }
+                    },
+                    {
+                      "columnId": "col-b",
+                      "element": {
+                        "id": "cell-b",
+                        "type": "Text",
+                        "content": "B",
+                        "color": "#000000"
+                      }
+                    }
                   ]
                 }
               ]

@@ -238,7 +238,12 @@ public class HomeComposer {
 
         ObjectNode root = atomicBuilder.container("column", null, null);
         root.put("widthMode", "fill");
-        root.set("padding", atomicBuilder.padding(16, 16, 8, 8));
+        root.set("padding", atomicBuilder.padding(
+                LayoutTokens.SPACING_LG,
+                LayoutTokens.SPACING_LG,
+                8, // §3.6: no semantic spacing token for 8
+                8  // §3.6: no semantic spacing token for 8
+        ));
         ArrayNode children = objectMapper.createArrayNode();
 
         // Inline header
@@ -251,7 +256,12 @@ public class HomeComposer {
 
             ObjectNode row = atomicBuilder.container("row", "start", "center");
             row.put("widthMode", "fill");
-            row.set("padding", atomicBuilder.padding(0, 0, 12, 12));
+            row.set("padding", atomicBuilder.padding(
+                    0, // §3.6: no semantic value for zero
+                    0, // §3.6: no semantic value for zero
+                    LayoutTokens.SPACING_MD,
+                    LayoutTokens.SPACING_MD
+            ));
             row.set("actions", atomicBuilder.singleActionArray(atomicBuilder.tapNavigate(uri)));
             ArrayNode rowChildren = objectMapper.createArrayNode();
             rowChildren.add(atomicBuilder.text(headline, "bodyMedium", "medium", ColorTokens.TEXT_PRIMARY, 2));
@@ -354,7 +364,12 @@ public class HomeComposer {
 
         ObjectNode root = atomicBuilder.container("column", null, null);
         root.put("widthMode", "fill");
-        root.set("padding", atomicBuilder.padding(16, 16, 8, 8));
+        root.set("padding", atomicBuilder.padding(
+                LayoutTokens.SPACING_LG,
+                LayoutTokens.SPACING_LG,
+                8, // §3.6: no semantic spacing token for 8
+                8  // §3.6: no semantic spacing token for 8
+        ));
         ArrayNode children = objectMapper.createArrayNode();
 
         for (int i = 0; i < articles.length; i++) {
@@ -368,19 +383,29 @@ public class HomeComposer {
             ObjectNode row = atomicBuilder.container("row", "start", "start");
             row.put("id", id);
             row.put("widthMode", "fill");
-            row.set("padding", atomicBuilder.padding(0, 0, 12, 12));
+            row.set("padding", atomicBuilder.padding(
+                    0, // §3.6: no semantic value for zero
+                    0, // §3.6: no semantic value for zero
+                    LayoutTokens.SPACING_MD,
+                    LayoutTokens.SPACING_MD
+            ));
             row.set("actions", atomicBuilder.singleActionArray(atomicBuilder.tapNavigate(targetUri)));
 
             ArrayNode rowChildren = objectMapper.createArrayNode();
 
             // Thumbnail
             ObjectNode img = atomicBuilder.image(imageUrl, 80, 80, "cover");
-            img.put("cornerRadius", 8);
+            img.put("cornerRadius", 8); // §3.6: no semantic token mapping for corner radius 8
             rowChildren.add(img);
 
             // Text column
             ObjectNode textCol = atomicBuilder.container("column", null, null);
-            textCol.set("padding", atomicBuilder.padding(12, 0, 0, 0));
+            textCol.set("padding", atomicBuilder.padding(
+                    LayoutTokens.SPACING_MD,
+                    0, // §3.6: no semantic value for zero
+                    0, // §3.6: no semantic value for zero
+                    0  // §3.6: no semantic value for zero
+            ));
             textCol.put("flex", 1);
             ArrayNode textChildren = objectMapper.createArrayNode();
             textChildren.add(atomicBuilder.text(headline, "bodyMedium", "semiBold", ColorTokens.TEXT_PRIMARY, 2));

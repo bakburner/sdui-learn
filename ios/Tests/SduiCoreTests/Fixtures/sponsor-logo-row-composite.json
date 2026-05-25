@@ -17,12 +17,12 @@
           "direction": "row",
           "alignment": "center",
           "crossAlignment": "center",
-          "gap": 12,
+          "gap": "token:nba.spacing.md",
           "padding": {
             "top": 8,
             "bottom": 8,
-            "start": 16,
-            "end": 16
+            "start": "token:nba.spacing.lg",
+            "end": "token:nba.spacing.lg"
           },
           "background": "token:nba.bg.secondary",
           "children": [

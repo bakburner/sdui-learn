@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import type { SectionSurface, Spacing, Background } from '@sdui/models';
 import { resolveColorToken, usePrefersColorScheme } from '../utils/ColorTokenResolver';
-import { currentFormFactor, resolveLayoutScalar, resolveSpacingPx } from '../utils/LayoutTokenResolver';
+import { currentFormFactor, resolveLayoutScalar, resolveShadowOrToken, resolveSpacingPx } from '../utils/LayoutTokenResolver';
 
 export interface SectionContainerProps {
   surface?: SectionSurface;
@@ -42,9 +42,10 @@ export function SectionContainer({ surface, children }: SectionContainerProps): 
   }, [surface.border, borderColor]);
 
   const boxShadow = useMemo((): string | undefined => {
-    if (!surface.shadow) return undefined;
-    const shadowColor = resolveColorToken(surface.shadow.color, scheme) ?? 'rgba(0,0,0,0.08)';
-    return `${surface.shadow.offsetX ?? 0}px ${surface.shadow.offsetY ?? 2}px ${surface.shadow.radius ?? 4}px 0 ${shadowColor}`;
+    const resolvedShadow = resolveShadowOrToken(surface.shadow);
+    if (!resolvedShadow) return undefined;
+    const shadowColor = resolveColorToken(resolvedShadow.color, scheme) ?? 'rgba(0,0,0,0.08)';
+    return `${resolvedShadow.offsetX ?? 0}px ${resolvedShadow.offsetY ?? 2}px ${resolvedShadow.radius ?? 4}px 0 ${shadowColor}`;
   }, [surface.shadow, scheme]);
 
   const cornerRadiusPx = surface.cornerRadius != null

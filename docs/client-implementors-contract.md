@@ -1638,6 +1638,24 @@ client. Regenerate everything with `make codegen` (or
 | Swift      | `ios/Sources/SduiCore/Models/SduiModels.swift`                                | iOS `SduiCore` SwiftPM target                                 |
 | TypeScript | `web/src/generated/SduiModels.ts`                                             | Web client via the `@sdui/models` Vite / tsconfig path alias  |
 
+Codegen also emits a typed, build-time-baked `LayoutTokenRegistry` for each
+client alongside `SduiModels`:
+
+- Kotlin: `android/sdui-core/src/main/java/com/nba/sdui/core/generated/LayoutTokenRegistry.kt`
+- Swift: `ios/Sources/SduiCore/Generated/LayoutTokenRegistry.swift`
+- TypeScript: `web/src/generated/LayoutTokenRegistry.ts`
+
+These registries are self-contained snapshots used by `LayoutTokenResolver` at runtime.
+
+### 16a. Shadow shorthand expansion contract
+
+Wire `shadow` and `shadows[]` fields accept `Shadow | string`. The string form
+is a token reference (for example `token:nba.shadow.md`).
+
+Before rendering, clients normalize every entry through
+`resolveShadowOrToken(...)` so renderer code receives a concrete `Shadow`
+object (`type`, `color`, `radius`, `offsetX`, `offsetY`) regardless of wire form.
+
 For other languages, use [quicktype](https://quicktype.io) to generate models
 from `schema/sdui-schema.json`. Or write your own deserializer — the JSON
 schema is the contract, not the generated code.
@@ -1648,22 +1666,24 @@ schema is the contract, not the generated code.
 
 These visual effects are **renderer responsibilities**, not schema properties.
 Implementations should follow platform-native animation patterns.
+Durations come from `LayoutTokenResolver.motionDuration(token, formFactor)`;
+easing curves come from `LayoutTokenResolver.motionEasing(token)`.
 
 | Effect | Server Sends | Renderer Does |
 |---|---|---|
-| **Live pulse** | An element whose `bindRef` resolves to a truthy `isLive` / `badgeText == "LIVE"` entry in `content`, or an explicit opacity-animated leaf in the composite tree | Animate opacity 0.3→1.0 on the indicator element, repeating with autoreversal. **iOS:** `.animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true))`. **Compose:** `infiniteTransition.animateFloat()`. **Web:** CSS `@keyframes pulse`. |
+| **Live pulse** | An element whose `bindRef` resolves to a truthy `isLive` / `badgeText == "LIVE"` entry in `content`, or an explicit opacity-animated leaf in the composite tree | Animate opacity 0.3→1.0 on the indicator element, repeating with autoreversal. Use `LayoutTokenResolver.motionDuration(token, formFactor)` and `LayoutTokenResolver.motionEasing(token)` when building platform animation curves. **iOS:** SwiftUI repeating animation. **Compose:** `infiniteTransition.animateFloat()`. **Web:** CSS `@keyframes pulse`. |
 | **Numeric transitions** | Updated score / clock field in `content.*` via SSE data binding; leaf `Text` reads it through `bindRef` | Apply content transition on value change. **iOS:** `.contentTransition(.numericText())`. **Compose:** `AnimatedContent`. **Web:** CSS `transition` on the value container. |
 | **Clock interpolation** | `LiveClock` primitive with `isRunning: true`, `snapshotSeconds`, `snapshotAt`, `tickDirection`, `stopAtSeconds`, `format` (see §4c) | Run the tick loop in §4c. Each frame's displayed value is `snapshotSeconds ± (now − snapshotAt)`, clamped by `stopAtSeconds`. When an SSE update rewrites `content.*`, `bindRef` re-resolves on next render and the tick loop re-anchors — no drift accumulation. Set `isRunning: false` to freeze on the snapshot value. |
 | **Color mixing** | Pre-computed hex colors | Server computes gradient tints from team colors at composition time. No runtime color math on clients. |
 | **Image load states** | `src` + `placeholder` on Image elements | Show loading placeholder → success image, or fall back to `placeholder` URL on failure. **iOS:** `AsyncImage { phase in }`. **Compose:** Coil `AsyncImage`. **Web:** `<img>` with `onError` fallback. |
 | **Pull-to-refresh** | `refreshPolicy: { type: "poll" }` on screen | Add platform pull-to-refresh gesture. **iOS:** `.refreshable {}`. **Compose:** `pullRefresh()`. **Web:** custom gesture or library. |
 | **Opacity-based overlays** | `opacity: 0.7` on a Container element | Apply the opacity value directly. Used for duration badge backgrounds and faded states. |
-| **Shadow rendering** | `shadow: { color, radius, offsetX, offsetY }` on elements | **SwiftUI:** `.shadow(color:radius:x:y:)` — exact match. **Compose:** `Modifier.shadow(elevation = radius * 1.5)` — approximation (offset not supported). **Web:** `box-shadow` — exact match. |
+| **Shadow rendering** | `shadow` / `shadows[]` as `Shadow` object or `token:nba.shadow.*` string | Normalize with `LayoutTokenResolver.resolveShadowOrToken(...)`, then render. **SwiftUI:** `.shadow(color:radius:x:y:)` — exact match. **Compose:** `Modifier.shadow(elevation = radius * 1.5)` — approximation (offset not supported). **Web:** `box-shadow` — exact match. |
 | **Badge positioning** | `badge: { element, alignment }` on parent | **SwiftUI:** `.overlay(alignment:) { ... }`. **Compose:** `Box { content; Box(Modifier.align(...)) { ... } }`. **Web:** `position: relative` parent + `position: absolute` child. |
 
-**Timing recommendations:**
-- Content transitions: 300ms ease-in-out
-- Pulse animations: 800ms ease-in-out, repeat forever with autoreversal
+**Timing recommendations (token-first):**
+- Content transitions: `LayoutTokenResolver.motionDuration("token:nba.motion.duration.default", formFactor)` with `LayoutTokenResolver.motionEasing("token:nba.motion.easing.default")`
+- Pulse animations: `LayoutTokenResolver.motionDuration("token:nba.motion.duration.slow", formFactor)` with `LayoutTokenResolver.motionEasing("token:nba.motion.easing.default")`, repeat forever with autoreversal
 - `LiveClock` tick cadence: 10Hz (100ms) baseline, may coalesce to the
   platform's display-refresh loop (see §4c).
 
@@ -1727,3 +1747,4 @@ the rules in `AGENTS.md`.
 | C18 | Per-platform decisions default to the server (content, capability gating, asset-format). Client-realized vocabularies are the named exception (§7 list) and must be pure presentation | §1.1 |
 | C19 | `LiveClock` primitive ticks client-side from server-provided snapshot fields (`snapshotSeconds`, `snapshotAt`, `isRunning`, `tickDirection`, `stopAtSeconds`, `format`). Implements the tick-loop contract in §4c at ≥10Hz baseline, re-anchors on every SSE / poll update that rewrites `content.*`, renders with tabular-numeral typography | — |
 | C20 | Inside an `AtomicComposite`, leaf primitives with a `bindRef: string` dot-path resolve their canonical live field (Text → `content`, Button → `label`, Image → `src`, LiveClock → snapshot object) from `section.data.content`. `compositeContent` is threaded to descendants via the platform's implicit-context primitive (Environment / CompositionLocal / React context); missing paths fall back to inline values and never overwrite with null. See §4b | — |
+| C21 | `LayoutTokenResolver` resolves spacing, radius, typography, motion, and shadow token namespaces from a codegen-baked `LayoutTokenRegistry`; rotation/resize/split-screen/fold transitions within one `deviceClass` trigger zero network token fetches | — |

@@ -1,12 +1,14 @@
 #!/bin/bash
 
 # SDUI Multi-Platform Code Generation Script
-# Generates typed models from the JSON Schema for multiple platforms
+# 1) Generates typed SduiModels from schema/sdui-schema.json for all platforms.
+# 2) Generates typed LayoutTokenRegistry files from schema/*-tokens.json.
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCHEMA_FILE="$SCRIPT_DIR/../schema/sdui-schema.json"
+TOKEN_REGISTRY_GENERATOR="$SCRIPT_DIR/token-registry/generate_layout_token_registry.py"
 IOS_MODELS_OUT="$SCRIPT_DIR/../ios/Sources/SduiCore/Models/SduiModels.swift"
 WEB_MODELS_OUT="$SCRIPT_DIR/../web/src/generated/SduiModels.ts"
 ANDROID_MODELS_OUT="$SCRIPT_DIR/../android/sdui-core/src/main/java/com/nba/sdui/core/models/generated/SduiModels.kt"
@@ -21,15 +23,29 @@ if [ ! -f "$SCHEMA_FILE" ]; then
     exit 1
 fi
 
+# Check if token registry generator exists
+if [ ! -f "$TOKEN_REGISTRY_GENERATOR" ]; then
+    echo "Error: Token registry generator not found at $TOKEN_REGISTRY_GENERATOR"
+    exit 1
+fi
+
 # Create output directories
 mkdir -p "$(dirname "$IOS_MODELS_OUT")"
 mkdir -p "$(dirname "$WEB_MODELS_OUT")"
 mkdir -p "$(dirname "$ANDROID_MODELS_OUT")"
 
+echo "0. Generating LayoutTokenRegistry files (iOS/Android/Web)..."
+if ! command -v python3 &> /dev/null; then
+    echo "Error: python3 is required to generate layout token registries."
+    echo "Install Python 3 and re-run this script."
+    exit 1
+fi
+python3 "$TOKEN_REGISTRY_GENERATOR"
+
 # Check if quicktype is installed
 if ! command -v quicktype &> /dev/null; then
     echo "Warning: quicktype not found. Install with: npm install -g quicktype"
-    echo "Skipping Swift and TypeScript generation."
+    echo "Skipping Swift, TypeScript, and Kotlin model generation."
     echo ""
     echo "Running Java generation via Gradle..."
     cd "$SCRIPT_DIR"

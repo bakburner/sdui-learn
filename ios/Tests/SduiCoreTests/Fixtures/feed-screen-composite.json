@@ -26,10 +26,10 @@
           "direction": "column",
           "gap": 20,
           "padding": {
-            "top": 16,
-            "bottom": 16,
-            "start": 16,
-            "end": 16
+            "top": "token:nba.spacing.lg",
+            "bottom": "token:nba.spacing.lg",
+            "start": "token:nba.spacing.lg",
+            "end": "token:nba.spacing.lg"
           },
           "children": [
             {
@@ -63,7 +63,7 @@
             {
               "id": "editorial-overlay-card",
               "type": "OverlayContainer",
-              "cornerRadius": 16,
+              "cornerRadius": "token:nba.radius.lg",
               "actions": [
                 {
                   "trigger": "onActivate",
@@ -78,7 +78,7 @@
                 "placeholder": "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png",
                 "height": 220,
                 "fit": "cover",
-                "cornerRadius": 16,
+                "cornerRadius": "token:nba.radius.lg",
                 "accessibility": {
                   "label": "Giannis dunk highlight"
                 },
@@ -119,7 +119,7 @@
                   "element": {
                     "type": "Container",
                     "direction": "column",
-                    "gap": 4,
+                    "gap": "token:nba.spacing.sm",
                     "children": [
                       {
                         "type": "Text",
@@ -128,10 +128,10 @@
                         "weight": "bold",
                         "color": "token:nba.label-inverted.primary",
                         "background": "token:nba.label.accent.live",
-                        "cornerRadius": 4,
+                        "cornerRadius": "token:nba.radius.sm",
                         "padding": {
-                          "top": 2,
-                          "bottom": 2,
+                          "top": "token:nba.spacing.xs",
+                          "bottom": "token:nba.spacing.xs",
                           "start": 6,
                           "end": 6
                         }
@@ -167,7 +167,7 @@
             {
               "type": "ScrollContainer",
               "direction": "row",
-              "gap": 16,
+              "gap": "token:nba.spacing.lg",
               "showIndicators": false,
               "children": [
                 {
@@ -193,7 +193,7 @@
                         "width": 64,
                         "height": 64,
                         "fit": "cover",
-                        "cornerRadius": 32
+                        "cornerRadius": "token:nba.radius.2xl"
                       },
                       "overlays": [
                         {
@@ -206,10 +206,10 @@
                           "element": {
                             "type": "Container",
                             "background": "token:nba.label.accent.live",
-                            "cornerRadius": 4,
+                            "cornerRadius": "token:nba.radius.sm",
                             "padding": {
-                              "top": 2,
-                              "bottom": 2,
+                              "top": "token:nba.spacing.xs",
+                              "bottom": "token:nba.spacing.xs",
                               "start": 6,
                               "end": 6
                             },
@@ -244,13 +244,13 @@
             {
               "id": "new-badge-image-card",
               "type": "OverlayContainer",
-              "cornerRadius": 12,
+              "cornerRadius": "token:nba.radius.md",
               "base": {
                 "type": "Image",
                 "src": "https://cdn.nba.com/manage/2025/02/nba-standings-graphic-752x428.jpg",
                 "height": 120,
                 "fit": "cover",
-                "cornerRadius": 12,
+                "cornerRadius": "token:nba.radius.md",
                 "widthMode": "fill"
               },
               "overlays": [
@@ -264,10 +264,10 @@
                   "element": {
                     "type": "Container",
                     "background": "token:nba.label.accent.brand",
-                    "cornerRadius": 4,
+                    "cornerRadius": "token:nba.radius.sm",
                     "padding": {
-                      "top": 2,
-                      "bottom": 2,
+                      "top": "token:nba.spacing.xs",
+                      "bottom": "token:nba.spacing.xs",
                       "start": 6,
                       "end": 6
                     },
@@ -287,7 +287,7 @@
             {
               "id": "media-overlay-saturday-slate",
               "type": "OverlayContainer",
-              "cornerRadius": 12,
+              "cornerRadius": "token:nba.radius.md",
               "actions": [
                 {
                   "trigger": "onActivate",
@@ -301,7 +301,7 @@
                 "height": 0,
                 "fit": "cover",
                 "aspectRatio": 1.7777777777777777,
-                "cornerRadius": 12,
+                "cornerRadius": "token:nba.radius.md",
                 "widthMode": "fill"
               },
               "overlays": [
@@ -311,9 +311,9 @@
                     "type": "Container",
                     "direction": "column",
                     "padding": {
-                      "start": 16,
-                      "end": 16,
-                      "top": 16,
+                      "start": "token:nba.spacing.lg",
+                      "end": "token:nba.spacing.lg",
+                      "top": "token:nba.spacing.lg",
                       "bottom": 20
                     },
                     "background": {
@@ -374,10 +374,10 @@
                   "element": {
                     "type": "Container",
                     "background": "token:nba.label.accent.live",
-                    "cornerRadius": 4,
+                    "cornerRadius": "token:nba.radius.sm",
                     "padding": {
-                      "top": 2,
-                      "bottom": 2,
+                      "top": "token:nba.spacing.xs",
+                      "bottom": "token:nba.spacing.xs",
                       "start": 6,
                       "end": 6
                     },
@@ -450,7 +450,7 @@
               "id": "featured-paged-carousel",
               "type": "ScrollContainer",
               "direction": "row",
-              "gap": 12,
+              "gap": "token:nba.spacing.md",
               "paging": true,
               "snapAlignment": "center",
               "showIndicators": false,
@@ -468,7 +468,7 @@
                   "id": "featured-page-giannis",
                   "type": "OverlayContainer",
                   "width": 300,
-                  "cornerRadius": 16,
+                  "cornerRadius": "token:nba.radius.lg",
                   "base": {
                     "type": "Image",
                     "src": "https://cdn.nba.com/manage/2025/02/giannis-dunk-752x428.jpg",
@@ -477,7 +477,7 @@
                     "width": 300,
                     "height": 176,
                     "fit": "cover",
-                    "cornerRadius": 16,
+                    "cornerRadius": "token:nba.radius.lg",
                     "accessibility": {
                       "label": "Giannis dunk feature"
                     }
@@ -532,7 +532,7 @@
                       },
                       "element": {
                         "type": "Button",
-                        "label": "\u22ef",
+                        "label": "⋯",
                         "variant": "text",
                         "color": "token:nba.label-inverted.primary",
                         "actions": [
@@ -550,7 +550,7 @@
                   "id": "featured-page-curry",
                   "type": "OverlayContainer",
                   "width": 300,
-                  "cornerRadius": 16,
+                  "cornerRadius": "token:nba.radius.lg",
                   "base": {
                     "type": "Image",
                     "src": "https://cdn.nba.com/manage/2025/02/curry-buzzer-752x428.jpg",
@@ -559,7 +559,7 @@
                     "width": 300,
                     "height": 176,
                     "fit": "cover",
-                    "cornerRadius": 16,
+                    "cornerRadius": "token:nba.radius.lg",
                     "accessibility": {
                       "label": "Curry buzzer beater feature"
                     }
@@ -611,7 +611,7 @@
                   "id": "featured-page-jokic",
                   "type": "OverlayContainer",
                   "width": 300,
-                  "cornerRadius": 16,
+                  "cornerRadius": "token:nba.radius.lg",
                   "base": {
                     "type": "Image",
                     "src": "https://cdn.nba.com/manage/2025/02/jokic-assist-752x428.jpg",
@@ -620,7 +620,7 @@
                     "width": 300,
                     "height": 176,
                     "fit": "cover",
-                    "cornerRadius": 16,
+                    "cornerRadius": "token:nba.radius.lg",
                     "accessibility": {
                       "label": "Jokic no-look dime feature"
                     }

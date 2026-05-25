@@ -6,6 +6,9 @@ mapping that power SDUI atomic composition.
 **Audience:** designers maintaining the Figma source of truth and engineers
 syncing tokens between Figma and the schema registries.
 
+> **Maintenance discipline:** Changes to `schema/*-tokens.json` and
+> `docs/sdui-design-system.md` ship in the same PR.
+
 ### Where this doc fits
 
 The SDUI architecture has two complementary layers:
@@ -30,16 +33,21 @@ A given screen mixes both. This document covers the atomic layer only.
 | `schema/color-tokens.json` | Color palette + semantic aliases (light/dark) |
 | `schema/spacing-tokens.json` | Spacing scale per form factor (Kinetic v1.0.0) |
 | `schema/corner-radius-tokens.json` | Corner radii — flat across form factors (Kinetic v1.0.0) |
+| `schema/typography-tokens.json` | Typography categories + semantic variants per form factor |
+| `schema/motion-tokens.json` | Easing + duration scales per form factor |
+| `schema/shadow-tokens.json` | Shadow tiers in wire `Shadow` shape |
+| `schema/font-tokens.json` | Font-family registry + per-platform source metadata |
 | `schema/icon-tokens.json` | Icon name → per-platform symbol mapping |
 | `schema/style-tokens.json` | Variant definitions + override matrices |
 | `schema/sdui-schema.json` | Wire contract (enum values, element types) |
 | `server/.../LayoutTokens.java` | Server-side wire-form token constants (spacing + radius) |
 | `server/.../IconTokens.java` | Server-side wire-form icon token constants |
-
-> **Planned (awaiting design validation):** Size tokens, typography tokens,
-> and shadow tokens are not yet validated by the design team. The speculative
-> registry files were removed. These will be rebuilt from Kinetic design
-> exports when the design team provides validated scales.
+| `server/src/main/java/com/nba/sdui/service/TypographyTokens.java` | Server-side wire-form typography constants |
+| `server/src/main/java/com/nba/sdui/service/MotionTokens.java` | Server-side wire-form motion constants |
+| `server/src/main/java/com/nba/sdui/service/ShadowTokens.java` | Server-side wire-form shadow constants |
+| `android/sdui-core/src/main/java/com/nba/sdui/core/generated/LayoutTokenRegistry.kt` | Android codegen-baked token registry |
+| `ios/Sources/SduiCore/Generated/LayoutTokenRegistry.swift` | iOS codegen-baked token registry |
+| `web/src/generated/LayoutTokenRegistry.ts` | Web codegen-baked token registry |
 
 ---
 
@@ -129,8 +137,7 @@ off-size spacing still renders correctly).
     "phone": 16,
     "tablet": 20,
     "tv": 24,
-    "web.narrow": 16,
-    "web.wide": 20
+    "web": 16
   }
 }
 
@@ -224,14 +231,17 @@ Color tokens are **not** form-factor-aware — only light/dark.
 Sourced from the Kinetic Design System. Phone is the base scale;
 form-factor multipliers are applied by each client's `LayoutTokenResolver`.
 
-| Wire token | Phone | Tablet | TV | Web narrow | Web wide |
-|---|---|---|---|---|---|
-| `nba.spacing.xs` | 2 | 2 | 4 | 2 | 2 |
-| `nba.spacing.sm` | 4 | 6 | 6 | 4 | 6 |
-| `nba.spacing.md` | 12 | 15 | 18 | 12 | 15 |
-| `nba.spacing.lg` | 16 | 20 | 24 | 16 | 20 |
-| `nba.spacing.xl` | 32 | 40 | 48 | 32 | 40 |
-| `nba.spacing.2xl` | 40 | 48 | 56 | 40 | 48 |
+The wire vocabulary is semantic-only:
+`nba.spacing.{xs,sm,md,lg,xl,2xl}`.
+
+| Wire token | Phone | Tablet | TV | Web |
+|---|---|---|---|---|
+| `nba.spacing.xs` | 2 | 2 | 4 | 2 |
+| `nba.spacing.sm` | 4 | 6 | 6 | 4 |
+| `nba.spacing.md` | 12 | 15 | 18 | 12 |
+| `nba.spacing.lg` | 16 | 20 | 24 | 16 |
+| `nba.spacing.xl` | 32 | 40 | 48 | 32 |
+| `nba.spacing.2xl` | 40 | 48 | 56 | 40 |
 
 Used for `padding`, `gap`, and `spacing` properties on atomic elements.
 Composers emit these via `LayoutTokens.SPACING_*` constants.
@@ -245,14 +255,11 @@ Composers emit these via `LayoutTokens.SPACING_*` constants.
 When rebuilt, this registry will cover icon sizes, logo sizes, avatar
 sizes, and thumbnail dimensions with per-form-factor values.
 
-### 2.4 Typography tokens (planned)
+### 2.4 Typography tokens
 
-> **Status:** Awaiting validated design input. The speculative
-> `schema/typography-tokens.json` was removed.
+**File:** `schema/typography-tokens.json` · **Server constants:** `TypographyTokens.java`
 
-Typography is currently expressed through the `TextVariant` enum on the
-schema. The future token registry will provide per-form-factor type
-scales that variants can reference.
+The wire typography vocabulary is 16 semantic variants:
 
 **Schema `TextVariant` enum** (used on `Text` and `LiveClock` elements):
 
@@ -260,6 +267,14 @@ scales that variants can reference.
 `headlineMedium`, `headlineSmall`, `titleLarge`, `titleMedium`,
 `titleSmall`, `bodyLarge`, `bodyMedium`, `bodySmall`, `labelLarge`,
 `labelMedium`, `labelSmall`, `score`
+
+The registry also carries 9 internal categories used to compose those
+wire variants: `nba.typography.{display,headline,title,body,label,data,score,button,caption}`.
+These categories are server-side design metadata and are not wire token names.
+
+Typography size values are form-factor-aware (`phone`, `tablet`, `tv`, `web`).
+The `web` column supports either a scalar or a fluid envelope
+`{min, max, minVw, maxVw}` for viewport interpolation.
 
 The `score` variant carries monospaced/tabular-numeral typography for live
 scores and clocks.
@@ -271,29 +286,76 @@ scores and clocks.
 **File:** `schema/corner-radius-tokens.json` (v1.0.0-kinetic) · **Server constants:** `LayoutTokens.java` ·
 **Figma connection:** Figma corner radius variables should use these names.
 
-Sourced from the Kinetic Design System. Flat across all form factors —
-corner radii do not scale with device class.
+Sourced from the Kinetic Design System.
+The wire vocabulary is semantic-only:
+`nba.radius.{xs,sm,md,lg,xl,2xl,full}`.
 
-| Wire token | Value (all form factors) |
-|---|---|
-| `nba.radius.xs` | 2 |
-| `nba.radius.sm` | 4 |
-| `nba.radius.md` | 12 |
-| `nba.radius.lg` | 16 |
-| `nba.radius.xl` | 24 |
-| `nba.radius.2xl` | 32 |
-| `nba.radius.full` | 9999 |
+| Wire token | Phone | Tablet | TV | Web |
+|---|---|---|---|---|
+| `nba.radius.xs` | 2 | 2 | 2 | 2 |
+| `nba.radius.sm` | 4 | 4 | 4 | 4 |
+| `nba.radius.md` | 12 | 12 | 12 | 12 |
+| `nba.radius.lg` | 16 | 16 | 16 | 16 |
+| `nba.radius.xl` | 24 | 24 | 24 | 24 |
+| `nba.radius.2xl` | 32 | 32 | 32 | 32 |
+| `nba.radius.full` | 9999 | 9999 | 9999 | 9999 |
 
 `nba.radius.full` produces a pill/circle shape. The `shape: "circle"` schema
 field remains available as a shorthand for `cornerRadius: "token:nba.radius.full"`.
 Composers emit these via `LayoutTokens.RADIUS_*` constants.
 
-### 2.6 Shadow tokens (planned)
+### 2.6 Shadow tokens
 
-> **Status:** Awaiting validated design input. The speculative
-> `schema/shadow-tokens.json` was removed.
+**File:** `schema/shadow-tokens.json` · **Server constants:** `ShadowTokens.java`
 
-### 2.7 Icon tokens
+Four semantic tiers are built and available on the wire:
+`nba.shadow.{sm,md,lg,xl}`.
+
+Wire fields `shadow` and `shadows[]` accept either:
+
+- A structured `Shadow` object (`type`, `color`, `radius`, `offsetX`, `offsetY`)
+- A token string (`token:nba.shadow.*`)
+
+Clients normalize both forms to a concrete `Shadow` object through
+`LayoutTokenResolver.resolveShadowOrToken(...)` before rendering.
+
+### 2.7 Motion tokens
+
+**File:** `schema/motion-tokens.json` · **Server constants:** `MotionTokens.java`
+
+Easing tokens are form-factor-flat:
+
+- `nba.motion.easing.default` → `cubic-bezier(0.16, 1, 0.3, 1)`
+- `nba.motion.easing.linear` → `linear`
+
+Duration tokens are form-factor-aware:
+
+| Wire token | Phone | Tablet | TV | Web |
+|---|---|---|---|---|
+| `nba.motion.duration.fast` | 150 | 180 | 250 | 200 |
+| `nba.motion.duration.default` | 200 | 250 | 350 | 300 |
+| `nba.motion.duration.slow` | 400 | 500 | 700 | 600 |
+| `nba.motion.duration.hero` | 500 | 600 | 900 | 800 |
+
+### 2.8 Font registry
+
+**File:** `schema/font-tokens.json`
+
+The font registry defines three semantic families:
+
+- `nba.font.knockout`
+- `nba.font.roboto`
+- `nba.font.roboto.condensed`
+
+Platform resolution contract:
+
+- **Android:** bundled asset font files where required (for example Knockout),
+  with system fallbacks for Roboto families.
+- **iOS:** bundled or system fonts resolved by PostScript name metadata.
+- **Web:** Google Fonts for Roboto families; local/bundled sources for
+  Knockout where licensed.
+
+### 2.9 Icon tokens
 
 **File:** `schema/icon-tokens.json` · **Server constants:** `IconTokens.java` ·
 **Figma connection:** Figma icon components should use the `sdui:` prefix name
@@ -574,12 +636,16 @@ All are non-fatal. The renderer falls back to defaults and logs the issue.
 
 ### Token coverage
 
-- [ ] Typography token registry removed (awaiting Kinetic design validation)
-      — currently expressed only as `TextVariant` enum (16 values)
-- [ ] Shadow token registry removed (awaiting Kinetic design validation)
-      — evaluate tiers needed when rebuilt
-- [ ] Size token registry removed (awaiting Kinetic design validation)
-      — evaluate icon/logo/avatar/thumbnail sizes when rebuilt
+- [x] Typography token registry built (`schema/typography-tokens.json`) with
+      wire `TextVariant` parity (16 semantic variants)
+- [x] Shadow token registry built (`schema/shadow-tokens.json`) with 4 tiers
+      (`nba.shadow.{sm,md,lg,xl}`)
+- [x] Motion token registry built (`schema/motion-tokens.json`) with easing
+      + duration tiers
+- [x] Font registry built (`schema/font-tokens.json`) with cross-platform
+      family metadata
+- [x] Size token registry intentionally absent — speculative
+      `schema/size-tokens.json` was removed in commit `172eb65` (2026-04-29)
 - [ ] No `opacity` token registry — decide if one is needed
 
 ### Variant coverage

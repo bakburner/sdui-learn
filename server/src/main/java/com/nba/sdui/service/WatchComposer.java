@@ -448,7 +448,7 @@ public class WatchComposer {
 
         ObjectNode root = atomicBuilder.container("column", "start", "start");
         root.put("widthMode", "fill");
-        root.put("gap", 4);
+        root.put("gap", LayoutTokens.SPACING_SM);
         ArrayNode children = objectMapper.createArrayNode();
         ObjectNode titleText = atomicBuilder.text(title, "titleMedium", "bold", "#FFFFFF", null);
         addHeading(objectMapper, titleText, title, 2);
@@ -526,7 +526,7 @@ public class WatchComposer {
     private ObjectNode buildSubscribeHeroUi(String title, String subtitle, String logoUrl,
                                              String[] features, TierSpec[] tierSpecs) {
         ObjectNode root = atomicBuilder.container("column", "start", "center");
-        root.put("gap", 8);
+        root.put("gap", 8); // §3.6: no semantic spacing token for 8
         root.put("widthMode", "fill");
         ArrayNode children = objectMapper.createArrayNode();
 
@@ -545,12 +545,12 @@ public class WatchComposer {
         children.add(atomicBuilder.spacer(LayoutTokens.SPACING_LG));
 
         ObjectNode featuresCol = atomicBuilder.container("column", "start", "start");
-        featuresCol.put("gap", 8);
+        featuresCol.put("gap", 8); // §3.6: no semantic spacing token for 8
         featuresCol.put("widthMode", "fill");
         ArrayNode featureChildren = objectMapper.createArrayNode();
         for (String feature : features) {
             ObjectNode row = atomicBuilder.container("row", "start", "center");
-            row.put("gap", 8);
+            row.put("gap", 8); // §3.6: no semantic spacing token for 8
             ArrayNode rowChildren = objectMapper.createArrayNode();
             rowChildren.add(atomicBuilder.text("✓", "bodyLarge", "bold", "token:nba.color.feedback.success.70", null));
             rowChildren.add(atomicBuilder.text(feature, "bodyLarge", null, ColorTokens.TEXT_ON_DARK_MEDIA, null));
@@ -563,7 +563,7 @@ public class WatchComposer {
         children.add(atomicBuilder.spacer(20));
 
         ObjectNode tiersCol = atomicBuilder.container("column", "start", "stretch");
-        tiersCol.put("gap", 16);
+        tiersCol.put("gap", LayoutTokens.SPACING_LG);
         tiersCol.put("widthMode", "fill");
         ArrayNode tierChildren = objectMapper.createArrayNode();
         for (TierSpec t : tierSpecs) {
@@ -579,10 +579,15 @@ public class WatchComposer {
     /** Build an atomic Container that visually represents one subscription tier. */
     private ObjectNode buildTierUi(TierSpec t) {
         ObjectNode card = atomicBuilder.container("column", "start", "start");
-        card.put("gap", 6);
+        card.put("gap", 6); // §3.6: no semantic spacing token for 6
         card.put("background", ColorTokens.SURFACE_TIER_ON_DARK);
-        card.put("cornerRadius", 16);
-        card.set("padding", atomicBuilder.padding(22, 22, 20, 20));
+        card.put("cornerRadius", LayoutTokens.RADIUS_LG);
+        card.set("padding", atomicBuilder.padding(
+                22, // §3.6: no semantic spacing token for 22
+                22, // §3.6: no semantic spacing token for 22
+                20, // §3.6: no semantic spacing token for 20
+                20  // §3.6: no semantic spacing token for 20
+        ));
         card.put("widthMode", "fill");
 
         ArrayNode cardChildren = objectMapper.createArrayNode();

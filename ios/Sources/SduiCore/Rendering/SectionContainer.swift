@@ -38,7 +38,7 @@ struct SectionContainer<Content: View>: View {
             .background { backgroundView(for: surface?.background, colorScheme: colorScheme) }
             .clipShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
             .overlay(borderOverlay(radius: radius))
-            .applyShadow(surface?.shadow)
+            .applyShadow(LayoutTokenResolver.resolveShadowOrToken(surface?.shadow))
             .padding(margin)
     }
 

@@ -844,7 +844,7 @@ public class DemoScreenComposer {
         ctaAction.put("presentation", "modal");
 
         ObjectNode root = atomicBuilder.container("column", "start", "start");
-        root.put("gap", 4);
+        root.put("gap", LayoutTokens.SPACING_SM);
         ArrayNode children = objectMapper.createArrayNode();
         ObjectNode bannerTitle = atomicBuilder.text("Never Miss a Game", "titleMedium", "bold",
                 ColorTokens.TEXT_ON_DARK_MEDIA, null);
@@ -884,7 +884,7 @@ public class DemoScreenComposer {
                 24));
 
         ObjectNode root = atomicBuilder.container("column", "start", "center");
-        root.put("gap", 8);
+        root.put("gap", 8); // §3.6: no semantic spacing token for 8
         root.put("widthMode", "fill");
         ArrayNode children = objectMapper.createArrayNode();
 
@@ -908,12 +908,12 @@ public class DemoScreenComposer {
                 "Compatible with all major devices"
         };
         ObjectNode featuresCol = atomicBuilder.container("column", "start", "start");
-        featuresCol.put("gap", 8);
+        featuresCol.put("gap", 8); // §3.6: no semantic spacing token for 8
         featuresCol.put("widthMode", "fill");
         ArrayNode featureChildren = objectMapper.createArrayNode();
         for (String feature : features) {
             ObjectNode row = atomicBuilder.container("row", "start", "center");
-            row.put("gap", 8);
+            row.put("gap", 8); // §3.6: no semantic spacing token for 8
             ArrayNode rowChildren = objectMapper.createArrayNode();
             rowChildren.add(atomicBuilder.text("✓", "bodyLarge", "bold",
                     "token:nba.color.feedback.success.70", null));
@@ -928,7 +928,7 @@ public class DemoScreenComposer {
         children.add(atomicBuilder.spacer(20));
 
         ObjectNode tiersCol = atomicBuilder.container("column", "start", "stretch");
-        tiersCol.put("gap", 16);
+        tiersCol.put("gap", LayoutTokens.SPACING_LG);
         tiersCol.put("widthMode", "fill");
         ArrayNode tierChildren = objectMapper.createArrayNode();
         tierChildren.add(buildDemoTierUi("League Pass", "$14.99/mo", "$22.99/mo",
@@ -960,10 +960,15 @@ public class DemoScreenComposer {
                                             String badgeText, String[] features,
                                             String ctaLabel, String ctaUri) {
         ObjectNode card = atomicBuilder.container("column", "start", "start");
-        card.put("gap", 6);
+        card.put("gap", 6); // §3.6: no semantic spacing token for 6
         card.put("background", ColorTokens.SURFACE_TIER_ON_DARK);
-        card.put("cornerRadius", 16);
-        card.set("padding", atomicBuilder.padding(22, 22, 20, 20));
+        card.put("cornerRadius", LayoutTokens.RADIUS_LG);
+        card.set("padding", atomicBuilder.padding(
+                22, // §3.6: no semantic spacing token for 22
+                22, // §3.6: no semantic spacing token for 22
+                20, // §3.6: no semantic spacing token for 20
+                20  // §3.6: no semantic spacing token for 20
+        ));
         card.put("widthMode", "fill");
 
         ArrayNode cardChildren = objectMapper.createArrayNode();
@@ -1118,10 +1123,12 @@ public class DemoScreenComposer {
         root.put("type", "Container");
         root.put("direction", "column");
         root.put("background", ColorTokens.SURFACE_CANVAS);
-        root.put("cornerRadius", 12);
+        root.put("cornerRadius", LayoutTokens.RADIUS_MD);
         ObjectNode padding = objectMapper.createObjectNode();
-        padding.put("start", 16); padding.put("end", 16);
-        padding.put("top", 12); padding.put("bottom", 12);
+        padding.put("start", LayoutTokens.SPACING_LG);
+        padding.put("end", LayoutTokens.SPACING_LG);
+        padding.put("top", LayoutTokens.SPACING_MD);
+        padding.put("bottom", LayoutTokens.SPACING_MD);
         root.set("padding", padding);
 
         ArrayNode children = objectMapper.createArrayNode();

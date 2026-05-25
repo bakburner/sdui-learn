@@ -13,6 +13,8 @@ import {
 import {
   currentFormFactor,
   resolveLayoutScalar,
+  resolveShadowOrToken,
+  resolveShadowOrTokens,
   resolveSpacingPx,
   type FormFactor,
 } from '../../utils/LayoutTokenResolver';
@@ -320,9 +322,9 @@ export function buildBoxStyle(
   // shadow — inline wins on `allow`; variant wins on `lock`.
   // Normalize: shadows array > singular shadow > empty.
   const effectiveShadows: Shadow[] = element.shadows
-    ? element.shadows
+    ? resolveShadowOrTokens(element.shadows)
     : element.shadow
-      ? [element.shadow]
+      ? ((resolved) => (resolved ? [resolved] : []))(resolveShadowOrToken(element.shadow))
       : [];
   applyShadow(style, effectiveShadows, variantSpec, variantName, resolveColor);
 

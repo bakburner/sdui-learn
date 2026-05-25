@@ -1,0 +1,10 @@
+{
+  "$comment": "Shadow tokens are form-factor-flat and use the wire Shadow shape (type, color, radius, offsetX, offsetY).",
+  "$version": "3.0.0-matrix",
+  "shadows": {
+    "nba.shadow.sm": { "type": "drop", "color": "rgba(0,0,0,0.12)", "radius": 3, "offsetX": 0, "offsetY": 1 },
+    "nba.shadow.md": { "type": "drop", "color": "rgba(0,0,0,0.15)", "radius": 8, "offsetX": 0, "offsetY": 2 },
+    "nba.shadow.lg": { "type": "drop", "color": "rgba(0,0,0,0.12)", "radius": 16, "offsetX": 0, "offsetY": 4 },
+    "nba.shadow.xl": { "type": "drop", "color": "rgba(0,0,0,0.25)", "radius": 32, "offsetX": 0, "offsetY": 8 }
+  }
+}

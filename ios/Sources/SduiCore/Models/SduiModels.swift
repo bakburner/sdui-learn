@@ -1018,11 +1018,11 @@ class AtomicElement: Codable {
     let section: Section?
     /// DEPRECATED — use shadows (array) for new payloads. Single shadow. If both shadow and
     /// shadows are present, shadows wins.
-    let shadow: Shadow?
+    let shadow: ShadowOrToken?
     /// Ordered array of shadow layers. Index 0 is the outermost shadow (Figma convention);
     /// higher indices are closer to the element. Maps directly to CSS box-shadow list order.
     /// When absent, falls back to singular shadow field.
-    let shadows: [Shadow]?
+    let shadows: [ShadowOrToken]?
     /// Whether to show scroll indicators on ScrollContainer. Default false for clean carousel
     /// presentation.
     let showIndicators: Bool?
@@ -1063,7 +1063,7 @@ class AtomicElement: Codable {
     /// 'fixed' = use explicit width value.
     let widthMode: SizingMode?
 
-    init(accessibility: AccessibilityProperties?, actions: [Action]?, alignment: Alignment?, alignSelf: CrossAlignment?, alt: String?, aspectRatio: AspectRatioUnion?, background: BackgroundUnion?, backgrounds: [BackgroundUnion]?, badge: Badge?, base: AtomicElement?, bindRef: String?, breakpoint: Int?, children: [AtomicElement]?, color: String?, columns: [Column]?, condition: String?, content: String?, cornerRadii: CornerRadii?, cornerRadius: LayoutScalar?, crossAlignment: CrossAlignment?, crossAxisGap: LayoutScalar?, direction: UIDirection?, disabled: Bool?, falseChild: AtomicElement?, fit: ImageFit?, flex: Double?, format: Format?, gap: LayoutScalar?, height: LayoutScalar?, heightMode: SizingMode?, icon: String?, id: String?, isRunning: Bool?, label: String?, layoutWrap: Bool?, margin: Spacing?, maxHeight: LayoutScalar?, maxLines: Int?, maxWidth: LayoutScalar?, minHeight: LayoutScalar?, minWidth: LayoutScalar?, monospacedDigits: Bool?, opacity: Double?, orientation: Orientation?, overlays: [AtomicOverlay]?, padding: Spacing?, pageIndicator: PageIndicator?, paging: Bool?, placeholder: String?, rows: [[String: String]]?, section: Section?, shadow: Shadow?, shadows: [Shadow]?, showIndicators: Bool?, size: Int?, snapAlignment: Align?, snapshotAt: Date?, snapshotSeconds: Int?, src: String?, stopAtSeconds: Int?, striped: Bool?, textAlign: Align?, thickness: Int?, tickDirection: TickDirection?, trueChild: AtomicElement?, type: String, variant: String?, weight: TextWeight?, width: LayoutScalar?, widthMode: SizingMode?) {
+    init(accessibility: AccessibilityProperties?, actions: [Action]?, alignment: Alignment?, alignSelf: CrossAlignment?, alt: String?, aspectRatio: AspectRatioUnion?, background: BackgroundUnion?, backgrounds: [BackgroundUnion]?, badge: Badge?, base: AtomicElement?, bindRef: String?, breakpoint: Int?, children: [AtomicElement]?, color: String?, columns: [Column]?, condition: String?, content: String?, cornerRadii: CornerRadii?, cornerRadius: LayoutScalar?, crossAlignment: CrossAlignment?, crossAxisGap: LayoutScalar?, direction: UIDirection?, disabled: Bool?, falseChild: AtomicElement?, fit: ImageFit?, flex: Double?, format: Format?, gap: LayoutScalar?, height: LayoutScalar?, heightMode: SizingMode?, icon: String?, id: String?, isRunning: Bool?, label: String?, layoutWrap: Bool?, margin: Spacing?, maxHeight: LayoutScalar?, maxLines: Int?, maxWidth: LayoutScalar?, minHeight: LayoutScalar?, minWidth: LayoutScalar?, monospacedDigits: Bool?, opacity: Double?, orientation: Orientation?, overlays: [AtomicOverlay]?, padding: Spacing?, pageIndicator: PageIndicator?, paging: Bool?, placeholder: String?, rows: [[String: String]]?, section: Section?, shadow: ShadowOrToken?, shadows: [ShadowOrToken]?, showIndicators: Bool?, size: Int?, snapAlignment: Align?, snapshotAt: Date?, snapshotSeconds: Int?, src: String?, stopAtSeconds: Int?, striped: Bool?, textAlign: Align?, thickness: Int?, tickDirection: TickDirection?, trueChild: AtomicElement?, type: String, variant: String?, weight: TextWeight?, width: LayoutScalar?, widthMode: SizingMode?) {
         self.accessibility = accessibility
         self.actions = actions
         self.alignment = alignment
@@ -1208,8 +1208,8 @@ extension AtomicElement {
         placeholder: String?? = nil,
         rows: [[String: String]]?? = nil,
         section: Section?? = nil,
-        shadow: Shadow?? = nil,
-        shadows: [Shadow]?? = nil,
+        shadow: ShadowOrToken?? = nil,
+        shadows: [ShadowOrToken]?? = nil,
         showIndicators: Bool?? = nil,
         size: Int?? = nil,
         snapAlignment: Align?? = nil,
@@ -2313,10 +2313,40 @@ enum Style: String, Codable {
 /// DEPRECATED — use shadows (array) for new payloads. Single shadow. If both shadow and
 /// shadows are present, shadows wins.
 ///
-/// Shadow effect with CSS/SwiftUI semantics (radius + offset). Compose approximates via
-/// elevation. Use 'type' to distinguish drop vs inner shadows.
+/// Either a full Shadow struct or a shorthand token. Clients expand shorthand tokens to the
+/// full Shadow struct at resolve time.
 ///
 /// Drop shadow applied to the surface.
+enum ShadowOrToken: Codable {
+    case shadow(Shadow)
+    case string(String)
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if let x = try? container.decode(String.self) {
+            self = .string(x)
+            return
+        }
+        if let x = try? container.decode(Shadow.self) {
+            self = .shadow(x)
+            return
+        }
+        throw DecodingError.typeMismatch(ShadowOrToken.self, DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Wrong type for ShadowOrToken"))
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self {
+        case .shadow(let x):
+            try container.encode(x)
+        case .string(let x):
+            try container.encode(x)
+        }
+    }
+}
+
+/// Shadow effect with CSS/SwiftUI semantics (radius + offset). Compose approximates via
+/// elevation. Use 'type' to distinguish drop vs inner shadows.
 // MARK: - Shadow
 struct Shadow: Codable {
     /// Shadow color (hex with alpha, or token reference)
@@ -3327,7 +3357,7 @@ struct SectionSurface: Codable {
     /// Inner padding (space between the surface edge and the content it wraps).
     let padding: Spacing?
     /// Drop shadow applied to the surface.
-    let shadow: Shadow?
+    let shadow: ShadowOrToken?
 }
 
 // MARK: SectionSurface convenience initializers and mutators
@@ -3354,7 +3384,7 @@ extension SectionSurface {
         cornerRadius: LayoutScalar?? = nil,
         margin: Spacing?? = nil,
         padding: Spacing?? = nil,
-        shadow: Shadow?? = nil
+        shadow: ShadowOrToken?? = nil
     ) -> SectionSurface {
         return SectionSurface(
             background: background ?? self.background,

@@ -8,17 +8,29 @@
       "id": "live-clock-composite",
       "type": "AtomicComposite",
       "analyticsId": "live_clock_composite",
-      "refreshPolicy": { "type": "static" },
+      "refreshPolicy": {
+        "type": "static"
+      },
       "surface": {
-        "margin": { "top": 16, "bottom": 16, "start": 16, "end": 16 }
+        "margin": {
+          "top": 16,
+          "bottom": 16,
+          "start": 16,
+          "end": 16
+        }
       },
       "data": {
         "ui": {
           "id": "root",
           "type": "Container",
           "direction": "column",
-          "gap": 16,
-          "padding": { "top": 16, "bottom": 16, "start": 16, "end": 16 },
+          "gap": "token:nba.spacing.lg",
+          "padding": {
+            "top": "token:nba.spacing.lg",
+            "bottom": "token:nba.spacing.lg",
+            "start": "token:nba.spacing.lg",
+            "end": "token:nba.spacing.lg"
+          },
           "children": [
             {
               "id": "clock-running-down",
@@ -30,7 +42,9 @@
               "tickDirection": "down",
               "stopAtSeconds": 0,
               "format": "m:ss",
-              "accessibility": { "label": "Game clock" }
+              "accessibility": {
+                "label": "Game clock"
+              }
             },
             {
               "id": "clock-paused",

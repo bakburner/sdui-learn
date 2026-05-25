@@ -600,13 +600,13 @@ export interface AtomicElement {
      * DEPRECATED — use shadows (array) for new payloads. Single shadow. If both shadow and
      * shadows are present, shadows wins.
      */
-    shadow?: Shadow;
+    shadow?: Shadow | string;
     /**
      * Ordered array of shadow layers. Index 0 is the outermost shadow (Figma convention);
      * higher indices are closer to the element. Maps directly to CSS box-shadow list order.
      * When absent, falls back to singular shadow field.
      */
-    shadows?: Shadow[];
+    shadows?: Array<Shadow | string>;
     /**
      * Whether to show scroll indicators on ScrollContainer. Default false for clean carousel
      * presentation.
@@ -1222,13 +1222,8 @@ export enum Style {
 }
 
 /**
- * DEPRECATED — use shadows (array) for new payloads. Single shadow. If both shadow and
- * shadows are present, shadows wins.
- *
  * Shadow effect with CSS/SwiftUI semantics (radius + offset). Compose approximates via
  * elevation. Use 'type' to distinguish drop vs inner shadows.
- *
- * Drop shadow applied to the surface.
  */
 export interface Shadow {
     /**
@@ -1708,7 +1703,7 @@ export interface SectionSurface {
     /**
      * Drop shadow applied to the surface.
      */
-    shadow?: Shadow;
+    shadow?: Shadow | string;
     [property: string]: any;
 }
 

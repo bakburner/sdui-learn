@@ -412,6 +412,28 @@
         "offsetY": { "type": "number", "default": 2, "description": "Vertical offset in dp/px" }
       }
     },
+    "DurationToken": {
+      "type": "string",
+      "pattern": "^token:nba\\.motion\\.duration\\..+$",
+      "description": "Motion duration token reference (for example, token:nba.motion.duration.default) resolved by clients against schema/motion-tokens.json."
+    },
+    "EasingToken": {
+      "type": "string",
+      "pattern": "^token:nba\\.motion\\.easing\\..+$",
+      "description": "Motion easing token reference (for example, token:nba.motion.easing.default) resolved by clients against schema/motion-tokens.json."
+    },
+    "ShadowToken": {
+      "type": "string",
+      "pattern": "^token:nba\\.shadow\\..+$",
+      "description": "Shadow shorthand token (for example, token:nba.shadow.md) resolved by clients against schema/shadow-tokens.json."
+    },
+    "ShadowOrToken": {
+      "description": "Either a full Shadow struct or a shorthand token. Clients expand shorthand tokens to the full Shadow struct at resolve time.",
+      "oneOf": [
+        { "$ref": "#/definitions/Shadow" },
+        { "$ref": "#/definitions/ShadowToken" }
+      ]
+    },
     "Border": {
       "type": "object",
       "description": "Outer stroke applied around a container or section.",
@@ -575,8 +597,8 @@
           "additionalProperties": false
         },
         "opacity": { "type": "number", "minimum": 0, "maximum": 1, "default": 1, "description": "Element opacity (0=transparent, 1=opaque). Enables duration badge overlays and faded states." },
-        "shadow": { "$ref": "#/definitions/Shadow", "description": "DEPRECATED — use shadows (array) for new payloads. Single shadow. If both shadow and shadows are present, shadows wins." },
-        "shadows": { "type": "array", "items": { "$ref": "#/definitions/Shadow" }, "description": "Ordered array of shadow layers. Index 0 is the outermost shadow (Figma convention); higher indices are closer to the element. Maps directly to CSS box-shadow list order. When absent, falls back to singular shadow field." },
+        "shadow": { "$ref": "#/definitions/ShadowOrToken", "description": "DEPRECATED — use shadows (array) for new payloads. Single shadow. If both shadow and shadows are present, shadows wins." },
+        "shadows": { "type": "array", "items": { "$ref": "#/definitions/ShadowOrToken" }, "description": "Ordered array of shadow layers. Index 0 is the outermost shadow (Figma convention); higher indices are closer to the element. Maps directly to CSS box-shadow list order. When absent, falls back to singular shadow field." },
         "badge": { "$ref": "#/definitions/Badge", "description": "Z-positioned child element (e.g. 'LIVE' pill, duration label) overlaid on this element." },
         "base": { "$ref": "#/definitions/AtomicElement", "description": "OverlayContainer base element. Rendered first and sized by its own atomic box model." },
         "overlays": {
@@ -916,7 +938,7 @@
         "padding":      { "$ref": "#/definitions/Spacing", "description": "Inner padding (space between the surface edge and the content it wraps)." },
         "background":   { "$ref": "#/definitions/Background", "description": "Surface background (solid, gradient, or image)." },
         "cornerRadius": { "$ref": "#/definitions/LayoutScalar", "description": "Corner radius: dp/px or layout token, applied to the surface (with overflow clip)." },
-        "shadow":       { "$ref": "#/definitions/Shadow", "description": "Drop shadow applied to the surface." },
+        "shadow":       { "$ref": "#/definitions/ShadowOrToken", "description": "Drop shadow applied to the surface." },
         "border":       { "$ref": "#/definitions/Border", "description": "Outer stroke applied around the surface." }
       }
     },

@@ -16,12 +16,12 @@
           "direction": "column",
           "crossAlignment": "stretch",
           "id": "game-0042500113-root",
-          "cornerRadius": 12,
+          "cornerRadius": "token:nba.radius.md",
           "padding": {
-            "start": 16,
-            "end": 16,
-            "top": 16,
-            "bottom": 16
+            "start": "token:nba.spacing.lg",
+            "end": "token:nba.spacing.lg",
+            "top": "token:nba.spacing.lg",
+            "bottom": "token:nba.spacing.lg"
           },
           "actions": [
             {
@@ -153,7 +153,7 @@
           ],
           "direction": "diagonal"
         },
-        "cornerRadius": 12,
+        "cornerRadius": "token:nba.radius.md",
         "shadow": {
           "color": "#00000014",
           "radius": 6,
@@ -186,12 +186,12 @@
           "direction": "column",
           "crossAlignment": "stretch",
           "id": "game-0042500173-root",
-          "cornerRadius": 12,
+          "cornerRadius": "token:nba.radius.md",
           "padding": {
-            "start": 16,
-            "end": 16,
-            "top": 16,
-            "bottom": 16
+            "start": "token:nba.spacing.lg",
+            "end": "token:nba.spacing.lg",
+            "top": "token:nba.spacing.lg",
+            "bottom": "token:nba.spacing.lg"
           },
           "actions": [
             {
@@ -323,7 +323,7 @@
           ],
           "direction": "diagonal"
         },
-        "cornerRadius": 12,
+        "cornerRadius": "token:nba.radius.md",
         "shadow": {
           "color": "#00000014",
           "radius": 6,
@@ -356,12 +356,12 @@
           "direction": "column",
           "crossAlignment": "stretch",
           "id": "game-0042500153-root",
-          "cornerRadius": 12,
+          "cornerRadius": "token:nba.radius.md",
           "padding": {
-            "start": 16,
-            "end": 16,
-            "top": 16,
-            "bottom": 16
+            "start": "token:nba.spacing.lg",
+            "end": "token:nba.spacing.lg",
+            "top": "token:nba.spacing.lg",
+            "bottom": "token:nba.spacing.lg"
           },
           "actions": [
             {
@@ -493,7 +493,7 @@
           ],
           "direction": "diagonal"
         },
-        "cornerRadius": 12,
+        "cornerRadius": "token:nba.radius.md",
         "shadow": {
           "color": "#00000014",
           "radius": 6,

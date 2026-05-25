@@ -56,7 +56,7 @@ fun SectionContainer(
     val margin = surface?.margin.toPaddingValues(formFactor)
     val padding = surface?.padding.toPaddingValues(formFactor)
     val radius = LayoutTokenResolver.dp(surface?.cornerRadius, formFactor)
-    val shadow = surface?.shadow
+    val shadow = LayoutTokenResolver.resolveShadowOrToken(surface?.shadow)
     val border = surface?.border
     val bg = surface?.background.toViewModel()
 

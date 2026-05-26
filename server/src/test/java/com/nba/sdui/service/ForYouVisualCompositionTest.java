@@ -26,7 +26,7 @@ class ForYouVisualCompositionTest {
     @BeforeEach
     void setUp() {
         ObjectMapper objectMapper = new ObjectMapper();
-        composer = newComposer(new StatsApiClient(objectMapper));
+        composer = newComposer(new StatsApiClient(objectMapper, new SeasonCalendarService()));
     }
 
     private static ForYouComposer newComposer(StatsApiClient statsApiClient) {

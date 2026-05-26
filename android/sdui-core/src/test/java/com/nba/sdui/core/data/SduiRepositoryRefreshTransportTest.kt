@@ -66,7 +66,7 @@ class SduiRepositoryRefreshTransportTest {
     @Test
     fun `parameterized refresh resolves baseUrl and percent-encodes user params`() = runBlocking {
         repository.fetchScreen(
-            path = "/v1/sdui/screen/refresh/stats-leaders",
+            path = "/v1/sdui/screen/leaders",
             envelope = compactEnvelope(),
             userParams = mapOf(
                 "perMode" to "Totals",
@@ -80,7 +80,7 @@ class SduiRepositoryRefreshTransportTest {
         val url = request.url
         assertEquals("https", url.scheme)
         assertEquals("example.test", url.host)
-        assertTrue(url.encodedPath.endsWith("/v1/sdui/screen/refresh/stats-leaders"))
+        assertTrue(url.encodedPath.endsWith("/v1/sdui/screen/leaders"))
 
         val query = url.encodedQuery!!
         assertTrue(query.contains("perMode=Totals"))
@@ -100,7 +100,7 @@ class SduiRepositoryRefreshTransportTest {
     @Test
     fun `refresh user params are sorted deterministically`() = runBlocking {
         repository.fetchScreen(
-            path = "/v1/sdui/screen/refresh/x",
+            path = "/v1/sdui/screen/games",
             envelope = compactEnvelope(),
             userParams = mapOf("zKey" to "z", "aKey" to "a", "mKey" to "m")
         )
@@ -143,7 +143,7 @@ class SduiRepositoryRefreshTransportTest {
         assertTrue("fixture must exceed GET threshold", oversized.exceedsGetThreshold())
 
         repository.fetchScreen(
-            path = "/v1/sdui/screen/refresh/stats-leaders",
+            path = "/v1/sdui/screen/leaders",
             envelope = oversized,
             userParams = mapOf("perMode" to "Totals")
         )

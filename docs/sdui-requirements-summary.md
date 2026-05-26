@@ -406,7 +406,11 @@ A `refresh` action may carry an `endpoint` and `paramBindings` map. This is the 
 
 **Response contract:** the server returns a **screen-shaped envelope** (`id`, `schemaVersion`, `state`, `sections[]`) containing _all visually affected sections_ — both the re-composed data section(s) and the re-composed form section with the new selections already reflected. The client merges the returned sections into the current screen in place; no navigation occurs.
 
-**Endpoint namespace:** `/v1/sdui/screen/refresh/{handlerId}` — screen prefix because the response is a screen-shaped envelope consumed by `fetchScreen`. The `handlerId` is a server-assigned identifier, not a navigable screen name.
+**Endpoint namespace:** `/v1/sdui/screen/{screenId}` with user-supplied query
+params (e.g. `?date=2026-05-18`, `?perMode=Totals&season=2025-26`). The
+response is a screen-shaped envelope consumed by `fetchScreen`. The
+`screenId` is the screen's canonical id; `ParameterizedRefreshService`
+routes to the appropriate resolver when query params are present.
 
 **Why the form section must be in the response:** the form's chip/field selections are embedded in the server-composed section. Omitting the form from the response and relying on a `state` echo side-channel instead creates two owners for the same visual concern. Including the form in the response keeps the server as the single source of truth for what is displayed.
 
@@ -1023,11 +1027,11 @@ sequenceDiagram
 - All timestamps in UTC — no timezone in the request envelope. Timezone-aware formatting is a client presentation concern.
 - `variant` query param removed — all variant resolution uses the `experiments` map exclusively.
 - Cache-Control headers set per route cacheability class: `public` (shared screens), `contextual` (locale-varying), `personalized` (user-specific), `live` (real-time, `no-cache`). See D7 route→cacheability mapping.
-- **URL namespace — three prefixes, three response shapes:**
-  - `/v1/sdui/screen/` — SDUI screen compositions. Response is a full screen envelope (`id`, `navigation`, `sections[]`, `state`). Used for initial loads, navigation, pull-to-refresh, and parameterized form-submit refresh (`/v1/sdui/screen/refresh/{handlerId}`).
-  - `/v1/sdui/section/` — SDUI section re-compositions. Response is a single `Section` object. Used for section-level polling and SSE-triggered re-composition.
+- **URL namespace — three prefixes, three response shapes (two SDUI update channels + one raw-data path):**
+  - `/v1/sdui/screen/{id}` — Screen channel. Response is a full screen envelope (`id`, `navigation`, `sections[]`, `state`). Used for initial loads, navigation, pull-to-refresh, screen-level polling, and parameterized re-composition (date pickers, filters, form submits via query params). Client always full-replaces (strict same-id validation).
+  - `/v1/sdui/section/{id}` — Section channel. Response is a single `Section` object. Used for section-level polling and SSE-triggered re-composition. Client replaces that one section in place.
   - `/v1/api/` — Raw domain data (not SDUI-shaped). Consumed via `dataBinding` path rules; never decoded as a screen or section.
-- **All composition routes are dual-mounted GET + POST to the same handler.** This includes `/v1/sdui/screen/refresh/{handlerId}`, the parameterized-refresh endpoint that backs Form-driven section refreshes. There are no GET-only or POST-only composition endpoints.
+- **All composition routes are dual-mounted GET + POST to the same handler.** There are no GET-only or POST-only composition endpoints.
 - **Every composition fetch on every client routes through one shared primitive** (`SduiRepository.fetchScreen` / `fetchSduiScreen` on web), regardless of whether it's an initial load, a navigation, a pull-to-refresh, or an action-driven `refresh` with `paramBindings`. That primitive owns baseURL resolution, envelope serialization, GET/POST length-fallback, RFC-3986 percent-encoding, deterministic key ordering, and `X-Trace-Id` propagation. Hand-rolled URL strings or per-action transports are not allowed.
 - **User-supplied filter params** (Form bindings such as `season=2025-26`, refresh `paramBindings`) ride the URL query string regardless of HTTP method, so the server reads them through `@RequestParam` on either side. They participate in the GET/POST length decision alongside the envelope.
 
@@ -1261,6 +1265,7 @@ Until approved, these remain directional requirements and may be refined.
 | Section-level refresh (`sectionEndpoint`) | **Built** | Schema field on `RefreshPolicy`; `GET/POST /v1/sdui/section/{sectionId}` via `SectionRefreshService` prefix registry; all three clients poll via `fetchSection`, replace section in place, re-evaluate new `refreshPolicy` (poll→SSE transition); mutual exclusivity with non-static screen policy enforced |
 | Screen-level `defaultRefreshPolicy` handler | **Built** | `type: poll` + `intervalMs` triggers full-screen re-fetch on all three platforms; `GameDetailComposer` emits `type: static` (sections own refresh independently) |
 | Parameterized refresh (Action extension) | **Built** | `endpoint` + `paramBindings` resolved from screen state at action time. Working via Form submit. |
+| Unified update-channel architecture | **Built** | Two channels: screen (`/v1/sdui/screen/{id}` ± query params, full-replace) and section (`/v1/sdui/section/{id}` + SSE, replace-by-id). Legacy `/screen/refresh/` family removed. Server contract tests enforce. See `docs/plans/plan-update-channel-unification.md`. |
 | ErrorState section | **Built** | Server-composed error sections with title, message, icon, retry action. Built on Android, iOS, and web. |
 | SectionStates (runtime error/loading) | **Partial** | Schema + codegen done. Web and iOS: `SectionErrorBoundary` + `SectionSkeleton` built. Server emits on live sections. Android wiring pending. |
 | Atomic rendering layer | **Built** | `AtomicRouter` over 12 schema `AtomicElement` types on Android, iOS, and web. `AtomicComposite` bridges section and atomic layers. `AtomicCompositeBuilder` composes stateless layout surfaces (headers, rails, hero panels, promo banners, stat lines, video carousels, schedule layouts, error states, live-score cards) as server-composed atomic trees. Performance contract: depth 6, children 20, nodes 50. |

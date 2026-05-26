@@ -28,7 +28,7 @@ describe('CalendarStrip schema decode contract', () => {
     expect(model?.maxDate).toBe('2026-06-30');
     expect(model?.onDateSelected.trigger).toBe('onActivate');
     expect(model?.onDateSelected.type).toBe('refresh');
-    expect(model?.onDateSelected.endpoint).toBe('/v1/sdui/screen/refresh/games');
+    expect(model?.onDateSelected.endpoint).toBe('/v1/sdui/screen/games');
     expect(model?.onDateSelected.paramBindings?.date).toBe('{{games_selected_date}}');
   });
 
@@ -42,7 +42,7 @@ describe('CalendarStrip schema decode contract', () => {
         onDateSelected: {
           trigger: 'onActivate',
           type: 'refresh',
-          endpoint: '/v1/sdui/screen/refresh/games',
+          endpoint: '/v1/sdui/screen/games',
           paramBindings: { date: '{{games_selected_date}}' },
         },
       },
@@ -62,7 +62,7 @@ describe('CalendarStrip schema decode contract', () => {
         onDateSelected: {
           trigger: 'onActivate',
           type: 'refresh',
-          endpoint: '/v1/sdui/screen/refresh/games',
+          endpoint: '/v1/sdui/screen/games',
           paramBindings: { date: '{{games_selected_date}}' },
         },
       },
@@ -86,7 +86,7 @@ describe('CalendarStrip schema decode contract', () => {
           {
             trigger: 'onActivate',
             type: 'refresh',
-            endpoint: '/v1/sdui/screen/refresh/games',
+            endpoint: '/v1/sdui/screen/games',
             paramBindings: { date: '{{games_selected_date}}' },
           },
         ],

@@ -199,7 +199,7 @@ make codegen
 | Leaders | `GET /v1/sdui/screen/leaders` | Season leaders table with form-driven season/type filters. |
 | Kitchen Sink | `GET /v1/sdui/screen/demos` | Demo screen showcasing all section types with sample data. |
 | Boxscore | `GET /v1/sdui/screen/boxscore/{gameId}` | Boxscore tables for a specific game (home and away). |
-| Refresh | `GET /v1/sdui/screen/refresh/{handlerId}` | Parameterized refresh endpoint for form-driven section updates. |
+| Leaders (parameterized) | `GET /v1/sdui/screen/leaders?perMode=…&season=…` | Parameterized re-composition via screen channel with query params. |
 | Section refresh | `GET/POST /v1/sdui/section/{sectionId}` | Re-composes a single section via `SectionRefreshService`; used with `refreshPolicy.sectionEndpoint` |
 
 ## Section Types (9 in schema: 8 permanent + AtomicComposite)

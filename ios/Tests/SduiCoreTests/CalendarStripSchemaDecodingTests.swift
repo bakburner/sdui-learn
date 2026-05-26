@@ -27,7 +27,7 @@ final class CalendarStripSchemaDecodingTests: XCTestCase {
         XCTAssertEqual(section.data?.maxDate, "2026-06-30")
         XCTAssertEqual(section.data?.onDateSelected?.trigger, .onActivate)
         XCTAssertEqual(section.data?.onDateSelected?.type, .refresh)
-        XCTAssertEqual(section.data?.onDateSelected?.endpoint, "/v1/sdui/screen/refresh/games")
+        XCTAssertEqual(section.data?.onDateSelected?.endpoint, "/v1/sdui/screen/games")
         XCTAssertEqual(section.data?.onDateSelected?.paramBindings?["date"], "{{games_selected_date}}")
     }
 
@@ -48,7 +48,7 @@ final class CalendarStripSchemaDecodingTests: XCTestCase {
             "onDateSelected": {
               "trigger": "onActivate",
               "type": "refresh",
-              "endpoint": "/v1/sdui/screen/refresh/games",
+              "endpoint": "/v1/sdui/screen/games",
               "paramBindings": { "date": "{{games_selected_date}}" }
             }
           }
@@ -71,7 +71,7 @@ final class CalendarStripSchemaDecodingTests: XCTestCase {
             "onDateSelected": {
               "trigger": "onActivate",
               "type": "refresh",
-              "endpoint": "/v1/sdui/screen/refresh/games",
+              "endpoint": "/v1/sdui/screen/games",
               "paramBindings": { "date": "{{games_selected_date}}" }
             }
           }
@@ -96,7 +96,7 @@ final class CalendarStripSchemaDecodingTests: XCTestCase {
               {
                 "trigger": "onActivate",
                 "type": "refresh",
-                "endpoint": "/v1/sdui/screen/refresh/games",
+                "endpoint": "/v1/sdui/screen/games",
                 "paramBindings": { "date": "{{games_selected_date}}" }
               }
             ]

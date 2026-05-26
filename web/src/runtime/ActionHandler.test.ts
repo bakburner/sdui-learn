@@ -13,6 +13,7 @@ function buildContext(initialState: Record<string, unknown> = {}): ActionContext
       state[key] = value;
     }) as unknown as ActionContext['onStateChange'],
     onRefresh: vi.fn() as unknown as ActionContext['onRefresh'],
+    replaceCurrentScreen: vi.fn(async () => {}) as unknown as ActionContext['replaceCurrentScreen'],
     onSectionUpdate: vi.fn((_sectionId: string, _section: Section) => {}) as unknown as ActionContext['onSectionUpdate'],
     onSectionStale: vi.fn() as unknown as ActionContext['onSectionStale'],
     onNavigate: vi.fn() as unknown as ActionContext['onNavigate'],

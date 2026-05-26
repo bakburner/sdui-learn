@@ -23,7 +23,7 @@ class ForYouSectionIdDerivationTest {
     @BeforeEach
     void setUp() {
         ObjectMapper om = new ObjectMapper();
-        StatsApiClient statsApiClient = new StatsApiClient(om);
+        StatsApiClient statsApiClient = new StatsApiClient(om, new SeasonCalendarService());
         SduiUtils utils = new SduiUtils(om);
         SectionSurfaces surfaces = new SectionSurfaces(om, utils);
         composer = new ForYouComposer(om, statsApiClient, utils, surfaces,

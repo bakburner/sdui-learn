@@ -10,7 +10,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.util.Map;
 
 /**
  * SDUI Composition Service — thin façade.
@@ -98,10 +97,6 @@ public class SduiCompositionService {
     public JsonNode composeLeaders(SduiRequestContext ctx) {
         String deviceClass = ctx.getPlatform() != null ? ctx.getPlatform().getDeviceClass() : "phone";
         return demoScreenComposer.composeLeaders(ctx.getTraceId(), deviceClass, ctx.getLocale());
-    }
-
-    public ObjectNode composeLeadersRefresh(String traceId, Map<String, String> params, String locale) {
-        return demoScreenComposer.composeLeadersRefresh(traceId, params, locale);
     }
 
     public JsonNode composeForYou(SduiRequestContext ctx) {

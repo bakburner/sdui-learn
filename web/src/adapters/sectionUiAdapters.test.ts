@@ -63,7 +63,7 @@ describe('mapCalendarStrip', () => {
         onDateSelected: {
           trigger: ActionTrigger.OnActivate,
           type: ActionType.Refresh,
-          endpoint: '/v1/sdui/screen/refresh/games',
+          endpoint: '/v1/sdui/screen/games',
           paramBindings: { date: '{{games_selected_date}}' },
         },
       },
@@ -78,7 +78,7 @@ describe('mapCalendarStrip', () => {
     expect(model?.maxDate).toBe('2026-06-30');
     expect(model?.onDateSelected.type).toBe(ActionType.Refresh);
     expect(model?.onDateSelected.trigger).toBe(ActionTrigger.OnActivate);
-    expect(model?.onDateSelected.endpoint).toBe('/v1/sdui/screen/refresh/games');
+    expect(model?.onDateSelected.endpoint).toBe('/v1/sdui/screen/games');
   });
 
   it('returns null when required field is missing', () => {
@@ -91,7 +91,7 @@ describe('mapCalendarStrip', () => {
         onDateSelected: {
           trigger: ActionTrigger.OnActivate,
           type: ActionType.Refresh,
-          endpoint: '/v1/sdui/screen/refresh/games',
+          endpoint: '/v1/sdui/screen/games',
         },
       },
     } as Section;

@@ -12,7 +12,6 @@ import com.nba.sdui.versioning.SchemaVersion;
 import com.nba.sdui.versioning.SchemaVersionChecker;
 import com.nba.sdui.versioning.SchemaVersionConfig;
 import com.nba.sdui.versioning.SchemaVersionFilter;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -242,18 +241,32 @@ public class SduiController {
 
     @GetMapping(value = "/v1/sdui/screen/games", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<JsonNode> getGames(
+            @RequestParam Map<String, String> allParams,
             SduiRequestContext ctx,
             HttpServletResponse response) {
 
         ensureTraceId(ctx);
         MDC.put("traceId", ctx.getTraceId());
-        log.info("SDUI games request: locale={}, schemaVersion={}", ctx.getLocale(), ctx.getSchemaVersion());
+
+        Map<String, String> userParams = stripEnvelopeKeys(allParams);
+        log.info("SDUI games request: locale={}, schemaVersion={}, userParams={}",
+                ctx.getLocale(), ctx.getSchemaVersion(), userParams);
 
         ResponseEntity<JsonNode> mismatch = checkVersionMismatch(ctx, response);
         if (mismatch != null) return mismatch;
 
         try {
-            JsonNode screenResponse = compositionService.composeLive(ctx);
+            JsonNode screenResponse;
+            if (!userParams.isEmpty()) {
+                var resolved = parameterizedRefreshService.refreshScreen(
+                        "games", ctx.getTraceId(), userParams, ctx);
+                if (resolved.isEmpty()) {
+                    return ResponseEntity.notFound().build();
+                }
+                screenResponse = resolved.get();
+            } else {
+                screenResponse = compositionService.composeLive(ctx);
+            }
             setResponseHeaders(response, ctx);
             return ResponseEntity.ok()
                     .cacheControl(CacheControl.noCache())
@@ -267,8 +280,11 @@ public class SduiController {
     }
 
     @PostMapping(value = "/v1/sdui/screen/games", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<JsonNode> postGames(SduiRequestContext ctx, HttpServletResponse response) {
-        return getGames(ctx, response);
+    public ResponseEntity<JsonNode> postGames(
+            @RequestParam Map<String, String> allParams,
+            SduiRequestContext ctx,
+            HttpServletResponse response) {
+        return getGames(allParams, ctx, response);
     }
 
     // ── Schedule ───────────────────────────────────────────────────────
@@ -375,19 +391,32 @@ public class SduiController {
 
     @GetMapping(value = "/v1/sdui/screen/leaders", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<JsonNode> getLeaders(
+            @RequestParam Map<String, String> allParams,
             SduiRequestContext ctx,
             HttpServletResponse response) {
 
         ensureTraceId(ctx);
         MDC.put("traceId", ctx.getTraceId());
-        log.info("SDUI leaders request: locale={}, schemaVersion={}",
-            ctx.getLocale(), ctx.getSchemaVersion());
+
+        Map<String, String> userParams = stripEnvelopeKeys(allParams);
+        log.info("SDUI leaders request: locale={}, schemaVersion={}, userParams={}",
+            ctx.getLocale(), ctx.getSchemaVersion(), userParams);
 
         ResponseEntity<JsonNode> mismatch = checkVersionMismatch(ctx, response);
         if (mismatch != null) return mismatch;
 
         try {
-            JsonNode screenResponse = compositionService.composeLeaders(ctx);
+            JsonNode screenResponse;
+            if (!userParams.isEmpty()) {
+                var resolved = parameterizedRefreshService.refreshScreen(
+                        "leaders", ctx.getTraceId(), userParams, ctx);
+                if (resolved.isEmpty()) {
+                    return ResponseEntity.notFound().build();
+                }
+                screenResponse = resolved.get();
+            } else {
+                screenResponse = compositionService.composeLeaders(ctx);
+            }
             setResponseHeaders(response, ctx);
             return ResponseEntity.ok()
                     .cacheControl(CacheControl.maxAge(Duration.ofSeconds(300)).cachePublic())
@@ -401,8 +430,11 @@ public class SduiController {
     }
 
     @PostMapping(value = "/v1/sdui/screen/leaders", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<JsonNode> postLeaders(SduiRequestContext ctx, HttpServletResponse response) {
-        return getLeaders(ctx, response);
+    public ResponseEntity<JsonNode> postLeaders(
+            @RequestParam Map<String, String> allParams,
+            SduiRequestContext ctx,
+            HttpServletResponse response) {
+        return getLeaders(allParams, ctx, response);
     }
 
     // ── Boxscore ───────────────────────────────────────────────────────
@@ -488,75 +520,6 @@ public class SduiController {
             SduiRequestContext ctx,
             HttpServletResponse response) {
         return getSection(sectionId, ctx, response);
-    }
-
-    // ── Parameterized Refresh (Form submit support) ────────────────────
-
-    /**
-     * Parameterized refresh endpoint. User-supplied filter params (e.g.
-     * {@code perMode}, {@code season}) always travel in the URL query string,
-     * regardless of HTTP method. The request envelope ({@link SduiRequestContext})
-     * follows the same GET/POST rule as every other composition route — bracket
-     * notation in the query for GET, JSON body for POST when the envelope is
-     * large or sensitive.
-     */
-    @GetMapping(value = "/v1/sdui/screen/refresh/{screenId}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<JsonNode> getRefreshScreen(
-            @PathVariable String screenId,
-            @RequestParam Map<String, String> allParams,
-            SduiRequestContext ctx,
-            HttpServletRequest request,
-            HttpServletResponse response) {
-        return refreshScreen(screenId, allParams, ctx, request, response);
-    }
-
-    @PostMapping(value = "/v1/sdui/screen/refresh/{screenId}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<JsonNode> postRefreshScreen(
-            @PathVariable String screenId,
-            @RequestParam Map<String, String> allParams,
-            SduiRequestContext ctx,
-            HttpServletRequest request,
-            HttpServletResponse response) {
-        return refreshScreen(screenId, allParams, ctx, request, response);
-    }
-
-    private ResponseEntity<JsonNode> refreshScreen(
-            String screenId,
-            Map<String, String> allParams,
-            SduiRequestContext ctx,
-            HttpServletRequest request,
-            HttpServletResponse response) {
-
-        String traceId = request.getHeader("X-Trace-Id");
-        if (traceId == null) {
-            traceId = "trace-" + UUID.randomUUID().toString().substring(0, 8);
-        }
-        MDC.put("traceId", traceId);
-
-        Map<String, String> userParams = stripEnvelopeKeys(allParams);
-        log.info("SDUI parameterized refresh: screenId={}, userParams={}, method={}",
-                screenId, userParams, request.getMethod());
-
-        try {
-            var resolved = parameterizedRefreshService.refreshScreen(screenId, traceId, userParams, ctx);
-            if (resolved.isEmpty()) {
-                log.warn("Parameterized refresh: no resolver for screenId='{}'", screenId);
-                return ResponseEntity.notFound().build();
-            }
-            JsonNode screenResponse = resolved.get();
-
-            response.setHeader("X-Trace-Id", traceId);
-            response.setHeader("X-Schema-Version", "1.0");
-            log.info("SDUI refresh response composed: screenId={}", screenId);
-            return ResponseEntity.ok()
-                    .cacheControl(CacheControl.noCache())
-                    .body(screenResponse);
-        } catch (Exception e) {
-            log.error("Error composing SDUI refresh response for screenId={}", screenId, e);
-            return ResponseEntity.internalServerError().build();
-        } finally {
-            MDC.clear();
-        }
     }
 
     /**

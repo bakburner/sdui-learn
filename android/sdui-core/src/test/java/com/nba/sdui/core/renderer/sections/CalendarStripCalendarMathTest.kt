@@ -23,6 +23,27 @@ class CalendarStripCalendarMathTest {
     }
 
     @Test
+    fun `weekIndexOf returns 0-based page index for selected date`() {
+        // Reproduces the calendar-strip off-by-one: with US (Sunday) firstDayOfWeek,
+        // the week containing 2026-05-26 (Tue) is May 24-30, which is 34 weeks
+        // after the Sep 28 2025 anchor week — page index 34, not 35.
+        val anchor = LocalDate.parse("2025-09-28") // Sunday
+        val selected = LocalDate.parse("2026-05-26") // Tuesday
+
+        assertEquals(34, weekIndexOf(anchor, selected, DayOfWeek.SUNDAY))
+        // weeksBetween is a 1-based count for the same range
+        assertEquals(35, weeksBetween(anchor, selected, DayOfWeek.SUNDAY))
+    }
+
+    @Test
+    fun `weekIndexOf returns 0 for same-week target`() {
+        val sameWeekAnchor = LocalDate.parse("2026-05-24") // Sunday
+        val sameWeekTarget = LocalDate.parse("2026-05-26") // Tuesday
+
+        assertEquals(0, weekIndexOf(sameWeekAnchor, sameWeekTarget, DayOfWeek.SUNDAY))
+    }
+
+    @Test
     fun `weekStartDate aligns to first day of week`() {
         val anchor = LocalDate.parse("2026-05-26")
 

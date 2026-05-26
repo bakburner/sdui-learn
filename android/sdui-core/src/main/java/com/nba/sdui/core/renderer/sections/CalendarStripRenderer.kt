@@ -99,7 +99,7 @@ fun CalendarStripRenderer(
 
     val totalWeeks = weeksBetween(anchorDate, endDate, firstDayOfWeek)
         .coerceAtLeast(1)
-    val selectedWeekIndex = weeksBetween(anchorDate, selectedDate, firstDayOfWeek)
+    val selectedWeekIndex = weekIndexOf(anchorDate, selectedDate, firstDayOfWeek)
         .coerceIn(0, totalWeeks - 1)
 
     val pagerState = rememberPagerState(initialPage = selectedWeekIndex) { totalWeeks }
@@ -353,14 +353,32 @@ internal fun effectiveMaxDate(maxDate: LocalDate?, selectedDate: LocalDate): Loc
     return maxDate ?: selectedDate.plusMonths(6)
 }
 
+/**
+ * Number of weeks between {@code anchorDate} and {@code targetDate}, inclusive
+ * of both endpoints — i.e. the **count** of weeks. Same-week returns 1.
+ *
+ * Use this for total-page counts. For a 0-based page index, see [weekIndexOf].
+ */
 internal fun weeksBetween(
+    anchorDate: LocalDate,
+    targetDate: LocalDate,
+    firstDayOfWeek: DayOfWeek
+): Int {
+    return weekIndexOf(anchorDate, targetDate, firstDayOfWeek) + 1
+}
+
+/**
+ * 0-based index of {@code targetDate}'s week measured from {@code anchorDate}'s
+ * week. Same-week returns 0.
+ */
+internal fun weekIndexOf(
     anchorDate: LocalDate,
     targetDate: LocalDate,
     firstDayOfWeek: DayOfWeek
 ): Int {
     val anchorWeekStart = anchorDate.with(TemporalAdjusters.previousOrSame(firstDayOfWeek))
     val targetWeekStart = targetDate.with(TemporalAdjusters.previousOrSame(firstDayOfWeek))
-    return ChronoUnit.WEEKS.between(anchorWeekStart, targetWeekStart).toInt() + 1
+    return ChronoUnit.WEEKS.between(anchorWeekStart, targetWeekStart).toInt()
 }
 
 internal fun weekStartDate(

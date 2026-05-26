@@ -15,7 +15,7 @@
     "onDateSelected": {
       "trigger": "onActivate",
       "type": "refresh",
-      "endpoint": "/v1/sdui/screen/refresh/games",
+      "endpoint": "/v1/sdui/screen/games",
       "paramBindings": { "date": "{{games_selected_date}}" }
     }
   }

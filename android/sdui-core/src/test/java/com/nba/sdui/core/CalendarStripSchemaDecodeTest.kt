@@ -31,7 +31,7 @@ class CalendarStripSchemaDecodeTest {
         assertEquals("2026-06-30", data?.maxDate)
         assertEquals("onActivate", data?.onDateSelected?.trigger?.value)
         assertEquals("refresh", data?.onDateSelected?.type?.value)
-        assertEquals("/v1/sdui/screen/refresh/games", data?.onDateSelected?.endpoint)
+        assertEquals("/v1/sdui/screen/games", data?.onDateSelected?.endpoint)
         assertEquals("{{games_selected_date}}", data?.onDateSelected?.paramBindings?.get("date"))
     }
 
@@ -47,7 +47,7 @@ class CalendarStripSchemaDecodeTest {
                 "onDateSelected": {
                   "trigger": "onActivate",
                   "type": "refresh",
-                  "endpoint": "/v1/sdui/screen/refresh/games",
+                  "endpoint": "/v1/sdui/screen/games",
                   "paramBindings": { "date": "{{games_selected_date}}" }
                 }
               }
@@ -72,7 +72,7 @@ class CalendarStripSchemaDecodeTest {
                 "onDateSelected": {
                   "trigger": "onActivate",
                   "type": "refresh",
-                  "endpoint": "/v1/sdui/screen/refresh/games",
+                  "endpoint": "/v1/sdui/screen/games",
                   "paramBindings": { "date": "{{games_selected_date}}" }
                 }
               }
@@ -98,7 +98,7 @@ class CalendarStripSchemaDecodeTest {
                   {
                     "trigger": "onActivate",
                     "type": "refresh",
-                    "endpoint": "/v1/sdui/screen/refresh/games",
+                    "endpoint": "/v1/sdui/screen/games",
                     "paramBindings": { "date": "{{games_selected_date}}" }
                   }
                 ]

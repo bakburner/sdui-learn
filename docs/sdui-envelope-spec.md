@@ -52,7 +52,6 @@ GET /v1/sdui/screen/games?{canonical-query-string}
 GET /v1/sdui/screen/schedule?{canonical-query-string}
 GET /v1/sdui/screen/home?{canonical-query-string}
 GET /v1/sdui/screen/leaders?{canonical-query-string}
-GET /v1/sdui/screen/refresh/{handlerId}?{canonical-query-string}
 GET /v1/sdui/screen/init
 ```
 
@@ -138,11 +137,11 @@ Form `paramBindings`) always ride the URL query string regardless of method
 so the server reads them through `@RequestParam` on both paths.
 
 ```
-// GET (normal)
-GET /v1/sdui/screen/refresh/stats-leaders?perMode=Totals&season=2025-26&locale=en&...
+// GET (normal — parameterized re-composition via screen channel)
+GET /v1/sdui/screen/leaders?perMode=Totals&season=2025-26&locale=en&...
 
 // POST (oversized envelope)
-POST /v1/sdui/screen/refresh/stats-leaders?perMode=Totals&season=2025-26
+POST /v1/sdui/screen/leaders?perMode=Totals&season=2025-26
 Content-Type: application/json
 {
   "locale": "en",

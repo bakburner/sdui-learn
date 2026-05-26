@@ -11,36 +11,40 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
-import java.time.Clock;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * Composes the "Games" SDUI screen — all live, upcoming & final games.
+ * Composes the "Games" SDUI screen — live, upcoming & final games for a
+ * selected date.
  *
  * Layout:
- *   1. GamePanel (featured) – hero card for the top live game (SSE refresh)
- *   2. GameScheduleList     – "Live Now" compact list (SSE per-row clock countdown)
- *   3. GameScheduleList     – "Upcoming Today" (static)
- *   4. GameScheduleList     – "Final" (static)
+ *   0. CalendarStrip        – horizontal date picker; parameterized refresh
+ *   1. GameScheduleList     – "Live Now" compact list (SSE per-row clock countdown)
+ *   2. GameScheduleList     – "Upcoming" (static)
+ *   3. GameScheduleList     – "Final" (static)
  *
- * Live rows use per-game SSE channels bound via dataBinding so the LiveClock
- * element counts down in real-time. When the Ably/SSE channel delivers a
- * linescore frame, the client writes clock.isRunning=true and the clock starts
- * local interpolation.
+ * <p>The default date is the CDN scoreboard's authoritative {@code gameDate}
+ * field — the league's "current game day" already accounts for late-night
+ * roll-forward, so this is more meaningful than wall-clock midnight ET. The
+ * CalendarStrip drives a {@code refresh} action that re-runs composition with
+ * the selected ISO date: today's date reuses the already-fetched CDN
+ * scoreboard, other dates call the NBA Core API gameCardFeed endpoint. When
+ * no games exist for the selected date, only the CalendarStrip is rendered —
+ * no synthetic mock data is emitted.
+ *
+ * <p>Live rows use per-game SSE channels bound via {@code dataBinding} so the
+ * LiveClock element counts down in real-time. When the Ably/SSE channel delivers
+ * a linescore frame, the client writes {@code clock.isRunning=true} and the
+ * clock starts local interpolation.
  */
 @Component
 public class LiveComposer {
 
     private static final Logger log = LoggerFactory.getLogger(LiveComposer.class);
-
-    private static final ZoneId LEAGUE_ZONE = ZoneId.of("America/New_York");
-    private static final LocalDate SEASON_START = LocalDate.parse("2025-10-01");
-    private static final LocalDate SEASON_END = LocalDate.parse("2026-06-30");
 
     private final ObjectMapper objectMapper;
     private final StatsApiClient statsApiClient;
@@ -49,7 +53,7 @@ public class LiveComposer {
     private final AtomicCompositeBuilder atomicBuilder;
     private final SectionRefreshService sectionRefreshService;
     private final ParameterizedRefreshService parameterizedRefreshService;
-    private final Clock clock;
+    private final SeasonCalendarService seasonCalendarService;
 
     @Value("${sdui.schema.version:1.0}")
     private String schemaVersion;
@@ -60,18 +64,8 @@ public class LiveComposer {
                         SduiUtils utils,
                         SectionSurfaces surfaces,
                         SectionRefreshService sectionRefreshService,
-                        ParameterizedRefreshService parameterizedRefreshService) {
-        this(objectMapper, statsApiClient, utils, surfaces,
-                sectionRefreshService, parameterizedRefreshService, Clock.systemUTC());
-    }
-
-    LiveComposer(ObjectMapper objectMapper,
-                 StatsApiClient statsApiClient,
-                 SduiUtils utils,
-                 SectionSurfaces surfaces,
-                 SectionRefreshService sectionRefreshService,
-                 ParameterizedRefreshService parameterizedRefreshService,
-                 Clock clock) {
+                        ParameterizedRefreshService parameterizedRefreshService,
+                        SeasonCalendarService seasonCalendarService) {
         this.objectMapper = objectMapper;
         this.statsApiClient = statsApiClient;
         this.utils = utils;
@@ -79,7 +73,7 @@ public class LiveComposer {
         this.atomicBuilder = new AtomicCompositeBuilder(objectMapper);
         this.sectionRefreshService = sectionRefreshService;
         this.parameterizedRefreshService = parameterizedRefreshService;
-        this.clock = clock;
+        this.seasonCalendarService = seasonCalendarService;
     }
 
     @PostConstruct
@@ -95,7 +89,7 @@ public class LiveComposer {
                     }
                 }
             }
-            return liveGames.isEmpty() ? buildMockLiveScheduleList() : buildLiveScheduleList(liveGames);
+            return liveGames.isEmpty() ? buildEmptyLiveScheduleList() : buildLiveScheduleList(liveGames);
         });
 
         parameterizedRefreshService.registerResolver("games",
@@ -112,10 +106,14 @@ public class LiveComposer {
     /**
      * Compose the Games screen. When {@code selectedDateOverride} is non-null it
      * becomes the strip's selected date and the seeded screen state — used by the
-     * parameterized-refresh resolver on date tap. Existing game sections still
-     * compose from today's CDN scoreboard in PR 1.
+     * parameterized-refresh resolver on date tap.
      *
-     * TODO: PR 2 will partition game sections per-date using selectedDateOverride.
+     * <p>The override is parsed as a {@link LocalDate}. If it falls outside the
+     * season window or fails to parse, composition falls back to today's league
+     * date for both fetching and state echo — this resets the client's strip to
+     * today, which is safe because out-of-bounds dates can only arrive from
+     * unexpected deep links or forged requests (the strip's own minDate/maxDate
+     * prevents normal navigation outside the season).
      */
     public ObjectNode composeLive(String traceId, String locale, String selectedDateOverride) {
         log.info("Composing Games screen, locale={}, dateOverride={}", locale, selectedDateOverride);
@@ -127,9 +125,16 @@ public class LiveComposer {
         response.put("schemaVersion", schemaVersion);
         utils.applyTabDestinationNavigation(response, "games");
 
-        String defaultDate = currentLeagueDate().toString();
-        String selectedDate = (selectedDateOverride != null && !selectedDateOverride.isBlank())
-                ? selectedDateOverride : defaultDate;
+        // Always fetch the CDN today scoreboard first — it is the authoritative
+        // source for the league's current game date. The CDN's gameDate field
+        // already accounts for the league's roll-forward semantics (late-night
+        // games still count as the prior day until the league rolls over), so
+        // it produces a more meaningful default than wall-clock midnight ET.
+        JsonNode todayScoreboard = safeGetScoreboard();
+        LocalDate today = resolveTodayFromScoreboard(todayScoreboard);
+        String defaultDate = today.toString();
+        LocalDate fetchDate = resolveRequestedDate(selectedDateOverride, today);
+        String selectedDate = fetchDate.toString();
 
         ObjectNode state = objectMapper.createObjectNode();
         state.put("games_selected_date", selectedDate);
@@ -140,12 +145,16 @@ public class LiveComposer {
         // 0. CalendarStrip — date picker driving parameterized refresh
         sections.add(buildCalendarStripSection(selectedDate, defaultDate));
 
-        JsonNode scoreboard = safeGetScoreboard();
+        // Reuse the already-fetched CDN response when the selection is today;
+        // otherwise the Core API gameCardFeed serves per-date scoreboards.
+        JsonNode scoreboard = fetchDate.equals(today)
+                ? todayScoreboard
+                : safeGetScoreboardForDate(fetchDate);
         JsonNode games = (scoreboard != null)
                 ? scoreboard.path("scoreboard").path("games")
                 : objectMapper.createArrayNode();
 
-        // Partition games by status
+        // Partition games by status: 2=live, 1=upcoming, 3+=final.
         List<JsonNode> liveGames = new ArrayList<>();
         List<JsonNode> upcomingGames = new ArrayList<>();
         List<JsonNode> finishedGames = new ArrayList<>();
@@ -159,27 +168,16 @@ public class LiveComposer {
             }
         }
 
-        // 1. "Live Now" — compact schedule list with per-row SSE clock.
         if (!liveGames.isEmpty()) {
             sections.add(buildLiveScheduleList(liveGames));
         }
-
-        // 2. "Upcoming Today" — static schedule list.
         if (!upcomingGames.isEmpty()) {
             sections.add(buildScheduleList("upcoming-games", "upcoming_games",
-                    "Upcoming Today", upcomingGames, false));
+                    "Upcoming", upcomingGames, false));
         }
-
-        // 3. "Final" — static schedule list.
         if (!finishedGames.isEmpty()) {
             sections.add(buildScheduleList("final-games", "final_games",
                     "Final", finishedGames, false));
-        }
-
-        // No real data → fall back to mock schedule lists. No featured hero
-        // section is emitted on this screen in either path.
-        if (liveGames.isEmpty() && upcomingGames.isEmpty() && finishedGames.isEmpty()) {
-            addMockSections(sections);
         }
 
         response.set("sections", sections);
@@ -188,10 +186,66 @@ public class LiveComposer {
         return response;
     }
 
-    // ── League date ────────────────────────────────────────────────────
+    /**
+     * Read the authoritative "today" date from the CDN scoreboard payload's
+     * {@code scoreboard.gameDate} field. Falls back to the wall-clock ET date
+     * if the field is missing or unparseable (e.g. CDN call failed).
+     */
+    private LocalDate resolveTodayFromScoreboard(JsonNode todayScoreboard) {
+        if (todayScoreboard != null) {
+            String gameDate = todayScoreboard.path("scoreboard").path("gameDate").asText(null);
+            if (gameDate != null && !gameDate.isBlank()) {
+                try {
+                    return LocalDate.parse(gameDate);
+                } catch (Exception e) {
+                    log.warn("Could not parse scoreboard.gameDate='{}'; falling back to wall-clock today", gameDate);
+                }
+            }
+        }
+        return seasonCalendarService.currentLeagueDate();
+    }
 
-    LocalDate currentLeagueDate() {
-        return LocalDate.now(clock.withZone(LEAGUE_ZONE));
+    // ── Date resolution ─────────────────────────────────────────────────
+
+    /**
+     * Parse the user-requested date override and clamp to the season window.
+     *
+     * <p>Out-of-bounds dates are clamped to today's league date and a warning
+     * is logged. The strip's minDate/maxDate prevents normal navigation outside
+     * the season, so out-of-bounds means an unexpected deep link or forged
+     * request — resetting to today is the safe behavior (the echoed date in
+     * screen state resets the client's strip selection as well).
+     */
+    private LocalDate resolveRequestedDate(String selectedDateOverride, LocalDate today) {
+        if (selectedDateOverride == null || selectedDateOverride.isBlank()) {
+            return today;
+        }
+        try {
+            LocalDate parsed = LocalDate.parse(selectedDateOverride);
+            if (!seasonCalendarService.isInSeason(parsed)) {
+                log.warn("Requested date {} is outside season [{}, {}]; falling back to today ({})",
+                        parsed, seasonCalendarService.seasonStart(), seasonCalendarService.seasonEnd(), today);
+                return today;
+            }
+            return parsed;
+        } catch (Exception e) {
+            log.warn("Failed to parse selectedDateOverride='{}'; falling back to today ({}): {}",
+                    selectedDateOverride, today, e.getMessage());
+            return today;
+        }
+    }
+
+    /**
+     * Fetch scoreboard for the given date via {@link StatsApiClient#getScoreboardForDate}.
+     * Swallows exceptions so composition can fall through to the mock path.
+     */
+    private JsonNode safeGetScoreboardForDate(LocalDate date) {
+        try {
+            return statsApiClient.getScoreboardForDate(date);
+        } catch (Exception e) {
+            log.warn("Could not fetch scoreboard for date={}: {}", date, e.getMessage());
+            return null;
+        }
     }
 
     // ── CalendarStrip builder ────────────────────────────────────────────
@@ -214,13 +268,13 @@ public class LiveComposer {
         data.put("stateKey", "games_selected_date");
         data.put("selectedDate", selectedDate);
         data.put("defaultDate", defaultDate);
-        data.put("minDate", SEASON_START.toString());
-        data.put("maxDate", SEASON_END.toString());
+        data.put("minDate", seasonCalendarService.seasonStart().toString());
+        data.put("maxDate", seasonCalendarService.seasonEnd().toString());
 
         ObjectNode onDateSelected = objectMapper.createObjectNode();
         onDateSelected.put("trigger", "onActivate");
         onDateSelected.put("type", "refresh");
-        onDateSelected.put("endpoint", "/v1/sdui/screen/refresh/games");
+        onDateSelected.put("endpoint", "/v1/sdui/screen/games");
         ObjectNode paramBindings = objectMapper.createObjectNode();
         paramBindings.put("date", "{{games_selected_date}}");
         onDateSelected.set("paramBindings", paramBindings);
@@ -266,6 +320,31 @@ public class LiveComposer {
     }
 
     /**
+     * Empty live schedule list returned by the section-refresh resolver when
+     * all previously-live games have concluded. We can't emit SSE refresh on
+     * "no games", so the section drops back to a static poll so the client
+     * can keep checking. Composition will omit the section entirely on the
+     * next full screen fetch.
+     */
+    private ObjectNode buildEmptyLiveScheduleList() {
+        String contentSourceId = "stats-api:live-games";
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "GameScheduleList");
+
+        ObjectNode pollPolicy = objectMapper.createObjectNode();
+        pollPolicy.put("type", "poll");
+        pollPolicy.put("sectionEndpoint", "/v1/sdui/section/" + sectionId);
+        pollPolicy.put("intervalMs", 30_000);
+        pollPolicy.put("pauseWhenOffScreen", true);
+
+        ObjectNode section = atomicBuilder.buildGameScheduleList(
+                sectionId, "live_games", "Live Now", new String[0][],
+                pollPolicy, null);
+        section.put("contentSourceId", contentSourceId);
+        section.set("surface", surfaces.flushSurface());
+        return section;
+    }
+
+    /**
      * Build a static (or non-live) schedule list for upcoming / final games.
      * Uses the 3-arg SectionIdDeriver form because multiple schedule lists
      * share the same contentSourceId + sectionType (slug disambiguates).
@@ -285,78 +364,6 @@ public class LiveComposer {
         section.put("contentSourceId", contentSourceId);
         section.set("surface", surfaces.flushSurface());
         return section;
-    }
-
-    /**
-     * Mock sections for when the CDN scoreboard is unreachable. The Games
-     * screen has no featured hero in either the real-data or mock path —
-     * just schedule lists.
-     */
-    private void addMockSections(ArrayNode sections) {
-        sections.add(buildMockLiveScheduleList());
-
-        // Mock upcoming schedule list
-        String upcomingContentSourceId = "stats-api:scoreboard";
-        String upcomingSectionId = SectionIdDeriver.derive(upcomingContentSourceId, "GameScheduleList", "upcoming");
-
-        String[][] upcomingRows = {
-                {"mock-up-1", "MIL", "Bucks", null,
-                        null, SduiUtils.teamLogoUrl("1610612749"),
-                        "DEN", "Nuggets", null,
-                        null, SduiUtils.teamLogoUrl("1610612743"),
-                        "8:00 PM ET", null, null, "nba://game/mock-up-1", null},
-                {"mock-up-2", "DAL", "Mavericks", null,
-                        null, SduiUtils.teamLogoUrl("1610612742"),
-                        "MIA", "Heat", null,
-                        null, SduiUtils.teamLogoUrl("1610612748"),
-                        "10:00 PM ET", null, null, "nba://game/mock-up-2", null}
-        };
-        ObjectNode upcomingSection = atomicBuilder.buildGameScheduleList(
-                upcomingSectionId, "upcoming_games", "Upcoming Today", upcomingRows,
-                staticPolicy(), null);
-        upcomingSection.put("contentSourceId", upcomingContentSourceId);
-        upcomingSection.set("surface", surfaces.flushSurface());
-        sections.add(upcomingSection);
-    }
-
-    /**
-     * Mock "Live Now" schedule list — used both as the initial mock composition
-     * and as the section-refresh response when no real live games are available.
-     * Uses a poll sectionEndpoint instead of SSE so mock data never opens an
-     * Ably connection.
-     */
-    private ObjectNode buildMockLiveScheduleList() {
-        String liveContentSourceId = "stats-api:live-games";
-        String liveSectionId = SectionIdDeriver.derive(liveContentSourceId, "GameScheduleList");
-
-        String[][] liveRows = {
-                {"mock-live-1", "BOS", "Celtics", null,
-                        "72", SduiUtils.teamLogoUrl("1610612738"),
-                        "LAL", "Lakers", null,
-                        "68", SduiUtils.teamLogoUrl("1610612747"),
-                        "Q3 4:22", null, null, "nba://game/mock-live-1", null},
-                {"mock-live-2", "GSW", "Warriors", null,
-                        "31", SduiUtils.teamLogoUrl("1610612744"),
-                        "PHX", "Suns", null,
-                        "28", SduiUtils.teamLogoUrl("1610612756"),
-                        "Q1 9:15", null, null, "nba://game/mock-live-2", null}
-        };
-        Map<String, AtomicCompositeBuilder.GameClockSnapshot> mockClocks = new HashMap<>();
-        mockClocks.put("mock-live-1", mockClockSnapshotFromStatus("Q3 4:22"));
-        mockClocks.put("mock-live-2", mockClockSnapshotFromStatus("Q1 9:15"));
-
-        ObjectNode mockPollPolicy = objectMapper.createObjectNode();
-        mockPollPolicy.put("type", "poll");
-        mockPollPolicy.put("sectionEndpoint", "/v1/sdui/section/" + liveSectionId);
-        mockPollPolicy.put("intervalMs", 30_000);
-        mockPollPolicy.put("pauseWhenOffScreen", true);
-
-        ObjectNode liveSection = atomicBuilder.buildGameScheduleList(
-                liveSectionId, "live_games", "Live Now", liveRows,
-                mockPollPolicy, null, mockClocks);
-        liveSection.put("contentSourceId", liveContentSourceId);
-        liveSection.set("surface", surfaces.flushSurface());
-        return liveSection;
     }
 
     // ── Row conversion ─────────────────────────────────────────────────
@@ -474,35 +481,10 @@ public class LiveComposer {
                 AtomicCompositeBuilder.INITIAL_CLOCK_RUNNING);
     }
 
-    private AtomicCompositeBuilder.GameClockSnapshot mockClockSnapshotFromStatus(String statusText) {
-        int seconds = parseMockClockSeconds(statusText);
-        return new AtomicCompositeBuilder.GameClockSnapshot(
-                seconds,
-                java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString(),
-                AtomicCompositeBuilder.INITIAL_CLOCK_RUNNING);
-    }
-
     private static int parseGameClockSeconds(String iso) {
         if (iso == null || iso.isEmpty()) return 0;
         try {
             return (int) java.time.Duration.parse(iso).getSeconds();
-        } catch (Exception e) {
-            return 0;
-        }
-    }
-
-    private static int parseMockClockSeconds(String statusText) {
-        if (statusText == null) return 0;
-        int colon = statusText.lastIndexOf(':');
-        if (colon <= 0) return 0;
-        try {
-            int m = Integer.parseInt(statusText.substring(
-                    Math.max(0, colon - 2), colon).trim()
-                    .replaceAll("[^0-9]", ""));
-            int s = Integer.parseInt(statusText.substring(
-                    colon + 1, Math.min(statusText.length(), colon + 3)).trim()
-                    .replaceAll("[^0-9]", ""));
-            return m * 60 + s;
         } catch (Exception e) {
             return 0;
         }

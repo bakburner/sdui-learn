@@ -78,6 +78,7 @@ export function App(): React.ReactElement {
     upgradeRequired,
     refetch,
     setScreen,
+    replaceCurrentScreen,
     onSectionReplace,
     onSectionGone,
   } = useSduiScreen({
@@ -192,12 +193,13 @@ export function App(): React.ReactElement {
       state: screenState,
       onStateChange: handleStateChange,
       onRefresh: handleRefresh,
+      replaceCurrentScreen,
       onSectionUpdate: handleSectionUpdate,
       onSectionStale: handleSectionStale,
       onNavigate: handleUriNavigate,
     };
     executeActionSequence(actions, context);
-  }, [screenState, handleStateChange, handleRefresh, handleSectionUpdate, handleUriNavigate, handleSectionStale]);
+  }, [screenState, handleStateChange, handleRefresh, replaceCurrentScreen, handleSectionUpdate, handleUriNavigate, handleSectionStale]);
 
   const handleThemeToggle = useCallback(() => {
     setColorSchemePreference(colorScheme === 'dark' ? 'light' : 'dark');

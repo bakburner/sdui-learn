@@ -1303,6 +1303,67 @@ FUNCTION resolveEndpoint(uri):
 
 ---
 
+## 10a. Update Channels
+
+SDUI screens update through exactly two channels. Each channel has one URL
+family, one response shape, and one client-side application method.
+
+### Screen channel
+
+- **URL family:** `/v1/sdui/screen/{id}` with optional query params for
+  user-supplied filter state (e.g. `?date=2026-05-18`).
+- **Response:** a complete `Screen` object (`id`, `sections[]`, `state`,
+  `defaultRefreshPolicy`, etc.).
+- **Client semantic:** strict full-replace via `replaceCurrentScreen()`. The
+  response's `id` must match the current screen's `id`; mismatches are
+  contract violations (drop with warning log, do not apply).
+- **Covers:** initial loads, navigation, pull-to-refresh, screen-level
+  polling (`defaultRefreshPolicy`), parameterized re-composition (date
+  pickers, form submits, filters), and action-driven `refresh` targeting
+  the current screen.
+
+### Section channel
+
+- **URL family:** `/v1/sdui/section/{id}` (poll via `sectionEndpoint`) and
+  SSE via `refreshPolicy.channel`.
+- **Response:** a single `Section` object with `id` matching the requested
+  section (never a `Screen`, never a list).
+- **Client semantic:** replace that one section in place by `id`. All other
+  sections on the current screen are structurally untouched.
+- **Covers:** section-level polling, SSE-triggered section re-composition,
+  and live `dataBinding` patches.
+
+### No partial screen response
+
+There is no endpoint that returns a subset of a screen's sections.
+Structural changes to a screen's section list (insertions, removals,
+reorderings) always flow through the screen channel.
+
+### Current-params replay
+
+Every screen-channel fetch (pull-to-refresh, poll tick, action-driven
+`refresh` targeting the current screen) carries the screen's current query
+params. The user's parameterization (selected date, filter values, etc.) is
+preserved across refetches until the user explicitly changes it.
+
+### Poll-timer reset
+
+A successful screen-channel fetch resets the screen-level poll timer.
+Pull-to-refresh and action-driven refreshes must not cause a redundant
+double-fetch one tick later.
+
+### Client API expectation
+
+A conforming client exposes:
+- One method for the screen channel (`replaceCurrentScreen` or equivalent)
+  that full-replaces with same-id validation.
+- One method for the section channel (`replaceSection` or equivalent) that
+  replaces a single section by id.
+
+Both route through the shared `SduiRepository` fetch primitives (§11).
+
+---
+
 ## 11. Request Envelope
 
 Every composition request — initial loads, navigation, pull-to-refresh,
@@ -1765,3 +1826,7 @@ the rules in `AGENTS.md`.
 | C19 | `LiveClock` primitive ticks client-side from server-provided snapshot fields (`snapshotSeconds`, `snapshotAt`, `isRunning`, `tickDirection`, `stopAtSeconds`, `format`). Implements the tick-loop contract in §4c at ≥10Hz baseline, re-anchors on every SSE / poll update that rewrites `content.*`, renders with tabular-numeral typography | — |
 | C20 | Inside an `AtomicComposite`, leaf primitives with a `bindRef: string` dot-path resolve their canonical live field (Text → `content`, Button → `label`, Image → `src`, LiveClock → snapshot object) from `section.data.content`. `compositeContent` is threaded to descendants via the platform's implicit-context primitive (Environment / CompositionLocal / React context); missing paths fall back to inline values and never overwrite with null. See §4b | — |
 | C21 | `LayoutTokenResolver` resolves spacing, radius, typography, motion, and shadow token namespaces from a codegen-baked `LayoutTokenRegistry`; rotation/resize/split-screen/fold transitions within one `deviceClass` trigger zero network token fetches | — |
+| C22 | Implements screen-channel fetch with strict full-replace; validates response `id` against the current screen `id` before applying | §3.8, §10a |
+| C23 | Implements section-channel fetch (poll + SSE) with replace-by-id semantics — replaces only the matching section in place | §3.8, §10a |
+| C24 | Remembers the current screen's query params and replays them on pull-to-refresh, screen-level poll, and action-driven `refresh` targeting the current screen | §3.8, §10a |
+| C25 | Resets the screen-level poll timer on every successful screen-channel fetch | §3.8, §10a |

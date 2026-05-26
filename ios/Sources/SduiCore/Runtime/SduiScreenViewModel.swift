@@ -45,6 +45,12 @@ public final class SduiScreenViewModel {
     /// external consumers observe `loadState` / `title` instead.
     private(set) var screen: SduiModels?
 
+    /// User-supplied query params from the most recent screen-channel refresh
+    /// (e.g. `["date": "2026-05-18"]` after a CalendarStrip date selection).
+    /// Persists across pull-to-refresh and screen-level poll ticks so the
+    /// user's parameterization survives until explicitly changed.
+    private(set) var currentUserParams: [String: String] = [:]
+
     /// Last successfully loaded screen; retained when a later fetch fails so
     /// shell navigation and ``SduiModels/parentURI`` stay available for escape.
     private(set) var shellScreen: SduiModels?
@@ -188,11 +194,16 @@ public final class SduiScreenViewModel {
     // MARK: - Loading
 
     /// Kick off the initial fetch. Safe to call repeatedly (e.g. from
-    /// `.refreshable`).
+    /// `.refreshable`). Replays ``currentUserParams`` on every call so
+    /// pull-to-refresh and screen-level poll ticks preserve the user's
+    /// current parameterization (selected date, filter values, etc.).
     public func load() async {
         loadState = .loading
         do {
-            let result = try await repository.fetchScreen(endpoint: endpoint)
+            let result = try await repository.fetchScreen(
+                endpoint: endpoint,
+                userParams: currentUserParams
+            )
             applyScreen(result)
             loadState = .loaded
         } catch let err as SduiError where err == .upgradeRequired {
@@ -207,57 +218,55 @@ public final class SduiScreenViewModel {
         }
     }
 
-    /// Called by `ActionDispatcher` when a `refresh` action fires.
+    /// Screen-channel refresh: re-fetch a screen endpoint and full-replace
+    /// the current screen if the response `id` matches.
     ///
-    /// Parameterized refresh routes through the same `fetchScreen` transport as
-    /// the initial load so the request envelope, bracket-notation encoding,
-    /// length-based POST fallback, and `X-Trace-Id` correlation all carry over
-    /// uniformly. The response is always a full screen — section merging is
-    /// handled client-side by id (Android matches).
-    func refresh(sectionID: String?, endpoint explicitEndpoint: String?, resolvedParams: [String: String]) {
-        Task {
-            if let explicitEndpoint {
-                do {
-                    let refreshScreen = try await repository.fetchScreen(
-                        endpoint: explicitEndpoint,
-                        userParams: resolvedParams,
-                        traceID: screen?.traceID
-                    )
-                    await mergeRefreshedScreen(refreshScreen, targetSectionID: sectionID)
-                } catch {
-                    logger.error("parameterized refresh failed: \(error.localizedDescription, privacy: .public)")
-                    toasts.show(String(localized: "Couldn't refresh right now."), style: .error)
-                }
-            } else {
-                // Full-screen re-fetch; sectionID scoping handled on next poll/SSE tick.
-                await load()
+    /// Stores `userParams` as the screen's current parameterization so
+    /// subsequent ``load()`` calls (pull-to-refresh, screen-level poll)
+    /// replay them. Resets the screen-level poll timer on success because
+    /// `applyScreen` always cancels and restarts the timer.
+    ///
+    /// If the response id does not match the current screen, the payload is
+    /// dropped and a warning is logged — this is a server contract violation
+    /// (mirrors Android's strict same-id full-replace contract).
+    func replaceCurrentScreen(endpoint: String, userParams: [String: String]) async {
+        currentUserParams = userParams
+        do {
+            let refreshed = try await repository.fetchScreen(
+                endpoint: endpoint,
+                userParams: userParams,
+                traceID: screen?.traceID
+            )
+            guard let currentScreen = screen else {
+                applyScreen(refreshed)
+                return
             }
+            guard refreshed.id == currentScreen.id else {
+                logger.warning("Screen-channel response id '\(refreshed.id, privacy: .public)' does not match current screen id '\(currentScreen.id, privacy: .public)' — dropping (server contract violation)")
+                return
+            }
+            applyScreen(refreshed)
+        } catch {
+            logger.error("screen-channel refresh failed: \(error.localizedDescription, privacy: .public)")
+            toasts.show(String(localized: "Couldn't refresh right now."), style: .error)
         }
     }
 
-    /// Apply a parameterized-refresh response: surgical replace when the
-    /// target section is in the response, fall back to wholesale apply
-    /// otherwise. Mirrors Android's `refreshSections` merge semantics.
-    private func mergeRefreshedScreen(_ refreshed: SduiModels, targetSectionID: String?) async {
-        for (key, value) in refreshed.state ?? [:] {
-            screenState.set(key, value: value.value)
+    /// Section-channel refresh: re-fetch a single section and replace it
+    /// in place within the current screen. Other sections are structurally
+    /// untouched.
+    func replaceSection(sectionID: String, endpoint: String, userParams: [String: String] = [:]) async {
+        do {
+            let section = try await repository.fetchSection(
+                endpoint: endpoint,
+                traceID: screen?.traceID
+            )
+            await restartRealtimeForSection(sectionID, newSection: section)
+            replaceSectionInScreen(sectionID: sectionID, with: section)
+        } catch {
+            logger.error("section-channel refresh failed for \(sectionID, privacy: .public): \(error.localizedDescription, privacy: .public)")
+            toasts.show(String(localized: "Couldn't refresh right now."), style: .error)
         }
-
-        guard let current = screen else {
-            applyScreen(refreshed)
-            return
-        }
-
-        if let targetSectionID,
-           let updated = refreshed.sections.first(where: { $0.id == targetSectionID }),
-           let idx = current.sections.firstIndex(where: { $0.id == targetSectionID }) {
-            var merged = current.sections
-            merged[idx] = updated
-            screen = current.with(sections: merged)
-            return
-        }
-
-        applyScreen(refreshed)
     }
 
     // MARK: - Scene phase
@@ -290,6 +299,10 @@ public final class SduiScreenViewModel {
 
     /// Build the dispatcher for the current screen. ScreenShell holds the
     /// reference for the lifetime of the view.
+    ///
+    /// The `refreshHandler` closure routes to the screen channel or section
+    /// channel based on the endpoint's URL prefix. When no endpoint is
+    /// provided, it falls back to a full-screen re-fetch via ``load()``.
     func makeActionDispatcher() -> ActionDispatcher {
         ActionDispatcher(
             screenState: screenState,
@@ -298,9 +311,32 @@ public final class SduiScreenViewModel {
             analytics: analytics,
             impressions: impressions,
             refreshHandler: { [weak self] sectionID, endpoint, params in
-                self?.refresh(sectionID: sectionID, endpoint: endpoint, resolvedParams: params)
+                guard let self else { return }
+                guard let endpoint else {
+                    Task { await self.load() }
+                    return
+                }
+                if Self.isSectionEndpoint(endpoint) {
+                    if let sectionID {
+                        Task { await self.replaceSection(sectionID: sectionID, endpoint: endpoint, userParams: params) }
+                    } else {
+                        logger.warning("Section-channel refresh missing sectionID for endpoint \(endpoint, privacy: .public) — dropping")
+                    }
+                } else {
+                    Task { await self.replaceCurrentScreen(endpoint: endpoint, userParams: params) }
+                }
             }
         )
+    }
+
+    // MARK: - Endpoint classification
+
+    private static func isScreenEndpoint(_ endpoint: String) -> Bool {
+        endpoint.hasPrefix("/v1/sdui/screen/")
+    }
+
+    private static func isSectionEndpoint(_ endpoint: String) -> Bool {
+        endpoint.hasPrefix("/v1/sdui/section/")
     }
 
     // MARK: - Screen update

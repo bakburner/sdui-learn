@@ -94,7 +94,7 @@ describe('fetchSduiScreen — parameterized refresh transport', () => {
 
   it('routes /v1/sdui/* through the /api proxy and percent-encodes user params', async () => {
     await fetchSduiScreen({
-      endpoint: '/v1/sdui/refresh/stats-leaders',
+      endpoint: '/v1/sdui/screen/leaders',
       userParams: {
         perMode: 'Totals',
         season: '2025-26',
@@ -106,7 +106,7 @@ describe('fetchSduiScreen — parameterized refresh transport', () => {
     expect(captured).toHaveLength(1);
     const req = captured[0];
     expect(req.method).toBe('GET');
-    expect(req.url.startsWith('/api/v1/sdui/refresh/stats-leaders?')).toBe(true);
+    expect(req.url.startsWith('/api/v1/sdui/screen/leaders?')).toBe(true);
 
     const query = req.url.split('?')[1];
     expect(query).toContain('perMode=Totals');
@@ -122,7 +122,7 @@ describe('fetchSduiScreen — parameterized refresh transport', () => {
 
   it('sorts user params deterministically by key', async () => {
     await fetchSduiScreen({
-      endpoint: '/v1/sdui/screen/refresh/x',
+      endpoint: '/v1/sdui/screen/games',
       userParams: { zKey: 'z', aKey: 'a', mKey: 'm' },
     });
 
@@ -145,5 +145,39 @@ describe('fetchSduiScreen — parameterized refresh transport', () => {
 
     expect(refreshQuery.startsWith('k=v&')).toBe(true);
     expect(refreshQuery.slice('k=v&'.length)).toBe(screenQuery);
+  });
+
+  it('pull-to-refresh replays user params from a previous parameterized fetch', async () => {
+    // First fetch with user params (simulates a date-picker parameterized refresh)
+    await fetchSduiScreen({
+      endpoint: '/v1/sdui/screen/games',
+      userParams: { date: '2026-05-20' },
+    });
+    expect(captured).toHaveLength(1);
+    const firstQuery = captured[0].url.split('?')[1];
+    expect(firstQuery).toContain('date=2026-05-20');
+
+    // Second fetch with the same params (simulates pull-to-refresh replaying stored params)
+    captured.length = 0;
+    await fetchSduiScreen({
+      endpoint: '/v1/sdui/screen/games',
+      userParams: { date: '2026-05-20' },
+    });
+    expect(captured).toHaveLength(1);
+    const secondQuery = captured[0].url.split('?')[1];
+
+    // Both requests must have identical query strings (same params replayed)
+    expect(secondQuery).toBe(firstQuery);
+  });
+
+  it('parameterized refresh uses unified /v1/sdui/screen/ URL (no /refresh/ family)', async () => {
+    await fetchSduiScreen({
+      endpoint: '/v1/sdui/screen/games',
+      userParams: { date: '2026-05-20' },
+    });
+
+    const url = captured[0].url;
+    expect(url).toContain('/v1/sdui/screen/games');
+    expect(url).not.toContain('/screen/refresh/');
   });
 });

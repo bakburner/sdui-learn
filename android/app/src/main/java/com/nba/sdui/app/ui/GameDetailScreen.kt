@@ -79,7 +79,7 @@ fun GameDetailScreen(
                     viewModel.load(config.uri, result.target)
                 }
                 is ActionHandler.ActionResult.ParameterizedRefreshResult -> {
-                    viewModel.refreshSections(result.endpoint, result.params)
+                    viewModel.replaceCurrentScreen(result.endpoint, result.params)
                 }
                 is ActionHandler.ActionResult.ToastResult -> {
                     onShowToast(result.message)

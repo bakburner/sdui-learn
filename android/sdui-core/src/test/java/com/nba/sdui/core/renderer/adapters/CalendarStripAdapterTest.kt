@@ -26,7 +26,7 @@ class CalendarStripAdapterTest {
                 "onDateSelected": {
                   "trigger": "onActivate",
                   "type": "refresh",
-                  "endpoint": "/v1/sdui/screen/refresh/games",
+                  "endpoint": "/v1/sdui/screen/games",
                   "paramBindings": { "date": "{{games_selected_date}}" }
                 }
               }
@@ -43,7 +43,7 @@ class CalendarStripAdapterTest {
         assertEquals("2026-06-30", model?.maxDate)
         assertEquals("onActivate", model?.onDateSelected?.trigger)
         assertEquals("refresh", model?.onDateSelected?.type)
-        assertEquals("/v1/sdui/screen/refresh/games", model?.onDateSelected?.endpoint)
+        assertEquals("/v1/sdui/screen/games", model?.onDateSelected?.endpoint)
     }
 
     @Test
@@ -59,7 +59,7 @@ class CalendarStripAdapterTest {
                 "onDateSelected": {
                   "trigger": "onActivate",
                   "type": "refresh",
-                  "endpoint": "/v1/sdui/screen/refresh/games"
+                  "endpoint": "/v1/sdui/screen/games"
                 }
               }
             }

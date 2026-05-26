@@ -296,10 +296,17 @@ public class SduiUtils {
      * than {@code data.*}: leaf Text/LiveClock elements resolve their
      * value from {@code data.content} via {@code bindRef}, so writes
      * from the Ably payload land in the same dictionary the renderers
-     * consult. The {@code gameClock} mapping carries the whole
-     * {@code {snapshotSeconds, snapshotAt, isRunning}} snapshot so a
-     * single source field drives all three values a LiveClock leaf
-     * reads.
+     * consult.
+     *
+     * <p>Source paths must match the upstream linescore publisher's
+     * field names. The publisher emits {@code clock} (ISO-8601 duration
+     * string, e.g. {@code "PT00M00.70S"}) and {@code clockRunning}
+     * (boolean or string {@code "1"}/{@code "0"}) at the message root —
+     * matching the production NBA Android {@code AblyGame} model. The
+     * {@code liveClockSnapshot} transform reads the duration via the
+     * source path, falls back to the root for {@code clockRunning}, and
+     * writes the normalized {@code {snapshotSeconds, snapshotAt,
+     * isRunning}} tuple to {@code content.clock}.
      */
     public ObjectNode buildCompositeLinescoreBindings() {
         ObjectNode dataBinding = objectMapper.createObjectNode();
@@ -309,7 +316,7 @@ public class SduiUtils {
         bindings.add(bindingPath("$.awayTeam.score", "content.awayTeam.score"));
         bindings.add(bindingPath("$.gameStatusText", "content.gameStatusText"));
         bindings.add(bindingPath("$.period", "content.period"));
-        bindings.add(bindingPath("$.gameClock", "content.clock", "liveClockSnapshot"));
+        bindings.add(bindingPath("$.clock", "content.clock", "liveClockSnapshot"));
 
         dataBinding.set("bindings", bindings);
         return dataBinding;

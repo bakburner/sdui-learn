@@ -8,17 +8,20 @@ describe('applyDataBindings liveClockSnapshot transform', () => {
     const binding: DataBinding = {
       bindings: [
         {
-          sourcePath: '$.gameClock',
+          sourcePath: '$.clock',
           targetPath: 'content.clock',
           transform: Transform.LiveClockSnapshot,
         },
       ],
     };
 
+    // Mirrors the production NBA Ably linescore wire format: scalar
+    // ISO-8601 duration string at $.clock plus sibling `clockRunning`
+    // at the message root.
     const result = applyDataBindings(
       { content: { clock: { snapshotSeconds: 300, isRunning: false } } },
       binding,
-      { gameClock: 'PT04M32.00S', gameClockRunning: true },
+      { clock: 'PT04M32.00S', clockRunning: '1' },
     );
 
     const clock = result.content.clock as Record<string, unknown>;
@@ -31,7 +34,7 @@ describe('applyDataBindings liveClockSnapshot transform', () => {
     const binding: DataBinding = {
       bindings: [
         {
-          sourcePath: '$.gameClock',
+          sourcePath: '$.clock',
           targetPath: 'content.clock',
           transform: Transform.LiveClockSnapshot,
         },
@@ -41,7 +44,7 @@ describe('applyDataBindings liveClockSnapshot transform', () => {
     const result = applyDataBindings(
       { content: { clock: { snapshotSeconds: 300, isRunning: true } } },
       binding,
-      { gameClock: 'Q3 04:32' },
+      { clock: 'Q3 04:32' },
     );
 
     const clock = result.content.clock as Record<string, unknown>;
@@ -54,7 +57,7 @@ describe('applyDataBindings liveClockSnapshot transform', () => {
     const binding: DataBinding = {
       bindings: [
         {
-          sourcePath: '$.gameClock',
+          sourcePath: '$.clock',
           targetPath: 'content.clock',
           transform: 'futureTransformValue' as Transform,
         },
@@ -64,7 +67,7 @@ describe('applyDataBindings liveClockSnapshot transform', () => {
     const result = applyDataBindings(
       seeded,
       binding,
-      { gameClock: 'PT04M32.00S' },
+      { clock: 'PT04M32.00S' },
     );
 
     expect(result.content.clock).toEqual(seeded.content.clock);

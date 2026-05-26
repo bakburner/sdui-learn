@@ -476,7 +476,7 @@ public class GameDetailComposer {
                 ? new AtomicCompositeBuilder.GameClockSnapshot(
                         parseGameClockSeconds(game.path("gameClock").asText("")),
                         java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString(),
-                        AtomicCompositeBuilder.DEMO_INITIAL_CLOCK_RUNNING)
+                        AtomicCompositeBuilder.INITIAL_CLOCK_RUNNING)
                 : null;
 
         ObjectNode section = atomicBuilder.buildGamePanelComposite(

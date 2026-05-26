@@ -131,28 +131,44 @@ public class StatsApiClient {
         return null;
     }
     
+    // Akamai (cdn.nba.com) rejects non-browser User-Agents with 403. The CDN
+    // also requires Origin + Referer matching nba.com — minimum tested set
+    // that passes is UA + Origin + Referer; UA alone or UA + Origin still 403.
+    private static final String BROWSER_USER_AGENT =
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                    + "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    + "Chrome/124.0.0.0 Safari/537.36";
+    private static final String NBA_ORIGIN = "https://www.nba.com";
+    private static final String NBA_REFERER = "https://www.nba.com/";
+
     /**
      * Fetch from public CDN (no auth).
      */
     private JsonNode fetchCdnJson(String url) throws IOException {
         Request request = new Request.Builder()
                 .url(url)
-                .header("User-Agent", "SDUI-Prototype/1.0")
+                .header("User-Agent", BROWSER_USER_AGENT)
+                .header("Accept", "application/json,text/plain,*/*")
+                .header("Origin", NBA_ORIGIN)
+                .header("Referer", NBA_REFERER)
                 .build();
-        
+
         return executeRequest(request, url);
     }
-    
+
     /**
      * Fetch from Stats Trafficcop API (with OPIM subscription key).
      */
     private JsonNode fetchStatsApiJson(String url) throws IOException {
         Request request = new Request.Builder()
                 .url(url)
-                .header("User-Agent", "SDUI-Prototype/1.0")
+                .header("User-Agent", BROWSER_USER_AGENT)
+                .header("Accept", "application/json,text/plain,*/*")
+                .header("Origin", NBA_ORIGIN)
+                .header("Referer", NBA_REFERER)
                 .header("Ocp-Apim-Subscription-Key", subscriptionKey)
                 .build();
-        
+
         return executeRequest(request, url);
     }
     

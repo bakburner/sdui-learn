@@ -227,7 +227,7 @@
             "targetPath": "content.period"
           },
           {
-            "sourcePath": "$.gameClock",
+            "sourcePath": "$.clock",
             "targetPath": "content.clock"
           }
         ]

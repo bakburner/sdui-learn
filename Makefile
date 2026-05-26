@@ -29,10 +29,11 @@ IOS_SIM_NAME      ?= iPhone SE (3rd generation)
 IOS_DESTINATION   ?= platform=iOS Simulator,name=$(IOS_SIM_NAME),OS=latest
 # DEV_IOS_SIM_NAME is used by dev-ios-local / dev-ios-remote only.
 DEV_IOS_SIM_NAME  ?= iPhone 17 Pro
-# Set SDUI_DISABLE_ABLY=0 on the command line to re-enable ably-cocoa
-# (only works on arm64 simulators; x86_64 simulators hit the ably module
-# map bug and must keep the default of 1).
-SDUI_DISABLE_ABLY ?= 1
+# Default 0 (Ably ENABLED) for arm64 hosts and arm64 iOS simulators.
+# On x86_64 hosts (Intel Macs) the ably-cocoa SPM module map fails on
+# the iOS simulator slice, so set SDUI_DISABLE_ABLY=1 on the command line
+# to compile in the no-op stub: `make dev-ios-local SDUI_DISABLE_ABLY=1`.
+SDUI_DISABLE_ABLY ?= 0
 XCBEAUTIFY        := $(shell command -v xcbeautify 2>/dev/null)
 ifeq ($(XCBEAUTIFY),)
     IOS_PIPE := cat
@@ -144,7 +145,7 @@ _dev-android:
 	@$(ADB) shell am force-stop com.nba.sdui.app 2>/dev/null || true
 	@$(ADB) shell am start -n com.nba.sdui.app/.MainActivity
 	@echo "=== Tailing logs (Ctrl-C to stop) ==="
-	@sleep 3 && $(ADB) logcat --pid=$$($(ADB) shell pidof com.nba.sdui.app) -s SduiScreenViewModel:* SectionRouter:* ActionHandler:* FormRenderer:* AblyChannelManager:* DataBindingResolver:* SduiRepository:* SDUI:* AndroidRuntime:E *:F
+	@sleep 3 && $(ADB) logcat --pid=$$($(ADB) shell pidof com.nba.sdui.app) -s SduiScreenViewModel:* SduiScreenController:* SectionRouter:* ActionHandler:* FormRenderer:* AblyChannelManager:* DataBindingResolver:* SduiRepository:* SDUI:* AndroidRuntime:E *:F
 
 # ── Stop targets ─────────────────────────────────────────────
 stop: stop-server stop-web stop-android

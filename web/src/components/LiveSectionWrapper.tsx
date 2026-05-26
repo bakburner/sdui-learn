@@ -86,23 +86,34 @@ export function LiveSectionWrapper({
     setLiveData((currentData) => {
       if (!currentData) return currentData;
 
-      // If we have data bindings, apply them to map incoming -> section data
-      if (hasDataBindings && section.dataBinding) {
-        const updated = applyDataBindings(
-          currentData as Record<string, unknown>,
-          section.dataBinding,
-          incomingPayload as Record<string, unknown>,
-          (section as Record<string, unknown>).stringTable as Record<string, string> | undefined,
-          section.id,
-          traceId
-        );
-        return updated as Data;
-      }
+      // Per-message isolation: a thrown exception inside applyDataBindings
+      // (or the shallow-merge branch below) must not propagate out of
+      // setLiveData, which would unmount the component tree via React's
+      // error boundary path and silently end this section's subscription.
+      // Catch here so the next message still gets a chance.
+      try {
+        if (hasDataBindings && section.dataBinding) {
+          const updated = applyDataBindings(
+            currentData as Record<string, unknown>,
+            section.dataBinding,
+            incomingPayload as Record<string, unknown>,
+            (section as Record<string, unknown>).stringTable as Record<string, string> | undefined,
+            section.id,
+            traceId
+          );
+          return updated as Data;
+        }
 
-      // If no bindings, try to merge incoming payload directly
-      // (assumes incoming payload has same shape as section.data)
-      if (typeof incomingPayload === 'object' && incomingPayload !== null) {
-        return { ...currentData, ...incomingPayload } as Data;
+        // If no bindings, try to merge incoming payload directly
+        // (assumes incoming payload has same shape as section.data)
+        if (typeof incomingPayload === 'object' && incomingPayload !== null) {
+          return { ...currentData, ...incomingPayload } as Data;
+        }
+      } catch (err) {
+        console.error(
+          `[LiveSectionWrapper] Failed to apply update for ${section.id} (subscription stays open):`,
+          err,
+        );
       }
 
       return currentData;
@@ -167,20 +178,28 @@ export function useLiveData(
     setLiveData((currentData) => {
       if (!currentData) return currentData;
 
-      if (hasDataBindings && section.dataBinding) {
-        const updated = applyDataBindings(
-          currentData as Record<string, unknown>,
-          section.dataBinding,
-          incomingPayload as Record<string, unknown>,
-          (section as Record<string, unknown>).stringTable as Record<string, string> | undefined,
-          section.id,
-          traceId
-        );
-        return updated as Data;
-      }
+      // Per-message isolation: see LiveSectionWrapper.handleUpdate above.
+      try {
+        if (hasDataBindings && section.dataBinding) {
+          const updated = applyDataBindings(
+            currentData as Record<string, unknown>,
+            section.dataBinding,
+            incomingPayload as Record<string, unknown>,
+            (section as Record<string, unknown>).stringTable as Record<string, string> | undefined,
+            section.id,
+            traceId
+          );
+          return updated as Data;
+        }
 
-      if (typeof incomingPayload === 'object' && incomingPayload !== null) {
-        return { ...currentData, ...incomingPayload } as Data;
+        if (typeof incomingPayload === 'object' && incomingPayload !== null) {
+          return { ...currentData, ...incomingPayload } as Data;
+        }
+      } catch (err) {
+        console.error(
+          `[useLiveData] Failed to apply update for ${section.id} (subscription stays open):`,
+          err,
+        );
       }
 
       return currentData;

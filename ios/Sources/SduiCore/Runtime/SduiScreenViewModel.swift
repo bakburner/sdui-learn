@@ -459,10 +459,24 @@ public final class SduiScreenViewModel {
             guard let self else { return }
             let stream = await self.ably.subscribe(channelName: channelName)
             for await message in stream {
-                // Drop messages arriving for offscreen sections — polling
-                // will resync on re-entry.
-                if await self.ably.isChannelVisible(channelName) == false { continue }
-                await self.handleAblyMessage(sectionID: sectionID, message: message)
+                // Per-message isolation: a single bad payload (e.g. a binding
+                // that resolves to a value the renderer can't decode) must
+                // not let the for-await loop terminate, which would silently
+                // end this section's subscription and stop every subsequent
+                // tick. Catch here so the next message still gets a chance.
+                // CancellationError is rethrown so cooperative cancellation
+                // from `cancelAllAbly()` / restart still works.
+                do {
+                    try Task.checkCancellation()
+                    // Drop messages arriving for offscreen sections — polling
+                    // will resync on re-entry.
+                    if await self.ably.isChannelVisible(channelName) == false { continue }
+                    await self.handleAblyMessage(sectionID: sectionID, message: message)
+                } catch is CancellationError {
+                    return
+                } catch {
+                    logger.error("Ably message apply failed for section=\(sectionID, privacy: .public) (subscription stays open): \(error.localizedDescription, privacy: .public)")
+                }
             }
         }
 

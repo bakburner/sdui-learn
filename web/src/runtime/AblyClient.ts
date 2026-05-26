@@ -61,13 +61,25 @@ export function subscribeToChannel(channelName: string, onMessage: MessageCallba
   activeChannels.set(channelName, channel);
 
   const listener = (message: Ably.Message) => {
+    let data: unknown;
     try {
-      const data = typeof message.data === 'string' ? JSON.parse(message.data) : message.data;
-      if (data && typeof data === 'object') {
-        onMessage(data as Record<string, unknown>);
-      }
+      data = typeof message.data === 'string' ? JSON.parse(message.data) : message.data;
     } catch (err) {
       console.error(`[Ably] Failed to parse message on ${channelName}:`, err);
+      return;
+    }
+    if (!data || typeof data !== 'object') return;
+    // Per-message isolation: a single bad payload (e.g. a binding that
+    // throws inside applyDataBindings) must not propagate out of the
+    // listener. Ably's web SDK doesn't unsubscribe on a throwing
+    // listener, but a leaked exception here would still surface as a
+    // misleading "Failed to parse message" log under the prior
+    // catch-all. Splitting the catch keeps parse failures and caller
+    // failures distinguishable in the console.
+    try {
+      onMessage(data as Record<string, unknown>);
+    } catch (err) {
+      console.error(`[Ably] Listener threw while handling message on ${channelName} (subscription stays open):`, err);
     }
   };
 

@@ -43,6 +43,8 @@ final class DataBindingApplier {
     ) -> [String: Any] {
         guard let bindings = dataBinding.bindings else { return currentData }
 
+        logger.debug("Applying \(bindings.count) bindings, traceId=\(traceID ?? "-", privacy: .public)")
+
         var output = currentData
         for binding in bindings {
             do {
@@ -58,8 +60,12 @@ final class DataBindingApplier {
                    let table = stringTable,
                    let resolved = table[key] {
                     setValue(resolved, at: binding.targetPath, in: &output)
+                    logger.debug("Applied binding: \(binding.sourcePath, privacy: .public) -> \(binding.targetPath, privacy: .public) = \(Self.describe(resolved), privacy: .public) [stringKey=\(key, privacy: .public)], traceId=\(traceID ?? "-", privacy: .public)")
                 } else if let key = dataBinding.stringKeys?[binding.targetPath], stringTable == nil {
                     logger.warning("stringKey '\(key, privacy: .public)' present but no stringTable for section=\(sectionID ?? "?", privacy: .public)")
+                } else {
+                    let applied = Self.valueAt(path: binding.targetPath, in: output)
+                    logger.debug("Applied binding: \(binding.sourcePath, privacy: .public) -> \(binding.targetPath, privacy: .public) = \(Self.describe(applied), privacy: .public), traceId=\(traceID ?? "-", privacy: .public)")
                 }
             } catch {
                 // `applyOne` already bumps `consecutiveMisses` on a miss before
@@ -69,6 +75,26 @@ final class DataBindingApplier {
             }
         }
         return output
+    }
+
+    private static func describe(_ value: Any?) -> String {
+        guard let value, !(value is NSNull) else { return "nil" }
+        if let string = value as? String { return "\"\(string)\"" }
+        if let dict = value as? [String: Any] {
+            let pairs = dict.keys.sorted().map { key in "\(key)=\(describe(dict[key] ?? NSNull()))" }
+            return "{" + pairs.joined(separator: ", ") + "}"
+        }
+        return String(describing: value)
+    }
+
+    private static func valueAt(path: String, in dict: [String: Any]) -> Any? {
+        let parts = path.split(separator: ".").map(String.init)
+        var current: Any? = dict
+        for part in parts {
+            guard let node = current as? [String: Any] else { return nil }
+            current = node[part]
+        }
+        return current
     }
 
     /// Consecutive-miss counter for `sectionID:sourcePath`. Exposed for the

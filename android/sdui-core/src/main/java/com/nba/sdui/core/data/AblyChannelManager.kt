@@ -170,7 +170,10 @@ class AblyChannelManager(
             try {
                 val parsed = parseMessage(message)
                 if (parsed != null) {
+                    Log.d(TAG, "Raw payload on $channelName: ${prettyJson(parsed)}")
                     trySend(parsed)
+                } else {
+                    Log.w(TAG, "Dropping non-dictionary payload on $channelName raw=${describeRaw(message.data)}")
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to parse message", e)
@@ -230,5 +233,28 @@ class AblyChannelManager(
             Log.e(TAG, "Failed to parse message payload", e)
             null
         }
+    }
+
+    /**
+     * Pretty-print the parsed payload as JSON for the debug log. Falls back
+     * to `toString()` on serialization failure so logging never crashes the
+     * subscription path.
+     */
+    private fun prettyJson(payload: Map<String, Any?>): String = try {
+        objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(payload)
+    } catch (e: Exception) {
+        payload.toString()
+    }
+
+    /**
+     * Format the raw message payload for the "non-dictionary" warning so
+     * we can see what shape the publisher actually delivered when the
+     * String / Map branches both miss.
+     */
+    private fun describeRaw(data: Any?): String = when (data) {
+        null -> "nil"
+        is String -> "string=${data.take(200)}"
+        is ByteArray -> "bytes=${String(data.take(200).toByteArray())}"
+        else -> "type=${data::class.java.simpleName} value=${data.toString().take(200)}"
     }
 }

@@ -293,18 +293,23 @@ public class ForYouComposer {
 
     /**
      * Per-card linescore bindings for the live hero card. Targets the
-     * section's {@code cards.<heroCardId>.*} state — the same keys the
-     * rendered Text leaves resolve via {@code bindRef}.
+     * section's {@code content.cards.<heroCardId>.*} state — the same
+     * keys the rendered Text leaves resolve via {@code bindRef}, which
+     * is evaluated against {@code section.data.content}. Target paths
+     * must include the {@code content.} prefix because the resolver
+     * writes them literally into {@code section.data}; a path without
+     * the prefix lands at {@code section.data.cards.X.…}, a sibling
+     * of {@code data.content} that no leaf reads.
      */
     private ObjectNode buildHeroLinescoreBindings(String heroCardId) {
         ObjectNode dataBinding = objectMapper.createObjectNode();
         ArrayNode bindings = objectMapper.createArrayNode();
         bindings.add(utils.bindingPath("$.awayTeam.score",
-                "cards." + heroCardId + ".awayScore"));
+                "content.cards." + heroCardId + ".awayScore"));
         bindings.add(utils.bindingPath("$.homeTeam.score",
-                "cards." + heroCardId + ".homeScore"));
+                "content.cards." + heroCardId + ".homeScore"));
         bindings.add(utils.bindingPath("$.gameStatusText",
-                "cards." + heroCardId + ".statusText"));
+                "content.cards." + heroCardId + ".statusText"));
         dataBinding.set("bindings", bindings);
         return dataBinding;
     }

@@ -19,6 +19,7 @@ import com.nba.sdui.core.state.SduiAction
 import com.nba.sdui.core.state.SectionVisibilityTracker
 import com.nba.sdui.core.state.StateManager
 import io.ably.lib.realtime.ConnectionState
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.currentCoroutineContext
@@ -610,26 +611,40 @@ internal class SduiScreenController(
         ablyJobs[section.id] = scope.launch {
             try {
                 ablyChannelManager?.subscribeToChannel(channel)?.collect { message ->
-                    Log.d(TAG, "Ably update for ${section.id}: keys=${message.keys}")
-                    // Successful message — clear section staleness
-                    _staleSections.value = _staleSections.value - section.id
+                    // Per-message isolation: a single bad payload (e.g. a binding
+                    // that writes a shape the Data model can't round-trip) must
+                    // not propagate out of `collect`, end the launch, and fire
+                    // `awaitClose` — that would silently unsubscribe and stop
+                    // every subsequent tick. Catch here so the next message
+                    // still gets a chance.
+                    try {
+                        Log.d(TAG, "Ably update for ${section.id}: keys=${message.keys}")
+                        _staleSections.value = _staleSections.value - section.id
 
-                    // Gate: skip applying bindings if app is backgrounded or section is off-screen
-                    val isForeground = _isAppForeground.value
-                    val isVisible = !shouldPause || visibilityTracker.isNearViewport(section.id)
+                        val isForeground = _isAppForeground.value
+                        val isVisible = !shouldPause || visibilityTracker.isNearViewport(section.id)
 
-                    if (!isForeground || !isVisible) {
-                        val now = System.currentTimeMillis()
-                        sseMessageBuffer[section.id] = BufferedSseEntry(message, now)
-                        pruneExpiredSseBuffer(now)
-                        Log.d(TAG, "SSE message buffered for ${section.id} (fg=$isForeground, vis=$isVisible)")
-                        return@collect
+                        if (!isForeground || !isVisible) {
+                            val now = System.currentTimeMillis()
+                            sseMessageBuffer[section.id] = BufferedSseEntry(message, now)
+                            pruneExpiredSseBuffer(now)
+                            Log.d(TAG, "SSE message buffered for ${section.id} (fg=$isForeground, vis=$isVisible)")
+                            return@collect
+                        }
+
+                        applyAblyMessage(section, message)
+                    } catch (e: CancellationException) {
+                        // Cooperative cancellation — let it propagate so the
+                        // job actually stops when stopAbly() / restart fires.
+                        throw e
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Ably message apply failed for ${section.id} (subscription stays open)", e)
                     }
-
-                    applyAblyMessage(section, message)
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
-                Log.e(TAG, "Ably error for ${section.id}", e)
+                Log.e(TAG, "Ably stream error for ${section.id}", e)
             }
         }
 

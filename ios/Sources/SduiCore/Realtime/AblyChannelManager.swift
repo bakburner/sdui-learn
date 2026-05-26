@@ -131,11 +131,18 @@ actor AblyChannelManager {
         let realtime = ARTRealtime(options: options)
         realtime.connection.on { [weak self] stateChange in
             guard let self else { return }
+            logger.debug("Ably connection state: \(Self.describe(stateChange.current), privacy: .public)")
             let mapped: ConnectionState
             switch stateChange.current {
-            case .connected: mapped = .connected
-            case .disconnected, .suspended: mapped = .disconnected
-            case .failed: mapped = .failed(message: stateChange.reason?.message)
+            case .connected:
+                logger.info("Ably connected")
+                mapped = .connected
+            case .disconnected, .suspended:
+                logger.warning("Ably disconnected: \(Self.describe(stateChange.current), privacy: .public)")
+                mapped = .disconnected
+            case .failed:
+                logger.error("Ably connection failed: \(stateChange.reason?.message ?? "?", privacy: .public)")
+                mapped = .failed(message: stateChange.reason?.message)
             default: mapped = .other
             }
             Task { await self.broadcastConnection(mapped) }
@@ -170,14 +177,17 @@ actor AblyChannelManager {
             return AsyncStream { $0.finish() }
         }
 
+        logger.debug("Subscribing to channel: \(channelName, privacy: .public)")
+
         let channel = client.channels.get(channelName)
         channels[channelName] = channel
 
         channel.on { stateChange in
+            logger.debug("Channel \(channelName, privacy: .public) state: \(Self.describe(stateChange.current), privacy: .public)")
             switch stateChange.current {
-            case .attached: logger.info("channel attached \(channelName, privacy: .public)")
-            case .detached: logger.warning("channel detached \(channelName, privacy: .public)")
-            case .failed: logger.error("channel failed \(channelName, privacy: .public) reason=\(stateChange.reason?.message ?? "?", privacy: .public)")
+            case .attached: logger.info("Channel attached: \(channelName, privacy: .public)")
+            case .detached: logger.warning("Channel detached: \(channelName, privacy: .public)")
+            case .failed: logger.error("Channel failed: \(channelName, privacy: .public) reason=\(stateChange.reason?.message ?? "?", privacy: .public)")
             default: break
             }
         }
@@ -185,10 +195,12 @@ actor AblyChannelManager {
         return AsyncStream { continuation in
             let listener = channel.subscribe { [weak self, channelName] message in
                 guard self != nil else { return }
+                logger.debug("Received message on \(channelName, privacy: .public): \(message.name ?? "?", privacy: .public)")
                 guard let payload = Self.parseMessage(message) else {
-                    logger.warning("dropping non-dictionary payload on \(channelName, privacy: .public)")
+                    logger.warning("Dropping non-dictionary payload on \(channelName, privacy: .public) raw=\(Self.describeRaw(message.data), privacy: .public)")
                     return
                 }
+                logger.debug("Raw payload on \(channelName, privacy: .public): \(Self.prettyJSON(payload), privacy: .public)")
                 continuation.yield(payload)
             }
 
@@ -224,11 +236,39 @@ actor AblyChannelManager {
     }
 
     private func tearDown(channelName: String) {
+        logger.debug("Unsubscribing from channel: \(channelName, privacy: .public)")
         if let listener = subscriptions.removeValue(forKey: channelName),
            let channel = channels[channelName] {
             channel.unsubscribe(listener)
         }
         channels.removeValue(forKey: channelName)
+    }
+
+    private static func describe(_ state: ARTRealtimeChannelState) -> String {
+        switch state {
+        case .initialized: return "initialized"
+        case .attaching: return "attaching"
+        case .attached: return "attached"
+        case .detaching: return "detaching"
+        case .detached: return "detached"
+        case .suspended: return "suspended"
+        case .failed: return "failed"
+        @unknown default: return "unknown"
+        }
+    }
+
+    private static func describe(_ state: ARTRealtimeConnectionState) -> String {
+        switch state {
+        case .initialized: return "initialized"
+        case .connecting: return "connecting"
+        case .connected: return "connected"
+        case .disconnected: return "disconnected"
+        case .suspended: return "suspended"
+        case .closing: return "closing"
+        case .closed: return "closed"
+        case .failed: return "failed"
+        @unknown default: return "unknown"
+        }
     }
 
     private func registerConnectionContinuation(id: UUID, continuation: AsyncStream<ConnectionState>.Continuation) {
@@ -257,6 +297,31 @@ actor AblyChannelManager {
         default:
             return nil
         }
+    }
+
+    /// Pretty-print a parsed payload as JSON for the debug log. Falls back
+    /// to `String(describing:)` if `JSONSerialization` rejects the dict
+    /// (which can happen if Ably surfaces a value type that isn't directly
+    /// JSON-encodable).
+    private static func prettyJSON(_ payload: [String: Any]) -> String {
+        if JSONSerialization.isValidJSONObject(payload),
+           let data = try? JSONSerialization.data(withJSONObject: payload, options: [.prettyPrinted, .sortedKeys]),
+           let string = String(data: data, encoding: .utf8) {
+            return string
+        }
+        return String(describing: payload)
+    }
+
+    /// Format the raw message payload for the "non-dictionary" warning so
+    /// we can see what shape the publisher actually delivered when the
+    /// usual `[String: Any]` / String / Data branches all miss.
+    private static func describeRaw(_ data: Any?) -> String {
+        guard let data else { return "nil" }
+        if let str = data as? String { return "string=\(str.prefix(200))" }
+        if let bytes = data as? Data {
+            return "data=\(String(data: bytes.prefix(200), encoding: .utf8) ?? "<\(bytes.count) bytes>")"
+        }
+        return "type=\(type(of: data)) value=\(String(describing: data).prefix(200))"
     }
 
     /// The NBA identity endpoint wraps tokens as

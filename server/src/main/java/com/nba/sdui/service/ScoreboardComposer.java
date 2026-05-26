@@ -137,7 +137,7 @@ public class ScoreboardComposer {
             clock = new AtomicCompositeBuilder.GameClockSnapshot(
                     parseGameClockSeconds(game.path("gameClock").asText("")),
                     java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString(),
-                    AtomicCompositeBuilder.DEMO_INITIAL_CLOCK_RUNNING);
+                    AtomicCompositeBuilder.INITIAL_CLOCK_RUNNING);
         } else {
             refreshPolicy = objectMapper.createObjectNode().put("type", "static");
         }

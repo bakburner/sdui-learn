@@ -145,12 +145,15 @@ final class DataBindingApplierTests: XCTestCase {
     func testLiveClockSnapshotTransformAnchorsIncomingClock() {
         let applier = DataBindingApplier()
         let binding = DataBinding(
-            bindings: [DataBindingPath(sourcePath: "$.gameClock", targetPath: "content.clock", transform: .liveClockSnapshot)],
+            bindings: [DataBindingPath(sourcePath: "$.clock", targetPath: "content.clock", transform: .liveClockSnapshot)],
             stringKeys: nil
         )
+        // Mirrors the production NBA Ably linescore wire format:
+        // scalar ISO-8601 duration string at $.clock plus sibling
+        // `clockRunning` at the message root.
         let incoming: [String: Any] = [
-            "gameClock": "PT04M32.00S",
-            "gameClockRunning": true
+            "clock": "PT04M32.00S",
+            "clockRunning": "1"
         ]
 
         let result = applier.applyBindings(

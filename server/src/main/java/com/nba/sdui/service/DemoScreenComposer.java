@@ -323,7 +323,7 @@ public class DemoScreenComposer {
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         AtomicCompositeBuilder.GameClockSnapshot clock = new AtomicCompositeBuilder.GameClockSnapshot(
                 4 * 60 + 32, java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString(),
-                AtomicCompositeBuilder.DEMO_INITIAL_CLOCK_RUNNING);
+                AtomicCompositeBuilder.INITIAL_CLOCK_RUNNING);
         ObjectNode section = atomicBuilder.buildGamePanelComposite(
                 sectionId,
                 "demo_game_panel_scoreboard",
@@ -760,7 +760,7 @@ public class DemoScreenComposer {
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         AtomicCompositeBuilder.GameClockSnapshot clock = new AtomicCompositeBuilder.GameClockSnapshot(
                 2 * 60 + 15, java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString(),
-                AtomicCompositeBuilder.DEMO_INITIAL_CLOCK_RUNNING);
+                AtomicCompositeBuilder.INITIAL_CLOCK_RUNNING);
         ObjectNode section = atomicBuilder.buildGamePanelComposite(
                 sectionId,
                 "demo_featured_game_panel",

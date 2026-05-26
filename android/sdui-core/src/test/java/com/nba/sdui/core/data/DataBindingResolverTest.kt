@@ -46,7 +46,7 @@ class DataBindingResolverTest {
         val binding = DataBinding(
             bindings = listOf(
                 DataBindingPath(
-                    sourcePath = "$.gameClock",
+                    sourcePath = "$.clock",
                     targetPath = "content.clock",
                     transform = Transform.LiveClockSnapshot
                 )
@@ -54,9 +54,12 @@ class DataBindingResolverTest {
             stringKeys = null
         )
 
+        // Mirrors the production NBA Ably linescore wire format: scalar
+        // ISO-8601 duration string at $.clock plus sibling `clockRunning`
+        // at the message root (matches AblyGame.kt in the production app).
         val incoming = mapOf(
-            "gameClock" to "PT04M32.00S",
-            "gameClockRunning" to true
+            "clock" to "PT04M32.00S",
+            "clockRunning" to "1"
         )
         val current = mapOf(
             "content" to mapOf(
@@ -90,7 +93,7 @@ class DataBindingResolverTest {
         val binding = DataBinding(
             bindings = listOf(
                 DataBindingPath(
-                    sourcePath = "$.gameClock",
+                    sourcePath = "$.clock",
                     targetPath = "content.clock",
                     transform = Transform.LiveClockSnapshot
                 )
@@ -98,7 +101,7 @@ class DataBindingResolverTest {
             stringKeys = null
         )
 
-        val incoming = mapOf("gameClock" to "Q3 04:32")
+        val incoming = mapOf("clock" to "Q3 04:32")
         val current = mapOf(
             "content" to mapOf(
                 "clock" to mapOf(

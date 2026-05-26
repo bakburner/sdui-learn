@@ -108,15 +108,23 @@ public class LiveComposer {
         // 1. Featured game — hero card for top live game (SSE refresh)
         JsonNode heroGame = !liveGames.isEmpty() ? liveGames.get(0)
                 : (!upcomingGames.isEmpty() ? upcomingGames.get(0) : null);
+        boolean heroIsLive = heroGame != null && !liveGames.isEmpty()
+                && heroGame == liveGames.get(0);
         if (heroGame != null) {
             sections.add(buildFeaturedGamePanel(heroGame));
         } else {
             sections.add(buildMockFeaturedGame());
         }
 
-        // 2. "Live Now" — compact schedule list with per-row SSE clock
-        if (!liveGames.isEmpty()) {
-            sections.add(buildLiveScheduleList(liveGames));
+        // 2. "Live Now" — compact schedule list with per-row SSE clock.
+        // Skip the hero game so the featured card and the rail don't render
+        // the same game twice (visible duplicate when only one live game
+        // exists, and stylistically redundant otherwise).
+        List<JsonNode> liveListGames = heroIsLive
+                ? liveGames.subList(1, liveGames.size())
+                : liveGames;
+        if (!liveListGames.isEmpty()) {
+            sections.add(buildLiveScheduleList(liveListGames));
         }
 
         // 3. "Upcoming Today" — static schedule list
@@ -384,7 +392,7 @@ public class LiveComposer {
             bindings.add(utils.bindingPath(
                     "$.gameStatusText", "content." + gameId + ".statusText"));
             bindings.add(utils.bindingPath(
-                    "$.gameClock", "content." + gameId + ".clock", "liveClockSnapshot"));
+                    "$.clock", "content." + gameId + ".clock", "liveClockSnapshot"));
         }
 
         dataBinding.set("bindings", bindings);
@@ -435,7 +443,7 @@ public class LiveComposer {
         return new AtomicCompositeBuilder.GameClockSnapshot(
                 seconds,
                 java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString(),
-                AtomicCompositeBuilder.DEMO_INITIAL_CLOCK_RUNNING);
+                AtomicCompositeBuilder.INITIAL_CLOCK_RUNNING);
     }
 
     private AtomicCompositeBuilder.GameClockSnapshot mockClockSnapshotFromStatus(String statusText) {
@@ -443,7 +451,7 @@ public class LiveComposer {
         return new AtomicCompositeBuilder.GameClockSnapshot(
                 seconds,
                 java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString(),
-                AtomicCompositeBuilder.DEMO_INITIAL_CLOCK_RUNNING);
+                AtomicCompositeBuilder.INITIAL_CLOCK_RUNNING);
     }
 
     private static int parseGameClockSeconds(String iso) {

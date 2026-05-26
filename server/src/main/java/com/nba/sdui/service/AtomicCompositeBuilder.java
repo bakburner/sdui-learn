@@ -515,18 +515,18 @@ public class AtomicCompositeBuilder {
     public record GameClockSnapshot(int snapshotSeconds, String snapshotAtIso, boolean isRunning) {}
 
     /**
-     * Demo-only override for the initial {@code isRunning} flag emitted on
-     * fresh composer responses. The contractual default is {@code false}:
-     * initial server payloads are rendered as paused snapshots and Ably
-     * linescore frames flip {@code isRunning=true} when local interpolation
-     * should start (see {@link LiveComposer#clockSnapshotFromGame}).
-     *
-     * <p>While the demo runs without a live Ably channel we hold this at
-     * {@code true} so reviewers see a ticking clock on first paint. Flip it
-     * back to {@code false} the moment real linescore frames are wired up;
-     * this constant is the single rollback point.
+     * Initial {@code isRunning} flag emitted on fresh composer responses.
+     * Always {@code false}: a server-composed snapshot is paused at the
+     * upstream {@code gameClock} value (or 0 if upstream is missing) with
+     * {@code snapshotAt = now}. Local interpolation only starts when an
+     * Ably linescore frame writes a fresh snapshot whose {@code clockRunning}
+     * resolves to {@code true} — without an Ably update, the clock stays
+     * frozen at the seeded value rather than running away from a stale
+     * snapshot. Kept as a named constant so all four composer call sites
+     * (Live/GameDetail/Scoreboard/DemoScreen) trivially pass the same
+     * value.
      */
-    public static final boolean DEMO_INITIAL_CLOCK_RUNNING = true;
+    public static final boolean INITIAL_CLOCK_RUNNING = false;
 
     /**
      * Build a GamePanel as an AtomicComposite.

@@ -111,6 +111,9 @@ extension SduiModels {
     }
 }
 
+/// Singular action executed after the renderer writes the tapped date into stateKey via
+/// onStateChange. Conventionally a refresh action with paramBindings.
+///
 /// Action fired when the form is submitted
 ///
 /// Top-level fallback action invoked when the IAP SDK is not mounted (today, always).
@@ -1319,6 +1322,12 @@ extension AtomicElement {
 ///
 /// Typed tabular data for an NBA-style boxscore (one per team)
 ///
+/// Platform-native horizontal date picker. All ISO date fields are ET-anchored
+/// (America/New_York) calendar days (YYYY-MM-DD). defaultDate is the league's current
+/// anchor/focus date — typically today in ET during the regular season, but may be a future
+/// date during offseason or breaks (e.g. the regular-season opener). Clients display
+/// defaultDate as-is and never compare it to device time.
+///
 /// Server-driven form section with typed fields bound to screen state
 ///
 /// Ad placement primitive — carries placement semantics while delegating auction/targeting
@@ -1345,7 +1354,9 @@ extension AtomicElement {
 /// before the SDK is integrated and will serve as the loading/error placeholder afterwards.
 // MARK: - DataClass
 struct DataClass: Codable {
-    let defaultTab, stateKey: String?
+    let defaultTab: String?
+    /// Screen-state key that holds the selected ISO date
+    let stateKey: String?
     let tabContents: [String: [Section]]?
     let tabs: [TabData]?
     /// Optional atomic tree for the tab header row. When present, renderers walk it via
@@ -1387,6 +1398,22 @@ struct DataClass: Codable {
     let teamTotals: [String: JSONAny]?
     /// Three-letter team code, e.g. 'BOS'
     let teamTricode: String?
+    /// ISO YYYY-MM-DD (ET) for the league's current anchor date. Drives the default-cell visual
+    /// highlight. Server-authoritative — not always today; may be a future date during offseason
+    /// or breaks.
+    let defaultDate: String?
+    /// ISO YYYY-MM-DD (ET) for the latest selectable date (e.g. season/finals end). Absent means
+    /// unbounded.
+    let maxDate: String?
+    /// ISO YYYY-MM-DD (ET) for the earliest selectable date (e.g. season start). Absent means
+    /// unbounded; clients pick a sensible default window.
+    let minDate: String?
+    /// Singular action executed after the renderer writes the tapped date into stateKey via
+    /// onStateChange. Conventionally a refresh action with paramBindings.
+    let onDateSelected: Action?
+    /// ISO YYYY-MM-DD (ET) for initial selection. Falls back here when screenState[stateKey] is
+    /// absent; otherwise the state value wins.
+    let selectedDate: String?
     let fields: [FormField]?
     /// Layout hint for field arrangement
     let layout: Layout?
@@ -1449,7 +1476,7 @@ struct DataClass: Codable {
     enum CodingKeys: String, CodingKey {
         case defaultTab, stateKey, tabContents, tabs, ui, columns, emptyMessage, players, sortDirectionStateKey, sortStateKey, teamColor
         case teamLogoURL = "teamLogoUrl"
-        case teamName, teamTotals, teamTricode, fields, layout, submitAction, submitLabel, adUnitPath, collapseOnEmpty, label, placeholder, provider
+        case teamName, teamTotals, teamTricode, defaultDate, maxDate, minDate, onDateSelected, selectedDate, fields, layout, submitAction, submitLabel, adUnitPath, collapseOnEmpty, label, placeholder, provider
         case refreshIntervalSEC = "refreshIntervalSec"
         case sizes, targeting, page, pageSize, sortColumn, sortDirection, subtitle, title, totalRows, ctaAction, tiers, content, autoplay, capabilities
         case contentID = "contentId"
@@ -1491,6 +1518,11 @@ extension DataClass {
         teamName: String?? = nil,
         teamTotals: [String: JSONAny]?? = nil,
         teamTricode: String?? = nil,
+        defaultDate: String?? = nil,
+        maxDate: String?? = nil,
+        minDate: String?? = nil,
+        onDateSelected: Action?? = nil,
+        selectedDate: String?? = nil,
         fields: [FormField]?? = nil,
         layout: Layout?? = nil,
         submitAction: Action?? = nil,
@@ -1535,6 +1567,11 @@ extension DataClass {
             teamName: teamName ?? self.teamName,
             teamTotals: teamTotals ?? self.teamTotals,
             teamTricode: teamTricode ?? self.teamTricode,
+            defaultDate: defaultDate ?? self.defaultDate,
+            maxDate: maxDate ?? self.maxDate,
+            minDate: minDate ?? self.minDate,
+            onDateSelected: onDateSelected ?? self.onDateSelected,
+            selectedDate: selectedDate ?? self.selectedDate,
             fields: fields ?? self.fields,
             layout: layout ?? self.layout,
             submitAction: submitAction ?? self.submitAction,

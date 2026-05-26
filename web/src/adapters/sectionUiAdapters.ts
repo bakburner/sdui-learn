@@ -8,6 +8,46 @@ import type {
   TabData,
 } from '@sdui/models';
 
+// ── CalendarStrip ──────────────────────────────────────────────────
+
+export interface CalendarStripUiModel {
+  stateKey: string;
+  selectedDate: string;
+  defaultDate: string;
+  minDate: string | undefined;
+  maxDate: string | undefined;
+  onDateSelected: Action;
+}
+
+export function mapCalendarStrip(section: Section): CalendarStripUiModel | null {
+  const data = section.data as Data | undefined;
+  if (!data) return null;
+
+  const stateKey = data.stateKey as string | undefined;
+  const selectedDate = data.selectedDate as string | undefined;
+  const defaultDate = data.defaultDate as string | undefined;
+  const onDateSelectedRaw = data.onDateSelected as unknown;
+
+  if (!stateKey || !selectedDate || !defaultDate) return null;
+
+  if (
+    onDateSelectedRaw == null ||
+    Array.isArray(onDateSelectedRaw) ||
+    typeof onDateSelectedRaw !== 'object'
+  ) {
+    return null;
+  }
+
+  return {
+    stateKey,
+    selectedDate,
+    defaultDate,
+    minDate: data.minDate as string | undefined,
+    maxDate: data.maxDate as string | undefined,
+    onDateSelected: onDateSelectedRaw as Action,
+  };
+}
+
 export interface TabGroupUiModel {
   tabs: Array<{
     id: string;

@@ -1,0 +1,22 @@
+{
+  "id": "server:games-calendar~type=CalendarStrip",
+  "type": "CalendarStrip",
+  "contentSourceId": "server:games-calendar",
+  "analyticsId": "games_calendar_strip",
+  "accessibility": {
+    "label": "Games date picker"
+  },
+  "data": {
+    "stateKey": "games_selected_date",
+    "selectedDate": "2026-05-25",
+    "defaultDate": "2026-05-25",
+    "minDate": "2025-10-01",
+    "maxDate": "2026-06-30",
+    "onDateSelected": {
+      "trigger": "onActivate",
+      "type": "refresh",
+      "endpoint": "/v1/sdui/screen/refresh/games",
+      "paramBindings": { "date": "{{games_selected_date}}" }
+    }
+  }
+}

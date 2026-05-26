@@ -662,7 +662,7 @@ Each platform family receives a tailored composition from the server while shari
 | OverlayContainer | Built | Built | Built |
 | **AtomicRouter** | **Built** | **Built** | **Built** |
 
-The `AtomicRouter` dispatches rendering for all 12 element types. `AtomicComposite` is one of the 9 section types in `SectionRouter` (8 semantic sections + the `AtomicComposite` bridge to the atomic layer).
+The `AtomicRouter` dispatches rendering for all 12 element types. `AtomicComposite` is one of the 10 section types in `SectionRouter` (9 semantic sections + the `AtomicComposite` bridge to the atomic layer).
 
 
 ---

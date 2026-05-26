@@ -117,7 +117,7 @@ refresh.
 | 24 | **AdSlot** | Platform ad SDK lifecycle |
 | 24a | **VideoPlayer** | Platform video SDK (HLS/DASH playback, PiP, AirPlay/Chromecast, background audio, fullscreen rotation). `playerType` discriminator maps to the right SDK entry point. |
 
-**Milestone:** All 8 semantic sections render with full interactivity.
+**Milestone:** All 9 semantic sections render with full interactivity.
 Live-score surfaces render as server-composed `AtomicComposite` trees
 driven by `bindRef` + SSE data bindings.
 
@@ -168,9 +168,10 @@ FUNCTION SectionRouter(section, screenState, onAction, onStateChange):
             RETURN null   // Skip gracefully — never crash
 ```
 
-**Supported section types (9):**
-`TabGroup`, `BoxscoreTable`, `Form`, `SubscribeBanner`, `SubscribeHero`,
-`AdSlot`, `SeasonLeadersTable`, `VideoPlayer`, `AtomicComposite`.
+**Supported section types (10):**
+`TabGroup`, `BoxscoreTable`, `CalendarStrip`, `Form`, `SubscribeBanner`,
+`SubscribeHero`, `AdSlot`, `SeasonLeadersTable`, `VideoPlayer`,
+`AtomicComposite`.
 Live-score / game-card surfaces are composed as `AtomicComposite`
 trees (see §4b for the `bindRef` → `content` resolution that drives
 live updates).

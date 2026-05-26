@@ -222,7 +222,7 @@ public class AtomicCompositeBuilder {
         // widths) — a long 2-line headline would push the card past
         // 200, leaving an empty right gutter next to the image.
         card.put("width", 200);
-        card.put("cornerRadius", LayoutTokens.RADIUS_LG);
+        card.put("cornerRadius", 0);
         // Subtle vertical gradient so the card silhouette reads against
         // the feed background without relying on a drop shadow.
         ObjectNode cardBg = om.createObjectNode();
@@ -248,7 +248,6 @@ public class AtomicCompositeBuilder {
             ObjectNode img = thumbnailImage(thumbnailUrl);
             img.put("widthMode", "fill");
             img.put("aspectRatio", 16.0 / 9.0);
-            img.set("cornerRadii", cornerRadii(LayoutTokens.RADIUS_LG, LayoutTokens.RADIUS_LG, 0, 0));
             AccessibilityHelper.addImage(om, img, headline);
             if (duration != null) {
                 badge(img, durationBadge(duration), "bottomEnd");
@@ -263,11 +262,6 @@ public class AtomicCompositeBuilder {
 
         children.add(spacer(LayoutTokens.SPACING_SM));
         ObjectNode headlineEl = text(headline, "bodySmall", "semiBold", ColorTokens.TEXT_PRIMARY, 2);
-        // Horizontal padding is 16pt (larger than the 8pt image inset and
-        // larger than the card's 12pt cornerRadius) so the first glyph
-        // clears the curved corner instead of sitting at the arc where
-        // the rounded clip shaves off part of the baseline. Bottom padding
-        // ensures the text doesn't clip against the card's bottom corner radius.
         headlineEl.set("padding", padding(LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, LayoutTokens.SPACING_SM, LayoutTokens.SPACING_MD));
         children.add(headlineEl);
 
@@ -781,7 +775,7 @@ public class AtomicCompositeBuilder {
         // Fix the card's outer width so the 240pt image + full-width
         // meta row (duration / live badge) meet the card edge flush.
         card.put("width", 240);
-        card.put("cornerRadius", LayoutTokens.RADIUS_LG);
+        card.put("cornerRadius", 0);
         ObjectNode cardBg = om.createObjectNode();
         ArrayNode cardBgColors = om.createArrayNode();
         cardBgColors.add(ColorTokens.SURFACE_RAISED);
@@ -800,13 +794,9 @@ public class AtomicCompositeBuilder {
 
         if (thumbnailUrl != null) {
             ObjectNode img = thumbnailImage(thumbnailUrl);
-            // Image inset 8pt on start/end/top so the card face shows as
-            // an equal-thickness frame on three sides. Matches the
-            // buildContentCard treatment.
             img.set("padding", padding(LayoutTokens.SPACING_SM, LayoutTokens.SPACING_SM, LayoutTokens.SPACING_SM, 0));
             img.put("widthMode", "fill");
             img.put("aspectRatio", 16.0 / 9.0);
-            img.put("cornerRadius", LayoutTokens.RADIUS_SM);
             AccessibilityHelper.addImage(om, img, title);
             thumbChildren.add(img);
         }
@@ -840,10 +830,6 @@ public class AtomicCompositeBuilder {
         children.add(thumbContainer);
 
         ObjectNode textCol = container("column", null, null);
-        // 14pt horizontal > card's 12pt cornerRadius so the title's
-        // first glyph clears the rounded corner arc instead of sitting
-        // at the clip edge. 10pt vertical keeps the card's top/bottom
-        // rhythm unchanged.
         textCol.set("padding", padding(LayoutTokens.SPACING_MD, LayoutTokens.SPACING_MD, LayoutTokens.SPACING_SM, LayoutTokens.SPACING_SM));
         ArrayNode textChildren = om.createArrayNode();
         textChildren.add(text(title, "bodyMedium", "semiBold", ColorTokens.TEXT_PRIMARY, 2));
@@ -1010,13 +996,12 @@ public class AtomicCompositeBuilder {
 
         ObjectNode heroContainer = container("column", "end", "start");
         heroContainer.put("widthMode", "fill");
-        heroContainer.put("cornerRadius", LayoutTokens.RADIUS_LG);
+        heroContainer.put("cornerRadius", 0);
         ArrayNode heroChildren = om.createArrayNode();
 
         if (heroImageUrl != null) {
             ObjectNode heroImg = image(heroImageUrl, 0, 200, "cover");
             heroImg.put("widthMode", "fill");
-            heroImg.set("cornerRadii", cornerRadii(LayoutTokens.RADIUS_LG, LayoutTokens.RADIUS_LG, 0, 0));
             AccessibilityHelper.addImage(om, heroImg, heroTitle != null ? heroTitle : "NBA TV");
             heroChildren.add(heroImg);
         }
@@ -1038,10 +1023,10 @@ public class AtomicCompositeBuilder {
             overlayChildren.add(spacer(LayoutTokens.SPACING_SM));
         }
         if (heroTitle != null) {
-            overlayChildren.add(text(heroTitle, "titleLarge", "bold", ColorTokens.TEXT_INVERSE, null));
+            overlayChildren.add(text(heroTitle, "titleLarge", "bold", ColorTokens.TEXT_ON_DARK_MEDIA, null));
         }
         if (heroSubtitle != null) {
-            overlayChildren.add(text(heroSubtitle, "bodyMedium", null, ColorTokens.TEXT_SECONDARY, null));
+            overlayChildren.add(text(heroSubtitle, "bodyMedium", null, ColorTokens.TEXT_ON_DARK_MEDIA, null));
         }
         overlay.set("children", overlayChildren);
         heroChildren.add(overlay);
@@ -1554,7 +1539,6 @@ public class AtomicCompositeBuilder {
         }
 
         if (multiSlide) {
-            // Paged scroll with dash indicators overlaid on the image
             ObjectNode scroll = scrollRow(0, false);
             scroll.put("widthMode", "fill");
             scroll.put("paging", true);
@@ -1609,14 +1593,17 @@ public class AtomicCompositeBuilder {
             scrimChildren.add(pillBadge(badgeText, ColorTokens.BRAND_LIVE));
             scrimChildren.add(spacer(LayoutTokens.SPACING_MD));
         }
-        scrimChildren.add(text(title, "headlineSmall", "bold", ColorTokens.TEXT_INVERSE, 2));
+        scrimChildren.add(text(title, "headlineSmall", "bold", ColorTokens.TEXT_ON_DARK_MEDIA, 2));
         if (subtitle != null) {
             scrimChildren.add(spacer(LayoutTokens.SPACING_SM));
-            scrimChildren.add(text(subtitle, "bodyMedium", null, ColorTokens.TEXT_INVERSE, 2));
+            scrimChildren.add(text(subtitle, "bodyMedium", null, ColorTokens.TEXT_ON_DARK_MEDIA, 2));
         }
         if (ctaLabel != null) {
             scrimChildren.add(spacer(LayoutTokens.SPACING_MD));
-            ObjectNode cta = button(ctaLabel, "primary", targetUri != null ? tapNavigate(targetUri) : null);
+            ObjectNode cta = button(ctaLabel, "secondary",
+                    targetUri != null ? tapNavigate(targetUri) : null);
+            cta.put("color", ColorTokens.TEXT_ON_DARK_MEDIA);
+            cta.put("background", "#00000000");
             scrimChildren.add(cta);
         }
         scrimOverlay.set("children", scrimChildren);
@@ -2387,7 +2374,7 @@ public class AtomicCompositeBuilder {
 
     private ObjectNode featuredLiveGameHeroCard(String[] card, boolean stretchToParentWidth) {
         String cardId = value(card, 0);
-        String heroRadius = LayoutTokens.RADIUS_MD;
+        int heroRadius = 0;
         ObjectNode hero = container("column", null, "stretch");
         hero.put("id", cardId);
         // Single-card section: card fills its surface (no fixed width).
@@ -2409,7 +2396,6 @@ public class AtomicCompositeBuilder {
                 : neutralInitialsRect(value(card, 2), 338, 190, heroRadius);
         art.put("widthMode", "fill");
         art.put("aspectRatio", 16.0 / 9.0);
-        art.set("cornerRadii", cornerRadii(heroRadius, heroRadius, 0, 0));
         if (value(card, 4) != null) AccessibilityHelper.addImage(om, art, value(card, 2));
 
         ObjectNode titleOverlay = container("column", "end", "start");

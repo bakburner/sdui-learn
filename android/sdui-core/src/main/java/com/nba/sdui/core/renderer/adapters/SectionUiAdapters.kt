@@ -258,3 +258,33 @@ private fun mapSeasonLeadersPlayer(player: PlayerRow): SeasonLeadersPlayerRow =
         imageUrl = player.imageURL,
         stats = player.stats
     )
+
+// ============ CalendarStrip ============
+
+data class CalendarStripUiModel(
+    val stateKey: String,
+    val selectedDate: String,
+    val defaultDate: String,
+    val minDate: String?,
+    val maxDate: String?,
+    val onDateSelected: SduiAction
+)
+
+fun mapCalendarStrip(section: Section, screenState: Map<String, Any>): CalendarStripUiModel? {
+    val data = section.data ?: return null
+    val stateKey = data.stateKey ?: return null
+    val wireSelectedDate = data.selectedDate ?: return null
+    val defaultDate = data.defaultDate ?: return null
+    val onDateSelectedAction = data.onDateSelected ?: return null
+
+    val effectiveSelectedDate = (screenState[stateKey] as? String) ?: wireSelectedDate
+
+    return CalendarStripUiModel(
+        stateKey = stateKey,
+        selectedDate = effectiveSelectedDate,
+        defaultDate = defaultDate,
+        minDate = data.minDate,
+        maxDate = data.maxDate,
+        onDateSelected = onDateSelectedAction.toSduiAction()
+    )
+}

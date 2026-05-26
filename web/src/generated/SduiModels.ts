@@ -48,6 +48,9 @@ export interface SduiModels {
 }
 
 /**
+ * Singular action executed after the renderer writes the tapped date into stateKey via
+ * onStateChange. Conventionally a refresh action with paramBindings.
+ *
  * Action fired when the form is submitted
  *
  * Top-level fallback action invoked when the IAP SDK is not mounted (today, always).
@@ -678,6 +681,12 @@ export interface AtomicElement {
  *
  * Typed tabular data for an NBA-style boxscore (one per team)
  *
+ * Platform-native horizontal date picker. All ISO date fields are ET-anchored
+ * (America/New_York) calendar days (YYYY-MM-DD). defaultDate is the league's current
+ * anchor/focus date — typically today in ET during the regular season, but may be a future
+ * date during offseason or breaks (e.g. the regular-season opener). Clients display
+ * defaultDate as-is and never compare it to device time.
+ *
  * Server-driven form section with typed fields bound to screen state
  *
  * Ad placement primitive — carries placement semantics while delegating auction/targeting
@@ -704,7 +713,10 @@ export interface AtomicElement {
  * before the SDK is integrated and will serve as the loading/error placeholder afterwards.
  */
 export interface Data {
-    defaultTab?:  string;
+    defaultTab?: string;
+    /**
+     * Screen-state key that holds the selected ISO date
+     */
     stateKey?:    string;
     tabContents?: { [key: string]: Section[] };
     tabs?:        TabData[];
@@ -766,7 +778,33 @@ export interface Data {
      * Three-letter team code, e.g. 'BOS'
      */
     teamTricode?: string;
-    fields?:      FormField[];
+    /**
+     * ISO YYYY-MM-DD (ET) for the league's current anchor date. Drives the default-cell visual
+     * highlight. Server-authoritative — not always today; may be a future date during offseason
+     * or breaks.
+     */
+    defaultDate?: string;
+    /**
+     * ISO YYYY-MM-DD (ET) for the latest selectable date (e.g. season/finals end). Absent means
+     * unbounded.
+     */
+    maxDate?: string;
+    /**
+     * ISO YYYY-MM-DD (ET) for the earliest selectable date (e.g. season start). Absent means
+     * unbounded; clients pick a sensible default window.
+     */
+    minDate?: string;
+    /**
+     * Singular action executed after the renderer writes the tapped date into stateKey via
+     * onStateChange. Conventionally a refresh action with paramBindings.
+     */
+    onDateSelected?: Action;
+    /**
+     * ISO YYYY-MM-DD (ET) for initial selection. Falls back here when screenState[stateKey] is
+     * absent; otherwise the state value wins.
+     */
+    selectedDate?: string;
+    fields?:       FormField[];
     /**
      * Layout hint for field arrangement
      */
@@ -1688,6 +1726,7 @@ export enum OverlayType {
     AdSlot = "AdSlot",
     AtomicComposite = "AtomicComposite",
     BoxscoreTable = "BoxscoreTable",
+    CalendarStrip = "CalendarStrip",
     Form = "Form",
     SeasonLeadersTable = "SeasonLeadersTable",
     SubscribeBanner = "SubscribeBanner",

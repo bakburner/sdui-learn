@@ -37,6 +37,14 @@ fun SectionRouter(
     // emitting a `surface` block on the section envelope.
     when (section.type) {
 
+        "CalendarStrip" -> SectionContainer(section.surface, modifier) {
+            CalendarStripRenderer(
+                section = section,
+                screenState = screenState,
+                onAction = onAction,
+                onStateChange = onStateChange
+            )
+        }
 
         "TabGroup" -> SectionContainer(section.surface, modifier) {
             TabGroupRenderer(
@@ -138,6 +146,7 @@ fun SectionRouter(
  * Used for contract testing to verify router coverage.
  */
 val SUPPORTED_SECTION_TYPES = setOf(
+    "CalendarStrip",
     "TabGroup",
     "BoxscoreTable",
     "Form",

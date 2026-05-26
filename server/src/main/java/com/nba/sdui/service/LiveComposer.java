@@ -6,10 +6,14 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
+import java.time.Clock;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -34,31 +38,52 @@ public class LiveComposer {
 
     private static final Logger log = LoggerFactory.getLogger(LiveComposer.class);
 
+    private static final ZoneId LEAGUE_ZONE = ZoneId.of("America/New_York");
+    private static final LocalDate SEASON_START = LocalDate.parse("2025-10-01");
+    private static final LocalDate SEASON_END = LocalDate.parse("2026-06-30");
+
     private final ObjectMapper objectMapper;
     private final StatsApiClient statsApiClient;
     private final SduiUtils utils;
     private final SectionSurfaces surfaces;
     private final AtomicCompositeBuilder atomicBuilder;
     private final SectionRefreshService sectionRefreshService;
+    private final ParameterizedRefreshService parameterizedRefreshService;
+    private final Clock clock;
 
     @Value("${sdui.schema.version:1.0}")
     private String schemaVersion;
 
+    @Autowired
     public LiveComposer(ObjectMapper objectMapper,
                         StatsApiClient statsApiClient,
                         SduiUtils utils,
                         SectionSurfaces surfaces,
-                        SectionRefreshService sectionRefreshService) {
+                        SectionRefreshService sectionRefreshService,
+                        ParameterizedRefreshService parameterizedRefreshService) {
+        this(objectMapper, statsApiClient, utils, surfaces,
+                sectionRefreshService, parameterizedRefreshService, Clock.systemUTC());
+    }
+
+    LiveComposer(ObjectMapper objectMapper,
+                 StatsApiClient statsApiClient,
+                 SduiUtils utils,
+                 SectionSurfaces surfaces,
+                 SectionRefreshService sectionRefreshService,
+                 ParameterizedRefreshService parameterizedRefreshService,
+                 Clock clock) {
         this.objectMapper = objectMapper;
         this.statsApiClient = statsApiClient;
         this.utils = utils;
         this.surfaces = surfaces;
         this.atomicBuilder = new AtomicCompositeBuilder(objectMapper);
         this.sectionRefreshService = sectionRefreshService;
+        this.parameterizedRefreshService = parameterizedRefreshService;
+        this.clock = clock;
     }
 
     @PostConstruct
-    private void registerSectionResolvers() {
+    private void registerResolvers() {
         String sectionId = SectionIdDeriver.derive("stats-api:live-games", "GameScheduleList");
         sectionRefreshService.registerResolver(sectionId, (id, ctx) -> {
             JsonNode scoreboard = safeGetScoreboard();
@@ -72,10 +97,28 @@ public class LiveComposer {
             }
             return liveGames.isEmpty() ? buildMockLiveScheduleList() : buildLiveScheduleList(liveGames);
         });
+
+        parameterizedRefreshService.registerResolver("games",
+                (traceId, params, ctx) -> composeLive(
+                        traceId,
+                        ctx.getLocale() != null ? ctx.getLocale() : "en",
+                        params.get("date")));
     }
 
-    public JsonNode composeLive(String traceId, String locale) {
-        log.info("Composing Games screen, locale={}", locale);
+    public ObjectNode composeLive(String traceId, String locale) {
+        return composeLive(traceId, locale, null);
+    }
+
+    /**
+     * Compose the Games screen. When {@code selectedDateOverride} is non-null it
+     * becomes the strip's selected date and the seeded screen state — used by the
+     * parameterized-refresh resolver on date tap. Existing game sections still
+     * compose from today's CDN scoreboard in PR 1.
+     *
+     * TODO: PR 2 will partition game sections per-date using selectedDateOverride.
+     */
+    public ObjectNode composeLive(String traceId, String locale, String selectedDateOverride) {
+        log.info("Composing Games screen, locale={}, dateOverride={}", locale, selectedDateOverride);
 
         ObjectNode response = objectMapper.createObjectNode();
         response.put("id", "games");
@@ -84,7 +127,18 @@ public class LiveComposer {
         response.put("schemaVersion", schemaVersion);
         utils.applyTabDestinationNavigation(response, "games");
 
+        String defaultDate = currentLeagueDate().toString();
+        String selectedDate = (selectedDateOverride != null && !selectedDateOverride.isBlank())
+                ? selectedDateOverride : defaultDate;
+
+        ObjectNode state = objectMapper.createObjectNode();
+        state.put("games_selected_date", selectedDate);
+        response.set("state", state);
+
         ArrayNode sections = objectMapper.createArrayNode();
+
+        // 0. CalendarStrip — date picker driving parameterized refresh
+        sections.add(buildCalendarStripSection(selectedDate, defaultDate));
 
         JsonNode scoreboard = safeGetScoreboard();
         JsonNode games = (scoreboard != null)
@@ -105,41 +159,25 @@ public class LiveComposer {
             }
         }
 
-        // 1. Featured game — hero card for top live game (SSE refresh)
-        JsonNode heroGame = !liveGames.isEmpty() ? liveGames.get(0)
-                : (!upcomingGames.isEmpty() ? upcomingGames.get(0) : null);
-        boolean heroIsLive = heroGame != null && !liveGames.isEmpty()
-                && heroGame == liveGames.get(0);
-        if (heroGame != null) {
-            sections.add(buildFeaturedGamePanel(heroGame));
-        } else {
-            sections.add(buildMockFeaturedGame());
+        // 1. "Live Now" — compact schedule list with per-row SSE clock.
+        if (!liveGames.isEmpty()) {
+            sections.add(buildLiveScheduleList(liveGames));
         }
 
-        // 2. "Live Now" — compact schedule list with per-row SSE clock.
-        // Skip the hero game so the featured card and the rail don't render
-        // the same game twice (visible duplicate when only one live game
-        // exists, and stylistically redundant otherwise).
-        List<JsonNode> liveListGames = heroIsLive
-                ? liveGames.subList(1, liveGames.size())
-                : liveGames;
-        if (!liveListGames.isEmpty()) {
-            sections.add(buildLiveScheduleList(liveListGames));
-        }
-
-        // 3. "Upcoming Today" — static schedule list
+        // 2. "Upcoming Today" — static schedule list.
         if (!upcomingGames.isEmpty()) {
             sections.add(buildScheduleList("upcoming-games", "upcoming_games",
                     "Upcoming Today", upcomingGames, false));
         }
 
-        // 4. "Final" — static schedule list
+        // 3. "Final" — static schedule list.
         if (!finishedGames.isEmpty()) {
             sections.add(buildScheduleList("final-games", "final_games",
                     "Final", finishedGames, false));
         }
 
-        // If no real data, add mock sections
+        // No real data → fall back to mock schedule lists. No featured hero
+        // section is emitted on this screen in either path.
         if (liveGames.isEmpty() && upcomingGames.isEmpty() && finishedGames.isEmpty()) {
             addMockSections(sections);
         }
@@ -148,6 +186,48 @@ public class LiveComposer {
         utils.ensureScreenContentInsets(response);
         utils.stampStringTableOnSections(response, locale);
         return response;
+    }
+
+    // ── League date ────────────────────────────────────────────────────
+
+    LocalDate currentLeagueDate() {
+        return LocalDate.now(clock.withZone(LEAGUE_ZONE));
+    }
+
+    // ── CalendarStrip builder ────────────────────────────────────────────
+
+    private ObjectNode buildCalendarStripSection(String selectedDate, String defaultDate) {
+        String contentSourceId = "server:games-calendar";
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "CalendarStrip");
+
+        ObjectNode section = objectMapper.createObjectNode();
+        section.put("id", sectionId);
+        section.put("type", "CalendarStrip");
+        section.put("contentSourceId", contentSourceId);
+        section.put("analyticsId", "games_calendar_strip");
+
+        ObjectNode accessibility = objectMapper.createObjectNode();
+        accessibility.put("label", "Games date picker");
+        section.set("accessibility", accessibility);
+
+        ObjectNode data = objectMapper.createObjectNode();
+        data.put("stateKey", "games_selected_date");
+        data.put("selectedDate", selectedDate);
+        data.put("defaultDate", defaultDate);
+        data.put("minDate", SEASON_START.toString());
+        data.put("maxDate", SEASON_END.toString());
+
+        ObjectNode onDateSelected = objectMapper.createObjectNode();
+        onDateSelected.put("trigger", "onActivate");
+        onDateSelected.put("type", "refresh");
+        onDateSelected.put("endpoint", "/v1/sdui/screen/refresh/games");
+        ObjectNode paramBindings = objectMapper.createObjectNode();
+        paramBindings.put("date", "{{games_selected_date}}");
+        onDateSelected.set("paramBindings", paramBindings);
+        data.set("onDateSelected", onDateSelected);
+
+        section.set("data", data);
+        return section;
     }
 
     // ── Section builders ───────────────────────────────────────────────
@@ -207,62 +287,10 @@ public class LiveComposer {
         return section;
     }
 
-    private ObjectNode buildFeaturedGamePanel(JsonNode game) {
-        String gameId = game.path("gameId").asText("0000000000");
-        String contentSourceId = "stats-api:scoreboard";
-        String sectionId = SectionIdDeriver.derive(contentSourceId, "GamePanel", "featured-" + gameId);
-        int gameStatus = game.path("gameStatus").asInt(1);
-        boolean live = gameStatus == 2;
-
-        ObjectNode refreshPolicy = live ? ssePolicy(game) : staticPolicy();
-        ObjectNode bindings = live ? utils.buildCompositeLinescoreBindings() : null;
-        AtomicCompositeBuilder.GameClockSnapshot clock = live ? clockSnapshotFromGame(game) : null;
-
-        ObjectNode section = atomicBuilder.buildGamePanelComposite(
-                sectionId,
-                "live_featured_game",
-                "featured",
-                gameId,
-                gameStatus,
-                game.path("gameStatusText").asText(""),
-                live ? "LIVE" : "UP NEXT",
-                atomicBuilder.gamePanelTeamFromJson(game.path("awayTeam")),
-                atomicBuilder.gamePanelTeamFromJson(game.path("homeTeam")),
-                clock,
-                "nba://game/" + gameId,
-                refreshPolicy,
-                bindings,
-                surfaces.gamePanelSurface());
-        section.put("contentSourceId", contentSourceId);
-        return section;
-    }
-
-    private ObjectNode buildMockFeaturedGame() {
-        String contentSourceId = "stats-api:scoreboard";
-        String sectionId = SectionIdDeriver.derive(contentSourceId, "GamePanel", "featured-mock");
-        ObjectNode section = atomicBuilder.buildGamePanelComposite(
-                sectionId,
-                "live_featured_game",
-                "featured",
-                "0022400050",
-                1,
-                "7:30 PM ET",
-                "NEXT UP",
-                new AtomicCompositeBuilder.GamePanelTeam(
-                        "MIA", 0, SduiUtils.teamLogoUrl("1610612748")),
-                new AtomicCompositeBuilder.GamePanelTeam(
-                        "NYK", 0, SduiUtils.teamLogoUrl("1610612752")),
-                null,
-                "nba://game/0022400050",
-                staticPolicy(),
-                null,
-                surfaces.gamePanelSurface());
-        section.put("contentSourceId", contentSourceId);
-        return section;
-    }
-
     /**
-     * Mock sections for when the CDN scoreboard is unreachable.
+     * Mock sections for when the CDN scoreboard is unreachable. The Games
+     * screen has no featured hero in either the real-data or mock path —
+     * just schedule lists.
      */
     private void addMockSections(ArrayNode sections) {
         sections.add(buildMockLiveScheduleList());

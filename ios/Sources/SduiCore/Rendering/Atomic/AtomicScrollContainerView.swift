@@ -16,17 +16,30 @@ struct AtomicScrollContainerView: View {
         let isHorizontal = element.direction == .row
         let gap = LayoutTokenResolver.cgFloat(element.gap)
         let isPaging = element.paging == true
-        let shouldShowPageIndicator = isPaging && element.pageIndicator?.style == .dots && (element.children?.count ?? 0) > 1
+        let childCount = element.children?.count ?? 0
+        let indicatorStyle = element.pageIndicator?.style
+        let shouldShowDots = isPaging && indicatorStyle == .dots && childCount > 1
+        let shouldShowDashes = isPaging && indicatorStyle == .dashes && childCount > 1
 
         Group {
-            if shouldShowPageIndicator {
-                // In document flow, not overlaying paged content (avoids covering tappable
-                // areas or text). Top* alignments place dots above the scroll view.
+            if shouldShowDashes {
+                ZStack(alignment: .bottom) {
+                    scrollView(isHorizontal: isHorizontal, gap: gap, trackPage: true)
+                    PageIndicatorDashes(
+                        count: childCount,
+                        activePage: activePage ?? 0,
+                        color: ColorTokenResolver.resolve(element.pageIndicator?.color, colorScheme: colorScheme) ?? Color.white.opacity(0.4),
+                        activeColor: ColorTokenResolver.resolve(element.pageIndicator?.activeColor, colorScheme: colorScheme) ?? Color.white
+                    )
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                }
+            } else if shouldShowDots {
                 pageIndicatorScaffold(alignment: element.pageIndicator?.alignment) {
                     scrollView(isHorizontal: isHorizontal, gap: gap, trackPage: true)
                 } dots: {
                     PageIndicatorDots(
-                        count: element.children?.count ?? 0,
+                        count: childCount,
                         activePage: activePage ?? 0,
                         color: ColorTokenResolver.resolve(element.pageIndicator?.color, colorScheme: colorScheme) ?? Color.white.opacity(0.45),
                         activeColor: ColorTokenResolver.resolve(element.pageIndicator?.activeColor, colorScheme: colorScheme) ?? Color.white
@@ -203,6 +216,24 @@ private struct PageIndicatorDots: View {
                 Circle()
                     .fill(index == activePage ? activeColor : color)
                     .frame(width: 6, height: 6)
+            }
+        }
+        .accessibilityHidden(true)
+    }
+}
+
+private struct PageIndicatorDashes: View {
+    let count: Int
+    let activePage: Int
+    let color: Color
+    let activeColor: Color
+
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(0..<count, id: \.self) { index in
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(index == activePage ? activeColor : color)
+                    .frame(height: 3)
             }
         }
         .accessibilityHidden(true)

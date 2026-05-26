@@ -41,6 +41,12 @@ class SectionIdDeriverTest {
     }
 
     @Test
+    void derive_calendarStrip_serverCalendarSource() {
+        String result = SectionIdDeriver.derive("server:games-calendar", "CalendarStrip");
+        assertEquals("server:games-calendar~type=CalendarStrip", result);
+    }
+
+    @Test
     void derive_feedSource_noPositionalComponent() {
         String id1 = SectionIdDeriver.derive("cms:article-1", "AtomicComposite");
         String id2 = SectionIdDeriver.derive("cms:article-2", "AtomicComposite");

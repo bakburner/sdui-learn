@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import jakarta.annotation.PostConstruct;
 import java.util.ArrayList;
 import java.util.List;
 import org.slf4j.Logger;
@@ -19,21 +20,22 @@ import org.springframework.stereotype.Component;
  *
  * <pre>
  *   1.  StoryCircleRail             – Following avatars (square images, live/new badges)
- *   2.  SectionHeaderComposite      – "TONIGHT'S GAMES" + "See Schedule >"
- *   3.  FeaturedLiveGameHero        – paged hero carousel (live + upcoming)
- *   4.  SectionHeaderComposite      – "TOP STORIES"
- *   5.  EditorialOverlayRail        – tall image cards w/ scrim + headline overlay
- *   6.  AdSlot                      – mid_feed_1
- *   7.  LeagueCardRail              – "OTHER LEAGUES" destinations
+ *   2.  CinematicHeroCarousel       – full-bleed editorial hero (image + scrim + CTA)
+ *   3.  SectionHeaderComposite      – "TOP STORIES"
+ *   4.  AtomicComposite             – dense vertical headline list (thumb + title)
+ *   5.  AdSlot                      – mid_feed_1
+ *   6.  SectionHeaderComposite      – "TONIGHT'S GAMES" + "See Schedule >"
+ *   7.  FeaturedLiveGameHero        – live/upcoming games (SSE when API live; poll on mock fallback)
  *   8.  SectionHeaderComposite      – "TRENDING NOW"
  *   9.  ContentRail                 – trending articles/videos
  *  10.  AdSlot                      – mid_feed_2
  *  11.  SectionHeaderComposite      – "LEAGUE PASS PICKS" + "Browse League Pass >"
  *  12.  ContentRail                 – LP picks
  *  13.  AdSlot                      – mid_feed_3
- *  14.  SectionHeaderComposite      – "AROUND THE LEAGUE"
- *  15.  UtilityCardGrid             – Standings / Stats Leaders / …
- *  16.  AtomicComposite             – VOD playlist (grouped-list rows)
+ *  14.  LeagueCardRail              – other league destinations
+ *  15.  SectionHeaderComposite      – "AROUND THE LEAGUE"
+ *  16.  UtilityCardGrid             – Standings / Stats Leaders / …
+ *  17.  AtomicComposite             – VOD playlist (grouped-list rows)
  * </pre>
  *
  * <p>Surface policy: card-chromed composites (hero, rails, grid, vod
@@ -66,6 +68,7 @@ public class ForYouComposer {
     private final SduiUtils utils;
     private final SectionSurfaces surfaces;
     private final AtomicCompositeBuilder atomicBuilder;
+    private final SectionRefreshService sectionRefreshService;
 
     @Value("${sdui.schema.version:1.0}")
     private String schemaVersion;
@@ -73,12 +76,21 @@ public class ForYouComposer {
     public ForYouComposer(ObjectMapper objectMapper,
                           StatsApiClient statsApiClient,
                           SduiUtils utils,
-                          SectionSurfaces surfaces) {
+                          SectionSurfaces surfaces,
+                          SectionRefreshService sectionRefreshService) {
         this.objectMapper = objectMapper;
         this.statsApiClient = statsApiClient;
         this.utils = utils;
         this.surfaces = surfaces;
         this.atomicBuilder = new AtomicCompositeBuilder(objectMapper);
+        this.sectionRefreshService = sectionRefreshService;
+    }
+
+    @PostConstruct
+    private void registerSectionResolvers() {
+        String sectionId = SectionIdDeriver.derive(
+                "stats-api:scoreboard", "AtomicComposite", "tonights-games-hero");
+        sectionRefreshService.registerResolver(sectionId, (id, ctx) -> buildTonightsGamesHero());
     }
 
     public JsonNode composeForYou(String traceId, String locale) {
@@ -94,21 +106,20 @@ public class ForYouComposer {
         ArrayNode sections = objectMapper.createArrayNode();
 
         sections.add(buildFollowingStoryCircleRail());
+        sections.add(buildFeaturedEditorialHero());
+
+        sections.add(buildSectionHeaderComposite("top-stories-header",
+                "for_you_top_stories_header",
+                "Top Stories", null, "More", "nba://news"));
+        sections.add(buildTopStoriesArticleList());
+
+        sections.add(buildAdSlot("for-you-ad-1", "for_you_ad_1",
+                "/21234567/sports/nba/homepage_mid1", "mid_feed_1"));
 
         sections.add(buildSectionHeaderComposite("tonights-games-header",
                 "for_you_tonights_games_header",
                 "Tonight's Games", null, "See Schedule", "nba://scoreboard"));
         sections.add(buildTonightsGamesHero());
-
-        sections.add(buildSectionHeaderComposite("top-stories-header",
-                "for_you_top_stories_header",
-                "Top Stories", null, null, null));
-        sections.add(buildTopStoriesEditorialRail());
-
-        sections.add(buildAdSlot("for-you-ad-1", "for_you_ad_1",
-                "/21234567/sports/nba/homepage_mid1", "mid_feed_1"));
-
-        sections.add(buildOtherLeaguesRail());
 
         sections.add(buildSectionHeaderComposite("trending-header",
                 "for_you_trending_header",
@@ -125,6 +136,8 @@ public class ForYouComposer {
 
         sections.add(buildAdSlot("for-you-ad-3", "for_you_ad_3",
                 "/21234567/sports/nba/homepage_mid3", "mid_feed_3"));
+
+        sections.add(buildOtherLeaguesRail());
 
         sections.add(buildSectionHeaderComposite("around-league-header",
                 "for_you_around_league_header",
@@ -152,24 +165,55 @@ public class ForYouComposer {
         String contentSourceId = "feed:for-you-following";
         // [id, label, imageUrl, badgeText, targetUri]
         String[][] items = {
-                {"story-celtics", "Celtics", SduiUtils.teamLogoUrl("1610612738"),
-                        "LIVE", "nba://team/1610612738"},
-                {"story-lakers", "Lakers", SduiUtils.teamLogoUrl("1610612747"),
-                        "NEW", "nba://team/1610612747"},
-                {"story-warriors", "Warriors", SduiUtils.teamLogoUrl("1610612744"),
-                        null, "nba://team/1610612744"},
-                {"story-thunder", "Thunder", SduiUtils.teamLogoUrl("1610612760"),
-                        null, "nba://team/1610612760"},
-                {"story-news", "NBA News", FALLBACK_STORY_AVATAR,
-                        null, "nba://news"},
-                {"story-social", "Social", FALLBACK_STORY_AVATAR,
-                        null, "nba://social"}
+                {"story-ecf-g4", "ECF Game 4 Clash", DemoImageUrls.avatar("ecf-g4"),
+                        "LIVE", "nba://video/ecf-g4-preview"},
+                {"story-all-nba", "Kia All-NBA Teams", DemoImageUrls.avatar("all-nba"),
+                        "NEW", "nba://article/all-nba-teams"},
+                {"story-wcf", "Best Of WCF Game 4", DemoImageUrls.avatar("wcf-g4"),
+                        null, "nba://video/wcf-g4-highlights"},
+                {"story-okc-sa", "Inside OKC vs SA", DemoImageUrls.avatar("okc-sa"),
+                        null, "nba://article/okc-spurs-finals"},
+                {"story-knicks", "Knicks on brink", SduiUtils.teamLogoUrl("1610612752"),
+                        null, "nba://team/1610612752"},
+                {"story-playoffs", "Playoff Pulse", FALLBACK_STORY_AVATAR,
+                        null, "nba://playoffs"}
         };
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         ObjectNode section = atomicBuilder.buildStoryCircleRail(
                 sectionId, "for_you_following", "Following", items);
         section.put("contentSourceId", contentSourceId);
         section.set("surface", surfaces.railSurface());
+        return section;
+    }
+
+    /**
+     * Full-bleed editorial hero at the top of the feed (NBA app home style).
+     * slides: [id, imageUrl, badge, title, subtitle, ctaLabel, targetUri]
+     */
+    private ObjectNode buildFeaturedEditorialHero() {
+        String contentSourceId = "cms:for-you-featured-hero";
+        String[][] slides = {
+                {"feat-hero-1", DemoImageUrls.hero("cleveland-ecf"),
+                        "FEATURED",
+                        "HIGH STAKES IN CLEVELAND",
+                        "Knicks one win from the Finals; Cavs fight to extend the series (8 ET, ESPN).",
+                        "See Story", "nba://article/knicks-cavs-g4-preview"},
+                {"feat-hero-2", DemoImageUrls.hero("all-nba"),
+                        "BREAKING",
+                        "ALL-NBA TEAMS ANNOUNCED",
+                        "SGA, Jokić & Wembanyama headline the Kia All-NBA First Team.",
+                        "See Story", "nba://article/all-nba-teams"},
+                {"feat-hero-3", DemoImageUrls.hero("spurs-force"),
+                        "LIVE",
+                        "SPURS PLAY WITH FORCE IN GAME 4 WIN",
+                        "San Antonio's intensity sets up a pivotal West Finals swing.",
+                        "Watch", "nba://video/spurs-game4-recap"}
+        };
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
+        ObjectNode section = atomicBuilder.buildCinematicHeroCarousel(
+                sectionId, "for_you_featured_hero", slides);
+        section.put("contentSourceId", contentSourceId);
+        section.set("surface", surfaces.flushSurface());
         return section;
     }
 
@@ -209,7 +253,9 @@ public class ForYouComposer {
             log.warn("Failed to build tonight's games hero from live data: {}", e.getMessage());
         }
 
+        boolean fromMockFallback = false;
         if (cards.isEmpty()) {
+            fromMockFallback = true;
             cards.add(buildMockHeroCard("hero-game-1", "LIVE",
                     "Lakers at Celtics", "Fourth-quarter finish on NBA TV",
                     "LAL", "89", "1610612747",
@@ -230,16 +276,28 @@ public class ForYouComposer {
                     "0022400779"));
         }
 
-        ObjectNode refreshPolicy = liveBindings != null ? sseRefreshPolicy(cards.get(0)[0]) : staticPolicy();
-
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite", "tonights-games-hero");
+        ObjectNode refreshPolicy;
+        ObjectNode dataBindingForHero = liveBindings;
+        if (fromMockFallback) {
+            // Demo fallback cards use synthetic hero ids — poll the section endpoint
+            // instead of opening Ably (same pattern as LiveComposer mock live list).
+            refreshPolicy = mockHeroSectionPollPolicy(sectionId);
+            dataBindingForHero = null;
+        } else if (liveBindings != null) {
+            refreshPolicy = sseRefreshPolicy(cards.get(0)[0]);
+        } else {
+            refreshPolicy = staticPolicy();
+            dataBindingForHero = null;
+        }
+
         ObjectNode section = atomicBuilder.buildFeaturedLiveGameHero(
                 sectionId,
                 "for_you_tonights_games_hero",
                 null,
                 cards.toArray(new String[0][0]),
                 refreshPolicy,
-                liveBindings);
+                dataBindingForHero);
         section.put("contentSourceId", contentSourceId);
         section.set("surface", surfaces.railSurface());
         return section;
@@ -314,26 +372,84 @@ public class ForYouComposer {
         return dataBinding;
     }
 
-    private ObjectNode buildTopStoriesEditorialRail() {
+    /**
+     * Vertical headline list with thumbnails — denser than the editorial overlay rail.
+     * articles: [id, headline, imageUrl, targetUri]
+     */
+    private ObjectNode buildTopStoriesArticleList() {
         String contentSourceId = "cms:top-stories";
-        // [id, headline, subhead, imageUrl, badgeText, targetUri]
-        String[][] cards = {
-                {"top-1", "Five things to watch tonight",
-                        "Rivalries, returns, and playoff stakes",
-                        DemoImageUrls.cardTall("playoffs"),
-                        "NEW", "nba://article/five-things"},
-                {"top-2", "Inside the MVP race",
-                        "The numbers behind a tight finish",
-                        DemoImageUrls.cardTall("mvp"),
-                        null, "nba://article/mvp-race"},
-                {"top-3", "Rookie of the Year tracker",
-                        "Who's pulling ahead at the wire",
-                        DemoImageUrls.cardTall("rookie"),
-                        "LIVE", "nba://video/rookies"}
+        String[][] articles = {
+                {"top-1", "Starting 5: Spurs roll, plus a Knicks-Cavs preview",
+                        DemoImageUrls.thumb("starting5"), "nba://article/starting-5"},
+                {"top-2", "Spurs play with force and intensity in Game 4 win",
+                        DemoImageUrls.thumb("spurs-g4"), "nba://article/spurs-game4"},
+                {"top-3", "What to watch for as Knicks seek sweep over Cavs",
+                        DemoImageUrls.thumb("knicks-cavs"), "nba://article/knicks-cavs-preview"},
+                {"top-4", "Spurs, Thunder delivering thrills in West Finals",
+                        DemoImageUrls.thumb("west-finals"), "nba://article/west-finals"},
+                {"top-5", "SGA, Jokić, Wembanyama mark All-NBA First Team",
+                        DemoImageUrls.thumb("all-nba"), "nba://article/all-nba-teams"}
         };
+
+        ObjectNode root = atomicBuilder.container("column", null, null);
+        root.put("widthMode", "fill");
+        ArrayNode children = objectMapper.createArrayNode();
+
+        for (int i = 0; i < articles.length; i++) {
+            String id = articles[i][0];
+            String headline = articles[i][1];
+            String imageUrl = articles[i][2];
+            String targetUri = articles[i][3];
+
+            ObjectNode row = atomicBuilder.container("row", "start", "center");
+            row.put("id", id);
+            row.put("widthMode", "fill");
+            row.set("padding", atomicBuilder.padding(
+                    LayoutTokens.SPACING_LG,
+                    LayoutTokens.SPACING_LG,
+                    LayoutTokens.SPACING_MD,
+                    LayoutTokens.SPACING_MD
+            ));
+            row.set("actions", atomicBuilder.singleActionArray(atomicBuilder.tapNavigate(targetUri)));
+
+            ArrayNode rowChildren = objectMapper.createArrayNode();
+            ObjectNode img = atomicBuilder.image(imageUrl, 120, 68, "cover");
+            img.put("cornerRadius", LayoutTokens.RADIUS_SM);
+            AccessibilityHelper.addImage(objectMapper, img, headline);
+            rowChildren.add(img);
+
+            ObjectNode textCol = atomicBuilder.container("column", null, "start");
+            textCol.set("padding", atomicBuilder.padding(
+                    LayoutTokens.SPACING_MD, 0, 0, 0));
+            textCol.put("flex", 1);
+            ArrayNode textChildren = objectMapper.createArrayNode();
+            textChildren.add(atomicBuilder.text(headline, "bodyMedium", "semiBold",
+                    ColorTokens.TEXT_PRIMARY, 3));
+            textCol.set("children", textChildren);
+            rowChildren.add(textCol);
+
+            row.set("children", rowChildren);
+            children.add(row);
+
+            if (i < articles.length - 1) {
+                ObjectNode divider = atomicBuilder.container("column", null, null);
+                divider.put("widthMode", "fill");
+                divider.set("padding", atomicBuilder.padding(
+                        LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, 0, 0));
+                ArrayNode dividerKids = objectMapper.createArrayNode();
+                ObjectNode line = atomicBuilder.container("row", null, null);
+                line.put("widthMode", "fill");
+                line.put("height", 1);
+                line.put("background", ColorTokens.BORDER_SUBTLE);
+                dividerKids.add(line);
+                divider.set("children", dividerKids);
+                children.add(divider);
+            }
+        }
+
+        root.set("children", children);
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
-        ObjectNode section = atomicBuilder.buildEditorialOverlayRail(
-                sectionId, "for_you_top_stories", null, cards);
+        ObjectNode section = atomicBuilder.wrapAsComposite(sectionId, "for_you_top_stories", root);
         section.put("contentSourceId", contentSourceId);
         section.set("surface", surfaces.railSurface());
         return section;
@@ -361,22 +477,26 @@ public class ForYouComposer {
         String contentSourceId = "rec:trending";
         // [id, headline, subhead, imageUrl, kind, badge, targetUri]
         String[][] cards = {
-                {"tr-1", "MVP Race Heats Up",
-                        "Who's leading the charge?",
-                        DemoImageUrls.cardWide("mvp"),
-                        "article", null, "nba://article/mvp-race"},
-                {"tr-2", "Rookie Spotlight",
-                        "The first overall pick's breakout game",
-                        DemoImageUrls.cardWide("rookie"),
-                        "video", "3:12", "nba://video/rookie-spotlight"},
-                {"tr-3", "Playoff Picture Update",
-                        "Where every team stands right now",
-                        DemoImageUrls.cardWide("standings"),
-                        "article", null, "nba://article/playoff-picture"},
-                {"tr-4", "Coach of the Year Watch",
-                        "The frontrunners with two months to go",
-                        DemoImageUrls.cardWide("coach"),
-                        "article", null, "nba://article/coach-of-year"}
+                {"tr-1", "Best Of East Finals Game 4",
+                        "Knicks push Cleveland to the brink",
+                        DemoImageUrls.cardWide("ecf-g4"),
+                        "video", "4:02", "nba://video/ecf-g4-highlights"},
+                {"tr-2", "Inside the West Finals chess match",
+                        "Spurs vs Thunder — what changes in Game 5",
+                        DemoImageUrls.cardWide("west-finals"),
+                        "article", null, "nba://article/west-finals-preview"},
+                {"tr-3", "All-NBA First Team reactions",
+                        "SGA, Jokić, Wembanyama lead the class",
+                        DemoImageUrls.cardWide("all-nba"),
+                        "article", null, "nba://article/all-nba-teams"},
+                {"tr-4", "Coach Mic: Steve Kerr after Game 4",
+                        "Warriors look ahead in a tight series",
+                        DemoImageUrls.cardWide("kerr"),
+                        "video", "2:18", "nba://video/kerr-postgame"},
+                {"tr-5", "Playoff bracket update",
+                        "Every series on one screen",
+                        DemoImageUrls.cardWide("bracket"),
+                        "article", null, "nba://article/playoff-bracket"}
         };
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         ObjectNode section = atomicBuilder.buildContentRail(
@@ -390,22 +510,26 @@ public class ForYouComposer {
         String contentSourceId = "cms:league-pass-picks";
         // [id, headline, subhead, imageUrl, kind, badge, targetUri]
         String[][] cards = {
-                {"lp-1", "Warriors vs. Thunder",
-                        "Western Conference clash",
-                        DemoImageUrls.cardWide("warriors"),
-                        "article", null, "nba://article/gsw-okc-preview"},
-                {"lp-2", "Best of League Pass",
-                        "Catch the top moments you missed",
-                        DemoImageUrls.cardWide("highlights"),
-                        "video", "4:30", "nba://video/lp-week-20"},
-                {"lp-3", "Hidden Gem: Pacers vs. Magic",
-                        "An under-the-radar rivalry renewed",
-                        DemoImageUrls.cardWide("pacers"),
-                        "video", "1:58", "nba://video/ind-orl-hidden-gem"},
-                {"lp-4", "Last Two Minute Report",
-                        "How the night's tightest games closed out",
-                        DemoImageUrls.cardWide("clutch"),
-                        "article", null, "nba://article/l2m-report"}
+                {"lp-1", "Full replay: Knicks at Cavs",
+                        "East Finals Game 4",
+                        DemoImageUrls.cardWide("knicks-cavs"),
+                        "video", "2:28:00", "nba://video/nyk-cle-g4-full"},
+                {"lp-2", "Condensed: Spurs at Thunder",
+                        "West Finals Game 4",
+                        DemoImageUrls.cardWide("spurs-thunder"),
+                        "video", "12:40", "nba://video/sas-okc-g4-condensed"},
+                {"lp-3", "All-22 angles: Wembanyama block",
+                        "Momentum swing in the fourth",
+                        DemoImageUrls.cardWide("wemby-block"),
+                        "video", "0:42", "nba://video/wemby-block-all22"},
+                {"lp-4", "Film Room: SGA in the pocket",
+                        "How OKC creates late-clock looks",
+                        DemoImageUrls.cardWide("sga-film"),
+                        "video", "6:05", "nba://video/sga-film-room"},
+                {"lp-5", "Classic: 2016 Game 7",
+                        "League Pass archive pick",
+                        DemoImageUrls.cardWide("classic-2016"),
+                        "video", "2:15:00", "nba://video/2016-finals-g7"}
         };
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         ObjectNode section = atomicBuilder.buildContentRail(
@@ -419,18 +543,21 @@ public class ForYouComposer {
         String contentSourceId = "cms:vod-playlist";
         // [id, title, subtitle, thumbUrl, duration, isLive, targetUri]
         String[][] rows = {
-                {"playlist-1", "Giannis goes off for 40", "Last night · Bucks vs Heat",
-                        DemoImageUrls.cardWide("giannis"),
-                        "0:42", "false", "nba://video/giannis-40"},
-                {"playlist-2", "Press conference: Steve Kerr", "Warriors · Postgame",
-                        DemoImageUrls.cardWide("press"),
-                        "6:21", "false", "nba://video/kerr-pressconf"},
-                {"playlist-3", "Lakers vs Nuggets (Live)", "On now · League Pass",
-                        DemoImageUrls.cardWide("lakers"),
-                        null, "true", "nba://video/lakers-nuggets-live"},
-                {"playlist-4", "Top 10 Buzzer Beaters", "Editors' picks",
-                        DemoImageUrls.cardWide("buzzer"),
-                        "4:08", "false", "nba://video/top10-buzzer-beaters"}
+                {"playlist-1", "Knicks close out Cavs in Cleveland", "East Finals · Game 4",
+                        DemoImageUrls.cardWide("knicks-cavs"),
+                        "2:28:00", "false", "nba://video/nyk-cle-g4-full"},
+                {"playlist-2", "Spurs force Game 5 in OKC", "West Finals · Game 4",
+                        DemoImageUrls.cardWide("spurs-thunder"),
+                        "2:22:00", "false", "nba://video/sas-okc-g4-full"},
+                {"playlist-3", "Thunder vs Spurs (Live)", "On now · League Pass",
+                        DemoImageUrls.cardWide("okc-sa-live"),
+                        null, "true", "nba://video/okc-sas-live"},
+                {"playlist-4", "Top 10 Plays: Tuesday night", "Around the league",
+                        DemoImageUrls.cardWide("top10"),
+                        "3:54", "false", "nba://video/top10-tuesday"},
+                {"playlist-5", "All-NBA Teams announcement", "Awards · 3 min recap",
+                        DemoImageUrls.cardWide("all-nba"),
+                        "3:12", "false", "nba://video/all-nba-announcement"}
         };
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         ObjectNode section = atomicBuilder.buildVodPlaylist(
@@ -555,6 +682,15 @@ public class ForYouComposer {
                 ? heroCardId.substring("hero-game-".length())
                 : heroCardId;
         rp.put("channel", gameId + ":linescore");
+        return rp;
+    }
+
+    private ObjectNode mockHeroSectionPollPolicy(String sectionId) {
+        ObjectNode rp = objectMapper.createObjectNode();
+        rp.put("type", "poll");
+        rp.put("sectionEndpoint", "/v1/sdui/section/" + sectionId);
+        rp.put("intervalMs", 60_000);
+        rp.put("pauseWhenOffScreen", false);
         return rp;
     }
 }

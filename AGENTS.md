@@ -475,6 +475,7 @@ crossed its exception boundary.
 The current set of justified semantic sections is:
 
 - `BoxscoreTable` — real-time binding plus expandable interaction state
+- `CalendarStrip` — platform-native date picker hosting (calendar arithmetic, programmatic scroll-to-selected, locale-aware formatting) and in-place reconciliation across parameterized refresh
 - `SeasonLeadersTable` — sort / filter interaction state
 - `TabGroup` — tab selection state and nested section hosting
 - `Form` — validation state and platform keyboard integration

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Section } from '@sdui/models';
-import { mapTabGroup } from './sectionUiAdapters';
+import { ActionTrigger, ActionType } from '@sdui/models';
+import { mapCalendarStrip, mapTabGroup } from './sectionUiAdapters';
 
 function tabGroupSection(overrides: {
   stateKey?: string;
@@ -45,5 +46,56 @@ describe('mapTabGroup', () => {
     expect(model?.stateKey).toBe('watch_active_tab');
     expect(model?.tabs.find((t) => t.isActive)?.stateValue).toBe('b');
     expect(model?.activeSections[0]?.id).toBe('child-b');
+  });
+});
+
+describe('mapCalendarStrip', () => {
+  it('maps all required and optional fields', () => {
+    const section = {
+      id: 'server:games-calendar~type=CalendarStrip',
+      type: 'CalendarStrip',
+      data: {
+        stateKey: 'games_selected_date',
+        selectedDate: '2026-05-25',
+        defaultDate: '2026-05-25',
+        minDate: '2025-10-01',
+        maxDate: '2026-06-30',
+        onDateSelected: {
+          trigger: ActionTrigger.OnActivate,
+          type: ActionType.Refresh,
+          endpoint: '/v1/sdui/screen/refresh/games',
+          paramBindings: { date: '{{games_selected_date}}' },
+        },
+      },
+    } as Section;
+
+    const model = mapCalendarStrip(section);
+    expect(model).not.toBeNull();
+    expect(model?.stateKey).toBe('games_selected_date');
+    expect(model?.selectedDate).toBe('2026-05-25');
+    expect(model?.defaultDate).toBe('2026-05-25');
+    expect(model?.minDate).toBe('2025-10-01');
+    expect(model?.maxDate).toBe('2026-06-30');
+    expect(model?.onDateSelected.type).toBe(ActionType.Refresh);
+    expect(model?.onDateSelected.trigger).toBe(ActionTrigger.OnActivate);
+    expect(model?.onDateSelected.endpoint).toBe('/v1/sdui/screen/refresh/games');
+  });
+
+  it('returns null when required field is missing', () => {
+    const section = {
+      id: 'server:games-calendar~type=CalendarStrip',
+      type: 'CalendarStrip',
+      data: {
+        stateKey: 'games_selected_date',
+        selectedDate: '2026-05-25',
+        onDateSelected: {
+          trigger: ActionTrigger.OnActivate,
+          type: ActionType.Refresh,
+          endpoint: '/v1/sdui/screen/refresh/games',
+        },
+      },
+    } as Section;
+
+    expect(mapCalendarStrip(section)).toBeNull();
   });
 });

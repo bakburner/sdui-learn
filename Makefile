@@ -322,10 +322,26 @@ _dev-ios: ios-sim-preflight ios-demo-project
 	 xcrun simctl install booted "$$APP"
 	@echo "=== Launching app ==="
 	@xcrun simctl terminate booted $(IOS_DEMO_BUNDLE) 2>/dev/null || true
-	@SIMCTL_CHILD_SDUI_IOS_BASE_URL="$(SDUI_IOS_BASE_URL)" xcrun simctl launch booted $(IOS_DEMO_BUNDLE)
+	@# Capture the app's stdout/stderr to host-side files so we can tail
+	@# them. `simctl launch` otherwise discards both, which means Swift
+	@# runtime fatal-error backtraces (printed to stderr just before
+	@# abort()) vanish — the very output you need to diagnose a crash.
+	@rm -f /tmp/sduidemo.stdout /tmp/sduidemo.stderr
+	@touch /tmp/sduidemo.stdout /tmp/sduidemo.stderr
+	@SIMCTL_CHILD_SDUI_IOS_BASE_URL="$(SDUI_IOS_BASE_URL)" xcrun simctl launch \
+		--stdout=/tmp/sduidemo.stdout \
+		--stderr=/tmp/sduidemo.stderr \
+		booted $(IOS_DEMO_BUNDLE)
 	@echo "=== Tailing logs (Ctrl-C to stop) ==="
-	@xcrun simctl spawn booted log stream --level debug \
-		--predicate 'subsystem == "com.nba.sdui"'
+	@echo "    stderr  → /tmp/sduidemo.stderr"
+	@echo "    stdout  → /tmp/sduidemo.stdout"
+	@echo "    os_log  → unified log stream (subsystem com.nba.sdui or process SduiDemo)"
+	@# Run the stderr/stdout tail in the background; foreground the
+	@# unified-log stream so Ctrl-C kills the whole group.
+	@( tail -F /tmp/sduidemo.stderr /tmp/sduidemo.stdout 2>/dev/null & echo $$! > /tmp/sduidemo.tail.pid; \
+	   trap 'kill $$(cat /tmp/sduidemo.tail.pid) 2>/dev/null; rm -f /tmp/sduidemo.tail.pid' EXIT INT TERM; \
+	   xcrun simctl spawn booted log stream --level debug \
+	     --predicate 'subsystem == "com.nba.sdui" OR (process == "SduiDemo" AND messageType >= 16)' )
 
 # Run on iPhone 15 Pro Max for testing larger screens / responsive layouts
 ios-run-max:

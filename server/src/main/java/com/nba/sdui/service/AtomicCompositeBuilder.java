@@ -115,6 +115,25 @@ public class AtomicCompositeBuilder {
                                         String title, String headline,
                                         String subhead, String imageUrl,
                                         String ctaLabel, String targetUri) {
+        // Default text-color triplet matches the historical gradient-surface
+        // styling used by Watch / Scoreboard / Demo. Callers on solid-card
+        // surfaces (e.g. the Games-screen promo on `bg.secondary`) should
+        // use the overload below and pass `TEXT_PRIMARY` so the headline
+        // tracks the surface across light/dark themes.
+        return buildPromoBanner(id, analyticsId, title, headline, subhead,
+                imageUrl, ctaLabel, targetUri,
+                ColorTokens.BRAND_LIVE,
+                ColorTokens.TEXT_INVERSE,
+                ColorTokens.TEXT_SECONDARY);
+    }
+
+    public ObjectNode buildPromoBanner(String id, String analyticsId,
+                                        String title, String headline,
+                                        String subhead, String imageUrl,
+                                        String ctaLabel, String targetUri,
+                                        String titleColorToken,
+                                        String headlineColorToken,
+                                        String subheadColorToken) {
         ObjectNode section = sectionEnvelope(id, analyticsId);
 
         // Emit a bare root container — outer chrome (background, padding,
@@ -140,15 +159,15 @@ public class AtomicCompositeBuilder {
         ArrayNode colChildren = om.createArrayNode();
 
         if (title != null) {
-            colChildren.add(text(title.toUpperCase(), "labelSmall", "bold", ColorTokens.BRAND_LIVE, null));
+            colChildren.add(text(title.toUpperCase(), "labelSmall", "bold", titleColorToken, null));
             colChildren.add(spacer(LayoutTokens.SPACING_SM));
         }
         if (headline != null) {
-            colChildren.add(text(headline, "titleMedium", "bold", ColorTokens.TEXT_INVERSE, null));
+            colChildren.add(text(headline, "titleMedium", "bold", headlineColorToken, null));
             colChildren.add(spacer(LayoutTokens.SPACING_SM));
         }
         if (subhead != null) {
-            colChildren.add(text(subhead, "bodySmall", null, ColorTokens.TEXT_SECONDARY, 2));
+            colChildren.add(text(subhead, "bodySmall", null, subheadColorToken, 2));
         }
         if (targetUri != null) {
             colChildren.add(spacer(LayoutTokens.SPACING_MD));
@@ -2148,7 +2167,7 @@ public class AtomicCompositeBuilder {
         List<String[]> validRows = validRows(rows, 0, 1, 6);
 
         ObjectNode root = container("column", null, "stretch");
-        root.put("gap", LayoutTokens.SPACING_SM);
+        root.put("gap", LayoutTokens.SPACING_MD);
         root.set("padding", padding(LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, 0, LayoutTokens.SPACING_MD));
         ArrayNode children = om.createArrayNode();
         if (title != null) {
@@ -2611,8 +2630,9 @@ public class AtomicCompositeBuilder {
         card.put("id", value(row, 0));
         card.put("gap", LayoutTokens.SPACING_SM);
         // Refreshed card treatment: flush tile — secondary background, no corner radius, no
-        // shadow. Cards sit edge-to-edge in the schedule list; inter-card spacing is owned
-        // by the parent list gap rather than per-card margin.
+        // shadow. Inter-card spacing is owned by the parent list `gap` rather than per-card
+        // margin, so cards stack with consistent vertical rhythm without each renderer
+        // having to set its own outer margin.
         card.put("background", "token:nba.bg.secondary");
         card.put("cornerRadius", 0);
         card.set("padding", padding(LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG));

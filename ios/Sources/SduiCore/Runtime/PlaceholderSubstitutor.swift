@@ -71,7 +71,13 @@ enum PlaceholderSubstitutor {
 
     static func substitute(_ template: String?, state: ScreenState) -> String? {
         guard let template else { return nil }
-        return substitute(template, state: state)
+        // `keepUnknown: true` is the default for the `String` overload, but
+        // we pass it explicitly so Swift's overload resolution picks the
+        // non-optional `substitute(_:state:keepUnknown:)`. Without the
+        // explicit third argument the compiler re-selects the `String?`
+        // overload via implicit `String → String?` promotion and infinitely
+        // recurses — same gotcha that `ScreenState.set(_:value:)` documents.
+        return substitute(template, state: state, keepUnknown: true)
     }
 
     /// Build a copy of `action` with every placeholder-bearing string field

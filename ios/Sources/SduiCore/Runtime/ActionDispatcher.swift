@@ -126,17 +126,24 @@ final class ActionDispatcher {
     }
 
     private func handle(_ action: Action) -> HandleResult {
+        // Resolve `{{stateKey}}` placeholders against the live ScreenState
+        // before the per-type handlers run. This lets the server emit
+        // parameterised navigate/refresh actions (e.g.
+        // `nba://games?date={{calendar_selected_date}}`) without each
+        // renderer having to splice state into server-emitted strings.
+        let resolved = PlaceholderSubstitutor.resolve(action, state: screenState)
+
         // Debug-build visibility for the action pipeline. `os.Logger.debug`
         // streams to Xcode's console in debug runs and is filtered out of
         // release telemetry, so this stays free in production.
-        logger.debug("dispatch type=\(action.type.rawValue, privacy: .public) trigger=\(action.trigger.rawValue, privacy: .public) section=\(self.sectionContext, privacy: .public)")
-        switch action.type {
-        case .navigate: return handleNavigate(action)
-        case .fireAndForget: return handleFireAndForget(action)
-        case .mutate: return handleMutate(action)
-        case .refresh: return handleRefresh(action)
-        case .dismiss: return handleDismiss(action)
-        case .toast: return handleToast(action)
+        logger.debug("dispatch type=\(resolved.type.rawValue, privacy: .public) trigger=\(resolved.trigger.rawValue, privacy: .public) section=\(self.sectionContext, privacy: .public)")
+        switch resolved.type {
+        case .navigate: return handleNavigate(resolved)
+        case .fireAndForget: return handleFireAndForget(resolved)
+        case .mutate: return handleMutate(resolved)
+        case .refresh: return handleRefresh(resolved)
+        case .dismiss: return handleDismiss(resolved)
+        case .toast: return handleToast(resolved)
         }
     }
 
@@ -283,22 +290,14 @@ final class ActionDispatcher {
         }
     }
 
-    /// Resolve `paramBindings` map entries from screen state, matching
-    /// Android's mustache-template stripping (`{{form_season}}` → lookup
-    /// `form_season` in `ScreenState`).
+    /// Filter resolved `paramBindings` down to the entries that carry a
+    /// non-empty value. `PlaceholderSubstitutor.resolve(_:state:)` has
+    /// already replaced every `{{stateKey}}` with the matching state value
+    /// (or left the template intact when the key was unknown), so this
+    /// helper just drops empty values to avoid emitting dangling `?key=`
+    /// query params.
     private func resolveParamBindings(_ bindings: [String: String]?) -> [String: String] {
         guard let bindings, !bindings.isEmpty else { return [:] }
-        var resolved: [String: String] = [:]
-        for (queryKey, template) in bindings {
-            let stateKey = template
-                .trimmingCharacters(in: .whitespaces)
-                .replacingOccurrences(of: "{{", with: "")
-                .replacingOccurrences(of: "}}", with: "")
-                .trimmingCharacters(in: .whitespaces)
-            if let value = screenState.get(stateKey) {
-                resolved[queryKey] = String(describing: value)
-            }
-        }
-        return resolved
+        return bindings.filter { !$0.value.isEmpty }
     }
 }

@@ -107,6 +107,7 @@ internal class SduiScreenController(
     // ── Internal bookkeeping ─────────────────────────────────────────
     private var currentScreen: SduiModels? = null
     private var currentEndpoint: String? = null   // resolved server path — used for refresh / polling
+    private var currentUserParams: Map<String, String> = emptyMap()  // last user-supplied filter params — replayed on pull-to-refresh and poll
     private var screenLevelPollJob: Job? = null
 
     /**
@@ -158,6 +159,7 @@ internal class SduiScreenController(
         currentEndpoint = endpoint
 
         if (isNewScreen) {
+            currentUserParams = emptyMap()
             stopAbly()
             stopAllPolling()
             screenLevelPollJob?.cancel()
@@ -186,20 +188,39 @@ internal class SduiScreenController(
     }
 
     /**
-     * Parameterized refresh — fetches the supplied endpoint with user-bound
-     * filter params via the canonical `fetchScreen` transport (envelope +
-     * GET/POST length fallback + `X-Trace-Id` propagation), then merges the
-     * returned sections into the current screen. Form-style sections that
-     * are not in the response are preserved. State values echoed from the
-     * server are applied so the form's selection stays in sync.
+     * Screen-channel full replace — fetches the supplied endpoint with
+     * user-bound filter params via the canonical `fetchScreen` transport
+     * (envelope + GET/POST length fallback + `X-Trace-Id` propagation) and
+     * fully replaces the current screen with the response.
+     *
+     * This is the single entry point for all screen-channel refetches that
+     * carry user parameters (date pickers, form submits, filter changes).
+     * Pull-to-refresh and screen-level poll ticks use [refresh] /
+     * [startScreenLevelPoll] which also route through the screen channel
+     * via [currentEndpoint].
+     *
+     * The response is always treated as the new authoritative screen state:
+     * its section roster fully replaces the current one. Sections that were
+     * on the previous screen but are absent from the response are removed
+     * (e.g. an `upcoming_games` section that no longer applies when the
+     * date picker moves to a day with only completed games).
+     *
+     * If the server returns a payload whose [id] does not match the current
+     * screen's id, that is a contract bug — a parameterized refresh must
+     * return the same screen it was invoked against, not a different one.
+     * The mismatched response is dropped and the current screen is left
+     * untouched.
+     *
+     * A successful replace resets the screen-level poll timer so that
+     * out-of-band fetches don't cause a double-fetch one tick later.
      */
-    fun refreshSections(
+    fun replaceCurrentScreen(
         endpoint: String,
         userParams: Map<String, String> = emptyMap()
     ) {
         scope.launch {
             try {
-                Log.d(TAG, "Parameterized refresh: endpoint=$endpoint params=$userParams")
+                Log.d(TAG, "replaceCurrentScreen: endpoint=$endpoint params=$userParams")
                 val refreshScreen = repository.fetchScreen(
                     path = endpoint,
                     envelope = buildEnvelope(),
@@ -207,47 +228,36 @@ internal class SduiScreenController(
                     traceIdOverride = currentScreen?.traceID
                 )
 
-                // Merge echoed state from the response
-                refreshScreen.state?.forEach { (key, value) ->
-                    if (value != null) {
-                        stateManager.setState(key, value)
-                    } else {
-                        stateManager.removeState(key)
-                    }
-                }
-
-                val current = currentScreen ?: run {
-                    applyScreen(refreshScreen)
+                val current = currentScreen
+                if (current != null && refreshScreen.id != current.id) {
+                    Log.w(
+                        TAG,
+                        "Refresh response id='${refreshScreen.id}' does not match current screen " +
+                            "id='${current.id}'; dropping response (parameterized refresh must return " +
+                            "the same screen it was invoked against)."
+                    )
                     return@launch
                 }
 
-                val mergedSections = current.sections.toMutableList()
-                for (newSection in refreshScreen.sections) {
-                    val idx = mergedSections.indexOfFirst { it.id == newSection.id }
-                    if (idx >= 0) {
-                        mergedSections[idx] = newSection
-                    } else {
-                        mergedSections.add(newSection)
-                    }
-                }
-
-                val mergedScreen = current.copy(sections = mergedSections)
-                currentScreen = mergedScreen
-                _uiState.value = SduiScreenUiState.Success(mergedScreen)
+                currentUserParams = userParams
+                applyScreen(refreshScreen)
             } catch (e: Exception) {
-                Log.e(TAG, "Parameterized refresh failed: $endpoint", e)
-                // Don't replace screen with error — keep current screen intact
+                Log.e(TAG, "replaceCurrentScreen failed: $endpoint", e)
             }
         }
     }
 
-    /** Pull-to-refresh — re-fetches from the stored endpoint. */
+    /** Pull-to-refresh — re-fetches from the stored endpoint with current user params. */
     fun refresh() {
         val endpoint = currentEndpoint ?: return
         scope.launch {
             _isRefreshing.value = true
             try {
-                val screen = repository.fetchScreen(endpoint, buildEnvelope())
+                val screen = repository.fetchScreen(
+                    path = endpoint,
+                    envelope = buildEnvelope(),
+                    userParams = currentUserParams
+                )
                 applyScreen(screen)
             } catch (e: Exception) {
                 Log.e(TAG, "Refresh failed", e)
@@ -349,7 +359,11 @@ internal class SduiScreenController(
                 delay(intervalMs)
                 try {
                     val endpoint = currentEndpoint ?: continue
-                    val updated = repository.fetchScreen(endpoint, buildEnvelope())
+                    val updated = repository.fetchScreen(
+                        path = endpoint,
+                        envelope = buildEnvelope(),
+                        userParams = currentUserParams
+                    )
                     applyScreen(updated)
                 } catch (e: Exception) {
                     Log.e(TAG, "Screen-level poll failed", e)

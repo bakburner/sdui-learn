@@ -6,33 +6,51 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * Composes the "Games" SDUI screen — all live, upcoming & final games.
+ * Composes the "Games" SDUI screen — live, upcoming & final games for a
+ * selected date.
  *
  * Layout:
- *   1. GamePanel (featured) – hero card for the top live game (SSE refresh)
+ *   0. CalendarStrip        – horizontal date picker; parameterized refresh
+ *   1. PromoBanner          – League Pass commerce CTA (static, server-owned copy)
  *   2. GameScheduleList     – "Live Now" compact list (SSE per-row clock countdown)
- *   3. GameScheduleList     – "Upcoming Today" (static)
+ *   3. GameScheduleList     – "Upcoming" (static)
  *   4. GameScheduleList     – "Final" (static)
  *
- * Live rows use per-game SSE channels bound via dataBinding so the LiveClock
- * element counts down in real-time. When the Ably/SSE channel delivers a
- * linescore frame, the client writes clock.isRunning=true and the clock starts
- * local interpolation.
+ * <p>The default date is the CDN scoreboard's authoritative {@code gameDate}
+ * field — the league's "current game day" already accounts for late-night
+ * roll-forward, so this is more meaningful than wall-clock midnight ET. The
+ * CalendarStrip drives a {@code refresh} action that re-runs composition with
+ * the selected ISO date: today's date reuses the already-fetched CDN
+ * scoreboard, other dates call the NBA Core API gameCardFeed endpoint. When
+ * no games exist for the selected date, only the CalendarStrip is rendered —
+ * no synthetic mock data is emitted.
+ *
+ * <p>Live rows use per-game SSE channels bound via {@code dataBinding} so the
+ * LiveClock element counts down in real-time. When the Ably/SSE channel delivers
+ * a linescore frame, the client writes {@code clock.isRunning=true} and the
+ * clock starts local interpolation.
  */
 @Component
 public class LiveComposer {
 
     private static final Logger log = LoggerFactory.getLogger(LiveComposer.class);
+
+    /** Branded artwork used for the inline League Pass promo banner under the
+     *  CalendarStrip. Same asset the scoreboard variant reuses. */
+    private static final String LEAGUE_PASS_PROMO_THUMB =
+            "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png";
 
     private final ObjectMapper objectMapper;
     private final StatsApiClient statsApiClient;
@@ -40,25 +58,32 @@ public class LiveComposer {
     private final SectionSurfaces surfaces;
     private final AtomicCompositeBuilder atomicBuilder;
     private final SectionRefreshService sectionRefreshService;
+    private final ParameterizedRefreshService parameterizedRefreshService;
+    private final SeasonCalendarService seasonCalendarService;
 
     @Value("${sdui.schema.version:1.0}")
     private String schemaVersion;
 
+    @Autowired
     public LiveComposer(ObjectMapper objectMapper,
                         StatsApiClient statsApiClient,
                         SduiUtils utils,
                         SectionSurfaces surfaces,
-                        SectionRefreshService sectionRefreshService) {
+                        SectionRefreshService sectionRefreshService,
+                        ParameterizedRefreshService parameterizedRefreshService,
+                        SeasonCalendarService seasonCalendarService) {
         this.objectMapper = objectMapper;
         this.statsApiClient = statsApiClient;
         this.utils = utils;
         this.surfaces = surfaces;
         this.atomicBuilder = new AtomicCompositeBuilder(objectMapper);
         this.sectionRefreshService = sectionRefreshService;
+        this.parameterizedRefreshService = parameterizedRefreshService;
+        this.seasonCalendarService = seasonCalendarService;
     }
 
     @PostConstruct
-    private void registerSectionResolvers() {
+    private void registerResolvers() {
         String sectionId = SectionIdDeriver.derive("stats-api:live-games", "GameScheduleList");
         sectionRefreshService.registerResolver(sectionId, (id, ctx) -> {
             JsonNode scoreboard = safeGetScoreboard();
@@ -70,12 +95,34 @@ public class LiveComposer {
                     }
                 }
             }
-            return liveGames.isEmpty() ? buildMockLiveScheduleList() : buildLiveScheduleList(liveGames);
+            return liveGames.isEmpty() ? buildEmptyLiveScheduleList() : buildLiveScheduleList(liveGames);
         });
+
+        parameterizedRefreshService.registerResolver("games",
+                (traceId, params, ctx) -> composeLive(
+                        traceId,
+                        ctx.getLocale() != null ? ctx.getLocale() : "en",
+                        params.get("date")));
     }
 
-    public JsonNode composeLive(String traceId, String locale) {
-        log.info("Composing Games screen, locale={}", locale);
+    public ObjectNode composeLive(String traceId, String locale) {
+        return composeLive(traceId, locale, null);
+    }
+
+    /**
+     * Compose the Games screen. When {@code selectedDateOverride} is non-null it
+     * becomes the strip's selected date and the seeded screen state — used by the
+     * parameterized-refresh resolver on date tap.
+     *
+     * <p>The override is parsed as a {@link LocalDate}. If it falls outside the
+     * season window or fails to parse, composition falls back to today's league
+     * date for both fetching and state echo — this resets the client's strip to
+     * today, which is safe because out-of-bounds dates can only arrive from
+     * unexpected deep links or forged requests (the strip's own minDate/maxDate
+     * prevents normal navigation outside the season).
+     */
+    public ObjectNode composeLive(String traceId, String locale, String selectedDateOverride) {
+        log.info("Composing Games screen, locale={}, dateOverride={}", locale, selectedDateOverride);
 
         ObjectNode response = objectMapper.createObjectNode();
         response.put("id", "games");
@@ -84,14 +131,42 @@ public class LiveComposer {
         response.put("schemaVersion", schemaVersion);
         utils.applyTabDestinationNavigation(response, "games");
 
+        // Always fetch the CDN today scoreboard first — it is the authoritative
+        // source for the league's current game date. The CDN's gameDate field
+        // already accounts for the league's roll-forward semantics (late-night
+        // games still count as the prior day until the league rolls over), so
+        // it produces a more meaningful default than wall-clock midnight ET.
+        JsonNode todayScoreboard = safeGetScoreboard();
+        LocalDate today = resolveTodayFromScoreboard(todayScoreboard);
+        String defaultDate = today.toString();
+        LocalDate fetchDate = resolveRequestedDate(selectedDateOverride, today);
+        String selectedDate = fetchDate.toString();
+
+        ObjectNode state = objectMapper.createObjectNode();
+        state.put("games_selected_date", selectedDate);
+        response.set("state", state);
+
         ArrayNode sections = objectMapper.createArrayNode();
 
-        JsonNode scoreboard = safeGetScoreboard();
+        // 0. CalendarStrip — date picker driving parameterized refresh
+        sections.add(buildCalendarStripSection(selectedDate, defaultDate));
+
+        // 1. League Pass promo banner — always rendered directly under the
+        //    CalendarStrip, mirroring the production NBA Games tab. Server
+        //    owns copy, art, and target URI; CMS can later swap in a different
+        //    contentSourceId without a client release.
+        sections.add(buildLeaguePassPromoBanner());
+
+        // Reuse the already-fetched CDN response when the selection is today;
+        // otherwise the Core API gameCardFeed serves per-date scoreboards.
+        JsonNode scoreboard = fetchDate.equals(today)
+                ? todayScoreboard
+                : safeGetScoreboardForDate(fetchDate);
         JsonNode games = (scoreboard != null)
                 ? scoreboard.path("scoreboard").path("games")
                 : objectMapper.createArrayNode();
 
-        // Partition games by status
+        // Partition games by status: 2=live, 1=upcoming, 3+=final.
         List<JsonNode> liveGames = new ArrayList<>();
         List<JsonNode> upcomingGames = new ArrayList<>();
         List<JsonNode> finishedGames = new ArrayList<>();
@@ -105,49 +180,128 @@ public class LiveComposer {
             }
         }
 
-        // 1. Featured game — hero card for top live game (SSE refresh)
-        JsonNode heroGame = !liveGames.isEmpty() ? liveGames.get(0)
-                : (!upcomingGames.isEmpty() ? upcomingGames.get(0) : null);
-        boolean heroIsLive = heroGame != null && !liveGames.isEmpty()
-                && heroGame == liveGames.get(0);
-        if (heroGame != null) {
-            sections.add(buildFeaturedGamePanel(heroGame));
-        } else {
-            sections.add(buildMockFeaturedGame());
+        if (!liveGames.isEmpty()) {
+            sections.add(buildLiveScheduleList(liveGames));
         }
-
-        // 2. "Live Now" — compact schedule list with per-row SSE clock.
-        // Skip the hero game so the featured card and the rail don't render
-        // the same game twice (visible duplicate when only one live game
-        // exists, and stylistically redundant otherwise).
-        List<JsonNode> liveListGames = heroIsLive
-                ? liveGames.subList(1, liveGames.size())
-                : liveGames;
-        if (!liveListGames.isEmpty()) {
-            sections.add(buildLiveScheduleList(liveListGames));
-        }
-
-        // 3. "Upcoming Today" — static schedule list
         if (!upcomingGames.isEmpty()) {
             sections.add(buildScheduleList("upcoming-games", "upcoming_games",
-                    "Upcoming Today", upcomingGames, false));
+                    "Upcoming", upcomingGames, false));
         }
-
-        // 4. "Final" — static schedule list
         if (!finishedGames.isEmpty()) {
             sections.add(buildScheduleList("final-games", "final_games",
                     "Final", finishedGames, false));
         }
 
-        // If no real data, add mock sections
-        if (liveGames.isEmpty() && upcomingGames.isEmpty() && finishedGames.isEmpty()) {
-            addMockSections(sections);
-        }
+        insertGamesScreenAdSlot(sections, liveGames.size(), upcomingGames.size(), finishedGames.size());
 
         response.set("sections", sections);
         utils.ensureScreenContentInsets(response);
         utils.stampStringTableOnSections(response, locale);
         return response;
+    }
+
+    /**
+     * Read the authoritative "today" date from the CDN scoreboard payload's
+     * {@code scoreboard.gameDate} field. Falls back to the wall-clock ET date
+     * if the field is missing or unparseable (e.g. CDN call failed).
+     */
+    private LocalDate resolveTodayFromScoreboard(JsonNode todayScoreboard) {
+        if (todayScoreboard != null) {
+            String gameDate = todayScoreboard.path("scoreboard").path("gameDate").asText(null);
+            if (gameDate != null && !gameDate.isBlank()) {
+                try {
+                    return LocalDate.parse(gameDate);
+                } catch (Exception e) {
+                    log.warn("Could not parse scoreboard.gameDate='{}'; falling back to wall-clock today", gameDate);
+                }
+            }
+        }
+        return seasonCalendarService.currentLeagueDate();
+    }
+
+    // ── Date resolution ─────────────────────────────────────────────────
+
+    /**
+     * Parse the user-requested date override and clamp to the season window.
+     *
+     * <p>Out-of-bounds dates are clamped to today's league date and a warning
+     * is logged. The strip's minDate/maxDate prevents normal navigation outside
+     * the season, so out-of-bounds means an unexpected deep link or forged
+     * request — resetting to today is the safe behavior (the echoed date in
+     * screen state resets the client's strip selection as well).
+     */
+    private LocalDate resolveRequestedDate(String selectedDateOverride, LocalDate today) {
+        if (selectedDateOverride == null || selectedDateOverride.isBlank()) {
+            return today;
+        }
+        try {
+            LocalDate parsed = LocalDate.parse(selectedDateOverride);
+            if (!seasonCalendarService.isInSeason(parsed)) {
+                log.warn("Requested date {} is outside season [{}, {}]; falling back to today ({})",
+                        parsed, seasonCalendarService.seasonStart(), seasonCalendarService.seasonEnd(), today);
+                return today;
+            }
+            return parsed;
+        } catch (Exception e) {
+            log.warn("Failed to parse selectedDateOverride='{}'; falling back to today ({}): {}",
+                    selectedDateOverride, today, e.getMessage());
+            return today;
+        }
+    }
+
+    /**
+     * Fetch scoreboard for the given date via {@link StatsApiClient#getScoreboardForDate}.
+     * Swallows exceptions so composition can fall through to the mock path.
+     */
+    private JsonNode safeGetScoreboardForDate(LocalDate date) {
+        try {
+            return statsApiClient.getScoreboardForDate(date);
+        } catch (Exception e) {
+            log.warn("Could not fetch scoreboard for date={}: {}", date, e.getMessage());
+            return null;
+        }
+    }
+
+    // ── CalendarStrip builder ────────────────────────────────────────────
+
+    private ObjectNode buildCalendarStripSection(String selectedDate, String defaultDate) {
+        String contentSourceId = "server:games-calendar";
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "CalendarStrip");
+
+        ObjectNode section = objectMapper.createObjectNode();
+        section.put("id", sectionId);
+        section.put("type", "CalendarStrip");
+        section.put("contentSourceId", contentSourceId);
+        section.put("analyticsId", "games_calendar_strip");
+
+        ObjectNode accessibility = objectMapper.createObjectNode();
+        accessibility.put("label", "Games date picker");
+        section.set("accessibility", accessibility);
+
+        ObjectNode data = objectMapper.createObjectNode();
+        data.put("stateKey", "games_selected_date");
+        data.put("selectedDate", selectedDate);
+        data.put("defaultDate", defaultDate);
+        data.put("minDate", seasonCalendarService.seasonStart().toString());
+        data.put("maxDate", seasonCalendarService.seasonEnd().toString());
+
+        ObjectNode onDateSelected = objectMapper.createObjectNode();
+        onDateSelected.put("trigger", "onActivate");
+        onDateSelected.put("type", "refresh");
+        onDateSelected.put("endpoint", "/v1/sdui/screen/games");
+        ObjectNode paramBindings = objectMapper.createObjectNode();
+        paramBindings.put("date", "{{games_selected_date}}");
+        onDateSelected.set("paramBindings", paramBindings);
+        data.set("onDateSelected", onDateSelected);
+
+        ObjectNode expandedAction = objectMapper.createObjectNode();
+        expandedAction.put("trigger", "onActivate");
+        expandedAction.put("type", "navigate");
+        expandedAction.put("targetUri", "nba://calendar");
+        data.set("expandedAction", expandedAction);
+
+        section.set("data", data);
+        return section;
     }
 
     // ── Section builders ───────────────────────────────────────────────
@@ -181,7 +335,32 @@ public class LiveComposer {
                 sectionId, "live_games", "Live Now", rows,
                 refreshPolicy, dataBinding, clockSnapshots);
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", surfaces.flushSurface());
+        section.set("surface", surfaces.gameCardFlushSurface());
+        return section;
+    }
+
+    /**
+     * Empty live schedule list returned by the section-refresh resolver when
+     * all previously-live games have concluded. We can't emit SSE refresh on
+     * "no games", so the section drops back to a static poll so the client
+     * can keep checking. Composition will omit the section entirely on the
+     * next full screen fetch.
+     */
+    private ObjectNode buildEmptyLiveScheduleList() {
+        String contentSourceId = "stats-api:live-games";
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "GameScheduleList");
+
+        ObjectNode pollPolicy = objectMapper.createObjectNode();
+        pollPolicy.put("type", "poll");
+        pollPolicy.put("sectionEndpoint", "/v1/sdui/section/" + sectionId);
+        pollPolicy.put("intervalMs", 30_000);
+        pollPolicy.put("pauseWhenOffScreen", true);
+
+        ObjectNode section = atomicBuilder.buildGameScheduleList(
+                sectionId, "live_games", "Live Now", new String[0][],
+                pollPolicy, null);
+        section.put("contentSourceId", contentSourceId);
+        section.set("surface", surfaces.gameCardFlushSurface());
         return section;
     }
 
@@ -203,132 +382,8 @@ public class LiveComposer {
         ObjectNode section = atomicBuilder.buildGameScheduleList(
                 sectionId, analyticsId, title, rows, staticPolicy(), null);
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", surfaces.flushSurface());
+        section.set("surface", surfaces.gameCardFlushSurface());
         return section;
-    }
-
-    private ObjectNode buildFeaturedGamePanel(JsonNode game) {
-        String gameId = game.path("gameId").asText("0000000000");
-        String contentSourceId = "stats-api:scoreboard";
-        String sectionId = SectionIdDeriver.derive(contentSourceId, "GamePanel", "featured-" + gameId);
-        int gameStatus = game.path("gameStatus").asInt(1);
-        boolean live = gameStatus == 2;
-
-        ObjectNode refreshPolicy = live ? ssePolicy(game) : staticPolicy();
-        ObjectNode bindings = live ? utils.buildCompositeLinescoreBindings() : null;
-        AtomicCompositeBuilder.GameClockSnapshot clock = live ? clockSnapshotFromGame(game) : null;
-
-        ObjectNode section = atomicBuilder.buildGamePanelComposite(
-                sectionId,
-                "live_featured_game",
-                "featured",
-                gameId,
-                gameStatus,
-                game.path("gameStatusText").asText(""),
-                live ? "LIVE" : "UP NEXT",
-                atomicBuilder.gamePanelTeamFromJson(game.path("awayTeam")),
-                atomicBuilder.gamePanelTeamFromJson(game.path("homeTeam")),
-                clock,
-                "nba://game/" + gameId,
-                refreshPolicy,
-                bindings,
-                surfaces.gamePanelSurface());
-        section.put("contentSourceId", contentSourceId);
-        return section;
-    }
-
-    private ObjectNode buildMockFeaturedGame() {
-        String contentSourceId = "stats-api:scoreboard";
-        String sectionId = SectionIdDeriver.derive(contentSourceId, "GamePanel", "featured-mock");
-        ObjectNode section = atomicBuilder.buildGamePanelComposite(
-                sectionId,
-                "live_featured_game",
-                "featured",
-                "0022400050",
-                1,
-                "7:30 PM ET",
-                "NEXT UP",
-                new AtomicCompositeBuilder.GamePanelTeam(
-                        "MIA", 0, SduiUtils.teamLogoUrl("1610612748")),
-                new AtomicCompositeBuilder.GamePanelTeam(
-                        "NYK", 0, SduiUtils.teamLogoUrl("1610612752")),
-                null,
-                "nba://game/0022400050",
-                staticPolicy(),
-                null,
-                surfaces.gamePanelSurface());
-        section.put("contentSourceId", contentSourceId);
-        return section;
-    }
-
-    /**
-     * Mock sections for when the CDN scoreboard is unreachable.
-     */
-    private void addMockSections(ArrayNode sections) {
-        sections.add(buildMockLiveScheduleList());
-
-        // Mock upcoming schedule list
-        String upcomingContentSourceId = "stats-api:scoreboard";
-        String upcomingSectionId = SectionIdDeriver.derive(upcomingContentSourceId, "GameScheduleList", "upcoming");
-
-        String[][] upcomingRows = {
-                {"mock-up-1", "MIL", "Bucks", null,
-                        null, SduiUtils.teamLogoUrl("1610612749"),
-                        "DEN", "Nuggets", null,
-                        null, SduiUtils.teamLogoUrl("1610612743"),
-                        "8:00 PM ET", null, null, "nba://game/mock-up-1", null},
-                {"mock-up-2", "DAL", "Mavericks", null,
-                        null, SduiUtils.teamLogoUrl("1610612742"),
-                        "MIA", "Heat", null,
-                        null, SduiUtils.teamLogoUrl("1610612748"),
-                        "10:00 PM ET", null, null, "nba://game/mock-up-2", null}
-        };
-        ObjectNode upcomingSection = atomicBuilder.buildGameScheduleList(
-                upcomingSectionId, "upcoming_games", "Upcoming Today", upcomingRows,
-                staticPolicy(), null);
-        upcomingSection.put("contentSourceId", upcomingContentSourceId);
-        upcomingSection.set("surface", surfaces.flushSurface());
-        sections.add(upcomingSection);
-    }
-
-    /**
-     * Mock "Live Now" schedule list — used both as the initial mock composition
-     * and as the section-refresh response when no real live games are available.
-     * Uses a poll sectionEndpoint instead of SSE so mock data never opens an
-     * Ably connection.
-     */
-    private ObjectNode buildMockLiveScheduleList() {
-        String liveContentSourceId = "stats-api:live-games";
-        String liveSectionId = SectionIdDeriver.derive(liveContentSourceId, "GameScheduleList");
-
-        String[][] liveRows = {
-                {"mock-live-1", "BOS", "Celtics", null,
-                        "72", SduiUtils.teamLogoUrl("1610612738"),
-                        "LAL", "Lakers", null,
-                        "68", SduiUtils.teamLogoUrl("1610612747"),
-                        "Q3 4:22", null, null, "nba://game/mock-live-1", null},
-                {"mock-live-2", "GSW", "Warriors", null,
-                        "31", SduiUtils.teamLogoUrl("1610612744"),
-                        "PHX", "Suns", null,
-                        "28", SduiUtils.teamLogoUrl("1610612756"),
-                        "Q1 9:15", null, null, "nba://game/mock-live-2", null}
-        };
-        Map<String, AtomicCompositeBuilder.GameClockSnapshot> mockClocks = new HashMap<>();
-        mockClocks.put("mock-live-1", mockClockSnapshotFromStatus("Q3 4:22"));
-        mockClocks.put("mock-live-2", mockClockSnapshotFromStatus("Q1 9:15"));
-
-        ObjectNode mockPollPolicy = objectMapper.createObjectNode();
-        mockPollPolicy.put("type", "poll");
-        mockPollPolicy.put("sectionEndpoint", "/v1/sdui/section/" + liveSectionId);
-        mockPollPolicy.put("intervalMs", 30_000);
-        mockPollPolicy.put("pauseWhenOffScreen", true);
-
-        ObjectNode liveSection = atomicBuilder.buildGameScheduleList(
-                liveSectionId, "live_games", "Live Now", liveRows,
-                mockPollPolicy, null, mockClocks);
-        liveSection.put("contentSourceId", liveContentSourceId);
-        liveSection.set("surface", surfaces.flushSurface());
-        return liveSection;
     }
 
     // ── Row conversion ─────────────────────────────────────────────────
@@ -355,20 +410,76 @@ public class LiveComposer {
                 gameId,
                 away.path("teamTricode").asText(""),
                 away.path("teamName").asText(""),
-                null, // awaySeed
+                resolveSeed(away, game, /* isAway */ true),
                 awayScore,
                 SduiUtils.teamLogoUrl(away.path("teamId").asText("")),
                 home.path("teamTricode").asText(""),
                 home.path("teamName").asText(""),
-                null, // homeSeed
+                resolveSeed(home, game, /* isAway */ false),
                 homeScore,
                 SduiUtils.teamLogoUrl(home.path("teamId").asText("")),
                 game.path("gameStatusText").asText(""),
-                null, // seriesText
-                null, // broadcastLogos
+                resolveSeriesText(game),
+                resolveBroadcastText(game),
                 "nba://game/" + gameId,
                 null  // overflowUri
         };
+    }
+
+    /**
+     * Resolve a playoff seed/rank string for a team from upstream game JSON. Returns a
+     * 1-2 character seed (e.g. "3", "4") when present on the team payload or on the
+     * surrounding {@code playoffSeries} block, or null for regular-season games where
+     * upstream omits the field. No client-side fallback — composers only render the seed
+     * prefix when this is non-null.
+     */
+    private String resolveSeed(JsonNode team, JsonNode game, boolean isAway) {
+        for (String f : new String[]{"playoffRank", "seed", "playoffSeed"}) {
+            String v = team.path(f).asText(null);
+            if (v != null && !v.isBlank() && !"0".equals(v)) return v;
+        }
+        JsonNode series = game.path("playoffSeries");
+        if (series.isObject()) {
+            String key = isAway ? "awayTeamSeed" : "homeTeamSeed";
+            String v = series.path(key).asText(null);
+            if (v != null && !v.isBlank() && !"0".equals(v)) return v;
+        }
+        return null;
+    }
+
+    /**
+     * Resolve a non-blank {@code seriesText} from upstream game JSON, or null when the
+     * field is absent or empty. Clients render the row's series/context slot only when
+     * this is non-null — no client-side fallback string.
+     */
+    private String resolveSeriesText(JsonNode game) {
+        String series = game.path("seriesText").asText(null);
+        if (series == null || series.isBlank()) return null;
+        return series;
+    }
+
+    /**
+     * Resolve a non-blank broadcaster string (e.g. "ESPN") from upstream game JSON, or
+     * null when no broadcaster information is present. Prefers the national broadcaster
+     * name when {@code broadcasters} is structured; otherwise falls back to a flat
+     * {@code broadcasterText} string. Clients render the broadcast row only when this
+     * returns a non-null value.
+     */
+    private String resolveBroadcastText(JsonNode game) {
+        JsonNode broadcasters = game.path("broadcasters");
+        if (broadcasters.isObject()) {
+            JsonNode national = broadcasters.path("nationalTvBroadcasters");
+            if (national.isArray() && national.size() > 0) {
+                String name = national.get(0).path("broadcasterDisplay").asText(null);
+                if (name == null || name.isBlank()) {
+                    name = national.get(0).path("broadcasterAbbreviation").asText(null);
+                }
+                if (name != null && !name.isBlank()) return name;
+            }
+        }
+        String flat = game.path("broadcasterText").asText(null);
+        if (flat == null || flat.isBlank()) return null;
+        return flat;
     }
 
     // ── Data binding for live schedule list ─────────────────────────────
@@ -446,14 +557,6 @@ public class LiveComposer {
                 AtomicCompositeBuilder.INITIAL_CLOCK_RUNNING);
     }
 
-    private AtomicCompositeBuilder.GameClockSnapshot mockClockSnapshotFromStatus(String statusText) {
-        int seconds = parseMockClockSeconds(statusText);
-        return new AtomicCompositeBuilder.GameClockSnapshot(
-                seconds,
-                java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString(),
-                AtomicCompositeBuilder.INITIAL_CLOCK_RUNNING);
-    }
-
     private static int parseGameClockSeconds(String iso) {
         if (iso == null || iso.isEmpty()) return 0;
         try {
@@ -463,20 +566,131 @@ public class LiveComposer {
         }
     }
 
-    private static int parseMockClockSeconds(String statusText) {
-        if (statusText == null) return 0;
-        int colon = statusText.lastIndexOf(':');
-        if (colon <= 0) return 0;
-        try {
-            int m = Integer.parseInt(statusText.substring(
-                    Math.max(0, colon - 2), colon).trim()
-                    .replaceAll("[^0-9]", ""));
-            int s = Integer.parseInt(statusText.substring(
-                    colon + 1, Math.min(statusText.length(), colon + 3)).trim()
-                    .replaceAll("[^0-9]", ""));
-            return m * 60 + s;
-        } catch (Exception e) {
-            return 0;
+    // ── Promo banner ─────────────────────────────────────────────────────
+
+    /**
+     * Build the League Pass promo banner that sits directly under the CalendarStrip
+     * on the Games screen. Stable per-screen entry point that drives subscribers
+     * into the commerce flow. Surface chrome (dark navy → NBA yellow gradient,
+     * generous padding) is owned by {@link SectionSurfaces#subscribeSurface}.
+     */
+    private ObjectNode buildLeaguePassPromoBanner() {
+        String contentSourceId = "cms:promo-games_screen-leaguepass";
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
+        ObjectNode section = atomicBuilder.buildPromoBanner(
+                sectionId,
+                "games_screen_promo_banner",
+                "NBA League Pass",
+                "Every game. Every night.",
+                "Stream out-of-market games live and on demand all season long.",
+                LEAGUE_PASS_PROMO_THUMB,
+                "Subscribe",
+                "nba://commerce/leaguepass");
+        section.put("contentSourceId", contentSourceId);
+        section.set("surface", surfaces.subscribeSurface(
+                "#0C1B3A",
+                ColorTokens.BRAND_NBA,
+                20));
+        return section;
+    }
+
+    // ── Ad-slot placement ──────────────────────────────────────────────
+
+    /**
+     * Insert a single Games-screen {@code AdSlot} section in {@code sections} per the
+     * payload-owned placement rule:
+     * <ul>
+     *   <li>0 games: no ad emitted</li>
+     *   <li>1 game: ad inserted after the section containing the first game</li>
+     *   <li>2+ games: ad inserted after the section containing the second game</li>
+     * </ul>
+     *
+     * <p>The roster order is live → upcoming → final, mirroring the on-screen section
+     * order. The ad is inserted at the section boundary that contains the Nth game so
+     * that section integrity is preserved (we never split a status group). All
+     * dimensions, sizes, and creative metadata are server-owned on the emitted section.
+     *
+     * <p>The {@code sections} list passed in must already include the {@code CalendarStrip}
+     * as the first entry and the per-status game sections in roster order; only those
+     * game sections participate in ad placement.
+     */
+    private void insertGamesScreenAdSlot(ArrayNode sections, int liveCount, int upcomingCount, int finalCount) {
+        int totalGames = liveCount + upcomingCount + finalCount;
+        if (totalGames == 0) return;
+
+        int targetGameIndex = totalGames == 1 ? 1 : 2; // 1-based: after game N
+        int[] perStatusCounts = new int[]{ liveCount, upcomingCount, finalCount };
+
+        int sectionIndex = 0; // section index in the input list, relative to the first game section
+        // CalendarStrip is index 0; League Pass promo banner is index 1;
+        // game sections start at index 2.
+        final int firstGameSectionIndex = 2;
+        int runningGameTotal = 0;
+        int insertAfter = -1;
+        for (int count : perStatusCounts) {
+            if (count == 0) continue;
+            runningGameTotal += count;
+            if (runningGameTotal >= targetGameIndex) {
+                insertAfter = firstGameSectionIndex + sectionIndex;
+                break;
+            }
+            sectionIndex++;
         }
+        if (insertAfter < 0) return; // defensive — totalGames > 0 guarantees a match
+
+        ObjectNode adSection = buildGamesScreenAdSlot();
+        sections.insert(insertAfter + 1, adSection);
+    }
+
+    /**
+     * Build the Games-screen {@code AdSlot} section. Payload-owned reservation dimensions
+     * (320×50 mobile, 728×90 desktop) come from the server; the client never invents
+     * fallback sizes. Surface chrome is owned by {@link SectionSurfaces#adSlotSurface()}.
+     */
+    private ObjectNode buildGamesScreenAdSlot() {
+        String contentSourceId = "ads:gam-games_screen";
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "AdSlot");
+
+        ObjectNode section = objectMapper.createObjectNode();
+        section.put("id", sectionId);
+        section.put("type", "AdSlot");
+        section.put("analyticsId", "games_screen_ad");
+        section.put("contentSourceId", contentSourceId);
+
+        ObjectNode refreshPolicy = objectMapper.createObjectNode();
+        refreshPolicy.put("type", "static");
+        section.set("refreshPolicy", refreshPolicy);
+        section.set("surface", surfaces.adSlotSurface());
+
+        ObjectNode data = objectMapper.createObjectNode();
+        data.put("provider", "gam");
+        data.put("adUnitPath", "/nba/games_screen");
+
+        ArrayNode sizes = objectMapper.createArrayNode();
+        ArrayNode size320 = objectMapper.createArrayNode();
+        size320.add(320);
+        size320.add(50);
+        sizes.add(size320);
+        ArrayNode size728 = objectMapper.createArrayNode();
+        size728.add(728);
+        size728.add(90);
+        sizes.add(size728);
+        data.set("sizes", sizes);
+
+        ObjectNode targeting = objectMapper.createObjectNode();
+        targeting.put("section", "games");
+        targeting.put("position", "games_screen");
+        data.set("targeting", targeting);
+
+        data.put("collapseOnEmpty", true);
+        data.put("label", "Advertisement");
+
+        ObjectNode placeholder = objectMapper.createObjectNode();
+        placeholder.put("backgroundColor", "token:nba.bg.tertiary");
+        placeholder.put("text", "Advertisement");
+        data.set("placeholder", placeholder);
+
+        section.set("data", data);
+        return section;
     }
 }

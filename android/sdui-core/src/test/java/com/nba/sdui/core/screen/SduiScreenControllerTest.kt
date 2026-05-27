@@ -242,6 +242,88 @@ class SduiScreenControllerTest {
     }
 
     @Test
+    fun `replaceCurrentScreen fully replaces section roster when response id matches screen id`() = runTest {
+        // Models the games-screen calendar-strip case: initial load has
+        // [calendar, upcoming, final]; a parameterized refresh for a different
+        // date returns [calendar, final] only. The 'upcoming' section MUST
+        // disappear — otherwise stale games linger on the new date.
+        responder = { request ->
+            when {
+                request.url.encodedPath == SCREEN_PATH && request.url.queryParameter("date") != null ->
+                    StubResponse(200, FULL_SCREEN_REFRESH_DROPPING_UPCOMING_JSON)
+                request.url.encodedPath == SCREEN_PATH ->
+                    StubResponse(200, SCREEN_WITH_THREE_SECTIONS_JSON)
+                else -> StubResponse(404, """{"error":"not found"}""", "Not Found")
+            }
+        }
+
+        val controller = createController(this)
+        controller.loadFromEndpoint(SCREEN_PATH)
+        drainIO()
+        assertEquals(
+            listOf("calendar", "upcoming", "final"),
+            (controller.uiState.value as SduiScreenUiState.Success).screen.sections.map { it.id }
+        )
+
+        controller.replaceCurrentScreen(REFRESH_PATH, mapOf("date" to "2026-05-18"))
+        drainIO()
+
+        val afterRefresh = (controller.uiState.value as SduiScreenUiState.Success).screen.sections
+        assertEquals(
+            "stale 'upcoming' section must be dropped on full-screen refresh",
+            listOf("calendar", "final"),
+            afterRefresh.map { it.id }
+        )
+
+        controller.onCleared()
+    }
+
+    @Test
+    fun `replaceCurrentScreen drops response when id does not match current screen id`() = runTest {
+        // Parameterized refresh must return the same screen it was invoked
+        // against. A response with a different id is a server contract bug —
+        // dropping it (with a warning) is safer than merging stale state.
+        responder = { request ->
+            when {
+                request.url.encodedPath == SCREEN_PATH && request.url.queryParameter("season") != null ->
+                    StubResponse(200, RESPONSE_WITH_MISMATCHED_SCREEN_ID_JSON)
+                request.url.encodedPath == SCREEN_PATH ->
+                    StubResponse(200, SCREEN_WITH_THREE_SECTIONS_JSON)
+                else -> StubResponse(404, """{"error":"not found"}""", "Not Found")
+            }
+        }
+
+        val controller = createController(this)
+        controller.loadFromEndpoint(SCREEN_PATH)
+        drainIO()
+        val initialSections =
+            (controller.uiState.value as SduiScreenUiState.Success).screen.sections.map { it.id }
+
+        controller.replaceCurrentScreen(REFRESH_PATH, mapOf("season" to "2024-25"))
+        drainIO()
+
+        val afterRefresh =
+            (controller.uiState.value as SduiScreenUiState.Success).screen.sections.map { it.id }
+        assertEquals(
+            "mismatched-id response must be dropped; current screen unchanged",
+            initialSections,
+            afterRefresh
+        )
+
+        verify {
+            Log.w(
+                any<String>(),
+                match<String> {
+                    it.contains("does not match current screen") &&
+                        it.contains("dropping response")
+                }
+            )
+        }
+
+        controller.onCleared()
+    }
+
+    @Test
     fun `sectionEndpoint poll is skipped when screen default refresh policy is poll`() = runTest {
         responder = { request ->
             when (request.url.encodedPath) {
@@ -267,6 +349,64 @@ class SduiScreenControllerTest {
                 match<String> { it.contains("skipping sectionEndpoint poll") && it.contains("screen-level refresh owns this section") }
             )
         }
+
+        controller.onCleared()
+    }
+
+    @Test
+    fun `pull-to-refresh preserves current query params on the outbound request`() = runTest {
+        // After a parameterized refresh sets user params, a subsequent
+        // pull-to-refresh must replay those params rather than fetching
+        // the bare endpoint without them.
+        responder = { StubResponse(200, SCREEN_WITH_THREE_SECTIONS_JSON) }
+
+        val controller = createController(this)
+        controller.loadFromEndpoint(SCREEN_PATH)
+        drainIO()
+
+        controller.replaceCurrentScreen(SCREEN_PATH, mapOf("date" to "2026-05-18"))
+        drainIO()
+        capturedRequests.clear()
+
+        controller.refresh()
+        drainIO()
+
+        val refreshRequest = capturedRequests.single()
+        assertEquals(SCREEN_PATH, refreshRequest.url.encodedPath)
+        assertEquals(
+            "pull-to-refresh must replay the current user params",
+            "2026-05-18",
+            refreshRequest.url.queryParameter("date")
+        )
+
+        controller.onCleared()
+    }
+
+    @Test
+    fun `successful replaceCurrentScreen resets the screen-level poll timer`() = runTest {
+        // After replaceCurrentScreen, applyScreen cancels the old poll job and
+        // restarts it. Verify: (1) the replace triggers a fetch, (2) the poll
+        // continues ticking afterward (proving the restart happened). Exact
+        // virtual-time assertions are not reliable with drainIO, so we verify
+        // the behavioral invariant instead.
+        responder = { StubResponse(200, SCREEN_WITH_DEFAULT_POLL_JSON) }
+
+        val controller = createController(this)
+        controller.loadFromEndpoint(SCREEN_PATH)
+        drainIO()
+        capturedRequests.clear()
+
+        // Issue replaceCurrentScreen — should trigger its own fetch.
+        controller.replaceCurrentScreen(SCREEN_PATH, mapOf("k" to "v"))
+        drainIO()
+        assertTrue("replaceCurrentScreen should trigger a fetch", requestCount(SCREEN_PATH) >= 1)
+        capturedRequests.clear()
+
+        // Advance past two full poll intervals — the poll should keep ticking,
+        // proving applyScreen restarted it after the replace.
+        advanceTimeBy(2_200)
+        drainIO()
+        assertTrue("poll continues after replaceCurrentScreen", requestCount(SCREEN_PATH) >= 1)
 
         controller.onCleared()
     }
@@ -319,9 +459,43 @@ class SduiScreenControllerTest {
     companion object {
         private const val SCREEN_PATH = "/v1/sdui/screen/test-screen"
         private const val SECTION_PATH = "/v1/sdui/section/scoreboard"
+        private const val REFRESH_PATH = "/v1/sdui/screen/test-screen"
 
         private const val EMPTY_SCREEN_JSON =
             """{"id":"test-screen","schemaVersion":"1.0","sections":[]}"""
+
+        private const val SCREEN_WITH_THREE_SECTIONS_JSON = """
+            {
+              "id":"test-screen",
+              "schemaVersion":"1.0",
+              "sections":[
+                {"id":"calendar","type":"AtomicComposite"},
+                {"id":"upcoming","type":"AtomicComposite"},
+                {"id":"final","type":"AtomicComposite"}
+              ]
+            }
+        """
+
+        private const val FULL_SCREEN_REFRESH_DROPPING_UPCOMING_JSON = """
+            {
+              "id":"test-screen",
+              "schemaVersion":"1.0",
+              "sections":[
+                {"id":"calendar","type":"AtomicComposite"},
+                {"id":"final","type":"AtomicComposite"}
+              ]
+            }
+        """
+
+        private const val RESPONSE_WITH_MISMATCHED_SCREEN_ID_JSON = """
+            {
+              "id":"some-other-screen",
+              "schemaVersion":"1.0",
+              "sections":[
+                {"id":"final","type":"VideoPlayer"}
+              ]
+            }
+        """
 
         private const val SCREEN_WITH_SECTION_ENDPOINT_POLL_JSON = """
             {

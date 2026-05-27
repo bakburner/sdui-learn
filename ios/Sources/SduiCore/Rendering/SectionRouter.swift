@@ -49,6 +49,16 @@ struct SectionRouter: View {
                 TabGroupView(section: section, screenState: screenState, onAction: onAction)
             }
 
+        case "CalendarStrip":
+            SectionContainer(surface: section.surface) {
+                CalendarStripView(section: section, screenState: screenState, onAction: onAction)
+            }
+
+        case "CalendarMonthList":
+            SectionContainer(surface: section.surface) {
+                CalendarMonthListView(section: section, screenState: screenState, onAction: onAction)
+            }
+
         case "Form":
             SectionContainer(surface: section.surface) {
                 FormSectionView(section: section, screenState: screenState, onAction: onAction)

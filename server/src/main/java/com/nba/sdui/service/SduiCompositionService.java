@@ -10,7 +10,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.util.Map;
 
 /**
  * SDUI Composition Service — thin façade.
@@ -40,6 +39,7 @@ public class SduiCompositionService {
     private final LiveComposer liveComposer;
     private final ScheduleComposer scheduleComposer;
     private final HomeComposer homeComposer;
+    private final CalendarComposer calendarComposer;
 
     /** Default experiment ID used for game-detail variant resolution. */
     private static final String GAME_DETAIL_EXPERIMENT = "game_detail_variant";
@@ -57,7 +57,8 @@ public class SduiCompositionService {
                                    WatchComposer watchComposer,
                                    LiveComposer liveComposer,
                                    ScheduleComposer scheduleComposer,
-                                   HomeComposer homeComposer) {
+                                   HomeComposer homeComposer,
+                                   CalendarComposer calendarComposer) {
         this.objectMapper = objectMapper;
         this.statsApiClient = statsApiClient;
         this.utils = utils;
@@ -70,6 +71,7 @@ public class SduiCompositionService {
         this.liveComposer = liveComposer;
         this.scheduleComposer = scheduleComposer;
         this.homeComposer = homeComposer;
+        this.calendarComposer = calendarComposer;
     }
 
     // ── Screen delegation ──────────────────────────────────────────────
@@ -100,10 +102,6 @@ public class SduiCompositionService {
         return demoScreenComposer.composeLeaders(ctx.getTraceId(), deviceClass, ctx.getLocale());
     }
 
-    public ObjectNode composeLeadersRefresh(String traceId, Map<String, String> params, String locale) {
-        return demoScreenComposer.composeLeadersRefresh(traceId, params, locale);
-    }
-
     public JsonNode composeForYou(SduiRequestContext ctx) {
         return forYouComposer.composeForYou(ctx.getTraceId(), ctx.getLocale());
     }
@@ -122,6 +120,14 @@ public class SduiCompositionService {
 
     public JsonNode composeHome(SduiRequestContext ctx) {
         return homeComposer.composeHome(ctx.getTraceId(), ctx.getLocale());
+    }
+
+    public JsonNode composeCalendar(SduiRequestContext ctx) {
+        return calendarComposer.composeCalendar(ctx.getTraceId(), ctx.getLocale());
+    }
+
+    public JsonNode composeCalendar(SduiRequestContext ctx, String selectedDateParam) {
+        return calendarComposer.composeCalendar(ctx.getTraceId(), ctx.getLocale(), selectedDateParam);
     }
 
     // ── Stats-polling helpers (kept here — they need StatsApiClient) ──

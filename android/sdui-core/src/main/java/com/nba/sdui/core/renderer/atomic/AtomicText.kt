@@ -13,17 +13,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.sp
 import com.nba.sdui.core.models.generated.Align
 import com.nba.sdui.core.models.generated.ActionTrigger
 import com.nba.sdui.core.models.generated.AtomicElement
 import com.nba.sdui.core.models.generated.TextWeight
 import com.nba.sdui.core.renderer.ColorTokenResolver
+import com.nba.sdui.core.renderer.LayoutTokenResolver
 import com.nba.sdui.core.renderer.applyAccessibility
 import com.nba.sdui.core.state.SduiAction
+import com.nba.sdui.core.tokens.LayoutTokenRegistry
 
 /**
  * AtomicText — renders a Text element using MaterialTheme typography
@@ -115,34 +119,24 @@ fun AtomicText(
 }
 
 @Composable
-internal fun mapTypographyVariant(variant: String?): TextStyle = when (variant) {
-    "displayLarge"  -> MaterialTheme.typography.displayLarge
-    "displayMedium" -> MaterialTheme.typography.displayMedium
-    "displaySmall"  -> MaterialTheme.typography.displaySmall
-    "headlineLarge" -> MaterialTheme.typography.headlineLarge
-    "headlineMedium" -> MaterialTheme.typography.headlineMedium
-    "headlineSmall" -> MaterialTheme.typography.headlineSmall
-    "titleLarge"    -> MaterialTheme.typography.titleLarge
-    "titleMedium"   -> MaterialTheme.typography.titleMedium
-    "titleSmall"    -> MaterialTheme.typography.titleSmall
-    "bodyLarge"     -> MaterialTheme.typography.bodyLarge
-    "bodyMedium"    -> MaterialTheme.typography.bodyMedium
-    "bodySmall"     -> MaterialTheme.typography.bodySmall
-    "labelLarge"    -> MaterialTheme.typography.labelLarge
-    "labelMedium"   -> MaterialTheme.typography.labelMedium
-    "labelSmall"    -> MaterialTheme.typography.labelSmall
-    else            -> MaterialTheme.typography.bodyMedium
+internal fun mapTypographyVariant(variant: String?): TextStyle {
+    val fallback = MaterialTheme.typography.bodyMedium
+    if (variant.isNullOrBlank()) return fallback
+    val config = LocalConfiguration.current
+    val formFactor = LayoutTokenResolver.currentFormFactor(config)
+    val spec = LayoutTokenResolver.typographyForVariant(variant, formFactor) ?: return fallback
+    // Registry-driven: size + weight + lineHeight come from
+    // `schema/typography-tokens.json`. Element-level `weight` (applied separately by the
+    // renderer) still overrides the category's base weight for emphasis variants.
+    return TextStyle(
+        fontSize = spec.size.sp,
+        fontWeight = FontWeight(spec.weight),
+        lineHeight = (spec.size * spec.lineHeight).sp
+    )
 }
 
-private val KNOWN_TEXT_VARIANTS = setOf(
-    "displayLarge", "displayMedium", "displaySmall",
-    "headlineLarge", "headlineMedium", "headlineSmall",
-    "titleLarge", "titleMedium", "titleSmall",
-    "bodyLarge", "bodyMedium", "bodySmall",
-    "labelLarge", "labelMedium", "labelSmall"
-)
-
-private fun isKnownTextVariant(variant: String): Boolean = variant in KNOWN_TEXT_VARIANTS
+private fun isKnownTextVariant(variant: String): Boolean =
+    LayoutTokenRegistry.typographyVariants.containsKey("nba.typography.$variant")
 
 private fun mapFontWeight(weight: TextWeight): FontWeight = when (weight) {
     TextWeight.Regular -> FontWeight.Normal

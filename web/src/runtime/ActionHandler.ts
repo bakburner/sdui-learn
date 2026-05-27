@@ -2,13 +2,21 @@ import type { Action, Section, FailurePolicy } from '@sdui/models';
 import { pushToast } from './ToastStore';
 import { actionLog, actionWarn, actionError } from './actionLogger';
 import { fetchSduiScreen } from './fetchSduiScreen';
+import { resolveActionPlaceholders } from './placeholderSubstitutor';
 
 export interface ActionContext {
   /** Callback to update screen state */
   onStateChange: (key: string, value: unknown) => void;
-  /** Callback to refresh a section or full screen */
+  /** Callback to refetch the current screen (pull-to-refresh / non-parameterized refresh) */
   onRefresh: (sectionId?: string) => void;
-  /** Callback to surgically replace a single section by ID */
+  /**
+   * Screen-channel entry point: fetches a full screen via the given endpoint
+   * with user params, validates response.id against the current screen, applies
+   * strict full-replace on id-match, drops on mismatch. Stores userParams for
+   * replay on subsequent poll/refetch and resets the screen-level poll timer.
+   */
+  replaceCurrentScreen: (endpoint: string, userParams?: Record<string, string>) => Promise<void>;
+  /** Callback to surgically replace a single section by ID (section channel) */
   onSectionUpdate: (sectionId: string, section: Section) => void;
   /** Mark a section as stale (refresh failed) */
   onSectionStale: (sectionId: string) => void;
@@ -75,18 +83,24 @@ export async function executeActionSequence(
  * Execute a single SDUI action. Returns true on success, false on failure.
  */
 async function dispatchAction(action: Action, context: ActionContext): Promise<boolean> {
-  switch (action.type) {
+  // Resolve `{{stateKey}}` placeholders against the live state map before
+  // the per-type handlers run. This lets the server emit parameterised
+  // navigate / refresh actions (e.g.
+  // `nba://games?date={{calendar_selected_date}}`) without each renderer
+  // having to splice state into server-emitted strings.
+  const resolved = resolveActionPlaceholders(action, context.state);
+  switch (resolved.type) {
     case 'navigate':
-      return handleNavigate(action, context);
+      return handleNavigate(resolved, context);
 
     case 'mutate':
-      return handleMutate(action, context);
+      return handleMutate(resolved, context);
 
     case 'refresh':
-      return handleRefresh(action, context);
+      return handleRefresh(resolved, context);
 
     case 'fireAndForget':
-      handleFireAndForget(action);
+      handleFireAndForget(resolved);
       return true;
 
     case 'dismiss':
@@ -94,11 +108,11 @@ async function dispatchAction(action: Action, context: ActionContext): Promise<b
       return true;
 
     case 'toast':
-      handleToast(action);
+      handleToast(resolved);
       return true;
 
     default:
-      actionWarn('Unknown action type:', action.type);
+      actionWarn('Unknown action type:', resolved.type);
       return false;
   }
 }
@@ -206,31 +220,44 @@ function asDouble(value: unknown): number | undefined {
 }
 
 async function handleRefresh(action: Action, context: ActionContext): Promise<boolean> {
-  // Parameterized refresh: resolve mustache-bound state values into a
-  // user-params map and route through the canonical `fetchSduiScreen`
-  // transport (envelope + GET/POST length fallback + RFC-3986 percent
-  // encoding + `X-Trace-Id` propagation). Hand-rolling URL strings here
-  // would silently bypass those invariants.
+  // Parameterized refresh: paramBindings values were already resolved
+  // against the state map by resolveActionPlaceholders() in dispatchAction.
+  // Drop empty values so the transport doesn't emit dangling `?key=`
+  // query params.
   if (action.paramBindings && action.endpoint && Object.keys(action.paramBindings).length > 0) {
     const userParams: Record<string, string> = {};
-    for (const [paramName, rawStateKey] of Object.entries(action.paramBindings)) {
-      const stateKey = rawStateKey.replace(/^\{\{|\}\}$/g, '');
-      const value = context.state[stateKey];
+    for (const [paramName, value] of Object.entries(action.paramBindings)) {
       if (value !== undefined && value !== null && value !== '') {
         userParams[paramName] = String(value);
       }
     }
 
-    actionLog(
-      `refresh parameterized endpoint=${action.endpoint} params=${JSON.stringify(userParams)}`,
-    );
+    const isScreenChannel = action.endpoint.includes('/v1/sdui/screen/');
 
+    if (isScreenChannel) {
+      // Screen channel: strict full-replace via replaceCurrentScreen.
+      actionLog(
+        `refresh screen-channel endpoint=${action.endpoint} params=${JSON.stringify(userParams)}`,
+      );
+      try {
+        await context.replaceCurrentScreen(action.endpoint, userParams);
+        return true;
+      } catch (err) {
+        actionError(`refresh screen-channel failed: ${(err as Error).message ?? err}`);
+        return false;
+      }
+    }
+
+    // Section channel: fetch the section and replace in place.
+    actionLog(
+      `refresh section-channel endpoint=${action.endpoint} params=${JSON.stringify(userParams)}`,
+    );
     try {
       const { screen, url, method } = await fetchSduiScreen({
         endpoint: action.endpoint,
         userParams,
       });
-      actionLog(`refresh succeeded id=${screen.id} method=${method} url=${url}`);
+      actionLog(`refresh section-channel succeeded id=${screen.id} method=${method} url=${url}`);
 
       if (screen.state) {
         for (const [k, v] of Object.entries(screen.state)) {
@@ -244,17 +271,9 @@ async function handleRefresh(action: Action, context: ActionContext): Promise<bo
       if (targetSectionId && responseSections?.length) {
         const updatedSection = responseSections.find((s: Section) => s.id === targetSectionId);
         if (updatedSection) {
-          actionLog(`refresh surgical-update section=${targetSectionId}`);
           context.onSectionUpdate(targetSectionId, updatedSection);
           return true;
         }
-      }
-
-      if (responseSections?.length) {
-        for (const s of responseSections) {
-          context.onSectionUpdate(s.id, s);
-        }
-        return true;
       }
 
       context.onRefresh(targetSectionId);
@@ -264,6 +283,20 @@ async function handleRefresh(action: Action, context: ActionContext): Promise<bo
       if (action.target) {
         context.onSectionStale(action.target);
       }
+      return false;
+    }
+  }
+
+  // Non-parameterized refresh: if there's an endpoint on the screen channel,
+  // route through replaceCurrentScreen (no params). Otherwise fall back to
+  // generic refetch.
+  if (action.endpoint?.includes('/v1/sdui/screen/')) {
+    actionLog(`refresh screen-channel (no params) endpoint=${action.endpoint}`);
+    try {
+      await context.replaceCurrentScreen(action.endpoint);
+      return true;
+    } catch (err) {
+      actionError(`refresh screen-channel failed: ${(err as Error).message ?? err}`);
       return false;
     }
   }

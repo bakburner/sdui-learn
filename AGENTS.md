@@ -182,8 +182,10 @@ The following are **not** valid client exceptions:
 - `refreshPolicy.sectionEndpoint` is a server-declared path for section-level
   SDUI re-composition; the client replaces the section in place and re-evaluates
   the new section's `refreshPolicy` (enabling transitions such as poll→SSE).
+  This is the section channel (see §3.8).
 - `screen.defaultRefreshPolicy` is server-declared screen-level refresh; clients
-  must honor its `type` and `intervalMs`.
+  must honor its `type` and `intervalMs`. Screen-level polls use the screen
+  channel (see §3.8) and carry the current query params.
 - A non-static `screen.defaultRefreshPolicy` and section-level
   `sectionEndpoint` are mutually exclusive on the same screen. Clients must skip
   `sectionEndpoint` polls when the screen-level policy is non-static (log and
@@ -295,14 +297,50 @@ a registry entry. Both forms decode and both render correctly.
   splits) were speculative and are not canonical. New form-factor columns
   require a doctrine update, not just a schema edit.
 
+### 3.8 Update channels
+
+SDUI screens update through exactly two channels. Each channel has one URL
+family, one response shape, and one client-side application semantic.
+
+- **Screen channel** (`/v1/sdui/screen/{id}` ± query params) — always
+  returns a complete `Screen`; the client always full-replaces the current
+  screen. Covers initial loads, navigation, pull-to-refresh, screen-level
+  polling, form re-composition, and parameterized re-composition (date
+  pickers, filters).
+- **Section channel** (`/v1/sdui/section/{id}` and SSE) — returns a single
+  `Section` (or a `dataBinding` patch). The client replaces that one section
+  in place; everything else is structurally untouched.
+
+There is no third channel and no partial-screen response shape. Structural
+changes to a screen's section list (insertions, removals, reorderings) flow
+through the screen channel at whatever cadence the screen needs (poll,
+manual, or SSE-nudged immediate refetch).
+
+- **No partial screen response.** An endpoint that returns a `Screen` always
+  returns the full section roster. Consumers of the screen channel must not
+  merge, diff, or selectively preserve sections from the previous screen.
+  The response is the new truth.
+- **Strict same-id full-replace.** A screen-channel response whose `id` does
+  not match the current screen's `id` is a contract violation. The client
+  drops it with a warning log; it never replaces the visible screen.
+- **Current-params replay rule.** Every screen-channel fetch
+  (pull-to-refresh, poll tick, action-driven `refresh` targeting the current
+  screen) carries the screen's current query params. The user's
+  parameterization (selected date, filter values, etc.) is preserved until
+  the user explicitly changes it.
+- **Poll-timer reset rule.** A successful screen-channel fetch resets the
+  screen-level poll timer. Out-of-band fetches (pull-to-refresh,
+  action-driven refresh) must not cause a double-fetch one tick later.
+
 ## 4. Shared Infrastructure Owns Shared Concerns
 
 ### 4.1 One fetch path
 
 - `SduiRepository` exposes three generic fetch primitives: `fetchScreen()` for
-  full screen composition, `fetchSection()` for section-level SDUI re-composition
-  (returns a single `Section`), and `fetchRawJson()` for direct polling URLs
-  (raw data applied via `dataBinding`).
+  full screen composition (screen channel, §3.8), `fetchSection()` for
+  section-level SDUI re-composition (section channel, §3.8; returns a single
+  `Section`), and `fetchRawJson()` for direct polling URLs (raw data applied
+  via `dataBinding`).
 - Dedicated repository methods for specific screens are prohibited.
 - **Every** composition request — initial loads, navigation transitions,
   pull-to-refresh, action-driven `refresh` (including parameterized refresh
@@ -475,6 +513,8 @@ crossed its exception boundary.
 The current set of justified semantic sections is:
 
 - `BoxscoreTable` — real-time binding plus expandable interaction state
+- `CalendarStrip` — platform-native date picker hosting (calendar arithmetic, programmatic scroll-to-selected, locale-aware formatting) and in-place reconciliation across parameterized refresh
+- `CalendarMonthList` — platform-native month-grid hosting (calendar layout, scroll-to-month, locale-aware first-day rotation) and client-owned scroll/interaction state
 - `SeasonLeadersTable` — sort / filter interaction state
 - `TabGroup` — tab selection state and nested section hosting
 - `Form` — validation state and platform keyboard integration

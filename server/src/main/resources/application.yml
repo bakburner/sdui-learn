@@ -4,6 +4,14 @@ server:
 spring:
   application:
     name: sdui-composition-service
+  config:
+    import: optional:dotenv:.env
+
+# Core API configuration (per-date scoreboards)
+core:
+  api:
+    base-url: https://core-api.nba.com
+    subscription-key: ${CORE_API_OPIM_SUBSCRIPTION_KEY:}
 
 # Stats API configuration
 stats:

@@ -898,6 +898,98 @@
         }
       }
     },
+    "CalendarStripData": {
+      "type": "object",
+      "description": "Platform-native horizontal date picker. All ISO date fields are ET-anchored (America/New_York) calendar days (YYYY-MM-DD). defaultDate is the league's current anchor/focus date — typically today in ET during the regular season, but may be a future date during offseason or breaks (e.g. the regular-season opener). Clients display defaultDate as-is and never compare it to device time.",
+      "required": ["stateKey", "selectedDate", "defaultDate", "onDateSelected"],
+      "properties": {
+        "stateKey": {
+          "type": "string",
+          "description": "Screen-state key that holds the selected ISO date"
+        },
+        "selectedDate": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "ISO YYYY-MM-DD (ET) for initial selection. Falls back here when screenState[stateKey] is absent; otherwise the state value wins."
+        },
+        "defaultDate": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "ISO YYYY-MM-DD (ET) for the league's current anchor date. Drives the default-cell visual highlight. Server-authoritative — not always today; may be a future date during offseason or breaks."
+        },
+        "minDate": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "ISO YYYY-MM-DD (ET) for the earliest selectable date (e.g. season start). Absent means unbounded; clients pick a sensible default window."
+        },
+        "maxDate": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "ISO YYYY-MM-DD (ET) for the latest selectable date (e.g. season/finals end). Absent means unbounded."
+        },
+        "onDateSelected": {
+          "$ref": "#/definitions/Action",
+          "description": "Singular action executed after the renderer writes the tapped date into stateKey via onStateChange. Conventionally a refresh action with paramBindings."
+        },
+        "expandedAction": {
+          "$ref": "#/definitions/Action",
+          "description": "Action dispatched when the month label is tapped. Conventionally a navigate action to the full calendar screen. When absent, the month label is not tappable."
+        }
+      }
+    },
+    "CalendarMonthListData": {
+      "type": "object",
+      "description": "Vertically-scrollable month-grid calendar with per-date game metadata. All date fields are ET-anchored (America/New_York) ISO YYYY-MM-DD. defaultDate is the league's current anchor date; drives the 'today' visual highlight and the initial scroll position.",
+      "required": ["stateKey", "selectedDate", "defaultDate", "onDateSelected"],
+      "properties": {
+        "stateKey": {
+          "type": "string",
+          "description": "Screen-state key for the selected ISO date."
+        },
+        "selectedDate": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "ISO YYYY-MM-DD (ET) for initial selection."
+        },
+        "defaultDate": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "ISO YYYY-MM-DD (ET) for the league's current anchor date."
+        },
+        "minDate": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "ISO YYYY-MM-DD (ET) for the earliest selectable date."
+        },
+        "maxDate": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "ISO YYYY-MM-DD (ET) for the latest selectable date."
+        },
+        "dateMetadata": {
+          "type": "object",
+          "description": "Map of ISO date string to metadata for that date. Only dates with games are present; absent dates have zero games.",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "gameCount": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Number of games on this date."
+              },
+              "hasTeamGame": {
+                "type": "boolean",
+                "description": "True if a user-favorited team plays on this date."
+              }
+            }
+          }
+        },
+        "onDateSelected": {
+          "$ref": "#/definitions/Action",
+          "description": "Action dispatched after writing the selected date into stateKey. Conventionally a navigate action back to the games screen."
+        }
+      }
+    },
     "Section": {
       "type": "object",
       "required": ["id", "type"],
@@ -905,7 +997,7 @@
         "id": { "type": "string" },
         "type": {
           "type": "string",
-          "enum": ["TabGroup", "BoxscoreTable", "Form", "AdSlot", "SeasonLeadersTable", "SubscribeBanner", "SubscribeHero", "AtomicComposite", "VideoPlayer"]
+          "enum": ["TabGroup", "BoxscoreTable", "CalendarStrip", "CalendarMonthList", "Form", "AdSlot", "SeasonLeadersTable", "SubscribeBanner", "SubscribeHero", "AtomicComposite", "VideoPlayer"]
         },
         "refreshPolicy": { "$ref": "#/definitions/RefreshPolicy" },
         "dataBinding": { "$ref": "#/definitions/DataBinding" },
@@ -940,6 +1032,8 @@
           "oneOf": [
             { "$ref": "#/definitions/TabGroupData" },
             { "$ref": "#/definitions/BoxscoreTableData" },
+            { "$ref": "#/definitions/CalendarStripData" },
+            { "$ref": "#/definitions/CalendarMonthListData" },
             { "$ref": "#/definitions/FormData" },
             { "$ref": "#/definitions/AdSlotData" },
             { "$ref": "#/definitions/LeadersTableData" },

@@ -109,15 +109,16 @@ refresh.
 | # | Component | Why it needs client code |
 |---|-----------|------------------------|
 | 18 | **BoxscoreTable** | Real-time data binding, expandable rows |
-| 19 | **SeasonLeadersTable** | Sort/filter interaction state |
-| 20 | **TabGroup** | Tab selection state, nested section hosting |
-| 21 | **Form** | Validation state, platform keyboard integration |
-| 22 | **SubscribeHero** | Platform IAP SDK integration |
-| 23 | **SubscribeBanner** | Platform IAP SDK integration |
-| 24 | **AdSlot** | Platform ad SDK lifecycle |
-| 24a | **VideoPlayer** | Platform video SDK (HLS/DASH playback, PiP, AirPlay/Chromecast, background audio, fullscreen rotation). `playerType` discriminator maps to the right SDK entry point. |
+| 19 | **CalendarMonthList** | Month-grid hosting with client-owned scroll and interaction state |
+| 20 | **SeasonLeadersTable** | Sort/filter interaction state |
+| 21 | **TabGroup** | Tab selection state, nested section hosting |
+| 22 | **Form** | Validation state, platform keyboard integration |
+| 23 | **SubscribeHero** | Platform IAP SDK integration |
+| 24 | **SubscribeBanner** | Platform IAP SDK integration |
+| 25 | **AdSlot** | Platform ad SDK lifecycle |
+| 25a | **VideoPlayer** | Platform video SDK (HLS/DASH playback, PiP, AirPlay/Chromecast, background audio, fullscreen rotation). `playerType` discriminator maps to the right SDK entry point. |
 
-**Milestone:** All 8 semantic sections render with full interactivity.
+**Milestone:** All 10 semantic sections render with full interactivity.
 Live-score surfaces render as server-composed `AtomicComposite` trees
 driven by `bindRef` + SSE data bindings.
 
@@ -149,6 +150,8 @@ FUNCTION SectionRouter(section, screenState, onAction, onStateChange):
     SWITCH section.type:
         "TabGroup"           → TabGroupRenderer(section, screenState, onAction, onStateChange)
         "BoxscoreTable"      → BoxscoreTableRenderer(section, onAction)
+        "CalendarStrip"      → CalendarStripRenderer(section, screenState, onAction, onStateChange)
+        "CalendarMonthList"  → CalendarMonthListRenderer(section, screenState, onAction, onStateChange)
         "Form"               → FormRenderer(section, screenState, onAction, onStateChange)
         "SubscribeBanner"    → SubscribeBannerRenderer(section, onAction)
         "SubscribeHero"      → SubscribeHeroRenderer(section, onAction)
@@ -168,9 +171,10 @@ FUNCTION SectionRouter(section, screenState, onAction, onStateChange):
             RETURN null   // Skip gracefully — never crash
 ```
 
-**Supported section types (9):**
-`TabGroup`, `BoxscoreTable`, `Form`, `SubscribeBanner`, `SubscribeHero`,
-`AdSlot`, `SeasonLeadersTable`, `VideoPlayer`, `AtomicComposite`.
+**Supported section types (11):**
+`TabGroup`, `BoxscoreTable`, `CalendarStrip`, `CalendarMonthList`, `Form`, `SubscribeBanner`,
+`SubscribeHero`, `AdSlot`, `SeasonLeadersTable`, `VideoPlayer`,
+`AtomicComposite`.
 Live-score / game-card surfaces are composed as `AtomicComposite`
 trees (see §4b for the `bindRef` → `content` resolution that drives
 live updates).
@@ -690,7 +694,13 @@ Action:
     value: any?                 // For mutate (null = remove key on set)
     operation: "set" | "toggle" | "increment" | "append"?  // Default: "set"
     endpoint: string?           // For parameterized refresh
-    paramBindings: map?         // For refresh: key → "{{screenStateKey}}" template
+    paramBindings: map?         // For refresh: key → template (e.g. "{{stateKey}}")
+    // `{{stateKey}}` placeholders are resolved at dispatch time against
+    // the current screen state across `targetUri`, `webUrl`, `endpoint`,
+    // and `paramBindings` values for every action type. Unknown keys are
+    // left intact in URI / endpoint fields so the failure surfaces at the
+    // network layer; unknown keys in `paramBindings` resolve to empty so
+    // the dispatcher can drop the parameter entirely (no dangling `?key=`).
     onFailure: "halt" | "continue" | "silent"?
     failureFeedback: FailureFeedback?  // UI feedback on failure
     impression: ImpressionPolicy?
@@ -740,6 +750,17 @@ FUNCTION executeActionSequence(actions, stateManager):
 
 ```
 FUNCTION dispatchSingleAction(action, stateManager):
+    // Resolve `{{stateKey}}` placeholders against the current state map
+    // before the per-type handlers run. The shared substitution step is
+    // the single owner of placeholder resolution — per-type handlers
+    // never re-parse `{{...}}`. Substitution covers `targetUri`,
+    // `webUrl`, `endpoint`, and every value in `paramBindings`.
+    //   • URI / endpoint fields: unknown keys are left intact so a 4xx
+    //     surfaces the missing state at the network layer.
+    //   • paramBindings values: unknown keys resolve to empty so the
+    //     dispatcher can drop the parameter entirely.
+    action = RESOLVE_PLACEHOLDERS(action, stateManager.state)
+
     SWITCH action.type:
         "navigate":
             uri = RESOLVE_PLATFORM_NAVIGATION_TARGET(action.targetUri, action.webUrl)
@@ -785,17 +806,17 @@ FUNCTION dispatchSingleAction(action, stateManager):
 
         "refresh":
             IF action.paramBindings IS NOT EMPTY AND action.endpoint IS NOT NULL:
-                // Resolve param templates from screen state. The action handler
-                // does NOT build a URL — that's the transport's job. Hand off
-                // (endpoint, sectionId, resolvedParams) and route through the
-                // shared fetch primitive (§11) so the request inherits the
-                // canonical envelope contract: bracket-notation envelope
-                // params, GET/POST length fallback, RFC-3986 percent-encoding,
-                // and X-Trace-Id propagation from the parent screen.
+                // paramBindings values were already resolved by
+                // RESOLVE_PLACEHOLDERS above. The action handler does NOT
+                // build a URL — that's the transport's job. Hand off
+                // (endpoint, sectionId, resolvedParams) and route through
+                // the shared fetch primitive (§11) so the request inherits
+                // the canonical envelope contract: bracket-notation
+                // envelope params, GET/POST length fallback, RFC-3986
+                // percent-encoding, and X-Trace-Id propagation from the
+                // parent screen.
                 resolvedParams = {}
-                FOR key, template IN action.paramBindings:
-                    stateKey = STRIP_DELIMITERS(template, "{{", "}}")
-                    value = stateManager.getState(stateKey)
+                FOR key, value IN action.paramBindings:
                     IF value IS NOT NULL AND value != "":
                         resolvedParams[key] = value
                 RETURN ParameterizedRefreshResult(action.endpoint, action.target, resolvedParams)
@@ -1302,6 +1323,67 @@ FUNCTION resolveEndpoint(uri):
 
 ---
 
+## 10a. Update Channels
+
+SDUI screens update through exactly two channels. Each channel has one URL
+family, one response shape, and one client-side application method.
+
+### Screen channel
+
+- **URL family:** `/v1/sdui/screen/{id}` with optional query params for
+  user-supplied filter state (e.g. `?date=2026-05-18`).
+- **Response:** a complete `Screen` object (`id`, `sections[]`, `state`,
+  `defaultRefreshPolicy`, etc.).
+- **Client semantic:** strict full-replace via `replaceCurrentScreen()`. The
+  response's `id` must match the current screen's `id`; mismatches are
+  contract violations (drop with warning log, do not apply).
+- **Covers:** initial loads, navigation, pull-to-refresh, screen-level
+  polling (`defaultRefreshPolicy`), parameterized re-composition (date
+  pickers, form submits, filters), and action-driven `refresh` targeting
+  the current screen.
+
+### Section channel
+
+- **URL family:** `/v1/sdui/section/{id}` (poll via `sectionEndpoint`) and
+  SSE via `refreshPolicy.channel`.
+- **Response:** a single `Section` object with `id` matching the requested
+  section (never a `Screen`, never a list).
+- **Client semantic:** replace that one section in place by `id`. All other
+  sections on the current screen are structurally untouched.
+- **Covers:** section-level polling, SSE-triggered section re-composition,
+  and live `dataBinding` patches.
+
+### No partial screen response
+
+There is no endpoint that returns a subset of a screen's sections.
+Structural changes to a screen's section list (insertions, removals,
+reorderings) always flow through the screen channel.
+
+### Current-params replay
+
+Every screen-channel fetch (pull-to-refresh, poll tick, action-driven
+`refresh` targeting the current screen) carries the screen's current query
+params. The user's parameterization (selected date, filter values, etc.) is
+preserved across refetches until the user explicitly changes it.
+
+### Poll-timer reset
+
+A successful screen-channel fetch resets the screen-level poll timer.
+Pull-to-refresh and action-driven refreshes must not cause a redundant
+double-fetch one tick later.
+
+### Client API expectation
+
+A conforming client exposes:
+- One method for the screen channel (`replaceCurrentScreen` or equivalent)
+  that full-replaces with same-id validation.
+- One method for the section channel (`replaceSection` or equivalent) that
+  replaces a single section by id.
+
+Both route through the shared `SduiRepository` fetch primitives (§11).
+
+---
+
 ## 11. Request Envelope
 
 Every composition request — initial loads, navigation, pull-to-refresh,
@@ -1764,3 +1846,7 @@ the rules in `AGENTS.md`.
 | C19 | `LiveClock` primitive ticks client-side from server-provided snapshot fields (`snapshotSeconds`, `snapshotAt`, `isRunning`, `tickDirection`, `stopAtSeconds`, `format`). Implements the tick-loop contract in §4c at ≥10Hz baseline, re-anchors on every SSE / poll update that rewrites `content.*`, renders with tabular-numeral typography | — |
 | C20 | Inside an `AtomicComposite`, leaf primitives with a `bindRef: string` dot-path resolve their canonical live field (Text → `content`, Button → `label`, Image → `src`, LiveClock → snapshot object) from `section.data.content`. `compositeContent` is threaded to descendants via the platform's implicit-context primitive (Environment / CompositionLocal / React context); missing paths fall back to inline values and never overwrite with null. See §4b | — |
 | C21 | `LayoutTokenResolver` resolves spacing, radius, typography, motion, and shadow token namespaces from a codegen-baked `LayoutTokenRegistry`; rotation/resize/split-screen/fold transitions within one `deviceClass` trigger zero network token fetches | — |
+| C22 | Implements screen-channel fetch with strict full-replace; validates response `id` against the current screen `id` before applying | §3.8, §10a |
+| C23 | Implements section-channel fetch (poll + SSE) with replace-by-id semantics — replaces only the matching section in place | §3.8, §10a |
+| C24 | Remembers the current screen's query params and replays them on pull-to-refresh, screen-level poll, and action-driven `refresh` targeting the current screen | §3.8, §10a |
+| C25 | Resets the screen-level poll timer on every successful screen-channel fetch | §3.8, §10a |

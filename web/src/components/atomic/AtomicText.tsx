@@ -9,28 +9,52 @@ import { CompositeContentContext, resolveBindRefString } from '../../utils/BindR
 import { areAtomicPropsEqual } from './areAtomicPropsEqual';
 import { activationKeyboardProps, longPressPointerProps } from './atomicActionHandlers';
 import { logUnsupportedAtomicTriggers, selectActions } from './getActivateActions';
+import { LayoutTokenRegistry, type WebSize } from '../../tokens/LayoutTokenRegistry';
 
-/** Map schema variant strings to CSS font sizes / weights — NBA typography system.
- *  Display/Headline use Roboto Condensed (approximating Knockout/Action NBA).
- *  Title/Body/Label use Roboto (matching production body font stack). */
-const variantStyles: Record<string, React.CSSProperties> = {
-  displayLarge:   { fontSize: 57, fontWeight: 800, lineHeight: '0.85em', fontFamily: 'var(--font-headline)', textTransform: 'uppercase' as const, letterSpacing: '-0.01em' },
-  displayMedium:  { fontSize: 45, fontWeight: 800, lineHeight: '0.85em', fontFamily: 'var(--font-headline)', textTransform: 'uppercase' as const, letterSpacing: '-0.01em' },
-  displaySmall:   { fontSize: 36, fontWeight: 700, lineHeight: '0.9em',  fontFamily: 'var(--font-headline)', textTransform: 'uppercase' as const },
-  headlineLarge:  { fontSize: 32, fontWeight: 700, lineHeight: '1.1em',  fontFamily: 'var(--font-headline)' },
-  headlineMedium: { fontSize: 28, fontWeight: 700, lineHeight: '1.1em',  fontFamily: 'var(--font-headline)' },
-  headlineSmall:  { fontSize: 24, fontWeight: 700, lineHeight: '1.15em', fontFamily: 'var(--font-headline)' },
-  titleLarge:     { fontSize: 22, fontWeight: 500, lineHeight: '28px',   fontFamily: 'var(--font-body)' },
-  titleMedium:    { fontSize: 16, fontWeight: 500, lineHeight: '24px',   fontFamily: 'var(--font-body)' },
-  titleSmall:     { fontSize: 14, fontWeight: 500, lineHeight: '20px',   fontFamily: 'var(--font-body)' },
-  bodyLarge:      { fontSize: 16, fontWeight: 400, lineHeight: '24px',   fontFamily: 'var(--font-body)' },
-  bodyMedium:     { fontSize: 14, fontWeight: 400, lineHeight: '20px',   fontFamily: 'var(--font-body)' },
-  bodySmall:      { fontSize: 12, fontWeight: 400, lineHeight: '16px',   fontFamily: 'var(--font-body)' },
-  labelLarge:     { fontSize: 14, fontWeight: 500, lineHeight: '20px',   fontFamily: 'var(--font-body)', letterSpacing: '0.02em' },
-  labelMedium:    { fontSize: 12, fontWeight: 500, lineHeight: '16px',   fontFamily: 'var(--font-body)', letterSpacing: '0.02em' },
-  labelSmall:     { fontSize: 11, fontWeight: 500, lineHeight: '16px',   fontFamily: 'var(--font-body)', letterSpacing: '0.04em', textTransform: 'uppercase' as const },
-  score:          { fontSize: 28, fontWeight: 800, lineHeight: '1em',    fontFamily: 'var(--font-headline)', fontVariantNumeric: 'tabular-nums' },
+/**
+ * Registry-driven typography map. The wire-level `variant` enum is a
+ * presentational shorthand for the full token name `nba.typography.<variant>`;
+ * sizing and base weight come from `schema/typography-tokens.json` so iOS,
+ * Android, and web all render the same variant at the same size.
+ *
+ * Family-ref → CSS font-family stack mapping mirrors the production NBA
+ * font choices (Knockout/Action NBA fallback to Roboto Condensed for
+ * display/headline; Roboto for body; Roboto Mono for data/score numerics).
+ */
+const FAMILY_REF_TO_FONT: Record<string, string> = {
+  'nba.font.knockout':         'var(--font-headline)',
+  'nba.font.action.nba':       'var(--font-headline)',
+  'nba.font.roboto.condensed': 'var(--font-headline)',
+  'nba.font.roboto':           'var(--font-body)',
+  'nba.font.roboto.mono':      'var(--font-mono)',
 };
+
+function webSizeToCss(size: WebSize): string {
+  if (typeof size === 'number') return `${size}px`;
+  // Fluid envelope → CSS clamp(min, vw-interpolant, max).
+  const { min, max, minVw, maxVw } = size;
+  const slope = (max - min) / (maxVw - minVw);
+  const intercept = min - slope * minVw;
+  return `clamp(${min}px, ${intercept.toFixed(4)}px + ${(slope * 100).toFixed(4)}vw, ${max}px)`;
+}
+
+function variantToStyle(variant: string): React.CSSProperties | undefined {
+  const spec = LayoutTokenRegistry.typographyVariants[`nba.typography.${variant}`];
+  if (!spec) return undefined;
+  const category = LayoutTokenRegistry.typographyCategories[spec.categoryRef];
+  if (!category) return undefined;
+  const fontSize = webSizeToCss(spec.size.web);
+  const style: React.CSSProperties = {
+    fontSize,
+    fontWeight: category.weight,
+    lineHeight: category.lineHeight,
+    fontFamily: FAMILY_REF_TO_FONT[category.familyRef] ?? 'var(--font-body)',
+  };
+  if (category.textCase === 'uppercase') {
+    style.textTransform = 'uppercase';
+  }
+  return style;
+}
 
 const weightMap: Record<string, number> = {
   thin: 100, extraLight: 200, light: 300, normal: 400,
@@ -62,7 +86,7 @@ function AtomicTextInner({ element, onAction }: AtomicProps): React.ReactElement
 
   let baseStyle: React.CSSProperties = {};
   if (element.variant != null) {
-    const matched = variantStyles[element.variant];
+    const matched = variantToStyle(element.variant);
     if (matched) {
       baseStyle = matched;
     } else {

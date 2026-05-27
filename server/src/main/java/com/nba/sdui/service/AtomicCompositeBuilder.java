@@ -222,7 +222,7 @@ public class AtomicCompositeBuilder {
         // widths) — a long 2-line headline would push the card past
         // 200, leaving an empty right gutter next to the image.
         card.put("width", 200);
-        card.put("cornerRadius", LayoutTokens.RADIUS_LG);
+        card.put("cornerRadius", 0);
         // Subtle vertical gradient so the card silhouette reads against
         // the feed background without relying on a drop shadow.
         ObjectNode cardBg = om.createObjectNode();
@@ -248,7 +248,6 @@ public class AtomicCompositeBuilder {
             ObjectNode img = thumbnailImage(thumbnailUrl);
             img.put("widthMode", "fill");
             img.put("aspectRatio", 16.0 / 9.0);
-            img.set("cornerRadii", cornerRadii(LayoutTokens.RADIUS_LG, LayoutTokens.RADIUS_LG, 0, 0));
             AccessibilityHelper.addImage(om, img, headline);
             if (duration != null) {
                 badge(img, durationBadge(duration), "bottomEnd");
@@ -263,11 +262,6 @@ public class AtomicCompositeBuilder {
 
         children.add(spacer(LayoutTokens.SPACING_SM));
         ObjectNode headlineEl = text(headline, "bodySmall", "semiBold", ColorTokens.TEXT_PRIMARY, 2);
-        // Horizontal padding is 16pt (larger than the 8pt image inset and
-        // larger than the card's 12pt cornerRadius) so the first glyph
-        // clears the curved corner instead of sitting at the arc where
-        // the rounded clip shaves off part of the baseline. Bottom padding
-        // ensures the text doesn't clip against the card's bottom corner radius.
         headlineEl.set("padding", padding(LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, LayoutTokens.SPACING_SM, LayoutTokens.SPACING_MD));
         children.add(headlineEl);
 
@@ -528,6 +522,26 @@ public class AtomicCompositeBuilder {
      */
     public static final boolean INITIAL_CLOCK_RUNNING = false;
 
+    public ObjectNode buildGamePanelComposite(
+            String sectionId,
+            String analyticsId,
+            String variant,
+            String gameId,
+            int gameStatus,
+            String gameStatusText,
+            String badgeText,
+            GamePanelTeam awayTeam,
+            GamePanelTeam homeTeam,
+            GameClockSnapshot clock,
+            String navigateUri,
+            ObjectNode refreshPolicy,
+            ObjectNode linescoreBindings,
+            ObjectNode surface) {
+        return buildGamePanelComposite(sectionId, analyticsId, variant, gameId, gameStatus,
+                gameStatusText, badgeText, null, awayTeam, homeTeam, clock,
+                navigateUri, refreshPolicy, linescoreBindings, surface);
+    }
+
     /**
      * Build a GamePanel as an AtomicComposite.
      *
@@ -559,6 +573,7 @@ public class AtomicCompositeBuilder {
             int gameStatus,
             String gameStatusText,
             String badgeText,
+            String seriesText,
             GamePanelTeam awayTeam,
             GamePanelTeam homeTeam,
             GameClockSnapshot clock,
@@ -566,7 +581,6 @@ public class AtomicCompositeBuilder {
             ObjectNode refreshPolicy,
             ObjectNode linescoreBindings,
             ObjectNode surface) {
-
         boolean featured = "featured".equals(variant);
         // Featured uses 20px padding — no exact token exists (§3.6 exception: no design-system token).
         Object rootPadding = featured ? 20 : LayoutTokens.SPACING_LG;
@@ -594,6 +608,14 @@ public class AtomicCompositeBuilder {
             badge.set("padding", padding(LayoutTokens.SPACING_SM, LayoutTokens.SPACING_SM, LayoutTokens.SPACING_XS, LayoutTokens.SPACING_XS));
             rootChildren.add(badge);
             rootChildren.add(spacer(LayoutTokens.SPACING_MD));
+        }
+
+        // Optional series/context row above the matchup (e.g. "BOS leads series 3-2").
+        if (seriesText != null && !seriesText.isEmpty()) {
+            ObjectNode seriesEl = text(seriesText, "labelSmall", null, ColorTokens.TEXT_TERTIARY, 1);
+            seriesEl.put("textAlign", "center");
+            rootChildren.add(seriesEl);
+            rootChildren.add(spacer(LayoutTokens.SPACING_SM));
         }
 
         // Teams row: away | status-slot | home, spread edge-to-edge.
@@ -781,7 +803,7 @@ public class AtomicCompositeBuilder {
         // Fix the card's outer width so the 240pt image + full-width
         // meta row (duration / live badge) meet the card edge flush.
         card.put("width", 240);
-        card.put("cornerRadius", LayoutTokens.RADIUS_LG);
+        card.put("cornerRadius", 0);
         ObjectNode cardBg = om.createObjectNode();
         ArrayNode cardBgColors = om.createArrayNode();
         cardBgColors.add(ColorTokens.SURFACE_RAISED);
@@ -800,13 +822,9 @@ public class AtomicCompositeBuilder {
 
         if (thumbnailUrl != null) {
             ObjectNode img = thumbnailImage(thumbnailUrl);
-            // Image inset 8pt on start/end/top so the card face shows as
-            // an equal-thickness frame on three sides. Matches the
-            // buildContentCard treatment.
             img.set("padding", padding(LayoutTokens.SPACING_SM, LayoutTokens.SPACING_SM, LayoutTokens.SPACING_SM, 0));
             img.put("widthMode", "fill");
             img.put("aspectRatio", 16.0 / 9.0);
-            img.put("cornerRadius", LayoutTokens.RADIUS_SM);
             AccessibilityHelper.addImage(om, img, title);
             thumbChildren.add(img);
         }
@@ -840,10 +858,6 @@ public class AtomicCompositeBuilder {
         children.add(thumbContainer);
 
         ObjectNode textCol = container("column", null, null);
-        // 14pt horizontal > card's 12pt cornerRadius so the title's
-        // first glyph clears the rounded corner arc instead of sitting
-        // at the clip edge. 10pt vertical keeps the card's top/bottom
-        // rhythm unchanged.
         textCol.set("padding", padding(LayoutTokens.SPACING_MD, LayoutTokens.SPACING_MD, LayoutTokens.SPACING_SM, LayoutTokens.SPACING_SM));
         ArrayNode textChildren = om.createArrayNode();
         textChildren.add(text(title, "bodyMedium", "semiBold", ColorTokens.TEXT_PRIMARY, 2));
@@ -1010,13 +1024,12 @@ public class AtomicCompositeBuilder {
 
         ObjectNode heroContainer = container("column", "end", "start");
         heroContainer.put("widthMode", "fill");
-        heroContainer.put("cornerRadius", LayoutTokens.RADIUS_LG);
+        heroContainer.put("cornerRadius", 0);
         ArrayNode heroChildren = om.createArrayNode();
 
         if (heroImageUrl != null) {
             ObjectNode heroImg = image(heroImageUrl, 0, 200, "cover");
             heroImg.put("widthMode", "fill");
-            heroImg.set("cornerRadii", cornerRadii(LayoutTokens.RADIUS_LG, LayoutTokens.RADIUS_LG, 0, 0));
             AccessibilityHelper.addImage(om, heroImg, heroTitle != null ? heroTitle : "NBA TV");
             heroChildren.add(heroImg);
         }
@@ -1038,10 +1051,10 @@ public class AtomicCompositeBuilder {
             overlayChildren.add(spacer(LayoutTokens.SPACING_SM));
         }
         if (heroTitle != null) {
-            overlayChildren.add(text(heroTitle, "titleLarge", "bold", ColorTokens.TEXT_INVERSE, null));
+            overlayChildren.add(text(heroTitle, "titleLarge", "bold", ColorTokens.TEXT_ON_DARK_MEDIA, null));
         }
         if (heroSubtitle != null) {
-            overlayChildren.add(text(heroSubtitle, "bodyMedium", null, ColorTokens.TEXT_SECONDARY, null));
+            overlayChildren.add(text(heroSubtitle, "bodyMedium", null, ColorTokens.TEXT_ON_DARK_MEDIA, null));
         }
         overlay.set("children", overlayChildren);
         heroChildren.add(overlay);
@@ -1554,7 +1567,6 @@ public class AtomicCompositeBuilder {
         }
 
         if (multiSlide) {
-            // Paged scroll with dash indicators overlaid on the image
             ObjectNode scroll = scrollRow(0, false);
             scroll.put("widthMode", "fill");
             scroll.put("paging", true);
@@ -1609,14 +1621,17 @@ public class AtomicCompositeBuilder {
             scrimChildren.add(pillBadge(badgeText, ColorTokens.BRAND_LIVE));
             scrimChildren.add(spacer(LayoutTokens.SPACING_MD));
         }
-        scrimChildren.add(text(title, "headlineSmall", "bold", ColorTokens.TEXT_INVERSE, 2));
+        scrimChildren.add(text(title, "headlineSmall", "bold", ColorTokens.TEXT_ON_DARK_MEDIA, 2));
         if (subtitle != null) {
             scrimChildren.add(spacer(LayoutTokens.SPACING_SM));
-            scrimChildren.add(text(subtitle, "bodyMedium", null, ColorTokens.TEXT_INVERSE, 2));
+            scrimChildren.add(text(subtitle, "bodyMedium", null, ColorTokens.TEXT_ON_DARK_MEDIA, 2));
         }
         if (ctaLabel != null) {
             scrimChildren.add(spacer(LayoutTokens.SPACING_MD));
-            ObjectNode cta = button(ctaLabel, "primary", targetUri != null ? tapNavigate(targetUri) : null);
+            ObjectNode cta = button(ctaLabel, "secondary",
+                    targetUri != null ? tapNavigate(targetUri) : null);
+            cta.put("color", ColorTokens.TEXT_ON_DARK_MEDIA);
+            cta.put("background", "#00000000");
             scrimChildren.add(cta);
         }
         scrimOverlay.set("children", scrimChildren);
@@ -2387,7 +2402,7 @@ public class AtomicCompositeBuilder {
 
     private ObjectNode featuredLiveGameHeroCard(String[] card, boolean stretchToParentWidth) {
         String cardId = value(card, 0);
-        String heroRadius = LayoutTokens.RADIUS_MD;
+        int heroRadius = 0;
         ObjectNode hero = container("column", null, "stretch");
         hero.put("id", cardId);
         // Single-card section: card fills its surface (no fixed width).
@@ -2409,7 +2424,6 @@ public class AtomicCompositeBuilder {
                 : neutralInitialsRect(value(card, 2), 338, 190, heroRadius);
         art.put("widthMode", "fill");
         art.put("aspectRatio", 16.0 / 9.0);
-        art.set("cornerRadii", cornerRadii(heroRadius, heroRadius, 0, 0));
         if (value(card, 4) != null) AccessibilityHelper.addImage(om, art, value(card, 2));
 
         ObjectNode titleOverlay = container("column", "end", "start");
@@ -2596,11 +2610,12 @@ public class AtomicCompositeBuilder {
         ObjectNode card = container("column", null, "stretch");
         card.put("id", value(row, 0));
         card.put("gap", LayoutTokens.SPACING_SM);
-        card.put("background", ColorTokens.SURFACE_RAISED);
-        // Match buildGamePanelComposite (non-featured) card radius / padding.
-        card.put("cornerRadius", LayoutTokens.RADIUS_LG);
+        // Refreshed card treatment: flush tile — secondary background, no corner radius, no
+        // shadow. Cards sit edge-to-edge in the schedule list; inter-card spacing is owned
+        // by the parent list gap rather than per-card margin.
+        card.put("background", "token:nba.bg.secondary");
+        card.put("cornerRadius", 0);
         card.set("padding", padding(LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG, LayoutTokens.SPACING_LG));
-        shadow(card);
         if (value(row, 14) != null) {
             card.set("actions", singleActionArray(tapNavigate(value(row, 14))));
             String awayTri = value(row, 1) != null ? value(row, 1) : "";
@@ -2610,78 +2625,116 @@ public class AtomicCompositeBuilder {
         }
 
         ArrayNode children = om.createArrayNode();
+
+        // Matchup row laid out left-to-right:
+        //   awayTeamBlock  |  awayScore  |  statusColumn  |  homeScore  |  homeTeamBlock
+        // The status column now owns the series-record subtitle (e.g. "NYK wins 4-0")
+        // below the status text, matching the production NBA card.
         ObjectNode matchup = container("row", "spaceBetween", "center");
         matchup.put("widthMode", "fill");
         ArrayNode matchupChildren = om.createArrayNode();
-        matchupChildren.add(scheduleTeamColumn(
-                value(row, 1), value(row, 2), value(row, 3),
-                value(row, 4), value(row, 5), value(row, 0), "awayScore", 124));
-        matchupChildren.add(scheduleStatus(value(row, 11), value(row, 12), value(row, 0), clock));
-        matchupChildren.add(scheduleTeamColumn(
-                value(row, 6), value(row, 7), value(row, 8),
-                value(row, 9), value(row, 10), value(row, 0), "homeScore", 108));
+        matchupChildren.add(scheduleTeamBlock(
+                value(row, 1), value(row, 2), value(row, 3), value(row, 5), /* awayLeading */ true));
+        matchupChildren.add(scheduleScoreText(value(row, 4), value(row, 0), "awayScore"));
+        matchupChildren.add(scheduleStatus(value(row, 11), value(row, 0), clock, value(row, 12)));
+        matchupChildren.add(scheduleScoreText(value(row, 9), value(row, 0), "homeScore"));
+        matchupChildren.add(scheduleTeamBlock(
+                value(row, 6), value(row, 7), value(row, 8), value(row, 10), /* awayLeading */ false));
         matchup.set("children", matchupChildren);
         children.add(matchup);
 
-        if (value(row, 15) != null) {
-            children.add(cardHairlineDivider());
-            ObjectNode meta = container("row", "end", "center");
-            meta.put("widthMode", "fill");
-            ArrayNode metaChildren = om.createArrayNode();
-            metaChildren.add(scheduleMoreLink(tapNavigate(value(row, 15))));
-            meta.set("children", metaChildren);
-            children.add(meta);
+        // Optional broadcast/info row below the matchup (e.g. "ESPN").
+        if (value(row, 13) != null) {
+            ObjectNode broadcastRow = container("row", "center", "center");
+            broadcastRow.put("widthMode", "fill");
+            ArrayNode broadcastChildren = om.createArrayNode();
+            broadcastChildren.add(text(value(row, 13), "labelSmall", null, ColorTokens.TEXT_TERTIARY, 1));
+            broadcastRow.set("children", broadcastChildren);
+            children.add(broadcastRow);
         }
+
+        // Card footer: League Pass entry (left) + overflow More button (right). Rendered
+        // on every card; the overflow button's tap target is omitted when slot 15 is
+        // null but the icon still occupies the same screen position for visual rhythm.
+        children.add(cardHairlineDivider());
+        children.add(scheduleFooterRow(value(row, 15)));
 
         card.set("children", children);
         return card;
     }
 
     /**
-     * Per-team column aligned with {@link #teamColumn(GamePanelTeam, String)} (Games / game
-     * detail): logo, tricode, optional name line, score — not the legacy horizontal
-     * logo–labels–score row.
+     * Team block for a schedule row: logo + tricode/name stacked vertically. Mirrors the
+     * production NBA card layout where logos sit at the outer edges of the row and the
+     * name/seed reads inboard. Scores live in the center score cluster rather than the
+     * team block so that the matchup row reads as
+     * {@code [team] [score] [status] [score] [team]}.
+     *
+     * @param awayLeading {@code true} when this block is the away team (leftmost cell);
+     *                    {@code false} for the home team (rightmost cell). Currently used
+     *                    only for accessibility framing.
      */
-    private ObjectNode scheduleTeamColumn(
-            String tri, String name, String seed, String score,
-            String logoUrl, String rowId, String scoreKey, int columnWidth) {
+    private ObjectNode scheduleTeamBlock(
+            String tri, String name, String seed, String logoUrl, boolean awayLeading) {
         ObjectNode col = container("column", "center", "center");
-        col.put("width", columnWidth);
+        col.put("width", 72);
         ArrayNode children = om.createArrayNode();
         if (logoUrl != null) {
             ObjectNode logoImg = image(logoUrl, 48, 48, "contain", null);
             AccessibilityHelper.addImage(om, logoImg, (tri != null ? tri : "") + " logo");
             children.add(logoImg);
-            children.add(spacer(LayoutTokens.SPACING_SM));
+            children.add(spacer(LayoutTokens.SPACING_XS));
         }
         String seedPrefix = seed != null && !seed.isBlank() ? seed + " " : "";
-        children.add(
-                text(seedPrefix + (tri != null ? tri : ""), "titleMedium", "semiBold", ColorTokens.TEXT_PRIMARY, 1));
+        children.add(text(seedPrefix + (tri != null ? tri : ""),
+                "titleMedium", "semiBold", ColorTokens.TEXT_PRIMARY, 1));
         if (name != null && !name.isBlank()) {
             children.add(text(name, "labelSmall", null, ColorTokens.TEXT_SECONDARY, 1));
-        }
-        if (score != null) {
-            ObjectNode scoreText = text(score, "score", "bold", ColorTokens.TEXT_PRIMARY, 1);
-            scoreText.put("bindRef", rowId + "." + scoreKey);
-            scoreText.put("monospacedDigits", true);
-            children.add(scoreText);
         }
         col.set("children", children);
         return col;
     }
 
-    private ObjectNode scheduleStatus(String status, String seriesText, String rowId) {
-        return scheduleStatus(status, seriesText, rowId, null);
+    /**
+     * Score text element for a schedule row's center cluster. Returns an empty
+     * fixed-width spacer when {@code score} is null so pre-game cards (no scores yet) keep
+     * the row's center status horizontally aligned across cards.
+     */
+    private ObjectNode scheduleScoreText(String score, String rowId, String scoreKey) {
+        if (score == null) {
+            // Placeholder spacer so the status column stays in the same screen-x position
+            // whether or not the game has a score yet. Width sized to roughly match a
+            // 3-digit score rendered in the (compact) "score" typography token.
+            ObjectNode placeholder = container("column", "center", "center");
+            placeholder.put("width", 32);
+            placeholder.set("children", om.createArrayNode());
+            return placeholder;
+        }
+        ObjectNode scoreText = text(score, "score", "bold", ColorTokens.TEXT_PRIMARY, 1);
+        scoreText.put("bindRef", rowId + "." + scoreKey);
+        scoreText.put("monospacedDigits", true);
+        scoreText.put("textAlign", "center");
+        return scoreText;
+    }
+
+    private ObjectNode scheduleStatus(String status, String rowId) {
+        return scheduleStatus(status, rowId, null, null);
+    }
+
+    private ObjectNode scheduleStatus(String status, String rowId,
+                                      GameClockSnapshot clock) {
+        return scheduleStatus(status, rowId, clock, null);
     }
 
     /**
      * Center column of a schedule row: status text (or LiveClock when game is live),
-     * plus optional series text below.
+     * optionally followed by a series-record subtitle (e.g. "NYK wins 4-0") for playoff
+     * games whose upstream payload carries {@code seriesText}.
      */
-    private ObjectNode scheduleStatus(String status, String seriesText, String rowId,
-                                      GameClockSnapshot clock) {
+    private ObjectNode scheduleStatus(String status, String rowId,
+                                      GameClockSnapshot clock, String seriesText) {
         ObjectNode center = container("column", "center", "center");
-        center.put("width", 80);
+        center.put("width", 88);
         ArrayNode children = om.createArrayNode();
         String raw = status != null ? status : "";
         boolean liveCue = raw.toUpperCase(Locale.ROOT).contains("LIVE") || clock != null;
@@ -2720,10 +2773,11 @@ public class AtomicCompositeBuilder {
                 children.add(statusText);
             }
         }
-        if (seriesText != null) {
-            ObjectNode series = text(seriesText, "labelSmall", null, ColorTokens.TEXT_TERTIARY, 2);
-            series.put("textAlign", "center");
-            children.add(series);
+        if (seriesText != null && !seriesText.isBlank()) {
+            ObjectNode sub = text(seriesText, "labelSmall", "semiBold",
+                    ColorTokens.TEXT_TERTIARY, 2);
+            sub.put("textAlign", "center");
+            children.add(sub);
         }
         center.set("children", children);
         return center;
@@ -2737,6 +2791,61 @@ public class AtomicCompositeBuilder {
         ObjectNode t = text("More", "bodySmall", "semiBold", ColorTokens.PALETTE_BLUE_50, null);
         t.set("actions", singleActionArray(navigateAction));
         return t;
+    }
+
+    /**
+     * Card footer for a schedule row: League Pass CTA on the left, overflow "more"
+     * button on the right. Both are placeholders today — League Pass routes to the
+     * commerce surface; the more button is a no-op when {@code overflowUri} is null.
+     */
+    private ObjectNode scheduleFooterRow(String overflowUri) {
+        ObjectNode row = container("row", "spaceBetween", "center");
+        row.put("widthMode", "fill");
+        ArrayNode kids = om.createArrayNode();
+
+        // Left cluster: yellow circular play badge + "League Pass" label.
+        ObjectNode left = container("row", "start", "center");
+        left.put("gap", LayoutTokens.SPACING_SM);
+        ArrayNode leftKids = om.createArrayNode();
+        leftKids.add(leaguePassPlayBadge());
+        leftKids.add(text("League Pass", "labelMedium", "semiBold",
+                ColorTokens.TEXT_PRIMARY, 1));
+        left.set("children", leftKids);
+        left.set("actions", singleActionArray(tapNavigate("nba://commerce/leaguepass")));
+        AccessibilityHelper.addButton(om, left, "League Pass");
+        kids.add(left);
+
+        // Right: overflow "more" button. When no overflowUri is provided the icon still
+        // renders for layout rhythm but carries no action.
+        ObjectNode more = om.createObjectNode();
+        more.put("type", "Button");
+        more.put("label", "");
+        more.put("icon", IconTokens.MORE);
+        more.put("variant", "text");
+        more.put("color", ColorTokens.TEXT_SECONDARY);
+        if (overflowUri != null) {
+            more.set("actions", singleActionArray(tapNavigate(overflowUri)));
+        }
+        kids.add(more);
+
+        row.set("children", kids);
+        return row;
+    }
+
+    /**
+     * Yellow filled circle (NBA brand) with a centered white play triangle. Composed
+     * inline from a colored container + glyph so no bundled asset is required.
+     */
+    private ObjectNode leaguePassPlayBadge() {
+        ObjectNode badge = container("column", "center", "center");
+        badge.put("width", 24);
+        badge.put("height", 24);
+        badge.put("cornerRadius", 12);
+        badge.put("background", ColorTokens.BRAND_NBA);
+        ArrayNode kids = om.createArrayNode();
+        kids.add(text("\u25B6", "labelSmall", "bold", ColorTokens.TEXT_INVERSE, 1));
+        badge.set("children", kids);
+        return badge;
     }
 
     /** 6dp live indicator dot ({@link ColorTokens#BRAND_LIVE}). */

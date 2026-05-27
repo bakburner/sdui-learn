@@ -442,7 +442,12 @@ This enables Form submit buttons to say "refresh the screen with `season={state.
 - User filter params on the URL query string regardless of HTTP method, so the server reads them through the same `@RequestParam` path on either side.
 - `X-Trace-Id` propagation from the parent screen so refresh logs correlate with the screen that triggered them.
 
-The server's `/sdui/refresh/{screenId}` endpoint is dual-mounted (`@GetMapping` + `@PostMapping`) to the same handler. There are no GET-only or POST-only composition routes anywhere in the system. Hand-rolled URL strings, bespoke `fetch` / `URLRequest` / `OkHttp` calls, or per-action transports for composition data are explicitly prohibited; they silently bypass the cache key, the encoding rule, and trace correlation.
+The server's screen channel (`/v1/sdui/screen/{id}` with optional user query
+params) is dual-mounted (`@GetMapping` + `@PostMapping`) to the same handler.
+There are no GET-only or POST-only composition routes anywhere in the system.
+Hand-rolled URL strings, bespoke `fetch` / `URLRequest` / `OkHttp` calls, or
+per-action transports for composition data are explicitly prohibited; they
+silently bypass the cache key, the encoding rule, and trace correlation.
 
 
 ### Precedence and Composability
@@ -662,7 +667,7 @@ Each platform family receives a tailored composition from the server while shari
 | OverlayContainer | Built | Built | Built |
 | **AtomicRouter** | **Built** | **Built** | **Built** |
 
-The `AtomicRouter` dispatches rendering for all 12 element types. `AtomicComposite` is one of the 9 section types in `SectionRouter` (8 semantic sections + the `AtomicComposite` bridge to the atomic layer).
+The `AtomicRouter` dispatches rendering for all 12 element types. `AtomicComposite` is one of the 11 section types in `SectionRouter` (10 semantic sections + the `AtomicComposite` bridge to the atomic layer).
 
 
 ---
@@ -925,11 +930,12 @@ The alternative is duplicated platform composition logic and drift in feature be
 
 | Date | Summary |
 |---|---|
+| 2026-05-27 | Doc consistency audit. Section count 10 → 11 (`CalendarMonthList` added as semantic section); semantic-section count 9 → 10 in atomic-layer narrative. |
 | 2026-05-25 | Box-model architectural cleanup. Removed `SectionLayoutHints` from the schema. Section outer chrome (margin, padding, background, cornerRadius, shadow, border) now flows through a single ownership path: `Section.surface` consumed by the shared `SectionContainer`. Inter-section margins live in `Section.surface.margin`. ADR-008 superseded; successor ADR documents the box-model cascade (`docs/sdui-design-system.md §2`). | Doc consistency audit. §9m bullets rewritten from the stale layoutHints model (`Server provides layout intent` / `Client applies native best-fit rules` / `Contract defines fallback behavior for unsupported hints`) to the single chrome path (`Section.surface` → `SectionContainer`, inter-section margins via `Section.surface.margin`, cross-reference to design-system §2). §9m reference updated from ADR-008 to ADR-015 (supersedes ADR-008). ADR Status Summary: ADR-008 moved from Accepted to a new Superseded line; ADR-015 added under Accepted. §11b roadmap item: layout strategy reference updated from ADR-008/Option C to ADR-015 supersedes ADR-008. |
 | 2026-05-24 | Doc consistency audit. Terminology: `fire-and-forget` → `` `fireAndForget` `` (×3, in capability map and §11). ADR Status Summary: merged `Proposed (draft)` tier into `Proposed` — ADR-011 and ADR-012 listed as `Proposed` (matches actual ADR file headers). | Doc consistency audit: updated URI resolution convention to `/v1/sdui/screen/{path}` — removed stale legacy exception note (old game-detail path retired). Updated GET/POST fallback examples in envelope spec. | Doc consistency audit: added element-level action scope to §4, added the current cross-platform trigger-hosting matrix, and synced the action-system narrative with the trigger-alignment work. |
 | 2026-05-05 | Doc consistency audit. §10: Atomic rendering layer count corrected 10 → 12 primitives. Added Schema versioning protocol row (Built). |
 | 2026-04-27 | Doc consistency audit: `onActivate` trigger added to §4 table, ErrorState note clarified as AtomicComposite in §10, terminology sync. |
-| 2026-04-27 | Parameterized refresh + shared transport (§4, AGENTS §4.1.1, contract §11). §0: `platform` via envelope only. §2a: 12 `AtomicElement` types in the summary table. Server `/sdui/refresh/{screenId}` GET+POST. Glossary: fetch primitive, parameterized refresh. |
+| 2026-04-27 | Parameterized refresh + shared transport (§4, AGENTS §4.1.1, contract §11). §0: `platform` via envelope only. §2a: 12 `AtomicElement` types in the summary table. Server composition requests share the screen-channel fetch primitive. Glossary: fetch primitive, parameterized refresh. |
 | 2026-04-26 | Doc consistency audit. Stripped historical migration narrative — §2b reframed "When a section can migrate to atomic" as "When a content surface is atomic" (forward-looking criterion only); §8 former-section note replaced with a `VideoPlayer` stub-status note; §8 atomic-element coverage table gained an `OverlayContainer` row and the dispatch-summary sentence updated to 12 element types. Doc now describes current architectural state without "former section types" framing. |
 | 2026-04-25 | Doc consistency audit. Migrated-section count 9 → 10 (GamePanel added). Atomic element count 10 → 11 (§8 coverage table + summary line). Section type count 10th → 9th, 9 permanent → 8 permanent. LiveClock row added to atomic platform coverage table. Former-section note updated to list all 10 migrated types. Implementation-status annotations added: §1 capability-gating example marked as plumbed-not-consumed, §2c Figma CI pipeline marked as planned-not-built, §8 style-tokens row updated with override-matrix and diagnostic coverage qualifications. |
 | 2026-04-25 | GamePanel migration to AtomicComposite. Updated §1 decision examples (SSE question no longer GamePanel-specific), §2 dual-layer model (GamePanel removed from semantic list), §2b (BoxscoreTable replaces GamePanel as network-lifecycle example), §2c elevation row (shadow on Container replaces GamePanelDisplayConfig), §6 router/renderer examples (BoxscoreTable), §8 platform coverage table (GamePanel row removed), §10 JSON example (AtomicComposite). Stripped Rule N / AGENTS.md citations per §10.3. |

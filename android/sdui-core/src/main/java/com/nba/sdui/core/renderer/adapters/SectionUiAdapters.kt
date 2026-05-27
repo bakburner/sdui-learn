@@ -258,3 +258,79 @@ private fun mapSeasonLeadersPlayer(player: PlayerRow): SeasonLeadersPlayerRow =
         imageUrl = player.imageURL,
         stats = player.stats
     )
+
+// ============ CalendarStrip ============
+
+data class CalendarStripUiModel(
+    val stateKey: String,
+    val selectedDate: String,
+    val defaultDate: String,
+    val minDate: String?,
+    val maxDate: String?,
+    val expandedAction: SduiAction?,
+    val onDateSelected: SduiAction
+)
+
+fun mapCalendarStrip(section: Section, screenState: Map<String, Any>): CalendarStripUiModel? {
+    val data = section.data ?: return null
+    val stateKey = data.stateKey ?: return null
+    val wireSelectedDate = data.selectedDate ?: return null
+    val defaultDate = data.defaultDate ?: return null
+    val onDateSelectedAction = data.onDateSelected ?: return null
+
+    val effectiveSelectedDate = (screenState[stateKey] as? String) ?: wireSelectedDate
+
+    return CalendarStripUiModel(
+        stateKey = stateKey,
+        selectedDate = effectiveSelectedDate,
+        defaultDate = defaultDate,
+        minDate = data.minDate,
+        maxDate = data.maxDate,
+        expandedAction = data.expandedAction?.toSduiAction(),
+        onDateSelected = onDateSelectedAction.toSduiAction()
+    )
+}
+
+// ============ CalendarMonthList ============
+
+data class DateMetadataEntry(
+    val gameCount: Int,
+    val hasTeamGame: Boolean
+)
+
+data class CalendarMonthListUiModel(
+    val stateKey: String,
+    val selectedDate: String,
+    val defaultDate: String,
+    val minDate: String?,
+    val maxDate: String?,
+    val dateMetadata: Map<String, DateMetadataEntry>,
+    val onDateSelected: SduiAction
+)
+
+fun mapCalendarMonthList(section: Section): CalendarMonthListUiModel? {
+    val data = section.data ?: return null
+    val stateKey = data.stateKey ?: return null
+    val selectedDate = data.selectedDate ?: return null
+    val defaultDate = data.defaultDate ?: return null
+    val onDateSelectedAction = data.onDateSelected ?: return null
+
+    val metadata = data.dateMetadata
+        .orEmpty()
+        .mapValues { (_, entry) ->
+            DateMetadataEntry(
+                gameCount = entry.gameCount?.toInt() ?: 0,
+                hasTeamGame = entry.hasTeamGame ?: false
+            )
+        }
+
+    return CalendarMonthListUiModel(
+        stateKey = stateKey,
+        selectedDate = selectedDate,
+        defaultDate = defaultDate,
+        minDate = data.minDate,
+        maxDate = data.maxDate,
+        dateMetadata = metadata,
+        onDateSelected = onDateSelectedAction.toSduiAction()
+    )
+}

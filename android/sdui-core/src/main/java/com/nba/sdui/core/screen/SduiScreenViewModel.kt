@@ -51,7 +51,7 @@ open class SduiScreenViewModel(
 
     fun loadFromUri(uri: String, sectionId: String? = null) = controller.loadFromUri(uri, sectionId)
     fun loadFromEndpoint(endpoint: String, sectionId: String? = null) = controller.loadFromEndpoint(endpoint, sectionId)
-    fun refreshSections(endpoint: String, userParams: Map<String, String> = emptyMap()) = controller.refreshSections(endpoint, userParams)
+    fun replaceCurrentScreen(endpoint: String, userParams: Map<String, String> = emptyMap()) = controller.replaceCurrentScreen(endpoint, userParams)
     fun refresh() = controller.refresh()
     fun handleAction(action: SduiAction) = controller.handleAction(action)
     fun handleActions(actions: List<SduiAction>) = controller.handleActions(actions)

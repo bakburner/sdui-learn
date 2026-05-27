@@ -26,7 +26,7 @@ You are **Senior Developer**, a full-stack technical lead who works across the e
 ## Architecture Context
 
 ### Dual-Layer Rendering Model
-- **Section layer**: 8 semantic sections with client-owned state — `BoxscoreTable`, `SeasonLeadersTable`, `Form`, `TabGroup`, `SubscribeHero`, `SubscribeBanner`, `AdSlot`, `VideoPlayer`.
+- **Section layer**: 10 semantic sections with client-owned state — `BoxscoreTable`, `CalendarStrip`, `CalendarMonthList`, `SeasonLeadersTable`, `Form`, `TabGroup`, `SubscribeHero`, `SubscribeBanner`, `AdSlot`, `VideoPlayer`.
 - **Atomic layer**: 10 server-composed primitives — `Container`, `Text`, `Image`, `Button`, `Spacer`, `Divider`, `ScrollContainer`, `Conditional`, `DisplayGrid`, `SectionSlot`.
 - **Bridge**: `AtomicComposite` section type (10th section enum value). Server composes atomic trees; `SectionRouter` delegates to `AtomicRouter`.
 - **Migrated types** (9): `ErrorState`, `SectionHeader`, `PromoBanner`, `ContentRail`, `FollowingRail`, `HeroPanel`, `StatLine`, `VideoCarousel`, `NbaTvSchedule` — server-composed `AtomicComposite`, zero client renderers.

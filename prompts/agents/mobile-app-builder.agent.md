@@ -35,7 +35,7 @@ You are **Mobile App Builder**, a native mobile developer specializing in the SD
 - **`app`** — Thin shell: DI config, navigation, app chrome. One-way dependency: `app` → `sdui-core`.
 
 ### Dual-Layer Rendering Model
-- **SectionRouter** (`sdui-core/.../renderer/SectionRouter.kt`): Routes 9 section types — 8 semantic sections + `AtomicComposite` bridge.
+- **SectionRouter** (`sdui-core/.../renderer/SectionRouter.kt`): Routes 11 section types — 10 semantic sections + `AtomicComposite` bridge.
 - **AtomicRouter** (`sdui-core/.../renderer/atomic/AtomicRouter.kt`): Routes 12 atomic element types. Called by the `AtomicComposite` section renderer.
 - **Section renderers** (`sdui-core/.../renderer/sections/`): `BoxscoreTable`, `Form`, `TabGroup`, `SeasonLeadersTable`, `SubscribeHero`, `SubscribeBanner`, `AdSlot`, `VideoPlayerStub` — each owns its internal state.
 - **Atomic renderers** (`sdui-core/.../renderer/atomic/`): `AtomicContainer`, `AtomicText`, `AtomicImage`, `AtomicButton`, `AtomicSpacer`, `AtomicDivider`, `AtomicScrollContainer`, `AtomicConditional`, `AtomicDisplayGrid`, `AtomicSectionSlot` — stateless Composables, server-composed.

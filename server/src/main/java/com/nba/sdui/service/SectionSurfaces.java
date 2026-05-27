@@ -104,6 +104,19 @@ public class SectionSurfaces {
     }
 
     /**
+     * Flush surface for refreshed game schedule card tiles — sharp corners, no
+     * shadow, secondary background, zero margin. Cards rendered with this surface
+     * sit edge-to-edge in the schedule list; inter-card spacing is owned by the
+     * parent list's {@code gap} rather than by per-card margin.
+     */
+    public ObjectNode gameCardFlushSurface() {
+        ObjectNode surface = objectMapper.createObjectNode();
+        surface.put("cornerRadius", 0);
+        surface.put("background", "token:nba.bg.secondary");
+        return surface;
+    }
+
+    /**
      * Square, full-bleed strip: token secondary background and padding, no margin.
      * Composed from standard {@link SectionSurface} fields (not a tab-specific wire type).
      */

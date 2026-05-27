@@ -157,6 +157,19 @@ object LayoutTokenResolver {
         )
     }
 
+    /**
+     * Resolve a wire-level [TextVariant] shorthand (e.g. `"score"`, `"labelSmall"`) to
+     * a [TypographySpec] via the bundled `typography-tokens.json` registry.
+     *
+     * The variant enum on the wire is a presentational shorthand for the full token name
+     * `nba.typography.<variant>`; this method bridges the shorthand into the same
+     * registry-driven path used for `token:`-prefixed presentational fields, so the text
+     * renderer never needs a parallel hardcoded sizing table.
+     */
+    fun typographyForVariant(variantName: String, formFactor: FormFactor): TypographySpec? {
+        return typography("token:nba.typography.$variantName", formFactor)
+    }
+
     fun shadowSpec(token: String): ShadowSpec? {
         val tokenName = tokenName(token) ?: return null
         val spec = LayoutTokenRegistry.shadows[tokenName]

@@ -6,11 +6,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -66,7 +68,9 @@ fun AtomicScrollContainer(
     if (element.showIndicators == true) {
         Log.w(TAG, "showIndicators=true is decoded but Compose Lazy containers do not expose scrollbars here; scrolling remains enabled")
     }
-    val showPageDots = element.paging == true && element.pageIndicator?.style == Style.Dots && children.size > 1
+    val indicatorStyle = element.pageIndicator?.style
+    val showPageDots = element.paging == true && indicatorStyle == Style.Dots && children.size > 1
+    val showPageDashes = element.paging == true && indicatorStyle == Style.Dashes && children.size > 1
 
     AtomicBox(element, screenState, onAction) { boxModifier ->
         val a11yModifier = boxModifier.applyAccessibility(element.accessibility)
@@ -77,47 +81,84 @@ fun AtomicScrollContainer(
                 else -> false
             }
             val dotRowArrangement = pageIndicatorHorizontalArrangement(element.pageIndicator?.alignment)
-            Column(modifier = a11yModifier) {
-                if (showPageDots && dotsOnTop) {
-                    PageIndicatorDots(
-                        count = children.size,
-                        activePage = pagerState.currentPage,
-                        inactiveColor = resolvedIndicatorColor(element.pageIndicator?.color, Color.White.copy(alpha = 0.45f)),
-                        activeColor = resolvedIndicatorColor(element.pageIndicator?.activeColor, Color.White),
-                        modifier = Modifier.fillMaxWidth().padding(8.dp),
-                        groupHorizontalArrangement = dotRowArrangement
-                    )
-                }
-                if (isHorizontal) {
-                    HorizontalPager(
-                        state = pagerState,
-                        modifier = Modifier,
-                        pageSpacing = gap
-                    ) { page ->
-                        Box(modifier = childCrossAxisModifier(element, isHorizontal)) {
-                            AtomicRouter(children[page], screenState, onAction, depth = depth + 1, onStateChange = onStateChange, sectionSlotDepth = sectionSlotDepth)
+
+            if (showPageDashes) {
+                Box(modifier = a11yModifier) {
+                    if (isHorizontal) {
+                        HorizontalPager(
+                            state = pagerState,
+                            modifier = Modifier,
+                            pageSpacing = gap
+                        ) { page ->
+                            Box(modifier = childCrossAxisModifier(element, isHorizontal)) {
+                                AtomicRouter(children[page], screenState, onAction, depth = depth + 1, onStateChange = onStateChange, sectionSlotDepth = sectionSlotDepth)
+                            }
+                        }
+                    } else {
+                        VerticalPager(
+                            state = pagerState,
+                            modifier = Modifier,
+                            pageSpacing = gap
+                        ) { page ->
+                            Box(modifier = childCrossAxisModifier(element, isHorizontal)) {
+                                AtomicRouter(children[page], screenState, onAction, depth = depth + 1, onStateChange = onStateChange, sectionSlotDepth = sectionSlotDepth)
+                            }
                         }
                     }
-                } else {
-                    VerticalPager(
-                        state = pagerState,
-                        modifier = Modifier,
-                        pageSpacing = gap
-                    ) { page ->
-                        Box(modifier = childCrossAxisModifier(element, isHorizontal)) {
-                            AtomicRouter(children[page], screenState, onAction, depth = depth + 1, onStateChange = onStateChange, sectionSlotDepth = sectionSlotDepth)
-                        }
-                    }
-                }
-                if (showPageDots && !dotsOnTop) {
-                    PageIndicatorDots(
+                    PageIndicatorDashes(
                         count = children.size,
                         activePage = pagerState.currentPage,
-                        inactiveColor = resolvedIndicatorColor(element.pageIndicator?.color, Color.White.copy(alpha = 0.45f)),
+                        inactiveColor = resolvedIndicatorColor(element.pageIndicator?.color, Color.White.copy(alpha = 0.4f)),
                         activeColor = resolvedIndicatorColor(element.pageIndicator?.activeColor, Color.White),
-                        modifier = Modifier.fillMaxWidth().padding(8.dp),
-                        groupHorizontalArrangement = dotRowArrangement
+                        modifier = Modifier
+                            .align(ComposeAlignment.BottomCenter)
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp)
                     )
+                }
+            } else {
+                Column(modifier = a11yModifier) {
+                    if (showPageDots && dotsOnTop) {
+                        PageIndicatorDots(
+                            count = children.size,
+                            activePage = pagerState.currentPage,
+                            inactiveColor = resolvedIndicatorColor(element.pageIndicator?.color, Color.White.copy(alpha = 0.45f)),
+                            activeColor = resolvedIndicatorColor(element.pageIndicator?.activeColor, Color.White),
+                            modifier = Modifier.fillMaxWidth().padding(8.dp),
+                            groupHorizontalArrangement = dotRowArrangement
+                        )
+                    }
+                    if (isHorizontal) {
+                        HorizontalPager(
+                            state = pagerState,
+                            modifier = Modifier,
+                            pageSpacing = gap
+                        ) { page ->
+                            Box(modifier = childCrossAxisModifier(element, isHorizontal)) {
+                                AtomicRouter(children[page], screenState, onAction, depth = depth + 1, onStateChange = onStateChange, sectionSlotDepth = sectionSlotDepth)
+                            }
+                        }
+                    } else {
+                        VerticalPager(
+                            state = pagerState,
+                            modifier = Modifier,
+                            pageSpacing = gap
+                        ) { page ->
+                            Box(modifier = childCrossAxisModifier(element, isHorizontal)) {
+                                AtomicRouter(children[page], screenState, onAction, depth = depth + 1, onStateChange = onStateChange, sectionSlotDepth = sectionSlotDepth)
+                            }
+                        }
+                    }
+                    if (showPageDots && !dotsOnTop) {
+                        PageIndicatorDots(
+                            count = children.size,
+                            activePage = pagerState.currentPage,
+                            inactiveColor = resolvedIndicatorColor(element.pageIndicator?.color, Color.White.copy(alpha = 0.45f)),
+                            activeColor = resolvedIndicatorColor(element.pageIndicator?.activeColor, Color.White),
+                            modifier = Modifier.fillMaxWidth().padding(8.dp),
+                            groupHorizontalArrangement = dotRowArrangement
+                        )
+                    }
                 }
             }
         } else if (isHorizontal) {
@@ -237,6 +278,32 @@ private fun PageIndicatorDots(
                         .background(if (index == activePage) activeColor else inactiveColor, CircleShape)
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun PageIndicatorDashes(
+    count: Int,
+    activePage: Int,
+    inactiveColor: Color,
+    activeColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        repeat(count) { index ->
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(3.dp)
+                    .background(
+                        if (index == activePage) activeColor else inactiveColor,
+                        RoundedCornerShape(2.dp)
+                    )
+            )
         }
     }
 }

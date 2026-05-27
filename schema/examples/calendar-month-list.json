@@ -1,0 +1,24 @@
+{
+  "id": "server:games-calendar~type=CalendarMonthList",
+  "type": "CalendarMonthList",
+  "contentSourceId": "server:games-calendar",
+  "analyticsId": "games_calendar_month_list",
+  "data": {
+    "stateKey": "calendar_selected_date",
+    "selectedDate": "2026-05-26",
+    "defaultDate": "2026-05-26",
+    "minDate": "2025-10-01",
+    "maxDate": "2026-06-30",
+    "dateMetadata": {
+      "2026-05-26": {
+        "gameCount": 3,
+        "hasTeamGame": false
+      }
+    },
+    "onDateSelected": {
+      "trigger": "onActivate",
+      "type": "navigate",
+      "targetUri": "nba://games?date={{calendar_selected_date}}"
+    }
+  }
+}

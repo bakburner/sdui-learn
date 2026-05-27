@@ -111,7 +111,7 @@ For any platform, the developer ends up with:
 ├── state/            StateManager, ActionDispatcher
 ├── routing/          SectionRouter, AtomicRouter
 ├── renderers/
-│   ├── sections/     8 semantic section renderers
+│   ├── sections/     10 semantic section renderers
 │   └── atomic/       12 atomic element renderers
 ├── runtime/
 │   ├── DataBindingResolver

@@ -18,6 +18,8 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Leaderboard
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PictureInPicture
 import androidx.compose.material.icons.filled.PlayArrow
@@ -87,7 +89,9 @@ object IconTokenResolver {
         "sdui:basketball"  to "SportsBasketball",
         "sdui:video"       to "PlayCircle",
         "sdui:leaderboard" to "Leaderboard",
-        "sdui:grid"        to "Widgets"
+        "sdui:grid"        to "Widgets",
+        "sdui:lock"        to "Lock",
+        "sdui:more"        to "MoreVert"
     )
 
     /**
@@ -147,6 +151,8 @@ object IconTokenResolver {
         "PlayCircle"        -> Icons.Filled.PlayCircle
         "Leaderboard"       -> Icons.Filled.Leaderboard
         "Widgets"           -> Icons.Filled.Widgets
+        "Lock"              -> Icons.Filled.Lock
+        "MoreVert"          -> Icons.Filled.MoreVert
         "List"              -> Icons.AutoMirrored.Filled.List
         else                -> null
     }

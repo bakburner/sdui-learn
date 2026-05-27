@@ -46,6 +46,8 @@ const TOKENS: Readonly<Record<string, string>> = {
   'sdui:video':       'play_circle',
   'sdui:leaderboard': 'leaderboard',
   'sdui:grid':        'widgets',
+  'sdui:lock':        'lock',
+  'sdui:more':        'more_vert',
 };
 
 export const IconTokenResolver = {

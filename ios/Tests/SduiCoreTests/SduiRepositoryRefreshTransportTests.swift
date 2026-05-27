@@ -7,7 +7,7 @@ import XCTest
 /// builder.
 ///
 /// The systemic regression these tests guard against:
-/// `SduiScreenViewModel.refresh()` used to assemble a URL by hand from a
+/// `SduiScreenViewModel.replaceCurrentScreen()` (née `refresh()`) used to assemble a URL by hand from a
 /// relative endpoint, which (a) bypassed `SduiConfig.baseURL` (yielding
 /// `unsupported URL` errors), (b) skipped envelope params, (c) skipped the
 /// POST fallback, and (d) did not propagate the parent `X-Trace-Id`. All of
@@ -48,7 +48,7 @@ final class SduiRepositoryRefreshTransportTests: XCTestCase {
         CapturingURLProtocol.respond(with: Self.emptyScreenJSON)
 
         _ = try? await repo.fetchScreen(
-            endpoint: "/v1/sdui/refresh/stats-leaders",
+            endpoint: "/v1/sdui/screen/leaders",
             userParams: [
                 "perMode": "Totals",
                 "season": "2025-26",
@@ -61,7 +61,7 @@ final class SduiRepositoryRefreshTransportTests: XCTestCase {
         let url = try XCTUnwrap(request.url)
         XCTAssertEqual(url.scheme, "https", "must resolve against config.baseURL")
         XCTAssertEqual(url.host, "example.test")
-        XCTAssertTrue(url.path.hasSuffix("/v1/sdui/refresh/stats-leaders"))
+        XCTAssertTrue(url.path.hasSuffix("/v1/sdui/screen/leaders"))
 
         let query = try XCTUnwrap(url.query)
         XCTAssertTrue(query.contains("perMode=Totals"))
@@ -82,7 +82,7 @@ final class SduiRepositoryRefreshTransportTests: XCTestCase {
         CapturingURLProtocol.respond(with: Self.emptyScreenJSON)
 
         _ = try? await repo.fetchScreen(
-            endpoint: "/v1/sdui/refresh/stats-leaders",
+            endpoint: "/v1/sdui/screen/leaders",
             userParams: ["zKey": "z", "aKey": "a", "mKey": "m"]
         )
 
@@ -130,7 +130,7 @@ final class SduiRepositoryRefreshTransportTests: XCTestCase {
         CapturingURLProtocol.respond(with: Self.emptyScreenJSON)
 
         _ = try? await repo.fetchScreen(
-            endpoint: "/v1/sdui/refresh/stats-leaders",
+            endpoint: "/v1/sdui/screen/leaders",
             userParams: ["perMode": "Totals"]
         )
 
@@ -152,7 +152,7 @@ final class SduiRepositoryRefreshTransportTests: XCTestCase {
 
     private static let emptyScreenJSON: Data = """
         {
-          "id": "stats-leaders",
+          "id": "leaders",
           "schemaVersion": "1.0",
           "sections": []
         }

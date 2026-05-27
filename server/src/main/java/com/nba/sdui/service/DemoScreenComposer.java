@@ -41,9 +41,12 @@ public class DemoScreenComposer {
 
     @PostConstruct
     void registerParameterizedRefreshResolvers() {
-        parameterizedRefreshService.registerResolver("stats-leaders",
+        parameterizedRefreshService.registerResolver("leaders",
                 (traceId, params, ctx) -> composeLeadersRefresh(
-                        traceId, params, ctx.getLocale() != null ? ctx.getLocale() : "en"));
+                        traceId,
+                        params,
+                        ctx.getPlatform() != null ? ctx.getPlatform().getDeviceClass() : "phone",
+                        ctx.getLocale() != null ? ctx.getLocale() : "en"));
     }
 
     // ── Public entry points ────────────────────────────────────────────
@@ -159,6 +162,31 @@ public class DemoScreenComposer {
      * Compose the standalone Season Leaders screen (Form + SeasonLeadersTable).
      */
     public ObjectNode composeLeaders(String traceId, String deviceClass, String locale) {
+        return composeLeadersScreen(
+                traceId, deviceClass, locale,
+                "2025-26", "regular", "per_game", "pts");
+    }
+
+    /**
+     * Re-compose the full Season Leaders screen with form state from a
+     * parameterised refresh (form submit). Returns the full screen — same
+     * {@code id}, same section roster — so the client fully replaces the
+     * current screen state. The form section is re-emitted so its rendered
+     * state stays in sync with the table; the table reflects the new filters.
+     */
+    public ObjectNode composeLeadersRefresh(String traceId, Map<String, String> params,
+                                             String deviceClass, String locale) {
+        return composeLeadersScreen(
+                traceId, deviceClass, locale,
+                params.getOrDefault("season", "2025-26"),
+                params.getOrDefault("seasonType", "regular"),
+                params.getOrDefault("perMode", "per_game"),
+                params.getOrDefault("statCategory", "pts"));
+    }
+
+    private ObjectNode composeLeadersScreen(String traceId, String deviceClass, String locale,
+                                             String season, String seasonType,
+                                             String perMode, String statCategory) {
         ObjectNode screen = objectMapper.createObjectNode();
         screen.put("id", "leaders");
         screen.put("schemaVersion", schemaVersion);
@@ -174,39 +202,6 @@ public class DemoScreenComposer {
         screen.set("navigation", utils.buildNavigation("leaders"));
 
         ObjectNode state = objectMapper.createObjectNode();
-        state.put("form_season", "2025-26");
-        state.put("form_season_type", "regular");
-        state.put("form_per_mode", "per_game");
-        state.put("form_stat_category", "pts");
-        screen.set("state", state);
-
-        ArrayNode sections = objectMapper.createArrayNode();
-        sections.add(buildDemoForm(deviceClass));
-        sections.add(buildLeadersTable("2025-26", "regular", "per_game", "pts"));
-        screen.set("sections", sections);
-
-        utils.prependAppBarHeaderIfNeeded(screen);
-        utils.ensureScreenContentInsets(screen);
-        utils.stampStringTableOnSections(screen, locale);
-        return screen;
-    }
-
-    /**
-     * Compose only the leaders-table section for a parameterised refresh.
-     * Called from the controller when the form submits.
-     */
-    public ObjectNode composeLeadersRefresh(String traceId, Map<String, String> params, String locale) {
-        String season = params.getOrDefault("season", "2025-26");
-        String seasonType = params.getOrDefault("seasonType", "regular");
-        String perMode = params.getOrDefault("perMode", "per_game");
-        String statCategory = params.getOrDefault("statCategory", "pts");
-
-        ObjectNode screen = objectMapper.createObjectNode();
-        screen.put("id", "stats-leaders-refresh");
-        screen.put("traceId", traceId);
-        screen.put("schemaVersion", "1.0");
-
-        ObjectNode state = objectMapper.createObjectNode();
         state.put("form_season", season);
         state.put("form_season_type", seasonType);
         state.put("form_per_mode", perMode);
@@ -214,9 +209,12 @@ public class DemoScreenComposer {
         screen.set("state", state);
 
         ArrayNode sections = objectMapper.createArrayNode();
+        sections.add(buildDemoForm(deviceClass));
         sections.add(buildLeadersTable(season, seasonType, perMode, statCategory));
         screen.set("sections", sections);
 
+        utils.prependAppBarHeaderIfNeeded(screen);
+        utils.ensureScreenContentInsets(screen);
         utils.stampStringTableOnSections(screen, locale);
         return screen;
     }
@@ -679,7 +677,7 @@ public class DemoScreenComposer {
         submitAction.put("trigger", "onSubmit");
         submitAction.put("type", "refresh");
         submitAction.put("target", SectionIdDeriver.derive("stats-api:leaders", "SeasonLeadersTable"));
-        submitAction.put("endpoint", "/v1/sdui/screen/refresh/stats-leaders");
+        submitAction.put("endpoint", "/v1/sdui/screen/leaders");
         submitAction.put("onFailure", "halt");
         ObjectNode submitFeedback = objectMapper.createObjectNode();
         submitFeedback.put("message", "Stats lookup failed — please try again");

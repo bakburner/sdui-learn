@@ -19,7 +19,7 @@ import java.util.Optional;
  * unknown screen IDs (mapped to 404 at the HTTP boundary) or a non-empty result for
  * known ones. Resolver failures propagate as unchecked exceptions (mapped to 500).
  *
- * <p>Screen IDs are exact-match keys (e.g. {@code "stats-leaders"}), not prefixes,
+ * <p>Screen IDs are exact-match keys (e.g. {@code "games"}, {@code "leaders"}), not prefixes,
  * because parameterized refresh targets a named query surface rather than a dynamic
  * content-source instance.
  */

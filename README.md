@@ -67,11 +67,11 @@ sdui-prototype/
 │   └── sdui-core/              # Reusable SDUI library (renderers, state, data)
 ├── web/                        # React/TypeScript web client
 │   └── src/
-│       ├── components/         # SectionRouter + 8 semantic section renderers + AtomicRouter + SectionErrorBoundary, SectionSkeleton
+│       ├── components/         # SectionRouter + 10 semantic section renderers + AtomicRouter + SectionErrorBoundary, SectionSkeleton
 │       ├── hooks/              # useSduiScreen, useRefreshPolicy, useImpressionTracking, useAnalyticsContext
 │       └── runtime/            # AblyClient, ActionHandler, DataBindingApplier
 ├── ios/                        # iOS / SwiftUI client (Swift Package + SduiDemo app)
-│   ├── Sources/SduiCore/       # SectionRouter + 8 semantic section views + AtomicRouter + navigation shell
+│   ├── Sources/SduiCore/       # SectionRouter + 10 semantic section views + AtomicRouter + navigation shell
 │   ├── Tests/SduiCoreTests/    # Model round-trips, fixtures, action dispatcher, impression tracker
 │   └── SduiDemo/               # XcodeGen-based demo host (bootstraps nba://for-you)
 ├── docs/                       # Technical proposal & requirements
@@ -199,7 +199,7 @@ make codegen
 | Leaders | `GET /v1/sdui/screen/leaders` | Season leaders table with form-driven season/type filters. |
 | Kitchen Sink | `GET /v1/sdui/screen/demos` | Demo screen showcasing all section types with sample data. |
 | Boxscore | `GET /v1/sdui/screen/boxscore/{gameId}` | Boxscore tables for a specific game (home and away). |
-| Refresh | `GET /v1/sdui/screen/refresh/{handlerId}` | Parameterized refresh endpoint for form-driven section updates. |
+| Leaders (parameterized) | `GET /v1/sdui/screen/leaders?perMode=…&season=…` | Parameterized re-composition via screen channel with query params. |
 | Section refresh | `GET/POST /v1/sdui/section/{sectionId}` | Re-composes a single section via `SectionRefreshService`; used with `refreshPolicy.sectionEndpoint` |
 
 ## Section Types (9 in schema: 8 permanent + AtomicComposite)

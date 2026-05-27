@@ -111,6 +111,15 @@ extension SduiModels {
     }
 }
 
+/// Action dispatched when the month label is tapped. Conventionally a navigate action to the
+/// full calendar screen. When absent, the month label is not tappable.
+///
+/// Singular action executed after the renderer writes the tapped date into stateKey via
+/// onStateChange. Conventionally a refresh action with paramBindings.
+///
+/// Action dispatched after writing the selected date into stateKey. Conventionally a
+/// navigate action back to the games screen.
+///
 /// Action fired when the form is submitted
 ///
 /// Top-level fallback action invoked when the IAP SDK is not mounted (today, always).
@@ -1319,6 +1328,16 @@ extension AtomicElement {
 ///
 /// Typed tabular data for an NBA-style boxscore (one per team)
 ///
+/// Platform-native horizontal date picker. All ISO date fields are ET-anchored
+/// (America/New_York) calendar days (YYYY-MM-DD). defaultDate is the league's current
+/// anchor/focus date — typically today in ET during the regular season, but may be a future
+/// date during offseason or breaks (e.g. the regular-season opener). Clients display
+/// defaultDate as-is and never compare it to device time.
+///
+/// Vertically-scrollable month-grid calendar with per-date game metadata. All date fields
+/// are ET-anchored (America/New_York) ISO YYYY-MM-DD. defaultDate is the league's current
+/// anchor date; drives the 'today' visual highlight and the initial scroll position.
+///
 /// Server-driven form section with typed fields bound to screen state
 ///
 /// Ad placement primitive — carries placement semantics while delegating auction/targeting
@@ -1345,7 +1364,11 @@ extension AtomicElement {
 /// before the SDK is integrated and will serve as the loading/error placeholder afterwards.
 // MARK: - DataClass
 struct DataClass: Codable {
-    let defaultTab, stateKey: String?
+    let defaultTab: String?
+    /// Screen-state key that holds the selected ISO date
+    ///
+    /// Screen-state key for the selected ISO date.
+    let stateKey: String?
     let tabContents: [String: [Section]]?
     let tabs: [TabData]?
     /// Optional atomic tree for the tab header row. When present, renderers walk it via
@@ -1387,6 +1410,39 @@ struct DataClass: Codable {
     let teamTotals: [String: JSONAny]?
     /// Three-letter team code, e.g. 'BOS'
     let teamTricode: String?
+    /// ISO YYYY-MM-DD (ET) for the league's current anchor date. Drives the default-cell visual
+    /// highlight. Server-authoritative — not always today; may be a future date during offseason
+    /// or breaks.
+    ///
+    /// ISO YYYY-MM-DD (ET) for the league's current anchor date.
+    let defaultDate: String?
+    /// Action dispatched when the month label is tapped. Conventionally a navigate action to the
+    /// full calendar screen. When absent, the month label is not tappable.
+    let expandedAction: Action?
+    /// ISO YYYY-MM-DD (ET) for the latest selectable date (e.g. season/finals end). Absent means
+    /// unbounded.
+    ///
+    /// ISO YYYY-MM-DD (ET) for the latest selectable date.
+    let maxDate: String?
+    /// ISO YYYY-MM-DD (ET) for the earliest selectable date (e.g. season start). Absent means
+    /// unbounded; clients pick a sensible default window.
+    ///
+    /// ISO YYYY-MM-DD (ET) for the earliest selectable date.
+    let minDate: String?
+    /// Singular action executed after the renderer writes the tapped date into stateKey via
+    /// onStateChange. Conventionally a refresh action with paramBindings.
+    ///
+    /// Action dispatched after writing the selected date into stateKey. Conventionally a
+    /// navigate action back to the games screen.
+    let onDateSelected: Action?
+    /// ISO YYYY-MM-DD (ET) for initial selection. Falls back here when screenState[stateKey] is
+    /// absent; otherwise the state value wins.
+    ///
+    /// ISO YYYY-MM-DD (ET) for initial selection.
+    let selectedDate: String?
+    /// Map of ISO date string to metadata for that date. Only dates with games are present;
+    /// absent dates have zero games.
+    let dateMetadata: [String: DateMetadatum]?
     let fields: [FormField]?
     /// Layout hint for field arrangement
     let layout: Layout?
@@ -1449,7 +1505,7 @@ struct DataClass: Codable {
     enum CodingKeys: String, CodingKey {
         case defaultTab, stateKey, tabContents, tabs, ui, columns, emptyMessage, players, sortDirectionStateKey, sortStateKey, teamColor
         case teamLogoURL = "teamLogoUrl"
-        case teamName, teamTotals, teamTricode, fields, layout, submitAction, submitLabel, adUnitPath, collapseOnEmpty, label, placeholder, provider
+        case teamName, teamTotals, teamTricode, defaultDate, expandedAction, maxDate, minDate, onDateSelected, selectedDate, dateMetadata, fields, layout, submitAction, submitLabel, adUnitPath, collapseOnEmpty, label, placeholder, provider
         case refreshIntervalSEC = "refreshIntervalSec"
         case sizes, targeting, page, pageSize, sortColumn, sortDirection, subtitle, title, totalRows, ctaAction, tiers, content, autoplay, capabilities
         case contentID = "contentId"
@@ -1491,6 +1547,13 @@ extension DataClass {
         teamName: String?? = nil,
         teamTotals: [String: JSONAny]?? = nil,
         teamTricode: String?? = nil,
+        defaultDate: String?? = nil,
+        expandedAction: Action?? = nil,
+        maxDate: String?? = nil,
+        minDate: String?? = nil,
+        onDateSelected: Action?? = nil,
+        selectedDate: String?? = nil,
+        dateMetadata: [String: DateMetadatum]?? = nil,
         fields: [FormField]?? = nil,
         layout: Layout?? = nil,
         submitAction: Action?? = nil,
@@ -1535,6 +1598,13 @@ extension DataClass {
             teamName: teamName ?? self.teamName,
             teamTotals: teamTotals ?? self.teamTotals,
             teamTricode: teamTricode ?? self.teamTricode,
+            defaultDate: defaultDate ?? self.defaultDate,
+            expandedAction: expandedAction ?? self.expandedAction,
+            maxDate: maxDate ?? self.maxDate,
+            minDate: minDate ?? self.minDate,
+            onDateSelected: onDateSelected ?? self.onDateSelected,
+            selectedDate: selectedDate ?? self.selectedDate,
+            dateMetadata: dateMetadata ?? self.dateMetadata,
             fields: fields ?? self.fields,
             layout: layout ?? self.layout,
             submitAction: submitAction ?? self.submitAction,
@@ -2473,6 +2543,51 @@ extension BoxscoreColumnDefinition {
             label: label ?? self.label,
             sortable: sortable ?? self.sortable,
             width: width ?? self.width
+        )
+    }
+
+    func jsonData() throws -> Data {
+        return try newJSONEncoder().encode(self)
+    }
+
+    func jsonString(encoding: String.Encoding = .utf8) throws -> String? {
+        return String(data: try self.jsonData(), encoding: encoding)
+    }
+}
+
+// MARK: - DateMetadatum
+struct DateMetadatum: Codable {
+    /// Number of games on this date.
+    let gameCount: Int?
+    /// True if a user-favorited team plays on this date.
+    let hasTeamGame: Bool?
+}
+
+// MARK: DateMetadatum convenience initializers and mutators
+
+extension DateMetadatum {
+    init(data: Data) throws {
+        self = try newJSONDecoder().decode(DateMetadatum.self, from: data)
+    }
+
+    init(_ json: String, using encoding: String.Encoding = .utf8) throws {
+        guard let data = json.data(using: encoding) else {
+            throw NSError(domain: "JSONDecoding", code: 0, userInfo: nil)
+        }
+        try self.init(data: data)
+    }
+
+    init(fromURL url: URL) throws {
+        try self.init(data: try Data(contentsOf: url))
+    }
+
+    func with(
+        gameCount: Int?? = nil,
+        hasTeamGame: Bool?? = nil
+    ) -> DateMetadatum {
+        return DateMetadatum(
+            gameCount: gameCount ?? self.gameCount,
+            hasTeamGame: hasTeamGame ?? self.hasTeamGame
         )
     }
 

@@ -47,11 +47,6 @@ public class LiveComposer {
 
     private static final Logger log = LoggerFactory.getLogger(LiveComposer.class);
 
-    /** Branded artwork used for the inline League Pass promo banner under the
-     *  CalendarStrip. Same asset the scoreboard variant reuses. */
-    private static final String LEAGUE_PASS_PROMO_THUMB =
-            "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png";
-
     private final ObjectMapper objectMapper;
     private final StatsApiClient statsApiClient;
     private final SduiUtils utils;
@@ -194,10 +189,40 @@ public class LiveComposer {
 
         insertGamesScreenAdSlot(sections, liveGames.size(), upcomingGames.size(), finishedGames.size());
 
+        // Stamp a uniform bottom margin on every section so cards on the games
+        // screen render with visible separation rather than flush. Margin is a
+        // SectionSurface concern (shared SectionContainer applies it); per-screen
+        // composer policy decides the token.
+        applyInterSectionMargin(sections, LayoutTokens.SPACING_MD);
+
         response.set("sections", sections);
         utils.ensureScreenContentInsets(response);
         utils.stampStringTableOnSections(response, locale);
         return response;
+    }
+
+    /**
+     * Add {@code surface.margin.bottom = token} to every section in the list,
+     * preserving any existing surface fields. Used by the games screen to
+     * separate adjacent section cards uniformly. A composer that already set
+     * a {@code surface.margin.bottom} on a specific section keeps its value —
+     * this pass only fills in the missing edge so per-section choices win.
+     */
+    private void applyInterSectionMargin(ArrayNode sections, String token) {
+        for (JsonNode node : sections) {
+            if (!(node instanceof ObjectNode section)) continue;
+            ObjectNode surface = section.has("surface") && section.get("surface").isObject()
+                    ? (ObjectNode) section.get("surface")
+                    : objectMapper.createObjectNode();
+            ObjectNode margin = surface.has("margin") && surface.get("margin").isObject()
+                    ? (ObjectNode) surface.get("margin")
+                    : objectMapper.createObjectNode();
+            if (!margin.has("bottom")) {
+                margin.put("bottom", token);
+            }
+            surface.set("margin", margin);
+            section.set("surface", surface);
+        }
     }
 
     /**
@@ -571,8 +596,11 @@ public class LiveComposer {
     /**
      * Build the League Pass promo banner that sits directly under the CalendarStrip
      * on the Games screen. Stable per-screen entry point that drives subscribers
-     * into the commerce flow. Surface chrome (dark navy → NBA yellow gradient,
-     * generous padding) is owned by {@link SectionSurfaces#subscribeSurface}.
+     * into the commerce flow. Surface chrome (solid {@code bg.secondary} card
+     * matching the game-card siblings below, {@code lg} inner padding) is owned
+     * by {@link SectionSurfaces#promoCardSurface}, so the promo stacks with the
+     * same visual rhythm as the live/upcoming/final game cards rather than
+     * reading as a separate gradient hero.
      */
     private ObjectNode buildLeaguePassPromoBanner() {
         String contentSourceId = "cms:promo-games_screen-leaguepass";
@@ -583,14 +611,26 @@ public class LiveComposer {
                 "NBA League Pass",
                 "Every game. Every night.",
                 "Stream out-of-market games live and on demand all season long.",
-                LEAGUE_PASS_PROMO_THUMB,
+                // No leading thumbnail: the previous NBA-logo tile rendered
+                // with a stray rounded border on iOS and pushed the row
+                // alignment such that the Subscribe CTA was clipped below
+                // the surface. Removing the image lets the row size to the
+                // column's natural intrinsic height and keeps the chrome
+                // identical across iOS / Android / Web.
+                null,
                 "Subscribe",
-                "nba://commerce/leaguepass");
+                "nba://commerce/leaguepass",
+                ColorTokens.BRAND_LIVE,
+                // Track the surface across light/dark themes — the promo
+                // now sits on `bg.secondary` (same as the game cards), so
+                // the headline uses the primary label token rather than
+                // the theme-inverted one used by gradient hero variants.
+                ColorTokens.TEXT_PRIMARY,
+                ColorTokens.TEXT_SECONDARY);
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", surfaces.subscribeSurface(
-                "#0C1B3A",
-                ColorTokens.BRAND_NBA,
-                20));
+        section.set("surface", surfaces.promoCardSurface(
+                ColorTokens.SURFACE_RAISED,
+                LayoutTokens.SPACING_LG));
         return section;
     }
 

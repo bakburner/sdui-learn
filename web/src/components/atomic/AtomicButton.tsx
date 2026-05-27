@@ -63,9 +63,16 @@ function AtomicButtonInner({ element, onAction }: AtomicProps): React.ReactEleme
     }
   }
   const resolvedColor = resolveColor(element.color);
-  const resolvedBg = element.background && 'color' in (element.background as Record<string, unknown>)
-    ? resolveColor((element.background as Record<string, unknown>).color as string)
-    : undefined;
+  // `background` is a token-or-struct union: a string (token ref or raw color)
+  // or an object with `color` / gradient `colors`. The `in` operator throws
+  // on primitives, so narrow to object first.
+  let resolvedBg: string | undefined;
+  const bg = element.background as unknown;
+  if (typeof bg === 'string') {
+    resolvedBg = resolveColor(bg);
+  } else if (bg && typeof bg === 'object' && 'color' in (bg as Record<string, unknown>)) {
+    resolvedBg = resolveColor((bg as Record<string, unknown>).color as string);
+  }
   const isTextLike = resolvedVariant === 'text' || resolvedVariant === 'tertiary';
   const buttonStyle: React.CSSProperties = {
     ...variantStyles[resolvedVariant],

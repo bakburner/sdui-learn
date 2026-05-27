@@ -87,6 +87,15 @@ export function App(): React.ReactElement {
 
   // Screen-level state for TabGroup and other stateful sections
   const [screenState, setScreenState] = useState<Record<string, unknown>>({});
+  // Mirror of `screenState` updated synchronously inside `handleStateChange`
+  // so an action dispatched in the same event tick as the state write sees
+  // the just-written value. Without this, `handleAction` would close over
+  // the previous render's `screenState` snapshot and resolve placeholders
+  // (e.g. `{{games_selected_date}}` in CalendarStrip's `onDateSelected`)
+  // against the stale map — `paramBindings` would substitute to the empty
+  // string, `handleRefresh` would drop the empty value, and the server
+  // would be re-fetched without the user's selection.
+  const screenStateRef = useRef<Record<string, unknown>>({});
 
   // Track sections that failed to refresh (stale indicator)
   const [staleSections, setStaleSections] = useState<Set<string>>(new Set());
@@ -109,18 +118,25 @@ export function App(): React.ReactElement {
     if (lastScreenIdRef.current !== screen.id) {
       lastScreenIdRef.current = screen.id;
       if (screen.state) {
-        setScreenState({ ...screen.state });
+        const next = { ...screen.state };
+        screenStateRef.current = next;
+        setScreenState(next);
       } else {
+        screenStateRef.current = {};
         setScreenState({});
       }
       return;
     }
     if (screen.state) {
+      screenStateRef.current = { ...screenStateRef.current, ...screen.state };
       setScreenState((prev) => ({ ...prev, ...screen.state }));
     }
   }, [screen]);
 
   const handleStateChange = useCallback((key: string, value: unknown) => {
+    // Update the ref synchronously so an action dispatched on the next line
+    // of the same event handler resolves placeholders against the new value.
+    screenStateRef.current = { ...screenStateRef.current, [key]: value };
     setScreenState((prev) => ({ ...prev, [key]: value }));
   }, []);
 
@@ -190,7 +206,10 @@ export function App(): React.ReactElement {
   const handleAction = useCallback((actionOrActions: Action | Action[]) => {
     const actions = Array.isArray(actionOrActions) ? actionOrActions : [actionOrActions];
     const context = {
-      state: screenState,
+      // Read from the ref, not the closed-over `screenState`, so a state
+      // mutation earlier in the same event handler is visible to placeholder
+      // resolution in this dispatch.
+      state: screenStateRef.current,
       onStateChange: handleStateChange,
       onRefresh: handleRefresh,
       replaceCurrentScreen,
@@ -199,7 +218,7 @@ export function App(): React.ReactElement {
       onNavigate: handleUriNavigate,
     };
     executeActionSequence(actions, context);
-  }, [screenState, handleStateChange, handleRefresh, replaceCurrentScreen, handleSectionUpdate, handleUriNavigate, handleSectionStale]);
+  }, [handleStateChange, handleRefresh, replaceCurrentScreen, handleSectionUpdate, handleUriNavigate, handleSectionStale]);
 
   const handleThemeToggle = useCallback(() => {
     setColorSchemePreference(colorScheme === 'dark' ? 'light' : 'dark');

@@ -12,6 +12,7 @@ interface SectionErrorBoundaryProps {
 interface SectionErrorBoundaryState {
   hasError: boolean;
   error: Error | null;
+  componentStack: string | null;
 }
 
 export class SectionErrorBoundary extends React.Component<
@@ -20,19 +21,26 @@ export class SectionErrorBoundary extends React.Component<
 > {
   constructor(props: SectionErrorBoundaryProps) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false, error: null, componentStack: null };
   }
 
   static getDerivedStateFromError(error: Error): SectionErrorBoundaryState {
-    return { hasError: true, error };
+    return { hasError: true, error, componentStack: null };
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo): void {
-    console.error(
-      `[SectionErrorBoundary] Section render failed: id="${this.props.sectionId}" type="${this.props.sectionType}"`,
-      error,
-      info.componentStack,
+    // Log loudly so this isn't lost in a noisy console. We log the message,
+    // the Error object (for the stack), and the component stack separately
+    // so devtools shows them in expandable groups.
+    const { sectionId, sectionType } = this.props;
+    console.group(
+      `%c[SectionErrorBoundary] ${sectionType} "${sectionId}" failed to render`,
+      'color:#fff;background:#b00020;padding:2px 6px;border-radius:3px;font-weight:bold;',
     );
+    console.error(error);
+    console.error('Component stack:', info.componentStack);
+    console.groupEnd();
+    this.setState({ componentStack: info.componentStack ?? null });
   }
 
   handleRetry = (): void => {
@@ -40,7 +48,7 @@ export class SectionErrorBoundary extends React.Component<
     if (retryAction) {
       this.props.onAction(retryAction);
     }
-    this.setState({ hasError: false, error: null });
+    this.setState({ hasError: false, error: null, componentStack: null });
   };
 
   render(): React.ReactNode {
@@ -58,9 +66,30 @@ export class SectionErrorBoundary extends React.Component<
     const hasRetry = !!errorConfig?.retryAction;
     const retryLabel = errorConfig?.retryLabel;
 
+    // In dev builds, surface the failure inline so it's not silently hidden
+    // behind a generic message. Production keeps the user-facing copy.
+    const isDev = typeof import.meta !== 'undefined'
+      ? Boolean((import.meta as { env?: { DEV?: boolean } }).env?.DEV)
+      : false;
+    const { sectionId, sectionType } = this.props;
+    const errMsg = this.state.error?.message;
+
     return (
       <div style={styles.container}>
         <p style={styles.message}>{message}</p>
+        {isDev && (
+          <details style={styles.devDetails}>
+            <summary style={styles.devSummary}>
+              {sectionType} · {sectionId}{errMsg ? ` — ${errMsg}` : ''}
+            </summary>
+            {this.state.error?.stack && (
+              <pre style={styles.devPre}>{this.state.error.stack}</pre>
+            )}
+            {this.state.componentStack && (
+              <pre style={styles.devPre}>{this.state.componentStack}</pre>
+            )}
+          </details>
+        )}
         {hasRetry && (
           <button style={styles.retryButton} onClick={this.handleRetry}>
             {retryLabel ?? 'Retry'}
@@ -97,5 +126,29 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 12,
     fontWeight: 600,
     cursor: 'pointer',
+  },
+  devDetails: {
+    width: '100%',
+    maxWidth: 720,
+    margin: '0 0 12px',
+    textAlign: 'left',
+    fontSize: 11,
+    color: 'var(--on-surface-variant, #444)',
+  },
+  devSummary: {
+    cursor: 'pointer',
+    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+    color: '#b00020',
+    fontWeight: 600,
+  },
+  devPre: {
+    whiteSpace: 'pre-wrap',
+    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+    fontSize: 11,
+    margin: '6px 0 0',
+    padding: '6px 8px',
+    background: 'rgba(0,0,0,0.04)',
+    borderRadius: 4,
+    overflowX: 'auto',
   },
 };

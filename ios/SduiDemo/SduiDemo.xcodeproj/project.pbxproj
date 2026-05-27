@@ -7,11 +7,13 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1D1B26D89FC2F96308B05D3E /* CrashLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 198F255D6E224D9AE77D9FB1 /* CrashLogger.swift */; };
 		2F0E3FD1D5B7DD88AF9A35B3 /* SduiCore in Frameworks */ = {isa = PBXBuildFile; productRef = 809CF60A9184778A02B248DD /* SduiCore */; };
 		AA87DFF3E8CA7C0EFF1FDD23 /* SduiDemoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D332D1FFA0317350E6C582C3 /* SduiDemoApp.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		198F255D6E224D9AE77D9FB1 /* CrashLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashLogger.swift; sourceTree = "<group>"; };
 		72EAD0F82F6927842EABE1F7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		8B9D9D39717948BB031C2F15 /* ios */ = {isa = PBXFileReference; lastKnownFileType = folder; name = ios; path = ..; sourceTree = SOURCE_ROOT; };
 		D332D1FFA0317350E6C582C3 /* SduiDemoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SduiDemoApp.swift; sourceTree = "<group>"; };
@@ -41,6 +43,7 @@
 		212FCE784CCA79F14E9669DE /* Sources */ = {
 			isa = PBXGroup;
 			children = (
+				198F255D6E224D9AE77D9FB1 /* CrashLogger.swift */,
 				D332D1FFA0317350E6C582C3 /* SduiDemoApp.swift */,
 			);
 			path = Sources;
@@ -132,6 +135,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1D1B26D89FC2F96308B05D3E /* CrashLogger.swift in Sources */,
 				AA87DFF3E8CA7C0EFF1FDD23 /* SduiDemoApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

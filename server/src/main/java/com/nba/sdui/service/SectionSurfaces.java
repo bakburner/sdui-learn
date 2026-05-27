@@ -175,6 +175,23 @@ public class SectionSurfaces {
     }
 
     /**
+     * Token-driven solid-color promo surface — same chrome family as
+     * {@link #defaultSurface()} (rounded card on {@code nba.bg.secondary}
+     * with the standard {@code lg} margin and subtle shadow), with the
+     * background color and inner padding selected by the caller from the
+     * design-system token vocabulary. Used by the Games-screen League
+     * Pass promo so it stacks with the same visual rhythm as the live
+     * and finished game cards below it.
+     */
+    public ObjectNode promoCardSurface(String backgroundToken, String paddingToken) {
+        ObjectNode surface = defaultSurface();
+        surface.put("background", backgroundToken);
+        surface.set("padding", utils.spacingTokens(
+                paddingToken, paddingToken, paddingToken, paddingToken));
+        return surface;
+    }
+
+    /**
      * Build a surface block for the VideoPlayer section — flush
      * edge-to-edge rectangle with a dark background behind the player
      * area. No margin (the player hugs its siblings) and no corner

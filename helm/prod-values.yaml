@@ -59,3 +59,8 @@ env:
       secretKeyRef:
         name: sdui
         key: ABLY_SUBSCRIBE_API_KEY
+  - name: CORE_API_OPIM_SUBSCRIPTION_KEY
+    valueFrom:
+      secretKeyRef:
+        name: sdui
+        key: CORE_API_OPIM_SUBSCRIPTION_KEY

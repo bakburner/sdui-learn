@@ -46,6 +46,15 @@ fun SectionRouter(
             )
         }
 
+        "CalendarMonthList" -> SectionContainer(section.surface, modifier) {
+            CalendarMonthListRenderer(
+                section = section,
+                screenState = screenState,
+                onAction = onAction,
+                onStateChange = onStateChange
+            )
+        }
+
         "TabGroup" -> SectionContainer(section.surface, modifier) {
             TabGroupRenderer(
                 section = section,
@@ -147,6 +156,7 @@ fun SectionRouter(
  */
 val SUPPORTED_SECTION_TYPES = setOf(
     "CalendarStrip",
+    "CalendarMonthList",
     "TabGroup",
     "BoxscoreTable",
     "Form",

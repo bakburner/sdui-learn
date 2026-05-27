@@ -17,6 +17,9 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
@@ -46,6 +49,11 @@ public class StatsApiClient {
     // Public CDN endpoints (no auth)
     private static final String CDN_BASE = "https://cdn.nba.com/static/json/liveData";
     private static final String SCOREBOARD_URL = CDN_BASE + "/scoreboard/todaysScoreboard_00.json";
+    private static final String LEAGUE_SCHEDULE_URL =
+            "https://cdn.nba.com/static/json/staticData/scheduleLeagueV2.json";
+    // Game date format used in the league schedule JSON
+    private static final DateTimeFormatter SCHEDULE_DATE_FMT =
+            DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss");
     private static final String CORE_API_GAMECARDFEED_PATH = "/cp/api/v1.9/feeds/gamecardfeed";
     private static final String CORE_API_PLATFORM_VALUE = "web";
     // Game IDs are 10-digit numeric strings (e.g., "0022400892")
@@ -131,6 +139,47 @@ public class StatsApiClient {
         return fetchStatsApiJson(url);
     }
     
+    /**
+     * Fetch the full season schedule from CDN and return a map of league-date to game count.
+     *
+     * <p>Uses the CDN {@code scheduleLeagueV2.json} static file — a single request for the
+     * entire season, avoiding per-date fan-out. Dates with zero games are omitted from the
+     * returned map. Returns an empty map if the endpoint is unavailable or parsing fails so
+     * callers can render an empty {@code dateMetadata} node rather than failing composition.
+     *
+     * <p>The returned map keys are ISO-8601 local dates (league timezone, i.e. ET) matching
+     * the format emitted by {@link SeasonCalendarService#currentLeagueDate()}.
+     */
+    public Map<LocalDate, Integer> getSeasonGameCounts() throws IOException {
+        JsonNode schedule = fetchCdnJson(LEAGUE_SCHEDULE_URL);
+        return parseGameCounts(schedule);
+    }
+
+    /**
+     * Parse a {@code scheduleLeagueV2.json} response into a map of date → game count.
+     * Package-private for unit testing without HTTP.
+     */
+    Map<LocalDate, Integer> parseGameCounts(JsonNode schedule) {
+        if (schedule == null) return Collections.emptyMap();
+        JsonNode gameDates = schedule.path("leagueSchedule").path("gameDates");
+        if (!gameDates.isArray()) return Collections.emptyMap();
+
+        Map<LocalDate, Integer> counts = new LinkedHashMap<>();
+        for (JsonNode dateNode : gameDates) {
+            String gameDateStr = dateNode.path("gameDate").asText(null);
+            if (gameDateStr == null || gameDateStr.isBlank()) continue;
+            JsonNode games = dateNode.path("games");
+            if (!games.isArray() || games.size() == 0) continue;
+            try {
+                LocalDate date = LocalDate.parse(gameDateStr, SCHEDULE_DATE_FMT);
+                counts.put(date, games.size());
+            } catch (Exception e) {
+                log.warn("Could not parse gameDate '{}' in season schedule", gameDateStr);
+            }
+        }
+        return counts;
+    }
+
     /**
      * Find a specific game from the scoreboard.
      * 

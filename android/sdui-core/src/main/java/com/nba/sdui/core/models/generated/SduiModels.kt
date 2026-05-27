@@ -146,8 +146,14 @@ data class SduiModels (
 }
 
 /**
+ * Action dispatched when the month label is tapped. Conventionally a navigate action to the
+ * full calendar screen. When absent, the month label is not tappable.
+ *
  * Singular action executed after the renderer writes the tapped date into stateKey via
  * onStateChange. Conventionally a refresh action with paramBindings.
+ *
+ * Action dispatched after writing the selected date into stateKey. Conventionally a
+ * navigate action back to the games screen.
  *
  * Action fired when the form is submitted
  *
@@ -1040,6 +1046,10 @@ data class AtomicElement (
  * date during offseason or breaks (e.g. the regular-season opener). Clients display
  * defaultDate as-is and never compare it to device time.
  *
+ * Vertically-scrollable month-grid calendar with per-date game metadata. All date fields
+ * are ET-anchored (America/New_York) ISO YYYY-MM-DD. defaultDate is the league's current
+ * anchor date; drives the 'today' visual highlight and the initial scroll position.
+ *
  * Server-driven form section with typed fields bound to screen state
  *
  * Ad placement primitive — carries placement semantics while delegating auction/targeting
@@ -1070,6 +1080,8 @@ data class Data (
 
     /**
      * Screen-state key that holds the selected ISO date
+     *
+     * Screen-state key for the selected ISO date.
      */
     val stateKey: String? = null,
 
@@ -1150,32 +1162,55 @@ data class Data (
      * ISO YYYY-MM-DD (ET) for the league's current anchor date. Drives the default-cell visual
      * highlight. Server-authoritative — not always today; may be a future date during offseason
      * or breaks.
+     *
+     * ISO YYYY-MM-DD (ET) for the league's current anchor date.
      */
     val defaultDate: String? = null,
 
     /**
+     * Action dispatched when the month label is tapped. Conventionally a navigate action to the
+     * full calendar screen. When absent, the month label is not tappable.
+     */
+    val expandedAction: Action? = null,
+
+    /**
      * ISO YYYY-MM-DD (ET) for the latest selectable date (e.g. season/finals end). Absent means
      * unbounded.
+     *
+     * ISO YYYY-MM-DD (ET) for the latest selectable date.
      */
     val maxDate: String? = null,
 
     /**
      * ISO YYYY-MM-DD (ET) for the earliest selectable date (e.g. season start). Absent means
      * unbounded; clients pick a sensible default window.
+     *
+     * ISO YYYY-MM-DD (ET) for the earliest selectable date.
      */
     val minDate: String? = null,
 
     /**
      * Singular action executed after the renderer writes the tapped date into stateKey via
      * onStateChange. Conventionally a refresh action with paramBindings.
+     *
+     * Action dispatched after writing the selected date into stateKey. Conventionally a
+     * navigate action back to the games screen.
      */
     val onDateSelected: Action? = null,
 
     /**
      * ISO YYYY-MM-DD (ET) for initial selection. Falls back here when screenState[stateKey] is
      * absent; otherwise the state value wins.
+     *
+     * ISO YYYY-MM-DD (ET) for initial selection.
      */
     val selectedDate: String? = null,
+
+    /**
+     * Map of ISO date string to metadata for that date. Only dates with games are present;
+     * absent dates have zero games.
+     */
+    val dateMetadata: Map<String, DateMetadatum>? = null,
 
     val fields: List<FormField>? = null,
 
@@ -2107,6 +2142,18 @@ data class BoxscoreColumnDefinition (
      * Optional hint for column width (e.g. 'auto', '64px', '1fr')
      */
     val width: String? = null
+)
+
+data class DateMetadatum (
+    /**
+     * Number of games on this date.
+     */
+    val gameCount: Long? = null,
+
+    /**
+     * True if a user-favorited team plays on this date.
+     */
+    val hasTeamGame: Boolean? = null
 )
 
 data class DisplayConfig (

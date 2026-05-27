@@ -255,12 +255,12 @@
     "nba.typography.score": {
       "categoryRef": "nba.typography.score",
       "size": {
-        "phone": 32,
-        "tablet": 48,
-        "tv": 80,
+        "phone": 14,
+        "tablet": 20,
+        "tv": 32,
         "web": {
-          "min": 28,
-          "max": 56,
+          "min": 14,
+          "max": 24,
           "minVw": 320,
           "maxVw": 1440
         }

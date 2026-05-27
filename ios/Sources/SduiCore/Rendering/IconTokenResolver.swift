@@ -70,5 +70,7 @@ private let defaultTokens: [String: String] = [
     "sdui:basketball":  "basketball.fill",
     "sdui:video":       "play.rectangle",
     "sdui:leaderboard": "list.number",
-    "sdui:grid":        "square.grid.2x2"
+    "sdui:grid":        "square.grid.2x2",
+    "sdui:lock":        "lock.fill",
+    "sdui:more":        "ellipsis"
 ]

@@ -105,11 +105,12 @@ private fun SectionItem(
     section: Section,
     screenState: Map<String, Any>,
     onAction: (SduiAction) -> Unit,
-    onStateChange: (String, Any) -> Unit
+    onStateChange: (String, Any) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val density = LocalDensity.current
     Column(
-        modifier = Modifier.onSizeChanged { sz ->
+        modifier = modifier.onSizeChanged { sz ->
             val h = sz.height
             if (h > 0) {
                 SectionSkeletonHeightCache.record(section.id, with(density) { h.toDp() })
@@ -243,11 +244,22 @@ private fun SuccessContent(
                     items = screen.sections,
                     key = { it.id }
                 ) { section ->
+                    // Sections that own their own vertical scroll (e.g. CalendarMonthList
+                    // hosts an inner LazyColumn) cannot be measured with the unbounded
+                    // height the outer LazyColumn hands each item. They must claim the
+                    // viewport height via fillParentMaxSize(), which is only available
+                    // here in LazyItemScope.
+                    val itemModifier = if (isSelfScrollingSection(section.type)) {
+                        Modifier.fillParentMaxSize()
+                    } else {
+                        Modifier
+                    }
                     SectionItem(
                         section = section,
                         screenState = screenState,
                         onAction = onAction,
-                        onStateChange = onStateChange
+                        onStateChange = onStateChange,
+                        modifier = itemModifier
                     )
                 }
             }
@@ -260,6 +272,18 @@ private fun layoutSpacingDp(token: String): Dp {
     val formFactor = RequestEnvelopeBuilder.defaultFormFactor()
     return LayoutTokenResolver.dp(LayoutScalar.StringValue(token), formFactor)
 }
+
+/**
+ * Sections that contain an inner vertically-scrollable container (LazyColumn,
+ * Modifier.verticalScroll, etc.) cannot be hosted inside the outer screen
+ * LazyColumn with unbounded height — Compose throws
+ * `Vertically scrollable component was measured with an infinity maximum
+ * height constraints`. Such sections must claim the viewport height via
+ * `fillParentMaxSize()`. Add new types here when they introduce their own
+ * vertical scroll.
+ */
+private fun isSelfScrollingSection(type: String?): Boolean =
+    type == "CalendarMonthList"
 
 private fun Spacing?.toScreenPaddingValues(): PaddingValues {
     val formFactor = RequestEnvelopeBuilder.defaultFormFactor()

@@ -2,6 +2,7 @@ import type { Action, Section, FailurePolicy } from '@sdui/models';
 import { pushToast } from './ToastStore';
 import { actionLog, actionWarn, actionError } from './actionLogger';
 import { fetchSduiScreen } from './fetchSduiScreen';
+import { resolveActionPlaceholders } from './placeholderSubstitutor';
 
 export interface ActionContext {
   /** Callback to update screen state */
@@ -82,18 +83,24 @@ export async function executeActionSequence(
  * Execute a single SDUI action. Returns true on success, false on failure.
  */
 async function dispatchAction(action: Action, context: ActionContext): Promise<boolean> {
-  switch (action.type) {
+  // Resolve `{{stateKey}}` placeholders against the live state map before
+  // the per-type handlers run. This lets the server emit parameterised
+  // navigate / refresh actions (e.g.
+  // `nba://games?date={{calendar_selected_date}}`) without each renderer
+  // having to splice state into server-emitted strings.
+  const resolved = resolveActionPlaceholders(action, context.state);
+  switch (resolved.type) {
     case 'navigate':
-      return handleNavigate(action, context);
+      return handleNavigate(resolved, context);
 
     case 'mutate':
-      return handleMutate(action, context);
+      return handleMutate(resolved, context);
 
     case 'refresh':
-      return handleRefresh(action, context);
+      return handleRefresh(resolved, context);
 
     case 'fireAndForget':
-      handleFireAndForget(action);
+      handleFireAndForget(resolved);
       return true;
 
     case 'dismiss':
@@ -101,11 +108,11 @@ async function dispatchAction(action: Action, context: ActionContext): Promise<b
       return true;
 
     case 'toast':
-      handleToast(action);
+      handleToast(resolved);
       return true;
 
     default:
-      actionWarn('Unknown action type:', action.type);
+      actionWarn('Unknown action type:', resolved.type);
       return false;
   }
 }
@@ -213,13 +220,13 @@ function asDouble(value: unknown): number | undefined {
 }
 
 async function handleRefresh(action: Action, context: ActionContext): Promise<boolean> {
-  // Parameterized refresh: resolve mustache-bound state values into a
-  // user-params map and route through the appropriate channel.
+  // Parameterized refresh: paramBindings values were already resolved
+  // against the state map by resolveActionPlaceholders() in dispatchAction.
+  // Drop empty values so the transport doesn't emit dangling `?key=`
+  // query params.
   if (action.paramBindings && action.endpoint && Object.keys(action.paramBindings).length > 0) {
     const userParams: Record<string, string> = {};
-    for (const [paramName, rawStateKey] of Object.entries(action.paramBindings)) {
-      const stateKey = rawStateKey.replace(/^\{\{|\}\}$/g, '');
-      const value = context.state[stateKey];
+    for (const [paramName, value] of Object.entries(action.paramBindings)) {
       if (value !== undefined && value !== null && value !== '') {
         userParams[paramName] = String(value);
       }

@@ -106,13 +106,9 @@ final class SduiScreenViewModelRefreshTests: XCTestCase {
         CapturingURLProtocol.respond(with: Self.screenWithPollJSON)
         await vm.load()
 
-        // Wait for at least one poll tick to confirm polling is active.
-        try await Task.sleep(for: .milliseconds(350))
-
-        // Now trigger replaceCurrentScreen. This calls applyScreen on success,
+        // Trigger replaceCurrentScreen. This calls applyScreen on success,
         // which cancels the existing screenLevelPollTask and restarts it —
         // effectively resetting the timer.
-        CapturingURLProtocol.reset()
         CapturingURLProtocol.respond(with: Self.screenWithPollJSON)
         await vm.replaceCurrentScreen(endpoint: "/v1/sdui/screen/game-detail", userParams: [:])
 
@@ -121,15 +117,15 @@ final class SduiScreenViewModelRefreshTests: XCTestCase {
         XCTAssertEqual(vm.screen?.id, "game-detail")
         XCTAssertEqual(vm.loadState, .loaded)
 
-        // Verify no premature poll fires within half the interval after reset.
+        // Verify the poll continues after the replace by waiting for a tick.
+        // This proves applyScreen restarted the poll (behavioral invariant).
         CapturingURLProtocol.reset()
         CapturingURLProtocol.respond(with: Self.screenWithPollJSON)
-        try await Task.sleep(for: .milliseconds(100))
+        try await Task.sleep(for: .milliseconds(500))
 
-        // A poll tick should eventually arrive after the full interval.
-        try await waitUntil(timeout: .seconds(2)) {
-            (try? CapturingURLProtocol.requireCaptured()) != nil
-        }
+        // After 500ms (2.5x the 200ms interval), the poll should have fired.
+        let captured = try? CapturingURLProtocol.requireCaptured()
+        XCTAssertNotNil(captured, "poll should continue ticking after replaceCurrentScreen")
 
         await deps.polling.stopAll()
     }

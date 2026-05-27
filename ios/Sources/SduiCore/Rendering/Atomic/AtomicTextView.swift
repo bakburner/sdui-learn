@@ -86,29 +86,36 @@ struct AtomicTextView: View {
         return frameAlignment(from: element.alignment)
     }
 
-    /// Map schema TextVariant to a SwiftUI Font. Sizes/weights mirror
-    /// `web/src/components/atomic/AtomicText.tsx` and Android's
-    /// `AtomicText.kt::mapTypographyVariant` so a section composed on the
-    /// server renders at visually equivalent sizes across platforms.
+    /// Resolve a wire `TextVariant` to a SwiftUI `Font` via the bundled typography
+    /// registry (`LayoutTokenResolver.typographyForVariant`). The variant enum on the
+    /// wire is a shorthand for the full token name `nba.typography.<variant>`; sizing
+    /// and base weight come from `schema/typography-tokens.json`, ensuring iOS,
+    /// Android, and web all render the same variant at the same size.
+    ///
+    /// Element-level `weight` (applied via `.fontWeight(...)`) still overrides the
+    /// category's base weight when the composer needs an emphasis variant.
     private func font(for variant: TextVariant?) -> Font {
-        switch variant {
-        case .displayLarge:  return .system(size: 57, weight: .heavy)
-        case .displayMedium: return .system(size: 45, weight: .heavy)
-        case .displaySmall:  return .system(size: 36, weight: .bold)
-        case .headlineLarge:  return .system(size: 32, weight: .bold)
-        case .headlineMedium: return .system(size: 28, weight: .bold)
-        case .headlineSmall:  return .system(size: 24, weight: .bold)
-        case .titleLarge:  return .system(size: 22, weight: .medium)
-        case .titleMedium: return .system(size: 16, weight: .medium)
-        case .titleSmall:  return .system(size: 14, weight: .medium)
-        case .bodyLarge:  return .system(size: 16, weight: .regular)
-        case .bodyMedium: return .system(size: 14, weight: .regular)
-        case .bodySmall:  return .system(size: 12, weight: .regular)
-        case .labelLarge:  return .system(size: 14, weight: .medium)
-        case .labelMedium: return .system(size: 12, weight: .medium)
-        case .labelSmall:  return .system(size: 11, weight: .medium)
-        case .score:    return .system(size: 48, weight: .bold, design: .rounded)
-        case .none:     return .body
+        guard let variant else { return .body }
+        guard let spec = LayoutTokenResolver.typographyForVariant(variant.rawValue) else {
+            logger.debug("typography_token_missing: variant=\(variant.rawValue, privacy: .public)")
+            return .body
+        }
+        return .system(size: CGFloat(spec.size), weight: fontWeight(forCategoryWeight: spec.weight))
+    }
+
+    /// Map an integer registry weight (100–900, plus custom values from variable-font
+    /// axes) to the nearest SwiftUI `Font.Weight`.
+    private func fontWeight(forCategoryWeight w: Int) -> Font.Weight {
+        switch w {
+        case ..<200: return .ultraLight
+        case ..<300: return .thin
+        case ..<400: return .light
+        case ..<500: return .regular
+        case ..<600: return .medium
+        case ..<700: return .semibold
+        case ..<800: return .bold
+        case ..<900: return .heavy
+        default:     return .black
         }
     }
 

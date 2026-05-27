@@ -54,6 +54,11 @@ struct SectionRouter: View {
                 CalendarStripView(section: section, screenState: screenState, onAction: onAction)
             }
 
+        case "CalendarMonthList":
+            SectionContainer(surface: section.surface) {
+                CalendarMonthListView(section: section, screenState: screenState, onAction: onAction)
+            }
+
         case "Form":
             SectionContainer(surface: section.surface) {
                 FormSectionView(section: section, screenState: screenState, onAction: onAction)

@@ -113,7 +113,7 @@ struct CalendarStripView: View {
             let spacing = LayoutTokenResolver.cgFloat(.string(StripTokens.spacingSm))
 
             VStack(alignment: .leading, spacing: spacing) {
-                monthLabel
+                monthLabel(expandedAction: data.expandedAction)
                 dateScrollView(
                     cells: cells,
                     selectedISO: selectedISO,
@@ -134,9 +134,9 @@ struct CalendarStripView: View {
     // MARK: - Month / year label
 
     @ViewBuilder
-    private var monthLabel: some View {
+    private func monthLabel(expandedAction: Action?) -> some View {
         let pad = LayoutTokenResolver.cgFloat(.string(StripTokens.spacingMd))
-        HStack(spacing: 4) {
+        let label = HStack(spacing: 4) {
             Text(displayedMonthYear)
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundColor(
@@ -151,6 +151,18 @@ struct CalendarStripView: View {
         .padding(.horizontal, pad)
         .accessibilityAddTraits(.isHeader)
         .accessibilityLabel(displayedMonthYear)
+
+        if let expandedAction {
+            Button {
+                onAction(expandedAction)
+            } label: {
+                label
+            }
+            .buttonStyle(.plain)
+            .accessibilityAddTraits(.isButton)
+        } else {
+            label
+        }
     }
 
     // MARK: - Date scroll view

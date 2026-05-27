@@ -146,7 +146,7 @@ export function CalendarStrip({
   const formFactor = currentFormFactor();
   const scrollRef = useRef<HTMLDivElement>(null);
   const weekRefs = useRef<Map<string, HTMLDivElement>>(new Map());
-  const monthLabelRef = useRef<HTMLDivElement>(null);
+  const monthLabelRef = useRef<HTMLElement>(null);
   const locale = typeof navigator !== 'undefined' ? navigator.language : 'en-US';
 
   const firstDay = useMemo(() => firstDayOfWeek(), []);
@@ -250,6 +250,12 @@ export function CalendarStrip({
   }
 
   const initialMonthLabel = monthYearLabel(plainDate(selectedIso), locale);
+  const monthLabelClickable = Boolean(model.expandedAction);
+  const handleMonthLabelClick = (): void => {
+    if (model.expandedAction) {
+      onAction(model.expandedAction);
+    }
+  };
 
   const cellSize = 40;
   const cellGap = tokenStyles.spXs;
@@ -259,17 +265,36 @@ export function CalendarStrip({
       style={styles.root}
       {...accessibilityProps(section.accessibility)}
     >
-      {/* Month/year label — button-styled for future PR 3 affordance, not tappable in PR 1 */}
-      <div
-        ref={monthLabelRef}
-        style={{
-          ...styles.monthLabel,
-          padding: `${tokenStyles.spSm}px ${tokenStyles.spMd}px`,
-          color: tokenStyles.colorPrimary,
-        }}
-      >
-        {initialMonthLabel}
-      </div>
+      {monthLabelClickable ? (
+        <button
+          ref={(el) => {
+            monthLabelRef.current = el;
+          }}
+          type="button"
+          onClick={handleMonthLabelClick}
+          style={{
+            ...styles.monthLabel,
+            ...styles.monthLabelButton,
+            padding: `${tokenStyles.spSm}px ${tokenStyles.spMd}px`,
+            color: tokenStyles.colorPrimary,
+          }}
+        >
+          {initialMonthLabel}
+        </button>
+      ) : (
+        <div
+          ref={(el) => {
+            monthLabelRef.current = el;
+          }}
+          style={{
+            ...styles.monthLabel,
+            padding: `${tokenStyles.spSm}px ${tokenStyles.spMd}px`,
+            color: tokenStyles.colorPrimary,
+          }}
+        >
+          {initialMonthLabel}
+        </div>
+      )}
 
       {/* Weekday headers */}
       <div
@@ -372,6 +397,13 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 'inherit',
     cursor: 'default',
     userSelect: 'none',
+  },
+  monthLabelButton: {
+    background: 'none',
+    border: 0,
+    textAlign: 'left',
+    cursor: 'pointer',
+    fontFamily: 'inherit',
   },
   weekdayRow: {
     display: 'flex',

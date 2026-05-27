@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import type { Section, Action, Data, RefreshPolicy } from '@sdui/models';
 import { TabGroup } from './sections/TabGroup';
 import { BoxscoreTable } from './sections/BoxscoreTable';
+import { CalendarMonthList } from './sections/CalendarMonthList';
 import { CalendarStrip } from './sections/CalendarStrip';
 import { Form } from './sections/Form';
 import { AdSlot } from './sections/AdSlot';
@@ -73,6 +74,9 @@ function SectionRenderer({
 
     case 'CalendarStrip':
       return wrap(<CalendarStrip {...commonProps} />);
+
+    case 'CalendarMonthList':
+      return wrap(<CalendarMonthList {...commonProps} />);
 
     case 'Form':
       return wrap(<Form {...commonProps} />);

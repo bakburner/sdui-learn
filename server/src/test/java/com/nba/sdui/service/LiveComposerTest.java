@@ -252,10 +252,75 @@ class LiveComposerTest {
         ObjectNode screen = fixture.composer.composeLive("trace-z", "en", "2026-03-15");
         ArrayNode sections = (ArrayNode) screen.path("sections");
 
+        // 1 live + 1 upcoming + 1 final = 3 games → ad placed after the section
+        // containing the 2nd game (upcoming_games), so the ad sits between
+        // upcoming_games and final_games.
         assertEquals("CalendarStrip", sections.get(0).path("type").asText());
         assertEquals("live_games", sections.get(1).path("analyticsId").asText());
         assertEquals("upcoming_games", sections.get(2).path("analyticsId").asText());
-        assertEquals("final_games", sections.get(3).path("analyticsId").asText());
+        assertEquals("AdSlot", sections.get(3).path("type").asText());
+        assertEquals("final_games", sections.get(4).path("analyticsId").asText());
+    }
+
+    @Test
+    void composeLive_withZeroGames_emitsNoAdSlot() throws Exception {
+        ComposerFixture fixture = buildFixture(
+                Clock.fixed(Instant.parse("2026-05-26T14:00:00Z"), ZoneOffset.UTC)
+        );
+        when(fixture.statsApiClient.getScoreboardForDate(any(LocalDate.class))).thenReturn(null);
+
+        ObjectNode screen = fixture.composer.composeLive("trace-noad-0", "en", "2026-03-15");
+        ArrayNode sections = (ArrayNode) screen.path("sections");
+
+        for (int i = 0; i < sections.size(); i++) {
+            assertFalse(
+                    "AdSlot".equals(sections.get(i).path("type").asText()),
+                    "no AdSlot expected when there are zero games"
+            );
+        }
+    }
+
+    @Test
+    void composeLive_withSingleGame_emitsAdSlotAfterFirstSection() throws Exception {
+        ComposerFixture fixture = buildFixture(
+                Clock.fixed(Instant.parse("2026-05-26T14:00:00Z"), ZoneOffset.UTC)
+        );
+        when(fixture.statsApiClient.getScoreboardForDate(any(LocalDate.class)))
+                .thenReturn(scoreboardWithGames(1));
+
+        ObjectNode screen = fixture.composer.composeLive("trace-ad-1", "en", "2026-03-15");
+        ArrayNode sections = (ArrayNode) screen.path("sections");
+
+        // 1 game (upcoming) → ad inserted after the only game section.
+        assertEquals("CalendarStrip", sections.get(0).path("type").asText());
+        assertEquals("upcoming_games", sections.get(1).path("analyticsId").asText());
+        assertEquals("AdSlot", sections.get(2).path("type").asText());
+        assertEquals(3, sections.size());
+    }
+
+    @Test
+    void composeLive_adSlot_emitsServerOwnedReservationSizes() throws Exception {
+        ComposerFixture fixture = buildFixture(
+                Clock.fixed(Instant.parse("2026-05-26T14:00:00Z"), ZoneOffset.UTC)
+        );
+        when(fixture.statsApiClient.getScoreboardForDate(any(LocalDate.class)))
+                .thenReturn(scoreboardWithGames(2, 2));
+
+        ObjectNode screen = fixture.composer.composeLive("trace-ad-sizes", "en", "2026-03-15");
+        ArrayNode sections = (ArrayNode) screen.path("sections");
+
+        // 2 live games → ad after the live section (which holds both games).
+        ObjectNode adSlot = (ObjectNode) sections.get(2);
+        assertEquals("AdSlot", adSlot.path("type").asText());
+        ObjectNode adData = (ObjectNode) adSlot.path("data");
+        assertEquals("gam", adData.path("provider").asText());
+        ArrayNode sizes = (ArrayNode) adData.path("sizes");
+        assertEquals(2, sizes.size());
+        assertEquals(320, sizes.get(0).get(0).asInt());
+        assertEquals(50, sizes.get(0).get(1).asInt());
+        assertEquals(728, sizes.get(1).get(0).asInt());
+        assertEquals(90, sizes.get(1).get(1).asInt());
+        assertEquals("games", adData.path("targeting").path("section").asText());
     }
 
     @Test

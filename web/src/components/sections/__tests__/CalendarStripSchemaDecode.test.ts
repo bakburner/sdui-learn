@@ -30,6 +30,7 @@ describe('CalendarStrip schema decode contract', () => {
     expect(model?.onDateSelected.type).toBe('refresh');
     expect(model?.onDateSelected.endpoint).toBe('/v1/sdui/screen/games');
     expect(model?.onDateSelected.paramBindings?.date).toBe('{{games_selected_date}}');
+    expect(model?.expandedAction).toBeUndefined();
   });
 
   it('fails decode when defaultDate is omitted', () => {
@@ -94,5 +95,32 @@ describe('CalendarStrip schema decode contract', () => {
     } as unknown as Section;
 
     expect(mapCalendarStrip(section)).toBeNull();
+  });
+
+  it('decodes when expandedAction is present', () => {
+    const section = {
+      id: 'server:games-calendar~type=CalendarStrip',
+      type: 'CalendarStrip',
+      data: {
+        stateKey: 'games_selected_date',
+        selectedDate: '2026-05-25',
+        defaultDate: '2026-05-25',
+        expandedAction: {
+          trigger: 'onActivate',
+          type: 'navigate',
+          targetUri: 'nba://calendar',
+        },
+        onDateSelected: {
+          trigger: 'onActivate',
+          type: 'refresh',
+          endpoint: '/v1/sdui/screen/games',
+        },
+      },
+    } as Section;
+
+    const model = mapCalendarStrip(section);
+    expect(model).not.toBeNull();
+    expect(model?.expandedAction?.type).toBe('navigate');
+    expect(model?.expandedAction?.targetUri).toBe('nba://calendar');
   });
 });

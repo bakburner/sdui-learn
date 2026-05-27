@@ -48,8 +48,14 @@ export interface SduiModels {
 }
 
 /**
+ * Action dispatched when the month label is tapped. Conventionally a navigate action to the
+ * full calendar screen. When absent, the month label is not tappable.
+ *
  * Singular action executed after the renderer writes the tapped date into stateKey via
  * onStateChange. Conventionally a refresh action with paramBindings.
+ *
+ * Action dispatched after writing the selected date into stateKey. Conventionally a
+ * navigate action back to the games screen.
  *
  * Action fired when the form is submitted
  *
@@ -687,6 +693,10 @@ export interface AtomicElement {
  * date during offseason or breaks (e.g. the regular-season opener). Clients display
  * defaultDate as-is and never compare it to device time.
  *
+ * Vertically-scrollable month-grid calendar with per-date game metadata. All date fields
+ * are ET-anchored (America/New_York) ISO YYYY-MM-DD. defaultDate is the league's current
+ * anchor date; drives the 'today' visual highlight and the initial scroll position.
+ *
  * Server-driven form section with typed fields bound to screen state
  *
  * Ad placement primitive — carries placement semantics while delegating auction/targeting
@@ -716,6 +726,8 @@ export interface Data {
     defaultTab?: string;
     /**
      * Screen-state key that holds the selected ISO date
+     *
+     * Screen-state key for the selected ISO date.
      */
     stateKey?:    string;
     tabContents?: { [key: string]: Section[] };
@@ -782,28 +794,49 @@ export interface Data {
      * ISO YYYY-MM-DD (ET) for the league's current anchor date. Drives the default-cell visual
      * highlight. Server-authoritative — not always today; may be a future date during offseason
      * or breaks.
+     *
+     * ISO YYYY-MM-DD (ET) for the league's current anchor date.
      */
     defaultDate?: string;
     /**
+     * Action dispatched when the month label is tapped. Conventionally a navigate action to the
+     * full calendar screen. When absent, the month label is not tappable.
+     */
+    expandedAction?: Action;
+    /**
      * ISO YYYY-MM-DD (ET) for the latest selectable date (e.g. season/finals end). Absent means
      * unbounded.
+     *
+     * ISO YYYY-MM-DD (ET) for the latest selectable date.
      */
     maxDate?: string;
     /**
      * ISO YYYY-MM-DD (ET) for the earliest selectable date (e.g. season start). Absent means
      * unbounded; clients pick a sensible default window.
+     *
+     * ISO YYYY-MM-DD (ET) for the earliest selectable date.
      */
     minDate?: string;
     /**
      * Singular action executed after the renderer writes the tapped date into stateKey via
      * onStateChange. Conventionally a refresh action with paramBindings.
+     *
+     * Action dispatched after writing the selected date into stateKey. Conventionally a
+     * navigate action back to the games screen.
      */
     onDateSelected?: Action;
     /**
      * ISO YYYY-MM-DD (ET) for initial selection. Falls back here when screenState[stateKey] is
      * absent; otherwise the state value wins.
+     *
+     * ISO YYYY-MM-DD (ET) for initial selection.
      */
     selectedDate?: string;
+    /**
+     * Map of ISO date string to metadata for that date. Only dates with games are present;
+     * absent dates have zero games.
+     */
+    dateMetadata?: { [key: string]: DateMetadatum };
     fields?:       FormField[];
     /**
      * Layout hint for field arrangement
@@ -1366,6 +1399,18 @@ export interface BoxscoreColumnDefinition {
     [property: string]: any;
 }
 
+export interface DateMetadatum {
+    /**
+     * Number of games on this date.
+     */
+    gameCount?: number;
+    /**
+     * True if a user-favorited team plays on this date.
+     */
+    hasTeamGame?: boolean;
+    [property: string]: any;
+}
+
 export interface DisplayConfig {
     aspectRatio?: string;
     height?:      number;
@@ -1726,6 +1771,7 @@ export enum OverlayType {
     AdSlot = "AdSlot",
     AtomicComposite = "AtomicComposite",
     BoxscoreTable = "BoxscoreTable",
+    CalendarMonthList = "CalendarMonthList",
     CalendarStrip = "CalendarStrip",
     Form = "Form",
     SeasonLeadersTable = "SeasonLeadersTable",

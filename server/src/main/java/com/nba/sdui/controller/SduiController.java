@@ -287,6 +287,46 @@ public class SduiController {
         return getGames(allParams, ctx, response);
     }
 
+    // ── Calendar ────────────────────────────────────────────────────────
+
+    @GetMapping(value = "/v1/sdui/screen/calendar", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<JsonNode> getCalendar(
+            @RequestParam Map<String, String> allParams,
+            SduiRequestContext ctx,
+            HttpServletResponse response) {
+
+        ensureTraceId(ctx);
+        MDC.put("traceId", ctx.getTraceId());
+
+        Map<String, String> userParams = stripEnvelopeKeys(allParams);
+        log.info("SDUI calendar request: locale={}, schemaVersion={}, userParams={}",
+                ctx.getLocale(), ctx.getSchemaVersion(), userParams);
+
+        ResponseEntity<JsonNode> mismatch = checkVersionMismatch(ctx, response);
+        if (mismatch != null) return mismatch;
+
+        try {
+            JsonNode screenResponse = compositionService.composeCalendar(ctx, userParams.get("date"));
+            setResponseHeaders(response, ctx);
+            return ResponseEntity.ok()
+                    .cacheControl(CacheControl.noCache())
+                    .body(applyVersionFilter(screenResponse, ctx));
+        } catch (Exception e) {
+            log.error("Error composing calendar screen", e);
+            return ResponseEntity.internalServerError().build();
+        } finally {
+            MDC.clear();
+        }
+    }
+
+    @PostMapping(value = "/v1/sdui/screen/calendar", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<JsonNode> postCalendar(
+            @RequestParam Map<String, String> allParams,
+            SduiRequestContext ctx,
+            HttpServletResponse response) {
+        return getCalendar(allParams, ctx, response);
+    }
+
     // ── Schedule ───────────────────────────────────────────────────────
 
     @GetMapping(value = "/v1/sdui/screen/schedule", produces = MediaType.APPLICATION_JSON_VALUE)

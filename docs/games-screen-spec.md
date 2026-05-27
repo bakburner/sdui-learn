@@ -72,6 +72,8 @@ Field rules:
   secondary "today" affordance on that cell when selection has moved
   elsewhere.
 - `onDateSelected` is a **single** Action object, not an array.
+- When the month label is tapped, CalendarStrip dispatches `expandedAction`
+  (a `navigate` action to `nba://calendar`).
 
 ## 4. Default date derivation (server)
 
@@ -255,7 +257,93 @@ The strip's `minDate`/`maxDate` should already keep the client from picking
 invalid dates, but the server defends against malformed `date` params from
 any source.
 
-## 14. Cross-cutting rules these decisions tighten
+## 14. CalendarStrip date metadata
+
+The CalendarStrip emits a `data.dateMetadata` map alongside the date fields.
+Keys are ISO `YYYY-MM-DD` strings; values are objects describing per-date
+context for the renderer. Only in-season dates with at least one game
+appear; dates outside the season window (`minDate..maxDate`) are filtered
+server-side regardless of what upstream returns.
+
+```json
+"dateMetadata": {
+  "2025-10-22": { "gameCount": 11, "hasTeamGame": false },
+  "2025-10-23": { "gameCount": 7,  "hasTeamGame": false }
+}
+```
+
+Field rules:
+
+- `gameCount` — integer count of league games on that date. Sourced from
+  the CDN `scheduleLeagueV2.json` (one request per composition, no per-date
+  fan-out).
+- `hasTeamGame` — boolean. Reserved for a future favorite-team highlight.
+  Currently always `false`; clients should read but not depend on it being
+  populated.
+- Missing date keys mean "no information"; clients render the cell normally
+  without a dot/marker.
+- Empty `dateMetadata` (CDN unreachable) is not a composition failure; the
+  CalendarStrip still renders with no per-date markers.
+
+The server emits the map; clients realize the visual treatment per platform
+(per AGENTS.md §7.1 — neutral semantic, native realization).
+
+## 15. Game-card visual treatment
+
+GameScheduleList rows use a flush, secondary-background treatment owned by
+`SectionSurfaces.gameCardFlushSurface()`:
+
+- `cornerRadius: 0`
+- `background: "token:nba.bg.secondary"`
+- No shadow, no outer padding (the row owns its inner padding).
+
+Row composition (top to bottom, when present):
+
+1. **Status badge** — short status text (`statusText`) rendered as a
+   centered badge.
+2. **Series row** — `seriesText` (e.g. "ECF · Game 3"), centered, only
+   emitted when upstream supplies a non-blank `seriesText`.
+3. **Matchup row** — away team column · score · home team column.
+4. **Broadcast row** — `broadcastText` (e.g. "ESPN"), centered, only emitted
+   when upstream supplies broadcaster information. The composer resolves
+   broadcaster text from `broadcasters.nationalTvBroadcasters[0]` or a flat
+   `broadcasterText` field.
+
+Series and broadcast strings come from upstream as-is (server-owned
+content); clients do not invent fallback copy. Missing fields collapse the
+row entirely rather than rendering an empty slot.
+
+## 16. Ad-slot placement
+
+Exactly one `AdSlot` section is inserted into the Games screen per
+composition, governed by a server-owned placement rule:
+
+| Total games for selected date | AdSlot |
+|---|---|
+| 0 | not emitted |
+| 1 | inserted after the (single) game section |
+| 2+ | inserted after the section containing the **2nd** game in roster order (live → upcoming → final) |
+
+The ad is inserted at a section boundary, never inside a status group. If
+the 2nd game falls within a section that holds multiple games, the ad
+appears below that whole section.
+
+AdSlot payload:
+
+- `provider: "gam"`
+- `adUnitPath: "/nba/games_screen"`
+- `sizes: [[320, 50], [728, 90]]`
+- `targeting: { section: "games", position: "games_screen" }`
+- `surface: SectionSurfaces.adSlotSurface()`
+- `collapseOnEmpty: true` — when GAM returns no fill, the section
+  visually collapses; the renderer does not invent placeholder copy.
+- `placeholder` is server-emitted (label "Advertisement", tertiary bg
+  token). No client-bundled ad creative.
+
+Dimensions are payload-owned. Per AGENTS.md §6.4, clients never invent ad
+reservation sizes.
+
+## 17. Cross-cutting rules these decisions tighten
 
 These rules elaborate or instantiate clauses in `AGENTS.md` rather than
 add new doctrine:

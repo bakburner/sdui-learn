@@ -84,7 +84,7 @@ shown in parentheses.
 | **Beacon** | An emitted `fireAndForget` event. Cross-platform synonym for "an analytics ping". Has no on-screen effect, so during local testing it is verifiable only via the Action logger. |
 | **Failure policy** | Sequence-control verb on a failed action: `halt` / `continue` / `silent`. When the server omits `onFailure`, per-type defaults apply (navigate → halt; mutate/refresh → continue; fireAndForget/dismiss/toast → silent). See ADR-005. |
 | **Failure feedback** | Server-provided error message + presentation hint (`snackbar` / `toast` / `inline`) shown when a halted action surfaces an error. |
-| **Param bindings** | Mustache-style template values in a `refresh` action's `paramBindings` map (e.g. `{ "season": "{{form_season}}" }`). Resolved against Screen state at dispatch time and handed to the shared fetch primitive as user-params; the primitive (not the action handler) is the only thing that builds URL strings. See **Parameterized refresh**. |
+| **Param bindings** | Mustache-style template values in a `refresh` action's `paramBindings` map (e.g. `{ "season": "{{form_season}}" }`). One slice of the broader **placeholder substitution** contract: the shared client substitutor resolves `{{stateKey}}` tokens across `targetUri`, `webUrl`, `endpoint`, and every `paramBindings` value at dispatch time. In `paramBindings`, unknown keys resolve to empty so the dispatcher drops the parameter; in URI / endpoint fields unknown keys are left intact so the failure surfaces at the network layer. The resolved values are handed to the shared fetch primitive as user-params; the primitive (not the action handler) is the only thing that builds URL strings. See **Parameterized refresh**. |
 
 ### Action types
 

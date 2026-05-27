@@ -2,6 +2,7 @@ import type {
   Action,
   BoxscoreColumnDefinition,
   Data,
+  DateMetadatum,
   FormField,
   PlayerRow,
   Section,
@@ -16,6 +17,7 @@ export interface CalendarStripUiModel {
   defaultDate: string;
   minDate: string | undefined;
   maxDate: string | undefined;
+  expandedAction: Action | undefined;
   onDateSelected: Action;
 }
 
@@ -26,6 +28,7 @@ export function mapCalendarStrip(section: Section): CalendarStripUiModel | null 
   const stateKey = data.stateKey as string | undefined;
   const selectedDate = data.selectedDate as string | undefined;
   const defaultDate = data.defaultDate as string | undefined;
+  const expandedActionRaw = data.expandedAction as unknown;
   const onDateSelectedRaw = data.onDateSelected as unknown;
 
   if (!stateKey || !selectedDate || !defaultDate) return null;
@@ -38,12 +41,68 @@ export function mapCalendarStrip(section: Section): CalendarStripUiModel | null 
     return null;
   }
 
+  if (
+    expandedActionRaw != null &&
+    (Array.isArray(expandedActionRaw) || typeof expandedActionRaw !== 'object')
+  ) {
+    return null;
+  }
+
   return {
     stateKey,
     selectedDate,
     defaultDate,
     minDate: data.minDate as string | undefined,
     maxDate: data.maxDate as string | undefined,
+    expandedAction: expandedActionRaw as Action | undefined,
+    onDateSelected: onDateSelectedRaw as Action,
+  };
+}
+
+export interface CalendarMonthListUiModel {
+  stateKey: string;
+  selectedDate: string;
+  defaultDate: string;
+  minDate: string | undefined;
+  maxDate: string | undefined;
+  dateMetadata: Record<string, DateMetadatum>;
+  onDateSelected: Action;
+}
+
+export function mapCalendarMonthList(section: Section): CalendarMonthListUiModel | null {
+  const data = section.data as Data | undefined;
+  if (!data) return null;
+
+  const stateKey = data.stateKey as string | undefined;
+  const selectedDate = data.selectedDate as string | undefined;
+  const defaultDate = data.defaultDate as string | undefined;
+  const onDateSelectedRaw = data.onDateSelected as unknown;
+  const dateMetadataRaw = data.dateMetadata as unknown;
+
+  if (!stateKey || !selectedDate || !defaultDate) return null;
+
+  if (
+    onDateSelectedRaw == null ||
+    Array.isArray(onDateSelectedRaw) ||
+    typeof onDateSelectedRaw !== 'object'
+  ) {
+    return null;
+  }
+
+  if (
+    dateMetadataRaw != null &&
+    (Array.isArray(dateMetadataRaw) || typeof dateMetadataRaw !== 'object')
+  ) {
+    return null;
+  }
+
+  return {
+    stateKey,
+    selectedDate,
+    defaultDate,
+    minDate: data.minDate as string | undefined,
+    maxDate: data.maxDate as string | undefined,
+    dateMetadata: (dateMetadataRaw as Record<string, DateMetadatum> | undefined) ?? {},
     onDateSelected: onDateSelectedRaw as Action,
   };
 }

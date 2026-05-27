@@ -83,6 +83,17 @@ public enum LayoutTokenResolver {
         )
     }
 
+    /// Resolve a wire-level `TextVariant` shorthand (e.g. `"score"`, `"labelSmall"`) to a
+    /// `TypographySpec` via the bundled `typography-tokens.json` registry.
+    ///
+    /// The variant enum on the wire is a presentational shorthand for the full token name
+    /// `nba.typography.<variant>`; this method bridges the shorthand into the same
+    /// registry-driven path used for `token:`-prefixed presentational fields, so renderers
+    /// never need a parallel hardcoded sizing table.
+    static func typographyForVariant(_ variantName: String, formFactor: FormFactor = currentFormFactor()) -> TypographySpec? {
+        return typography("token:nba.typography.\(variantName)", formFactor: formFactor)
+    }
+
     static func shadowSpec(_ token: String) -> ShadowSpec? {
         guard let name = tokenName(from: token) else { return nil }
         return LayoutTokenRegistry.shadows[name]

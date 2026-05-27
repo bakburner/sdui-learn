@@ -20,4 +20,6 @@ public final class IconTokens {
     public static final String SHARE       = "sdui:share";
     public static final String WARNING     = "sdui:warning";
     public static final String LOCK        = "sdui:lock";
+    public static final String PLAY        = "sdui:play";
+    public static final String MORE        = "sdui:more";
 }

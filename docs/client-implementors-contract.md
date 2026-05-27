@@ -109,15 +109,16 @@ refresh.
 | # | Component | Why it needs client code |
 |---|-----------|------------------------|
 | 18 | **BoxscoreTable** | Real-time data binding, expandable rows |
-| 19 | **SeasonLeadersTable** | Sort/filter interaction state |
-| 20 | **TabGroup** | Tab selection state, nested section hosting |
-| 21 | **Form** | Validation state, platform keyboard integration |
-| 22 | **SubscribeHero** | Platform IAP SDK integration |
-| 23 | **SubscribeBanner** | Platform IAP SDK integration |
-| 24 | **AdSlot** | Platform ad SDK lifecycle |
-| 24a | **VideoPlayer** | Platform video SDK (HLS/DASH playback, PiP, AirPlay/Chromecast, background audio, fullscreen rotation). `playerType` discriminator maps to the right SDK entry point. |
+| 19 | **CalendarMonthList** | Month-grid hosting with client-owned scroll and interaction state |
+| 20 | **SeasonLeadersTable** | Sort/filter interaction state |
+| 21 | **TabGroup** | Tab selection state, nested section hosting |
+| 22 | **Form** | Validation state, platform keyboard integration |
+| 23 | **SubscribeHero** | Platform IAP SDK integration |
+| 24 | **SubscribeBanner** | Platform IAP SDK integration |
+| 25 | **AdSlot** | Platform ad SDK lifecycle |
+| 25a | **VideoPlayer** | Platform video SDK (HLS/DASH playback, PiP, AirPlay/Chromecast, background audio, fullscreen rotation). `playerType` discriminator maps to the right SDK entry point. |
 
-**Milestone:** All 9 semantic sections render with full interactivity.
+**Milestone:** All 10 semantic sections render with full interactivity.
 Live-score surfaces render as server-composed `AtomicComposite` trees
 driven by `bindRef` + SSE data bindings.
 
@@ -149,6 +150,8 @@ FUNCTION SectionRouter(section, screenState, onAction, onStateChange):
     SWITCH section.type:
         "TabGroup"           → TabGroupRenderer(section, screenState, onAction, onStateChange)
         "BoxscoreTable"      → BoxscoreTableRenderer(section, onAction)
+        "CalendarStrip"      → CalendarStripRenderer(section, screenState, onAction, onStateChange)
+        "CalendarMonthList"  → CalendarMonthListRenderer(section, screenState, onAction, onStateChange)
         "Form"               → FormRenderer(section, screenState, onAction, onStateChange)
         "SubscribeBanner"    → SubscribeBannerRenderer(section, onAction)
         "SubscribeHero"      → SubscribeHeroRenderer(section, onAction)
@@ -168,8 +171,8 @@ FUNCTION SectionRouter(section, screenState, onAction, onStateChange):
             RETURN null   // Skip gracefully — never crash
 ```
 
-**Supported section types (10):**
-`TabGroup`, `BoxscoreTable`, `CalendarStrip`, `Form`, `SubscribeBanner`,
+**Supported section types (11):**
+`TabGroup`, `BoxscoreTable`, `CalendarStrip`, `CalendarMonthList`, `Form`, `SubscribeBanner`,
 `SubscribeHero`, `AdSlot`, `SeasonLeadersTable`, `VideoPlayer`,
 `AtomicComposite`.
 Live-score / game-card surfaces are composed as `AtomicComposite`
@@ -691,7 +694,13 @@ Action:
     value: any?                 // For mutate (null = remove key on set)
     operation: "set" | "toggle" | "increment" | "append"?  // Default: "set"
     endpoint: string?           // For parameterized refresh
-    paramBindings: map?         // For refresh: key → "{{screenStateKey}}" template
+    paramBindings: map?         // For refresh: key → template (e.g. "{{stateKey}}")
+    // `{{stateKey}}` placeholders are resolved at dispatch time against
+    // the current screen state across `targetUri`, `webUrl`, `endpoint`,
+    // and `paramBindings` values for every action type. Unknown keys are
+    // left intact in URI / endpoint fields so the failure surfaces at the
+    // network layer; unknown keys in `paramBindings` resolve to empty so
+    // the dispatcher can drop the parameter entirely (no dangling `?key=`).
     onFailure: "halt" | "continue" | "silent"?
     failureFeedback: FailureFeedback?  // UI feedback on failure
     impression: ImpressionPolicy?
@@ -741,6 +750,17 @@ FUNCTION executeActionSequence(actions, stateManager):
 
 ```
 FUNCTION dispatchSingleAction(action, stateManager):
+    // Resolve `{{stateKey}}` placeholders against the current state map
+    // before the per-type handlers run. The shared substitution step is
+    // the single owner of placeholder resolution — per-type handlers
+    // never re-parse `{{...}}`. Substitution covers `targetUri`,
+    // `webUrl`, `endpoint`, and every value in `paramBindings`.
+    //   • URI / endpoint fields: unknown keys are left intact so a 4xx
+    //     surfaces the missing state at the network layer.
+    //   • paramBindings values: unknown keys resolve to empty so the
+    //     dispatcher can drop the parameter entirely.
+    action = RESOLVE_PLACEHOLDERS(action, stateManager.state)
+
     SWITCH action.type:
         "navigate":
             uri = RESOLVE_PLATFORM_NAVIGATION_TARGET(action.targetUri, action.webUrl)
@@ -786,17 +806,17 @@ FUNCTION dispatchSingleAction(action, stateManager):
 
         "refresh":
             IF action.paramBindings IS NOT EMPTY AND action.endpoint IS NOT NULL:
-                // Resolve param templates from screen state. The action handler
-                // does NOT build a URL — that's the transport's job. Hand off
-                // (endpoint, sectionId, resolvedParams) and route through the
-                // shared fetch primitive (§11) so the request inherits the
-                // canonical envelope contract: bracket-notation envelope
-                // params, GET/POST length fallback, RFC-3986 percent-encoding,
-                // and X-Trace-Id propagation from the parent screen.
+                // paramBindings values were already resolved by
+                // RESOLVE_PLACEHOLDERS above. The action handler does NOT
+                // build a URL — that's the transport's job. Hand off
+                // (endpoint, sectionId, resolvedParams) and route through
+                // the shared fetch primitive (§11) so the request inherits
+                // the canonical envelope contract: bracket-notation
+                // envelope params, GET/POST length fallback, RFC-3986
+                // percent-encoding, and X-Trace-Id propagation from the
+                // parent screen.
                 resolvedParams = {}
-                FOR key, template IN action.paramBindings:
-                    stateKey = STRIP_DELIMITERS(template, "{{", "}}")
-                    value = stateManager.getState(stateKey)
+                FOR key, value IN action.paramBindings:
                     IF value IS NOT NULL AND value != "":
                         resolvedParams[key] = value
                 RETURN ParameterizedRefreshResult(action.endpoint, action.target, resolvedParams)

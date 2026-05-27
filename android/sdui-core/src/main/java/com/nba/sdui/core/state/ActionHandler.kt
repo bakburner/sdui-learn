@@ -138,18 +138,24 @@ class ActionHandler {
         if (action.trigger.equals("onTap", ignoreCase = true) && Log.isLoggable(TAG, Log.DEBUG)) {
             Log.d(TAG, "deprecated_trigger_used: onTap is a deprecated alias for onActivate")
         }
-        SduiActionLogger.debug(action, "dispatch")
+        // Resolve `{{stateKey}}` placeholders against the live state map
+        // before the per-type handlers run. This lets the server emit
+        // parameterised navigate/refresh actions (e.g. nba://games?date={{x}})
+        // without each renderer having to know how to splice state into
+        // server-emitted strings.
+        val resolved = PlaceholderSubstitutor.resolve(action, stateManager.state.value)
+        SduiActionLogger.debug(resolved, "dispatch")
 
-        return when (action.type) {
-            "navigate" -> handleNavigate(action)
-            "fireAndForget" -> handleFireAndForget(action)
-            "mutate" -> handleMutate(action, stateManager)
-            "refresh" -> handleRefresh(action, stateManager)
-            "dismiss" -> handleDismiss(action)
-            "toast" -> handleToast(action)
+        return when (resolved.type) {
+            "navigate" -> handleNavigate(resolved)
+            "fireAndForget" -> handleFireAndForget(resolved)
+            "mutate" -> handleMutate(resolved, stateManager)
+            "refresh" -> handleRefresh(resolved, stateManager)
+            "dismiss" -> handleDismiss(resolved)
+            "toast" -> handleToast(resolved)
             else -> {
-                Log.w(TAG, "Unknown action type: ${action.type}")
-                ActionResult.Unknown(action.type)
+                Log.w(TAG, "Unknown action type: ${resolved.type}")
+                ActionResult.Unknown(resolved.type)
             }
         }
     }
@@ -214,15 +220,11 @@ class ActionHandler {
         val paramBindings = action.paramBindings
 
         if (!paramBindings.isNullOrEmpty() && endpoint != null) {
-            // Parameterized refresh: resolve mustache-bound state values into a
-            // user-params map. The viewmodel routes this through the canonical
-            // `fetchScreen` transport (envelope + GET/POST length fallback +
-            // RFC-3986 percent-encoding), so this handler must NOT pre-build a
-            // URL string — that's the transport's job, not the handler's.
-            val resolvedParams = paramBindings.mapValues { (_, template) ->
-                val stateKey = template.removePrefix("{{").removeSuffix("}}")
-                stateManager.getState(stateKey)?.toString() ?: ""
-            }.filterValues { it.isNotEmpty() }
+            // Parameterized refresh: paramBindings values were already
+            // resolved against the state map by PlaceholderSubstitutor in
+            // handle(). Drop empty values so the transport doesn't emit
+            // dangling `?key=` query params.
+            val resolvedParams = paramBindings.filterValues { it.isNotEmpty() }
 
             SduiActionLogger.debug(action, "refresh parameterized endpoint=$endpoint params=$resolvedParams")
             return ActionResult.ParameterizedRefreshResult(endpoint, target, resolvedParams)

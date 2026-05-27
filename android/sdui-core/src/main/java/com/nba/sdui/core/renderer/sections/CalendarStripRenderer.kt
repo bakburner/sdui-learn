@@ -123,13 +123,27 @@ fun CalendarStripRenderer(
             .applyAccessibility(section.accessibility),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Month/year label — styled like a button affordance but not tappable in PR 1
+        val monthLabelModifier = if (model.expandedAction != null) {
+            Modifier
+                .padding(vertical = 8.dp)
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = ripple(),
+                    role = Role.Button
+                ) {
+                    onAction(model.expandedAction)
+                }
+        } else {
+            Modifier.padding(vertical = 8.dp)
+        }
+
+        // Month/year label
         Text(
             text = monthLabel,
             style = MaterialTheme.typography.titleSmall,
             color = colors.monthLabel,
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(vertical = 8.dp)
+            modifier = monthLabelModifier
         )
 
         // Day-of-week header row

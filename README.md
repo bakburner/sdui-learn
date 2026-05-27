@@ -67,11 +67,11 @@ sdui-prototype/
 │   └── sdui-core/              # Reusable SDUI library (renderers, state, data)
 ├── web/                        # React/TypeScript web client
 │   └── src/
-│       ├── components/         # SectionRouter + 8 semantic section renderers + AtomicRouter + SectionErrorBoundary, SectionSkeleton
+│       ├── components/         # SectionRouter + 10 semantic section renderers + AtomicRouter + SectionErrorBoundary, SectionSkeleton
 │       ├── hooks/              # useSduiScreen, useRefreshPolicy, useImpressionTracking, useAnalyticsContext
 │       └── runtime/            # AblyClient, ActionHandler, DataBindingApplier
 ├── ios/                        # iOS / SwiftUI client (Swift Package + SduiDemo app)
-│   ├── Sources/SduiCore/       # SectionRouter + 8 semantic section views + AtomicRouter + navigation shell
+│   ├── Sources/SduiCore/       # SectionRouter + 10 semantic section views + AtomicRouter + navigation shell
 │   ├── Tests/SduiCoreTests/    # Model round-trips, fixtures, action dispatcher, impression tracker
 │   └── SduiDemo/               # XcodeGen-based demo host (bootstraps nba://for-you)
 ├── docs/                       # Technical proposal & requirements

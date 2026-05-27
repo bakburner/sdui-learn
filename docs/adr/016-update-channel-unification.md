@@ -108,7 +108,7 @@ Option C from the plan (unify onto one screen-channel URL family + one section-c
 - [x] Server: remove `/v1/sdui/screen/refresh/{id}` route
 - [x] Server: composers emit unified `/v1/sdui/screen/{id}` endpoints
 - [x] Server: contract test suite established (6 test classes, 30 tests)
-- [ ] Android: rename `refreshSections` → `replaceCurrentScreen` (in flight)
-- [ ] iOS: replace `mergeRefreshedScreen` with strict full-replace (in flight)
-- [ ] Web: rename `refreshSections` → `replaceCurrentScreen` (in flight)
+- [x] Android: rename `refreshSections` → `replaceCurrentScreen`
+- [x] iOS: replace `mergeRefreshedScreen` with strict full-replace
+- [x] Web: rename `refreshSections` → `replaceCurrentScreen`
 - [x] Documentation: `AGENTS.md` §3.8, client contract, games-screen spec, envelope spec updated

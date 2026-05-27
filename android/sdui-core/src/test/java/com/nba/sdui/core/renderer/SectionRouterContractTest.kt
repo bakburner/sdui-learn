@@ -8,5 +8,6 @@ class SectionRouterContractTest {
     @Test
     fun `supported section types include CalendarStrip`() {
         assertTrue("CalendarStrip" in SUPPORTED_SECTION_TYPES)
+        assertTrue("CalendarMonthList" in SUPPORTED_SECTION_TYPES)
     }
 }

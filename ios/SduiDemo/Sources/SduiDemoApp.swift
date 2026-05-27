@@ -18,6 +18,10 @@ struct SduiDemoApp: App {
         )
     }()
 
+    init() {
+        CrashLogger.install()
+    }
+
     var body: some Scene {
         WindowGroup {
             Group {

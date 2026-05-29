@@ -47,7 +47,7 @@ open class SduiScreenViewModel(
     val userMessage: SharedFlow<String> get() = controller.userMessage
     val staleSections: StateFlow<Set<String>> get() = controller.staleSections
     val visibilityTracker: SectionVisibilityTracker get() = controller.visibilityTracker
-    val shellScreen: SduiModels? get() = controller.shellScreen
+    val shellScreen: StateFlow<SduiModels?> get() = controller.shellScreen
 
     fun loadFromUri(uri: String, sectionId: String? = null) = controller.loadFromUri(uri, sectionId)
     fun loadFromEndpoint(endpoint: String, sectionId: String? = null) = controller.loadFromEndpoint(endpoint, sectionId)

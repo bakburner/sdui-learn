@@ -105,17 +105,21 @@ internal class SduiScreenController(
     val staleSections: StateFlow<Set<String>> = _staleSections.asStateFlow()
 
     // ── Internal bookkeeping ─────────────────────────────────────────
-    private var currentScreen: SduiModels? = null
+    private val _currentScreen = MutableStateFlow<SduiModels?>(null)
+    private var currentScreen: SduiModels?
+        get() = _currentScreen.value
+        set(value) { _currentScreen.value = value }
     private var currentEndpoint: String? = null   // resolved server path — used for refresh / polling
     private var currentUserParams: Map<String, String> = emptyMap()  // last user-supplied filter params — replayed on pull-to-refresh and poll
     private var screenLevelPollJob: Job? = null
 
     /**
-     * Last successfully loaded screen payload. Kept when a later fetch fails so
+     * Last successfully loaded screen payload, exposed as a [StateFlow] so the
+     * navigation shell recomposes the moment the very first load completes
+     * (the value goes from null to non-null). Kept when a later fetch fails so
      * shell navigation (bottom bar) and [parentUri] remain available for escape.
      */
-    val shellScreen: SduiModels?
-        get() = currentScreen
+    val shellScreen: StateFlow<SduiModels?> = _currentScreen.asStateFlow()
 
     private val pollingJobs = mutableMapOf<String, Job>()
 

@@ -73,7 +73,7 @@ The prototype has moved beyond architectural planning into working, demonstrable
 
 Every concept from the original roadmap's prototype validation checklist has been proven in working code:
 
-- **Two-tier primitives** — 12 atomic primitives and 8+ semantic sections coexist via `AtomicComposite`. Sections own SDK integration and client state; stateless surfaces are server-composed atomic trees deployable without app releases
+- **Two-tier primitives** — 12 atomic primitives and 10 semantic sections coexist via `AtomicComposite`. Sections own SDK integration and client state; stateless surfaces are server-composed atomic trees deployable without app releases
 - **Design system integration** — A three-layer token architecture ([`sdui-design-system.md`](sdui-design-system.md)) bridges Figma and rendered output: inline primitives (padding, radius, shadow), named variants resolved per-platform (Liquid Glass on iOS, Material 3 on Android, CSS on web), and color tokens with light/dark adaptation. Designers can build compositions in Figma; the server produces matching atomic trees without client code. When Apple or Google ship a new design language, client resolvers update once and every token-driven screen picks up the new look
 - **Single-schema codegen** — one JSON Schema → typed models for Java, Swift, and TypeScript
 - **Per-section refresh policies** — static, polling, and SSE coexisting on a single screen
@@ -310,6 +310,7 @@ To preserve continuity with the original executive summary, this section explici
 
 | Date | Summary |
 |---|---|
+| 2026-05-28 | Doc consistency audit. Two-tier primitives bullet: stale "8+ semantic sections" → "10 semantic sections" (concrete count matches schema and per-platform renderer inventory). |
 | 2026-05-27 | Doc consistency audit. Section count 10 → 11 (`CalendarMonthList` added as semantic section — platform-native month grid with client-owned scroll). Semantic-section counts in JSON Schema, Android, Web, iOS renderer rows updated 9 → 10. Milestone 1 contract-test row updated 10 → 11. |
 | 2026-05-25 | Box-model cleanup. `SectionLayoutHints` removed from schema; section chrome now flows through a single path (`Section.surface` → `SectionContainer`). Inter-section margins via `Section.surface.margin`. ADR-008 superseded; successor ADR in flight. | Doc consistency audit. Decision Continuity table: ADR-008 Accepted → Superseded by ADR-015; new ADR-015 row added (Section Chrome Single Ownership — Accepted). Dropped stale `(draft)` annotation on ADR-011 and ADR-012 (matches actual ADR file headers and the 2026-05-24 audit on the technical proposal). |
 | 2026-05-05 | Doc consistency audit. Schema evolution risk status updated: "Version header working" → "Built" (server version routing + field stripping + client force-upgrade prompt). |

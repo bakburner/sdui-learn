@@ -12,9 +12,11 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 
 /**
- * Composes the Scoreboard SDUI screen from live NBA scoreboard data with
- * example-file fallback, and applies server-driven variant transformations
- * (E — promo banner, F — promo + content rail).
+ * Composes the Scoreboard SDUI screen from live NBA scoreboard data, and
+ * applies server-driven variant transformations (E — promo banner,
+ * F — promo + content rail). When live data is unavailable, the screen is
+ * composed with a single {@code ErrorState} section (AGENTS.md §8.0) — no
+ * invented fallback content.
  */
 @Component
 public class ScoreboardComposer {
@@ -54,14 +56,8 @@ public class ScoreboardComposer {
 
         ObjectNode response = composeScoreboardFromLiveData();
         if (response == null) {
-            log.warn("Live scoreboard unavailable or no in-progress games, falling back to static scoreboard example");
-            response = utils.loadExampleByFilename("scoreboard-live.json");
-        }
-
-        if (response == null) {
-            response = objectMapper.createObjectNode();
-            response.put("id", "scoreboard-live");
-            response.set("sections", objectMapper.createArrayNode());
+            log.warn("Live scoreboard unavailable — composing ErrorState screen");
+            response = buildErrorScreen();
         }
 
         response.put("traceId", traceId);
@@ -78,6 +74,33 @@ public class ScoreboardComposer {
 
         utils.ensureScreenContentInsets(response);
         utils.stampStringTableOnSections(response, locale);
+        return response;
+    }
+
+    /**
+     * Build a minimal Scoreboard screen carrying a single {@code ErrorState}
+     * section. Used when the live scoreboard API is unavailable. Per
+     * AGENTS.md §8.0 the server surfaces an {@code ErrorState} rather than
+     * inventing fallback game cards.
+     */
+    private ObjectNode buildErrorScreen() {
+        ObjectNode response = objectMapper.createObjectNode();
+        response.put("id", "scoreboard-live");
+        ObjectNode defaultRefreshPolicy = objectMapper.createObjectNode();
+        defaultRefreshPolicy.put("type", "static");
+        response.set("defaultRefreshPolicy", defaultRefreshPolicy);
+
+        ArrayNode sections = objectMapper.createArrayNode();
+        String contentSourceId = "stats-api:scoreboard";
+        ObjectNode error = utils.buildErrorSection(
+                SectionIdDeriver.derive(contentSourceId, "AtomicComposite", "error-no-scores"),
+                "Scores unavailable",
+                "We couldn't load today's scoreboard. Please try again later.",
+                "wifi_off",
+                "nba://scoreboard");
+        error.put("contentSourceId", contentSourceId);
+        sections.add(error);
+        response.set("sections", sections);
         return response;
     }
 

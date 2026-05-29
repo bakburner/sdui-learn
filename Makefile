@@ -45,7 +45,8 @@ endif
 ANDROID_SDK ?= $(or $(ANDROID_HOME),$(HOME)/Library/Android/sdk)
 ADB          = $(ANDROID_SDK)/platform-tools/adb
 EMU          = $(ANDROID_SDK)/emulator/emulator
-AVD_NAME    ?= $(shell $(EMU) -list-avds 2>/dev/null | head -1)
+# Prefer the modern Pixel 9 AVD if present, otherwise fall back to whatever exists.
+AVD_NAME    ?= $(shell $(EMU) -list-avds 2>/dev/null | grep -x Pixel_9_API_35 || $(EMU) -list-avds 2>/dev/null | head -1)
 # Lightweight defaults for local SDUI dev (override: make dev-android-local EMU_MEMORY=2048)
 UNAME_M     := $(shell uname -m)
 ifeq ($(UNAME_M),arm64)
@@ -82,10 +83,26 @@ test: server-test android-test web-test ios-test
 	@echo "=== All platform tests passed ==="
 
 # ── iOS fixtures sync ───────────────────────────────────────
+# Mirrors schema/examples/ → ios/Tests/SduiCoreTests/Fixtures/. Mobile/web read
+# schema/examples/ directly; iOS bundles its own copy via SwiftPM, so this
+# rsync is the single source-of-truth bridge.
+#
+# Uses --delete so stale fixtures are pruned automatically. When fixtures are
+# removed, a warning lists them so the deletion isn't silent.
 ios-fixtures-sync:
 	@echo "=== Syncing iOS fixtures from schema/examples ==="
 	@mkdir -p ios/Tests/SduiCoreTests/Fixtures
-	@rsync -a --include '*/' --include '*.json' --exclude '*' schema/examples/ ios/Tests/SduiCoreTests/Fixtures/
+	@stale=$$(rsync -an --delete --include '*/' --include '*.json' --exclude '*' \
+		schema/examples/ ios/Tests/SduiCoreTests/Fixtures/ \
+		| awk '/^deleting /{ sub(/^deleting /, ""); print }'); \
+	if [ -n "$$stale" ]; then \
+		echo ""; \
+		echo "⚠️  Pruning stale fixtures from ios/Tests/SduiCoreTests/Fixtures/:"; \
+		echo "$$stale" | sed 's/^/    - /'; \
+		echo ""; \
+	fi
+	@rsync -a --delete --include '*/' --include '*.json' --exclude '*' \
+		schema/examples/ ios/Tests/SduiCoreTests/Fixtures/
 	@echo "=== iOS fixtures synced ==="
 
 # ── Dev helpers (open in separate Terminal tabs) ─────────────

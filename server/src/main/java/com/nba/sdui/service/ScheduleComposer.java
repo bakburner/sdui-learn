@@ -265,7 +265,7 @@ public class ScheduleComposer {
 
     private JsonNode loadScheduleData() {
         try {
-            return utils.loadExampleResponse("schedule-2024-25");
+            return utils.loadExampleByFilename("schedule-2024-25.json");
         } catch (Exception e) {
             log.warn("Failed to load schedule mock data: {}", e.getMessage());
             return null;

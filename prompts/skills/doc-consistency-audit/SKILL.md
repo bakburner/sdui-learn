@@ -37,9 +37,14 @@ Extract current facts from code before auditing docs. These files define reality
 | Migrated types (server-composed) | `server/.../AtomicCompositeBuilder.java` → public `build*` methods |
 | Action handler types | `android/sdui-core/.../state/ActionHandler.kt` + `web/src/runtime/ActionHandler.ts` |
 | ADR statuses | `docs/adr/*.md` → `Status:` line in YAML/header (Proposed / Accepted / Superseded) |
-| Request envelope implementation | `server/.../SduiRequestContext.java` + `android/.../RequestEnvelopeBuilder.kt` + `web/src/request/RequestEnvelopeBuilder.ts` |
+| Request envelope implementation | `server/.../SduiRequestContext.java` + `server/.../BracketParamResolver.java` + `android/.../RequestEnvelopeBuilder.kt` + `web/src/request/RequestEnvelopeBuilder.ts` |
 | i18n implementation | `server/.../SduiUtils.java` → `stampStringTableOnSections` + `schema/sdui-schema.json` → `stringTable` on Section |
 | Experiment implementation | `server/.../SduiCompositionService.java` → experiment resolution + `docs/adr/006-experiment-assignment-model.md` status |
+| Section channel dispatcher | `server/.../SectionRefreshService.java` (prefix-match resolver registry) |
+| Parameterized refresh dispatcher | `server/.../ParameterizedRefreshService.java` (exact-match screen id registry) |
+| Schema version gating + stripping | `server/.../SchemaVersionChecker.java` + `server/.../SchemaVersionFilter.java` + `server/.../SchemaVersionRegistry.java` |
+| Server token registry (boot-time validation) | `server/.../TokenRegistry.java` + `server/.../TokenRegistryConsistencyCheck.java` + `schema/*-tokens.json` |
+| Composer builder pattern | `server/.../AtomicCompositeBuilder.java` + `server/.../SectionSurfaces.java` + `server/.../SectionIdDeriver.java` |
 | Recent commits (feature status) | `git log --oneline -10` — scan for feat/fix commits that close gaps |
 | Working tree changes (new facts) | `git status --short` + `git diff HEAD` — uncommitted capabilities, patterns, new requirements |
 | Kitchen sink live response | `GET http://localhost:8080/sdui/demos` with `X-Platform: android` (requires running server) |
@@ -51,13 +56,14 @@ Audit these files in order (highest-visibility first):
 1. `AGENTS.md` — tier classification, section/atomic counts, architecture summary, development rules
 2. `README.md` — renderer counts, recent changes, migration status
 3. `docs/client-implementors-contract.md` — build checklist, pseudocode algorithms, section/atomic type lists, conformance checklist
-4. `docs/SDUI_Executive_Summary_v2.md` — renderer counts, atomic layer description, feature table
-5. `docs/SDUI_Technical_Proposal_v2.md` — tier classification, migration status, architecture details
-6. `docs/sdui-requirements-summary.md` — section inventory table, renderer counts, atomic layer row
-7. `docs/sdui-design-system` — for accuracy, model , completeness
-8. `docs/adr/*.md` — architecture decision records (check for stale type names, deprecated terminology)
-9. `prompts/agents/client-builder.agent.md` — platform adaptation table, type inventory, conformance rules
-10. `docs/glossary.md` — remove deprecated terminology. add new architectural pattern vocabulary
+4. `docs/server-implementors-contract.md` — channel/envelope/pipeline contracts, caching layering, conformance checklist (peer to the client contract; spec only — implementation patterns intentionally TBD)
+5. `docs/SDUI_Executive_Summary_v2.md` — renderer counts, atomic layer description, feature table
+6. `docs/SDUI_Technical_Proposal_v2.md` — tier classification, migration status, architecture details
+7. `docs/sdui-requirements-summary.md` — section inventory table, renderer counts, atomic layer row
+8. `docs/sdui-design-system` — for accuracy, model , completeness
+9. `docs/adr/*.md` — architecture decision records (check for stale type names, deprecated terminology)
+10. `prompts/agents/client-builder.agent.md` — platform adaptation table, type inventory, conformance rules
+11. `docs/glossary.md` — remove deprecated terminology. add new architectural pattern vocabulary
 
 Do not interleave notes about older implementations that have been updated. Only leave history in the revision history. otherwise focus on the current state and only put future plans in existing future enhancements sections.
 

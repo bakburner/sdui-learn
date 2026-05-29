@@ -393,13 +393,22 @@ object ColorTokenResolver {
         return parseHex(trimmed)
     }
 
-    /** Parse a `#RRGGBB` / `#RRGGBBAA` string into a Compose [Color]. */
+    /**
+     * Parse a `#RRGGBB` / `#RRGGBBAA` string into a Compose [Color].
+     *
+     * The wire convention is CSS-style `#RRGGBBAA` (alpha trailing) — e.g.
+     * `#FFFFFF00` is fully-transparent white, `#FFFFFF1A` is 10% white. Compose's
+     * `Color(Long)` ctor expects `AARRGGBB`, so an 8-char wire literal is
+     * reassembled with the trailing alpha moved to the front. Without this
+     * swap, translucent whites resolve to opaque yellows (the blue channel
+     * is mistakenly read as alpha).
+     */
     private fun parseHex(hex: String): Color {
         return try {
             val stripped = hex.removePrefix("#")
             val argb = when (stripped.length) {
                 6 -> "FF$stripped"
-                8 -> stripped
+                8 -> stripped.substring(6, 8) + stripped.substring(0, 6)
                 else -> return Color.Unspecified
             }
             Color(argb.toLong(16))

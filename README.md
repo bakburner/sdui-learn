@@ -8,7 +8,7 @@ Server-Driven UI prototype demonstrating server-composed screens with real-time 
 |------------|------------|
 | **Build a new client** (iOS, Flutter, TV, desktop) | [Client Implementor's Contract](docs/client-implementors-contract.md) — platform-agnostic blueprint with build phases, pseudocode algorithms, and conformance checklist |
 | **Set up local tooling / prerequisites** | [Development Setup](docs/sdui-setup.md) — prerequisites, dependency bootstrap, secrets, and Makefile device overrides |
-| **Extend the Android client** | [android/sdui-core/](android/sdui-core/) — renderers, state, data binding. See [Section Types](#section-types-9-in-schema-8-permanent--atomiccomposite) below for what exists |
+| **Extend the Android client** | [android/sdui-core/](android/sdui-core/) — renderers, state, data binding. See [Section Types](#section-types-11-in-schema-10-permanent--atomiccomposite) below for what exists |
 | **Extend the Web client** | [web/src/](web/src/) — React components, hooks, runtime. Same section types reference |
 | **Extend the iOS client** | [ios/Sources/SduiCore/](ios/Sources/SduiCore/) — SwiftUI renderers, state, data binding. Same section types reference |
 | **Add a new server-composed screen** | [server/src/](server/src/) — add a composer, register an endpoint. Zero client changes needed |
@@ -202,7 +202,7 @@ make codegen
 | Leaders (parameterized) | `GET /v1/sdui/screen/leaders?perMode=…&season=…` | Parameterized re-composition via screen channel with query params. |
 | Section refresh | `GET/POST /v1/sdui/section/{sectionId}` | Re-composes a single section via `SectionRefreshService`; used with `refreshPolicy.sectionEndpoint` |
 
-## Section Types (9 in schema: 8 permanent + AtomicComposite)
+## Section Types (11 in schema: 10 permanent + AtomicComposite)
 
 ### Semantic Sections (client-owned renderers)
 
@@ -210,6 +210,8 @@ make codegen
 |------|-------------|---------|
 | TabGroup | Tabbed navigation with state-driven content | Poll or static |
 | BoxscoreTable | Boxscore stats table | Poll or static |
+| CalendarStrip | Platform-native date picker (calendar arithmetic, programmatic scroll-to-selected, locale-aware formatting); reconciles state across parameterized refresh | Static |
+| CalendarMonthList | Platform-native month-grid host (scroll-to-month, locale-aware first-day rotation, client-owned scroll state) | Static |
 | Form | Interactive form with typed fields | Static |
 | SeasonLeadersTable | Season leaders stats table | Static |
 | SubscribeBanner | Inline subscription upsell with CTA | Static |
@@ -256,7 +258,7 @@ make codegen
 - **Section-level SDUI refresh** — `RefreshPolicy.sectionEndpoint`, `GET/POST /v1/sdui/section/{sectionId}`, `SectionRefreshService` prefix registry, `screen.defaultRefreshPolicy` (static on Game Detail), implemented on Android, iOS, and Web
 - **Layout constraint & sizing overhaul** (2026-04-30) — `SizingMode` enum (hug/fill/fixed), `widthMode`/`heightMode` fields, `minWidth`/`maxWidth`/`minHeight`/`maxHeight` constraints, `layoutWrap` for flex-wrap, `crossAxisGap`, per-child `alignSelf`. Multi-layer `backgrounds` and `shadows` arrays with inner-shadow support (`Shadow.type: "inner"`). Deprecated `fillWidth`, singular `background`, singular `shadow`. Updated `LayoutTokenResolver` across all platforms for corrected `md=12` base. Replaced all broken loremflickr demo image URLs with same-origin `DemoImageUrls` SVGs.
 - **Per-section error handling** (2026-04-01) — `SectionErrorBoundary` on Android (catch-at-dispatch + pre-validation) and web (React ErrorBoundary). `SectionSkeleton` with 4 generic styles. Typed `SectionStates` model. Retry budget (client-side, default 5). `hideOnError` support. Error-handling contract rewritten.
-- **Accessibility** (2026-03-26) — `AccessibilityProperties` on Section, Subsection, AtomicElement. Android Compose `semantics{}`, web ARIA attributes, iOS `.accessibilityLabel`/traits. All 8 semantic section renderers and 12 atomic primitives wired on every platform.
+- **Accessibility** (2026-03-26) — `AccessibilityProperties` on Section, Subsection, AtomicElement. Android Compose `semantics{}`, web ARIA attributes, iOS `.accessibilityLabel`/traits. All 10 semantic section renderers and 12 atomic primitives wired on every platform.
 - **Request transport envelope** (2026-03-24) — `SduiRequestContext` POJO + `BracketParamResolver` on server. `RequestEnvelopeBuilder` on Android, iOS, and web. GET-first with bracket-notation params, POST fallback.
 - **i18n** (2026-03-24) — Section-level `stringTable` stamped by server per locale. Clients consume from each section.
 - **Experiments / A/B testing** (2026-03-24) — ADR-006 Accepted. Client-authoritative `experiments` map in request envelope. Server resolves at composition time.

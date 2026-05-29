@@ -387,14 +387,6 @@ public class SduiUtils {
 
     // ── Example file loading ───────────────────────────────────────────
 
-    public JsonNode loadExampleResponse(String gameState) throws IOException {
-        String filename = switch (gameState.toLowerCase()) {
-            case "live" -> "game-detail-live.json";
-            case "final" -> "game-detail-final.json";
-            default -> "game-detail-pre.json";
-        };
-        return loadExampleJsonFile(filename);
-    }
 
     public ObjectNode loadExampleByFilename(String filename) throws IOException {
         JsonNode loaded = loadExampleJsonFile(filename);

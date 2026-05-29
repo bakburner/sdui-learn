@@ -1,5 +1,12 @@
 # Plan: Server-Side Section-Level Caching
 
+> **Status: Blocked on SAF migration of the SDUI server.** The current
+> prototype uses a throwaway `OkHttpClient` in `StatsApiClient` and has no
+> SAF, Caffeine, or Redis dependencies. This plan activates only when the
+> SDUI composition server is rebased onto SAF and faces production-scale
+> origin traffic. Until then it is a design artifact, not an actionable
+> backlog.
+
 > Source: SDUI composition responses have wider cache-key spaces than raw JSON
 > feeds, requiring server-side caching at finer granularity than full-screen
 > responses.
@@ -160,9 +167,18 @@ OkHttp `StatsApiClient`).
 ### Phase 2: Section Fragment Cache Service
 
 - [ ] Create `CachedSectionBuilder` service wrapping SAF `TwoTierCacheService`
-- [ ] Define cache key format: `section:{sectionType}:{contentHash}:{deviceClass}:{locale}`
+- [ ] Define cache key format:
+      `section:{sectionType}:{contentHash}:{deviceClass}:{schemaVersion}:{experimentBucket}:{locale?}`
   - `contentHash` is a fast hash (murmur3 or xxhash) of the upstream input data relevant to that section
+  - `schemaVersion` is **required**: field-stripping by client schema version (already built) emits structurally different bytes per version, so two requests at different versions must not share a fragment
+  - `experimentBucket` is **required** for any section whose composition branches on an experiment variant; sections proven experiment-invariant may use a fixed `_` placeholder to avoid pointless cardinality
+  - `locale` is included in the key **only if** `stringTable` stamping happens before caching (see i18n note below); if stamping is a post-cache pass, omit `locale` and let one fragment serve all locales
   - Keeps keys deterministic without serializing entire input objects as keys
+- [ ] **i18n `stringTable` interaction (decision required):** `SduiUtils.stampStringTableOnSections` currently overlays locale-specific strings after composition. Choose one and document it:
+      (a) **Stamp before cache** — fragments are locale-specific, key includes `locale`, hit rate divides by locale count; or
+      (b) **Stamp after cache** — fragments are locale-neutral (carry `stringTable` refs), one fragment serves all locales, stamping runs on every hit. Option (b) is preferred for editorial sections where the locale fan-out is the dominant cardinality multiplier.
+- [ ] **Token resolution stays client-side.** Composers emit `token:*` strings per AGENTS.md §3.6, so theme/density/form-factor do **not** fork the cache key. Document this explicitly so future contributors don't add `theme` to the key.
+- [ ] Add a task for the **section channel** (`/v1/sdui/section/{id}` handled by `SectionRefreshService`): this endpoint composes exactly one section per request and is the most direct beneficiary of fragment caching — wire it through `CachedSectionBuilder` before any per-composer integration.
 - [ ] Integrate into composers — wrap each `buildXxxSection()` call:
   ```java
   ObjectNode section = cachedSections.getOrCompose(
@@ -231,7 +247,10 @@ producing** that response. They compose well:
 
 ## Open Questions
 
-- [ ] Should section fragment cache keys include `schemaVersion`? Only needed if the same section type produces structurally different output across schema versions.
 - [ ] Should `contentHash` use the raw upstream JSON bytes or a normalized/sorted representation? Raw is faster; normalized is more stable across upstream serialization changes.
 - [ ] What is the L1 (Caffeine) size budget per pod for section fragments? Sections are ~2–10KB each; 1000 cached sections ≈ 2–10MB.
 - [ ] Should section fragments be cached as serialized JSON bytes (saves re-serialization) or as `ObjectNode` (saves re-parsing for assembly)? Bytes are more cache-efficient; ObjectNode avoids a parse on hit.
+
+> Resolved and moved into Phase 2: `schemaVersion` is required in the key;
+> `experiments` is required for experiment-branching sections; `locale`
+> participates in the key only if i18n stamping happens pre-cache.

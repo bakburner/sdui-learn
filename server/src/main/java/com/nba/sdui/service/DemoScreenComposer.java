@@ -359,11 +359,9 @@ public class DemoScreenComposer {
     }
 
     /**
-     * 3. PromoBanner — "Welcome to SDUI" with the same branded
-     * gradient + outer surface as the Subscribe-Now treatment.
-     * Root container carries no background — `section.surface`
-     * (subscribeSurface) owns the gradient, rounded corners,
-     * shadow and outer margin via the shared SectionContainer.
+     * 3. PromoBanner — same solid-card chrome as the Games-screen League
+     * Pass promo so the kitchen-sink reference reflects the production
+     * treatment instead of a one-off gradient variant.
      */
     private ObjectNode buildDemoPromoBanner() {
         String contentSourceId = "demo:promo-banner";
@@ -372,13 +370,15 @@ public class DemoScreenComposer {
                 sectionId, "demo_promo_banner",
                 "Welcome to SDUI", null,
                 "All 20 semantic section types rendered from a single server response.",
-                DemoImageUrls.cardWide("nba"),
-                "Learn More", "nba://scoreboard");
+                null,
+                "Learn More", "nba://scoreboard",
+                ColorTokens.BRAND_LIVE,
+                ColorTokens.TEXT_PRIMARY,
+                ColorTokens.TEXT_SECONDARY);
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", surfaces.subscribeSurface(
-                "#0C1B3A",
-                ColorTokens.BRAND_NBA,
-                20));
+        section.set("surface", surfaces.promoCardSurface(
+                ColorTokens.SURFACE_RAISED,
+                LayoutTokens.SPACING_LG));
         return section;
     }
 
@@ -879,9 +879,12 @@ public class DemoScreenComposer {
         section.put("contentSourceId", contentSourceId);
         section.put("analyticsId", "demo_subscribe_hero");
         section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
+        // Dark-blue surface token (resolves to the NBA tertiary blue family
+        // across light/dark themes). Accent tokens like BRAND_NBA are for
+        // labels — not backgrounds — so they're avoided here.
         section.set("surface", surfaces.subscribeSurface(
-                "#0C1B3A",
-                ColorTokens.BRAND_NBA,
+                ColorTokens.SURFACE_PROMO,
+                ColorTokens.SURFACE_PROMO,
                 24));
 
         ObjectNode root = atomicBuilder.container("column", "start", "center");

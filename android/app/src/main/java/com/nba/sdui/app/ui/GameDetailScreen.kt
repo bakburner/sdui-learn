@@ -89,7 +89,7 @@ fun GameDetailScreen(
         }
     }
 
-    val shellScreen = viewModel.shellScreen
+    val shellScreen by viewModel.shellScreen.collectAsState()
     val themePad = LayoutTokenResolver.dp(LayoutScalar.StringValue("token:nba.spacing.sm"))
 
     val handleNavigateBack: () -> Unit = {

@@ -1738,6 +1738,15 @@ client alongside `SduiModels`:
 
 These registries are self-contained snapshots used by `LayoutTokenResolver` at runtime.
 
+**Color literal wire convention:** when a `ColorToken` value is a literal hex
+string (not a `token:*` reference), the wire format is CSS-style `#RRGGBB` or
+`#RRGGBBAA` — alpha is the **trailing** pair, not leading. `#FFFFFF00` is
+fully-transparent white; `#FFFFFF1A` is 10% white. Platforms whose native
+color constructor expects `AARRGGBB` (Android Compose's `Color(Long)`) must
+reorder the alpha before parsing; treating an 8-char literal as `AARRGGBB`
+directly will render translucent whites as opaque yellows (the blue channel
+gets read as alpha).
+
 **Team color resolution:** `ColorTokenResolver` on each platform also provides
 `resolveTeamColor(token, teamId, theme)` using the bundled `team` section in
 `schema/color-tokens.json`. Team tokens (`nba.team.bg`, `nba.team.label`,

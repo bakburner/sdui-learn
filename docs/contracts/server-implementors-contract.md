@@ -10,16 +10,16 @@
 > be true about the server's surface area, response shape, and pipeline
 > ordering. The actual implementation — service framework, caching topology,
 > aggregation library, deployment shape — is **TBD** and intentionally not
-> prescribed here. The prototype in [`server/`](../server/) is one
+> prescribed here. The prototype in [`server/`](../../server/) is one
 > implementation; a production build will use stronger patterns (SAF,
 > two-tier cache, request collapsing, etc.) once selected.
 >
 > **Companion documents.** The wire contract lives in
-> [`sdui-requirements-summary.md`](sdui-requirements-summary.md); governance
-> rules live in [`AGENTS.md`](../AGENTS.md); performance principles live in
-> [`plans/server/sdui-performance-design-principles.md`](plans/server/sdui-performance-design-principles.md);
+> [`sdui-requirements-summary.md`](../sdui-requirements-summary.md); governance
+> rules live in [`AGENTS.md`](../../AGENTS.md); performance principles live in
+> [`plans/server/sdui-performance-design-principles.md`](../plans/server/sdui-performance-design-principles.md);
 > the section-caching plan lives in
-> [`plans/server/plan-server-section-caching.md`](plans/server/plan-server-section-caching.md).
+> [`plans/server/plan-server-section-caching.md`](../plans/server/plan-server-section-caching.md).
 
 ---
 
@@ -104,6 +104,39 @@ Every screen response carries:
 - The server may return `404` (no resolver), `400` (resolver exists but
   cannot compose this id), or `200` with a filtered `Section`
 
+### 3.2.1 Section channel is screen-independent
+
+The section channel composes one section in isolation. It must satisfy
+these properties:
+
+- **No parent-screen dependency.** A section-channel request must compose
+  successfully without the server loading, referencing, or reconstructing
+  any `Screen`. The dispatcher receives `sectionId` + request envelope
+  and nothing else; no `screenId` is accepted, inferred, or required.
+- **Standalone callability.** Any caller in possession of a valid
+  `sectionId` may invoke the endpoint directly, whether or not that
+  section is currently mounted in any screen and whether or not any
+  `refreshPolicy.sectionEndpoint` ever pointed at it.
+  `refreshPolicy.sectionEndpoint` is a *scheduling* mechanism for
+  automatic client polling; it is not a precondition for the endpoint's
+  existence or correctness.
+- **`sectionId` is the self-sufficient composition key.** The id format
+  (`{contentSource}~type={SectionType}[~slug={name}]`, per §3.4) must
+  encode every upstream identifier the resolver needs (gameId, leagueId,
+  feed key, etc.). Resolvers must not depend on ambient screen state,
+  caller-supplied screen context, or prior screen-channel requests to
+  resolve the id.
+- **Envelope-only context.** The only contextual inputs a section
+  resolver may read are the request envelope fields enumerated in §4.1
+  (deviceClass, capabilities, locale, schemaVersion, experiments,
+  market.cohort, traceId). Anything else is a contract violation.
+- **Same-id invariant under repeat composition.** Composing the same
+  `sectionId` via the section channel and via a full screen-channel
+  response (where that section appears in `sections[]`) must yield the
+  same `Section` body for identical envelope + upstream state. The
+  section channel is not a different composition path; it is the same
+  composer invoked for one section.
+
 ### 3.3 Tokens, not raw values, on the wire
 
 Per AGENTS.md §3.6, every payload emits `token:nba.*` strings for spacing,
@@ -117,7 +150,7 @@ The narrow exceptions are documented there. The server must never emit:
   semantic token, not the resolved bundle
 
 A server-side token registry (analogous to the prototype's
-[`TokenRegistry`](../server/src/main/java/com/nba/sdui/service/TokenRegistry.java))
+[`TokenRegistry`](../../server/src/main/java/com/nba/sdui/service/TokenRegistry.java))
 **must validate at startup** that every constant referenced by composer code
 resolves against the bundled token JSON. Mismatches fail boot; they are not
 runtime warnings.
@@ -507,6 +540,9 @@ A new server passes contract when **all** of these hold:
 - [ ] Screen responses always carry the full `sections[]` (no diffs, no patches)
 - [ ] Section responses carry one `Section`, not a `Screen`
 - [ ] Response `id` matches request `id` on both channels
+- [ ] Section channel composes with `sectionId` + envelope only — no `screenId` accepted, inferred, or required
+- [ ] Section channel works for any registered `sectionId` regardless of whether it is currently mounted in a screen or referenced by `refreshPolicy.sectionEndpoint`
+- [ ] Section-channel body for a given `sectionId` matches the same section as it appears in a screen-channel response for identical envelope + upstream state
 - [ ] `X-Trace-Id` echoed on every response
 
 ### Determinism
@@ -581,15 +617,15 @@ The following are intentionally left to the implementation:
   reactive streams, etc.
 - **Deployment topology.** Pod count, autoscaling rules, fleet sizing — see
   the production capacity document referenced in
-  [`plan-server-section-caching.md`](plans/server/plan-server-section-caching.md).
+  [`plan-server-section-caching.md`](../plans/server/plan-server-section-caching.md).
 - **Composer ergonomics.** Builder pattern (as in
-  [`AtomicCompositeBuilder`](../server/src/main/java/com/nba/sdui/service/AtomicCompositeBuilder.java)),
+  [`AtomicCompositeBuilder`](../../server/src/main/java/com/nba/sdui/service/AtomicCompositeBuilder.java)),
   template language, code generation — all acceptable provided emitted
   payloads honor §3.
 - **Concrete TTL values.** The contract specifies a *gradient* (live short,
   editorial long); product tuning sets the actual numbers.
 
-The prototype under [`server/`](../server/) shows one workable
+The prototype under [`server/`](../../server/) shows one workable
 implementation of every contract item above. Treat it as **a worked
 example**, not a specification.
 
@@ -599,13 +635,13 @@ example**, not a specification.
 
 | Document | Role |
 |----------|------|
-| [`AGENTS.md`](../AGENTS.md) | Governance rules cited throughout this contract |
-| [`sdui-requirements-summary.md`](sdui-requirements-summary.md) | Wire contract: what each schema field means |
+| [`AGENTS.md`](../../AGENTS.md) | Governance rules cited throughout this contract |
+| [`sdui-requirements-summary.md`](../sdui-requirements-summary.md) | Wire contract: what each schema field means |
 | [`client-implementors-contract.md`](client-implementors-contract.md) | Mirror image — what clients are required to do with these responses |
-| [`sdui-envelope-spec.md`](sdui-envelope-spec.md) | Detailed envelope serialization rules |
-| [`plans/server/sdui-performance-design-principles.md`](plans/server/sdui-performance-design-principles.md) | The 11 principles a server build must honor for production load |
-| [`plans/server/plan-server-section-caching.md`](plans/server/plan-server-section-caching.md) | Plan for adding section-fragment caching to the prototype (blocked on SAF) |
-| [`plans/plan-aggregation-demo-features.md`](plans/plan-aggregation-demo-features.md) | Capability tiers, section ID derivation, multi-column layout, feed-version negotiation |
+| [`sdui-envelope-spec.md`](../specs/sdui-envelope-spec.md) | Detailed envelope serialization rules |
+| [`plans/server/sdui-performance-design-principles.md`](../plans/server/sdui-performance-design-principles.md) | The 11 principles a server build must honor for production load |
+| [`plans/server/plan-server-section-caching.md`](../plans/server/plan-server-section-caching.md) | Plan for adding section-fragment caching to the prototype (blocked on SAF) |
+| [`plans/plan-aggregation-demo-features.md`](../plans/plan-aggregation-demo-features.md) | Capability tiers, section ID derivation, multi-column layout, feed-version negotiation |
 
 ---
 

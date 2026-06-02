@@ -9,7 +9,7 @@ private let logger = Logger(subsystem: "com.nba.sdui", category: "SduiRepository
 /// Transport contract (ADR-003 / plan-request-transport):
 /// - Bracket-notation GET query params below 8192 chars, otherwise POST with
 ///   the identical envelope as a JSON body.
-/// - Only `Authorization` and `X-Trace-Id` headers. Deprecated `X-Platform`
+/// - Only `Authorization` and `X-Trace-Id` headers. Deprecated `X-Analytics-Platform`
 ///   and `X-Schema-Version` headers are no longer sent.
 final class SduiRepository {
     private let config: SduiConfig
@@ -320,7 +320,7 @@ final class SduiRepository {
             request.setValue(deviceID, forHTTPHeaderField: "X-Device-Id")
         }
         if let envelope {
-            request.setValue(envelope.platformName, forHTTPHeaderField: "X-Platform")
+            request.setValue(envelope.platformName, forHTTPHeaderField: "X-Analytics-Platform")
             if let appVersion = envelope.appVersion {
                 request.setValue(appVersion, forHTTPHeaderField: "X-App-Version")
             }

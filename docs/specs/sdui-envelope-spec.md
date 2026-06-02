@@ -96,7 +96,7 @@ locale=en-US
 
 | Field | Reason |
 |---|---|
-| `platform[name]` | SDUI is platform-agnostic; renderer concern, not composition concern. Moved to `X-Platform` header for analytics. |
+| `platform[name]` | SDUI is platform-agnostic; renderer concern, not composition concern. Moved to `X-Analytics-Platform` header for analytics. |
 | `platform[appVersion]` | Replaced by `schemaVersion` for contract purposes. App version is analytics-only. Moved to `X-App-Version` header. |
 | `platform[osVersion]` | Does not affect response. Analytics-only. Moved to `X-OS-Version` header. |
 | `device[zipCode]` | Raw zip is not a composition input. Market cohort is the resolved signal. |
@@ -202,7 +202,7 @@ informational only — never load-bearing for content decisions.
 
 | Header | Format | Purpose |
 |---|---|---|
-| `X-Platform` | `android` \| `ios` \| `web` | Platform analytics |
+| `X-Analytics-Platform` | `android` \| `ios` \| `web` | Platform analytics |
 | `X-App-Version` | semver | Client version analytics |
 | `X-OS-Version` | string | OS version analytics |
 | `X-Device-Id` | uuid | Correlation ID; not trusted for decisions |

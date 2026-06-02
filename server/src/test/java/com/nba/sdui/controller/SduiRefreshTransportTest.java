@@ -92,7 +92,7 @@ class SduiRefreshTransportTest {
                         .param("platform[deviceClass]", "tablet")
                         .param("market[cohort]", "MARKET_UNKNOWN")
                         .param("experiments[gd_tab_order_v2]", "variant_b")
-                        .header("X-Platform", "ios")
+                        .header("X-Analytics-Platform", "ios")
                         .header("X-Trace-Id", "trace-123")
         ).andExpect(status().isOk());
 
@@ -133,7 +133,7 @@ class SduiRefreshTransportTest {
                         .param("season", "2025-26")
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsBytes(envelope))
-                        .header("X-Platform", "ios")
+                        .header("X-Analytics-Platform", "ios")
                         .header("X-Trace-Id", "trace-456")
         ).andExpect(status().isOk());
 
@@ -186,7 +186,7 @@ class SduiRefreshTransportTest {
                         get("/v1/sdui/screen/games")
                                 .param("date", "2026-05-26")
                                 .param("locale", "en")
-                                .header("X-Platform", "web")
+                                .header("X-Analytics-Platform", "web")
                                 .header("X-Trace-Id", "trace-games-get")
                 ).andExpect(status().isOk())
                 .andExpect(content().json(gamesResponse.toString()))
@@ -203,7 +203,7 @@ class SduiRefreshTransportTest {
                                 .param("date", "2026-05-26")
                                 .contentType("application/json")
                                 .content(objectMapper.writeValueAsBytes(envelope))
-                                .header("X-Platform", "web")
+                                .header("X-Analytics-Platform", "web")
                                 .header("X-Trace-Id", "trace-games-post")
                 ).andExpect(status().isOk())
                 .andExpect(content().json(getBody));
@@ -220,7 +220,7 @@ class SduiRefreshTransportTest {
                 get("/v1/sdui/screen/refresh/games")
                         .param("date", "2026-05-26")
                         .param("locale", "en")
-                        .header("X-Platform", "web")
+                        .header("X-Analytics-Platform", "web")
         ).andExpect(status().isNotFound());
     }
 
@@ -231,7 +231,7 @@ class SduiRefreshTransportTest {
                         .param("locale", "en")
                         .param("platform[deviceClass]", "tablet")
                         .param("market[cohort]", "US_NY_METRO")
-                        .header("X-Platform", "ios")
+                        .header("X-Analytics-Platform", "ios")
                         .header("X-Trace-Id", "trace-ff-get")
         ).andExpect(status().isOk());
 
@@ -261,7 +261,7 @@ class SduiRefreshTransportTest {
                 post("/v1/sdui/screen/scoreboard")
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsBytes(envelope))
-                        .header("X-Platform", "ios")
+                        .header("X-Analytics-Platform", "ios")
                         .header("X-Trace-Id", "trace-ff-post")
         ).andExpect(status().isOk());
 

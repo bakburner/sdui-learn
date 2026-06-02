@@ -1,9 +1,8 @@
 # Plan: Lifecycle, Animation & Pagination
 
 > Source requirements: §9d, §9h, §9k from sdui-requirements-summary.md
-> **Cross-reference:** Visibility-gated refresh (the §9d runtime portion) is now built.
-> See [`plan-visibility-gated-refresh.md`](plan-visibility-gated-refresh.md) for the
-> poll/SSE pause-on-off-screen implementation. What remains here for §9d is the
+> **Cross-reference:** Visibility-gated refresh (the §9d runtime portion) is now built
+> (poll/SSE pause-on-off-screen). What remains here for §9d is the
 > **eager/lazy initial-load trigger** — deferring the first data fetch until
 > a section enters the viewport.
 

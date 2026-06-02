@@ -47,7 +47,7 @@ Extract current facts from code before auditing docs. These files define reality
 | Composer builder pattern | `server/.../AtomicCompositeBuilder.java` + `server/.../SectionSurfaces.java` + `server/.../SectionIdDeriver.java` |
 | Recent commits (feature status) | `git log --oneline -10` — scan for feat/fix commits that close gaps |
 | Working tree changes (new facts) | `git status --short` + `git diff HEAD` — uncommitted capabilities, patterns, new requirements |
-| Kitchen sink live response | `GET http://localhost:8080/sdui/demos` with `X-Platform: android` (requires running server) |
+| Kitchen sink live response | `GET http://localhost:8080/sdui/demos` with `X-Analytics-Platform: android` (requires running server) |
 
 ## Documents to Audit
 

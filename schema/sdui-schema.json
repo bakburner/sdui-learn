@@ -1304,7 +1304,7 @@
             "type": "string",
             "enum": ["pip", "chromecast", "airplay", "backgroundAudio", "fullscreenRotation"]
           },
-          "description": "Platform capabilities the player should enable. Server includes only capabilities relevant to the requesting platform (via X-Platform header)."
+          "description": "Platform capabilities the player should enable. Server includes only capabilities relevant to the requesting platform (via X-Analytics-Platform header)."
         },
         "ui": {
           "$ref": "#/definitions/AtomicElement",

@@ -75,7 +75,7 @@ class ParameterizedRefreshRoutingTest {
                 get("/v1/sdui/screen/games")
                         .param("date", "2026-05-18")
                         .param("locale", "en")
-                        .header("X-Platform", "web")
+                        .header("X-Analytics-Platform", "web")
         ).andExpect(status().isOk());
 
         verify(parameterizedRefreshService).refreshScreen(
@@ -88,7 +88,7 @@ class ParameterizedRefreshRoutingTest {
         mockMvc.perform(
                 get("/v1/sdui/screen/games")
                         .param("locale", "en")
-                        .header("X-Platform", "web")
+                        .header("X-Analytics-Platform", "web")
         ).andExpect(status().isOk());
 
         verify(compositionService).composeLive(any());
@@ -103,7 +103,7 @@ class ParameterizedRefreshRoutingTest {
                         .param("season", "2024-25")
                         .param("perMode", "totals")
                         .param("locale", "en")
-                        .header("X-Platform", "web")
+                        .header("X-Analytics-Platform", "web")
         ).andExpect(status().isOk());
 
         verify(parameterizedRefreshService).refreshScreen(
@@ -116,7 +116,7 @@ class ParameterizedRefreshRoutingTest {
         mockMvc.perform(
                 get("/v1/sdui/screen/leaders")
                         .param("locale", "en")
-                        .header("X-Platform", "web")
+                        .header("X-Analytics-Platform", "web")
         ).andExpect(status().isOk());
 
         verify(compositionService).composeLeaders(any());

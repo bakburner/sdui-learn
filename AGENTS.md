@@ -6,7 +6,7 @@ navigation, refresh policy, and data flow can change without requiring client
 releases.
 
 > **Building a new client?** See
-> [client-implementors-contract.md](client-implementors-contract.md) for the
+> [client-implementors-contract.md](docs/contracts/client-implementors-contract.md) for the
 > platform-agnostic architecture blueprint and build checklist. This file states
 > the constraints; the contract explains how to implement them.
 
@@ -195,13 +195,13 @@ The following are **not** valid client exceptions:
 
 ### 3.4 Platform identity travels in the request envelope
 
-- Every client identifies its platform through the `X-Platform` header
+- Every client identifies its platform through the `X-Analytics-Platform` header
   (analytics/observability) and `platform[deviceClass]` +
   `platform[capabilities]` as bracket-notation query parameters (composition
   inputs). `RequestEnvelopeBuilder` emits the query fields on GET requests
   and as `platform.deviceClass` / `platform.capabilities` inside the JSON
   body on POST. See §4.1.1.
-- Allowed `X-Platform` header values are `android`, `ios`, `web`.
+- Allowed `X-Analytics-Platform` header values are `android`, `ios`, `web`.
 - Server composition reads device context via `SduiRequestContext` /
   `BracketParamResolver`. Composers must never assume a deviceClass via
   `defaultValue`; missing deviceClass must compose safely (e.g. form layout

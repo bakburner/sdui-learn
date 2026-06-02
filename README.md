@@ -6,7 +6,7 @@ Server-Driven UI prototype demonstrating server-composed screens with real-time 
 
 | I want to… | Start with |
 |------------|------------|
-| **Build a new client** (iOS, Flutter, TV, desktop) | [Client Implementor's Contract](docs/client-implementors-contract.md) — platform-agnostic blueprint with build phases, pseudocode algorithms, and conformance checklist |
+| **Build a new client** (iOS, Flutter, TV, desktop) | [Client Implementor's Contract](docs/contracts/client-implementors-contract.md) — platform-agnostic blueprint with build phases, pseudocode algorithms, and conformance checklist |
 | **Set up local tooling / prerequisites** | [Development Setup](docs/sdui-setup.md) — prerequisites, dependency bootstrap, secrets, and Makefile device overrides |
 | **Extend the Android client** | [android/sdui-core/](android/sdui-core/) — renderers, state, data binding. See [Section Types](#section-types-11-in-schema-10-permanent--atomiccomposite) below for what exists |
 | **Extend the Web client** | [web/src/](web/src/) — React components, hooks, runtime. Same section types reference |
@@ -322,7 +322,6 @@ make codegen
 | [Technical Proposal](docs/SDUI_Technical_Proposal_v2.md) | Architecture, schema design, runtime behavior, requirement status |
 | [Requirements Summary](docs/sdui-requirements-summary.md) | Full requirements, gap analysis, ADR tracking |
 | [Kitchen Sink Appendix](docs/appendix-kitchen-sink.md) | Full 42-section demo response (Android platform) |
-| [Client Implementor's Contract](docs/client-implementors-contract.md) | Platform-agnostic build guide for new clients (any language/framework) |
+| [Client Implementor's Contract](docs/contracts/client-implementors-contract.md) | Platform-agnostic build guide for new clients (any language/framework) |
 | [Development Setup](docs/sdui-setup.md) | Prerequisites, secrets, dependency bootstrap, and Makefile runtime overrides |
 | [ADR Index](docs/adr/README.md) | Architecture Decision Records (001–015) |
-| [Accessibility Plan](docs/plans/plan-accessibility.md) | Accessibility strategy and implementation plan |

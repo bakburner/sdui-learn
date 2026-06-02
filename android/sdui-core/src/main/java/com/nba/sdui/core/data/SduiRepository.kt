@@ -93,7 +93,7 @@ class SduiRepository(
                 .header("X-Trace-Id", traceId)
                 .header("X-Request-Id", UUID.randomUUID().toString())
                 .apply { envelope.getDeviceId()?.let { header("X-Device-Id", it) } }
-                .header("X-Platform", envelope.getPlatformName())
+                .header("X-Analytics-Platform", envelope.getPlatformName())
                 .apply { envelope.getAppVersion()?.let { header("X-App-Version", it) } }
                 .header("X-OS-Version", envelope.getOsVersion())
                 // TODO(edge): placeholder — edge worker will set these from client IP
@@ -113,7 +113,7 @@ class SduiRepository(
                 .header("X-Trace-Id", traceId)
                 .header("X-Request-Id", UUID.randomUUID().toString())
                 .apply { envelope.getDeviceId()?.let { header("X-Device-Id", it) } }
-                .header("X-Platform", envelope.getPlatformName())
+                .header("X-Analytics-Platform", envelope.getPlatformName())
                 .apply { envelope.getAppVersion()?.let { header("X-App-Version", it) } }
                 .header("X-OS-Version", envelope.getOsVersion())
                 // TODO(edge): placeholder — edge worker will set these from client IP
@@ -168,7 +168,7 @@ class SduiRepository(
                 .header("X-Trace-Id", traceId)
                 .header("X-Request-Id", UUID.randomUUID().toString())
                 .apply { envelope.getDeviceId()?.let { header("X-Device-Id", it) } }
-                .header("X-Platform", envelope.getPlatformName())
+                .header("X-Analytics-Platform", envelope.getPlatformName())
                 .apply { envelope.getAppVersion()?.let { header("X-App-Version", it) } }
                 .header("X-OS-Version", envelope.getOsVersion())
                 // TODO(edge): placeholder — edge worker will set these from client IP
@@ -186,7 +186,7 @@ class SduiRepository(
                 .header("X-Trace-Id", traceId)
                 .header("X-Request-Id", UUID.randomUUID().toString())
                 .apply { envelope.getDeviceId()?.let { header("X-Device-Id", it) } }
-                .header("X-Platform", envelope.getPlatformName())
+                .header("X-Analytics-Platform", envelope.getPlatformName())
                 .apply { envelope.getAppVersion()?.let { header("X-App-Version", it) } }
                 .header("X-OS-Version", envelope.getOsVersion())
                 // TODO(edge): placeholder — edge worker will set these from client IP

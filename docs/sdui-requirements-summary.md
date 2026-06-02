@@ -891,7 +891,7 @@ sequenceDiagram
 
 ### 9g. Theming & Dark Mode
 
-**Status:** Built. Three-layer design system implemented across all platforms. See [`sdui-design-system.md`](sdui-design-system.md) for the full reference.
+**Status:** Built. Three-layer design system implemented across all platforms. See [`sdui-design-system.md`](design/sdui-design-system.md) for the full reference.
 
 **Requirements:**
 
@@ -973,11 +973,11 @@ sequenceDiagram
 
 **Settled (cross-platform):** Cross-form-factor differences (phone vs. TV vs. web) are handled by platform-aware composition — each platform family receives a response composed for its form factor. The server owns section selection and ordering per platform.
 
-**Within-family layout hints:** The prior `SectionLayoutHints` mechanism was removed (2026-05-25) because it duplicated the chrome ownership that `Section.surface` already provides. Inter-section margins now route through `Section.surface.margin`; section outer chrome is owned exclusively by `SectionContainer` reading `section.surface`. See `docs/sdui-design-system.md §2` (Box-model cascade) for the active model.
+**Within-family layout hints:** The prior `SectionLayoutHints` mechanism was removed (2026-05-25) because it duplicated the chrome ownership that `Section.surface` already provides. Inter-section margins now route through `Section.surface.margin`; section outer chrome is owned exclusively by `SectionContainer` reading `section.surface`. See `docs/design/sdui-design-system.md §2` (Box-model cascade) for the active model.
 
 **Remaining gap:** Advanced layout features (multi-column, placement slots) deferred to surface expansion.
 
-**ADR tracking:** [ADR-008](adr/008-form-factor-layout-manager.md) — **Superseded by [ADR-015](adr/015-section-chrome-single-ownership.md)**, which ratifies the single-ownership path for section outer chrome (`Section.surface` consumed by `SectionContainer`) and references the box-model cascade in `docs/sdui-design-system.md §2`.
+**ADR tracking:** [ADR-008](adr/008-form-factor-layout-manager.md) — **Superseded by [ADR-015](adr/015-section-chrome-single-ownership.md)**, which ratifies the single-ownership path for section outer chrome (`Section.surface` consumed by `SectionContainer`) and references the box-model cascade in `docs/design/sdui-design-system.md §2`.
 
 ### 9n. Ad Support as First-Class Primitive
 
@@ -1021,8 +1021,8 @@ sequenceDiagram
 
 - GET-first with bracket-notation nested params (`platform[deviceClass]=phone`, `platform[capabilities]=sse`, `experiments[exp_id]=variant_b`). Composition-relevant context travels as query parameters — naturally part of the CDN cache key.
 - POST fallback on the same URL with a JSON body of the same shape, when query string exceeds 8192 characters.
-- `Authorization` is the only required header. Analytics/observability headers (`X-Platform`, `X-App-Version`, `X-OS-Version`, `X-Trace-Id`, `X-Request-Id`) travel as headers, not query params. Edge-injected headers (`X-Resolved-Country`, `X-Resolved-Market-Cohort`) supply geo context.
-- Platform identity travels as the `X-Platform` header (analytics only); `schemaVersion` remains in the query. Device context for composition uses `platform[deviceClass]` and `platform[capabilities]` in the envelope.
+- `Authorization` is the only required header. Analytics/observability headers (`X-Analytics-Platform`, `X-App-Version`, `X-OS-Version`, `X-Trace-Id`, `X-Request-Id`) travel as headers, not query params. Edge-injected headers (`X-Resolved-Country`, `X-Resolved-Market-Cohort`) supply geo context.
+- Platform identity travels as the `X-Analytics-Platform` header (analytics only); `schemaVersion` remains in the query. Device context for composition uses `platform[deviceClass]` and `platform[capabilities]` in the envelope.
 - All device context fields are optional — server tolerates missing fields gracefully with sensible defaults.
 - All timestamps in UTC — no timezone in the request envelope. Timezone-aware formatting is a client presentation concern.
 - `variant` query param removed — all variant resolution uses the `experiments` map exclusively.
@@ -1198,7 +1198,7 @@ Figma export pipeline remains deferred.
 - CI validators must assert registry structure, hex format, alias integrity, and no dangling references
 - The Figma export pipeline itself remains deferred; when it lands, it replaces registry values wholesale while keeping the existing registry shape as the contract
 
-Implementation details for server plumbing, per-platform resolvers, and CI scripts are in [`sdui-design-system.md`](sdui-design-system.md).
+Implementation details for server plumbing, per-platform resolvers, and CI scripts are in [`sdui-design-system.md`](design/sdui-design-system.md).
 
 ---
 

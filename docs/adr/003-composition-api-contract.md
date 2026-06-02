@@ -21,7 +21,7 @@ Composition requires deterministic inputs (screen/entity, platform, locale, capa
 - Experiments map (query params)
 - Trace ID (`X-Trace-Id` header)
 - Request ID (`X-Request-Id` header)
-- Platform (`X-Platform` header, analytics only)
+- Platform (`X-Analytics-Platform` header, analytics only)
 - Auth context via `Authorization` header
 
 ## Auth Decision

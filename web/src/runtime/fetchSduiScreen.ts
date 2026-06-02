@@ -99,7 +99,7 @@ export async function fetchSduiScreen(
         'X-Trace-Id': traceId,
         'X-Request-Id': requestId,
         ...(builder.getDeviceId() ? { 'X-Device-Id': builder.getDeviceId()! } : {}),
-        'X-Platform': builder.getPlatformName(),
+        'X-Analytics-Platform': builder.getPlatformName(),
         ...(builder.getAppVersion() ? { 'X-App-Version': builder.getAppVersion()! } : {}),
         ...(builder.getOsVersion() ? { 'X-OS-Version': builder.getOsVersion()! } : {}),
         // TODO(edge): placeholder — edge worker will set these from client IP
@@ -119,7 +119,7 @@ export async function fetchSduiScreen(
         'X-Trace-Id': traceId,
         'X-Request-Id': requestId,
         ...(builder.getDeviceId() ? { 'X-Device-Id': builder.getDeviceId()! } : {}),
-        'X-Platform': builder.getPlatformName(),
+        'X-Analytics-Platform': builder.getPlatformName(),
         ...(builder.getAppVersion() ? { 'X-App-Version': builder.getAppVersion()! } : {}),
         ...(builder.getOsVersion() ? { 'X-OS-Version': builder.getOsVersion()! } : {}),
         // TODO(edge): placeholder — edge worker will set these from client IP
@@ -162,7 +162,7 @@ export async function fetchSduiSection(options: FetchSduiSectionOptions): Promis
         'X-Trace-Id': traceId,
         'X-Request-Id': requestId,
         ...(builder.getDeviceId() ? { 'X-Device-Id': builder.getDeviceId()! } : {}),
-        'X-Platform': builder.getPlatformName(),
+        'X-Analytics-Platform': builder.getPlatformName(),
         ...(builder.getAppVersion() ? { 'X-App-Version': builder.getAppVersion()! } : {}),
         ...(builder.getOsVersion() ? { 'X-OS-Version': builder.getOsVersion()! } : {}),
         // TODO(edge): placeholder — edge worker will set these from client IP
@@ -180,7 +180,7 @@ export async function fetchSduiSection(options: FetchSduiSectionOptions): Promis
         'X-Trace-Id': traceId,
         'X-Request-Id': requestId,
         ...(builder.getDeviceId() ? { 'X-Device-Id': builder.getDeviceId()! } : {}),
-        'X-Platform': builder.getPlatformName(),
+        'X-Analytics-Platform': builder.getPlatformName(),
         ...(builder.getAppVersion() ? { 'X-App-Version': builder.getAppVersion()! } : {}),
         ...(builder.getOsVersion() ? { 'X-OS-Version': builder.getOsVersion()! } : {}),
         // TODO(edge): placeholder — edge worker will set these from client IP

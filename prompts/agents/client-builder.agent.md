@@ -82,7 +82,7 @@ These come from `AGENTS.md` and are non-negotiable for any platform:
 5. **Images from server** — never construct URLs from patterns
 6. **Unknown types skip gracefully** — log + skip, never crash
 7. **Generic fetch primitives only** — `fetchScreen(endpoint)` for full screens, `fetchSection(path)` for section-level SDUI re-composition (returns a single `Section`), `fetchRawJson(url)` for CDN data overlay. No screen-specific methods like `getGameDetail()` or `getScoreboard()`.
-8. **Platform identity travels in headers and envelope** — `X-Platform` header (analytics), `platform[deviceClass]` + `platform[capabilities]` as bracket-notation query params (composition inputs) on GET, same fields inside the JSON body on POST.
+8. **Platform identity travels in headers and envelope** — `X-Analytics-Platform` header (analytics), `platform[deviceClass]` + `platform[capabilities]` as bracket-notation query params (composition inputs) on GET, same fields inside the JSON body on POST.
 9. **Never swallow exceptions** — log with context
 
 ## Platform Adaptation Patterns

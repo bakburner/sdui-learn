@@ -30,7 +30,7 @@ The server sets `Cache-Control` headers based on the response's `cacheability` f
 | Cacheability (ADR-011) | `Cache-Control` header |
 |------------------------|----------------------|
 | `public` | `public, max-age=3600` |
-| `contextual` | `public, max-age=1800, Vary: X-Platform, Accept-Language` |
+| `contextual` | `public, max-age=1800, Vary: X-Analytics-Platform, Accept-Language` |
 | `personalized` | `private, max-age=300` |
 | `live` | `no-store` or `private, max-age=10` |
 

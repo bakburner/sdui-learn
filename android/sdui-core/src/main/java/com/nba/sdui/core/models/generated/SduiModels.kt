@@ -1325,7 +1325,7 @@ data class Data (
 
     /**
      * Platform capabilities the player should enable. Server includes only capabilities
-     * relevant to the requesting platform (via X-Platform header).
+     * relevant to the requesting platform (via X-Analytics-Platform header).
      */
     val capabilities: List<Capability>? = null,
 

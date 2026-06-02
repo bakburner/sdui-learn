@@ -97,10 +97,10 @@ public class BracketParamResolver implements HandlerMethodArgumentResolver {
             org.slf4j.MDC.put("requestId", requestId);
         }
 
-        // X-Platform — analytics/logging only, not stored on context
-        String xPlatform = webRequest.getHeader("X-Platform");
+        // X-Analytics-Platform — analytics/logging only, not stored on context
+        String xPlatform = webRequest.getHeader("X-Analytics-Platform");
         if (xPlatform != null) {
-            log.debug("X-Platform: {}", xPlatform);
+            log.debug("X-Analytics-Platform: {}", xPlatform);
         }
 
         // X-App-Version — analytics/logging only

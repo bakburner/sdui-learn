@@ -1493,7 +1493,7 @@ struct DataClass: Codable {
     let content: [String: JSONAny]?
     let autoplay: Bool?
     /// Platform capabilities the player should enable. Server includes only capabilities
-    /// relevant to the requesting platform (via X-Platform header).
+    /// relevant to the requesting platform (via X-Analytics-Platform header).
     let capabilities: [Capability]?
     /// Content identifier — interpreted by playerType (gameId for game, mediaId for vod, eventId
     /// for event, streamUrl for stream). Single field avoids mutually exclusive optional IDs.

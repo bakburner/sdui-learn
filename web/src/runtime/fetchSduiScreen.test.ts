@@ -115,7 +115,7 @@ describe('fetchSduiScreen — parameterized refresh transport', () => {
     expect(query).toContain('locale=en');
 
     expect(req.headers['x-trace-id']).toBe('trace-parent');
-    expect(req.headers['x-platform']).toBe('web');
+    expect(req.headers['x-analytics-platform']).toBe('web');
     expect(req.headers['x-resolved-country']).toBe('US');
     expect(req.headers['x-resolved-market-cohort']).toBe('MARKET_UNKNOWN');
   });

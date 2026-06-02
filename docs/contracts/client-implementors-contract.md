@@ -255,7 +255,7 @@ any renderer runs) → `AtomicElement` box model (`AtomicBox`). Each level wraps
 the next and no level overrides a parent level's chrome. The full cascade —
 including the ownership rules for each level, level-preference guidance for
 `padding` and `background`, and a worked double-chrome counterexample — is
-documented in `docs/sdui-design-system.md §2`.
+documented in `docs/design/sdui-design-system.md §2`.
 
 **The canonical modifier order (outer → inner):**
 
@@ -1457,7 +1457,7 @@ the refresh response with the screen that triggered it.
 | `Authorization` | Yes (when authenticated) | Bearer token |
 | `X-Trace-Id` | Yes | Request correlation |
 | `X-Request-Id` | Yes | Idempotency / dedup |
-| `X-Platform` | Yes | Analytics (`android`, `ios`, `web`) |
+| `X-Analytics-Platform` | Yes | Analytics (`android`, `ios`, `web`) |
 | `X-App-Version` | Yes | Analytics / compat |
 | `X-OS-Version` | Yes | Analytics |
 | `X-Device-Id` | Recommended | Device correlation |
@@ -1799,7 +1799,7 @@ easing curves come from `LayoutTokenResolver.motionEasing(token)`.
 ## 17a. Non-atomic variant tokens (FormField select)
 
 Most variant tokens live on atomic primitives and carry the vocabularies
-documented in `docs/sdui-design-system.md` §4 Layer 2. One vocabulary
+documented in `docs/design/sdui-design-system.md` §4 Layer 2. One vocabulary
 lives on a non-atomic carrier — a field-data object (`FormField` when
 `fieldType == "select"`). It obeys the same rules (strict-decode on the
 typed field, renderer realizes natively, absent value falls through to
@@ -1843,7 +1843,7 @@ the rules in `AGENTS.md`.
 | C8 | Single generic fetch method — no `getGameDetail()` | §4.1 |
 | C9 | Refresh driven by `refreshPolicy` — no hardcoded intervals | §3.3 |
 | C10 | URI resolution is a simple prefix swap | §3.1 |
-| C11 | `platform[deviceClass]`, `schemaVersion`, and `X-Platform` header on every composition request | `AGENTS.md` §3.4; §11 |
+| C11 | `platform[deviceClass]`, `schemaVersion`, and `X-Analytics-Platform` header on every composition request | `AGENTS.md` §3.4; §11 |
 | C12 | Exceptions logged with context — never silently swallowed | §10.1 |
 | C13 | Schema is the wire contract — strict decoders; new enum values go into schema first, then regen | §1.3 |
 | C14 | Renderers are presentation-only — no business logic | §5 |

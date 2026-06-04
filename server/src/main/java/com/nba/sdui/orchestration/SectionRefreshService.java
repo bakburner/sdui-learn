@@ -1,6 +1,7 @@
 package com.nba.sdui.orchestration;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.nba.sdui.metrics.SduiMetrics;
 import com.nba.sdui.request.SduiRequestContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +23,20 @@ public class SectionRefreshService {
     }
 
     private final Map<String, SectionResolver> registry = new LinkedHashMap<>();
+    private final SduiMetrics metrics;
+
+    public SectionRefreshService(SduiMetrics metrics) {
+        this.metrics = metrics;
+    }
+
+    /**
+     * Test-only constructor for unit tests that build the service without a
+     * Spring context. Production wiring always uses the {@link SduiMetrics}
+     * constructor.
+     */
+    public SectionRefreshService() {
+        this(new SduiMetrics(new io.micrometer.core.instrument.simple.SimpleMeterRegistry()));
+    }
 
     public void registerResolver(String prefix, SectionResolver resolver) {
         registry.put(prefix, resolver);
@@ -40,18 +55,20 @@ public class SectionRefreshService {
 
         if (bestPrefix == null) {
             log.warn("No resolver registered for sectionId='{}' — returning 404", sectionId);
+            metrics.recordSectionRefresh(sectionId, "not_found");
             return Optional.empty();
         }
 
         try {
             JsonNode result = registry.get(bestPrefix).resolve(sectionId, ctx);
+            metrics.recordSectionRefresh(sectionId, result == null ? "empty" : "success");
             return Optional.ofNullable(result);
         } catch (UnsupportedSectionException e) {
-            // Resolver recognized the prefix but cannot refresh this specific section in isolation.
-            // Propagate so the controller can translate to 400 (vs 404 for "no resolver registered").
+            metrics.recordSectionRefresh(sectionId, "unsupported");
             throw e;
         } catch (Exception e) {
             log.error("Resolver failed for sectionId='{}': {}", sectionId, e.getMessage(), e);
+            metrics.recordSectionRefresh(sectionId, "error");
             return Optional.empty();
         }
     }

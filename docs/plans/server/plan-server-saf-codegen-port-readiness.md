@@ -894,13 +894,23 @@ and folding `meta` into its own response `meta`.
 - [x] **A2b.3** Replace OkHttp remote adapters with `RestClient` implementations
   behind `…domain.port` seams (preserve CDN/OPIM headers). Land the
   RestClient-only-in-`…remote` ArchUnit rule with this swap.
-- [ ] **A2b.4** Build SAF orchestration layer (`OrchestratorFactory.create(timeout)`
+- [x] **A2b.4** Build SAF orchestration layer (`OrchestratorFactory.create(timeout)`
   + `ServiceCall` per upstream, `failOnError` true/false per criticality,
   per-upstream `saf.services.<name>.{resilience,cache,collapsing}` config,
-  `STALE_IF_ERROR` per §8.1 policy declaration table).
-- [ ] **A2b.4** Emit contract §10.1 metrics (`sdui.composition.duration`,
+  `STALE_IF_ERROR` per §8.1 policy declaration table). `StatsApiAdapter` now
+  routes every upstream call (`scoreboard-cdn`, `core-api`, `boxscore-cdn`,
+  `season-schedule`) through `OrchestratorFactory.create(5s).addService(
+  ServiceCall…)` so per-service resilience, two-tier caching, and request
+  collapsing wrap each fetch uniformly.
+- [x] **A2b.4** Emit contract §10.1 metrics (`sdui.composition.duration`,
   `sdui.cache.hit/miss` by layer, `sdui.upstream.duration`,
-  `sdui.version.mismatch`, `sdui.section.refresh`).
+  `sdui.version.mismatch`, `sdui.section.refresh`). New `SduiMetrics`
+  `@Component` (in `…metrics`) centralises Micrometer registration.
+  `SduiCompositionService` times every `composeX` call, `StatsApiAdapter`
+  emits upstream timer + cache hit/miss counters from `ServiceMetadata`,
+  `SduiController.checkVersionMismatch` increments the version-mismatch
+  counter, and `SectionRefreshService.refreshSection` records section-refresh
+  status. Server tests 166/166 green.
 - [x] **A2b — runtime tokens (out-of-band Concern 1, landed alongside A2b)**
   Replaced compile-time `*Tokens.java` constant classes with a runtime
   `Tokens` `@Component` that loads `schema/*-tokens.json` at startup. Composers,

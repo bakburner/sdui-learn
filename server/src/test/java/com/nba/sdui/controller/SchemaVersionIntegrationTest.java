@@ -34,7 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * </ul>
  */
 @WebMvcTest(SduiController.class)
-@Import({SchemaVersionChecker.class, SchemaVersionConfig.class, SchemaVersionFilter.class, SchemaVersionRegistry.class})
+@Import({SchemaVersionChecker.class, SchemaVersionConfig.class, SchemaVersionFilter.class, SchemaVersionRegistry.class, com.nba.sdui.metrics.SduiMetrics.class})
 class SchemaVersionIntegrationTest {
 
     @Autowired

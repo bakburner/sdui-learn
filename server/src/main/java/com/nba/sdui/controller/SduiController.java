@@ -47,6 +47,7 @@ public class SduiController {
     private final SchemaVersionChecker versionChecker;
     private final SchemaVersionConfig versionConfig;
     private final SchemaVersionFilter versionFilter;
+    private final com.nba.sdui.metrics.SduiMetrics metrics;
 
     public SduiController(SduiCompositionService compositionService,
                           SectionRefreshService sectionRefreshService,
@@ -54,7 +55,8 @@ public class SduiController {
                           ObjectMapper objectMapper,
                           SchemaVersionChecker versionChecker,
                           SchemaVersionConfig versionConfig,
-                          SchemaVersionFilter versionFilter) {
+                          SchemaVersionFilter versionFilter,
+                          com.nba.sdui.metrics.SduiMetrics metrics) {
         this.compositionService = compositionService;
         this.sectionRefreshService = sectionRefreshService;
         this.parameterizedRefreshService = parameterizedRefreshService;
@@ -62,6 +64,7 @@ public class SduiController {
         this.versionChecker = versionChecker;
         this.versionConfig = versionConfig;
         this.versionFilter = versionFilter;
+        this.metrics = metrics;
     }
 
     // ── Game Detail ────────────────────────────────────────────────────
@@ -602,6 +605,7 @@ public class SduiController {
         if (versionChecker.isUpgradeRequired(ctx.getSchemaVersion())) {
             log.warn("Client schema version {} is below minimum supported {}",
                     ctx.getSchemaVersion(), versionConfig.getMinSupportedVersion());
+            metrics.recordVersionMismatch(ctx.getSchemaVersion());
             response.setHeader(SchemaVersionChecker.MISMATCH_HEADER, SchemaVersionChecker.UPGRADE_REQUIRED);
             setResponseHeaders(response, ctx);
             JsonNode errorResponse = versionChecker.composeUpgradeRequiredResponse(

@@ -50,7 +50,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * fully removed and returns 404.
  */
 @WebMvcTest(SduiController.class)
-@Import({SchemaVersionChecker.class, SchemaVersionConfig.class, SchemaVersionFilter.class, SchemaVersionRegistry.class})
+@Import({SchemaVersionChecker.class, SchemaVersionConfig.class, SchemaVersionFilter.class, SchemaVersionRegistry.class, com.nba.sdui.metrics.SduiMetrics.class})
 class SduiRefreshTransportTest {
 
     @Autowired

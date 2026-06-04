@@ -34,7 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * called without params, the regular composer entry point is used.
  */
 @WebMvcTest(SduiController.class)
-@Import({SchemaVersionChecker.class, SchemaVersionConfig.class, SchemaVersionFilter.class, SchemaVersionRegistry.class})
+@Import({SchemaVersionChecker.class, SchemaVersionConfig.class, SchemaVersionFilter.class, SchemaVersionRegistry.class, com.nba.sdui.metrics.SduiMetrics.class})
 class ParameterizedRefreshRoutingTest {
 
     @Autowired

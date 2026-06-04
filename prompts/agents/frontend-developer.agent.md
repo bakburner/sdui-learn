@@ -60,7 +60,7 @@ interface Props {
 }
 
 export function BoxscoreTable({ section }: Props) {
-  const data = section.data as BoxscoreTableData;
+  const data = section.data as BoxscoreTable;
   const [selectedTab, setSelectedTab] = useState(0);
 
   return (

@@ -220,9 +220,9 @@ Tabular stat views (boxscore, roster, standings) share UX patterns — frozen fi
 
 **Key decision factors:** Semantic types over generic `DataTable` — different tables have genuinely different data shapes (boxscore ≠ roster ≠ standings). Semantic types provide compile-time safety, meaningful analytics, and per-platform rendering freedom. Generic `Form` is the correct exception because pickers genuinely share shape regardless of domain. Client-side sort works because payloads are small (≤15 rows) and state survives poll refreshes. Client teams share a `BaseDataTable` component internally; this reuse is invisible to the schema.
 
-**`BoxscoreTableData`** — domain-typed player statistics with `teamTotals` (frozen bottom row excluded from sort), `emptyMessage` (pre-game states), and `additionalStatistics` (forward-compatible escape hatch for new stats without schema changes). See [Appendix C](#appendix-c-boxscore-screen-response-example) for a full composed example.
+**`BoxscoreTable`** — domain-typed player statistics with `teamTotals` (frozen bottom row excluded from sort), `emptyMessage` (pre-game states), and `additionalStatistics` (forward-compatible escape hatch for new stats without schema changes). See [Appendix C](#appendix-c-boxscore-screen-response-example) for a full composed example.
 
-**`FormData`** — extensible settings fields with `picker` (dropdown), `segmented` (button group), `toggle` (switch), `datePicker`, and `text` field types. Field changes accumulate in `Screen.state`; submit fires the `refresh` action with `paramBindings` resolved from current state values. See [Appendix D](#appendix-d-form-section-response-example) for a full example.
+**`Form`** — extensible settings fields with `picker` (dropdown), `segmented` (button group), `toggle` (switch), `datePicker`, and `text` field types. Field changes accumulate in `Screen.state`; submit fires the `refresh` action with `paramBindings` resolved from current state values. See [Appendix D](#appendix-d-form-section-response-example) for a full example.
 
 ### 2a. Atomic Element Layer
 

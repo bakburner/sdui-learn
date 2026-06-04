@@ -2,13 +2,13 @@ import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { AtomicOverlayContainer } from './AtomicOverlayContainer';
 import type { AtomicElement } from '@sdui/models';
-import { UIType } from '@sdui/models';
+import { AtomicElementType } from '@sdui/models';
 
 describe('AtomicOverlayContainer — DOM structure', () => {
   it('renders base then overlay layers with absolute positioning', () => {
     const base: AtomicElement = {
       id: 'img-base',
-      type: UIType.Image,
+      type: AtomicElementType.Image,
       src: 'https://example.com/hero.jpg',
       fit: 'cover',
       widthMode: 'fill',
@@ -16,14 +16,14 @@ describe('AtomicOverlayContainer — DOM structure', () => {
 
     const element: AtomicElement = {
       id: 'oc-1',
-      type: UIType.OverlayContainer,
+      type: AtomicElementType.OverlayContainer,
       base,
       overlays: [
         {
           alignment: 'bottomStart',
           element: {
             id: 'copy',
-            type: UIType.Text,
+            type: AtomicElementType.Text,
             content: 'Title',
             variant: 'titleMedium',
             accessibility: { label: 'Hero headline' },
@@ -33,7 +33,7 @@ describe('AtomicOverlayContainer — DOM structure', () => {
           alignment: 'topEnd',
           element: {
             id: 'btn',
-            type: UIType.Button,
+            type: AtomicElementType.Button,
             label: 'More',
             variant: 'text',
           } as AtomicElement,

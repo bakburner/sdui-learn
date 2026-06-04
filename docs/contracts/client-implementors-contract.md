@@ -376,7 +376,7 @@ FUNCTION AtomicSectionSlot(element, state, onAction, onStateChange, currentSlotD
 
 Inside an `AtomicComposite`, leaf primitives may carry an optional
 `bindRef: string` dot-path that resolves against the enclosing
-`AtomicCompositeData.content` object at render time. Placing the
+`AtomicComposite.content` object at render time. Placing the
 binding identifier on the consuming leaf (rather than in a centrally-
 declared path-into-tree on the section envelope) lets composers
 reshape the `ui` tree without breaking real-time updates. Data

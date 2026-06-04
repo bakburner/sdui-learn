@@ -10,7 +10,7 @@ Formalize the `AdSlot` section type with a complete contract: provider configura
 
 | Aspect | Status | Notes |
 |--------|--------|-------|
-| Schema support | Partial | `AdSlotData` exists with basic fields; no formal fallback/targeting contract |
+| Schema support | Partial | `AdSlot` exists with basic fields; no formal fallback/targeting contract |
 | Server support | Partial | Composers create AdSlot sections; no targeting key injection |
 | Android support | Partial | `AdSlotRenderer` renders placeholder; no GAM/ad SDK integration |
 | Web support | Partial | `AdSlot` renders placeholder; no GPT/ad SDK integration |
@@ -19,7 +19,7 @@ Formalize the `AdSlot` section type with a complete contract: provider configura
 
 ## Requirements Addressed
 
-- [ ] **REQ-1**: Formalize `AdSlotData` schema (provider, unitPath, sizes, targeting, fallback) — §9n
+- [ ] **REQ-1**: Formalize `AdSlot` schema (provider, unitPath, sizes, targeting, fallback) — §9n
 - [ ] **REQ-2**: Define collapse-on-empty behavior (hide section when no fill) — §9n, ADR-007
 - [ ] **REQ-3**: Ad refresh policy (time-based refresh, viewability tracking) — §9n
 - [ ] **REQ-4**: Android GAM SDK integration — §9n
@@ -28,7 +28,7 @@ Formalize the `AdSlot` section type with a complete contract: provider configura
 ## Tasks
 
 ### Phase 1: Schema & Codegen
-- [ ] Extend `AdSlotData` with: `provider`, `unitPath`, `sizes[]`, `targeting: Map`, `fallbackBehavior: "collapse" | "placeholder"`, `refreshIntervalMs`
+- [ ] Extend `AdSlot` with: `provider`, `unitPath`, `sizes[]`, `targeting: Map`, `fallbackBehavior: "collapse" | "placeholder"`, `refreshIntervalMs`
 - [ ] Run codegen
 
 ### Phase 2: Server

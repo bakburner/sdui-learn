@@ -16,7 +16,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.nba.sdui.core.models.generated.LayoutScalar
-import com.nba.sdui.core.models.generated.SduiModels
+import com.nba.sdui.core.models.generated.Screen
 import com.nba.sdui.core.models.generated.Section
 import com.nba.sdui.core.models.generated.Spacing
 import com.nba.sdui.core.renderer.LayoutTokenResolver
@@ -212,7 +212,7 @@ private fun UpgradeRequiredContent(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SuccessContent(
-    screen: SduiModels,
+    screen: Screen,
     screenState: Map<String, Any>,
     isRefreshing: Boolean,
     onRefresh: () -> Unit,

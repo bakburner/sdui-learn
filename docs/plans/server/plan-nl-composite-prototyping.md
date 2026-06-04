@@ -41,7 +41,7 @@ validated AtomicComposite JSON using the schema + atom catalog as context.
    `BedrockNlTranslator` implementation will stub the client with a TODO.
 
 4. **Schema source of truth** is `schema/sdui-schema.json` (repo root). The
-   `AtomicCompositeData` definition (line 582) and `AtomicElement` definition
+   `AtomicComposite` definition (line 582) and `AtomicElement` definition
    are there. The server copies token JSONs into classpath at build time via
    `processResources` in `build.gradle.kts` — the same pattern can copy the
    schema for runtime validation.
@@ -126,7 +126,7 @@ New files:
   - Uses `com.networknt:json-schema-validator` (lightweight, already Jackson-based) — **new dependency, flagged**
 
 - `server/src/main/resources/schemas/atomic-composite.schema.json`
-  - **Generated starter** extracted from `schema/sdui-schema.json` definitions `AtomicCompositeData` + `AtomicElement` + `Section` (the subset needed to validate a complete AtomicComposite section envelope)
+  - **Generated starter** extracted from `schema/sdui-schema.json` definitions `AtomicComposite` + `AtomicElement` + `Section` (the subset needed to validate a complete AtomicComposite section envelope)
   - TODO flag for manual review
 
 Modified files:
@@ -202,7 +202,7 @@ New files:
   - Constructor injects `CompositeSchemaValidator`, `ObjectMapper`, schema resource
   - `translate()` implementation:
     1. Build system prompt: "You are an SDUI composer. Output valid JSON only. No markdown fences. No explanation."
-    2. Build user prompt: inject (a) the `AtomicCompositeData` + `AtomicElement` JSON schema subset, (b) atom catalog (type names + prop signatures from the schema `AtomicElement.properties`), (c) the user's natural language prompt
+    2. Build user prompt: inject (a) the `AtomicComposite` + `AtomicElement` JSON schema subset, (b) atom catalog (type names + prop signatures from the schema `AtomicElement.properties`), (c) the user's natural language prompt
     3. Call `BedrockClient.invokeModel()` — **stub**: TODO, returns a hardcoded sample composite for now
     4. Parse response as JSON; on parse failure, return structured error
     5. Run `CompositeSchemaValidator.validate()` on parsed JSON
@@ -293,7 +293,7 @@ New files:
 
 | Dependency | Status | Justification |
 |------------|--------|---------------|
-| `com.networknt:json-schema-validator` | **New — flagged** | JSON Schema validation against `AtomicCompositeData` definition. Lightweight, Jackson-native. Alternative: hand-rolled validation (not recommended — schema is complex). |
+| `com.networknt:json-schema-validator` | **New — flagged** | JSON Schema validation against `AtomicComposite` definition. Lightweight, Jackson-native. Alternative: hand-rolled validation (not recommended — schema is complex). |
 | `software.amazon.awssdk:bedrockruntime` | **Deferred** | Stubbed in v1. Real integration is a follow-up. No dependency added now. |
 | Spring Boot, Jackson, OkHttp | Existing | Already in `build.gradle.kts` |
 

@@ -17,8 +17,8 @@
     "atomicElement": {
       "$ref": "sdui-schema.json#/definitions/AtomicElement"
     },
-    "atomicCompositeData": {
-      "$ref": "sdui-schema.json#/definitions/AtomicCompositeData"
+    "atomicComposite": {
+      "$ref": "sdui-schema.json#/definitions/AtomicComposite"
     },
     "refreshPolicy": {
       "$ref": "sdui-schema.json#/definitions/RefreshPolicy"
@@ -71,20 +71,38 @@
     "navigationItem": {
       "$ref": "sdui-schema.json#/definitions/NavigationItem"
     },
-    "tabGroupData": {
-      "$ref": "sdui-schema.json#/definitions/TabGroupData"
+    "tabGroup": {
+      "$ref": "sdui-schema.json#/definitions/TabGroup"
     },
     "subsection": {
       "$ref": "sdui-schema.json#/definitions/Subsection"
     },
-    "subscribeBannerData": {
-      "$ref": "sdui-schema.json#/definitions/SubscribeBannerData"
-    },
-    "subscribeHeroData": {
-      "$ref": "sdui-schema.json#/definitions/SubscribeHeroData"
+    "subscribeUpsell": {
+      "$ref": "sdui-schema.json#/definitions/SubscribeUpsell"
     },
     "subscriptionTier": {
       "$ref": "sdui-schema.json#/definitions/SubscriptionTier"
+    },
+    "boxscoreTable": {
+      "$ref": "sdui-schema.json#/definitions/BoxscoreTable"
+    },
+    "calendarStrip": {
+      "$ref": "sdui-schema.json#/definitions/CalendarStrip"
+    },
+    "calendarMonthList": {
+      "$ref": "sdui-schema.json#/definitions/CalendarMonthList"
+    },
+    "form": {
+      "$ref": "sdui-schema.json#/definitions/Form"
+    },
+    "adSlot": {
+      "$ref": "sdui-schema.json#/definitions/AdSlot"
+    },
+    "seasonLeadersTable": {
+      "$ref": "sdui-schema.json#/definitions/SeasonLeadersTable"
+    },
+    "videoPlayer": {
+      "$ref": "sdui-schema.json#/definitions/VideoPlayer"
     }
   }
 }

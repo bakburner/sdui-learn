@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nba.sdui.core.config.SduiScreenConfig
 import com.nba.sdui.core.data.SduiRepository
-import com.nba.sdui.core.models.generated.SduiModels
+import com.nba.sdui.core.models.generated.Screen
 import com.nba.sdui.core.state.ActionHandler
 import com.nba.sdui.core.state.SduiAction
 import com.nba.sdui.core.state.SectionVisibilityTracker
@@ -47,7 +47,7 @@ open class SduiScreenViewModel(
     val userMessage: SharedFlow<String> get() = controller.userMessage
     val staleSections: StateFlow<Set<String>> get() = controller.staleSections
     val visibilityTracker: SectionVisibilityTracker get() = controller.visibilityTracker
-    val shellScreen: StateFlow<SduiModels?> get() = controller.shellScreen
+    val shellScreen: StateFlow<Screen?> get() = controller.shellScreen
 
     fun loadFromUri(uri: String, sectionId: String? = null) = controller.loadFromUri(uri, sectionId)
     fun loadFromEndpoint(endpoint: String, sectionId: String? = null) = controller.loadFromEndpoint(endpoint, sectionId)

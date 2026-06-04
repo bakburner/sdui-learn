@@ -8,7 +8,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.nba.sdui.core.models.generated.Action
-import com.nba.sdui.core.models.generated.Data
+import com.nba.sdui.core.models.generated.SectionData
 import com.nba.sdui.core.models.generated.SectionStates
 import com.nba.sdui.core.renderer.adapters.toSduiAction
 import com.nba.sdui.core.state.SduiAction
@@ -43,7 +43,7 @@ private const val TAG = "SectionErrorBoundary"
 fun validateSection(
     sectionId: String,
     sectionType: String,
-    data: Data?
+    data: SectionData?
 ): String? {
     // AtomicComposite requires a ui element in data
     if (sectionType == "AtomicComposite" && data?.ui == null) {
@@ -57,7 +57,7 @@ fun SectionErrorBoundary(
     sectionId: String,
     sectionType: String,
     sectionStates: SectionStates?,
-    data: Data?,
+    data: SectionData?,
     onAction: (SduiAction) -> Unit,
     maxRetries: Int = 5,
     content: @Composable () -> Unit

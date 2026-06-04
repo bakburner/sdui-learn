@@ -8,10 +8,10 @@
 
 Replaced `Section.data`'s `oneOf` with the pair:
 
-- **`anyOf`** of the same 11 `*Data` `$ref`s — keeps quicktype's reachability
-  walker happy so every `*Data` definition stays in the schema graph (without
+- **`anyOf`** of the same 11 component `$ref`s — keeps quicktype's reachability
+  walker happy so every component definition stays in the schema graph (without
   this, dropping `oneOf` would orphan all 11 definitions and quicktype would
-  delete ~5275 lines of client model code, including every `*Data`
+  delete ~5275 lines of client model code, including every component
   field). `anyOf` validates as long as ≥1 branch matches, so it does NOT
   raise the original "valid to N of M" ambiguity error.
 - **`allOf`** chain of `if`/`then` clauses keyed off `Section.type` — the
@@ -29,7 +29,7 @@ green on the server suite.
 
 ```json
 "data": {
-  "description": "Section-specific data payload",
+  "description": "Section-specific data payload (pre-rename example shape)",
   "oneOf": [
     { "$ref": "#/definitions/TabGroupData" },
     { "$ref": "#/definitions/BoxscoreTableData" },
@@ -46,6 +46,11 @@ green on the server suite.
 }
 ```
 
+> Definition names shown above use the original `*Data` suffix from the time
+> of the fix; the suffix was later dropped (e.g. `TabGroupData` → `TabGroup`)
+> so each definition name matches its `Section.type` enum value 1-for-1. The
+> discriminator pattern below is unchanged — only the names differ.
+
 `oneOf` requires the payload to validate against **exactly one** branch. In
 practice the `*Data` variants are loose enough that multiple branches accept
 the same JSON, so validation fails with messages like:
@@ -58,7 +63,7 @@ but 2 are valid with indexes 'X, Y'
 The root cause is that the schema has no discriminator binding `Section.type`
 (enum: `TabGroup`, `BoxscoreTable`, `CalendarStrip`, `CalendarMonthList`,
 `Form`, `AdSlot`, `SeasonLeadersTable`, `SubscribeBanner`, `SubscribeHero`,
-`AtomicComposite`, `VideoPlayer`) to its matching `*Data` definition. JSON
+`AtomicComposite`, `VideoPlayer`) to its matching component definition. JSON
 Schema Draft-07 has no `discriminator` keyword (that's OpenAPI 3 / Draft-2020
 `discriminator`); the idiomatic Draft-07 expression is `allOf` + chained
 `if`/`then`.
@@ -77,7 +82,7 @@ The shape of each `if`/`then` clause is:
 ```json
 {
   "if":   { "properties": { "type": { "const": "TabGroup" } } },
-  "then": { "properties": { "data": { "$ref": "#/definitions/TabGroupData" } } }
+  "then": { "properties": { "data": { "$ref": "#/definitions/TabGroup" } } }
 }
 ```
 
@@ -85,19 +90,19 @@ Full replacement for the `Section` definition's `data` property + sibling `allOf
 
 ```json
 "data": {
-  "description": "Section-specific data payload. The variants are listed via anyOf so codegen reaches every *Data definition; per-variant enforcement is the allOf/if/then chain below (discriminated by Section.type).",
+  "description": "Section-specific component payload (content + per-component actions + configuration). The variants are listed via anyOf so codegen reaches every component definition; per-variant enforcement is the allOf/if/then chain below (discriminated by Section.type).",
   "anyOf": [
-    { "$ref": "#/definitions/TabGroupData" },
-    { "$ref": "#/definitions/BoxscoreTableData" },
-    { "$ref": "#/definitions/CalendarStripData" },
-    { "$ref": "#/definitions/CalendarMonthListData" },
-    { "$ref": "#/definitions/FormData" },
-    { "$ref": "#/definitions/AdSlotData" },
-    { "$ref": "#/definitions/LeadersTableData" },
-    { "$ref": "#/definitions/SubscribeBannerData" },
-    { "$ref": "#/definitions/SubscribeHeroData" },
-    { "$ref": "#/definitions/AtomicCompositeData" },
-    { "$ref": "#/definitions/VideoPlayerData" }
+    { "$ref": "#/definitions/TabGroup" },
+    { "$ref": "#/definitions/BoxscoreTable" },
+    { "$ref": "#/definitions/CalendarStrip" },
+    { "$ref": "#/definitions/CalendarMonthList" },
+    { "$ref": "#/definitions/Form" },
+    { "$ref": "#/definitions/AdSlot" },
+    { "$ref": "#/definitions/SeasonLeadersTable" },
+    { "$ref": "#/definitions/SubscribeBanner" },
+    { "$ref": "#/definitions/SubscribeHero" },
+    { "$ref": "#/definitions/AtomicComposite" },
+    { "$ref": "#/definitions/VideoPlayer" }
   ]
 }
 ```
@@ -107,37 +112,36 @@ plus, as a sibling of `properties` on the `Section` definition:
 ```json
 "allOf": [
   { "if": { "properties": { "type": { "const": "TabGroup" } } },
-    "then": { "properties": { "data": { "$ref": "#/definitions/TabGroupData" } } } },
+    "then": { "properties": { "data": { "$ref": "#/definitions/TabGroup" } } } },
   { "if": { "properties": { "type": { "const": "BoxscoreTable" } } },
-    "then": { "properties": { "data": { "$ref": "#/definitions/BoxscoreTableData" } } } },
+    "then": { "properties": { "data": { "$ref": "#/definitions/BoxscoreTable" } } } },
   { "if": { "properties": { "type": { "const": "CalendarStrip" } } },
-    "then": { "properties": { "data": { "$ref": "#/definitions/CalendarStripData" } } } },
+    "then": { "properties": { "data": { "$ref": "#/definitions/CalendarStrip" } } } },
   { "if": { "properties": { "type": { "const": "CalendarMonthList" } } },
-    "then": { "properties": { "data": { "$ref": "#/definitions/CalendarMonthListData" } } } },
+    "then": { "properties": { "data": { "$ref": "#/definitions/CalendarMonthList" } } } },
   { "if": { "properties": { "type": { "const": "Form" } } },
-    "then": { "properties": { "data": { "$ref": "#/definitions/FormData" } } } },
+    "then": { "properties": { "data": { "$ref": "#/definitions/Form" } } } },
   { "if": { "properties": { "type": { "const": "AdSlot" } } },
-    "then": { "properties": { "data": { "$ref": "#/definitions/AdSlotData" } } } },
+    "then": { "properties": { "data": { "$ref": "#/definitions/AdSlot" } } } },
   { "if": { "properties": { "type": { "const": "SeasonLeadersTable" } } },
-    "then": { "properties": { "data": { "$ref": "#/definitions/LeadersTableData" } } } },
+    "then": { "properties": { "data": { "$ref": "#/definitions/SeasonLeadersTable" } } } },
   { "if": { "properties": { "type": { "const": "SubscribeBanner" } } },
-    "then": { "properties": { "data": { "$ref": "#/definitions/SubscribeBannerData" } } } },
+    "then": { "properties": { "data": { "$ref": "#/definitions/SubscribeBanner" } } } },
   { "if": { "properties": { "type": { "const": "SubscribeHero" } } },
-    "then": { "properties": { "data": { "$ref": "#/definitions/SubscribeHeroData" } } } },
+    "then": { "properties": { "data": { "$ref": "#/definitions/SubscribeHero" } } } },
   { "if": { "properties": { "type": { "const": "AtomicComposite" } } },
-    "then": { "properties": { "data": { "$ref": "#/definitions/AtomicCompositeData" } } } },
+    "then": { "properties": { "data": { "$ref": "#/definitions/AtomicComposite" } } } },
   { "if": { "properties": { "type": { "const": "VideoPlayer" } } },
-    "then": { "properties": { "data": { "$ref": "#/definitions/VideoPlayerData" } } } }
+    "then": { "properties": { "data": { "$ref": "#/definitions/VideoPlayer" } } } }
 ]
 ```
 
 Notes on the mapping:
 
-- `SeasonLeadersTable` (the enum value on `Section.type`) maps to
-  `LeadersTableData` (the definition name). Every other pair is a direct
-  `<TypeName>` → `<TypeName>Data` match.
-- `AtomicComposite` already wraps the generic atomic UI tree; its branch keeps
-  the existing `AtomicCompositeData` definition intact.
+- After the rename, every `Section.type` enum value matches its definition
+  name 1-for-1 (no special case for `SeasonLeadersTable`).
+- `AtomicComposite` wraps the generic atomic UI tree; its branch points at
+  the `AtomicComposite` definition.
 
 ### Why `allOf` + `if`/`then`, not `oneOf`
 
@@ -167,13 +171,13 @@ Notes on the mapping:
 
 ## Expected fallout
 
-The conformance test will now exercise every `*Data` variant for real. Two
+The conformance test will now exercise every component variant for real. Two
 classes of result are possible:
 
 - **Clean green** — composers already emit shapes that match their
-  declared `*Data` definitions. No further work.
+  declared component definitions. No further work.
 - **Composer drift** — one or more composers emit a payload that doesn't
-  match its declared `*Data` definition (e.g. missing required field,
+  match its declared component definition (e.g. missing required field,
   unexpected key shape, wrong nesting). Each surfaced violation is a
   pre-existing bug — the fix is a composer change, not a schema relaxation.
   Per AGENTS.md §1.2 the schema is the wire contract; composers conform to
@@ -184,7 +188,7 @@ change in the same PR — the conformance test must stay green on `main`.
 
 ## Out of scope
 
-- Tightening the `*Data` definitions themselves (e.g. adding
+- Tightening the component definitions themselves (e.g. adding
   `additionalProperties: false`, locking down array shapes). That's a
   separate hardening pass; the discriminator fix alone is enough to make
   `oneOf` ambiguity disappear.

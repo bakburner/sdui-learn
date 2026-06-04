@@ -2,7 +2,7 @@ import { beforeAll, describe, it, expect, vi } from 'vitest';
 import { render } from '@testing-library/react';
 import { AtomicScrollContainer } from './AtomicScrollContainer';
 import type { AtomicElement } from '@sdui/models';
-import { Align, BadgeAlignment, Style, UIType } from '@sdui/models';
+import { Align, BadgeAlignment, Style, AtomicElementType } from '@sdui/models';
 
 vi.mock('../../utils/ColorTokenResolver', () => ({
   useColorTokenResolver: () => (token: string | undefined) => token ?? 'rgba(255,255,255,0.45)',
@@ -20,7 +20,7 @@ describe('AtomicScrollContainer — page indicators', () => {
   function leafText(id: string, label: string): AtomicElement {
     return {
       id,
-      type: UIType.Text,
+      type: AtomicElementType.Text,
       content: label,
       variant: 'bodyMedium',
     } as AtomicElement;
@@ -29,7 +29,7 @@ describe('AtomicScrollContainer — page indicators', () => {
   it('renders dot indicators when paging, multi-child, and pageIndicator.style is dots', () => {
     const element: AtomicElement = {
       id: 'scroll-1',
-      type: UIType.ScrollContainer,
+      type: AtomicElementType.ScrollContainer,
       direction: 'row',
       paging: true,
       snapAlignment: Align.Center,
@@ -50,7 +50,7 @@ describe('AtomicScrollContainer — page indicators', () => {
   it('does not render dots when pageIndicator is omitted, even if paging is true', () => {
     const element: AtomicElement = {
       id: 'scroll-2',
-      type: UIType.ScrollContainer,
+      type: AtomicElementType.ScrollContainer,
       direction: 'row',
       paging: true,
       snapAlignment: Align.Start,
@@ -67,7 +67,7 @@ describe('AtomicScrollContainer — page indicators', () => {
   it('does not render dots when only one child, even with paging and pageIndicator dots', () => {
     const element: AtomicElement = {
       id: 'scroll-3',
-      type: UIType.ScrollContainer,
+      type: AtomicElementType.ScrollContainer,
       direction: 'row',
       paging: true,
       snapAlignment: 'center',

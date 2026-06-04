@@ -20,6 +20,8 @@ import com.nba.sdui.orchestration.SectionRefreshService;
 import com.nba.sdui.domain.port.ScoreboardPort;
 import com.nba.sdui.domain.AccessibilityHelper;
 import com.nba.sdui.domain.tokens.Tokens;
+import com.nba.sdui.integration.model.scoreboard.Game;
+import com.nba.sdui.integration.model.scoreboard.ScoreboardResponse;
 
 /**
  * Composes the "For You" SDUI screen using the same atomic composite
@@ -240,24 +242,21 @@ public class ForYouComposer {
         ObjectNode liveBindings = null;
 
         try {
-            JsonNode scoreboard = scoreboardPort.getScoreboard();
+            ScoreboardResponse scoreboard = scoreboardPort.getScoreboard();
             if (scoreboard != null) {
-                JsonNode games = scoreboard.path("scoreboard").path("games");
-                if (games.isArray()) {
-                    JsonNode liveGame = null;
-                    List<JsonNode> upcoming = new ArrayList<>();
-                    for (JsonNode game : games) {
-                        int status = game.path("gameStatus").asInt(1);
-                        if (status == 2 && liveGame == null) liveGame = game;
-                        else if (status == 1 && upcoming.size() < 3) upcoming.add(game);
-                    }
-                    if (liveGame != null) {
-                        cards.add(buildHeroCardFromGame(liveGame, true));
-                        liveBindings = buildHeroLinescoreBindings(cards.get(0)[0]);
-                    }
-                    for (JsonNode game : upcoming) {
-                        cards.add(buildHeroCardFromGame(game, false));
-                    }
+                Game liveGame = null;
+                List<Game> upcoming = new ArrayList<>();
+                for (Game game : scoreboard.getGames()) {
+                    int status = game.getGameStatus();
+                    if (status == 2 && liveGame == null) liveGame = game;
+                    else if (status == 1 && upcoming.size() < 3) upcoming.add(game);
+                }
+                if (liveGame != null) {
+                    cards.add(buildHeroCardFromGame(liveGame, true));
+                    liveBindings = buildHeroLinescoreBindings(cards.get(0)[0]);
+                }
+                for (Game game : upcoming) {
+                    cards.add(buildHeroCardFromGame(game, false));
                 }
             }
         } catch (Exception e) {
@@ -314,12 +313,12 @@ public class ForYouComposer {
         return section;
     }
 
-    private String[] buildHeroCardFromGame(JsonNode game, boolean live) {
-        String gameId = game.path("gameId").asText("0000000000");
+    private String[] buildHeroCardFromGame(Game game, boolean live) {
+        String gameId = game.getGameId() != null ? game.getGameId() : "0000000000";
         AtomicCompositeBuilder.GamePanelTeam away =
-                atomicBuilder.gamePanelTeamFromJson(game.path("awayTeam"));
+                atomicBuilder.gamePanelTeam(game.getAwayTeam());
         AtomicCompositeBuilder.GamePanelTeam home =
-                atomicBuilder.gamePanelTeamFromJson(game.path("homeTeam"));
+                atomicBuilder.gamePanelTeam(game.getHomeTeam());
         String heroId = "hero-game-" + gameId;
         return new String[]{
                 heroId,
@@ -329,7 +328,7 @@ public class ForYouComposer {
                 live ? FALLBACK_KEY_ART_LIVE : FALLBACK_KEY_ART_UPCOMING,
                 away.tricode(), Integer.toString(away.score()), away.logoUrl(),
                 home.tricode(), Integer.toString(home.score()), home.logoUrl(),
-                game.path("gameStatusText").asText(""),
+                game.getGameStatusText() != null ? game.getGameStatusText() : "",
                 null,
                 // Slot 13 (sponsorLogoUrlsCsv) intentionally left null — the
                 // demo doesn't have real broadcaster art. The broadcaster

@@ -16,6 +16,8 @@ import com.nba.sdui.domain.tokens.Tokens;
 import com.nba.sdui.domain.SduiUtils;
 import com.nba.sdui.domain.SectionSurfaces;
 import com.nba.sdui.domain.port.ScoreboardPort;
+import com.nba.sdui.integration.model.scoreboard.Game;
+import com.nba.sdui.integration.model.scoreboard.ScoreboardResponse;
 
 /**
  * Composes the Scoreboard SDUI screen from live NBA scoreboard data, and
@@ -116,13 +118,11 @@ public class ScoreboardComposer {
 
     private ObjectNode composeScoreboardFromLiveData() {
         try {
-            JsonNode scoreboard = scoreboardPort.getScoreboard();
-            if (scoreboard == null) {
-                return null;
-            }
-
-            JsonNode games = scoreboard.path("scoreboard").path("games");
-            if (!games.isArray()) {
+            ScoreboardResponse scoreboard = scoreboardPort.getScoreboard();
+            if (scoreboard == null || scoreboard.getGames().isEmpty()) {
+                if (scoreboard != null) {
+                    log.warn("Live scoreboard has no games for today");
+                }
                 return null;
             }
 
@@ -131,8 +131,8 @@ public class ScoreboardComposer {
             response.put("analyticsId", "scoreboard_live");
 
             ArrayNode sections = objectMapper.createArrayNode();
-            for (JsonNode game : games) {
-                String gameId = game.path("gameId").asText(null);
+            for (Game game : scoreboard.getGames()) {
+                String gameId = game.getGameId();
                 if (gameId == null || gameId.isBlank()) {
                     continue;
                 }
@@ -152,8 +152,8 @@ public class ScoreboardComposer {
 
     // ── Section builders ───────────────────────────────────────────────
 
-    private ObjectNode buildScoreboardRowSection(JsonNode game, String gameId) {
-        int gameStatus = game.path("gameStatus").asInt(1);
+    private ObjectNode buildScoreboardRowSection(Game game, String gameId) {
+        int gameStatus = game.getGameStatus();
         boolean live = gameStatus == 2;
 
         ObjectNode refreshPolicy;
@@ -166,7 +166,7 @@ public class ScoreboardComposer {
             refreshPolicy.put("pauseWhenOffScreen", false);
             bindings = utils.buildCompositeLinescoreBindings();
             clock = new AtomicCompositeBuilder.GameClockSnapshot(
-                    parseGameClockSeconds(game.path("gameClock").asText("")),
+                    parseGameClockSeconds(game.getGameClock()),
                     java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString(),
                     AtomicCompositeBuilder.INITIAL_CLOCK_RUNNING);
         } else {
@@ -182,10 +182,10 @@ public class ScoreboardComposer {
                 "scoreboard",
                 gameId,
                 gameStatus,
-                game.path("gameStatusText").asText(""),
+                game.getGameStatusText() != null ? game.getGameStatusText() : "",
                 null,
-                atomicBuilder.gamePanelTeamFromJson(game.path("awayTeam")),
-                atomicBuilder.gamePanelTeamFromJson(game.path("homeTeam")),
+                atomicBuilder.gamePanelTeam(game.getAwayTeam()),
+                atomicBuilder.gamePanelTeam(game.getHomeTeam()),
                 clock,
                 "nba://game/" + gameId,
                 refreshPolicy,

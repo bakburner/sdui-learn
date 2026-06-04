@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type React from 'react';
-import type { SduiModels, Section } from '@sdui/models';
+import type { Screen, Section } from '@sdui/models';
 import { fetchSduiScreen } from '../runtime/fetchSduiScreen';
 
 interface UseSduiScreenOptions {
@@ -11,9 +11,9 @@ interface UseSduiScreenOptions {
 }
 
 interface UseSduiScreenResult {
-  screen: SduiModels | null;
+  screen: Screen | null;
   /** Last successful screen; kept after fetch failures for shell navigation escape. */
-  shellScreen: SduiModels | null;
+  shellScreen: Screen | null;
   loading: boolean;
   error: string | null;
   /** True when the server signals the client must update to continue. */
@@ -25,7 +25,7 @@ interface UseSduiScreenResult {
   correlationId: string | null;
   refetch: () => Promise<void>;
   /** Direct setter for surgical section-level updates (e.g. action-triggered refresh). */
-  setScreen: React.Dispatch<React.SetStateAction<SduiModels | null>>;
+  setScreen: React.Dispatch<React.SetStateAction<Screen | null>>;
   /**
    * Screen-channel entry point: fetches a full screen from the given endpoint
    * with user-supplied params, validates response.id against the current screen,
@@ -50,15 +50,15 @@ interface UseSduiScreenResult {
 export function useSduiScreen(options: UseSduiScreenOptions): UseSduiScreenResult {
   const { endpoint, experiments = {} } = options;
 
-  const [screen, setScreen] = useState<SduiModels | null>(null);
-  const [shellScreen, setShellScreen] = useState<SduiModels | null>(null);
+  const [screen, setScreen] = useState<Screen | null>(null);
+  const [shellScreen, setShellScreen] = useState<Screen | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [upgradeRequired, setUpgradeRequired] = useState(false);
   const [correlationId, setCorrelationId] = useState<string | null>(null);
   const screenIntervalRef = useRef<number | null>(null);
   const userParamsRef = useRef<Record<string, string>>({});
-  const screenRef = useRef<SduiModels | null>(null);
+  const screenRef = useRef<Screen | null>(null);
 
   // Keep screenRef in sync for use in callbacks that shouldn't re-create on
   // every screen update (avoids stale closures in replaceCurrentScreen).
@@ -71,7 +71,7 @@ export function useSduiScreen(options: UseSduiScreenOptions): UseSduiScreenResul
     }
   }, []);
 
-  const applyScreen = useCallback((data: SduiModels) => {
+  const applyScreen = useCallback((data: Screen) => {
     setShellScreen(data);
     setScreen(data);
   }, []);

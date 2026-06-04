@@ -89,7 +89,7 @@ saf:
       cache:
         ttl: 10s
         strategy: STALE_IF_ERROR
-        stale-if-error-max-stale-age: 60s
+        stale-if-error-max-stale-age: 60
       collapsing:
         enabled: true
     # NBA Core API — per-date scoreboards. Past dates are immutable; serve long.
@@ -105,7 +105,7 @@ saf:
       cache:
         ttl: 600s
         strategy: STALE_IF_ERROR
-        stale-if-error-max-stale-age: 1800s
+        stale-if-error-max-stale-age: 1800
       collapsing:
         enabled: true
     # Public CDN boxscore — live during game, otherwise immutable.
@@ -121,7 +121,7 @@ saf:
       cache:
         ttl: 15s
         strategy: STALE_IF_ERROR
-        stale-if-error-max-stale-age: 120s
+        stale-if-error-max-stale-age: 120
       collapsing:
         enabled: true
     # Static league schedule — single per-season fetch.
@@ -137,7 +137,7 @@ saf:
       cache:
         ttl: 3600s
         strategy: STALE_IF_ERROR
-        stale-if-error-max-stale-age: 21600s
+        stale-if-error-max-stale-age: 21600
       collapsing:
         enabled: true
     # Stats Trafficcop — detailed live stats.
@@ -153,7 +153,7 @@ saf:
       cache:
         ttl: 15s
         strategy: STALE_IF_ERROR
-        stale-if-error-max-stale-age: 120s
+        stale-if-error-max-stale-age: 120
       collapsing:
         enabled: true
     # Composed section fragments (A2c) — TwoTierCacheService backing for
@@ -168,6 +168,6 @@ saf:
           failure-rate-threshold: 50
       cache:
         strategy: STALE_IF_ERROR
-        stale-if-error-max-stale-age: 60s
+        stale-if-error-max-stale-age: 60
       collapsing:
         enabled: true

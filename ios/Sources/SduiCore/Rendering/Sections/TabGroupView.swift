@@ -16,7 +16,7 @@ private enum TabStripTokens {
 /// TabGroup — thin host for tabbed section routing.
 ///
 /// Server-owned: ``Section/surface``, ``Section/subsections`` (per-tab mutate),
-/// tab metadata and ``TabGroupData/tabContents``. Optional ``TabGroupData/ui`` is
+/// tab metadata and ``TabGroup/tabContents``. Optional ``TabGroup/ui`` is
 /// the tab header only.
 ///
 /// Platform-native tab controls when `ui` is absent are client-realized

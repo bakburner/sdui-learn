@@ -38,7 +38,7 @@ final class SduiRepository {
     private let session: URLSession
     private let envelopeProvider: @Sendable () -> RequestEnvelope
     private let fetchStateLock = NSLock()
-    private var activeScreenFetch: Task<SduiFetchResult<SduiModels>, Error>?
+    private var activeScreenFetch: Task<SduiFetchResult<Screen>, Error>?
     /// Per-request `X-Correlation-ID` of the current in-flight screen fetch.
     /// Reused as the active-fetch identity so the deferred cleanup only nils
     /// the slot when no newer fetch has overwritten it (Task is a struct, so
@@ -75,7 +75,7 @@ final class SduiRepository {
         endpoint: String,
         userParams: [String: String] = [:],
         correlationId: String? = nil
-    ) async throws -> SduiFetchResult<SduiModels> {
+    ) async throws -> SduiFetchResult<Screen> {
         let envelope = envelopeProvider()
 
         let resolvedCorrelationId = correlationId ?? config.correlationIdProvider()
@@ -90,7 +90,7 @@ final class SduiRepository {
         fetchStateLock.withLock { activeScreenFetch?.cancel() }
 
         let httpSession = self.session
-        let task: Task<SduiFetchResult<SduiModels>, Error> = Task {
+        let task: Task<SduiFetchResult<Screen>, Error> = Task {
             let (data, response) = try await httpSession.data(for: request)
 
             guard let httpResponse = response as? HTTPURLResponse else {
@@ -109,7 +109,7 @@ final class SduiRepository {
             }
 
             do {
-                let envelopeDecoded = try newJSONDecoder().decode(SduiResponseEnvelope<SduiModels>.self, from: data)
+                let envelopeDecoded = try newJSONDecoder().decode(SduiResponseEnvelope<Screen>.self, from: data)
                 let screen = envelopeDecoded.data
                 logger.debug("Fetched screen '\(screen.id)' with \(screen.sections.count) sections")
                 let responseCorrelationId = httpResponse.value(forHTTPHeaderField: "X-Correlation-ID")

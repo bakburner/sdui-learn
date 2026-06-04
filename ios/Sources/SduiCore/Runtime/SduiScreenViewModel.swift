@@ -41,9 +41,9 @@ public final class SduiScreenViewModel {
     public private(set) var navigationItems: Int = 0
 
     /// Most recent full-screen response. Views read `sections` from this.
-    /// Internal access because `SduiModels` is a generated (internal) type;
+    /// Internal access because `Screen` is a generated (internal) type;
     /// external consumers observe `loadState` / `title` instead.
-    private(set) var screen: SduiModels?
+    private(set) var screen: Screen?
 
     /// User-supplied query params from the most recent screen-channel refresh
     /// (e.g. `["date": "2026-05-18"]` after a CalendarStrip date selection).
@@ -52,8 +52,8 @@ public final class SduiScreenViewModel {
     private(set) var currentUserParams: [String: String] = [:]
 
     /// Last successfully loaded screen; retained when a later fetch fails so
-    /// shell navigation and ``SduiModels/parentURI`` stay available for escape.
-    private(set) var shellScreen: SduiModels?
+    /// shell navigation and ``Screen/parentURI`` stay available for escape.
+    private(set) var shellScreen: Screen?
 
     /// Most recent `X-Correlation-ID` returned by a screen/section fetch.
     /// Seeded into subsequent refresh requests so server logs correlate the
@@ -354,7 +354,7 @@ public final class SduiScreenViewModel {
 
     // MARK: - Screen update
 
-    private func applyScreen(_ newScreen: SduiModels) {
+    private func applyScreen(_ newScreen: Screen) {
         let firstLoad = self.screen == nil
         self.screen = newScreen
         self.shellScreen = newScreen
@@ -401,7 +401,7 @@ public final class SduiScreenViewModel {
 
     // MARK: - Real-time wiring
 
-    private func restartRealtime(for screen: SduiModels) {
+    private func restartRealtime(for screen: Screen) {
         // Tear down previous subscriptions.
         Task { await polling.stopAll() }
         cancelAllAbly()
@@ -557,7 +557,7 @@ public final class SduiScreenViewModel {
             stalenessTracker.clear(success.sectionID)
             if success.isDirect, let dict = success.payload as? [String: Any] {
                 await applyPolledData(sectionID: success.sectionID, incoming: dict)
-            } else if let newScreen = success.payload as? SduiModels {
+            } else if let newScreen = success.payload as? Screen {
                 applyScreen(newScreen)
             }
         case .sectionSuccess(let sectionID, let newSection):
@@ -669,10 +669,10 @@ public final class SduiScreenViewModel {
               let idx = screen.sections.firstIndex(where: { $0.id == sectionID }) else { return }
         let section = screen.sections[idx]
         let newDataData = try? JSONSerialization.data(withJSONObject: newData)
-        let newScreen: SduiModels? = await Task.detached(priority: .userInitiated) {
+        let newScreen: Screen? = await Task.detached(priority: .userInitiated) {
             if let newDataData,
-               let newDataClass = try? newJSONDecoder().decode(DataClass.self, from: newDataData) {
-                let newSection = section.with(data: newDataClass)
+               let newSectionData = try? newJSONDecoder().decode(SectionData.self, from: newDataData) {
+                let newSection = section.with(data: newSectionData)
                 var newSections = screen.sections
                 newSections[idx] = newSection
                 return screen.with(sections: newSections)
@@ -702,7 +702,7 @@ public final class SduiScreenViewModel {
         return rebuilt
     }
 
-    private nonisolated static func replaceSectionsOnScreen(_ screen: SduiModels, with sections: [Section]) -> SduiModels? {
+    private nonisolated static func replaceSectionsOnScreen(_ screen: Screen, with sections: [Section]) -> Screen? {
         guard let data = try? newJSONEncoder().encode(screen),
               var dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
         else { return nil }
@@ -712,7 +712,7 @@ public final class SduiScreenViewModel {
         }
         dict["sections"] = sectionsJSON
         guard let merged = try? JSONSerialization.data(withJSONObject: dict),
-              let rebuilt = try? newJSONDecoder().decode(SduiModels.self, from: merged)
+              let rebuilt = try? newJSONDecoder().decode(Screen.self, from: merged)
         else { return nil }
         return rebuilt
     }

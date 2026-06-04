@@ -31,7 +31,7 @@ final class CalendarStripSchemaDecodingTests: XCTestCase {
         XCTAssertEqual(section.data?.onDateSelected?.paramBindings?["date"], "{{games_selected_date}}")
     }
 
-    /// quicktype collapses `Section.data` `oneOf` into a single `DataClass` whose
+    /// quicktype collapses `Section.data` `oneOf` into a single `SectionData` whose
     /// fields are all optional, so the typed decoder cannot enforce per-branch
     /// `required`. Required-field absence is detectable downstream — `CalendarStripView`
     /// renders nothing when `data.defaultDate == nil`. This test pins the codegen

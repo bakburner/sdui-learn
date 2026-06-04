@@ -25,6 +25,12 @@ import com.nba.sdui.orchestration.SectionRefreshService;
 import com.nba.sdui.remote.SeasonCalendarService;
 import com.nba.sdui.domain.port.ScoreboardPort;
 import com.nba.sdui.domain.tokens.Tokens;
+import com.nba.sdui.integration.model.scoreboard.Broadcaster;
+import com.nba.sdui.integration.model.scoreboard.Broadcasters;
+import com.nba.sdui.integration.model.scoreboard.Game;
+import com.nba.sdui.integration.model.scoreboard.PlayoffSeries;
+import com.nba.sdui.integration.model.scoreboard.ScoreboardResponse;
+import com.nba.sdui.integration.model.scoreboard.ScoreboardTeam;
 
 /**
  * Composes the "Games" SDUI screen — live, upcoming & final games for a
@@ -93,11 +99,11 @@ public class LiveComposer {
     private void registerResolvers() {
         String sectionId = SectionIdDeriver.derive("stats-api:live-games", "GameScheduleList");
         sectionRefreshService.registerResolver(sectionId, (id, ctx) -> {
-            JsonNode scoreboard = safeGetScoreboard();
-            List<JsonNode> liveGames = new ArrayList<>();
+            ScoreboardResponse scoreboard = safeGetScoreboard();
+            List<Game> liveGames = new ArrayList<>();
             if (scoreboard != null) {
-                for (JsonNode game : scoreboard.path("scoreboard").path("games")) {
-                    if (game.path("gameStatus").asInt(1) == 2) {
+                for (Game game : scoreboard.getGames()) {
+                    if (game.getGameStatus() == 2) {
                         liveGames.add(game);
                     }
                 }
@@ -142,7 +148,7 @@ public class LiveComposer {
         // already accounts for the league's roll-forward semantics (late-night
         // games still count as the prior day until the league rolls over), so
         // it produces a more meaningful default than wall-clock midnight ET.
-        JsonNode todayScoreboard = safeGetScoreboard();
+        ScoreboardResponse todayScoreboard = safeGetScoreboard();
         LocalDate today = resolveTodayFromScoreboard(todayScoreboard);
         String defaultDate = today.toString();
         LocalDate fetchDate = resolveRequestedDate(selectedDateOverride, today);
@@ -165,20 +171,20 @@ public class LiveComposer {
 
         // Reuse the already-fetched CDN response when the selection is today;
         // otherwise the Core API gameCardFeed serves per-date scoreboards.
-        JsonNode scoreboard = fetchDate.equals(today)
+        ScoreboardResponse scoreboard = fetchDate.equals(today)
                 ? todayScoreboard
                 : safeGetScoreboardForDate(fetchDate);
-        JsonNode games = (scoreboard != null)
-                ? scoreboard.path("scoreboard").path("games")
-                : objectMapper.createArrayNode();
+        java.util.List<Game> games = (scoreboard != null)
+                ? scoreboard.getGames()
+                : java.util.List.of();
 
         // Partition games by status: 2=live, 1=upcoming, 3+=final.
-        List<JsonNode> liveGames = new ArrayList<>();
-        List<JsonNode> upcomingGames = new ArrayList<>();
-        List<JsonNode> finishedGames = new ArrayList<>();
+        List<Game> liveGames = new ArrayList<>();
+        List<Game> upcomingGames = new ArrayList<>();
+        List<Game> finishedGames = new ArrayList<>();
 
-        for (JsonNode game : games) {
-            int status = game.path("gameStatus").asInt(1);
+        for (Game game : games) {
+            int status = game.getGameStatus();
             switch (status) {
                 case 2 -> liveGames.add(game);
                 case 1 -> upcomingGames.add(game);
@@ -241,9 +247,9 @@ public class LiveComposer {
      * {@code scoreboard.gameDate} field. Falls back to the wall-clock ET date
      * if the field is missing or unparseable (e.g. CDN call failed).
      */
-    private LocalDate resolveTodayFromScoreboard(JsonNode todayScoreboard) {
+    private LocalDate resolveTodayFromScoreboard(ScoreboardResponse todayScoreboard) {
         if (todayScoreboard != null) {
-            String gameDate = todayScoreboard.path("scoreboard").path("gameDate").asText(null);
+            String gameDate = todayScoreboard.getGameDate();
             if (gameDate != null && !gameDate.isBlank()) {
                 try {
                     return LocalDate.parse(gameDate);
@@ -289,7 +295,7 @@ public class LiveComposer {
      * Fetch scoreboard for the given date via {@link ScoreboardPort#getScoreboardForDate}.
      * Swallows exceptions so composition can fall through to the mock path.
      */
-    private JsonNode safeGetScoreboardForDate(LocalDate date) {
+    private ScoreboardResponse safeGetScoreboardForDate(LocalDate date) {
         try {
             return scoreboardPort.getScoreboardForDate(date);
         } catch (Exception e) {
@@ -347,7 +353,7 @@ public class LiveComposer {
      * Each live game row gets a LiveClock element that counts down via
      * its per-game SSE channel.
      */
-    private ObjectNode buildLiveScheduleList(List<JsonNode> liveGames) {
+    private ObjectNode buildLiveScheduleList(List<Game> liveGames) {
         String contentSourceId = "stats-api:live-games";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "GameScheduleList");
 
@@ -355,8 +361,8 @@ public class LiveComposer {
         Map<String, AtomicCompositeBuilder.GameClockSnapshot> clockSnapshots = new HashMap<>();
 
         for (int i = 0; i < liveGames.size(); i++) {
-            JsonNode game = liveGames.get(i);
-            String gameId = game.path("gameId").asText("0000000000");
+            Game game = liveGames.get(i);
+            String gameId = game.getGameId() != null ? game.getGameId() : "0000000000";
             rows[i] = gameToRow(game);
             clockSnapshots.put(gameId, clockSnapshotFromGame(game));
         }
@@ -406,7 +412,7 @@ public class LiveComposer {
      * share the same contentSourceId + sectionType (slug disambiguates).
      */
     private ObjectNode buildScheduleList(String slug, String analyticsId,
-                                         String title, List<JsonNode> gamesList,
+                                         String title, List<Game> gamesList,
                                          boolean live) {
         String contentSourceId = "stats-api:scoreboard";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "GameScheduleList", slug);
@@ -431,30 +437,37 @@ public class LiveComposer {
      *  homeTri, homeName, homeSeed, homeScore, homeLogoUrl,
      *  statusText, seriesText, broadcastLogos, targetUri, overflowUri]
      */
-    private String[] gameToRow(JsonNode game) {
-        String gameId = game.path("gameId").asText("0000000000");
-        JsonNode away = game.path("awayTeam");
-        JsonNode home = game.path("homeTeam");
-        int gameStatus = game.path("gameStatus").asInt(1);
+    private String[] gameToRow(Game game) {
+        String gameId = game.getGameId() != null ? game.getGameId() : "0000000000";
+        ScoreboardTeam away = game.getAwayTeam();
+        ScoreboardTeam home = game.getHomeTeam();
+        int gameStatus = game.getGameStatus();
 
-        String awayScore = gameStatus >= 2
-                ? String.valueOf(away.path("score").asInt(0)) : null;
-        String homeScore = gameStatus >= 2
-                ? String.valueOf(home.path("score").asInt(0)) : null;
+        String awayScore = gameStatus >= 2 && away != null
+                ? String.valueOf(away.getScore()) : null;
+        String homeScore = gameStatus >= 2 && home != null
+                ? String.valueOf(home.getScore()) : null;
+
+        String awayTri = away != null && away.getTeamTricode() != null ? away.getTeamTricode() : "";
+        String awayName = away != null && away.getTeamName() != null ? away.getTeamName() : "";
+        String awayId = away != null && away.getTeamId() != null ? away.getTeamId() : "";
+        String homeTri = home != null && home.getTeamTricode() != null ? home.getTeamTricode() : "";
+        String homeName = home != null && home.getTeamName() != null ? home.getTeamName() : "";
+        String homeId = home != null && home.getTeamId() != null ? home.getTeamId() : "";
 
         return new String[]{
                 gameId,
-                away.path("teamTricode").asText(""),
-                away.path("teamName").asText(""),
+                awayTri,
+                awayName,
                 resolveSeed(away, game, /* isAway */ true),
                 awayScore,
-                SduiUtils.teamLogoUrl(away.path("teamId").asText("")),
-                home.path("teamTricode").asText(""),
-                home.path("teamName").asText(""),
+                SduiUtils.teamLogoUrl(awayId),
+                homeTri,
+                homeName,
                 resolveSeed(home, game, /* isAway */ false),
                 homeScore,
-                SduiUtils.teamLogoUrl(home.path("teamId").asText("")),
-                game.path("gameStatusText").asText(""),
+                SduiUtils.teamLogoUrl(homeId),
+                game.getGameStatusText() != null ? game.getGameStatusText() : "",
                 resolveSeriesText(game),
                 resolveBroadcastText(game),
                 "nba://game/" + gameId,
@@ -469,15 +482,18 @@ public class LiveComposer {
      * upstream omits the field. No client-side fallback — composers only render the seed
      * prefix when this is non-null.
      */
-    private String resolveSeed(JsonNode team, JsonNode game, boolean isAway) {
-        for (String f : new String[]{"playoffRank", "seed", "playoffSeed"}) {
-            String v = team.path(f).asText(null);
-            if (v != null && !v.isBlank() && !"0".equals(v)) return v;
+    private String resolveSeed(ScoreboardTeam team,
+                               Game game,
+                               boolean isAway) {
+        if (team != null) {
+            String[] candidates = {team.getPlayoffRank(), team.getSeed(), team.getPlayoffSeed()};
+            for (String v : candidates) {
+                if (v != null && !v.isBlank() && !"0".equals(v)) return v;
+            }
         }
-        JsonNode series = game.path("playoffSeries");
-        if (series.isObject()) {
-            String key = isAway ? "awayTeamSeed" : "homeTeamSeed";
-            String v = series.path(key).asText(null);
+        PlayoffSeries series = game.getPlayoffSeries();
+        if (series != null) {
+            String v = isAway ? series.getAwayTeamSeed() : series.getHomeTeamSeed();
             if (v != null && !v.isBlank() && !"0".equals(v)) return v;
         }
         return null;
@@ -488,8 +504,8 @@ public class LiveComposer {
      * field is absent or empty. Clients render the row's series/context slot only when
      * this is non-null — no client-side fallback string.
      */
-    private String resolveSeriesText(JsonNode game) {
-        String series = game.path("seriesText").asText(null);
+    private String resolveSeriesText(Game game) {
+        String series = game.getSeriesText();
         if (series == null || series.isBlank()) return null;
         return series;
     }
@@ -501,19 +517,20 @@ public class LiveComposer {
      * {@code broadcasterText} string. Clients render the broadcast row only when this
      * returns a non-null value.
      */
-    private String resolveBroadcastText(JsonNode game) {
-        JsonNode broadcasters = game.path("broadcasters");
-        if (broadcasters.isObject()) {
-            JsonNode national = broadcasters.path("nationalTvBroadcasters");
-            if (national.isArray() && national.size() > 0) {
-                String name = national.get(0).path("broadcasterDisplay").asText(null);
+    private String resolveBroadcastText(Game game) {
+        Broadcasters broadcasters = game.getBroadcasters();
+        if (broadcasters != null && broadcasters.getNationalTvBroadcasters() != null
+                && !broadcasters.getNationalTvBroadcasters().isEmpty()) {
+            com.nba.sdui.integration.model.scoreboard.Broadcaster first = broadcasters.getNationalTvBroadcasters().get(0);
+            if (first != null) {
+                String name = first.getBroadcasterDisplay();
                 if (name == null || name.isBlank()) {
-                    name = national.get(0).path("broadcasterAbbreviation").asText(null);
+                    name = first.getBroadcasterAbbreviation();
                 }
                 if (name != null && !name.isBlank()) return name;
             }
         }
-        String flat = game.path("broadcasterText").asText(null);
+        String flat = game.getBroadcasterText();
         if (flat == null || flat.isBlank()) return null;
         return flat;
     }
@@ -525,12 +542,12 @@ public class LiveComposer {
      * Each game's SSE channel pushes linescore frames that update scores
      * and the clock snapshot for its row.
      */
-    private ObjectNode buildScheduleListBindings(List<JsonNode> liveGames) {
+    private ObjectNode buildScheduleListBindings(List<Game> liveGames) {
         ObjectNode dataBinding = objectMapper.createObjectNode();
         ArrayNode bindings = objectMapper.createArrayNode();
 
-        for (JsonNode game : liveGames) {
-            String gameId = game.path("gameId").asText("0000000000");
+        for (Game game : liveGames) {
+            String gameId = game.getGameId() != null ? game.getGameId() : "0000000000";
             // Per-row score bindings from the SSE linescore frame
             bindings.add(utils.bindingPath(
                     "$.homeTeam.score", "content." + gameId + ".homeScore"));
@@ -545,8 +562,8 @@ public class LiveComposer {
         dataBinding.set("bindings", bindings);
         // Multi-channel: the section subscribes to all live game channels
         ArrayNode channels = objectMapper.createArrayNode();
-        for (JsonNode game : liveGames) {
-            String gameId = game.path("gameId").asText("0000000000");
+        for (Game game : liveGames) {
+            String gameId = game.getGameId() != null ? game.getGameId() : "0000000000";
             channels.add(gameId + ":linescore");
         }
         dataBinding.set("channels", channels);
@@ -555,7 +572,7 @@ public class LiveComposer {
 
     // ── Helpers ────────────────────────────────────────────────────────
 
-    private JsonNode safeGetScoreboard() {
+    private ScoreboardResponse safeGetScoreboard() {
         try {
             return scoreboardPort.getScoreboard();
         } catch (Exception e) {
@@ -570,8 +587,8 @@ public class LiveComposer {
         return rp;
     }
 
-    private ObjectNode ssePolicy(JsonNode game) {
-        String gameId = game.path("gameId").asText("0000000000");
+    private ObjectNode ssePolicy(Game game) {
+        String gameId = game.getGameId() != null ? game.getGameId() : "0000000000";
         ObjectNode rp = objectMapper.createObjectNode();
         rp.put("type", "sse");
         rp.put("channel", gameId + ":linescore");
@@ -585,8 +602,8 @@ public class LiveComposer {
      * Initial server payloads are rendered as paused snapshots; SSE/Ably
      * linescore frames set isRunning=true to start local interpolation.
      */
-    private AtomicCompositeBuilder.GameClockSnapshot clockSnapshotFromGame(JsonNode game) {
-        int seconds = parseGameClockSeconds(game.path("gameClock").asText(""));
+    private AtomicCompositeBuilder.GameClockSnapshot clockSnapshotFromGame(Game game) {
+        int seconds = parseGameClockSeconds(game.getGameClock());
         return new AtomicCompositeBuilder.GameClockSnapshot(
                 seconds,
                 java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString(),

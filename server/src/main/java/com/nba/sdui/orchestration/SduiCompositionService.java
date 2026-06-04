@@ -23,6 +23,12 @@ import com.nba.sdui.domain.composer.LiveComposer;
 import com.nba.sdui.domain.composer.ScheduleComposer;
 import com.nba.sdui.domain.composer.ScoreboardComposer;
 import com.nba.sdui.domain.composer.WatchComposer;
+import com.nba.sdui.domain.port.StatsPort;
+import com.nba.sdui.integration.model.boxscore.BoxscoreGame;
+import com.nba.sdui.integration.model.boxscore.BoxscorePlayer;
+import com.nba.sdui.integration.model.boxscore.BoxscoreResponse;
+import com.nba.sdui.integration.model.boxscore.BoxscoreStatistics;
+import com.nba.sdui.integration.model.boxscore.BoxscoreTeam;
 import com.nba.sdui.remote.StatsApiClient;
 
 /**
@@ -43,6 +49,7 @@ public class SduiCompositionService {
 
     private final ObjectMapper objectMapper;
     private final StatsApiClient statsApiClient;
+    private final StatsPort statsPort;
     private final SduiUtils utils;
     private final SduiMetrics metrics;
     private final GameDetailComposer gameDetailComposer;
@@ -63,6 +70,7 @@ public class SduiCompositionService {
 
     public SduiCompositionService(ObjectMapper objectMapper,
                                    StatsApiClient statsApiClient,
+                                   StatsPort statsPort,
                                    SduiUtils utils,
                                    SduiMetrics metrics,
                                    GameDetailComposer gameDetailComposer,
@@ -77,6 +85,7 @@ public class SduiCompositionService {
                                    CalendarComposer calendarComposer) {
         this.objectMapper = objectMapper;
         this.statsApiClient = statsApiClient;
+        this.statsPort = statsPort;
         this.utils = utils;
         this.metrics = metrics;
         this.gameDetailComposer = gameDetailComposer;

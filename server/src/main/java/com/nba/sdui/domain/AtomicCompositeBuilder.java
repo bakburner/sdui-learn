@@ -506,17 +506,33 @@ public class AtomicCompositeBuilder {
     public record GamePanelTeam(String tricode, int score, String logoUrl) {}
 
     /**
-     * Build a {@link GamePanelTeam} from a raw upstream team JSON node
-     * (the shape produced by stats-api and the composer mappers).
-     * Falls back to {@link SduiUtils#teamLogoUrl(String)} when the
-     * caller has not pre-populated {@code logoUrl}.
+     * Build a {@link GamePanelTeam} from the typed scoreboard
+     * {@link com.nba.sdui.integration.model.scoreboard.ScoreboardTeam}.
      */
-    public GamePanelTeam gamePanelTeamFromJson(JsonNode team) {
-        String tricode = team.path("teamTricode").asText("");
-        int score = team.path("score").asInt(0);
-        String logoUrl = team.has("logoUrl") && !team.path("logoUrl").isNull()
-                ? team.path("logoUrl").asText()
-                : SduiUtils.teamLogoUrl(team.path("teamId").asText(""));
+    public GamePanelTeam gamePanelTeam(com.nba.sdui.integration.model.scoreboard.ScoreboardTeam team) {
+        if (team == null) {
+            return new GamePanelTeam("", 0, SduiUtils.teamLogoUrl(""));
+        }
+        String tricode = team.getTeamTricode() != null ? team.getTeamTricode() : "";
+        int score = team.getScore();
+        String logoUrl = team.getLogoUrl() != null && !team.getLogoUrl().isBlank()
+                ? team.getLogoUrl()
+                : SduiUtils.teamLogoUrl(team.getTeamId() != null ? team.getTeamId() : "");
+        return new GamePanelTeam(tricode, score, logoUrl);
+    }
+
+    /**
+     * Build a {@link GamePanelTeam} from the typed boxscore
+     * {@link com.nba.sdui.integration.model.boxscore.BoxscoreTeam}.
+     */
+    public GamePanelTeam gamePanelTeam(com.nba.sdui.integration.model.boxscore.BoxscoreTeam team) {
+        if (team == null) {
+            return new GamePanelTeam("", 0, SduiUtils.teamLogoUrl(""));
+        }
+        String tricode = team.getTeamTricode() != null ? team.getTeamTricode() : "";
+        int score = team.getScore() != null ? team.getScore() : 0;
+        String teamIdStr = team.getTeamId() != null ? String.valueOf(team.getTeamId()) : "";
+        String logoUrl = SduiUtils.teamLogoUrl(teamIdStr);
         return new GamePanelTeam(tricode, score, logoUrl);
     }
 
@@ -3116,10 +3132,10 @@ public class AtomicCompositeBuilder {
     /**
      * Build the {@code data} object for a section whose full visible surface
      * is expressed as an atomic tree under {@code data.ui}. Shared with
-     * semantic-section composers (SubscribeBanner / SubscribeHero /
-     * VideoPlayer) that use the same on-wire shape as AtomicComposite but
-     * additionally expose top-level domain-data fields (ctaAction, tiers,
-     * playerType, ...) the client reads alongside the tree.
+     * semantic-section composers (SubscribeUpsell, VideoPlayer) that use the
+     * same on-wire shape as AtomicComposite but additionally expose top-level
+     * domain-data fields (ctaAction, tiers, playerType, ...) the client reads
+     * alongside the tree.
      */
     public ObjectNode wrapUi(ObjectNode rootElement) {
         ObjectNode data = om.createObjectNode();

@@ -38,8 +38,8 @@ This plan keeps `TabGroup` as the stateful/nested-section host, but moves option
 
 ### Phase 1: Contract Classification
 
-- [ ] Confirm whether generated models already expose `data.ui` for `TabGroupData`.
-- [ ] If not, update schema/codegen so `TabGroupData` can optionally carry `ui` using the existing `AtomicElement` shape.
+- [ ] Confirm whether generated models already expose `data.ui` for `TabGroup`.
+- [ ] If not, update schema/codegen so `TabGroup` can optionally carry `ui` using the existing `AtomicElement` shape.
 - [ ] Document that `data.ui`, when present on `TabGroup`, represents the tab header/control surface only.
 - [ ] Keep `tabs`, `stateKey`, `defaultTab`, and `tabContents` as the authoritative tab behavior contract.
 

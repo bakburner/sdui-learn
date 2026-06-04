@@ -30,7 +30,7 @@ import com.nba.sdui.core.models.generated.ActionTrigger
 import com.nba.sdui.core.models.generated.Alignment
 import com.nba.sdui.core.models.generated.AtomicElement
 import com.nba.sdui.core.models.generated.CrossAlignment
-import com.nba.sdui.core.models.generated.UIDirection
+import com.nba.sdui.core.models.generated.AtomicElementDirection
 import com.nba.sdui.core.renderer.ContainerVariantResolver.OverridePolicy
 import com.nba.sdui.core.renderer.ContainerVariantResolver.SurfaceRole
 import com.nba.sdui.core.renderer.ContainerVariantResolver
@@ -63,12 +63,12 @@ fun AtomicContainer(
     sectionSlotDepth: Int = 0
 ) {
     val screenWidthDp = LocalConfiguration.current.screenWidthDp
-    val isRow = if (element.breakpoint != null && element.direction == UIDirection.Row) {
+    val isRow = if (element.breakpoint != null && element.direction == AtomicElementDirection.Row) {
         screenWidthDp >= element.breakpoint.toInt()
     } else {
-        element.direction == UIDirection.Row
+        element.direction == AtomicElementDirection.Row
     }
-    val stackBelowBreakpoint = element.breakpoint != null && element.direction == UIDirection.Row && !isRow
+    val stackBelowBreakpoint = element.breakpoint != null && element.direction == AtomicElementDirection.Row && !isRow
 
     // TODO(phase3): swap for `LocalSduiFormFactor.current` once the
     // form-factor classifier is plumbed end-to-end.

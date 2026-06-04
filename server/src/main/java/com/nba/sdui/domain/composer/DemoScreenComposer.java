@@ -126,12 +126,12 @@ public class DemoScreenComposer {
         // 15. NbaTvSchedule
         sections.add(buildTypeLabel("NbaTvSchedule (Composite)"));
         sections.add(buildDemoNbaTvSchedule());
-        // 16. SubscribeBanner
-        sections.add(buildTypeLabel("SubscribeBanner (Semantic)"));
-        sections.add(buildDemoSubscribeBanner());
-        // 17. SubscribeHero
-        sections.add(buildTypeLabel("SubscribeHero (Semantic)"));
-        sections.add(buildDemoSubscribeHero());
+        // 16. SubscribeUpsell (inline-banner layout)
+        sections.add(buildTypeLabel("SubscribeUpsell (inline banner)"));
+        sections.add(buildDemoSubscribeUpsellBanner());
+        // 17. SubscribeUpsell (hero layout)
+        sections.add(buildTypeLabel("SubscribeUpsell (hero)"));
+        sections.add(buildDemoSubscribeUpsellHero());
         // 18. FollowingRail
         sections.add(buildTypeLabel("FollowingRail (Composite)"));
         sections.add(buildDemoFollowingRail());
@@ -828,18 +828,18 @@ public class DemoScreenComposer {
     }
 
     /**
-     * 16. SubscribeBanner — inline League Pass upsell. Visible surface is
-     * expressed as an atomic tree under {@code data.ui}. Reserved SDK
-     * integration point.
+     * 16. SubscribeUpsell, inline-banner layout for League Pass. Visible
+     * surface is expressed as an atomic tree under {@code data.ui}; reserved
+     * SDK integration point.
      */
-    private ObjectNode buildDemoSubscribeBanner() {
-        String contentSourceId = "demo:subscribe-banner";
-        String sectionId = SectionIdDeriver.derive(contentSourceId, "SubscribeBanner");
+    private ObjectNode buildDemoSubscribeUpsellBanner() {
+        String contentSourceId = "demo:subscribe-upsell-banner";
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "SubscribeUpsell");
         ObjectNode section = objectMapper.createObjectNode();
         section.put("id", sectionId);
-        section.put("type", "SubscribeBanner");
+        section.put("type", "SubscribeUpsell");
         section.put("contentSourceId", contentSourceId);
-        section.put("analyticsId", "demo_subscribe_banner");
+        section.put("analyticsId", "demo_subscribe_upsell_banner");
         section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
         section.set("surface", surfaces.subscribeSurface(
                 tokens.color("nba.label.accent.brand"),
@@ -873,19 +873,19 @@ public class DemoScreenComposer {
     }
 
     /**
-     * 17. SubscribeHero — full-width subscription hero with pricing tiers.
-     * Visible surface is expressed as an atomic tree under {@code data.ui}.
+     * 17. SubscribeUpsell, full-width hero layout with pricing tiers. Visible
+     * surface is expressed as an atomic tree under {@code data.ui}.
      * {@code data.tiers} is retained for the future IAP SDK to bind product
      * identifiers; the renderer reads nothing from it today.
      */
-    private ObjectNode buildDemoSubscribeHero() {
-        String contentSourceId = "demo:subscribe-hero";
-        String sectionId = SectionIdDeriver.derive(contentSourceId, "SubscribeHero");
+    private ObjectNode buildDemoSubscribeUpsellHero() {
+        String contentSourceId = "demo:subscribe-upsell-hero";
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "SubscribeUpsell");
         ObjectNode section = objectMapper.createObjectNode();
         section.put("id", sectionId);
-        section.put("type", "SubscribeHero");
+        section.put("type", "SubscribeUpsell");
         section.put("contentSourceId", contentSourceId);
-        section.put("analyticsId", "demo_subscribe_hero");
+        section.put("analyticsId", "demo_subscribe_upsell_hero");
         section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
         // Dark-blue surface token (resolves to the NBA tertiary blue family
         // across light/dark themes). Accent tokens like BRAND_NBA are for

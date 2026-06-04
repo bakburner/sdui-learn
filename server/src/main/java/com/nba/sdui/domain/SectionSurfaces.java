@@ -155,7 +155,7 @@ public class SectionSurfaces {
      * Build a surface block for subscription upsell sections — standard
      * section rhythm + branded gradient background + inner padding so
      * the caller's content lays out flush against the surface edges.
-     * Used by SubscribeBanner and SubscribeHero composers.
+     * Used by SubscribeUpsell composers (both inline-banner and full-screen-hero layouts).
      *
      * <p>The {@code padding} parameter is a raw integer because callers
      * pass values (20, 24) that fall between {@code nba.spacing.lg} (16)
@@ -312,8 +312,8 @@ public class SectionSurfaces {
      * <p>The gradient is intentionally token-backed so clients resolve it
      * against their active light/dark theme. It blends from a raised card
      * surface into the promo tint, which gives dark-mode cards a visible
-     * edge against the black canvas without competing with SubscribeHero /
-     * SubscribeBanner's strong brand gradient.
+     * edge against the black canvas without competing with the
+     * SubscribeUpsell brand gradient.
      */
     public ObjectNode gamePanelSurface() {
         ObjectNode surface = defaultSurface();

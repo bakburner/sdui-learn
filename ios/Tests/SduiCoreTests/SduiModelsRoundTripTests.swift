@@ -4,9 +4,9 @@ import XCTest
 /// Phase A end-of-phase gate (per `docs/sdui-refapp-implementation-plan.md` §0.7).
 ///
 /// Round-trip decodes representative server responses against the generated
-/// `SduiModels.swift`. Catches schema/union decoding breakage before any
+/// `Screen.swift`. Catches schema/union decoding breakage before any
 /// downstream phase lands on top.
-final class SduiModelsRoundTripTests: XCTestCase {
+final class ScreenRoundTripTests: XCTestCase {
 
     private func loadFixture(_ name: String) throws -> Data {
         let url = try XCTUnwrap(
@@ -18,7 +18,7 @@ final class SduiModelsRoundTripTests: XCTestCase {
 
     func testGameDetailLiveDecodes() throws {
         let data = try loadFixture("game-detail-live")
-        let screen = try SduiModels(data: data)
+        let screen = try Screen(data: data)
 
         XCTAssertEqual(screen.id, "game-detail-0042300102")
         XCTAssertEqual(screen.schemaVersion, "1.0")
@@ -41,25 +41,25 @@ final class SduiModelsRoundTripTests: XCTestCase {
 
     func testGameDetailFinalDecodes() throws {
         let data = try loadFixture("game-detail-final")
-        let screen = try SduiModels(data: data)
+        let screen = try Screen(data: data)
         XCTAssertFalse(screen.sections.isEmpty)
     }
 
     func testGameDetailPreDecodes() throws {
         let data = try loadFixture("game-detail-pre")
-        let screen = try SduiModels(data: data)
+        let screen = try Screen(data: data)
         XCTAssertFalse(screen.sections.isEmpty, "pre-game screen should contain sections")
     }
 
     func testScoreboardLiveDecodes() throws {
         let data = try loadFixture("scoreboard-live")
-        let screen = try SduiModels(data: data)
+        let screen = try Screen(data: data)
         XCTAssertFalse(screen.sections.isEmpty, "scoreboard should contain sections")
     }
 
     func testBoxscoreDecodes() throws {
         let data = try loadFixture("boxscore")
-        let screen = try SduiModels(data: data)
+        let screen = try Screen(data: data)
         XCTAssertFalse(screen.sections.isEmpty, "boxscore screen should contain sections")
     }
 
@@ -69,7 +69,7 @@ final class SduiModelsRoundTripTests: XCTestCase {
     /// something the decoder can't parse.
     func testForYouDecodes() throws {
         let data = try loadFixture("for-you")
-        let screen = try SduiModels(data: data)
+        let screen = try Screen(data: data)
         XCTAssertFalse(screen.sections.isEmpty, "For You screen should contain sections")
         XCTAssertTrue(
             screen.sections.contains(where: { $0.type == "AtomicComposite" }),
@@ -83,7 +83,7 @@ final class SduiModelsRoundTripTests: XCTestCase {
 
     func testRefreshPolicyFieldsSurviveRoundTrip() throws {
         let data = try loadFixture("game-detail-live")
-        let screen = try SduiModels(data: data)
+        let screen = try Screen(data: data)
         let gamePanel = try XCTUnwrap(screen.sections.first(where: isLiveGamePanelComposite))
         XCTAssertNotNil(gamePanel.refreshPolicy, "Live game panel must declare a refresh policy")
         XCTAssertNotNil(gamePanel.dataBinding, "Live game panel must declare data bindings")
@@ -91,7 +91,7 @@ final class SduiModelsRoundTripTests: XCTestCase {
 
     func testPauseWhenOffScreenDecodesFromFixture() throws {
         let data = try loadFixture("game-detail-live")
-        let screen = try SduiModels(data: data)
+        let screen = try Screen(data: data)
         let gamePanel = try XCTUnwrap(screen.sections.first(where: isLiveGamePanelComposite))
         let policy = try XCTUnwrap(gamePanel.refreshPolicy)
         XCTAssertEqual(policy.pauseWhenOffScreen, false,
@@ -100,7 +100,7 @@ final class SduiModelsRoundTripTests: XCTestCase {
 
     func testPauseWhenOffScreenDefaultsToNilWhenAbsent() throws {
         let data = try loadFixture("game-detail-live")
-        let screen = try SduiModels(data: data)
+        let screen = try Screen(data: data)
         // Find a section whose refreshPolicy does NOT include pauseWhenOffScreen
         let pollSection = screen.sections.first(where: {
             $0.refreshPolicy?.type == .poll
@@ -132,7 +132,7 @@ final class SduiModelsRoundTripTests: XCTestCase {
 
     func testLiveClockLeafDecodes() throws {
         let data = try loadFixture("live-clock-leaf")
-        let screen = try SduiModels(data: data)
+        let screen = try Screen(data: data)
         XCTAssertFalse(screen.sections.isEmpty)
         let section = try XCTUnwrap(screen.sections.first)
         XCTAssertEqual(section.type, "AtomicComposite")
@@ -182,7 +182,7 @@ final class SduiModelsRoundTripTests: XCTestCase {
         ]
         for name in fixtureNames {
             let data = try loadFixture(name)
-            let screen = try SduiModels(data: data)
+            let screen = try Screen(data: data)
             let section = try XCTUnwrap(screen.sections.first(where: { $0.type == "AtomicComposite" }),
                                         "\(name): expected an AtomicComposite section")
             XCTAssertNotNil(section.data?.ui, "\(name): data.ui must decode")

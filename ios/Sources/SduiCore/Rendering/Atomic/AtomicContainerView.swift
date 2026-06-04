@@ -66,7 +66,7 @@ struct AtomicContainerView: View {
         }
     }
 
-    private var resolvedDirection: UIDirection? {
+    private var resolvedDirection: AtomicElementDirection? {
         guard element.direction == .row,
               let breakpoint = element.breakpoint,
               currentScreenWidth < CGFloat(breakpoint) else {

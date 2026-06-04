@@ -16,6 +16,8 @@ import com.nba.sdui.domain.SectionIdDeriver;
 import com.nba.sdui.domain.SectionSurfaces;
 import com.nba.sdui.domain.tokens.Tokens;
 import com.nba.sdui.domain.port.ScoreboardPort;
+import com.nba.sdui.integration.model.scoreboard.Game;
+import com.nba.sdui.integration.model.scoreboard.ScoreboardResponse;
 
 /**
  * Composes the "Watch" SDUI screen — video / streaming hub organised into tabs.
@@ -147,8 +149,8 @@ public class WatchComposer {
                                 "2:45", null, "nba://video/top10-plays"}
                 });
 
-        // Subscribe banner (inline upsell)
-        sections.add(buildSubscribeBanner(
+        // Inline subscription upsell
+        sections.add(buildSubscribeUpsellBanner(
                 "NBA League Pass",
                 "Watch every out-of-market game live or on demand",
                 FALLBACK_THUMB,
@@ -230,8 +232,8 @@ public class WatchComposer {
     private ArrayNode buildLeaguePassSections() {
         ArrayNode sections = objectMapper.createArrayNode();
 
-        // Subscribe hero (full-screen upsell with pricing tiers)
-        sections.add(buildSubscribeHero());
+        // Full-screen subscription upsell with pricing tiers
+        sections.add(buildSubscribeUpsellHero());
 
         sections.add(buildSectionHeader("live-games", "Live Games", null, null));
 
@@ -259,11 +261,10 @@ public class WatchComposer {
 
     private void addLiveGamePanels(ArrayNode sections) {
         try {
-            JsonNode scoreboard = scoreboardPort.getScoreboard();
+            ScoreboardResponse scoreboard = scoreboardPort.getScoreboard();
             if (scoreboard != null) {
-                JsonNode games = scoreboard.path("scoreboard").path("games");
                 int count = 0;
-                for (JsonNode g : games) {
+                for (Game g : scoreboard.getGames()) {
                     if (count >= 4) break;
                     sections.add(buildGamePanel(g));
                     count++;
@@ -350,21 +351,21 @@ public class WatchComposer {
         return section;
     }
 
-    private ObjectNode buildGamePanel(JsonNode game) {
-        String gameId = game.path("gameId").asText("0000000000");
+    private ObjectNode buildGamePanel(Game game) {
+        String gameId = game.getGameId() != null ? game.getGameId() : "0000000000";
         String contentSourceId = "stats-api:game-" + gameId;
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
-        int gameStatus = game.path("gameStatus").asInt(1);
+        int gameStatus = game.getGameStatus();
         ObjectNode section = atomicBuilder.buildGamePanelComposite(
                 sectionId,
                 null,
                 "standard",
                 gameId,
                 gameStatus,
-                game.path("gameStatusText").asText(""),
+                game.getGameStatusText() != null ? game.getGameStatusText() : "",
                 null,
-                atomicBuilder.gamePanelTeamFromJson(game.path("awayTeam")),
-                atomicBuilder.gamePanelTeamFromJson(game.path("homeTeam")),
+                atomicBuilder.gamePanelTeam(game.getAwayTeam()),
+                atomicBuilder.gamePanelTeam(game.getHomeTeam()),
                 null,
                 "nba://game/" + gameId,
                 staticPolicy(),
@@ -424,7 +425,7 @@ public class WatchComposer {
     }
 
     /**
-     * SubscribeBanner section — inline subscription upsell.
+     * SubscribeUpsell section, inline-banner layout.
      *
      * Reserved SDK integration point: the visible surface is expressed as an
      * atomic tree under {@code data.ui}. {@code data.ctaAction} is retained as
@@ -432,14 +433,14 @@ public class WatchComposer {
      * CTA tap and reads the IAP product identifiers from a future
      * {@code data.tiers} list.
      */
-    private ObjectNode buildSubscribeBanner(String title, String subtitle,
+    private ObjectNode buildSubscribeUpsellBanner(String title, String subtitle,
                                              String backgroundUrl, String ctaLabel,
                                              String ctaUri) {
         String contentSourceId = "product:league-pass-banner";
-        String sectionId = SectionIdDeriver.derive(contentSourceId, "SubscribeBanner");
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "SubscribeUpsell");
         ObjectNode section = objectMapper.createObjectNode();
         section.put("id", sectionId);
-        section.put("type", "SubscribeBanner");
+        section.put("type", "SubscribeUpsell");
         section.put("contentSourceId", contentSourceId);
         section.set("refreshPolicy", staticPolicy());
         section.set("surface", surfaces.subscribeSurface(
@@ -473,7 +474,7 @@ public class WatchComposer {
     }
 
     /**
-     * SubscribeHero section — full-screen upsell with pricing tiers.
+     * SubscribeUpsell section, full-screen-hero layout with pricing tiers.
      *
      * Reserved SDK integration point: the full visible surface (logo, title,
      * subtitle, feature list, tier cards) is expressed as an atomic tree
@@ -481,12 +482,12 @@ public class WatchComposer {
      * IAP SDK to bind product identifiers; the renderer reads nothing from
      * it today.
      */
-    private ObjectNode buildSubscribeHero() {
+    private ObjectNode buildSubscribeUpsellHero() {
         String contentSourceId = "product:league-pass";
-        String sectionId = SectionIdDeriver.derive(contentSourceId, "SubscribeHero");
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "SubscribeUpsell");
         ObjectNode section = objectMapper.createObjectNode();
         section.put("id", sectionId);
-        section.put("type", "SubscribeHero");
+        section.put("type", "SubscribeUpsell");
         section.put("contentSourceId", contentSourceId);
         section.set("refreshPolicy", staticPolicy());
         section.set("surface", surfaces.subscribeSurface(
@@ -494,7 +495,7 @@ public class WatchComposer {
                 tokens.color("nba.label.accent.brand"),
                 24));
 
-        ObjectNode root = buildSubscribeHeroUi(
+        ObjectNode root = buildSubscribeUpsellHeroUi(
                 "NBA League Pass",
                 "Your courtside seat to every game",
                 FALLBACK_THUMB,
@@ -526,10 +527,11 @@ public class WatchComposer {
     }
 
     /**
-     * Build the atomic tree for a SubscribeHero. Extracted so both the Watch
-     * composer and the demo composer can share the same visual composition.
+     * Build the atomic tree for a SubscribeUpsell hero layout. Extracted so
+     * both the Watch composer and the demo composer can share the same
+     * visual composition.
      */
-    private ObjectNode buildSubscribeHeroUi(String title, String subtitle, String logoUrl,
+    private ObjectNode buildSubscribeUpsellHeroUi(String title, String subtitle, String logoUrl,
                                              String[] features, TierSpec[] tierSpecs) {
         ObjectNode root = atomicBuilder.container("column", "start", "center");
         root.put("gap", 8); // §3.6: no semantic spacing token for 8

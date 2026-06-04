@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import type { Section, Action, Data, RefreshPolicy } from '@sdui/models';
+import type { Section, SectionData, Action, RefreshPolicy } from '@sdui/models';
 import { TabGroup } from './sections/TabGroup';
 import { BoxscoreTable } from './sections/BoxscoreTable';
 import { CalendarMonthList } from './sections/CalendarMonthList';
@@ -7,11 +7,9 @@ import { CalendarStrip } from './sections/CalendarStrip';
 import { Form } from './sections/Form';
 import { AdSlot } from './sections/AdSlot';
 import { SeasonLeadersTable } from './sections/SeasonLeadersTable';
-import { SubscribeBanner } from './sections/SubscribeBanner';
-import { SubscribeHero } from './sections/SubscribeHero';
+import { SubscribeUpsell } from './sections/SubscribeUpsell';
 import { VideoPlayerStub } from './sections/VideoPlayerStub';
 import { AtomicRouter } from './atomic';
-import type { AtomicCompositeData } from './atomic';
 import { CompositeContentContext } from '../utils/BindRefResolver';
 import { LiveSectionWrapper, sectionPolicyKey } from './LiveSectionWrapper';
 import { SectionErrorBoundary } from './SectionErrorBoundary';
@@ -87,17 +85,14 @@ function SectionRenderer({
     case 'SeasonLeadersTable':
       return wrap(<SeasonLeadersTable {...commonProps} />);
 
-    case 'SubscribeBanner':
-      return wrap(<SubscribeBanner {...commonProps} />);
-
-    case 'SubscribeHero':
-      return wrap(<SubscribeHero {...commonProps} />);
+    case 'SubscribeUpsell':
+      return wrap(<SubscribeUpsell {...commonProps} />);
 
     case 'VideoPlayer':
       return wrap(<VideoPlayerStub {...commonProps} />);
 
     case 'AtomicComposite': {
-      const compositeData = section.data as unknown as AtomicCompositeData | undefined;
+      const compositeData = section.data;
       if (!compositeData?.ui) {
         console.debug(`[SectionRouter] AtomicComposite section ${section.id} has no ui element`);
         return null;
@@ -173,7 +168,7 @@ export function SectionRouter({
         onUpgradeRequired={onUpgradeRequired}
         traceId={traceId}
       >
-        {(liveData: Data | undefined) => {
+        {(liveData: SectionData | undefined) => {
           const liveSection: Section = {
             ...section,
             data: liveData,

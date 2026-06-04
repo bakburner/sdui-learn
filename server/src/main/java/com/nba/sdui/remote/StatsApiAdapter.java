@@ -7,6 +7,12 @@ import com.nba.saf.orchestrator.ServiceCall;
 import com.nba.saf.orchestrator.ServiceOrchestrator;
 import com.nba.sdui.domain.port.ScoreboardPort;
 import com.nba.sdui.domain.port.StatsPort;
+import com.nba.sdui.integration.client.BoxscoreClient;
+import com.nba.sdui.integration.client.ScoreboardClient;
+import com.nba.sdui.integration.client.impl.BoxscoreCdnClient;
+import com.nba.sdui.integration.client.impl.ScoreboardCdnClient;
+import com.nba.sdui.integration.model.boxscore.BoxscoreResponse;
+import com.nba.sdui.integration.model.scoreboard.ScoreboardResponse;
 import com.nba.sdui.metrics.SduiMetrics;
 import com.nba.sdui.orchestration.ResponseMetaCollector;
 import org.springframework.beans.factory.ObjectProvider;
@@ -46,15 +52,22 @@ public class StatsApiAdapter implements ScoreboardPort, StatsPort {
     private static final String SERVICE_SEASON_SCHEDULE = "season-schedule";
 
     private final StatsApiClient client;
+    private final ScoreboardClient scoreboardClient;
+    private final BoxscoreClient boxscoreClient;
     private final OrchestratorFactory orchestrators;
     private final SduiMetrics metrics;
     private final ObjectProvider<ResponseMetaCollector> metaCollector;
 
+    @org.springframework.beans.factory.annotation.Autowired
     public StatsApiAdapter(StatsApiClient client,
+                           ScoreboardClient scoreboardClient,
+                           BoxscoreClient boxscoreClient,
                            OrchestratorFactory orchestrators,
                            SduiMetrics metrics,
                            ObjectProvider<ResponseMetaCollector> metaCollector) {
         this.client = client;
+        this.scoreboardClient = scoreboardClient;
+        this.boxscoreClient = boxscoreClient;
         this.orchestrators = orchestrators;
         this.metrics = metrics;
         this.metaCollector = metaCollector;
@@ -63,37 +76,44 @@ public class StatsApiAdapter implements ScoreboardPort, StatsPort {
     /**
      * Test-only constructor: bypasses SAF orchestration when tests construct the
      * adapter without a Spring context. Production code always wires the
-     * four-arg constructor via {@code @Component} injection.
+     * six-arg constructor via {@code @Component} injection.
      */
     public StatsApiAdapter(StatsApiClient client) {
-        this(client, null, null, null);
+        this(client,
+                new ScoreboardCdnClient(client, defaultObjectMapper()),
+                new BoxscoreCdnClient(client, defaultObjectMapper()),
+                null, null, null);
+    }
+
+    private static com.fasterxml.jackson.databind.ObjectMapper defaultObjectMapper() {
+        return new com.fasterxml.jackson.databind.ObjectMapper();
     }
 
     @Override
-    public JsonNode getScoreboard() throws IOException {
+    public ScoreboardResponse getScoreboard() throws IOException {
         return execute(
                 "scoreboard",
                 SERVICE_SCOREBOARD_CDN,
                 "scoreboard:cdn:today",
-                () -> uncheck(client::getScoreboard));
+                () -> uncheck(scoreboardClient::getTodayScoreboard));
     }
 
     @Override
-    public JsonNode getScoreboardForDate(LocalDate date) throws IOException {
+    public ScoreboardResponse getScoreboardForDate(LocalDate date) throws IOException {
         return execute(
                 "scoreboard:" + date,
                 SERVICE_CORE_API,
                 "scoreboard:core:" + date,
-                () -> uncheck(() -> client.getScoreboardForDate(date)));
+                () -> uncheck(() -> scoreboardClient.getScoreboardForDate(date)));
     }
 
     @Override
-    public JsonNode getBoxscore(String gameId) throws IOException {
+    public BoxscoreResponse getBoxscore(String gameId) throws IOException {
         return execute(
                 "boxscore:" + gameId,
                 SERVICE_BOXSCORE_CDN,
                 "boxscore:" + gameId,
-                () -> uncheck(() -> client.getBoxscore(gameId)));
+                () -> uncheck(() -> boxscoreClient.getBoxscore(gameId)));
     }
 
     @Override

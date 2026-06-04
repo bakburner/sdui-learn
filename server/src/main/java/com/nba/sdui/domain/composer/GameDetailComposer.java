@@ -26,6 +26,11 @@ import com.nba.sdui.domain.SduiUtils;
 import com.nba.sdui.domain.SectionSurfaces;
 import com.nba.sdui.orchestration.SectionRefreshService;
 import com.nba.sdui.domain.port.StatsPort;
+import com.nba.sdui.integration.model.boxscore.BoxscoreGame;
+import com.nba.sdui.integration.model.boxscore.BoxscorePlayer;
+import com.nba.sdui.integration.model.boxscore.BoxscoreResponse;
+import com.nba.sdui.integration.model.boxscore.BoxscoreStatistics;
+import com.nba.sdui.integration.model.boxscore.BoxscoreTeam;
 
 /**
  * Composes the Game Detail SDUI screen from live NBA API data with
@@ -208,9 +213,9 @@ public class GameDetailComposer {
      */
     private String deriveGameState(String gameId) {
         try {
-            JsonNode boxscore = statsPort.getBoxscore(gameId);
-            if (boxscore == null) return "pre";
-            int status = boxscore.path("game").path("gameStatus").asInt(1);
+            BoxscoreResponse boxscore = statsPort.getBoxscore(gameId);
+            if (boxscore == null || boxscore.getGame() == null) return "pre";
+            int status = boxscore.getGame().getGameStatus();
             return switch (status) {
                 case 2 -> "live";
                 case 3 -> "post";
@@ -224,15 +229,15 @@ public class GameDetailComposer {
 
     private JsonNode composeFromLiveData(String gameId) {
         try {
-            JsonNode boxscore = statsPort.getBoxscore(gameId);
+            BoxscoreResponse boxscore = statsPort.getBoxscore(gameId);
             if (boxscore == null) {
                 log.warn("No boxscore data available for gameId={}", gameId);
                 return null;
             }
 
             log.info("Successfully fetched live boxscore for gameId={}", gameId);
-            JsonNode game = boxscore.path("game");
-            if (game.isMissingNode()) {
+            BoxscoreGame game = boxscore.getGame();
+            if (game == null) {
                 log.warn("No game data in boxscore for gameId={}", gameId);
                 return null;
             }
@@ -246,7 +251,9 @@ public class GameDetailComposer {
             String contentSourceId = "stats-api:game-" + gameId;
 
             // Default screen state — boxscore team tabs default to away (first listed)
-            String awayTricode = game.path("awayTeam").path("teamTricode").asText("AWAY");
+            BoxscoreTeam awayTeamForState = game.getAwayTeam();
+            String awayTricode = awayTeamForState != null && awayTeamForState.getTeamTricode() != null
+                    ? awayTeamForState.getTeamTricode() : "AWAY";
             ObjectNode screenState = objectMapper.createObjectNode();
             screenState.put("gd_boxscore_team", awayTricode);
             screenState.put("gd_boxscore_away_sortCol", "points");
@@ -309,7 +316,7 @@ public class GameDetailComposer {
                 "Game detail composer does not support section refresh for slug='" + parsed.slug() + "'");
         }
 
-        JsonNode boxscore = statsPort.getBoxscore(gameId);
+        BoxscoreResponse boxscore = statsPort.getBoxscore(gameId);
         if (boxscore == null) {
             // No live boxscore available — surface as a refresh failure so the client
             // can render its sectionStates error treatment rather than receiving
@@ -317,8 +324,8 @@ public class GameDetailComposer {
             throw new IOException("No live boxscore for gameId=" + gameId);
         }
 
-        JsonNode game = boxscore.path("game");
-        if (game.isMissingNode()) {
+        BoxscoreGame game = boxscore.getGame();
+        if (game == null) {
             throw new IOException("No game data in boxscore for gameId=" + gameId);
         }
 
@@ -385,14 +392,14 @@ public class GameDetailComposer {
 
     // ── Section builders ───────────────────────────────────────────────
 
-    private ObjectNode buildBoxscoreTabGroupFromLive(JsonNode game, String gameId, String contentSourceId) {
-        JsonNode homeTeam = game.path("homeTeam");
-        JsonNode awayTeam = game.path("awayTeam");
-        if (homeTeam.isMissingNode() || awayTeam.isMissingNode()) return null;
+    private ObjectNode buildBoxscoreTabGroupFromLive(BoxscoreGame game, String gameId, String contentSourceId) {
+        BoxscoreTeam homeTeam = game.getHomeTeam();
+        BoxscoreTeam awayTeam = game.getAwayTeam();
+        if (homeTeam == null || awayTeam == null) return null;
 
-        String homeTricode = homeTeam.path("teamTricode").asText("HOME");
-        String awayTricode = awayTeam.path("teamTricode").asText("AWAY");
-        int gameStatus = game.path("gameStatus").asInt(1);
+        String homeTricode = homeTeam.getTeamTricode() != null ? homeTeam.getTeamTricode() : "HOME";
+        String awayTricode = awayTeam.getTeamTricode() != null ? awayTeam.getTeamTricode() : "AWAY";
+        int gameStatus = game.getGameStatus();
 
         ObjectNode section = objectMapper.createObjectNode();
         section.put("id", SectionIdDeriver.derive(contentSourceId, "TabGroup", "boxscore-tabs"));
@@ -449,8 +456,8 @@ public class GameDetailComposer {
     }
 
 
-    private ObjectNode buildGamePanelScoreboardFromLive(JsonNode game, String gameId, String contentSourceId) {
-        int gameStatus = game.path("gameStatus").asInt();
+    private ObjectNode buildGamePanelScoreboardFromLive(BoxscoreGame game, String gameId, String contentSourceId) {
+        int gameStatus = game.getGameStatus();
         boolean live = gameStatus == 2;
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite", "scoreboard");
 
@@ -473,7 +480,7 @@ public class GameDetailComposer {
 
         AtomicCompositeBuilder.GameClockSnapshot clock = live
                 ? new AtomicCompositeBuilder.GameClockSnapshot(
-                        parseGameClockSeconds(game.path("gameClock").asText("")),
+                        parseGameClockSeconds(game.getGameClock() != null ? game.getGameClock() : ""),
                         java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString(),
                         AtomicCompositeBuilder.INITIAL_CLOCK_RUNNING)
                 : null;
@@ -482,12 +489,12 @@ public class GameDetailComposer {
                 sectionId,
                 null,
                 "scoreboard",
-                game.path("gameId").asText(),
+                game.getGameId() != null ? game.getGameId() : "",
                 gameStatus,
-                game.path("gameStatusText").asText(""),
+                game.getGameStatusText() != null ? game.getGameStatusText() : "",
                 null,
-                atomicBuilder.gamePanelTeamFromJson(game.path("awayTeam")),
-                atomicBuilder.gamePanelTeamFromJson(game.path("homeTeam")),
+                atomicBuilder.gamePanelTeam(game.getAwayTeam()),
+                atomicBuilder.gamePanelTeam(game.getHomeTeam()),
                 clock,
                 null,
                 refreshPolicy,
@@ -509,11 +516,11 @@ public class GameDetailComposer {
         }
     }
 
-    private ObjectNode buildStatLineSectionFromLive(JsonNode game, String gameId, String contentSourceId) {
+    private ObjectNode buildStatLineSectionFromLive(BoxscoreGame game, String gameId, String contentSourceId) {
         ArrayNode stats = objectMapper.createArrayNode();
 
-        List<ObjectNode> homePerformers = getTopPerformersFromTeam(game.path("homeTeam"), 3);
-        List<ObjectNode> awayPerformers = getTopPerformersFromTeam(game.path("awayTeam"), 3);
+        List<ObjectNode> homePerformers = getTopPerformersFromTeam(game.getHomeTeam(), 3);
+        List<ObjectNode> awayPerformers = getTopPerformersFromTeam(game.getAwayTeam(), 3);
 
         homePerformers.forEach(stats::add);
         awayPerformers.forEach(stats::add);
@@ -540,14 +547,16 @@ public class GameDetailComposer {
         return section;
     }
 
-    private ObjectNode buildRowSectionFromLive(JsonNode game, String gameId, String contentSourceId) {
+    private ObjectNode buildRowSectionFromLive(BoxscoreGame game, String gameId, String contentSourceId) {
         try {
-            List<ObjectNode> homePerformers = getTopPerformersFromTeam(game.path("homeTeam"), 2);
-            List<ObjectNode> awayPerformers = getTopPerformersFromTeam(game.path("awayTeam"), 2);
+            List<ObjectNode> homePerformers = getTopPerformersFromTeam(game.getHomeTeam(), 2);
+            List<ObjectNode> awayPerformers = getTopPerformersFromTeam(game.getAwayTeam(), 2);
             if (homePerformers.isEmpty() && awayPerformers.isEmpty()) return null;
 
-            String homeTricode = game.path("homeTeam").path("teamTricode").asText("HOME");
-            String awayTricode = game.path("awayTeam").path("teamTricode").asText("AWAY");
+            String homeTricode = game.getHomeTeam() != null && game.getHomeTeam().getTeamTricode() != null
+                    ? game.getHomeTeam().getTeamTricode() : "HOME";
+            String awayTricode = game.getAwayTeam() != null && game.getAwayTeam().getTeamTricode() != null
+                    ? game.getAwayTeam().getTeamTricode() : "AWAY";
 
             ObjectNode homeChild = buildStatLineChild("row-home-stats", homeTricode + " Leaders", homePerformers);
             ObjectNode awayChild = buildStatLineChild("row-away-stats", awayTricode + " Leaders", awayPerformers);
@@ -580,19 +589,17 @@ public class GameDetailComposer {
         return atomicBuilder.buildStatLineFromNodes(id, null, title, "vertical", stats);
     }
 
-    private List<ObjectNode> getTopPerformersFromTeam(JsonNode team, int maxPlayers) {
+    private List<ObjectNode> getTopPerformersFromTeam(BoxscoreTeam team, int maxPlayers) {
         List<ObjectNode> performers = new ArrayList<>();
-        if (!team.has("players")) return performers;
+        if (team == null || team.getPlayers() == null || team.getPlayers().isEmpty()) return performers;
 
-        String teamTricode = team.path("teamTricode").asText();
-        int teamId = team.path("teamId").asInt();
+        String teamTricode = team.getTeamTricode() != null ? team.getTeamTricode() : "";
+        int teamId = team.getTeamId() != null ? team.getTeamId() : 0;
 
-        ArrayNode players = (ArrayNode) team.get("players");
-
-        List<Map.Entry<JsonNode, Integer>> playerPoints = new ArrayList<>();
-        for (JsonNode player : players) {
-            JsonNode playerStats = player.path("statistics");
-            int points = playerStats.path("points").asInt();
+        List<Map.Entry<BoxscorePlayer, Integer>> playerPoints = new ArrayList<>();
+        for (BoxscorePlayer player : team.getPlayers()) {
+            BoxscoreStatistics playerStats = player.getStatistics();
+            int points = playerStats != null ? playerStats.getPoints() : 0;
             if (points >= 5) {
                 playerPoints.add(Map.entry(player, points));
             }
@@ -601,26 +608,26 @@ public class GameDetailComposer {
         playerPoints.sort((a, b) -> b.getValue().compareTo(a.getValue()));
 
         int count = 0;
-        for (Map.Entry<JsonNode, Integer> entry : playerPoints) {
+        for (Map.Entry<BoxscorePlayer, Integer> entry : playerPoints) {
             if (count >= maxPlayers) break;
 
-            JsonNode player = entry.getKey();
+            BoxscorePlayer player = entry.getKey();
             int points = entry.getValue();
-            JsonNode playerStats = player.path("statistics");
+            BoxscoreStatistics playerStats = player.getStatistics();
 
             ObjectNode item = objectMapper.createObjectNode();
-            item.put("playerId", player.path("personId").asInt());
+            int personId = player.getPersonId() != null ? player.getPersonId() : 0;
+            item.put("playerId", personId);
 
-            String playerName = player.path("name").asText();
+            String playerName = player.getName() != null ? player.getName() : "";
             if (playerName.isEmpty()) {
-                String firstName = player.path("firstName").asText();
-                String familyName = player.path("familyName").asText();
+                String firstName = player.getFirstName() != null ? player.getFirstName() : "";
+                String familyName = player.getFamilyName() != null ? player.getFamilyName() : "";
                 playerName = firstName + " " + familyName;
             }
             item.put("playerName", playerName);
             item.put("playerImageUrl",
-                    "https://cdn.nba.com/headshots/nba/latest/1040x760/" +
-                    player.path("personId").asText() + ".png");
+                    "https://cdn.nba.com/headshots/nba/latest/1040x760/" + personId + ".png");
             item.put("teamTricode", teamTricode);
             item.put("teamId", teamId);
 
@@ -629,9 +636,10 @@ public class GameDetailComposer {
             item.put("statLabel", "Points");
 
             ObjectNode additionalStats = objectMapper.createObjectNode();
-            additionalStats.put("rebounds", playerStats.path("reboundsTotal").asInt());
-            additionalStats.put("assists", playerStats.path("assists").asInt());
-            additionalStats.put("minutes", playerStats.path("minutes").asText());
+            additionalStats.put("rebounds", playerStats != null ? playerStats.getReboundsTotal() : 0);
+            additionalStats.put("assists", playerStats != null ? playerStats.getAssists() : 0);
+            additionalStats.put("minutes", playerStats != null && playerStats.getMinutes() != null
+                    ? playerStats.getMinutes() : "");
             item.set("additionalStats", additionalStats);
 
             performers.add(item);
@@ -652,8 +660,8 @@ public class GameDetailComposer {
      * {@code capabilities}) live at the top of {@code data} so the SDK reads
      * them without walking the tree.
      */
-    private ObjectNode buildVideoPlayerSection(String gameId, JsonNode game, String contentSourceId) {
-        int gameStatus = game.path("gameStatus").asInt(1);
+    private ObjectNode buildVideoPlayerSection(String gameId, BoxscoreGame game, String contentSourceId) {
+        int gameStatus = game.getGameStatus();
 
         ObjectNode section = objectMapper.createObjectNode();
         section.put("id", SectionIdDeriver.derive(contentSourceId, "VideoPlayer", "video-player"));
@@ -826,14 +834,14 @@ public class GameDetailComposer {
 
     // ── Extended TabGroup with Highlights tab ─────────────────────────
 
-    private ObjectNode buildGameDetailTabGroupFromLive(JsonNode game, String gameId, String contentSourceId) {
-        JsonNode homeTeam = game.path("homeTeam");
-        JsonNode awayTeam = game.path("awayTeam");
-        if (homeTeam.isMissingNode() || awayTeam.isMissingNode()) return null;
+    private ObjectNode buildGameDetailTabGroupFromLive(BoxscoreGame game, String gameId, String contentSourceId) {
+        BoxscoreTeam homeTeam = game.getHomeTeam();
+        BoxscoreTeam awayTeam = game.getAwayTeam();
+        if (homeTeam == null || awayTeam == null) return null;
 
-        String homeTricode = homeTeam.path("teamTricode").asText("HOME");
-        String awayTricode = awayTeam.path("teamTricode").asText("AWAY");
-        int gameStatus = game.path("gameStatus").asInt(1);
+        String homeTricode = homeTeam.getTeamTricode() != null ? homeTeam.getTeamTricode() : "HOME";
+        String awayTricode = awayTeam.getTeamTricode() != null ? awayTeam.getTeamTricode() : "AWAY";
+        int gameStatus = game.getGameStatus();
 
         ObjectNode section = objectMapper.createObjectNode();
         section.put("id", SectionIdDeriver.derive(contentSourceId, "TabGroup", "game-detail-tabs"));

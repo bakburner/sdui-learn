@@ -8,10 +8,10 @@ import com.nba.sdui.core.data.SchemaVersionMismatchException
 import com.nba.sdui.core.data.SduiException
 import com.nba.sdui.core.data.SectionNotFoundException
 import com.nba.sdui.core.data.SduiRepository
-import com.nba.sdui.core.models.generated.Data
 import com.nba.sdui.core.models.generated.RefreshType
-import com.nba.sdui.core.models.generated.SduiModels
+import com.nba.sdui.core.models.generated.Screen
 import com.nba.sdui.core.models.generated.Section
+import com.nba.sdui.core.models.generated.SectionData
 import com.nba.sdui.core.models.generated.mapper
 import com.nba.sdui.core.request.RequestEnvelopeBuilder
 import com.nba.sdui.core.state.ActionHandler
@@ -105,8 +105,8 @@ internal class SduiScreenController(
     val staleSections: StateFlow<Set<String>> = _staleSections.asStateFlow()
 
     // ── Internal bookkeeping ─────────────────────────────────────────
-    private val _currentScreen = MutableStateFlow<SduiModels?>(null)
-    private var currentScreen: SduiModels?
+    private val _currentScreen = MutableStateFlow<Screen?>(null)
+    private var currentScreen: Screen?
         get() = _currentScreen.value
         set(value) { _currentScreen.value = value }
     private var currentEndpoint: String? = null   // resolved server path — used for refresh / polling
@@ -127,7 +127,7 @@ internal class SduiScreenController(
      * (the value goes from null to non-null). Kept when a later fetch fails so
      * shell navigation (bottom bar) and [parentUri] remain available for escape.
      */
-    val shellScreen: StateFlow<SduiModels?> = _currentScreen.asStateFlow()
+    val shellScreen: StateFlow<Screen?> = _currentScreen.asStateFlow()
 
     private val pollingJobs = mutableMapOf<String, Job>()
 
@@ -329,7 +329,7 @@ internal class SduiScreenController(
     /**
      * Apply a fetched screen: seed state, emit success, start data channels.
      */
-    private fun applyScreen(screen: SduiModels) {
+    private fun applyScreen(screen: Screen) {
         val previous = currentScreen
         val oldIds = previous?.sections?.map { it.id }?.toSet().orEmpty()
         val newIds = screen.sections.map { it.id }.toSet()
@@ -391,7 +391,7 @@ internal class SduiScreenController(
         }
     }
 
-    private fun setupPolling(screen: SduiModels) {
+    private fun setupPolling(screen: Screen) {
         stopAllPolling()
 
         val screenIsRefreshing = screen.defaultRefreshPolicy?.type == RefreshType.Poll
@@ -595,7 +595,7 @@ internal class SduiScreenController(
 
     private var sseStaleJob: Job? = null
 
-    private fun setupAbly(screen: SduiModels) {
+    private fun setupAbly(screen: Screen) {
         val sseSections = screen.sections.filter { s ->
             s.refreshPolicy?.type == RefreshType.SSE && !s.refreshPolicy?.channel.isNullOrBlank()
         }
@@ -705,8 +705,8 @@ internal class SduiScreenController(
     private fun mergeSectionWithAblyMessage(
         section: Section,
         message: Map<String, Any?>,
-        screen: SduiModels
-    ): Data? {
+        screen: Screen
+    ): SectionData? {
         val dataBinding = section.dataBinding
         if (dataBinding == null) {
             Log.w(TAG, "No dataBinding config for section ${section.id} — message dropped")
@@ -765,7 +765,7 @@ internal class SduiScreenController(
     /**
      * Replace section data in the current screen and emit a new Success state.
      */
-    private fun updateSectionInScreen(sectionId: String, updatedData: Data?) {
+    private fun updateSectionInScreen(sectionId: String, updatedData: SectionData?) {
         val screen = currentScreen ?: return
         val updatedSections = screen.sections.map { s ->
             if (s.id == sectionId) s.copy(data = updatedData) else s
@@ -776,14 +776,14 @@ internal class SduiScreenController(
         Log.d(TAG, "Data binding applied to $sectionId")
     }
 
-    private fun toMap(data: Data?): Map<String, Any?> {
+    private fun toMap(data: SectionData?): Map<String, Any?> {
         if (data == null) return emptyMap()
         @Suppress("UNCHECKED_CAST")
         return mapper.convertValue(data, Map::class.java) as Map<String, Any?>
     }
 
-    private fun toData(data: Map<String, Any?>): Data? {
-        return mapper.convertValue(data, Data::class.java)
+    private fun toData(data: Map<String, Any?>): SectionData? {
+        return mapper.convertValue(data, SectionData::class.java)
     }
 
     private fun stopAbly() {

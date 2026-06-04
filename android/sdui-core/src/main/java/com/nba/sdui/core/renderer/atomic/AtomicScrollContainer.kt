@@ -30,7 +30,7 @@ import com.nba.sdui.core.models.generated.AtomicElement
 import com.nba.sdui.core.models.generated.BadgeAlignment
 import com.nba.sdui.core.models.generated.CrossAlignment
 import com.nba.sdui.core.models.generated.Style
-import com.nba.sdui.core.models.generated.UIDirection
+import com.nba.sdui.core.models.generated.AtomicElementDirection
 import com.nba.sdui.core.renderer.ColorTokenResolver
 import com.nba.sdui.core.renderer.LayoutTokenResolver
 import com.nba.sdui.core.renderer.applyAccessibility
@@ -56,7 +56,7 @@ fun AtomicScrollContainer(
     // form-factor classifier is plumbed end-to-end.
     val formFactor = RequestEnvelopeBuilder.defaultFormFactor()
     val gap = LayoutTokenResolver.dp(element.gap, formFactor)
-    val isHorizontal = element.direction != UIDirection.Column
+    val isHorizontal = element.direction != AtomicElementDirection.Column
     val crossAxis = when (element.crossAlignment) {
         CrossAlignment.Center -> if (isHorizontal) ComposeAlignment.CenterVertically else ComposeAlignment.CenterHorizontally
         CrossAlignment.End -> if (isHorizontal) ComposeAlignment.Bottom else ComposeAlignment.End

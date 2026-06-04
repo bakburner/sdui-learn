@@ -3,7 +3,7 @@ package com.nba.sdui.core.data
 import android.util.Log
 import com.fasterxml.jackson.core.type.TypeReference
 import com.nba.sdui.core.models.generated.Section
-import com.nba.sdui.core.models.generated.SduiModels
+import com.nba.sdui.core.models.generated.Screen
 import com.nba.sdui.core.models.generated.mapper
 import com.nba.sdui.core.request.RequestEnvelopeBuilder
 import kotlinx.coroutines.Dispatchers
@@ -102,7 +102,7 @@ class SduiRepository(
         envelope: RequestEnvelopeBuilder,
         userParams: Map<String, String> = emptyMap(),
         correlationIdOverride: String? = null
-    ): SduiFetchResult<SduiModels> = withContext(Dispatchers.IO) {
+    ): SduiFetchResult<Screen> = withContext(Dispatchers.IO) {
         val correlationId = correlationIdOverride ?: envelope.generateCorrelationId()
         val envelopeQuery = envelope.buildQueryString()
         val userQuery = encodeUserParams(userParams)
@@ -172,9 +172,9 @@ class SduiRepository(
         val responseCorrelationId = response.header(CORRELATION_HEADER)
 
         try {
-            val decoded: SduiResponseEnvelope<SduiModels> = mapper.readValue(
+            val decoded: SduiResponseEnvelope<Screen> = mapper.readValue(
                 body,
-                object : TypeReference<SduiResponseEnvelope<SduiModels>>() {}
+                object : TypeReference<SduiResponseEnvelope<Screen>>() {}
             )
             SduiFetchResult(value = decoded.data, correlationId = responseCorrelationId)
         } catch (e: Exception) {

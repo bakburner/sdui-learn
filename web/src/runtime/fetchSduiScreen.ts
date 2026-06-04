@@ -1,4 +1,4 @@
-import type { SduiModels, Section } from '@sdui/models';
+import type { Screen, Section } from '@sdui/models';
 import { RequestEnvelopeBuilder } from '../request/RequestEnvelopeBuilder';
 import { SDUI_PATH_PREFIX, API_PROXY_PREFIX } from '../utils/constants';
 
@@ -25,7 +25,7 @@ export interface FetchSduiScreenOptions {
 }
 
 export interface FetchSduiScreenResult {
-  screen: SduiModels;
+  screen: Screen;
   /**
    * Correlation ID for this request — the value sent on the wire and (when
    * present) echoed back by the server in the `X-Correlation-ID` response
@@ -158,7 +158,7 @@ export async function fetchSduiScreen(
   }
 
   const echoedCorrelationId = response.headers.get('X-Correlation-ID') ?? correlationId;
-  const envelope = (await response.json()) as SduiResponseEnvelope<SduiModels>;
+  const envelope = (await response.json()) as SduiResponseEnvelope<Screen>;
   return { screen: envelope.data, correlationId: echoedCorrelationId, url, method, versionMismatch };
 }
 

@@ -11,8 +11,8 @@ schema discriminator fix (commit `126f4c8`)
 Eliminate `ObjectNode` from SDUI composition. Composers, the
 `AtomicCompositeBuilder`, and every helper that today returns `ObjectNode` /
 `JsonNode` move to the generated POJOs (`Screen`, `Section`, `AtomicElement`,
-`AtomicCompositeData`, `BoxscoreTableData`, `CalendarStripData`,
-`LeadersTableData`, …) checked into
+`AtomicComposite`, `BoxscoreTable`, `CalendarStrip`,
+`SeasonLeadersTable`, …) checked into
 `codegen/build/generated-sources/jsonschema2pojo/com/nba/sdui/models/generated/`.
 
 End state:
@@ -65,6 +65,37 @@ each hand-rolled composer + one for the entry-point return-type flip), so
 each commit's diff is reviewable in isolation even though the whole stack
 lands together.
 
+## Verification of structural assumptions
+
+A pre-flight pass verified the assumptions this plan rests on so we don't
+discover surprises mid-migration:
+
+- ✅ **`ResponseEnvelope<T>` is already generic** ([server/src/main/java/com/nba/sdui/controller/ResponseEnvelope.java](../../server/src/main/java/com/nba/sdui/controller/ResponseEnvelope.java)).
+  The flip from `ResponseEnvelope<JsonNode>` → `ResponseEnvelope<Screen>`
+  is a parameter change, not a record change.
+- ✅ **`@JsonPropertyOrder` is on every generated POJO** (`Screen`,
+  `Section`, `AtomicElement` confirmed; codegen-uniform). Wire field order
+  is deterministic across `treeToValue` round-trips.
+- ⚠️ **`ComposerRoundTripTest` is NOT a byte-for-byte golden test.** It is
+  targeted field assertions (parameterized-refresh date echo, form-state
+  echo, refresh-endpoint URLs). The plan originally claimed otherwise. The
+  real safety net is **`SchemaConformanceTest`** (structural correctness)
+  + the targeted assertions in `ComposerRoundTripTest` /
+  `ScreenChannelContractTest`. That's enough — schema conformance catches
+  missing required fields, type mismatches, and enum violations across
+  every composed screen. Per-commit verification adds a manual
+  pretty-printed-output diff (see Per-step pattern below).
+- ❌ **`SectionSurfaces` was missing from the inventory** — 14
+  ObjectNode-returning methods that feed `Section.surface`. Migrated
+  alongside the builder at the tail of the stack (commit 11) so composers
+  bridge it the same way they bridge the builder, rather than forcing
+  every still-ObjectNode composer to wrap typed `SectionSurface` values
+  with `valueToTree`.
+- ✅ **Composer post-call mutation pattern is trivial to translate.**
+  The pattern `header.put("contentSourceId", x); header.set("surface", y);`
+  on a builder result becomes `header.setContentSourceId(x);
+  header.setSurface(y);` on a typed `Section`. No structural complication.
+
 ## Inventory
 
 ### Builder API surface (`AtomicCompositeBuilder.java`, 3434 LOC)
@@ -90,6 +121,19 @@ lands together.
 `storyCircleItem`, `editorialOverlayCard`, `heroOverflowButton`,
 `featuredLiveGameHeroCard`, `heroScoreStrip`, `heroTeam`, `utilityCard` —
 **~25 methods**.
+
+### `SectionSurfaces` API surface ([server/src/main/java/com/nba/sdui/domain/SectionSurfaces.java](../../server/src/main/java/com/nba/sdui/domain/SectionSurfaces.java), 14 methods)
+
+All 14 public methods return `ObjectNode` representing a `SectionSurface`
+shape, and every caller stores the result into `section.surface` (or
+`section.set("surface", ...)` today). Migrating these to return
+`SectionSurface` is a small, isolated commit and lets composers call
+typed surfaces directly:
+
+`defaultSurface`, `adSlotSurface`, `flushSurface`, `gameCardFlushSurface`,
+`secondaryStripSurface`, `stripSurfaceWithoutBackground`, `subscribeSurface`,
+`promoCardSurface`, `videoPlayerSurface`, `cardSurface`, `railSurface`,
+`sectionHeaderSurface`, `gamePanelSurface` — **14 methods**.
 
 ### Composer call sites (190 total across 8 builder-using composers)
 
@@ -134,79 +178,141 @@ lands together.
 
 ### Test surface (167 tests must stay green)
 
-- `ComposerRoundTripTest` — golden byte-for-byte comparison. **Primary
-  drift detector.** Each composer migration must produce identical wire
-  bytes.
-- `SchemaConformanceTest` — already validates the schema contract on every
-  composed screen. Will keep validating as we rewrite.
+- **`SchemaConformanceTest`** — *primary structural backstop.* Validates
+  every composed screen against `schema/sdui-schema.json` (Draft-07 +
+  discriminator), catching missing required fields, type mismatches,
+  enum violations, and (post-discriminator-fix) wrong `*Data` shapes.
+- `ComposerRoundTripTest` — *NOT* byte-for-byte golden. Targeted
+  assertions on parameterized-refresh date echo, form-state echo, and
+  refresh-endpoint URLs. Catches parameterized-refresh regressions; will
+  not catch a renamed-but-still-valid field.
 - `ScreenChannelContractTest`, `SectionChannelContractTest` — controller
-  integration; should be unaffected because Jackson serializes `Screen` to
-  the same wire JSON.
+  integration; expected unaffected because Jackson serializes `Screen` to
+  the same wire JSON (`@JsonPropertyOrder` on every generated POJO).
 - `AtomicCompositeBuilderFeedModulesTest` — direct builder unit test;
   rewritten as part of the builder migration commit.
+- **Per-commit manual safety check (not in the test suite)** — before each
+  commit, capture the pretty-printed JSON output of every relevant composer
+  to a tmp file pre- and post-change, `diff` them, and require the diff to
+  be empty (or to be limited to a known-acceptable change like field
+  ordering, called out in the commit message). Cheap and sharper than the
+  test suite for catching unintentional shape drift.
 
 ## Strategy
 
 ### Branch and commit shape
 
-One branch (`feature/arobinson/typed-pojo-migration` or similar). Series of
-focused commits, each independently green:
+One branch (`feature/arobinson/typed-pojo-migration` or similar). Series
+of focused commits, each independently green. **Composers migrate first,
+builder and surfaces last.** This avoids the dual-API trap: both the
+builder and `SectionSurfaces` keep a single `ObjectNode`-returning surface
+throughout the composer migrations, and composers bridge with
+`objectMapper.treeToValue(node, Section.class)` (or `SectionSurface.class`)
+at each call site — round-trips through Jackson, wire bytes identical
+because of `@JsonPropertyOrder`. Once every composer is typed, the
+surfaces commit and the builder commit just delete the `treeToValue`
+shims their callers were doing.
 
 ```
-1. Migrate AtomicCompositeBuilder to typed return types
-2. Migrate ScheduleComposer (smallest builder client, 2 sites)
-3. Migrate LiveComposer (4 sites)
-4. Migrate ScoreboardComposer (6 sites)
-5. Migrate GameDetailComposer (22 sites)
-6. Migrate ForYouComposer (23 sites)
-7. Migrate WatchComposer (37 sites)
-8. Migrate HomeComposer (39 sites)
-9. Migrate DemoScreenComposer (60 sites)
-10. Rewrite BoxscoreComposer (hand-rolled, 346 LOC)
-11. Rewrite CalendarComposer (hand-rolled, 147 LOC)
-12. Flip SduiCompositionService + SduiController return types to Screen
-13. Drop ObjectMapper composition fields where no longer needed
+ 1. Migrate ScheduleComposer (2 builder sites). composeSchedule → Screen.
+    Bridge each atomicBuilder.* and surfaces.* call with treeToValue.
+ 2. Migrate LiveComposer (4 sites)
+ 3. Migrate ScoreboardComposer (6 sites)
+ 4. Migrate GameDetailComposer (22 sites)
+ 5. Migrate ForYouComposer (23 sites)
+ 6. Migrate WatchComposer (37 sites)
+ 7. Migrate HomeComposer (39 sites)
+ 8. Migrate DemoScreenComposer (60 sites)
+ 9. Rewrite BoxscoreComposer (hand-rolled, 346 LOC). composeBoxscore → Screen.
+10. Rewrite CalendarComposer (hand-rolled, 147 LOC). composeCalendar → Screen.
+11. Migrate SectionSurfaces (14 ObjectNode → SectionSurface methods).
+    Small commit — deletes the surface treeToValue shims in every composer.
+12. Migrate AtomicCompositeBuilder to typed return types. **Largest commit
+    in the stack.** Rewrites the bodies of 67 public methods + ~25 private
+    helpers (3434 LOC) from `om.createObjectNode().put("k", v)` to
+    `new Section().setK(v)` / `withK(v)`, then deletes the builder
+    treeToValue shims in every composer.
+13. Flip SduiCompositionService + SduiController to ResponseEnvelope<Screen>.
+14. (Follow-up, optional) Add type-safe Section.setData(*Data) overloads
+    to enforce the discriminator at compile time. Out of scope for the
+    main migration.
 ```
 
 **Each commit must leave `./gradlew test --rerun-tasks` 167/167 green.**
-Round-trip and conformance tests are the safety net.
+The safety net per commit: `SchemaConformanceTest` (structural) +
+`ComposerRoundTripTest` parameterized-refresh assertions + a manual
+pretty-printed-output diff (see Per-step pattern).
 
 ### Per-step pattern
 
 Every commit follows the same pattern:
 
-1. Run round-trip test, capture green baseline.
-2. Apply the type change.
-3. Run round-trip test. Failures = drift; fix in the same commit before
-   moving on.
-4. Run full suite.
-5. Commit with a message describing exactly what migrated and what stayed
-   ObjectNode (during the migration, intermediate states are mixed; that's
-   OK as long as the wire bytes don't change).
+1. Capture pre-change baseline. Add a temporary `@Test` next to
+   `ComposerRoundTripTest` that mirrors its setup (mock `Clock`,
+   `StatsApiClient`, `SduiUtils`, `SectionSurfaces`,
+   `SectionRefreshService`, `ParameterizedRefreshService`,
+   `SeasonCalendarService` + `ReflectionTestUtils.setField(composer,
+   "schemaVersion", "1.0")`), call `composeXxx` for the relevant composer,
+   and write
+   `objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(result)`
+   to `/tmp/sdui-pre-<step>.json`. Composers are Spring beans with
+   non-trivial dependencies, so a one-shot `main` won't work — the test
+   harness is the only realistic mechanic. Delete the temporary test as
+   part of the migration commit.
+2. Run `./gradlew test --rerun-tasks`, confirm 167/167 green baseline.
+3. Apply the type change.
+4. Re-run the same temporary test to capture post-change output to
+   `/tmp/sdui-post-<step>.json`; `diff` it against the pre-change file.
+   Require empty diff (or document the intentional change in the commit
+   message).
+5. Run `./gradlew test --rerun-tasks`. Failures = drift; fix in the same
+   commit before moving on.
+6. Drop the `private final ObjectMapper objectMapper;` field if nothing
+   in the touched composer file uses it anymore (composer-by-composer
+   cleanup, not a single trailing commit).
+7. Commit with a message describing exactly what migrated and what stayed
+   ObjectNode.
 
 ### Bridging between commits
 
-Because builder migrates first (commit 1) but composers still call it
-through commit 9, **the builder must temporarily expose `ObjectNode`-shaped
-adapters** for the duration. Pattern:
+Because **composers migrate first (commits 1-10) while both the builder
+and `SectionSurfaces` migrate last (commits 11-12)**, each composer carries
+two bridges at every relevant call site for the duration of its commit
+window:
 
 ```java
-// commit 1 — public surface returns typed POJOs:
-public Section buildContentRail(...) { /* typed impl */ }
+// during commits 1-10 — builder and surfaces both still return ObjectNode:
+ObjectNode railNode = atomicBuilder.buildContentRail(...);
+Section rail = objectMapper.treeToValue(railNode, Section.class);
+rail.setSurface(
+    objectMapper.treeToValue(surfaces.railSurface(), SectionSurface.class));
+rail.setContentSourceId("feed:home");
+sections.add(rail);                          // List<Section>
 
-// composer-side bridge (lives in the *composer* during its migration window,
-// removed when the composer migrates):
-ObjectNode rail = objectMapper.valueToTree(atomicBuilder.buildContentRail(...));
+// after commit 11 — surfaces typed; surface bridge gone:
+ObjectNode railNode = atomicBuilder.buildContentRail(...);
+Section rail = objectMapper.treeToValue(railNode, Section.class);
+rail.setSurface(surfaces.railSurface());
+rail.setContentSourceId("feed:home");
+sections.add(rail);
+
+// after commit 12 — builder typed; both bridges gone:
+Section rail = atomicBuilder.buildContentRail(...);
+rail.setSurface(surfaces.railSurface());
+rail.setContentSourceId("feed:home");
+sections.add(rail);
 ```
 
-The bridge is a one-line `valueToTree` shim, **inside the composer**, not
-inside the builder. It vanishes when the composer migrates. By commit 9
-every bridge is gone; commit 12 removes any remaining ObjectMapper plumbing
-that fell out of use.
+The `treeToValue` round-trip preserves wire bytes because every generated
+POJO has `@JsonPropertyOrder` and Jackson re-serializes deterministically.
+Commits 11 and 12 are the bridge-deletion commits: commit 11 sweeps the
+surface bridge across every composer; commit 12 sweeps the builder bridge
+and rewrites the 67 builder method bodies.
 
-This avoids the dual-API anti-pattern: `AtomicCompositeBuilder` has one
-typed surface from commit 1 onward; ObjectNode appears only in
-to-be-deleted composer-local glue.
+This avoids the dual-API anti-pattern: `AtomicCompositeBuilder` and
+`SectionSurfaces` each have **one** ObjectNode-returning surface through
+their respective migration commits, then **one** typed surface afterward.
+Never two surfaces in parallel on either component.
 
 ### What about typed `Section.data`?
 
@@ -214,8 +320,8 @@ The schema discriminator fix (commit `126f4c8`) keyed `Section.data` to
 `Section.type` via `allOf`+`if`/`then`, but jsonschema2pojo emits
 `Section.data` as `Object` because Draft-07 conditionals don't translate
 to a static type. **Composer code sets `section.setData(typedDataObject)`
-where `typedDataObject` is the concrete `*Data` POJO** (`AtomicCompositeData`,
-`BoxscoreTableData`, etc.). Jackson serializes the typed POJO into the
+where `typedDataObject` is the concrete component POJO** (`AtomicComposite`,
+`BoxscoreTable`, etc.). Jackson serializes the typed POJO into the
 `Object` slot correctly. The compiler doesn't enforce the type/data
 relationship — that's where `SchemaConformanceTest` continues to earn its
 keep.
@@ -240,20 +346,34 @@ the typed struct. Jackson serializes each correctly.
 
 ## Acceptance criteria
 
-- `grep -rn "ObjectNode\|JsonNode" src/main/java/com/nba/sdui/domain/` returns
-  matches only in: parsing helpers that consume upstream stats-API JSON
-  (`StatsApiAdapter` and friends, where input is genuinely untrusted JSON),
-  the `Tokens` registry loader (loads static JSON), and `dataBinding` /
-  real-time payload paths (real-time messages are opaque per AGENTS.md §3.3
-  / §4.4).
+- ObjectNode/JsonNode is permitted only in this allow-list of files
+  (carved out as genuine "parse opaque JSON" call sites, not composition):
+  - `StatsApiAdapter` and any other upstream-feed adapters consuming the
+    stats API JSON
+  - `Tokens` registry loader (loads static JSON config at startup)
+  - `dataBinding` / real-time payload handlers (real-time messages are
+    opaque per [AGENTS.md](../../AGENTS.md) §3.3 / §4.4)
+  Search constraint:
+  ```
+  grep -rn "ObjectNode\|JsonNode" server/src/main/java/com/nba/sdui/domain/ \
+    | grep -vE "(StatsApiAdapter|/feed/|TokensLoader|DataBinding|RealtimePayload)\.java"
+  ```
+  must return zero matches. New legitimate ObjectNode users (rare)
+  must be added to the allow-list in this acceptance criterion in the
+  same commit.
 - `AtomicCompositeBuilder.java` declares no method returning `ObjectNode`
   or `ArrayNode` — every public + private method returns a generated POJO,
   `Spacing`, `Action`, `List<Action>`, or `void`.
+- `SectionSurfaces.java` declares no method returning `ObjectNode` — every
+  public method returns `SectionSurface`.
 - `composeXxx` methods on every composer return `Screen`.
 - `SduiCompositionService` returns `Screen` (not `JsonNode`) from each
   `composeXxx` method; `SduiController` builds `ResponseEnvelope<Screen>`.
-- `ComposerRoundTripTest` is green (byte-for-byte wire output unchanged).
-- `SchemaConformanceTest` is green.
+- `ComposerRoundTripTest` is green (parameterized-refresh + form-state
+  assertions hold).
+- `SchemaConformanceTest` is green (the *primary* structural backstop).
+- For each commit, the manual pre/post pretty-printed output diff was
+  empty or limited to documented intentional changes.
 - Full server suite ≥ 167 tests, 0 failures.
 - No `objectMapper.valueToTree(...)` or `objectMapper.treeToValue(...)`
   remains in composition code (search constraint).
@@ -265,9 +385,9 @@ the typed struct. Jackson serializes each correctly.
 | Generated POJO `withX(...)` builders return `this`, but `setX(...)` voids — easy to chain `setX` and accidentally drop values | Use `withX(...)` for chained construction; reserve `setX` for single mutations. Code review checks. |
 | `AtomicElement` field name mismatches (e.g. `crossAlignment` JSON field vs camelCase) | jsonschema2pojo names match JSON 1:1 by default; verify by reading generated source per migration commit. |
 | `Section.data: Object` lets us assign the wrong `*Data` type by accident | `SchemaConformanceTest` catches this immediately because the discriminator fix now enforces per-`type` data shape. |
-| Round-trip test golden was captured with ObjectNode field-ordering quirks | If Jackson serializes typed POJOs in a different field order, regenerate the golden in the same commit and call out the diff in the commit message. (`@JsonPropertyOrder` on generated classes should preserve order; verify.) |
-| Hand-rolled `BoxscoreComposer` / `CalendarComposer` use shapes we haven't modeled in `BoxscoreTableData` / `CalendarStripData` | Schema-conformance test would catch this today; if any field is missing, fix the schema first (its own micro-PR, then re-run codegen). |
-| Public method count temporarily looks like dual API (commit 1 has typed builder + composers still calling typed methods through ObjectNode bridges) | Bridge is a composer-local one-liner per call site, **not** a duplicate builder method. The builder has one surface from commit 1. |
+| Field ordering changes when going through `treeToValue` round-trip | Verified: every generated POJO has `@JsonPropertyOrder`; Jackson re-serializes deterministically. Per-commit pretty-printed-output diff catches any deviation. |
+| Hand-rolled `BoxscoreComposer` / `CalendarComposer` use shapes we haven't modeled in `BoxscoreTable` / `CalendarStrip` | Schema-conformance test would catch this today; if any field is missing, fix the schema first (its own micro-PR, then re-run codegen). |
+| Public method count temporarily looks like dual API (composers using treeToValue against ObjectNode-returning builder + surfaces during commits 1-10) | Bridge is a composer-local one-liner per call site, **not** a duplicate builder/surfaces method. Both `AtomicCompositeBuilder` and `SectionSurfaces` keep one ObjectNode-returning surface through commits 1-10, then flip to one typed surface in commits 11-12. Never two surfaces in parallel on either component. |
 
 ## Out of scope
 

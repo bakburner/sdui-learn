@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
  * {@code /actuator/health/readiness} endpoints, which Spring Boot wires
  * automatically.
  */
-@Component("sdui")
+@Component
 public class SduiHealthIndicator implements HealthIndicator {
 
     @Override

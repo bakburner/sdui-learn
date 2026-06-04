@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import type { Data } from '@sdui/models';
+import type { SectionData } from '@sdui/models';
 import type { SectionProps } from '../SectionRouter';
 import { SectionList } from '../SectionRouter';
 import { AtomicRouter } from '../atomic';
@@ -31,7 +31,7 @@ const TAB_EMPTY_PAD = 'token:nba.spacing.lg';
  */
 export function TabGroup({ section, state, onAction, onStateChange, onSectionReplace, onSectionGone }: SectionProps): React.ReactElement {
   const model = mapTabGroup(section, state);
-  const data = section.data as Data | undefined;
+  const data = section.data as SectionData | undefined;
   const scheme = usePrefersColorScheme();
   const resolveColor = useColorTokenResolver();
   const formFactor = currentFormFactor();

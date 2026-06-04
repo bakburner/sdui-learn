@@ -52,7 +52,7 @@ public class SchemaVersionRegistry {
         //
         // registerField("sections[*].data.conditionalProperties", SchemaVersion.of(1, 1));
         // registerField("sections[*].data.accessibilityRole", SchemaVersion.of(1, 1));
-        // registerEnumValue("sections[*].type", "SubscribeBanner", SchemaVersion.of(2, 0));
+        // registerEnumValue("sections[*].type", "SubscribeUpsell", SchemaVersion.of(2, 0));
         //
         // These are illustrative — real registrations happen when schema changes land.
     }

@@ -994,16 +994,13 @@ and folding `meta` into its own response `meta`.
   scaffolding plus every `Section`'s outer fields (`id`, `type` enum,
   `surface`, `sectionStates`, `refreshPolicy`, `accessibility`, `stringTable`,
   …) for `LiveComposer.composeLive`, `DemoScreenComposer.composeLeaders`,
-  and `DemoScreenComposer.composeDemos`. **Pre-existing drift surfaced**:
-  the schema's `Section.data` `oneOf` discriminated union over 11 variants
-  (`TabGroupData|BoxscoreTableData|CalendarStripData|…|AtomicCompositeData`)
-  is not mutually exclusive — multiple variants validate the same payload —
-  which is a schema modeling defect (Draft-07 needs `allOf`/`if`/`then` keyed
-  off `type` to express a true discriminator). The conformance test stops at
-  the `data` boundary with an in-test `stripSectionDataOneOf` patch and a
-  comment pointing at this gap. Tracking the discriminator fix as a separate
-  follow-up; structural drift in everything *outside* `Section.data` is now
-  guarded.
+  and `DemoScreenComposer.composeDemos`. **Section.data discriminator now
+  enforced**: the schema replaces the loose `Section.data` `oneOf` (which
+  was ambiguous — multiple `*Data` variants validated the same payload)
+  with `anyOf` (for codegen reachability) + an `allOf` chain of
+  `if`/`then` clauses keyed off `Section.type` (real per-variant
+  enforcement). See [docs/fixes/schema-section-data-discriminator.md](docs/fixes/schema-section-data-discriminator.md).
+  Composers conformed on first run; client codegen diff was docstring-only.
 
 ### Phase B — port (future, not active scope)
 

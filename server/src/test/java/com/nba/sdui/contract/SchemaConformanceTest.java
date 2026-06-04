@@ -106,47 +106,20 @@ class SchemaConformanceTest {
         ReflectionTestUtils.invokeMethod(demoScreenComposer, "registerParameterizedRefreshResolvers");
 
         // Load schema/sdui-schema.json from the classpath (processResources
-        // copies it into build/resources/main/schema/).
+        // copies it into build/resources/main/schema/). Section.data is
+        // discriminated by Section.type via an allOf chain of if/then clauses
+        // in the schema itself, so the validator picks the correct *Data
+        // sub-schema per section without any in-test patching.
         JsonNode schemaRoot = loadSchemaRoot();
         JsonSchemaFactory factory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7);
         SchemaValidatorsConfig config = new SchemaValidatorsConfig();
-
-        // Build derived schemas that strip Section.data's oneOf — the schema's
-        // section-data discriminated union is not mutually exclusive (multiple
-        // variants validate the same payload), which is a schema modeling
-        // defect, not composer drift. Tracking that fix separately. The
-        // structural conformance check (Screen scaffolding + Section outer
-        // fields like id/type/surface/sectionStates/refreshPolicy) is still
-        // strictly enforced and catches the drift this test is here to catch.
-        JsonNode patchedRoot = stripSectionDataOneOf(schemaRoot);
-        screenSchema = factory.getSchema(patchedRoot, config);
+        screenSchema = factory.getSchema(schemaRoot, config);
 
         ObjectNode sectionRoot = objectMapper.createObjectNode();
         sectionRoot.put("$schema", "http://json-schema.org/draft-07/schema#");
-        sectionRoot.set("definitions", patchedRoot.get("definitions"));
+        sectionRoot.set("definitions", schemaRoot.get("definitions"));
         sectionRoot.put("$ref", "#/definitions/Section");
         sectionSchema = factory.getSchema(sectionRoot, config);
-    }
-
-    /**
-     * Returns a deep copy of the schema with {@code Section.data}'s {@code oneOf}
-     * replaced by a permissive {@code object} type. The discriminator design
-     * for {@code Section.data} (Draft-07 requires {@code allOf}/{@code if}/
-     * {@code then} keyed off {@code type}) is its own follow-up; until that
-     * lands the validator cannot identify which sub-schema applies, so the
-     * structural-conformance check stops at the {@code data} boundary.
-     */
-    private JsonNode stripSectionDataOneOf(JsonNode root) {
-        ObjectNode patched = root.deepCopy();
-        ObjectNode definitions = (ObjectNode) patched.get("definitions");
-        ObjectNode section = (ObjectNode) definitions.get("Section");
-        ObjectNode properties = (ObjectNode) section.get("properties");
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("type", "object");
-        data.put("description",
-                "Section-specific data payload (oneOf discriminator deferred — see SchemaConformanceTest)");
-        properties.set("data", data);
-        return patched;
     }
 
     /**

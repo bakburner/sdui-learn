@@ -678,7 +678,9 @@ export interface AtomicElement {
 }
 
 /**
- * Section-specific data payload
+ * Section-specific data payload. The variants are listed via anyOf so codegen reaches every
+ * *Data definition; per-variant enforcement is the allOf/if/then chain below (discriminated
+ * by Section.type).
  *
  * Tabbed navigation with dynamic content sections per tab. Optional ui is the tab
  * header/control row only; tabContents hosts nested sections. Tab selection uses
@@ -960,7 +962,9 @@ export interface Section {
      */
     contentSourceId?: string;
     /**
-     * Section-specific data payload
+     * Section-specific data payload. The variants are listed via anyOf so codegen reaches every
+     * *Data definition; per-variant enforcement is the allOf/if/then chain below (discriminated
+     * by Section.type).
      */
     data?:          Data;
     dataBinding?:   DataBinding;

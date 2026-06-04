@@ -1315,7 +1315,9 @@ extension AtomicElement {
     }
 }
 
-/// Section-specific data payload
+/// Section-specific data payload. The variants are listed via anyOf so codegen reaches every
+/// *Data definition; per-variant enforcement is the allOf/if/then chain below (discriminated
+/// by Section.type).
 ///
 /// Tabbed navigation with dynamic content sections per tab. Optional ui is the tab
 /// header/control row only; tabContents hosts nested sections. Tab selection uses
@@ -1650,7 +1652,9 @@ class Section: Codable {
     /// Origin identifier for the content backing this section (e.g. 'cms:article-42',
     /// 'stats-api:leaders-2025'). Carried through to analytics for two-tier attribution.
     let contentSourceID: String?
-    /// Section-specific data payload
+    /// Section-specific data payload. The variants are listed via anyOf so codegen reaches every
+    /// *Data definition; per-variant enforcement is the allOf/if/then chain below (discriminated
+    /// by Section.type).
     let data: DataClass?
     let dataBinding: DataBinding?
     let id: String

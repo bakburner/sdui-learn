@@ -1028,8 +1028,8 @@
           "additionalProperties": { "type": "string" }
         },
         "data": {
-          "description": "Section-specific data payload",
-          "oneOf": [
+          "description": "Section-specific data payload. The variants are listed via anyOf so codegen reaches every *Data definition; per-variant enforcement is the allOf/if/then chain below (discriminated by Section.type).",
+          "anyOf": [
             { "$ref": "#/definitions/TabGroupData" },
             { "$ref": "#/definitions/BoxscoreTableData" },
             { "$ref": "#/definitions/CalendarStripData" },
@@ -1043,7 +1043,31 @@
             { "$ref": "#/definitions/VideoPlayerData" }
           ]
         }
-      }
+      },
+      "allOf": [
+        { "if": { "properties": { "type": { "const": "TabGroup" } }, "required": ["type"] },
+          "then": { "properties": { "data": { "$ref": "#/definitions/TabGroupData" } } } },
+        { "if": { "properties": { "type": { "const": "BoxscoreTable" } }, "required": ["type"] },
+          "then": { "properties": { "data": { "$ref": "#/definitions/BoxscoreTableData" } } } },
+        { "if": { "properties": { "type": { "const": "CalendarStrip" } }, "required": ["type"] },
+          "then": { "properties": { "data": { "$ref": "#/definitions/CalendarStripData" } } } },
+        { "if": { "properties": { "type": { "const": "CalendarMonthList" } }, "required": ["type"] },
+          "then": { "properties": { "data": { "$ref": "#/definitions/CalendarMonthListData" } } } },
+        { "if": { "properties": { "type": { "const": "Form" } }, "required": ["type"] },
+          "then": { "properties": { "data": { "$ref": "#/definitions/FormData" } } } },
+        { "if": { "properties": { "type": { "const": "AdSlot" } }, "required": ["type"] },
+          "then": { "properties": { "data": { "$ref": "#/definitions/AdSlotData" } } } },
+        { "if": { "properties": { "type": { "const": "SeasonLeadersTable" } }, "required": ["type"] },
+          "then": { "properties": { "data": { "$ref": "#/definitions/LeadersTableData" } } } },
+        { "if": { "properties": { "type": { "const": "SubscribeBanner" } }, "required": ["type"] },
+          "then": { "properties": { "data": { "$ref": "#/definitions/SubscribeBannerData" } } } },
+        { "if": { "properties": { "type": { "const": "SubscribeHero" } }, "required": ["type"] },
+          "then": { "properties": { "data": { "$ref": "#/definitions/SubscribeHeroData" } } } },
+        { "if": { "properties": { "type": { "const": "AtomicComposite" } }, "required": ["type"] },
+          "then": { "properties": { "data": { "$ref": "#/definitions/AtomicCompositeData" } } } },
+        { "if": { "properties": { "type": { "const": "VideoPlayer" } }, "required": ["type"] },
+          "then": { "properties": { "data": { "$ref": "#/definitions/VideoPlayerData" } } } }
+      ]
     },
     "SectionSurface": {
       "type": "object",

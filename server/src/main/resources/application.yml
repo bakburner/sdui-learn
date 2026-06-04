@@ -156,3 +156,18 @@ saf:
         stale-if-error-max-stale-age: 120s
       collapsing:
         enabled: true
+    # Composed section fragments (A2c) — TwoTierCacheService backing for
+    # SectionFragmentCache. Per-fragment TTL is set in code by the composer
+    # (volatility-driven); this entry exposes the operator-controlled stale
+    # window plus per-service resilience defaults.
+    sdui-section-fragment:
+      resilience:
+        bulkhead:
+          max-concurrent-calls: 200
+        circuit-breaker:
+          failure-rate-threshold: 50
+      cache:
+        strategy: STALE_IF_ERROR
+        stale-if-error-max-stale-age: 60s
+      collapsing:
+        enabled: true

@@ -1,8 +1,12 @@
 package com.nba.sdui.orchestration;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
+import com.nba.saf.cache.CacheStrategy;
+import com.nba.saf.cache.CacheStrategyName;
+import com.nba.saf.cache.TwoTierCacheService;
+import com.nba.saf.model.CachedValue.CacheSource;
+import com.nba.saf.model.ResponseMetadata;
+import com.nba.saf.model.ServiceResult;
 import com.nba.sdui.metrics.SduiMetrics;
 import com.nba.sdui.request.SduiRequestContext;
 import org.slf4j.Logger;
@@ -12,15 +16,16 @@ import org.springframework.stereotype.Component;
 import java.time.Duration;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
 /**
- * Section-fragment cache (contract §6, plan A2c). Caches composed section
- * JsonNodes by a deterministic key shape and emits
- * {@code sdui.cache.hit/miss{layer=section, key=sectionType}} for every
- * lookup. Screen assembly stays uncached; this layer sits below screen
- * composition and above upstream data caching.
+ * Section-fragment cache (contract §6, plan A2c). Delegates to SAF's
+ * {@link TwoTierCacheService} (the public "aggregate response caching"
+ * surface per SAF's caching doc) so L1 (Caffeine), L2 (Redis), request
+ * collapsing, stale-if-error, and circuit-breaker protection are all owned
+ * by SAF — never reinvented here. Emits the contract §10.1
+ * {@code sdui.cache.hit/miss{layer=section, key=sectionType}} counters on
+ * top of SAF's own internal cache metrics.
  *
  * <h2>Cache key shape</h2>
  *
@@ -61,11 +66,27 @@ public class SectionFragmentCache {
     private static final String LAYER = "section";
     private static final Duration DEFAULT_TTL = Duration.ofSeconds(10);
 
-    private final SduiMetrics metrics;
-    private final Map<Duration, Cache<String, JsonNode>> tiers = new ConcurrentHashMap<>();
+    /**
+     * Logical service name for SAF's per-service config + metrics dispatch.
+     * Matches {@code saf.services.<name>} in {@code application.yml} so the
+     * operator owns staleness/resilience policy without code changes.
+     */
+    static final String SERVICE_NAME = "sdui-section-fragment";
 
-    public SectionFragmentCache(SduiMetrics metrics) {
+    private final SduiMetrics metrics;
+    private final TwoTierCacheService cache;
+    private final CacheStrategy strategy;
+
+    public SectionFragmentCache(SduiMetrics metrics,
+                                TwoTierCacheService cache,
+                                Map<String, CacheStrategy> cacheStrategies) {
         this.metrics = metrics;
+        this.cache = cache;
+        this.strategy = cacheStrategies.get(CacheStrategyName.STALE_IF_ERROR.getKey());
+        if (this.strategy == null) {
+            throw new IllegalStateException(
+                    "SAF stale-if-error CacheStrategy bean not registered; check SAF auto-configuration");
+        }
     }
 
     /**
@@ -104,31 +125,42 @@ public class SectionFragmentCache {
 
     /**
      * Look up {@code key}; on miss, compute via {@code supplier}, cache, and
-     * return. Emits the appropriate {@code sdui.cache.hit/miss} counter.
-     * A {@code null} from the supplier is not cached.
+     * return. Emits {@code sdui.cache.hit/miss{layer=section, key=sectionType}}
+     * derived from the {@link ServiceResult} source. SAF owns the rest:
+     * L1/L2 storage, request collapsing, stale-if-error fallback.
+     *
+     * <p>The {@code ttl} parameter is the developer-set fresh window; the
+     * operator-controlled stale window comes from
+     * {@code saf.services.sdui-section-fragment.cache.stale-if-error-max-stale-age}
+     * in YAML.
      */
     public JsonNode getOrCompute(String key, Duration ttl, String sectionType, Supplier<JsonNode> supplier) {
         Duration effectiveTtl = ttl == null || ttl.isZero() || ttl.isNegative() ? DEFAULT_TTL : ttl;
-        Cache<String, JsonNode> tier = tiers.computeIfAbsent(effectiveTtl, this::buildTier);
-        JsonNode cached = tier.getIfPresent(key);
-        if (cached != null) {
-            metrics.recordCacheHit(LAYER, safe(sectionType));
-            log.debug("section cache hit key={} ttl={}", key, effectiveTtl);
-            return cached;
-        }
-        metrics.recordCacheMiss(LAYER, safe(sectionType));
-        JsonNode computed = supplier.get();
-        if (computed != null) {
-            tier.put(key, computed);
-        }
-        return computed;
+        ServiceResult<JsonNode> result = cache.getOrCompute(
+                key,
+                SERVICE_NAME,
+                () -> ResponseMetadata.now(supplier.get()),
+                strategy,
+                effectiveTtl,
+                /* maxStaleAgeSeconds */ 0L);
+
+        recordHitOrMiss(result, sectionType, key);
+        return result == null ? null : result.getData();
     }
 
-    private Cache<String, JsonNode> buildTier(Duration ttl) {
-        return Caffeine.newBuilder()
-                .expireAfterWrite(ttl)
-                .maximumSize(10_000)
-                .build();
+    private void recordHitOrMiss(ServiceResult<JsonNode> result, String sectionType, String key) {
+        if (result == null) {
+            metrics.recordCacheMiss(LAYER, safe(sectionType));
+            return;
+        }
+        CacheSource source = result.getSource();
+        boolean served = result.isStale() || (source != null && source != CacheSource.NONE);
+        if (served) {
+            metrics.recordCacheHit(LAYER, safe(sectionType));
+            log.debug("section cache hit key={} source={} stale={}", key, source, result.isStale());
+        } else {
+            metrics.recordCacheMiss(LAYER, safe(sectionType));
+        }
     }
 
     private static String experimentBucket(SduiRequestContext ctx) {

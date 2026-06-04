@@ -31,6 +31,10 @@ dependencies {
     // Micrometer Prometheus registry — emits /actuator/prometheus.
     runtimeOnly("io.micrometer:micrometer-registry-prometheus")
 
+    // Caffeine — section-fragment cache (A2c). Available transitively via SAF
+    // at runtime but declared explicitly so the compile classpath sees it.
+    implementation("com.github.ben-manes.caffeine:caffeine:3.1.8")
+
     // Jackson JSON
     implementation("com.fasterxml.jackson.core:jackson-databind")
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")

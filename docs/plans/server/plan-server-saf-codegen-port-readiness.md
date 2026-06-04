@@ -923,17 +923,31 @@ and folding `meta` into its own response `meta`.
 
 ### Phase A2c — real `meta` + section-fragment cache (server-only)
 
-- [ ] **A2c** Populate envelope Step 2: real `meta` from
+- [x] **A2c** Populate envelope Step 2: real `meta` from
   `orchestrator.buildMetadata()` — map per-call-id `ServiceCallInfo`
   (`status` FAILED/TIMEOUT → `failedSections`; `servedStale==true` →
   `staleSections`; `partialFailure` → `degraded`). A fresh in-TTL cache hit
   (`cacheSource` L1/L2 but not `servedStale`) is **not** degraded.
-- [ ] **A2c** Section-fragment caching (contract §6) — unblocks
+  Implemented as a `@RequestScope ResponseMetaCollector`
+  (`server/src/main/java/com/nba/sdui/orchestration/ResponseMetaCollector.java`)
+  that `StatsApiAdapter.consumeMetadata` pushes into after each
+  `executeAll()`; `SduiController.envelope()` builds `ResponseMeta` from the
+  collector's snapshot. Server tests 166/166 green.
+- [x] **A2c** Section-fragment caching (contract §6) — unblocks
   `plan-server-section-caching.md`. Keys carry `sectionType`, `contentHash`,
   `deviceClass`, `schemaVersion`, `experimentBucket`; **must not** carry
   `theme` / `density` / `fontScale` / `formFactor` / `deviceId` / time-of-day.
   Pick and document one i18n stamp policy (before- vs after-cache, §6.3)
   uniformly across composers. Screen assembly stays uncached (§6.1).
+  Implemented as a Caffeine-backed `SectionFragmentCache`
+  (`server/src/main/java/com/nba/sdui/orchestration/SectionFragmentCache.java`)
+  emitting `sdui.cache.hit/miss{layer=section, key=sectionType}`. Wired
+  into the section channel (`SectionRefreshService`); per-composer
+  integration deferred to `plan-server-section-caching.md` Phase 2.
+  i18n policy: **stamp after cache** — composers stamp `stringTable` post
+  section-build via `SduiUtils.stampStringTableOnSections`, so cached
+  fragments are locale-neutral and `locale` is excluded from the key
+  (documented in the cache class javadoc). Server tests 166/166 green.
 
 ### Phase A2d — WECS port seam (server-only)
 

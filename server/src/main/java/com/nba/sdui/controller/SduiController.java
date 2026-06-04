@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.nba.sdui.error.UnsupportedSectionException;
 import com.nba.sdui.orchestration.ParameterizedRefreshService;
+import com.nba.sdui.orchestration.ResponseMetaCollector;
 import com.nba.sdui.orchestration.SduiCompositionService;
 import com.nba.sdui.orchestration.SectionRefreshService;
 import com.nba.sdui.request.SduiRequestContext;
@@ -15,6 +16,7 @@ import com.nba.sdui.versioning.SchemaVersionFilter;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.CacheControl;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -48,6 +50,7 @@ public class SduiController {
     private final SchemaVersionConfig versionConfig;
     private final SchemaVersionFilter versionFilter;
     private final com.nba.sdui.metrics.SduiMetrics metrics;
+    private final ObjectProvider<ResponseMetaCollector> metaCollector;
 
     public SduiController(SduiCompositionService compositionService,
                           SectionRefreshService sectionRefreshService,
@@ -56,7 +59,8 @@ public class SduiController {
                           SchemaVersionChecker versionChecker,
                           SchemaVersionConfig versionConfig,
                           SchemaVersionFilter versionFilter,
-                          com.nba.sdui.metrics.SduiMetrics metrics) {
+                          com.nba.sdui.metrics.SduiMetrics metrics,
+                          ObjectProvider<ResponseMetaCollector> metaCollector) {
         this.compositionService = compositionService;
         this.sectionRefreshService = sectionRefreshService;
         this.parameterizedRefreshService = parameterizedRefreshService;
@@ -65,6 +69,7 @@ public class SduiController {
         this.versionConfig = versionConfig;
         this.versionFilter = versionFilter;
         this.metrics = metrics;
+        this.metaCollector = metaCollector;
     }
 
     // ── Game Detail ────────────────────────────────────────────────────
@@ -589,10 +594,15 @@ public class SduiController {
 
     /**
      * Wrap a composed payload in the standard {@link ResponseEnvelope}.
-     * See AGENTS.md §1.2 "Transport-framing exception".
+     * See AGENTS.md §1.2 "Transport-framing exception". {@code meta} is
+     * built from the request-scoped {@link ResponseMetaCollector} so any
+     * upstream failures or stale-if-error fragments observed during this
+     * request are surfaced to the client.
      */
     private ResponseEnvelope<JsonNode> envelope(JsonNode payload) {
-        return ResponseEnvelope.of(payload);
+        ResponseMetaCollector collector = metaCollector == null ? null : metaCollector.getIfAvailable();
+        ResponseMeta meta = collector == null ? ResponseMeta.fresh() : collector.build();
+        return new ResponseEnvelope<>(payload, meta);
     }
 
     /**

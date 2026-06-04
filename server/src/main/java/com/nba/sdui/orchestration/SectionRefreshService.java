@@ -24,9 +24,11 @@ public class SectionRefreshService {
 
     private final Map<String, SectionResolver> registry = new LinkedHashMap<>();
     private final SduiMetrics metrics;
+    private final SectionFragmentCache sectionCache;
 
-    public SectionRefreshService(SduiMetrics metrics) {
+    public SectionRefreshService(SduiMetrics metrics, SectionFragmentCache sectionCache) {
         this.metrics = metrics;
+        this.sectionCache = sectionCache;
     }
 
     /**
@@ -35,7 +37,7 @@ public class SectionRefreshService {
      * constructor.
      */
     public SectionRefreshService() {
-        this(new SduiMetrics(new io.micrometer.core.instrument.simple.SimpleMeterRegistry()));
+        this(new SduiMetrics(new io.micrometer.core.instrument.simple.SimpleMeterRegistry()), null);
     }
 
     public void registerResolver(String prefix, SectionResolver resolver) {
@@ -60,16 +62,53 @@ public class SectionRefreshService {
         }
 
         try {
-            JsonNode result = registry.get(bestPrefix).resolve(sectionId, ctx);
+            String sectionType = sectionTypeFromId(sectionId);
+            JsonNode result;
+            if (sectionCache != null) {
+                String key = SectionFragmentCache.key(sectionType, sectionId, ctx);
+                final String resolverPrefix = bestPrefix;
+                result = sectionCache.getOrCompute(key, null, sectionType, () -> {
+                    try {
+                        return registry.get(resolverPrefix).resolve(sectionId, ctx);
+                    } catch (UnsupportedSectionException e) {
+                        throw e;
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+            } else {
+                result = registry.get(bestPrefix).resolve(sectionId, ctx);
+            }
             metrics.recordSectionRefresh(sectionId, result == null ? "empty" : "success");
             return Optional.ofNullable(result);
         } catch (UnsupportedSectionException e) {
             metrics.recordSectionRefresh(sectionId, "unsupported");
             throw e;
+        } catch (RuntimeException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof UnsupportedSectionException uns) {
+                metrics.recordSectionRefresh(sectionId, "unsupported");
+                throw uns;
+            }
+            log.error("Resolver failed for sectionId='{}': {}", sectionId, e.getMessage(), e);
+            metrics.recordSectionRefresh(sectionId, "error");
+            return Optional.empty();
         } catch (Exception e) {
             log.error("Resolver failed for sectionId='{}': {}", sectionId, e.getMessage(), e);
             metrics.recordSectionRefresh(sectionId, "error");
             return Optional.empty();
         }
+    }
+
+    /**
+     * Best-effort sectionType derivation from a sectionId. Most ids are of the
+     * form {@code "<type>-<discriminator>"} (e.g. {@code "boxscore-0022400123"}).
+     * Falls back to the full id when no discriminator is present. Used only as
+     * a metric tag and a fragment-cache label, never as a routing decision.
+     */
+    private static String sectionTypeFromId(String sectionId) {
+        if (sectionId == null) return "unknown";
+        int dash = sectionId.indexOf('-');
+        return dash > 0 ? sectionId.substring(0, dash) : sectionId;
     }
 }

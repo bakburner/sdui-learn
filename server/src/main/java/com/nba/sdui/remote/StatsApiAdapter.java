@@ -8,6 +8,8 @@ import com.nba.saf.orchestrator.ServiceOrchestrator;
 import com.nba.sdui.domain.port.ScoreboardPort;
 import com.nba.sdui.domain.port.StatsPort;
 import com.nba.sdui.metrics.SduiMetrics;
+import com.nba.sdui.orchestration.ResponseMetaCollector;
+import org.springframework.beans.factory.ObjectProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -46,22 +48,25 @@ public class StatsApiAdapter implements ScoreboardPort, StatsPort {
     private final StatsApiClient client;
     private final OrchestratorFactory orchestrators;
     private final SduiMetrics metrics;
+    private final ObjectProvider<ResponseMetaCollector> metaCollector;
 
     public StatsApiAdapter(StatsApiClient client,
                            OrchestratorFactory orchestrators,
-                           SduiMetrics metrics) {
+                           SduiMetrics metrics,
+                           ObjectProvider<ResponseMetaCollector> metaCollector) {
         this.client = client;
         this.orchestrators = orchestrators;
         this.metrics = metrics;
+        this.metaCollector = metaCollector;
     }
 
     /**
      * Test-only constructor: bypasses SAF orchestration when tests construct the
      * adapter without a Spring context. Production code always wires the
-     * three-arg constructor via {@code @Component} injection.
+     * four-arg constructor via {@code @Component} injection.
      */
     public StatsApiAdapter(StatsApiClient client) {
-        this(client, null, null);
+        this(client, null, null, null);
     }
 
     @Override
@@ -120,7 +125,7 @@ public class StatsApiAdapter implements ScoreboardPort, StatsPort {
         try {
             orchestrator.executeAll();
         } catch (RuntimeException e) {
-            recordUpstreamFromMetadata(orchestrator, serviceName);
+            consumeMetadata(orchestrator, serviceName);
             Throwable cause = e.getCause();
             if (cause instanceof UncheckedIOException uio) {
                 throw uio.getCause();
@@ -131,17 +136,22 @@ public class StatsApiAdapter implements ScoreboardPort, StatsPort {
             throw e;
         }
 
-        recordUpstreamFromMetadata(orchestrator, serviceName);
+        consumeMetadata(orchestrator, serviceName);
 
         Optional<T> result = orchestrator.<T>getResult(id)
                 .map(r -> r.getData());
         return result.orElse(null);
     }
 
-    private void recordUpstreamFromMetadata(ServiceOrchestrator orchestrator, String serviceName) {
+    private void consumeMetadata(ServiceOrchestrator orchestrator, String serviceName) {
         try {
             ServiceMetadata meta = orchestrator.buildMetadata();
-            if (meta == null || meta.getServices() == null) return;
+            if (meta == null) return;
+            ResponseMetaCollector collector = metaCollector == null ? null : metaCollector.getIfAvailable();
+            if (collector != null) {
+                collector.record(meta);
+            }
+            if (meta.getServices() == null) return;
             meta.getServices().values().stream()
                     .filter(info -> serviceName.equals(info.getServiceName()))
                     .forEach(info -> emit(info, serviceName));

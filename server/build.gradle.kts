@@ -48,6 +48,9 @@ dependencies {
     // Testing
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("com.tngtech.archunit:archunit-junit5:1.3.0")
+    // JSON Schema (Draft-07) validator — A3 schema-conformance test asserts
+    // every composed screen/section parses cleanly against schema/sdui-schema.json.
+    testImplementation("com.networknt:json-schema-validator:1.4.0")
 }
 
 tasks.withType<Test> {

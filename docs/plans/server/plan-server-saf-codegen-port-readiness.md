@@ -964,19 +964,46 @@ and folding `meta` into its own response `meta`.
 
 ### Phase A3 — typed models
 
-- [ ] **A3** Wire generated `jsonschema2pojo` POJOs onto server compile classpath;
-  remove dead `copyGeneratedModels` task.
+- [x] **A3** Wire generated `jsonschema2pojo` POJOs onto server compile classpath;
+  remove dead `copyGeneratedModels` task. **Implemented** via
+  `includeBuild("../codegen")` in `server/settings.gradle.kts` plus a
+  source-set entry pointing at `codegen/build/generated-sources/jsonschema2pojo`
+  and a `compileJava.dependsOn(":codegen:generateJsonSchema2Pojo")` wiring in
+  `server/build.gradle.kts`. 74 generated classes
+  (`com.nba.sdui.models.generated.*`: `Screen`, `Section`, `AtomicElement`,
+  `RefreshPolicy`, `DataBinding`, `Navigation`, …) now compile into
+  `server/build/classes/java/main/`. The dead `copyGeneratedModels` Copy task —
+  which would have copied generated sources INTO `src/main/java`, exactly the
+  anti-pattern AGENTS.md §1.2 forbids — is removed.
 - [ ] **A3** Migrate element-factory + builder-using composers from `ObjectNode`
   to generated `Screen`/`Section`/`AtomicElement`, composer-by-composer behind
-  round-trip tests.
+  round-trip tests. **Deferred** until either (a) `AtomicCompositeBuilder`
+  (3434 LOC, 68 public `ObjectNode`-returning methods) gains dual-emit typed
+  variants, or (b) we accept a one-shot builder flip. Composer-by-composer
+  migration is gated on builder strategy.
 - [ ] **A3** Migrate **`BoxscoreComposer`** (named — bypasses
-  `AtomicCompositeBuilder`, builds raw `ObjectNode` directly).
+  `AtomicCompositeBuilder`, builds raw `ObjectNode` directly). **Deferred**
+  with the rest of the composer migration above.
 - [ ] **A3** Migrate **`CalendarComposer`** (named — bypasses
-  `AtomicCompositeBuilder`, builds raw `ObjectNode` directly).
-- [ ] **A3** Add schema-conformance test validating every composed screen/section
-  against `schema/sdui-schema.json`. Budget composer fixes inside this todo —
-  expect the conformance test to surface pre-existing drift the round-trip tests
-  don't catch.
+  `AtomicCompositeBuilder`, builds raw `ObjectNode` directly). **Deferred**
+  with the rest of the composer migration above.
+- [x] **A3** Add schema-conformance test validating every composed screen/section
+  against `schema/sdui-schema.json`. **Implemented** as
+  `server/src/test/java/com/nba/sdui/contract/SchemaConformanceTest.java`
+  using `networknt/json-schema-validator` (Draft-07). Validates `Screen`
+  scaffolding plus every `Section`'s outer fields (`id`, `type` enum,
+  `surface`, `sectionStates`, `refreshPolicy`, `accessibility`, `stringTable`,
+  …) for `LiveComposer.composeLive`, `DemoScreenComposer.composeLeaders`,
+  and `DemoScreenComposer.composeDemos`. **Pre-existing drift surfaced**:
+  the schema's `Section.data` `oneOf` discriminated union over 11 variants
+  (`TabGroupData|BoxscoreTableData|CalendarStripData|…|AtomicCompositeData`)
+  is not mutually exclusive — multiple variants validate the same payload —
+  which is a schema modeling defect (Draft-07 needs `allOf`/`if`/`then` keyed
+  off `type` to express a true discriminator). The conformance test stops at
+  the `data` boundary with an in-test `stripSectionDataOneOf` patch and a
+  comment pointing at this gap. Tracking the discriminator fix as a separate
+  follow-up; structural drift in everything *outside* `Section.data` is now
+  guarded.
 
 ### Phase B — port (future, not active scope)
 

@@ -17,7 +17,7 @@ final class DataBindingApplierTests: XCTestCase {
             incomingMessage: incoming,
             dataBinding: binding,
             sectionID: "game_1",
-            traceID: nil,
+            correlationId: nil,
             stringTable: nil
         )
 
@@ -45,7 +45,7 @@ final class DataBindingApplierTests: XCTestCase {
             incomingMessage: incoming,
             dataBinding: binding,
             sectionID: "s",
-            traceID: nil,
+            correlationId: nil,
             stringTable: nil
         )
 
@@ -65,7 +65,7 @@ final class DataBindingApplierTests: XCTestCase {
             incomingMessage: [:],
             dataBinding: binding,
             sectionID: "s",
-            traceID: nil,
+            correlationId: nil,
             stringTable: nil
         )
 
@@ -86,7 +86,7 @@ final class DataBindingApplierTests: XCTestCase {
                 incomingMessage: [:],
                 dataBinding: binding,
                 sectionID: "s",
-                traceID: nil,
+                correlationId: nil,
                 stringTable: nil
             )
             XCTAssertEqual(applier.missCount(sectionID: "s", sourcePath: "$.nope"), i)
@@ -105,7 +105,7 @@ final class DataBindingApplierTests: XCTestCase {
             incomingMessage: [:],
             dataBinding: binding,
             sectionID: "s",
-            traceID: nil,
+            correlationId: nil,
             stringTable: nil
         )
         XCTAssertEqual(applier.missCount(sectionID: "s", sourcePath: "$.score"), 1)
@@ -115,7 +115,7 @@ final class DataBindingApplierTests: XCTestCase {
             incomingMessage: ["score": 7],
             dataBinding: binding,
             sectionID: "s",
-            traceID: nil,
+            correlationId: nil,
             stringTable: nil
         )
         XCTAssertEqual(applier.missCount(sectionID: "s", sourcePath: "$.score"), 0)
@@ -135,7 +135,7 @@ final class DataBindingApplierTests: XCTestCase {
             incomingMessage: incoming,
             dataBinding: binding,
             sectionID: "s",
-            traceID: nil,
+            correlationId: nil,
             stringTable: table
         )
 
@@ -161,7 +161,7 @@ final class DataBindingApplierTests: XCTestCase {
             incomingMessage: incoming,
             dataBinding: binding,
             sectionID: "s",
-            traceID: nil,
+            correlationId: nil,
             stringTable: nil
         )
 

@@ -1,5 +1,7 @@
 package com.nba.sdui.service;
 
+import com.nba.sdui.testsupport.TestTokens;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -23,6 +25,14 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import com.nba.sdui.domain.SduiUtils;
+import com.nba.sdui.domain.SectionSurfaces;
+import com.nba.sdui.domain.composer.LiveComposer;
+import com.nba.sdui.orchestration.ParameterizedRefreshService;
+import com.nba.sdui.orchestration.SectionRefreshService;
+import com.nba.sdui.remote.SeasonCalendarService;
+import com.nba.sdui.remote.StatsApiAdapter;
+import com.nba.sdui.remote.StatsApiClient;
 
 class LiveComposerTest {
 
@@ -227,8 +237,9 @@ class LiveComposerTest {
     }
 
     @Test
-    void composeLive_whenNoGamesForDate_emitsOnlyCalendarStrip() throws Exception {
-        // No mock fallback: empty scoreboard → just the CalendarStrip, no game sections.
+    void composeLive_whenNoGamesForDate_emitsCalendarStripAndPromo() throws Exception {
+        // No mock fallback: empty scoreboard → CalendarStrip + League Pass promo,
+        // no game sections and no AdSlot.
         ComposerFixture fixture = buildFixture(
                 Clock.fixed(Instant.parse("2026-05-26T14:00:00Z"), ZoneOffset.UTC)
         );
@@ -237,8 +248,10 @@ class LiveComposerTest {
         ObjectNode screen = fixture.composer.composeLive("trace-empty", "en", "2026-03-15");
         ArrayNode sections = (ArrayNode) screen.path("sections");
 
-        assertEquals(1, sections.size(), "only the CalendarStrip should be emitted when no games exist");
+        assertEquals(2, sections.size(),
+                "only the CalendarStrip and League Pass promo should be emitted when no games exist");
         assertEquals("CalendarStrip", sections.get(0).path("type").asText());
+        assertEquals("games_screen_promo_banner", sections.get(1).path("analyticsId").asText());
     }
 
     @Test
@@ -252,14 +265,16 @@ class LiveComposerTest {
         ObjectNode screen = fixture.composer.composeLive("trace-z", "en", "2026-03-15");
         ArrayNode sections = (ArrayNode) screen.path("sections");
 
+        // Layout: CalendarStrip, League Pass promo, then per-status game sections.
         // 1 live + 1 upcoming + 1 final = 3 games → ad placed after the section
         // containing the 2nd game (upcoming_games), so the ad sits between
         // upcoming_games and final_games.
         assertEquals("CalendarStrip", sections.get(0).path("type").asText());
-        assertEquals("live_games", sections.get(1).path("analyticsId").asText());
-        assertEquals("upcoming_games", sections.get(2).path("analyticsId").asText());
-        assertEquals("AdSlot", sections.get(3).path("type").asText());
-        assertEquals("final_games", sections.get(4).path("analyticsId").asText());
+        assertEquals("games_screen_promo_banner", sections.get(1).path("analyticsId").asText());
+        assertEquals("live_games", sections.get(2).path("analyticsId").asText());
+        assertEquals("upcoming_games", sections.get(3).path("analyticsId").asText());
+        assertEquals("AdSlot", sections.get(4).path("type").asText());
+        assertEquals("final_games", sections.get(5).path("analyticsId").asText());
     }
 
     @Test
@@ -291,11 +306,13 @@ class LiveComposerTest {
         ObjectNode screen = fixture.composer.composeLive("trace-ad-1", "en", "2026-03-15");
         ArrayNode sections = (ArrayNode) screen.path("sections");
 
+        // Layout: CalendarStrip, League Pass promo, upcoming_games, AdSlot.
         // 1 game (upcoming) → ad inserted after the only game section.
         assertEquals("CalendarStrip", sections.get(0).path("type").asText());
-        assertEquals("upcoming_games", sections.get(1).path("analyticsId").asText());
-        assertEquals("AdSlot", sections.get(2).path("type").asText());
-        assertEquals(3, sections.size());
+        assertEquals("games_screen_promo_banner", sections.get(1).path("analyticsId").asText());
+        assertEquals("upcoming_games", sections.get(2).path("analyticsId").asText());
+        assertEquals("AdSlot", sections.get(3).path("type").asText());
+        assertEquals(4, sections.size());
     }
 
     @Test
@@ -309,8 +326,9 @@ class LiveComposerTest {
         ObjectNode screen = fixture.composer.composeLive("trace-ad-sizes", "en", "2026-03-15");
         ArrayNode sections = (ArrayNode) screen.path("sections");
 
+        // Layout: CalendarStrip, League Pass promo, live_games, AdSlot.
         // 2 live games → ad after the live section (which holds both games).
-        ObjectNode adSlot = (ObjectNode) sections.get(2);
+        ObjectNode adSlot = (ObjectNode) sections.get(3);
         assertEquals("AdSlot", adSlot.path("type").asText());
         ObjectNode adData = (ObjectNode) adSlot.path("data");
         assertEquals("gam", adData.path("provider").asText());
@@ -347,7 +365,8 @@ class LiveComposerTest {
         assertTrue(refreshed.isPresent(), "games resolver should be registered");
         ArrayNode sections = (ArrayNode) refreshed.get().path("sections");
         assertEquals("CalendarStrip", sections.get(0).path("type").asText());
-        assertEquals("live_games", sections.get(1).path("analyticsId").asText());
+        assertEquals("games_screen_promo_banner", sections.get(1).path("analyticsId").asText());
+        assertEquals("live_games", sections.get(2).path("analyticsId").asText());
     }
 
     private LiveComposer buildComposer(Clock clock) throws Exception {
@@ -370,15 +389,15 @@ class LiveComposerTest {
         when(statsApiClient.getScoreboard()).thenReturn(emptyScoreboard());
         when(statsApiClient.getScoreboardForDate(any(LocalDate.class))).thenReturn(emptyScoreboard());
 
-        SduiUtils utils = new SduiUtils(objectMapper);
-        SectionSurfaces surfaces = new SectionSurfaces(objectMapper, utils);
+        SduiUtils utils = new SduiUtils(objectMapper, TestTokens.INSTANCE);
+        SectionSurfaces surfaces = new SectionSurfaces(objectMapper, utils, TestTokens.INSTANCE);
         SectionRefreshService sectionRefreshService = new SectionRefreshService();
 
         LiveComposer composer = new LiveComposer(
                 objectMapper,
-                statsApiClient,
+                new StatsApiAdapter(statsApiClient),
                 utils,
-                surfaces,
+                surfaces, TestTokens.INSTANCE,
                 sectionRefreshService,
                 parameterizedRefreshService,
                 seasonCalendarService

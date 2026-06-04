@@ -2,7 +2,7 @@
 	dev-android dev-android-local dev-android-remote _dev-android \
 	dev-ios-local dev-ios-remote ios-run-local ios-run-remote _dev-ios \
 	dev-all codegen server-test android-test web-test test \
-	lint-sdui-warn \
+	lint-sdui-warn publish-saf sync-saf \
 	stop stop-server stop-web stop-android \
 	ios-test ios-test-clean ios-build ios-demo-project ios-run ios-run-max ios-stop ios-fixtures-sync ios-sim-preflight
 
@@ -66,6 +66,27 @@ codegen:
 	@cd codegen && bash generate.sh
 	@cd codegen && ./gradlew generateJsonSchema2Pojo
 	@echo "=== Codegen complete ==="
+
+# ── SAF (service-aggregation-framework) ──────────────────────
+# SAF is consumed from Maven Local. publish-saf builds and installs the SAF
+# jar from its sibling repository; sync-saf is an alias that publishes then
+# re-resolves the server's dependency cache.
+SAF_REPO ?= $(HOME)/Projects/service-aggregation-framework
+
+publish-saf:
+	@echo "=== Publishing SAF to Maven Local from $(SAF_REPO) ==="
+	@if [ ! -d "$(SAF_REPO)" ]; then \
+		echo "ERROR: SAF_REPO=$(SAF_REPO) does not exist."; \
+		echo "Override: make publish-saf SAF_REPO=/path/to/service-aggregation-framework"; \
+		exit 1; \
+	fi
+	@cd $(SAF_REPO) && ./gradlew publishToMavenLocal
+	@echo "=== SAF published ==="
+
+sync-saf: publish-saf
+	@echo "=== Refreshing server SAF dependency ==="
+	@cd server && ./gradlew --refresh-dependencies dependencies --configuration runtimeClasspath | grep -i service-aggregation || true
+	@echo "=== SAF sync complete ==="
 
 server-test:
 	@echo "=== Running server tests ==="

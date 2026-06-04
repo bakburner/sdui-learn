@@ -1,5 +1,7 @@
 package com.nba.sdui.service;
 
+import com.nba.sdui.testsupport.TestTokens;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -10,6 +12,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import com.nba.sdui.domain.SduiUtils;
+import com.nba.sdui.domain.SectionIdDeriver;
+import com.nba.sdui.domain.SectionSurfaces;
+import com.nba.sdui.domain.composer.ForYouComposer;
+import com.nba.sdui.orchestration.SectionRefreshService;
+import com.nba.sdui.remote.SeasonCalendarService;
+import com.nba.sdui.remote.StatsApiAdapter;
+import com.nba.sdui.remote.StatsApiClient;
 
 /**
  * Integration test for section ID derivation in ForYouComposer.
@@ -24,9 +34,9 @@ class ForYouSectionIdDerivationTest {
     void setUp() {
         ObjectMapper om = new ObjectMapper();
         StatsApiClient statsApiClient = new StatsApiClient(om, new SeasonCalendarService());
-        SduiUtils utils = new SduiUtils(om);
-        SectionSurfaces surfaces = new SectionSurfaces(om, utils);
-        composer = new ForYouComposer(om, statsApiClient, utils, surfaces,
+        SduiUtils utils = new SduiUtils(om, TestTokens.INSTANCE);
+        SectionSurfaces surfaces = new SectionSurfaces(om, utils, TestTokens.INSTANCE);
+        composer = new ForYouComposer(om, new StatsApiAdapter(statsApiClient), utils, surfaces, TestTokens.INSTANCE,
                 new SectionRefreshService());
     }
 
@@ -92,8 +102,8 @@ class ForYouSectionIdDerivationTest {
         JsonNode response = composer.composeForYou("test-trace-id", "en");
         JsonNode insets = response.get("contentInsets");
         assertNotNull(insets, "Screen must carry server-owned contentInsets");
-        assertEquals(LayoutTokens.SPACING_MD, insets.path("start").asText());
-        assertEquals(LayoutTokens.SPACING_MD, insets.path("end").asText());
-        assertEquals(LayoutTokens.SPACING_LG, insets.path("bottom").asText());
+        assertEquals(TestTokens.INSTANCE.spacing("md"), insets.path("start").asText());
+        assertEquals(TestTokens.INSTANCE.spacing("md"), insets.path("end").asText());
+        assertEquals(TestTokens.INSTANCE.spacing("lg"), insets.path("bottom").asText());
     }
 }

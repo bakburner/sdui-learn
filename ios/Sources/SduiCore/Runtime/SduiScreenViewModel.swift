@@ -55,6 +55,13 @@ public final class SduiScreenViewModel {
     /// shell navigation and ``SduiModels/parentURI`` stay available for escape.
     private(set) var shellScreen: SduiModels?
 
+    /// Most recent `X-Correlation-ID` returned by a screen/section fetch.
+    /// Seeded into subsequent refresh requests so server logs correlate the
+    /// continuation with the screen that triggered it. `nil` until the first
+    /// successful fetch; the repository falls back to a fresh UUID in that
+    /// case.
+    private var lastCorrelationId: String?
+
     // These are owned here so views (including sheet/overlay hosts) can
     // re-use them across re-renders.
     public let screenState: ScreenState
@@ -202,9 +209,11 @@ public final class SduiScreenViewModel {
         do {
             let result = try await repository.fetchScreen(
                 endpoint: endpoint,
-                userParams: currentUserParams
+                userParams: currentUserParams,
+                correlationId: lastCorrelationId
             )
-            applyScreen(result)
+            lastCorrelationId = result.correlationId ?? lastCorrelationId
+            applyScreen(result.value)
             loadState = .loaded
         } catch let err as SduiError where err == .upgradeRequired {
             logger.warning("Schema version mismatch — upgrade required for \(self.endpoint, privacy: .public)")
@@ -232,11 +241,13 @@ public final class SduiScreenViewModel {
     func replaceCurrentScreen(endpoint: String, userParams: [String: String]) async {
         currentUserParams = userParams
         do {
-            let refreshed = try await repository.fetchScreen(
+            let result = try await repository.fetchScreen(
                 endpoint: endpoint,
                 userParams: userParams,
-                traceID: screen?.traceID
+                correlationId: lastCorrelationId
             )
+            lastCorrelationId = result.correlationId ?? lastCorrelationId
+            let refreshed = result.value
             guard let currentScreen = screen else {
                 applyScreen(refreshed)
                 return
@@ -257,10 +268,12 @@ public final class SduiScreenViewModel {
     /// untouched.
     func replaceSection(sectionID: String, endpoint: String, userParams: [String: String] = [:]) async {
         do {
-            let section = try await repository.fetchSection(
+            let result = try await repository.fetchSection(
                 endpoint: endpoint,
-                traceID: screen?.traceID
+                correlationId: lastCorrelationId
             )
+            lastCorrelationId = result.correlationId ?? lastCorrelationId
+            let section = result.value
             await restartRealtimeForSection(sectionID, newSection: section)
             replaceSectionInScreen(sectionID: sectionID, with: section)
         } catch {
@@ -467,7 +480,7 @@ public final class SduiScreenViewModel {
                 sectionEndpoint: sectionEndpointPath,
                 dataPath: dataPath,
                 pauseWhenOffScreen: shouldPause,
-                traceID: self.screen?.traceID
+                correlationId: self.lastCorrelationId
             )
         }
     }
@@ -594,7 +607,7 @@ public final class SduiScreenViewModel {
                 incomingMessage: incoming,
                 dataBinding: dataBinding,
                 sectionID: sectionID,
-                traceID: screen.traceID,
+                correlationId: lastCorrelationId,
                 stringTable: section.stringTable
             )
         } else {
@@ -617,7 +630,7 @@ public final class SduiScreenViewModel {
             incomingMessage: message,
             dataBinding: dataBinding,
             sectionID: sectionID,
-            traceID: screen.traceID,
+            correlationId: lastCorrelationId,
             stringTable: section.stringTable
         )
         await updateSectionData(sectionID: sectionID, newData: updated)

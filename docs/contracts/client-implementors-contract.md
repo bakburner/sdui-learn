@@ -64,7 +64,7 @@ at `localhost:8080` is the reference implementation; hit it with
 | # | Component | What it does |
 |---|-----------|--------------|
 | 1 | **Models** | Use the generated models from the platform's authoritative output location (see the table in "Shared Infrastructure" above), or regenerate from `schema/sdui-schema.json` for a new language. Deserialize `SduiScreen`, `Section`, `AtomicElement`, `Action`, `RefreshPolicy`, `DataBinding`. |
-| 2 | **SduiRepository.fetchScreen** | Single fetch primitive every composition request routes through. Builds the request envelope as bracket-notation query params; falls back to POST with the same shape in the JSON body when the query exceeds 8192 chars. Sends `X-Trace-Id` on every request. See §11 for the full transport contract. Returns `SduiScreen`. |
+| 2 | **SduiRepository.fetchScreen** | Single fetch primitive every composition request routes through. Builds the request envelope as bracket-notation query params; falls back to POST with the same shape in the JSON body when the query exceeds 8192 chars. Sends `X-Correlation-ID` on every request. Unwraps the response transport envelope (`{data, meta}`): renderers consume `.data` (the schema-bound `SduiScreen`); `.meta` is decoded-but-ignored for now. See §11 for the full transport contract. Returns `SduiScreen`. |
 | 3 | **UriResolver.resolveEndpoint** | Convert `nba://{path}` → `/v1/sdui/screen/{path}`. Pure string prefix swap, no branching. |
 | 4 | **SectionRouter** | Switch on `section.type` → dispatch to renderer. Unknown types → log + skip. |
 | 5 | **AtomicRouter** | Switch on `element.type` → dispatch to atomic renderer. Depth guard at 6. |
@@ -813,7 +813,7 @@ FUNCTION dispatchSingleAction(action, stateManager):
                 // the shared fetch primitive (§11) so the request inherits
                 // the canonical envelope contract: bracket-notation
                 // envelope params, GET/POST length fallback, RFC-3986
-                // percent-encoding, and X-Trace-Id propagation from the
+                // percent-encoding, and X-Correlation-ID propagation from the
                 // parent screen.
                 resolvedParams = {}
                 FOR key, value IN action.paramBindings:
@@ -1432,7 +1432,7 @@ decision alongside the envelope.
 |-----------------|-----|------|
 | Envelope params (`platform[*]`, `device[*]`, `experiments[*]`, `locale`, `schemaVersion`, `gameState`) | URL query (bracket notation) | JSON body (same shape) |
 | User filter params (`perMode=Totals`, `season=2025-26`) | URL query | URL query |
-| `X-Trace-Id` | Header | Header |
+| `X-Correlation-ID` | Header | Header |
 
 Encoding rules (apply uniformly to both halves of the query string):
 
@@ -1444,18 +1444,41 @@ Encoding rules (apply uniformly to both halves of the query string):
   ordering is fixed by the builder. Identical inputs produce
   byte-identical URLs across platforms — the CDN cache key depends on it.
 
-### 11.4 `X-Trace-Id`
+### 11.4 `X-Correlation-ID`
 
-`X-Trace-Id` travels as an HTTP header on every request. Parameterized
-refresh inherits its parent screen's trace ID so server logs correlate
-the refresh response with the screen that triggered it.
+`X-Correlation-ID` travels as an HTTP header on every request and is echoed
+on every response. Parameterized refresh inherits its parent screen's
+correlation ID from the parent fetch's response header so server logs
+correlate the refresh response with the screen that triggered it.
+Correlation lives on the header only — there is no body-level `traceId`
+field on `Screen`.
+
+### 11.4.1 Response envelope unwrap
+
+Every composition response is wrapped in a hand-written transport envelope:
+
+```json
+{
+  "data": <Screen | Section>,
+  "meta": { "degraded": false, "staleSections": [], "failedSections": [] }
+}
+```
+
+The shared fetch primitive (`SduiRepository.fetchScreen` /
+`fetchSduiScreen`) unwraps `.data` and hands the schema-bound payload to
+the existing renderer code path. `.meta` is decoded into a hand-written
+client-side wrapper and **ignored** for now — real freshness metadata
+lands in a later phase. Renderers consume `.data` exactly as before; no
+renderer code changes from this envelope. The `{data, meta}` wrapper is
+outside `schema/sdui-schema.json` and outside codegen; see AGENTS.md §1.2
+("Transport-framing exception") and ADR-017 for the rules.
 
 ### 11.5 Headers
 
 | Header | Required | Purpose |
 |--------|----------|---------|
 | `Authorization` | Yes (when authenticated) | Bearer token |
-| `X-Trace-Id` | Yes | Request correlation |
+| `X-Correlation-ID` | Yes | Request correlation |
 | `X-Request-Id` | Yes | Idempotency / dedup |
 | `X-Analytics-Platform` | Yes | Analytics (`android`, `ios`, `web`) |
 | `X-App-Version` | Yes | Analytics / compat |

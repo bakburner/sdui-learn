@@ -33,7 +33,6 @@ struct SduiModels: Codable {
     /// section (see prependAppBarHeader). Not rendered from screen.title by clients. Omit on
     /// bottom-nav tab destinations.
     let title: String?
-    let traceID: String?
     /// Server-exposed A/B / experiment variants available for this screen. Clients read
     /// `options` to render a variant picker (dev UI, QA tooling) and pass the selected id back
     /// to the server on subsequent requests. Omit for screens without active experiments.
@@ -44,9 +43,7 @@ struct SduiModels: Codable {
         case analyticsID = "analyticsId"
         case contentInsets, defaultRefreshPolicy, id, navigation, overlays
         case parentURI = "parentUri"
-        case schemaVersion, sections, state, title
-        case traceID = "traceId"
-        case variants
+        case schemaVersion, sections, state, title, variants
     }
 }
 
@@ -81,7 +78,6 @@ extension SduiModels {
         sections: [Section]? = nil,
         state: [String: JSONAny]?? = nil,
         title: String?? = nil,
-        traceID: String?? = nil,
         variants: ExperimentVariants?? = nil
     ) -> SduiModels {
         return SduiModels(
@@ -97,7 +93,6 @@ extension SduiModels {
             sections: sections ?? self.sections,
             state: state ?? self.state,
             title: title ?? self.title,
-            traceID: traceID ?? self.traceID,
             variants: variants ?? self.variants
         )
     }

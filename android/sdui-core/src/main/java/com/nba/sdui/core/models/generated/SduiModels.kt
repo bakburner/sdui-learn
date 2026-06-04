@@ -128,9 +128,6 @@ data class SduiModels (
      */
     val title: String? = null,
 
-    @get:JsonProperty("traceId")@field:JsonProperty("traceId")
-    val traceID: String? = null,
-
     /**
      * Server-exposed A/B / experiment variants available for this screen. Clients read
      * `options` to render a variant picker (dev UI, QA tooling) and pass the selected id back

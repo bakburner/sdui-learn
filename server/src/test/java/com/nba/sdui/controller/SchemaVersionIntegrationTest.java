@@ -3,9 +3,9 @@ package com.nba.sdui.controller;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nba.sdui.request.SduiRequestContext;
-import com.nba.sdui.service.ParameterizedRefreshService;
-import com.nba.sdui.service.SduiCompositionService;
-import com.nba.sdui.service.SectionRefreshService;
+import com.nba.sdui.orchestration.ParameterizedRefreshService;
+import com.nba.sdui.orchestration.SduiCompositionService;
+import com.nba.sdui.orchestration.SectionRefreshService;
 import com.nba.sdui.versioning.SchemaVersionChecker;
 import com.nba.sdui.versioning.SchemaVersionConfig;
 import com.nba.sdui.versioning.SchemaVersionFilter;
@@ -77,8 +77,9 @@ class SchemaVersionIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(header().string("X-Schema-Version", "1.0"))
                 .andExpect(header().doesNotExist(SchemaVersionChecker.MISMATCH_HEADER))
-                .andExpect(jsonPath("$.id").value("scoreboard"))
-                .andExpect(jsonPath("$.sections").isArray());
+                .andExpect(jsonPath("$.data.id").value("scoreboard"))
+                .andExpect(jsonPath("$.data.sections").isArray())
+                .andExpect(jsonPath("$.meta.degraded").value(false));
     }
 
     @Test
@@ -95,9 +96,9 @@ class SchemaVersionIntegrationTest {
                     .andExpect(status().isOk())
                     .andExpect(header().string(SchemaVersionChecker.MISMATCH_HEADER,
                             SchemaVersionChecker.UPGRADE_REQUIRED))
-                    .andExpect(jsonPath("$.id").value("upgrade-required"))
-                    .andExpect(jsonPath("$.sections[0].type").value("AtomicComposite"))
-                    .andExpect(jsonPath("$.sections[0].id").value("error-schema-version-mismatch"));
+                    .andExpect(jsonPath("$.data.id").value("upgrade-required"))
+                    .andExpect(jsonPath("$.data.sections[0].type").value("AtomicComposite"))
+                    .andExpect(jsonPath("$.data.sections[0].id").value("error-schema-version-mismatch"));
         } finally {
             versionConfig.setMinSupportedVersion(originalMin);
         }

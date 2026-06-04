@@ -74,7 +74,7 @@ class DataBindingResolverTest {
             currentData = current,
             incomingMessage = incoming,
             dataBinding = binding,
-            traceId = null,
+            correlationId = null,
             stringTable = null,
             sectionId = "s"
         )
@@ -115,7 +115,7 @@ class DataBindingResolverTest {
             currentData = current,
             incomingMessage = incoming,
             dataBinding = binding,
-            traceId = null,
+            correlationId = null,
             stringTable = null,
             sectionId = "s"
         )

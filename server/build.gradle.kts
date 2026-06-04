@@ -13,6 +13,7 @@ java {
 }
 
 repositories {
+    mavenLocal()
     mavenCentral()
 }
 
@@ -20,17 +21,23 @@ dependencies {
     // Spring Boot
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-validation")
-    
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
+
+    // SAF — orchestration, resilience, caching, correlation, metrics.
+    // Published to Maven Local from /Users/arobinson/Projects/service-aggregation-framework
+    // via `make publish-saf` / `make sync-saf`.
+    implementation("com.nba:service-aggregation-framework:1.0.0-SNAPSHOT")
+
+    // Micrometer Prometheus registry — emits /actuator/prometheus.
+    runtimeOnly("io.micrometer:micrometer-registry-prometheus")
+
     // Jackson JSON
     implementation("com.fasterxml.jackson.core:jackson-databind")
     implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
-    
+
     // Environment variables (.env support)
     implementation("me.paulschwarz:spring-dotenv:4.0.0")
-    
-    // OkHttp for external API calls
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
-    
+
     // Ably for token generation
     implementation("io.ably:ably-java:1.2.33")
     
@@ -40,6 +47,7 @@ dependencies {
     
     // Testing
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("com.tngtech.archunit:archunit-junit5:1.3.0")
 }
 
 tasks.withType<Test> {

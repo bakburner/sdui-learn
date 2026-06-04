@@ -129,7 +129,7 @@ actor PollingDriver {
         sectionEndpoint: String?,
         dataPath: String?,
         pauseWhenOffScreen: Bool,
-        traceID: String? = nil
+        correlationId: String? = nil
     ) {
         tasks[sectionID]?.cancel()
         failureCounts[sectionID] = 0
@@ -150,10 +150,10 @@ actor PollingDriver {
                     let event: PollEvent
                     // sectionEndpoint takes precedence over directURL when both are set (schema §RefreshPolicy).
                     if let sectionEndpoint {
-                        let section = try await repository.fetchSection(endpoint: sectionEndpoint, traceID: traceID)
-                        event = .sectionSuccess(sectionID: sectionID, section: section)
+                        let result = try await repository.fetchSection(endpoint: sectionEndpoint, correlationId: correlationId)
+                        event = .sectionSuccess(sectionID: sectionID, section: result.value)
                     } else if let directURL {
-                        let raw = try await repository.fetchRawJson(url: directURL, traceID: traceID)
+                        let raw = try await repository.fetchRawJson(url: directURL, correlationId: correlationId)
                         let trimmed = Self.extract(dataPath: dataPath, from: raw)
                         event = .success(PollSuccess(sectionID: sectionID, payload: trimmed, isDirect: true))
                     } else {

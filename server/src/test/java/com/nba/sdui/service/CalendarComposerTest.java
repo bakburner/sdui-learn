@@ -1,5 +1,7 @@
 package com.nba.sdui.service;
 
+import com.nba.sdui.testsupport.TestTokens;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -15,6 +17,15 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import com.nba.sdui.domain.SduiUtils;
+import com.nba.sdui.domain.composer.CalendarComposer;
+import com.nba.sdui.remote.SeasonCalendarService;
+import com.nba.sdui.remote.StatsApiAdapter;
+import com.nba.sdui.remote.StatsApiClient;
+import com.nba.sdui.domain.SectionSurfaces;
+import com.nba.sdui.domain.composer.LiveComposer;
+import com.nba.sdui.orchestration.ParameterizedRefreshService;
+import com.nba.sdui.orchestration.SectionRefreshService;
 
 class CalendarComposerTest {
 
@@ -70,7 +81,7 @@ class CalendarComposerTest {
         ));
 
         CalendarComposer composer = new CalendarComposer(
-                objectMapper, seasonCalendarService, statsApiClient, new SduiUtils(objectMapper));
+                objectMapper, seasonCalendarService, new StatsApiAdapter(statsApiClient), new SduiUtils(objectMapper, TestTokens.INSTANCE));
         ReflectionTestUtils.setField(composer, "schemaVersion", "1.0");
 
         ObjectNode screen = (ObjectNode) composer.composeCalendar("trace-calendar-meta", "en");
@@ -94,7 +105,7 @@ class CalendarComposerTest {
         when(statsApiClient.getSeasonGameCounts()).thenThrow(new java.io.IOException("CDN down"));
 
         CalendarComposer composer = new CalendarComposer(
-                objectMapper, seasonCalendarService, statsApiClient, new SduiUtils(objectMapper));
+                objectMapper, seasonCalendarService, new StatsApiAdapter(statsApiClient), new SduiUtils(objectMapper, TestTokens.INSTANCE));
         ReflectionTestUtils.setField(composer, "schemaVersion", "1.0");
 
         ObjectNode screen = (ObjectNode) composer.composeCalendar("trace-calendar-fail", "en");
@@ -116,14 +127,14 @@ class CalendarComposerTest {
         when(statsApiClient.getScoreboardForDate(LocalDate.parse("2026-05-26")))
                 .thenReturn(emptyScoreboard("2026-05-26"));
 
-        SduiUtils utils = new SduiUtils(objectMapper);
-        SectionSurfaces surfaces = new SectionSurfaces(objectMapper, utils);
+        SduiUtils utils = new SduiUtils(objectMapper, TestTokens.INSTANCE);
+        SectionSurfaces surfaces = new SectionSurfaces(objectMapper, utils, TestTokens.INSTANCE);
 
         LiveComposer liveComposer = new LiveComposer(
                 objectMapper,
-                statsApiClient,
+                new StatsApiAdapter(statsApiClient),
                 utils,
-                surfaces,
+                surfaces, TestTokens.INSTANCE,
                 new SectionRefreshService(),
                 new ParameterizedRefreshService(),
                 seasonCalendarService
@@ -145,7 +156,7 @@ class CalendarComposerTest {
             StatsApiClient statsApiClient = mock(StatsApiClient.class);
             when(statsApiClient.getSeasonGameCounts()).thenReturn(java.util.Collections.emptyMap());
             CalendarComposer composer = new CalendarComposer(
-                    objectMapper, seasonCalendarService, statsApiClient, new SduiUtils(objectMapper));
+                    objectMapper, seasonCalendarService, new StatsApiAdapter(statsApiClient), new SduiUtils(objectMapper, TestTokens.INSTANCE));
             ReflectionTestUtils.setField(composer, "schemaVersion", "1.0");
             return composer;
         } catch (java.io.IOException e) {

@@ -17,9 +17,9 @@ public struct SduiConfig: Sendable, Equatable {
     /// screen fetch (per ADR-003 request envelope). Nil = unauthenticated.
     public let authorizationToken: String?
 
-    /// Optional trace-id forwarded as the `X-Trace-Id` header. Auto-generated
-    /// per-request if nil.
-    public let traceIDProvider: @Sendable () -> String
+    /// Optional correlation-id forwarded as the `X-Correlation-ID` header.
+    /// Auto-generated per-request if nil.
+    public let correlationIdProvider: @Sendable () -> String
 
     /// A/B experiment assignments forwarded as `experiments[<id>]=<variant>` in
     /// every request envelope. Mirrors Android's `SduiScreenConfig.experiments`.
@@ -29,13 +29,13 @@ public struct SduiConfig: Sendable, Equatable {
         baseURL: URL,
         ablyTokenURL: URL,
         authorizationToken: String? = nil,
-        traceIDProvider: @Sendable @escaping () -> String = { UUID().uuidString },
+        correlationIdProvider: @Sendable @escaping () -> String = { UUID().uuidString },
         experiments: [String: String] = [:]
     ) {
         self.baseURL = baseURL
         self.ablyTokenURL = ablyTokenURL
         self.authorizationToken = authorizationToken
-        self.traceIDProvider = traceIDProvider
+        self.correlationIdProvider = correlationIdProvider
         self.experiments = experiments
     }
 
@@ -48,7 +48,7 @@ public struct SduiConfig: Sendable, Equatable {
             baseURL: baseURL,
             ablyTokenURL: ablyTokenURL,
             authorizationToken: authorizationToken,
-            traceIDProvider: traceIDProvider,
+            correlationIdProvider: correlationIdProvider,
             experiments: updated
         )
     }

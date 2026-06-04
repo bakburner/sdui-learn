@@ -36,8 +36,7 @@ export interface SduiModels {
      * section (see prependAppBarHeader). Not rendered from screen.title by clients. Omit on
      * bottom-nav tab destinations.
      */
-    title?:   string;
-    traceId?: string;
+    title?: string;
     /**
      * Server-exposed A/B / experiment variants available for this screen. Clients read
      * `options` to render a variant picker (dev UI, QA tooling) and pass the selected id back

@@ -1,6 +1,7 @@
 package com.nba.sdui.core.data
 
 import android.util.Log
+import com.fasterxml.jackson.core.type.TypeReference
 import com.nba.sdui.core.models.generated.Section
 import com.nba.sdui.core.models.generated.SduiModels
 import com.nba.sdui.core.models.generated.mapper
@@ -14,6 +15,33 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.logging.HttpLoggingInterceptor
 import java.util.UUID
 import java.util.concurrent.TimeUnit
+
+/**
+ * Decoded fetch result paired with the response correlation header. The
+ * `X-Correlation-ID` is read off the HTTP response and surfaced here so
+ * callers can correlate later refreshes/SSE log lines with the original
+ * compose response.
+ */
+data class SduiFetchResult<T>(
+    val value: T,
+    val correlationId: String?,
+)
+
+/**
+ * Hand-written transport-framing wrapper. The wire body is always
+ * `{"data": <Screen|Section>, "meta": {…}}`. `meta` is decoded-but-ignored
+ * for now; freshness handling lands in a later phase.
+ */
+private data class SduiResponseEnvelope<T>(
+    val data: T,
+    val meta: ResponseMeta? = null,
+)
+
+private data class ResponseMeta(
+    val degraded: Boolean? = null,
+    val staleSections: List<String>? = null,
+    val failedSections: List<String>? = null,
+)
 
 /**
  * SDUI Repository - Fetches SDUI responses from the composition service.
@@ -33,6 +61,7 @@ class SduiRepository(
 ) {
     companion object {
         private const val TAG = "SduiRepository"
+        private const val CORRELATION_HEADER = "X-Correlation-ID"
         private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
 
         /** Shared OkHttpClient — connection pool & thread pool reused across screens. */
@@ -63,18 +92,18 @@ class SduiRepository(
      *                    server reads them through the same `@RequestParam`
      *                    path on either side. They participate in the
      *                    GET/POST length decision.
-     * @param traceIdOverride  Optional trace ID to reuse from a parent fetch
-     *                    (e.g. parameterized refresh inheriting its screen's
-     *                    trace). Falls back to `envelope.generateTraceId()`
-     *                    when null.
+     * @param correlationIdOverride Optional correlation ID to reuse from a
+     *                    parent fetch (e.g. parameterized refresh inheriting
+     *                    its screen's correlation). Falls back to
+     *                    `envelope.generateCorrelationId()` when null.
      */
     suspend fun fetchScreen(
         path: String,
         envelope: RequestEnvelopeBuilder,
         userParams: Map<String, String> = emptyMap(),
-        traceIdOverride: String? = null
-    ): SduiModels = withContext(Dispatchers.IO) {
-        val traceId = traceIdOverride ?: envelope.generateTraceId()
+        correlationIdOverride: String? = null
+    ): SduiFetchResult<SduiModels> = withContext(Dispatchers.IO) {
+        val correlationId = correlationIdOverride ?: envelope.generateCorrelationId()
         val envelopeQuery = envelope.buildQueryString()
         val userQuery = encodeUserParams(userParams)
         // Threshold includes both halves so large userParams trigger POST too.
@@ -90,7 +119,7 @@ class SduiRepository(
             Log.d(TAG, "Fetching screen (POST fallback): $url")
             Request.Builder()
                 .url(url)
-                .header("X-Trace-Id", traceId)
+                .header(CORRELATION_HEADER, correlationId)
                 .header("X-Request-Id", UUID.randomUUID().toString())
                 .apply { envelope.getDeviceId()?.let { header("X-Device-Id", it) } }
                 .header("X-Analytics-Platform", envelope.getPlatformName())
@@ -110,7 +139,7 @@ class SduiRepository(
             Log.d(TAG, "Fetching screen: $url")
             Request.Builder()
                 .url(url)
-                .header("X-Trace-Id", traceId)
+                .header(CORRELATION_HEADER, correlationId)
                 .header("X-Request-Id", UUID.randomUUID().toString())
                 .apply { envelope.getDeviceId()?.let { header("X-Device-Id", it) } }
                 .header("X-Analytics-Platform", envelope.getPlatformName())
@@ -140,8 +169,14 @@ class SduiRepository(
         val body = response.body?.string()
             ?: throw SduiException("Empty response body")
 
+        val responseCorrelationId = response.header(CORRELATION_HEADER)
+
         try {
-            mapper.readValue(body, SduiModels::class.java)
+            val decoded: SduiResponseEnvelope<SduiModels> = mapper.readValue(
+                body,
+                object : TypeReference<SduiResponseEnvelope<SduiModels>>() {}
+            )
+            SduiFetchResult(value = decoded.data, correlationId = responseCorrelationId)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to parse screen response", e)
             throw SduiException("Failed to parse screen response: ${e.message}")
@@ -150,14 +185,15 @@ class SduiRepository(
 
     /**
      * Fetch a single section from an SDUI section endpoint. The transport shape
-     * matches [fetchScreen] exactly, but the response body is the section itself.
+     * matches [fetchScreen] exactly, but the response body's `data` is the
+     * section itself.
      */
     suspend fun fetchSection(
         path: String,
         envelope: RequestEnvelopeBuilder,
-        traceIdOverride: String? = null
-    ): Section = withContext(Dispatchers.IO) {
-        val traceId = traceIdOverride ?: envelope.generateTraceId()
+        correlationIdOverride: String? = null
+    ): SduiFetchResult<Section> = withContext(Dispatchers.IO) {
+        val correlationId = correlationIdOverride ?: envelope.generateCorrelationId()
         val envelopeQuery = envelope.buildQueryString()
 
         val request = if (envelopeQuery.length > 8192) {
@@ -165,7 +201,7 @@ class SduiRepository(
             Log.d(TAG, "Fetching section (POST fallback): $url")
             Request.Builder()
                 .url(url)
-                .header("X-Trace-Id", traceId)
+                .header(CORRELATION_HEADER, correlationId)
                 .header("X-Request-Id", UUID.randomUUID().toString())
                 .apply { envelope.getDeviceId()?.let { header("X-Device-Id", it) } }
                 .header("X-Analytics-Platform", envelope.getPlatformName())
@@ -183,7 +219,7 @@ class SduiRepository(
             Log.d(TAG, "Fetching section: $url")
             Request.Builder()
                 .url(url)
-                .header("X-Trace-Id", traceId)
+                .header(CORRELATION_HEADER, correlationId)
                 .header("X-Request-Id", UUID.randomUUID().toString())
                 .apply { envelope.getDeviceId()?.let { header("X-Device-Id", it) } }
                 .header("X-Analytics-Platform", envelope.getPlatformName())
@@ -215,8 +251,14 @@ class SduiRepository(
         val body = response.body?.string()
             ?: throw SduiException("Empty response body")
 
+        val responseCorrelationId = response.header(CORRELATION_HEADER)
+
         try {
-            mapper.readValue(body, Section::class.java)
+            val decoded: SduiResponseEnvelope<Section> = mapper.readValue(
+                body,
+                object : TypeReference<SduiResponseEnvelope<Section>>() {}
+            )
+            SduiFetchResult(value = decoded.data, correlationId = responseCorrelationId)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to parse section response", e)
             throw SduiException("Failed to parse section response: ${e.message}")
@@ -243,14 +285,14 @@ class SduiRepository(
      *
      * @param url The full URL to fetch from
      * @param dataPath Optional JSONPath-like path to extract data (e.g., "game" or "sections[0].data")
-     * @param traceId Optional trace ID to send via X-Trace-Id header for log correlation
+     * @param correlationId Optional correlation ID to send via X-Correlation-ID header for log correlation
      */
-    suspend fun fetchRawJson(url: String, dataPath: String? = null, traceId: String? = null): Map<String, Any> = withContext(Dispatchers.IO) {
-        Log.d(TAG, "Fetching raw JSON from: $url${traceId?.let { " [trace=$it]" } ?: ""}")
+    suspend fun fetchRawJson(url: String, dataPath: String? = null, correlationId: String? = null): Map<String, Any> = withContext(Dispatchers.IO) {
+        Log.d(TAG, "Fetching raw JSON from: $url${correlationId?.let { " [correlationId=$it]" } ?: ""}")
 
         val requestBuilder = Request.Builder().url(url)
-        if (traceId != null) {
-            requestBuilder.header("X-Trace-Id", traceId)
+        if (correlationId != null) {
+            requestBuilder.header(CORRELATION_HEADER, correlationId)
         }
         val request = requestBuilder.build()
 

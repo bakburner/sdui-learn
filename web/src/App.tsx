@@ -76,6 +76,7 @@ export function App(): React.ReactElement {
     loading,
     error,
     upgradeRequired,
+    correlationId,
     refetch,
     setScreen,
     replaceCurrentScreen,
@@ -374,7 +375,7 @@ export function App(): React.ReactElement {
                 onSectionReplace={onSectionReplace}
                 onSectionGone={onSectionGone}
                 onStalenessChange={handleStalenessChange}
-                traceId={screen.traceId ?? undefined}
+                traceId={correlationId ?? undefined}
               />
             </React.Fragment>
           ))
@@ -386,7 +387,7 @@ export function App(): React.ReactElement {
 
       {(screen ?? shellScreen) && (
         <footer style={styles.footer}>
-          <span>TraceId: {(screen ?? shellScreen)?.traceId}</span>
+          <span>Correlation: {correlationId ?? '—'}</span>
           <span>Sections: {(screen ?? shellScreen)?.sections?.length || 0}</span>
         </footer>
       )}

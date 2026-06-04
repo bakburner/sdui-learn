@@ -6,7 +6,7 @@ private let logger = Logger(subsystem: "com.nba.sdui", category: "BootstrapFetch
 /// Public entry point for the very first composition request a host makes
 /// (typically `/v1/sdui/screen/init`, which returns `{ "bootstrapUri": "nba://..." }`).
 ///
-/// Routes through the same envelope + GET/POST + `X-Trace-Id` transport as
+/// Routes through the same envelope + GET/POST + `X-Correlation-ID` transport as
 /// every other composition request so the bootstrap call is not a parallel,
 /// hand-rolled `URLSession.shared.data(from:)` path. Hosts that need to fetch
 /// non-screen JSON during bootstrap (e.g. config blobs, splash content) should

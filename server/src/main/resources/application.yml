@@ -4,6 +4,9 @@ server:
 spring:
   application:
     name: sdui-composition-service
+  threads:
+    virtual:
+      enabled: true
   config:
     import: optional:dotenv:.env
 
@@ -39,4 +42,117 @@ logging:
   level:
     com.nba.sdui: DEBUG
   pattern:
-    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - traceId=%X{traceId} - %msg%n"
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - correlationId=%X{correlationId} - %msg%n"
+
+# Spring Boot Actuator — health, prometheus, metrics
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+      group:
+        sdui:
+          include: sdui
+          show-details: always
+
+# SAF — service-aggregation-framework configuration. Per-upstream resilience,
+# cache, and request-collapsing. TTLs follow §8.1: live data short (5–15s);
+# post-game / static data long (5–60min). STALE_IF_ERROR is declared per
+# upstream so backends serve cached data on transient failure.
+saf:
+  aggregation:
+    default-timeout: 5s
+  orchestrator:
+    enable-caching: true
+    enable-resilience: true
+    enable-collapsing: true
+    enable-slo-tracking: true
+    max-concurrent-aggregations: 0
+  cache:
+    stale-if-error:
+      default-max-stale-age: 600s
+  services:
+    # Public CDN scoreboard — live, short TTL, request-collapsed.
+    scoreboard-cdn:
+      resilience:
+        bulkhead:
+          max-concurrent-calls: 200
+        circuit-breaker:
+          failure-rate-threshold: 50
+          wait-duration-in-open-state: 10s
+        retry:
+          max-attempts: 2
+          wait-duration: 100ms
+      cache:
+        ttl: 10s
+        strategy: STALE_IF_ERROR
+        stale-if-error-max-stale-age: 60s
+      collapsing:
+        enabled: true
+    # NBA Core API — per-date scoreboards. Past dates are immutable; serve long.
+    core-api:
+      resilience:
+        bulkhead:
+          max-concurrent-calls: 100
+        circuit-breaker:
+          failure-rate-threshold: 50
+        retry:
+          max-attempts: 2
+          wait-duration: 200ms
+      cache:
+        ttl: 600s
+        strategy: STALE_IF_ERROR
+        stale-if-error-max-stale-age: 1800s
+      collapsing:
+        enabled: true
+    # Public CDN boxscore — live during game, otherwise immutable.
+    boxscore-cdn:
+      resilience:
+        bulkhead:
+          max-concurrent-calls: 200
+        circuit-breaker:
+          failure-rate-threshold: 50
+        retry:
+          max-attempts: 2
+          wait-duration: 100ms
+      cache:
+        ttl: 15s
+        strategy: STALE_IF_ERROR
+        stale-if-error-max-stale-age: 120s
+      collapsing:
+        enabled: true
+    # Static league schedule — single per-season fetch.
+    season-schedule:
+      resilience:
+        bulkhead:
+          max-concurrent-calls: 50
+        circuit-breaker:
+          failure-rate-threshold: 50
+        retry:
+          max-attempts: 2
+          wait-duration: 200ms
+      cache:
+        ttl: 3600s
+        strategy: STALE_IF_ERROR
+        stale-if-error-max-stale-age: 21600s
+      collapsing:
+        enabled: true
+    # Stats Trafficcop — detailed live stats.
+    stats-trafficcop:
+      resilience:
+        bulkhead:
+          max-concurrent-calls: 100
+        circuit-breaker:
+          failure-rate-threshold: 50
+        retry:
+          max-attempts: 2
+          wait-duration: 150ms
+      cache:
+        ttl: 15s
+        strategy: STALE_IF_ERROR
+        stale-if-error-max-stale-age: 120s
+      collapsing:
+        enabled: true

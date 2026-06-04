@@ -1,5 +1,7 @@
 package com.nba.sdui.service;
 
+import com.nba.sdui.testsupport.TestTokens;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -15,6 +17,13 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import com.nba.sdui.domain.SduiUtils;
+import com.nba.sdui.domain.SectionSurfaces;
+import com.nba.sdui.domain.composer.BoxscoreComposer;
+import com.nba.sdui.domain.composer.GameDetailComposer;
+import com.nba.sdui.orchestration.SectionRefreshService;
+import com.nba.sdui.remote.StatsApiAdapter;
+import com.nba.sdui.remote.StatsApiClient;
 
 class GameDetailComposerTest {
 
@@ -24,10 +33,10 @@ class GameDetailComposerTest {
     void liveGameDetailResponseDoesNotEmitTopLevelType() throws Exception {
         StatsApiClient statsApiClient = mock(StatsApiClient.class);
         BoxscoreComposer boxscoreComposer = mock(BoxscoreComposer.class);
-        SduiUtils utils = new SduiUtils(objectMapper);
-        SectionSurfaces surfaces = new SectionSurfaces(objectMapper, utils);
+        SduiUtils utils = new SduiUtils(objectMapper, TestTokens.INSTANCE);
+        SectionSurfaces surfaces = new SectionSurfaces(objectMapper, utils, TestTokens.INSTANCE);
         SectionRefreshService sectionRefreshService = mock(SectionRefreshService.class);
-        GameDetailComposer composer = new GameDetailComposer(objectMapper, statsApiClient, boxscoreComposer, sectionRefreshService, utils, surfaces);
+        GameDetailComposer composer = new GameDetailComposer(objectMapper, new StatsApiAdapter(statsApiClient), boxscoreComposer, sectionRefreshService, utils, surfaces, TestTokens.INSTANCE);
         ReflectionTestUtils.setField(composer, "schemaVersion", "1.0");
 
         JsonNode liveBoxscore = objectMapper.readTree("""

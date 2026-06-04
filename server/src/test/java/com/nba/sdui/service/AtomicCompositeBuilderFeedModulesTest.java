@@ -1,5 +1,7 @@
 package com.nba.sdui.service;
 
+import com.nba.sdui.testsupport.TestTokens;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -15,6 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import com.nba.sdui.domain.AtomicCompositeBuilder;
 
 /**
  * JSON-shape snapshots for feed-module helpers (Phase 4–6) — no renderer or codegen.
@@ -24,7 +27,7 @@ class AtomicCompositeBuilderFeedModulesTest {
     private static final String OVERLAY_SCRIM_TOKEN = "token:nba.effect.scrim";
 
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final AtomicCompositeBuilder builder = new AtomicCompositeBuilder(objectMapper);
+    private final AtomicCompositeBuilder builder = new AtomicCompositeBuilder(objectMapper, TestTokens.INSTANCE);
 
     @Test
     void buildMediaOverlayCard_emitsAtomicCompositeWithDataUi() {

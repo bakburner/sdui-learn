@@ -132,7 +132,7 @@ export function LiveSectionWrapper({
     onStalenessChange,
     onUpgradeRequired,
     enabled,
-    traceId,
+    correlationId: traceId,
   });
 
   if (!liveData && hasRefreshPolicy) {
@@ -211,7 +211,7 @@ export function useLiveData(
     refreshPolicy: effectivePolicy,
     onUpdate: handleUpdate,
     enabled: hasRefreshPolicy,
-    traceId,
+    correlationId: traceId,
   });
 
   return liveData;

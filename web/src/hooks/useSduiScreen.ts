@@ -18,6 +18,11 @@ interface UseSduiScreenResult {
   error: string | null;
   /** True when the server signals the client must update to continue. */
   upgradeRequired: boolean;
+  /**
+   * Correlation ID from the most recent successful fetch — surfaced for
+   * telemetry/debug overlays. Renderers must not branch on it.
+   */
+  correlationId: string | null;
   refetch: () => Promise<void>;
   /** Direct setter for surgical section-level updates (e.g. action-triggered refresh). */
   setScreen: React.Dispatch<React.SetStateAction<SduiModels | null>>;
@@ -50,6 +55,7 @@ export function useSduiScreen(options: UseSduiScreenOptions): UseSduiScreenResul
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [upgradeRequired, setUpgradeRequired] = useState(false);
+  const [correlationId, setCorrelationId] = useState<string | null>(null);
   const screenIntervalRef = useRef<number | null>(null);
   const userParamsRef = useRef<Record<string, string>>({});
   const screenRef = useRef<SduiModels | null>(null);
@@ -76,7 +82,7 @@ export function useSduiScreen(options: UseSduiScreenOptions): UseSduiScreenResul
       setLoading(true);
       setError(null);
 
-      const { screen: data, url, method, traceId, versionMismatch } = await fetchSduiScreen({
+      const { screen: data, url, method, correlationId: corrId, versionMismatch } = await fetchSduiScreen({
         endpoint,
         experiments,
         userParams: userParamsRef.current,
@@ -85,13 +91,14 @@ export function useSduiScreen(options: UseSduiScreenOptions): UseSduiScreenResul
       console.log(
         '[SDUI] Received screen:', data.id,
         '| sections:', data.sections?.length,
-        '| trace:', data.traceId ?? traceId,
+        '| correlation:', corrId,
       );
 
       if (versionMismatch === 'upgrade-required') {
         setUpgradeRequired(true);
       }
 
+      setCorrelationId(corrId);
       applyScreen(data);
       resetPollTimer();
     } catch (err) {
@@ -107,6 +114,7 @@ export function useSduiScreen(options: UseSduiScreenOptions): UseSduiScreenResul
     setScreen(null);
     setError(null);
     setUpgradeRequired(false);
+    setCorrelationId(null);
     userParamsRef.current = {};
     if (endpoint) {
       setLoading(true);
@@ -155,7 +163,7 @@ export function useSduiScreen(options: UseSduiScreenOptions): UseSduiScreenResul
   ): Promise<void> => {
     try {
       const params = userParams ?? {};
-      const { screen: data, url, method } = await fetchSduiScreen({
+      const { screen: data, url, method, correlationId: corrId } = await fetchSduiScreen({
         endpoint: refreshEndpoint,
         experiments,
         userParams: params,
@@ -171,10 +179,11 @@ export function useSduiScreen(options: UseSduiScreenOptions): UseSduiScreenResul
       }
 
       console.log(
-        `[SDUI] replaceCurrentScreen: full replace id=${data.id} (${method}) url=${url}`,
+        `[SDUI] replaceCurrentScreen: full replace id=${data.id} (${method}) url=${url} correlation=${corrId}`,
       );
 
       userParamsRef.current = params;
+      setCorrelationId(corrId);
       applyScreen(data);
       resetPollTimer();
     } catch (err) {
@@ -213,6 +222,7 @@ export function useSduiScreen(options: UseSduiScreenOptions): UseSduiScreenResul
     loading,
     error,
     upgradeRequired,
+    correlationId,
     refetch: fetchScreen,
     setScreen,
     replaceCurrentScreen,

@@ -60,7 +60,9 @@ class SchemaVersionCheckerTest {
         JsonNode response = checker.composeUpgradeRequiredResponse("1.0", "trace-abc");
 
         assertEquals("upgrade-required", response.path("id").textValue());
-        assertEquals("trace-abc", response.path("traceId").textValue());
+        // Body `traceId` removed in A2a (envelope/correlation lives only in the
+        // X-Correlation-ID header now); upgrade-required body shape no longer
+        // carries it. The trace string is still threaded into MDC for logging.
         assertEquals("2.0", response.path("schemaVersion").textValue());
 
         JsonNode sections = response.path("sections");

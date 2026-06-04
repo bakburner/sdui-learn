@@ -15,19 +15,23 @@ export interface FetchSduiScreenOptions {
    */
   userParams?: Record<string, string>;
   /**
-   * Optional trace ID to reuse from a parent fetch (e.g. parameterized
-   * refresh inheriting its screen's trace). Falls back to a fresh ID
-   * when absent.
+   * Optional correlation ID to reuse from a parent fetch (e.g. parameterized
+   * refresh inheriting its screen's correlation). Falls back to a fresh ID
+   * when absent. Sent as the `X-Correlation-ID` header.
    */
-  traceId?: string;
+  correlationId?: string;
   /** Optional bearer token forwarded as the Authorization header. */
   authToken?: string;
 }
 
 export interface FetchSduiScreenResult {
   screen: SduiModels;
-  /** Trace ID actually used on the wire (echoed by the server when present). */
-  traceId: string;
+  /**
+   * Correlation ID for this request — the value sent on the wire and (when
+   * present) echoed back by the server in the `X-Correlation-ID` response
+   * header. Used for log correlation only; renderers don't read it.
+   */
+  correlationId: string;
   /** Final URL hit, useful for debugging and contract tests. */
   url: string;
   /** HTTP method used. */
@@ -46,12 +50,23 @@ export interface FetchSduiSectionOptions {
   /** Experiment assignments from Amplitude (experimentId → variant). */
   experiments?: Record<string, string>;
   /**
-   * Optional trace ID to reuse from a parent fetch. Falls back to a fresh ID
-   * when absent.
+   * Optional correlation ID to reuse from a parent fetch. Falls back to a
+   * fresh ID when absent. Sent as the `X-Correlation-ID` header.
    */
-  traceId?: string;
+  correlationId?: string;
   /** Optional bearer token forwarded as the Authorization header. */
   authToken?: string;
+}
+
+/**
+ * Hand-written transport-framing wrapper. Per AGENTS.md §1.2, the SDUI
+ * controller wraps every response in `{data, meta}`; this type mirrors that
+ * shape on the client. The `meta` field is decoded but ignored for now —
+ * freshness/degradation handling lands in a later phase.
+ */
+interface SduiResponseEnvelope<T> {
+  data: T;
+  meta: unknown;
 }
 
 /**
@@ -66,16 +81,19 @@ export interface FetchSduiSectionOptions {
  *    exceeds 8192 chars (`exceedsGetThreshold`).
  *  - User-supplied filter params (refresh `paramBindings`) ride the URL
  *    query string regardless of HTTP method, RFC-3986 percent-encoded.
- *  - `X-Trace-Id` is sent on every request and reused from the parent
- *    screen's trace when supplied, so paginated/refreshed flows correlate.
+ *  - `X-Correlation-ID` is sent on every request and reused from the parent
+ *    screen's correlation when supplied, so paginated/refreshed flows
+ *    correlate. The server echoes it back in the response header.
+ *  - The response body is unwrapped from the `{data, meta}` envelope; only
+ *    `data` is returned to callers.
  */
 export async function fetchSduiScreen(
   options: FetchSduiScreenOptions,
 ): Promise<FetchSduiScreenResult> {
-  const { endpoint, experiments = {}, userParams = {}, traceId: parentTraceId, authToken } = options;
+  const { endpoint, experiments = {}, userParams = {}, correlationId: parentCorrelationId, authToken } = options;
 
   const builder = new RequestEnvelopeBuilder().experiments(experiments);
-  const traceId = parentTraceId ?? RequestEnvelopeBuilder.generateTraceId();
+  const correlationId = parentCorrelationId ?? RequestEnvelopeBuilder.generateCorrelationId();
   const requestId = crypto.randomUUID();
 
   const userQuery = encodeUserParams(userParams);
@@ -96,7 +114,7 @@ export async function fetchSduiScreen(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Trace-Id': traceId,
+        'X-Correlation-ID': correlationId,
         'X-Request-Id': requestId,
         ...(builder.getDeviceId() ? { 'X-Device-Id': builder.getDeviceId()! } : {}),
         'X-Analytics-Platform': builder.getPlatformName(),
@@ -116,7 +134,7 @@ export async function fetchSduiScreen(
     url = `${apiPath}${separator}${combined}`;
     response = await fetch(url, {
       headers: {
-        'X-Trace-Id': traceId,
+        'X-Correlation-ID': correlationId,
         'X-Request-Id': requestId,
         ...(builder.getDeviceId() ? { 'X-Device-Id': builder.getDeviceId()! } : {}),
         'X-Analytics-Platform': builder.getPlatformName(),
@@ -139,15 +157,16 @@ export async function fetchSduiScreen(
     console.warn(`[SDUI] Schema version mismatch: ${versionMismatch}. Client update required.`);
   }
 
-  const screen: SduiModels = await response.json();
-  return { screen, traceId, url, method, versionMismatch };
+  const echoedCorrelationId = response.headers.get('X-Correlation-ID') ?? correlationId;
+  const envelope = (await response.json()) as SduiResponseEnvelope<SduiModels>;
+  return { screen: envelope.data, correlationId: echoedCorrelationId, url, method, versionMismatch };
 }
 
 export async function fetchSduiSection(options: FetchSduiSectionOptions): Promise<Section> {
-  const { endpoint, experiments = {}, traceId: parentTraceId, authToken } = options;
+  const { endpoint, experiments = {}, correlationId: parentCorrelationId, authToken } = options;
 
   const builder = new RequestEnvelopeBuilder().experiments(experiments);
-  const traceId = parentTraceId ?? RequestEnvelopeBuilder.generateTraceId();
+  const correlationId = parentCorrelationId ?? RequestEnvelopeBuilder.generateCorrelationId();
   const requestId = crypto.randomUUID();
   const apiPath = endpoint.startsWith(SDUI_PATH_PREFIX) ? `${API_PROXY_PREFIX}${endpoint}` : endpoint;
   const envelopeQuery = builder.buildQueryString();
@@ -159,7 +178,7 @@ export async function fetchSduiSection(options: FetchSduiSectionOptions): Promis
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Trace-Id': traceId,
+        'X-Correlation-ID': correlationId,
         'X-Request-Id': requestId,
         ...(builder.getDeviceId() ? { 'X-Device-Id': builder.getDeviceId()! } : {}),
         'X-Analytics-Platform': builder.getPlatformName(),
@@ -177,7 +196,7 @@ export async function fetchSduiSection(options: FetchSduiSectionOptions): Promis
     const url = `${apiPath}${separator}${envelopeQuery}`;
     response = await fetch(url, {
       headers: {
-        'X-Trace-Id': traceId,
+        'X-Correlation-ID': correlationId,
         'X-Request-Id': requestId,
         ...(builder.getDeviceId() ? { 'X-Device-Id': builder.getDeviceId()! } : {}),
         'X-Analytics-Platform': builder.getPlatformName(),
@@ -204,8 +223,8 @@ export async function fetchSduiSection(options: FetchSduiSectionOptions): Promis
     throw new SchemaVersionMismatchError('Client schema version is no longer supported. Please update the app.');
   }
 
-  const section: Section = await response.json();
-  return section;
+  const envelope = (await response.json()) as SduiResponseEnvelope<Section>;
+  return envelope.data;
 }
 
 export class SectionNotFoundError extends Error {

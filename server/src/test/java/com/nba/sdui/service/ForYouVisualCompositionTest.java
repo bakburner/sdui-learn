@@ -1,5 +1,7 @@
 package com.nba.sdui.service;
 
+import com.nba.sdui.testsupport.TestTokens;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -14,6 +16,14 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import com.nba.sdui.domain.SduiUtils;
+import com.nba.sdui.domain.SectionSurfaces;
+import com.nba.sdui.domain.composer.ForYouComposer;
+import com.nba.sdui.orchestration.SectionRefreshService;
+import com.nba.sdui.remote.SeasonCalendarService;
+import com.nba.sdui.remote.StatsApiAdapter;
+import com.nba.sdui.remote.StatsApiClient;
+import com.nba.sdui.domain.SectionIdDeriver;
 
 /**
  * Composition tests for the For You visual refresh: feed order, editorial hero,
@@ -31,9 +41,9 @@ class ForYouVisualCompositionTest {
 
     private static ForYouComposer newComposer(StatsApiClient statsApiClient) {
         ObjectMapper objectMapper = new ObjectMapper();
-        SduiUtils utils = new SduiUtils(objectMapper);
-        SectionSurfaces surfaces = new SectionSurfaces(objectMapper, utils);
-        return new ForYouComposer(objectMapper, statsApiClient, utils, surfaces,
+        SduiUtils utils = new SduiUtils(objectMapper, TestTokens.INSTANCE);
+        SectionSurfaces surfaces = new SectionSurfaces(objectMapper, utils, TestTokens.INSTANCE);
+        return new ForYouComposer(objectMapper, new StatsApiAdapter(statsApiClient), utils, surfaces, TestTokens.INSTANCE,
                 new SectionRefreshService());
     }
 
@@ -145,9 +155,9 @@ class ForYouVisualCompositionTest {
         JsonNode response = composer.composeForYou("test-trace-id", "en");
         JsonNode insets = response.get("contentInsets");
         assertNotNull(insets);
-        assertEquals(LayoutTokens.SPACING_MD, insets.path("start").asText());
-        assertEquals(LayoutTokens.SPACING_MD, insets.path("end").asText());
-        assertEquals(LayoutTokens.SPACING_LG, insets.path("bottom").asText());
+        assertEquals(TestTokens.INSTANCE.spacing("md"), insets.path("start").asText());
+        assertEquals(TestTokens.INSTANCE.spacing("md"), insets.path("end").asText());
+        assertEquals(TestTokens.INSTANCE.spacing("lg"), insets.path("bottom").asText());
     }
 
     private JsonNode findSectionByContentSourceId(JsonNode response, String contentSourceId) {

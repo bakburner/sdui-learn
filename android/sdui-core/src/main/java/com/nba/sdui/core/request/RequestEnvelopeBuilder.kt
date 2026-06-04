@@ -190,9 +190,11 @@ class RequestEnvelopeBuilder {
     }
 
     /**
-     * Generate a trace ID for this request.
+     * Generate a correlation ID for this request. Sent on the
+     * `X-Correlation-ID` header so the server log line, the response
+     * header echo, and any downstream refresh fetches share the same id.
      */
-    fun generateTraceId(): String = "trace-${UUID.randomUUID().toString().substring(0, 8)}"
+    fun generateCorrelationId(): String = "cid-${UUID.randomUUID().toString().substring(0, 8)}"
 
     /** Returns the deviceId for use as the X-Device-Id header value. */
     fun getDeviceId(): String? = deviceId

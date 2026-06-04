@@ -1335,7 +1335,6 @@
           "description": "Legacy headline consumed at composition time to build the first AtomicComposite app-bar section (see prependAppBarHeader). Not rendered from screen.title by clients. Omit on bottom-nav tab destinations."
         },
         "analyticsId": { "type": "string" },
-        "traceId": { "type": "string" },
         "parentUri": {
           "type": "string",
           "description": "URI the back button should navigate to.  Clients always show a back button; this field tells them the target.  Omit for root screens (e.g. scoreboard)."

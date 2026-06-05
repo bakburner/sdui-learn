@@ -1329,15 +1329,9 @@ public class AtomicCompositeBuilder {
      */
     public Section wrapAsComposite(String sectionId, String analyticsId,
                                    AtomicElement rootElement) {
-        return wrapAsCompositeNode(sectionId, analyticsId,
-                rootElement == null ? null : toObjectNode(rootElement));
-    }
-
-    private Section wrapAsCompositeNode(String sectionId, String analyticsId,
-                                       ObjectNode rootElement) {
-        ObjectNode section = sectionEnvelope(sectionId, analyticsId);
-        wrapUiNode(section, rootElement);
-        return bindSection(section);
+        Section section = newSection(sectionId, analyticsId);
+        if (rootElement != null) wrapUi(section, rootElement);
+        return section;
     }
 
     /**
@@ -2998,56 +2992,6 @@ public class AtomicCompositeBuilder {
         return (parts[0].substring(0, 1) + parts[parts.length - 1].substring(0, 1)).toUpperCase();
     }
 
-    private ObjectNode sectionEnvelope(String id, String analyticsId) {
-        return sectionEnvelope(id, analyticsId, null, null);
-    }
-
-    /**
-     * Overload that accepts a custom refreshPolicy node (for poll, sse, etc.).
-     * Falls back to static if refreshPolicy is null.
-     */
-    private ObjectNode sectionEnvelope(String id, String analyticsId, ObjectNode refreshPolicy) {
-        return sectionEnvelope(id, analyticsId, refreshPolicy, null);
-    }
-
-    /**
-     * Full overload that accepts refreshPolicy and contentSourceId.
-     * Falls back to static if refreshPolicy is null.
-     */
-    private ObjectNode sectionEnvelope(String id, String analyticsId, ObjectNode refreshPolicy, String contentSourceId) {
-        ObjectNode section = om.createObjectNode();
-        section.put("id", id);
-        section.put("type", "AtomicComposite");
-        if (analyticsId != null) section.put("analyticsId", analyticsId);
-        if (contentSourceId != null) section.put("contentSourceId", contentSourceId);
-        section.set("refreshPolicy", refreshPolicy != null ? refreshPolicy
-                : om.createObjectNode().put("type", "static"));
-        return section;
-    }
-
-    /**
-     * Attach an atomic root element to a section as its {@code data.ui}
-     * payload, constructing a fresh {@code data} object. Used by the
-     * AtomicComposite builders above.
-     */
-    private void wrapUiNode(ObjectNode section, ObjectNode rootElement) {
-        section.set("data", wrapUiNode(rootElement));
-    }
-
-    /**
-     * Build the {@code data} object for a section whose full visible surface
-     * is expressed as an atomic tree under {@code data.ui}. Shared with
-     * semantic-section composers (SubscribeUpsell, VideoPlayer) that use the
-     * same on-wire shape as AtomicComposite but additionally expose top-level
-     * domain-data fields (ctaAction, tiers, playerType, ...) the client reads
-     * alongside the tree.
-     */
-    private ObjectNode wrapUiNode(ObjectNode rootElement) {
-        ObjectNode data = om.createObjectNode();
-        data.set("ui", rootElement);
-        return data;
-    }
-
     // Allowed values for Container's direction / alignment / crossAlignment
     // fields, mirroring the Direction / Alignment / CrossAlignment enums in
     // schema/sdui-schema.json. Kept in lock-step with the schema — when an
@@ -3433,7 +3377,9 @@ public class AtomicCompositeBuilder {
     }
 
     public AtomicComposite wrapUi(AtomicElement rootElement) {
-        return bindAtomicComposite(wrapUiNode(rootElement == null ? null : toObjectNode(rootElement)));
+        AtomicComposite data = new AtomicComposite();
+        if (rootElement != null) data.setUi(rootElement);
+        return data;
     }
 
     public Spacing padding(Object start, Object end, Object top, Object bottom) {

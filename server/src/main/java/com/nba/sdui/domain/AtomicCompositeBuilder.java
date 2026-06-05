@@ -68,10 +68,6 @@ public class AtomicCompositeBuilder {
         return om.convertValue(n, AtomicComposite.class);
     }
 
-    private ObjectNode toObjectNode(Object pojo) {
-        return (ObjectNode) om.valueToTree(pojo);
-    }
-
     /** Build a typed Section envelope with id and type=AtomicComposite. */
     private Section newSection(String id, String analyticsId) {
         Section section = new Section();
@@ -1341,7 +1337,7 @@ public class AtomicCompositeBuilder {
      *
      * <p>Shape mirrors the iOS ref app's {@code VODPlaylistView}: one
      * surface Container, optional header, N rows, N-1 inline dividers.
-     * Each row is wrapped in {@code singleActionArrayNode(tapNavigateNode(uri))}.
+     * Each row is wrapped in {@code singleActionArray(tapNavigate(uri))}.
      *
      * @param sectionId    section id for the enclosing AtomicComposite
      * @param analyticsId  analyticsId for the enclosing AtomicComposite
@@ -3129,15 +3125,6 @@ public class AtomicCompositeBuilder {
 
     private ObjectNode thumbnailImageNode(String src) { return variantImageNode("thumbnail", src); }
 
-    private ObjectNode buttonNode(String label, String variant, ObjectNode action) {
-        ObjectNode node = om.createObjectNode();
-        node.put("type", "Button");
-        node.put("label", label);
-        if (variant != null) node.put("variant", variant);
-        node.set("actions", singleActionArrayNode(action));
-        return node;
-    }
-
     private ObjectNode spacerNode(String height) {
         ObjectNode node = om.createObjectNode();
         node.put("type", "Spacer");
@@ -3230,12 +3217,6 @@ public class AtomicCompositeBuilder {
         return fb;
     }
 
-    private ArrayNode singleActionArrayNode(ObjectNode action) {
-        ArrayNode arr = om.createArrayNode();
-        arr.add(action);
-        return arr;
-    }
-
     // ── Typed public surface ────────────────────────────────────────────
     //
     // Public API — composers consume typed POJOs. Implementations delegate
@@ -3286,7 +3267,11 @@ public class AtomicCompositeBuilder {
     }
 
     public AtomicElement button(String label, String variant, Action action) {
-        return bindElement(buttonNode(label, variant, action == null ? null : toObjectNode(action)));
+        AtomicElement node = new AtomicElement().withType(AtomicElement.Type.fromValue("Button"));
+        node.setLabel(label);
+        if (variant != null) node.setVariant(variant);
+        if (action != null) node.setActions(List.of(action));
+        return node;
     }
 
     public AtomicElement spacer(String height) {

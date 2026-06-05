@@ -783,91 +783,54 @@ public class GameDetailComposer {
 
     private Section buildOverlaySection(String contentSourceId, String slug, String icon, String title,
                                             String message, String ctaLabel, String ctaTarget) {
-        ObjectNode root = objectMapper.createObjectNode();
-        root.put("type", "Container");
-        root.put("direction", "column");
-        root.put("alignment", "center");
-        root.put("crossAlignment", "center");
-        root.set("padding", objectMapper.valueToTree(atomicBuilder.padding(
+        AtomicElement root = atomicBuilder.container("column", "center", "center");
+        root.setPadding(atomicBuilder.padding(
                 24, // §3.6: no semantic spacing token for 24
                 24, // §3.6: no semantic spacing token for 24
                 tokens.spacing("xl"),
                 tokens.spacing("xl")
-        )));
-        root.put("background", tokens.color("nba.bg.primary"));
-        root.put("cornerRadius", tokens.radius("lg"));
+        ));
+        root.setBackground(tokens.color("nba.bg.primary"));
+        root.setCornerRadius(tokens.radius("lg"));
 
-        ArrayNode children = objectMapper.createArrayNode();
+        List<AtomicElement> children = new ArrayList<>();
 
-        ObjectNode iconEl = objectMapper.createObjectNode();
-        iconEl.put("type", "Text");
-        iconEl.put("content", icon);
-        iconEl.put("variant", "headlineLarge");
-        iconEl.put("textAlign", "center");
+        AtomicElement iconEl = atomicBuilder.text(icon, "headlineLarge", null, null, null);
+        iconEl.setTextAlign(AtomicElement.TextAlign.fromValue("center"));
         children.add(iconEl);
 
-        ObjectNode spacer1 = objectMapper.createObjectNode();
-        spacer1.put("type", "Spacer");
-        spacer1.put("height", tokens.spacing("lg"));
-        children.add(spacer1);
+        children.add(atomicBuilder.spacer(tokens.spacing("lg")));
 
-        ObjectNode titleEl = objectMapper.createObjectNode();
-        titleEl.put("type", "Text");
-        titleEl.put("content", title);
-        titleEl.put("variant", "headlineMedium");
-        titleEl.put("weight", "bold");
-        titleEl.put("color", tokens.color("nba.label.primary"));
-        titleEl.put("textAlign", "center");
+        AtomicElement titleEl = atomicBuilder.text(title, "headlineMedium", "bold",
+                tokens.color("nba.label.primary"), null);
+        titleEl.setTextAlign(AtomicElement.TextAlign.fromValue("center"));
         children.add(titleEl);
 
-        ObjectNode spacer2 = objectMapper.createObjectNode();
-        spacer2.put("type", "Spacer");
-        spacer2.put("height", 8);
-        children.add(spacer2);
+        children.add(atomicBuilder.spacer(8));
 
-        ObjectNode messageEl = objectMapper.createObjectNode();
-        messageEl.put("type", "Text");
-        messageEl.put("content", message);
-        messageEl.put("variant", "bodyMedium");
-        messageEl.put("color", tokens.color("nba.label.secondary"));
-        messageEl.put("textAlign", "center");
+        AtomicElement messageEl = atomicBuilder.text(message, "bodyMedium", null,
+                tokens.color("nba.label.secondary"), null);
+        messageEl.setTextAlign(AtomicElement.TextAlign.fromValue("center"));
         children.add(messageEl);
 
-        ObjectNode spacer3 = objectMapper.createObjectNode();
-        spacer3.put("type", "Spacer");
-        spacer3.put("height", 24);
-        children.add(spacer3);
+        children.add(atomicBuilder.spacer(24));
 
-        ObjectNode button = objectMapper.createObjectNode();
-        button.put("type", "Button");
-        button.put("label", ctaLabel);
-        button.put("variant", "primary");
-        ArrayNode actions = objectMapper.createArrayNode();
-        ObjectNode action = objectMapper.createObjectNode();
-        action.put("trigger", "onActivate");
+        Action action = new Action();
+        action.setTrigger(Action.ActionTrigger.fromValue("onActivate"));
         if ("dismiss".equals(ctaTarget)) {
-            action.put("type", "dismiss");
+            action.setType(Action.ActionType.fromValue("dismiss"));
         } else {
-            action.put("type", "navigate");
-            action.put("targetUri", ctaTarget);
+            action.setType(Action.ActionType.fromValue("navigate"));
+            action.setTargetUri(ctaTarget);
         }
-        actions.add(action);
-        button.set("actions", actions);
-        children.add(button);
+        children.add(atomicBuilder.button(ctaLabel, "primary", action));
 
-        root.set("children", children);
+        root.setChildren(children);
 
-        Section section = new Section();
-        section.setId(SectionIdDeriver.derive(contentSourceId, "AtomicComposite", slug));
-        section.setContentSourceId(contentSourceId);
-        section.setType(Section.Type.ATOMIC_COMPOSITE);
-        RefreshPolicy refreshPolicy = new RefreshPolicy();
-        refreshPolicy.setType(RefreshPolicy.RefreshType.STATIC);
-        section.setRefreshPolicy(refreshPolicy);
-        ObjectNode data = objectMapper.createObjectNode();
-        data.set("ui", root);
-        section.setData(data);
-        return section;
+        return atomicBuilder.wrapAsComposite(
+                SectionIdDeriver.derive(contentSourceId, "AtomicComposite", slug),
+                null,
+                root);
     }
 
     private ObjectNode padHelper(int start, int end, int top, int bottom) {

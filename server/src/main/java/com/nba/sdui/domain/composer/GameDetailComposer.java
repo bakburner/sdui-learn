@@ -543,7 +543,7 @@ public class GameDetailComposer {
                 null,
                 refreshPolicy,
                 utils.buildCompositeLinescoreBindings(),
-                objectMapper.valueToTree(surfaces.gamePanelSurface()));
+                surfaces.gamePanelSurface());
 
         section.setContentSourceId(contentSourceId);
         section.setSectionStates(objectMapper.convertValue(

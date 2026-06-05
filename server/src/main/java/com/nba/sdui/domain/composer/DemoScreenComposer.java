@@ -386,7 +386,7 @@ public class DemoScreenComposer {
                 "nba://game/0022400999",
                 new RefreshPolicy().withType(RefreshPolicy.RefreshType.STATIC),
                 null,
-                objectMapper.valueToTree(surfaces.gamePanelSurface()));
+                surfaces.gamePanelSurface());
         section.setContentSourceId(contentSourceId);
         return section;
     }
@@ -486,7 +486,7 @@ public class DemoScreenComposer {
                 "nba://game/0022400888",
                 new RefreshPolicy().withType(RefreshPolicy.RefreshType.STATIC),
                 null,
-                objectMapper.valueToTree(surfaces.gamePanelSurface()));
+                surfaces.gamePanelSurface());
         section.setContentSourceId(contentSourceId);
         return section;
     }

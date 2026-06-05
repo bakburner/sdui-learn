@@ -207,7 +207,7 @@ public class ScoreboardComposer {
                 "nba://game/" + gameId,
                 refreshPolicy,
                 bindings,
-                objectMapper.valueToTree(surfaces.gamePanelSurface()));
+                surfaces.gamePanelSurface());
         sectionNode.setContentSourceId(contentSourceId);
         return sectionNode;
     }

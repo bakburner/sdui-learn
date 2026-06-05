@@ -644,7 +644,7 @@ public class AtomicCompositeBuilder {
             String navigateUri,
             RefreshPolicy refreshPolicy,
             DataBinding linescoreBindings,
-            ObjectNode surface) {
+            SectionSurface surface) {
         return buildGamePanelComposite(sectionId, analyticsId, variant, gameId, gameStatus,
                 gameStatusText, badgeText, null, awayTeam, homeTeam, clock,
                 navigateUri, refreshPolicy, linescoreBindings, surface);
@@ -688,7 +688,7 @@ public class AtomicCompositeBuilder {
             String navigateUri,
             RefreshPolicy refreshPolicy,
             DataBinding linescoreBindings,
-            ObjectNode surface) {
+            SectionSurface surface) {
         boolean featured = "featured".equals(variant);
         // Featured uses 20px padding — no exact token exists (§3.6 exception: no design-system token).
         Object rootPadding = featured ? 20 : tokens.spacing("lg");
@@ -760,7 +760,7 @@ public class AtomicCompositeBuilder {
             section.setDataBinding(linescoreBindings);
         }
         if (surface != null) {
-            section.setSurface(om.convertValue(surface, SectionSurface.class));
+            section.setSurface(surface);
         }
 
         return section;

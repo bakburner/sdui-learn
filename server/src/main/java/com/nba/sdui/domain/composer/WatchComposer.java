@@ -385,7 +385,7 @@ public class WatchComposer {
                 "nba://game/" + gameId,
                 staticRefreshPolicy(),
                 null,
-                objectMapper.valueToTree(surfaces.gamePanelSurface()));
+                surfaces.gamePanelSurface());
         section.setContentSourceId(contentSourceId);
         return section;
     }
@@ -411,7 +411,7 @@ public class WatchComposer {
                 "nba://game/" + mockId,
                 staticRefreshPolicy(),
                 null,
-                objectMapper.valueToTree(surfaces.gamePanelSurface()));
+                surfaces.gamePanelSurface());
         section.setContentSourceId(contentSourceId);
         return section;
     }

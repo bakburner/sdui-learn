@@ -1485,16 +1485,16 @@ public class AtomicCompositeBuilder {
      */
     public Section buildVodPlaylist(String sectionId, String analyticsId,
                                        String header, String[][] rows) {
-        ObjectNode surface = groupedContainerNode("column", null, null);
-        surface.put("cornerRadius", tokens.radius("lg"));
-        surface.set("padding", paddingNode(0, 0, tokens.spacing("xs"), tokens.spacing("xs")));
+        AtomicElement surface = groupedContainer("column", null, null);
+        surface.setCornerRadius(tokens.radius("lg"));
+        surface.setPadding(padding(0, 0, tokens.spacing("xs"), tokens.spacing("xs")));
 
-        ArrayNode surfaceChildren = om.createArrayNode();
+        List<AtomicElement> surfaceChildren = new ArrayList<>();
         if (header != null) {
-            ObjectNode headerEl = textNode(header, "titleSmall", "semiBold", null, null);
-            ObjectNode headerPad = paddingNode(tokens.spacing("lg"), tokens.spacing("lg"), tokens.spacing("md"), tokens.spacing("sm"));
-            headerEl.set("padding", headerPad);
-            AccessibilityHelper.addHeading(om, headerEl, header, 3);
+            AtomicElement headerEl = text(header, "titleSmall", "semiBold", null, null);
+            headerEl.setPadding(padding(tokens.spacing("lg"), tokens.spacing("lg"),
+                    tokens.spacing("md"), tokens.spacing("sm")));
+            AccessibilityHelper.addHeading(headerEl, header, 3);
             surfaceChildren.add(headerEl);
         }
 
@@ -1514,127 +1514,76 @@ public class AtomicCompositeBuilder {
                 surfaceChildren.add(vodDivider());
             }
         }
-        surface.set("children", surfaceChildren);
+        surface.setChildren(surfaceChildren);
 
-        ObjectNode wrapper = containerNode("column", null, null);
-        wrapper.set("padding", paddingNode(tokens.spacing("lg"), tokens.spacing("lg"), 0, 0));
-        ArrayNode wrapperKids = om.createArrayNode();
+        AtomicElement wrapper = container("column", null, null);
+        wrapper.setPadding(padding(tokens.spacing("lg"), tokens.spacing("lg"), 0, 0));
+        List<AtomicElement> wrapperKids = new ArrayList<>();
         wrapperKids.add(surface);
-        wrapper.set("children", wrapperKids);
+        wrapper.setChildren(wrapperKids);
 
-        return wrapAsCompositeNode(sectionId, analyticsId, wrapper);
+        return wrapAsComposite(sectionId, analyticsId, wrapper);
     }
 
-    private ObjectNode buildVodRow(String id, String title, String subtitle,
+    private AtomicElement buildVodRow(String id, String title, String subtitle,
                                    String thumbnailUrl, String duration,
                                    boolean isLive, String targetUri) {
-        ObjectNode row = containerNode("row", null, "center");
-        row.put("id", id);
-        row.put("gap", tokens.spacing("md"));
-        row.set("padding", paddingNode(tokens.spacing("md"), tokens.spacing("md"), tokens.spacing("sm"), tokens.spacing("sm")));
+        AtomicElement row = container("row", null, "center");
+        row.setId(id);
+        row.setGap(tokens.spacing("md"));
+        row.setPadding(padding(tokens.spacing("md"), tokens.spacing("md"),
+                tokens.spacing("sm"), tokens.spacing("sm")));
         if (targetUri != null) {
-            row.set("actions", singleActionArrayNode(tapNavigateNode(targetUri)));
-            AccessibilityHelper.addButton(om, row, title);
+            row.setActions(singleActionArray(tapNavigate(targetUri)));
+            AccessibilityHelper.addButton(row, title);
         }
 
-        ArrayNode children = om.createArrayNode();
+        List<AtomicElement> children = new ArrayList<>();
         if (thumbnailUrl != null) {
-            ObjectNode thumb = thumbnailImageNode(thumbnailUrl);
-            thumb.put("width", 80);
-            thumb.put("height", 52);
-            thumb.put("cornerRadius", tokens.radius("sm"));
-            AccessibilityHelper.addImage(om, thumb, title);
+            AtomicElement thumb = thumbnailImage(thumbnailUrl);
+            thumb.setWidth(80);
+            thumb.setHeight(52);
+            thumb.setCornerRadius(tokens.radius("sm"));
+            AccessibilityHelper.addImage(thumb, title);
             if (isLive) {
-                badgeNode(thumb, liveBadgeNode(), "topStart");
+                badge(thumb, liveBadge(), "topStart");
             } else if (duration != null) {
-                badgeNode(thumb, durationBadgeNode(duration), "bottomEnd");
+                badge(thumb, durationBadge(duration), "bottomEnd");
             }
             children.add(thumb);
         }
 
-        ObjectNode titleCol = containerNode("column", null, "start");
-        titleCol.put("gap", tokens.spacing("xs"));
-        setFlexNode(titleCol, 1.0);
-        ArrayNode titleKids = om.createArrayNode();
-        titleKids.add(textNode(title, "bodyMedium", "semiBold", null, 2));
+        AtomicElement titleCol = container("column", null, "start");
+        titleCol.setGap(tokens.spacing("xs"));
+        setFlex(titleCol, 1.0);
+        List<AtomicElement> titleKids = new ArrayList<>();
+        titleKids.add(text(title, "bodyMedium", "semiBold", null, 2));
         if (subtitle != null && !subtitle.isEmpty()) {
-            titleKids.add(textNode(subtitle, "labelSmall", null, tokens.color("nba.label.secondary"), 1));
+            titleKids.add(text(subtitle, "labelSmall", null,
+                    tokens.color("nba.label.secondary"), 1));
         }
-        titleCol.set("children", titleKids);
+        titleCol.setChildren(titleKids);
         children.add(titleCol);
 
         // Trailing chevron — semantic icon token; each client resolves to its native glyph.
-        ObjectNode chevron = om.createObjectNode();
-        chevron.put("type", "Text");
-        chevron.put("content", "›");
-        chevron.put("variant", "titleMedium");
-        chevron.put("color", tokens.color("nba.label.secondary"));
+        AtomicElement chevron = new AtomicElement().withType(AtomicElement.Type.fromValue("Text"));
+        chevron.setContent("›");
+        chevron.setVariant("titleMedium");
+        chevron.setColor(tokens.color("nba.label.secondary"));
         children.add(chevron);
 
-        row.set("children", children);
+        row.setChildren(children);
         return row;
     }
 
-    private ObjectNode vodDivider() {
-        ObjectNode d = om.createObjectNode();
-        d.put("type", "Divider");
-        d.put("thickness", 1);
+    private AtomicElement vodDivider() {
+        AtomicElement d = new AtomicElement().withType(AtomicElement.Type.fromValue("Divider"));
+        d.setThickness(1);
         // Inset-left styling matches the iOS grouped-list idiom (divider starts
         // where text begins, not where thumbnail begins). Clients that can't
         // honour leading padding on a Divider render it edge-to-edge.
-        ObjectNode pad = paddingNode(104, 0, 0, 0);
-        d.set("padding", pad);
+        d.setPadding(padding(104, 0, 0, 0));
         return d;
-    }
-
-    /**
-     * Build a horizontally-scrolling carousel of GamePanel sections.
-     *
-     * <p>The first game is stamped with {@code variant: "featured"} and
-     * the rest are {@code variant: "standard"}. The carousel's {@code gap}
-     * owns inter-card spacing; wrappers intentionally do not impose a
-     * wider fixed slot around hosted sections.
-     *
-     * @param sectionId      section id for the enclosing AtomicComposite
-     * @param analyticsId    analyticsId for the enclosing AtomicComposite
-     * @param gameSections   ordered list of GamePanel sections to embed;
-     *                       each must have a mutable "data" object node
-     */
-    public Section buildGameCarousel(String sectionId, String analyticsId,
-                                        java.util.List<ObjectNode> gameSections) {
-        ObjectNode scroll = om.createObjectNode();
-        scroll.put("type", "ScrollContainer");
-        scroll.put("direction", "row");
-        scroll.put("gap", tokens.spacing("md"));
-        scroll.put("showIndicators", false);
-        scroll.set("padding", paddingNode(tokens.spacing("lg"), tokens.spacing("lg"), tokens.spacing("xs"), tokens.spacing("xs")));
-
-        ArrayNode kids = om.createArrayNode();
-        for (int i = 0; i < gameSections.size(); i++) {
-            ObjectNode game = gameSections.get(i);
-            boolean isFeatured = (i == 0);
-
-            ObjectNode data = (ObjectNode) game.get("data");
-            if (data != null) {
-                data.put("variant", isFeatured ? "featured" : "standard");
-            }
-            if (game.get("surface") instanceof ObjectNode slotSurface) {
-                // The carousel's ScrollContainer owns inter-card spacing.
-                // Embedded section margins would add to the 12pt rail gap
-                // and make game cards feel much farther apart than content
-                // rail cards.
-                slotSurface.set("margin", paddingNode(0, 0, 0, 0));
-            }
-
-            ObjectNode wrapper = containerNode("column", null, null);
-            ArrayNode wrapperChildren = om.createArrayNode();
-            wrapperChildren.add(sectionSlotNode("carousel-slot-" + i, game));
-            wrapper.set("children", wrapperChildren);
-            kids.add(wrapper);
-        }
-        scroll.set("children", kids);
-
-        return wrapAsCompositeNode(sectionId, analyticsId, scroll);
     }
 
     // ── Real-app feed atomic patterns ───────────────────────────────────

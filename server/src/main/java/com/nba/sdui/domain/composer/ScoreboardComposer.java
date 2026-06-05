@@ -124,14 +124,14 @@ public class ScoreboardComposer {
 
         List<Section> sections = new ArrayList<>();
         String contentSourceId = "stats-api:scoreboard";
-        ObjectNode error = utils.buildErrorSection(
+        Section error = toSection(utils.buildErrorSection(
                 SectionIdDeriver.derive(contentSourceId, "AtomicComposite", "error-no-scores"),
                 "Scores unavailable",
                 "We couldn't load today's scoreboard. Please try again later.",
                 "wifi_off",
-                "nba://scoreboard");
-        error.put("contentSourceId", contentSourceId);
-        sections.add(toSection(error));
+                "nba://scoreboard"));
+        error.setContentSourceId(contentSourceId);
+        sections.add(error);
         return new Composition(response, sections);
     }
 

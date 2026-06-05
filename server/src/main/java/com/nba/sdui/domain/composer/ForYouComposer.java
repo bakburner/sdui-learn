@@ -5,9 +5,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.nba.sdui.models.generated.AdSlot;
 import com.nba.sdui.models.generated.AtomicElement;
+import com.nba.sdui.models.generated.Placeholder;
+import com.nba.sdui.models.generated.RefreshPolicy;
 import com.nba.sdui.models.generated.Screen;
 import com.nba.sdui.models.generated.Section;
+import com.nba.sdui.models.generated.Targeting;
 import jakarta.annotation.PostConstruct;
 import java.util.ArrayList;
 import java.util.List;
@@ -130,8 +134,8 @@ public class ForYouComposer {
                 "Top Stories", null, "More", "nba://news")));
         sections.add(objectMapper.valueToTree(buildTopStoriesArticleList()));
 
-        sections.add(buildAdSlot("for-you-ad-1", "for_you_ad_1",
-                "/21234567/sports/nba/homepage_mid1", "mid_feed_1"));
+        sections.add(objectMapper.valueToTree(buildAdSlot("for-you-ad-1", "for_you_ad_1",
+                "/21234567/sports/nba/homepage_mid1", "mid_feed_1")));
 
         sections.add(objectMapper.valueToTree(buildSectionHeaderComposite("tonights-games-header",
                 "for_you_tonights_games_header",
@@ -143,16 +147,16 @@ public class ForYouComposer {
                 "Trending Now", null, null, null)));
         sections.add(objectMapper.valueToTree(buildTrendingRail()));
 
-        sections.add(buildAdSlot("for-you-ad-2", "for_you_ad_2",
-                "/21234567/sports/nba/homepage_mid2", "mid_feed_2"));
+        sections.add(objectMapper.valueToTree(buildAdSlot("for-you-ad-2", "for_you_ad_2",
+                "/21234567/sports/nba/homepage_mid2", "mid_feed_2")));
 
         sections.add(objectMapper.valueToTree(buildSectionHeaderComposite("lp-picks-header",
                 "for_you_lp_picks_header",
                 "League Pass Picks", null, "Browse League Pass", "nba://leaguepass")));
         sections.add(objectMapper.valueToTree(buildLeaguePassPicksRail()));
 
-        sections.add(buildAdSlot("for-you-ad-3", "for_you_ad_3",
-                "/21234567/sports/nba/homepage_mid3", "mid_feed_3"));
+        sections.add(objectMapper.valueToTree(buildAdSlot("for-you-ad-3", "for_you_ad_3",
+                "/21234567/sports/nba/homepage_mid3", "mid_feed_3")));
 
         sections.add(objectMapper.valueToTree(buildOtherLeaguesRail()));
 
@@ -636,7 +640,7 @@ public class ForYouComposer {
      * @param adUnitPath  GAM ad unit path
      * @param position    ad position identifier (must NOT include "ads:" prefix, e.g. "mid_feed_1")
      */
-    private ObjectNode buildAdSlot(String id, String analyticsId,
+    private Section buildAdSlot(String id, String analyticsId,
                                     String adUnitPath, String position) {
         if (position.startsWith("ads:")) {
             throw new IllegalArgumentException(
@@ -644,43 +648,36 @@ public class ForYouComposer {
         }
         String contentSourceId = "ads:gam-" + position;
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AdSlot");
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", sectionId);
-        section.put("type", "AdSlot");
-        section.put("analyticsId", analyticsId);
-        section.put("contentSourceId", contentSourceId);
-        section.set("refreshPolicy", staticPolicy());
-        section.set("surface", objectMapper.valueToTree(surfaces.adSlotSurface()));
 
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("provider", "gam");
-        data.put("adUnitPath", adUnitPath);
+        Section section = new Section();
+        section.setId(sectionId);
+        section.setType(Section.Type.AD_SLOT);
+        section.setAnalyticsId(analyticsId);
+        section.setContentSourceId(contentSourceId);
+        RefreshPolicy refreshPolicy = new RefreshPolicy();
+        refreshPolicy.setType(RefreshPolicy.RefreshType.STATIC);
+        section.setRefreshPolicy(refreshPolicy);
+        section.setSurface(surfaces.adSlotSurface());
 
-        ArrayNode sizes = objectMapper.createArrayNode();
-        ArrayNode size320 = objectMapper.createArrayNode();
-        size320.add(320);
-        size320.add(50);
-        sizes.add(size320);
-        ArrayNode size728 = objectMapper.createArrayNode();
-        size728.add(728);
-        size728.add(90);
-        sizes.add(size728);
-        data.set("sizes", sizes);
+        AdSlot data = new AdSlot();
+        data.setProvider("gam");
+        data.setAdUnitPath(adUnitPath);
+        data.setSizes(List.of(List.of(320, 50), List.of(728, 90)));
 
-        ObjectNode targeting = objectMapper.createObjectNode();
-        targeting.put("section", "for_you");
-        targeting.put("position", position);
-        data.set("targeting", targeting);
+        Targeting targeting = new Targeting();
+        targeting.setAdditionalProperty("section", "for_you");
+        targeting.setAdditionalProperty("position", position);
+        data.setTargeting(targeting);
 
-        data.put("collapseOnEmpty", true);
-        data.put("label", "Advertisement");
+        data.setCollapseOnEmpty(true);
+        data.setLabel("Advertisement");
 
-        ObjectNode placeholder = objectMapper.createObjectNode();
-        placeholder.put("backgroundColor", "token:nba.bg.tertiary");
-        placeholder.put("text", "Advertisement");
-        data.set("placeholder", placeholder);
+        Placeholder placeholder = new Placeholder();
+        placeholder.setBackgroundColor("token:nba.bg.tertiary");
+        placeholder.setText("Advertisement");
+        data.setPlaceholder(placeholder);
 
-        section.set("data", data);
+        section.setData(data);
         return section;
     }
 

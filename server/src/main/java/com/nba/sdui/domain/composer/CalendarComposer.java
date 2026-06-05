@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.nba.sdui.models.generated.Screen;
+import com.nba.sdui.models.generated.Section;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -62,7 +63,7 @@ public class CalendarComposer {
         response.set("state", state);
 
         ArrayNode sections = objectMapper.createArrayNode();
-        sections.add(buildCalendarMonthListSection(selectedDate, defaultDate));
+        sections.add(objectMapper.valueToTree(buildCalendarMonthListSection(selectedDate, defaultDate)));
         response.set("sections", sections);
 
         utils.ensureScreenContentInsets(response);
@@ -74,15 +75,15 @@ public class CalendarComposer {
         }
     }
 
-    private ObjectNode buildCalendarMonthListSection(LocalDate selectedDate, LocalDate defaultDate) {
+    private Section buildCalendarMonthListSection(LocalDate selectedDate, LocalDate defaultDate) {
         String contentSourceId = "server:games-calendar";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "CalendarMonthList");
 
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", sectionId);
-        section.put("type", "CalendarMonthList");
-        section.put("contentSourceId", contentSourceId);
-        section.put("analyticsId", "games_calendar_month_list");
+        Section section = new Section();
+        section.setId(sectionId);
+        section.setType(Section.Type.CALENDAR_MONTH_LIST);
+        section.setContentSourceId(contentSourceId);
+        section.setAnalyticsId("games_calendar_month_list");
 
         ObjectNode data = objectMapper.createObjectNode();
         data.put("stateKey", "calendar_selected_date");
@@ -100,7 +101,7 @@ public class CalendarComposer {
         onDateSelected.put("targetUri", "nba://games?date={{calendar_selected_date}}");
         data.set("onDateSelected", onDateSelected);
 
-        section.set("data", data);
+        section.setData(data);
         return section;
     }
 

@@ -20,6 +20,7 @@ import com.nba.sdui.domain.SduiUtils;
 import com.nba.sdui.domain.SectionIdDeriver;
 import com.nba.sdui.domain.SectionSurfaces;
 import com.nba.sdui.domain.tokens.Tokens;
+import com.nba.sdui.models.generated.RefreshPolicy;
 import com.nba.sdui.models.generated.Screen;
 import com.nba.sdui.models.generated.Section;
 import com.nba.sdui.models.generated.SectionSurface;
@@ -97,12 +98,12 @@ public class ScheduleComposer {
     private Section buildFilterForm(String locale) {
         String contentSourceId = "feed:schedule";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "Form", "filters");
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", sectionId);
-        section.put("type", "Form");
-        section.put("contentSourceId", contentSourceId);
-        section.put("analyticsId", "schedule_filters");
-        section.set("refreshPolicy", staticPolicy());
+        Section section = new Section();
+        section.setId(sectionId);
+        section.setType(Section.Type.FORM);
+        section.setContentSourceId(contentSourceId);
+        section.setAnalyticsId("schedule_filters");
+        section.setRefreshPolicy(staticPolicy());
 
         ObjectNode data = objectMapper.createObjectNode();
         data.put("layout", "vertical");
@@ -151,8 +152,8 @@ public class ScheduleComposer {
                 }));
 
         data.set("fields", fields);
-        section.set("data", data);
-        return toSection(section);
+        section.setData(data);
+        return section;
     }
 
     /**
@@ -242,14 +243,6 @@ public class ScheduleComposer {
         return section;
     }
 
-    private Section toSection(ObjectNode node) {
-        try {
-            return objectMapper.treeToValue(node, Section.class);
-        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
-            throw new IllegalStateException("Failed to bind composed section to Section.class", e);
-        }
-    }
-
     private ObjectNode buildTeamColumn(JsonNode team) {
         ObjectNode col = objectMapper.createObjectNode();
         col.put("type", "Container");
@@ -308,9 +301,9 @@ public class ScheduleComposer {
         }
     }
 
-    private ObjectNode staticPolicy() {
-        ObjectNode rp = objectMapper.createObjectNode();
-        rp.put("type", "static");
+    private RefreshPolicy staticPolicy() {
+        RefreshPolicy rp = new RefreshPolicy();
+        rp.setType(RefreshPolicy.RefreshType.STATIC);
         return rp;
     }
 }

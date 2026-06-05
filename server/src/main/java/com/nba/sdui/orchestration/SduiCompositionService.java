@@ -117,8 +117,8 @@ public class SduiCompositionService {
         long start = System.nanoTime();
         try {
             String variant = ctx.resolveVariant(SCOREBOARD_EXPERIMENT, "A");
-            return scoreboardComposer.composeScoreboard(variant,
-                    ctx.getSchemaVersion(), ctx.getTraceId(), ctx.getLocale());
+            return objectMapper.valueToTree(scoreboardComposer.composeScoreboard(variant,
+                    ctx.getSchemaVersion(), ctx.getTraceId(), ctx.getLocale()));
         } finally {
             metrics.recordComposition("scoreboard", "screen", false, Duration.ofNanos(System.nanoTime() - start));
         }

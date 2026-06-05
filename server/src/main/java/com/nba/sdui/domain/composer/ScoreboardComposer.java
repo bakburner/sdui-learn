@@ -1,8 +1,8 @@
 package com.nba.sdui.domain.composer;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,6 +10,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import com.nba.sdui.domain.AtomicCompositeBuilder;
 import com.nba.sdui.domain.SectionIdDeriver;
 import com.nba.sdui.domain.tokens.Tokens;
@@ -18,6 +20,9 @@ import com.nba.sdui.domain.SectionSurfaces;
 import com.nba.sdui.domain.port.ScoreboardPort;
 import com.nba.sdui.integration.model.scoreboard.Game;
 import com.nba.sdui.integration.model.scoreboard.ScoreboardResponse;
+import com.nba.sdui.models.generated.Screen;
+import com.nba.sdui.models.generated.Section;
+import com.nba.sdui.models.generated.SectionSurface;
 
 /**
  * Composes the Scoreboard SDUI screen from live NBA scoreboard data, and
@@ -61,31 +66,48 @@ public class ScoreboardComposer {
     /**
      * Compose a Scoreboard SDUI screen response.
      */
-    public JsonNode composeScoreboard(String variant, String clientSchemaVersion,
-                                      String traceId, String locale) throws IOException {
+    public Screen composeScoreboard(String variant, String clientSchemaVersion,
+                                    String traceId, String locale) throws IOException {
         log.info("Composing scoreboard: variant={}, locale={}", variant, locale);
 
-        ObjectNode response = composeScoreboardFromLiveData();
-        if (response == null) {
+        Composition composition = composeScoreboardFromLiveData();
+        if (composition == null) {
             log.warn("Live scoreboard unavailable — composing ErrorState screen");
-            response = buildErrorScreen();
+            composition = buildErrorScreen();
         }
+
+        ObjectNode response = composition.shell;
+        List<Section> sections = composition.sections;
 
         response.put("schemaVersion", schemaVersion);
         utils.applyTabDestinationNavigation(response, "scoreboard");
 
         if (variant != null) {
             switch (variant.toUpperCase()) {
-                case "E" -> applyScoreboardVariantPromo(response);
-                case "F" -> applyScoreboardVariantPromoRail(response);
+                case "E" -> applyScoreboardVariantPromo(sections);
+                case "F" -> applyScoreboardVariantPromoRail(sections);
                 default -> log.debug("Scoreboard using default variant (no transformation)");
             }
         }
 
+        response.set("sections", objectMapper.valueToTree(sections));
         utils.ensureScreenContentInsets(response);
         utils.stampStringTableOnSections(response, locale);
-        return response;
+        try {
+            return objectMapper.treeToValue(response, Screen.class);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Failed to bind composed Scoreboard screen to Screen.class", e);
+        }
     }
+
+    /**
+     * Internal carrier for the in-progress composition: the screen-level shell
+     * (id, defaultRefreshPolicy, analyticsId, etc.) plus the typed section list
+     * the variant transforms operate on. The shell is bound to {@link Screen}
+     * at the public boundary; sections accumulate as typed objects throughout
+     * composition.
+     */
+    private record Composition(ObjectNode shell, List<Section> sections) {}
 
     /**
      * Build a minimal Scoreboard screen carrying a single {@code ErrorState}
@@ -93,14 +115,14 @@ public class ScoreboardComposer {
      * AGENTS.md §8.0 the server surfaces an {@code ErrorState} rather than
      * inventing fallback game cards.
      */
-    private ObjectNode buildErrorScreen() {
+    private Composition buildErrorScreen() {
         ObjectNode response = objectMapper.createObjectNode();
         response.put("id", "scoreboard-live");
         ObjectNode defaultRefreshPolicy = objectMapper.createObjectNode();
         defaultRefreshPolicy.put("type", "static");
         response.set("defaultRefreshPolicy", defaultRefreshPolicy);
 
-        ArrayNode sections = objectMapper.createArrayNode();
+        List<Section> sections = new ArrayList<>();
         String contentSourceId = "stats-api:scoreboard";
         ObjectNode error = utils.buildErrorSection(
                 SectionIdDeriver.derive(contentSourceId, "AtomicComposite", "error-no-scores"),
@@ -109,14 +131,13 @@ public class ScoreboardComposer {
                 "wifi_off",
                 "nba://scoreboard");
         error.put("contentSourceId", contentSourceId);
-        sections.add(error);
-        response.set("sections", sections);
-        return response;
+        sections.add(toSection(error));
+        return new Composition(response, sections);
     }
 
     // ── Live-data composition ──────────────────────────────────────────
 
-    private ObjectNode composeScoreboardFromLiveData() {
+    private Composition composeScoreboardFromLiveData() {
         try {
             ScoreboardResponse scoreboard = scoreboardPort.getScoreboard();
             if (scoreboard == null || scoreboard.getGames().isEmpty()) {
@@ -130,7 +151,7 @@ public class ScoreboardComposer {
             response.put("id", "scoreboard-live");
             response.put("analyticsId", "scoreboard_live");
 
-            ArrayNode sections = objectMapper.createArrayNode();
+            List<Section> sections = new ArrayList<>();
             for (Game game : scoreboard.getGames()) {
                 String gameId = game.getGameId();
                 if (gameId == null || gameId.isBlank()) {
@@ -142,8 +163,7 @@ public class ScoreboardComposer {
                 log.warn("Live scoreboard has no games for today");
                 return null;
             }
-            response.set("sections", sections);
-            return response;
+            return new Composition(response, sections);
         } catch (Exception e) {
             log.error("Failed to compose scoreboard from live data: {}", e.getMessage(), e);
             return null;
@@ -152,7 +172,7 @@ public class ScoreboardComposer {
 
     // ── Section builders ───────────────────────────────────────────────
 
-    private ObjectNode buildScoreboardRowSection(Game game, String gameId) {
+    private Section buildScoreboardRowSection(Game game, String gameId) {
         int gameStatus = game.getGameStatus();
         boolean live = gameStatus == 2;
 
@@ -176,7 +196,7 @@ public class ScoreboardComposer {
         String contentSourceId = "stats-api:scoreboard-game-" + gameId;
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
 
-        ObjectNode section = atomicBuilder.buildGamePanelComposite(
+        ObjectNode sectionNode = atomicBuilder.buildGamePanelComposite(
                 sectionId,
                 "scoreboard_row_" + gameId,
                 "scoreboard",
@@ -191,8 +211,24 @@ public class ScoreboardComposer {
                 refreshPolicy,
                 bindings,
                 surfaces.gamePanelSurface());
-        section.put("contentSourceId", contentSourceId);
-        return section;
+        sectionNode.put("contentSourceId", contentSourceId);
+        return toSection(sectionNode);
+    }
+
+    private Section toSection(ObjectNode node) {
+        try {
+            return objectMapper.treeToValue(node, Section.class);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Failed to bind composed section to Section.class", e);
+        }
+    }
+
+    private SectionSurface toSectionSurface(ObjectNode node) {
+        try {
+            return objectMapper.treeToValue(node, SectionSurface.class);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Failed to bind composed surface to SectionSurface.class", e);
+        }
     }
 
     private static int parseGameClockSeconds(String iso) {
@@ -215,26 +251,15 @@ public class ScoreboardComposer {
 
     // ── Variant transformations ────────────────────────────────────────
 
-    private void applyScoreboardVariantPromo(ObjectNode response) {
-        if (!response.has("sections")) return;
-
-        ArrayNode sections = (ArrayNode) response.get("sections");
-        ArrayNode updated = objectMapper.createArrayNode();
-        updated.add(buildScoreboardPromoBanner());
-        for (JsonNode section : sections) {
-            updated.add(section);
-        }
-        response.set("sections", updated);
-        log.debug("Applied scoreboard variant Promo: inserted PromoBanner at index 0, {} sections total", updated.size());
+    private void applyScoreboardVariantPromo(List<Section> sections) {
+        sections.add(0, buildScoreboardPromoBanner());
+        log.debug("Applied scoreboard variant Promo: inserted PromoBanner at index 0, {} sections total", sections.size());
     }
 
-    private void applyScoreboardVariantPromoRail(ObjectNode response) {
-        if (!response.has("sections")) return;
-
-        ArrayNode sections = (ArrayNode) response.get("sections");
+    private void applyScoreboardVariantPromoRail(List<Section> sections) {
         int gameCount = sections.size();
 
-        ArrayNode updated = objectMapper.createArrayNode();
+        List<Section> updated = new ArrayList<>();
         updated.add(buildScoreboardPromoBanner());
 
         for (int i = 0; i < sections.size(); i++) {
@@ -244,28 +269,30 @@ public class ScoreboardComposer {
             }
         }
 
-        response.set("sections", updated);
+        sections.clear();
+        sections.addAll(updated);
         log.debug("Applied scoreboard variant PromoRail: promo at 0, rail after game 2 ({}), {} sections total",
-                gameCount > 2 ? "inserted" : "skipped", updated.size());
+                gameCount > 2 ? "inserted" : "skipped", sections.size());
     }
 
-    private ObjectNode buildScoreboardPromoBanner() {
+    private Section buildScoreboardPromoBanner() {
         String contentSourceId = "ads:gam-scoreboard-promo";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
-        ObjectNode section = atomicBuilder.buildPromoBanner(
+        ObjectNode sectionNode = atomicBuilder.buildPromoBanner(
                 sectionId, "scoreboard_promo_banner",
                 "NBA League Pass", null,
                 "Watch every out-of-market game live or on demand.",
                 FALLBACK_THUMB, "Learn More", "nba://leaguepass");
-        section.put("contentSourceId", contentSourceId);
-        section.set("surface", surfaces.subscribeSurface(
+        sectionNode.put("contentSourceId", contentSourceId);
+        Section section = toSection(sectionNode);
+        section.setSurface(toSectionSurface(surfaces.subscribeSurface(
                 "#0C1B3A",
                 tokens.color("nba.label.accent.brand"),
-                20));
+                20)));
         return section;
     }
 
-    private void addScoreboardContentRail(ArrayNode sections) {
+    private void addScoreboardContentRail(List<Section> sections) {
         String[][] cards = {
                 {"league-1", "Top 10 Plays of the Night",
                         "Last night's best moments", FALLBACK_THUMB,
@@ -276,18 +303,20 @@ public class ScoreboardComposer {
         };
         String headerContentSourceId = "feed:scoreboard";
         String headerSectionId = SectionIdDeriver.derive(headerContentSourceId, "AtomicComposite", "content-rail-header");
-        ObjectNode header = atomicBuilder.buildSectionHeader(
+        ObjectNode headerNode = atomicBuilder.buildSectionHeader(
                 headerSectionId, "Around the League", null, null, null);
-        header.put("contentSourceId", headerContentSourceId);
-        header.set("surface", surfaces.sectionHeaderSurface());
+        headerNode.put("contentSourceId", headerContentSourceId);
+        Section header = toSection(headerNode);
+        header.setSurface(toSectionSurface(surfaces.sectionHeaderSurface()));
         sections.add(header);
 
         String railContentSourceId = "feed:scoreboard";
         String railSectionId = SectionIdDeriver.derive(railContentSourceId, "AtomicComposite", "content-rail");
-        ObjectNode rail = atomicBuilder.buildContentRail(railSectionId,
+        ObjectNode railNode = atomicBuilder.buildContentRail(railSectionId,
                 "scoreboard_content_rail", null, cards);
-        rail.put("contentSourceId", railContentSourceId);
-        rail.set("surface", surfaces.railSurface());
+        railNode.put("contentSourceId", railContentSourceId);
+        Section rail = toSection(railNode);
+        rail.setSurface(toSectionSurface(surfaces.railSurface()));
         sections.add(rail);
     }
 }

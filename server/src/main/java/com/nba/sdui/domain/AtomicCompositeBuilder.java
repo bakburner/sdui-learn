@@ -48,26 +48,6 @@ public class AtomicCompositeBuilder {
         this.tokens = tokens;
     }
 
-    private Section bindSection(ObjectNode n) {
-        return om.convertValue(n, Section.class);
-    }
-
-    private AtomicElement bindElement(ObjectNode n) {
-        return om.convertValue(n, AtomicElement.class);
-    }
-
-    private Spacing bindSpacing(ObjectNode n) {
-        return om.convertValue(n, Spacing.class);
-    }
-
-    private Action bindAction(ObjectNode n) {
-        return om.convertValue(n, Action.class);
-    }
-
-    private AtomicComposite bindAtomicComposite(ObjectNode n) {
-        return om.convertValue(n, AtomicComposite.class);
-    }
-
     /** Build a typed Section envelope with id and type=AtomicComposite. */
     private Section newSection(String id, String analyticsId) {
         Section section = new Section();
@@ -3041,15 +3021,6 @@ public class AtomicCompositeBuilder {
     /** ORB-safe: same-origin static asset (see web/public/sdui-demo, server static/sdui-demo). */
     private static final String DEFAULT_PLACEHOLDER = DemoImageUrls.placeholderTiny();
 
-    private ObjectNode paddingNode(Object start, Object end, Object top, Object bottom) {
-        ObjectNode p = om.createObjectNode();
-        putLayoutScalar(p, "start", start);
-        putLayoutScalar(p, "end", end);
-        putLayoutScalar(p, "top", top);
-        putLayoutScalar(p, "bottom", bottom);
-        return p;
-    }
-
     /** Typed variant of {@link #cornerRadiiOf} — only typed CornerRadii is used. */
     public CornerRadii cornerRadiiOf(Object topStart, Object topEnd,
                                      Object bottomStart, Object bottomEnd) {
@@ -3069,46 +3040,6 @@ public class AtomicCompositeBuilder {
         if (gap != null) el.setGap(gap);
         el.setShowIndicators(showIndicators);
         return el;
-    }
-
-    /** Puts a LayoutScalar value (int or "token:..." string) into a node. */
-    private void putLayoutScalar(ObjectNode node, String key, Object value) {
-        if (value instanceof String s) {
-            node.put(key, s);
-        } else if (value instanceof Number n) {
-            node.put(key, n.intValue());
-        }
-    }
-
-    private ObjectNode tapNavigateNode(String targetUri) {
-        ObjectNode action = om.createObjectNode();
-        action.put("trigger", "onActivate");
-        action.put("type", "navigate");
-        action.put("targetUri", targetUri);
-        return action;
-    }
-
-    /** Navigate action with explicit failure policy and optional feedback. */
-    private ObjectNode tapNavigateNode(String targetUri, String onFailure, ObjectNode failureFeedback) {
-        ObjectNode action = tapNavigateNode(targetUri);
-        if (onFailure != null) action.put("onFailure", onFailure);
-        if (failureFeedback != null) action.set("failureFeedback", failureFeedback);
-        return action;
-    }
-
-    /** Apply failure semantics to any action node. */
-    private ObjectNode withFailurePolicy(ObjectNode action, String onFailure, ObjectNode failureFeedback) {
-        if (onFailure != null) action.put("onFailure", onFailure);
-        if (failureFeedback != null) action.set("failureFeedback", failureFeedback);
-        return action;
-    }
-
-    /** Build a failureFeedback object. */
-    private ObjectNode failureFeedback(String message, String style) {
-        ObjectNode fb = om.createObjectNode();
-        if (message != null) fb.put("message", message);
-        if (style != null) fb.put("style", style);
-        return fb;
     }
 
     // ── Typed public surface ────────────────────────────────────────────
@@ -3268,11 +3199,20 @@ public class AtomicCompositeBuilder {
     }
 
     public Spacing padding(Object start, Object end, Object top, Object bottom) {
-        return bindSpacing(paddingNode(start, end, top, bottom));
+        Spacing p = new Spacing();
+        if (start != null) p.setStart(normalizeLayoutScalar(start));
+        if (end != null) p.setEnd(normalizeLayoutScalar(end));
+        if (top != null) p.setTop(normalizeLayoutScalar(top));
+        if (bottom != null) p.setBottom(normalizeLayoutScalar(bottom));
+        return p;
     }
 
     public Action tapNavigate(String targetUri) {
-        return bindAction(tapNavigateNode(targetUri));
+        Action action = new Action();
+        action.setTrigger(Action.ActionTrigger.fromValue("onActivate"));
+        action.setType(Action.ActionType.fromValue("navigate"));
+        action.setTargetUri(targetUri);
+        return action;
     }
 
     public List<Action> singleActionArray(Action action) {

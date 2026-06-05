@@ -3001,19 +3001,6 @@ public class AtomicCompositeBuilder {
     // when an enum value is added or removed there, update the set here too.
     static final Set<String> VALID_BINDING_TRANSFORMS = Set.of("liveClockSnapshot");
 
-    private ObjectNode containerNode(String direction, String alignment, String crossAlignment) {
-        validateEnum("direction", direction, VALID_DIRECTIONS);
-        validateEnum("alignment", alignment, VALID_ALIGNMENTS);
-        validateEnum("crossAlignment", crossAlignment, VALID_CROSS_ALIGNMENTS);
-
-        ObjectNode node = om.createObjectNode();
-        node.put("type", "Container");
-        if (direction != null) node.put("direction", direction);
-        if (alignment != null) node.put("alignment", alignment);
-        if (crossAlignment != null) node.put("crossAlignment", crossAlignment);
-        return node;
-    }
-
     private static void validateEnum(String field, String value, Set<String> allowed) {
         if (value == null) return;
         if (!allowed.contains(value)) {
@@ -3051,101 +3038,8 @@ public class AtomicCompositeBuilder {
      * node and win over the variant default for axes the variant's override
      * matrix marks as {@code allow}.
      */
-    private ObjectNode variantContainerNode(String variant, String direction,
-                                String alignment, String crossAlignment) {
-        ObjectNode node = containerNode(direction, alignment, crossAlignment);
-        if (variant != null) node.put("variant", variant);
-        return node;
-    }
-
-    private ObjectNode heroContainerNode(String direction, String alignment, String crossAlignment) {
-        return variantContainerNode("hero", direction, alignment, crossAlignment);
-    }
-
-    private ObjectNode groupedContainerNode(String direction, String alignment, String crossAlignment) {
-        return variantContainerNode("grouped", direction, alignment, crossAlignment);
-    }
-
-    /**
-     * Build a responsive row Container that replaces the old Row section type.
-     * Children are flexed equally (flex=1) and the direction flips row→column at the breakpoint.
-     * widthMode is "fill" by default to maintain parity with the old Row renderer.
-     */
-    private ObjectNode responsiveRowNode(Object gap, int breakpoint) {
-        ObjectNode node = containerNode("row", null, null);
-        putLayoutScalar(node, "gap", gap);
-        node.put("breakpoint", breakpoint);
-        node.put("widthMode", "fill");
-        return node;
-    }
-
-    private ObjectNode textNode(String content, String variant, String weight,
-                             String color, Integer maxLines) {
-        ObjectNode node = om.createObjectNode();
-        node.put("type", "Text");
-        node.put("content", content);
-        if (variant != null) node.put("variant", variant);
-        if (weight != null) node.put("weight", weight);
-        if (color != null) node.put("color", color);
-        if (maxLines != null) node.put("maxLines", maxLines);
-        return node;
-    }
-
     /** ORB-safe: same-origin static asset (see web/public/sdui-demo, server static/sdui-demo). */
     private static final String DEFAULT_PLACEHOLDER = DemoImageUrls.placeholderTiny();
-
-    private ObjectNode imageNode(String src, int width, int height, String fit) {
-        return imageNode(src, width, height, fit, DEFAULT_PLACEHOLDER);
-    }
-
-    private ObjectNode imageNode(String src, int width, int height, String fit, String placeholder) {
-        ObjectNode node = om.createObjectNode();
-        node.put("type", "Image");
-        node.put("src", src);
-        if (width > 0) node.put("width", width);
-        if (height > 0) node.put("height", height);
-        if (fit != null) node.put("fit", fit);
-        if (placeholder != null) node.put("placeholder", placeholder);
-        return node;
-    }
-
-    /**
-     * Image preset that emits {@code variant}. Known value: "thumbnail".
-     * The client resolves the string against its ImageVariant enum and
-     * supplies native content mode, corner radius, and clip behaviour.
-     */
-    private ObjectNode variantImageNode(String variant, String src) {
-        ObjectNode node = om.createObjectNode();
-        node.put("type", "Image");
-        node.put("src", src);
-        if (variant != null) node.put("variant", variant);
-        node.put("placeholder", DEFAULT_PLACEHOLDER);
-        return node;
-    }
-
-    private ObjectNode thumbnailImageNode(String src) { return variantImageNode("thumbnail", src); }
-
-    private ObjectNode spacerNode(String height) {
-        ObjectNode node = om.createObjectNode();
-        node.put("type", "Spacer");
-        node.put("height", height);
-        return node;
-    }
-
-    /** Spacer with a raw pixel height (§3.6 exception: no design-system token exists). */
-    private ObjectNode spacerNode(int height) {
-        ObjectNode node = om.createObjectNode();
-        node.put("type", "Spacer");
-        node.put("height", height);
-        return node;
-    }
-
-    private ObjectNode hSpacerNode(String width) {
-        ObjectNode node = om.createObjectNode();
-        node.put("type", "Spacer");
-        node.put("width", width);
-        return node;
-    }
 
     private ObjectNode paddingNode(Object start, Object end, Object top, Object bottom) {
         ObjectNode p = om.createObjectNode();
@@ -3225,45 +3119,74 @@ public class AtomicCompositeBuilder {
     // refactors the *Node bodies to be typed end-to-end.
 
     public AtomicElement container(String direction, String alignment, String crossAlignment) {
-        return bindElement(containerNode(direction, alignment, crossAlignment));
+        validateEnum("direction", direction, VALID_DIRECTIONS);
+        validateEnum("alignment", alignment, VALID_ALIGNMENTS);
+        validateEnum("crossAlignment", crossAlignment, VALID_CROSS_ALIGNMENTS);
+        AtomicElement node = new AtomicElement().withType(AtomicElement.Type.fromValue("Container"));
+        if (direction != null) node.setDirection(AtomicElement.Direction.fromValue(direction));
+        if (alignment != null) node.setAlignment(AtomicElement.Alignment.fromValue(alignment));
+        if (crossAlignment != null) node.setCrossAlignment(AtomicElement.CrossAlignment.fromValue(crossAlignment));
+        return node;
     }
 
     public AtomicElement variantContainer(String variant, String direction,
                                           String alignment, String crossAlignment) {
-        return bindElement(variantContainerNode(variant, direction, alignment, crossAlignment));
+        AtomicElement node = container(direction, alignment, crossAlignment);
+        if (variant != null) node.setVariant(variant);
+        return node;
     }
 
     public AtomicElement heroContainer(String direction, String alignment, String crossAlignment) {
-        return bindElement(heroContainerNode(direction, alignment, crossAlignment));
+        return variantContainer("hero", direction, alignment, crossAlignment);
     }
 
     public AtomicElement groupedContainer(String direction, String alignment, String crossAlignment) {
-        return bindElement(groupedContainerNode(direction, alignment, crossAlignment));
+        return variantContainer("grouped", direction, alignment, crossAlignment);
     }
 
     public AtomicElement responsiveRow(Object gap, int breakpoint) {
-        return bindElement(responsiveRowNode(gap, breakpoint));
+        AtomicElement node = container("row", null, null);
+        if (gap != null) node.setGap(gap);
+        node.setBreakpoint(breakpoint);
+        node.setWidthMode(AtomicElement.SizingMode.fromValue("fill"));
+        return node;
     }
 
     public AtomicElement text(String content, String variant, String weight,
                               String color, Integer maxLines) {
-        return bindElement(textNode(content, variant, weight, color, maxLines));
+        AtomicElement node = new AtomicElement().withType(AtomicElement.Type.fromValue("Text"));
+        node.setContent(content);
+        if (variant != null) node.setVariant(variant);
+        if (weight != null) node.setWeight(AtomicElement.TextWeight.fromValue(weight));
+        if (color != null) node.setColor(color);
+        if (maxLines != null) node.setMaxLines(maxLines);
+        return node;
     }
 
     public AtomicElement image(String src, int width, int height, String fit) {
-        return bindElement(imageNode(src, width, height, fit));
+        return image(src, width, height, fit, DEFAULT_PLACEHOLDER);
     }
 
     public AtomicElement image(String src, int width, int height, String fit, String placeholder) {
-        return bindElement(imageNode(src, width, height, fit, placeholder));
+        AtomicElement node = new AtomicElement().withType(AtomicElement.Type.fromValue("Image"));
+        node.setSrc(src);
+        if (width > 0) node.setWidth(width);
+        if (height > 0) node.setHeight(height);
+        if (fit != null) node.setFit(AtomicElement.ImageFit.fromValue(fit));
+        if (placeholder != null) node.setPlaceholder(placeholder);
+        return node;
     }
 
     public AtomicElement variantImage(String variant, String src) {
-        return bindElement(variantImageNode(variant, src));
+        AtomicElement node = new AtomicElement().withType(AtomicElement.Type.fromValue("Image"));
+        node.setSrc(src);
+        if (variant != null) node.setVariant(variant);
+        node.setPlaceholder(DEFAULT_PLACEHOLDER);
+        return node;
     }
 
     public AtomicElement thumbnailImage(String src) {
-        return bindElement(thumbnailImageNode(src));
+        return variantImage("thumbnail", src);
     }
 
     public AtomicElement button(String label, String variant, Action action) {
@@ -3275,15 +3198,21 @@ public class AtomicCompositeBuilder {
     }
 
     public AtomicElement spacer(String height) {
-        return bindElement(spacerNode(height));
+        AtomicElement node = new AtomicElement().withType(AtomicElement.Type.fromValue("Spacer"));
+        node.setHeight(height);
+        return node;
     }
 
     public AtomicElement spacer(int height) {
-        return bindElement(spacerNode(height));
+        AtomicElement node = new AtomicElement().withType(AtomicElement.Type.fromValue("Spacer"));
+        node.setHeight(height);
+        return node;
     }
 
     public AtomicElement hSpacer(String width) {
-        return bindElement(hSpacerNode(width));
+        AtomicElement node = new AtomicElement().withType(AtomicElement.Type.fromValue("Spacer"));
+        node.setWidth(width);
+        return node;
     }
 
     public AtomicElement liveBadge() {

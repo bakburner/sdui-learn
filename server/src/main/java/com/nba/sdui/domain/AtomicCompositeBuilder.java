@@ -1590,8 +1590,8 @@ public class AtomicCompositeBuilder {
         }
         if (ctaLabel != null) {
             scrimChildren.add(spacer(tokens.spacing("md")));
-            AtomicElement cta = bindElement(buttonNode(ctaLabel, "secondary",
-                    targetUri != null ? tapNavigateNode(targetUri) : null));
+            AtomicElement cta = button(ctaLabel, "secondary",
+                    targetUri != null ? tapNavigate(targetUri) : null);
             cta.setColor(tokens.color("nba.label-dark.primary"));
             cta.setBackground("#00000000");
             scrimChildren.add(cta);
@@ -2273,13 +2273,9 @@ public class AtomicCompositeBuilder {
      * Uses hardcoded ARGB rather than the overlay.scrim token because the token
      * inverts in dark mode (becomes white), defeating the purpose of a darkening scrim.
      */
-    private ObjectNode mediaBottomScrimGradient() {
-        ObjectNode g = om.createObjectNode();
-        ArrayNode colors = om.createArrayNode();
-        colors.add("#00000000");
-        colors.add("#99000000");
-        colors.add("#F0000000");
-        g.set("colors", colors);
+    private Map<String, Object> mediaBottomScrimGradient() {
+        Map<String, Object> g = new LinkedHashMap<>();
+        g.put("colors", List.of("#00000000", "#99000000", "#F0000000"));
         g.put("direction", "vertical");
         return g;
     }

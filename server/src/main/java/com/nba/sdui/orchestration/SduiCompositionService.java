@@ -1,9 +1,6 @@
 package com.nba.sdui.orchestration;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.nba.sdui.metrics.SduiMetrics;
 import com.nba.sdui.models.generated.Screen;
 import com.nba.sdui.request.SduiRequestContext;
@@ -13,6 +10,8 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import com.nba.sdui.domain.SduiUtils;
 import com.nba.sdui.domain.composer.BoxscoreComposer;
 import com.nba.sdui.domain.composer.CalendarComposer;
@@ -219,9 +218,17 @@ public class SduiCompositionService {
 
     // ── Stats-polling helpers (kept here — they need StatsApiClient) ──
 
-    public JsonNode getPlayerStats(String gameId) throws IOException {
+    /** Typed payload returned by the /v1/api/stats/{gameId} polling endpoint. */
+    public record StatsResponse(String title, String layout, List<StatLine> stats) {}
+
+    /** Single stat-line row inside {@link StatsResponse}. */
+    public record StatLine(int playerId, String playerName, String playerImageUrl,
+                           String teamTricode, String statCategory,
+                           String statValue, String statLabel) {}
+
+    public StatsResponse getPlayerStats(String gameId) throws IOException {
         try {
-            JsonNode boxscore = statsApiClient.getBoxscore(gameId);
+            com.fasterxml.jackson.databind.JsonNode boxscore = statsApiClient.getBoxscore(gameId);
             if (boxscore != null) {
                 return transformBoxscoreToStatLines(boxscore);
             }
@@ -233,58 +240,57 @@ public class SduiCompositionService {
 
     // ── Private helpers ────────────────────────────────────────────────
 
-    private JsonNode transformBoxscoreToStatLines(JsonNode boxscore) {
-        ObjectNode result = objectMapper.createObjectNode();
-        result.put("title", "Top Performers");
-        result.put("layout", "vertical");
-
-        ArrayNode stats = objectMapper.createArrayNode();
+    private StatsResponse transformBoxscoreToStatLines(com.fasterxml.jackson.databind.JsonNode boxscore) {
+        List<StatLine> stats = new ArrayList<>();
         extractTopPerformers(boxscore.path("homeTeam"), stats);
         extractTopPerformers(boxscore.path("awayTeam"), stats);
-
-        result.set("stats", stats);
-        return result;
+        return new StatsResponse("Top Performers", "vertical", stats);
     }
 
-    private void extractTopPerformers(JsonNode team, ArrayNode stats) {
+    private void extractTopPerformers(com.fasterxml.jackson.databind.JsonNode team, List<StatLine> stats) {
         if (!team.has("players")) return;
 
         String teamTricode = team.path("teamTricode").asText();
-        ArrayNode players = (ArrayNode) team.get("players");
+        com.fasterxml.jackson.databind.JsonNode players = team.get("players");
+        if (players == null || !players.isArray()) return;
 
-        players.forEach(player -> {
+        for (com.fasterxml.jackson.databind.JsonNode player : players) {
             if (stats.size() >= 8) return;
 
             int points = player.path("statistics").path("points").asInt();
             if (points >= 15) {
-                ObjectNode statLine = objectMapper.createObjectNode();
-                statLine.put("playerId", player.path("personId").asInt());
-                statLine.put("playerName", player.path("name").asText());
-                statLine.put("playerImageUrl",
-                        "https://cdn.nba.com/headshots/nba/latest/1040x760/" +
-                        player.path("personId").asText() + ".png");
-                statLine.put("teamTricode", teamTricode);
-                statLine.put("statCategory", "PTS");
-                statLine.put("statValue", String.valueOf(points));
-                statLine.put("statLabel", "Points");
-                stats.add(statLine);
+                int personId = player.path("personId").asInt();
+                stats.add(new StatLine(
+                        personId,
+                        player.path("name").asText(),
+                        "https://cdn.nba.com/headshots/nba/latest/1040x760/" + personId + ".png",
+                        teamTricode,
+                        "PTS",
+                        String.valueOf(points),
+                        "Points"));
             }
-        });
+        }
     }
 
-    private JsonNode createMockStats(String gameId) {
-        ObjectNode result = objectMapper.createObjectNode();
-        result.put("title", "Top Performers");
-        result.put("layout", "vertical");
+    private StatsResponse createMockStats(String gameId) {
+        List<StatLine> stats = new ArrayList<>();
+        stats.add(mockStatLine(1627759, "Jaylen Brown", "BOS", "PTS", "31"));
+        stats.add(mockStatLine(1628369, "Jayson Tatum", "BOS", "PTS", "28"));
+        stats.add(mockStatLine(202710, "Jimmy Butler", "MIA", "PTS", "26"));
+        stats.add(mockStatLine(1629216, "Bam Adebayo", "MIA", "REB", "11"));
+        return new StatsResponse("Top Performers", "vertical", stats);
+    }
 
-        ArrayNode stats = objectMapper.createArrayNode();
-        stats.add(utils.createStatLine(1627759, "Jaylen Brown", "BOS", "PTS", "31"));
-        stats.add(utils.createStatLine(1628369, "Jayson Tatum", "BOS", "PTS", "28"));
-        stats.add(utils.createStatLine(202710, "Jimmy Butler", "MIA", "PTS", "26"));
-        stats.add(utils.createStatLine(1629216, "Bam Adebayo", "MIA", "REB", "11"));
-
-        result.set("stats", stats);
-        return result;
+    private static StatLine mockStatLine(int playerId, String name, String team,
+                                            String category, String value) {
+        return new StatLine(
+                playerId,
+                name,
+                "https://cdn.nba.com/headshots/nba/latest/1040x760/" + playerId + ".png",
+                team,
+                category,
+                value,
+                category.equals("PTS") ? "Points" : "Rebounds");
     }
 }
 

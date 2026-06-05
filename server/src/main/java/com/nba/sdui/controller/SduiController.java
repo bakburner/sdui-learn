@@ -157,7 +157,7 @@ public class SduiController {
         log.info("Stats request: gameId={}", gameId);
 
         try {
-            JsonNode statsResponse = compositionService.getPlayerStats(gameId);
+            SduiCompositionService.StatsResponse statsResponse = compositionService.getPlayerStats(gameId);
             log.info("Stats response composed successfully");
             return ResponseEntity.ok()
                     .cacheControl(CacheControl.noCache())

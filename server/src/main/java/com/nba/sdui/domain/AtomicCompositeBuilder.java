@@ -14,6 +14,9 @@ import com.nba.sdui.models.generated.Action;
 import com.nba.sdui.models.generated.AtomicComposite;
 import com.nba.sdui.models.generated.AtomicElement;
 import com.nba.sdui.models.generated.Badge;
+import com.nba.sdui.models.generated.Column;
+import com.nba.sdui.models.generated.CornerRadii;
+import com.nba.sdui.models.generated.Row;
 import com.nba.sdui.models.generated.Section;
 import com.nba.sdui.models.generated.Spacing;
 
@@ -185,7 +188,7 @@ public class AtomicCompositeBuilder {
                                         String titleColorToken,
                                         String headlineColorToken,
                                         String subheadColorToken) {
-        ObjectNode section = sectionEnvelope(id, analyticsId);
+        Section section = newSection(id, analyticsId);
 
         // Emit a bare root container — outer chrome (background, padding,
         // radius, shadow, margin) is owned exclusively by the shared
@@ -193,44 +196,44 @@ public class AtomicCompositeBuilder {
         // supply `section.surface` on the returned envelope. The row
         // stretches to fill the available width so the promo subject
         // left-aligns and the CTA (if any) sits against the trailing edge.
-        ObjectNode root = containerNode("row", null, "center");
-        root.put("widthMode", "fill");
-        ArrayNode rootChildren = om.createArrayNode();
+        AtomicElement root = container("row", null, "center");
+        root.setWidthMode(AtomicElement.SizingMode.fromValue("fill"));
+        List<AtomicElement> rootChildren = new ArrayList<>();
 
         if (imageUrl != null) {
-            ObjectNode img = imageNode(imageUrl, 120, 80, "cover");
-            img.put("cornerRadius", tokens.radius("md"));
-            AccessibilityHelper.addImage(om, img, headline != null ? headline : "Promo image");
+            AtomicElement img = image(imageUrl, 120, 80, "cover");
+            img.setCornerRadius(tokens.radius("md"));
+            AccessibilityHelper.addImage(img, headline != null ? headline : "Promo image");
             rootChildren.add(img);
-            rootChildren.add(spacerNode(tokens.spacing("lg")));
+            rootChildren.add(spacer(tokens.spacing("lg")));
         }
 
-        ObjectNode contentCol = containerNode("column", null, "start");
-        setFlexNode(contentCol, 1.0);
-        ArrayNode colChildren = om.createArrayNode();
+        AtomicElement contentCol = container("column", null, "start");
+        setFlex(contentCol, 1.0);
+        List<AtomicElement> colChildren = new ArrayList<>();
 
         if (title != null) {
-            colChildren.add(textNode(title.toUpperCase(), "labelSmall", "bold", titleColorToken, null));
-            colChildren.add(spacerNode(tokens.spacing("sm")));
+            colChildren.add(text(title.toUpperCase(), "labelSmall", "bold", titleColorToken, null));
+            colChildren.add(spacer(tokens.spacing("sm")));
         }
         if (headline != null) {
-            colChildren.add(textNode(headline, "titleMedium", "bold", headlineColorToken, null));
-            colChildren.add(spacerNode(tokens.spacing("sm")));
+            colChildren.add(text(headline, "titleMedium", "bold", headlineColorToken, null));
+            colChildren.add(spacer(tokens.spacing("sm")));
         }
         if (subhead != null) {
-            colChildren.add(textNode(subhead, "bodySmall", null, subheadColorToken, 2));
+            colChildren.add(text(subhead, "bodySmall", null, subheadColorToken, 2));
         }
         if (targetUri != null) {
-            colChildren.add(spacerNode(tokens.spacing("md")));
+            colChildren.add(spacer(tokens.spacing("md")));
             String label = ctaLabel != null ? ctaLabel : "Learn More";
-            colChildren.add(buttonNode(label, "primary", tapNavigateNode(targetUri)));
+            colChildren.add(button(label, "primary", tapNavigate(targetUri)));
         }
 
-        contentCol.set("children", colChildren);
+        contentCol.setChildren(colChildren);
         rootChildren.add(contentCol);
-        root.set("children", rootChildren);
-        wrapUiNode(section, root);
-        return bindSection(section);
+        root.setChildren(rootChildren);
+        wrapUi(section, root);
+        return section;
     }
 
     // ── ContentRail ─────────────────────────────────────────────────────
@@ -243,38 +246,39 @@ public class AtomicCompositeBuilder {
      */
     public Section buildContentRail(String id, String analyticsId,
                                         String title, String[][] cards) {
-        ObjectNode section = sectionEnvelope(id, analyticsId);
+        Section section = newSection(id, analyticsId);
 
-        ObjectNode root = containerNode("column", null, null);
-        root.put("widthMode", "fill");
-        root.set("padding", paddingNode(0, 0, 0, tokens.spacing("md")));
-        ArrayNode rootChildren = om.createArrayNode();
+        AtomicElement root = container("column", null, null);
+        root.setWidthMode(AtomicElement.SizingMode.fromValue("fill"));
+        root.setPadding(padding(0, 0, 0, tokens.spacing("md")));
+        List<AtomicElement> rootChildren = new ArrayList<>();
 
         if (title != null) {
-            ObjectNode titleEl = textNode(title, "titleMedium", "bold", null, null);
-            titleEl.set("padding", paddingNode(tokens.spacing("lg"), tokens.spacing("lg"), tokens.spacing("md"), tokens.spacing("md")));
+            AtomicElement titleEl = text(title, "titleMedium", "bold", null, null);
+            titleEl.setPadding(padding(tokens.spacing("lg"), tokens.spacing("lg"),
+                    tokens.spacing("md"), tokens.spacing("md")));
             rootChildren.add(titleEl);
         }
 
-        ObjectNode scroll = om.createObjectNode();
-        scroll.put("type", "ScrollContainer");
-        scroll.put("direction", "row");
-        scroll.put("gap", tokens.spacing("md"));
-        scroll.put("showIndicators", false);
-        ArrayNode scrollChildren = om.createArrayNode();
+        AtomicElement scroll = new AtomicElement()
+                .withType(AtomicElement.Type.fromValue("ScrollContainer"))
+                .withDirection(AtomicElement.Direction.fromValue("row"))
+                .withGap(tokens.spacing("md"));
+        scroll.setShowIndicators(false);
+        List<AtomicElement> scrollChildren = new ArrayList<>();
 
         for (String[] c : cards) {
             scrollChildren.add(buildContentCard(c[0], c[1], c[2], c[3], c[4], c[5], c[6]));
         }
 
-        scroll.set("children", scrollChildren);
+        scroll.setChildren(scrollChildren);
         rootChildren.add(scroll);
-        root.set("children", rootChildren);
-        wrapUiNode(section, root);
-        return bindSection(section);
+        root.setChildren(rootChildren);
+        wrapUi(section, root);
+        return section;
     }
 
-    private ObjectNode buildContentCard(String id, String headline, String subhead,
+    private AtomicElement buildContentCard(String id, String headline, String subhead,
                                           String thumbnailUrl, String contentType,
                                           String duration, String targetUri) {
         // Plain container (no variant): the `elevated` variant's default
@@ -284,15 +288,15 @@ public class AtomicCompositeBuilder {
         // is defined by its own gradient background, corner radius, and
         // the scroll container's sibling gap (not by a drop shadow on
         // neighbouring surfaces).
-        ObjectNode card = containerNode("column", null, null);
-        card.put("id", id);
+        AtomicElement card = container("column", null, null);
+        card.setId(id);
         // Fix the card's outer width so the image (also 200) and any
         // full-width overlays (duration badge strip) meet the card edge
         // flush. Without this the card sizes to max(child intrinsic
         // widths) — a long 2-line headline would push the card past
         // 200, leaving an empty right gutter next to the image.
-        card.put("width", 200);
-        card.put("cornerRadius", 0);
+        card.setWidth(200);
+        card.setCornerRadius(0);
         // Subtle vertical gradient so the card silhouette reads against
         // the feed background without relying on a drop shadow.
         ObjectNode cardBg = om.createObjectNode();
@@ -301,41 +305,41 @@ public class AtomicCompositeBuilder {
         cardBgColors.add(tokens.color("nba.bg.tertiary"));
         cardBg.set("colors", cardBgColors);
         cardBg.put("direction", "vertical");
-        card.set("background", cardBg);
+        card.setBackground(cardBg);
         if (targetUri != null) {
-            card.set("actions", singleActionArrayNode(tapNavigateNode(targetUri)));
-            AccessibilityHelper.addButton(om, card, headline);
+            card.setActions(singleActionArray(tapNavigate(targetUri)));
+            AccessibilityHelper.addButton(card, headline);
         }
-        ArrayNode children = om.createArrayNode();
+        List<AtomicElement> children = new ArrayList<>();
 
         if (thumbnailUrl != null) {
-            ObjectNode imageWrap = containerNode("column", null, null);
-            imageWrap.put("widthMode", "fill");
+            AtomicElement imageWrap = container("column", null, null);
+            imageWrap.setWidthMode(AtomicElement.SizingMode.fromValue("fill"));
             // Media should meet the card's top edge; any inset creates a
             // visible strip of card background above the thumbnail.
-            imageWrap.set("padding", paddingNode(0, 0, 0, 0));
+            imageWrap.setPadding(padding(0, 0, 0, 0));
 
-            ObjectNode img = thumbnailImageNode(thumbnailUrl);
-            img.put("widthMode", "fill");
-            img.put("aspectRatio", 16.0 / 9.0);
-            AccessibilityHelper.addImage(om, img, headline);
+            AtomicElement img = thumbnailImage(thumbnailUrl);
+            img.setWidthMode(AtomicElement.SizingMode.fromValue("fill"));
+            img.setAspectRatio(16.0 / 9.0);
+            AccessibilityHelper.addImage(img, headline);
             if (duration != null) {
-                badgeNode(img, durationBadgeNode(duration), "bottomEnd");
+                badge(img, durationBadge(duration), "bottomEnd");
             } else if ("video".equalsIgnoreCase(contentType)) {
-                badgeNode(img, liveBadgeNode(), "bottomEnd");
+                badge(img, liveBadge(), "bottomEnd");
             }
-            ArrayNode imageWrapChildren = om.createArrayNode();
-            imageWrapChildren.add(img);
-            imageWrap.set("children", imageWrapChildren);
+            imageWrap.setChildren(List.of(img));
             children.add(imageWrap);
         }
 
-        children.add(spacerNode(tokens.spacing("sm")));
-        ObjectNode headlineEl = textNode(headline, "bodySmall", "semiBold", tokens.color("nba.label.primary"), 2);
-        headlineEl.set("padding", paddingNode(tokens.spacing("lg"), tokens.spacing("lg"), tokens.spacing("sm"), tokens.spacing("md")));
+        children.add(spacer(tokens.spacing("sm")));
+        AtomicElement headlineEl = text(headline, "bodySmall", "semiBold",
+                tokens.color("nba.label.primary"), 2);
+        headlineEl.setPadding(padding(tokens.spacing("lg"), tokens.spacing("lg"),
+                tokens.spacing("sm"), tokens.spacing("md")));
         children.add(headlineEl);
 
-        card.set("children", children);
+        card.setChildren(children);
         return card;
     }
 
@@ -349,62 +353,60 @@ public class AtomicCompositeBuilder {
      */
     public Section buildFollowingRail(String id, String analyticsId,
                                           String title, String[][] items) {
-        ObjectNode section = sectionEnvelope(id, analyticsId);
+        Section section = newSection(id, analyticsId);
 
-        ObjectNode root = containerNode("column", null, null);
-        root.set("padding", paddingNode(0, 0, 0, tokens.spacing("md")));
-        ArrayNode rootChildren = om.createArrayNode();
+        AtomicElement root = container("column", null, null);
+        root.setPadding(padding(0, 0, 0, tokens.spacing("md")));
+        List<AtomicElement> rootChildren = new ArrayList<>();
 
         if (title != null) {
-            ObjectNode titleEl = textNode(title, "titleMedium", "bold", null, null);
-            titleEl.set("padding", paddingNode(tokens.spacing("lg"), tokens.spacing("lg"), tokens.spacing("sm"), tokens.spacing("sm")));
+            AtomicElement titleEl = text(title, "titleMedium", "bold", null, null);
+            titleEl.setPadding(padding(tokens.spacing("lg"), tokens.spacing("lg"),
+                    tokens.spacing("sm"), tokens.spacing("sm")));
             rootChildren.add(titleEl);
         }
 
-        ObjectNode scroll = om.createObjectNode();
-        scroll.put("type", "ScrollContainer");
-        scroll.put("direction", "row");
-        scroll.put("gap", tokens.spacing("lg"));
-        scroll.put("showIndicators", false);
-        ArrayNode scrollChildren = om.createArrayNode();
+        AtomicElement scroll = scrollContainer("row", tokens.spacing("lg"), false);
+        List<AtomicElement> scrollChildren = new ArrayList<>();
 
         for (String[] item : items) {
             scrollChildren.add(buildFollowingItem(item[0], item[1], item[2], item[4]));
         }
 
-        scroll.set("children", scrollChildren);
+        scroll.setChildren(scrollChildren);
         rootChildren.add(scroll);
-        root.set("children", rootChildren);
-        wrapUiNode(section, root);
-        return bindSection(section);
+        root.setChildren(rootChildren);
+        wrapUi(section, root);
+        return section;
     }
 
-    private ObjectNode buildFollowingItem(String id, String name, String imageUrl,
+    private AtomicElement buildFollowingItem(String id, String name, String imageUrl,
                                             String targetUri) {
-        ObjectNode item = containerNode("column", "center", "center");
-        item.put("id", id);
+        AtomicElement item = container("column", "center", "center");
+        item.setId(id);
         if (targetUri != null) {
-            item.set("actions", singleActionArrayNode(tapNavigateNode(targetUri)));
+            item.setActions(singleActionArray(tapNavigate(targetUri)));
         }
-        ArrayNode children = om.createArrayNode();
+        List<AtomicElement> children = new ArrayList<>();
 
         if (imageUrl != null) {
-            ObjectNode img = imageNode(imageUrl, 56, 56, "cover");
-            img.put("cornerRadius", tokens.radius("lg"));
-            AccessibilityHelper.addImage(om, img, name + " avatar");
+            AtomicElement img = image(imageUrl, 56, 56, "cover");
+            img.setCornerRadius(tokens.radius("lg"));
+            AccessibilityHelper.addImage(img, name + " avatar");
             children.add(img);
         } else {
-            ObjectNode fallback = textNode(name.length() >= 3 ? name.substring(0, 3).toUpperCase() : name.toUpperCase(),
+            AtomicElement fallback = text(
+                    name.length() >= 3 ? name.substring(0, 3).toUpperCase() : name.toUpperCase(),
                     "labelSmall", "bold", tokens.color("nba.label.tertiary"), null);
             children.add(fallback);
         }
 
-        children.add(spacerNode(tokens.spacing("sm")));
-        ObjectNode nameEl = textNode(name, "labelSmall", null, null, 1);
-        nameEl.put("maxLines", 1);
+        children.add(spacer(tokens.spacing("sm")));
+        AtomicElement nameEl = text(name, "labelSmall", null, null, 1);
+        nameEl.setMaxLines(1);
         children.add(nameEl);
 
-        item.set("children", children);
+        item.setChildren(children);
         return item;
     }
 
@@ -420,49 +422,48 @@ public class AtomicCompositeBuilder {
                                         String title,
                                         String[][] columns, String[][] rows,
                                         boolean striped) {
-        ObjectNode section = sectionEnvelope(id, analyticsId);
+        Section section = newSection(id, analyticsId);
 
-        ObjectNode root = containerNode("column", null, "stretch");
-        root.put("widthMode", "fill");
-        root.set("padding", paddingNode(0, 0, 0, tokens.spacing("md")));
-        ArrayNode rootChildren = om.createArrayNode();
+        AtomicElement root = container("column", null, "stretch");
+        root.setWidthMode(AtomicElement.SizingMode.fromValue("fill"));
+        root.setPadding(padding(0, 0, 0, tokens.spacing("md")));
+        List<AtomicElement> rootChildren = new ArrayList<>();
 
         if (title != null) {
-            ObjectNode titleEl = textNode(title, "titleMedium", "bold", null, null);
-            titleEl.set("padding", paddingNode(tokens.spacing("lg"), tokens.spacing("lg"), tokens.spacing("md"), tokens.spacing("md")));
+            AtomicElement titleEl = text(title, "titleMedium", "bold", null, null);
+            titleEl.setPadding(padding(tokens.spacing("lg"), tokens.spacing("lg"),
+                    tokens.spacing("md"), tokens.spacing("md")));
             rootChildren.add(titleEl);
         }
 
-        ObjectNode grid = om.createObjectNode();
-        grid.put("type", "DisplayGrid");
-        grid.put("id", id + "-grid");
-        grid.put("widthMode", "fill");
-        grid.put("striped", striped);
+        AtomicElement grid = new AtomicElement()
+                .withType(AtomicElement.Type.fromValue("DisplayGrid"));
+        grid.setId(id + "-grid");
+        grid.setWidthMode(AtomicElement.SizingMode.fromValue("fill"));
+        grid.setStriped(striped);
 
-        ArrayNode colArray = om.createArrayNode();
+        List<Column> colList = new ArrayList<>();
         for (String[] col : columns) {
-            ObjectNode colNode = om.createObjectNode();
-            colNode.put("key", col[0]);
-            colNode.put("label", col[1]);
-            if (col.length > 2 && col[2] != null) colNode.put("align", col[2]);
-            colArray.add(colNode);
+            Column c = new Column().withKey(col[0]).withLabel(col[1]);
+            if (col.length > 2 && col[2] != null) c.setAlign(Column.Align.fromValue(col[2]));
+            colList.add(c);
         }
-        grid.set("columns", colArray);
+        grid.setColumns(colList);
 
-        ArrayNode rowArray = om.createArrayNode();
+        List<Row> rowList = new ArrayList<>();
         for (String[] row : rows) {
-            ObjectNode rowNode = om.createObjectNode();
+            Row r = new Row();
             for (int i = 0; i < columns.length && i < row.length; i++) {
-                rowNode.put(columns[i][0], row[i]);
+                r.setAdditionalProperty(columns[i][0], row[i]);
             }
-            rowArray.add(rowNode);
+            rowList.add(r);
         }
-        grid.set("rows", rowArray);
+        grid.setRows(rowList);
 
         rootChildren.add(grid);
-        root.set("children", rootChildren);
-        wrapUiNode(section, root);
-        return bindSection(section);
+        root.setChildren(rootChildren);
+        wrapUi(section, root);
+        return section;
     }
 
     // ══════════════════════════════════════════════════════════════════════
@@ -3454,6 +3455,27 @@ public class AtomicCompositeBuilder {
         putLayoutScalar(r, "bottomStart", bottomStart);
         putLayoutScalar(r, "bottomEnd", bottomEnd);
         return r;
+    }
+
+    /** Typed variant of {@link #cornerRadii} returning a generated {@link CornerRadii}. */
+    public CornerRadii cornerRadiiOf(Object topStart, Object topEnd,
+                                     Object bottomStart, Object bottomEnd) {
+        CornerRadii r = new CornerRadii();
+        if (topStart != null) r.setTopStart(normalizeLayoutScalar(topStart));
+        if (topEnd != null) r.setTopEnd(normalizeLayoutScalar(topEnd));
+        if (bottomStart != null) r.setBottomStart(normalizeLayoutScalar(bottomStart));
+        if (bottomEnd != null) r.setBottomEnd(normalizeLayoutScalar(bottomEnd));
+        return r;
+    }
+
+    /** Construct a typed ScrollContainer AtomicElement. */
+    public AtomicElement scrollContainer(String direction, Object gap, boolean showIndicators) {
+        AtomicElement el = new AtomicElement()
+                .withType(AtomicElement.Type.fromValue("ScrollContainer"));
+        if (direction != null) el.setDirection(AtomicElement.Direction.fromValue(direction));
+        if (gap != null) el.setGap(gap);
+        el.setShowIndicators(showIndicators);
+        return el;
     }
 
     /** Puts a LayoutScalar value (int or "token:..." string) into a node. */

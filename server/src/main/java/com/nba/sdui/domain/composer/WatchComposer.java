@@ -1,9 +1,11 @@
 package com.nba.sdui.domain.composer;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.nba.sdui.models.generated.Screen;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -56,7 +58,7 @@ public class WatchComposer {
         this.atomicBuilder = new AtomicCompositeBuilder(objectMapper, tokens);
     }
 
-    public JsonNode composeWatch(String traceId, String locale) {
+    public Screen composeWatch(String traceId, String locale) {
         log.info("Composing Watch screen, locale={}", locale);
 
         ObjectNode response = objectMapper.createObjectNode();
@@ -78,7 +80,11 @@ public class WatchComposer {
         response.set("contentInsets", insets);
 
         utils.stampStringTableOnSections(response, locale);
-        return response;
+        try {
+            return objectMapper.treeToValue(response, Screen.class);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Failed to bind composed Watch screen to Screen.class", e);
+        }
     }
 
     // ── Tab group ──────────────────────────────────────────────────────

@@ -165,7 +165,7 @@ public class SduiCompositionService {
     public JsonNode composeWatch(SduiRequestContext ctx) {
         long start = System.nanoTime();
         try {
-            return watchComposer.composeWatch(ctx.getTraceId(), ctx.getLocale());
+            return objectMapper.valueToTree(watchComposer.composeWatch(ctx.getTraceId(), ctx.getLocale()));
         } finally {
             metrics.recordComposition("watch", "screen", false, Duration.ofNanos(System.nanoTime() - start));
         }

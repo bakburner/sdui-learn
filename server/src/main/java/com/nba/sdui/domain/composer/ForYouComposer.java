@@ -110,7 +110,7 @@ public class ForYouComposer {
     private void registerSectionResolvers() {
         String sectionId = SectionIdDeriver.derive(
                 "stats-api:scoreboard", "AtomicComposite", "tonights-games-hero");
-        sectionRefreshService.registerResolver(sectionId, (id, ctx) -> objectMapper.valueToTree(buildTonightsGamesHero()));
+        sectionRefreshService.registerResolver(sectionId, (id, ctx) -> buildTonightsGamesHero());
     }
 
     public Screen composeForYou(String traceId, String locale) {

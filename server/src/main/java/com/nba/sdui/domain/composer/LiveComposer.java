@@ -123,10 +123,7 @@ public class LiveComposer {
             Section section = liveGames.isEmpty()
                     ? buildEmptyLiveScheduleList()
                     : buildLiveScheduleList(liveGames);
-            // Section channel is still ObjectNode-shaped at the SectionRefreshService
-            // boundary (see plan-server-typed-pojo-migration.md, deferred to a later
-            // step that flips the section channel to typed Section returns).
-            return objectMapper.valueToTree(section);
+            return section;
         });
 
         parameterizedRefreshService.registerResolver("games",

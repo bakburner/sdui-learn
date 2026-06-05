@@ -329,7 +329,7 @@ public class GameDetailComposer {
         return null;
     }
 
-    private JsonNode refreshGameDetailSection(String sectionId, SduiRequestContext ctx) throws IOException {
+    private Section refreshGameDetailSection(String sectionId, SduiRequestContext ctx) throws IOException {
         SectionIdDeriver.Parsed parsed = SectionIdDeriver.parse(sectionId);
         if (!parsed.isDerived() || !parsed.source().startsWith("stats-api:game-")) {
             throw new IllegalArgumentException("Invalid game detail sectionId: " + sectionId);
@@ -360,7 +360,7 @@ public class GameDetailComposer {
         String gameState = deriveGameState(gameId);
         section.setRefreshPolicy(buildRefreshPolicyForGameSection(
                 gameState, section.getId() == null ? "" : section.getId(), gameId));
-        return objectMapper.valueToTree(section);
+        return section;
     }
 
     /**

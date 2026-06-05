@@ -1231,17 +1231,6 @@ public class AtomicCompositeBuilder {
      * renderer — Text draws only the foreground glyph on all three
      * platforms. Container backgrounds + corner radii are universal.
      */
-    private ObjectNode pillBadge(String label, String backgroundColor) {
-        ObjectNode badge = containerNode("row", null, "center");
-        badge.put("background", backgroundColor);
-        badge.put("cornerRadius", tokens.radius("sm"));
-        badge.set("padding", paddingNode(tokens.spacing("xs"), tokens.spacing("xs"), tokens.spacing("xs"), tokens.spacing("xs")));
-        ArrayNode children = om.createArrayNode();
-        children.add(textNode(label, "labelSmall", "bold", tokens.color("nba.label-inverted.primary"), null));
-        badge.set("children", children);
-        return badge;
-    }
-
     private AtomicElement buildNbaTvSlot(String id, String title, String subtitle,
                                         String displayTime, boolean isLive,
                                         String targetUri) {
@@ -1318,48 +1307,6 @@ public class AtomicCompositeBuilder {
     // ── Multi-background / multi-shadow helpers (Workstream B) ──────────
 
     /**
-     * Set the {@code backgrounds} array on an element. Each layer can be:
-     * <ul>
-     *   <li>A {@link String} — solid color (hex or token reference)</li>
-     *   <li>An {@link ObjectNode} — gradient or image background object</li>
-     * </ul>
-     * Index 0 is the bottommost layer (Figma convention); higher indices
-     * paint on top. Clients that receive both {@code background} and
-     * {@code backgrounds} prefer the array form.
-     */
-    private ObjectNode backgroundsNode(ObjectNode element, List<Object> layers) {
-        ArrayNode arr = om.createArrayNode();
-        for (Object layer : layers) {
-            if (layer instanceof String s) {
-                arr.add(s);
-            } else if (layer instanceof ObjectNode obj) {
-                arr.add(obj);
-            } else {
-                throw new IllegalArgumentException(
-                    "backgrounds layer must be String (color) or ObjectNode (gradient/image), got: "
-                        + (layer == null ? "null" : layer.getClass().getName()));
-            }
-        }
-        element.set("backgrounds", arr);
-        return element;
-    }
-
-    /**
-     * Set the {@code shadows} array on an element. Index 0 is the outermost
-     * shadow (Figma convention); higher indices are closer to the element.
-     * Clients that receive both {@code shadow} and {@code shadows} prefer
-     * the array form.
-     */
-    private ObjectNode shadowsNode(ObjectNode element, List<ObjectNode> shadowList) {
-        ArrayNode arr = om.createArrayNode();
-        for (ObjectNode s : shadowList) {
-            arr.add(s);
-        }
-        element.set("shadows", arr);
-        return element;
-    }
-
-    /**
      * Create a Shadow ObjectNode with an explicit {@code type} field.
      *
      * @param type    "drop" (outer) or "inner" (inset)
@@ -1378,36 +1325,9 @@ public class AtomicCompositeBuilder {
         return s;
     }
 
-    /** Attach a badge overlay to a parent element. */
-    private ObjectNode badgeNode(ObjectNode parent, ObjectNode badgeElement, String alignment) {
-        ObjectNode b = om.createObjectNode();
-        b.set("element", badgeElement);
-        if (alignment != null) b.put("alignment", alignment);
-        parent.set("badge", b);
-        return parent;
-    }
-
     /** Set opacity on an element (0.0 = transparent, 1.0 = opaque). */
     private ObjectNode opacityNode(ObjectNode element, double value) {
         element.put("opacity", value);
-        return element;
-    }
-
-    /** Set text alignment: "start", "center", or "end". */
-    private ObjectNode textAlignNode(ObjectNode element, String align) {
-        element.put("textAlign", align);
-        return element;
-    }
-
-    /** Enable monospaced/tabular digit rendering on a text element. */
-    private ObjectNode monospacedDigitsNode(ObjectNode element) {
-        element.put("monospacedDigits", true);
-        return element;
-    }
-
-    /** Set showIndicators flag on a ScrollContainer element. */
-    private ObjectNode showIndicatorsNode(ObjectNode element, boolean show) {
-        element.put("showIndicators", show);
         return element;
     }
 
@@ -3005,31 +2925,6 @@ public class AtomicCompositeBuilder {
     }
 
     /**
-     * Paged horizontal carousel: sets {@code paging}, {@code snapAlignment},
-     * and {@code pageIndicator} only when {@code childCount > 1}. Dot colors
-     * default to tertiary/inverse; pass non-null overrides to customize.
-     */
-    private ObjectNode pagedHorizontalScroll(Object gap, int childCount, ObjectNode padding,
-                                            String indicatorAlignment,
-                                            String inactiveDotColor, String activeDotColor) {
-        ObjectNode scroll = scrollRow(gap, false);
-        if (padding != null) {
-            scroll.set("padding", padding);
-        }
-        if (childCount > 1) {
-            scroll.put("paging", true);
-            scroll.put("snapAlignment", "center");
-            ObjectNode indicator = om.createObjectNode();
-            indicator.put("style", "dots");
-            indicator.put("alignment", indicatorAlignment != null ? indicatorAlignment : "bottomCenter");
-            indicator.put("color", inactiveDotColor != null ? inactiveDotColor : tokens.color("nba.label.tertiary"));
-            indicator.put("activeColor", activeDotColor != null ? activeDotColor : tokens.color("nba.label-inverted.primary"));
-            scroll.set("pageIndicator", indicator);
-        }
-        return scroll;
-    }
-
-    /**
      * Typed variant: paged horizontal carousel. Schema does not expose
      * {@code paging}/{@code snapAlignment}/{@code pageIndicator} as typed
      * fields on AtomicElement, so they ride through as additional properties
@@ -3051,24 +2946,6 @@ public class AtomicCompositeBuilder {
             scroll.setAdditionalProperty("pageIndicator", indicator);
         }
         return scroll;
-    }
-
-    private ObjectNode overlayContainerNode(ObjectNode base, List<ObjectNode> overlays) {
-        ObjectNode node = om.createObjectNode();
-        node.put("type", "OverlayContainer");
-        node.set("base", base);
-        ArrayNode arr = om.createArrayNode();
-        for (ObjectNode overlay : overlays) arr.add(overlay);
-        node.set("overlays", arr);
-        return node;
-    }
-
-    private ObjectNode overlayNode(String alignment, ObjectNode inset, ObjectNode element) {
-        ObjectNode overlay = om.createObjectNode();
-        if (alignment != null) overlay.put("alignment", alignment);
-        if (inset != null) overlay.set("inset", inset);
-        overlay.set("element", element);
-        return overlay;
     }
 
     private ObjectNode gradient(String first, String second, String direction) {
@@ -3095,16 +2972,6 @@ public class AtomicCompositeBuilder {
         children.add(textNode(initials(label), "labelSmall", "bold", tokens.color("nba.label.secondary"), 1));
         box.set("children", children);
         return box;
-    }
-
-    private ArrayNode logoRow(String csv, int width, int height) {
-        ArrayNode logos = om.createArrayNode();
-        if (csv == null || csv.isBlank()) return logos;
-        for (String raw : csv.split(",")) {
-            String url = raw.trim();
-            if (!url.isEmpty()) logos.add(imageNode(url, width, height, "contain", null));
-        }
-        return logos;
     }
 
     /** Typed variant: returns logos as a typed AtomicElement list for use in typed containers. */
@@ -3209,39 +3076,6 @@ public class AtomicCompositeBuilder {
         section.set("refreshPolicy", refreshPolicy != null ? refreshPolicy
                 : om.createObjectNode().put("type", "static"));
         return section;
-    }
-
-    /**
-     * Full builder that derives section ID from contentSourceId and handles envelope setup.
-     * Centralizes ID derivation + contentSourceId assignment.
-     *
-     * @param contentSourceId origin identifier (e.g. "cms:article-42", "stats-api:leaders-2025")
-     * @param sectionType     section type (typically "AtomicComposite")
-     * @param analyticsId     analytics identifier (optional)
-     * @param refreshPolicy   refresh policy node (optional, defaults to static)
-     * @return section envelope with derived ID and contentSourceId field
-     */
-    private ObjectNode sectionEnvelopeWithDerivedId(String contentSourceId, String sectionType,
-                                            String analyticsId, ObjectNode refreshPolicy) {
-        String sectionId = SectionIdDeriver.derive(contentSourceId, sectionType);
-        ObjectNode section = om.createObjectNode();
-        section.put("id", sectionId);
-        section.put("type", sectionType);
-        section.put("contentSourceId", contentSourceId);
-        if (analyticsId != null) section.put("analyticsId", analyticsId);
-        section.set("refreshPolicy", refreshPolicy != null ? refreshPolicy
-                : om.createObjectNode().put("type", "static"));
-        return section;
-    }
-
-    /** Attach sectionStates metadata to a section built by this builder. */
-    private void attachSectionStatesNode(ObjectNode section, ObjectNode sectionStates) {
-        if (sectionStates != null) section.set("sectionStates", sectionStates);
-    }
-
-    /** Attach a refreshPolicy to an already-built section. */
-    private void attachRefreshPolicyNode(ObjectNode section, ObjectNode refreshPolicy) {
-        if (refreshPolicy != null) section.set("refreshPolicy", refreshPolicy);
     }
 
     /**
@@ -3369,59 +3203,6 @@ public class AtomicCompositeBuilder {
         node.put("breakpoint", breakpoint);
         node.put("widthMode", "fill");
         return node;
-    }
-
-    /** Set flex on an element node (used on children of a Container for proportional sizing). */
-    private void setFlexNode(ObjectNode element, double flex) {
-        element.put("flex", flex);
-    }
-
-    /** Set width sizing mode on an element: "hug", "fill", or "fixed". */
-    private void widthModeNode(ObjectNode element, String mode) {
-        validateEnum("widthMode", mode, VALID_SIZE_MODES);
-        element.put("widthMode", mode);
-    }
-
-    /** Set height sizing mode on an element: "hug", "fill", or "fixed". */
-    private void heightModeNode(ObjectNode element, String mode) {
-        validateEnum("heightMode", mode, VALID_SIZE_MODES);
-        element.put("heightMode", mode);
-    }
-
-    /** Set minWidth (LayoutScalar: integer or token string). */
-    private void minWidthNode(ObjectNode element, Object scalar) {
-        putLayoutScalar(element, "minWidth", scalar);
-    }
-
-    /** Set maxWidth (LayoutScalar: integer or token string). */
-    private void maxWidthNode(ObjectNode element, Object scalar) {
-        putLayoutScalar(element, "maxWidth", scalar);
-    }
-
-    /** Set minHeight (LayoutScalar: integer or token string). */
-    private void minHeightNode(ObjectNode element, Object scalar) {
-        putLayoutScalar(element, "minHeight", scalar);
-    }
-
-    /** Set maxHeight (LayoutScalar: integer or token string). */
-    private void maxHeightNode(ObjectNode element, Object scalar) {
-        putLayoutScalar(element, "maxHeight", scalar);
-    }
-
-    /** Enable flex-wrap on a Container element. */
-    private void layoutWrapNode(ObjectNode element, boolean wrap) {
-        element.put("layoutWrap", wrap);
-    }
-
-    /** Set cross-axis gap for wrapped layouts (LayoutScalar: integer or token string). */
-    private void crossAxisGapNode(ObjectNode element, Object scalar) {
-        putLayoutScalar(element, "crossAxisGap", scalar);
-    }
-
-    /** Set per-child cross-axis alignment override: "start", "center", "end", or "stretch". */
-    private void alignSelfNode(ObjectNode element, String alignment) {
-        validateEnum("alignSelf", alignment, VALID_ALIGN_SELF);
-        element.put("alignSelf", alignment);
     }
 
     private ObjectNode textNode(String content, String variant, String weight,

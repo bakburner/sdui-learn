@@ -1,9 +1,11 @@
 package com.nba.sdui.domain.composer;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.nba.sdui.models.generated.Screen;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -63,7 +65,7 @@ public class HomeComposer {
         this.atomicBuilder = new AtomicCompositeBuilder(objectMapper, tokens);
     }
 
-    public JsonNode composeHome(String traceId, String locale) {
+    public Screen composeHome(String traceId, String locale) {
         log.info("Composing Home screen, locale={}", locale);
 
         ObjectNode response = objectMapper.createObjectNode();
@@ -99,7 +101,11 @@ public class HomeComposer {
         response.set("sections", sections);
         utils.ensureScreenContentInsets(response);
         utils.stampStringTableOnSections(response, locale);
-        return response;
+        try {
+            return objectMapper.treeToValue(response, Screen.class);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Failed to bind composed Home screen to Screen.class", e);
+        }
     }
 
     // ── Section builders ───────────────────────────────────────────────

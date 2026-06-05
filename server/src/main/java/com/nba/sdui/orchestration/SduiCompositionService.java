@@ -194,7 +194,7 @@ public class SduiCompositionService {
     public JsonNode composeHome(SduiRequestContext ctx) {
         long start = System.nanoTime();
         try {
-            return homeComposer.composeHome(ctx.getTraceId(), ctx.getLocale());
+            return objectMapper.valueToTree(homeComposer.composeHome(ctx.getTraceId(), ctx.getLocale()));
         } finally {
             metrics.recordComposition("home", "screen", false, Duration.ofNanos(System.nanoTime() - start));
         }

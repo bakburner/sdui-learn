@@ -2,7 +2,6 @@ package com.nba.sdui.domain;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -995,30 +994,6 @@ public class AtomicCompositeBuilder {
         root.setChildren(rootChildren);
         wrapUi(section, root);
         return section;
-    }
-
-    /**
-     * Overload that accepts pre-built stat JSON from dynamic API data.
-     * Each node should have: playerName, teamTricode, statCategory,
-     * statValue, playerImageUrl (optional).
-     */
-    public Section buildStatLineFromNodes(String id, String analyticsId,
-                                              String title, String layout,
-                                              ArrayNode statsNodes) {
-        int count = statsNodes != null ? statsNodes.size() : 0;
-        String[][] stats = new String[count][];
-        for (int i = 0; i < count; i++) {
-            var node = statsNodes.get(i);
-            stats[i] = new String[]{
-                String.valueOf(node.path("playerId").asInt()),
-                node.path("playerName").asText(""),
-                node.path("teamTricode").asText(""),
-                node.path("statCategory").asText(""),
-                node.path("statValue").asText(""),
-                node.has("playerImageUrl") ? node.path("playerImageUrl").asText() : null
-            };
-        }
-        return buildStatLine(id, analyticsId, title, layout, stats);
     }
 
     private AtomicElement buildStatRow(String playerId, String playerName, String teamTricode,

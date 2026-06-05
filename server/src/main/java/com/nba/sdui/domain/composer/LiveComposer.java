@@ -30,6 +30,7 @@ import com.nba.sdui.models.generated.RefreshPolicy;
 import com.nba.sdui.models.generated.Screen;
 import com.nba.sdui.models.generated.Section;
 import com.nba.sdui.models.generated.SectionSurface;
+import com.nba.sdui.models.generated.State;
 import com.nba.sdui.models.generated.Spacing;
 import com.nba.sdui.models.generated.Targeting;
 import com.nba.sdui.orchestration.ParameterizedRefreshService;
@@ -159,10 +160,10 @@ public class LiveComposer {
     public Screen composeLive(String traceId, String locale, String selectedDateOverride) {
         log.info("Composing Games screen, locale={}, dateOverride={}", locale, selectedDateOverride);
 
-        ObjectNode response = objectMapper.createObjectNode();
-        response.put("id", "games");
-        response.put("analyticsId", "games");
-        response.put("schemaVersion", schemaVersion);
+        Screen response = new Screen();
+        response.setId("games");
+        response.setAnalyticsId("games");
+        response.setSchemaVersion(schemaVersion);
         utils.applyTabDestinationNavigation(response, "games");
 
         // Always fetch the CDN today scoreboard first — it is the authoritative
@@ -176,9 +177,9 @@ public class LiveComposer {
         LocalDate fetchDate = resolveRequestedDate(selectedDateOverride, today);
         String selectedDate = fetchDate.toString();
 
-        ObjectNode state = objectMapper.createObjectNode();
-        state.put("games_selected_date", selectedDate);
-        response.set("state", state);
+        State state = new State();
+        state.setAdditionalProperty("games_selected_date", selectedDate);
+        response.setState(state);
 
         List<Section> sections = new ArrayList<>();
 
@@ -234,14 +235,10 @@ public class LiveComposer {
         // composer policy decides the token.
         applyInterSectionMargin(sections, tokens.spacing("md"));
 
-        response.set("sections", objectMapper.valueToTree(sections));
+        response.setSections(sections);
         utils.ensureScreenContentInsets(response);
         utils.stampStringTableOnSections(response, locale);
-        try {
-            return objectMapper.treeToValue(response, Screen.class);
-        } catch (JsonProcessingException e) {
-            throw new IllegalStateException("Failed to bind composed Games screen to Screen.class", e);
-        }
+        return response;
     }
 
     /**

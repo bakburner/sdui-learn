@@ -21,6 +21,7 @@ import com.nba.sdui.domain.port.ScoreboardPort;
 import com.nba.sdui.integration.model.scoreboard.Game;
 import com.nba.sdui.integration.model.scoreboard.ScoreboardResponse;
 import com.nba.sdui.models.generated.Screen;
+import com.nba.sdui.models.generated.RefreshPolicy;
 import com.nba.sdui.models.generated.Section;
 import com.nba.sdui.models.generated.SectionSurface;
 
@@ -76,10 +77,10 @@ public class ScoreboardComposer {
             composition = buildErrorScreen();
         }
 
-        ObjectNode response = composition.shell;
+        Screen response = composition.shell;
         List<Section> sections = composition.sections;
 
-        response.put("schemaVersion", schemaVersion);
+        response.setSchemaVersion(schemaVersion);
         utils.applyTabDestinationNavigation(response, "scoreboard");
 
         if (variant != null) {
@@ -90,24 +91,20 @@ public class ScoreboardComposer {
             }
         }
 
-        response.set("sections", objectMapper.valueToTree(sections));
+        response.setSections(sections);
         utils.ensureScreenContentInsets(response);
         utils.stampStringTableOnSections(response, locale);
-        try {
-            return objectMapper.treeToValue(response, Screen.class);
-        } catch (JsonProcessingException e) {
-            throw new IllegalStateException("Failed to bind composed Scoreboard screen to Screen.class", e);
-        }
+        return response;
     }
 
     /**
      * Internal carrier for the in-progress composition: the screen-level shell
      * (id, defaultRefreshPolicy, analyticsId, etc.) plus the typed section list
-     * the variant transforms operate on. The shell is bound to {@link Screen}
-     * at the public boundary; sections accumulate as typed objects throughout
-     * composition.
+     * the variant transforms operate on. The shell becomes the returned
+     * {@link Screen} at the public boundary; sections accumulate as typed
+     * objects throughout composition.
      */
-    private record Composition(ObjectNode shell, List<Section> sections) {}
+    private record Composition(Screen shell, List<Section> sections) {}
 
     /**
      * Build a minimal Scoreboard screen carrying a single {@code ErrorState}
@@ -116,11 +113,11 @@ public class ScoreboardComposer {
      * inventing fallback game cards.
      */
     private Composition buildErrorScreen() {
-        ObjectNode response = objectMapper.createObjectNode();
-        response.put("id", "scoreboard-live");
-        ObjectNode defaultRefreshPolicy = objectMapper.createObjectNode();
-        defaultRefreshPolicy.put("type", "static");
-        response.set("defaultRefreshPolicy", defaultRefreshPolicy);
+        Screen response = new Screen();
+        response.setId("scoreboard-live");
+        RefreshPolicy defaultRefreshPolicy = new RefreshPolicy();
+        defaultRefreshPolicy.setType(RefreshPolicy.RefreshType.STATIC);
+        response.setDefaultRefreshPolicy(defaultRefreshPolicy);
 
         List<Section> sections = new ArrayList<>();
         String contentSourceId = "stats-api:scoreboard";
@@ -147,9 +144,9 @@ public class ScoreboardComposer {
                 return null;
             }
 
-            ObjectNode response = objectMapper.createObjectNode();
-            response.put("id", "scoreboard-live");
-            response.put("analyticsId", "scoreboard_live");
+            Screen response = new Screen();
+            response.setId("scoreboard-live");
+            response.setAnalyticsId("scoreboard_live");
 
             List<Section> sections = new ArrayList<>();
             for (Game game : scoreboard.getGames()) {

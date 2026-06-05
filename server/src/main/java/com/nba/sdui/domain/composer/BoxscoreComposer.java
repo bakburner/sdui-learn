@@ -8,12 +8,15 @@ import com.nba.sdui.models.generated.RefreshPolicy;
 import com.nba.sdui.models.generated.Screen;
 import com.nba.sdui.models.generated.Section;
 import com.nba.sdui.models.generated.SectionStates;
+import com.nba.sdui.models.generated.State;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import com.nba.sdui.domain.SduiUtils;
 import com.nba.sdui.domain.SectionIdDeriver;
 import com.nba.sdui.domain.SectionSurfaces;
@@ -79,17 +82,16 @@ public class BoxscoreComposer {
 
         boolean hasLiveData = game != null && game.getHomeTeam() != null;
 
-        ObjectNode response = objectMapper.createObjectNode();
-        response.put("id", "boxscore-" + gameId);
-        response.put("type", "boxscore");
-        response.put("schemaVersion", schemaVersion);
-        response.put("parentUri", "nba://scoreboard");
-        response.set("navigation", utils.buildNavigation("game-detail"));
+        Screen response = new Screen();
+        response.setId("boxscore-" + gameId);
+        response.setSchemaVersion(schemaVersion);
+        response.setParentUri("nba://scoreboard");
+        response.setNavigation(utils.buildNavigation("game-detail"));
 
         if (!hasLiveData) {
             log.warn("No boxscore data available for gameId={}, returning empty screen", gameId);
-            response.set("state", objectMapper.createObjectNode());
-            ArrayNode sections = objectMapper.createArrayNode();
+            response.setState(new State());
+            List<Section> sections = new ArrayList<>();
             ObjectNode emptySection = objectMapper.createObjectNode();
             emptySection.put("id", SectionIdDeriver.derive(contentSourceId, "BoxscoreTable", "empty"));
             emptySection.put("contentSourceId", contentSourceId);
@@ -101,13 +103,13 @@ public class BoxscoreComposer {
             emptyData.set("players", objectMapper.createArrayNode());
             emptyData.put("emptyMessage", "Box score will be available once the game begins.");
             emptySection.set("data", emptyData);
-            sections.add(emptySection);
-            response.set("sections", sections);
-            response.put("title", "Box Score");
+            sections.add(objectMapper.convertValue(emptySection, Section.class));
+            response.setSections(sections);
+            response.setTitle("Box Score");
             utils.prependAppBarHeaderIfNeeded(response);
             utils.ensureScreenContentInsets(response);
             utils.stampStringTableOnSections(response, locale);
-            return bindScreen(response);
+            return response;
         }
 
         BoxscoreTeam homeTeam = game.getHomeTeam();
@@ -117,16 +119,16 @@ public class BoxscoreComposer {
         int gameStatus = game.getGameStatus();
 
         // ── Screen state ───────────────────────────────────────────────
-        ObjectNode state = objectMapper.createObjectNode();
-        state.put("boxscore_team", awayTricode);
-        state.put("boxscore_away_sortCol", "points");
-        state.put("boxscore_away_sortDir", "desc");
-        state.put("boxscore_home_sortCol", "points");
-        state.put("boxscore_home_sortDir", "desc");
-        response.set("state", state);
+        State state = new State();
+        state.setAdditionalProperty("boxscore_team", awayTricode);
+        state.setAdditionalProperty("boxscore_away_sortCol", "points");
+        state.setAdditionalProperty("boxscore_away_sortDir", "desc");
+        state.setAdditionalProperty("boxscore_home_sortCol", "points");
+        state.setAdditionalProperty("boxscore_home_sortDir", "desc");
+        response.setState(state);
 
         // ── Sections ───────────────────────────────────────────────────
-        ArrayNode sections = objectMapper.createArrayNode();
+        List<Section> sections = new ArrayList<>();
 
         ObjectNode awayTable = buildBoxscoreTableSection(
                 awayTeam, gameId, contentSourceId, "away",
@@ -180,27 +182,19 @@ public class BoxscoreComposer {
         tabGroup.set("subsections", utils.tabSelectSubsections(tabs, "boxscore_team"));
         tabGroup.set("surface", objectMapper.valueToTree(surfaces.stripSurfaceWithoutBackground()));
 
-        sections.add(tabGroup);
-        response.set("sections", sections);
+        sections.add(objectMapper.convertValue(tabGroup, Section.class));
+        response.setSections(sections);
 
         log.info("Boxscore screen composed: {} @ {}, gameStatus={}, awayPlayers={}, homePlayers={}",
                 awayTricode, homeTricode, gameStatus,
                 awayTeam != null && awayTeam.getPlayers() != null ? awayTeam.getPlayers().size() : 0,
                 homeTeam != null && homeTeam.getPlayers() != null ? homeTeam.getPlayers().size() : 0);
 
-        response.put("title", awayTricode + " @ " + homeTricode);
+        response.setTitle(awayTricode + " @ " + homeTricode);
         utils.prependAppBarHeaderIfNeeded(response);
         utils.ensureScreenContentInsets(response);
         utils.stampStringTableOnSections(response, locale);
-        return bindScreen(response);
-    }
-
-    private Screen bindScreen(ObjectNode response) {
-        try {
-            return objectMapper.treeToValue(response, Screen.class);
-        } catch (JsonProcessingException e) {
-            throw new IllegalStateException("Failed to bind composed Boxscore screen to Screen.class", e);
-        }
+        return response;
     }
 
     // ── BoxscoreTable section builder (package-private for GameDetailComposer) ──

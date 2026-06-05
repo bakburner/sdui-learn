@@ -23,6 +23,7 @@ import com.nba.sdui.models.generated.Screen;
 import com.nba.sdui.models.generated.SeasonLeadersTable;
 import com.nba.sdui.models.generated.Section;
 import com.nba.sdui.models.generated.SectionStates;
+import com.nba.sdui.models.generated.State;
 import com.nba.sdui.models.generated.Subsection;
 import com.nba.sdui.models.generated.SubscribeUpsell;
 import com.nba.sdui.models.generated.SubscriptionTier;
@@ -89,14 +90,6 @@ public class DemoScreenComposer {
                         ctx.getLocale() != null ? ctx.getLocale() : "en"));
     }
 
-    private Screen bindScreen(ObjectNode screen) {
-        try {
-            return objectMapper.treeToValue(screen, Screen.class);
-        } catch (JsonProcessingException e) {
-            throw new IllegalStateException("Failed to bind composed demo screen to Screen.class", e);
-        }
-    }
-
     // ── Public entry points ────────────────────────────────────────────
 
     /**
@@ -104,106 +97,105 @@ public class DemoScreenComposer {
      * atomic primitives like DisplayGrid) with static mock data.  No external API calls.
      */
     public Screen composeDemos(String traceId, String deviceClass, String locale) {
-        ObjectNode screen = composeDemosTree(traceId, deviceClass, locale);
-        return bindScreen(screen);
+        return composeDemosTree(traceId, deviceClass, locale);
     }
 
-    private ObjectNode composeDemosTree(String traceId, String deviceClass, String locale) {
-        ObjectNode screen = objectMapper.createObjectNode();
-        screen.put("id", "demos");
-        screen.put("schemaVersion", schemaVersion);
-        screen.put("title", "SDUI Section Types");
-        screen.put("analyticsId", "demos-kitchen-sink");
-        screen.put("parentUri", "nba://scoreboard");
+    private Screen composeDemosTree(String traceId, String deviceClass, String locale) {
+        Screen screen = new Screen();
+        screen.setId("demos");
+        screen.setSchemaVersion(schemaVersion);
+        screen.setTitle("SDUI Section Types");
+        screen.setAnalyticsId("demos-kitchen-sink");
+        screen.setParentUri("nba://scoreboard");
 
-        ObjectNode refreshPolicy = objectMapper.createObjectNode();
-        refreshPolicy.put("type", "static");
-        screen.set("defaultRefreshPolicy", refreshPolicy);
+        RefreshPolicy refreshPolicy = new RefreshPolicy();
+        refreshPolicy.setType(RefreshPolicy.RefreshType.STATIC);
+        screen.setDefaultRefreshPolicy(refreshPolicy);
 
-        screen.set("navigation", utils.buildNavigation("demos"));
+        screen.setNavigation(utils.buildNavigation("demos"));
 
-        ArrayNode sections = objectMapper.createArrayNode();
+        List<Section> sections = new ArrayList<>();
 
         // 1. Game Card (scoreboard composite)
-        sections.add(objectMapper.valueToTree(buildTypeLabel("Game Card (scoreboard) (Composite)")));
-        sections.add(objectMapper.valueToTree(buildDemoGamePanelScoreboard()));
+        sections.add(buildTypeLabel("Game Card (scoreboard) (Composite)"));
+        sections.add(buildDemoGamePanelScoreboard());
         // 2. AdSlot (between header and top performers)
-        sections.add(objectMapper.valueToTree(buildTypeLabel("AdSlot (Semantic)")));
-        sections.add(objectMapper.valueToTree(buildDemoAdSlot()));
+        sections.add(buildTypeLabel("AdSlot (Semantic)"));
+        sections.add(buildDemoAdSlot());
         // 3. StatLine
-        sections.add(objectMapper.valueToTree(buildTypeLabel("StatLine (Composite)")));
-        sections.add(objectMapper.valueToTree(buildDemoStatLine()));
+        sections.add(buildTypeLabel("StatLine (Composite)"));
+        sections.add(buildDemoStatLine());
         // 4. PromoBanner
-        sections.add(objectMapper.valueToTree(buildTypeLabel("PromoBanner (Composite)")));
-        sections.add(objectMapper.valueToTree(buildDemoPromoBanner()));
+        sections.add(buildTypeLabel("PromoBanner (Composite)"));
+        sections.add(buildDemoPromoBanner());
         // 5. HeroPanel
-        sections.add(objectMapper.valueToTree(buildTypeLabel("HeroPanel (Composite)")));
-        sections.add(objectMapper.valueToTree(buildDemoHeroPanel()));
+        sections.add(buildTypeLabel("HeroPanel (Composite)"));
+        sections.add(buildDemoHeroPanel());
         // 6. ContentRail
-        sections.add(objectMapper.valueToTree(buildTypeLabel("ContentRail (Composite)")));
-        sections.add(objectMapper.valueToTree(buildDemoContentRail()));
+        sections.add(buildTypeLabel("ContentRail (Composite)"));
+        sections.add(buildDemoContentRail());
         // 7. Game Card
-        sections.add(objectMapper.valueToTree(buildTypeLabel("Game Card (Composite)")));
-        sections.add(objectMapper.valueToTree(buildDemoGamePanel()));
+        sections.add(buildTypeLabel("Game Card (Composite)"));
+        sections.add(buildDemoGamePanel());
         // 8. Responsive Row (AtomicComposite with breakpoint)
-        sections.add(objectMapper.valueToTree(buildTypeLabel("Responsive Row (Composite)")));
-        sections.add(objectMapper.valueToTree(buildDemoResponsiveRow()));
+        sections.add(buildTypeLabel("Responsive Row (Composite)"));
+        sections.add(buildDemoResponsiveRow());
         // 9. TabGroup
-        sections.add(objectMapper.valueToTree(buildTypeLabel("TabGroup (Semantic)")));
-        sections.add(objectMapper.valueToTree(buildDemoTabGroup()));
+        sections.add(buildTypeLabel("TabGroup (Semantic)"));
+        sections.add(buildDemoTabGroup());
         // 10. BoxscoreTable
-        sections.add(objectMapper.valueToTree(buildTypeLabel("BoxscoreTable (Semantic)")));
-        sections.add(objectMapper.valueToTree(buildDemoBoxscoreTable()));
+        sections.add(buildTypeLabel("BoxscoreTable (Semantic)"));
+        sections.add(buildDemoBoxscoreTable());
         // 11. Form
-        sections.add(objectMapper.valueToTree(buildTypeLabel("Form (Semantic)")));
-        sections.add(objectMapper.valueToTree(buildDemoForm(deviceClass)));
+        sections.add(buildTypeLabel("Form (Semantic)"));
+        sections.add(buildDemoForm(deviceClass));
         // 12. SeasonLeadersTable
-        sections.add(objectMapper.valueToTree(buildTypeLabel("SeasonLeadersTable (Semantic)")));
-        sections.add(objectMapper.valueToTree(buildDemoLeadersTable()));
+        sections.add(buildTypeLabel("SeasonLeadersTable (Semantic)"));
+        sections.add(buildDemoLeadersTable());
         // 13. Game Card (featured composite)
-        sections.add(objectMapper.valueToTree(buildTypeLabel("Game Card (featured) (Composite)")));
-        sections.add(objectMapper.valueToTree(buildDemoFeaturedGamePanel()));
+        sections.add(buildTypeLabel("Game Card (featured) (Composite)"));
+        sections.add(buildDemoFeaturedGamePanel());
         // 14. VideoCarousel
-        sections.add(objectMapper.valueToTree(buildTypeLabel("VideoCarousel (Composite)")));
-        sections.add(objectMapper.valueToTree(buildDemoVideoCarousel()));
+        sections.add(buildTypeLabel("VideoCarousel (Composite)"));
+        sections.add(buildDemoVideoCarousel());
         // 15. NbaTvSchedule
-        sections.add(objectMapper.valueToTree(buildTypeLabel("NbaTvSchedule (Composite)")));
-        sections.add(objectMapper.valueToTree(buildDemoNbaTvSchedule()));
+        sections.add(buildTypeLabel("NbaTvSchedule (Composite)"));
+        sections.add(buildDemoNbaTvSchedule());
         // 16. SubscribeUpsell (inline-banner layout)
-        sections.add(objectMapper.valueToTree(buildTypeLabel("SubscribeUpsell (inline banner)")));
-        sections.add(objectMapper.valueToTree(buildDemoSubscribeUpsellBanner()));
+        sections.add(buildTypeLabel("SubscribeUpsell (inline banner)"));
+        sections.add(objectMapper.convertValue(buildDemoSubscribeUpsellBanner(), Section.class));
         // 17. SubscribeUpsell (hero layout)
-        sections.add(objectMapper.valueToTree(buildTypeLabel("SubscribeUpsell (hero)")));
-        sections.add(objectMapper.valueToTree(buildDemoSubscribeUpsellHero()));
+        sections.add(buildTypeLabel("SubscribeUpsell (hero)"));
+        sections.add(objectMapper.convertValue(buildDemoSubscribeUpsellHero(), Section.class));
         // 18. FollowingRail
-        sections.add(objectMapper.valueToTree(buildTypeLabel("FollowingRail (Composite)")));
-        sections.add(objectMapper.valueToTree(buildDemoFollowingRail()));
+        sections.add(buildTypeLabel("FollowingRail (Composite)"));
+        sections.add(buildDemoFollowingRail());
         // 19. DisplayGrid (atomic primitive)
-        sections.add(objectMapper.valueToTree(buildTypeLabel("DisplayGrid (Composite)")));
-        sections.add(objectMapper.valueToTree(buildDemoDisplayGrid()));
+        sections.add(buildTypeLabel("DisplayGrid (Composite)"));
+        sections.add(buildDemoDisplayGrid());
         // 20. ErrorState
-        sections.add(objectMapper.valueToTree(buildTypeLabel("ErrorState (Composite)")));
-        sections.add(objectMapper.valueToTree(buildDemoErrorState()));
+        sections.add(buildTypeLabel("ErrorState (Composite)"));
+        sections.add(buildDemoErrorState());
         // 21. SectionSlot (bidirectional bridge demo)
-        sections.add(objectMapper.valueToTree(buildTypeLabel("SectionSlot (AdSlot in atomic tree) (Composite)")));
-        sections.add(objectMapper.valueToTree(buildDemoSectionSlot()));
+        sections.add(buildTypeLabel("SectionSlot (AdSlot in atomic tree) (Composite)"));
+        sections.add(objectMapper.convertValue(buildDemoSectionSlot(), Section.class));
         // 22-28. Feed atomic-composite patterns
-        sections.add(objectMapper.valueToTree(buildTypeLabel("SectionHeaderComposite")));
-        sections.add(objectMapper.valueToTree(buildDemoSectionHeaderComposite()));
-        sections.add(objectMapper.valueToTree(buildTypeLabel("StoryCircleRail (Composite)")));
-        sections.add(objectMapper.valueToTree(buildDemoStoryCircleRail()));
-        sections.add(objectMapper.valueToTree(buildTypeLabel("FeaturedLiveGameHero (Composite)")));
-        sections.add(objectMapper.valueToTree(buildDemoFeaturedLiveGameHero()));
-        sections.add(objectMapper.valueToTree(buildTypeLabel("EditorialOverlayRail (Composite)")));
-        sections.add(objectMapper.valueToTree(buildDemoEditorialOverlayRail()));
-        sections.add(objectMapper.valueToTree(buildTypeLabel("UtilityCardGrid (Composite)")));
-        sections.add(objectMapper.valueToTree(buildDemoUtilityCardGrid()));
-        sections.add(objectMapper.valueToTree(buildTypeLabel("LeagueCardRail (Composite)")));
-        sections.add(objectMapper.valueToTree(buildDemoLeagueCardRail()));
-        sections.add(objectMapper.valueToTree(buildTypeLabel("GameScheduleList (Composite)")));
-        sections.add(objectMapper.valueToTree(buildDemoGameScheduleList()));
+        sections.add(buildTypeLabel("SectionHeaderComposite"));
+        sections.add(buildDemoSectionHeaderComposite());
+        sections.add(buildTypeLabel("StoryCircleRail (Composite)"));
+        sections.add(buildDemoStoryCircleRail());
+        sections.add(buildTypeLabel("FeaturedLiveGameHero (Composite)"));
+        sections.add(buildDemoFeaturedLiveGameHero());
+        sections.add(buildTypeLabel("EditorialOverlayRail (Composite)"));
+        sections.add(buildDemoEditorialOverlayRail());
+        sections.add(buildTypeLabel("UtilityCardGrid (Composite)"));
+        sections.add(buildDemoUtilityCardGrid());
+        sections.add(buildTypeLabel("LeagueCardRail (Composite)"));
+        sections.add(buildDemoLeagueCardRail());
+        sections.add(buildTypeLabel("GameScheduleList (Composite)"));
+        sections.add(buildDemoGameScheduleList());
 
-        screen.set("sections", sections);
+        screen.setSections(sections);
         utils.prependAppBarHeaderIfNeeded(screen);
         utils.ensureScreenContentInsets(screen);
         utils.stampStringTableOnSections(screen, locale);
@@ -214,9 +206,9 @@ public class DemoScreenComposer {
      * Compose the standalone Season Leaders screen (Form + SeasonLeadersTable).
      */
     public Screen composeLeaders(String traceId, String deviceClass, String locale) {
-        return bindScreen(composeLeadersScreen(
+        return composeLeadersScreen(
                 traceId, deviceClass, locale,
-                "2025-26", "regular", "per_game", "pts"));
+                "2025-26", "regular", "per_game", "pts");
     }
 
     /**
@@ -228,41 +220,42 @@ public class DemoScreenComposer {
      */
     public ObjectNode composeLeadersRefresh(String traceId, Map<String, String> params,
                                              String deviceClass, String locale) {
-        return composeLeadersScreen(
+        Screen screen = composeLeadersScreen(
                 traceId, deviceClass, locale,
                 params.getOrDefault("season", "2025-26"),
                 params.getOrDefault("seasonType", "regular"),
                 params.getOrDefault("perMode", "per_game"),
                 params.getOrDefault("statCategory", "pts"));
+        return objectMapper.valueToTree(screen);
     }
 
-    private ObjectNode composeLeadersScreen(String traceId, String deviceClass, String locale,
+    private Screen composeLeadersScreen(String traceId, String deviceClass, String locale,
                                              String season, String seasonType,
                                              String perMode, String statCategory) {
-        ObjectNode screen = objectMapper.createObjectNode();
-        screen.put("id", "leaders");
-        screen.put("schemaVersion", schemaVersion);
-        screen.put("title", "Season Leaders");
-        screen.put("analyticsId", "season-leaders");
-        screen.put("parentUri", "nba://scoreboard");
+        Screen screen = new Screen();
+        screen.setId("leaders");
+        screen.setSchemaVersion(schemaVersion);
+        screen.setTitle("Season Leaders");
+        screen.setAnalyticsId("season-leaders");
+        screen.setParentUri("nba://scoreboard");
 
-        ObjectNode refreshPolicy = objectMapper.createObjectNode();
-        refreshPolicy.put("type", "static");
-        screen.set("defaultRefreshPolicy", refreshPolicy);
+        RefreshPolicy refreshPolicy = new RefreshPolicy();
+        refreshPolicy.setType(RefreshPolicy.RefreshType.STATIC);
+        screen.setDefaultRefreshPolicy(refreshPolicy);
 
-        screen.set("navigation", utils.buildNavigation("leaders"));
+        screen.setNavigation(utils.buildNavigation("leaders"));
 
-        ObjectNode state = objectMapper.createObjectNode();
-        state.put("form_season", season);
-        state.put("form_season_type", seasonType);
-        state.put("form_per_mode", perMode);
-        state.put("form_stat_category", statCategory);
-        screen.set("state", state);
+        State state = new State();
+        state.setAdditionalProperty("form_season", season);
+        state.setAdditionalProperty("form_season_type", seasonType);
+        state.setAdditionalProperty("form_per_mode", perMode);
+        state.setAdditionalProperty("form_stat_category", statCategory);
+        screen.setState(state);
 
-        ArrayNode sections = objectMapper.createArrayNode();
-        sections.add(objectMapper.valueToTree(buildDemoForm(deviceClass)));
-        sections.add(objectMapper.valueToTree(buildLeadersTable(season, seasonType, perMode, statCategory)));
-        screen.set("sections", sections);
+        List<Section> sections = new ArrayList<>();
+        sections.add(buildDemoForm(deviceClass));
+        sections.add(buildLeadersTable(season, seasonType, perMode, statCategory));
+        screen.setSections(sections);
 
         utils.prependAppBarHeaderIfNeeded(screen);
         utils.ensureScreenContentInsets(screen);

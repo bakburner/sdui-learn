@@ -118,63 +118,59 @@ public class ForYouComposer {
     public Screen composeForYou(String traceId, String locale) {
         log.info("Composing For You screen, locale={}", locale);
 
-        ObjectNode response = objectMapper.createObjectNode();
-        response.put("id", "for-you");
-        response.put("analyticsId", "for_you");
-        response.put("schemaVersion", schemaVersion);
+        Screen response = new Screen();
+        response.setId("for-you");
+        response.setAnalyticsId("for_you");
+        response.setSchemaVersion(schemaVersion);
         utils.applyTabDestinationNavigation(response, "for-you");
 
-        ArrayNode sections = objectMapper.createArrayNode();
+        List<Section> sections = new ArrayList<>();
 
-        sections.add(objectMapper.valueToTree(buildFollowingStoryCircleRail()));
-        sections.add(objectMapper.valueToTree(buildFeaturedEditorialHero()));
+        sections.add(buildFollowingStoryCircleRail());
+        sections.add(buildFeaturedEditorialHero());
 
-        sections.add(objectMapper.valueToTree(buildSectionHeaderComposite("top-stories-header",
+        sections.add(buildSectionHeaderComposite("top-stories-header",
                 "for_you_top_stories_header",
-                "Top Stories", null, "More", "nba://news")));
-        sections.add(objectMapper.valueToTree(buildTopStoriesArticleList()));
+                "Top Stories", null, "More", "nba://news"));
+        sections.add(buildTopStoriesArticleList());
 
-        sections.add(objectMapper.valueToTree(buildAdSlot("for-you-ad-1", "for_you_ad_1",
-                "/21234567/sports/nba/homepage_mid1", "mid_feed_1")));
+        sections.add(buildAdSlot("for-you-ad-1", "for_you_ad_1",
+                "/21234567/sports/nba/homepage_mid1", "mid_feed_1"));
 
-        sections.add(objectMapper.valueToTree(buildSectionHeaderComposite("tonights-games-header",
+        sections.add(buildSectionHeaderComposite("tonights-games-header",
                 "for_you_tonights_games_header",
-                "Tonight's Games", null, "See Schedule", "nba://scoreboard")));
-        sections.add(objectMapper.valueToTree(buildTonightsGamesHero()));
+                "Tonight's Games", null, "See Schedule", "nba://scoreboard"));
+        sections.add(buildTonightsGamesHero());
 
-        sections.add(objectMapper.valueToTree(buildSectionHeaderComposite("trending-header",
+        sections.add(buildSectionHeaderComposite("trending-header",
                 "for_you_trending_header",
-                "Trending Now", null, null, null)));
-        sections.add(objectMapper.valueToTree(buildTrendingRail()));
+                "Trending Now", null, null, null));
+        sections.add(buildTrendingRail());
 
-        sections.add(objectMapper.valueToTree(buildAdSlot("for-you-ad-2", "for_you_ad_2",
-                "/21234567/sports/nba/homepage_mid2", "mid_feed_2")));
+        sections.add(buildAdSlot("for-you-ad-2", "for_you_ad_2",
+                "/21234567/sports/nba/homepage_mid2", "mid_feed_2"));
 
-        sections.add(objectMapper.valueToTree(buildSectionHeaderComposite("lp-picks-header",
+        sections.add(buildSectionHeaderComposite("lp-picks-header",
                 "for_you_lp_picks_header",
-                "League Pass Picks", null, "Browse League Pass", "nba://leaguepass")));
-        sections.add(objectMapper.valueToTree(buildLeaguePassPicksRail()));
+                "League Pass Picks", null, "Browse League Pass", "nba://leaguepass"));
+        sections.add(buildLeaguePassPicksRail());
 
-        sections.add(objectMapper.valueToTree(buildAdSlot("for-you-ad-3", "for_you_ad_3",
-                "/21234567/sports/nba/homepage_mid3", "mid_feed_3")));
+        sections.add(buildAdSlot("for-you-ad-3", "for_you_ad_3",
+                "/21234567/sports/nba/homepage_mid3", "mid_feed_3"));
 
-        sections.add(objectMapper.valueToTree(buildOtherLeaguesRail()));
+        sections.add(buildOtherLeaguesRail());
 
-        sections.add(objectMapper.valueToTree(buildSectionHeaderComposite("around-league-header",
+        sections.add(buildSectionHeaderComposite("around-league-header",
                 "for_you_around_league_header",
-                "Around the League", null, null, null)));
-        sections.add(objectMapper.valueToTree(buildAroundTheLeagueUtilityGrid()));
+                "Around the League", null, null, null));
+        sections.add(buildAroundTheLeagueUtilityGrid());
 
-        sections.add(objectMapper.valueToTree(buildVodPlaylistSection()));
+        sections.add(buildVodPlaylistSection());
 
-        response.set("sections", sections);
+        response.setSections(sections);
         utils.ensureScreenContentInsets(response);
         utils.stampStringTableOnSections(response, locale);
-        try {
-            return objectMapper.treeToValue(response, Screen.class);
-        } catch (JsonProcessingException e) {
-            throw new IllegalStateException("Failed to bind composed For You screen to Screen.class", e);
-        }
+        return response;
     }
 
     // ── Section builders ───────────────────────────────────────────────

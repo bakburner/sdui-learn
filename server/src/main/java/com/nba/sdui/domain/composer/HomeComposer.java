@@ -1,8 +1,6 @@
 package com.nba.sdui.domain.composer;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.nba.sdui.models.generated.AdSlot;
 import com.nba.sdui.models.generated.AtomicElement;
@@ -76,44 +74,40 @@ public class HomeComposer {
     public Screen composeHome(String traceId, String locale) {
         log.info("Composing Home screen, locale={}", locale);
 
-        ObjectNode response = objectMapper.createObjectNode();
-        response.put("id", "home");
-        response.put("analyticsId", "home");
-        response.put("schemaVersion", schemaVersion);
+        Screen response = new Screen();
+        response.setId("home");
+        response.setAnalyticsId("home");
+        response.setSchemaVersion(schemaVersion);
         utils.applyTabDestinationNavigation(response, "home");
 
-        ArrayNode sections = objectMapper.createArrayNode();
+        List<Section> sections = new ArrayList<>();
 
         // ── Row 1: Hero (2/3 width) + Headlines (1/3 width) ──────────
-        sections.add(objectMapper.valueToTree(buildHeroAndHeadlinesRow()));
+        sections.add(buildHeroAndHeadlinesRow());
 
         // ── Row 2: Stories (2/3 width) + Ad Slot (1/3 width) ─────────
-        sections.add(objectMapper.valueToTree(buildStoriesAndAdRow()));
+        sections.add(buildStoriesAndAdRow());
 
         // 6-7. Trending Now
-        sections.add(objectMapper.valueToTree(buildSectionHeader("trending-header", "TRENDING NOW", null, null)));
-        sections.add(objectMapper.valueToTree(buildTrendingVideoRail()));
+        sections.add(buildSectionHeader("trending-header", "TRENDING NOW", null, null));
+        sections.add(buildTrendingVideoRail());
 
         // 8-9. 2026 Postseason
-        sections.add(objectMapper.valueToTree(buildSectionHeader("postseason-header", "2026 POSTSEASON", null, null)));
-        sections.add(objectMapper.valueToTree(buildPostseasonRail()));
+        sections.add(buildSectionHeader("postseason-header", "2026 POSTSEASON", null, null));
+        sections.add(buildPostseasonRail());
 
         // 10-11. Game Recaps
-        sections.add(objectMapper.valueToTree(buildSectionHeader("recaps-header", "2025-26 GAME RECAPS", "See More", "nba://recaps")));
-        sections.add(objectMapper.valueToTree(buildRecapsVideoRail()));
+        sections.add(buildSectionHeader("recaps-header", "2025-26 GAME RECAPS", "See More", "nba://recaps"));
+        sections.add(buildRecapsVideoRail());
 
         // 12-13. Around the NBA
-        sections.add(objectMapper.valueToTree(buildSectionHeader("around-header", "AROUND THE NBA", null, null)));
-        sections.add(objectMapper.valueToTree(buildAroundTheNbaList()));
+        sections.add(buildSectionHeader("around-header", "AROUND THE NBA", null, null));
+        sections.add(buildAroundTheNbaList());
 
-        response.set("sections", sections);
+        response.setSections(sections);
         utils.ensureScreenContentInsets(response);
         utils.stampStringTableOnSections(response, locale);
-        try {
-            return objectMapper.treeToValue(response, Screen.class);
-        } catch (JsonProcessingException e) {
-            throw new IllegalStateException("Failed to bind composed Home screen to Screen.class", e);
-        }
+        return response;
     }
 
     // ── Section builders ───────────────────────────────────────────────

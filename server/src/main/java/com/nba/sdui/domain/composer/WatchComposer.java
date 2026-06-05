@@ -14,6 +14,7 @@ import com.nba.sdui.models.generated.Placeholder;
 import com.nba.sdui.models.generated.RefreshPolicy;
 import com.nba.sdui.models.generated.Screen;
 import com.nba.sdui.models.generated.Section;
+import com.nba.sdui.models.generated.Spacing;
 import com.nba.sdui.models.generated.SubscribeUpsell;
 import com.nba.sdui.models.generated.SubscriptionTier;
 import com.nba.sdui.models.generated.Targeting;
@@ -75,30 +76,26 @@ public class WatchComposer {
     public Screen composeWatch(String traceId, String locale) {
         log.info("Composing Watch screen, locale={}", locale);
 
-        ObjectNode response = objectMapper.createObjectNode();
-        response.put("id", "watch");
-        response.put("analyticsId", "watch");
-        response.put("schemaVersion", schemaVersion);
+        Screen response = new Screen();
+        response.setId("watch");
+        response.setAnalyticsId("watch");
+        response.setSchemaVersion(schemaVersion);
         utils.applyTabDestinationNavigation(response, "watch");
 
-        ArrayNode sections = objectMapper.createArrayNode();
+        List<Section> sections = new ArrayList<>();
 
         // Single TabGroup section that contains the three tabs
-        sections.add(buildTabGroup());
+        sections.add(objectMapper.convertValue(buildTabGroup(), Section.class));
 
-        response.set("sections", sections);
+        response.setSections(sections);
 
         // Subnav is edge-to-edge under top navigation — no horizontal screen inset.
-        ObjectNode insets = objectMapper.createObjectNode();
-        insets.put("bottom", tokens.spacing("lg"));
-        response.set("contentInsets", insets);
+        Spacing insets = new Spacing();
+        insets.setBottom(tokens.spacing("lg"));
+        response.setContentInsets(insets);
 
         utils.stampStringTableOnSections(response, locale);
-        try {
-            return objectMapper.treeToValue(response, Screen.class);
-        } catch (JsonProcessingException e) {
-            throw new IllegalStateException("Failed to bind composed Watch screen to Screen.class", e);
-        }
+        return response;
     }
 
     // ── Tab group ──────────────────────────────────────────────────────

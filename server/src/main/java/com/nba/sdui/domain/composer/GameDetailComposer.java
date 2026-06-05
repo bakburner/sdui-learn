@@ -128,7 +128,7 @@ public class GameDetailComposer {
         } else {
             log.warn("Live game detail unavailable for gameId={} — composing ErrorState screen", gameId);
             return new GameDetailResult(
-                    bindScreen(buildErrorScreen(gameId, traceId, locale)),
+                    buildErrorScreen(gameId, traceId, locale),
                     derivedGameState);
         }
 
@@ -144,7 +144,7 @@ public class GameDetailComposer {
         response.set("defaultRefreshPolicy", defaultRefreshPolicy);
         response.put("schemaVersion", schemaVersion);
         response.put("parentUri", "nba://scoreboard");
-        response.set("navigation", utils.buildNavigation("game-detail"));
+        response.set("navigation", objectMapper.valueToTree(utils.buildNavigation("game-detail")));
 
         // Expose available A/B variants so clients never need URI-sniffing.
         ArrayNode variants = objectMapper.createArrayNode();
@@ -172,20 +172,13 @@ public class GameDetailComposer {
                 variant, response.has("sections") ? response.get("sections").size() : 0);
 
         applyGameSectionRefreshPolicies(response, derivedGameState, gameId);
-
-        utils.prependAppBarHeaderIfNeeded(response);
         prependVariantChipsIfPresent(response, gameId, variant);
-        utils.ensureScreenContentInsets(response);
-        utils.stampStringTableOnSections(response, locale);
-        return new GameDetailResult(bindScreen(response), derivedGameState);
-    }
 
-    private Screen bindScreen(ObjectNode response) {
-        try {
-            return objectMapper.treeToValue(response, Screen.class);
-        } catch (JsonProcessingException e) {
-            throw new IllegalStateException("Failed to bind composed Game Detail screen to Screen.class", e);
-        }
+        Screen screen = objectMapper.convertValue(response, Screen.class);
+        utils.prependAppBarHeaderIfNeeded(screen);
+        utils.ensureScreenContentInsets(screen);
+        utils.stampStringTableOnSections(screen, locale);
+        return new GameDetailResult(screen, derivedGameState);
     }
 
     /**
@@ -371,18 +364,18 @@ public class GameDetailComposer {
      * AGENTS.md §8.0, the server surfaces an {@code ErrorState} rather than
      * inventing fallback content.
      */
-    private ObjectNode buildErrorScreen(String gameId, String traceId, String locale) {
-        ObjectNode response = objectMapper.createObjectNode();
-        response.put("id", "game-detail-" + gameId);
-        response.put("schemaVersion", schemaVersion);
-        response.put("parentUri", "nba://scoreboard");
-        response.set("navigation", utils.buildNavigation("game-detail"));
+    private Screen buildErrorScreen(String gameId, String traceId, String locale) {
+        Screen response = new Screen();
+        response.setId("game-detail-" + gameId);
+        response.setSchemaVersion(schemaVersion);
+        response.setParentUri("nba://scoreboard");
+        response.setNavigation(utils.buildNavigation("game-detail"));
 
-        ObjectNode defaultRefreshPolicy = objectMapper.createObjectNode();
-        defaultRefreshPolicy.put("type", "static");
-        response.set("defaultRefreshPolicy", defaultRefreshPolicy);
+        RefreshPolicy defaultRefreshPolicy = new RefreshPolicy();
+        defaultRefreshPolicy.setType(RefreshPolicy.RefreshType.STATIC);
+        response.setDefaultRefreshPolicy(defaultRefreshPolicy);
 
-        ArrayNode sections = objectMapper.createArrayNode();
+        List<Section> sections = new ArrayList<>();
         ObjectNode error = utils.buildErrorSection(
                 SectionIdDeriver.derive("stats-api:game-" + gameId, "AtomicComposite", "error-not-found"),
                 "Game not available",
@@ -390,8 +383,8 @@ public class GameDetailComposer {
                 "not_found",
                 "nba://scoreboard");
         error.put("contentSourceId", "stats-api:game-" + gameId);
-        sections.add(error);
-        response.set("sections", sections);
+        sections.add(objectMapper.convertValue(error, Section.class));
+        response.setSections(sections);
 
         utils.prependAppBarHeaderIfNeeded(response);
         utils.ensureScreenContentInsets(response);

@@ -24,6 +24,7 @@ import com.nba.sdui.models.generated.RefreshPolicy;
 import com.nba.sdui.models.generated.Screen;
 import com.nba.sdui.models.generated.Section;
 import com.nba.sdui.models.generated.SectionSurface;
+import com.nba.sdui.models.generated.State;
 
 /**
  * Composes the Schedule screen — a date-filterable game list.
@@ -59,22 +60,22 @@ public class ScheduleComposer {
     public Screen composeSchedule(String traceId, String locale) {
         log.info("Composing Schedule screen, locale={}", locale);
 
-        ObjectNode response = objectMapper.createObjectNode();
-        response.put("id", "schedule");
-        response.put("analyticsId", "schedule");
-        response.put("schemaVersion", schemaVersion);
+        Screen response = new Screen();
+        response.setId("schedule");
+        response.setAnalyticsId("schedule");
+        response.setSchemaVersion(schemaVersion);
         utils.applyTabDestinationNavigation(response, "schedule");
 
         // Initial chip selections. See Phase D.1 scope note in
         // docs/plans/ios-led-ux-rebuild.md — /sdui/schedule does not yet parse
         // query params, so these values are cosmetic; they drive chip
         // highlighting on first render only.
-        ObjectNode state = objectMapper.createObjectNode();
-        state.put("schedule_season", "2024-25");
-        state.put("schedule_year", "2024");
-        state.put("schedule_month", "");
-        state.put("schedule_day", "");
-        response.set("state", state);
+        State state = new State();
+        state.setAdditionalProperty("schedule_season", "2024-25");
+        state.setAdditionalProperty("schedule_year", "2024");
+        state.setAdditionalProperty("schedule_month", "");
+        state.setAdditionalProperty("schedule_day", "");
+        response.setState(state);
 
         List<Section> sections = new ArrayList<>();
 
@@ -85,14 +86,10 @@ public class ScheduleComposer {
             addGameSections(sections, mockData, locale);
         }
 
-        response.set("sections", objectMapper.valueToTree(sections));
+        response.setSections(sections);
         utils.ensureScreenContentInsets(response);
         utils.stampStringTableOnSections(response, locale);
-        try {
-            return objectMapper.treeToValue(response, Screen.class);
-        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
-            throw new IllegalStateException("Failed to bind composed Schedule screen to Screen.class", e);
-        }
+        return response;
     }
 
     private Section buildFilterForm(String locale) {

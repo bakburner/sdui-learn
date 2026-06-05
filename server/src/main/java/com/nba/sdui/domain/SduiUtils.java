@@ -4,8 +4,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.nba.sdui.models.generated.Navigation;
+import com.nba.sdui.models.generated.NavigationItem;
+import com.nba.sdui.models.generated.Screen;
 import com.nba.sdui.models.generated.Section;
 import com.nba.sdui.models.generated.SectionSurface;
+import com.nba.sdui.models.generated.Spacing;
+import com.nba.sdui.models.generated.StringTable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ClassPathResource;
@@ -15,6 +20,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import com.nba.sdui.domain.tokens.Tokens;
 
@@ -42,71 +49,46 @@ public class SduiUtils {
 
     // ── Navigation ─────────────────────────────────────────────────────
 
-    public ObjectNode buildNavigation(String activeScreenId) {
-        ObjectNode navigation = objectMapper.createObjectNode();
-        ArrayNode items = objectMapper.createArrayNode();
-
+    public Navigation buildNavigation(String activeScreenId) {
         boolean gamesSelected = "games".equals(activeScreenId) || "game-detail".equals(activeScreenId);
 
-        ObjectNode forYou = objectMapper.createObjectNode();
-        forYou.put("id", "for-you");
-        forYou.put("label", "For You");
-        forYou.put("icon", tokens.icon("home"));
-        forYou.put("targetUri", "nba://for-you");
-        forYou.put("selected", "for-you".equals(activeScreenId));
-        items.add(forYou);
+        List<NavigationItem> items = new ArrayList<>();
+        items.add(navItem("for-you", "For You", tokens.icon("home"),
+                "nba://for-you", "for-you".equals(activeScreenId)));
+        items.add(navItem("games", "Games", tokens.icon("basketball"),
+                "nba://games", gamesSelected));
+        items.add(navItem("watch", "Watch", tokens.icon("video"),
+                "nba://watch", "watch".equals(activeScreenId)));
+        items.add(navItem("leaders", "Leaders", tokens.icon("leaderboard"),
+                "nba://leaders", "leaders".equals(activeScreenId)));
+        items.add(navItem("demos", "Kitchen", tokens.icon("grid"),
+                "nba://demos", "demos".equals(activeScreenId)));
+        items.add(navItem("home", "NBA.com", tokens.icon("basketball"),
+                "nba://home", "home".equals(activeScreenId)));
 
-        ObjectNode games = objectMapper.createObjectNode();
-        games.put("id", "games");
-        games.put("label", "Games");
-        games.put("icon", tokens.icon("basketball"));
-        games.put("targetUri", "nba://games");
-        games.put("selected", gamesSelected);
-        items.add(games);
-
-        ObjectNode watch = objectMapper.createObjectNode();
-        watch.put("id", "watch");
-        watch.put("label", "Watch");
-        watch.put("icon", tokens.icon("video"));
-        watch.put("targetUri", "nba://watch");
-        watch.put("selected", "watch".equals(activeScreenId));
-        items.add(watch);
-
-        ObjectNode leaders = objectMapper.createObjectNode();
-        leaders.put("id", "leaders");
-        leaders.put("label", "Leaders");
-        leaders.put("icon", tokens.icon("leaderboard"));
-        leaders.put("targetUri", "nba://leaders");
-        leaders.put("selected", "leaders".equals(activeScreenId));
-        items.add(leaders);
-
-        ObjectNode demos = objectMapper.createObjectNode();
-        demos.put("id", "demos");
-        demos.put("label", "Kitchen");
-        demos.put("icon", tokens.icon("grid"));
-        demos.put("targetUri", "nba://demos");
-        demos.put("selected", "demos".equals(activeScreenId));
-        items.add(demos);
-
-        ObjectNode home = objectMapper.createObjectNode();
-        home.put("id", "home");
-        home.put("label", "NBA.com");
-        home.put("icon", tokens.icon("basketball"));
-        home.put("targetUri", "nba://home");
-        home.put("selected", "home".equals(activeScreenId));
-        items.add(home);
-
-        navigation.set("items", items);
+        Navigation navigation = new Navigation();
+        navigation.setItems(items);
         return navigation;
     }
 
+    private NavigationItem navItem(String id, String label, String icon,
+                                    String targetUri, boolean selected) {
+        NavigationItem item = new NavigationItem();
+        item.setId(id);
+        item.setLabel(label);
+        item.setIcon(icon);
+        item.setTargetUri(targetUri);
+        item.setSelected(selected);
+        return item;
+    }
+
     /**
-     * Bottom-nav tab destinations: wire navigation and strip legacy {@code title}.
+     * Bottom-nav tab destinations: wire navigation and clear any leftover title.
      * Header chrome is omitted — the selected tab label is sufficient.
      */
-    public void applyTabDestinationNavigation(ObjectNode response, String activeScreenId) {
-        response.remove("title");
-        response.set("navigation", buildNavigation(activeScreenId));
+    public void applyTabDestinationNavigation(Screen response, String activeScreenId) {
+        response.setTitle(null);
+        response.setNavigation(buildNavigation(activeScreenId));
     }
 
     /**
@@ -118,30 +100,30 @@ public class SduiUtils {
      * feed. Tab-destination composers (bottom-nav screens) in particular need this
      * so the last card does not sit flush against the bottom navigation.
      */
-    public void ensureScreenContentInsets(ObjectNode response) {
-        if (response.has("contentInsets")) {
+    public void ensureScreenContentInsets(Screen response) {
+        if (response.getContentInsets() != null) {
             return;
         }
-        ObjectNode insets = objectMapper.createObjectNode();
-        insets.put("start", tokens.spacing("md"));
-        insets.put("end", tokens.spacing("md"));
-        insets.put("bottom", tokens.spacing("lg"));
-        response.set("contentInsets", insets);
+        Spacing insets = new Spacing();
+        insets.setStart(tokens.spacing("md"));
+        insets.setEnd(tokens.spacing("md"));
+        insets.setBottom(tokens.spacing("lg"));
+        response.setContentInsets(insets);
     }
 
     /**
      * When the screen carries {@code title} and/or {@code parentUri}, prepend an
      * {@code AtomicComposite} app-bar section (token spacing, back navigate action)
-     * and remove top-level {@code title} so clients do not render a platform app bar.
+     * and clear top-level {@code title} so clients do not render a platform app bar.
      */
-    public void prependAppBarHeaderIfNeeded(ObjectNode response) {
-        String screenId = response.path("id").asText("screen");
-        String title = response.has("title") ? response.path("title").asText(null) : null;
-        String backUri = response.has("parentUri") ? response.path("parentUri").asText(null) : null;
+    public void prependAppBarHeaderIfNeeded(Screen response) {
+        String screenId = response.getId() == null ? "screen" : response.getId();
+        String title = response.getTitle();
+        String backUri = response.getParentUri();
         boolean hasTitle = title != null && !title.isBlank();
         boolean hasBack = backUri != null && !backUri.isBlank();
         if (!hasTitle && !hasBack) {
-            response.remove("title");
+            response.setTitle(null);
             return;
         }
 
@@ -150,14 +132,14 @@ public class SduiUtils {
                 sectionId, screenId + "_app_bar", title, backUri);
         header.setSurface(new SectionSurface());
 
-        ArrayNode sections = response.has("sections") && response.get("sections").isArray()
-                ? (ArrayNode) response.get("sections")
-                : objectMapper.createArrayNode();
-        ArrayNode merged = objectMapper.createArrayNode();
-        merged.add(objectMapper.valueToTree(header));
-        sections.forEach(merged::add);
-        response.set("sections", merged);
-        response.remove("title");
+        List<Section> existing = response.getSections() == null
+                ? new ArrayList<>()
+                : new ArrayList<>(response.getSections());
+        List<Section> merged = new ArrayList<>(existing.size() + 1);
+        merged.add(header);
+        merged.addAll(existing);
+        response.setSections(merged);
+        response.setTitle(null);
     }
 
     // ── Boxscore column definitions ────────────────────────────────────
@@ -655,6 +637,19 @@ public class SduiUtils {
     }
 
     /**
+     * Build a typed {@link StringTable} for the given locale.
+     */
+    public StringTable buildStringTablePojo(String locale) {
+        Map<String, String> table = STRING_TABLES.getOrDefault(
+                locale != null ? locale.toLowerCase() : "en",
+                STRING_TABLES.get("en")
+        );
+        StringTable st = new StringTable();
+        table.forEach(st::setAdditionalProperty);
+        return st;
+    }
+
+    /**
      * Look up a single localized string by key.
      * Falls back to English, then to the raw key if not found.
      */
@@ -667,16 +662,15 @@ public class SduiUtils {
     }
 
     /**
-     * Stamp a stringTable onto every section in the response's sections array.
+     * Stamp a stringTable onto every section in the screen's sections list.
      * Sections that already have a stringTable are left unchanged.
      */
-    public void stampStringTableOnSections(ObjectNode response, String locale) {
-        JsonNode sections = response.get("sections");
-        if (sections == null || !sections.isArray()) return;
-        ObjectNode table = buildStringTable(locale);
-        for (JsonNode section : sections) {
-            if (section.isObject() && !section.has("stringTable")) {
-                ((ObjectNode) section).set("stringTable", table.deepCopy());
+    public void stampStringTableOnSections(Screen response, String locale) {
+        List<Section> sections = response.getSections();
+        if (sections == null || sections.isEmpty()) return;
+        for (Section section : sections) {
+            if (section != null && section.getStringTable() == null) {
+                section.setStringTable(buildStringTablePojo(locale));
             }
         }
     }

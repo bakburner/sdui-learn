@@ -7,12 +7,15 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.nba.sdui.models.generated.Screen;
 import com.nba.sdui.models.generated.Section;
+import com.nba.sdui.models.generated.State;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import com.nba.sdui.domain.SduiUtils;
 import com.nba.sdui.domain.SectionIdDeriver;
@@ -53,26 +56,22 @@ public class CalendarComposer {
         LocalDate defaultDate = seasonCalendarService.currentLeagueDate();
         LocalDate selectedDate = resolveSelectedDate(selectedDateParam, defaultDate);
 
-        ObjectNode response = objectMapper.createObjectNode();
-        response.put("id", "calendar");
-        response.put("analyticsId", "calendar");
-        response.put("schemaVersion", schemaVersion);
+        Screen response = new Screen();
+        response.setId("calendar");
+        response.setAnalyticsId("calendar");
+        response.setSchemaVersion(schemaVersion);
 
-        ObjectNode state = objectMapper.createObjectNode();
-        state.put("calendar_selected_date", selectedDate.toString());
-        response.set("state", state);
+        State state = new State();
+        state.setAdditionalProperty("calendar_selected_date", selectedDate.toString());
+        response.setState(state);
 
-        ArrayNode sections = objectMapper.createArrayNode();
-        sections.add(objectMapper.valueToTree(buildCalendarMonthListSection(selectedDate, defaultDate)));
-        response.set("sections", sections);
+        List<Section> sections = new ArrayList<>();
+        sections.add(buildCalendarMonthListSection(selectedDate, defaultDate));
+        response.setSections(sections);
 
         utils.ensureScreenContentInsets(response);
         utils.stampStringTableOnSections(response, locale);
-        try {
-            return objectMapper.treeToValue(response, Screen.class);
-        } catch (JsonProcessingException e) {
-            throw new IllegalStateException("Failed to bind composed Calendar screen to Screen.class", e);
-        }
+        return response;
     }
 
     private Section buildCalendarMonthListSection(LocalDate selectedDate, LocalDate defaultDate) {

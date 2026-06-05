@@ -1,9 +1,11 @@
 package com.nba.sdui.domain.composer;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.nba.sdui.models.generated.Screen;
 import jakarta.annotation.PostConstruct;
 import java.util.ArrayList;
 import java.util.List;
@@ -107,7 +109,7 @@ public class ForYouComposer {
         sectionRefreshService.registerResolver(sectionId, (id, ctx) -> buildTonightsGamesHero());
     }
 
-    public JsonNode composeForYou(String traceId, String locale) {
+    public Screen composeForYou(String traceId, String locale) {
         log.info("Composing For You screen, locale={}", locale);
 
         ObjectNode response = objectMapper.createObjectNode();
@@ -162,7 +164,11 @@ public class ForYouComposer {
         response.set("sections", sections);
         utils.ensureScreenContentInsets(response);
         utils.stampStringTableOnSections(response, locale);
-        return response;
+        try {
+            return objectMapper.treeToValue(response, Screen.class);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Failed to bind composed For You screen to Screen.class", e);
+        }
     }
 
     // ── Section builders ───────────────────────────────────────────────

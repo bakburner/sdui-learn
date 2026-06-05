@@ -156,7 +156,7 @@ public class SduiCompositionService {
     public JsonNode composeForYou(SduiRequestContext ctx) {
         long start = System.nanoTime();
         try {
-            return forYouComposer.composeForYou(ctx.getTraceId(), ctx.getLocale());
+            return objectMapper.valueToTree(forYouComposer.composeForYou(ctx.getTraceId(), ctx.getLocale()));
         } finally {
             metrics.recordComposition("for-you", "screen", false, Duration.ofNanos(System.nanoTime() - start));
         }

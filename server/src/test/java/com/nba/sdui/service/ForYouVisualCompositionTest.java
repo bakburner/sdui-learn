@@ -32,15 +32,14 @@ import com.nba.sdui.domain.SectionIdDeriver;
 class ForYouVisualCompositionTest {
 
     private ForYouComposer composer;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @BeforeEach
     void setUp() {
-        ObjectMapper objectMapper = new ObjectMapper();
         composer = newComposer(new StatsApiClient(objectMapper, new SeasonCalendarService()));
     }
 
-    private static ForYouComposer newComposer(StatsApiClient statsApiClient) {
-        ObjectMapper objectMapper = new ObjectMapper();
+    private ForYouComposer newComposer(StatsApiClient statsApiClient) {
         SduiUtils utils = new SduiUtils(objectMapper, TestTokens.INSTANCE);
         SectionSurfaces surfaces = new SectionSurfaces(objectMapper, utils, TestTokens.INSTANCE);
         return new ForYouComposer(objectMapper, new StatsApiAdapter(statsApiClient), utils, surfaces, TestTokens.INSTANCE,
@@ -49,7 +48,7 @@ class ForYouVisualCompositionTest {
 
     @Test
     void firstContentModuleAfterStoryRailIsFeaturedHero() {
-        JsonNode response = composer.composeForYou("test-trace-id", "en");
+        JsonNode response = objectMapper.valueToTree(composer.composeForYou("test-trace-id", "en"));
         ArrayNode sections = (ArrayNode) response.get("sections");
 
         assertEquals("feed:for-you-following", sections.get(0).path("contentSourceId").asText());
@@ -61,7 +60,7 @@ class ForYouVisualCompositionTest {
 
     @Test
     void featuredHeroHasImageScrimAndCta() {
-        JsonNode response = composer.composeForYou("test-trace-id", "en");
+        JsonNode response = objectMapper.valueToTree(composer.composeForYou("test-trace-id", "en"));
         JsonNode hero = findSectionByContentSourceId(response, "cms:for-you-featured-hero");
 
         String tree = hero.path("data").path("ui").toString();
@@ -77,7 +76,7 @@ class ForYouVisualCompositionTest {
 
     @Test
     void topStoriesHeaderHasMoreCta() {
-        JsonNode response = composer.composeForYou("test-trace-id", "en");
+        JsonNode response = objectMapper.valueToTree(composer.composeForYou("test-trace-id", "en"));
         JsonNode header = findSectionByAnalyticsId(response, "for_you_top_stories_header");
         String tree = header.path("data").path("ui").toString();
         assertTrue(tree.contains("More"), "Top Stories header should expose More CTA");
@@ -90,7 +89,7 @@ class ForYouVisualCompositionTest {
         when(statsApiClient.getScoreboard()).thenThrow(new IOException("forced demo fallback"));
         ForYouComposer demoComposer = newComposer(statsApiClient);
 
-        JsonNode response = demoComposer.composeForYou("test-trace-id", "en");
+        JsonNode response = objectMapper.valueToTree(demoComposer.composeForYou("test-trace-id", "en"));
         JsonNode gamesHero = findSectionByContentSourceId(response, "stats-api:scoreboard");
 
         assertEquals("AtomicComposite", gamesHero.path("type").asText());
@@ -106,7 +105,7 @@ class ForYouVisualCompositionTest {
 
     @Test
     void feedOrderMatchesVisualRefreshPlan() {
-        JsonNode response = composer.composeForYou("test-trace-id", "en");
+        JsonNode response = objectMapper.valueToTree(composer.composeForYou("test-trace-id", "en"));
         ArrayNode sections = (ArrayNode) response.get("sections");
 
         String[] expectedAnalyticsOrder = {
@@ -138,7 +137,7 @@ class ForYouVisualCompositionTest {
 
     @Test
     void allSectionsRetainDerivedIdsAndContentSourceIds() {
-        JsonNode response = composer.composeForYou("test-trace-id", "en");
+        JsonNode response = objectMapper.valueToTree(composer.composeForYou("test-trace-id", "en"));
         ArrayNode sections = (ArrayNode) response.get("sections");
         for (JsonNode section : sections) {
             String sectionId = section.path("id").asText("");
@@ -152,7 +151,7 @@ class ForYouVisualCompositionTest {
 
     @Test
     void contentInsetsUnchanged() {
-        JsonNode response = composer.composeForYou("test-trace-id", "en");
+        JsonNode response = objectMapper.valueToTree(composer.composeForYou("test-trace-id", "en"));
         JsonNode insets = response.get("contentInsets");
         assertNotNull(insets);
         assertEquals(TestTokens.INSTANCE.spacing("md"), insets.path("start").asText());

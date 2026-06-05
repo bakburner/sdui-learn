@@ -133,9 +133,9 @@ class SchemaConformanceTest {
                 (ObjectNode) objectMapper.valueToTree(
                         liveComposer.composeLive("trace-conformance-1", "en")));
         samples.put("leaders (composeLeaders)",
-                demoScreenComposer.composeLeaders("trace-conformance-2", "phone", "en"));
+                (ObjectNode) objectMapper.valueToTree(demoScreenComposer.composeLeaders("trace-conformance-2", "phone", "en")));
         samples.put("demos (composeDemos)",
-                demoScreenComposer.composeDemos("trace-conformance-3", "phone", "en"));
+                (ObjectNode) objectMapper.valueToTree(demoScreenComposer.composeDemos("trace-conformance-3", "phone", "en")));
         samples.put("games?date=2026-05-18 (parameterized refresh)",
                 runGamesParamRefresh());
         return samples;

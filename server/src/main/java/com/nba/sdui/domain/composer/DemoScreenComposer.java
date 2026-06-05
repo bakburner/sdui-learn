@@ -1,8 +1,10 @@
 package com.nba.sdui.domain.composer;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.nba.sdui.models.generated.Screen;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -59,13 +61,26 @@ public class DemoScreenComposer {
                         ctx.getLocale() != null ? ctx.getLocale() : "en"));
     }
 
+    private Screen bindScreen(ObjectNode screen) {
+        try {
+            return objectMapper.treeToValue(screen, Screen.class);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Failed to bind composed demo screen to Screen.class", e);
+        }
+    }
+
     // ── Public entry points ────────────────────────────────────────────
 
     /**
      * Compose a kitchen-sink demo screen showcasing all section types (including
      * atomic primitives like DisplayGrid) with static mock data.  No external API calls.
      */
-    public ObjectNode composeDemos(String traceId, String deviceClass, String locale) {
+    public Screen composeDemos(String traceId, String deviceClass, String locale) {
+        ObjectNode screen = composeDemosTree(traceId, deviceClass, locale);
+        return bindScreen(screen);
+    }
+
+    private ObjectNode composeDemosTree(String traceId, String deviceClass, String locale) {
         ObjectNode screen = objectMapper.createObjectNode();
         screen.put("id", "demos");
         screen.put("schemaVersion", schemaVersion);
@@ -170,10 +185,10 @@ public class DemoScreenComposer {
     /**
      * Compose the standalone Season Leaders screen (Form + SeasonLeadersTable).
      */
-    public ObjectNode composeLeaders(String traceId, String deviceClass, String locale) {
-        return composeLeadersScreen(
+    public Screen composeLeaders(String traceId, String deviceClass, String locale) {
+        return bindScreen(composeLeadersScreen(
                 traceId, deviceClass, locale,
-                "2025-26", "regular", "per_game", "pts");
+                "2025-26", "regular", "per_game", "pts"));
     }
 
     /**

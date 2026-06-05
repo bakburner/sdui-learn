@@ -137,7 +137,7 @@ public class SduiCompositionService {
         long start = System.nanoTime();
         try {
             String deviceClass = ctx.getPlatform() != null ? ctx.getPlatform().getDeviceClass() : "phone";
-            return demoScreenComposer.composeDemos(ctx.getTraceId(), deviceClass, ctx.getLocale());
+            return objectMapper.valueToTree(demoScreenComposer.composeDemos(ctx.getTraceId(), deviceClass, ctx.getLocale()));
         } finally {
             metrics.recordComposition("demos", "screen", false, Duration.ofNanos(System.nanoTime() - start));
         }
@@ -147,7 +147,7 @@ public class SduiCompositionService {
         long start = System.nanoTime();
         try {
             String deviceClass = ctx.getPlatform() != null ? ctx.getPlatform().getDeviceClass() : "phone";
-            return demoScreenComposer.composeLeaders(ctx.getTraceId(), deviceClass, ctx.getLocale());
+            return objectMapper.valueToTree(demoScreenComposer.composeLeaders(ctx.getTraceId(), deviceClass, ctx.getLocale()));
         } finally {
             metrics.recordComposition("leaders", "screen", false, Duration.ofNanos(System.nanoTime() - start));
         }

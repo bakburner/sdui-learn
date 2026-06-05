@@ -116,7 +116,7 @@ class ScreenChannelContractTest {
 
     @Test
     void leadersScreen_returnsScreenShapeWithMatchingId() {
-        ObjectNode screen = demoScreenComposer.composeLeaders("trace-3", "phone", "en");
+        ObjectNode screen = (ObjectNode) objectMapper.valueToTree(demoScreenComposer.composeLeaders("trace-3", "phone", "en"));
         assertScreenShape(screen, "leaders");
     }
 
@@ -134,7 +134,7 @@ class ScreenChannelContractTest {
 
     @Test
     void demosScreen_returnsScreenShapeWithMatchingId() {
-        ObjectNode screen = demoScreenComposer.composeDemos("trace-5", "phone", "en");
+        ObjectNode screen = (ObjectNode) objectMapper.valueToTree(demoScreenComposer.composeDemos("trace-5", "phone", "en"));
         assertScreenShape(screen, "demos");
     }
 
@@ -149,7 +149,7 @@ class ScreenChannelContractTest {
 
     @Test
     void leadersScreen_neverReturnsBareSection() {
-        ObjectNode screen = demoScreenComposer.composeLeaders("trace-shape-2", "phone", "en");
+        ObjectNode screen = (ObjectNode) objectMapper.valueToTree(demoScreenComposer.composeLeaders("trace-shape-2", "phone", "en"));
         assertFalse(screen.has("type") && !screen.has("sections"),
                 "screen response must not look like a bare Section");
     }
@@ -174,13 +174,13 @@ class ScreenChannelContractTest {
 
     @Test
     void leadersScreen_allRefreshEndpoints_useUnifiedScreenUrl() {
-        ObjectNode screen = demoScreenComposer.composeLeaders("trace-fence-3", "phone", "en");
+        ObjectNode screen = (ObjectNode) objectMapper.valueToTree(demoScreenComposer.composeLeaders("trace-fence-3", "phone", "en"));
         assertNoLegacyRefreshEndpoints(screen, "leaders");
     }
 
     @Test
     void demosScreen_allRefreshEndpoints_useUnifiedScreenUrl() {
-        ObjectNode screen = demoScreenComposer.composeDemos("trace-fence-4", "phone", "en");
+        ObjectNode screen = (ObjectNode) objectMapper.valueToTree(demoScreenComposer.composeDemos("trace-fence-4", "phone", "en"));
         assertNoLegacyRefreshEndpoints(screen, "demos");
     }
 
@@ -196,7 +196,7 @@ class ScreenChannelContractTest {
 
     @Test
     void leadersForm_submitAction_usesUnifiedEndpoint() {
-        ObjectNode screen = demoScreenComposer.composeLeaders("trace-form-1", "phone", "en");
+        ObjectNode screen = (ObjectNode) objectMapper.valueToTree(demoScreenComposer.composeLeaders("trace-form-1", "phone", "en"));
         ArrayNode sections = (ArrayNode) screen.path("sections");
         String endpoint = null;
         for (JsonNode section : sections) {

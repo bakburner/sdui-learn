@@ -80,8 +80,8 @@ class MutateThenRefreshAuditTest {
         DemoScreenComposer demoScreenComposer = new DemoScreenComposer(
                 objectMapper, utils, surfaces, TestTokens.INSTANCE, parameterizedRefreshService);
         ReflectionTestUtils.setField(demoScreenComposer, "schemaVersion", "1.0");
-        allScreens.add(demoScreenComposer.composeDemos("trace-audit-2", "phone", "en"));
-        allScreens.add(demoScreenComposer.composeLeaders("trace-audit-3", "phone", "en"));
+        allScreens.add((ObjectNode) objectMapper.valueToTree(demoScreenComposer.composeDemos("trace-audit-2", "phone", "en")));
+        allScreens.add((ObjectNode) objectMapper.valueToTree(demoScreenComposer.composeLeaders("trace-audit-3", "phone", "en")));
     }
 
     @Test

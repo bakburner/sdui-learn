@@ -15,9 +15,13 @@ import com.nba.sdui.models.generated.AtomicComposite;
 import com.nba.sdui.models.generated.AtomicElement;
 import com.nba.sdui.models.generated.Badge;
 import com.nba.sdui.models.generated.Column;
+import com.nba.sdui.models.generated.Content;
 import com.nba.sdui.models.generated.CornerRadii;
+import com.nba.sdui.models.generated.DataBinding;
+import com.nba.sdui.models.generated.RefreshPolicy;
 import com.nba.sdui.models.generated.Row;
 import com.nba.sdui.models.generated.Section;
+import com.nba.sdui.models.generated.SectionSurface;
 import com.nba.sdui.models.generated.Spacing;
 
 /**
@@ -70,6 +74,17 @@ public class AtomicCompositeBuilder {
         section.setId(id);
         section.setType(Section.Type.fromValue("AtomicComposite"));
         if (analyticsId != null) section.setAnalyticsId(analyticsId);
+        section.setRefreshPolicy(new RefreshPolicy()
+                .withType(RefreshPolicy.RefreshType.fromValue("static")));
+        return section;
+    }
+
+    /** Variant accepting a raw RefreshPolicy ObjectNode (converted internally). */
+    private Section newSection(String id, String analyticsId, ObjectNode refreshPolicy) {
+        Section section = newSection(id, analyticsId);
+        if (refreshPolicy != null) {
+            section.setRefreshPolicy(om.convertValue(refreshPolicy, RefreshPolicy.class));
+        }
         return section;
     }
 
@@ -480,67 +495,69 @@ public class AtomicCompositeBuilder {
                                       String headline, String subhead,
                                       String thumbnailUrl, String contentType,
                                       String duration, String targetUri) {
-        ObjectNode section = sectionEnvelope(id, analyticsId);
+        Section section = newSection(id, analyticsId);
 
-        ObjectNode card = heroContainerNode("column", null, null);
+        AtomicElement card = heroContainer("column", null, null);
         if (targetUri != null) {
-            card.set("actions", singleActionArrayNode(tapNavigateNode(targetUri)));
-            AccessibilityHelper.addButton(om, card, headline);
+            card.setActions(singleActionArray(tapNavigate(targetUri)));
+            AccessibilityHelper.addButton(card, headline);
         }
-        ArrayNode children = om.createArrayNode();
+        List<AtomicElement> children = new ArrayList<>();
 
         if (thumbnailUrl != null) {
-            ObjectNode imgContainer = containerNode("column", null, null);
-            ArrayNode imgChildren = om.createArrayNode();
+            AtomicElement imgContainer = container("column", null, null);
+            List<AtomicElement> imgChildren = new ArrayList<>();
             // Inline hero image treatment: 16:9 artwork that fills card
             // width, rounded top corners, square bottom edge, cover fit.
             // The `hero` ImageVariant was pruned because this surface is
             // inline-expressible.
-            ObjectNode img = imageNode(thumbnailUrl, 0, 0, "cover");
-            img.put("aspectRatio", 16.0 / 9.0);
-            img.put("widthMode", "fill");
-            img.set("cornerRadii", cornerRadii(tokens.radius("lg"), tokens.radius("lg"), 0, 0));
-            AccessibilityHelper.addImage(om, img, headline);
+            AtomicElement img = image(thumbnailUrl, 0, 0, "cover");
+            img.setAspectRatio(16.0 / 9.0);
+            img.setWidthMode(AtomicElement.SizingMode.fromValue("fill"));
+            img.setCornerRadii(cornerRadiiOf(tokens.radius("lg"), tokens.radius("lg"), 0, 0));
+            AccessibilityHelper.addImage(img, headline);
             imgChildren.add(img);
             if (duration != null) {
-                ObjectNode dur = textNode(duration, "labelSmall", null, tokens.color("nba.label-inverted.primary"), null);
-                dur.set("padding", paddingNode(tokens.spacing("sm"), tokens.spacing("sm"), 0, 0));
+                AtomicElement dur = text(duration, "labelSmall", null,
+                        tokens.color("nba.label-inverted.primary"), null);
+                dur.setPadding(padding(tokens.spacing("sm"), tokens.spacing("sm"), 0, 0));
                 imgChildren.add(dur);
             }
-            imgContainer.set("children", imgChildren);
+            imgContainer.setChildren(imgChildren);
             children.add(imgContainer);
         }
 
-        ObjectNode textCol = containerNode("column", null, null);
-        textCol.set("padding", paddingNode(tokens.spacing("md"), tokens.spacing("md"), tokens.spacing("md"), tokens.spacing("md")));
-        ArrayNode textChildren = om.createArrayNode();
+        AtomicElement textCol = container("column", null, null);
+        textCol.setPadding(padding(tokens.spacing("md"), tokens.spacing("md"),
+                tokens.spacing("md"), tokens.spacing("md")));
+        List<AtomicElement> textChildren = new ArrayList<>();
 
         if (contentType != null) {
-            ObjectNode badge = textNode(contentType.toUpperCase(), "labelSmall", "bold", tokens.color("nba.label.accent.live"), null);
-            ObjectNode badgePad = paddingNode(0, 0, 0, tokens.spacing("xs"));
-            badge.set("padding", badgePad);
+            AtomicElement badge = text(contentType.toUpperCase(), "labelSmall", "bold",
+                    tokens.color("nba.label.accent.live"), null);
+            badge.setPadding(padding(0, 0, 0, tokens.spacing("xs")));
             textChildren.add(badge);
         }
 
-        textChildren.add(textNode(headline, "titleSmall", "bold", tokens.color("nba.label.primary"), 2));
+        textChildren.add(text(headline, "titleSmall", "bold", tokens.color("nba.label.primary"), 2));
 
         if (subhead != null) {
-            ObjectNode sub = textNode(subhead, "bodySmall", null, tokens.color("nba.label.secondary"), 2);
-            sub.set("padding", paddingNode(0, 0, tokens.spacing("xs"), 0));
+            AtomicElement sub = text(subhead, "bodySmall", null,
+                    tokens.color("nba.label.secondary"), 2);
+            sub.setPadding(padding(0, 0, tokens.spacing("xs"), 0));
             textChildren.add(sub);
         }
 
-        textCol.set("children", textChildren);
+        textCol.setChildren(textChildren);
         children.add(textCol);
-        card.set("children", children);
+        card.setChildren(children);
 
-        ObjectNode root = containerNode("column", null, null);
-        root.set("padding", paddingNode(tokens.spacing("lg"), tokens.spacing("lg"), tokens.spacing("sm"), tokens.spacing("sm")));
-        ArrayNode rootChildren = om.createArrayNode();
-        rootChildren.add(card);
-        root.set("children", rootChildren);
-        wrapUiNode(section, root);
-        return bindSection(section);
+        AtomicElement root = container("column", null, null);
+        root.setPadding(padding(tokens.spacing("lg"), tokens.spacing("lg"),
+                tokens.spacing("sm"), tokens.spacing("sm")));
+        root.setChildren(List.of(card));
+        wrapUi(section, root);
+        return section;
     }
 
     // ── GamePanel (as AtomicComposite) ───────────────────────────────────
@@ -674,41 +691,43 @@ public class AtomicCompositeBuilder {
         String cornerRadiusToken = featured ? tokens.radius("lg") : tokens.radius("md");
 
         // Root vertical container with tap-to-navigate action.
-        ObjectNode root = containerNode("column", null, "stretch");
-        root.put("id", sectionId + "-root");
-        root.put("widthMode", "fill");
-        root.put("cornerRadius", cornerRadiusToken);
-        root.set("padding", paddingNode(rootPadding, rootPadding, rootPadding, rootPadding));
+        AtomicElement root = container("column", null, "stretch");
+        root.setId(sectionId + "-root");
+        root.setWidthMode(AtomicElement.SizingMode.fromValue("fill"));
+        root.setCornerRadius(cornerRadiusToken);
+        root.setPadding(padding(rootPadding, rootPadding, rootPadding, rootPadding));
         if (navigateUri != null) {
-            root.set("actions", singleActionArrayNode(tapNavigateNode(navigateUri)));
+            root.setActions(singleActionArray(tapNavigate(navigateUri)));
             String a11yLabel = awayTeam.tricode() + " vs " + homeTeam.tricode();
             if (gameStatusText != null) a11yLabel += ", " + gameStatusText;
-            AccessibilityHelper.addButton(om, root, a11yLabel);
+            AccessibilityHelper.addButton(root, a11yLabel);
         }
 
-        ArrayNode rootChildren = om.createArrayNode();
+        List<AtomicElement> rootChildren = new ArrayList<>();
 
         if (badgeText != null && !badgeText.isEmpty()) {
-            ObjectNode badge = textNode(badgeText, "labelSmall", "bold", "#FFFFFF", null);
-            badge.put("background", "#E03131");
-            badge.put("cornerRadius", tokens.radius("sm"));
-            badge.set("padding", paddingNode(tokens.spacing("sm"), tokens.spacing("sm"), tokens.spacing("xs"), tokens.spacing("xs")));
+            AtomicElement badge = text(badgeText, "labelSmall", "bold", "#FFFFFF", null);
+            badge.setBackground("#E03131");
+            badge.setCornerRadius(tokens.radius("sm"));
+            badge.setPadding(padding(tokens.spacing("sm"), tokens.spacing("sm"),
+                    tokens.spacing("xs"), tokens.spacing("xs")));
             rootChildren.add(badge);
-            rootChildren.add(spacerNode(tokens.spacing("md")));
+            rootChildren.add(spacer(tokens.spacing("md")));
         }
 
         // Optional series/context row above the matchup (e.g. "BOS leads series 3-2").
         if (seriesText != null && !seriesText.isEmpty()) {
-            ObjectNode seriesEl = textNode(seriesText, "labelSmall", null, tokens.color("nba.label.tertiary"), 1);
-            seriesEl.put("textAlign", "center");
+            AtomicElement seriesEl = text(seriesText, "labelSmall", null,
+                    tokens.color("nba.label.tertiary"), 1);
+            seriesEl.setTextAlign(AtomicElement.TextAlign.fromValue("center"));
             rootChildren.add(seriesEl);
-            rootChildren.add(spacerNode(tokens.spacing("sm")));
+            rootChildren.add(spacer(tokens.spacing("sm")));
         }
 
         // Teams row: away | status-slot | home, spread edge-to-edge.
-        ObjectNode row = containerNode("row", "spaceBetween", "center");
-        row.put("widthMode", "fill");
-        ArrayNode rowChildren = om.createArrayNode();
+        AtomicElement row = container("row", "spaceBetween", "center");
+        row.setWidthMode(AtomicElement.SizingMode.fromValue("fill"));
+        List<AtomicElement> rowChildren = new ArrayList<>();
 
         rowChildren.add(teamColumn(awayTeam, "awayTeam"));
 
@@ -722,21 +741,25 @@ public class AtomicCompositeBuilder {
         }
 
         rowChildren.add(teamColumn(homeTeam, "homeTeam"));
-        row.set("children", rowChildren);
+        row.setChildren(rowChildren);
         rootChildren.add(row);
 
-        root.set("children", rootChildren);
+        root.setChildren(rootChildren);
 
         // Envelope + data.ui + data.content.
-        ObjectNode section = sectionEnvelope(sectionId, analyticsId, refreshPolicy);
-        ObjectNode data = wrapUiNode(root);
-        data.set("content", buildGamePanelContent(gameStatusText, gameStatus, homeTeam, awayTeam, clock));
-        section.set("data", data);
+        Section section = newSection(sectionId, analyticsId, refreshPolicy);
+        AtomicComposite data = new AtomicComposite().withUi(root);
+        data.setContent(buildGamePanelContent(gameStatusText, gameStatus, homeTeam, awayTeam, clock));
+        section.setData(data);
 
-        if (linescoreBindings != null) section.set("dataBinding", linescoreBindings);
-        if (surface != null) section.set("surface", surface);
+        if (linescoreBindings != null) {
+            section.setDataBinding(om.convertValue(linescoreBindings, DataBinding.class));
+        }
+        if (surface != null) {
+            section.setSurface(om.convertValue(surface, SectionSurface.class));
+        }
 
-        return bindSection(section);
+        return section;
     }
 
     /**
@@ -745,34 +768,36 @@ public class AtomicCompositeBuilder {
      * section's {@code content} dictionary so Ably linescore writes
      * land on the leaf without walking the tree.
      */
-    private ObjectNode teamColumn(GamePanelTeam team, String contentKey) {
-        ObjectNode col = containerNode("column", "center", "center");
+    private AtomicElement teamColumn(GamePanelTeam team, String contentKey) {
+        AtomicElement col = container("column", "center", "center");
 
-        ArrayNode children = om.createArrayNode();
+        List<AtomicElement> children = new ArrayList<>();
         if (team.logoUrl() != null) {
-            ObjectNode logo = imageNode(team.logoUrl(), 48, 48, "contain");
-            AccessibilityHelper.addImage(om, logo, team.tricode() + " logo");
+            AtomicElement logo = image(team.logoUrl(), 48, 48, "contain");
+            AccessibilityHelper.addImage(logo, team.tricode() + " logo");
             children.add(logo);
-            children.add(spacerNode(tokens.spacing("sm")));
+            children.add(spacer(tokens.spacing("sm")));
         }
-        ObjectNode tri = textNode(team.tricode(), "titleMedium", "semiBold", tokens.color("nba.label.primary"), 1);
+        AtomicElement tri = text(team.tricode(), "titleMedium", "semiBold",
+                tokens.color("nba.label.primary"), 1);
         children.add(tri);
 
-        ObjectNode score = textNode(String.valueOf(team.score()), "score", "bold", tokens.color("nba.label.primary"), 1);
-        score.put("bindRef", contentKey + ".score");
+        AtomicElement score = text(String.valueOf(team.score()), "score", "bold",
+                tokens.color("nba.label.primary"), 1);
+        score.setBindRef(contentKey + ".score");
         children.add(score);
 
-        col.set("children", children);
+        col.setChildren(children);
         return col;
     }
 
-    private ObjectNode statusCell(String gameStatusText, boolean featured) {
-        ObjectNode statusText = textNode(gameStatusText != null ? gameStatusText : "",
+    private AtomicElement statusCell(String gameStatusText, boolean featured) {
+        AtomicElement statusText = text(gameStatusText != null ? gameStatusText : "",
                 featured ? "titleSmall" : "labelSmall",
                 featured ? "semiBold" : "regular",
                 tokens.color("nba.label.primary"), 1);
-        statusText.put("opacity", 0.7);
-        statusText.put("bindRef", "gameStatusText");
+        statusText.setOpacity(0.7);
+        statusText.setBindRef("gameStatusText");
         return statusText;
     }
 
@@ -783,15 +808,15 @@ public class AtomicCompositeBuilder {
      * {@code gameClock} object on each tick and all three animation
      * inputs update together.
      */
-    private ObjectNode liveClockCell(boolean featured) {
-        ObjectNode clock = om.createObjectNode();
-        clock.put("type", "LiveClock");
-        clock.put("variant", featured ? "titleLarge" : "titleMedium");
-        clock.put("format", "m:ss");
-        clock.put("tickDirection", "down");
-        clock.put("bindRef", "clock");
-        clock.put("snapshotSeconds", 0);
-        clock.put("isRunning", false);
+    private AtomicElement liveClockCell(boolean featured) {
+        AtomicElement clock = new AtomicElement()
+                .withType(AtomicElement.Type.fromValue("LiveClock"));
+        clock.setVariant(featured ? "titleLarge" : "titleMedium");
+        clock.setFormat(AtomicElement.Format.fromValue("m:ss"));
+        clock.setTickDirection(AtomicElement.TickDirection.fromValue("down"));
+        clock.setBindRef("clock");
+        clock.setSnapshotSeconds(0);
+        clock.setIsRunning(false);
         return clock;
     }
 
@@ -802,30 +827,30 @@ public class AtomicCompositeBuilder {
      * {@code buildCompositeLinescoreBindings} replace these entries
      * in place.
      */
-    private ObjectNode buildGamePanelContent(String gameStatusText, int gameStatus,
+    private Content buildGamePanelContent(String gameStatusText, int gameStatus,
                                              GamePanelTeam homeTeam,
                                              GamePanelTeam awayTeam,
                                              GameClockSnapshot clock) {
-        ObjectNode content = om.createObjectNode();
-        if (gameStatusText != null) content.put("gameStatusText", gameStatusText);
-        content.put("gameStatus", gameStatus);
+        Content content = new Content();
+        if (gameStatusText != null) content.setAdditionalProperty("gameStatusText", gameStatusText);
+        content.setAdditionalProperty("gameStatus", gameStatus);
 
         ObjectNode home = om.createObjectNode();
         home.put("score", homeTeam.score());
         home.put("tricode", homeTeam.tricode());
-        content.set("homeTeam", home);
+        content.setAdditionalProperty("homeTeam", home);
 
         ObjectNode away = om.createObjectNode();
         away.put("score", awayTeam.score());
         away.put("tricode", awayTeam.tricode());
-        content.set("awayTeam", away);
+        content.setAdditionalProperty("awayTeam", away);
 
         if (clock != null) {
             ObjectNode clockNode = om.createObjectNode();
             clockNode.put("snapshotSeconds", clock.snapshotSeconds());
             if (clock.snapshotAtIso() != null) clockNode.put("snapshotAt", clock.snapshotAtIso());
             clockNode.put("isRunning", clock.isRunning());
-            content.set("clock", clockNode);
+            content.setAdditionalProperty("clock", clockNode);
         }
 
         return content;

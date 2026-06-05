@@ -833,15 +833,6 @@ public class GameDetailComposer {
                 root);
     }
 
-    private ObjectNode padHelper(int start, int end, int top, int bottom) {
-        ObjectNode p = objectMapper.createObjectNode();
-        p.put("start", start);
-        p.put("end", end);
-        p.put("top", top);
-        p.put("bottom", bottom);
-        return p;
-    }
-
     // ── Extended TabGroup with Highlights tab ─────────────────────────
 
     private Section buildGameDetailTabGroupFromLive(BoxscoreGame game, String gameId, String contentSourceId) {
@@ -888,8 +879,7 @@ public class GameDetailComposer {
 
         // Highlights tab — VOD cards with mutate actions (1.5 player-adjacent content)
         tabContents.setAdditionalProperty("highlights",
-                List.of(objectMapper.convertValue(
-                        buildHighlightsSection(gameId, contentSourceId), Section.class)));
+                List.of(buildHighlightsSection(gameId, contentSourceId)));
 
         data.setTabContents(tabContents);
         section.setData(data);
@@ -905,7 +895,7 @@ public class GameDetailComposer {
      * be bound to this state key via Conditional, enabling player-adjacent content switching
      * without navigation (Gap 6 / Phase 1.5).
      */
-    private ObjectNode buildHighlightsSection(String gameId, String contentSourceId) {
+    private Section buildHighlightsSection(String gameId, String contentSourceId) {
         String[][] highlights = {
                 {"hl-1", "Monster Dunk", "https://cdn.nba.com/manage/2025/02/giannis-dunk-752x428.jpg", "0:32", "media-0029400101"},
                 {"hl-2", "Buzzer Beater", "https://cdn.nba.com/manage/2025/02/curry-buzzer-752x428.jpg", "0:45", "media-0029400102"},
@@ -913,125 +903,73 @@ public class GameDetailComposer {
                 {"hl-4", "Full Game Highlights", "https://cdn.nba.com/manage/2025/02/bos-mia-recap-752x428.jpg", "9:45", "media-0029400105"},
         };
 
-        ObjectNode scroll = objectMapper.createObjectNode();
-        scroll.put("type", "ScrollContainer");
-        scroll.put("direction", "row");
-        scroll.put("gap", tokens.spacing("md"));
-        scroll.put("showIndicators", false);
-        ArrayNode scrollChildren = objectMapper.createArrayNode();
+        AtomicElement scroll = atomicBuilder.scrollContainer("row", tokens.spacing("md"), false);
+        List<AtomicElement> scrollChildren = new ArrayList<>();
 
         for (String[] hl : highlights) {
-            ObjectNode card = objectMapper.createObjectNode();
-            card.put("type", "Container");
-            card.put("direction", "column");
-            card.put("id", hl[0]);
-            card.put("cornerRadius", 8); // §3.6: no semantic token mapping for corner radius 8
-            card.put("background", tokens.color("nba.bg.primary"));
+            AtomicElement card = atomicBuilder.container("column", null, null);
+            card.setId(hl[0]);
+            card.setCornerRadius(8); // §3.6: no semantic token mapping for corner radius 8
+            card.setBackground(tokens.color("nba.bg.primary"));
+            atomicBuilder.shadow(card, "#00000020", 4, 0, 2);
 
-            ObjectNode shadowObj = objectMapper.createObjectNode();
-            shadowObj.put("color", "#00000020");
-            shadowObj.put("radius", 4);
-            shadowObj.put("offsetX", 0);
-            shadowObj.put("offsetY", 2);
-            card.set("shadow", shadowObj);
+            Action mutateAction = new Action();
+            mutateAction.setTrigger(Action.ActionTrigger.fromValue("onActivate"));
+            mutateAction.setType(Action.ActionType.fromValue("mutate"));
+            mutateAction.setTarget("screenState.selectedHighlight");
+            mutateAction.setOperation(Action.MutateOperation.fromValue("set"));
+            mutateAction.setValue(hl[4]);
+            card.setActions(List.of(mutateAction));
 
-            ArrayNode cardActions = objectMapper.createArrayNode();
-            ObjectNode mutateAction = objectMapper.createObjectNode();
-            mutateAction.put("trigger", "onActivate");
-            mutateAction.put("type", "mutate");
-            mutateAction.put("target", "screenState.selectedHighlight");
-            mutateAction.put("operation", "set");
-            mutateAction.put("value", hl[4]);
-            cardActions.add(mutateAction);
-            card.set("actions", cardActions);
+            List<AtomicElement> cardChildren = new ArrayList<>();
 
-            ArrayNode cardChildren = objectMapper.createArrayNode();
+            AtomicElement img = atomicBuilder.image(hl[2], 200, 112, "cover");
+            img.setCornerRadius(8); // §3.6: no semantic token mapping for corner radius 8
+            AccessibilityHelper.addImage(img, hl[0]);
 
-            ObjectNode img = objectMapper.createObjectNode();
-            img.put("type", "Image");
-            img.put("src", hl[2]);
-            img.put("width", 200);
-            img.put("height", 112);
-            img.put("fit", "cover");
-            img.put("cornerRadius", 8); // §3.6: no semantic token mapping for corner radius 8
-            AccessibilityHelper.addImage(objectMapper, img, hl[0]);
+            AtomicElement durationBadgeEl = atomicBuilder.container("row", null, null);
+            durationBadgeEl.setCornerRadius(tokens.radius("sm"));
+            durationBadgeEl.setBackground("#000000B3");
+            durationBadgeEl.setOpacity(0.85);
+            durationBadgeEl.setPadding(atomicBuilder.padding(
+                    tokens.spacing("sm"), tokens.spacing("sm"),
+                    tokens.spacing("xs"), tokens.spacing("xs")));
+            AtomicElement dbText = atomicBuilder.text(hl[3], "labelSmall", null,
+                    tokens.color("nba.label-inverted.primary"), null);
+            durationBadgeEl.setChildren(List.of(dbText));
 
-            ObjectNode durationBadgeEl = objectMapper.createObjectNode();
-            durationBadgeEl.put("type", "Container");
-            durationBadgeEl.put("direction", "row");
-            durationBadgeEl.put("cornerRadius", tokens.radius("sm"));
-            durationBadgeEl.put("background", "#000000B3");
-            durationBadgeEl.put("opacity", 0.85);
-            ObjectNode dbPad = objectMapper.createObjectNode();
-            dbPad.put("start", tokens.spacing("sm"));
-            dbPad.put("end", tokens.spacing("sm"));
-            dbPad.put("top", tokens.spacing("xs"));
-            dbPad.put("bottom", tokens.spacing("xs"));
-            durationBadgeEl.set("padding", dbPad);
-            ArrayNode dbChildren = objectMapper.createArrayNode();
-            ObjectNode dbText = objectMapper.createObjectNode();
-            dbText.put("type", "Text");
-            dbText.put("content", hl[3]);
-            dbText.put("variant", "labelSmall");
-            dbText.put("color", tokens.color("nba.label-inverted.primary"));
-            dbChildren.add(dbText);
-            durationBadgeEl.set("children", dbChildren);
-
-            ObjectNode badgeObj = objectMapper.createObjectNode();
-            badgeObj.set("element", durationBadgeEl);
-            badgeObj.put("alignment", "bottomEnd");
-            img.set("badge", badgeObj);
+            atomicBuilder.badge(img, durationBadgeEl, "bottomEnd");
 
             cardChildren.add(img);
+            cardChildren.add(atomicBuilder.spacer(6));
 
-            ObjectNode spacer = objectMapper.createObjectNode();
-            spacer.put("type", "Spacer");
-            spacer.put("height", 6);
-            cardChildren.add(spacer);
-
-            ObjectNode title = objectMapper.createObjectNode();
-            title.put("type", "Text");
-            title.put("content", hl[1]);
-            title.put("variant", "bodySmall");
-            title.put("weight", "semiBold");
-            title.put("color", tokens.color("nba.label.primary"));
-            title.put("maxLines", 2);
-            ObjectNode titlePad = objectMapper.createObjectNode();
-            titlePad.put("start", 8); // §3.6: no semantic spacing token for 8
-            titlePad.put("end", 8); // §3.6: no semantic spacing token for 8
-            titlePad.put("top", 0); // §3.6: no semantic value for zero
-            titlePad.put("bottom", tokens.spacing("sm"));
-            title.set("padding", titlePad);
+            AtomicElement title = atomicBuilder.text(hl[1], "bodySmall", "semiBold",
+                    tokens.color("nba.label.primary"), 2);
+            title.setPadding(atomicBuilder.padding(
+                    8, // §3.6: no semantic spacing token for 8
+                    8, // §3.6: no semantic spacing token for 8
+                    0, // §3.6: no semantic value for zero
+                    tokens.spacing("sm")));
             cardChildren.add(title);
 
-            card.set("children", cardChildren);
+            card.setChildren(cardChildren);
             scrollChildren.add(card);
         }
 
-        scroll.set("children", scrollChildren);
+        scroll.setChildren(scrollChildren);
 
-        ObjectNode root = objectMapper.createObjectNode();
-        root.put("type", "Container");
-        root.put("direction", "column");
-        ObjectNode rootPad = objectMapper.createObjectNode();
-        rootPad.put("start", 0); // §3.6: no semantic value for zero
-        rootPad.put("end", 0); // §3.6: no semantic value for zero
-        rootPad.put("top", 8); // §3.6: no semantic spacing token for 8
-        rootPad.put("bottom", 8); // §3.6: no semantic spacing token for 8
-        root.set("padding", rootPad);
-        ArrayNode rootChildren = objectMapper.createArrayNode();
-        rootChildren.add(scroll);
-        root.set("children", rootChildren);
+        AtomicElement root = atomicBuilder.container("column", null, null);
+        root.setPadding(atomicBuilder.padding(
+                0, // §3.6: no semantic value for zero
+                0, // §3.6: no semantic value for zero
+                8, // §3.6: no semantic spacing token for 8
+                8)); // §3.6: no semantic spacing token for 8
+        root.setChildren(List.of(scroll));
 
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", SectionIdDeriver.derive(contentSourceId, "AtomicComposite", "highlights"));
-        section.put("contentSourceId", contentSourceId);
-        section.put("type", "AtomicComposite");
-        section.put("analyticsId", "game_detail_highlights");
-        section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
-        ObjectNode data = objectMapper.createObjectNode();
-        data.set("ui", root);
-        section.set("data", data);
+        Section section = atomicBuilder.wrapAsComposite(
+                SectionIdDeriver.derive(contentSourceId, "AtomicComposite", "highlights"),
+                "game_detail_highlights",
+                root);
         return section;
     }
 

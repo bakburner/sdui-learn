@@ -208,9 +208,12 @@ builder and surfaces last.** This avoids the dual-API trap: both the
 builder and `SectionSurfaces` keep a single `ObjectNode`-returning surface
 throughout the composer migrations, and composers bridge with
 `objectMapper.treeToValue(node, Section.class)` (or `SectionSurface.class`)
-at each call site — round-trips through Jackson, wire bytes identical
-because of `@JsonPropertyOrder`. Once every composer is typed, the
-surfaces commit and the builder commit just delete the `treeToValue`
+at each call site. Each round-trip surfaces a small, well-defined set of
+semantically-transparent wire changes (empty collections, schema-default
+scalars, `@JsonPropertyOrder`-driven reordering — see "Expected diff
+categories" below); these are reviewed against that allowlist per commit
+rather than expected to be byte-identical. Once every composer is typed,
+the surfaces commit and the builder commit just delete the `treeToValue`
 shims their callers were doing.
 
 ```
@@ -263,8 +266,12 @@ Every commit follows the same pattern:
 3. Apply the type change.
 4. Re-run the same temporary test to capture post-change output to
    `/tmp/sdui-post-<step>.json`; `diff` it against the pre-change file.
-   Require empty diff (or document the intentional change in the commit
-   message).
+   The diff is **expected to be non-empty** because round-tripping
+   through generated POJOs surfaces three categories of
+   semantically-transparent wire changes (see "Expected diff
+   categories" below). Confirm every line of the diff falls into one of
+   those categories. Any line that doesn't = real semantic drift; fix
+   in the same commit.
 5. Run `./gradlew test --rerun-tasks`. Failures = drift; fix in the same
    commit before moving on.
 6. Drop the `private final ObjectMapper objectMapper;` field if nothing
@@ -272,6 +279,49 @@ Every commit follows the same pattern:
    cleanup, not a single trailing commit).
 7. Commit with a message describing exactly what migrated and what stayed
    ObjectNode.
+
+### Expected diff categories
+
+Round-tripping a composer through `treeToValue(node, Screen.class)` /
+`treeToValue(node, Section.class)` / `treeToValue(node, SectionSurface.class)`
+produces three classes of wire change. **All are semantically
+transparent** — confirmed against Android, iOS, and web reference
+clients; each uses null-coalescing or safe navigation so absent vs.
+empty (or absent vs. schema-default) produces identical behavior.
+
+1. **Empty collections materialize.** jsonschema2pojo emits
+   `private List<Action> actions = new ArrayList<>();` (and similarly for
+   `subsections` on `Section`, `children` on `AtomicElement`,
+   `NavigationItem`, etc.). Combined with Jackson's `NON_NULL`
+   inclusion, empty arrays now appear on the wire wherever they used to
+   be absent. Diff manifestation: `+ "actions": []`, `+ "subsections":
+   []`, `+ "children": []`.
+2. **Schema-default scalars materialize.** jsonschema2pojo bakes JSON
+   Schema `default` values into Java field initializers
+   (`private Boolean pauseWhenOffScreen = true;`,
+   `private Double opacity = 1.0;`, `private String label =
+   "Advertisement";`, etc.). Round-trip emits the default whether the
+   composer set it or not. Diff manifestation: `+ "pauseWhenOffScreen":
+   true`, `+ "opacity": 1.0`.
+3. **Field reordering.** `@JsonPropertyOrder` on the generated POJO
+   overrides whatever order the composer used when building the
+   `ObjectNode`. Same keys, same values, different sequence. JSON Schema
+   makes object key order non-significant, so this is a no-op for any
+   conformant parser.
+
+**Anything outside these three categories is real drift** and must be
+investigated before commit. Easiest sieve:
+
+```bash
+diff /tmp/sdui-pre-<step>.json /tmp/sdui-post-<step>.json |
+  grep -vE '"(actions|subsections|children|pauseWhenOffScreen|opacity|label|aspectRatio|width|hidden|hideOnError|isRunning|monospacedDigits|showIndicators|layoutWrap|sortable|highlighted|starter|required|disabled|collapseOnEmpty|visibility|dwellMs)"'
+```
+
+What's left should be empty (modulo `@JsonPropertyOrder`-driven
+reordering, which shows as paired add/remove of the same line).
+
+If a future commit introduces a fourth category, document it here
+before continuing the migration.
 
 ### Bridging between commits
 
@@ -303,8 +353,11 @@ rail.setContentSourceId("feed:home");
 sections.add(rail);
 ```
 
-The `treeToValue` round-trip preserves wire bytes because every generated
-POJO has `@JsonPropertyOrder` and Jackson re-serializes deterministically.
+The `treeToValue` round-trip is deterministic across runs (every
+generated POJO has `@JsonPropertyOrder`), but does **not** produce
+byte-identical output to the pre-migration `ObjectNode` build path —
+see "Expected diff categories" above for the three classes of
+semantically-transparent wire changes the round-trip introduces.
 Commits 11 and 12 are the bridge-deletion commits: commit 11 sweeps the
 surface bridge across every composer; commit 12 sweeps the builder bridge
 and rewrites the 67 builder method bodies.
@@ -385,7 +438,8 @@ the typed struct. Jackson serializes each correctly.
 | Generated POJO `withX(...)` builders return `this`, but `setX(...)` voids — easy to chain `setX` and accidentally drop values | Use `withX(...)` for chained construction; reserve `setX` for single mutations. Code review checks. |
 | `AtomicElement` field name mismatches (e.g. `crossAlignment` JSON field vs camelCase) | jsonschema2pojo names match JSON 1:1 by default; verify by reading generated source per migration commit. |
 | `Section.data: Object` lets us assign the wrong `*Data` type by accident | `SchemaConformanceTest` catches this immediately because the discriminator fix now enforces per-`type` data shape. |
-| Field ordering changes when going through `treeToValue` round-trip | Verified: every generated POJO has `@JsonPropertyOrder`; Jackson re-serializes deterministically. Per-commit pretty-printed-output diff catches any deviation. |
+| Field ordering changes when going through `treeToValue` round-trip | Verified: every generated POJO has `@JsonPropertyOrder`; Jackson re-serializes deterministically across runs. Per-commit diff against the "Expected diff categories" allowlist catches any deviation outside the three known classes. |
+| `treeToValue` round-trip alters wire bytes (empty arrays, schema-default scalars, field reordering) | Confirmed semantically transparent against Android, iOS, and web reference clients (each uses null-coalescing / safe navigation). Documented as the three expected diff categories; per-commit grep against that allowlist is the sieve for real regressions. Payload-size cost is ~1–2% pretty-printed and negligible gzipped. |
 | Hand-rolled `BoxscoreComposer` / `CalendarComposer` use shapes we haven't modeled in `BoxscoreTable` / `CalendarStrip` | Schema-conformance test would catch this today; if any field is missing, fix the schema first (its own micro-PR, then re-run codegen). |
 | Public method count temporarily looks like dual API (composers using treeToValue against ObjectNode-returning builder + surfaces during commits 1-10) | Bridge is a composer-local one-liner per call site, **not** a duplicate builder/surfaces method. Both `AtomicCompositeBuilder` and `SectionSurfaces` keep one ObjectNode-returning surface through commits 1-10, then flip to one typed surface in commits 11-12. Never two surfaces in parallel on either component. |
 

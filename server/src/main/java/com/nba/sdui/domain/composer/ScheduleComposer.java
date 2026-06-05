@@ -11,6 +11,8 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import com.nba.sdui.domain.AccessibilityHelper;
 import com.nba.sdui.domain.AtomicCompositeBuilder;
@@ -18,6 +20,9 @@ import com.nba.sdui.domain.SduiUtils;
 import com.nba.sdui.domain.SectionIdDeriver;
 import com.nba.sdui.domain.SectionSurfaces;
 import com.nba.sdui.domain.tokens.Tokens;
+import com.nba.sdui.models.generated.Screen;
+import com.nba.sdui.models.generated.Section;
+import com.nba.sdui.models.generated.SectionSurface;
 
 /**
  * Composes the Schedule screen — a date-filterable game list.
@@ -50,7 +55,7 @@ public class ScheduleComposer {
         this.atomicBuilder = new AtomicCompositeBuilder(objectMapper, tokens);
     }
 
-    public JsonNode composeSchedule(String traceId, String locale) {
+    public Screen composeSchedule(String traceId, String locale) {
         log.info("Composing Schedule screen, locale={}", locale);
 
         ObjectNode response = objectMapper.createObjectNode();
@@ -70,7 +75,7 @@ public class ScheduleComposer {
         state.put("schedule_day", "");
         response.set("state", state);
 
-        ArrayNode sections = objectMapper.createArrayNode();
+        List<Section> sections = new ArrayList<>();
 
         sections.add(buildFilterForm(locale));
 
@@ -79,13 +84,17 @@ public class ScheduleComposer {
             addGameSections(sections, mockData, locale);
         }
 
-        response.set("sections", sections);
+        response.set("sections", objectMapper.valueToTree(sections));
         utils.ensureScreenContentInsets(response);
         utils.stampStringTableOnSections(response, locale);
-        return response;
+        try {
+            return objectMapper.treeToValue(response, Screen.class);
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            throw new IllegalStateException("Failed to bind composed Schedule screen to Screen.class", e);
+        }
     }
 
-    private ObjectNode buildFilterForm(String locale) {
+    private Section buildFilterForm(String locale) {
         String contentSourceId = "feed:schedule";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "Form", "filters");
         ObjectNode section = objectMapper.createObjectNode();
@@ -143,7 +152,7 @@ public class ScheduleComposer {
 
         data.set("fields", fields);
         section.set("data", data);
-        return section;
+        return toSection(section);
     }
 
     /**
@@ -170,7 +179,7 @@ public class ScheduleComposer {
         return field;
     }
 
-    private void addGameSections(ArrayNode sections, JsonNode mockData, String locale) {
+    private void addGameSections(List<Section> sections, JsonNode mockData, String locale) {
         JsonNode games = mockData.path("games");
         if (!games.isArray()) return;
 
@@ -181,17 +190,18 @@ public class ScheduleComposer {
                 currentDate = date;
                 String headerContentSourceId = "feed:schedule";
                 String headerSectionId = SectionIdDeriver.derive(headerContentSourceId, "AtomicComposite", "header-" + date);
-                ObjectNode header = atomicBuilder.buildSectionHeader(
+                ObjectNode headerNode = atomicBuilder.buildSectionHeader(
                         headerSectionId, formatDate(date, locale), null, null, null);
-                header.put("contentSourceId", headerContentSourceId);
-                header.set("surface", surfaces.sectionHeaderSurface());
+                Section header = toSection(headerNode);
+                header.setContentSourceId(headerContentSourceId);
+                header.setSurface(toSectionSurface(surfaces.sectionHeaderSurface()));
                 sections.add(header);
             }
             sections.add(buildGameCard(game));
         }
     }
 
-    private ObjectNode buildGameCard(JsonNode game) {
+    private Section buildGameCard(JsonNode game) {
         String gameId = game.path("gameId").asText("unknown");
         String status = game.path("status").asText("Scheduled");
         JsonNode away = game.path("awayTeam");
@@ -224,13 +234,30 @@ public class ScheduleComposer {
                 targetUri,
                 game.path("overflowUri").asText(null)
         };
-        ObjectNode section = atomicBuilder.buildGameScheduleRow(
+        ObjectNode sectionNode = atomicBuilder.buildGameScheduleRow(
                 sectionId,
                 "schedule_game_" + gameId,
                 row);
-        section.put("contentSourceId", contentSourceId);
-        section.set("surface", surfaces.railSurface());
+        Section section = toSection(sectionNode);
+        section.setContentSourceId(contentSourceId);
+        section.setSurface(toSectionSurface(surfaces.railSurface()));
         return section;
+    }
+
+    private Section toSection(ObjectNode node) {
+        try {
+            return objectMapper.treeToValue(node, Section.class);
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            throw new IllegalStateException("Failed to bind composed section to Section.class", e);
+        }
+    }
+
+    private SectionSurface toSectionSurface(ObjectNode node) {
+        try {
+            return objectMapper.treeToValue(node, SectionSurface.class);
+        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+            throw new IllegalStateException("Failed to bind composed surface to SectionSurface.class", e);
+        }
     }
 
     private ObjectNode buildTeamColumn(JsonNode team) {

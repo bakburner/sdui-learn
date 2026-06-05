@@ -183,7 +183,8 @@ public class SduiCompositionService {
     public JsonNode composeSchedule(SduiRequestContext ctx) {
         long start = System.nanoTime();
         try {
-            return scheduleComposer.composeSchedule(ctx.getTraceId(), ctx.getLocale());
+            return objectMapper.valueToTree(
+                    scheduleComposer.composeSchedule(ctx.getTraceId(), ctx.getLocale()));
         } finally {
             metrics.recordComposition("schedule", "screen", false, Duration.ofNanos(System.nanoTime() - start));
         }

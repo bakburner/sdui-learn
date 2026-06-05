@@ -1,12 +1,9 @@
 package com.nba.sdui.domain.composer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.nba.sdui.models.generated.AccessibilityProperties;
 import com.nba.sdui.models.generated.Action;
 import com.nba.sdui.models.generated.AdSlot;
-import com.nba.sdui.models.generated.AtomicComposite;
 import com.nba.sdui.models.generated.AtomicElement;
 import com.nba.sdui.models.generated.Placeholder;
 import com.nba.sdui.models.generated.RefreshPolicy;
@@ -15,6 +12,10 @@ import com.nba.sdui.models.generated.Section;
 import com.nba.sdui.models.generated.Spacing;
 import com.nba.sdui.models.generated.SubscribeUpsell;
 import com.nba.sdui.models.generated.SubscriptionTier;
+import com.nba.sdui.models.generated.Subsection;
+import com.nba.sdui.models.generated.TabContents;
+import com.nba.sdui.models.generated.TabData;
+import com.nba.sdui.models.generated.TabGroup;
 import com.nba.sdui.models.generated.Targeting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -83,7 +84,7 @@ public class WatchComposer {
         List<Section> sections = new ArrayList<>();
 
         // Single TabGroup section that contains the three tabs
-        sections.add(objectMapper.convertValue(buildTabGroup(), Section.class));
+        sections.add(buildTabGroup());
 
         response.setSections(sections);
 
@@ -98,55 +99,77 @@ public class WatchComposer {
 
     // ── Tab group ──────────────────────────────────────────────────────
 
-    private ObjectNode buildTabGroup() {
+    private Section buildTabGroup() {
         String contentSourceId = "feed:watch";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "TabGroup");
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", sectionId);
-        section.put("type", "TabGroup");
-        section.put("analyticsId", "watch_tabs");
-        section.put("contentSourceId", contentSourceId);
-        section.set("refreshPolicy", staticPolicy());
 
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("stateKey", "watch_active_tab");
-        data.put("defaultTab", "featured");
+        Section section = new Section();
+        section.setId(sectionId);
+        section.setType(Section.Type.TAB_GROUP);
+        section.setAnalyticsId("watch_tabs");
+        section.setContentSourceId(contentSourceId);
+        section.setRefreshPolicy(staticRefreshPolicy());
 
-        ArrayNode tabs = objectMapper.createArrayNode();
-        tabs.add(buildTab("watch-featured", "Featured", "watch_active_tab", "featured"));
-        tabs.add(buildTab("watch-nbatv", "NBA TV", "watch_active_tab", "nbatv"));
-        tabs.add(buildTab("watch-leaguepass", "League Pass", "watch_active_tab", "leaguepass"));
-        data.set("tabs", tabs);
+        TabData featuredTab = buildTab("watch-featured", "Featured", "watch_active_tab", "featured");
+        TabData nbaTvTab = buildTab("watch-nbatv", "NBA TV", "watch_active_tab", "nbatv");
+        TabData leaguePassTab = buildTab("watch-leaguepass", "League Pass", "watch_active_tab", "leaguepass");
+        List<TabData> tabsList = List.of(featuredTab, nbaTvTab, leaguePassTab);
 
-        ObjectNode tabContents = objectMapper.createObjectNode();
-        tabContents.set("featured", buildFeaturedSections());
-        tabContents.set("nbatv", buildNbaTvSections());
-        tabContents.set("leaguepass", buildLeaguePassSections());
-        data.set("tabContents", tabContents);
+        TabGroup data = new TabGroup();
+        data.setStateKey("watch_active_tab");
+        data.setDefaultTab("featured");
+        data.setTabs(tabsList);
 
-        section.set("data", data);
-        section.set("subsections", utils.tabSelectSubsections(tabs, "watch_active_tab"));
-        section.set("surface", objectMapper.valueToTree(surfaces.stripSurfaceWithoutBackground()));
+        TabContents tabContents = new TabContents();
+        tabContents.setAdditionalProperty("featured", buildFeaturedSections());
+        tabContents.setAdditionalProperty("nbatv", buildNbaTvSections());
+        tabContents.setAdditionalProperty("leaguepass", buildLeaguePassSections());
+        data.setTabContents(tabContents);
 
+        section.setData(data);
+        section.setSubsections(tabSelectSubsections(tabsList, "watch_active_tab"));
+        section.setSurface(surfaces.stripSurfaceWithoutBackground());
         return section;
     }
 
-    private ObjectNode buildTab(String id, String label, String stateKey, String stateValue) {
-        ObjectNode tab = objectMapper.createObjectNode();
-        tab.put("id", id);
-        tab.put("label", label);
-        tab.put("stateKey", stateKey);
-        tab.put("stateValue", stateValue);
+    private TabData buildTab(String id, String label, String stateKey, String stateValue) {
+        TabData tab = new TabData();
+        tab.setId(id);
+        tab.setLabel(label);
+        tab.setStateKey(stateKey);
+        tab.setStateValue(stateValue);
         return tab;
+    }
+
+    /**
+     * Build one {@link Subsection} per tab carrying an {@code onActivate→mutate}
+     * action for tab selection. Mirrors {@code SduiUtils.tabSelectSubsections}
+     * but stays in the typed-POJO world to avoid an ArrayNode round-trip.
+     */
+    private List<Subsection> tabSelectSubsections(List<TabData> tabs, String stateKey) {
+        List<Subsection> subsections = new ArrayList<>(tabs.size());
+        for (TabData tab : tabs) {
+            String stateValue = tab.getStateValue() != null ? tab.getStateValue() : tab.getId();
+            Action mutate = new Action();
+            mutate.setTrigger(Action.ActionTrigger.ON_ACTIVATE);
+            mutate.setType(Action.ActionType.MUTATE);
+            mutate.setTarget(stateKey);
+            mutate.setValue(stateValue);
+            Subsection sub = new Subsection();
+            sub.setId(tab.getId());
+            sub.setActions(List.of(mutate));
+            subsections.add(sub);
+        }
+        return subsections;
     }
 
     // ── Featured tab sections ─────────────────────────────────────────
 
-    private ArrayNode buildFeaturedSections() {
-        ArrayNode sections = objectMapper.createArrayNode();
+    private List<Section> buildFeaturedSections() {
+        List<Section> sections = new ArrayList<>();
 
         // Ad slot at top
-        sections.add(objectMapper.valueToTree(buildAdSlot("watch/featured/top")));
+        sections.add(buildAdSlot("watch/featured/top"));
 
         addVideoCarousel(sections, "cms:watch-highlights", "Tonight's Highlights", null,
                 new String[][]{
@@ -165,11 +188,11 @@ public class WatchComposer {
                 });
 
         // Inline subscription upsell
-        sections.add(objectMapper.valueToTree(buildSubscribeUpsellBanner(
+        sections.add(buildSubscribeUpsellBanner(
                 "NBA League Pass",
                 "Watch every out-of-market game live or on demand",
                 FALLBACK_THUMB,
-                "Subscribe Now", "nba://subscribe/league-pass")));
+                "Subscribe Now", "nba://subscribe/league-pass"));
 
         addVideoCarousel(sections, "cms:watch-originals", "NBA Originals", null,
                 new String[][]{
@@ -185,7 +208,7 @@ public class WatchComposer {
                 });
 
         // Ad slot mid-page
-        sections.add(objectMapper.valueToTree(buildAdSlot("watch/featured/mid")));
+        sections.add(buildAdSlot("watch/featured/mid"));
 
         addContentRail(sections, "cms:watch-stories", "Trending Stories",
                 new String[][]{
@@ -205,11 +228,11 @@ public class WatchComposer {
 
     // ── NBA TV tab sections ────────────────────────────────────────────
 
-    private ArrayNode buildNbaTvSections() {
-        ArrayNode sections = objectMapper.createArrayNode();
+    private List<Section> buildNbaTvSections() {
+        List<Section> sections = new ArrayList<>();
 
         // NBA TV Schedule (hero + time-slot list)
-        sections.add(objectMapper.valueToTree(buildNbaTvSchedule()));
+        sections.add(buildNbaTvSchedule());
 
         addVideoCarousel(sections, "cms:nbatv-shows", "Popular Shows", null,
                 new String[][]{
@@ -224,7 +247,7 @@ public class WatchComposer {
                                 "30:00", null, "nba://watch/nba-action"}
                 });
 
-        sections.add(objectMapper.valueToTree(buildAdSlot("watch/nbatv/mid")));
+        sections.add(buildAdSlot("watch/nbatv/mid"));
 
         addVideoCarousel(sections, "cms:nbatv-classics", "Classic Games", "Relive the greatest moments",
                 new String[][]{
@@ -244,13 +267,13 @@ public class WatchComposer {
 
     // ── League Pass tab sections ───────────────────────────────────────
 
-    private ArrayNode buildLeaguePassSections() {
-        ArrayNode sections = objectMapper.createArrayNode();
+    private List<Section> buildLeaguePassSections() {
+        List<Section> sections = new ArrayList<>();
 
         // Full-screen subscription upsell with pricing tiers
-        sections.add(objectMapper.valueToTree(buildSubscribeUpsellHero()));
+        sections.add(buildSubscribeUpsellHero());
 
-        sections.add(objectMapper.valueToTree(buildSectionHeader("live-games", "Live Games", null, null)));
+        sections.add(buildSectionHeader("live-games", "Live Games", null, null));
 
         // Pull real games if available
         addLiveGamePanels(sections);
@@ -269,19 +292,19 @@ public class WatchComposer {
                 });
 
         // Ad slot
-        sections.add(objectMapper.valueToTree(buildAdSlot("watch/leaguepass/mid")));
+        sections.add(buildAdSlot("watch/leaguepass/mid"));
 
         return sections;
     }
 
-    private void addLiveGamePanels(ArrayNode sections) {
+    private void addLiveGamePanels(List<Section> sections) {
         try {
             ScoreboardResponse scoreboard = scoreboardPort.getScoreboard();
             if (scoreboard != null) {
                 int count = 0;
                 for (Game g : scoreboard.getGames()) {
                     if (count >= 4) break;
-                    sections.add(objectMapper.valueToTree(buildGamePanel(g)));
+                    sections.add(buildGamePanel(g));
                     count++;
                 }
                 if (count > 0) return;
@@ -291,8 +314,8 @@ public class WatchComposer {
         }
 
         // Mock fallback
-        sections.add(objectMapper.valueToTree(mockGamePanel("lp-g1", "GSW", 1610612744, "LAC", 1610612746, "Q2 8:30", 2)));
-        sections.add(objectMapper.valueToTree(mockGamePanel("lp-g2", "MIA", 1610612748, "NYK", 1610612752, "8:00 PM ET", 1)));
+        sections.add(mockGamePanel("lp-g1", "GSW", 1610612744, "LAC", 1610612746, "Q2 8:30", 2));
+        sections.add(mockGamePanel("lp-g2", "MIA", 1610612748, "NYK", 1610612752, "8:00 PM ET", 1));
     }
 
     // ── Reusable section builders ──────────────────────────────────────
@@ -324,15 +347,15 @@ public class WatchComposer {
      * truth for the title→rail gap app-wide, so every screen has the same
      * header rhythm. Callers that pass a null title get just the rail.
      */
-    private void addContentRail(ArrayNode sections, String contentSourceId, String title, String[][] cards) {
+    private void addContentRail(List<Section> sections, String contentSourceId, String title, String[][] cards) {
         if (title != null) {
-            sections.add(objectMapper.valueToTree(buildSectionHeader(contentSourceId, title, null, null)));
+            sections.add(buildSectionHeader(contentSourceId, title, null, null));
         }
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         Section section = atomicBuilder.buildContentRail(sectionId, null, null, cards);
         section.setContentSourceId(contentSourceId);
         section.setSurface(surfaces.railSurface());
-        sections.add(objectMapper.valueToTree(section));
+        sections.add(section);
     }
 
     /**
@@ -341,16 +364,16 @@ public class WatchComposer {
      * Same rationale as {@link #addContentRail}: one header surface, one
      * consistent app-wide rhythm.
      */
-    private void addVideoCarousel(ArrayNode sections, String contentSourceId, String title,
+    private void addVideoCarousel(List<Section> sections, String contentSourceId, String title,
                                    String subtitle, String[][] items) {
         if (title != null) {
-            sections.add(objectMapper.valueToTree(buildSectionHeader(contentSourceId, title, subtitle, null, null)));
+            sections.add(buildSectionHeader(contentSourceId, title, subtitle, null, null));
         }
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         Section section = atomicBuilder.buildVideoCarousel(sectionId, null, null, null, items);
         section.setContentSourceId(contentSourceId);
         section.setSurface(surfaces.railSurface());
-        sections.add(objectMapper.valueToTree(section));
+        sections.add(section);
     }
 
     private Section buildPromoBanner(String contentSourceId, String headline, String subhead,
@@ -711,12 +734,6 @@ public class WatchComposer {
     }
 
     // ── Helpers ────────────────────────────────────────────────────────
-
-    private ObjectNode staticPolicy() {
-        ObjectNode rp = objectMapper.createObjectNode();
-        rp.put("type", "static");
-        return rp;
-    }
 
     private RefreshPolicy staticRefreshPolicy() {
         RefreshPolicy rp = new RefreshPolicy();

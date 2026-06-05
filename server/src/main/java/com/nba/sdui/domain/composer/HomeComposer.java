@@ -5,8 +5,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.nba.sdui.models.generated.AtomicElement;
 import com.nba.sdui.models.generated.Screen;
 import com.nba.sdui.models.generated.Section;
+import java.util.ArrayList;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -144,19 +147,20 @@ public class HomeComposer {
         // Compose as responsive row
         String rowContentSourceId = "feed:home";
         String rowSectionId = SectionIdDeriver.derive(rowContentSourceId, "AtomicComposite", "row1");
-        ObjectNode row = atomicBuilder.responsiveRow(tokens.spacing("lg"), 768);
-        row.put("id", rowSectionId);
-        ArrayNode children = objectMapper.createArrayNode();
+        AtomicElement row = atomicBuilder.responsiveRow(tokens.spacing("lg"), 768);
+        row.setId(rowSectionId);
+        List<AtomicElement> children = new ArrayList<>();
 
-        ObjectNode leftSlot = atomicBuilder.sectionSlot("row1-hero", (ObjectNode) objectMapper.valueToTree(heroSection));
+        AtomicElement leftSlot = atomicBuilder.sectionSlot("row1-hero", heroSection);
         atomicBuilder.setFlex(leftSlot, 2);
         children.add(leftSlot);
 
-        ObjectNode rightSlot = atomicBuilder.sectionSlot("row1-headlines", headlinesSection);
+        AtomicElement rightSlot = atomicBuilder.sectionSlot("row1-headlines",
+                objectMapper.convertValue(headlinesSection, com.nba.sdui.models.generated.Section.class));
         atomicBuilder.setFlex(rightSlot, 1);
         children.add(rightSlot);
 
-        row.set("children", children);
+        row.setChildren(children);
         Section section = atomicBuilder.wrapAsComposite(rowSectionId, "home_row1", row);
         section.setContentSourceId(rowContentSourceId);
         ObjectNode surface = (ObjectNode) objectMapper.valueToTree(surfaces.flushSurface());
@@ -181,19 +185,21 @@ public class HomeComposer {
         // Compose as responsive row
         String rowContentSourceId = "feed:home";
         String rowSectionId = SectionIdDeriver.derive(rowContentSourceId, "AtomicComposite", "row2");
-        ObjectNode row = atomicBuilder.responsiveRow(tokens.spacing("lg"), 768);
-        row.put("id", rowSectionId);
-        ArrayNode children = objectMapper.createArrayNode();
+        AtomicElement row = atomicBuilder.responsiveRow(tokens.spacing("lg"), 768);
+        row.setId(rowSectionId);
+        List<AtomicElement> children = new ArrayList<>();
 
-        ObjectNode leftSlot = atomicBuilder.sectionSlot("row2-stories", storiesSection);
+        AtomicElement leftSlot = atomicBuilder.sectionSlot("row2-stories",
+                objectMapper.convertValue(storiesSection, com.nba.sdui.models.generated.Section.class));
         atomicBuilder.setFlex(leftSlot, 2);
         children.add(leftSlot);
 
-        ObjectNode rightSlot = atomicBuilder.sectionSlot("row2-ad", adSection);
+        AtomicElement rightSlot = atomicBuilder.sectionSlot("row2-ad",
+                objectMapper.convertValue(adSection, com.nba.sdui.models.generated.Section.class));
         atomicBuilder.setFlex(rightSlot, 1);
         children.add(rightSlot);
 
-        row.set("children", children);
+        row.setChildren(children);
         Section section = atomicBuilder.wrapAsComposite(rowSectionId, "home_row2", row);
         section.setContentSourceId(rowContentSourceId);
         section.setSurface(surfaces.flushSurface());
@@ -253,15 +259,15 @@ public class HomeComposer {
                 {"G League Finals set: Ignite vs. Blue Coats", "nba://article/gleague-finals"}
         };
 
-        ObjectNode root = atomicBuilder.container("column", null, null);
-        root.put("widthMode", "fill");
-        root.set("padding", atomicBuilder.padding(
+        AtomicElement root = atomicBuilder.container("column", null, null);
+        atomicBuilder.widthMode(root, "fill");
+        root.setPadding(atomicBuilder.padding(
                 tokens.spacing("lg"),
                 tokens.spacing("lg"),
                 8, // §3.6: no semantic spacing token for 8
                 8  // §3.6: no semantic spacing token for 8
         ));
-        ArrayNode children = objectMapper.createArrayNode();
+        List<AtomicElement> children = new ArrayList<>();
 
         // Inline header
         children.add(atomicBuilder.text("HEADLINES", "titleMedium", "bold", tokens.color("nba.label.primary"), null));
@@ -271,18 +277,18 @@ public class HomeComposer {
             String headline = headlines[i][0];
             String uri = headlines[i][1];
 
-            ObjectNode row = atomicBuilder.container("row", "start", "center");
-            row.put("widthMode", "fill");
-            row.set("padding", atomicBuilder.padding(
+            AtomicElement row = atomicBuilder.container("row", "start", "center");
+            atomicBuilder.widthMode(row, "fill");
+            row.setPadding(atomicBuilder.padding(
                     0, // §3.6: no semantic value for zero
                     0, // §3.6: no semantic value for zero
                     tokens.spacing("md"),
                     tokens.spacing("md")
             ));
-            row.set("actions", atomicBuilder.singleActionArray(atomicBuilder.tapNavigate(uri)));
-            ArrayNode rowChildren = objectMapper.createArrayNode();
+            row.setActions(atomicBuilder.singleActionArray(atomicBuilder.tapNavigate(uri)));
+            List<AtomicElement> rowChildren = new ArrayList<>();
             rowChildren.add(atomicBuilder.text(headline, "bodyMedium", "medium", tokens.color("nba.label.primary"), 2));
-            row.set("children", rowChildren);
+            row.setChildren(rowChildren);
             children.add(row);
 
             if (i < headlines.length - 1) {
@@ -290,7 +296,7 @@ public class HomeComposer {
             }
         }
 
-        root.set("children", children);
+        root.setChildren(children);
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         Section section = atomicBuilder.wrapAsComposite(sectionId, "home_headlines", root);
         section.setContentSourceId(contentSourceId);
@@ -379,15 +385,15 @@ public class HomeComposer {
                         "8h ago", FALLBACK_ARTICLE, "nba://article/vintage-jerseys"}
         };
 
-        ObjectNode root = atomicBuilder.container("column", null, null);
-        root.put("widthMode", "fill");
-        root.set("padding", atomicBuilder.padding(
+        AtomicElement root = atomicBuilder.container("column", null, null);
+        atomicBuilder.widthMode(root, "fill");
+        root.setPadding(atomicBuilder.padding(
                 tokens.spacing("lg"),
                 tokens.spacing("lg"),
                 8, // §3.6: no semantic spacing token for 8
                 8  // §3.6: no semantic spacing token for 8
         ));
-        ArrayNode children = objectMapper.createArrayNode();
+        List<AtomicElement> children = new ArrayList<>();
 
         for (int i = 0; i < articles.length; i++) {
             String id = articles[i][0];
@@ -397,41 +403,41 @@ public class HomeComposer {
             String imageUrl = articles[i][4];
             String targetUri = articles[i][5];
 
-            ObjectNode row = atomicBuilder.container("row", "start", "start");
-            row.put("id", id);
-            row.put("widthMode", "fill");
-            row.set("padding", atomicBuilder.padding(
+            AtomicElement row = atomicBuilder.container("row", "start", "start");
+            row.setId(id);
+            atomicBuilder.widthMode(row, "fill");
+            row.setPadding(atomicBuilder.padding(
                     0, // §3.6: no semantic value for zero
                     0, // §3.6: no semantic value for zero
                     tokens.spacing("md"),
                     tokens.spacing("md")
             ));
-            row.set("actions", atomicBuilder.singleActionArray(atomicBuilder.tapNavigate(targetUri)));
+            row.setActions(atomicBuilder.singleActionArray(atomicBuilder.tapNavigate(targetUri)));
 
-            ArrayNode rowChildren = objectMapper.createArrayNode();
+            List<AtomicElement> rowChildren = new ArrayList<>();
 
             // Thumbnail
-            ObjectNode img = atomicBuilder.image(imageUrl, 80, 80, "cover");
-            img.put("cornerRadius", 8); // §3.6: no semantic token mapping for corner radius 8
+            AtomicElement img = atomicBuilder.image(imageUrl, 80, 80, "cover");
+            img.setCornerRadius(8); // §3.6: no semantic token mapping for corner radius 8
             rowChildren.add(img);
 
             // Text column
-            ObjectNode textCol = atomicBuilder.container("column", null, null);
-            textCol.set("padding", atomicBuilder.padding(
+            AtomicElement textCol = atomicBuilder.container("column", null, null);
+            textCol.setPadding(atomicBuilder.padding(
                     tokens.spacing("md"),
                     0, // §3.6: no semantic value for zero
                     0, // §3.6: no semantic value for zero
                     0  // §3.6: no semantic value for zero
             ));
-            textCol.put("flex", 1);
-            ArrayNode textChildren = objectMapper.createArrayNode();
+            textCol.setFlex(1.0);
+            List<AtomicElement> textChildren = new ArrayList<>();
             textChildren.add(atomicBuilder.text(headline, "bodyMedium", "semiBold", tokens.color("nba.label.primary"), 2));
             textChildren.add(atomicBuilder.text(description, "bodySmall", null, tokens.color("nba.label.secondary"), 2));
             textChildren.add(atomicBuilder.text(timestamp, "labelSmall", null, tokens.color("nba.label.tertiary"), null));
-            textCol.set("children", textChildren);
+            textCol.setChildren(textChildren);
             rowChildren.add(textCol);
 
-            row.set("children", rowChildren);
+            row.setChildren(rowChildren);
             children.add(row);
 
             if (i < articles.length - 1) {
@@ -439,7 +445,7 @@ public class HomeComposer {
             }
         }
 
-        root.set("children", children);
+        root.setChildren(children);
         String contentSourceId = "cms:home-around";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         Section section = atomicBuilder.wrapAsComposite(sectionId, "home_around", root);
@@ -493,9 +499,9 @@ public class HomeComposer {
         return section;
     }
 
-    private ObjectNode divider() {
+    private AtomicElement divider() {
         ObjectNode d = objectMapper.createObjectNode();
         d.put("type", "Divider");
-        return d;
+        return objectMapper.convertValue(d, AtomicElement.class);
     }
 }

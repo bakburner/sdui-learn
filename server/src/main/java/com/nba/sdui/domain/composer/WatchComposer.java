@@ -5,12 +5,19 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.nba.sdui.models.generated.AccessibilityProperties;
+import com.nba.sdui.models.generated.Action;
+import com.nba.sdui.models.generated.AtomicComposite;
+import com.nba.sdui.models.generated.AtomicElement;
 import com.nba.sdui.models.generated.Screen;
 import com.nba.sdui.models.generated.Section;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import static com.nba.sdui.domain.AccessibilityHelper.*;
 import com.nba.sdui.domain.AtomicCompositeBuilder;
@@ -460,23 +467,24 @@ public class WatchComposer {
         ctaAction.put("type", "navigate");
         ctaAction.put("targetUri", ctaUri);
 
-        ObjectNode root = atomicBuilder.container("column", "start", "start");
-        root.put("widthMode", "fill");
-        root.put("gap", tokens.spacing("sm"));
-        ArrayNode children = objectMapper.createArrayNode();
-        ObjectNode titleText = atomicBuilder.text(title, "titleMedium", "bold", "#FFFFFF", null);
-        addHeading(objectMapper, titleText, title, 2);
+        AtomicElement root = atomicBuilder.container("column", "start", "start");
+        atomicBuilder.widthMode(root, "fill");
+        root.setGap(tokens.spacing("sm"));
+        List<AtomicElement> children = new ArrayList<>();
+        AtomicElement titleText = atomicBuilder.text(title, "titleMedium", "bold", "#FFFFFF", null);
+        applyHeading(titleText, title, 2);
         children.add(titleText);
         if (subtitle != null) {
             children.add(atomicBuilder.text(subtitle, "bodySmall", null, "rgba(255,255,255,0.85)", null));
         }
         children.add(atomicBuilder.spacer(tokens.spacing("md")));
-        children.add(atomicBuilder.button(ctaLabel, "primary", ctaAction.deepCopy()));
-        root.set("children", children);
+        children.add(atomicBuilder.button(ctaLabel, "primary",
+                objectMapper.convertValue(ctaAction.deepCopy(), Action.class)));
+        root.setChildren(children);
 
-        ObjectNode data = atomicBuilder.wrapUi(root);
-        data.set("ctaAction", ctaAction);
-        section.set("data", data);
+        AtomicComposite data = atomicBuilder.wrapUi(root);
+        data.setAdditionalProperty("ctaAction", ctaAction);
+        section.set("data", objectMapper.valueToTree(data));
         return section;
     }
 
@@ -502,7 +510,7 @@ public class WatchComposer {
                 tokens.color("nba.label.accent.brand"),
                 24)));
 
-        ObjectNode root = buildSubscribeUpsellHeroUi(
+        AtomicElement root = buildSubscribeUpsellHeroUi(
                 "NBA League Pass",
                 "Your courtside seat to every game",
                 FALLBACK_THUMB,
@@ -527,9 +535,9 @@ public class WatchComposer {
         tiers.add(tierProductId("lp-standard", "League Pass", "$14.99/mo"));
         tiers.add(tierProductId("lp-premium", "League Pass Premium", "$22.99/mo"));
 
-        ObjectNode data = atomicBuilder.wrapUi(root);
-        data.set("tiers", tiers);
-        section.set("data", data);
+        AtomicComposite data = atomicBuilder.wrapUi(root);
+        data.setAdditionalProperty("tiers", tiers);
+        section.set("data", objectMapper.valueToTree(data));
         return section;
     }
 
@@ -538,82 +546,82 @@ public class WatchComposer {
      * both the Watch composer and the demo composer can share the same
      * visual composition.
      */
-    private ObjectNode buildSubscribeUpsellHeroUi(String title, String subtitle, String logoUrl,
+    private AtomicElement buildSubscribeUpsellHeroUi(String title, String subtitle, String logoUrl,
                                              String[] features, TierSpec[] tierSpecs) {
-        ObjectNode root = atomicBuilder.container("column", "start", "center");
-        root.put("gap", 8); // §3.6: no semantic spacing token for 8
-        root.put("widthMode", "fill");
-        ArrayNode children = objectMapper.createArrayNode();
+        AtomicElement root = atomicBuilder.container("column", "start", "center");
+        root.setGap(8); // §3.6: no semantic spacing token for 8
+        atomicBuilder.widthMode(root, "fill");
+        List<AtomicElement> children = new ArrayList<>();
 
         if (logoUrl != null) {
-            ObjectNode logoImg = atomicBuilder.image(logoUrl, 0, 64, "contain");
-            addHidden(objectMapper, logoImg);
+            AtomicElement logoImg = atomicBuilder.image(logoUrl, 0, 64, "contain");
+            applyHidden(logoImg);
             children.add(logoImg);
             children.add(atomicBuilder.spacer(tokens.spacing("md")));
         }
-        ObjectNode heroTitle = atomicBuilder.text(title, "headlineMedium", "bold", tokens.color("nba.label-dark.primary"), null);
-        addHeading(objectMapper, heroTitle, title, 2);
+        AtomicElement heroTitle = atomicBuilder.text(title, "headlineMedium", "bold", tokens.color("nba.label-dark.primary"), null);
+        applyHeading(heroTitle, title, 2);
         children.add(heroTitle);
         if (subtitle != null) {
             children.add(atomicBuilder.text(subtitle, "bodyLarge", null, tokens.color("nba.label-dark.primary"), null));
         }
         children.add(atomicBuilder.spacer(tokens.spacing("lg")));
 
-        ObjectNode featuresCol = atomicBuilder.container("column", "start", "start");
-        featuresCol.put("gap", 8); // §3.6: no semantic spacing token for 8
-        featuresCol.put("widthMode", "fill");
-        ArrayNode featureChildren = objectMapper.createArrayNode();
+        AtomicElement featuresCol = atomicBuilder.container("column", "start", "start");
+        featuresCol.setGap(8); // §3.6: no semantic spacing token for 8
+        atomicBuilder.widthMode(featuresCol, "fill");
+        List<AtomicElement> featureChildren = new ArrayList<>();
         for (String feature : features) {
-            ObjectNode row = atomicBuilder.container("row", "start", "center");
-            row.put("gap", 8); // §3.6: no semantic spacing token for 8
-            row.put("widthMode", "fill");
-            ArrayNode rowChildren = objectMapper.createArrayNode();
+            AtomicElement row = atomicBuilder.container("row", "start", "center");
+            row.setGap(8); // §3.6: no semantic spacing token for 8
+            atomicBuilder.widthMode(row, "fill");
+            List<AtomicElement> rowChildren = new ArrayList<>();
             rowChildren.add(atomicBuilder.text("✓", "bodyLarge", "bold", "token:nba.color.feedback.success.70", null));
-            ObjectNode featureText = atomicBuilder.text(feature, "bodyLarge", null, tokens.color("nba.label-dark.primary"), null);
-            featureText.put("flex", 1);
+            AtomicElement featureText = atomicBuilder.text(feature, "bodyLarge", null, tokens.color("nba.label-dark.primary"), null);
+            featureText.setFlex(1.0);
             rowChildren.add(featureText);
-            row.set("children", rowChildren);
+            row.setChildren(rowChildren);
             featureChildren.add(row);
         }
-        featuresCol.set("children", featureChildren);
+        featuresCol.setChildren(featureChildren);
         children.add(featuresCol);
 
         children.add(atomicBuilder.spacer(20));
 
-        ObjectNode tiersCol = atomicBuilder.container("column", "start", "stretch");
-        tiersCol.put("gap", tokens.spacing("lg"));
-        tiersCol.put("widthMode", "fill");
-        ArrayNode tierChildren = objectMapper.createArrayNode();
+        AtomicElement tiersCol = atomicBuilder.container("column", "start", "stretch");
+        tiersCol.setGap(tokens.spacing("lg"));
+        atomicBuilder.widthMode(tiersCol, "fill");
+        List<AtomicElement> tierChildren = new ArrayList<>();
         for (TierSpec t : tierSpecs) {
             tierChildren.add(buildTierUi(t));
         }
-        tiersCol.set("children", tierChildren);
+        tiersCol.setChildren(tierChildren);
         children.add(tiersCol);
 
-        root.set("children", children);
+        root.setChildren(children);
         return root;
     }
 
     /** Build an atomic Container that visually represents one subscription tier. */
-    private ObjectNode buildTierUi(TierSpec t) {
-        ObjectNode card = atomicBuilder.container("column", "start", "start");
-        card.put("gap", 6); // §3.6: no semantic spacing token for 6
-        card.put("background", tokens.color("nba.color.t-white.10"));
-        card.put("cornerRadius", tokens.radius("lg"));
-        card.set("padding", atomicBuilder.padding(
+    private AtomicElement buildTierUi(TierSpec t) {
+        AtomicElement card = atomicBuilder.container("column", "start", "start");
+        card.setGap(6); // §3.6: no semantic spacing token for 6
+        card.setBackground(tokens.color("nba.color.t-white.10"));
+        card.setCornerRadius(tokens.radius("lg"));
+        card.setPadding(atomicBuilder.padding(
                 22, // §3.6: no semantic spacing token for 22
                 22, // §3.6: no semantic spacing token for 22
                 20, // §3.6: no semantic spacing token for 20
                 20  // §3.6: no semantic spacing token for 20
         ));
-        card.put("widthMode", "fill");
+        atomicBuilder.widthMode(card, "fill");
 
-        ArrayNode cardChildren = objectMapper.createArrayNode();
+        List<AtomicElement> cardChildren = new ArrayList<>();
         if (t.badgeText != null) {
             cardChildren.add(atomicBuilder.text(t.badgeText, "labelMedium", "bold", tokens.color("nba.color.secondary.70"), null));
         }
-        ObjectNode tierName = atomicBuilder.text(t.name, "titleLarge", "bold", tokens.color("nba.label-dark.primary"), null);
-        addHeading(objectMapper, tierName, t.name, 3);
+        AtomicElement tierName = atomicBuilder.text(t.name, "titleLarge", "bold", tokens.color("nba.label-dark.primary"), null);
+        applyHeading(tierName, t.name, 3);
         cardChildren.add(tierName);
         cardChildren.add(atomicBuilder.text(t.price, "headlineSmall", "bold", tokens.color("nba.label-dark.primary"), null));
 
@@ -628,9 +636,10 @@ public class WatchComposer {
         tierAction.put("trigger", "onActivate");
         tierAction.put("type", "navigate");
         tierAction.put("targetUri", t.ctaUri);
-        cardChildren.add(atomicBuilder.button(t.ctaLabel, "primary", tierAction));
+        cardChildren.add(atomicBuilder.button(t.ctaLabel, "primary",
+                objectMapper.convertValue(tierAction, Action.class)));
 
-        card.set("children", cardChildren);
+        card.setChildren(cardChildren);
         return card;
     }
 
@@ -705,5 +714,21 @@ public class WatchComposer {
         ObjectNode rp = objectMapper.createObjectNode();
         rp.put("type", "static");
         return rp;
+    }
+
+    private static void applyHeading(AtomicElement el, String label, int level) {
+        if (el == null || label == null || label.isBlank()) return;
+        AccessibilityProperties a = new AccessibilityProperties();
+        a.setLabel(label);
+        a.setRole(AccessibilityProperties.Role.HEADING);
+        a.setHeadingLevel(Math.max(1, Math.min(6, level)));
+        el.setAccessibility(a);
+    }
+
+    private static void applyHidden(AtomicElement el) {
+        if (el == null) return;
+        AccessibilityProperties a = new AccessibilityProperties();
+        a.setHidden(true);
+        el.setAccessibility(a);
     }
 }

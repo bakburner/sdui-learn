@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.nba.sdui.models.generated.AtomicComposite;
+import com.nba.sdui.models.generated.AtomicElement;
 import com.nba.sdui.models.generated.Screen;
 import com.nba.sdui.models.generated.Section;
 import com.nba.sdui.models.generated.SectionStates;
@@ -578,18 +580,20 @@ public class GameDetailComposer {
             ObjectNode homeChild = buildStatLineChild("row-home-stats", homeTricode + " Leaders", homePerformers);
             ObjectNode awayChild = buildStatLineChild("row-away-stats", awayTricode + " Leaders", awayPerformers);
 
-            ObjectNode root = atomicBuilder.responsiveRow(tokens.spacing("lg"), 600);
-            ArrayNode children = objectMapper.createArrayNode();
+            AtomicElement root = atomicBuilder.responsiveRow(tokens.spacing("lg"), 600);
+            List<AtomicElement> children = new ArrayList<>();
 
-            ObjectNode homeSlot = atomicBuilder.sectionSlot("row-home", homeChild);
+            AtomicElement homeSlot = atomicBuilder.sectionSlot("row-home",
+                    objectMapper.convertValue(homeChild, com.nba.sdui.models.generated.Section.class));
             atomicBuilder.setFlex(homeSlot, 1);
             children.add(homeSlot);
 
-            ObjectNode awaySlot = atomicBuilder.sectionSlot("row-away", awayChild);
+            AtomicElement awaySlot = atomicBuilder.sectionSlot("row-away",
+                    objectMapper.convertValue(awayChild, com.nba.sdui.models.generated.Section.class));
             atomicBuilder.setFlex(awaySlot, 1);
             children.add(awaySlot);
 
-            root.set("children", children);
+            root.setChildren(children);
             String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite", "team-leaders-row");
             Section section = atomicBuilder.wrapAsComposite(sectionId, null, root);
             section.setContentSourceId(contentSourceId);
@@ -689,33 +693,33 @@ public class GameDetailComposer {
         section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
         section.set("surface", objectMapper.valueToTree(surfaces.videoPlayerSurface()));
 
-        ObjectNode root = atomicBuilder.container("column", "center", "center");
-        root.put("widthMode", "fill");
-        root.put("height", 440);
-        root.put("background", "#000000");
-        ArrayNode rootChildren = objectMapper.createArrayNode();
+        AtomicElement root = atomicBuilder.container("column", "center", "center");
+        atomicBuilder.widthMode(root, "fill");
+        root.setHeight(440);
+        root.setBackground("#000000");
+        List<AtomicElement> rootChildren = new ArrayList<>();
         rootChildren.add(atomicBuilder.text("▶", "displayLarge", "bold", "#FFFFFF", null));
         rootChildren.add(atomicBuilder.spacer(tokens.spacing("md")));
         rootChildren.add(atomicBuilder.text("Video Player", "titleMedium", null, "#FFFFFF", null));
         rootChildren.add(atomicBuilder.text("game • " + gameId, "bodySmall", null,
                 "rgba(255,255,255,0.6)", null));
-        root.set("children", rootChildren);
+        root.setChildren(rootChildren);
 
-        ObjectNode data = atomicBuilder.wrapUi(root);
-        data.put("playerType", "game");
-        data.put("contentId", gameId);
-        data.put("autoplay", gameStatus == 2);
+        AtomicComposite data = atomicBuilder.wrapUi(root);
+        data.setAdditionalProperty("playerType", "game");
+        data.setAdditionalProperty("contentId", gameId);
+        data.setAdditionalProperty("autoplay", gameStatus == 2);
 
         ArrayNode capabilities = objectMapper.createArrayNode();
         capabilities.add("pip");
         capabilities.add("fullscreenRotation");
-        data.set("capabilities", capabilities);
+        data.setAdditionalProperty("capabilities", capabilities);
 
         ObjectNode displayConfig = objectMapper.createObjectNode();
         displayConfig.put("aspectRatio", "16:9");
-        data.set("displayConfig", displayConfig);
+        data.setAdditionalProperty("displayConfig", displayConfig);
 
-        section.set("data", data);
+        section.set("data", objectMapper.valueToTree(data));
         return section;
     }
 
@@ -761,12 +765,12 @@ public class GameDetailComposer {
         root.put("direction", "column");
         root.put("alignment", "center");
         root.put("crossAlignment", "center");
-        root.set("padding", atomicBuilder.padding(
+        root.set("padding", objectMapper.valueToTree(atomicBuilder.padding(
                 24, // §3.6: no semantic spacing token for 24
                 24, // §3.6: no semantic spacing token for 24
                 tokens.spacing("xl"),
                 tokens.spacing("xl")
-        ));
+        )));
         root.put("background", tokens.color("nba.bg.primary"));
         root.put("cornerRadius", tokens.radius("lg"));
 

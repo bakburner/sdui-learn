@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.nba.sdui.models.generated.AtomicElement;
 import com.nba.sdui.models.generated.Screen;
 import com.nba.sdui.models.generated.Section;
 import jakarta.annotation.PostConstruct;
@@ -408,9 +409,9 @@ public class ForYouComposer {
                         DemoImageUrls.thumb("all-nba"), "nba://article/all-nba-teams"}
         };
 
-        ObjectNode root = atomicBuilder.container("column", null, null);
-        root.put("widthMode", "fill");
-        ArrayNode children = objectMapper.createArrayNode();
+        AtomicElement root = atomicBuilder.container("column", null, null);
+        atomicBuilder.widthMode(root, "fill");
+        List<AtomicElement> children = new ArrayList<>();
 
         for (int i = 0; i < articles.length; i++) {
             String id = articles[i][0];
@@ -418,53 +419,55 @@ public class ForYouComposer {
             String imageUrl = articles[i][2];
             String targetUri = articles[i][3];
 
-            ObjectNode row = atomicBuilder.container("row", "start", "center");
-            row.put("id", id);
-            row.put("widthMode", "fill");
-            row.set("padding", atomicBuilder.padding(
+            AtomicElement row = atomicBuilder.container("row", "start", "center");
+            row.setId(id);
+            atomicBuilder.widthMode(row, "fill");
+            row.setPadding(atomicBuilder.padding(
                     tokens.spacing("lg"),
                     tokens.spacing("lg"),
                     tokens.spacing("md"),
                     tokens.spacing("md")
             ));
-            row.set("actions", atomicBuilder.singleActionArray(atomicBuilder.tapNavigate(targetUri)));
+            row.setActions(atomicBuilder.singleActionArray(atomicBuilder.tapNavigate(targetUri)));
 
-            ArrayNode rowChildren = objectMapper.createArrayNode();
-            ObjectNode img = atomicBuilder.image(imageUrl, 120, 68, "cover");
-            img.put("cornerRadius", tokens.radius("sm"));
-            AccessibilityHelper.addImage(objectMapper, img, headline);
+            List<AtomicElement> rowChildren = new ArrayList<>();
+            AtomicElement img = atomicBuilder.image(imageUrl, 120, 68, "cover");
+            img.setCornerRadius(tokens.radius("sm"));
+            ObjectNode imgNode = (ObjectNode) objectMapper.valueToTree(img);
+            AccessibilityHelper.addImage(objectMapper, imgNode, headline);
+            img = objectMapper.convertValue(imgNode, AtomicElement.class);
             rowChildren.add(img);
 
-            ObjectNode textCol = atomicBuilder.container("column", null, "start");
-            textCol.set("padding", atomicBuilder.padding(
+            AtomicElement textCol = atomicBuilder.container("column", null, "start");
+            textCol.setPadding(atomicBuilder.padding(
                     tokens.spacing("md"), 0, 0, 0));
-            textCol.put("flex", 1);
-            ArrayNode textChildren = objectMapper.createArrayNode();
+            textCol.setFlex(1.0);
+            List<AtomicElement> textChildren = new ArrayList<>();
             textChildren.add(atomicBuilder.text(headline, "bodyMedium", "semiBold",
                     tokens.color("nba.label.primary"), 3));
-            textCol.set("children", textChildren);
+            textCol.setChildren(textChildren);
             rowChildren.add(textCol);
 
-            row.set("children", rowChildren);
+            row.setChildren(rowChildren);
             children.add(row);
 
             if (i < articles.length - 1) {
-                ObjectNode divider = atomicBuilder.container("column", null, null);
-                divider.put("widthMode", "fill");
-                divider.set("padding", atomicBuilder.padding(
+                AtomicElement divider = atomicBuilder.container("column", null, null);
+                atomicBuilder.widthMode(divider, "fill");
+                divider.setPadding(atomicBuilder.padding(
                         tokens.spacing("lg"), tokens.spacing("lg"), 0, 0));
-                ArrayNode dividerKids = objectMapper.createArrayNode();
-                ObjectNode line = atomicBuilder.container("row", null, null);
-                line.put("widthMode", "fill");
-                line.put("height", 1);
-                line.put("background", tokens.color("nba.divider.subtle"));
+                List<AtomicElement> dividerKids = new ArrayList<>();
+                AtomicElement line = atomicBuilder.container("row", null, null);
+                atomicBuilder.widthMode(line, "fill");
+                line.setHeight(1);
+                line.setBackground(tokens.color("nba.divider.subtle"));
                 dividerKids.add(line);
-                divider.set("children", dividerKids);
+                divider.setChildren(dividerKids);
                 children.add(divider);
             }
         }
 
-        root.set("children", children);
+        root.setChildren(children);
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         Section section = atomicBuilder.wrapAsComposite(sectionId, "for_you_top_stories", root);
         section.setContentSourceId(contentSourceId);

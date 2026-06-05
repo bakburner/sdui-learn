@@ -4,6 +4,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.nba.sdui.models.generated.Action;
+import com.nba.sdui.models.generated.AtomicComposite;
+import com.nba.sdui.models.generated.AtomicElement;
 import com.nba.sdui.models.generated.Screen;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
@@ -482,21 +485,19 @@ public class DemoScreenComposer {
                 new String[][]{{"201566", "Trae Young", "ATL", "AST", "11.1",
                         DemoImageUrls.headshot("201566")}});
 
-        ObjectNode root = atomicBuilder.responsiveRow(tokens.spacing("lg"), 600);
-        root.put("id", "demo-row-container");
-        ArrayNode children = objectMapper.createArrayNode();
+        AtomicElement root = atomicBuilder.responsiveRow(tokens.spacing("lg"), 600);
+        root.setId("demo-row-container");
+        java.util.List<AtomicElement> children = new java.util.ArrayList<>();
 
-        ObjectNode leftSlot = atomicBuilder.sectionSlot("row-left",
-                (ObjectNode) objectMapper.valueToTree(scoringLeader));
+        AtomicElement leftSlot = atomicBuilder.sectionSlot("row-left", scoringLeader);
         atomicBuilder.setFlex(leftSlot, 1);
         children.add(leftSlot);
 
-        ObjectNode rightSlot = atomicBuilder.sectionSlot("row-right",
-                (ObjectNode) objectMapper.valueToTree(assistsLeader));
+        AtomicElement rightSlot = atomicBuilder.sectionSlot("row-right", assistsLeader);
         atomicBuilder.setFlex(rightSlot, 1);
         children.add(rightSlot);
 
-        root.set("children", children);
+        root.setChildren(children);
         com.nba.sdui.models.generated.Section section = atomicBuilder.wrapAsComposite(sectionId, "demo_row", root);
         section.setContentSourceId(contentSourceId);
         return (ObjectNode) objectMapper.valueToTree(section);
@@ -869,23 +870,27 @@ public class DemoScreenComposer {
         ctaAction.put("targetUri", "nba://subscribe");
         ctaAction.put("presentation", "modal");
 
-        ObjectNode root = atomicBuilder.container("column", "start", "start");
-        root.put("gap", tokens.spacing("sm"));
-        ArrayNode children = objectMapper.createArrayNode();
-        ObjectNode bannerTitle = atomicBuilder.text("Never Miss a Game", "titleMedium", "bold",
+        AtomicElement root = atomicBuilder.container("column", "start", "start");
+        root.setGap(tokens.spacing("sm"));
+        java.util.List<AtomicElement> children = new java.util.ArrayList<>();
+        AtomicElement bannerTitle = atomicBuilder.text("Never Miss a Game", "titleMedium", "bold",
                 tokens.color("nba.label-dark.primary"), null);
-        addHeading(objectMapper, bannerTitle, "Never Miss a Game", 2);
+        ObjectNode bannerTitleNode = (ObjectNode) objectMapper.valueToTree(bannerTitle);
+        addHeading(objectMapper, bannerTitleNode, "Never Miss a Game", 2);
+        bannerTitle = objectMapper.convertValue(bannerTitleNode, AtomicElement.class);
         children.add(bannerTitle);
         children.add(atomicBuilder.text(
                 "Stream every out-of-market game live with NBA League Pass.",
                 "bodySmall", null, tokens.color("nba.label-dark.primary"), null));
         children.add(atomicBuilder.spacer(tokens.spacing("md")));
-        children.add(atomicBuilder.button("Subscribe Now", "primary", ctaAction.deepCopy()));
-        root.set("children", children);
+        children.add(atomicBuilder.button("Subscribe Now", "primary",
+                objectMapper.convertValue(ctaAction.deepCopy(), com.nba.sdui.models.generated.Action.class)));
+        root.setChildren(children);
 
-        ObjectNode data = atomicBuilder.wrapUi(root);
-        data.set("ctaAction", ctaAction);
-        section.set("data", data);
+        com.nba.sdui.models.generated.AtomicComposite data = atomicBuilder.wrapUi(root);
+        ObjectNode dataNode = (ObjectNode) objectMapper.valueToTree(data);
+        dataNode.set("ctaAction", ctaAction);
+        section.set("data", dataNode);
         return section;
     }
 
@@ -912,23 +917,25 @@ public class DemoScreenComposer {
                 tokens.color("nba.bg.splash-screen"),
                 24)));
 
-        ObjectNode root = atomicBuilder.container("column", "start", "center");
+        ObjectNode root = (ObjectNode) objectMapper.valueToTree(
+                atomicBuilder.container("column", "start", "center"));
         root.put("gap", 8); // §3.6: no semantic spacing token for 8
         root.put("widthMode", "fill");
         ArrayNode children = objectMapper.createArrayNode();
 
-        children.add(atomicBuilder.image(
-                DemoImageUrls.logoWide(), 0, 64, "contain"));
+        children.add(objectMapper.valueToTree(atomicBuilder.image(
+                DemoImageUrls.logoWide(), 0, 64, "contain")));
         // Logo is decorative — title below provides the accessible label.
         addHidden(objectMapper, (ObjectNode) children.get(children.size() - 1));
-        children.add(atomicBuilder.spacer(tokens.spacing("md")));
-        ObjectNode heroTitle = atomicBuilder.text("NBA League Pass", "headlineMedium", "bold",
-                tokens.color("nba.label-dark.primary"), null);
+        children.add(objectMapper.valueToTree(atomicBuilder.spacer(tokens.spacing("md"))));
+        ObjectNode heroTitle = (ObjectNode) objectMapper.valueToTree(
+                atomicBuilder.text("NBA League Pass", "headlineMedium", "bold",
+                        tokens.color("nba.label-dark.primary"), null));
         addHeading(objectMapper, heroTitle, "NBA League Pass", 2);
         children.add(heroTitle);
-        children.add(atomicBuilder.text("Watch every game. Your way.",
-                "bodyLarge", null, tokens.color("nba.label-dark.primary"), null));
-        children.add(atomicBuilder.spacer(tokens.spacing("lg")));
+        children.add(objectMapper.valueToTree(atomicBuilder.text("Watch every game. Your way.",
+                "bodyLarge", null, tokens.color("nba.label-dark.primary"), null)));
+        children.add(objectMapper.valueToTree(atomicBuilder.spacer(tokens.spacing("lg"))));
 
         String[] features = {
                 "Live & on-demand out-of-market games",
@@ -936,19 +943,22 @@ public class DemoScreenComposer {
                 "NBA TV included",
                 "Compatible with all major devices"
         };
-        ObjectNode featuresCol = atomicBuilder.container("column", "start", "start");
+        ObjectNode featuresCol = (ObjectNode) objectMapper.valueToTree(
+                atomicBuilder.container("column", "start", "start"));
         featuresCol.put("gap", 8); // §3.6: no semantic spacing token for 8
         featuresCol.put("widthMode", "fill");
         ArrayNode featureChildren = objectMapper.createArrayNode();
         for (String feature : features) {
-            ObjectNode row = atomicBuilder.container("row", "start", "center");
+            ObjectNode row = (ObjectNode) objectMapper.valueToTree(
+                    atomicBuilder.container("row", "start", "center"));
             row.put("gap", 8); // §3.6: no semantic spacing token for 8
             row.put("widthMode", "fill");
             ArrayNode rowChildren = objectMapper.createArrayNode();
-            rowChildren.add(atomicBuilder.text("✓", "bodyLarge", "bold",
-                    "token:nba.color.feedback.success.70", null));
-            ObjectNode featureText = atomicBuilder.text(feature, "bodyLarge", null,
-                    tokens.color("nba.label-dark.primary"), null);
+            rowChildren.add(objectMapper.valueToTree(atomicBuilder.text("✓", "bodyLarge", "bold",
+                    "token:nba.color.feedback.success.70", null)));
+            ObjectNode featureText = (ObjectNode) objectMapper.valueToTree(
+                    atomicBuilder.text(feature, "bodyLarge", null,
+                            tokens.color("nba.label-dark.primary"), null));
             featureText.put("flex", 1);
             rowChildren.add(featureText);
             row.set("children", rowChildren);
@@ -957,9 +967,10 @@ public class DemoScreenComposer {
         featuresCol.set("children", featureChildren);
         children.add(featuresCol);
 
-        children.add(atomicBuilder.spacer(20));
+        children.add(objectMapper.valueToTree(atomicBuilder.spacer(20)));
 
-        ObjectNode tiersCol = atomicBuilder.container("column", "start", "stretch");
+        ObjectNode tiersCol = (ObjectNode) objectMapper.valueToTree(
+                atomicBuilder.container("column", "start", "stretch"));
         tiersCol.put("gap", tokens.spacing("lg"));
         tiersCol.put("widthMode", "fill");
         ArrayNode tierChildren = objectMapper.createArrayNode();
@@ -981,7 +992,8 @@ public class DemoScreenComposer {
         tiers.add(demoTierProductId("tier-standard", "League Pass", "$14.99/mo"));
         tiers.add(demoTierProductId("tier-premium", "League Pass Premium", "$22.99/mo"));
 
-        ObjectNode data = atomicBuilder.wrapUi(root);
+        ObjectNode data = (ObjectNode) objectMapper.valueToTree(
+                atomicBuilder.wrapUi(objectMapper.convertValue(root, AtomicElement.class)));
         data.set("tiers", tiers);
         section.set("data", data);
         return section;
@@ -991,46 +1003,49 @@ public class DemoScreenComposer {
     private ObjectNode buildDemoTierUi(String name, String price, String originalPrice,
                                             String badgeText, String[] features,
                                             String ctaLabel, String ctaUri) {
-        ObjectNode card = atomicBuilder.container("column", "start", "start");
+        ObjectNode card = (ObjectNode) objectMapper.valueToTree(
+                atomicBuilder.container("column", "start", "start"));
         card.put("gap", 6); // §3.6: no semantic spacing token for 6
         card.put("background", tokens.color("nba.color.t-white.10"));
         card.put("cornerRadius", tokens.radius("lg"));
-        card.set("padding", atomicBuilder.padding(
+        card.set("padding", objectMapper.valueToTree(atomicBuilder.padding(
                 22, // §3.6: no semantic spacing token for 22
                 22, // §3.6: no semantic spacing token for 22
                 20, // §3.6: no semantic spacing token for 20
                 20  // §3.6: no semantic spacing token for 20
-        ));
+        )));
         card.put("widthMode", "fill");
 
         ArrayNode cardChildren = objectMapper.createArrayNode();
         if (badgeText != null) {
-            cardChildren.add(atomicBuilder.text(badgeText, "labelMedium", "bold",
-                    tokens.color("nba.color.secondary.70"), null));
+            cardChildren.add(objectMapper.valueToTree(atomicBuilder.text(badgeText, "labelMedium", "bold",
+                    tokens.color("nba.color.secondary.70"), null)));
         }
-        ObjectNode tierName = atomicBuilder.text(name, "titleLarge", "bold",
-                tokens.color("nba.label-dark.primary"), null);
+        ObjectNode tierName = (ObjectNode) objectMapper.valueToTree(
+                atomicBuilder.text(name, "titleLarge", "bold",
+                        tokens.color("nba.label-dark.primary"), null));
         addHeading(objectMapper, tierName, name, 3);
         cardChildren.add(tierName);
-        cardChildren.add(atomicBuilder.text(price, "headlineSmall", "bold",
-                tokens.color("nba.label-dark.primary"), null));
+        cardChildren.add(objectMapper.valueToTree(atomicBuilder.text(price, "headlineSmall", "bold",
+                tokens.color("nba.label-dark.primary"), null)));
         if (originalPrice != null) {
-            cardChildren.add(atomicBuilder.text(originalPrice, "bodyMedium", null,
-                    tokens.color("nba.color.t-white.60"), null));
+            cardChildren.add(objectMapper.valueToTree(atomicBuilder.text(originalPrice, "bodyMedium", null,
+                    tokens.color("nba.color.t-white.60"), null)));
         }
         if (features != null) {
             for (String f : features) {
-                cardChildren.add(atomicBuilder.text("• " + f, "bodyMedium", null,
-                        tokens.color("nba.label-dark.primary"), null));
+                cardChildren.add(objectMapper.valueToTree(atomicBuilder.text("• " + f, "bodyMedium", null,
+                        tokens.color("nba.label-dark.primary"), null)));
             }
         }
-        cardChildren.add(atomicBuilder.spacer(10));
+        cardChildren.add(objectMapper.valueToTree(atomicBuilder.spacer(10)));
 
         ObjectNode tierAction = objectMapper.createObjectNode();
         tierAction.put("trigger", "onActivate");
         tierAction.put("type", "navigate");
         tierAction.put("targetUri", ctaUri);
-        cardChildren.add(atomicBuilder.button(ctaLabel, "primary", tierAction));
+        cardChildren.add(objectMapper.valueToTree(atomicBuilder.button(ctaLabel, "primary",
+                objectMapper.convertValue(tierAction, Action.class))));
 
         card.set("children", cardChildren);
         return card;
@@ -1188,13 +1203,15 @@ public class DemoScreenComposer {
         children.add(divider);
 
         // SectionSlot: embed the AdSlot section
-        children.add(atomicBuilder.sectionSlot("inline-ad", adSection));
+        children.add(objectMapper.valueToTree(atomicBuilder.sectionSlot("inline-ad",
+                objectMapper.convertValue(adSection, com.nba.sdui.models.generated.Section.class))));
 
         root.set("children", children);
 
         String contentSourceId = "demo:section-slot";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
-        com.nba.sdui.models.generated.Section section = atomicBuilder.wrapAsComposite(sectionId, "demo-section-slot", root);
+        com.nba.sdui.models.generated.Section section = atomicBuilder.wrapAsComposite(sectionId, "demo-section-slot",
+                objectMapper.convertValue(root, AtomicElement.class));
         section.setContentSourceId(contentSourceId);
         return (ObjectNode) objectMapper.valueToTree(section);
     }

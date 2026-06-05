@@ -24,6 +24,8 @@ import com.nba.sdui.models.generated.AccessibilityProperties;
 import com.nba.sdui.models.generated.Action;
 import com.nba.sdui.models.generated.AdSlot;
 import com.nba.sdui.models.generated.CalendarStrip;
+import com.nba.sdui.models.generated.DataBinding;
+import com.nba.sdui.models.generated.DataBindingPath;
 import com.nba.sdui.models.generated.ParamBindings;
 import com.nba.sdui.models.generated.Placeholder;
 import com.nba.sdui.models.generated.RefreshPolicy;
@@ -391,8 +393,8 @@ public class LiveComposer {
         // SSE refresh on the first live game's channel; all rows get clock
         // snapshots seeded from the initial composition. Subsequent Ably/SSE
         // frames update per-row content via the dataBinding map.
-        ObjectNode refreshPolicy = ssePolicy(liveGames.get(0));
-        ObjectNode dataBinding = buildScheduleListBindings(liveGames);
+        RefreshPolicy refreshPolicy = ssePolicy(liveGames.get(0));
+        DataBinding dataBinding = buildScheduleListBindings(liveGames);
 
         Section section = atomicBuilder.buildGameScheduleList(
                 sectionId, "live_games", "Live Now", rows,
@@ -413,11 +415,11 @@ public class LiveComposer {
         String contentSourceId = "stats-api:live-games";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "GameScheduleList");
 
-        ObjectNode pollPolicy = objectMapper.createObjectNode();
-        pollPolicy.put("type", "poll");
-        pollPolicy.put("sectionEndpoint", "/v1/sdui/section/" + sectionId);
-        pollPolicy.put("intervalMs", 30_000);
-        pollPolicy.put("pauseWhenOffScreen", true);
+        RefreshPolicy pollPolicy = new RefreshPolicy()
+                .withType(RefreshPolicy.RefreshType.POLL)
+                .withSectionEndpoint("/v1/sdui/section/" + sectionId)
+                .withIntervalMs(30_000)
+                .withPauseWhenOffScreen(true);
 
         Section section = atomicBuilder.buildGameScheduleList(
                 sectionId, "live_games", "Live Now", new String[0][],
@@ -571,9 +573,9 @@ public class LiveComposer {
      * Each game's SSE channel pushes linescore frames that update scores
      * and the clock snapshot for its row.
      */
-    private ObjectNode buildScheduleListBindings(List<Game> liveGames) {
-        ObjectNode dataBinding = objectMapper.createObjectNode();
-        ArrayNode bindings = objectMapper.createArrayNode();
+    private DataBinding buildScheduleListBindings(List<Game> liveGames) {
+        DataBinding dataBinding = new DataBinding();
+        java.util.List<DataBindingPath> bindings = new java.util.ArrayList<>();
 
         for (Game game : liveGames) {
             String gameId = game.getGameId() != null ? game.getGameId() : "0000000000";
@@ -588,14 +590,15 @@ public class LiveComposer {
                     "$.clock", "content." + gameId + ".clock", "liveClockSnapshot"));
         }
 
-        dataBinding.set("bindings", bindings);
-        // Multi-channel: the section subscribes to all live game channels
-        ArrayNode channels = objectMapper.createArrayNode();
+        dataBinding.setBindings(bindings);
+        // Multi-channel: the section subscribes to all live game channels.
+        // `channels` is not in the schema; ride additionalProperties.
+        java.util.List<String> channels = new java.util.ArrayList<>();
         for (Game game : liveGames) {
             String gameId = game.getGameId() != null ? game.getGameId() : "0000000000";
             channels.add(gameId + ":linescore");
         }
-        dataBinding.set("channels", channels);
+        dataBinding.setAdditionalProperty("channels", channels);
         return dataBinding;
     }
 
@@ -610,19 +613,16 @@ public class LiveComposer {
         }
     }
 
-    private ObjectNode staticPolicy() {
-        ObjectNode rp = objectMapper.createObjectNode();
-        rp.put("type", "static");
-        return rp;
+    private RefreshPolicy staticPolicy() {
+        return new RefreshPolicy().withType(RefreshPolicy.RefreshType.STATIC);
     }
 
-    private ObjectNode ssePolicy(Game game) {
+    private RefreshPolicy ssePolicy(Game game) {
         String gameId = game.getGameId() != null ? game.getGameId() : "0000000000";
-        ObjectNode rp = objectMapper.createObjectNode();
-        rp.put("type", "sse");
-        rp.put("channel", gameId + ":linescore");
-        rp.put("pauseWhenOffScreen", false);
-        return rp;
+        return new RefreshPolicy()
+                .withType(RefreshPolicy.RefreshType.SSE)
+                .withChannel(gameId + ":linescore")
+                .withPauseWhenOffScreen(false);
     }
 
     /**

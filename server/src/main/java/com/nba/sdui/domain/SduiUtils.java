@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.nba.sdui.models.generated.DataBinding;
+import com.nba.sdui.models.generated.DataBindingPath;
 import com.nba.sdui.models.generated.Navigation;
 import com.nba.sdui.models.generated.NavigationItem;
 import com.nba.sdui.models.generated.Screen;
@@ -295,32 +297,30 @@ public class SduiUtils {
      * writes the normalized {@code {snapshotSeconds, snapshotAt,
      * isRunning}} tuple to {@code content.clock}.
      */
-    public ObjectNode buildCompositeLinescoreBindings() {
-        ObjectNode dataBinding = objectMapper.createObjectNode();
-        ArrayNode bindings = objectMapper.createArrayNode();
-
+    public DataBinding buildCompositeLinescoreBindings() {
+        DataBinding dataBinding = new DataBinding();
+        List<DataBindingPath> bindings = new ArrayList<>();
         bindings.add(bindingPath("$.homeTeam.score", "content.homeTeam.score"));
         bindings.add(bindingPath("$.awayTeam.score", "content.awayTeam.score"));
         bindings.add(bindingPath("$.gameStatusText", "content.gameStatusText"));
         bindings.add(bindingPath("$.period", "content.period"));
         bindings.add(bindingPath("$.clock", "content.clock", "liveClockSnapshot"));
-
-        dataBinding.set("bindings", bindings);
+        dataBinding.setBindings(bindings);
         return dataBinding;
     }
 
-    public ObjectNode bindingPath(String sourcePath, String targetPath) {
-        ObjectNode path = objectMapper.createObjectNode();
-        path.put("sourcePath", sourcePath);
-        path.put("targetPath", targetPath);
+    public DataBindingPath bindingPath(String sourcePath, String targetPath) {
+        DataBindingPath path = new DataBindingPath();
+        path.setSourcePath(sourcePath);
+        path.setTargetPath(targetPath);
         return path;
     }
 
-    public ObjectNode bindingPath(String sourcePath, String targetPath, String transform) {
+    public DataBindingPath bindingPath(String sourcePath, String targetPath, String transform) {
         AtomicCompositeBuilder.validateTransform(transform);
-        ObjectNode path = bindingPath(sourcePath, targetPath);
+        DataBindingPath path = bindingPath(sourcePath, targetPath);
         if (transform != null) {
-            path.put("transform", transform);
+            path.setTransform(DataBindingPath.Transform.fromValue(transform));
         }
         return path;
     }

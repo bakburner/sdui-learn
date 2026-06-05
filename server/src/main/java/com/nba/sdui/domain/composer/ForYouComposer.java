@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.nba.sdui.models.generated.AdSlot;
 import com.nba.sdui.models.generated.AtomicElement;
 import com.nba.sdui.models.generated.Placeholder;
+import com.nba.sdui.models.generated.DataBinding;
+import com.nba.sdui.models.generated.DataBindingPath;
 import com.nba.sdui.models.generated.RefreshPolicy;
 import com.nba.sdui.models.generated.Screen;
 import com.nba.sdui.models.generated.Section;
@@ -245,7 +247,7 @@ public class ForYouComposer {
     private Section buildTonightsGamesHero() {
         String contentSourceId = "stats-api:scoreboard";
         List<String[]> cards = new ArrayList<>();
-        ObjectNode liveBindings = null;
+        DataBinding liveBindings = null;
 
         try {
             ScoreboardResponse scoreboard = scoreboardPort.getScoreboard();
@@ -293,8 +295,8 @@ public class ForYouComposer {
         }
 
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite", "tonights-games-hero");
-        ObjectNode refreshPolicy;
-        ObjectNode dataBindingForHero = liveBindings;
+        RefreshPolicy refreshPolicy;
+        DataBinding dataBindingForHero = liveBindings;
         if (fromMockFallback) {
             // Demo fallback cards use synthetic hero ids — poll the section endpoint
             // instead of opening Ably (same pattern as LiveComposer mock live list).
@@ -375,16 +377,16 @@ public class ForYouComposer {
      * the prefix lands at {@code section.data.cards.X.…}, a sibling
      * of {@code data.content} that no leaf reads.
      */
-    private ObjectNode buildHeroLinescoreBindings(String heroCardId) {
-        ObjectNode dataBinding = objectMapper.createObjectNode();
-        ArrayNode bindings = objectMapper.createArrayNode();
+    private DataBinding buildHeroLinescoreBindings(String heroCardId) {
+        DataBinding dataBinding = new DataBinding();
+        java.util.List<DataBindingPath> bindings = new java.util.ArrayList<>();
         bindings.add(utils.bindingPath("$.awayTeam.score",
                 "content.cards." + heroCardId + ".awayScore"));
         bindings.add(utils.bindingPath("$.homeTeam.score",
                 "content.cards." + heroCardId + ".homeScore"));
         bindings.add(utils.bindingPath("$.gameStatusText",
                 "content.cards." + heroCardId + ".statusText"));
-        dataBinding.set("bindings", bindings);
+        dataBinding.setBindings(bindings);
         return dataBinding;
     }
 
@@ -677,31 +679,27 @@ public class ForYouComposer {
 
     // ── Helpers ────────────────────────────────────────────────────────
 
-    private ObjectNode staticPolicy() {
-        ObjectNode rp = objectMapper.createObjectNode();
-        rp.put("type", "static");
-        return rp;
+    private RefreshPolicy staticPolicy() {
+        return new RefreshPolicy().withType(RefreshPolicy.RefreshType.STATIC);
     }
 
-    private ObjectNode sseRefreshPolicy(String heroCardId) {
+    private RefreshPolicy sseRefreshPolicy(String heroCardId) {
         // heroCardId looks like "hero-game-<gameId>" — the channel keys
         // off the gameId portion so the same SSE subscription drives
         // any composite hosting that game.
-        ObjectNode rp = objectMapper.createObjectNode();
-        rp.put("type", "sse");
         String gameId = heroCardId.startsWith("hero-game-")
                 ? heroCardId.substring("hero-game-".length())
                 : heroCardId;
-        rp.put("channel", gameId + ":linescore");
-        return rp;
+        return new RefreshPolicy()
+                .withType(RefreshPolicy.RefreshType.SSE)
+                .withChannel(gameId + ":linescore");
     }
 
-    private ObjectNode mockHeroSectionPollPolicy(String sectionId) {
-        ObjectNode rp = objectMapper.createObjectNode();
-        rp.put("type", "poll");
-        rp.put("sectionEndpoint", "/v1/sdui/section/" + sectionId);
-        rp.put("intervalMs", 60_000);
-        rp.put("pauseWhenOffScreen", false);
-        return rp;
+    private RefreshPolicy mockHeroSectionPollPolicy(String sectionId) {
+        return new RefreshPolicy()
+                .withType(RefreshPolicy.RefreshType.POLL)
+                .withSectionEndpoint("/v1/sdui/section/" + sectionId)
+                .withIntervalMs(60_000)
+                .withPauseWhenOffScreen(false);
     }
 }

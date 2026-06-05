@@ -83,11 +83,11 @@ public class AtomicCompositeBuilder {
         return section;
     }
 
-    /** Variant accepting a raw RefreshPolicy ObjectNode (converted internally). */
-    private Section newSection(String id, String analyticsId, ObjectNode refreshPolicy) {
+    /** Variant accepting a typed RefreshPolicy (null leaves the static default in place). */
+    private Section newSection(String id, String analyticsId, RefreshPolicy refreshPolicy) {
         Section section = newSection(id, analyticsId);
         if (refreshPolicy != null) {
-            section.setRefreshPolicy(om.convertValue(refreshPolicy, RefreshPolicy.class));
+            section.setRefreshPolicy(refreshPolicy);
         }
         return section;
     }
@@ -642,8 +642,8 @@ public class AtomicCompositeBuilder {
             GamePanelTeam homeTeam,
             GameClockSnapshot clock,
             String navigateUri,
-            ObjectNode refreshPolicy,
-            ObjectNode linescoreBindings,
+            RefreshPolicy refreshPolicy,
+            DataBinding linescoreBindings,
             ObjectNode surface) {
         return buildGamePanelComposite(sectionId, analyticsId, variant, gameId, gameStatus,
                 gameStatusText, badgeText, null, awayTeam, homeTeam, clock,
@@ -686,8 +686,8 @@ public class AtomicCompositeBuilder {
             GamePanelTeam homeTeam,
             GameClockSnapshot clock,
             String navigateUri,
-            ObjectNode refreshPolicy,
-            ObjectNode linescoreBindings,
+            RefreshPolicy refreshPolicy,
+            DataBinding linescoreBindings,
             ObjectNode surface) {
         boolean featured = "featured".equals(variant);
         // Featured uses 20px padding — no exact token exists (§3.6 exception: no design-system token).
@@ -757,7 +757,7 @@ public class AtomicCompositeBuilder {
         section.setData(data);
 
         if (linescoreBindings != null) {
-            section.setDataBinding(om.convertValue(linescoreBindings, DataBinding.class));
+            section.setDataBinding(linescoreBindings);
         }
         if (surface != null) {
             section.setSurface(om.convertValue(surface, SectionSurface.class));
@@ -1803,8 +1803,8 @@ public class AtomicCompositeBuilder {
 
     public Section buildFeaturedLiveGameHero(String sectionId, String analyticsId,
                                                 String title, String[][] cards,
-                                                ObjectNode refreshPolicy,
-                                                ObjectNode dataBinding) {
+                                                RefreshPolicy refreshPolicy,
+                                                DataBinding dataBinding) {
         requireNonBlank(sectionId, "sectionId");
         requireRows(cards, "cards");
 
@@ -1861,7 +1861,7 @@ public class AtomicCompositeBuilder {
         data.setContent(typedContent);
         section.setData(data);
         if (dataBinding != null) {
-            section.setDataBinding(om.convertValue(dataBinding, DataBinding.class));
+            section.setDataBinding(dataBinding);
         }
         return section;
     }
@@ -2124,8 +2124,8 @@ public class AtomicCompositeBuilder {
     }
 
     public Section buildGameScheduleRow(String sectionId, String analyticsId, String[] row,
-                                           ObjectNode refreshPolicy,
-                                           ObjectNode dataBinding) {
+                                           RefreshPolicy refreshPolicy,
+                                           DataBinding dataBinding) {
         requireNonBlank(sectionId, "sectionId");
         requireRow(row, "row");
         requireRequiredValues(row, "row", 0, 1, 6);
@@ -2149,7 +2149,7 @@ public class AtomicCompositeBuilder {
         content.setAdditionalProperty(value(row, 0), state);
         composite.setContent(content);
         section.setData(composite);
-        if (dataBinding != null) section.setDataBinding(om.convertValue(dataBinding, DataBinding.class));
+        if (dataBinding != null) section.setDataBinding(dataBinding);
         return section;
     }
 
@@ -2160,8 +2160,8 @@ public class AtomicCompositeBuilder {
 
     public Section buildGameScheduleList(String sectionId, String analyticsId,
                                             String title, String[][] rows,
-                                            ObjectNode refreshPolicy,
-                                            ObjectNode dataBinding) {
+                                            RefreshPolicy refreshPolicy,
+                                            DataBinding dataBinding) {
         return buildGameScheduleList(sectionId, analyticsId, title, rows, refreshPolicy, dataBinding, null);
     }
 
@@ -2174,8 +2174,8 @@ public class AtomicCompositeBuilder {
      */
     public Section buildGameScheduleList(String sectionId, String analyticsId,
                                             String title, String[][] rows,
-                                            ObjectNode refreshPolicy,
-                                            ObjectNode dataBinding,
+                                            RefreshPolicy refreshPolicy,
+                                            DataBinding dataBinding,
                                             java.util.Map<String, GameClockSnapshot> clockSnapshots) {
         requireNonBlank(sectionId, "sectionId");
         requireRows(rows, "rows");
@@ -2215,7 +2215,7 @@ public class AtomicCompositeBuilder {
         composite.setUi(root);
         composite.setContent(content);
         section.setData(composite);
-        if (dataBinding != null) section.setDataBinding(om.convertValue(dataBinding, DataBinding.class));
+        if (dataBinding != null) section.setDataBinding(dataBinding);
         return section;
     }
 
@@ -3638,10 +3638,9 @@ public class AtomicCompositeBuilder {
                 com.nba.sdui.models.generated.SectionStates.class));
     }
 
-    public void attachRefreshPolicy(Section section, ObjectNode refreshPolicy) {
+    public void attachRefreshPolicy(Section section, RefreshPolicy refreshPolicy) {
         if (section == null || refreshPolicy == null) return;
-        section.setRefreshPolicy(om.convertValue(
-                refreshPolicy, com.nba.sdui.models.generated.RefreshPolicy.class));
+        section.setRefreshPolicy(refreshPolicy);
     }
 
     /**

@@ -383,7 +383,7 @@ public class WatchComposer {
                 atomicBuilder.gamePanelTeam(game.getHomeTeam()),
                 null,
                 "nba://game/" + gameId,
-                staticPolicy(),
+                staticRefreshPolicy(),
                 null,
                 objectMapper.valueToTree(surfaces.gamePanelSurface()));
         section.setContentSourceId(contentSourceId);
@@ -409,7 +409,7 @@ public class WatchComposer {
                 new AtomicCompositeBuilder.GamePanelTeam(homeTri, homeScore, SduiUtils.teamLogoUrl(homeTeamId)),
                 null,
                 "nba://game/" + mockId,
-                staticPolicy(),
+                staticRefreshPolicy(),
                 null,
                 objectMapper.valueToTree(surfaces.gamePanelSurface()));
         section.setContentSourceId(contentSourceId);

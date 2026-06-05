@@ -20,6 +20,7 @@ import com.nba.sdui.domain.port.ScoreboardPort;
 import com.nba.sdui.integration.model.scoreboard.Game;
 import com.nba.sdui.integration.model.scoreboard.ScoreboardResponse;
 import com.nba.sdui.models.generated.Screen;
+import com.nba.sdui.models.generated.DataBinding;
 import com.nba.sdui.models.generated.RefreshPolicy;
 import com.nba.sdui.models.generated.Section;
 import com.nba.sdui.models.generated.SectionSurface;
@@ -172,21 +173,21 @@ public class ScoreboardComposer {
         int gameStatus = game.getGameStatus();
         boolean live = gameStatus == 2;
 
-        ObjectNode refreshPolicy;
-        ObjectNode bindings = null;
+        RefreshPolicy refreshPolicy;
+        DataBinding bindings = null;
         AtomicCompositeBuilder.GameClockSnapshot clock = null;
         if (live) {
-            refreshPolicy = objectMapper.createObjectNode();
-            refreshPolicy.put("type", "sse");
-            refreshPolicy.put("channel", gameId + ":linescore");
-            refreshPolicy.put("pauseWhenOffScreen", false);
+            refreshPolicy = new RefreshPolicy()
+                    .withType(RefreshPolicy.RefreshType.SSE)
+                    .withChannel(gameId + ":linescore")
+                    .withPauseWhenOffScreen(false);
             bindings = utils.buildCompositeLinescoreBindings();
             clock = new AtomicCompositeBuilder.GameClockSnapshot(
                     parseGameClockSeconds(game.getGameClock()),
                     java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString(),
                     AtomicCompositeBuilder.INITIAL_CLOCK_RUNNING);
         } else {
-            refreshPolicy = objectMapper.createObjectNode().put("type", "static");
+            refreshPolicy = new RefreshPolicy().withType(RefreshPolicy.RefreshType.STATIC);
         }
 
         String contentSourceId = "stats-api:scoreboard-game-" + gameId;

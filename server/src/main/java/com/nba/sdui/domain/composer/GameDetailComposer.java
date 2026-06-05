@@ -503,21 +503,23 @@ public class GameDetailComposer {
         boolean live = gameStatus == 2;
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite", "scoreboard");
 
-        ObjectNode refreshPolicy = objectMapper.createObjectNode();
+        RefreshPolicy refreshPolicy;
         if (live) {
-            refreshPolicy.put("type", "sse");
-            refreshPolicy.put("channel", gameId + ":linescore");
-            refreshPolicy.put("pauseWhenOffScreen", false);
+            refreshPolicy = new RefreshPolicy()
+                    .withType(RefreshPolicy.RefreshType.SSE)
+                    .withChannel(gameId + ":linescore")
+                    .withPauseWhenOffScreen(false);
         } else if (gameStatus == 1) {
             // Pre-game: poll the SDUI section endpoint every 5 minutes so the
             // client re-composes the section. When the game goes live the server
             // returns sse policy and the client transitions the subscription.
-            refreshPolicy.put("type", "poll");
-            refreshPolicy.put("sectionEndpoint", "/v1/sdui/section/" + sectionId);
-            refreshPolicy.put("intervalMs", 300_000);
-            refreshPolicy.put("pauseWhenOffScreen", true);
+            refreshPolicy = new RefreshPolicy()
+                    .withType(RefreshPolicy.RefreshType.POLL)
+                    .withSectionEndpoint("/v1/sdui/section/" + sectionId)
+                    .withIntervalMs(300_000)
+                    .withPauseWhenOffScreen(true);
         } else {
-            refreshPolicy.put("type", "static");
+            refreshPolicy = new RefreshPolicy().withType(RefreshPolicy.RefreshType.STATIC);
         }
 
         AtomicCompositeBuilder.GameClockSnapshot clock = live

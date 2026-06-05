@@ -384,7 +384,7 @@ public class DemoScreenComposer {
                 new AtomicCompositeBuilder.GamePanelTeam("BOS", 94, SduiUtils.teamLogoUrl("1610612738")),
                 clock,
                 "nba://game/0022400999",
-                objectMapper.createObjectNode().put("type", "static"),
+                new RefreshPolicy().withType(RefreshPolicy.RefreshType.STATIC),
                 null,
                 objectMapper.valueToTree(surfaces.gamePanelSurface()));
         section.setContentSourceId(contentSourceId);
@@ -484,7 +484,7 @@ public class DemoScreenComposer {
                 new AtomicCompositeBuilder.GamePanelTeam("GSW", 112, SduiUtils.teamLogoUrl("1610612744")),
                 null,
                 "nba://game/0022400888",
-                objectMapper.createObjectNode().put("type", "static"),
+                new RefreshPolicy().withType(RefreshPolicy.RefreshType.STATIC),
                 null,
                 objectMapper.valueToTree(surfaces.gamePanelSurface()));
         section.setContentSourceId(contentSourceId);
@@ -795,7 +795,7 @@ public class DemoScreenComposer {
                 new AtomicCompositeBuilder.GamePanelTeam("MIA", 101, SduiUtils.teamLogoUrl("1610612748")),
                 clock,
                 "nba://game/0022400777",
-                objectMapper.createObjectNode().put("type", "static"),
+                new RefreshPolicy().withType(RefreshPolicy.RefreshType.STATIC),
                 null,
                 null);
         section.setContentSourceId(contentSourceId);

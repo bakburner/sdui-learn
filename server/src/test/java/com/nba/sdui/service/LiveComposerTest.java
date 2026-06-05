@@ -44,7 +44,7 @@ class LiveComposerTest {
                 Clock.fixed(Instant.parse("2026-05-26T14:00:00Z"), ZoneOffset.UTC)
         );
 
-        ObjectNode screen = composer.composeLive("trace-1", "en");
+        ObjectNode screen = (ObjectNode) objectMapper.valueToTree(composer.composeLive("trace-1", "en"));
         ArrayNode sections = (ArrayNode) screen.path("sections");
         ObjectNode calendarStrip = (ObjectNode) sections.get(0);
         ObjectNode data = (ObjectNode) calendarStrip.path("data");
@@ -82,7 +82,7 @@ class LiveComposerTest {
                 Clock.fixed(Instant.parse("2026-05-27T07:30:00Z"), ZoneOffset.UTC)
         );
 
-        ObjectNode screen = composer.composeLive("trace-2", "en");
+        ObjectNode screen = (ObjectNode) objectMapper.valueToTree(composer.composeLive("trace-2", "en"));
         ObjectNode firstSection = (ObjectNode) screen.path("sections").get(0);
 
         assertEquals("2026-05-27", firstSection.path("data").path("defaultDate").asText());
@@ -120,7 +120,7 @@ class LiveComposerTest {
                 Clock.fixed(Instant.parse("2026-05-26T14:00:00Z"), ZoneOffset.UTC)
         );
 
-        ObjectNode screen = fixture.composer.composeLive("trace-x", "en", "2026-03-15");
+        ObjectNode screen = (ObjectNode) objectMapper.valueToTree(fixture.composer.composeLive("trace-x", "en", "2026-03-15"));
 
         ArgumentCaptor<LocalDate> dateCaptor = ArgumentCaptor.forClass(LocalDate.class);
         verify(fixture.statsApiClient).getScoreboardForDate(dateCaptor.capture());
@@ -138,7 +138,7 @@ class LiveComposerTest {
                 Clock.fixed(Instant.parse("2026-05-26T14:00:00Z"), ZoneOffset.UTC)
         );
 
-        ObjectNode screen = fixture.composer.composeLive("trace-y", "en", null);
+        ObjectNode screen = (ObjectNode) objectMapper.valueToTree(fixture.composer.composeLive("trace-y", "en", null));
 
         // When the selection is today, composer reuses the CDN scoreboard
         // it already fetched to resolve the default date — no extra Core API call.
@@ -157,7 +157,7 @@ class LiveComposerTest {
                 Clock.fixed(Instant.parse("2026-05-26T14:00:00Z"), ZoneOffset.UTC)
         );
 
-        ObjectNode screen = fixture.composer.composeLive("trace-blank", "en", "   ");
+        ObjectNode screen = (ObjectNode) objectMapper.valueToTree(fixture.composer.composeLive("trace-blank", "en", "   "));
 
         verify(fixture.statsApiClient).getScoreboard();
         verify(fixture.statsApiClient, never()).getScoreboardForDate(any(LocalDate.class));
@@ -174,7 +174,7 @@ class LiveComposerTest {
                 Clock.fixed(Instant.parse("2026-05-26T14:00:00Z"), ZoneOffset.UTC)
         );
 
-        ObjectNode screen = fixture.composer.composeLive("trace-malformed", "en", "not-a-date");
+        ObjectNode screen = (ObjectNode) objectMapper.valueToTree(fixture.composer.composeLive("trace-malformed", "en", "not-a-date"));
 
         verify(fixture.statsApiClient).getScoreboard();
         verify(fixture.statsApiClient, never()).getScoreboardForDate(any(LocalDate.class));
@@ -190,7 +190,7 @@ class LiveComposerTest {
                 Clock.fixed(Instant.parse("2026-05-26T14:00:00Z"), ZoneOffset.UTC)
         );
 
-        ObjectNode screen = fixture.composer.composeLive("trace-before", "en", "2025-09-15");
+        ObjectNode screen = (ObjectNode) objectMapper.valueToTree(fixture.composer.composeLive("trace-before", "en", "2025-09-15"));
 
         verify(fixture.statsApiClient).getScoreboard();
         verify(fixture.statsApiClient, never()).getScoreboardForDate(any(LocalDate.class));
@@ -206,7 +206,7 @@ class LiveComposerTest {
                 Clock.fixed(Instant.parse("2026-05-26T14:00:00Z"), ZoneOffset.UTC)
         );
 
-        ObjectNode screen = fixture.composer.composeLive("trace-after", "en", "2026-08-15");
+        ObjectNode screen = (ObjectNode) objectMapper.valueToTree(fixture.composer.composeLive("trace-after", "en", "2026-08-15"));
 
         verify(fixture.statsApiClient).getScoreboard();
         verify(fixture.statsApiClient, never()).getScoreboardForDate(any(LocalDate.class));
@@ -229,7 +229,7 @@ class LiveComposerTest {
         sb.set("games", objectMapper.createArrayNode());
         when(fixture.statsApiClient.getScoreboard()).thenReturn(cdnWithGameDate);
 
-        ObjectNode screen = fixture.composer.composeLive("trace-cdn-date", "en", null);
+        ObjectNode screen = (ObjectNode) objectMapper.valueToTree(fixture.composer.composeLive("trace-cdn-date", "en", null));
 
         ObjectNode calendarData = (ObjectNode) screen.path("sections").get(0).path("data");
         assertEquals("2026-05-26", calendarData.path("defaultDate").asText());
@@ -245,7 +245,7 @@ class LiveComposerTest {
         );
         when(fixture.statsApiClient.getScoreboardForDate(any(LocalDate.class))).thenReturn(null);
 
-        ObjectNode screen = fixture.composer.composeLive("trace-empty", "en", "2026-03-15");
+        ObjectNode screen = (ObjectNode) objectMapper.valueToTree(fixture.composer.composeLive("trace-empty", "en", "2026-03-15"));
         ArrayNode sections = (ArrayNode) screen.path("sections");
 
         assertEquals(2, sections.size(),
@@ -262,7 +262,7 @@ class LiveComposerTest {
         when(fixture.statsApiClient.getScoreboardForDate(any(LocalDate.class)))
                 .thenReturn(scoreboardWithGames(2, 1, 3));
 
-        ObjectNode screen = fixture.composer.composeLive("trace-z", "en", "2026-03-15");
+        ObjectNode screen = (ObjectNode) objectMapper.valueToTree(fixture.composer.composeLive("trace-z", "en", "2026-03-15"));
         ArrayNode sections = (ArrayNode) screen.path("sections");
 
         // Layout: CalendarStrip, League Pass promo, then per-status game sections.
@@ -284,7 +284,7 @@ class LiveComposerTest {
         );
         when(fixture.statsApiClient.getScoreboardForDate(any(LocalDate.class))).thenReturn(null);
 
-        ObjectNode screen = fixture.composer.composeLive("trace-noad-0", "en", "2026-03-15");
+        ObjectNode screen = (ObjectNode) objectMapper.valueToTree(fixture.composer.composeLive("trace-noad-0", "en", "2026-03-15"));
         ArrayNode sections = (ArrayNode) screen.path("sections");
 
         for (int i = 0; i < sections.size(); i++) {
@@ -303,7 +303,7 @@ class LiveComposerTest {
         when(fixture.statsApiClient.getScoreboardForDate(any(LocalDate.class)))
                 .thenReturn(scoreboardWithGames(1));
 
-        ObjectNode screen = fixture.composer.composeLive("trace-ad-1", "en", "2026-03-15");
+        ObjectNode screen = (ObjectNode) objectMapper.valueToTree(fixture.composer.composeLive("trace-ad-1", "en", "2026-03-15"));
         ArrayNode sections = (ArrayNode) screen.path("sections");
 
         // Layout: CalendarStrip, League Pass promo, upcoming_games, AdSlot.
@@ -323,7 +323,7 @@ class LiveComposerTest {
         when(fixture.statsApiClient.getScoreboardForDate(any(LocalDate.class)))
                 .thenReturn(scoreboardWithGames(2, 2));
 
-        ObjectNode screen = fixture.composer.composeLive("trace-ad-sizes", "en", "2026-03-15");
+        ObjectNode screen = (ObjectNode) objectMapper.valueToTree(fixture.composer.composeLive("trace-ad-sizes", "en", "2026-03-15"));
         ArrayNode sections = (ArrayNode) screen.path("sections");
 
         // Layout: CalendarStrip, League Pass promo, live_games, AdSlot.

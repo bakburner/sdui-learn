@@ -174,7 +174,8 @@ public class SduiCompositionService {
     public JsonNode composeLive(SduiRequestContext ctx) {
         long start = System.nanoTime();
         try {
-            return liveComposer.composeLive(ctx.getTraceId(), ctx.getLocale());
+            return objectMapper.valueToTree(
+                    liveComposer.composeLive(ctx.getTraceId(), ctx.getLocale()));
         } finally {
             metrics.recordComposition("live", "screen", false, Duration.ofNanos(System.nanoTime() - start));
         }

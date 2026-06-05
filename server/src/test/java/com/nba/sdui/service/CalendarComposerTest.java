@@ -141,7 +141,7 @@ class CalendarComposerTest {
         );
         ReflectionTestUtils.setField(liveComposer, "schemaVersion", "1.0");
 
-        ObjectNode screen = liveComposer.composeLive("trace-live-1", "en");
+        ObjectNode screen = (ObjectNode) objectMapper.valueToTree(liveComposer.composeLive("trace-live-1", "en"));
         ObjectNode data = (ObjectNode) screen.path("sections").get(0).path("data");
 
         assertTrue(data.has("expandedAction"));

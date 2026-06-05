@@ -75,7 +75,7 @@ class MutateThenRefreshAuditTest {
                 objectMapper, new StatsApiAdapter(statsApiClient), utils, surfaces, TestTokens.INSTANCE,
                 sectionRefreshService, parameterizedRefreshService, seasonCalendarService);
         ReflectionTestUtils.setField(liveComposer, "schemaVersion", "1.0");
-        allScreens.add(liveComposer.composeLive("trace-audit-1", "en"));
+        allScreens.add((ObjectNode) objectMapper.valueToTree(liveComposer.composeLive("trace-audit-1", "en")));
 
         DemoScreenComposer demoScreenComposer = new DemoScreenComposer(
                 objectMapper, utils, surfaces, TestTokens.INSTANCE, parameterizedRefreshService);

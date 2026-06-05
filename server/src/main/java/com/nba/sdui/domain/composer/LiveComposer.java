@@ -1,6 +1,6 @@
 package com.nba.sdui.domain.composer;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -20,12 +20,15 @@ import com.nba.sdui.domain.AtomicCompositeBuilder;
 import com.nba.sdui.domain.SduiUtils;
 import com.nba.sdui.domain.SectionIdDeriver;
 import com.nba.sdui.domain.SectionSurfaces;
+import com.nba.sdui.models.generated.Screen;
+import com.nba.sdui.models.generated.Section;
+import com.nba.sdui.models.generated.SectionSurface;
+import com.nba.sdui.models.generated.Spacing;
 import com.nba.sdui.orchestration.ParameterizedRefreshService;
 import com.nba.sdui.orchestration.SectionRefreshService;
 import com.nba.sdui.remote.SeasonCalendarService;
 import com.nba.sdui.domain.port.ScoreboardPort;
 import com.nba.sdui.domain.tokens.Tokens;
-import com.nba.sdui.integration.model.scoreboard.Broadcaster;
 import com.nba.sdui.integration.model.scoreboard.Broadcasters;
 import com.nba.sdui.integration.model.scoreboard.Game;
 import com.nba.sdui.integration.model.scoreboard.PlayoffSeries;
@@ -108,17 +111,28 @@ public class LiveComposer {
                     }
                 }
             }
-            return liveGames.isEmpty() ? buildEmptyLiveScheduleList() : buildLiveScheduleList(liveGames);
+            Section section = liveGames.isEmpty()
+                    ? buildEmptyLiveScheduleList()
+                    : buildLiveScheduleList(liveGames);
+            // Section channel is still ObjectNode-shaped at the SectionRefreshService
+            // boundary (see plan-server-typed-pojo-migration.md, deferred to a later
+            // step that flips the section channel to typed Section returns).
+            return objectMapper.valueToTree(section);
         });
 
         parameterizedRefreshService.registerResolver("games",
-                (traceId, params, ctx) -> composeLive(
-                        traceId,
-                        ctx.getLocale() != null ? ctx.getLocale() : "en",
-                        params.get("date")));
+                (traceId, params, ctx) -> {
+                    Screen screen = composeLive(
+                            traceId,
+                            ctx.getLocale() != null ? ctx.getLocale() : "en",
+                            params.get("date"));
+                    // Parameterized refresh service is still ObjectNode-shaped at the
+                    // boundary; flips to typed Screen in the later controller step.
+                    return (ObjectNode) objectMapper.valueToTree(screen);
+                });
     }
 
-    public ObjectNode composeLive(String traceId, String locale) {
+    public Screen composeLive(String traceId, String locale) {
         return composeLive(traceId, locale, null);
     }
 
@@ -134,7 +148,7 @@ public class LiveComposer {
      * unexpected deep links or forged requests (the strip's own minDate/maxDate
      * prevents normal navigation outside the season).
      */
-    public ObjectNode composeLive(String traceId, String locale, String selectedDateOverride) {
+    public Screen composeLive(String traceId, String locale, String selectedDateOverride) {
         log.info("Composing Games screen, locale={}, dateOverride={}", locale, selectedDateOverride);
 
         ObjectNode response = objectMapper.createObjectNode();
@@ -158,7 +172,7 @@ public class LiveComposer {
         state.put("games_selected_date", selectedDate);
         response.set("state", state);
 
-        ArrayNode sections = objectMapper.createArrayNode();
+        List<Section> sections = new ArrayList<>();
 
         // 0. CalendarStrip — date picker driving parameterized refresh
         sections.add(buildCalendarStripSection(selectedDate, defaultDate));
@@ -212,10 +226,14 @@ public class LiveComposer {
         // composer policy decides the token.
         applyInterSectionMargin(sections, tokens.spacing("md"));
 
-        response.set("sections", sections);
+        response.set("sections", objectMapper.valueToTree(sections));
         utils.ensureScreenContentInsets(response);
         utils.stampStringTableOnSections(response, locale);
-        return response;
+        try {
+            return objectMapper.treeToValue(response, Screen.class);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Failed to bind composed Games screen to Screen.class", e);
+        }
     }
 
     /**
@@ -225,20 +243,21 @@ public class LiveComposer {
      * a {@code surface.margin.bottom} on a specific section keeps its value —
      * this pass only fills in the missing edge so per-section choices win.
      */
-    private void applyInterSectionMargin(ArrayNode sections, String token) {
-        for (JsonNode node : sections) {
-            if (!(node instanceof ObjectNode section)) continue;
-            ObjectNode surface = section.has("surface") && section.get("surface").isObject()
-                    ? (ObjectNode) section.get("surface")
-                    : objectMapper.createObjectNode();
-            ObjectNode margin = surface.has("margin") && surface.get("margin").isObject()
-                    ? (ObjectNode) surface.get("margin")
-                    : objectMapper.createObjectNode();
-            if (!margin.has("bottom")) {
-                margin.put("bottom", token);
+    private void applyInterSectionMargin(List<Section> sections, String token) {
+        for (Section section : sections) {
+            SectionSurface surface = section.getSurface();
+            if (surface == null) {
+                surface = new SectionSurface();
+                section.setSurface(surface);
             }
-            surface.set("margin", margin);
-            section.set("surface", surface);
+            Spacing margin = surface.getMargin();
+            if (margin == null) {
+                margin = new Spacing();
+                surface.setMargin(margin);
+            }
+            if (margin.getBottom() == null) {
+                margin.setBottom(token);
+            }
         }
     }
 
@@ -306,7 +325,7 @@ public class LiveComposer {
 
     // ── CalendarStrip builder ────────────────────────────────────────────
 
-    private ObjectNode buildCalendarStripSection(String selectedDate, String defaultDate) {
+    private Section buildCalendarStripSection(String selectedDate, String defaultDate) {
         String contentSourceId = "server:games-calendar";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "CalendarStrip");
 
@@ -343,7 +362,7 @@ public class LiveComposer {
         data.set("expandedAction", expandedAction);
 
         section.set("data", data);
-        return section;
+        return toSection(section);
     }
 
     // ── Section builders ───────────────────────────────────────────────
@@ -353,7 +372,7 @@ public class LiveComposer {
      * Each live game row gets a LiveClock element that counts down via
      * its per-game SSE channel.
      */
-    private ObjectNode buildLiveScheduleList(List<Game> liveGames) {
+    private Section buildLiveScheduleList(List<Game> liveGames) {
         String contentSourceId = "stats-api:live-games";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "GameScheduleList");
 
@@ -373,11 +392,12 @@ public class LiveComposer {
         ObjectNode refreshPolicy = ssePolicy(liveGames.get(0));
         ObjectNode dataBinding = buildScheduleListBindings(liveGames);
 
-        ObjectNode section = atomicBuilder.buildGameScheduleList(
+        ObjectNode sectionNode = atomicBuilder.buildGameScheduleList(
                 sectionId, "live_games", "Live Now", rows,
                 refreshPolicy, dataBinding, clockSnapshots);
-        section.put("contentSourceId", contentSourceId);
-        section.set("surface", surfaces.gameCardFlushSurface());
+        sectionNode.put("contentSourceId", contentSourceId);
+        Section section = toSection(sectionNode);
+        section.setSurface(toSectionSurface(surfaces.gameCardFlushSurface()));
         return section;
     }
 
@@ -388,7 +408,7 @@ public class LiveComposer {
      * can keep checking. Composition will omit the section entirely on the
      * next full screen fetch.
      */
-    private ObjectNode buildEmptyLiveScheduleList() {
+    private Section buildEmptyLiveScheduleList() {
         String contentSourceId = "stats-api:live-games";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "GameScheduleList");
 
@@ -398,11 +418,12 @@ public class LiveComposer {
         pollPolicy.put("intervalMs", 30_000);
         pollPolicy.put("pauseWhenOffScreen", true);
 
-        ObjectNode section = atomicBuilder.buildGameScheduleList(
+        ObjectNode sectionNode = atomicBuilder.buildGameScheduleList(
                 sectionId, "live_games", "Live Now", new String[0][],
                 pollPolicy, null);
-        section.put("contentSourceId", contentSourceId);
-        section.set("surface", surfaces.gameCardFlushSurface());
+        sectionNode.put("contentSourceId", contentSourceId);
+        Section section = toSection(sectionNode);
+        section.setSurface(toSectionSurface(surfaces.gameCardFlushSurface()));
         return section;
     }
 
@@ -411,9 +432,9 @@ public class LiveComposer {
      * Uses the 3-arg SectionIdDeriver form because multiple schedule lists
      * share the same contentSourceId + sectionType (slug disambiguates).
      */
-    private ObjectNode buildScheduleList(String slug, String analyticsId,
-                                         String title, List<Game> gamesList,
-                                         boolean live) {
+    private Section buildScheduleList(String slug, String analyticsId,
+                                      String title, List<Game> gamesList,
+                                      boolean live) {
         String contentSourceId = "stats-api:scoreboard";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "GameScheduleList", slug);
 
@@ -421,11 +442,28 @@ public class LiveComposer {
         for (int i = 0; i < gamesList.size(); i++) {
             rows[i] = gameToRow(gamesList.get(i));
         }
-        ObjectNode section = atomicBuilder.buildGameScheduleList(
+        ObjectNode sectionNode = atomicBuilder.buildGameScheduleList(
                 sectionId, analyticsId, title, rows, staticPolicy(), null);
-        section.put("contentSourceId", contentSourceId);
-        section.set("surface", surfaces.gameCardFlushSurface());
+        sectionNode.put("contentSourceId", contentSourceId);
+        Section section = toSection(sectionNode);
+        section.setSurface(toSectionSurface(surfaces.gameCardFlushSurface()));
         return section;
+    }
+
+    private Section toSection(ObjectNode node) {
+        try {
+            return objectMapper.treeToValue(node, Section.class);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Failed to bind composed section to Section.class", e);
+        }
+    }
+
+    private SectionSurface toSectionSurface(ObjectNode node) {
+        try {
+            return objectMapper.treeToValue(node, SectionSurface.class);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Failed to bind composed surface to SectionSurface.class", e);
+        }
     }
 
     // ── Row conversion ─────────────────────────────────────────────────
@@ -630,10 +668,10 @@ public class LiveComposer {
      * same visual rhythm as the live/upcoming/final game cards rather than
      * reading as a separate gradient hero.
      */
-    private ObjectNode buildLeaguePassPromoBanner() {
+    private Section buildLeaguePassPromoBanner() {
         String contentSourceId = "cms:promo-games_screen-leaguepass";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
-        ObjectNode section = atomicBuilder.buildPromoBanner(
+        ObjectNode sectionNode = atomicBuilder.buildPromoBanner(
                 sectionId,
                 "games_screen_promo_banner",
                 "NBA League Pass",
@@ -655,10 +693,11 @@ public class LiveComposer {
                 // the theme-inverted one used by gradient hero variants.
                 tokens.color("nba.label.primary"),
                 tokens.color("nba.label.secondary"));
-        section.put("contentSourceId", contentSourceId);
-        section.set("surface", surfaces.promoCardSurface(
+        sectionNode.put("contentSourceId", contentSourceId);
+        Section section = toSection(sectionNode);
+        section.setSurface(toSectionSurface(surfaces.promoCardSurface(
                 tokens.color("nba.bg.secondary"),
-                tokens.spacing("lg")));
+                tokens.spacing("lg"))));
         return section;
     }
 
@@ -682,7 +721,7 @@ public class LiveComposer {
      * as the first entry and the per-status game sections in roster order; only those
      * game sections participate in ad placement.
      */
-    private void insertGamesScreenAdSlot(ArrayNode sections, int liveCount, int upcomingCount, int finalCount) {
+    private void insertGamesScreenAdSlot(List<Section> sections, int liveCount, int upcomingCount, int finalCount) {
         int totalGames = liveCount + upcomingCount + finalCount;
         if (totalGames == 0) return;
 
@@ -706,8 +745,8 @@ public class LiveComposer {
         }
         if (insertAfter < 0) return; // defensive — totalGames > 0 guarantees a match
 
-        ObjectNode adSection = buildGamesScreenAdSlot();
-        sections.insert(insertAfter + 1, adSection);
+        Section adSection = buildGamesScreenAdSlot();
+        sections.add(insertAfter + 1, adSection);
     }
 
     /**
@@ -715,20 +754,19 @@ public class LiveComposer {
      * (320×50 mobile, 728×90 desktop) come from the server; the client never invents
      * fallback sizes. Surface chrome is owned by {@link SectionSurfaces#adSlotSurface()}.
      */
-    private ObjectNode buildGamesScreenAdSlot() {
+    private Section buildGamesScreenAdSlot() {
         String contentSourceId = "ads:gam-games_screen";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AdSlot");
 
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", sectionId);
-        section.put("type", "AdSlot");
-        section.put("analyticsId", "games_screen_ad");
-        section.put("contentSourceId", contentSourceId);
+        ObjectNode sectionNode = objectMapper.createObjectNode();
+        sectionNode.put("id", sectionId);
+        sectionNode.put("type", "AdSlot");
+        sectionNode.put("analyticsId", "games_screen_ad");
+        sectionNode.put("contentSourceId", contentSourceId);
 
         ObjectNode refreshPolicy = objectMapper.createObjectNode();
         refreshPolicy.put("type", "static");
-        section.set("refreshPolicy", refreshPolicy);
-        section.set("surface", surfaces.adSlotSurface());
+        sectionNode.set("refreshPolicy", refreshPolicy);
 
         ObjectNode data = objectMapper.createObjectNode();
         data.put("provider", "gam");
@@ -758,7 +796,9 @@ public class LiveComposer {
         placeholder.put("text", "Advertisement");
         data.set("placeholder", placeholder);
 
-        section.set("data", data);
+        sectionNode.set("data", data);
+        Section section = toSection(sectionNode);
+        section.setSurface(toSectionSurface(surfaces.adSlotSurface()));
         return section;
     }
 }

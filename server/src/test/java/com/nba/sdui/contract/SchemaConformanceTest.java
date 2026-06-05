@@ -129,7 +129,9 @@ class SchemaConformanceTest {
      */
     private Map<String, ObjectNode> screenSamples() throws Exception {
         Map<String, ObjectNode> samples = new LinkedHashMap<>();
-        samples.put("live (composeLive)", liveComposer.composeLive("trace-conformance-1", "en"));
+        samples.put("live (composeLive)",
+                (ObjectNode) objectMapper.valueToTree(
+                        liveComposer.composeLive("trace-conformance-1", "en")));
         samples.put("leaders (composeLeaders)",
                 demoScreenComposer.composeLeaders("trace-conformance-2", "phone", "en"));
         samples.put("demos (composeDemos)",
@@ -145,7 +147,7 @@ class SchemaConformanceTest {
         // Use the parameterizedRefreshService registered on the composers
         // above so this exercises the param-replay path that
         // ComposerRoundTripTest also covers.
-        return liveComposer.composeLive("trace-conformance-4", "en");
+        return (ObjectNode) objectMapper.valueToTree(liveComposer.composeLive("trace-conformance-4", "en"));
     }
 
     @Test

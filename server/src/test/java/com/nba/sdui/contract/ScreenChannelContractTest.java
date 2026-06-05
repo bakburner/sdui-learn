@@ -100,7 +100,7 @@ class ScreenChannelContractTest {
 
     @Test
     void gamesScreen_returnsScreenShapeWithMatchingId() {
-        ObjectNode screen = liveComposer.composeLive("trace-1", "en");
+        ObjectNode screen = (ObjectNode) objectMapper.valueToTree(liveComposer.composeLive("trace-1", "en"));
         assertScreenShape(screen, "games");
     }
 
@@ -142,7 +142,7 @@ class ScreenChannelContractTest {
 
     @Test
     void gamesScreen_neverReturnsBareSection() {
-        ObjectNode screen = liveComposer.composeLive("trace-shape-1", "en");
+        ObjectNode screen = (ObjectNode) objectMapper.valueToTree(liveComposer.composeLive("trace-shape-1", "en"));
         assertFalse(screen.has("type") && !screen.has("sections"),
                 "screen response must not look like a bare Section (has 'type' without 'sections')");
     }
@@ -158,7 +158,7 @@ class ScreenChannelContractTest {
 
     @Test
     void gamesScreen_allRefreshEndpoints_useUnifiedScreenUrl() {
-        ObjectNode screen = liveComposer.composeLive("trace-fence-1", "en");
+        ObjectNode screen = (ObjectNode) objectMapper.valueToTree(liveComposer.composeLive("trace-fence-1", "en"));
         assertNoLegacyRefreshEndpoints(screen, "games");
     }
 
@@ -188,7 +188,7 @@ class ScreenChannelContractTest {
 
     @Test
     void gamesCalendarStrip_onDateSelected_usesUnifiedEndpoint() {
-        ObjectNode screen = liveComposer.composeLive("trace-cal-1", "en");
+        ObjectNode screen = (ObjectNode) objectMapper.valueToTree(liveComposer.composeLive("trace-cal-1", "en"));
         ObjectNode calendarData = (ObjectNode) screen.path("sections").get(0).path("data");
         String endpoint = calendarData.path("onDateSelected").path("endpoint").asText();
         assertEquals("/v1/sdui/screen/games", endpoint);

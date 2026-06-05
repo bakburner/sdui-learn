@@ -3,7 +3,6 @@ package com.nba.sdui.domain;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -3248,7 +3247,7 @@ public class AtomicCompositeBuilder {
     public AtomicElement shadow(AtomicElement element, String color, double radius,
                                 double offsetX, double offsetY) {
         if (element != null) {
-            ObjectNode s = om.createObjectNode();
+            Map<String, Object> s = new LinkedHashMap<>();
             if (color != null) s.put("color", color);
             s.put("radius", radius);
             s.put("offsetX", offsetX);
@@ -3272,7 +3271,7 @@ public class AtomicCompositeBuilder {
     /**
      * Build a Shadow value with an explicit {@code type} field. The wire
      * shape is token-or-struct (Object); inline structs are represented as
-     * an ObjectNode here because no generated Shadow POJO exists yet.
+     * a Map here because no generated Shadow POJO exists yet.
      */
     public Object shadowWithType(String type, String color, int offsetX, int offsetY, int radius) {
         return shadowWithTypeNode(type, color, offsetX, offsetY, radius);
@@ -3281,9 +3280,9 @@ public class AtomicCompositeBuilder {
     public AtomicElement backgrounds(AtomicElement element, List<Object> layers) {
         if (element == null) return null;
         for (Object layer : layers) {
-            if (!(layer instanceof String) && !(layer instanceof ObjectNode)) {
+            if (!(layer instanceof String) && !(layer instanceof Map<?, ?>)) {
                 throw new IllegalArgumentException(
-                    "backgrounds layer must be String (color) or ObjectNode (gradient/image), got: "
+                    "backgrounds layer must be String (color) or Map (gradient/image), got: "
                         + (layer == null ? "null" : layer.getClass().getName()));
             }
         }
@@ -3352,12 +3351,6 @@ public class AtomicCompositeBuilder {
         if (element != null && alignment != null) {
             element.setAlignSelf(AtomicElement.CrossAlignment.fromValue(alignment));
         }
-    }
-
-    public void attachSectionStates(Section section, ObjectNode sectionStates) {
-        if (section == null || sectionStates == null) return;
-        section.setSectionStates(om.convertValue(sectionStates,
-                com.nba.sdui.models.generated.SectionStates.class));
     }
 
     public void attachRefreshPolicy(Section section, RefreshPolicy refreshPolicy) {

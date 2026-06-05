@@ -1,5 +1,6 @@
 package com.nba.sdui.integration.model.scoreboard;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.util.List;
 import lombok.AllArgsConstructor;
@@ -26,6 +27,7 @@ public class ScoreboardResponse {
     private Scoreboard scoreboard;
 
     /** Returns the inner games list, or empty if the envelope or list is absent. */
+    @JsonIgnore
     public List<Game> getGames() {
         if (scoreboard == null || scoreboard.getGames() == null) {
             return List.of();
@@ -34,6 +36,7 @@ public class ScoreboardResponse {
     }
 
     /** Returns the inner gameDate, or null if the envelope is absent. */
+    @JsonIgnore
     public String getGameDate() {
         return scoreboard == null ? null : scoreboard.getGameDate();
     }

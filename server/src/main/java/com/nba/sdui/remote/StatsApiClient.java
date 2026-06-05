@@ -346,9 +346,12 @@ public class StatsApiClient {
     private JsonNode executeRequest(String url, java.util.function.Consumer<org.springframework.http.HttpHeaders> headerCustomizer)
             throws IOException {
         log.debug("Fetching: {}", url);
+        // Pre-built URI so RestClient does not re-encode already-percent-encoded
+        // characters (e.g. %2F in date params would otherwise become %252F).
+        java.net.URI uri = java.net.URI.create(url);
         try {
             String body = restClient.get()
-                    .uri(url)
+                    .uri(uri)
                     .headers(headerCustomizer)
                     .retrieve()
                     .body(String.class);

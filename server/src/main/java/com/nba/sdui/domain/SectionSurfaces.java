@@ -1,11 +1,14 @@
 package com.nba.sdui.domain;
 
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nba.sdui.models.generated.SectionSurface;
+import com.nba.sdui.models.generated.Spacing;
 import org.springframework.stereotype.Component;
 import com.nba.sdui.domain.tokens.Tokens;
+
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Vocabulary of canonical {@code Section.surface} shapes used by composers.
@@ -18,7 +21,9 @@ import com.nba.sdui.domain.tokens.Tokens;
 @Component
 public class SectionSurfaces {
 
+    @SuppressWarnings("unused") // retained for backwards-compatible constructor signature
     private final ObjectMapper objectMapper;
+    @SuppressWarnings("unused") // retained for backwards-compatible constructor signature
     private final SduiUtils utils;
     private final Tokens tokens;
 
@@ -50,30 +55,30 @@ public class SectionSurfaces {
      * boundary.
      */
     public SectionSurface defaultSurface() {
-        return bind(defaultSurfaceNode());
+        return defaultSurfaceTyped();
     }
 
-    private ObjectNode defaultSurfaceNode() {
-        ObjectNode surface = objectMapper.createObjectNode();
-        surface.set("margin", utils.spacingTokens(
+    private SectionSurface defaultSurfaceTyped() {
+        SectionSurface surface = new SectionSurface();
+        surface.setMargin(spacingTokens(
                 tokens.spacing("lg"),
                 tokens.spacing("lg"),
                 tokens.spacing("lg"),
                 tokens.spacing("lg")));
-        surface.put("background", "token:nba.bg.secondary");
-        surface.put("cornerRadius", tokens.radius("md"));
+        surface.setBackground("token:nba.bg.secondary");
+        surface.setCornerRadius(tokens.radius("md"));
 
         // Inline shadow struct (no exact token match): radius:6, offsetY:2 falls
         // between nba.shadow.sm (radius:3, offsetY:1) and nba.shadow.md
         // (radius:8, offsetY:2). Schema permits the inline struct as the
         // documented escape hatch for one-off values that don't deserve a
         // registry entry; clients normalize at the edge via resolveShadowOrToken.
-        ObjectNode shadow = objectMapper.createObjectNode();
+        Map<String, Object> shadow = new LinkedHashMap<>();
         shadow.put("color", "#00000014");
         shadow.put("radius", 6);
         shadow.put("offsetX", 0);
         shadow.put("offsetY", 2);
-        surface.set("shadow", shadow);
+        surface.setShadow(shadow);
 
         return surface;
     }
@@ -87,20 +92,20 @@ public class SectionSurfaces {
      * height from {@code data.sizes[0]} aspect ratio only.
      */
     public SectionSurface adSlotSurface() {
-        ObjectNode surface = objectMapper.createObjectNode();
-        surface.set("margin", utils.spacingTokens(
+        SectionSurface surface = new SectionSurface();
+        surface.setMargin(spacingTokens(
                 tokens.spacing("lg"),
                 tokens.spacing("lg"),
                 tokens.spacing("lg"),
                 tokens.spacing("lg")));
-        surface.set("padding", utils.spacingTokens(
+        surface.setPadding(spacingTokens(
                 tokens.spacing("lg"),
                 tokens.spacing("md"),
                 tokens.spacing("lg"),
                 tokens.spacing("md")));
-        surface.put("background", "token:nba.bg.secondary");
-        surface.put("cornerRadius", 0);
-        return bind(surface);
+        surface.setBackground("token:nba.bg.secondary");
+        surface.setCornerRadius(0);
+        return surface;
     }
 
     /**
@@ -108,7 +113,7 @@ public class SectionSurfaces {
      * that should render edge-to-edge (hero videos, full-bleed images).
      */
     public SectionSurface flushSurface() {
-        return bind(objectMapper.createObjectNode());
+        return new SectionSurface();
     }
 
     /**
@@ -118,10 +123,10 @@ public class SectionSurfaces {
      * parent list's {@code gap} rather than by per-card margin.
      */
     public SectionSurface gameCardFlushSurface() {
-        ObjectNode surface = objectMapper.createObjectNode();
-        surface.put("cornerRadius", 0);
-        surface.put("background", "token:nba.bg.secondary");
-        return bind(surface);
+        SectionSurface surface = new SectionSurface();
+        surface.setCornerRadius(0);
+        surface.setBackground("token:nba.bg.secondary");
+        return surface;
     }
 
     /**
@@ -129,15 +134,15 @@ public class SectionSurfaces {
      * Composed from standard {@link SectionSurface} fields (not a tab-specific wire type).
      */
     public SectionSurface secondaryStripSurface() {
-        ObjectNode surface = objectMapper.createObjectNode();
-        surface.put("cornerRadius", 0);
-        surface.put("background", "token:nba.bg.secondary");
-        surface.set("padding", utils.spacingTokens(
+        SectionSurface surface = new SectionSurface();
+        surface.setCornerRadius(0);
+        surface.setBackground("token:nba.bg.secondary");
+        surface.setPadding(spacingTokens(
                 tokens.spacing("sm"),
                 tokens.spacing("md"),
                 tokens.spacing("xs"),
                 tokens.spacing("md")));
-        return bind(surface);
+        return surface;
     }
 
     /**
@@ -146,14 +151,14 @@ public class SectionSurfaces {
      * surface.
      */
     public SectionSurface stripSurfaceWithoutBackground() {
-        ObjectNode surface = objectMapper.createObjectNode();
-        surface.put("cornerRadius", 0);
-        surface.set("padding", utils.spacingTokens(
+        SectionSurface surface = new SectionSurface();
+        surface.setCornerRadius(0);
+        surface.setPadding(spacingTokens(
                 tokens.spacing("sm"),
                 tokens.spacing("md"),
                 tokens.spacing("xs"),
                 tokens.spacing("md")));
-        return bind(surface);
+        return surface;
     }
 
     /**
@@ -170,16 +175,13 @@ public class SectionSurfaces {
      * rather than continuing to pass it inline.
      */
     public SectionSurface subscribeSurface(String topColor, String bottomColor, int padding) {
-        ObjectNode surface = defaultSurfaceNode();
-        ObjectNode gradient = objectMapper.createObjectNode();
-        ArrayNode colors = objectMapper.createArrayNode();
-        colors.add(topColor);
-        colors.add(bottomColor);
-        gradient.set("colors", colors);
+        SectionSurface surface = defaultSurfaceTyped();
+        Map<String, Object> gradient = new LinkedHashMap<>();
+        gradient.put("colors", List.of(topColor, bottomColor));
         gradient.put("direction", "vertical");
-        surface.set("background", gradient);
-        surface.set("padding", utils.spacingSymmetric(padding, padding));
-        return bind(surface);
+        surface.setBackground(gradient);
+        surface.setPadding(spacingSymmetric(padding, padding));
+        return surface;
     }
 
     /**
@@ -192,11 +194,11 @@ public class SectionSurfaces {
      * and finished game cards below it.
      */
     public SectionSurface promoCardSurface(String backgroundToken, String paddingToken) {
-        ObjectNode surface = defaultSurfaceNode();
-        surface.put("background", backgroundToken);
-        surface.set("padding", utils.spacingTokens(
+        SectionSurface surface = defaultSurfaceTyped();
+        surface.setBackground(backgroundToken);
+        surface.setPadding(spacingTokens(
                 paddingToken, paddingToken, paddingToken, paddingToken));
-        return bind(surface);
+        return surface;
     }
 
     /**
@@ -210,9 +212,9 @@ public class SectionSurfaces {
      * surface block.
      */
     public SectionSurface videoPlayerSurface() {
-        ObjectNode surface = objectMapper.createObjectNode();
-        surface.put("background", "#1A1F2E");
-        return bind(surface);
+        SectionSurface surface = new SectionSurface();
+        surface.setBackground("#1A1F2E");
+        return surface;
     }
 
     /**
@@ -229,15 +231,15 @@ public class SectionSurfaces {
      * level and the inner atomic tree stays content-only.
      */
     public SectionSurface cardSurface() {
-        ObjectNode surface = objectMapper.createObjectNode();
-        surface.set("margin", utils.spacingTokens(
+        SectionSurface surface = new SectionSurface();
+        surface.setMargin(spacingTokens(
                 tokens.spacing("lg"),
                 tokens.spacing("lg"),
                 tokens.spacing("lg"),
                 tokens.spacing("lg")));
-        surface.put("background", "token:nba.bg.tertiary");
-        surface.put("cornerRadius", tokens.radius("md"));
-        return bind(surface);
+        surface.setBackground("token:nba.bg.tertiary");
+        surface.setCornerRadius(tokens.radius("md"));
+        return surface;
     }
 
     /**
@@ -253,8 +255,8 @@ public class SectionSurfaces {
      * styling untouched and avoids double-chrome.
      */
     public SectionSurface railSurface() {
-        ObjectNode surface = objectMapper.createObjectNode();
-        ObjectNode margin = objectMapper.createObjectNode();
+        SectionSurface surface = new SectionSurface();
+        Spacing margin = new Spacing();
         // nba.spacing.lg (phone:16) top/bottom — pairs with the same
         // token on `defaultSurface` (AdSlot) to give 2× spacing.lg of
         // air between a rail and the card-chromed section that follows
@@ -262,10 +264,10 @@ public class SectionSurfaces {
         // less spacing than the pixel count suggests; the doubled lg
         // step reads as an intentional module boundary rather than an
         // orphan row.
-        margin.put("top", tokens.spacing("lg"));
-        margin.put("bottom", tokens.spacing("lg"));
-        surface.set("margin", margin);
-        return bind(surface);
+        margin.setTop(tokens.spacing("lg"));
+        margin.setBottom(tokens.spacing("lg"));
+        surface.setMargin(margin);
+        return surface;
     }
 
     /**
@@ -298,12 +300,12 @@ public class SectionSurfaces {
      * </ul>
      */
     public SectionSurface sectionHeaderSurface() {
-        ObjectNode surface = objectMapper.createObjectNode();
-        ObjectNode margin = objectMapper.createObjectNode();
-        margin.put("top", tokens.spacing("lg"));
-        margin.put("bottom", tokens.spacing("md"));
-        surface.set("margin", margin);
-        return bind(surface);
+        SectionSurface surface = new SectionSurface();
+        Spacing margin = new Spacing();
+        margin.setTop(tokens.spacing("lg"));
+        margin.setBottom(tokens.spacing("md"));
+        surface.setMargin(margin);
+        return surface;
     }
 
     /**
@@ -321,20 +323,39 @@ public class SectionSurfaces {
      * SubscribeUpsell brand gradient.
      */
     public SectionSurface gamePanelSurface() {
-        ObjectNode surface = defaultSurfaceNode();
+        SectionSurface surface = defaultSurfaceTyped();
 
-        ObjectNode gradient = objectMapper.createObjectNode();
-        ArrayNode colors = objectMapper.createArrayNode();
-        colors.add(tokens.color("nba.bg.secondary"));
-        colors.add(tokens.color("nba.bg.splash-screen"));
-        gradient.set("colors", colors);
+        Map<String, Object> gradient = new LinkedHashMap<>();
+        gradient.put("colors", List.of(
+                tokens.color("nba.bg.secondary"),
+                tokens.color("nba.bg.splash-screen")));
         gradient.put("direction", "diagonal");
-        surface.set("background", gradient);
+        surface.setBackground(gradient);
 
-        return bind(surface);
+        return surface;
     }
 
-    private SectionSurface bind(ObjectNode node) {
-        return objectMapper.convertValue(node, SectionSurface.class);
+    // ── typed Spacing helpers ────────────────────────────────────────
+
+    private static Spacing spacingTokens(String top, String end, String bottom, String start) {
+        Spacing s = new Spacing();
+        if (top != null && !top.isBlank()) s.setTop(top);
+        if (end != null && !end.isBlank()) s.setEnd(end);
+        if (bottom != null && !bottom.isBlank()) s.setBottom(bottom);
+        if (start != null && !start.isBlank()) s.setStart(start);
+        return s;
+    }
+
+    private static Spacing spacingSymmetric(int vertical, int horizontal) {
+        Spacing s = new Spacing();
+        if (vertical != 0) {
+            s.setTop(vertical);
+            s.setBottom(vertical);
+        }
+        if (horizontal != 0) {
+            s.setStart(horizontal);
+            s.setEnd(horizontal);
+        }
+        return s;
     }
 }

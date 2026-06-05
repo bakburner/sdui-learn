@@ -2,8 +2,6 @@ package com.nba.sdui.domain.composer;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,12 +12,15 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import com.nba.sdui.domain.AccessibilityHelper;
 import com.nba.sdui.domain.AtomicCompositeBuilder;
 import com.nba.sdui.domain.SduiUtils;
 import com.nba.sdui.domain.SectionIdDeriver;
 import com.nba.sdui.domain.SectionSurfaces;
 import com.nba.sdui.domain.tokens.Tokens;
+import com.nba.sdui.models.generated.Action;
+import com.nba.sdui.models.generated.Form;
+import com.nba.sdui.models.generated.FormField;
+import com.nba.sdui.models.generated.FormOption;
 import com.nba.sdui.models.generated.RefreshPolicy;
 import com.nba.sdui.models.generated.Screen;
 import com.nba.sdui.models.generated.Section;
@@ -102,20 +103,20 @@ public class ScheduleComposer {
         section.setAnalyticsId("schedule_filters");
         section.setRefreshPolicy(staticPolicy());
 
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("layout", "vertical");
+        Form data = new Form();
+        data.setLayout(Form.Layout.VERTICAL);
 
         // Form submit fires on chip change via onChange actions on each
         // field; keep submitAction present for schema validity. The
         // controller doesn't parse query params yet — chip taps are
         // cosmetic until the data-wiring plan lands (Phase D.1 scope note).
-        ObjectNode submitAction = objectMapper.createObjectNode();
-        submitAction.put("trigger", "onSubmit");
-        submitAction.put("type", "refresh");
-        data.set("submitAction", submitAction);
-        data.put("submitLabel", SduiUtils.getLocalizedString(locale, "filter.apply"));
+        Action submitAction = new Action();
+        submitAction.setTrigger(Action.ActionTrigger.fromValue("onSubmit"));
+        submitAction.setType(Action.ActionType.fromValue("refresh"));
+        data.setSubmitAction(submitAction);
+        data.setSubmitLabel(SduiUtils.getLocalizedString(locale, "filter.apply"));
 
-        ArrayNode fields = objectMapper.createArrayNode();
+        List<FormField> fields = new ArrayList<>();
 
         String all = SduiUtils.getLocalizedString(locale, "filter.all");
 
@@ -148,7 +149,7 @@ public class ScheduleComposer {
                         {"15", "15"}, {"20", "20"}, {"25", "25"}, {"30", "30"}
                 }));
 
-        data.set("fields", fields);
+        data.setFields(fields);
         section.setData(data);
         return section;
     }
@@ -158,22 +159,22 @@ public class ScheduleComposer {
      * and {@code variant: "chips"}. Clients resolve chips natively (iOS
      * capsules, Material {@code FilterChip}, web pill buttons).
      */
-    private ObjectNode buildChipsField(String stateKey, String label, String[][] options) {
-        ObjectNode field = objectMapper.createObjectNode();
-        field.put("fieldId", stateKey);
-        field.put("fieldType", "select");
-        field.put("variant", "chips");
-        field.put("label", label);
-        field.put("stateKey", stateKey);
+    private FormField buildChipsField(String stateKey, String label, String[][] options) {
+        FormField field = new FormField();
+        field.setFieldId(stateKey);
+        field.setFieldType(FormField.FieldType.SELECT);
+        field.setVariant(FormField.SelectVariant.CHIPS);
+        field.setLabel(label);
+        field.setStateKey(stateKey);
 
-        ArrayNode opts = objectMapper.createArrayNode();
+        List<FormOption> opts = new ArrayList<>();
         for (String[] opt : options) {
-            ObjectNode o = objectMapper.createObjectNode();
-            o.put("value", opt[0]);
-            o.put("label", opt[1]);
+            FormOption o = new FormOption();
+            o.setValue(opt[0]);
+            o.setLabel(opt[1]);
             opts.add(o);
         }
-        field.set("options", opts);
+        field.setOptions(opts);
         return field;
     }
 
@@ -238,43 +239,6 @@ public class ScheduleComposer {
         section.setContentSourceId(contentSourceId);
         section.setSurface(surfaces.railSurface());
         return section;
-    }
-
-    private ObjectNode buildTeamColumn(JsonNode team) {
-        ObjectNode col = objectMapper.createObjectNode();
-        col.put("type", "Container");
-        col.put("direction", "column");
-        col.put("alignment", "center");
-        col.put("crossAlignment", "center");
-        ArrayNode children = objectMapper.createArrayNode();
-
-        int teamId = team.path("teamId").asInt(0);
-        ObjectNode logo = objectMapper.createObjectNode();
-        logo.put("type", "Image");
-        logo.put("src", SduiUtils.teamLogoUrl(teamId));
-        logo.put("width", 48);
-        logo.put("height", 48);
-        logo.put("fit", "contain");
-        AccessibilityHelper.addImage(objectMapper, logo,
-                team.path("teamTricode").asText("Team") + " logo");
-        children.add(logo);
-
-        ObjectNode spacer = objectMapper.createObjectNode();
-        spacer.put("type", "Spacer");
-        spacer.put("height", tokens.spacing("sm"));
-        children.add(spacer);
-
-        ObjectNode name = objectMapper.createObjectNode();
-        name.put("type", "Text");
-        name.put("content", team.path("teamTricode").asText("???"));
-        name.put("variant", "bodySmall");
-        name.put("weight", "bold");
-        name.put("color", tokens.color("nba.label.primary"));
-        name.put("textAlign", "center");
-        children.add(name);
-
-        col.set("children", children);
-        return col;
     }
 
     private JsonNode loadScheduleData() {

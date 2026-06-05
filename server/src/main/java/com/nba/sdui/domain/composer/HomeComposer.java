@@ -1,7 +1,6 @@
 package com.nba.sdui.domain.composer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.nba.sdui.models.generated.AdSlot;
 import com.nba.sdui.models.generated.AtomicElement;
 import com.nba.sdui.models.generated.Placeholder;
@@ -486,8 +485,6 @@ public class HomeComposer {
     }
 
     private AtomicElement divider() {
-        ObjectNode d = objectMapper.createObjectNode();
-        d.put("type", "Divider");
-        return objectMapper.convertValue(d, AtomicElement.class);
+        return new AtomicElement().withType(AtomicElement.Type.fromValue("Divider"));
     }
 }

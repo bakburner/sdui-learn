@@ -1,8 +1,6 @@
 package com.nba.sdui.domain.composer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.nba.sdui.models.generated.AdSlot;
 import com.nba.sdui.models.generated.AtomicElement;
 import com.nba.sdui.models.generated.Placeholder;
@@ -433,9 +431,7 @@ public class ForYouComposer {
             List<AtomicElement> rowChildren = new ArrayList<>();
             AtomicElement img = atomicBuilder.image(imageUrl, 120, 68, "cover");
             img.setCornerRadius(tokens.radius("sm"));
-            ObjectNode imgNode = (ObjectNode) objectMapper.valueToTree(img);
-            AccessibilityHelper.addImage(objectMapper, imgNode, headline);
-            img = objectMapper.convertValue(imgNode, AtomicElement.class);
+            AccessibilityHelper.addImage(img, headline);
             rowChildren.add(img);
 
             AtomicElement textCol = atomicBuilder.container("column", null, "start");

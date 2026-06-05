@@ -291,8 +291,11 @@ export function buildBoxStyle(
   }
 
   // background — inline wins on `allow`; variant wins on `lock`.
-  // Normalize: backgrounds array > singular background > empty.
-  const effectiveBackgrounds: Array<Background | string> = element.backgrounds
+  // Normalize: non-empty backgrounds array > singular background > empty.
+  // (The wire serializes `backgrounds: []` for completeness, so a plain
+  // truthy check would mask a singular `background` whenever the array
+  // ships empty.)
+  const effectiveBackgrounds: Array<Background | string> = (element.backgrounds && element.backgrounds.length > 0)
     ? element.backgrounds as Array<Background | string>
     : element.background
       ? [element.background as unknown as Background]
@@ -320,8 +323,10 @@ export function buildBoxStyle(
   }
 
   // shadow — inline wins on `allow`; variant wins on `lock`.
-  // Normalize: shadows array > singular shadow > empty.
-  const effectiveShadows: Shadow[] = element.shadows
+  // Normalize: non-empty shadows array > singular shadow > empty.
+  // Same wire-completeness rule as `backgrounds` above — an empty array
+  // must fall through to the singular field.
+  const effectiveShadows: Shadow[] = (element.shadows && element.shadows.length > 0)
     ? resolveShadowOrTokens(element.shadows)
     : element.shadow
       ? ((resolved) => (resolved ? [resolved] : []))(resolveShadowOrToken(element.shadow))

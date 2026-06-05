@@ -1,9 +1,11 @@
 package com.nba.sdui.domain.composer;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.nba.sdui.models.generated.Screen;
 import com.nba.sdui.request.SduiRequestContext;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
@@ -83,10 +85,13 @@ public class GameDetailComposer {
     }
 
     /**
-     * Result of composing a Game Detail screen — carries both the JSON
+     * Result of composing a Game Detail screen — carries both the typed
      * response and the server-derived game state for cache-control decisions.
+     * The response shell is built internally as an {@code ObjectNode} (heavy
+     * variant-transform tree mutation) and bound to {@link Screen} at the
+     * public boundary via {@code treeToValue} once composition completes.
      */
-    public record GameDetailResult(JsonNode response, String derivedGameState) {}
+    public record GameDetailResult(Screen response, String derivedGameState) {}
 
     // ── Public entry point ─────────────────────────────────────────────
 
@@ -109,7 +114,7 @@ public class GameDetailComposer {
         } else {
             log.warn("Live game detail unavailable for gameId={} — composing ErrorState screen", gameId);
             return new GameDetailResult(
-                    buildErrorScreen(gameId, traceId, locale),
+                    bindScreen(buildErrorScreen(gameId, traceId, locale)),
                     derivedGameState);
         }
 
@@ -158,7 +163,15 @@ public class GameDetailComposer {
         prependVariantChipsIfPresent(response, gameId, variant);
         utils.ensureScreenContentInsets(response);
         utils.stampStringTableOnSections(response, locale);
-        return new GameDetailResult(response, derivedGameState);
+        return new GameDetailResult(bindScreen(response), derivedGameState);
+    }
+
+    private Screen bindScreen(ObjectNode response) {
+        try {
+            return objectMapper.treeToValue(response, Screen.class);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Failed to bind composed Game Detail screen to Screen.class", e);
+        }
     }
 
     /**

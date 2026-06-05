@@ -80,7 +80,8 @@ class GameDetailComposerTest {
         GameDetailComposer.GameDetailResult result = composer.composeGameDetail("123", "A", "1.0", "trace-1", "en");
 
         assertNotNull(result.response());
-        assertFalse(result.response().has("type"), "screen payload must not emit a top-level type field");
+        ObjectNode wire = (ObjectNode) objectMapper.valueToTree(result.response());
+        assertFalse(wire.has("type"), "screen payload must not emit a top-level type field");
         verify(statsApiClient, times(2)).getBoxscore("123");
         verify(boxscoreComposer, times(2))
                 .buildBoxscoreTableSection(any(), anyString(), anyString(), anyString(), anyString(), anyString(), anyInt());

@@ -95,7 +95,7 @@ public class SduiController {
             log.info("SDUI response composed successfully");
 
             // Apply version-aware field stripping
-            JsonNode filtered = applyVersionFilter(result.response(), ctx);
+            JsonNode filtered = applyVersionFilter(objectMapper.valueToTree(result.response()), ctx);
 
             // Cache-control based on server-derived game state
             CacheControl cache = resolveCacheControl(result.derivedGameState(), "pre");

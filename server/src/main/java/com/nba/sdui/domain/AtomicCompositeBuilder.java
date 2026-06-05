@@ -1662,7 +1662,7 @@ public class AtomicCompositeBuilder {
         // Full-bleed portrait image as base (3:4 aspect ratio)
         AtomicElement base = imageUrl != null
                 ? image(imageUrl, 180, 0, "cover")
-                : bindElement(neutralInitialsRect(title, 180, 240, radius));
+                : neutralInitialsRect(title, 180, 240, radius);
         base.setWidthMode(AtomicElement.SizingMode.fromValue("fill"));
         base.setAspectRatio(3.0 / 4.0);
         base.setCornerRadius(radius);
@@ -2305,7 +2305,7 @@ public class AtomicCompositeBuilder {
         int ring = 3;
         AtomicElement avatar = imageUrl != null
                 ? image(imageUrl, inner, inner, "cover")
-                : bindElement(neutralInitials(label, inner, inner / 2));
+                : neutralInitials(label, inner, inner / 2);
         avatar.setCornerRadius(inner / 2);
         // Defense in depth: opaque inner fill so a missing image doesn't
         // reveal the BRAND_LIVE ring color through to the whole disc.
@@ -2343,7 +2343,7 @@ public class AtomicCompositeBuilder {
 
         AtomicElement base = imageUrl != null
                 ? image(imageUrl, 200, 0, "cover")
-                : bindElement(neutralInitialsRect(title, 200, 268, radius));
+                : neutralInitialsRect(title, 200, 268, radius);
         base.setWidthMode(AtomicElement.SizingMode.fromValue("fill"));
         base.setAspectRatio(3.0 / 4.0);
         base.setCornerRadius(radius);
@@ -2405,7 +2405,7 @@ public class AtomicCompositeBuilder {
 
         AtomicElement art = value(card, 4) != null
                 ? image(value(card, 4), 0, 0, "cover")
-                : bindElement(neutralInitialsRect(value(card, 2), 338, 190, heroRadius));
+                : neutralInitialsRect(value(card, 2), 338, 190, heroRadius);
         art.setWidthMode(AtomicElement.SizingMode.fromValue("fill"));
         art.setAspectRatio(16.0 / 9.0);
         if (value(card, 4) != null) AccessibilityHelper.addImage(art, value(card, 2));
@@ -2559,7 +2559,7 @@ public class AtomicCompositeBuilder {
             AccessibilityHelper.addImage(img, value(item, 1) + " icon");
             children.add(img);
         } else {
-            children.add(bindElement(neutralInitials(value(item, 1), 44, 22)));
+            children.add(neutralInitials(value(item, 1), 44, 22));
         }
         children.add(text(value(item, 1), "bodyMedium", "semiBold",
                 tokens.color("nba.label.primary"), 2));
@@ -2593,7 +2593,7 @@ public class AtomicCompositeBuilder {
             AccessibilityHelper.addImage(logo, label + " logo");
             children.add(logo);
         } else {
-            children.add(bindElement(neutralInitials(label, 72, 28)));
+            children.add(neutralInitials(label, 72, 28));
         }
         children.add(text(label, "bodyMedium", "semiBold",
                 tokens.color("nba.label.primary"), 2));
@@ -2859,15 +2859,6 @@ public class AtomicCompositeBuilder {
         return d;
     }
 
-    private ObjectNode scrollRow(Object gap, boolean showIndicators) {
-        ObjectNode scroll = om.createObjectNode();
-        scroll.put("type", "ScrollContainer");
-        scroll.put("direction", "row");
-        putLayoutScalar(scroll, "gap", gap);
-        scroll.put("showIndicators", showIndicators);
-        return scroll;
-    }
-
     /**
      * Typed variant: paged horizontal carousel. Schema does not expose
      * {@code paging}/{@code snapAlignment}/{@code pageIndicator} as typed
@@ -2899,19 +2890,19 @@ public class AtomicCompositeBuilder {
         return gradient;
     }
 
-    private ObjectNode neutralInitials(String label, int width, Object radius) {
+    private AtomicElement neutralInitials(String label, int width, Object radius) {
         return neutralInitialsRect(label, width, width, radius);
     }
 
-    private ObjectNode neutralInitialsRect(String label, int width, int height, Object radius) {
-        ObjectNode box = containerNode("row", "center", "center");
-        box.put("width", width);
-        box.put("height", height);
-        putLayoutScalar(box, "cornerRadius", radius);
-        box.put("background", tokens.color("nba.bg.tertiary"));
-        ArrayNode children = om.createArrayNode();
-        children.add(textNode(initials(label), "labelSmall", "bold", tokens.color("nba.label.secondary"), 1));
-        box.set("children", children);
+    private AtomicElement neutralInitialsRect(String label, int width, int height, Object radius) {
+        AtomicElement box = container("row", "center", "center");
+        box.setWidth(width);
+        box.setHeight(height);
+        if (radius != null) box.setCornerRadius(radius);
+        box.setBackground(tokens.color("nba.bg.tertiary"));
+        box.setChildren(List.of(
+                text(initials(label), "labelSmall", "bold",
+                        tokens.color("nba.label.secondary"), 1)));
         return box;
     }
 
@@ -3182,23 +3173,7 @@ public class AtomicCompositeBuilder {
         return p;
     }
 
-    /**
-     * Builds an AtomicElement.cornerRadii block with all four corners set.
-     * Used for cards that want asymmetric rounding (e.g. rounded-top +
-     * squared-bottom content cards). An explicit 0 on a corner means
-     * "square" — it is preserved through the wire (it is not treated as
-     * "omitted, fall back to cornerRadius") per the schema contract.
-     */
-    private ObjectNode cornerRadii(Object topStart, Object topEnd, Object bottomStart, Object bottomEnd) {
-        ObjectNode r = om.createObjectNode();
-        putLayoutScalar(r, "topStart", topStart);
-        putLayoutScalar(r, "topEnd", topEnd);
-        putLayoutScalar(r, "bottomStart", bottomStart);
-        putLayoutScalar(r, "bottomEnd", bottomEnd);
-        return r;
-    }
-
-    /** Typed variant of {@link #cornerRadii} returning a generated {@link CornerRadii}. */
+    /** Typed variant of {@link #cornerRadiiOf} — only typed CornerRadii is used. */
     public CornerRadii cornerRadiiOf(Object topStart, Object topEnd,
                                      Object bottomStart, Object bottomEnd) {
         CornerRadii r = new CornerRadii();

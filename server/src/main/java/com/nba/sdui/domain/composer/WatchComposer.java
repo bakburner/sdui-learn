@@ -553,6 +553,11 @@ public class WatchComposer {
         AtomicElement root = atomicBuilder.container("column", "start", "center");
         root.setGap(8); // §3.6: no semantic spacing token for 8
         atomicBuilder.widthMode(root, "fill");
+        // Cap reading-width so the hero stays compact on wide viewports (web/tablet/TV);
+        // alignSelf=center keeps it horizontally centered within the section surface.
+        // No-op on phone, where the natural surface width is already <480.
+        root.setMaxWidth(480);
+        root.setAlignSelf(AtomicElement.CrossAlignment.CENTER);
         List<AtomicElement> children = new ArrayList<>();
 
         if (logoUrl != null) {

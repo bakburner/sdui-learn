@@ -256,6 +256,14 @@ export function buildBoxStyle(
       case CrossAlignment.End:     style.alignSelf = 'flex-end'; break;
       case CrossAlignment.Stretch: style.alignSelf = 'stretch'; break;
     }
+    // Section roots are mounted inside a non-flex SectionContainer div, so
+    // alignSelf is inert there. Auto inline margins centre a width-constrained
+    // block at the section level without affecting flex-item behaviour, where
+    // alignSelf already wins.
+    if (element.alignSelf === CrossAlignment.Center && (element.maxWidth != null || element.width != null)) {
+      style.marginLeft = 'auto';
+      style.marginRight = 'auto';
+    }
   }
 
   // corner radius — per-corner wins when any corner is non-zero; else

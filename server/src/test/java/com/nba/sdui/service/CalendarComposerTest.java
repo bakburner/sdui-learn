@@ -37,7 +37,7 @@ class CalendarComposerTest {
                 Clock.fixed(Instant.parse("2026-05-26T14:00:00Z"), ZoneOffset.UTC)
         );
 
-        ObjectNode screen = (ObjectNode) composer.composeCalendar("trace-calendar-1", "en");
+        ObjectNode screen = (ObjectNode) objectMapper.valueToTree(composer.composeCalendar("trace-calendar-1", "en"));
         ArrayNode sections = (ArrayNode) screen.path("sections");
         ObjectNode section = (ObjectNode) sections.get(0);
         ObjectNode data = (ObjectNode) section.path("data");
@@ -61,7 +61,7 @@ class CalendarComposerTest {
                 Clock.fixed(Instant.parse("2026-05-26T14:00:00Z"), ZoneOffset.UTC)
         );
 
-        ObjectNode screen = (ObjectNode) composer.composeCalendar("trace-calendar-2", "en", "2026-03-15");
+        ObjectNode screen = (ObjectNode) objectMapper.valueToTree(composer.composeCalendar("trace-calendar-2", "en", "2026-03-15"));
         ObjectNode data = (ObjectNode) screen.path("sections").get(0).path("data");
 
         assertEquals("2026-03-15", data.path("selectedDate").asText());
@@ -84,7 +84,7 @@ class CalendarComposerTest {
                 objectMapper, seasonCalendarService, new StatsApiAdapter(statsApiClient), new SduiUtils(objectMapper, TestTokens.INSTANCE));
         ReflectionTestUtils.setField(composer, "schemaVersion", "1.0");
 
-        ObjectNode screen = (ObjectNode) composer.composeCalendar("trace-calendar-meta", "en");
+        ObjectNode screen = (ObjectNode) objectMapper.valueToTree(composer.composeCalendar("trace-calendar-meta", "en"));
         ObjectNode data = (ObjectNode) screen.path("sections").get(0).path("data");
         ObjectNode meta = (ObjectNode) data.path("dateMetadata");
 
@@ -108,7 +108,7 @@ class CalendarComposerTest {
                 objectMapper, seasonCalendarService, new StatsApiAdapter(statsApiClient), new SduiUtils(objectMapper, TestTokens.INSTANCE));
         ReflectionTestUtils.setField(composer, "schemaVersion", "1.0");
 
-        ObjectNode screen = (ObjectNode) composer.composeCalendar("trace-calendar-fail", "en");
+        ObjectNode screen = (ObjectNode) objectMapper.valueToTree(composer.composeCalendar("trace-calendar-fail", "en"));
         ObjectNode data = (ObjectNode) screen.path("sections").get(0).path("data");
         ObjectNode meta = (ObjectNode) data.path("dateMetadata");
 

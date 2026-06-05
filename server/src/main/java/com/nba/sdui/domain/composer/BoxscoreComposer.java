@@ -1,9 +1,11 @@
 package com.nba.sdui.domain.composer;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.nba.sdui.models.generated.Screen;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -65,7 +67,7 @@ public class BoxscoreComposer {
      *
      * Source data: NBA CDN boxscore endpoint → {@code game.homeTeam / game.awayTeam}.
      */
-    public JsonNode composeBoxscore(String gameId, String traceId, String locale) throws IOException {
+    public Screen composeBoxscore(String gameId, String traceId, String locale) throws IOException {
         log.info("Composing boxscore screen: gameId={}, locale={}", gameId, locale);
 
         String contentSourceId = "stats-api:game-" + gameId;
@@ -103,7 +105,7 @@ public class BoxscoreComposer {
             utils.prependAppBarHeaderIfNeeded(response);
             utils.ensureScreenContentInsets(response);
             utils.stampStringTableOnSections(response, locale);
-            return response;
+            return bindScreen(response);
         }
 
         BoxscoreTeam homeTeam = game.getHomeTeam();
@@ -188,7 +190,15 @@ public class BoxscoreComposer {
         utils.prependAppBarHeaderIfNeeded(response);
         utils.ensureScreenContentInsets(response);
         utils.stampStringTableOnSections(response, locale);
-        return response;
+        return bindScreen(response);
+    }
+
+    private Screen bindScreen(ObjectNode response) {
+        try {
+            return objectMapper.treeToValue(response, Screen.class);
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Failed to bind composed Boxscore screen to Screen.class", e);
+        }
     }
 
     // ── BoxscoreTable section builder (package-private for GameDetailComposer) ──

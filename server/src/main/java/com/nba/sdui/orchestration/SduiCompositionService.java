@@ -127,7 +127,7 @@ public class SduiCompositionService {
     public JsonNode composeBoxscore(String gameId, SduiRequestContext ctx) throws IOException {
         long start = System.nanoTime();
         try {
-            return boxscoreComposer.composeBoxscore(gameId, ctx.getTraceId(), ctx.getLocale());
+            return objectMapper.valueToTree(boxscoreComposer.composeBoxscore(gameId, ctx.getTraceId(), ctx.getLocale()));
         } finally {
             metrics.recordComposition("boxscore-" + gameId, "screen", false, Duration.ofNanos(System.nanoTime() - start));
         }
@@ -203,7 +203,7 @@ public class SduiCompositionService {
     public JsonNode composeCalendar(SduiRequestContext ctx) {
         long start = System.nanoTime();
         try {
-            return calendarComposer.composeCalendar(ctx.getTraceId(), ctx.getLocale());
+            return objectMapper.valueToTree(calendarComposer.composeCalendar(ctx.getTraceId(), ctx.getLocale()));
         } finally {
             metrics.recordComposition("calendar", "screen", false, Duration.ofNanos(System.nanoTime() - start));
         }
@@ -212,7 +212,7 @@ public class SduiCompositionService {
     public JsonNode composeCalendar(SduiRequestContext ctx, String selectedDateParam) {
         long start = System.nanoTime();
         try {
-            return calendarComposer.composeCalendar(ctx.getTraceId(), ctx.getLocale(), selectedDateParam);
+            return objectMapper.valueToTree(calendarComposer.composeCalendar(ctx.getTraceId(), ctx.getLocale(), selectedDateParam));
         } finally {
             metrics.recordComposition("calendar", "screen", false, Duration.ofNanos(System.nanoTime() - start));
         }

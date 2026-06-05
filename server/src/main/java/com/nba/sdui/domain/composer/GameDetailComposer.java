@@ -6,11 +6,20 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.nba.sdui.models.generated.Action;
 import com.nba.sdui.models.generated.AtomicComposite;
 import com.nba.sdui.models.generated.AtomicElement;
+import com.nba.sdui.models.generated.Capability;
+import com.nba.sdui.models.generated.DisplayConfig;
+import com.nba.sdui.models.generated.RefreshPolicy;
 import com.nba.sdui.models.generated.Screen;
 import com.nba.sdui.models.generated.Section;
 import com.nba.sdui.models.generated.SectionStates;
+import com.nba.sdui.models.generated.Subsection;
+import com.nba.sdui.models.generated.TabContents;
+import com.nba.sdui.models.generated.TabData;
+import com.nba.sdui.models.generated.TabGroup;
+import com.nba.sdui.models.generated.VideoPlayer;
 import com.nba.sdui.request.SduiRequestContext;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
@@ -283,30 +292,30 @@ public class GameDetailComposer {
             ArrayNode sections = objectMapper.createArrayNode();
 
             // 1. VideoPlayer — inline video for the game (platform SDK integration)
-            sections.add(buildVideoPlayerSection(gameId, game, contentSourceId));
+            sections.add(objectMapper.valueToTree(buildVideoPlayerSection(gameId, game, contentSourceId)));
 
             // 2. GamePanel (scoreboard displayConfig)
-            sections.add(buildGamePanelScoreboardFromLive(game, gameId, contentSourceId));
+            sections.add(objectMapper.valueToTree(buildGamePanelScoreboardFromLive(game, gameId, contentSourceId)));
 
             // 3. StatLine (top performers)
-            ObjectNode statLineSection = buildStatLineSectionFromLive(game, gameId, contentSourceId);
+            Section statLineSection = buildStatLineSectionFromLive(game, gameId, contentSourceId);
             if (statLineSection != null) {
-                sections.add(statLineSection);
+                sections.add(objectMapper.valueToTree(statLineSection));
             }
 
             // 3b. Responsive row – home/away top performers side-by-side
-            ObjectNode rowSection = buildRowSectionFromLive(game, gameId, contentSourceId);
+            Section rowSection = buildRowSectionFromLive(game, gameId, contentSourceId);
             if (rowSection != null) {
-                sections.add(rowSection);
+                sections.add(objectMapper.valueToTree(rowSection));
             }
 
             // 4. ContentRail (AtomicComposite) — server-built editorial preview rail.
-            sections.add(buildGameDetailContentRail(contentSourceId));
+            sections.add(objectMapper.valueToTree(buildGameDetailContentRail(contentSourceId)));
 
             // 5. TabGroup — Box Score + Highlights tabs
-            ObjectNode tabGroup = buildGameDetailTabGroupFromLive(game, gameId, contentSourceId);
+            Section tabGroup = buildGameDetailTabGroupFromLive(game, gameId, contentSourceId);
             if (tabGroup != null) {
-                sections.add(tabGroup);
+                sections.add(objectMapper.valueToTree(tabGroup));
             }
 
             response.set("sections", sections);
@@ -347,13 +356,13 @@ public class GameDetailComposer {
             throw new IOException("No game data in boxscore for gameId=" + gameId);
         }
 
-        ObjectNode section = buildGamePanelScoreboardFromLive(game, gameId, parsed.source());
+        Section section = buildGamePanelScoreboardFromLive(game, gameId, parsed.source());
         // Override the section's refresh policy to the canonical game-state-aware policy
         // so the returned section always carries consistent 60 s poll or SSE semantics.
         String gameState = deriveGameState(gameId);
-        section.set("refreshPolicy",
-                buildRefreshPolicyForGameSection(gameState, section.path("id").asText(""), gameId));
-        return section;
+        section.setRefreshPolicy(buildRefreshPolicyForGameSection(
+                gameState, section.getId() == null ? "" : section.getId(), gameId));
+        return objectMapper.valueToTree(section);
     }
 
     /**
@@ -395,7 +404,7 @@ public class GameDetailComposer {
      * game-detail screen. Composed in code (not loaded from an example file) so
      * the server is the single source of truth for every section it emits.
      */
-    private ObjectNode buildGameDetailContentRail(String contentSourceId) {
+    private Section buildGameDetailContentRail(String contentSourceId) {
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite", "content-rail");
         String[][] cards = {
             {"content-1", "Game Preview", "What to watch for tonight", FALLBACK_THUMB, "article", null, "nba://article/game-preview"},
@@ -405,12 +414,12 @@ public class GameDetailComposer {
         Section section = atomicBuilder.buildContentRail(sectionId, "game_detail_content_rail", "Preview", cards);
         section.setContentSourceId(contentSourceId);
         section.setSurface(surfaces.railSurface());
-        return (ObjectNode) objectMapper.valueToTree(section);
+        return section;
     }
 
     // ── Section builders ───────────────────────────────────────────────
 
-    private ObjectNode buildBoxscoreTabGroupFromLive(BoxscoreGame game, String gameId, String contentSourceId) {
+    private Section buildBoxscoreTabGroupFromLive(BoxscoreGame game, String gameId, String contentSourceId) {
         BoxscoreTeam homeTeam = game.getHomeTeam();
         BoxscoreTeam awayTeam = game.getAwayTeam();
         if (homeTeam == null || awayTeam == null) return null;
@@ -419,62 +428,81 @@ public class GameDetailComposer {
         String awayTricode = awayTeam.getTeamTricode() != null ? awayTeam.getTeamTricode() : "AWAY";
         int gameStatus = game.getGameStatus();
 
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", SectionIdDeriver.derive(contentSourceId, "TabGroup", "boxscore-tabs"));
-        section.put("contentSourceId", contentSourceId);
-        section.put("type", "TabGroup");
-        section.put("analyticsId", "game_detail_boxscore_tabs");
+        Section section = new Section();
+        section.setId(SectionIdDeriver.derive(contentSourceId, "TabGroup", "boxscore-tabs"));
+        section.setContentSourceId(contentSourceId);
+        section.setType(Section.Type.TAB_GROUP);
+        section.setAnalyticsId("game_detail_boxscore_tabs");
 
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("stateKey", "gd_boxscore_team");
-        data.put("defaultTab", awayTricode);
+        TabGroup data = new TabGroup();
+        data.setStateKey("gd_boxscore_team");
+        data.setDefaultTab(awayTricode);
 
-        ArrayNode tabs = objectMapper.createArrayNode();
+        TabData awayTab = new TabData();
+        awayTab.setId("tab-" + awayTricode.toLowerCase());
+        awayTab.setLabel(awayTricode);
+        awayTab.setStateKey("gd_boxscore_team");
+        awayTab.setStateValue(awayTricode);
 
-        ObjectNode awayTab = objectMapper.createObjectNode();
-        awayTab.put("id", "tab-" + awayTricode.toLowerCase());
-        awayTab.put("label", awayTricode);
-        awayTab.put("stateKey", "gd_boxscore_team");
-        awayTab.put("stateValue", awayTricode);
-        tabs.add(awayTab);
+        TabData homeTab = new TabData();
+        homeTab.setId("tab-" + homeTricode.toLowerCase());
+        homeTab.setLabel(homeTricode);
+        homeTab.setStateKey("gd_boxscore_team");
+        homeTab.setStateValue(homeTricode);
 
-        ObjectNode homeTab = objectMapper.createObjectNode();
-        homeTab.put("id", "tab-" + homeTricode.toLowerCase());
-        homeTab.put("label", homeTricode);
-        homeTab.put("stateKey", "gd_boxscore_team");
-        homeTab.put("stateValue", homeTricode);
-        tabs.add(homeTab);
+        List<TabData> tabsList = List.of(awayTab, homeTab);
+        data.setTabs(tabsList);
 
-        data.set("tabs", tabs);
+        // Reuse the full BoxscoreTable builder from BoxscoreComposer (still ObjectNode-returning today).
+        Section awayTableSection = objectMapper.convertValue(
+                boxscoreComposer.buildBoxscoreTableSection(
+                        awayTeam, gameId, contentSourceId, "away",
+                        "gd_boxscore_away_sortCol", "gd_boxscore_away_sortDir", gameStatus),
+                Section.class);
+        awayTableSection.setSurface(surfaces.flushSurface());
 
-        // Reuse the full BoxscoreTable builder from BoxscoreComposer
-        ObjectNode awayTable = boxscoreComposer.buildBoxscoreTableSection(
-                awayTeam, gameId, contentSourceId, "away",
-                "gd_boxscore_away_sortCol", "gd_boxscore_away_sortDir", gameStatus);
-        awayTable.set("surface", objectMapper.valueToTree(surfaces.flushSurface()));
-        ObjectNode homeTable = boxscoreComposer.buildBoxscoreTableSection(
-                homeTeam, gameId, contentSourceId, "home",
-                "gd_boxscore_home_sortCol", "gd_boxscore_home_sortDir", gameStatus);
-        homeTable.set("surface", objectMapper.valueToTree(surfaces.flushSurface()));
+        Section homeTableSection = objectMapper.convertValue(
+                boxscoreComposer.buildBoxscoreTableSection(
+                        homeTeam, gameId, contentSourceId, "home",
+                        "gd_boxscore_home_sortCol", "gd_boxscore_home_sortDir", gameStatus),
+                Section.class);
+        homeTableSection.setSurface(surfaces.flushSurface());
 
-        ObjectNode tabContents = objectMapper.createObjectNode();
-        ArrayNode awayContent = objectMapper.createArrayNode();
-        awayContent.add(awayTable);
-        tabContents.set(awayTricode, awayContent);
+        TabContents tabContents = new TabContents();
+        tabContents.setAdditionalProperty(awayTricode, List.of(awayTableSection));
+        tabContents.setAdditionalProperty(homeTricode, List.of(homeTableSection));
+        data.setTabContents(tabContents);
 
-        ArrayNode homeContent = objectMapper.createArrayNode();
-        homeContent.add(homeTable);
-        tabContents.set(homeTricode, homeContent);
-
-        data.set("tabContents", tabContents);
-        section.set("data", data);
-        section.set("subsections", utils.tabSelectSubsections(tabs, "gd_boxscore_team"));
-        section.set("surface", objectMapper.valueToTree(surfaces.stripSurfaceWithoutBackground()));
+        section.setData(data);
+        section.setSubsections(tabSelectSubsections(tabsList, "gd_boxscore_team"));
+        section.setSurface(surfaces.stripSurfaceWithoutBackground());
         return section;
     }
 
+    /**
+     * Build one {@link Subsection} per tab carrying an {@code onActivate→mutate}
+     * action for tab selection. Mirrors {@code SduiUtils.tabSelectSubsections} but
+     * stays in the typed-POJO world to avoid an ArrayNode round-trip.
+     */
+    private List<Subsection> tabSelectSubsections(List<TabData> tabs, String stateKey) {
+        List<Subsection> subsections = new ArrayList<>(tabs.size());
+        for (TabData tab : tabs) {
+            String stateValue = tab.getStateValue() != null ? tab.getStateValue() : tab.getId();
+            Action mutate = new Action();
+            mutate.setTrigger(Action.ActionTrigger.ON_ACTIVATE);
+            mutate.setType(Action.ActionType.MUTATE);
+            mutate.setTarget(stateKey);
+            mutate.setValue(stateValue);
+            Subsection sub = new Subsection();
+            sub.setId(tab.getId());
+            sub.setActions(List.of(mutate));
+            subsections.add(sub);
+        }
+        return subsections;
+    }
 
-    private ObjectNode buildGamePanelScoreboardFromLive(BoxscoreGame game, String gameId, String contentSourceId) {
+
+    private Section buildGamePanelScoreboardFromLive(BoxscoreGame game, String gameId, String contentSourceId) {
         int gameStatus = game.getGameStatus();
         boolean live = gameStatus == 2;
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite", "scoreboard");
@@ -523,7 +551,7 @@ public class GameDetailComposer {
         section.setSectionStates(objectMapper.convertValue(
                 utils.buildSectionStates(sectionId, "Unable to load live scores", "shimmer", 180),
                 SectionStates.class));
-        return (ObjectNode) objectMapper.valueToTree(section);
+        return section;
     }
 
     private static int parseGameClockSeconds(String iso) {
@@ -535,7 +563,7 @@ public class GameDetailComposer {
         }
     }
 
-    private ObjectNode buildStatLineSectionFromLive(BoxscoreGame game, String gameId, String contentSourceId) {
+    private Section buildStatLineSectionFromLive(BoxscoreGame game, String gameId, String contentSourceId) {
         ArrayNode stats = objectMapper.createArrayNode();
 
         List<ObjectNode> homePerformers = getTopPerformersFromTeam(game.getHomeTeam(), 3);
@@ -563,10 +591,10 @@ public class GameDetailComposer {
         // dataBinding together once the ui tree references stat fields
         // via templated paths instead of literals.
 
-        return (ObjectNode) objectMapper.valueToTree(section);
+        return section;
     }
 
-    private ObjectNode buildRowSectionFromLive(BoxscoreGame game, String gameId, String contentSourceId) {
+    private Section buildRowSectionFromLive(BoxscoreGame game, String gameId, String contentSourceId) {
         try {
             List<ObjectNode> homePerformers = getTopPerformersFromTeam(game.getHomeTeam(), 2);
             List<ObjectNode> awayPerformers = getTopPerformersFromTeam(game.getAwayTeam(), 2);
@@ -577,19 +605,17 @@ public class GameDetailComposer {
             String awayTricode = game.getAwayTeam() != null && game.getAwayTeam().getTeamTricode() != null
                     ? game.getAwayTeam().getTeamTricode() : "AWAY";
 
-            ObjectNode homeChild = buildStatLineChild("row-home-stats", homeTricode + " Leaders", homePerformers);
-            ObjectNode awayChild = buildStatLineChild("row-away-stats", awayTricode + " Leaders", awayPerformers);
+            Section homeChild = buildStatLineChild("row-home-stats", homeTricode + " Leaders", homePerformers);
+            Section awayChild = buildStatLineChild("row-away-stats", awayTricode + " Leaders", awayPerformers);
 
             AtomicElement root = atomicBuilder.responsiveRow(tokens.spacing("lg"), 600);
             List<AtomicElement> children = new ArrayList<>();
 
-            AtomicElement homeSlot = atomicBuilder.sectionSlot("row-home",
-                    objectMapper.convertValue(homeChild, com.nba.sdui.models.generated.Section.class));
+            AtomicElement homeSlot = atomicBuilder.sectionSlot("row-home", homeChild);
             atomicBuilder.setFlex(homeSlot, 1);
             children.add(homeSlot);
 
-            AtomicElement awaySlot = atomicBuilder.sectionSlot("row-away",
-                    objectMapper.convertValue(awayChild, com.nba.sdui.models.generated.Section.class));
+            AtomicElement awaySlot = atomicBuilder.sectionSlot("row-away", awayChild);
             atomicBuilder.setFlex(awaySlot, 1);
             children.add(awaySlot);
 
@@ -597,18 +623,17 @@ public class GameDetailComposer {
             String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite", "team-leaders-row");
             Section section = atomicBuilder.wrapAsComposite(sectionId, null, root);
             section.setContentSourceId(contentSourceId);
-            return (ObjectNode) objectMapper.valueToTree(section);
+            return section;
         } catch (Exception e) {
             log.warn("Failed to build responsive row from live data: {}", e.getMessage());
             return null;
         }
     }
 
-    private ObjectNode buildStatLineChild(String id, String title, List<ObjectNode> performers) {
+    private Section buildStatLineChild(String id, String title, List<ObjectNode> performers) {
         ArrayNode stats = objectMapper.createArrayNode();
         performers.forEach(stats::add);
-        return (ObjectNode) objectMapper.valueToTree(
-                atomicBuilder.buildStatLineFromNodes(id, null, title, "vertical", stats));
+        return atomicBuilder.buildStatLineFromNodes(id, null, title, "vertical", stats);
     }
 
     private List<ObjectNode> getTopPerformersFromTeam(BoxscoreTeam team, int maxPlayers) {
@@ -682,16 +707,19 @@ public class GameDetailComposer {
      * {@code capabilities}) live at the top of {@code data} so the SDK reads
      * them without walking the tree.
      */
-    private ObjectNode buildVideoPlayerSection(String gameId, BoxscoreGame game, String contentSourceId) {
+    private Section buildVideoPlayerSection(String gameId, BoxscoreGame game, String contentSourceId) {
         int gameStatus = game.getGameStatus();
 
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", SectionIdDeriver.derive(contentSourceId, "VideoPlayer", "video-player"));
-        section.put("contentSourceId", contentSourceId);
-        section.put("type", "VideoPlayer");
-        section.put("analyticsId", "game_detail_video_player");
-        section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
-        section.set("surface", objectMapper.valueToTree(surfaces.videoPlayerSurface()));
+        Section section = new Section();
+        section.setId(SectionIdDeriver.derive(contentSourceId, "VideoPlayer", "video-player"));
+        section.setContentSourceId(contentSourceId);
+        section.setType(Section.Type.VIDEO_PLAYER);
+        section.setAnalyticsId("game_detail_video_player");
+
+        RefreshPolicy refreshPolicy = new RefreshPolicy();
+        refreshPolicy.setType(RefreshPolicy.RefreshType.STATIC);
+        section.setRefreshPolicy(refreshPolicy);
+        section.setSurface(surfaces.videoPlayerSurface());
 
         AtomicElement root = atomicBuilder.container("column", "center", "center");
         atomicBuilder.widthMode(root, "fill");
@@ -705,21 +733,18 @@ public class GameDetailComposer {
                 "rgba(255,255,255,0.6)", null));
         root.setChildren(rootChildren);
 
-        AtomicComposite data = atomicBuilder.wrapUi(root);
-        data.setAdditionalProperty("playerType", "game");
-        data.setAdditionalProperty("contentId", gameId);
-        data.setAdditionalProperty("autoplay", gameStatus == 2);
+        VideoPlayer data = new VideoPlayer();
+        data.setPlayerType(VideoPlayer.PlayerType.GAME);
+        data.setContentId(gameId);
+        data.setAutoplay(gameStatus == 2);
+        data.setCapabilities(List.of(Capability.PIP, Capability.FULLSCREEN_ROTATION));
+        data.setUi(root);
 
-        ArrayNode capabilities = objectMapper.createArrayNode();
-        capabilities.add("pip");
-        capabilities.add("fullscreenRotation");
-        data.setAdditionalProperty("capabilities", capabilities);
+        DisplayConfig displayConfig = new DisplayConfig();
+        displayConfig.setAspectRatio("16:9");
+        data.setDisplayConfig(displayConfig);
 
-        ObjectNode displayConfig = objectMapper.createObjectNode();
-        displayConfig.put("aspectRatio", "16:9");
-        data.setAdditionalProperty("displayConfig", displayConfig);
-
-        section.set("data", objectMapper.valueToTree(data));
+        section.setData(data);
         return section;
     }
 
@@ -728,37 +753,37 @@ public class GameDetailComposer {
     private ObjectNode buildOverlays(String gameId, String contentSourceId) {
         ObjectNode overlays = objectMapper.createObjectNode();
 
-        overlays.set("couchRightsWarning", buildOverlaySection(
+        overlays.set("couchRightsWarning", objectMapper.valueToTree(buildOverlaySection(
                 contentSourceId, "couch-rights-warning",
                 tokens.icon("warning"),
                 "Viewing Time Limited",
                 "Your couch rights viewing window is active. You have limited time remaining on this stream.",
                 "Got It",
                 "dismiss"
-        ));
+        )));
 
-        overlays.set("couchRightsExpired", buildOverlaySection(
+        overlays.set("couchRightsExpired", objectMapper.valueToTree(buildOverlaySection(
                 contentSourceId, "couch-rights-expired",
                 tokens.icon("warning"),
                 "Viewing Time Expired",
                 "Your couch rights viewing window has ended. Subscribe to League Pass for unlimited access.",
                 "Subscribe Now",
                 "nba://leaguepass"
-        ));
+        )));
 
-        overlays.set("unentitled", buildOverlaySection(
+        overlays.set("unentitled", objectMapper.valueToTree(buildOverlaySection(
                 contentSourceId, "unentitled",
                 tokens.icon("lock"),
                 "Subscription Required",
                 "This content requires an active NBA League Pass subscription.",
                 "View Plans",
                 "nba://leaguepass"
-        ));
+        )));
 
         return overlays;
     }
 
-    private ObjectNode buildOverlaySection(String contentSourceId, String slug, String icon, String title,
+    private Section buildOverlaySection(String contentSourceId, String slug, String icon, String title,
                                             String message, String ctaLabel, String ctaTarget) {
         ObjectNode root = objectMapper.createObjectNode();
         root.put("type", "Container");
@@ -834,14 +859,16 @@ public class GameDetailComposer {
 
         root.set("children", children);
 
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", SectionIdDeriver.derive(contentSourceId, "AtomicComposite", slug));
-        section.put("contentSourceId", contentSourceId);
-        section.put("type", "AtomicComposite");
-        section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
+        Section section = new Section();
+        section.setId(SectionIdDeriver.derive(contentSourceId, "AtomicComposite", slug));
+        section.setContentSourceId(contentSourceId);
+        section.setType(Section.Type.ATOMIC_COMPOSITE);
+        RefreshPolicy refreshPolicy = new RefreshPolicy();
+        refreshPolicy.setType(RefreshPolicy.RefreshType.STATIC);
+        section.setRefreshPolicy(refreshPolicy);
         ObjectNode data = objectMapper.createObjectNode();
         data.set("ui", root);
-        section.set("data", data);
+        section.setData(data);
         return section;
     }
 
@@ -856,62 +883,57 @@ public class GameDetailComposer {
 
     // ── Extended TabGroup with Highlights tab ─────────────────────────
 
-    private ObjectNode buildGameDetailTabGroupFromLive(BoxscoreGame game, String gameId, String contentSourceId) {
+    private Section buildGameDetailTabGroupFromLive(BoxscoreGame game, String gameId, String contentSourceId) {
         BoxscoreTeam homeTeam = game.getHomeTeam();
         BoxscoreTeam awayTeam = game.getAwayTeam();
         if (homeTeam == null || awayTeam == null) return null;
 
-        String homeTricode = homeTeam.getTeamTricode() != null ? homeTeam.getTeamTricode() : "HOME";
-        String awayTricode = awayTeam.getTeamTricode() != null ? awayTeam.getTeamTricode() : "AWAY";
         int gameStatus = game.getGameStatus();
 
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", SectionIdDeriver.derive(contentSourceId, "TabGroup", "game-detail-tabs"));
-        section.put("contentSourceId", contentSourceId);
-        section.put("type", "TabGroup");
-        section.put("analyticsId", "game_detail_tabs");
+        Section section = new Section();
+        section.setId(SectionIdDeriver.derive(contentSourceId, "TabGroup", "game-detail-tabs"));
+        section.setContentSourceId(contentSourceId);
+        section.setType(Section.Type.TAB_GROUP);
+        section.setAnalyticsId("game_detail_tabs");
 
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("stateKey", "gd_active_tab");
-        data.put("defaultTab", "boxscore");
+        TabGroup data = new TabGroup();
+        data.setStateKey("gd_active_tab");
+        data.setDefaultTab("boxscore");
 
-        ArrayNode tabs = objectMapper.createArrayNode();
+        TabData boxscoreTab = new TabData();
+        boxscoreTab.setId("tab-boxscore");
+        boxscoreTab.setLabel("Box Score");
+        boxscoreTab.setStateKey("gd_active_tab");
+        boxscoreTab.setStateValue("boxscore");
 
-        ObjectNode boxscoreTab = objectMapper.createObjectNode();
-        boxscoreTab.put("id", "tab-boxscore");
-        boxscoreTab.put("label", "Box Score");
-        boxscoreTab.put("stateKey", "gd_active_tab");
-        boxscoreTab.put("stateValue", "boxscore");
-        tabs.add(boxscoreTab);
+        TabData highlightsTab = new TabData();
+        highlightsTab.setId("tab-highlights");
+        highlightsTab.setLabel("Highlights");
+        highlightsTab.setStateKey("gd_active_tab");
+        highlightsTab.setStateValue("highlights");
 
-        ObjectNode highlightsTab = objectMapper.createObjectNode();
-        highlightsTab.put("id", "tab-highlights");
-        highlightsTab.put("label", "Highlights");
-        highlightsTab.put("stateKey", "gd_active_tab");
-        highlightsTab.put("stateValue", "highlights");
-        tabs.add(highlightsTab);
+        List<TabData> tabsList = List.of(boxscoreTab, highlightsTab);
+        data.setTabs(tabsList);
 
-        data.set("tabs", tabs);
-
-        ObjectNode tabContents = objectMapper.createObjectNode();
+        TabContents tabContents = new TabContents();
 
         // Box Score tab — team sub-tabs with boxscore tables
-        ArrayNode boxscoreContent = objectMapper.createArrayNode();
-        ObjectNode teamTabGroup = buildBoxscoreTabGroupFromLive(game, gameId, contentSourceId);
+        List<Section> boxscoreContent = new ArrayList<>();
+        Section teamTabGroup = buildBoxscoreTabGroupFromLive(game, gameId, contentSourceId);
         if (teamTabGroup != null) {
             boxscoreContent.add(teamTabGroup);
         }
-        tabContents.set("boxscore", boxscoreContent);
+        tabContents.setAdditionalProperty("boxscore", boxscoreContent);
 
         // Highlights tab — VOD cards with mutate actions (1.5 player-adjacent content)
-        ArrayNode highlightsContent = objectMapper.createArrayNode();
-        highlightsContent.add(buildHighlightsSection(gameId, contentSourceId));
-        tabContents.set("highlights", highlightsContent);
+        tabContents.setAdditionalProperty("highlights",
+                List.of(objectMapper.convertValue(
+                        buildHighlightsSection(gameId, contentSourceId), Section.class)));
 
-        data.set("tabContents", tabContents);
-        section.set("data", data);
-        section.set("subsections", utils.tabSelectSubsections(tabs, "gd_active_tab"));
-        section.set("surface", objectMapper.valueToTree(surfaces.stripSurfaceWithoutBackground()));
+        data.setTabContents(tabContents);
+        section.setData(data);
+        section.setSubsections(tabSelectSubsections(tabsList, "gd_active_tab"));
+        section.setSurface(surfaces.stripSurfaceWithoutBackground());
 
         return section;
     }
@@ -1081,8 +1103,8 @@ public class GameDetailComposer {
             String slug = SectionIdDeriver.extractSlug(section.path("id").asText(""));
             if (!"scoreboard".equals(slug)) continue;
             String sectionId = section.path("id").asText("");
-            section.set("refreshPolicy",
-                    buildRefreshPolicyForGameSection(gameState, sectionId, gameId));
+            section.set("refreshPolicy", objectMapper.valueToTree(
+                    buildRefreshPolicyForGameSection(gameState, sectionId, gameId)));
         }
     }
 
@@ -1097,20 +1119,20 @@ public class GameDetailComposer {
      * @param sectionId  fully-derived section ID (used to build {@code sectionEndpoint})
      * @param gameId     NBA game ID (used to build the Ably channel name)
      */
-    private ObjectNode buildRefreshPolicyForGameSection(String gameState,
-                                                        String sectionId, String gameId) {
-        ObjectNode policy = objectMapper.createObjectNode();
+    private RefreshPolicy buildRefreshPolicyForGameSection(String gameState,
+                                                            String sectionId, String gameId) {
+        RefreshPolicy policy = new RefreshPolicy();
         if ("live".equals(gameState)) {
-            policy.put("type", "sse");
-            policy.put("channel", gameId + ":linescore");
-            policy.put("pauseWhenOffScreen", false);
+            policy.setType(RefreshPolicy.RefreshType.SSE);
+            policy.setChannel(gameId + ":linescore");
+            policy.setPauseWhenOffScreen(false);
         } else {
             // pre or post: section-level poll every 60 s so the client picks up
             // the live transition without a screen refresh.
-            policy.put("type", "poll");
-            policy.put("sectionEndpoint", "/v1/sdui/section/" + sectionId);
-            policy.put("intervalMs", 60_000);
-            policy.put("pauseWhenOffScreen", true);
+            policy.setType(RefreshPolicy.RefreshType.POLL);
+            policy.setSectionEndpoint("/v1/sdui/section/" + sectionId);
+            policy.setIntervalMs(60_000);
+            policy.setPauseWhenOffScreen(true);
         }
         return policy;
     }

@@ -7,10 +7,16 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.nba.sdui.models.generated.AccessibilityProperties;
 import com.nba.sdui.models.generated.Action;
+import com.nba.sdui.models.generated.AdSlot;
 import com.nba.sdui.models.generated.AtomicComposite;
 import com.nba.sdui.models.generated.AtomicElement;
+import com.nba.sdui.models.generated.Placeholder;
+import com.nba.sdui.models.generated.RefreshPolicy;
 import com.nba.sdui.models.generated.Screen;
 import com.nba.sdui.models.generated.Section;
+import com.nba.sdui.models.generated.SubscribeUpsell;
+import com.nba.sdui.models.generated.SubscriptionTier;
+import com.nba.sdui.models.generated.Targeting;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -145,7 +151,7 @@ public class WatchComposer {
         ArrayNode sections = objectMapper.createArrayNode();
 
         // Ad slot at top
-        sections.add(buildAdSlot("watch/featured/top"));
+        sections.add(objectMapper.valueToTree(buildAdSlot("watch/featured/top")));
 
         addVideoCarousel(sections, "cms:watch-highlights", "Tonight's Highlights", null,
                 new String[][]{
@@ -164,11 +170,11 @@ public class WatchComposer {
                 });
 
         // Inline subscription upsell
-        sections.add(buildSubscribeUpsellBanner(
+        sections.add(objectMapper.valueToTree(buildSubscribeUpsellBanner(
                 "NBA League Pass",
                 "Watch every out-of-market game live or on demand",
                 FALLBACK_THUMB,
-                "Subscribe Now", "nba://subscribe/league-pass"));
+                "Subscribe Now", "nba://subscribe/league-pass")));
 
         addVideoCarousel(sections, "cms:watch-originals", "NBA Originals", null,
                 new String[][]{
@@ -184,7 +190,7 @@ public class WatchComposer {
                 });
 
         // Ad slot mid-page
-        sections.add(buildAdSlot("watch/featured/mid"));
+        sections.add(objectMapper.valueToTree(buildAdSlot("watch/featured/mid")));
 
         addContentRail(sections, "cms:watch-stories", "Trending Stories",
                 new String[][]{
@@ -208,7 +214,7 @@ public class WatchComposer {
         ArrayNode sections = objectMapper.createArrayNode();
 
         // NBA TV Schedule (hero + time-slot list)
-        sections.add(buildNbaTvSchedule());
+        sections.add(objectMapper.valueToTree(buildNbaTvSchedule()));
 
         addVideoCarousel(sections, "cms:nbatv-shows", "Popular Shows", null,
                 new String[][]{
@@ -223,7 +229,7 @@ public class WatchComposer {
                                 "30:00", null, "nba://watch/nba-action"}
                 });
 
-        sections.add(buildAdSlot("watch/nbatv/mid"));
+        sections.add(objectMapper.valueToTree(buildAdSlot("watch/nbatv/mid")));
 
         addVideoCarousel(sections, "cms:nbatv-classics", "Classic Games", "Relive the greatest moments",
                 new String[][]{
@@ -247,9 +253,9 @@ public class WatchComposer {
         ArrayNode sections = objectMapper.createArrayNode();
 
         // Full-screen subscription upsell with pricing tiers
-        sections.add(buildSubscribeUpsellHero());
+        sections.add(objectMapper.valueToTree(buildSubscribeUpsellHero()));
 
-        sections.add(buildSectionHeader("live-games", "Live Games", null, null));
+        sections.add(objectMapper.valueToTree(buildSectionHeader("live-games", "Live Games", null, null)));
 
         // Pull real games if available
         addLiveGamePanels(sections);
@@ -268,7 +274,7 @@ public class WatchComposer {
                 });
 
         // Ad slot
-        sections.add(buildAdSlot("watch/leaguepass/mid"));
+        sections.add(objectMapper.valueToTree(buildAdSlot("watch/leaguepass/mid")));
 
         return sections;
     }
@@ -280,7 +286,7 @@ public class WatchComposer {
                 int count = 0;
                 for (Game g : scoreboard.getGames()) {
                     if (count >= 4) break;
-                    sections.add(buildGamePanel(g));
+                    sections.add(objectMapper.valueToTree(buildGamePanel(g)));
                     count++;
                 }
                 if (count > 0) return;
@@ -290,30 +296,30 @@ public class WatchComposer {
         }
 
         // Mock fallback
-        sections.add(mockGamePanel("lp-g1", "GSW", 1610612744, "LAC", 1610612746, "Q2 8:30", 2));
-        sections.add(mockGamePanel("lp-g2", "MIA", 1610612748, "NYK", 1610612752, "8:00 PM ET", 1));
+        sections.add(objectMapper.valueToTree(mockGamePanel("lp-g1", "GSW", 1610612744, "LAC", 1610612746, "Q2 8:30", 2)));
+        sections.add(objectMapper.valueToTree(mockGamePanel("lp-g2", "MIA", 1610612748, "NYK", 1610612752, "8:00 PM ET", 1)));
     }
 
     // ── Reusable section builders ──────────────────────────────────────
 
-    private ObjectNode buildSectionHeader(String slug, String title,
+    private Section buildSectionHeader(String slug, String title,
                                            String actionLabel, String actionUri) {
         String contentSourceId = "feed:watch";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite", slug + "-header");
         Section section = atomicBuilder.buildSectionHeader(sectionId, title, null, actionLabel, actionUri);
         section.setContentSourceId(contentSourceId);
         section.setSurface(surfaces.sectionHeaderSurface());
-        return objectMapper.valueToTree(section);
+        return section;
     }
 
-    private ObjectNode buildSectionHeader(String slug, String title, String subtitle,
+    private Section buildSectionHeader(String slug, String title, String subtitle,
                                            String actionLabel, String actionUri) {
         String contentSourceId = "feed:watch";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite", slug + "-header");
         Section section = atomicBuilder.buildSectionHeader(sectionId, title, subtitle, actionLabel, actionUri);
         section.setContentSourceId(contentSourceId);
         section.setSurface(surfaces.sectionHeaderSurface());
-        return objectMapper.valueToTree(section);
+        return section;
     }
 
     /**
@@ -325,7 +331,7 @@ public class WatchComposer {
      */
     private void addContentRail(ArrayNode sections, String contentSourceId, String title, String[][] cards) {
         if (title != null) {
-            sections.add(buildSectionHeader(contentSourceId, title, null, null));
+            sections.add(objectMapper.valueToTree(buildSectionHeader(contentSourceId, title, null, null)));
         }
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         Section section = atomicBuilder.buildContentRail(sectionId, null, null, cards);
@@ -343,7 +349,7 @@ public class WatchComposer {
     private void addVideoCarousel(ArrayNode sections, String contentSourceId, String title,
                                    String subtitle, String[][] items) {
         if (title != null) {
-            sections.add(buildSectionHeader(contentSourceId, title, subtitle, null, null));
+            sections.add(objectMapper.valueToTree(buildSectionHeader(contentSourceId, title, subtitle, null, null)));
         }
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         Section section = atomicBuilder.buildVideoCarousel(sectionId, null, null, null, items);
@@ -352,7 +358,7 @@ public class WatchComposer {
         sections.add(objectMapper.valueToTree(section));
     }
 
-    private ObjectNode buildPromoBanner(String contentSourceId, String headline, String subhead,
+    private Section buildPromoBanner(String contentSourceId, String headline, String subhead,
                                          String backgroundUrl, String targetUri) {
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         Section section = atomicBuilder.buildPromoBanner(sectionId, null, null, headline, subhead,
@@ -362,10 +368,10 @@ public class WatchComposer {
                 "#0C1B3A",
                 tokens.color("nba.label.accent.brand"),
                 20));
-        return objectMapper.valueToTree(section);
+        return section;
     }
 
-    private ObjectNode buildGamePanel(Game game) {
+    private Section buildGamePanel(Game game) {
         String gameId = game.getGameId() != null ? game.getGameId() : "0000000000";
         String contentSourceId = "stats-api:game-" + gameId;
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
@@ -386,10 +392,10 @@ public class WatchComposer {
                 null,
                 objectMapper.valueToTree(surfaces.gamePanelSurface()));
         section.setContentSourceId(contentSourceId);
-        return objectMapper.valueToTree(section);
+        return section;
     }
 
-    private ObjectNode mockGamePanel(String mockId, String awayTri, int awayTeamId,
+    private Section mockGamePanel(String mockId, String awayTri, int awayTeamId,
                                      String homeTri, int homeTeamId,
                                      String statusText, int gameStatus) {
         String contentSourceId = "stats-api:game-" + mockId;
@@ -412,13 +418,13 @@ public class WatchComposer {
                 null,
                 objectMapper.valueToTree(surfaces.gamePanelSurface()));
         section.setContentSourceId(contentSourceId);
-        return objectMapper.valueToTree(section);
+        return section;
     }
 
     // ── New section type builders ──────────────────────────────────────
 
     /** NbaTvSchedule section — hero promo + time-slot list. */
-    private ObjectNode buildNbaTvSchedule() {
+    private Section buildNbaTvSchedule() {
         String contentSourceId = "cms:nbatv-schedule";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         String[][] slots = {
@@ -435,7 +441,7 @@ public class WatchComposer {
                 true, slots);
         section.setContentSourceId(contentSourceId);
         section.setSurface(surfaces.cardSurface());
-        return objectMapper.valueToTree(section);
+        return section;
     }
 
     /**
@@ -447,25 +453,25 @@ public class WatchComposer {
      * CTA tap and reads the IAP product identifiers from a future
      * {@code data.tiers} list.
      */
-    private ObjectNode buildSubscribeUpsellBanner(String title, String subtitle,
+    private Section buildSubscribeUpsellBanner(String title, String subtitle,
                                              String backgroundUrl, String ctaLabel,
                                              String ctaUri) {
         String contentSourceId = "product:league-pass-banner";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "SubscribeUpsell");
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", sectionId);
-        section.put("type", "SubscribeUpsell");
-        section.put("contentSourceId", contentSourceId);
-        section.set("refreshPolicy", staticPolicy());
-        section.set("surface", objectMapper.valueToTree(surfaces.subscribeSurface(
+        Section section = new Section();
+        section.setId(sectionId);
+        section.setType(Section.Type.SUBSCRIBE_UPSELL);
+        section.setContentSourceId(contentSourceId);
+        section.setRefreshPolicy(staticRefreshPolicy());
+        section.setSurface(surfaces.subscribeSurface(
                 tokens.color("nba.label.accent.brand"),
                 "#862633",
-                20)));
+                20));
 
-        ObjectNode ctaAction = objectMapper.createObjectNode();
-        ctaAction.put("trigger", "onActivate");
-        ctaAction.put("type", "navigate");
-        ctaAction.put("targetUri", ctaUri);
+        Action ctaAction = new Action();
+        ctaAction.setTrigger(Action.ActionTrigger.ON_ACTIVATE);
+        ctaAction.setType(Action.ActionType.NAVIGATE);
+        ctaAction.setTargetUri(ctaUri);
 
         AtomicElement root = atomicBuilder.container("column", "start", "start");
         atomicBuilder.widthMode(root, "fill");
@@ -478,13 +484,13 @@ public class WatchComposer {
             children.add(atomicBuilder.text(subtitle, "bodySmall", null, "rgba(255,255,255,0.85)", null));
         }
         children.add(atomicBuilder.spacer(tokens.spacing("md")));
-        children.add(atomicBuilder.button(ctaLabel, "primary",
-                objectMapper.convertValue(ctaAction.deepCopy(), Action.class)));
+        children.add(atomicBuilder.button(ctaLabel, "primary", ctaAction));
         root.setChildren(children);
 
-        AtomicComposite data = atomicBuilder.wrapUi(root);
-        data.setAdditionalProperty("ctaAction", ctaAction);
-        section.set("data", objectMapper.valueToTree(data));
+        SubscribeUpsell data = new SubscribeUpsell();
+        data.setUi(root);
+        data.setCtaAction(ctaAction);
+        section.setData(data);
         return section;
     }
 
@@ -497,18 +503,18 @@ public class WatchComposer {
      * IAP SDK to bind product identifiers; the renderer reads nothing from
      * it today.
      */
-    private ObjectNode buildSubscribeUpsellHero() {
+    private Section buildSubscribeUpsellHero() {
         String contentSourceId = "product:league-pass";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "SubscribeUpsell");
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", sectionId);
-        section.put("type", "SubscribeUpsell");
-        section.put("contentSourceId", contentSourceId);
-        section.set("refreshPolicy", staticPolicy());
-        section.set("surface", objectMapper.valueToTree(surfaces.subscribeSurface(
+        Section section = new Section();
+        section.setId(sectionId);
+        section.setType(Section.Type.SUBSCRIBE_UPSELL);
+        section.setContentSourceId(contentSourceId);
+        section.setRefreshPolicy(staticRefreshPolicy());
+        section.setSurface(surfaces.subscribeSurface(
                 "#0C1B3A",
                 tokens.color("nba.label.accent.brand"),
-                24)));
+                24));
 
         AtomicElement root = buildSubscribeUpsellHeroUi(
                 "NBA League Pass",
@@ -531,13 +537,14 @@ public class WatchComposer {
                                 "Subscribe", "nba://subscribe/league-pass/premium")
                 });
 
-        ArrayNode tiers = objectMapper.createArrayNode();
+        List<SubscriptionTier> tiers = new ArrayList<>();
         tiers.add(tierProductId("lp-standard", "League Pass", "$14.99/mo"));
         tiers.add(tierProductId("lp-premium", "League Pass Premium", "$22.99/mo"));
 
-        AtomicComposite data = atomicBuilder.wrapUi(root);
-        data.setAdditionalProperty("tiers", tiers);
-        section.set("data", objectMapper.valueToTree(data));
+        SubscribeUpsell data = new SubscribeUpsell();
+        data.setUi(root);
+        data.setTiers(tiers);
+        section.setData(data);
         return section;
     }
 
@@ -632,23 +639,22 @@ public class WatchComposer {
         }
         cardChildren.add(atomicBuilder.spacer(10));
 
-        ObjectNode tierAction = objectMapper.createObjectNode();
-        tierAction.put("trigger", "onActivate");
-        tierAction.put("type", "navigate");
-        tierAction.put("targetUri", t.ctaUri);
-        cardChildren.add(atomicBuilder.button(t.ctaLabel, "primary",
-                objectMapper.convertValue(tierAction, Action.class)));
+        Action tierAction = new Action();
+        tierAction.setTrigger(Action.ActionTrigger.ON_ACTIVATE);
+        tierAction.setType(Action.ActionType.NAVIGATE);
+        tierAction.setTargetUri(t.ctaUri);
+        cardChildren.add(atomicBuilder.button(t.ctaLabel, "primary", tierAction));
 
         card.setChildren(cardChildren);
         return card;
     }
 
-    private ObjectNode tierProductId(String id, String name, String price) {
-        ObjectNode n = objectMapper.createObjectNode();
-        n.put("id", id);
-        n.put("name", name);
-        n.put("price", price);
-        return n;
+    private SubscriptionTier tierProductId(String id, String name, String price) {
+        SubscriptionTier tier = new SubscriptionTier();
+        tier.setId(id);
+        tier.setName(name);
+        tier.setPrice(price);
+        return tier;
     }
 
     /** Compact value object describing one subscription tier for the hero UI builder. */
@@ -669,42 +675,38 @@ public class WatchComposer {
     }
 
     /** AdSlot section — ad placement primitive (ADR-007). */
-    private ObjectNode buildAdSlot(String adUnitPath) {
+    private Section buildAdSlot(String adUnitPath) {
         String contentSourceId = "ads:gam-" + adUnitPath.replace("/", "-");
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AdSlot");
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", sectionId);
-        section.put("type", "AdSlot");
-        section.put("contentSourceId", contentSourceId);
-        section.set("refreshPolicy", staticPolicy());
-        section.set("surface", objectMapper.valueToTree(surfaces.adSlotSurface()));
+        Section section = new Section();
+        section.setId(sectionId);
+        section.setType(Section.Type.AD_SLOT);
+        section.setContentSourceId(contentSourceId);
+        section.setRefreshPolicy(staticRefreshPolicy());
+        section.setSurface(surfaces.adSlotSurface());
 
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("provider", "gam");
-        data.put("adUnitPath", "/21765378015/nba.com/" + adUnitPath);
+        AdSlot data = new AdSlot();
+        data.setProvider("gam");
+        data.setAdUnitPath("/21765378015/nba.com/" + adUnitPath);
 
-        ArrayNode sizes = objectMapper.createArrayNode();
-        ArrayNode size320 = objectMapper.createArrayNode();
-        size320.add(320); size320.add(50);
-        sizes.add(size320);
-        ArrayNode size728 = objectMapper.createArrayNode();
-        size728.add(728); size728.add(90);
-        sizes.add(size728);
-        data.set("sizes", sizes);
+        List<List<Integer>> sizes = new ArrayList<>();
+        sizes.add(List.of(320, 50));
+        sizes.add(List.of(728, 90));
+        data.setSizes(sizes);
 
-        ObjectNode targeting = objectMapper.createObjectNode();
-        targeting.put("section", "watch");
-        data.set("targeting", targeting);
+        Targeting targeting = new Targeting();
+        targeting.setAdditionalProperty("section", "watch");
+        data.setTargeting(targeting);
 
-        data.put("collapseOnEmpty", true);
-        data.put("label", "Advertisement");
+        data.setCollapseOnEmpty(true);
+        data.setLabel("Advertisement");
 
-        ObjectNode placeholder = objectMapper.createObjectNode();
-        placeholder.put("backgroundColor", "token:nba.bg.tertiary");
-        placeholder.put("text", "Advertisement");
-        data.set("placeholder", placeholder);
+        Placeholder placeholder = new Placeholder();
+        placeholder.setBackgroundColor("token:nba.bg.tertiary");
+        placeholder.setText("Advertisement");
+        data.setPlaceholder(placeholder);
 
-        section.set("data", data);
+        section.setData(data);
         return section;
     }
 
@@ -713,6 +715,12 @@ public class WatchComposer {
     private ObjectNode staticPolicy() {
         ObjectNode rp = objectMapper.createObjectNode();
         rp.put("type", "static");
+        return rp;
+    }
+
+    private RefreshPolicy staticRefreshPolicy() {
+        RefreshPolicy rp = new RefreshPolicy();
+        rp.setType(RefreshPolicy.RefreshType.STATIC);
         return rp;
     }
 

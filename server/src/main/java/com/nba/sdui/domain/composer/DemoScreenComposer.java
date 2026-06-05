@@ -5,13 +5,38 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.nba.sdui.models.generated.Action;
+import com.nba.sdui.models.generated.AdSlot;
 import com.nba.sdui.models.generated.AtomicComposite;
 import com.nba.sdui.models.generated.AtomicElement;
+import com.nba.sdui.models.generated.BoxscoreColumnDefinition;
+import com.nba.sdui.models.generated.BoxscorePlayerRow;
+import com.nba.sdui.models.generated.BoxscoreTable;
+import com.nba.sdui.models.generated.FailureFeedback;
+import com.nba.sdui.models.generated.Form;
+import com.nba.sdui.models.generated.FormField;
+import com.nba.sdui.models.generated.FormOption;
+import com.nba.sdui.models.generated.LeadersPlayerRow;
+import com.nba.sdui.models.generated.ParamBindings;
+import com.nba.sdui.models.generated.Placeholder;
+import com.nba.sdui.models.generated.RefreshPolicy;
 import com.nba.sdui.models.generated.Screen;
+import com.nba.sdui.models.generated.SeasonLeadersTable;
+import com.nba.sdui.models.generated.Section;
+import com.nba.sdui.models.generated.SectionStates;
+import com.nba.sdui.models.generated.Subsection;
+import com.nba.sdui.models.generated.SubscribeUpsell;
+import com.nba.sdui.models.generated.SubscriptionTier;
+import com.nba.sdui.models.generated.TabContents;
+import com.nba.sdui.models.generated.TabData;
+import com.nba.sdui.models.generated.TabGroup;
+import com.nba.sdui.models.generated.Targeting;
+import com.fasterxml.jackson.core.type.TypeReference;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import static com.nba.sdui.domain.AccessibilityHelper.*;
@@ -100,83 +125,83 @@ public class DemoScreenComposer {
         ArrayNode sections = objectMapper.createArrayNode();
 
         // 1. Game Card (scoreboard composite)
-        sections.add(buildTypeLabel("Game Card (scoreboard) (Composite)"));
-        sections.add(buildDemoGamePanelScoreboard());
+        sections.add(objectMapper.valueToTree(buildTypeLabel("Game Card (scoreboard) (Composite)")));
+        sections.add(objectMapper.valueToTree(buildDemoGamePanelScoreboard()));
         // 2. AdSlot (between header and top performers)
-        sections.add(buildTypeLabel("AdSlot (Semantic)"));
-        sections.add(buildDemoAdSlot());
+        sections.add(objectMapper.valueToTree(buildTypeLabel("AdSlot (Semantic)")));
+        sections.add(objectMapper.valueToTree(buildDemoAdSlot()));
         // 3. StatLine
-        sections.add(buildTypeLabel("StatLine (Composite)"));
-        sections.add(buildDemoStatLine());
+        sections.add(objectMapper.valueToTree(buildTypeLabel("StatLine (Composite)")));
+        sections.add(objectMapper.valueToTree(buildDemoStatLine()));
         // 4. PromoBanner
-        sections.add(buildTypeLabel("PromoBanner (Composite)"));
-        sections.add(buildDemoPromoBanner());
+        sections.add(objectMapper.valueToTree(buildTypeLabel("PromoBanner (Composite)")));
+        sections.add(objectMapper.valueToTree(buildDemoPromoBanner()));
         // 5. HeroPanel
-        sections.add(buildTypeLabel("HeroPanel (Composite)"));
-        sections.add(buildDemoHeroPanel());
+        sections.add(objectMapper.valueToTree(buildTypeLabel("HeroPanel (Composite)")));
+        sections.add(objectMapper.valueToTree(buildDemoHeroPanel()));
         // 6. ContentRail
-        sections.add(buildTypeLabel("ContentRail (Composite)"));
-        sections.add(buildDemoContentRail());
+        sections.add(objectMapper.valueToTree(buildTypeLabel("ContentRail (Composite)")));
+        sections.add(objectMapper.valueToTree(buildDemoContentRail()));
         // 7. Game Card
-        sections.add(buildTypeLabel("Game Card (Composite)"));
-        sections.add(buildDemoGamePanel());
+        sections.add(objectMapper.valueToTree(buildTypeLabel("Game Card (Composite)")));
+        sections.add(objectMapper.valueToTree(buildDemoGamePanel()));
         // 8. Responsive Row (AtomicComposite with breakpoint)
-        sections.add(buildTypeLabel("Responsive Row (Composite)"));
-        sections.add(buildDemoResponsiveRow());
+        sections.add(objectMapper.valueToTree(buildTypeLabel("Responsive Row (Composite)")));
+        sections.add(objectMapper.valueToTree(buildDemoResponsiveRow()));
         // 9. TabGroup
-        sections.add(buildTypeLabel("TabGroup (Semantic)"));
-        sections.add(buildDemoTabGroup());
+        sections.add(objectMapper.valueToTree(buildTypeLabel("TabGroup (Semantic)")));
+        sections.add(objectMapper.valueToTree(buildDemoTabGroup()));
         // 10. BoxscoreTable
-        sections.add(buildTypeLabel("BoxscoreTable (Semantic)"));
-        sections.add(buildDemoBoxscoreTable());
+        sections.add(objectMapper.valueToTree(buildTypeLabel("BoxscoreTable (Semantic)")));
+        sections.add(objectMapper.valueToTree(buildDemoBoxscoreTable()));
         // 11. Form
-        sections.add(buildTypeLabel("Form (Semantic)"));
-        sections.add(buildDemoForm(deviceClass));
+        sections.add(objectMapper.valueToTree(buildTypeLabel("Form (Semantic)")));
+        sections.add(objectMapper.valueToTree(buildDemoForm(deviceClass)));
         // 12. SeasonLeadersTable
-        sections.add(buildTypeLabel("SeasonLeadersTable (Semantic)"));
-        sections.add(buildDemoLeadersTable());
+        sections.add(objectMapper.valueToTree(buildTypeLabel("SeasonLeadersTable (Semantic)")));
+        sections.add(objectMapper.valueToTree(buildDemoLeadersTable()));
         // 13. Game Card (featured composite)
-        sections.add(buildTypeLabel("Game Card (featured) (Composite)"));
-        sections.add(buildDemoFeaturedGamePanel());
+        sections.add(objectMapper.valueToTree(buildTypeLabel("Game Card (featured) (Composite)")));
+        sections.add(objectMapper.valueToTree(buildDemoFeaturedGamePanel()));
         // 14. VideoCarousel
-        sections.add(buildTypeLabel("VideoCarousel (Composite)"));
-        sections.add(buildDemoVideoCarousel());
+        sections.add(objectMapper.valueToTree(buildTypeLabel("VideoCarousel (Composite)")));
+        sections.add(objectMapper.valueToTree(buildDemoVideoCarousel()));
         // 15. NbaTvSchedule
-        sections.add(buildTypeLabel("NbaTvSchedule (Composite)"));
-        sections.add(buildDemoNbaTvSchedule());
+        sections.add(objectMapper.valueToTree(buildTypeLabel("NbaTvSchedule (Composite)")));
+        sections.add(objectMapper.valueToTree(buildDemoNbaTvSchedule()));
         // 16. SubscribeUpsell (inline-banner layout)
-        sections.add(buildTypeLabel("SubscribeUpsell (inline banner)"));
-        sections.add(buildDemoSubscribeUpsellBanner());
+        sections.add(objectMapper.valueToTree(buildTypeLabel("SubscribeUpsell (inline banner)")));
+        sections.add(objectMapper.valueToTree(buildDemoSubscribeUpsellBanner()));
         // 17. SubscribeUpsell (hero layout)
-        sections.add(buildTypeLabel("SubscribeUpsell (hero)"));
-        sections.add(buildDemoSubscribeUpsellHero());
+        sections.add(objectMapper.valueToTree(buildTypeLabel("SubscribeUpsell (hero)")));
+        sections.add(objectMapper.valueToTree(buildDemoSubscribeUpsellHero()));
         // 18. FollowingRail
-        sections.add(buildTypeLabel("FollowingRail (Composite)"));
-        sections.add(buildDemoFollowingRail());
+        sections.add(objectMapper.valueToTree(buildTypeLabel("FollowingRail (Composite)")));
+        sections.add(objectMapper.valueToTree(buildDemoFollowingRail()));
         // 19. DisplayGrid (atomic primitive)
-        sections.add(buildTypeLabel("DisplayGrid (Composite)"));
-        sections.add(buildDemoDisplayGrid());
+        sections.add(objectMapper.valueToTree(buildTypeLabel("DisplayGrid (Composite)")));
+        sections.add(objectMapper.valueToTree(buildDemoDisplayGrid()));
         // 20. ErrorState
-        sections.add(buildTypeLabel("ErrorState (Composite)"));
-        sections.add(buildDemoErrorState());
+        sections.add(objectMapper.valueToTree(buildTypeLabel("ErrorState (Composite)")));
+        sections.add(objectMapper.valueToTree(buildDemoErrorState()));
         // 21. SectionSlot (bidirectional bridge demo)
-        sections.add(buildTypeLabel("SectionSlot (AdSlot in atomic tree) (Composite)"));
-        sections.add(buildDemoSectionSlot());
+        sections.add(objectMapper.valueToTree(buildTypeLabel("SectionSlot (AdSlot in atomic tree) (Composite)")));
+        sections.add(objectMapper.valueToTree(buildDemoSectionSlot()));
         // 22-28. Feed atomic-composite patterns
-        sections.add(buildTypeLabel("SectionHeaderComposite"));
-        sections.add(buildDemoSectionHeaderComposite());
-        sections.add(buildTypeLabel("StoryCircleRail (Composite)"));
-        sections.add(buildDemoStoryCircleRail());
-        sections.add(buildTypeLabel("FeaturedLiveGameHero (Composite)"));
-        sections.add(buildDemoFeaturedLiveGameHero());
-        sections.add(buildTypeLabel("EditorialOverlayRail (Composite)"));
-        sections.add(buildDemoEditorialOverlayRail());
-        sections.add(buildTypeLabel("UtilityCardGrid (Composite)"));
-        sections.add(buildDemoUtilityCardGrid());
-        sections.add(buildTypeLabel("LeagueCardRail (Composite)"));
-        sections.add(buildDemoLeagueCardRail());
-        sections.add(buildTypeLabel("GameScheduleList (Composite)"));
-        sections.add(buildDemoGameScheduleList());
+        sections.add(objectMapper.valueToTree(buildTypeLabel("SectionHeaderComposite")));
+        sections.add(objectMapper.valueToTree(buildDemoSectionHeaderComposite()));
+        sections.add(objectMapper.valueToTree(buildTypeLabel("StoryCircleRail (Composite)")));
+        sections.add(objectMapper.valueToTree(buildDemoStoryCircleRail()));
+        sections.add(objectMapper.valueToTree(buildTypeLabel("FeaturedLiveGameHero (Composite)")));
+        sections.add(objectMapper.valueToTree(buildDemoFeaturedLiveGameHero()));
+        sections.add(objectMapper.valueToTree(buildTypeLabel("EditorialOverlayRail (Composite)")));
+        sections.add(objectMapper.valueToTree(buildDemoEditorialOverlayRail()));
+        sections.add(objectMapper.valueToTree(buildTypeLabel("UtilityCardGrid (Composite)")));
+        sections.add(objectMapper.valueToTree(buildDemoUtilityCardGrid()));
+        sections.add(objectMapper.valueToTree(buildTypeLabel("LeagueCardRail (Composite)")));
+        sections.add(objectMapper.valueToTree(buildDemoLeagueCardRail()));
+        sections.add(objectMapper.valueToTree(buildTypeLabel("GameScheduleList (Composite)")));
+        sections.add(objectMapper.valueToTree(buildDemoGameScheduleList()));
 
         screen.set("sections", sections);
         utils.prependAppBarHeaderIfNeeded(screen);
@@ -235,8 +260,8 @@ public class DemoScreenComposer {
         screen.set("state", state);
 
         ArrayNode sections = objectMapper.createArrayNode();
-        sections.add(buildDemoForm(deviceClass));
-        sections.add(buildLeadersTable(season, seasonType, perMode, statCategory));
+        sections.add(objectMapper.valueToTree(buildDemoForm(deviceClass)));
+        sections.add(objectMapper.valueToTree(buildLeadersTable(season, seasonType, perMode, statCategory)));
         screen.set("sections", sections);
 
         utils.prependAppBarHeaderIfNeeded(screen);
@@ -248,18 +273,20 @@ public class DemoScreenComposer {
     /**
      * Build a season leaders table section with data matching the given filters.
      */
-    public ObjectNode buildLeadersTable(String season, String seasonType,
+    public Section buildLeadersTable(String season, String seasonType,
                                          String perMode, String statCategory) {
         String contentSourceId = "stats-api:leaders";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "SeasonLeadersTable");
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", sectionId);
-        section.put("type", "SeasonLeadersTable");
-        section.put("contentSourceId", contentSourceId);
-        section.put("analyticsId", "season_leaders_table");
-        section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
+        Section section = new Section();
+        section.setId(sectionId);
+        section.setType(Section.Type.SEASON_LEADERS_TABLE);
+        section.setContentSourceId(contentSourceId);
+        section.setAnalyticsId("season_leaders_table");
+        RefreshPolicy refreshPolicy = new RefreshPolicy();
+        refreshPolicy.setType(RefreshPolicy.RefreshType.STATIC);
+        section.setRefreshPolicy(refreshPolicy);
 
-        ObjectNode data = objectMapper.createObjectNode();
+        SeasonLeadersTable data = new SeasonLeadersTable();
 
         String seasonTypeName = "regular".equals(seasonType) ? "Regular Season"
                 : "playoffs".equals(seasonType) ? "Playoffs" : "All-Star";
@@ -267,73 +294,78 @@ public class DemoScreenComposer {
                 : "totals".equals(perMode) ? "Totals" : "Per 36 Min";
         String catLabel = statCategory != null ? statCategory.toUpperCase() : "PTS";
 
-        data.put("title", "Season Leaders");
-        data.put("subtitle", season + " " + seasonTypeName + " — " + perModeName + " — sorted by " + catLabel);
-        data.put("sortColumn", statCategory != null ? statCategory : "pts");
-        data.put("sortDirection", "desc");
-        data.put("totalRows", 30);
-        data.put("page", 1);
-        data.put("pageSize", 15);
+        data.setTitle("Season Leaders");
+        data.setSubtitle(season + " " + seasonTypeName + " — " + perModeName + " — sorted by " + catLabel);
+        data.setSortColumn(statCategory != null ? statCategory : "pts");
+        data.setSortDirection(SeasonLeadersTable.SortDirection.DESC);
+        data.setTotalRows(30);
+        data.setPage(1);
+        data.setPageSize(15);
 
-        ArrayNode columns = objectMapper.createArrayNode();
+        String highlightCol = statCategory != null ? statCategory : "pts";
         String[][] colDefs = {
             {"gp", "GP"}, {"min", "MIN"}, {"pts", "PTS"}, {"fgm", "FGM"}, {"fga", "FGA"},
             {"fgPct", "FG%"}, {"tpm", "3PM"}, {"tpa", "3PA"}, {"tpPct", "3P%"},
             {"ftm", "FTM"}, {"fta", "FTA"}, {"ftPct", "FT%"},
             {"reb", "REB"}, {"ast", "AST"}, {"stl", "STL"}, {"blk", "BLK"}, {"tov", "TOV"}, {"eff", "EFF"}
         };
+        List<BoxscoreColumnDefinition> columns = new ArrayList<>();
         for (String[] cd : colDefs) {
-            ObjectNode col = objectMapper.createObjectNode();
-            col.put("key", cd[0]);
-            col.put("label", cd[1]);
-            col.put("sortable", true);
-            col.put("highlighted", cd[0].equals(statCategory != null ? statCategory : "pts"));
+            BoxscoreColumnDefinition col = new BoxscoreColumnDefinition();
+            col.setKey(cd[0]);
+            col.setLabel(cd[1]);
+            col.setSortable(true);
+            col.setHighlighted(cd[0].equals(highlightCol));
             columns.add(col);
         }
-        data.set("columns", columns);
+        data.setColumns(columns);
 
-        ArrayNode players = objectMapper.createArrayNode();
+        List<ObjectNode> playerRows = new ArrayList<>();
         if ("2025-26".equals(season) && "regular".equals(seasonType)) {
-            players.add(leaderRow(1, "203999", "Luka Dončić", "LAL", 49,35.4,32.4,10.3,21.8,47.3,3.7,10.2,35.9, 8.0,10.4,77.3, 7.0,8.6,1.4,0.5,4.0,32.7));
-            players.add(leaderRow(2, "1630175", "Shai Gilgeous-Alexander", "OKC", 52,33.4,31.7,10.9,19.8,55.1,1.7,4.5,38.4, 8.2,9.2,89.3, 3.9,6.5,1.4,0.8,2.1,32.7));
-            players.add(leaderRow(3, "1630162", "Anthony Edwards", "MIN", 52,35.7,29.7,10.3,20.9,49.4,3.5,8.6,40.2, 5.6,7.1,78.7, 4.6,5.2,1.4,0.8,2.8,25.9));
-            players.add(leaderRow(4, "1630178", "Tyrese Maxey", "PHI", 60,38.3,28.9,10.1,21.9,46.0,3.3,8.9,37.2, 5.5,6.2,89.2, 3.9,6.7,2.0,0.8,2.4,27.7));
-            players.add(leaderRow(5, "1628369", "Jaylen Brown", "BOS", 55,34.3,28.9,10.7,22.2,48.0,2.1,5.9,34.8, 5.5,7.1,77.9, 6.1,5.0,1.0,0.4,3.6,25.8));
-            players.add(leaderRow(6, "203999b", "Nikola Jokić", "DEN", 46,34.6,28.7,10.1,17.7,57.0,1.9,4.8,40.1, 6.5,7.9,82.7, 12.6,10.3,1.3,0.8,3.7,41.1));
-            players.add(leaderRow(7, "1628378", "Donovan Mitchell", "CLE", 55,33.5,28.5,9.9,20.6,48.3,3.5,9.4,36.9, 5.2,6.1,85.2, 3.7,5.8,1.6,0.3,3.1,26.1));
-            players.add(leaderRow(8, "202695", "Kawhi Leonard", "LAC", 47,32.4,27.9,9.7,19.6,49.7,2.6,7.0,37.9, 5.8,6.4,90.6, 6.4,3.7,2.0,0.5,2.1,27.8));
-            players.add(leaderRow(9, "1628973", "Jalen Brunson", "NYK", 58,34.7,26.5,9.4,20.1,46.7,2.8,7.5,37.8, 4.8,5.8,84.1, 2.9,6.3,0.7,0.1,2.3,23.1));
-            players.add(leaderRow(10,"201142", "Kevin Durant", "HOU", 57,36.6,26.3,9.2,18.1,51.0,2.4,5.9,40.1, 5.5,6.1,89.1, 4.9,4.5,0.8,0.9,3.2,25.2));
-            players.add(leaderRow(11,"1628974", "Jamal Murray", "DEN", 57,35.2,25.7,8.9,18.4,48.4,3.2,7.5,42.9, 4.6,5.2,87.9, 4.0,7.3,1.0,0.4,2.4,26.1));
-            players.add(leaderRow(12,"1630595", "Cade Cunningham", "DET", 54,35.1,25.2,8.9,19.5,45.7,1.9,5.9,32.9, 5.4,6.6,81.1, 4.9,9.9,1.5,0.9,3.8,27.7));
-            players.add(leaderRow(13,"1626164", "Devin Booker", "PHX", 45,33.3,24.6,8.1,17.9,45.1,1.7,5.5,31.3, 6.6,7.7,86.2, 3.1,6.1,0.9,0.3,3.3,21.6));
-            players.add(leaderRow(14,"1631094", "Deni Avdija", "POR", 48,33.5,24.4,7.5,16.1,46.3,2.1,6.2,34.1, 7.4,9.2,80.0, 5.9,6.6,0.8,0.6,3.8,25.1));
-            players.add(leaderRow(15,"201935", "James Harden", "CLE", 53,35.0,24.3,7.1,16.7,42.5,3.0,8.4,36.1, 7.1,8.0,89.3, 4.9,8.1,1.2,0.4,3.7,24.8));
+            playerRows.add(leaderRow(1, "203999", "Luka Dončić", "LAL", 49,35.4,32.4,10.3,21.8,47.3,3.7,10.2,35.9, 8.0,10.4,77.3, 7.0,8.6,1.4,0.5,4.0,32.7));
+            playerRows.add(leaderRow(2, "1630175", "Shai Gilgeous-Alexander", "OKC", 52,33.4,31.7,10.9,19.8,55.1,1.7,4.5,38.4, 8.2,9.2,89.3, 3.9,6.5,1.4,0.8,2.1,32.7));
+            playerRows.add(leaderRow(3, "1630162", "Anthony Edwards", "MIN", 52,35.7,29.7,10.3,20.9,49.4,3.5,8.6,40.2, 5.6,7.1,78.7, 4.6,5.2,1.4,0.8,2.8,25.9));
+            playerRows.add(leaderRow(4, "1630178", "Tyrese Maxey", "PHI", 60,38.3,28.9,10.1,21.9,46.0,3.3,8.9,37.2, 5.5,6.2,89.2, 3.9,6.7,2.0,0.8,2.4,27.7));
+            playerRows.add(leaderRow(5, "1628369", "Jaylen Brown", "BOS", 55,34.3,28.9,10.7,22.2,48.0,2.1,5.9,34.8, 5.5,7.1,77.9, 6.1,5.0,1.0,0.4,3.6,25.8));
+            playerRows.add(leaderRow(6, "203999b", "Nikola Jokić", "DEN", 46,34.6,28.7,10.1,17.7,57.0,1.9,4.8,40.1, 6.5,7.9,82.7, 12.6,10.3,1.3,0.8,3.7,41.1));
+            playerRows.add(leaderRow(7, "1628378", "Donovan Mitchell", "CLE", 55,33.5,28.5,9.9,20.6,48.3,3.5,9.4,36.9, 5.2,6.1,85.2, 3.7,5.8,1.6,0.3,3.1,26.1));
+            playerRows.add(leaderRow(8, "202695", "Kawhi Leonard", "LAC", 47,32.4,27.9,9.7,19.6,49.7,2.6,7.0,37.9, 5.8,6.4,90.6, 6.4,3.7,2.0,0.5,2.1,27.8));
+            playerRows.add(leaderRow(9, "1628973", "Jalen Brunson", "NYK", 58,34.7,26.5,9.4,20.1,46.7,2.8,7.5,37.8, 4.8,5.8,84.1, 2.9,6.3,0.7,0.1,2.3,23.1));
+            playerRows.add(leaderRow(10,"201142", "Kevin Durant", "HOU", 57,36.6,26.3,9.2,18.1,51.0,2.4,5.9,40.1, 5.5,6.1,89.1, 4.9,4.5,0.8,0.9,3.2,25.2));
+            playerRows.add(leaderRow(11,"1628974", "Jamal Murray", "DEN", 57,35.2,25.7,8.9,18.4,48.4,3.2,7.5,42.9, 4.6,5.2,87.9, 4.0,7.3,1.0,0.4,2.4,26.1));
+            playerRows.add(leaderRow(12,"1630595", "Cade Cunningham", "DET", 54,35.1,25.2,8.9,19.5,45.7,1.9,5.9,32.9, 5.4,6.6,81.1, 4.9,9.9,1.5,0.9,3.8,27.7));
+            playerRows.add(leaderRow(13,"1626164", "Devin Booker", "PHX", 45,33.3,24.6,8.1,17.9,45.1,1.7,5.5,31.3, 6.6,7.7,86.2, 3.1,6.1,0.9,0.3,3.3,21.6));
+            playerRows.add(leaderRow(14,"1631094", "Deni Avdija", "POR", 48,33.5,24.4,7.5,16.1,46.3,2.1,6.2,34.1, 7.4,9.2,80.0, 5.9,6.6,0.8,0.6,3.8,25.1));
+            playerRows.add(leaderRow(15,"201935", "James Harden", "CLE", 53,35.0,24.3,7.1,16.7,42.5,3.0,8.4,36.1, 7.1,8.0,89.3, 4.9,8.1,1.2,0.4,3.7,24.8));
         } else if ("2024-25".equals(season)) {
-            players.add(leaderRow(1, "1630175", "Shai Gilgeous-Alexander", "OKC", 75,34.1,32.9,11.4,21.2,53.8,2.1,5.5,38.2, 8.0,9.1,88.0, 5.5,6.0,2.0,1.3,2.4,35.1));
-            players.add(leaderRow(2, "203999", "Luka Dončić", "DAL", 46,36.7,28.1,9.4,21.0,44.8,3.2,9.8,32.3, 6.1,7.8,78.2, 8.3,7.8,1.3,0.5,4.1,28.2));
-            players.add(leaderRow(3, "203507", "Giannis Antetokounmpo", "MIL", 63,35.2,31.5,12.0,20.5,58.4,0.7,2.9,24.1, 6.8,9.8,69.4, 11.5,5.8,0.8,1.2,3.6,33.1));
-            players.add(leaderRow(4, "1629029", "Trae Young", "ATL", 72,35.8,24.4,7.9,18.4,43.0,2.7,7.7,35.1, 5.9,6.7,88.1, 3.2,11.4,1.0,0.2,4.0,24.0));
-            players.add(leaderRow(5, "1630162", "Anthony Edwards", "MIN", 70,37.1,27.2,9.8,22.3,43.9,3.5,9.8,35.7, 4.1,5.2,78.8, 5.7,4.1,1.3,0.6,3.2,22.2));
-            players.add(leaderRow(6, "1628378", "Donovan Mitchell", "CLE", 58,33.2,23.4,8.6,19.0,45.1,3.1,8.1,38.3, 3.1,3.8,81.6, 4.1,4.5,1.4,0.4,2.4,21.5));
-            players.add(leaderRow(7, "1628973", "Jalen Brunson", "NYK", 64,34.5,26.4,9.0,19.8,45.5,2.7,7.2,37.5, 5.7,6.7,85.1, 3.0,7.4,0.9,0.2,2.5,24.5));
-            players.add(leaderRow(8, "201142", "Kevin Durant", "PHX", 40,36.2,27.0,9.4,18.0,52.2,2.2,5.4,40.7, 6.0,6.7,89.6, 6.4,4.2,0.5,1.3,3.0,27.5));
+            playerRows.add(leaderRow(1, "1630175", "Shai Gilgeous-Alexander", "OKC", 75,34.1,32.9,11.4,21.2,53.8,2.1,5.5,38.2, 8.0,9.1,88.0, 5.5,6.0,2.0,1.3,2.4,35.1));
+            playerRows.add(leaderRow(2, "203999", "Luka Dončić", "DAL", 46,36.7,28.1,9.4,21.0,44.8,3.2,9.8,32.3, 6.1,7.8,78.2, 8.3,7.8,1.3,0.5,4.1,28.2));
+            playerRows.add(leaderRow(3, "203507", "Giannis Antetokounmpo", "MIL", 63,35.2,31.5,12.0,20.5,58.4,0.7,2.9,24.1, 6.8,9.8,69.4, 11.5,5.8,0.8,1.2,3.6,33.1));
+            playerRows.add(leaderRow(4, "1629029", "Trae Young", "ATL", 72,35.8,24.4,7.9,18.4,43.0,2.7,7.7,35.1, 5.9,6.7,88.1, 3.2,11.4,1.0,0.2,4.0,24.0));
+            playerRows.add(leaderRow(5, "1630162", "Anthony Edwards", "MIN", 70,37.1,27.2,9.8,22.3,43.9,3.5,9.8,35.7, 4.1,5.2,78.8, 5.7,4.1,1.3,0.6,3.2,22.2));
+            playerRows.add(leaderRow(6, "1628378", "Donovan Mitchell", "CLE", 58,33.2,23.4,8.6,19.0,45.1,3.1,8.1,38.3, 3.1,3.8,81.6, 4.1,4.5,1.4,0.4,2.4,21.5));
+            playerRows.add(leaderRow(7, "1628973", "Jalen Brunson", "NYK", 64,34.5,26.4,9.0,19.8,45.5,2.7,7.2,37.5, 5.7,6.7,85.1, 3.0,7.4,0.9,0.2,2.5,24.5));
+            playerRows.add(leaderRow(8, "201142", "Kevin Durant", "PHX", 40,36.2,27.0,9.4,18.0,52.2,2.2,5.4,40.7, 6.0,6.7,89.6, 6.4,4.2,0.5,1.3,3.0,27.5));
         } else if ("playoffs".equals(seasonType)) {
-            players.add(leaderRow(1, "203507", "Giannis Antetokounmpo", "MIL", 12,39.3,33.2,12.5,22.1,56.6,0.5,2.3,21.7, 7.7,11.2,68.8, 13.1,6.2,1.1,1.8,3.5,36.8));
-            players.add(leaderRow(2, "1630175", "Shai Gilgeous-Alexander", "OKC", 16,37.2,31.8,10.8,22.5,48.0,2.3,6.1,37.7, 8.0,9.0,88.9, 6.3,6.3,1.8,0.8,3.1,32.0));
-            players.add(leaderRow(3, "203999", "Luka Dončić", "DAL", 7,37.0,29.1,9.3,22.0,42.3,3.6,10.4,34.6, 6.9,8.1,85.2, 9.2,8.1,1.0,0.4,4.5,28.5));
-            players.add(leaderRow(4, "1629029", "Trae Young", "ATL", 10,36.8,28.5,9.0,20.2,44.6,3.5,9.1,38.5, 7.0,8.0,87.5, 3.5,12.1,1.2,0.1,4.3,28.7));
-            players.add(leaderRow(5, "1628369", "Jaylen Brown", "BOS", 19,38.1,25.0,9.0,21.0,42.9,2.8,7.5,37.3, 4.2,5.5,76.4, 6.9,3.8,1.1,0.6,2.8,22.0));
+            playerRows.add(leaderRow(1, "203507", "Giannis Antetokounmpo", "MIL", 12,39.3,33.2,12.5,22.1,56.6,0.5,2.3,21.7, 7.7,11.2,68.8, 13.1,6.2,1.1,1.8,3.5,36.8));
+            playerRows.add(leaderRow(2, "1630175", "Shai Gilgeous-Alexander", "OKC", 16,37.2,31.8,10.8,22.5,48.0,2.3,6.1,37.7, 8.0,9.0,88.9, 6.3,6.3,1.8,0.8,3.1,32.0));
+            playerRows.add(leaderRow(3, "203999", "Luka Dončić", "DAL", 7,37.0,29.1,9.3,22.0,42.3,3.6,10.4,34.6, 6.9,8.1,85.2, 9.2,8.1,1.0,0.4,4.5,28.5));
+            playerRows.add(leaderRow(4, "1629029", "Trae Young", "ATL", 10,36.8,28.5,9.0,20.2,44.6,3.5,9.1,38.5, 7.0,8.0,87.5, 3.5,12.1,1.2,0.1,4.3,28.7));
+            playerRows.add(leaderRow(5, "1628369", "Jaylen Brown", "BOS", 19,38.1,25.0,9.0,21.0,42.9,2.8,7.5,37.3, 4.2,5.5,76.4, 6.9,3.8,1.1,0.6,2.8,22.0));
         } else {
-            players.add(leaderRow(1, "203999", "Luka Dončić", "LAL", 40,34.0,30.0,10.0,21.0,47.6,3.5,9.0,38.9, 7.0,9.0,77.8, 8.0,8.0,1.2,0.5,3.5,30.0));
-            players.add(leaderRow(2, "1630175", "Shai Gilgeous-Alexander", "OKC", 40,33.0,29.5,10.5,20.0,52.5,2.0,5.0,40.0, 6.5,7.5,86.7, 5.0,6.0,1.8,1.0,2.5,30.0));
-            players.add(leaderRow(3, "203507", "Giannis Antetokounmpo", "MIL", 40,34.0,29.0,11.0,19.0,57.9,0.5,2.0,25.0, 6.5,9.5,68.4, 11.0,5.5,1.0,1.5,3.0,31.0));
+            playerRows.add(leaderRow(1, "203999", "Luka Dončić", "LAL", 40,34.0,30.0,10.0,21.0,47.6,3.5,9.0,38.9, 7.0,9.0,77.8, 8.0,8.0,1.2,0.5,3.5,30.0));
+            playerRows.add(leaderRow(2, "1630175", "Shai Gilgeous-Alexander", "OKC", 40,33.0,29.5,10.5,20.0,52.5,2.0,5.0,40.0, 6.5,7.5,86.7, 5.0,6.0,1.8,1.0,2.5,30.0));
+            playerRows.add(leaderRow(3, "203507", "Giannis Antetokounmpo", "MIL", 40,34.0,29.0,11.0,19.0,57.9,0.5,2.0,25.0, 6.5,9.5,68.4, 11.0,5.5,1.0,1.5,3.0,31.0));
         }
-        data.set("players", players);
+        List<LeadersPlayerRow> players = new ArrayList<>();
+        for (ObjectNode row : playerRows) {
+            players.add(objectMapper.convertValue(row, LeadersPlayerRow.class));
+        }
+        data.setPlayers(players);
 
-        data.put("emptyMessage", "No stats available for " + season + " " + seasonTypeName);
+        data.setEmptyMessage("No stats available for " + season + " " + seasonTypeName);
 
-        section.set("data", data);
+        section.setData(data);
         return section;
     }
 
@@ -342,13 +374,13 @@ public class DemoScreenComposer {
     /**
      * 1. Game Card (scoreboard composite) — Lakers vs Celtics, period 3, 89-94.
      */
-    private ObjectNode buildDemoGamePanelScoreboard() {
+    private Section buildDemoGamePanelScoreboard() {
         String contentSourceId = "demo:game-panel-scoreboard";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         AtomicCompositeBuilder.GameClockSnapshot clock = new AtomicCompositeBuilder.GameClockSnapshot(
                 4 * 60 + 32, java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString(),
                 AtomicCompositeBuilder.INITIAL_CLOCK_RUNNING);
-        com.nba.sdui.models.generated.Section section = atomicBuilder.buildGamePanelComposite(
+        Section section = atomicBuilder.buildGamePanelComposite(
                 sectionId,
                 "demo_game_panel_scoreboard",
                 "scoreboard",
@@ -364,13 +396,13 @@ public class DemoScreenComposer {
                 null,
                 objectMapper.valueToTree(surfaces.gamePanelSurface()));
         section.setContentSourceId(contentSourceId);
-        return (ObjectNode) objectMapper.valueToTree(section);
+        return section;
     }
 
     /**
      * 2. StatLine — 3 mock players with PTS/REB/AST.
      */
-    private ObjectNode buildDemoStatLine() {
+    private Section buildDemoStatLine() {
         String contentSourceId = "demo:stat-line";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         String[][] stats = {
@@ -378,10 +410,10 @@ public class DemoScreenComposer {
             {"203507", "LeBron James", "LAL", "PTS", "28", DemoImageUrls.headshot("203507")},
             {"203076", "Anthony Davis", "LAL", "REB", "14", DemoImageUrls.headshot("203076")}
         };
-        com.nba.sdui.models.generated.Section section = atomicBuilder.buildStatLine(
+        Section section = atomicBuilder.buildStatLine(
                 sectionId, "demo_stat_line", "Top Performers", "vertical", stats);
         section.setContentSourceId(contentSourceId);
-        return (ObjectNode) objectMapper.valueToTree(section);
+        return section;
     }
 
     /**
@@ -389,10 +421,10 @@ public class DemoScreenComposer {
      * Pass promo so the kitchen-sink reference reflects the production
      * treatment instead of a one-off gradient variant.
      */
-    private ObjectNode buildDemoPromoBanner() {
+    private Section buildDemoPromoBanner() {
         String contentSourceId = "demo:promo-banner";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
-        com.nba.sdui.models.generated.Section section = atomicBuilder.buildPromoBanner(
+        Section section = atomicBuilder.buildPromoBanner(
                 sectionId, "demo_promo_banner",
                 "Welcome to SDUI", null,
                 "All 20 semantic section types rendered from a single server response.",
@@ -405,29 +437,29 @@ public class DemoScreenComposer {
         section.setSurface(surfaces.promoCardSurface(
                 tokens.color("nba.bg.secondary"),
                 tokens.spacing("lg")));
-        return (ObjectNode) objectMapper.valueToTree(section);
+        return section;
     }
 
     /**
      * 4. HeroPanel — single highlight card with thumbnail.
      */
-    private ObjectNode buildDemoHeroPanel() {
+    private Section buildDemoHeroPanel() {
         String contentSourceId = "demo:hero-panel";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
-        com.nba.sdui.models.generated.Section section = atomicBuilder.buildHeroPanel(
+        Section section = atomicBuilder.buildHeroPanel(
                 sectionId, "demo_content_card",
                 "Celtics Lead Series 3-1",
                 "Boston takes commanding lead after Game 4 victory",
                 DemoImageUrls.cardWide("celtics"),
                 "article", null, "nba://article/celtics-lead-series");
         section.setContentSourceId(contentSourceId);
-        return (ObjectNode) objectMapper.valueToTree(section);
+        return section;
     }
 
     /**
      * 5. ContentRail — 4 cards (Top Plays, Player Spotlight, etc.).
      */
-    private ObjectNode buildDemoContentRail() {
+    private Section buildDemoContentRail() {
         String contentSourceId = "demo:content-rail";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         String[][] cards = {
@@ -436,19 +468,19 @@ public class DemoScreenComposer {
             {"rail-3", "Draft Preview", "Top prospects for 2025 draft", DemoImageUrls.cardWide("draft"), "article", null, "nba://content/rail-3"},
             {"rail-4", "Playoff Bracket", "Updated bracket after today's results", DemoImageUrls.cardWide("playoffs"), "interactive", null, "nba://content/rail-4"}
         };
-        com.nba.sdui.models.generated.Section section = atomicBuilder.buildContentRail(
+        Section section = atomicBuilder.buildContentRail(
                 sectionId, "demo_content_rail", "Featured Content", cards);
         section.setContentSourceId(contentSourceId);
-        return (ObjectNode) objectMapper.valueToTree(section);
+        return section;
     }
 
     /**
      * 6. Game Card — mock game tile for a single game.
      */
-    private ObjectNode buildDemoGamePanel() {
+    private Section buildDemoGamePanel() {
         String contentSourceId = "demo:game-panel";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
-        com.nba.sdui.models.generated.Section section = atomicBuilder.buildGamePanelComposite(
+        Section section = atomicBuilder.buildGamePanelComposite(
                 sectionId,
                 "demo_game_card",
                 "standard",
@@ -464,7 +496,7 @@ public class DemoScreenComposer {
                 null,
                 objectMapper.valueToTree(surfaces.gamePanelSurface()));
         section.setContentSourceId(contentSourceId);
-        return (ObjectNode) objectMapper.valueToTree(section);
+        return section;
     }
 
     /**
@@ -472,15 +504,15 @@ public class DemoScreenComposer {
      * Uses AtomicComposite with Container(direction=row, breakpoint=600) + SectionSlots
      * to replace the old Row section type.
      */
-    private ObjectNode buildDemoResponsiveRow() {
+    private Section buildDemoResponsiveRow() {
         String contentSourceId = "demo:responsive-row";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
-        com.nba.sdui.models.generated.Section scoringLeader = atomicBuilder.buildStatLine(
+        Section scoringLeader = atomicBuilder.buildStatLine(
                 "row-scoring-leader", null, "Scoring Leader", "vertical",
                 new String[][]{{"203999", "Nikola Jokić", "DEN", "PTS", "26.4",
                         DemoImageUrls.headshot("203999")}});
 
-        com.nba.sdui.models.generated.Section assistsLeader = atomicBuilder.buildStatLine(
+        Section assistsLeader = atomicBuilder.buildStatLine(
                 "row-assists-leader", null, "Assists Leader", "vertical",
                 new String[][]{{"201566", "Trae Young", "ATL", "AST", "11.1",
                         DemoImageUrls.headshot("201566")}});
@@ -498,115 +530,117 @@ public class DemoScreenComposer {
         children.add(rightSlot);
 
         root.setChildren(children);
-        com.nba.sdui.models.generated.Section section = atomicBuilder.wrapAsComposite(sectionId, "demo_row", root);
+        Section section = atomicBuilder.wrapAsComposite(sectionId, "demo_row", root);
         section.setContentSourceId(contentSourceId);
-        return (ObjectNode) objectMapper.valueToTree(section);
+        return section;
     }
 
     /**
      * 8. TabGroup — two tabs ("Overview", "Stats") each with a HeroPanel child.
      */
-    private ObjectNode buildDemoTabGroup() {
+    private Section buildDemoTabGroup() {
         String contentSourceId = "demo:tab-group";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "TabGroup");
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", sectionId);
-        section.put("type", "TabGroup");
-        section.put("contentSourceId", contentSourceId);
-        section.put("analyticsId", "demo_tab_group");
+        Section section = new Section();
+        section.setId(sectionId);
+        section.setType(Section.Type.TAB_GROUP);
+        section.setContentSourceId(contentSourceId);
+        section.setAnalyticsId("demo_tab_group");
 
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("stateKey", "demo_active_tab");
-        data.put("defaultTab", "overview");
+        TabGroup data = new TabGroup();
+        data.setStateKey("demo_active_tab");
+        data.setDefaultTab("overview");
 
-        ArrayNode tabs = objectMapper.createArrayNode();
-
-        ObjectNode overviewTab = objectMapper.createObjectNode();
-        overviewTab.put("id", "tab-overview");
-        overviewTab.put("label", "Overview");
-        overviewTab.put("stateKey", "demo_active_tab");
-        overviewTab.put("stateValue", "overview");
+        List<TabData> tabs = new ArrayList<>();
+        TabData overviewTab = new TabData();
+        overviewTab.setId("tab-overview");
+        overviewTab.setLabel("Overview");
+        overviewTab.setStateKey("demo_active_tab");
+        overviewTab.setStateValue("overview");
         tabs.add(overviewTab);
 
-        ObjectNode statsTab = objectMapper.createObjectNode();
-        statsTab.put("id", "tab-stats");
-        statsTab.put("label", "Stats");
-        statsTab.put("stateKey", "demo_active_tab");
-        statsTab.put("stateValue", "stats");
+        TabData statsTab = new TabData();
+        statsTab.setId("tab-stats");
+        statsTab.setLabel("Stats");
+        statsTab.setStateKey("demo_active_tab");
+        statsTab.setStateValue("stats");
         tabs.add(statsTab);
 
-        data.set("tabs", tabs);
+        data.setTabs(tabs);
 
-        ObjectNode tabContents = objectMapper.createObjectNode();
-
-        ArrayNode overviewContent = objectMapper.createArrayNode();
-        overviewContent.add(objectMapper.valueToTree(atomicBuilder.buildHeroPanel(
+        TabContents tabContents = new TabContents();
+        List<Section> overviewContent = new ArrayList<>();
+        overviewContent.add(atomicBuilder.buildHeroPanel(
                 "tab-overview-card", null,
                 "Season Overview",
                 "The 2024-25 season has been full of surprises",
                 DemoImageUrls.cardWide("season"),
-                "article", null, null)));
-        tabContents.set("overview", overviewContent);
+                "article", null, null));
+        tabContents.setAdditionalProperty("overview", overviewContent);
 
-        ArrayNode statsContent = objectMapper.createArrayNode();
-        statsContent.add(objectMapper.valueToTree(atomicBuilder.buildHeroPanel(
+        List<Section> statsContent = new ArrayList<>();
+        statsContent.add(atomicBuilder.buildHeroPanel(
                 "tab-stats-card", null,
                 "League Statistical Leaders",
                 "Points, rebounds, assists and more",
                 DemoImageUrls.cardWide("stats"),
-                "interactive", null, null)));
-        tabContents.set("stats", statsContent);
+                "interactive", null, null));
+        tabContents.setAdditionalProperty("stats", statsContent);
 
-        data.set("tabContents", tabContents);
-        section.set("data", data);
-        section.set("subsections", utils.tabSelectSubsections(tabs, "demo_active_tab"));
-        section.set("surface", objectMapper.valueToTree(surfaces.secondaryStripSurface()));
+        data.setTabContents(tabContents);
+        section.setData(data);
+
+        ArrayNode tabsNode = (ArrayNode) objectMapper.valueToTree(tabs);
+        section.setSubsections(objectMapper.convertValue(
+                utils.tabSelectSubsections(tabsNode, "demo_active_tab"),
+                new TypeReference<List<Subsection>>() {}));
+        section.setSurface(surfaces.secondaryStripSurface());
         return section;
     }
 
     /**
      * 9. BoxscoreTable — 3 players, 5 stat columns.
      */
-    private ObjectNode buildDemoBoxscoreTable() {
+    private Section buildDemoBoxscoreTable() {
         String contentSourceId = "demo:boxscore-table";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "BoxscoreTable");
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", sectionId);
-        section.put("type", "BoxscoreTable");
-        section.put("contentSourceId", contentSourceId);
-        section.put("analyticsId", "demo_boxscore_table");
+        Section section = new Section();
+        section.setId(sectionId);
+        section.setType(Section.Type.BOXSCORE_TABLE);
+        section.setContentSourceId(contentSourceId);
+        section.setAnalyticsId("demo_boxscore_table");
 
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("teamTricode", "BOS");
-        data.put("teamName", "Boston Celtics");
+        BoxscoreTable data = new BoxscoreTable();
+        data.setTeamTricode("BOS");
+        data.setTeamName("Boston Celtics");
         // NBA brand guideline: team primary colors are brand assets owned by the team,
         // not design-system tokens. BOS primary = PMS 342 (#007A33). If Rights
         // & Brand ever changes the mapping, update here — the color registry is
         // not the source of truth for team brand identity.
-        data.put("teamColor", "#007A33");
-        data.put("teamLogoUrl", SduiUtils.teamLogoUrl("1610612738"));
+        data.setTeamColor("#007A33");
+        data.setTeamLogoUrl(SduiUtils.teamLogoUrl("1610612738"));
 
-        ArrayNode columns = objectMapper.createArrayNode();
-        columns.add(utils.colDef("min", "MIN", true, false, null));
-        columns.add(utils.colDef("pts", "PTS", true, true, null));
-        columns.add(utils.colDef("reb", "REB", true, false, null));
-        columns.add(utils.colDef("ast", "AST", true, false, null));
-        columns.add(utils.colDef("fgPct", "FG%", true, false, null));
-        data.set("columns", columns);
+        List<BoxscoreColumnDefinition> columns = List.of(
+                objectMapper.convertValue(utils.colDef("min", "MIN", true, false, null), BoxscoreColumnDefinition.class),
+                objectMapper.convertValue(utils.colDef("pts", "PTS", true, true, null), BoxscoreColumnDefinition.class),
+                objectMapper.convertValue(utils.colDef("reb", "REB", true, false, null), BoxscoreColumnDefinition.class),
+                objectMapper.convertValue(utils.colDef("ast", "AST", true, false, null), BoxscoreColumnDefinition.class),
+                objectMapper.convertValue(utils.colDef("fgPct", "FG%", true, false, null), BoxscoreColumnDefinition.class));
+        data.setColumns(columns);
 
-        ArrayNode players = objectMapper.createArrayNode();
-        players.add(demoPlayerRow("1628369", "J. Tatum", "SF", "0", true,
-                Map.of("min", "38:12", "pts", 32, "reb", 8, "ast", 5, "fgPct", ".545")));
-        players.add(demoPlayerRow("1627759", "J. Brown", "SG", "7", true,
-                Map.of("min", "36:45", "pts", 26, "reb", 5, "ast", 3, "fgPct", ".480")));
-        players.add(demoPlayerRow("1629684", "D. White", "PG", "9", false,
-                Map.of("min", "32:10", "pts", 18, "reb", 4, "ast", 6, "fgPct", ".500")));
-        data.set("players", players);
+        List<BoxscorePlayerRow> players = List.of(
+                objectMapper.convertValue(demoPlayerRow("1628369", "J. Tatum", "SF", "0", true,
+                        Map.of("min", "38:12", "pts", 32, "reb", 8, "ast", 5, "fgPct", ".545")), BoxscorePlayerRow.class),
+                objectMapper.convertValue(demoPlayerRow("1627759", "J. Brown", "SG", "7", true,
+                        Map.of("min", "36:45", "pts", 26, "reb", 5, "ast", 3, "fgPct", ".480")), BoxscorePlayerRow.class),
+                objectMapper.convertValue(demoPlayerRow("1629684", "D. White", "PG", "9", false,
+                        Map.of("min", "32:10", "pts", 18, "reb", 4, "ast", 6, "fgPct", ".500")), BoxscorePlayerRow.class));
+        data.setPlayers(players);
 
-        data.put("sortStateKey", "demo_boxscore_sortCol");
-        data.put("sortDirectionStateKey", "demo_boxscore_sortDir");
+        data.setSortStateKey("demo_boxscore_sortCol");
+        data.setSortDirectionStateKey("demo_boxscore_sortDir");
 
-        section.set("data", data);
+        section.setData(data);
         return section;
     }
 
@@ -615,177 +649,149 @@ public class DemoScreenComposer {
     * Layout is device-class-driven: web/desktop gets "horizontal" (single-row),
     * phone/tablet/tv gets "vertical" (stacked) for better touch targets.
      */
-    private ObjectNode buildDemoForm(String deviceClass) {
+    private Section buildDemoForm(String deviceClass) {
         String contentSourceId = "demo:form";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "Form");
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", sectionId);
-        section.put("type", "Form");
-        section.put("contentSourceId", contentSourceId);
-        section.put("analyticsId", "demo_stats_filter_form");
-        section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
+        Section section = new Section();
+        section.setId(sectionId);
+        section.setType(Section.Type.FORM);
+        section.setContentSourceId(contentSourceId);
+        section.setAnalyticsId("demo_stats_filter_form");
+        RefreshPolicy refreshPolicy = new RefreshPolicy();
+        refreshPolicy.setType(RefreshPolicy.RefreshType.STATIC);
+        section.setRefreshPolicy(refreshPolicy);
 
-        ObjectNode data = objectMapper.createObjectNode();
+        Form data = new Form();
         // Wide viewports (web/desktop) use horizontal form layout; narrow (phone/tablet/tv) use vertical
         String formLayout = ("web".equalsIgnoreCase(deviceClass) || "desktop".equalsIgnoreCase(deviceClass))
             ? "horizontal" : "vertical";
-        data.put("layout", formLayout);
+        data.setLayout(Form.Layout.fromValue(formLayout));
 
-        ArrayNode fields = objectMapper.createArrayNode();
+        List<FormField> fields = new ArrayList<>();
 
         // 1. Season
-        ObjectNode seasonField = objectMapper.createObjectNode();
-        seasonField.put("fieldId", "season");
-        seasonField.put("fieldType", "select");
-        seasonField.put("label", "Season");
-        seasonField.put("stateKey", "form_season");
-        ArrayNode seasonOptions = objectMapper.createArrayNode();
-        for (String s : new String[]{"2025-26", "2024-25", "2023-24", "2022-23"}) {
-            seasonOptions.add(objectMapper.createObjectNode().put("label", s).put("value", s));
-        }
-        seasonField.set("options", seasonOptions);
-        fields.add(seasonField);
+        fields.add(selectField("season", "Season", "form_season", new String[][]{
+                {"2025-26", "2025-26"}, {"2024-25", "2024-25"},
+                {"2023-24", "2023-24"}, {"2022-23", "2022-23"}}));
 
         // 2. Season Type
-        ObjectNode typeField = objectMapper.createObjectNode();
-        typeField.put("fieldId", "seasonType");
-        typeField.put("fieldType", "select");
-        typeField.put("label", "Season Type");
-        typeField.put("stateKey", "form_season_type");
-        ArrayNode typeOptions = objectMapper.createArrayNode();
-        for (String[] st : new String[][]{
-            {"Regular Season", "regular"},
-            {"Playoffs", "playoffs"},
-            {"All-Star", "allstar"}
-        }) {
-            typeOptions.add(objectMapper.createObjectNode().put("label", st[0]).put("value", st[1]));
-        }
-        typeField.set("options", typeOptions);
-        fields.add(typeField);
+        fields.add(selectField("seasonType", "Season Type", "form_season_type", new String[][]{
+                {"Regular Season", "regular"},
+                {"Playoffs", "playoffs"},
+                {"All-Star", "allstar"}}));
 
         // 3. Per Mode
-        ObjectNode modeField = objectMapper.createObjectNode();
-        modeField.put("fieldId", "perMode");
-        modeField.put("fieldType", "select");
-        modeField.put("label", "Per Mode");
-        modeField.put("stateKey", "form_per_mode");
-        ArrayNode modeOptions = objectMapper.createArrayNode();
-        for (String[] m : new String[][]{
-            {"Per Game", "per_game"},
-            {"Totals", "totals"},
-            {"Per 36 Min", "per_36"}
-        }) {
-            modeOptions.add(objectMapper.createObjectNode().put("label", m[0]).put("value", m[1]));
-        }
-        modeField.set("options", modeOptions);
-        fields.add(modeField);
+        fields.add(selectField("perMode", "Per Mode", "form_per_mode", new String[][]{
+                {"Per Game", "per_game"},
+                {"Totals", "totals"},
+                {"Per 36 Min", "per_36"}}));
 
         // 4. Stat Category
-        ObjectNode catField = objectMapper.createObjectNode();
-        catField.put("fieldId", "statCategory");
-        catField.put("fieldType", "select");
-        catField.put("label", "Stat Category");
-        catField.put("stateKey", "form_stat_category");
-        ArrayNode catOptions = objectMapper.createArrayNode();
-        for (String[] c : new String[][]{
-            {"PTS", "pts"}, {"REB", "reb"}, {"AST", "ast"},
-            {"STL", "stl"}, {"BLK", "blk"}, {"FG%", "fgPct"},
-            {"3PM", "tpm"}, {"FT%", "ftPct"}
-        }) {
-            catOptions.add(objectMapper.createObjectNode().put("label", c[0]).put("value", c[1]));
-        }
-        catField.set("options", catOptions);
-        fields.add(catField);
+        fields.add(selectField("statCategory", "Stat Category", "form_stat_category", new String[][]{
+                {"PTS", "pts"}, {"REB", "reb"}, {"AST", "ast"},
+                {"STL", "stl"}, {"BLK", "blk"}, {"FG%", "fgPct"},
+                {"3PM", "tpm"}, {"FT%", "ftPct"}}));
 
-        data.set("fields", fields);
+        data.setFields(fields);
 
-        ObjectNode submitAction = objectMapper.createObjectNode();
-        submitAction.put("trigger", "onSubmit");
-        submitAction.put("type", "refresh");
-        submitAction.put("target", SectionIdDeriver.derive("stats-api:leaders", "SeasonLeadersTable"));
-        submitAction.put("endpoint", "/v1/sdui/screen/leaders");
-        submitAction.put("onFailure", "halt");
-        ObjectNode submitFeedback = objectMapper.createObjectNode();
-        submitFeedback.put("message", "Stats lookup failed — please try again");
-        submitFeedback.put("style", "snackbar");
-        submitAction.set("failureFeedback", submitFeedback);
-        ObjectNode paramBindings = objectMapper.createObjectNode();
-        paramBindings.put("season", "{{form_season}}");
-        paramBindings.put("seasonType", "{{form_season_type}}");
-        paramBindings.put("perMode", "{{form_per_mode}}");
-        paramBindings.put("statCategory", "{{form_stat_category}}");
-        submitAction.set("paramBindings", paramBindings);
-        data.set("submitAction", submitAction);
+        Action submitAction = new Action();
+        submitAction.setTrigger(Action.ActionTrigger.ON_SUBMIT);
+        submitAction.setType(Action.ActionType.REFRESH);
+        submitAction.setTarget(SectionIdDeriver.derive("stats-api:leaders", "SeasonLeadersTable"));
+        submitAction.setEndpoint("/v1/sdui/screen/leaders");
+        submitAction.setOnFailure(Action.FailurePolicy.HALT);
 
-        data.put("submitLabel", "Search");
+        FailureFeedback submitFeedback = new FailureFeedback();
+        submitFeedback.setMessage("Stats lookup failed — please try again");
+        submitFeedback.setStyle(FailureFeedback.FailureFeedbackStyle.SNACKBAR);
+        submitAction.setFailureFeedback(submitFeedback);
 
-        section.set("data", data);
+        ParamBindings paramBindings = new ParamBindings();
+        paramBindings.setAdditionalProperty("season", "{{form_season}}");
+        paramBindings.setAdditionalProperty("seasonType", "{{form_season_type}}");
+        paramBindings.setAdditionalProperty("perMode", "{{form_per_mode}}");
+        paramBindings.setAdditionalProperty("statCategory", "{{form_stat_category}}");
+        submitAction.setParamBindings(paramBindings);
+        data.setSubmitAction(submitAction);
+
+        data.setSubmitLabel("Search");
+
+        section.setData(data);
         return section;
+    }
+
+    private FormField selectField(String fieldId, String label, String stateKey, String[][] options) {
+        FormField field = new FormField();
+        field.setFieldId(fieldId);
+        field.setFieldType(FormField.FieldType.SELECT);
+        field.setLabel(label);
+        field.setStateKey(stateKey);
+        List<FormOption> opts = new ArrayList<>();
+        for (String[] o : options) {
+            FormOption opt = new FormOption();
+            opt.setLabel(o[0]);
+            opt.setValue(o[1]);
+            opts.add(opt);
+        }
+        field.setOptions(opts);
+        return field;
     }
 
     /**
      * 11. AdSlot — GAM ad placement placeholder (ADR-007).
      */
-    private ObjectNode buildDemoAdSlot() {
+    private Section buildDemoAdSlot() {
         String contentSourceId = "ads:gam-demo-top";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AdSlot");
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", sectionId);
-        section.put("type", "AdSlot");
-        section.put("contentSourceId", contentSourceId);
-        section.put("analyticsId", "demo_ad_slot");
-        section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
-        section.set("surface", objectMapper.valueToTree(surfaces.adSlotSurface()));
+        Section section = new Section();
+        section.setId(sectionId);
+        section.setType(Section.Type.AD_SLOT);
+        section.setContentSourceId(contentSourceId);
+        section.setAnalyticsId("demo_ad_slot");
+        RefreshPolicy refreshPolicy = new RefreshPolicy();
+        refreshPolicy.setType(RefreshPolicy.RefreshType.STATIC);
+        section.setRefreshPolicy(refreshPolicy);
+        section.setSurface(surfaces.adSlotSurface());
 
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("provider", "gam");
-        data.put("adUnitPath", "/21234567/sports/nba/homepage_top");
+        AdSlot data = new AdSlot();
+        data.setProvider("gam");
+        data.setAdUnitPath("/21234567/sports/nba/homepage_top");
+        data.setSizes(List.of(List.of(320, 50), List.of(728, 90)));
 
-        ArrayNode sizes = objectMapper.createArrayNode();
-        ArrayNode size320 = objectMapper.createArrayNode();
-        size320.add(320);
-        size320.add(50);
-        sizes.add(size320);
-        ArrayNode size728 = objectMapper.createArrayNode();
-        size728.add(728);
-        size728.add(90);
-        sizes.add(size728);
-        data.set("sizes", sizes);
+        Targeting targeting = new Targeting();
+        targeting.setAdditionalProperty("section", "homepage");
+        targeting.setAdditionalProperty("content_type", "live_game");
+        data.setTargeting(targeting);
 
-        ObjectNode targeting = objectMapper.createObjectNode();
-        targeting.put("section", "homepage");
-        targeting.put("content_type", "live_game");
-        data.set("targeting", targeting);
+        data.setCollapseOnEmpty(true);
+        data.setLabel("Advertisement");
 
-        data.put("collapseOnEmpty", true);
-        data.put("label", "Advertisement");
+        Placeholder placeholder = new Placeholder();
+        placeholder.setBackgroundColor("token:nba.bg.tertiary");
+        placeholder.setText("Advertisement");
+        data.setPlaceholder(placeholder);
 
-        ObjectNode placeholder = objectMapper.createObjectNode();
-        placeholder.put("backgroundColor", "token:nba.bg.tertiary");
-        placeholder.put("text", "Advertisement");
-        data.set("placeholder", placeholder);
-
-        section.set("data", data);
+        section.setData(data);
         return section;
     }
 
     /**
      * 12. SeasonLeadersTable — default data (not currently wired into composeDemos).
      */
-    private ObjectNode buildDemoLeadersTable() {
+    private Section buildDemoLeadersTable() {
         return buildLeadersTable("2025-26", "regular", "per_game", "pts");
     }
 
     /**
      * 13. Game Card (featured composite) — hero-sized game card with background image and badge.
      */
-    private ObjectNode buildDemoFeaturedGamePanel() {
+    private Section buildDemoFeaturedGamePanel() {
         String contentSourceId = "demo:featured-game-panel";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         AtomicCompositeBuilder.GameClockSnapshot clock = new AtomicCompositeBuilder.GameClockSnapshot(
                 2 * 60 + 15, java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString(),
                 AtomicCompositeBuilder.INITIAL_CLOCK_RUNNING);
-        com.nba.sdui.models.generated.Section section = atomicBuilder.buildGamePanelComposite(
+        Section section = atomicBuilder.buildGamePanelComposite(
                 sectionId,
                 "demo_featured_game_panel",
                 "featured",
@@ -801,13 +807,13 @@ public class DemoScreenComposer {
                 null,
                 null);
         section.setContentSourceId(contentSourceId);
-        return (ObjectNode) objectMapper.valueToTree(section);
+        return section;
     }
 
     /**
      * 14. VideoCarousel — 4 video thumbnails in a horizontal carousel.
      */
-    private ObjectNode buildDemoVideoCarousel() {
+    private Section buildDemoVideoCarousel() {
         String contentSourceId = "demo:video-carousel";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         String[][] items = {
@@ -816,17 +822,17 @@ public class DemoScreenComposer {
             {"vid-3", "Edwards Poster Dunk", "Timberwolves vs Suns", DemoImageUrls.cardWide("dunk"), "0:32", "NEW", "nba://video/vid-3"},
             {"vid-4", "Jokić Triple-Double Recap", "Full highlights", DemoImageUrls.cardWide("triple-double"), "3:15", null, "nba://video/vid-4"}
         };
-        com.nba.sdui.models.generated.Section section = atomicBuilder.buildVideoCarousel(
+        Section section = atomicBuilder.buildVideoCarousel(
                 sectionId, "demo_video_carousel",
                 "Top Highlights", "Today's best plays", items);
         section.setContentSourceId(contentSourceId);
-        return (ObjectNode) objectMapper.valueToTree(section);
+        return section;
     }
 
     /**
      * 15. NbaTvSchedule — hero promo + 3 time slots.
      */
-    private ObjectNode buildDemoNbaTvSchedule() {
+    private Section buildDemoNbaTvSchedule() {
         String contentSourceId = "demo:nbatv-schedule";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         String[][] slots = {
@@ -834,7 +840,7 @@ public class DemoScreenComposer {
             {"slot-2", "LAL @ BOS", "Live game broadcast", "19:30", "true", "nba://game/0022400999"},
             {"slot-3", "NBA Inside Stuff", "Post-game interviews and highlights", "22:00", "false", null}
         };
-        com.nba.sdui.models.generated.Section section = atomicBuilder.buildNbaTvSchedule(
+        Section section = atomicBuilder.buildNbaTvSchedule(
                 sectionId, "demo_nbatv_schedule",
                 DemoImageUrls.hero("arena"),
                 "NBA TV Live",
@@ -842,7 +848,7 @@ public class DemoScreenComposer {
                 true, slots);
         section.setContentSourceId(contentSourceId);
         section.setSurface(surfaces.cardSurface());
-        return (ObjectNode) objectMapper.valueToTree(section);
+        return section;
     }
 
     /**
@@ -1062,7 +1068,7 @@ public class DemoScreenComposer {
     /**
      * 18. FollowingRail — horizontal rail of 5 followed teams/players.
      */
-    private ObjectNode buildDemoFollowingRail() {
+    private Section buildDemoFollowingRail() {
         String contentSourceId = "demo:following-rail";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         String[][] items = {
@@ -1072,16 +1078,16 @@ public class DemoScreenComposer {
             {"team-gsw", "Warriors", SduiUtils.teamLogoUrl("1610612744"), "team", "nba://team/1610612744"},
             {"player-sga", "Shai Gilgeous-Alexander", DemoImageUrls.headshot("1630175"), "player", "nba://player/1630175"}
         };
-        com.nba.sdui.models.generated.Section section = atomicBuilder.buildFollowingRail(
+        Section section = atomicBuilder.buildFollowingRail(
                 sectionId, "demo_following_rail", "Following", items);
         section.setContentSourceId(contentSourceId);
-        return (ObjectNode) objectMapper.valueToTree(section);
+        return section;
     }
 
     /**
      * 19. DisplayGrid — display-only standings table via the atomic DisplayGrid primitive.
      */
-    private ObjectNode buildDemoDisplayGrid() {
+    private Section buildDemoDisplayGrid() {
         String contentSourceId = "demo:display-grid";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         String[][] columns = {
@@ -1102,29 +1108,29 @@ public class DemoScreenComposer {
             {"PHI", "35", "31", ".530", "17.0", "L3"},
             {"MIA", "33", "33", ".500", "19.0", "W1"}
         };
-        com.nba.sdui.models.generated.Section section = atomicBuilder.buildDisplayGrid(
+        Section section = atomicBuilder.buildDisplayGrid(
                 sectionId, "demo_display_grid",
                 "Eastern Conference Standings",
                 columns, rows,
                 false);
         section.setContentSourceId(contentSourceId);
-        return (ObjectNode) objectMapper.valueToTree(section);
+        return section;
     }
 
     /**
      * 20. ErrorState — server-driven error with retry action.
      */
-    private ObjectNode buildDemoErrorState() {
+    private Section buildDemoErrorState() {
         String contentSourceId = "demo:error-state";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
-        com.nba.sdui.models.generated.Section section = atomicBuilder.buildErrorState(
+        Section section = atomicBuilder.buildErrorState(
                 sectionId,
                 "Something went wrong",
                 "We couldn't load this content. This is a demo of the ErrorState section type.",
                 "error",
                 "nba://scoreboard");
         section.setContentSourceId(contentSourceId);
-        return (ObjectNode) objectMapper.valueToTree(section);
+        return section;
     }
 
     /**
@@ -1216,10 +1222,10 @@ public class DemoScreenComposer {
         return (ObjectNode) objectMapper.valueToTree(section);
     }
 
-    private ObjectNode buildDemoSectionHeaderComposite() {
+    private Section buildDemoSectionHeaderComposite() {
         String contentSourceId = "feed:demo";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite", "section-header");
-        com.nba.sdui.models.generated.Section section = atomicBuilder.buildSectionHeaderComposite(
+        Section section = atomicBuilder.buildSectionHeaderComposite(
                 sectionId,
                 "demo_section_header_composite",
                 "Top Stories",
@@ -1228,10 +1234,10 @@ public class DemoScreenComposer {
                 "nba://news");
         section.setContentSourceId(contentSourceId);
         section.setSurface(surfaces.sectionHeaderSurface());
-        return (ObjectNode) objectMapper.valueToTree(section);
+        return section;
     }
 
-    private ObjectNode buildDemoStoryCircleRail() {
+    private Section buildDemoStoryCircleRail() {
         String contentSourceId = "demo:story-circle-rail";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         String[][] items = {
@@ -1240,14 +1246,14 @@ public class DemoScreenComposer {
                 {"story-draft", "Draft", DemoImageUrls.cardWide("draft"), null, "nba://stories/draft"},
                 {"story-nbatv", "NBA TV", DemoImageUrls.cardWide("nbatv"), "LIVE", "nba://watch/nbatv"}
         };
-        com.nba.sdui.models.generated.Section section = atomicBuilder.buildStoryCircleRail(
+        Section section = atomicBuilder.buildStoryCircleRail(
                 sectionId, "demo_story_circle_rail", null, items);
         section.setContentSourceId(contentSourceId);
         section.setSurface(surfaces.railSurface());
-        return (ObjectNode) objectMapper.valueToTree(section);
+        return section;
     }
 
-    private ObjectNode buildDemoEditorialOverlayRail() {
+    private Section buildDemoEditorialOverlayRail() {
         String contentSourceId = "demo:editorial-overlay-rail";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         String[][] cards = {
@@ -1258,14 +1264,14 @@ public class DemoScreenComposer {
                 {"editorial-3", "Rookies making noise", "First-year players changing rotations",
                         DemoImageUrls.cardWide("editorial-3"), "LIVE", "nba://video/rookies"}
         };
-        com.nba.sdui.models.generated.Section section = atomicBuilder.buildEditorialOverlayRail(
+        Section section = atomicBuilder.buildEditorialOverlayRail(
                 sectionId, "demo_editorial_overlay_rail", null, cards);
         section.setContentSourceId(contentSourceId);
         section.setSurface(surfaces.railSurface());
-        return (ObjectNode) objectMapper.valueToTree(section);
+        return section;
     }
 
-    private ObjectNode buildDemoFeaturedLiveGameHero() {
+    private Section buildDemoFeaturedLiveGameHero() {
         String contentSourceId = "demo:featured-live-game-hero";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         String bosLogo = SduiUtils.teamLogoUrl("1610612738");
@@ -1283,14 +1289,14 @@ public class DemoScreenComposer {
                         "OKC", null, okcLogo, "DEN", null, denLogo, "10:00 PM ET", "Season series tied",
                         DemoImageUrls.logoWide(), "nba://game/0022400778", null}
         };
-        com.nba.sdui.models.generated.Section section = atomicBuilder.buildFeaturedLiveGameHero(
+        Section section = atomicBuilder.buildFeaturedLiveGameHero(
                 sectionId, "demo_featured_live_game_hero", null, cards);
         section.setContentSourceId(contentSourceId);
         section.setSurface(surfaces.railSurface());
-        return (ObjectNode) objectMapper.valueToTree(section);
+        return section;
     }
 
-    private ObjectNode buildDemoUtilityCardGrid() {
+    private Section buildDemoUtilityCardGrid() {
         String contentSourceId = "demo:utility-card-grid";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         String[][] items = {
@@ -1303,14 +1309,14 @@ public class DemoScreenComposer {
                 {"utility-shop", "Shop", "Jerseys, hats, and more",
                         DemoImageUrls.cardWide("shop"), "nba://shop"}
         };
-        com.nba.sdui.models.generated.Section section = atomicBuilder.buildUtilityCardGrid(
+        Section section = atomicBuilder.buildUtilityCardGrid(
                 sectionId, "demo_utility_card_grid", "Around the League", items);
         section.setContentSourceId(contentSourceId);
         section.setSurface(surfaces.cardSurface());
-        return (ObjectNode) objectMapper.valueToTree(section);
+        return section;
     }
 
-    private ObjectNode buildDemoLeagueCardRail() {
+    private Section buildDemoLeagueCardRail() {
         String contentSourceId = "demo:league-card-rail";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         String[][] items = {
@@ -1318,14 +1324,14 @@ public class DemoScreenComposer {
                 {"league-gleague", "G League", DemoImageUrls.cardWide("league-gleague"), "nba://league/gleague"},
                 {"league-2k", "NBA 2K League", null, "nba://league/2k"}
         };
-        com.nba.sdui.models.generated.Section section = atomicBuilder.buildLeagueCardRail(
+        Section section = atomicBuilder.buildLeagueCardRail(
                 sectionId, "demo_league_card_rail", "Other Leagues", items);
         section.setContentSourceId(contentSourceId);
         section.setSurface(surfaces.railSurface());
-        return (ObjectNode) objectMapper.valueToTree(section);
+        return section;
     }
 
-    private ObjectNode buildDemoGameScheduleList() {
+    private Section buildDemoGameScheduleList() {
         String contentSourceId = "demo:game-schedule-list";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         String[][] rows = {
@@ -1336,11 +1342,11 @@ public class DemoScreenComposer {
                         "LAL", "Lakers", "7", "110", SduiUtils.teamLogoUrl("1610612747"),
                         "Final", null, DemoImageUrls.logoWide(), "nba://game/0022400002", null}
         };
-        com.nba.sdui.models.generated.Section section = atomicBuilder.buildGameScheduleList(
+        Section section = atomicBuilder.buildGameScheduleList(
                 sectionId, "demo_game_schedule_list", "Today", rows);
         section.setContentSourceId(contentSourceId);
         section.setSurface(surfaces.flushSurface());
-        return (ObjectNode) objectMapper.valueToTree(section);
+        return section;
     }
 
     // ── Private helpers ────────────────────────────────────────────────
@@ -1348,14 +1354,14 @@ public class DemoScreenComposer {
     /**
      * Build a SectionHeader labelling the section type for the kitchen-sink demo.
      */
-    private ObjectNode buildTypeLabel(String sectionType) {
+    private Section buildTypeLabel(String sectionType) {
         String contentSourceId = "feed:demo";
         String slug = "label-" + sectionType.toLowerCase().replaceAll("[^a-z0-9\\-]", "-");
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite", slug);
-        com.nba.sdui.models.generated.Section section = atomicBuilder.buildSectionHeader(
+        Section section = atomicBuilder.buildSectionHeader(
                 sectionId, sectionType, null, null, null);
         section.setContentSourceId(contentSourceId);
-        return (ObjectNode) objectMapper.valueToTree(section);
+        return section;
     }
 
     private ObjectNode demoPlayerRow(String playerId, String name, String position,

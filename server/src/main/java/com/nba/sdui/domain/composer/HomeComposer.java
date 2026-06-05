@@ -1,13 +1,17 @@
 package com.nba.sdui.domain.composer;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.nba.sdui.models.generated.AdSlot;
 import com.nba.sdui.models.generated.AtomicElement;
+import com.nba.sdui.models.generated.Placeholder;
 import com.nba.sdui.models.generated.Screen;
 import com.nba.sdui.models.generated.Section;
+import com.nba.sdui.models.generated.SectionSurface;
+import com.nba.sdui.models.generated.Spacing;
+import com.nba.sdui.models.generated.Targeting;
 import java.util.ArrayList;
 import java.util.List;
 import org.slf4j.Logger;
@@ -81,26 +85,26 @@ public class HomeComposer {
         ArrayNode sections = objectMapper.createArrayNode();
 
         // ── Row 1: Hero (2/3 width) + Headlines (1/3 width) ──────────
-        sections.add(buildHeroAndHeadlinesRow());
+        sections.add(objectMapper.valueToTree(buildHeroAndHeadlinesRow()));
 
         // ── Row 2: Stories (2/3 width) + Ad Slot (1/3 width) ─────────
-        sections.add(buildStoriesAndAdRow());
+        sections.add(objectMapper.valueToTree(buildStoriesAndAdRow()));
 
         // 6-7. Trending Now
-        sections.add(buildSectionHeader("trending-header", "TRENDING NOW", null, null));
-        sections.add(buildTrendingVideoRail());
+        sections.add(objectMapper.valueToTree(buildSectionHeader("trending-header", "TRENDING NOW", null, null)));
+        sections.add(objectMapper.valueToTree(buildTrendingVideoRail()));
 
         // 8-9. 2026 Postseason
-        sections.add(buildSectionHeader("postseason-header", "2026 POSTSEASON", null, null));
-        sections.add(buildPostseasonRail());
+        sections.add(objectMapper.valueToTree(buildSectionHeader("postseason-header", "2026 POSTSEASON", null, null)));
+        sections.add(objectMapper.valueToTree(buildPostseasonRail()));
 
         // 10-11. Game Recaps
-        sections.add(buildSectionHeader("recaps-header", "2025-26 GAME RECAPS", "See More", "nba://recaps"));
-        sections.add(buildRecapsVideoRail());
+        sections.add(objectMapper.valueToTree(buildSectionHeader("recaps-header", "2025-26 GAME RECAPS", "See More", "nba://recaps")));
+        sections.add(objectMapper.valueToTree(buildRecapsVideoRail()));
 
         // 12-13. Around the NBA
-        sections.add(buildSectionHeader("around-header", "AROUND THE NBA", null, null));
-        sections.add(buildAroundTheNbaList());
+        sections.add(objectMapper.valueToTree(buildSectionHeader("around-header", "AROUND THE NBA", null, null)));
+        sections.add(objectMapper.valueToTree(buildAroundTheNbaList()));
 
         response.set("sections", sections);
         utils.ensureScreenContentInsets(response);
@@ -118,7 +122,7 @@ public class HomeComposer {
      * Row 1: Two-column layout — Hero carousel (left, 2/3) + Headlines (right, 1/3).
      * Collapses to single column on narrow viewports (< 768px).
      */
-    private ObjectNode buildHeroAndHeadlinesRow() {
+    private Section buildHeroAndHeadlinesRow() {
         // Hero carousel content (embedded as SectionSlot)
         String heroContentSourceId = "cms:home-hero";
         String[][] heroSlides = {
@@ -142,7 +146,7 @@ public class HomeComposer {
         heroSection.setSurface(surfaces.flushSurface());
 
         // Headlines content (embedded as SectionSlot)
-        ObjectNode headlinesSection = buildHeadlinesList();
+        Section headlinesSection = buildHeadlinesList();
 
         // Compose as responsive row
         String rowContentSourceId = "feed:home";
@@ -155,32 +159,31 @@ public class HomeComposer {
         atomicBuilder.setFlex(leftSlot, 2);
         children.add(leftSlot);
 
-        AtomicElement rightSlot = atomicBuilder.sectionSlot("row1-headlines",
-                objectMapper.convertValue(headlinesSection, com.nba.sdui.models.generated.Section.class));
+        AtomicElement rightSlot = atomicBuilder.sectionSlot("row1-headlines", headlinesSection);
         atomicBuilder.setFlex(rightSlot, 1);
         children.add(rightSlot);
 
         row.setChildren(children);
         Section section = atomicBuilder.wrapAsComposite(rowSectionId, "home_row1", row);
         section.setContentSourceId(rowContentSourceId);
-        ObjectNode surface = (ObjectNode) objectMapper.valueToTree(surfaces.flushSurface());
-        ObjectNode margin = objectMapper.createObjectNode();
-        margin.put("top", tokens.spacing("lg"));
-        surface.set("margin", margin);
-        section.setSurface(objectMapper.convertValue(surface, com.nba.sdui.models.generated.SectionSurface.class));
-        return (ObjectNode) objectMapper.valueToTree(section);
+        SectionSurface surface = surfaces.flushSurface();
+        Spacing margin = new Spacing();
+        margin.setTop(tokens.spacing("lg"));
+        surface.setMargin(margin);
+        section.setSurface(surface);
+        return section;
     }
 
     /**
      * Row 2: Two-column layout — Stories rail (left, 2/3) + Ad slot (right, 1/3).
      * Collapses to single column on narrow viewports (< 768px).
      */
-    private ObjectNode buildStoriesAndAdRow() {
+    private Section buildStoriesAndAdRow() {
         // Stories rail (embedded as SectionSlot)
-        ObjectNode storiesSection = buildStoriesRail();
+        Section storiesSection = buildStoriesRail();
 
         // Ad slot (embedded as SectionSlot)
-        ObjectNode adSection = buildAdSlot("home/sidebar");
+        Section adSection = buildAdSlot("home/sidebar");
 
         // Compose as responsive row
         String rowContentSourceId = "feed:home";
@@ -189,13 +192,11 @@ public class HomeComposer {
         row.setId(rowSectionId);
         List<AtomicElement> children = new ArrayList<>();
 
-        AtomicElement leftSlot = atomicBuilder.sectionSlot("row2-stories",
-                objectMapper.convertValue(storiesSection, com.nba.sdui.models.generated.Section.class));
+        AtomicElement leftSlot = atomicBuilder.sectionSlot("row2-stories", storiesSection);
         atomicBuilder.setFlex(leftSlot, 2);
         children.add(leftSlot);
 
-        AtomicElement rightSlot = atomicBuilder.sectionSlot("row2-ad",
-                objectMapper.convertValue(adSection, com.nba.sdui.models.generated.Section.class));
+        AtomicElement rightSlot = atomicBuilder.sectionSlot("row2-ad", adSection);
         atomicBuilder.setFlex(rightSlot, 1);
         children.add(rightSlot);
 
@@ -203,20 +204,20 @@ public class HomeComposer {
         Section section = atomicBuilder.wrapAsComposite(rowSectionId, "home_row2", row);
         section.setContentSourceId(rowContentSourceId);
         section.setSurface(surfaces.flushSurface());
-        return (ObjectNode) objectMapper.valueToTree(section);
+        return section;
     }
 
-    private ObjectNode buildSectionHeader(String slug, String title,
+    private Section buildSectionHeader(String slug, String title,
                                            String actionLabel, String actionUri) {
         String contentSourceId = "feed:home";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite", slug);
         Section header = atomicBuilder.buildSectionHeader(sectionId, title, null, actionLabel, actionUri);
         header.setContentSourceId(contentSourceId);
         header.setSurface(surfaces.sectionHeaderSurface());
-        return (ObjectNode) objectMapper.valueToTree(header);
+        return header;
     }
 
-    private ObjectNode buildStoriesRail() {
+    private Section buildStoriesRail() {
         String contentSourceId = "cms:home-stories";
         // cards: [id, title, imageUrl, badgeText, targetUri]
         String[][] cards = {
@@ -241,7 +242,7 @@ public class HomeComposer {
                 sectionId, "home_stories", "STORIES", cards);
         rail.setContentSourceId(contentSourceId);
         rail.setSurface(surfaces.railSurface());
-        return (ObjectNode) objectMapper.valueToTree(rail);
+        return rail;
     }
 
     /**
@@ -249,7 +250,7 @@ public class HomeComposer {
      * Includes its own "HEADLINES" header since it's embedded in a SectionSlot.
      * Each row is tappable, navigating to the article.
      */
-    private ObjectNode buildHeadlinesList() {
+    private Section buildHeadlinesList() {
         String contentSourceId = "cms:home-headlines";
         String[][] headlines = {
                 {"Celtics' Tatum named Eastern Conference Player of the Week", "nba://article/tatum-potw"},
@@ -301,10 +302,10 @@ public class HomeComposer {
         Section section = atomicBuilder.wrapAsComposite(sectionId, "home_headlines", root);
         section.setContentSourceId(contentSourceId);
         section.setSurface(surfaces.railSurface());
-        return (ObjectNode) objectMapper.valueToTree(section);
+        return section;
     }
 
-    private ObjectNode buildTrendingVideoRail() {
+    private Section buildTrendingVideoRail() {
         String contentSourceId = "cms:home-trending";
         String[][] videos = {
                 {"trend-1", "Top 10 Plays of the Night", "Last night's best moments",
@@ -321,10 +322,10 @@ public class HomeComposer {
                 sectionId, "home_trending", null, null, videos);
         rail.setContentSourceId(contentSourceId);
         rail.setSurface(surfaces.railSurface());
-        return (ObjectNode) objectMapper.valueToTree(rail);
+        return rail;
     }
 
-    private ObjectNode buildPostseasonRail() {
+    private Section buildPostseasonRail() {
         String contentSourceId = "cms:home-postseason";
         // cards: [id, title, subtitle, imageUrl, badgeText, targetUri]
         String[][] cards = {
@@ -342,10 +343,10 @@ public class HomeComposer {
                 sectionId, "home_postseason", null, cards);
         rail.setContentSourceId(contentSourceId);
         rail.setSurface(surfaces.railSurface());
-        return (ObjectNode) objectMapper.valueToTree(rail);
+        return rail;
     }
 
-    private ObjectNode buildRecapsVideoRail() {
+    private Section buildRecapsVideoRail() {
         String contentSourceId = "cms:home-recaps";
         String[][] videos = {
                 {"recap-1", "BOS 112 - MIA 98", "Celtics take Game 3",
@@ -362,14 +363,14 @@ public class HomeComposer {
                 sectionId, "home_recaps", null, null, videos);
         rail.setContentSourceId(contentSourceId);
         rail.setSurface(surfaces.railSurface());
-        return (ObjectNode) objectMapper.valueToTree(rail);
+        return rail;
     }
 
     /**
      * Vertical list of article cards: thumbnail on the left, headline + 
      * description + timestamp on the right.
      */
-    private ObjectNode buildAroundTheNbaList() {
+    private Section buildAroundTheNbaList() {
         String[][] articles = {
                 {"around-1", "Lakers eyeing major free agent signing this summer",
                         "Multiple sources confirm Los Angeles is preparing a max-level offer",
@@ -451,51 +452,42 @@ public class HomeComposer {
         Section section = atomicBuilder.wrapAsComposite(sectionId, "home_around", root);
         section.setContentSourceId(contentSourceId);
         section.setSurface(surfaces.railSurface());
-        return (ObjectNode) objectMapper.valueToTree(section);
+        return section;
     }
 
     // ── Helpers ────────────────────────────────────────────────────────
 
     /** AdSlot section — ad placement primitive (ADR-007). */
-    private ObjectNode buildAdSlot(String adUnitPath) {
+    private Section buildAdSlot(String adUnitPath) {
         String contentSourceId = "ads:gam-" + adUnitPath.replace("/", "_");
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AdSlot");
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", sectionId);
-        section.put("contentSourceId", contentSourceId);
-        section.put("type", "AdSlot");
-        section.put("analyticsId", sectionId.replaceAll("[~:=]", "_"));
-        section.set("surface", objectMapper.valueToTree(surfaces.adSlotSurface()));
 
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("provider", "gam");
-        data.put("adUnitPath", adUnitPath);
+        Section section = new Section();
+        section.setId(sectionId);
+        section.setContentSourceId(contentSourceId);
+        section.setType(Section.Type.AD_SLOT);
+        section.setAnalyticsId(sectionId.replaceAll("[~:=]", "_"));
+        section.setSurface(surfaces.adSlotSurface());
 
-        ArrayNode sizes = objectMapper.createArrayNode();
-        ArrayNode size300 = objectMapper.createArrayNode();
-        size300.add(300);
-        size300.add(250);
-        sizes.add(size300);
-        ArrayNode size300x600 = objectMapper.createArrayNode();
-        size300x600.add(300);
-        size300x600.add(600);
-        sizes.add(size300x600);
-        data.set("sizes", sizes);
+        AdSlot data = new AdSlot();
+        data.setProvider("gam");
+        data.setAdUnitPath(adUnitPath);
+        data.setSizes(List.of(List.of(300, 250), List.of(300, 600)));
 
-        ObjectNode targeting = objectMapper.createObjectNode();
-        targeting.put("section", "home");
-        targeting.put("position", "sidebar");
-        data.set("targeting", targeting);
+        Targeting targeting = new Targeting();
+        targeting.setAdditionalProperty("section", "home");
+        targeting.setAdditionalProperty("position", "sidebar");
+        data.setTargeting(targeting);
 
-        data.put("collapseOnEmpty", true);
-        data.put("label", "Advertisement");
+        data.setCollapseOnEmpty(true);
+        data.setLabel("Advertisement");
 
-        ObjectNode placeholder = objectMapper.createObjectNode();
-        placeholder.put("backgroundColor", tokens.color("nba.bg.tertiary"));
-        placeholder.put("text", "Advertisement");
-        data.set("placeholder", placeholder);
+        Placeholder placeholder = new Placeholder();
+        placeholder.setBackgroundColor(tokens.color("nba.bg.tertiary"));
+        placeholder.setText("Advertisement");
+        data.setPlaceholder(placeholder);
 
-        section.set("data", data);
+        section.setData(data);
         return section;
     }
 

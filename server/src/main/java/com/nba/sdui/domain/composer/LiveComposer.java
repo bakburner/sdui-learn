@@ -20,10 +20,18 @@ import com.nba.sdui.domain.AtomicCompositeBuilder;
 import com.nba.sdui.domain.SduiUtils;
 import com.nba.sdui.domain.SectionIdDeriver;
 import com.nba.sdui.domain.SectionSurfaces;
+import com.nba.sdui.models.generated.AccessibilityProperties;
+import com.nba.sdui.models.generated.Action;
+import com.nba.sdui.models.generated.AdSlot;
+import com.nba.sdui.models.generated.CalendarStrip;
+import com.nba.sdui.models.generated.ParamBindings;
+import com.nba.sdui.models.generated.Placeholder;
+import com.nba.sdui.models.generated.RefreshPolicy;
 import com.nba.sdui.models.generated.Screen;
 import com.nba.sdui.models.generated.Section;
 import com.nba.sdui.models.generated.SectionSurface;
 import com.nba.sdui.models.generated.Spacing;
+import com.nba.sdui.models.generated.Targeting;
 import com.nba.sdui.orchestration.ParameterizedRefreshService;
 import com.nba.sdui.orchestration.SectionRefreshService;
 import com.nba.sdui.remote.SeasonCalendarService;
@@ -329,40 +337,40 @@ public class LiveComposer {
         String contentSourceId = "server:games-calendar";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "CalendarStrip");
 
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", sectionId);
-        section.put("type", "CalendarStrip");
-        section.put("contentSourceId", contentSourceId);
-        section.put("analyticsId", "games_calendar_strip");
+        Section section = new Section();
+        section.setId(sectionId);
+        section.setType(Section.Type.CALENDAR_STRIP);
+        section.setContentSourceId(contentSourceId);
+        section.setAnalyticsId("games_calendar_strip");
 
-        ObjectNode accessibility = objectMapper.createObjectNode();
-        accessibility.put("label", "Games date picker");
-        section.set("accessibility", accessibility);
+        AccessibilityProperties accessibility = new AccessibilityProperties();
+        accessibility.setLabel("Games date picker");
+        section.setAccessibility(accessibility);
 
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("stateKey", "games_selected_date");
-        data.put("selectedDate", selectedDate);
-        data.put("defaultDate", defaultDate);
-        data.put("minDate", seasonCalendarService.seasonStart().toString());
-        data.put("maxDate", seasonCalendarService.seasonEnd().toString());
+        CalendarStrip data = new CalendarStrip();
+        data.setStateKey("games_selected_date");
+        data.setSelectedDate(selectedDate);
+        data.setDefaultDate(defaultDate);
+        data.setMinDate(seasonCalendarService.seasonStart().toString());
+        data.setMaxDate(seasonCalendarService.seasonEnd().toString());
 
-        ObjectNode onDateSelected = objectMapper.createObjectNode();
-        onDateSelected.put("trigger", "onActivate");
-        onDateSelected.put("type", "refresh");
-        onDateSelected.put("endpoint", "/v1/sdui/screen/games");
-        ObjectNode paramBindings = objectMapper.createObjectNode();
-        paramBindings.put("date", "{{games_selected_date}}");
-        onDateSelected.set("paramBindings", paramBindings);
-        data.set("onDateSelected", onDateSelected);
+        Action onDateSelected = new Action();
+        onDateSelected.setTrigger(Action.ActionTrigger.ON_ACTIVATE);
+        onDateSelected.setType(Action.ActionType.REFRESH);
+        onDateSelected.setEndpoint("/v1/sdui/screen/games");
+        ParamBindings paramBindings = new ParamBindings();
+        paramBindings.setAdditionalProperty("date", "{{games_selected_date}}");
+        onDateSelected.setParamBindings(paramBindings);
+        data.setOnDateSelected(onDateSelected);
 
-        ObjectNode expandedAction = objectMapper.createObjectNode();
-        expandedAction.put("trigger", "onActivate");
-        expandedAction.put("type", "navigate");
-        expandedAction.put("targetUri", "nba://calendar");
-        data.set("expandedAction", expandedAction);
+        Action expandedAction = new Action();
+        expandedAction.setTrigger(Action.ActionTrigger.ON_ACTIVATE);
+        expandedAction.setType(Action.ActionType.NAVIGATE);
+        expandedAction.setTargetUri("nba://calendar");
+        data.setExpandedAction(expandedAction);
 
-        section.set("data", data);
-        return toSection(section);
+        section.setData(data);
+        return section;
     }
 
     // ── Section builders ───────────────────────────────────────────────
@@ -746,46 +754,35 @@ public class LiveComposer {
         String contentSourceId = "ads:gam-games_screen";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AdSlot");
 
-        ObjectNode sectionNode = objectMapper.createObjectNode();
-        sectionNode.put("id", sectionId);
-        sectionNode.put("type", "AdSlot");
-        sectionNode.put("analyticsId", "games_screen_ad");
-        sectionNode.put("contentSourceId", contentSourceId);
+        Section section = new Section();
+        section.setId(sectionId);
+        section.setType(Section.Type.AD_SLOT);
+        section.setAnalyticsId("games_screen_ad");
+        section.setContentSourceId(contentSourceId);
 
-        ObjectNode refreshPolicy = objectMapper.createObjectNode();
-        refreshPolicy.put("type", "static");
-        sectionNode.set("refreshPolicy", refreshPolicy);
+        RefreshPolicy refreshPolicy = new RefreshPolicy();
+        refreshPolicy.setType(RefreshPolicy.RefreshType.STATIC);
+        section.setRefreshPolicy(refreshPolicy);
 
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("provider", "gam");
-        data.put("adUnitPath", "/nba/games_screen");
+        AdSlot data = new AdSlot();
+        data.setProvider("gam");
+        data.setAdUnitPath("/nba/games_screen");
+        data.setSizes(List.of(List.of(320, 50), List.of(728, 90)));
 
-        ArrayNode sizes = objectMapper.createArrayNode();
-        ArrayNode size320 = objectMapper.createArrayNode();
-        size320.add(320);
-        size320.add(50);
-        sizes.add(size320);
-        ArrayNode size728 = objectMapper.createArrayNode();
-        size728.add(728);
-        size728.add(90);
-        sizes.add(size728);
-        data.set("sizes", sizes);
+        Targeting targeting = new Targeting();
+        targeting.setAdditionalProperty("section", "games");
+        targeting.setAdditionalProperty("position", "games_screen");
+        data.setTargeting(targeting);
 
-        ObjectNode targeting = objectMapper.createObjectNode();
-        targeting.put("section", "games");
-        targeting.put("position", "games_screen");
-        data.set("targeting", targeting);
+        data.setCollapseOnEmpty(true);
+        data.setLabel("Advertisement");
 
-        data.put("collapseOnEmpty", true);
-        data.put("label", "Advertisement");
+        Placeholder placeholder = new Placeholder();
+        placeholder.setBackgroundColor("token:nba.bg.tertiary");
+        placeholder.setText("Advertisement");
+        data.setPlaceholder(placeholder);
 
-        ObjectNode placeholder = objectMapper.createObjectNode();
-        placeholder.put("backgroundColor", "token:nba.bg.tertiary");
-        placeholder.put("text", "Advertisement");
-        data.set("placeholder", placeholder);
-
-        sectionNode.set("data", data);
-        Section section = toSection(sectionNode);
+        section.setData(data);
         section.setSurface(surfaces.adSlotSurface());
         return section;
     }

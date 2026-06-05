@@ -998,8 +998,9 @@ public class AtomicCompositeBuilder {
     }
 
     /**
-     * Overload that accepts pre-built stat ObjectNodes from dynamic API data.
-     * Each node should have: playerName, teamTricode, statCategory, statValue, playerImageUrl (optional).
+     * Overload that accepts pre-built stat JSON from dynamic API data.
+     * Each node should have: playerName, teamTricode, statCategory,
+     * statValue, playerImageUrl (optional).
      */
     public Section buildStatLineFromNodes(String id, String analyticsId,
                                               String title, String layout,
@@ -2831,10 +2832,9 @@ public class AtomicCompositeBuilder {
     }
 
     /**
-     * Typed variant: paged horizontal carousel. Schema does not expose
+     * Paged horizontal carousel. Schema does not expose
      * {@code paging}/{@code snapAlignment}/{@code pageIndicator} as typed
-     * fields on AtomicElement, so they ride through as additional properties
-     * (same wire shape as the ObjectNode variant).
+     * fields on AtomicElement, so they ride through as additional properties.
      */
     private AtomicElement pagedHorizontalScrollTyped(Object gap, int childCount, Spacing padding,
                                                      String indicatorAlignment,

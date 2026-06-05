@@ -2,7 +2,6 @@ package com.nba.sdui.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.nba.sdui.error.UnsupportedSectionException;
 import com.nba.sdui.models.generated.Screen;
 import com.nba.sdui.orchestration.ParameterizedRefreshService;
@@ -24,6 +23,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Duration;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -551,7 +551,7 @@ public class SduiController {
     public ResponseEntity<Object> init(SduiRequestContext ctx, HttpServletResponse response) {
         setResponseHeaders(response, ctx);
 
-        ObjectNode body = objectMapper.createObjectNode();
+        Map<String, Object> body = new LinkedHashMap<>();
         body.put("bootstrapUri", "nba://for-you");
         body.put("schemaVersion", ctx.getSchemaVersion());
         return ResponseEntity.ok()

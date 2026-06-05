@@ -56,17 +56,21 @@ class ParameterizedRefreshRoutingTest {
     void setUp() throws Exception {
         ObjectNode gamesScreen = (ObjectNode) objectMapper.readTree(
                 "{\"id\":\"games\",\"schemaVersion\":\"1.0\",\"sections\":[]}");
+        com.nba.sdui.models.generated.Screen gamesScreenTyped =
+                objectMapper.treeToValue(gamesScreen, com.nba.sdui.models.generated.Screen.class);
         when(compositionService.composeLive(any(SduiRequestContext.class)))
-                .thenReturn(objectMapper.treeToValue(gamesScreen, com.nba.sdui.models.generated.Screen.class));
+                .thenReturn(gamesScreenTyped);
         when(parameterizedRefreshService.refreshScreen(eq("games"), anyString(), any(), any()))
-                .thenReturn(Optional.of(gamesScreen));
+                .thenReturn(Optional.of(gamesScreenTyped));
 
         ObjectNode leadersScreen = (ObjectNode) objectMapper.readTree(
                 "{\"id\":\"leaders\",\"schemaVersion\":\"1.0\",\"sections\":[]}");
+        com.nba.sdui.models.generated.Screen leadersScreenTyped =
+                objectMapper.treeToValue(leadersScreen, com.nba.sdui.models.generated.Screen.class);
         when(compositionService.composeLeaders(any(SduiRequestContext.class)))
-                .thenReturn(objectMapper.treeToValue(leadersScreen, com.nba.sdui.models.generated.Screen.class));
+                .thenReturn(leadersScreenTyped);
         when(parameterizedRefreshService.refreshScreen(eq("leaders"), anyString(), any(), any()))
-                .thenReturn(Optional.of(leadersScreen));
+                .thenReturn(Optional.of(leadersScreenTyped));
     }
 
     @Test

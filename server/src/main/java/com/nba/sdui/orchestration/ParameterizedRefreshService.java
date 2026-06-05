@@ -1,6 +1,6 @@
 package com.nba.sdui.orchestration;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.nba.sdui.models.generated.Screen;
 import com.nba.sdui.request.SduiRequestContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,7 +30,7 @@ public class ParameterizedRefreshService {
 
     @FunctionalInterface
     public interface ScreenRefreshResolver {
-        ObjectNode resolve(String traceId, Map<String, String> userParams, SduiRequestContext ctx)
+        Screen resolve(String traceId, Map<String, String> userParams, SduiRequestContext ctx)
                 throws Exception;
     }
 
@@ -44,22 +44,22 @@ public class ParameterizedRefreshService {
     /**
      * Invoke the resolver for {@code screenId}.
      *
-     * @return the composed screen node, or {@link Optional#empty()} when no resolver is
+     * @return the composed {@link Screen}, or {@link Optional#empty()} when no resolver is
      *         registered for the given screen ID (caller should return 404).
      * @throws RuntimeException wrapping the resolver's exception on composition failure
      *         (caller should return 500).
      */
-    public Optional<ObjectNode> refreshScreen(String screenId,
-                                              String traceId,
-                                              Map<String, String> userParams,
-                                              SduiRequestContext ctx) {
+    public Optional<Screen> refreshScreen(String screenId,
+                                          String traceId,
+                                          Map<String, String> userParams,
+                                          SduiRequestContext ctx) {
         ScreenRefreshResolver resolver = registry.get(screenId);
         if (resolver == null) {
             log.warn("No resolver registered for screenId='{}' — returning 404", screenId);
             return Optional.empty();
         }
         try {
-            ObjectNode result = resolver.resolve(traceId, userParams, ctx);
+            Screen result = resolver.resolve(traceId, userParams, ctx);
             return Optional.ofNullable(result);
         } catch (Exception e) {
             log.error("Resolver failed for screenId='{}': {}", screenId, e.getMessage(), e);

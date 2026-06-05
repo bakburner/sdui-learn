@@ -108,10 +108,10 @@ class ScreenChannelContractTest {
     void gamesScreen_withDateParam_returnsScreenShapeWithMatchingId() {
         SduiRequestContext ctx = new SduiRequestContext();
         ctx.setLocale("en");
-        Optional<ObjectNode> result = parameterizedRefreshService.refreshScreen(
+        Optional<com.nba.sdui.models.generated.Screen> result = parameterizedRefreshService.refreshScreen(
                 "games", "trace-2", Map.of("date", "2026-05-18"), ctx);
         assertTrue(result.isPresent());
-        assertScreenShape(result.get(), "games");
+        assertScreenShape((ObjectNode) objectMapper.valueToTree(result.get()), "games");
     }
 
     @Test
@@ -124,12 +124,12 @@ class ScreenChannelContractTest {
     void leadersScreen_withParams_returnsScreenShapeWithMatchingId() {
         SduiRequestContext ctx = new SduiRequestContext();
         ctx.setLocale("en");
-        Optional<ObjectNode> result = parameterizedRefreshService.refreshScreen(
+        Optional<com.nba.sdui.models.generated.Screen> result = parameterizedRefreshService.refreshScreen(
                 "leaders", "trace-4",
                 Map.of("season", "2024-25", "seasonType", "regular",
                         "perMode", "per_game", "statCategory", "pts"), ctx);
         assertTrue(result.isPresent());
-        assertScreenShape(result.get(), "leaders");
+        assertScreenShape((ObjectNode) objectMapper.valueToTree(result.get()), "leaders");
     }
 
     @Test
@@ -166,10 +166,10 @@ class ScreenChannelContractTest {
     void gamesScreen_withDateParam_allRefreshEndpoints_useUnifiedScreenUrl() {
         SduiRequestContext ctx = new SduiRequestContext();
         ctx.setLocale("en");
-        Optional<ObjectNode> result = parameterizedRefreshService.refreshScreen(
+        Optional<com.nba.sdui.models.generated.Screen> result = parameterizedRefreshService.refreshScreen(
                 "games", "trace-fence-2", Map.of("date", "2026-05-18"), ctx);
         assertTrue(result.isPresent());
-        assertNoLegacyRefreshEndpoints(result.get(), "games (parameterized)");
+        assertNoLegacyRefreshEndpoints((ObjectNode) objectMapper.valueToTree(result.get()), "games (parameterized)");
     }
 
     @Test

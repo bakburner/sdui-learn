@@ -1,7 +1,6 @@
 package com.nba.sdui.domain.composer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -127,15 +126,10 @@ public class LiveComposer {
         });
 
         parameterizedRefreshService.registerResolver("games",
-                (traceId, params, ctx) -> {
-                    Screen screen = composeLive(
-                            traceId,
-                            ctx.getLocale() != null ? ctx.getLocale() : "en",
-                            params.get("date"));
-                    // Parameterized refresh service is still ObjectNode-shaped at the
-                    // boundary; flips to typed Screen in the later controller step.
-                    return (ObjectNode) objectMapper.valueToTree(screen);
-                });
+                (traceId, params, ctx) -> composeLive(
+                        traceId,
+                        ctx.getLocale() != null ? ctx.getLocale() : "en",
+                        params.get("date")));
     }
 
     public Screen composeLive(String traceId, String locale) {

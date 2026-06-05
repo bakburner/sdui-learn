@@ -217,15 +217,14 @@ public class DemoScreenComposer {
      * current screen state. The form section is re-emitted so its rendered
      * state stays in sync with the table; the table reflects the new filters.
      */
-    public ObjectNode composeLeadersRefresh(String traceId, Map<String, String> params,
+    public Screen composeLeadersRefresh(String traceId, Map<String, String> params,
                                              String deviceClass, String locale) {
-        Screen screen = composeLeadersScreen(
+        return composeLeadersScreen(
                 traceId, deviceClass, locale,
                 params.getOrDefault("season", "2025-26"),
                 params.getOrDefault("seasonType", "regular"),
                 params.getOrDefault("perMode", "per_game"),
                 params.getOrDefault("statCategory", "pts"));
-        return objectMapper.valueToTree(screen);
     }
 
     private Screen composeLeadersScreen(String traceId, String deviceClass, String locale,

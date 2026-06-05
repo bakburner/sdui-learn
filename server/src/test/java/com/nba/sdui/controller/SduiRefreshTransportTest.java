@@ -73,7 +73,7 @@ class SduiRefreshTransportTest {
         ObjectNode leadersResponse = (ObjectNode) objectMapper.readTree(
                 "{\"id\":\"leaders\",\"schemaVersion\":\"1.0\",\"sections\":[]}");
         when(parameterizedRefreshService.refreshScreen(eq("leaders"), anyString(), any(), any()))
-                .thenReturn(Optional.of(leadersResponse));
+                .thenReturn(Optional.of(objectMapper.treeToValue(leadersResponse, com.nba.sdui.models.generated.Screen.class)));
 
         ObjectNode scoreboardResponse = (ObjectNode) objectMapper.readTree(
                 "{\"id\":\"scoreboard\",\"schemaVersion\":\"1.0\",\"sections\":[]}");
@@ -180,7 +180,7 @@ class SduiRefreshTransportTest {
                 }
                 """);
         when(parameterizedRefreshService.refreshScreen(eq("games"), anyString(), any(), any()))
-                .thenReturn(Optional.of(gamesResponse));
+                .thenReturn(Optional.of(objectMapper.treeToValue(gamesResponse, com.nba.sdui.models.generated.Screen.class)));
 
         // The controller wraps every screen-channel response in
         // ResponseEnvelope<T>(data, meta). The body shape is

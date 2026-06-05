@@ -100,7 +100,7 @@ class LiveComposerTest {
 
         SduiRequestContext ctx = new SduiRequestContext();
         ctx.setLocale("en");
-        Optional<ObjectNode> refreshed = parameterizedRefreshService.refreshScreen(
+        Optional<com.nba.sdui.models.generated.Screen> refreshed = parameterizedRefreshService.refreshScreen(
                 "games",
                 "trace-3",
                 Map.of("date", "2026-05-26"),
@@ -108,7 +108,7 @@ class LiveComposerTest {
         );
 
         assertTrue(refreshed.isPresent(), "games resolver should be registered");
-        ObjectNode response = refreshed.get();
+        ObjectNode response = (ObjectNode) objectMapper.valueToTree(refreshed.get());
         ObjectNode data = (ObjectNode) response.path("sections").get(0).path("data");
         assertEquals("2026-05-26", data.path("selectedDate").asText());
         assertEquals("2026-05-26", response.path("state").path("games_selected_date").asText());
@@ -355,7 +355,7 @@ class LiveComposerTest {
 
         SduiRequestContext ctx = new SduiRequestContext();
         ctx.setLocale("en");
-        Optional<ObjectNode> refreshed = parameterizedRefreshService.refreshScreen(
+        Optional<com.nba.sdui.models.generated.Screen> refreshed = parameterizedRefreshService.refreshScreen(
                 "games",
                 "trace-q",
                 Map.of("date", "2026-03-15"),
@@ -363,7 +363,7 @@ class LiveComposerTest {
         );
 
         assertTrue(refreshed.isPresent(), "games resolver should be registered");
-        ArrayNode sections = (ArrayNode) refreshed.get().path("sections");
+        ArrayNode sections = (ArrayNode) ((ObjectNode) objectMapper.valueToTree(refreshed.get())).path("sections");
         assertEquals("CalendarStrip", sections.get(0).path("type").asText());
         assertEquals("games_screen_promo_banner", sections.get(1).path("analyticsId").asText());
         assertEquals("live_games", sections.get(2).path("analyticsId").asText());

@@ -90,10 +90,10 @@ class ComposerRoundTripTest {
 
         SduiRequestContext ctx = new SduiRequestContext();
         ctx.setLocale("en");
-        Optional<ObjectNode> firstPass = parameterizedRefreshService.refreshScreen(
+        Optional<com.nba.sdui.models.generated.Screen> firstPass = parameterizedRefreshService.refreshScreen(
                 "games", "trace-rt-1", Map.of("date", testDate), ctx);
         assertTrue(firstPass.isPresent());
-        ObjectNode screen1 = firstPass.get();
+        ObjectNode screen1 = (ObjectNode) objectMapper.valueToTree(firstPass.get());
 
         assertEquals(testDate, screen1.path("state").path("games_selected_date").asText(),
                 "first pass: screen state must echo the requested date");
@@ -106,10 +106,10 @@ class ComposerRoundTripTest {
         assertEquals("/v1/sdui/screen/games", emittedEndpoint,
                 "emitted endpoint must be the unified screen URL");
 
-        Optional<ObjectNode> secondPass = parameterizedRefreshService.refreshScreen(
+        Optional<com.nba.sdui.models.generated.Screen> secondPass = parameterizedRefreshService.refreshScreen(
                 "games", "trace-rt-2", Map.of("date", testDate), ctx);
         assertTrue(secondPass.isPresent());
-        ObjectNode screen2 = secondPass.get();
+        ObjectNode screen2 = (ObjectNode) objectMapper.valueToTree(secondPass.get());
 
         assertEquals(testDate, screen2.path("state").path("games_selected_date").asText(),
                 "second pass: screen state must still echo the date after round-trip");
@@ -134,10 +134,10 @@ class ComposerRoundTripTest {
 
         SduiRequestContext ctx = new SduiRequestContext();
         ctx.setLocale("en");
-        Optional<ObjectNode> firstPass = parameterizedRefreshService.refreshScreen(
+        Optional<com.nba.sdui.models.generated.Screen> firstPass = parameterizedRefreshService.refreshScreen(
                 "leaders", "trace-rt-3", testParams, ctx);
         assertTrue(firstPass.isPresent());
-        ObjectNode screen1 = firstPass.get();
+        ObjectNode screen1 = (ObjectNode) objectMapper.valueToTree(firstPass.get());
 
         assertEquals("leaders", screen1.path("id").asText());
         assertEquals("2024-25", screen1.path("state").path("form_season").asText(),
@@ -148,10 +148,10 @@ class ComposerRoundTripTest {
         assertEquals("/v1/sdui/screen/leaders", formEndpoint,
                 "emitted endpoint must be the unified screen URL");
 
-        Optional<ObjectNode> secondPass = parameterizedRefreshService.refreshScreen(
+        Optional<com.nba.sdui.models.generated.Screen> secondPass = parameterizedRefreshService.refreshScreen(
                 "leaders", "trace-rt-4", testParams, ctx);
         assertTrue(secondPass.isPresent());
-        ObjectNode screen2 = secondPass.get();
+        ObjectNode screen2 = (ObjectNode) objectMapper.valueToTree(secondPass.get());
 
         assertEquals("2024-25", screen2.path("state").path("form_season").asText(),
                 "second pass: screen state must still echo the season after round-trip");

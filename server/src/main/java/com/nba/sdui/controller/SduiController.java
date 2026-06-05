@@ -250,7 +250,7 @@ public class SduiController {
                 if (resolved.isEmpty()) {
                     return ResponseEntity.notFound().build();
                 }
-                screenResponse = resolved.get();
+                screenResponse = objectMapper.valueToTree(resolved.get());
             } else {
                 screenResponse = objectMapper.valueToTree(compositionService.composeLive(ctx));
             }
@@ -420,7 +420,7 @@ public class SduiController {
                 if (resolved.isEmpty()) {
                     return ResponseEntity.notFound().build();
                 }
-                screenResponse = resolved.get();
+                screenResponse = objectMapper.valueToTree(resolved.get());
             } else {
                 screenResponse = objectMapper.valueToTree(compositionService.composeLeaders(ctx));
             }

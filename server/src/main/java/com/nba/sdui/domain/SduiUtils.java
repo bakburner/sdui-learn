@@ -358,20 +358,6 @@ public class SduiUtils {
         return teamLogoUrl(String.valueOf(teamId));
     }
 
-    public ObjectNode createStatLine(int playerId, String name, String team,
-                                      String category, String value) {
-        ObjectNode stat = objectMapper.createObjectNode();
-        stat.put("playerId", playerId);
-        stat.put("playerName", name);
-        stat.put("playerImageUrl",
-                "https://cdn.nba.com/headshots/nba/latest/1040x760/" + playerId + ".png");
-        stat.put("teamTricode", team);
-        stat.put("statCategory", category);
-        stat.put("statValue", value);
-        stat.put("statLabel", category.equals("PTS") ? "Points" : "Rebounds");
-        return stat;
-    }
-
     // ── Example file loading ───────────────────────────────────────────
 
 
@@ -458,38 +444,6 @@ public class SduiUtils {
             subsections.add(sub);
         }
         return subsections;
-    }
-
-    /**
-     * Build a Spacing node whose edges are layout-token wire strings.
-     */
-    public ObjectNode spacingTokens(String top, String end, String bottom, String start) {
-        ObjectNode s = objectMapper.createObjectNode();
-        if (top != null && !top.isBlank()) s.put("top", top);
-        if (end != null && !end.isBlank()) s.put("end", end);
-        if (bottom != null && !bottom.isBlank()) s.put("bottom", bottom);
-        if (start != null && !start.isBlank()) s.put("start", start);
-        return s;
-    }
-
-    /**
-     * Build a Spacing node with the four common edges.
-     * Any argument may be zero to omit that edge.
-     */
-    public ObjectNode spacing(int top, int end, int bottom, int start) {
-        ObjectNode s = objectMapper.createObjectNode();
-        if (top    != 0) s.put("top",    top);
-        if (end    != 0) s.put("end",    end);
-        if (bottom != 0) s.put("bottom", bottom);
-        if (start  != 0) s.put("start",  start);
-        return s;
-    }
-
-    /**
-     * Convenience: symmetric spacing (same vertical, same horizontal).
-     */
-    public ObjectNode spacingSymmetric(int vertical, int horizontal) {
-        return spacing(vertical, horizontal, vertical, horizontal);
     }
 
     // ── Error State ────────────────────────────────────────────────────
@@ -620,20 +574,6 @@ public class SduiUtils {
                     Map.entry("month.december", "Décembre")
             )
     );
-
-    /**
-     * Build a string table node for the given locale.
-     * Falls back to English when the locale is unknown.
-     */
-    public ObjectNode buildStringTable(String locale) {
-        Map<String, String> table = STRING_TABLES.getOrDefault(
-                locale != null ? locale.toLowerCase() : "en",
-                STRING_TABLES.get("en")
-        );
-        ObjectNode node = objectMapper.createObjectNode();
-        table.forEach(node::put);
-        return node;
-    }
 
     /**
      * Build a typed {@link StringTable} for the given locale.

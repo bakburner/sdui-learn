@@ -61,11 +61,27 @@ public class AtomicCompositeBuilder {
         return (ObjectNode) om.valueToTree(pojo);
     }
 
+    /** Build a typed Section envelope with id and type=AtomicComposite. */
+    private Section newSection(String id, String analyticsId) {
+        Section section = new Section();
+        section.setId(id);
+        section.setType(Section.Type.fromValue("AtomicComposite"));
+        if (analyticsId != null) section.setAnalyticsId(analyticsId);
+        return section;
+    }
+
+    /** Wrap a typed root element as the section's AtomicComposite data payload. */
+    private void wrapUi(Section section, AtomicElement root) {
+        AtomicComposite data = new AtomicComposite();
+        data.setUi(root);
+        section.setData(data);
+    }
+
     // ── ErrorState ──────────────────────────────────────────────────────
 
     public Section buildErrorState(String sectionId, String title, String message,
                                        String icon, String retryUri) {
-        ObjectNode section = sectionEnvelope(sectionId, null);
+        Section section = newSection(sectionId, null);
 
         String emoji = switch (icon) {
             case "wifi_off" -> "\uD83D\uDCE1";
@@ -74,27 +90,28 @@ public class AtomicCompositeBuilder {
             default -> "⚠\uFE0F";
         };
 
-        ObjectNode root = containerNode("column", "center", "center");
-        root.set("padding", paddingNode(tokens.spacing("lg"), tokens.spacing("lg"), tokens.spacing("xl"), tokens.spacing("xl")));
-        ArrayNode children = om.createArrayNode();
+        AtomicElement root = container("column", "center", "center")
+                .withPadding(padding(tokens.spacing("lg"), tokens.spacing("lg"),
+                        tokens.spacing("xl"), tokens.spacing("xl")));
+        List<AtomicElement> children = new ArrayList<>();
 
-        children.add(textNode(emoji, "titleLarge", null, null, null));
-        children.add(spacerNode(tokens.spacing("md")));
-        children.add(textNode(title, "titleMedium", "bold", null, null));
+        children.add(text(emoji, "titleLarge", null, null, null));
+        children.add(spacer(tokens.spacing("md")));
+        children.add(text(title, "titleMedium", "bold", null, null));
 
         if (message != null && !message.isBlank()) {
-            children.add(spacerNode(tokens.spacing("md")));
-            children.add(textNode(message, "bodyMedium", null, tokens.color("nba.label.secondary"), null));
+            children.add(spacer(tokens.spacing("md")));
+            children.add(text(message, "bodyMedium", null, tokens.color("nba.label.secondary"), null));
         }
 
         if (retryUri != null) {
-            children.add(spacerNode(tokens.spacing("lg")));
-            children.add(buttonNode("Try Again", "primary", tapNavigateNode(retryUri)));
+            children.add(spacer(tokens.spacing("lg")));
+            children.add(button("Try Again", "primary", tapNavigate(retryUri)));
         }
 
-        root.set("children", children);
-        wrapUiNode(section, root);
-        return bindSection(section);
+        root.setChildren(children);
+        wrapUi(section, root);
+        return section;
     }
 
     // ── SectionHeader ───────────────────────────────────────────────────
@@ -102,10 +119,10 @@ public class AtomicCompositeBuilder {
     public Section buildSectionHeader(String id, String title,
                                           String subtitle, String actionLabel,
                                           String actionUri) {
-        ObjectNode section = sectionEnvelope(id, null);
+        Section section = newSection(id, null);
 
-        ObjectNode root = containerNode("row", "spaceBetween", "center");
-        root.put("widthMode", "fill");
+        AtomicElement root = container("row", "spaceBetween", "center");
+        root.setWidthMode(AtomicElement.SizingMode.fromValue("fill"));
         // Header internal padding: nba.spacing.md top (air above title),
         // nba.spacing.xs bottom. The vertical rhythm between the header
         // title and the next section is produced by the surface-level
@@ -114,32 +131,33 @@ public class AtomicCompositeBuilder {
         // inside the header. Keeping bottom tight here avoids the
         // "double-gap" look where header-bottom-padding + next-section-
         // top-margin + next-section-internal-top-padding all stack.
-        root.set("padding", paddingNode(tokens.spacing("lg"), tokens.spacing("lg"), tokens.spacing("md"), tokens.spacing("xs")));
-        ArrayNode children = om.createArrayNode();
+        root.setPadding(padding(tokens.spacing("lg"), tokens.spacing("lg"),
+                tokens.spacing("md"), tokens.spacing("xs")));
+        List<AtomicElement> children = new ArrayList<>();
 
         if (subtitle != null) {
-            ObjectNode titleCol = containerNode("column", null, null);
-            ArrayNode titleChildren = om.createArrayNode();
-            ObjectNode titleText = textNode(title, "titleMedium", "bold", null, null);
-            AccessibilityHelper.addHeading(om, titleText, title, 2);
+            AtomicElement titleCol = container("column", null, null);
+            List<AtomicElement> titleChildren = new ArrayList<>();
+            AtomicElement titleText = text(title, "titleMedium", "bold", null, null);
+            AccessibilityHelper.addHeading(titleText, title, 2);
             titleChildren.add(titleText);
-            titleChildren.add(textNode(subtitle, "bodySmall", null, tokens.color("nba.label.tertiary"), null));
-            titleCol.set("children", titleChildren);
+            titleChildren.add(text(subtitle, "bodySmall", null, tokens.color("nba.label.tertiary"), null));
+            titleCol.setChildren(titleChildren);
             children.add(titleCol);
         } else {
-            ObjectNode titleText = textNode(title, "titleMedium", "bold", null, null);
-            AccessibilityHelper.addHeading(om, titleText, title, 2);
+            AtomicElement titleText = text(title, "titleMedium", "bold", null, null);
+            AccessibilityHelper.addHeading(titleText, title, 2);
             children.add(titleText);
         }
 
         if (actionUri != null) {
             String label = actionLabel != null ? actionLabel : "See All";
-            children.add(buttonNode(label, "text", tapNavigateNode(actionUri)));
+            children.add(button(label, "text", tapNavigate(actionUri)));
         }
 
-        root.set("children", children);
-        wrapUiNode(section, root);
-        return bindSection(section);
+        root.setChildren(children);
+        wrapUi(section, root);
+        return section;
     }
 
     // ── PromoBanner ─────────────────────────────────────────────────────

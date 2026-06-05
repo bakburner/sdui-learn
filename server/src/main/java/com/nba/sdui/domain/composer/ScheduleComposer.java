@@ -190,9 +190,8 @@ public class ScheduleComposer {
                 currentDate = date;
                 String headerContentSourceId = "feed:schedule";
                 String headerSectionId = SectionIdDeriver.derive(headerContentSourceId, "AtomicComposite", "header-" + date);
-                ObjectNode headerNode = atomicBuilder.buildSectionHeader(
+                Section header = atomicBuilder.buildSectionHeader(
                         headerSectionId, formatDate(date, locale), null, null, null);
-                Section header = toSection(headerNode);
                 header.setContentSourceId(headerContentSourceId);
                 header.setSurface(surfaces.sectionHeaderSurface());
                 sections.add(header);
@@ -234,11 +233,10 @@ public class ScheduleComposer {
                 targetUri,
                 game.path("overflowUri").asText(null)
         };
-        ObjectNode sectionNode = atomicBuilder.buildGameScheduleRow(
+        Section section = atomicBuilder.buildGameScheduleRow(
                 sectionId,
                 "schedule_game_" + gameId,
                 row);
-        Section section = toSection(sectionNode);
         section.setContentSourceId(contentSourceId);
         section.setSurface(surfaces.railSurface());
         return section;

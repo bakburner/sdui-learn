@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.nba.sdui.models.generated.Screen;
+import com.nba.sdui.models.generated.Section;
 import jakarta.annotation.PostConstruct;
 import java.util.ArrayList;
 import java.util.List;
@@ -106,7 +107,7 @@ public class ForYouComposer {
     private void registerSectionResolvers() {
         String sectionId = SectionIdDeriver.derive(
                 "stats-api:scoreboard", "AtomicComposite", "tonights-games-hero");
-        sectionRefreshService.registerResolver(sectionId, (id, ctx) -> buildTonightsGamesHero());
+        sectionRefreshService.registerResolver(sectionId, (id, ctx) -> objectMapper.valueToTree(buildTonightsGamesHero()));
     }
 
     public Screen composeForYou(String traceId, String locale) {
@@ -120,46 +121,46 @@ public class ForYouComposer {
 
         ArrayNode sections = objectMapper.createArrayNode();
 
-        sections.add(buildFollowingStoryCircleRail());
-        sections.add(buildFeaturedEditorialHero());
+        sections.add(objectMapper.valueToTree(buildFollowingStoryCircleRail()));
+        sections.add(objectMapper.valueToTree(buildFeaturedEditorialHero()));
 
-        sections.add(buildSectionHeaderComposite("top-stories-header",
+        sections.add(objectMapper.valueToTree(buildSectionHeaderComposite("top-stories-header",
                 "for_you_top_stories_header",
-                "Top Stories", null, "More", "nba://news"));
-        sections.add(buildTopStoriesArticleList());
+                "Top Stories", null, "More", "nba://news")));
+        sections.add(objectMapper.valueToTree(buildTopStoriesArticleList()));
 
         sections.add(buildAdSlot("for-you-ad-1", "for_you_ad_1",
                 "/21234567/sports/nba/homepage_mid1", "mid_feed_1"));
 
-        sections.add(buildSectionHeaderComposite("tonights-games-header",
+        sections.add(objectMapper.valueToTree(buildSectionHeaderComposite("tonights-games-header",
                 "for_you_tonights_games_header",
-                "Tonight's Games", null, "See Schedule", "nba://scoreboard"));
-        sections.add(buildTonightsGamesHero());
+                "Tonight's Games", null, "See Schedule", "nba://scoreboard")));
+        sections.add(objectMapper.valueToTree(buildTonightsGamesHero()));
 
-        sections.add(buildSectionHeaderComposite("trending-header",
+        sections.add(objectMapper.valueToTree(buildSectionHeaderComposite("trending-header",
                 "for_you_trending_header",
-                "Trending Now", null, null, null));
-        sections.add(buildTrendingRail());
+                "Trending Now", null, null, null)));
+        sections.add(objectMapper.valueToTree(buildTrendingRail()));
 
         sections.add(buildAdSlot("for-you-ad-2", "for_you_ad_2",
                 "/21234567/sports/nba/homepage_mid2", "mid_feed_2"));
 
-        sections.add(buildSectionHeaderComposite("lp-picks-header",
+        sections.add(objectMapper.valueToTree(buildSectionHeaderComposite("lp-picks-header",
                 "for_you_lp_picks_header",
-                "League Pass Picks", null, "Browse League Pass", "nba://leaguepass"));
-        sections.add(buildLeaguePassPicksRail());
+                "League Pass Picks", null, "Browse League Pass", "nba://leaguepass")));
+        sections.add(objectMapper.valueToTree(buildLeaguePassPicksRail()));
 
         sections.add(buildAdSlot("for-you-ad-3", "for_you_ad_3",
                 "/21234567/sports/nba/homepage_mid3", "mid_feed_3"));
 
-        sections.add(buildOtherLeaguesRail());
+        sections.add(objectMapper.valueToTree(buildOtherLeaguesRail()));
 
-        sections.add(buildSectionHeaderComposite("around-league-header",
+        sections.add(objectMapper.valueToTree(buildSectionHeaderComposite("around-league-header",
                 "for_you_around_league_header",
-                "Around the League", null, null, null));
-        sections.add(buildAroundTheLeagueUtilityGrid());
+                "Around the League", null, null, null)));
+        sections.add(objectMapper.valueToTree(buildAroundTheLeagueUtilityGrid()));
 
-        sections.add(buildVodPlaylistSection());
+        sections.add(objectMapper.valueToTree(buildVodPlaylistSection()));
 
         response.set("sections", sections);
         utils.ensureScreenContentInsets(response);
@@ -180,7 +181,7 @@ public class ForYouComposer {
      * square-source-only and the composite's overlay alignment stays
      * predictable across platforms.
      */
-    private ObjectNode buildFollowingStoryCircleRail() {
+    private Section buildFollowingStoryCircleRail() {
         String contentSourceId = "feed:for-you-following";
         // [id, label, imageUrl, badgeText, targetUri]
         String[][] items = {
@@ -198,10 +199,10 @@ public class ForYouComposer {
                         null, "nba://playoffs"}
         };
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
-        ObjectNode section = atomicBuilder.buildStoryCircleRail(
+        Section section = atomicBuilder.buildStoryCircleRail(
                 sectionId, "for_you_following", "Following", items);
-        section.put("contentSourceId", contentSourceId);
-        section.set("surface", objectMapper.valueToTree(surfaces.railSurface()));
+        section.setContentSourceId(contentSourceId);
+        section.setSurface(surfaces.railSurface());
         return section;
     }
 
@@ -209,7 +210,7 @@ public class ForYouComposer {
      * Full-bleed editorial hero at the top of the feed (NBA app home style).
      * slides: [id, imageUrl, badge, title, subtitle, ctaLabel, targetUri]
      */
-    private ObjectNode buildFeaturedEditorialHero() {
+    private Section buildFeaturedEditorialHero() {
         String contentSourceId = "cms:for-you-featured-hero";
         String[][] slides = {
                 {"feat-hero-1", DemoImageUrls.hero("cleveland-ecf"),
@@ -229,10 +230,10 @@ public class ForYouComposer {
                         "Watch", "nba://video/spurs-game4-recap"}
         };
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
-        ObjectNode section = atomicBuilder.buildCinematicHeroCarousel(
+        Section section = atomicBuilder.buildCinematicHeroCarousel(
                 sectionId, "for_you_featured_hero", slides);
-        section.put("contentSourceId", contentSourceId);
-        section.set("surface", objectMapper.valueToTree(surfaces.flushSurface()));
+        section.setContentSourceId(contentSourceId);
+        section.setSurface(surfaces.flushSurface());
         return section;
     }
 
@@ -242,7 +243,7 @@ public class ForYouComposer {
      * GamePanel carousel — the cards are bigger, key-art-led, and use
      * the same FeaturedLiveGameHero composite the Kitchen screen does.
      */
-    private ObjectNode buildTonightsGamesHero() {
+    private Section buildTonightsGamesHero() {
         String contentSourceId = "stats-api:scoreboard";
         List<String[]> cards = new ArrayList<>();
         ObjectNode liveBindings = null;
@@ -307,15 +308,15 @@ public class ForYouComposer {
             dataBindingForHero = null;
         }
 
-        ObjectNode section = atomicBuilder.buildFeaturedLiveGameHero(
+        Section section = atomicBuilder.buildFeaturedLiveGameHero(
                 sectionId,
                 "for_you_tonights_games_hero",
                 null,
                 cards.toArray(new String[0][0]),
                 refreshPolicy,
                 dataBindingForHero);
-        section.put("contentSourceId", contentSourceId);
-        section.set("surface", objectMapper.valueToTree(surfaces.railSurface()));
+        section.setContentSourceId(contentSourceId);
+        section.setSurface(surfaces.railSurface());
         return section;
     }
 
@@ -392,7 +393,7 @@ public class ForYouComposer {
      * Vertical headline list with thumbnails — denser than the editorial overlay rail.
      * articles: [id, headline, imageUrl, targetUri]
      */
-    private ObjectNode buildTopStoriesArticleList() {
+    private Section buildTopStoriesArticleList() {
         String contentSourceId = "cms:top-stories";
         String[][] articles = {
                 {"top-1", "Starting 5: Spurs roll, plus a Knicks-Cavs preview",
@@ -465,13 +466,13 @@ public class ForYouComposer {
 
         root.set("children", children);
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
-        ObjectNode section = atomicBuilder.wrapAsComposite(sectionId, "for_you_top_stories", root);
-        section.put("contentSourceId", contentSourceId);
-        section.set("surface", objectMapper.valueToTree(surfaces.railSurface()));
+        Section section = atomicBuilder.wrapAsComposite(sectionId, "for_you_top_stories", root);
+        section.setContentSourceId(contentSourceId);
+        section.setSurface(surfaces.railSurface());
         return section;
     }
 
-    private ObjectNode buildOtherLeaguesRail() {
+    private Section buildOtherLeaguesRail() {
         String contentSourceId = "cms:other-leagues";
         // [id, label, imageUrl, targetUri]
         String[][] items = {
@@ -481,15 +482,15 @@ public class ForYouComposer {
                 {"league-2k", "NBA 2K League", FALLBACK_STORY_AVATAR, "nba://league/2k"}
         };
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
-        ObjectNode section = atomicBuilder.buildLeagueCardRail(
+        Section section = atomicBuilder.buildLeagueCardRail(
                 sectionId, "for_you_other_leagues",
                 "Other Leagues", items);
-        section.put("contentSourceId", contentSourceId);
-        section.set("surface", objectMapper.valueToTree(surfaces.railSurface()));
+        section.setContentSourceId(contentSourceId);
+        section.setSurface(surfaces.railSurface());
         return section;
     }
 
-    private ObjectNode buildTrendingRail() {
+    private Section buildTrendingRail() {
         String contentSourceId = "rec:trending";
         // [id, headline, subhead, imageUrl, kind, badge, targetUri]
         String[][] cards = {
@@ -515,14 +516,14 @@ public class ForYouComposer {
                         "article", null, "nba://article/playoff-bracket"}
         };
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
-        ObjectNode section = atomicBuilder.buildContentRail(
+        Section section = atomicBuilder.buildContentRail(
                 sectionId, "for_you_trending", null, cards);
-        section.put("contentSourceId", contentSourceId);
-        section.set("surface", objectMapper.valueToTree(surfaces.railSurface()));
+        section.setContentSourceId(contentSourceId);
+        section.setSurface(surfaces.railSurface());
         return section;
     }
 
-    private ObjectNode buildLeaguePassPicksRail() {
+    private Section buildLeaguePassPicksRail() {
         String contentSourceId = "cms:league-pass-picks";
         // [id, headline, subhead, imageUrl, kind, badge, targetUri]
         String[][] cards = {
@@ -548,14 +549,14 @@ public class ForYouComposer {
                         "video", "2:15:00", "nba://video/2016-finals-g7"}
         };
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
-        ObjectNode section = atomicBuilder.buildContentRail(
+        Section section = atomicBuilder.buildContentRail(
                 sectionId, "for_you_lp_picks", null, cards);
-        section.put("contentSourceId", contentSourceId);
-        section.set("surface", objectMapper.valueToTree(surfaces.railSurface()));
+        section.setContentSourceId(contentSourceId);
+        section.setSurface(surfaces.railSurface());
         return section;
     }
 
-    private ObjectNode buildVodPlaylistSection() {
+    private Section buildVodPlaylistSection() {
         String contentSourceId = "cms:vod-playlist";
         // [id, title, subtitle, thumbUrl, duration, isLive, targetUri]
         String[][] rows = {
@@ -576,15 +577,15 @@ public class ForYouComposer {
                         "3:12", "false", "nba://video/all-nba-announcement"}
         };
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
-        ObjectNode section = atomicBuilder.buildVodPlaylist(
+        Section section = atomicBuilder.buildVodPlaylist(
                 sectionId, "for_you_vod_playlist",
                 "More to Watch", rows);
-        section.put("contentSourceId", contentSourceId);
-        section.set("surface", objectMapper.valueToTree(surfaces.railSurface()));
+        section.setContentSourceId(contentSourceId);
+        section.setSurface(surfaces.railSurface());
         return section;
     }
 
-    private ObjectNode buildAroundTheLeagueUtilityGrid() {
+    private Section buildAroundTheLeagueUtilityGrid() {
         String contentSourceId = "cms:around-the-league";
         // [id, label, subtitle, imageUrl, targetUri]
         String[][] items = {
@@ -602,25 +603,25 @@ public class ForYouComposer {
                         null, "nba://ask"}
         };
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
-        ObjectNode section = atomicBuilder.buildUtilityCardGrid(
+        Section section = atomicBuilder.buildUtilityCardGrid(
                 sectionId, "for_you_around_league",
                 null, items);
-        section.put("contentSourceId", contentSourceId);
+        section.setContentSourceId(contentSourceId);
         // railSurface (margin-only) — the grid's cells are individually
         // card-chromed, so the section doesn't need an outer card.
-        section.set("surface", objectMapper.valueToTree(surfaces.railSurface()));
+        section.setSurface(surfaces.railSurface());
         return section;
     }
 
-    private ObjectNode buildSectionHeaderComposite(String id, String analyticsId,
-                                                   String title, String subtitle,
-                                                   String actionLabel, String actionUri) {
+    private Section buildSectionHeaderComposite(String id, String analyticsId,
+                                                String title, String subtitle,
+                                                String actionLabel, String actionUri) {
         String contentSourceId = "feed:for-you";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite", id);
-        ObjectNode section = atomicBuilder.buildSectionHeaderComposite(
+        Section section = atomicBuilder.buildSectionHeaderComposite(
                 sectionId, analyticsId, title, subtitle, actionLabel, actionUri);
-        section.put("contentSourceId", contentSourceId);
-        section.set("surface", objectMapper.valueToTree(surfaces.sectionHeaderSurface()));
+        section.setContentSourceId(contentSourceId);
+        section.setSurface(surfaces.sectionHeaderSurface());
         return section;
     }
 

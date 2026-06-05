@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.nba.sdui.models.generated.Screen;
+import com.nba.sdui.models.generated.Section;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -292,20 +293,20 @@ public class WatchComposer {
                                            String actionLabel, String actionUri) {
         String contentSourceId = "feed:watch";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite", slug + "-header");
-        ObjectNode section = atomicBuilder.buildSectionHeader(sectionId, title, null, actionLabel, actionUri);
-        section.put("contentSourceId", contentSourceId);
-        section.set("surface", objectMapper.valueToTree(surfaces.sectionHeaderSurface()));
-        return section;
+        Section section = atomicBuilder.buildSectionHeader(sectionId, title, null, actionLabel, actionUri);
+        section.setContentSourceId(contentSourceId);
+        section.setSurface(surfaces.sectionHeaderSurface());
+        return objectMapper.valueToTree(section);
     }
 
     private ObjectNode buildSectionHeader(String slug, String title, String subtitle,
                                            String actionLabel, String actionUri) {
         String contentSourceId = "feed:watch";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite", slug + "-header");
-        ObjectNode section = atomicBuilder.buildSectionHeader(sectionId, title, subtitle, actionLabel, actionUri);
-        section.put("contentSourceId", contentSourceId);
-        section.set("surface", objectMapper.valueToTree(surfaces.sectionHeaderSurface()));
-        return section;
+        Section section = atomicBuilder.buildSectionHeader(sectionId, title, subtitle, actionLabel, actionUri);
+        section.setContentSourceId(contentSourceId);
+        section.setSurface(surfaces.sectionHeaderSurface());
+        return objectMapper.valueToTree(section);
     }
 
     /**
@@ -320,10 +321,10 @@ public class WatchComposer {
             sections.add(buildSectionHeader(contentSourceId, title, null, null));
         }
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
-        ObjectNode section = atomicBuilder.buildContentRail(sectionId, null, null, cards);
-        section.put("contentSourceId", contentSourceId);
-        section.set("surface", objectMapper.valueToTree(surfaces.railSurface()));
-        sections.add(section);
+        Section section = atomicBuilder.buildContentRail(sectionId, null, null, cards);
+        section.setContentSourceId(contentSourceId);
+        section.setSurface(surfaces.railSurface());
+        sections.add(objectMapper.valueToTree(section));
     }
 
     /**
@@ -338,23 +339,23 @@ public class WatchComposer {
             sections.add(buildSectionHeader(contentSourceId, title, subtitle, null, null));
         }
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
-        ObjectNode section = atomicBuilder.buildVideoCarousel(sectionId, null, null, null, items);
-        section.put("contentSourceId", contentSourceId);
-        section.set("surface", objectMapper.valueToTree(surfaces.railSurface()));
-        sections.add(section);
+        Section section = atomicBuilder.buildVideoCarousel(sectionId, null, null, null, items);
+        section.setContentSourceId(contentSourceId);
+        section.setSurface(surfaces.railSurface());
+        sections.add(objectMapper.valueToTree(section));
     }
 
     private ObjectNode buildPromoBanner(String contentSourceId, String headline, String subhead,
                                          String backgroundUrl, String targetUri) {
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
-        ObjectNode section = atomicBuilder.buildPromoBanner(sectionId, null, null, headline, subhead,
+        Section section = atomicBuilder.buildPromoBanner(sectionId, null, null, headline, subhead,
                 null, "Learn More", targetUri);
-        section.put("contentSourceId", contentSourceId);
-        section.set("surface", objectMapper.valueToTree(surfaces.subscribeSurface(
+        section.setContentSourceId(contentSourceId);
+        section.setSurface(surfaces.subscribeSurface(
                 "#0C1B3A",
                 tokens.color("nba.label.accent.brand"),
-                20)));
-        return section;
+                20));
+        return objectMapper.valueToTree(section);
     }
 
     private ObjectNode buildGamePanel(Game game) {
@@ -362,7 +363,7 @@ public class WatchComposer {
         String contentSourceId = "stats-api:game-" + gameId;
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         int gameStatus = game.getGameStatus();
-        ObjectNode section = atomicBuilder.buildGamePanelComposite(
+        Section section = atomicBuilder.buildGamePanelComposite(
                 sectionId,
                 null,
                 "standard",
@@ -377,8 +378,8 @@ public class WatchComposer {
                 staticPolicy(),
                 null,
                 objectMapper.valueToTree(surfaces.gamePanelSurface()));
-        section.put("contentSourceId", contentSourceId);
-        return section;
+        section.setContentSourceId(contentSourceId);
+        return objectMapper.valueToTree(section);
     }
 
     private ObjectNode mockGamePanel(String mockId, String awayTri, int awayTeamId,
@@ -388,7 +389,7 @@ public class WatchComposer {
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         int awayScore = gameStatus == 2 ? 55 : 0;
         int homeScore = gameStatus == 2 ? 48 : 0;
-        ObjectNode section = atomicBuilder.buildGamePanelComposite(
+        Section section = atomicBuilder.buildGamePanelComposite(
                 sectionId,
                 null,
                 "standard",
@@ -403,8 +404,8 @@ public class WatchComposer {
                 staticPolicy(),
                 null,
                 objectMapper.valueToTree(surfaces.gamePanelSurface()));
-        section.put("contentSourceId", contentSourceId);
-        return section;
+        section.setContentSourceId(contentSourceId);
+        return objectMapper.valueToTree(section);
     }
 
     // ── New section type builders ──────────────────────────────────────
@@ -419,15 +420,15 @@ public class WatchComposer {
                 {"slot-3", "CLE vs NYK", "Eastern Conference matchup", "20:30", "false", "nba://game/0022400612"},
                 {"slot-4", "NBA Action", "Weekly highlights show", "23:00", "false", "nba://watch/nba-action"}
         };
-        ObjectNode section = atomicBuilder.buildNbaTvSchedule(
+        Section section = atomicBuilder.buildNbaTvSchedule(
                 sectionId, null,
                 FALLBACK_THUMB,
                 "NBA GameTime",
                 "LIVE — Nightly highlights & analysis",
                 true, slots);
-        section.put("contentSourceId", contentSourceId);
-        section.set("surface", objectMapper.valueToTree(surfaces.cardSurface()));
-        return section;
+        section.setContentSourceId(contentSourceId);
+        section.setSurface(surfaces.cardSurface());
+        return objectMapper.valueToTree(section);
     }
 
     /**

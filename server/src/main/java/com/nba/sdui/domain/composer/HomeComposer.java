@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.nba.sdui.models.generated.Screen;
+import com.nba.sdui.models.generated.Section;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -132,10 +133,10 @@ public class HomeComposer {
                         "WATCH", "nba://video/den-min-g4"}
         };
         String heroSectionId = SectionIdDeriver.derive(heroContentSourceId, "AtomicComposite");
-        ObjectNode heroSection = atomicBuilder.buildCinematicHeroCarousel(
+        Section heroSection = atomicBuilder.buildCinematicHeroCarousel(
                 heroSectionId, "home_hero", heroSlides);
-        heroSection.put("contentSourceId", heroContentSourceId);
-        heroSection.set("surface", objectMapper.valueToTree(surfaces.flushSurface()));
+        heroSection.setContentSourceId(heroContentSourceId);
+        heroSection.setSurface(surfaces.flushSurface());
 
         // Headlines content (embedded as SectionSlot)
         ObjectNode headlinesSection = buildHeadlinesList();
@@ -147,7 +148,7 @@ public class HomeComposer {
         row.put("id", rowSectionId);
         ArrayNode children = objectMapper.createArrayNode();
 
-        ObjectNode leftSlot = atomicBuilder.sectionSlot("row1-hero", heroSection);
+        ObjectNode leftSlot = atomicBuilder.sectionSlot("row1-hero", (ObjectNode) objectMapper.valueToTree(heroSection));
         atomicBuilder.setFlex(leftSlot, 2);
         children.add(leftSlot);
 
@@ -156,14 +157,14 @@ public class HomeComposer {
         children.add(rightSlot);
 
         row.set("children", children);
-        ObjectNode section = atomicBuilder.wrapAsComposite(rowSectionId, "home_row1", row);
-        section.put("contentSourceId", rowContentSourceId);
+        Section section = atomicBuilder.wrapAsComposite(rowSectionId, "home_row1", row);
+        section.setContentSourceId(rowContentSourceId);
         ObjectNode surface = (ObjectNode) objectMapper.valueToTree(surfaces.flushSurface());
         ObjectNode margin = objectMapper.createObjectNode();
         margin.put("top", tokens.spacing("lg"));
         surface.set("margin", margin);
-        section.set("surface", surface);
-        return section;
+        section.setSurface(objectMapper.convertValue(surface, com.nba.sdui.models.generated.SectionSurface.class));
+        return (ObjectNode) objectMapper.valueToTree(section);
     }
 
     /**
@@ -193,20 +194,20 @@ public class HomeComposer {
         children.add(rightSlot);
 
         row.set("children", children);
-        ObjectNode section = atomicBuilder.wrapAsComposite(rowSectionId, "home_row2", row);
-        section.put("contentSourceId", rowContentSourceId);
-        section.set("surface", objectMapper.valueToTree(surfaces.flushSurface()));
-        return section;
+        Section section = atomicBuilder.wrapAsComposite(rowSectionId, "home_row2", row);
+        section.setContentSourceId(rowContentSourceId);
+        section.setSurface(surfaces.flushSurface());
+        return (ObjectNode) objectMapper.valueToTree(section);
     }
 
     private ObjectNode buildSectionHeader(String slug, String title,
                                            String actionLabel, String actionUri) {
         String contentSourceId = "feed:home";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite", slug);
-        ObjectNode header = atomicBuilder.buildSectionHeader(sectionId, title, null, actionLabel, actionUri);
-        header.put("contentSourceId", contentSourceId);
-        header.set("surface", objectMapper.valueToTree(surfaces.sectionHeaderSurface()));
-        return header;
+        Section header = atomicBuilder.buildSectionHeader(sectionId, title, null, actionLabel, actionUri);
+        header.setContentSourceId(contentSourceId);
+        header.setSurface(surfaces.sectionHeaderSurface());
+        return (ObjectNode) objectMapper.valueToTree(header);
     }
 
     private ObjectNode buildStoriesRail() {
@@ -230,11 +231,11 @@ public class HomeComposer {
                         null, "nba://article/draft-preview"}
         };
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
-        ObjectNode rail = atomicBuilder.buildOverlayStoryRail(
+        Section rail = atomicBuilder.buildOverlayStoryRail(
                 sectionId, "home_stories", "STORIES", cards);
-        rail.put("contentSourceId", contentSourceId);
-        rail.set("surface", objectMapper.valueToTree(surfaces.railSurface()));
-        return rail;
+        rail.setContentSourceId(contentSourceId);
+        rail.setSurface(surfaces.railSurface());
+        return (ObjectNode) objectMapper.valueToTree(rail);
     }
 
     /**
@@ -291,10 +292,10 @@ public class HomeComposer {
 
         root.set("children", children);
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
-        ObjectNode section = atomicBuilder.wrapAsComposite(sectionId, "home_headlines", root);
-        section.put("contentSourceId", contentSourceId);
-        section.set("surface", objectMapper.valueToTree(surfaces.railSurface()));
-        return section;
+        Section section = atomicBuilder.wrapAsComposite(sectionId, "home_headlines", root);
+        section.setContentSourceId(contentSourceId);
+        section.setSurface(surfaces.railSurface());
+        return (ObjectNode) objectMapper.valueToTree(section);
     }
 
     private ObjectNode buildTrendingVideoRail() {
@@ -310,11 +311,11 @@ public class HomeComposer {
                         FALLBACK_THUMB, "8:15", null, "nba://video/coach-interviews"}
         };
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
-        ObjectNode rail = atomicBuilder.buildVideoCarousel(
+        Section rail = atomicBuilder.buildVideoCarousel(
                 sectionId, "home_trending", null, null, videos);
-        rail.put("contentSourceId", contentSourceId);
-        rail.set("surface", objectMapper.valueToTree(surfaces.railSurface()));
-        return rail;
+        rail.setContentSourceId(contentSourceId);
+        rail.setSurface(surfaces.railSurface());
+        return (ObjectNode) objectMapper.valueToTree(rail);
     }
 
     private ObjectNode buildPostseasonRail() {
@@ -331,11 +332,11 @@ public class HomeComposer {
                         null, "nba://playoffs/bracket"}
         };
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
-        ObjectNode rail = atomicBuilder.buildEditorialOverlayRail(
+        Section rail = atomicBuilder.buildEditorialOverlayRail(
                 sectionId, "home_postseason", null, cards);
-        rail.put("contentSourceId", contentSourceId);
-        rail.set("surface", objectMapper.valueToTree(surfaces.railSurface()));
-        return rail;
+        rail.setContentSourceId(contentSourceId);
+        rail.setSurface(surfaces.railSurface());
+        return (ObjectNode) objectMapper.valueToTree(rail);
     }
 
     private ObjectNode buildRecapsVideoRail() {
@@ -351,11 +352,11 @@ public class HomeComposer {
                         FALLBACK_THUMB, "2:15:00", null, "nba://video/recap-okc-dal"}
         };
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
-        ObjectNode rail = atomicBuilder.buildVideoCarousel(
+        Section rail = atomicBuilder.buildVideoCarousel(
                 sectionId, "home_recaps", null, null, videos);
-        rail.put("contentSourceId", contentSourceId);
-        rail.set("surface", objectMapper.valueToTree(surfaces.railSurface()));
-        return rail;
+        rail.setContentSourceId(contentSourceId);
+        rail.setSurface(surfaces.railSurface());
+        return (ObjectNode) objectMapper.valueToTree(rail);
     }
 
     /**
@@ -441,10 +442,10 @@ public class HomeComposer {
         root.set("children", children);
         String contentSourceId = "cms:home-around";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
-        ObjectNode section = atomicBuilder.wrapAsComposite(sectionId, "home_around", root);
-        section.put("contentSourceId", contentSourceId);
-        section.set("surface", objectMapper.valueToTree(surfaces.railSurface()));
-        return section;
+        Section section = atomicBuilder.wrapAsComposite(sectionId, "home_around", root);
+        section.setContentSourceId(contentSourceId);
+        section.setSurface(surfaces.railSurface());
+        return (ObjectNode) objectMapper.valueToTree(section);
     }
 
     // ── Helpers ────────────────────────────────────────────────────────

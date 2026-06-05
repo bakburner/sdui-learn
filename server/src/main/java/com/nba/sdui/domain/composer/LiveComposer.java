@@ -392,11 +392,10 @@ public class LiveComposer {
         ObjectNode refreshPolicy = ssePolicy(liveGames.get(0));
         ObjectNode dataBinding = buildScheduleListBindings(liveGames);
 
-        ObjectNode sectionNode = atomicBuilder.buildGameScheduleList(
+        Section section = atomicBuilder.buildGameScheduleList(
                 sectionId, "live_games", "Live Now", rows,
                 refreshPolicy, dataBinding, clockSnapshots);
-        sectionNode.put("contentSourceId", contentSourceId);
-        Section section = toSection(sectionNode);
+        section.setContentSourceId(contentSourceId);
         section.setSurface(surfaces.gameCardFlushSurface());
         return section;
     }
@@ -418,11 +417,10 @@ public class LiveComposer {
         pollPolicy.put("intervalMs", 30_000);
         pollPolicy.put("pauseWhenOffScreen", true);
 
-        ObjectNode sectionNode = atomicBuilder.buildGameScheduleList(
+        Section section = atomicBuilder.buildGameScheduleList(
                 sectionId, "live_games", "Live Now", new String[0][],
                 pollPolicy, null);
-        sectionNode.put("contentSourceId", contentSourceId);
-        Section section = toSection(sectionNode);
+        section.setContentSourceId(contentSourceId);
         section.setSurface(surfaces.gameCardFlushSurface());
         return section;
     }
@@ -442,10 +440,9 @@ public class LiveComposer {
         for (int i = 0; i < gamesList.size(); i++) {
             rows[i] = gameToRow(gamesList.get(i));
         }
-        ObjectNode sectionNode = atomicBuilder.buildGameScheduleList(
+        Section section = atomicBuilder.buildGameScheduleList(
                 sectionId, analyticsId, title, rows, staticPolicy(), null);
-        sectionNode.put("contentSourceId", contentSourceId);
-        Section section = toSection(sectionNode);
+        section.setContentSourceId(contentSourceId);
         section.setSurface(surfaces.gameCardFlushSurface());
         return section;
     }
@@ -663,7 +660,7 @@ public class LiveComposer {
     private Section buildLeaguePassPromoBanner() {
         String contentSourceId = "cms:promo-games_screen-leaguepass";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
-        ObjectNode sectionNode = atomicBuilder.buildPromoBanner(
+        Section section = atomicBuilder.buildPromoBanner(
                 sectionId,
                 "games_screen_promo_banner",
                 "NBA League Pass",
@@ -685,8 +682,7 @@ public class LiveComposer {
                 // the theme-inverted one used by gradient hero variants.
                 tokens.color("nba.label.primary"),
                 tokens.color("nba.label.secondary"));
-        sectionNode.put("contentSourceId", contentSourceId);
-        Section section = toSection(sectionNode);
+        section.setContentSourceId(contentSourceId);
         section.setSurface(surfaces.promoCardSurface(
                 tokens.color("nba.bg.secondary"),
                 tokens.spacing("lg")));

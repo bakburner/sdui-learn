@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.nba.sdui.models.generated.Section;
+import com.nba.sdui.models.generated.SectionSurface;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ClassPathResource;
@@ -144,15 +146,15 @@ public class SduiUtils {
         }
 
         String sectionId = screenId + ":app-bar";
-        ObjectNode header = atomicBuilder.buildAppBarHeaderComposite(
+        Section header = atomicBuilder.buildAppBarHeaderComposite(
                 sectionId, screenId + "_app_bar", title, backUri);
-        header.set("surface", objectMapper.createObjectNode());
+        header.setSurface(new SectionSurface());
 
         ArrayNode sections = response.has("sections") && response.get("sections").isArray()
                 ? (ArrayNode) response.get("sections")
                 : objectMapper.createArrayNode();
         ArrayNode merged = objectMapper.createArrayNode();
-        merged.add(header);
+        merged.add(objectMapper.valueToTree(header));
         sections.forEach(merged::add);
         response.set("sections", merged);
         response.remove("title");
@@ -521,7 +523,8 @@ public class SduiUtils {
      */
     public ObjectNode buildErrorSection(String sectionId, String title, String message,
                                          String icon, String retryUri) {
-        return atomicBuilder.buildErrorState(sectionId, title, message, icon, retryUri);
+        return (ObjectNode) objectMapper.valueToTree(
+                atomicBuilder.buildErrorState(sectionId, title, message, icon, retryUri));
     }
 
     // ── Section states (error/loading UX) ────────────────────────────

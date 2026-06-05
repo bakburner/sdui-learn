@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import com.nba.sdui.domain.tokens.Tokens;
+import com.nba.sdui.models.generated.Section;
 
 /**
  * Builds AtomicComposite sections using atomic element trees.
@@ -31,9 +32,13 @@ public class AtomicCompositeBuilder {
         this.tokens = tokens;
     }
 
+    private Section bindSection(ObjectNode n) {
+        return om.convertValue(n, Section.class);
+    }
+
     // ── ErrorState ──────────────────────────────────────────────────────
 
-    public ObjectNode buildErrorState(String sectionId, String title, String message,
+    public Section buildErrorState(String sectionId, String title, String message,
                                        String icon, String retryUri) {
         ObjectNode section = sectionEnvelope(sectionId, null);
 
@@ -64,12 +69,12 @@ public class AtomicCompositeBuilder {
 
         root.set("children", children);
         wrapUi(section, root);
-        return section;
+        return bindSection(section);
     }
 
     // ── SectionHeader ───────────────────────────────────────────────────
 
-    public ObjectNode buildSectionHeader(String id, String title,
+    public Section buildSectionHeader(String id, String title,
                                           String subtitle, String actionLabel,
                                           String actionUri) {
         ObjectNode section = sectionEnvelope(id, null);
@@ -109,12 +114,12 @@ public class AtomicCompositeBuilder {
 
         root.set("children", children);
         wrapUi(section, root);
-        return section;
+        return bindSection(section);
     }
 
     // ── PromoBanner ─────────────────────────────────────────────────────
 
-    public ObjectNode buildPromoBanner(String id, String analyticsId,
+    public Section buildPromoBanner(String id, String analyticsId,
                                         String title, String headline,
                                         String subhead, String imageUrl,
                                         String ctaLabel, String targetUri) {
@@ -130,7 +135,7 @@ public class AtomicCompositeBuilder {
                 tokens.color("nba.label.secondary"));
     }
 
-    public ObjectNode buildPromoBanner(String id, String analyticsId,
+    public Section buildPromoBanner(String id, String analyticsId,
                                         String title, String headline,
                                         String subhead, String imageUrl,
                                         String ctaLabel, String targetUri,
@@ -182,7 +187,7 @@ public class AtomicCompositeBuilder {
         rootChildren.add(contentCol);
         root.set("children", rootChildren);
         wrapUi(section, root);
-        return section;
+        return bindSection(section);
     }
 
     // ── ContentRail ─────────────────────────────────────────────────────
@@ -193,7 +198,7 @@ public class AtomicCompositeBuilder {
      *
      * @param cards  Array of [id, headline, subhead, thumbnailUrl, contentType, duration, targetUri]
      */
-    public ObjectNode buildContentRail(String id, String analyticsId,
+    public Section buildContentRail(String id, String analyticsId,
                                         String title, String[][] cards) {
         ObjectNode section = sectionEnvelope(id, analyticsId);
 
@@ -223,7 +228,7 @@ public class AtomicCompositeBuilder {
         rootChildren.add(scroll);
         root.set("children", rootChildren);
         wrapUi(section, root);
-        return section;
+        return bindSection(section);
     }
 
     private ObjectNode buildContentCard(String id, String headline, String subhead,
@@ -299,7 +304,7 @@ public class AtomicCompositeBuilder {
      *
      * @param items  Array of [id, name, imageUrl, entityType, targetUri]
      */
-    public ObjectNode buildFollowingRail(String id, String analyticsId,
+    public Section buildFollowingRail(String id, String analyticsId,
                                           String title, String[][] items) {
         ObjectNode section = sectionEnvelope(id, analyticsId);
 
@@ -328,7 +333,7 @@ public class AtomicCompositeBuilder {
         rootChildren.add(scroll);
         root.set("children", rootChildren);
         wrapUi(section, root);
-        return section;
+        return bindSection(section);
     }
 
     private ObjectNode buildFollowingItem(String id, String name, String imageUrl,
@@ -368,7 +373,7 @@ public class AtomicCompositeBuilder {
      * @param columns  Array of [key, label, align] — align is "start", "center", or "end"
      * @param rows     Array of Maps mapping column keys to pre-formatted display values
      */
-    public ObjectNode buildDisplayGrid(String id, String analyticsId,
+    public Section buildDisplayGrid(String id, String analyticsId,
                                         String title,
                                         String[][] columns, String[][] rows,
                                         boolean striped) {
@@ -414,7 +419,7 @@ public class AtomicCompositeBuilder {
         rootChildren.add(grid);
         root.set("children", rootChildren);
         wrapUi(section, root);
-        return section;
+        return bindSection(section);
     }
 
     // ══════════════════════════════════════════════════════════════════════
@@ -427,7 +432,7 @@ public class AtomicCompositeBuilder {
      * Build a HeroPanel as an AtomicComposite.
      * Single content card: thumbnail + optional duration badge + content type + headline + subhead.
      */
-    public ObjectNode buildHeroPanel(String id, String analyticsId,
+    public Section buildHeroPanel(String id, String analyticsId,
                                       String headline, String subhead,
                                       String thumbnailUrl, String contentType,
                                       String duration, String targetUri) {
@@ -491,7 +496,7 @@ public class AtomicCompositeBuilder {
         rootChildren.add(card);
         root.set("children", rootChildren);
         wrapUi(section, root);
-        return section;
+        return bindSection(section);
     }
 
     // ── GamePanel (as AtomicComposite) ───────────────────────────────────
@@ -560,7 +565,7 @@ public class AtomicCompositeBuilder {
      */
     public static final boolean INITIAL_CLOCK_RUNNING = false;
 
-    public ObjectNode buildGamePanelComposite(
+    public Section buildGamePanelComposite(
             String sectionId,
             String analyticsId,
             String variant,
@@ -603,7 +608,7 @@ public class AtomicCompositeBuilder {
      * with any variant-specific tuning expressed as inline style
      * properties on those primitives.
      */
-    public ObjectNode buildGamePanelComposite(
+    public Section buildGamePanelComposite(
             String sectionId,
             String analyticsId,
             String variant,
@@ -687,7 +692,7 @@ public class AtomicCompositeBuilder {
         if (linescoreBindings != null) section.set("dataBinding", linescoreBindings);
         if (surface != null) section.set("surface", surface);
 
-        return section;
+        return bindSection(section);
     }
 
     /**
@@ -790,7 +795,7 @@ public class AtomicCompositeBuilder {
      *
      * @param items  Array of [id, title, subtitle, thumbnailUrl, duration, badgeText, targetUri]
      */
-    public ObjectNode buildVideoCarousel(String id, String analyticsId,
+    public Section buildVideoCarousel(String id, String analyticsId,
                                           String title, String subtitle,
                                           String[][] items) {
         ObjectNode section = sectionEnvelope(id, analyticsId);
@@ -827,7 +832,7 @@ public class AtomicCompositeBuilder {
         rootChildren.add(scroll);
         root.set("children", rootChildren);
         wrapUi(section, root);
-        return section;
+        return bindSection(section);
     }
 
     private ObjectNode buildVideoCard(String id, String title, String subtitle,
@@ -920,7 +925,7 @@ public class AtomicCompositeBuilder {
      * @param layout  "horizontal" or "vertical"
      * @param stats   Array of [playerId, playerName, teamTricode, statCategory, statValue, playerImageUrl]
      */
-    public ObjectNode buildStatLine(String id, String analyticsId,
+    public Section buildStatLine(String id, String analyticsId,
                                      String title, String layout,
                                      String[][] stats) {
         ObjectNode section = sectionEnvelope(id, analyticsId);
@@ -945,14 +950,14 @@ public class AtomicCompositeBuilder {
 
         root.set("children", rootChildren);
         wrapUi(section, root);
-        return section;
+        return bindSection(section);
     }
 
     /**
      * Overload that accepts pre-built stat ObjectNodes from dynamic API data.
      * Each node should have: playerName, teamTricode, statCategory, statValue, playerImageUrl (optional).
      */
-    public ObjectNode buildStatLineFromNodes(String id, String analyticsId,
+    public Section buildStatLineFromNodes(String id, String analyticsId,
                                               String title, String layout,
                                               ArrayNode statsNodes) {
         int count = statsNodes != null ? statsNodes.size() : 0;
@@ -1043,7 +1048,7 @@ public class AtomicCompositeBuilder {
      *
      * @param slots  Array of [id, title, subtitle, displayTime, isLive, targetUri]
      */
-    public ObjectNode buildNbaTvSchedule(String id, String analyticsId,
+    public Section buildNbaTvSchedule(String id, String analyticsId,
                                           String heroImageUrl, String heroTitle,
                                           String heroSubtitle, boolean liveNow,
                                           String[][] slots) {
@@ -1124,7 +1129,7 @@ public class AtomicCompositeBuilder {
         rootChildren.add(slotList);
         root.set("children", rootChildren);
         wrapUi(section, root);
-        return section;
+        return bindSection(section);
     }
 
     /**
@@ -1359,11 +1364,11 @@ public class AtomicCompositeBuilder {
     /**
      * Public convenience: wrap a root element as a full AtomicComposite section.
      */
-    public ObjectNode wrapAsComposite(String sectionId, String analyticsId,
+    public Section wrapAsComposite(String sectionId, String analyticsId,
                                        ObjectNode rootElement) {
         ObjectNode section = sectionEnvelope(sectionId, analyticsId);
         wrapUi(section, rootElement);
-        return section;
+        return bindSection(section);
     }
 
     /**
@@ -1382,7 +1387,7 @@ public class AtomicCompositeBuilder {
      *                     subtitle-or-null, thumbnailUrl, durationLabel-or-null,
      *                     isLive ("true"/"false"), targetUri]}
      */
-    public ObjectNode buildVodPlaylist(String sectionId, String analyticsId,
+    public Section buildVodPlaylist(String sectionId, String analyticsId,
                                        String header, String[][] rows) {
         ObjectNode surface = groupedContainer("column", null, null);
         surface.put("cornerRadius", tokens.radius("lg"));
@@ -1499,7 +1504,7 @@ public class AtomicCompositeBuilder {
      * @param gameSections   ordered list of GamePanel sections to embed;
      *                       each must have a mutable "data" object node
      */
-    public ObjectNode buildGameCarousel(String sectionId, String analyticsId,
+    public Section buildGameCarousel(String sectionId, String analyticsId,
                                         java.util.List<ObjectNode> gameSections) {
         ObjectNode scroll = om.createObjectNode();
         scroll.put("type", "ScrollContainer");
@@ -1542,7 +1547,7 @@ public class AtomicCompositeBuilder {
      * Horizontal story rail composed from server-provided story data.
      * items: [id, label, imageUrl, badgeText, targetUri]
      */
-    public ObjectNode buildStoryCircleRail(String sectionId, String analyticsId,
+    public Section buildStoryCircleRail(String sectionId, String analyticsId,
                                            String title, String[][] items) {
         requireNonBlank(sectionId, "sectionId");
         requireRows(items, "items");
@@ -1584,7 +1589,7 @@ public class AtomicCompositeBuilder {
      * <p>Unlike {@link #buildHeroPanel} (which produces a rounded card with text below),
      * this produces a cinematic full-bleed treatment with text overlaid on the image.
      */
-    public ObjectNode buildCinematicHeroCarousel(String sectionId, String analyticsId,
+    public Section buildCinematicHeroCarousel(String sectionId, String analyticsId,
                                                   String[][] slides) {
         requireNonBlank(sectionId, "sectionId");
         requireRows(slides, "slides");
@@ -1693,7 +1698,7 @@ public class AtomicCompositeBuilder {
      * <p>Unlike {@link #buildContentRail} (which uses square thumbnails with text below),
      * this produces tall portrait cards with all text overlaid on the image.
      */
-    public ObjectNode buildOverlayStoryRail(String sectionId, String analyticsId,
+    public Section buildOverlayStoryRail(String sectionId, String analyticsId,
                                              String title, String[][] cards) {
         requireNonBlank(sectionId, "sectionId");
         requireRows(cards, "cards");
@@ -1774,7 +1779,7 @@ public class AtomicCompositeBuilder {
      * scrim/text overlays.
      * cards: [id, title, subtitle, imageUrl, badgeText, targetUri]
      */
-    public ObjectNode buildEditorialOverlayRail(String sectionId, String analyticsId,
+    public Section buildEditorialOverlayRail(String sectionId, String analyticsId,
                                                 String title, String[][] cards) {
         requireNonBlank(sectionId, "sectionId");
         requireRows(cards, "cards");
@@ -1815,12 +1820,12 @@ public class AtomicCompositeBuilder {
      * — both must come from composer inputs, never from client-side
      * derivation from game or team identity.
      */
-    public ObjectNode buildFeaturedLiveGameHero(String sectionId, String analyticsId,
+    public Section buildFeaturedLiveGameHero(String sectionId, String analyticsId,
                                                 String title, String[][] cards) {
         return buildFeaturedLiveGameHero(sectionId, analyticsId, title, cards, null, null);
     }
 
-    public ObjectNode buildFeaturedLiveGameHero(String sectionId, String analyticsId,
+    public Section buildFeaturedLiveGameHero(String sectionId, String analyticsId,
                                                 String title, String[][] cards,
                                                 ObjectNode refreshPolicy,
                                                 ObjectNode dataBinding) {
@@ -1876,10 +1881,10 @@ public class AtomicCompositeBuilder {
         data.set("content", content);
         section.set("data", data);
         if (dataBinding != null) section.set("dataBinding", dataBinding);
-        return section;
+        return bindSection(section);
     }
 
-    public ObjectNode buildSectionHeaderComposite(String sectionId, String analyticsId,
+    public Section buildSectionHeaderComposite(String sectionId, String analyticsId,
                                                   String title, String subtitle,
                                                   String actionLabel, String actionUri) {
         requireNonBlank(sectionId, "sectionId");
@@ -1922,7 +1927,7 @@ public class AtomicCompositeBuilder {
      * @param title   optional headline (e.g. game detail); pass null to omit
      * @param backUri optional {@code nba://} target for the back affordance
      */
-    public ObjectNode buildAppBarHeaderComposite(String sectionId, String analyticsId,
+    public Section buildAppBarHeaderComposite(String sectionId, String analyticsId,
                                                  String title, String backUri) {
         requireNonBlank(sectionId, "sectionId");
 
@@ -1964,7 +1969,7 @@ public class AtomicCompositeBuilder {
      * emitted URI is parseable by client URL libraries (Foundation's
      * {@code URL(string:)} rejects unencoded {@code [} / {@code ]}).
      */
-    public ObjectNode buildVariantChipsComposite(String sectionId, String analyticsId,
+    public Section buildVariantChipsComposite(String sectionId, String analyticsId,
                                                   String currentUri, String experimentId,
                                                   ArrayNode options, String activeVariantId) {
         requireNonBlank(sectionId, "sectionId");
@@ -2044,7 +2049,7 @@ public class AtomicCompositeBuilder {
      * Two-column utility grid.
      * items: [id, label, subtitle, imageUrl, targetUri]
      */
-    public ObjectNode buildUtilityCardGrid(String sectionId, String analyticsId,
+    public Section buildUtilityCardGrid(String sectionId, String analyticsId,
                                            String title, String[][] items) {
         requireNonBlank(sectionId, "sectionId");
         requireRows(items, "items");
@@ -2088,7 +2093,7 @@ public class AtomicCompositeBuilder {
      * Horizontal rail of league destination cards.
      * items: [id, label, imageUrl, targetUri]
      */
-    public ObjectNode buildLeagueCardRail(String sectionId, String analyticsId,
+    public Section buildLeagueCardRail(String sectionId, String analyticsId,
                                           String title, String[][] items) {
         requireNonBlank(sectionId, "sectionId");
         requireRows(items, "items");
@@ -2124,11 +2129,11 @@ public class AtomicCompositeBuilder {
      * render broadcast images (index 13 is ignored for layout); composers may still send a CSV
      * for future use.
      */
-    public ObjectNode buildGameScheduleRow(String sectionId, String analyticsId, String[] row) {
+    public Section buildGameScheduleRow(String sectionId, String analyticsId, String[] row) {
         return buildGameScheduleRow(sectionId, analyticsId, row, null, null);
     }
 
-    public ObjectNode buildGameScheduleRow(String sectionId, String analyticsId, String[] row,
+    public Section buildGameScheduleRow(String sectionId, String analyticsId, String[] row,
                                            ObjectNode refreshPolicy,
                                            ObjectNode dataBinding) {
         requireNonBlank(sectionId, "sectionId");
@@ -2153,15 +2158,15 @@ public class AtomicCompositeBuilder {
         data.set("content", content);
         section.set("data", data);
         if (dataBinding != null) section.set("dataBinding", dataBinding);
-        return section;
+        return bindSection(section);
     }
 
-    public ObjectNode buildGameScheduleList(String sectionId, String analyticsId,
+    public Section buildGameScheduleList(String sectionId, String analyticsId,
                                             String title, String[][] rows) {
         return buildGameScheduleList(sectionId, analyticsId, title, rows, null, null);
     }
 
-    public ObjectNode buildGameScheduleList(String sectionId, String analyticsId,
+    public Section buildGameScheduleList(String sectionId, String analyticsId,
                                             String title, String[][] rows,
                                             ObjectNode refreshPolicy,
                                             ObjectNode dataBinding) {
@@ -2175,7 +2180,7 @@ public class AtomicCompositeBuilder {
      *
      * @param clockSnapshots map from rowId to clock snapshot (null for no live clocks)
      */
-    public ObjectNode buildGameScheduleList(String sectionId, String analyticsId,
+    public Section buildGameScheduleList(String sectionId, String analyticsId,
                                             String title, String[][] rows,
                                             ObjectNode refreshPolicy,
                                             ObjectNode dataBinding,
@@ -2217,7 +2222,7 @@ public class AtomicCompositeBuilder {
         data.set("content", content);
         section.set("data", data);
         if (dataBinding != null) section.set("dataBinding", dataBinding);
-        return section;
+        return bindSection(section);
     }
 
     /**
@@ -2233,7 +2238,7 @@ public class AtomicCompositeBuilder {
      * @param shareActionUri    optional; when non-null, emits a share icon with this navigate target
      * @param audioActionUri   optional; when non-null, emits an audio-state icon with this target
      */
-    public ObjectNode buildMediaOverlayCard(String sectionId, String analyticsId,
+    public Section buildMediaOverlayCard(String sectionId, String analyticsId,
                                             String imageUrl, String title, String subtitle,
                                             String ctaLabel, String ctaTargetUri,
                                             String topStartBadgeText,
@@ -3068,7 +3073,7 @@ public class AtomicCompositeBuilder {
      * Overload that accepts a custom refreshPolicy node (for poll, sse, etc.).
      * Falls back to static if refreshPolicy is null.
      */
-    public ObjectNode sectionEnvelope(String id, String analyticsId, ObjectNode refreshPolicy) {
+    private ObjectNode sectionEnvelope(String id, String analyticsId, ObjectNode refreshPolicy) {
         return sectionEnvelope(id, analyticsId, refreshPolicy, null);
     }
 
@@ -3076,7 +3081,7 @@ public class AtomicCompositeBuilder {
      * Full overload that accepts refreshPolicy and contentSourceId.
      * Falls back to static if refreshPolicy is null.
      */
-    public ObjectNode sectionEnvelope(String id, String analyticsId, ObjectNode refreshPolicy, String contentSourceId) {
+    private ObjectNode sectionEnvelope(String id, String analyticsId, ObjectNode refreshPolicy, String contentSourceId) {
         ObjectNode section = om.createObjectNode();
         section.put("id", id);
         section.put("type", "AtomicComposite");
@@ -3097,7 +3102,7 @@ public class AtomicCompositeBuilder {
      * @param refreshPolicy   refresh policy node (optional, defaults to static)
      * @return section envelope with derived ID and contentSourceId field
      */
-    public ObjectNode sectionEnvelopeWithDerivedId(String contentSourceId, String sectionType,
+    private ObjectNode sectionEnvelopeWithDerivedId(String contentSourceId, String sectionType,
                                             String analyticsId, ObjectNode refreshPolicy) {
         String sectionId = SectionIdDeriver.derive(contentSourceId, sectionType);
         ObjectNode section = om.createObjectNode();

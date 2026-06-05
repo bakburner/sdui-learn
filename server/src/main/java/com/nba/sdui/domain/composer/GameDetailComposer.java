@@ -1,11 +1,14 @@
 package com.nba.sdui.domain.composer;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.nba.sdui.models.generated.Screen;
+import com.nba.sdui.models.generated.Section;
+import com.nba.sdui.models.generated.SectionStates;
 import com.nba.sdui.request.SduiRequestContext;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
@@ -192,10 +195,10 @@ public class GameDetailComposer {
         String currentUri = "nba://game/" + gameId;
         String normalized = (activeVariant == null || activeVariant.isBlank())
                 ? "A" : activeVariant.toUpperCase();
-        ObjectNode chips = atomicBuilder.buildVariantChipsComposite(
+        Section chips = atomicBuilder.buildVariantChipsComposite(
                 "game-detail-variant-chips", "game_detail_variant_chips",
                 currentUri, experimentId, options, normalized);
-        chips.set("surface", objectMapper.valueToTree(surfaces.flushSurface()));
+        chips.setSurface(surfaces.flushSurface());
 
         ArrayNode sections = response.has("sections") && response.get("sections").isArray()
                 ? (ArrayNode) response.get("sections")
@@ -211,7 +214,7 @@ public class GameDetailComposer {
                 insertAt = 1;
             }
         }
-        merged.add(chips);
+        merged.add(objectMapper.valueToTree(chips));
         for (int i = insertAt; i < sections.size(); i++) {
             merged.add(sections.get(i));
         }
@@ -397,10 +400,10 @@ public class GameDetailComposer {
             {"content-2", "Key Matchups", "Players to follow", FALLBACK_THUMB, "article", null, "nba://article/key-matchups"},
             {"content-3", "Pregame Interview", "Coach's keys to the game", FALLBACK_THUMB, "video", "3:45", "nba://video/pregame-interview"}
         };
-        ObjectNode section = atomicBuilder.buildContentRail(sectionId, "game_detail_content_rail", "Preview", cards);
-        section.put("contentSourceId", contentSourceId);
-        section.set("surface", objectMapper.valueToTree(surfaces.railSurface()));
-        return section;
+        Section section = atomicBuilder.buildContentRail(sectionId, "game_detail_content_rail", "Preview", cards);
+        section.setContentSourceId(contentSourceId);
+        section.setSurface(surfaces.railSurface());
+        return (ObjectNode) objectMapper.valueToTree(section);
     }
 
     // ── Section builders ───────────────────────────────────────────────
@@ -498,7 +501,7 @@ public class GameDetailComposer {
                         AtomicCompositeBuilder.INITIAL_CLOCK_RUNNING)
                 : null;
 
-        ObjectNode section = atomicBuilder.buildGamePanelComposite(
+        Section section = atomicBuilder.buildGamePanelComposite(
                 sectionId,
                 null,
                 "scoreboard",
@@ -514,10 +517,11 @@ public class GameDetailComposer {
                 utils.buildCompositeLinescoreBindings(),
                 objectMapper.valueToTree(surfaces.gamePanelSurface()));
 
-        section.put("contentSourceId", contentSourceId);
-        section.set("sectionStates", utils.buildSectionStates(
-                sectionId, "Unable to load live scores", "shimmer", 180));
-        return section;
+        section.setContentSourceId(contentSourceId);
+        section.setSectionStates(objectMapper.convertValue(
+                utils.buildSectionStates(sectionId, "Unable to load live scores", "shimmer", 180),
+                SectionStates.class));
+        return (ObjectNode) objectMapper.valueToTree(section);
     }
 
     private static int parseGameClockSeconds(String iso) {
@@ -543,9 +547,9 @@ public class GameDetailComposer {
         }
 
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite", "top-performers");
-        ObjectNode section = atomicBuilder.buildStatLineFromNodes(
+        Section section = atomicBuilder.buildStatLineFromNodes(
                 sectionId, null, "Top Performers", "vertical", stats);
-        section.put("contentSourceId", contentSourceId);
+        section.setContentSourceId(contentSourceId);
 
         // No refreshPolicy / sectionStates: this stat line is an
         // AtomicComposite whose ui tree is composed with literal player
@@ -557,7 +561,7 @@ public class GameDetailComposer {
         // dataBinding together once the ui tree references stat fields
         // via templated paths instead of literals.
 
-        return section;
+        return (ObjectNode) objectMapper.valueToTree(section);
     }
 
     private ObjectNode buildRowSectionFromLive(BoxscoreGame game, String gameId, String contentSourceId) {
@@ -587,9 +591,9 @@ public class GameDetailComposer {
 
             root.set("children", children);
             String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite", "team-leaders-row");
-            ObjectNode section = atomicBuilder.wrapAsComposite(sectionId, null, root);
-            section.put("contentSourceId", contentSourceId);
-            return section;
+            Section section = atomicBuilder.wrapAsComposite(sectionId, null, root);
+            section.setContentSourceId(contentSourceId);
+            return (ObjectNode) objectMapper.valueToTree(section);
         } catch (Exception e) {
             log.warn("Failed to build responsive row from live data: {}", e.getMessage());
             return null;
@@ -599,7 +603,8 @@ public class GameDetailComposer {
     private ObjectNode buildStatLineChild(String id, String title, List<ObjectNode> performers) {
         ArrayNode stats = objectMapper.createArrayNode();
         performers.forEach(stats::add);
-        return atomicBuilder.buildStatLineFromNodes(id, null, title, "vertical", stats);
+        return (ObjectNode) objectMapper.valueToTree(
+                atomicBuilder.buildStatLineFromNodes(id, null, title, "vertical", stats));
     }
 
     private List<ObjectNode> getTopPerformersFromTeam(BoxscoreTeam team, int maxPlayers) {
@@ -1220,12 +1225,12 @@ public class GameDetailComposer {
             {"trending-2", "Playoff Intensity", "The best of postseason basketball", FALLBACK_THUMB, "video", "2:15", "nba://video/playoff-intensity"},
             {"trending-3", "Post-Game Press Conference", "Hear from the coaches", FALLBACK_THUMB, "video", "6:00", "nba://video/post-game-presser"}
         };
-        ObjectNode extraHeader = atomicBuilder.buildSectionHeader(
+        Section extraHeader = atomicBuilder.buildSectionHeader(
                 "trending-videos-header", "Trending Videos", null, null, null);
-        extraHeader.set("surface", objectMapper.valueToTree(surfaces.sectionHeaderSurface()));
-        ObjectNode extraRail = atomicBuilder.buildContentRail("trending-videos",
+        extraHeader.setSurface(surfaces.sectionHeaderSurface());
+        Section extraRail = atomicBuilder.buildContentRail("trending-videos",
                 "trending_videos_rail", null, trendingCards);
-        extraRail.set("surface", objectMapper.valueToTree(surfaces.railSurface()));
+        extraRail.setSurface(surfaces.railSurface());
 
         Integer insertAfter = slugIndex.get("content-rail");
         if (insertAfter != null) {
@@ -1233,8 +1238,8 @@ public class GameDetailComposer {
             for (int i = 0; i < sections.size(); i++) {
                 updated.add(sections.get(i));
                 if (i == insertAfter) {
-                    updated.add(extraHeader);
-                    updated.add(extraRail);
+                    updated.add(objectMapper.valueToTree(extraHeader));
+                    updated.add(objectMapper.valueToTree(extraRail));
                 }
             }
             response.set("sections", updated);

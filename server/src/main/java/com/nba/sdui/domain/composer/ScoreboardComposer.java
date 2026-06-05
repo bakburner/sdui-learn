@@ -196,7 +196,7 @@ public class ScoreboardComposer {
         String contentSourceId = "stats-api:scoreboard-game-" + gameId;
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
 
-        ObjectNode sectionNode = atomicBuilder.buildGamePanelComposite(
+        Section sectionNode = atomicBuilder.buildGamePanelComposite(
                 sectionId,
                 "scoreboard_row_" + gameId,
                 "scoreboard",
@@ -211,8 +211,8 @@ public class ScoreboardComposer {
                 refreshPolicy,
                 bindings,
                 objectMapper.valueToTree(surfaces.gamePanelSurface()));
-        sectionNode.put("contentSourceId", contentSourceId);
-        return toSection(sectionNode);
+        sectionNode.setContentSourceId(contentSourceId);
+        return sectionNode;
     }
 
     private Section toSection(ObjectNode node) {
@@ -270,13 +270,12 @@ public class ScoreboardComposer {
     private Section buildScoreboardPromoBanner() {
         String contentSourceId = "ads:gam-scoreboard-promo";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
-        ObjectNode sectionNode = atomicBuilder.buildPromoBanner(
+        Section section = atomicBuilder.buildPromoBanner(
                 sectionId, "scoreboard_promo_banner",
                 "NBA League Pass", null,
                 "Watch every out-of-market game live or on demand.",
                 FALLBACK_THUMB, "Learn More", "nba://leaguepass");
-        sectionNode.put("contentSourceId", contentSourceId);
-        Section section = toSection(sectionNode);
+        section.setContentSourceId(contentSourceId);
         section.setSurface(surfaces.subscribeSurface(
                 "#0C1B3A",
                 tokens.color("nba.label.accent.brand"),
@@ -295,19 +294,17 @@ public class ScoreboardComposer {
         };
         String headerContentSourceId = "feed:scoreboard";
         String headerSectionId = SectionIdDeriver.derive(headerContentSourceId, "AtomicComposite", "content-rail-header");
-        ObjectNode headerNode = atomicBuilder.buildSectionHeader(
+        Section header = atomicBuilder.buildSectionHeader(
                 headerSectionId, "Around the League", null, null, null);
-        headerNode.put("contentSourceId", headerContentSourceId);
-        Section header = toSection(headerNode);
+        header.setContentSourceId(headerContentSourceId);
         header.setSurface(surfaces.sectionHeaderSurface());
         sections.add(header);
 
         String railContentSourceId = "feed:scoreboard";
         String railSectionId = SectionIdDeriver.derive(railContentSourceId, "AtomicComposite", "content-rail");
-        ObjectNode railNode = atomicBuilder.buildContentRail(railSectionId,
+        Section rail = atomicBuilder.buildContentRail(railSectionId,
                 "scoreboard_content_rail", null, cards);
-        railNode.put("contentSourceId", railContentSourceId);
-        Section rail = toSection(railNode);
+        rail.setContentSourceId(railContentSourceId);
         rail.setSurface(surfaces.railSurface());
         sections.add(rail);
     }

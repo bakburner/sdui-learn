@@ -3,6 +3,7 @@ package com.nba.sdui.domain;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nba.sdui.models.generated.SectionSurface;
 import org.springframework.stereotype.Component;
 import com.nba.sdui.domain.tokens.Tokens;
 
@@ -48,7 +49,11 @@ public class SectionSurfaces {
      * the {@code lg} step makes the break read as an intentional module
      * boundary.
      */
-    public ObjectNode defaultSurface() {
+    public SectionSurface defaultSurface() {
+        return bind(defaultSurfaceNode());
+    }
+
+    private ObjectNode defaultSurfaceNode() {
         ObjectNode surface = objectMapper.createObjectNode();
         surface.set("margin", utils.spacingTokens(
                 tokens.spacing("lg"),
@@ -81,7 +86,7 @@ public class SectionSurfaces {
      * label + creative). The client fills the padded width and derives
      * height from {@code data.sizes[0]} aspect ratio only.
      */
-    public ObjectNode adSlotSurface() {
+    public SectionSurface adSlotSurface() {
         ObjectNode surface = objectMapper.createObjectNode();
         surface.set("margin", utils.spacingTokens(
                 tokens.spacing("lg"),
@@ -95,15 +100,15 @@ public class SectionSurfaces {
                 tokens.spacing("md")));
         surface.put("background", "token:nba.bg.secondary");
         surface.put("cornerRadius", 0);
-        return surface;
+        return bind(surface);
     }
 
     /**
      * Build a flush (no wrapper chrome) surface block. Used for sections
      * that should render edge-to-edge (hero videos, full-bleed images).
      */
-    public ObjectNode flushSurface() {
-        return objectMapper.createObjectNode();
+    public SectionSurface flushSurface() {
+        return bind(objectMapper.createObjectNode());
     }
 
     /**
@@ -112,18 +117,18 @@ public class SectionSurfaces {
      * sit edge-to-edge in the schedule list; inter-card spacing is owned by the
      * parent list's {@code gap} rather than by per-card margin.
      */
-    public ObjectNode gameCardFlushSurface() {
+    public SectionSurface gameCardFlushSurface() {
         ObjectNode surface = objectMapper.createObjectNode();
         surface.put("cornerRadius", 0);
         surface.put("background", "token:nba.bg.secondary");
-        return surface;
+        return bind(surface);
     }
 
     /**
      * Square, full-bleed strip: token secondary background and padding, no margin.
      * Composed from standard {@link SectionSurface} fields (not a tab-specific wire type).
      */
-    public ObjectNode secondaryStripSurface() {
+    public SectionSurface secondaryStripSurface() {
         ObjectNode surface = objectMapper.createObjectNode();
         surface.put("cornerRadius", 0);
         surface.put("background", "token:nba.bg.secondary");
@@ -132,7 +137,7 @@ public class SectionSurfaces {
                 tokens.spacing("md"),
                 tokens.spacing("xs"),
                 tokens.spacing("md")));
-        return surface;
+        return bind(surface);
     }
 
     /**
@@ -140,7 +145,7 @@ public class SectionSurfaces {
      * explicit wrapper background, so the section sits on the screen's default
      * surface.
      */
-    public ObjectNode stripSurfaceWithoutBackground() {
+    public SectionSurface stripSurfaceWithoutBackground() {
         ObjectNode surface = objectMapper.createObjectNode();
         surface.put("cornerRadius", 0);
         surface.set("padding", utils.spacingTokens(
@@ -148,7 +153,7 @@ public class SectionSurfaces {
                 tokens.spacing("md"),
                 tokens.spacing("xs"),
                 tokens.spacing("md")));
-        return surface;
+        return bind(surface);
     }
 
     /**
@@ -164,8 +169,8 @@ public class SectionSurfaces {
      * converge on a single value, promote it to a new spacing token
      * rather than continuing to pass it inline.
      */
-    public ObjectNode subscribeSurface(String topColor, String bottomColor, int padding) {
-        ObjectNode surface = defaultSurface();
+    public SectionSurface subscribeSurface(String topColor, String bottomColor, int padding) {
+        ObjectNode surface = defaultSurfaceNode();
         ObjectNode gradient = objectMapper.createObjectNode();
         ArrayNode colors = objectMapper.createArrayNode();
         colors.add(topColor);
@@ -174,7 +179,7 @@ public class SectionSurfaces {
         gradient.put("direction", "vertical");
         surface.set("background", gradient);
         surface.set("padding", utils.spacingSymmetric(padding, padding));
-        return surface;
+        return bind(surface);
     }
 
     /**
@@ -186,12 +191,12 @@ public class SectionSurfaces {
      * Pass promo so it stacks with the same visual rhythm as the live
      * and finished game cards below it.
      */
-    public ObjectNode promoCardSurface(String backgroundToken, String paddingToken) {
-        ObjectNode surface = defaultSurface();
+    public SectionSurface promoCardSurface(String backgroundToken, String paddingToken) {
+        ObjectNode surface = defaultSurfaceNode();
         surface.put("background", backgroundToken);
         surface.set("padding", utils.spacingTokens(
                 paddingToken, paddingToken, paddingToken, paddingToken));
-        return surface;
+        return bind(surface);
     }
 
     /**
@@ -204,10 +209,10 @@ public class SectionSurfaces {
      * owned by the renderer and by `data.displayConfig`, not by this
      * surface block.
      */
-    public ObjectNode videoPlayerSurface() {
+    public SectionSurface videoPlayerSurface() {
         ObjectNode surface = objectMapper.createObjectNode();
         surface.put("background", "#1A1F2E");
-        return surface;
+        return bind(surface);
     }
 
     /**
@@ -223,7 +228,7 @@ public class SectionSurfaces {
      * container) so the chrome is discoverable at the section envelope
      * level and the inner atomic tree stays content-only.
      */
-    public ObjectNode cardSurface() {
+    public SectionSurface cardSurface() {
         ObjectNode surface = objectMapper.createObjectNode();
         surface.set("margin", utils.spacingTokens(
                 tokens.spacing("lg"),
@@ -232,7 +237,7 @@ public class SectionSurfaces {
                 tokens.spacing("lg")));
         surface.put("background", "token:nba.bg.tertiary");
         surface.put("cornerRadius", tokens.radius("md"));
-        return surface;
+        return bind(surface);
     }
 
     /**
@@ -247,7 +252,7 @@ public class SectionSurfaces {
      * no corner radius, no shadow. That keeps the composite's internal
      * styling untouched and avoids double-chrome.
      */
-    public ObjectNode railSurface() {
+    public SectionSurface railSurface() {
         ObjectNode surface = objectMapper.createObjectNode();
         ObjectNode margin = objectMapper.createObjectNode();
         // nba.spacing.lg (phone:16) top/bottom — pairs with the same
@@ -260,7 +265,7 @@ public class SectionSurfaces {
         margin.put("top", tokens.spacing("lg"));
         margin.put("bottom", tokens.spacing("lg"));
         surface.set("margin", margin);
-        return surface;
+        return bind(surface);
     }
 
     /**
@@ -292,13 +297,13 @@ public class SectionSurfaces {
      *       design-token reference per AGENTS.md §3.6.</li>
      * </ul>
      */
-    public ObjectNode sectionHeaderSurface() {
+    public SectionSurface sectionHeaderSurface() {
         ObjectNode surface = objectMapper.createObjectNode();
         ObjectNode margin = objectMapper.createObjectNode();
         margin.put("top", tokens.spacing("lg"));
         margin.put("bottom", tokens.spacing("md"));
         surface.set("margin", margin);
-        return surface;
+        return bind(surface);
     }
 
     /**
@@ -315,8 +320,8 @@ public class SectionSurfaces {
      * edge against the black canvas without competing with the
      * SubscribeUpsell brand gradient.
      */
-    public ObjectNode gamePanelSurface() {
-        ObjectNode surface = defaultSurface();
+    public SectionSurface gamePanelSurface() {
+        ObjectNode surface = defaultSurfaceNode();
 
         ObjectNode gradient = objectMapper.createObjectNode();
         ArrayNode colors = objectMapper.createArrayNode();
@@ -326,6 +331,10 @@ public class SectionSurfaces {
         gradient.put("direction", "diagonal");
         surface.set("background", gradient);
 
-        return surface;
+        return bind(surface);
+    }
+
+    private SectionSurface bind(ObjectNode node) {
+        return objectMapper.convertValue(node, SectionSurface.class);
     }
 }

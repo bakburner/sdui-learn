@@ -210,7 +210,7 @@ public class ScoreboardComposer {
                 "nba://game/" + gameId,
                 refreshPolicy,
                 bindings,
-                surfaces.gamePanelSurface());
+                objectMapper.valueToTree(surfaces.gamePanelSurface()));
         sectionNode.put("contentSourceId", contentSourceId);
         return toSection(sectionNode);
     }
@@ -220,14 +220,6 @@ public class ScoreboardComposer {
             return objectMapper.treeToValue(node, Section.class);
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("Failed to bind composed section to Section.class", e);
-        }
-    }
-
-    private SectionSurface toSectionSurface(ObjectNode node) {
-        try {
-            return objectMapper.treeToValue(node, SectionSurface.class);
-        } catch (JsonProcessingException e) {
-            throw new IllegalStateException("Failed to bind composed surface to SectionSurface.class", e);
         }
     }
 
@@ -285,10 +277,10 @@ public class ScoreboardComposer {
                 FALLBACK_THUMB, "Learn More", "nba://leaguepass");
         sectionNode.put("contentSourceId", contentSourceId);
         Section section = toSection(sectionNode);
-        section.setSurface(toSectionSurface(surfaces.subscribeSurface(
+        section.setSurface(surfaces.subscribeSurface(
                 "#0C1B3A",
                 tokens.color("nba.label.accent.brand"),
-                20)));
+                20));
         return section;
     }
 
@@ -307,7 +299,7 @@ public class ScoreboardComposer {
                 headerSectionId, "Around the League", null, null, null);
         headerNode.put("contentSourceId", headerContentSourceId);
         Section header = toSection(headerNode);
-        header.setSurface(toSectionSurface(surfaces.sectionHeaderSurface()));
+        header.setSurface(surfaces.sectionHeaderSurface());
         sections.add(header);
 
         String railContentSourceId = "feed:scoreboard";
@@ -316,7 +308,7 @@ public class ScoreboardComposer {
                 "scoreboard_content_rail", null, cards);
         railNode.put("contentSourceId", railContentSourceId);
         Section rail = toSection(railNode);
-        rail.setSurface(toSectionSurface(surfaces.railSurface()));
+        rail.setSurface(surfaces.railSurface());
         sections.add(rail);
     }
 }

@@ -195,7 +195,7 @@ public class GameDetailComposer {
         ObjectNode chips = atomicBuilder.buildVariantChipsComposite(
                 "game-detail-variant-chips", "game_detail_variant_chips",
                 currentUri, experimentId, options, normalized);
-        chips.set("surface", surfaces.flushSurface());
+        chips.set("surface", objectMapper.valueToTree(surfaces.flushSurface()));
 
         ArrayNode sections = response.has("sections") && response.get("sections").isArray()
                 ? (ArrayNode) response.get("sections")
@@ -399,7 +399,7 @@ public class GameDetailComposer {
         };
         ObjectNode section = atomicBuilder.buildContentRail(sectionId, "game_detail_content_rail", "Preview", cards);
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", surfaces.railSurface());
+        section.set("surface", objectMapper.valueToTree(surfaces.railSurface()));
         return section;
     }
 
@@ -446,11 +446,11 @@ public class GameDetailComposer {
         ObjectNode awayTable = boxscoreComposer.buildBoxscoreTableSection(
                 awayTeam, gameId, contentSourceId, "away",
                 "gd_boxscore_away_sortCol", "gd_boxscore_away_sortDir", gameStatus);
-        awayTable.set("surface", surfaces.flushSurface());
+        awayTable.set("surface", objectMapper.valueToTree(surfaces.flushSurface()));
         ObjectNode homeTable = boxscoreComposer.buildBoxscoreTableSection(
                 homeTeam, gameId, contentSourceId, "home",
                 "gd_boxscore_home_sortCol", "gd_boxscore_home_sortDir", gameStatus);
-        homeTable.set("surface", surfaces.flushSurface());
+        homeTable.set("surface", objectMapper.valueToTree(surfaces.flushSurface()));
 
         ObjectNode tabContents = objectMapper.createObjectNode();
         ArrayNode awayContent = objectMapper.createArrayNode();
@@ -464,7 +464,7 @@ public class GameDetailComposer {
         data.set("tabContents", tabContents);
         section.set("data", data);
         section.set("subsections", utils.tabSelectSubsections(tabs, "gd_boxscore_team"));
-        section.set("surface", surfaces.stripSurfaceWithoutBackground());
+        section.set("surface", objectMapper.valueToTree(surfaces.stripSurfaceWithoutBackground()));
         return section;
     }
 
@@ -512,7 +512,7 @@ public class GameDetailComposer {
                 null,
                 refreshPolicy,
                 utils.buildCompositeLinescoreBindings(),
-                surfaces.gamePanelSurface());
+                objectMapper.valueToTree(surfaces.gamePanelSurface()));
 
         section.put("contentSourceId", contentSourceId);
         section.set("sectionStates", utils.buildSectionStates(
@@ -682,7 +682,7 @@ public class GameDetailComposer {
         section.put("type", "VideoPlayer");
         section.put("analyticsId", "game_detail_video_player");
         section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
-        section.set("surface", surfaces.videoPlayerSurface());
+        section.set("surface", objectMapper.valueToTree(surfaces.videoPlayerSurface()));
 
         ObjectNode root = atomicBuilder.container("column", "center", "center");
         root.put("widthMode", "fill");
@@ -902,7 +902,7 @@ public class GameDetailComposer {
         data.set("tabContents", tabContents);
         section.set("data", data);
         section.set("subsections", utils.tabSelectSubsections(tabs, "gd_active_tab"));
-        section.set("surface", surfaces.stripSurfaceWithoutBackground());
+        section.set("surface", objectMapper.valueToTree(surfaces.stripSurfaceWithoutBackground()));
 
         return section;
     }
@@ -1222,10 +1222,10 @@ public class GameDetailComposer {
         };
         ObjectNode extraHeader = atomicBuilder.buildSectionHeader(
                 "trending-videos-header", "Trending Videos", null, null, null);
-        extraHeader.set("surface", surfaces.sectionHeaderSurface());
+        extraHeader.set("surface", objectMapper.valueToTree(surfaces.sectionHeaderSurface()));
         ObjectNode extraRail = atomicBuilder.buildContentRail("trending-videos",
                 "trending_videos_rail", null, trendingCards);
-        extraRail.set("surface", surfaces.railSurface());
+        extraRail.set("surface", objectMapper.valueToTree(surfaces.railSurface()));
 
         Integer insertAfter = slugIndex.get("content-rail");
         if (insertAfter != null) {

@@ -129,11 +129,11 @@ public class BoxscoreComposer {
         ObjectNode awayTable = buildBoxscoreTableSection(
                 awayTeam, gameId, contentSourceId, "away",
                 "boxscore_away_sortCol", "boxscore_away_sortDir", gameStatus);
-        awayTable.set("surface", surfaces.flushSurface());
+        awayTable.set("surface", objectMapper.valueToTree(surfaces.flushSurface()));
         ObjectNode homeTable = buildBoxscoreTableSection(
                 homeTeam, gameId, contentSourceId, "home",
                 "boxscore_home_sortCol", "boxscore_home_sortDir", gameStatus);
-        homeTable.set("surface", surfaces.flushSurface());
+        homeTable.set("surface", objectMapper.valueToTree(surfaces.flushSurface()));
 
         // Wrap in TabGroup for team toggling
         ObjectNode tabGroup = objectMapper.createObjectNode();
@@ -176,7 +176,7 @@ public class BoxscoreComposer {
         tabData.set("tabContents", tabContents);
         tabGroup.set("data", tabData);
         tabGroup.set("subsections", utils.tabSelectSubsections(tabs, "boxscore_team"));
-        tabGroup.set("surface", surfaces.stripSurfaceWithoutBackground());
+        tabGroup.set("surface", objectMapper.valueToTree(surfaces.stripSurfaceWithoutBackground()));
 
         sections.add(tabGroup);
         response.set("sections", sections);

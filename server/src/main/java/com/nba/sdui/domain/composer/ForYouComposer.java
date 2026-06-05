@@ -201,7 +201,7 @@ public class ForYouComposer {
         ObjectNode section = atomicBuilder.buildStoryCircleRail(
                 sectionId, "for_you_following", "Following", items);
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", surfaces.railSurface());
+        section.set("surface", objectMapper.valueToTree(surfaces.railSurface()));
         return section;
     }
 
@@ -232,7 +232,7 @@ public class ForYouComposer {
         ObjectNode section = atomicBuilder.buildCinematicHeroCarousel(
                 sectionId, "for_you_featured_hero", slides);
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", surfaces.flushSurface());
+        section.set("surface", objectMapper.valueToTree(surfaces.flushSurface()));
         return section;
     }
 
@@ -315,7 +315,7 @@ public class ForYouComposer {
                 refreshPolicy,
                 dataBindingForHero);
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", surfaces.railSurface());
+        section.set("surface", objectMapper.valueToTree(surfaces.railSurface()));
         return section;
     }
 
@@ -467,7 +467,7 @@ public class ForYouComposer {
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
         ObjectNode section = atomicBuilder.wrapAsComposite(sectionId, "for_you_top_stories", root);
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", surfaces.railSurface());
+        section.set("surface", objectMapper.valueToTree(surfaces.railSurface()));
         return section;
     }
 
@@ -485,7 +485,7 @@ public class ForYouComposer {
                 sectionId, "for_you_other_leagues",
                 "Other Leagues", items);
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", surfaces.railSurface());
+        section.set("surface", objectMapper.valueToTree(surfaces.railSurface()));
         return section;
     }
 
@@ -518,7 +518,7 @@ public class ForYouComposer {
         ObjectNode section = atomicBuilder.buildContentRail(
                 sectionId, "for_you_trending", null, cards);
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", surfaces.railSurface());
+        section.set("surface", objectMapper.valueToTree(surfaces.railSurface()));
         return section;
     }
 
@@ -551,7 +551,7 @@ public class ForYouComposer {
         ObjectNode section = atomicBuilder.buildContentRail(
                 sectionId, "for_you_lp_picks", null, cards);
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", surfaces.railSurface());
+        section.set("surface", objectMapper.valueToTree(surfaces.railSurface()));
         return section;
     }
 
@@ -580,7 +580,7 @@ public class ForYouComposer {
                 sectionId, "for_you_vod_playlist",
                 "More to Watch", rows);
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", surfaces.railSurface());
+        section.set("surface", objectMapper.valueToTree(surfaces.railSurface()));
         return section;
     }
 
@@ -608,7 +608,7 @@ public class ForYouComposer {
         section.put("contentSourceId", contentSourceId);
         // railSurface (margin-only) — the grid's cells are individually
         // card-chromed, so the section doesn't need an outer card.
-        section.set("surface", surfaces.railSurface());
+        section.set("surface", objectMapper.valueToTree(surfaces.railSurface()));
         return section;
     }
 
@@ -620,7 +620,7 @@ public class ForYouComposer {
         ObjectNode section = atomicBuilder.buildSectionHeaderComposite(
                 sectionId, analyticsId, title, subtitle, actionLabel, actionUri);
         section.put("contentSourceId", contentSourceId);
-        section.set("surface", surfaces.sectionHeaderSurface());
+        section.set("surface", objectMapper.valueToTree(surfaces.sectionHeaderSurface()));
         return section;
     }
 
@@ -646,7 +646,7 @@ public class ForYouComposer {
         section.put("analyticsId", analyticsId);
         section.put("contentSourceId", contentSourceId);
         section.set("refreshPolicy", staticPolicy());
-        section.set("surface", surfaces.adSlotSurface());
+        section.set("surface", objectMapper.valueToTree(surfaces.adSlotSurface()));
 
         ObjectNode data = objectMapper.createObjectNode();
         data.put("provider", "gam");

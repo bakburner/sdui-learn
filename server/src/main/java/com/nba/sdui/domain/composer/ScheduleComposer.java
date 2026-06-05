@@ -194,7 +194,7 @@ public class ScheduleComposer {
                         headerSectionId, formatDate(date, locale), null, null, null);
                 Section header = toSection(headerNode);
                 header.setContentSourceId(headerContentSourceId);
-                header.setSurface(toSectionSurface(surfaces.sectionHeaderSurface()));
+                header.setSurface(surfaces.sectionHeaderSurface());
                 sections.add(header);
             }
             sections.add(buildGameCard(game));
@@ -240,7 +240,7 @@ public class ScheduleComposer {
                 row);
         Section section = toSection(sectionNode);
         section.setContentSourceId(contentSourceId);
-        section.setSurface(toSectionSurface(surfaces.railSurface()));
+        section.setSurface(surfaces.railSurface());
         return section;
     }
 
@@ -249,14 +249,6 @@ public class ScheduleComposer {
             return objectMapper.treeToValue(node, Section.class);
         } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
             throw new IllegalStateException("Failed to bind composed section to Section.class", e);
-        }
-    }
-
-    private SectionSurface toSectionSurface(ObjectNode node) {
-        try {
-            return objectMapper.treeToValue(node, SectionSurface.class);
-        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
-            throw new IllegalStateException("Failed to bind composed surface to SectionSurface.class", e);
         }
     }
 

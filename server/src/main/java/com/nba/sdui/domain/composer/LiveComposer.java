@@ -397,7 +397,7 @@ public class LiveComposer {
                 refreshPolicy, dataBinding, clockSnapshots);
         sectionNode.put("contentSourceId", contentSourceId);
         Section section = toSection(sectionNode);
-        section.setSurface(toSectionSurface(surfaces.gameCardFlushSurface()));
+        section.setSurface(surfaces.gameCardFlushSurface());
         return section;
     }
 
@@ -423,7 +423,7 @@ public class LiveComposer {
                 pollPolicy, null);
         sectionNode.put("contentSourceId", contentSourceId);
         Section section = toSection(sectionNode);
-        section.setSurface(toSectionSurface(surfaces.gameCardFlushSurface()));
+        section.setSurface(surfaces.gameCardFlushSurface());
         return section;
     }
 
@@ -446,7 +446,7 @@ public class LiveComposer {
                 sectionId, analyticsId, title, rows, staticPolicy(), null);
         sectionNode.put("contentSourceId", contentSourceId);
         Section section = toSection(sectionNode);
-        section.setSurface(toSectionSurface(surfaces.gameCardFlushSurface()));
+        section.setSurface(surfaces.gameCardFlushSurface());
         return section;
     }
 
@@ -455,14 +455,6 @@ public class LiveComposer {
             return objectMapper.treeToValue(node, Section.class);
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("Failed to bind composed section to Section.class", e);
-        }
-    }
-
-    private SectionSurface toSectionSurface(ObjectNode node) {
-        try {
-            return objectMapper.treeToValue(node, SectionSurface.class);
-        } catch (JsonProcessingException e) {
-            throw new IllegalStateException("Failed to bind composed surface to SectionSurface.class", e);
         }
     }
 
@@ -695,9 +687,9 @@ public class LiveComposer {
                 tokens.color("nba.label.secondary"));
         sectionNode.put("contentSourceId", contentSourceId);
         Section section = toSection(sectionNode);
-        section.setSurface(toSectionSurface(surfaces.promoCardSurface(
+        section.setSurface(surfaces.promoCardSurface(
                 tokens.color("nba.bg.secondary"),
-                tokens.spacing("lg"))));
+                tokens.spacing("lg")));
         return section;
     }
 
@@ -798,7 +790,7 @@ public class LiveComposer {
 
         sectionNode.set("data", data);
         Section section = toSection(sectionNode);
-        section.setSurface(toSectionSurface(surfaces.adSlotSurface()));
+        section.setSurface(surfaces.adSlotSurface());
         return section;
     }
 }

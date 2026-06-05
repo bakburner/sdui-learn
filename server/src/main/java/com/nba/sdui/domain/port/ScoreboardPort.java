@@ -13,6 +13,15 @@ import java.time.LocalDate;
  * DTOs from {@link com.nba.sdui.integration.model.scoreboard}; the integration
  * package mirrors {@code nba-client-backend/integration-models} and will lift
  * to a shared Gradle module when extraction lands.
+ *
+ * <p>TODO: re-evaluate the {@code *Port} suffix. nba-client-backend's dominant
+ * convention for domain seams is role-named ({@code TeamMarketLookup},
+ * {@code ActiveStreamCounter}, {@code SkuClassifier}) and reserves
+ * {@code *Port} only for "wrap an external system as a domain seam" cases
+ * where no clearer role applies (one example: {@code OpinPort}). This
+ * interface aggregates two upstreams + SAF orchestration, so {@code *Port}
+ * may still be the right fit, but consider e.g. {@code ScoreboardReader}
+ * when the cross-codebase audit is done.
  */
 public interface ScoreboardPort {
 

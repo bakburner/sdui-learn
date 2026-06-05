@@ -13,6 +13,12 @@ import java.util.Map;
  * {@code com.nba.sdui.remote} (see {@code StatsApiAdapter}). Boxscore is
  * served as a typed {@link BoxscoreResponse} so SAF's L2 cache stays
  * within its {@code com.nba.*} polymorphic-type allowlist.
+ *
+ * <p>TODO: re-evaluate the {@code *Port} suffix. See note on
+ * {@link ScoreboardPort} — nba-client-backend prefers role-named domain
+ * seams ({@code *Lookup}, {@code *Counter}, {@code *Classifier}) and uses
+ * {@code *Port} only as a fallback. {@code BoxscoreReader} or splitting
+ * this into role-named seams may fit better.
  */
 public interface StatsPort {
 

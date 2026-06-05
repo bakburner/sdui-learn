@@ -1939,17 +1939,19 @@ public class AtomicCompositeBuilder {
 
         List<String[]> validCards = validRows(cards, 0, 2, 5, 8);
 
-        ObjectNode root = containerNode("column", null, null);
-        root.set("padding", paddingNode(0, 0, 0, tokens.spacing("md")));
-        ArrayNode rootChildren = om.createArrayNode();
+        AtomicElement root = container("column", null, null);
+        root.setPadding(padding(0, 0, 0, tokens.spacing("md")));
+        List<AtomicElement> rootChildren = new ArrayList<>();
         if (title != null) {
-            ObjectNode header = textNode(title, "titleMedium", "bold", tokens.color("nba.label.primary"), null);
-            header.set("padding", paddingNode(tokens.spacing("lg"), tokens.spacing("lg"), tokens.spacing("xs"), tokens.spacing("sm")));
+            AtomicElement header = text(title, "titleMedium", "bold",
+                    tokens.color("nba.label.primary"), null);
+            header.setPadding(padding(tokens.spacing("lg"), tokens.spacing("lg"),
+                    tokens.spacing("xs"), tokens.spacing("sm")));
             rootChildren.add(header);
         }
 
         boolean singleCard = validCards.size() == 1;
-        ArrayNode scrollChildren = om.createArrayNode();
+        List<AtomicElement> scrollChildren = new ArrayList<>();
         ObjectNode content = om.createObjectNode();
         ObjectNode cardsContent = om.createObjectNode();
         for (String[] card : validCards) {
@@ -1967,26 +1969,30 @@ public class AtomicCompositeBuilder {
         // surface end-to-end. Multi-card hero: paged horizontal scroll
         // with peeking edges and a dot indicator.
         if (singleCard) {
-            ObjectNode wrapper = containerNode("column", null, "stretch");
-            wrapper.set("padding", paddingNode(tokens.spacing("lg"), tokens.spacing("lg"), 0, 0));
-            ArrayNode wrapperChildren = om.createArrayNode();
-            for (int i = 0; i < scrollChildren.size(); i++) wrapperChildren.add(scrollChildren.get(i));
-            wrapper.set("children", wrapperChildren);
+            AtomicElement wrapper = container("column", null, "stretch");
+            wrapper.setPadding(padding(tokens.spacing("lg"), tokens.spacing("lg"), 0, 0));
+            wrapper.setChildren(new ArrayList<>(scrollChildren));
             rootChildren.add(wrapper);
         } else {
-            ObjectNode scroll = pagedHorizontalScroll(tokens.spacing("md"), validCards.size(), paddingNode(tokens.spacing("lg"), tokens.spacing("lg"), 0, 0),
+            AtomicElement scroll = pagedHorizontalScrollTyped(tokens.spacing("md"),
+                    validCards.size(),
+                    padding(tokens.spacing("lg"), tokens.spacing("lg"), 0, 0),
                     "bottomCenter", null, null);
-            scroll.set("children", scrollChildren);
+            scroll.setChildren(scrollChildren);
             rootChildren.add(scroll);
         }
-        root.set("children", rootChildren);
+        root.setChildren(rootChildren);
 
-        ObjectNode section = sectionEnvelope(sectionId, analyticsId, refreshPolicy);
-        ObjectNode data = wrapUiNode(root);
-        data.set("content", content);
-        section.set("data", data);
-        if (dataBinding != null) section.set("dataBinding", dataBinding);
-        return bindSection(section);
+        Section section = newSection(sectionId, analyticsId, refreshPolicy);
+        AtomicComposite data = new AtomicComposite();
+        data.setUi(root);
+        Content typedContent = om.convertValue(content, Content.class);
+        data.setContent(typedContent);
+        section.setData(data);
+        if (dataBinding != null) {
+            section.setDataBinding(om.convertValue(dataBinding, DataBinding.class));
+        }
+        return section;
     }
 
     public Section buildSectionHeaderComposite(String sectionId, String analyticsId,
@@ -2550,144 +2556,153 @@ public class AtomicCompositeBuilder {
     }
 
     /** Top-right overflow control on hero key art; action must be server-declared. */
-    private ObjectNode heroOverflowButton(ObjectNode navigateAction) {
-        ObjectNode b = om.createObjectNode();
-        b.put("type", "Button");
-        b.put("label", "⋯");
-        b.put("variant", "text");
-        b.put("color", tokens.color("nba.label-dark.primary"));
-        b.set("actions", singleActionArrayNode(navigateAction));
+    private AtomicElement heroOverflowButton(Action navigateAction) {
+        AtomicElement b = new AtomicElement().withType(AtomicElement.Type.fromValue("Button"));
+        b.setLabel("⋯");
+        b.setVariant("text");
+        b.setColor(tokens.color("nba.label-dark.primary"));
+        b.setActions(singleActionArray(navigateAction));
         return b;
     }
 
-    private ObjectNode featuredLiveGameHeroCard(String[] card, boolean stretchToParentWidth) {
+    private AtomicElement featuredLiveGameHeroCard(String[] card, boolean stretchToParentWidth) {
         String cardId = value(card, 0);
         int heroRadius = 0;
-        ObjectNode hero = containerNode("column", null, "stretch");
-        hero.put("id", cardId);
+        AtomicElement hero = container("column", null, "stretch");
+        hero.setId(cardId);
         // Single-card section: card fills its surface (no fixed width).
         // Multi-card paged carousel: cards snap at a fixed width so a
         // peek of the next card is visible at the edge.
         if (stretchToParentWidth) {
-            hero.put("widthMode", "fill");
+            hero.setWidthMode(AtomicElement.SizingMode.fromValue("fill"));
         } else {
-            hero.put("width", 338);
+            hero.setWidth(338);
         }
-        hero.put("cornerRadius", heroRadius);
-        hero.put("background", tokens.color("nba.bg.secondary"));
-        shadowNode(hero);
-        if (value(card, 14) != null) hero.set("actions", singleActionArrayNode(tapNavigateNode(value(card, 14))));
-        AccessibilityHelper.addButton(om, hero, value(card, 2));
+        hero.setCornerRadius(heroRadius);
+        hero.setBackground(tokens.color("nba.bg.secondary"));
+        shadow(hero);
+        if (value(card, 14) != null) hero.setActions(singleActionArray(tapNavigate(value(card, 14))));
+        AccessibilityHelper.addButton(hero, value(card, 2));
 
-        ObjectNode art = value(card, 4) != null
-                ? imageNode(value(card, 4), 0, 0, "cover", null)
-                : neutralInitialsRect(value(card, 2), 338, 190, heroRadius);
-        art.put("widthMode", "fill");
-        art.put("aspectRatio", 16.0 / 9.0);
-        if (value(card, 4) != null) AccessibilityHelper.addImage(om, art, value(card, 2));
+        AtomicElement art = value(card, 4) != null
+                ? image(value(card, 4), 0, 0, "cover")
+                : bindElement(neutralInitialsRect(value(card, 2), 338, 190, heroRadius));
+        art.setWidthMode(AtomicElement.SizingMode.fromValue("fill"));
+        art.setAspectRatio(16.0 / 9.0);
+        if (value(card, 4) != null) AccessibilityHelper.addImage(art, value(card, 2));
 
-        ObjectNode titleOverlay = containerNode("column", "end", "start");
-        titleOverlay.put("widthMode", "fill");
-        titleOverlay.put("heightMode", "fill");
-        titleOverlay.set("padding", paddingNode(tokens.spacing("lg"), tokens.spacing("lg"), tokens.spacing("md"), tokens.spacing("md")));
-        titleOverlay.set("background", mediaBottomScrimGradient());
-        ArrayNode overlayChildren = om.createArrayNode();
+        AtomicElement titleOverlay = container("column", "end", "start");
+        titleOverlay.setWidthMode(AtomicElement.SizingMode.fromValue("fill"));
+        titleOverlay.setHeightMode(AtomicElement.SizingMode.fromValue("fill"));
+        titleOverlay.setPadding(padding(tokens.spacing("lg"), tokens.spacing("lg"),
+                tokens.spacing("md"), tokens.spacing("md")));
+        titleOverlay.setBackground(mediaBottomScrimGradient());
+        List<AtomicElement> overlayChildren = new ArrayList<>();
         if (value(card, 1) != null) {
-            overlayChildren.add(pillBadge(value(card, 1), tokens.color("nba.label.accent.live")));
-            overlayChildren.add(spacerNode(tokens.spacing("sm")));
+            overlayChildren.add(pillBadgeTyped(value(card, 1), tokens.color("nba.label.accent.live")));
+            overlayChildren.add(spacer(tokens.spacing("sm")));
         }
-        overlayChildren.add(textNode(value(card, 2), "titleMedium", "bold", tokens.color("nba.label-dark.primary"), 2));
+        overlayChildren.add(text(value(card, 2), "titleMedium", "bold",
+                tokens.color("nba.label-dark.primary"), 2));
         if (value(card, 3) != null) {
-            overlayChildren.add(textNode(value(card, 3), "bodySmall", null, tokens.color("nba.label-dark.primary"), 2));
+            overlayChildren.add(text(value(card, 3), "bodySmall", null,
+                    tokens.color("nba.label-dark.primary"), 2));
         }
-        titleOverlay.set("children", overlayChildren);
+        titleOverlay.setChildren(overlayChildren);
 
-        List<ObjectNode> artOverlays = new ArrayList<>();
-        artOverlays.add(overlayNode("bottomStart", null, titleOverlay));
+        List<AtomicOverlay> artOverlays = new ArrayList<>();
+        artOverlays.add(overlay("bottomStart", null, titleOverlay));
         if (value(card, 15) != null) {
-            artOverlays.add(overlayNode("topEnd", paddingNode(tokens.spacing("sm"), tokens.spacing("sm"), 0, 0), heroOverflowButton(tapNavigateNode(value(card, 15)))));
+            artOverlays.add(overlay("topEnd",
+                    padding(tokens.spacing("sm"), tokens.spacing("sm"), 0, 0),
+                    heroOverflowButton(tapNavigate(value(card, 15)))));
         }
 
-        ArrayNode heroChildren = om.createArrayNode();
-        heroChildren.add(overlayContainerNode(art, artOverlays));
+        List<AtomicElement> heroChildren = new ArrayList<>();
+        heroChildren.add(overlayContainer(art, artOverlays));
         heroChildren.add(heroScoreStrip(card));
-        ArrayNode sponsorLogos = logoRow(value(card, 13), 48, 20);
-        if (sponsorLogos.size() > 0) {
-            heroChildren.add(cardHairlineDivider());
-            ObjectNode sponsors = containerNode("row", "end", "center");
-            sponsors.put("gap", tokens.spacing("sm"));
-            sponsors.set("padding", paddingNode(tokens.spacing("lg"), tokens.spacing("lg"), 0, tokens.spacing("md")));
-            sponsors.set("children", sponsorLogos);
+        List<AtomicElement> sponsorLogos = logoRowTyped(value(card, 13), 48, 20);
+        if (!sponsorLogos.isEmpty()) {
+            heroChildren.add(bindElement(cardHairlineDivider()));
+            AtomicElement sponsors = container("row", "end", "center");
+            sponsors.setGap(tokens.spacing("sm"));
+            sponsors.setPadding(padding(tokens.spacing("lg"), tokens.spacing("lg"),
+                    0, tokens.spacing("md")));
+            sponsors.setChildren(sponsorLogos);
             heroChildren.add(sponsors);
         }
-        hero.set("children", heroChildren);
+        hero.setChildren(heroChildren);
         return hero;
     }
 
-    private ObjectNode heroScoreStrip(String[] card) {
-        ObjectNode row = containerNode("row", "spaceBetween", "center");
-        row.put("widthMode", "fill");
-        row.set("padding", paddingNode(tokens.spacing("lg"), tokens.spacing("lg"), tokens.spacing("md"), tokens.spacing("sm")));
-        ArrayNode children = om.createArrayNode();
+    private AtomicElement heroScoreStrip(String[] card) {
+        AtomicElement row = container("row", "spaceBetween", "center");
+        row.setWidthMode(AtomicElement.SizingMode.fromValue("fill"));
+        row.setPadding(padding(tokens.spacing("lg"), tokens.spacing("lg"),
+                tokens.spacing("md"), tokens.spacing("sm")));
+        List<AtomicElement> children = new ArrayList<>();
         children.add(heroTeam(value(card, 5), value(card, 6), value(card, 7),
                 "cards." + value(card, 0) + ".awayScore", false));
 
-        ObjectNode center = containerNode("column", "center", "center");
-        center.put("width", 88);
-        ArrayNode centerChildren = om.createArrayNode();
+        AtomicElement center = container("column", "center", "center");
+        center.setWidth(88);
+        List<AtomicElement> centerChildren = new ArrayList<>();
         boolean liveCue = value(card, 1) != null;
         if (liveCue) {
-            ObjectNode statusLine = containerNode("row", "center", "center");
-            statusLine.put("gap", tokens.spacing("xs"));
-            ArrayNode slKids = om.createArrayNode();
-            slKids.add(liveStatusDot());
-            ObjectNode status = textNode(value(card, 11), "labelSmall", "semiBold", tokens.color("nba.label.secondary"), 1);
-            status.put("bindRef", "cards." + value(card, 0) + ".statusText");
+            AtomicElement statusLine = container("row", "center", "center");
+            statusLine.setGap(tokens.spacing("xs"));
+            List<AtomicElement> slKids = new ArrayList<>();
+            slKids.add(bindElement(liveStatusDot()));
+            AtomicElement status = text(value(card, 11), "labelSmall", "semiBold",
+                    tokens.color("nba.label.secondary"), 1);
+            status.setBindRef("cards." + value(card, 0) + ".statusText");
             slKids.add(status);
-            statusLine.set("children", slKids);
+            statusLine.setChildren(slKids);
             centerChildren.add(statusLine);
         } else {
-            ObjectNode status = textNode(value(card, 11), "labelSmall", "semiBold", tokens.color("nba.label.secondary"), 1);
-            status.put("bindRef", "cards." + value(card, 0) + ".statusText");
+            AtomicElement status = text(value(card, 11), "labelSmall", "semiBold",
+                    tokens.color("nba.label.secondary"), 1);
+            status.setBindRef("cards." + value(card, 0) + ".statusText");
             centerChildren.add(status);
         }
         if (value(card, 12) != null) {
-            centerChildren.add(textNode(value(card, 12), "labelSmall", null, tokens.color("nba.label.tertiary"), 1));
+            centerChildren.add(text(value(card, 12), "labelSmall", null,
+                    tokens.color("nba.label.tertiary"), 1));
         }
-        center.set("children", centerChildren);
+        center.setChildren(centerChildren);
         children.add(center);
 
         children.add(heroTeam(value(card, 8), value(card, 9), value(card, 10),
                 "cards." + value(card, 0) + ".homeScore", true));
-        row.set("children", children);
+        row.setChildren(children);
         return row;
     }
 
     /**
      * Away: logo/name toward outer edge, score toward center. Home: score toward center, logo/name outer.
      */
-    private ObjectNode heroTeam(String tri, String score, String logoUrl, String bindRef, boolean homeSide) {
-        ObjectNode row = containerNode("row", "center", "center");
-        row.put("gap", tokens.spacing("sm"));
-        row.put("width", homeSide ? 108 : 112);
-        ArrayNode stackChildren = om.createArrayNode();
+    private AtomicElement heroTeam(String tri, String score, String logoUrl, String bindRef, boolean homeSide) {
+        AtomicElement row = container("row", "center", "center");
+        row.setGap(tokens.spacing("sm"));
+        row.setWidth(homeSide ? 108 : 112);
+        List<AtomicElement> stackChildren = new ArrayList<>();
         if (logoUrl != null) {
-            ObjectNode logoImg = imageNode(logoUrl, 44, 44, "contain", null);
-            AccessibilityHelper.addImage(om, logoImg, tri + " logo");
+            AtomicElement logoImg = image(logoUrl, 44, 44, "contain");
+            AccessibilityHelper.addImage(logoImg, tri + " logo");
             stackChildren.add(logoImg);
         }
-        stackChildren.add(textNode(tri, "labelSmall", "bold", tokens.color("nba.label.primary"), 1));
-        ObjectNode nameCol = containerNode("column", "center", "center");
-        nameCol.set("children", stackChildren);
+        stackChildren.add(text(tri, "labelSmall", "bold", tokens.color("nba.label.primary"), 1));
+        AtomicElement nameCol = container("column", "center", "center");
+        nameCol.setChildren(stackChildren);
 
-        ObjectNode scoreText = null;
+        AtomicElement scoreText = null;
         if (score != null) {
-            scoreText = textNode(score, "titleLarge", "bold", tokens.color("nba.label.primary"), 1);
-            scoreText.put("bindRef", bindRef);
-            scoreText.put("monospacedDigits", true);
+            scoreText = text(score, "titleLarge", "bold", tokens.color("nba.label.primary"), 1);
+            scoreText.setBindRef(bindRef);
+            scoreText.setMonospacedDigits(true);
         }
 
-        ArrayNode rowChildren = om.createArrayNode();
+        List<AtomicElement> rowChildren = new ArrayList<>();
         if (homeSide) {
             if (scoreText != null) rowChildren.add(scoreText);
             rowChildren.add(nameCol);
@@ -2695,7 +2710,7 @@ public class AtomicCompositeBuilder {
             rowChildren.add(nameCol);
             if (scoreText != null) rowChildren.add(scoreText);
         }
-        row.set("children", rowChildren);
+        row.setChildren(rowChildren);
         return row;
     }
 
@@ -3067,6 +3082,30 @@ public class AtomicCompositeBuilder {
         return scroll;
     }
 
+    /**
+     * Typed variant: paged horizontal carousel. Schema does not expose
+     * {@code paging}/{@code snapAlignment}/{@code pageIndicator} as typed
+     * fields on AtomicElement, so they ride through as additional properties
+     * (same wire shape as the ObjectNode variant).
+     */
+    private AtomicElement pagedHorizontalScrollTyped(Object gap, int childCount, Spacing padding,
+                                                     String indicatorAlignment,
+                                                     String inactiveDotColor, String activeDotColor) {
+        AtomicElement scroll = scrollContainer("row", gap, false);
+        if (padding != null) scroll.setPadding(padding);
+        if (childCount > 1) {
+            scroll.setPaging(true);
+            scroll.setSnapAlignment(AtomicElement.SnapAlignment.fromValue("center"));
+            ObjectNode indicator = om.createObjectNode();
+            indicator.put("style", "dots");
+            indicator.put("alignment", indicatorAlignment != null ? indicatorAlignment : "bottomCenter");
+            indicator.put("color", inactiveDotColor != null ? inactiveDotColor : tokens.color("nba.label.tertiary"));
+            indicator.put("activeColor", activeDotColor != null ? activeDotColor : tokens.color("nba.label-inverted.primary"));
+            scroll.setAdditionalProperty("pageIndicator", indicator);
+        }
+        return scroll;
+    }
+
     private ObjectNode overlayContainerNode(ObjectNode base, List<ObjectNode> overlays) {
         ObjectNode node = om.createObjectNode();
         node.put("type", "OverlayContainer");
@@ -3117,6 +3156,17 @@ public class AtomicCompositeBuilder {
         for (String raw : csv.split(",")) {
             String url = raw.trim();
             if (!url.isEmpty()) logos.add(imageNode(url, width, height, "contain", null));
+        }
+        return logos;
+    }
+
+    /** Typed variant: returns logos as a typed AtomicElement list for use in typed containers. */
+    private List<AtomicElement> logoRowTyped(String csv, int width, int height) {
+        List<AtomicElement> logos = new ArrayList<>();
+        if (csv == null || csv.isBlank()) return logos;
+        for (String raw : csv.split(",")) {
+            String url = raw.trim();
+            if (!url.isEmpty()) logos.add(image(url, width, height, "contain"));
         }
         return logos;
     }

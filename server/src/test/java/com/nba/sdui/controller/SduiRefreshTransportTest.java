@@ -78,7 +78,7 @@ class SduiRefreshTransportTest {
         ObjectNode scoreboardResponse = (ObjectNode) objectMapper.readTree(
                 "{\"id\":\"scoreboard\",\"schemaVersion\":\"1.0\",\"sections\":[]}");
         when(compositionService.composeScoreboard(any(SduiRequestContext.class)))
-                .thenReturn(scoreboardResponse);
+                .thenReturn(objectMapper.treeToValue(scoreboardResponse, com.nba.sdui.models.generated.Screen.class));
     }
 
     @Test

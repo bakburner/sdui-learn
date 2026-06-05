@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.nba.sdui.metrics.SduiMetrics;
+import com.nba.sdui.models.generated.Screen;
 import com.nba.sdui.request.SduiRequestContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -113,106 +114,104 @@ public class SduiCompositionService {
         }
     }
 
-    public JsonNode composeScoreboard(SduiRequestContext ctx) throws IOException {
+    public Screen composeScoreboard(SduiRequestContext ctx) throws IOException {
         long start = System.nanoTime();
         try {
             String variant = ctx.resolveVariant(SCOREBOARD_EXPERIMENT, "A");
-            return objectMapper.valueToTree(scoreboardComposer.composeScoreboard(variant,
-                    ctx.getSchemaVersion(), ctx.getTraceId(), ctx.getLocale()));
+            return scoreboardComposer.composeScoreboard(variant,
+                    ctx.getSchemaVersion(), ctx.getTraceId(), ctx.getLocale());
         } finally {
             metrics.recordComposition("scoreboard", "screen", false, Duration.ofNanos(System.nanoTime() - start));
         }
     }
 
-    public JsonNode composeBoxscore(String gameId, SduiRequestContext ctx) throws IOException {
+    public Screen composeBoxscore(String gameId, SduiRequestContext ctx) throws IOException {
         long start = System.nanoTime();
         try {
-            return objectMapper.valueToTree(boxscoreComposer.composeBoxscore(gameId, ctx.getTraceId(), ctx.getLocale()));
+            return boxscoreComposer.composeBoxscore(gameId, ctx.getTraceId(), ctx.getLocale());
         } finally {
             metrics.recordComposition("boxscore-" + gameId, "screen", false, Duration.ofNanos(System.nanoTime() - start));
         }
     }
 
-    public JsonNode composeDemos(SduiRequestContext ctx) {
+    public Screen composeDemos(SduiRequestContext ctx) {
         long start = System.nanoTime();
         try {
             String deviceClass = ctx.getPlatform() != null ? ctx.getPlatform().getDeviceClass() : "phone";
-            return objectMapper.valueToTree(demoScreenComposer.composeDemos(ctx.getTraceId(), deviceClass, ctx.getLocale()));
+            return demoScreenComposer.composeDemos(ctx.getTraceId(), deviceClass, ctx.getLocale());
         } finally {
             metrics.recordComposition("demos", "screen", false, Duration.ofNanos(System.nanoTime() - start));
         }
     }
 
-    public JsonNode composeLeaders(SduiRequestContext ctx) {
+    public Screen composeLeaders(SduiRequestContext ctx) {
         long start = System.nanoTime();
         try {
             String deviceClass = ctx.getPlatform() != null ? ctx.getPlatform().getDeviceClass() : "phone";
-            return objectMapper.valueToTree(demoScreenComposer.composeLeaders(ctx.getTraceId(), deviceClass, ctx.getLocale()));
+            return demoScreenComposer.composeLeaders(ctx.getTraceId(), deviceClass, ctx.getLocale());
         } finally {
             metrics.recordComposition("leaders", "screen", false, Duration.ofNanos(System.nanoTime() - start));
         }
     }
 
-    public JsonNode composeForYou(SduiRequestContext ctx) {
+    public Screen composeForYou(SduiRequestContext ctx) {
         long start = System.nanoTime();
         try {
-            return objectMapper.valueToTree(forYouComposer.composeForYou(ctx.getTraceId(), ctx.getLocale()));
+            return forYouComposer.composeForYou(ctx.getTraceId(), ctx.getLocale());
         } finally {
             metrics.recordComposition("for-you", "screen", false, Duration.ofNanos(System.nanoTime() - start));
         }
     }
 
-    public JsonNode composeWatch(SduiRequestContext ctx) {
+    public Screen composeWatch(SduiRequestContext ctx) {
         long start = System.nanoTime();
         try {
-            return objectMapper.valueToTree(watchComposer.composeWatch(ctx.getTraceId(), ctx.getLocale()));
+            return watchComposer.composeWatch(ctx.getTraceId(), ctx.getLocale());
         } finally {
             metrics.recordComposition("watch", "screen", false, Duration.ofNanos(System.nanoTime() - start));
         }
     }
 
-    public JsonNode composeLive(SduiRequestContext ctx) {
+    public Screen composeLive(SduiRequestContext ctx) {
         long start = System.nanoTime();
         try {
-            return objectMapper.valueToTree(
-                    liveComposer.composeLive(ctx.getTraceId(), ctx.getLocale()));
+            return liveComposer.composeLive(ctx.getTraceId(), ctx.getLocale());
         } finally {
             metrics.recordComposition("live", "screen", false, Duration.ofNanos(System.nanoTime() - start));
         }
     }
 
-    public JsonNode composeSchedule(SduiRequestContext ctx) {
+    public Screen composeSchedule(SduiRequestContext ctx) {
         long start = System.nanoTime();
         try {
-            return objectMapper.valueToTree(
-                    scheduleComposer.composeSchedule(ctx.getTraceId(), ctx.getLocale()));
+            return scheduleComposer.composeSchedule(ctx.getTraceId(), ctx.getLocale());
         } finally {
             metrics.recordComposition("schedule", "screen", false, Duration.ofNanos(System.nanoTime() - start));
         }
     }
 
-    public JsonNode composeHome(SduiRequestContext ctx) {
+    public Screen composeHome(SduiRequestContext ctx) {
         long start = System.nanoTime();
         try {
-            return objectMapper.valueToTree(homeComposer.composeHome(ctx.getTraceId(), ctx.getLocale()));
+            return homeComposer.composeHome(ctx.getTraceId(), ctx.getLocale());
         } finally {
             metrics.recordComposition("home", "screen", false, Duration.ofNanos(System.nanoTime() - start));
         }
     }
 
-    public JsonNode composeCalendar(SduiRequestContext ctx) {
+    public Screen composeCalendar(SduiRequestContext ctx) {
         long start = System.nanoTime();
         try {
-            return objectMapper.valueToTree(calendarComposer.composeCalendar(ctx.getTraceId(), ctx.getLocale()));
+            return calendarComposer.composeCalendar(ctx.getTraceId(), ctx.getLocale());
         } finally {
             metrics.recordComposition("calendar", "screen", false, Duration.ofNanos(System.nanoTime() - start));
         }
     }
 
-    public JsonNode composeCalendar(SduiRequestContext ctx, String selectedDateParam) {
+    public Screen composeCalendar(SduiRequestContext ctx, String selectedDateParam) {
         long start = System.nanoTime();
         try {
-            return objectMapper.valueToTree(calendarComposer.composeCalendar(ctx.getTraceId(), ctx.getLocale(), selectedDateParam));
+            return calendarComposer.composeCalendar(ctx.getTraceId(), ctx.getLocale(), selectedDateParam);
         } finally {
             metrics.recordComposition("calendar", "screen", false, Duration.ofNanos(System.nanoTime() - start));
         }

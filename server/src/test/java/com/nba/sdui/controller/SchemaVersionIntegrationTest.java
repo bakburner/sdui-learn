@@ -60,12 +60,12 @@ class SchemaVersionIntegrationTest {
         JsonNode scoreboardResponse = objectMapper.readTree(
                 "{\"id\":\"scoreboard\",\"schemaVersion\":\"1.0\",\"sections\":[{\"type\":\"AtomicComposite\",\"data\":{\"type\":\"Box\"}}]}");
         when(compositionService.composeScoreboard(any(SduiRequestContext.class)))
-                .thenReturn(scoreboardResponse);
+                .thenReturn(objectMapper.treeToValue(scoreboardResponse, com.nba.sdui.models.generated.Screen.class));
 
         JsonNode forYouResponse = objectMapper.readTree(
                 "{\"id\":\"for-you\",\"schemaVersion\":\"1.0\",\"sections\":[]}");
         when(compositionService.composeForYou(any(SduiRequestContext.class)))
-                .thenReturn(forYouResponse);
+                .thenReturn(objectMapper.treeToValue(forYouResponse, com.nba.sdui.models.generated.Screen.class));
     }
 
     @Test

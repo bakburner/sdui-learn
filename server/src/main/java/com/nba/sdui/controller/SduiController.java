@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.nba.sdui.error.UnsupportedSectionException;
+import com.nba.sdui.models.generated.Screen;
 import com.nba.sdui.orchestration.ParameterizedRefreshService;
 import com.nba.sdui.orchestration.ResponseMetaCollector;
 import com.nba.sdui.orchestration.SduiCompositionService;
@@ -129,12 +130,12 @@ public class SduiController {
         if (mismatch != null) return mismatch;
 
         try {
-            JsonNode screenResponse = compositionService.composeScoreboard(ctx);
+            Screen screenResponse = compositionService.composeScoreboard(ctx);
             setResponseHeaders(response, ctx);
             log.info("SDUI scoreboard response composed successfully");
             return ResponseEntity.ok()
                     .cacheControl(CacheControl.maxAge(Duration.ofSeconds(60)).cachePublic())
-                    .body(envelope(applyVersionFilter(screenResponse, ctx)));
+                    .body(envelope(applyVersionFilter(objectMapper.valueToTree(screenResponse), ctx)));
         } catch (Exception e) {
             log.error("Error composing SDUI scoreboard response", e);
             return ResponseEntity.internalServerError().build();
@@ -180,11 +181,11 @@ public class SduiController {
         if (mismatch != null) return mismatch;
 
         try {
-            JsonNode screenResponse = compositionService.composeForYou(ctx);
+            Screen screenResponse = compositionService.composeForYou(ctx);
             setResponseHeaders(response, ctx);
             return ResponseEntity.ok()
                     .cacheControl(CacheControl.maxAge(Duration.ofSeconds(120)).cachePrivate())
-                    .body(envelope(applyVersionFilter(screenResponse, ctx)));
+                    .body(envelope(applyVersionFilter(objectMapper.valueToTree(screenResponse), ctx)));
         } catch (Exception e) {
             log.error("Error composing for-you screen", e);
             return ResponseEntity.internalServerError().build();
@@ -209,11 +210,11 @@ public class SduiController {
         if (mismatch != null) return mismatch;
 
         try {
-            JsonNode screenResponse = compositionService.composeWatch(ctx);
+            Screen screenResponse = compositionService.composeWatch(ctx);
             setResponseHeaders(response, ctx);
             return ResponseEntity.ok()
                     .cacheControl(CacheControl.maxAge(Duration.ofSeconds(120)).cachePublic())
-                    .body(envelope(applyVersionFilter(screenResponse, ctx)));
+                    .body(envelope(applyVersionFilter(objectMapper.valueToTree(screenResponse), ctx)));
         } catch (Exception e) {
             log.error("Error composing watch screen", e);
             return ResponseEntity.internalServerError().build();
@@ -251,7 +252,7 @@ public class SduiController {
                 }
                 screenResponse = resolved.get();
             } else {
-                screenResponse = compositionService.composeLive(ctx);
+                screenResponse = objectMapper.valueToTree(compositionService.composeLive(ctx));
             }
             setResponseHeaders(response, ctx);
             return ResponseEntity.ok()
@@ -288,11 +289,11 @@ public class SduiController {
         if (mismatch != null) return mismatch;
 
         try {
-            JsonNode screenResponse = compositionService.composeCalendar(ctx, userParams.get("date"));
+            Screen screenResponse = compositionService.composeCalendar(ctx, userParams.get("date"));
             setResponseHeaders(response, ctx);
             return ResponseEntity.ok()
                     .cacheControl(CacheControl.noCache())
-                    .body(envelope(applyVersionFilter(screenResponse, ctx)));
+                    .body(envelope(applyVersionFilter(objectMapper.valueToTree(screenResponse), ctx)));
         } catch (Exception e) {
             log.error("Error composing calendar screen", e);
             return ResponseEntity.internalServerError().build();
@@ -320,11 +321,11 @@ public class SduiController {
         if (mismatch != null) return mismatch;
 
         try {
-            JsonNode screenResponse = compositionService.composeSchedule(ctx);
+            Screen screenResponse = compositionService.composeSchedule(ctx);
             setResponseHeaders(response, ctx);
             return ResponseEntity.ok()
                     .cacheControl(CacheControl.maxAge(Duration.ofSeconds(300)).cachePublic())
-                    .body(envelope(applyVersionFilter(screenResponse, ctx)));
+                    .body(envelope(applyVersionFilter(objectMapper.valueToTree(screenResponse), ctx)));
         } catch (Exception e) {
             log.error("Error composing schedule screen", e);
             return ResponseEntity.internalServerError().build();
@@ -350,11 +351,11 @@ public class SduiController {
         if (mismatch != null) return mismatch;
 
         try {
-            JsonNode screenResponse = compositionService.composeDemos(ctx);
+            Screen screenResponse = compositionService.composeDemos(ctx);
             setResponseHeaders(response, ctx);
             return ResponseEntity.ok()
                     .cacheControl(CacheControl.maxAge(Duration.ofSeconds(60)).cachePublic())
-                    .body(envelope(applyVersionFilter(screenResponse, ctx)));
+                    .body(envelope(applyVersionFilter(objectMapper.valueToTree(screenResponse), ctx)));
         } catch (Exception e) {
             log.error("Error composing demos screen", e);
             return ResponseEntity.internalServerError().build();
@@ -379,11 +380,11 @@ public class SduiController {
         if (mismatch != null) return mismatch;
 
         try {
-            JsonNode screenResponse = compositionService.composeHome(ctx);
+            Screen screenResponse = compositionService.composeHome(ctx);
             setResponseHeaders(response, ctx);
             return ResponseEntity.ok()
                     .cacheControl(CacheControl.maxAge(Duration.ofSeconds(120)).cachePublic())
-                    .body(envelope(applyVersionFilter(screenResponse, ctx)));
+                    .body(envelope(applyVersionFilter(objectMapper.valueToTree(screenResponse), ctx)));
         } catch (Exception e) {
             log.error("Error composing home screen", e);
             return ResponseEntity.internalServerError().build();
@@ -421,7 +422,7 @@ public class SduiController {
                 }
                 screenResponse = resolved.get();
             } else {
-                screenResponse = compositionService.composeLeaders(ctx);
+                screenResponse = objectMapper.valueToTree(compositionService.composeLeaders(ctx));
             }
             setResponseHeaders(response, ctx);
             return ResponseEntity.ok()
@@ -455,12 +456,12 @@ public class SduiController {
         if (mismatch != null) return mismatch;
 
         try {
-            JsonNode screenResponse = compositionService.composeBoxscore(gameId, ctx);
+            Screen screenResponse = compositionService.composeBoxscore(gameId, ctx);
             setResponseHeaders(response, ctx);
             log.info("SDUI boxscore response composed successfully");
             return ResponseEntity.ok()
                     .cacheControl(CacheControl.noCache())
-                    .body(envelope(applyVersionFilter(screenResponse, ctx)));
+                    .body(envelope(applyVersionFilter(objectMapper.valueToTree(screenResponse), ctx)));
         } catch (Exception e) {
             log.error("Error composing SDUI boxscore response", e);
             return ResponseEntity.internalServerError().build();

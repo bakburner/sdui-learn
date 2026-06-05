@@ -57,14 +57,14 @@ class ParameterizedRefreshRoutingTest {
         ObjectNode gamesScreen = (ObjectNode) objectMapper.readTree(
                 "{\"id\":\"games\",\"schemaVersion\":\"1.0\",\"sections\":[]}");
         when(compositionService.composeLive(any(SduiRequestContext.class)))
-                .thenReturn(gamesScreen);
+                .thenReturn(objectMapper.treeToValue(gamesScreen, com.nba.sdui.models.generated.Screen.class));
         when(parameterizedRefreshService.refreshScreen(eq("games"), anyString(), any(), any()))
                 .thenReturn(Optional.of(gamesScreen));
 
         ObjectNode leadersScreen = (ObjectNode) objectMapper.readTree(
                 "{\"id\":\"leaders\",\"schemaVersion\":\"1.0\",\"sections\":[]}");
         when(compositionService.composeLeaders(any(SduiRequestContext.class)))
-                .thenReturn(leadersScreen);
+                .thenReturn(objectMapper.treeToValue(leadersScreen, com.nba.sdui.models.generated.Screen.class));
         when(parameterizedRefreshService.refreshScreen(eq("leaders"), anyString(), any(), any()))
                 .thenReturn(Optional.of(leadersScreen));
     }

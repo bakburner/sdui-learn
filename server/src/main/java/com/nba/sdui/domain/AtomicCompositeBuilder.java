@@ -1272,26 +1272,10 @@ public class AtomicCompositeBuilder {
 
     // ── Phase 0.4 styling helpers ───────────────────────────────────────
 
-    /** Attach a drop shadow to any element node (singular, deprecated). */
-    private ObjectNode shadowNode(ObjectNode element, String color, double radius, double offsetX, double offsetY) {
-        ObjectNode s = om.createObjectNode();
-        if (color != null) s.put("color", color);
-        s.put("radius", radius);
-        s.put("offsetX", offsetX);
-        s.put("offsetY", offsetY);
-        element.set("shadow", s);
-        return element;
-    }
-
-    /** Attach a shadow with default dark color (singular, deprecated). */
-    private ObjectNode shadowNode(ObjectNode element) {
-        return shadowNode(element, "#00000014", 4, 0, 2);
-    }
-
     // ── Multi-background / multi-shadow helpers (Workstream B) ──────────
 
     /**
-     * Create a Shadow ObjectNode with an explicit {@code type} field.
+     * Create a Shadow value with an explicit {@code type} field.
      *
      * @param type    "drop" (outer) or "inner" (inset)
      * @param color   shadow color (hex with alpha, or token reference)
@@ -1299,20 +1283,14 @@ public class AtomicCompositeBuilder {
      * @param offsetY vertical offset in dp/px
      * @param radius  blur radius in dp/px
      */
-    private ObjectNode shadowWithTypeNode(String type, String color, int offsetX, int offsetY, int radius) {
-        ObjectNode s = om.createObjectNode();
+    private Map<String, Object> shadowWithTypeNode(String type, String color, int offsetX, int offsetY, int radius) {
+        Map<String, Object> s = new LinkedHashMap<>();
         if (type != null) s.put("type", type);
         if (color != null) s.put("color", color);
         s.put("offsetX", offsetX);
         s.put("offsetY", offsetY);
         s.put("radius", radius);
         return s;
-    }
-
-    /** Set opacity on an element (0.0 = transparent, 1.0 = opaque). */
-    private ObjectNode opacityNode(ObjectNode element, double value) {
-        element.put("opacity", value);
-        return element;
     }
 
     /** Build a duration badge element (dark background pill with white text). */
@@ -1345,19 +1323,6 @@ public class AtomicCompositeBuilder {
     }
 
     // ── Atomic element helpers ──────────────────────────────────────────
-
-    /**
-     * Build a SectionSlot element that embeds a full section object inside
-     * an atomic tree. At render time the client delegates this back to
-     * SectionRouter, completing the bidirectional bridge.
-     */
-    private ObjectNode sectionSlotNode(String id, ObjectNode section) {
-        ObjectNode node = om.createObjectNode();
-        node.put("type", "SectionSlot");
-        if (id != null) node.put("id", id);
-        node.set("section", section);
-        return node;
-    }
 
     /**
      * Public convenience: wrap a root element as a full AtomicComposite section.
@@ -3460,7 +3425,11 @@ public class AtomicCompositeBuilder {
     }
 
     public AtomicElement sectionSlot(String id, Section section) {
-        return bindElement(sectionSlotNode(id, section == null ? null : (ObjectNode) om.valueToTree(section)));
+        AtomicElement el = new AtomicElement()
+                .withType(AtomicElement.Type.fromValue("SectionSlot"));
+        if (id != null) el.setId(id);
+        if (section != null) el.setSection(section);
+        return el;
     }
 
     public AtomicComposite wrapUi(AtomicElement rootElement) {

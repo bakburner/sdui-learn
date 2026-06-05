@@ -71,6 +71,17 @@ saf:
     enable-collapsing: true
     enable-slo-tracking: true
     max-concurrent-aggregations: 0
+  slo:
+    # Per ServiceOrchestrator.aggregationType, all aggregations are bucketed
+    # together under the literal "orchestration" type, so this single threshold
+    # covers warm and cold paths across every SDUI screen. The default 500ms
+    # is too tight for cold-cache fan-out (e.g. For You first-render hits
+    # scoreboard + stories + standings concurrently). Bump to absorb startup
+    # variance without hiding genuine regressions.
+    thresholds:
+      orchestration:
+        latency-p95: 750ms
+        max-error-rate: 0.01
   cache:
     stale-if-error:
       default-max-stale-age: 600s

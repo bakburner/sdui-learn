@@ -21,6 +21,7 @@ import com.nba.sdui.domain.SduiUtils;
 import com.nba.sdui.domain.SectionSurfaces;
 import com.nba.sdui.domain.composer.BoxscoreComposer;
 import com.nba.sdui.domain.composer.GameDetailComposer;
+import com.nba.sdui.models.generated.Section;
 import com.nba.sdui.orchestration.SectionRefreshService;
 import com.nba.sdui.remote.StatsApiAdapter;
 import com.nba.sdui.remote.StatsApiClient;
@@ -70,10 +71,10 @@ class GameDetailComposerTest {
         when(statsApiClient.getBoxscore("123")).thenReturn(liveBoxscore);
         when(boxscoreComposer.buildBoxscoreTableSection(any(), anyString(), anyString(), anyString(), anyString(), anyString(), anyInt()))
                 .thenAnswer(invocation -> {
-                    ObjectNode section = objectMapper.createObjectNode();
-                    section.put("id", "boxscore-" + invocation.getArgument(3, String.class));
-                    section.put("type", "BoxscoreTable");
-                    section.set("data", objectMapper.createObjectNode());
+                    Section section = new Section();
+                    section.setId("boxscore-" + invocation.getArgument(3, String.class));
+                    section.setType(Section.Type.fromValue("BoxscoreTable"));
+                    section.setData(objectMapper.createObjectNode());
                     return section;
                 });
 

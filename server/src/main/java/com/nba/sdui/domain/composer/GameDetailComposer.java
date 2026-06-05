@@ -444,19 +444,15 @@ public class GameDetailComposer {
         List<TabData> tabsList = List.of(awayTab, homeTab);
         data.setTabs(tabsList);
 
-        // Reuse the full BoxscoreTable builder from BoxscoreComposer (still ObjectNode-returning today).
-        Section awayTableSection = objectMapper.convertValue(
-                boxscoreComposer.buildBoxscoreTableSection(
-                        awayTeam, gameId, contentSourceId, "away",
-                        "gd_boxscore_away_sortCol", "gd_boxscore_away_sortDir", gameStatus),
-                Section.class);
+        // Reuse the full BoxscoreTable builder from BoxscoreComposer.
+        Section awayTableSection = boxscoreComposer.buildBoxscoreTableSection(
+                awayTeam, gameId, contentSourceId, "away",
+                "gd_boxscore_away_sortCol", "gd_boxscore_away_sortDir", gameStatus);
         awayTableSection.setSurface(surfaces.flushSurface());
 
-        Section homeTableSection = objectMapper.convertValue(
-                boxscoreComposer.buildBoxscoreTableSection(
-                        homeTeam, gameId, contentSourceId, "home",
-                        "gd_boxscore_home_sortCol", "gd_boxscore_home_sortDir", gameStatus),
-                Section.class);
+        Section homeTableSection = boxscoreComposer.buildBoxscoreTableSection(
+                homeTeam, gameId, contentSourceId, "home",
+                "gd_boxscore_home_sortCol", "gd_boxscore_home_sortDir", gameStatus);
         homeTableSection.setSurface(surfaces.flushSurface());
 
         TabContents tabContents = new TabContents();

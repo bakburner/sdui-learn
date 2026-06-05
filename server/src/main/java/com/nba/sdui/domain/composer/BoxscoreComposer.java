@@ -129,11 +129,11 @@ public class BoxscoreComposer {
         // ── Sections ───────────────────────────────────────────────────
         List<Section> sections = new ArrayList<>();
 
-        ObjectNode awayTable = buildBoxscoreTableSection(
+        ObjectNode awayTable = buildBoxscoreTableSectionNode(
                 awayTeam, gameId, contentSourceId, "away",
                 "boxscore_away_sortCol", "boxscore_away_sortDir", gameStatus);
         awayTable.set("surface", objectMapper.valueToTree(surfaces.flushSurface()));
-        ObjectNode homeTable = buildBoxscoreTableSection(
+        ObjectNode homeTable = buildBoxscoreTableSectionNode(
                 homeTeam, gameId, contentSourceId, "home",
                 "boxscore_home_sortCol", "boxscore_home_sortDir", gameStatus);
         homeTable.set("surface", objectMapper.valueToTree(surfaces.flushSurface()));
@@ -200,8 +200,22 @@ public class BoxscoreComposer {
 
     /**
      * Build a single {@code BoxscoreTable} section for one team.
+     *
+     * <p>The body still composes the JSON via {@code ObjectNode} for now; the
+     * public return type is the typed {@link Section} so callers do not have
+     * to round-trip through {@code ObjectMapper.convertValue}.
      */
-    public ObjectNode buildBoxscoreTableSection(BoxscoreTeam team, String gameId,
+    public Section buildBoxscoreTableSection(BoxscoreTeam team, String gameId,
+                                          String contentSourceId, String slug,
+                                          String sortColKey, String sortDirKey,
+                                          int gameStatus) {
+        return objectMapper.convertValue(
+                buildBoxscoreTableSectionNode(team, gameId, contentSourceId, slug,
+                        sortColKey, sortDirKey, gameStatus),
+                Section.class);
+    }
+
+    private ObjectNode buildBoxscoreTableSectionNode(BoxscoreTeam team, String gameId,
                                           String contentSourceId, String slug,
                                           String sortColKey, String sortDirKey,
                                           int gameStatus) {

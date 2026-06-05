@@ -1,7 +1,7 @@
 package com.nba.sdui.domain.composer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.nba.sdui.models.generated.Action;
 import com.nba.sdui.models.generated.Screen;
 import com.nba.sdui.models.generated.Section;
 import com.nba.sdui.models.generated.State;
@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import com.nba.sdui.domain.SduiUtils;
@@ -81,7 +82,7 @@ public class CalendarComposer {
         section.setContentSourceId(contentSourceId);
         section.setAnalyticsId("games_calendar_month_list");
 
-        ObjectNode data = objectMapper.createObjectNode();
+        Map<String, Object> data = new LinkedHashMap<>();
         data.put("stateKey", "calendar_selected_date");
         data.put("selectedDate", selectedDate.toString());
         data.put("defaultDate", defaultDate.toString());
@@ -89,13 +90,13 @@ public class CalendarComposer {
         data.put("maxDate", seasonCalendarService.seasonEnd().toString());
 
         // TODO: Populate from schedule API so each in-season date can expose gameCount/hasTeamGame.
-        data.set("dateMetadata", buildDateMetadata());
+        data.put("dateMetadata", buildDateMetadata());
 
-        ObjectNode onDateSelected = objectMapper.createObjectNode();
-        onDateSelected.put("trigger", "onActivate");
-        onDateSelected.put("type", "navigate");
-        onDateSelected.put("targetUri", "nba://games?date={{calendar_selected_date}}");
-        data.set("onDateSelected", onDateSelected);
+        Action onDateSelected = new Action();
+        onDateSelected.setTrigger(Action.ActionTrigger.ON_ACTIVATE);
+        onDateSelected.setType(Action.ActionType.NAVIGATE);
+        onDateSelected.setTargetUri("nba://games?date={{calendar_selected_date}}");
+        data.put("onDateSelected", onDateSelected);
 
         section.setData(data);
         return section;
@@ -109,7 +110,7 @@ public class CalendarComposer {
      * remains {@code false} until a favorite-team context is available in the request
      * envelope or profile state — inferring favorite teams on the client is prohibited.
      */
-    private ObjectNode buildDateMetadata() {
+    private Map<String, Object> buildDateMetadata() {
         Map<LocalDate, Integer> gameCounts;
         try {
             gameCounts = statsPort.getSeasonGameCounts();
@@ -117,14 +118,14 @@ public class CalendarComposer {
             log.warn("Could not fetch season game counts for dateMetadata: {}", e.getMessage());
             gameCounts = Map.of();
         }
-        ObjectNode metadata = objectMapper.createObjectNode();
+        Map<String, Object> metadata = new LinkedHashMap<>();
         for (Map.Entry<LocalDate, Integer> entry : gameCounts.entrySet()) {
             LocalDate date = entry.getKey();
             if (!seasonCalendarService.isInSeason(date)) continue;
-            ObjectNode dayMeta = objectMapper.createObjectNode();
+            Map<String, Object> dayMeta = new LinkedHashMap<>();
             dayMeta.put("gameCount", entry.getValue());
             dayMeta.put("hasTeamGame", false);
-            metadata.set(date.toString(), dayMeta);
+            metadata.put(date.toString(), dayMeta);
         }
         return metadata;
     }

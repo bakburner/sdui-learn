@@ -1,8 +1,6 @@
 package com.nba.sdui.domain.composer;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -449,14 +447,6 @@ public class LiveComposer {
         section.setContentSourceId(contentSourceId);
         section.setSurface(surfaces.gameCardFlushSurface());
         return section;
-    }
-
-    private Section toSection(ObjectNode node) {
-        try {
-            return objectMapper.treeToValue(node, Section.class);
-        } catch (JsonProcessingException e) {
-            throw new IllegalStateException("Failed to bind composed section to Section.class", e);
-        }
     }
 
     // ── Row conversion ─────────────────────────────────────────────────

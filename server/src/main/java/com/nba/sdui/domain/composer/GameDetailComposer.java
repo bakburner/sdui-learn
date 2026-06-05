@@ -3,8 +3,6 @@ package com.nba.sdui.domain.composer;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.nba.sdui.models.generated.Action;
 import com.nba.sdui.models.generated.AtomicComposite;
 import com.nba.sdui.models.generated.AtomicElement;
@@ -104,9 +102,6 @@ public class GameDetailComposer {
     /**
      * Result of composing a Game Detail screen — carries both the typed
      * response and the server-derived game state for cache-control decisions.
-     * The response shell is built internally as an {@code ObjectNode} (heavy
-     * variant-transform tree mutation) and bound to {@link Screen} at the
-     * public boundary via {@code treeToValue} once composition completes.
      */
     public record GameDetailResult(Screen response, String derivedGameState) {}
 
@@ -562,21 +557,21 @@ public class GameDetailComposer {
     }
 
     private Section buildStatLineSectionFromLive(BoxscoreGame game, String gameId, String contentSourceId) {
-        ArrayNode stats = objectMapper.createArrayNode();
+        List<String[]> homePerformers = getTopPerformersFromTeam(game.getHomeTeam(), 3);
+        List<String[]> awayPerformers = getTopPerformersFromTeam(game.getAwayTeam(), 3);
 
-        List<ObjectNode> homePerformers = getTopPerformersFromTeam(game.getHomeTeam(), 3);
-        List<ObjectNode> awayPerformers = getTopPerformersFromTeam(game.getAwayTeam(), 3);
-
-        homePerformers.forEach(stats::add);
-        awayPerformers.forEach(stats::add);
+        List<String[]> stats = new ArrayList<>();
+        stats.addAll(homePerformers);
+        stats.addAll(awayPerformers);
 
         if (stats.isEmpty()) {
             return null;
         }
 
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite", "top-performers");
-        Section section = atomicBuilder.buildStatLineFromNodes(
-                sectionId, null, "Top Performers", "vertical", stats);
+        Section section = atomicBuilder.buildStatLine(
+                sectionId, null, "Top Performers", "vertical",
+                stats.toArray(new String[0][]));
         section.setContentSourceId(contentSourceId);
 
         // No refreshPolicy / sectionStates: this stat line is an
@@ -594,8 +589,8 @@ public class GameDetailComposer {
 
     private Section buildRowSectionFromLive(BoxscoreGame game, String gameId, String contentSourceId) {
         try {
-            List<ObjectNode> homePerformers = getTopPerformersFromTeam(game.getHomeTeam(), 2);
-            List<ObjectNode> awayPerformers = getTopPerformersFromTeam(game.getAwayTeam(), 2);
+            List<String[]> homePerformers = getTopPerformersFromTeam(game.getHomeTeam(), 2);
+            List<String[]> awayPerformers = getTopPerformersFromTeam(game.getAwayTeam(), 2);
             if (homePerformers.isEmpty() && awayPerformers.isEmpty()) return null;
 
             String homeTricode = game.getHomeTeam() != null && game.getHomeTeam().getTeamTricode() != null
@@ -628,18 +623,16 @@ public class GameDetailComposer {
         }
     }
 
-    private Section buildStatLineChild(String id, String title, List<ObjectNode> performers) {
-        ArrayNode stats = objectMapper.createArrayNode();
-        performers.forEach(stats::add);
-        return atomicBuilder.buildStatLineFromNodes(id, null, title, "vertical", stats);
+    private Section buildStatLineChild(String id, String title, List<String[]> performers) {
+        return atomicBuilder.buildStatLine(id, null, title, "vertical",
+                performers.toArray(new String[0][]));
     }
 
-    private List<ObjectNode> getTopPerformersFromTeam(BoxscoreTeam team, int maxPlayers) {
-        List<ObjectNode> performers = new ArrayList<>();
+    private List<String[]> getTopPerformersFromTeam(BoxscoreTeam team, int maxPlayers) {
+        List<String[]> performers = new ArrayList<>();
         if (team == null || team.getPlayers() == null || team.getPlayers().isEmpty()) return performers;
 
         String teamTricode = team.getTeamTricode() != null ? team.getTeamTricode() : "";
-        int teamId = team.getTeamId() != null ? team.getTeamId() : 0;
 
         List<Map.Entry<BoxscorePlayer, Integer>> playerPoints = new ArrayList<>();
         for (BoxscorePlayer player : team.getPlayers()) {
@@ -658,36 +651,24 @@ public class GameDetailComposer {
 
             BoxscorePlayer player = entry.getKey();
             int points = entry.getValue();
-            BoxscoreStatistics playerStats = player.getStatistics();
 
-            ObjectNode item = objectMapper.createObjectNode();
             int personId = player.getPersonId() != null ? player.getPersonId() : 0;
-            item.put("playerId", personId);
-
             String playerName = player.getName() != null ? player.getName() : "";
             if (playerName.isEmpty()) {
                 String firstName = player.getFirstName() != null ? player.getFirstName() : "";
                 String familyName = player.getFamilyName() != null ? player.getFamilyName() : "";
                 playerName = firstName + " " + familyName;
             }
-            item.put("playerName", playerName);
-            item.put("playerImageUrl",
-                    "https://cdn.nba.com/headshots/nba/latest/1040x760/" + personId + ".png");
-            item.put("teamTricode", teamTricode);
-            item.put("teamId", teamId);
+            String playerImageUrl = "https://cdn.nba.com/headshots/nba/latest/1040x760/" + personId + ".png";
 
-            item.put("statCategory", "PTS");
-            item.put("statValue", String.valueOf(points));
-            item.put("statLabel", "Points");
-
-            ObjectNode additionalStats = objectMapper.createObjectNode();
-            additionalStats.put("rebounds", playerStats != null ? playerStats.getReboundsTotal() : 0);
-            additionalStats.put("assists", playerStats != null ? playerStats.getAssists() : 0);
-            additionalStats.put("minutes", playerStats != null && playerStats.getMinutes() != null
-                    ? playerStats.getMinutes() : "");
-            item.set("additionalStats", additionalStats);
-
-            performers.add(item);
+            performers.add(new String[]{
+                    String.valueOf(personId),
+                    playerName,
+                    teamTricode,
+                    "PTS",
+                    String.valueOf(points),
+                    playerImageUrl
+            });
             count++;
         }
 

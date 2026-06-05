@@ -1208,7 +1208,7 @@ public class AtomicCompositeBuilder {
      * Generic pill badge — Container with a colored rounded-rect
      * background wrapping a small white bold label. Use for any inline
      * chip (LIVE, NEW, durations) when the color is not the LIVE red.
-     * For the LIVE badge specifically, call {@link #liveBadgeNode()}.
+     * For the LIVE badge specifically, call {@link #liveBadge()}.
      *
      * <p>Expressed as a Container wrapping a Text because Text
      * backgrounds are not rendered by any client's atomic Text
@@ -1316,29 +1316,31 @@ public class AtomicCompositeBuilder {
     }
 
     /** Build a duration badge element (dark background pill with white text). */
-    private ObjectNode durationBadgeNode(String duration) {
-        ObjectNode bg = containerNode("row", "center", "center");
-        bg.put("cornerRadius", tokens.radius("sm"));
-        bg.put("background", "#000000B3");
+    private AtomicElement durationBadgeNode(String duration) {
+        AtomicElement bg = container("row", "center", "center");
+        bg.setCornerRadius(tokens.radius("sm"));
+        bg.setBackground("#000000B3");
         // iOS ref app uses 0.7 for duration pill opacity; normalised here so
         // Android + web match without each platform inventing its own value.
-        opacityNode(bg, 0.7);
-        bg.set("padding", paddingNode(tokens.spacing("xs"), tokens.spacing("xs"), tokens.spacing("xs"), tokens.spacing("xs")));
-        ArrayNode children = om.createArrayNode();
-        children.add(textNode(duration, "labelSmall", "semiBold", tokens.color("nba.label-inverted.primary"), null));
-        bg.set("children", children);
+        bg.setOpacity(0.7);
+        bg.setPadding(padding(tokens.spacing("xs"), tokens.spacing("xs"),
+                tokens.spacing("xs"), tokens.spacing("xs")));
+        bg.setChildren(List.of(
+                text(duration, "labelSmall", "semiBold",
+                        tokens.color("nba.label-inverted.primary"), null)));
         return bg;
     }
 
     /** Build a "LIVE" badge element (red pill with white text). */
-    private ObjectNode liveBadgeNode() {
-        ObjectNode bg = containerNode("row", "center", "center");
-        bg.put("cornerRadius", tokens.radius("sm"));
-        bg.put("background", tokens.color("nba.label.accent.live"));
-        bg.set("padding", paddingNode(tokens.spacing("xs"), tokens.spacing("xs"), tokens.spacing("xs"), tokens.spacing("xs")));
-        ArrayNode children = om.createArrayNode();
-        children.add(textNode("LIVE", "labelSmall", "bold", tokens.color("nba.label-inverted.primary"), null));
-        bg.set("children", children);
+    private AtomicElement liveBadgeNode() {
+        AtomicElement bg = container("row", "center", "center");
+        bg.setCornerRadius(tokens.radius("sm"));
+        bg.setBackground(tokens.color("nba.label.accent.live"));
+        bg.setPadding(padding(tokens.spacing("xs"), tokens.spacing("xs"),
+                tokens.spacing("xs"), tokens.spacing("xs")));
+        bg.setChildren(List.of(
+                text("LIVE", "labelSmall", "bold",
+                        tokens.color("nba.label-inverted.primary"), null)));
         return bg;
     }
 
@@ -3420,11 +3422,11 @@ public class AtomicCompositeBuilder {
     }
 
     public AtomicElement liveBadge() {
-        return bindElement(liveBadgeNode());
+        return liveBadgeNode();
     }
 
     public AtomicElement durationBadge(String duration) {
-        return bindElement(durationBadgeNode(duration));
+        return durationBadgeNode(duration);
     }
 
     /** Generic pill badge with custom background color (used for NEW/LIVE chips, durations). */

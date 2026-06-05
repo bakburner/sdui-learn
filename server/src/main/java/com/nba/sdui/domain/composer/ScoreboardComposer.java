@@ -1,6 +1,5 @@
 package com.nba.sdui.domain.composer;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -121,12 +120,12 @@ public class ScoreboardComposer {
 
         List<Section> sections = new ArrayList<>();
         String contentSourceId = "stats-api:scoreboard";
-        Section error = toSection(utils.buildErrorSection(
+        Section error = utils.buildErrorSection(
                 SectionIdDeriver.derive(contentSourceId, "AtomicComposite", "error-no-scores"),
                 "Scores unavailable",
                 "We couldn't load today's scoreboard. Please try again later.",
                 "wifi_off",
-                "nba://scoreboard"));
+                "nba://scoreboard");
         error.setContentSourceId(contentSourceId);
         sections.add(error);
         return new Composition(response, sections);
@@ -210,14 +209,6 @@ public class ScoreboardComposer {
                 objectMapper.valueToTree(surfaces.gamePanelSurface()));
         sectionNode.setContentSourceId(contentSourceId);
         return sectionNode;
-    }
-
-    private Section toSection(ObjectNode node) {
-        try {
-            return objectMapper.treeToValue(node, Section.class);
-        } catch (JsonProcessingException e) {
-            throw new IllegalStateException("Failed to bind composed section to Section.class", e);
-        }
     }
 
     private static int parseGameClockSeconds(String iso) {

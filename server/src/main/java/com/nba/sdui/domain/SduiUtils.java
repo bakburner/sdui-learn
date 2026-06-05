@@ -503,10 +503,9 @@ public class SduiUtils {
      * @param icon       Optional icon name (e.g. "error", "wifi_off")
      * @param retryUri   Optional nba:// URI for the retry action
      */
-    public ObjectNode buildErrorSection(String sectionId, String title, String message,
+    public Section buildErrorSection(String sectionId, String title, String message,
                                          String icon, String retryUri) {
-        return (ObjectNode) objectMapper.valueToTree(
-                atomicBuilder.buildErrorState(sectionId, title, message, icon, retryUri));
+        return atomicBuilder.buildErrorState(sectionId, title, message, icon, retryUri);
     }
 
     // ── Section states (error/loading UX) ────────────────────────────

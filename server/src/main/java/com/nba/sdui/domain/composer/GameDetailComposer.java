@@ -375,14 +375,14 @@ public class GameDetailComposer {
         response.setDefaultRefreshPolicy(defaultRefreshPolicy);
 
         List<Section> sections = new ArrayList<>();
-        ObjectNode error = utils.buildErrorSection(
+        Section error = utils.buildErrorSection(
                 SectionIdDeriver.derive("stats-api:game-" + gameId, "AtomicComposite", "error-not-found"),
                 "Game not available",
                 "We couldn't load this game. Please try again later.",
                 "not_found",
                 "nba://scoreboard");
-        error.put("contentSourceId", "stats-api:game-" + gameId);
-        sections.add(objectMapper.convertValue(error, Section.class));
+        error.setContentSourceId("stats-api:game-" + gameId);
+        sections.add(error);
         response.setSections(sections);
 
         utils.prependAppBarHeaderIfNeeded(response);

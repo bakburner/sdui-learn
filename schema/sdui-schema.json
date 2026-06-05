@@ -95,8 +95,7 @@
     "SizingMode": {
       "type": "string",
       "enum": ["hug", "fill", "fixed"],
-      "default": "hug",
-      "description": "Sizing behavior along one axis. 'hug' sizes to content (default). 'fill' stretches to parent available space. 'fixed' uses the explicit width/height value."
+      "description": "Sizing behavior along one axis. 'hug' sizes to content. 'fill' stretches to parent available space. 'fixed' uses the explicit width/height value. The correct value depends on whether width/height is also set, so there is no static schema default; an absent value means the server made no instruction and the client falls back to its platform-native intrinsic sizing rule."
     },
     "ImageFit": {
       "type": "string",
@@ -630,16 +629,16 @@
           "description": "OverlayContainer layers rendered over the base element in server order.",
           "items": { "$ref": "#/definitions/AtomicOverlay" }
         },
-        "textAlign": { "type": "string", "enum": ["start", "center", "end"], "default": "start", "description": "Text alignment within the element. Used for centered headings, right-aligned numeric values." },
+        "textAlign": { "type": "string", "enum": ["start", "center", "end"], "description": "Text alignment within the element. Used for centered headings, right-aligned numeric values. Absent means the server made no instruction; clients fall back to platform-native locale-aware leading alignment." },
         "showIndicators": { "type": "boolean", "default": false, "description": "Whether to show scroll indicators on ScrollContainer. Default false for clean carousel presentation." },
         "pageIndicator": { "$ref": "#/definitions/PageIndicator", "description": "Optional ScrollContainer page indicator. Clients render it only when declared." },
         "monospacedDigits": { "type": "boolean", "default": false, "description": "Use tabular/monospaced digit rendering to prevent layout shift on numeric text changes (scores, clocks)." },
         "snapshotSeconds": { "type": "integer", "minimum": 0, "description": "LiveClock: clock value in seconds at the moment captured by snapshotAt. Clients interpolate from this anchor while isRunning == true. Required when type == 'LiveClock'." },
         "snapshotAt": { "type": "string", "format": "date-time", "description": "LiveClock: wall-clock instant (ISO-8601) at which snapshotSeconds was captured. Clients compute elapsed = now - snapshotAt and derive the displayed value. Required when type == 'LiveClock'." },
         "isRunning": { "type": "boolean", "default": false, "description": "LiveClock: whether the clock is actively ticking. When true, clients run a local tick loop at their platform-native refresh cadence (~10Hz) and update the displayed value. When false, clients render snapshotSeconds verbatim." },
-        "tickDirection": { "type": "string", "enum": ["down", "up"], "default": "down", "description": "LiveClock tick direction. 'down' decrements from snapshotSeconds toward stopAtSeconds (default 0); 'up' increments from snapshotSeconds with no upper bound unless stopAtSeconds is set." },
+        "tickDirection": { "type": "string", "enum": ["down", "up"], "description": "LiveClock tick direction. 'down' decrements from snapshotSeconds toward stopAtSeconds (default 0); 'up' increments from snapshotSeconds with no upper bound unless stopAtSeconds is set. Required on every LiveClock; no static schema default." },
         "stopAtSeconds": { "type": "integer", "description": "LiveClock: optional clamp. For direction 'down', clock holds at this value once reached. For direction 'up', clock holds once reached. Omit to disable the clamp." },
-        "format": { "type": "string", "enum": ["m:ss", "mm:ss", "h:mm:ss"], "default": "m:ss", "description": "LiveClock display format. Clients realize using their platform's tabular-numerals typography (equivalent to TextVariant.score)." },
+        "format": { "type": "string", "enum": ["m:ss", "mm:ss", "h:mm:ss"], "description": "LiveClock display format. Clients realize using their platform's tabular-numerals typography (equivalent to TextVariant.score). Required on every LiveClock; no static schema default." },
         "bindRef": { "type": "string", "description": "Dot-path into the enclosing AtomicComposite's `data.content` object. When set, renderers resolve the leaf's canonical live field from `data.content[bindRef]` at render time and fall back to the inline value when the path is absent. Canonical field per type: Text → content, Button → label, Image → src, LiveClock → an object with {snapshotSeconds, snapshotAt, isRunning}. Placing the binding identifier on the consuming node (rather than in a centrally-declared path-into-tree) lets composers reshape the ui tree without breaking real-time updates; data-bindings on the section envelope continue to write into `content.*`." }
       }
     },

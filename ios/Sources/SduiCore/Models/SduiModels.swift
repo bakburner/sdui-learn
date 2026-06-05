@@ -1296,7 +1296,8 @@ class AtomicElement: Codable {
     /// along the main axis (like CSS flex or Compose weight). Default 0 (size to content).
     let flex: Double?
     /// LiveClock display format. Clients realize using their platform's tabular-numerals
-    /// typography (equivalent to TextVariant.score).
+    /// typography (equivalent to TextVariant.score). Required on every LiveClock; no static
+    /// schema default.
     let format: Format?
     /// Gap between flex children (row/column), or grid gap where applicable.
     let gap: LayoutScalar?
@@ -1372,12 +1373,13 @@ class AtomicElement: Codable {
     /// Alternate row background for readability
     let striped: Bool?
     /// Text alignment within the element. Used for centered headings, right-aligned numeric
-    /// values.
+    /// values. Absent means the server made no instruction; clients fall back to platform-native
+    /// locale-aware leading alignment.
     let textAlign: Align?
     let thickness: Int?
     /// LiveClock tick direction. 'down' decrements from snapshotSeconds toward stopAtSeconds
     /// (default 0); 'up' increments from snapshotSeconds with no upper bound unless
-    /// stopAtSeconds is set.
+    /// stopAtSeconds is set. Required on every LiveClock; no static schema default.
     let tickDirection: TickDirection?
     let trueChild: AtomicElement?
     let type: String
@@ -3308,7 +3310,8 @@ extension Column {
 }
 
 /// Text alignment within the element. Used for centered headings, right-aligned numeric
-/// values.
+/// values. Absent means the server made no instruction; clients fall back to platform-native
+/// locale-aware leading alignment.
 enum Align: String, Codable {
     case center = "center"
     case end = "end"
@@ -3421,7 +3424,8 @@ enum ImageFit: String, Codable {
 }
 
 /// LiveClock display format. Clients realize using their platform's tabular-numerals
-/// typography (equivalent to TextVariant.score).
+/// typography (equivalent to TextVariant.score). Required on every LiveClock; no static
+/// schema default.
 enum Format: String, Codable {
     case hMmSs = "h:mm:ss"
     case mSs = "m:ss"
@@ -3431,8 +3435,11 @@ enum Format: String, Codable {
 /// Sizing behavior along the height axis. 'hug' = intrinsic, 'fill' = stretch to parent,
 /// 'fixed' = use explicit height value.
 ///
-/// Sizing behavior along one axis. 'hug' sizes to content (default). 'fill' stretches to
-/// parent available space. 'fixed' uses the explicit width/height value.
+/// Sizing behavior along one axis. 'hug' sizes to content. 'fill' stretches to parent
+/// available space. 'fixed' uses the explicit width/height value. The correct value depends
+/// on whether width/height is also set, so there is no static schema default; an absent
+/// value means the server made no instruction and the client falls back to its
+/// platform-native intrinsic sizing rule.
 ///
 /// Sizing behavior along the width axis. 'hug' = intrinsic, 'fill' = stretch to parent,
 /// 'fixed' = use explicit width value.
@@ -3514,7 +3521,7 @@ enum Style: String, Codable {
 
 /// LiveClock tick direction. 'down' decrements from snapshotSeconds toward stopAtSeconds
 /// (default 0); 'up' increments from snapshotSeconds with no upper bound unless
-/// stopAtSeconds is set.
+/// stopAtSeconds is set. Required on every LiveClock; no static schema default.
 enum TickDirection: String, Codable {
     case down = "down"
     case up = "up"

@@ -1115,7 +1115,8 @@ data class AtomicElement (
 
     /**
      * LiveClock display format. Clients realize using their platform's tabular-numerals
-     * typography (equivalent to TextVariant.score).
+     * typography (equivalent to TextVariant.score). Required on every LiveClock; no static
+     * schema default.
      */
     val format: Format? = null,
 
@@ -1275,7 +1276,8 @@ data class AtomicElement (
 
     /**
      * Text alignment within the element. Used for centered headings, right-aligned numeric
-     * values.
+     * values. Absent means the server made no instruction; clients fall back to platform-native
+     * locale-aware leading alignment.
      */
     val textAlign: Align? = null,
 
@@ -1284,7 +1286,7 @@ data class AtomicElement (
     /**
      * LiveClock tick direction. 'down' decrements from snapshotSeconds toward stopAtSeconds
      * (default 0); 'up' increments from snapshotSeconds with no upper bound unless
-     * stopAtSeconds is set.
+     * stopAtSeconds is set. Required on every LiveClock; no static schema default.
      */
     val tickDirection: TickDirection? = null,
 
@@ -2389,7 +2391,8 @@ data class Column (
 
 /**
  * Text alignment within the element. Used for centered headings, right-aligned numeric
- * values.
+ * values. Absent means the server made no instruction; clients fall back to platform-native
+ * locale-aware leading alignment.
  */
 enum class Align(val value: String) {
     Center("center"),
@@ -2501,7 +2504,8 @@ enum class ImageFit(val value: String) {
 
 /**
  * LiveClock display format. Clients realize using their platform's tabular-numerals
- * typography (equivalent to TextVariant.score).
+ * typography (equivalent to TextVariant.score). Required on every LiveClock; no static
+ * schema default.
  */
 enum class Format(val value: String) {
     HMmSs("h:mm:ss"),
@@ -2522,8 +2526,11 @@ enum class Format(val value: String) {
  * Sizing behavior along the height axis. 'hug' = intrinsic, 'fill' = stretch to parent,
  * 'fixed' = use explicit height value.
  *
- * Sizing behavior along one axis. 'hug' sizes to content (default). 'fill' stretches to
- * parent available space. 'fixed' uses the explicit width/height value.
+ * Sizing behavior along one axis. 'hug' sizes to content. 'fill' stretches to parent
+ * available space. 'fixed' uses the explicit width/height value. The correct value depends
+ * on whether width/height is also set, so there is no static schema default; an absent
+ * value means the server made no instruction and the client falls back to its
+ * platform-native intrinsic sizing rule.
  *
  * Sizing behavior along the width axis. 'hug' = intrinsic, 'fill' = stretch to parent,
  * 'fixed' = use explicit width value.
@@ -2607,7 +2614,7 @@ enum class Style(val value: String) {
 /**
  * LiveClock tick direction. 'down' decrements from snapshotSeconds toward stopAtSeconds
  * (default 0); 'up' increments from snapshotSeconds with no upper bound unless
- * stopAtSeconds is set.
+ * stopAtSeconds is set. Required on every LiveClock; no static schema default.
  */
 enum class TickDirection(val value: String) {
     Down("down"),

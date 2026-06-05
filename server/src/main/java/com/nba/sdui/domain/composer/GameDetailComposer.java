@@ -199,14 +199,12 @@ public class GameDetailComposer {
         List<ExperimentVariantOption> options = variants.getOptions();
         if (experimentId == null || experimentId.isBlank() || options == null || options.isEmpty()) return;
 
-        ArrayNode optionsArray = objectMapper.valueToTree(options);
-
         String currentUri = "nba://game/" + gameId;
         String normalized = (activeVariant == null || activeVariant.isBlank())
                 ? "A" : activeVariant.toUpperCase();
         Section chips = atomicBuilder.buildVariantChipsComposite(
                 "game-detail-variant-chips", "game_detail_variant_chips",
-                currentUri, experimentId, optionsArray, normalized);
+                currentUri, experimentId, options, normalized);
         chips.setSurface(surfaces.flushSurface());
 
         List<Section> sections = response.getSections() != null

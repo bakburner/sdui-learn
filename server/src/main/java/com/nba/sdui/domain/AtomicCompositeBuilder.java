@@ -19,6 +19,7 @@ import com.nba.sdui.models.generated.Column;
 import com.nba.sdui.models.generated.Content;
 import com.nba.sdui.models.generated.CornerRadii;
 import com.nba.sdui.models.generated.DataBinding;
+import com.nba.sdui.models.generated.ExperimentVariantOption;
 import com.nba.sdui.models.generated.RefreshPolicy;
 import com.nba.sdui.models.generated.Row;
 import com.nba.sdui.models.generated.Section;
@@ -1994,32 +1995,34 @@ public class AtomicCompositeBuilder {
         requireNonBlank(sectionId, "sectionId");
         requireNonBlank(title, "title");
 
-        ObjectNode root = containerNode("row", "spaceBetween", "center");
-        root.put("widthMode", "fill");
-        root.set("padding", paddingNode(tokens.spacing("lg"), tokens.spacing("lg"), tokens.spacing("md"), tokens.spacing("xs")));
+        AtomicElement root = container("row", "spaceBetween", "center");
+        root.setWidthMode(AtomicElement.SizingMode.fromValue("fill"));
+        root.setPadding(padding(tokens.spacing("lg"), tokens.spacing("lg"),
+                tokens.spacing("md"), tokens.spacing("xs")));
 
-        ArrayNode children = om.createArrayNode();
-        ObjectNode titleCol = containerNode("column", null, "start");
-        ArrayNode titleChildren = om.createArrayNode();
-        ObjectNode titleEl = textNode(title.toUpperCase(Locale.ROOT), "titleMedium", "bold",
+        List<AtomicElement> children = new ArrayList<>();
+        AtomicElement titleCol = container("column", null, "start");
+        List<AtomicElement> titleChildren = new ArrayList<>();
+        AtomicElement titleEl = text(title.toUpperCase(Locale.ROOT), "titleMedium", "bold",
                 tokens.color("nba.label.primary"), null);
-        AccessibilityHelper.addHeading(om, titleEl, title, 2);
+        AccessibilityHelper.addHeading(titleEl, title, 2);
         titleChildren.add(titleEl);
         if (subtitle != null) {
-            titleChildren.add(textNode(subtitle, "bodySmall", null, tokens.color("nba.label.tertiary"), 1));
+            titleChildren.add(text(subtitle, "bodySmall", null,
+                    tokens.color("nba.label.tertiary"), 1));
         }
-        titleCol.set("children", titleChildren);
+        titleCol.setChildren(titleChildren);
         children.add(titleCol);
 
         if (actionUri != null) {
-            ObjectNode more = buttonNode(actionLabel != null ? actionLabel + " >" : "More >",
-                    "text", tapNavigateNode(actionUri));
-            more.put("color", tokens.color("nba.label.accent.brand"));
+            AtomicElement more = button(actionLabel != null ? actionLabel + " >" : "More >",
+                    "text", tapNavigate(actionUri));
+            more.setColor(tokens.color("nba.label.accent.brand"));
             children.add(more);
         }
 
-        root.set("children", children);
-        return wrapAsCompositeNode(sectionId, analyticsId, root);
+        root.setChildren(children);
+        return wrapAsComposite(sectionId, analyticsId, root);
     }
 
     /**
@@ -2035,27 +2038,28 @@ public class AtomicCompositeBuilder {
                                                  String title, String backUri) {
         requireNonBlank(sectionId, "sectionId");
 
-        ObjectNode root = containerNode("row", "start", "center");
-        root.put("widthMode", "fill");
-        root.set("padding", paddingNode(
+        AtomicElement root = container("row", "start", "center");
+        root.setWidthMode(AtomicElement.SizingMode.fromValue("fill"));
+        root.setPadding(padding(
                 tokens.spacing("md"), tokens.spacing("md"),
                 tokens.spacing("sm"), tokens.spacing("xs")));
 
-        ArrayNode children = om.createArrayNode();
+        List<AtomicElement> children = new ArrayList<>();
         if (backUri != null && !backUri.isBlank()) {
-            ObjectNode back = appBarIconButton(tokens.icon("back"), tapNavigateNode(backUri));
-            AccessibilityHelper.addButton(om, back, "Back");
+            AtomicElement back = appBarIconButton(tokens.icon("back"), tapNavigate(backUri));
+            AccessibilityHelper.addButton(back, "Back");
             children.add(back);
-            children.add(hSpacerNode(tokens.spacing("sm")));
+            children.add(hSpacer(tokens.spacing("sm")));
         }
         if (title != null && !title.isBlank()) {
-            ObjectNode titleEl = textNode(title, "titleMedium", "bold", tokens.color("nba.label.primary"), null);
-            AccessibilityHelper.addHeading(om, titleEl, title, 1);
+            AtomicElement titleEl = text(title, "titleMedium", "bold",
+                    tokens.color("nba.label.primary"), null);
+            AccessibilityHelper.addHeading(titleEl, title, 1);
             children.add(titleEl);
         }
 
-        root.set("children", children);
-        return wrapAsCompositeNode(sectionId, analyticsId, root);
+        root.setChildren(children);
+        return wrapAsComposite(sectionId, analyticsId, root);
     }
 
     /**
@@ -2075,40 +2079,43 @@ public class AtomicCompositeBuilder {
      */
     public Section buildVariantChipsComposite(String sectionId, String analyticsId,
                                                   String currentUri, String experimentId,
-                                                  ArrayNode options, String activeVariantId) {
+                                                  List<ExperimentVariantOption> options,
+                                                  String activeVariantId) {
         requireNonBlank(sectionId, "sectionId");
         requireNonBlank(currentUri, "currentUri");
         requireNonBlank(experimentId, "experimentId");
 
-        ObjectNode scroll = scrollRow(8, false);
-        scroll.put("widthMode", "fill");
-        scroll.set("padding", paddingNode(
+        AtomicElement scroll = scrollContainer("row", 8, false);
+        scroll.setWidthMode(AtomicElement.SizingMode.fromValue("fill"));
+        scroll.setPadding(padding(
                 tokens.spacing("md"), tokens.spacing("md"),
                 tokens.spacing("xs"), tokens.spacing("xs")));
 
-        ArrayNode chips = om.createArrayNode();
+        List<AtomicElement> chips = new ArrayList<>();
         boolean anyMatch = false;
-        for (var option : options) {
-            String id = option.path("id").asText();
+        for (ExperimentVariantOption option : options) {
+            String id = option.getId();
             if (id == null || id.isBlank()) continue;
             if (id.equals(activeVariantId)) anyMatch = true;
         }
-        for (var option : options) {
-            String id = option.path("id").asText();
-            String label = option.path("label").asText(id);
+        for (int i = 0; i < options.size(); i++) {
+            ExperimentVariantOption option = options.get(i);
+            String id = option.getId();
+            String label = option.getLabel() != null ? option.getLabel() : id;
             if (id == null || id.isBlank()) continue;
 
             boolean isSelected = id.equals(activeVariantId)
-                    || (!anyMatch && options.get(0) == option);
+                    || (!anyMatch && i == 0);
 
             String targetUri = withReplacedExperimentParam(currentUri, experimentId, id);
-            ObjectNode chip = buttonNode(label, isSelected ? "primary" : "secondary", tapNavigateNode(targetUri));
-            AccessibilityHelper.addButton(om, chip, label + (isSelected ? " (selected)" : ""));
+            AtomicElement chip = button(label, isSelected ? "primary" : "secondary",
+                    tapNavigate(targetUri));
+            AccessibilityHelper.addButton(chip, label + (isSelected ? " (selected)" : ""));
             chips.add(chip);
         }
-        scroll.set("children", chips);
+        scroll.setChildren(chips);
 
-        return wrapAsCompositeNode(sectionId, analyticsId, scroll);
+        return wrapAsComposite(sectionId, analyticsId, scroll);
     }
 
     /**
@@ -2408,14 +2415,13 @@ public class AtomicCompositeBuilder {
     }
 
     /** Icon-only control on light app-bar surfaces (back affordance). */
-    private ObjectNode appBarIconButton(String iconToken, ObjectNode action) {
-        ObjectNode b = om.createObjectNode();
-        b.put("type", "Button");
-        b.put("label", "");
-        b.put("icon", iconToken);
-        b.put("variant", "text");
-        b.put("color", tokens.color("nba.label.primary"));
-        b.set("actions", singleActionArrayNode(action));
+    private AtomicElement appBarIconButton(String iconToken, Action action) {
+        AtomicElement b = new AtomicElement().withType(AtomicElement.Type.fromValue("Button"));
+        b.setLabel("");
+        b.setIcon(iconToken);
+        b.setVariant("text");
+        b.setColor(tokens.color("nba.label.primary"));
+        b.setActions(singleActionArray(action));
         return b;
     }
 

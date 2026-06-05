@@ -2361,59 +2361,64 @@ public class AtomicCompositeBuilder {
         requireNonBlank(title, "title");
 
         String radius = tokens.radius("md");
-        ObjectNode base = imageNode(imageUrl, 0, 0, "cover", null);
-        base.put("widthMode", "fill");
-        base.put("aspectRatio", 16.0 / 9.0);
-        base.put("cornerRadius", radius);
-        AccessibilityHelper.addImage(om, base, title);
+        AtomicElement base = image(imageUrl, 0, 0, "cover");
+        base.setWidthMode(AtomicElement.SizingMode.fromValue("fill"));
+        base.setAspectRatio(16.0 / 9.0);
+        base.setCornerRadius(radius);
+        AccessibilityHelper.addImage(base, title);
 
-        List<ObjectNode> layers = new ArrayList<>();
+        List<AtomicOverlay> layers = new ArrayList<>();
 
-        ObjectNode copyCol = containerNode("column", "end", "start");
-        copyCol.put("widthMode", "fill");
-        copyCol.put("heightMode", "fill");
-        copyCol.set("padding", paddingNode(tokens.spacing("lg"), tokens.spacing("lg"), tokens.spacing("lg"), tokens.spacing("lg")));
-        copyCol.set("background", mediaBottomScrimGradient());
-        copyCol.set("cornerRadii", cornerRadii(0, 0, radius, radius));
-        ArrayNode copyChildren = om.createArrayNode();
-        copyChildren.add(textNode(title, "titleMedium", "bold", tokens.color("nba.label-dark.primary"), 3));
+        AtomicElement copyCol = container("column", "end", "start");
+        copyCol.setWidthMode(AtomicElement.SizingMode.fromValue("fill"));
+        copyCol.setHeightMode(AtomicElement.SizingMode.fromValue("fill"));
+        copyCol.setPadding(padding(tokens.spacing("lg"), tokens.spacing("lg"),
+                tokens.spacing("lg"), tokens.spacing("lg")));
+        copyCol.setBackground(mediaBottomScrimGradient());
+        copyCol.setCornerRadii(cornerRadiiOf(0, 0, radius, radius));
+        List<AtomicElement> copyChildren = new ArrayList<>();
+        copyChildren.add(text(title, "titleMedium", "bold",
+                tokens.color("nba.label-dark.primary"), 3));
         if (subtitle != null) {
-            copyChildren.add(textNode(subtitle, "bodySmall", null, tokens.color("nba.label-dark.primary"), 3));
+            copyChildren.add(text(subtitle, "bodySmall", null,
+                    tokens.color("nba.label-dark.primary"), 3));
         }
         if (ctaLabel != null && ctaTargetUri != null) {
-            ObjectNode cta = buttonNode(ctaLabel, "secondary", tapNavigateNode(ctaTargetUri));
-            cta.put("color", tokens.color("nba.label-dark.primary"));
-            cta.put("background", "#00000000");
-            copyChildren.add(spacerNode(tokens.spacing("md")));
+            AtomicElement cta = button(ctaLabel, "secondary", tapNavigate(ctaTargetUri));
+            cta.setColor(tokens.color("nba.label-dark.primary"));
+            cta.setBackground("#00000000");
+            copyChildren.add(spacer(tokens.spacing("md")));
             copyChildren.add(cta);
         }
-        copyCol.set("children", copyChildren);
-        layers.add(overlayNode("bottomStart", null, copyCol));
+        copyCol.setChildren(copyChildren);
+        layers.add(overlay("bottomStart", null, copyCol));
 
         if (topStartBadgeText != null) {
             String t = topStartBadgeText.trim();
-            ObjectNode pill = t.equalsIgnoreCase("LIVE")
-                    ? liveBadgeNode()
-                    : pillBadge(topStartBadgeText, tokens.color("nba.label.accent.brand"));
-            layers.add(overlayNode("topStart", paddingNode(tokens.spacing("md"), tokens.spacing("md"), 0, 0), pill));
+            AtomicElement pill = t.equalsIgnoreCase("LIVE")
+                    ? liveBadge()
+                    : pillBadgeTyped(topStartBadgeText, tokens.color("nba.label.accent.brand"));
+            layers.add(overlay("topStart",
+                    padding(tokens.spacing("md"), tokens.spacing("md"), 0, 0), pill));
         }
 
         if (shareActionUri != null || audioActionUri != null) {
-            ObjectNode iconRow = containerNode("row", "end", "center");
-            iconRow.put("gap", tokens.spacing("sm"));
-            ArrayNode iconKids = om.createArrayNode();
+            AtomicElement iconRow = container("row", "end", "center");
+            iconRow.setGap(tokens.spacing("sm"));
+            List<AtomicElement> iconKids = new ArrayList<>();
             if (audioActionUri != null) {
-                iconKids.add(mediaOverlayIconButton(tokens.icon("video"), tapNavigateNode(audioActionUri)));
+                iconKids.add(mediaOverlayIconButton(tokens.icon("video"), tapNavigate(audioActionUri)));
             }
             if (shareActionUri != null) {
-                iconKids.add(mediaOverlayIconButton(tokens.icon("share"), tapNavigateNode(shareActionUri)));
+                iconKids.add(mediaOverlayIconButton(tokens.icon("share"), tapNavigate(shareActionUri)));
             }
-            iconRow.set("children", iconKids);
-            layers.add(overlayNode("topEnd", paddingNode(tokens.spacing("md"), tokens.spacing("md"), 0, 0), iconRow));
+            iconRow.setChildren(iconKids);
+            layers.add(overlay("topEnd",
+                    padding(tokens.spacing("md"), tokens.spacing("md"), 0, 0), iconRow));
         }
 
-        ObjectNode root = overlayContainerNode(base, layers);
-        return wrapAsCompositeNode(sectionId, analyticsId, root);
+        AtomicElement root = overlayContainer(base, layers);
+        return wrapAsComposite(sectionId, analyticsId, root);
     }
 
     /** Icon-only control on light app-bar surfaces (back affordance). */
@@ -2428,14 +2433,13 @@ public class AtomicCompositeBuilder {
     }
 
     /** Icon-only control on dark media scrims (video hero overlays). */
-    private ObjectNode mediaOverlayIconButton(String iconToken, ObjectNode action) {
-        ObjectNode b = om.createObjectNode();
-        b.put("type", "Button");
-        b.put("label", "");
-        b.put("icon", iconToken);
-        b.put("variant", "text");
-        b.put("color", tokens.color("nba.label-dark.primary"));
-        b.set("actions", singleActionArrayNode(action));
+    private AtomicElement mediaOverlayIconButton(String iconToken, Action action) {
+        AtomicElement b = new AtomicElement().withType(AtomicElement.Type.fromValue("Button"));
+        b.setLabel("");
+        b.setIcon(iconToken);
+        b.setVariant("text");
+        b.setColor(tokens.color("nba.label-dark.primary"));
+        b.setActions(singleActionArray(action));
         return b;
     }
 

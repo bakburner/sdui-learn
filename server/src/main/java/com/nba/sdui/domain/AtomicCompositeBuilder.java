@@ -318,13 +318,8 @@ public class AtomicCompositeBuilder {
         card.setCornerRadius(0);
         // Subtle vertical gradient so the card silhouette reads against
         // the feed background without relying on a drop shadow.
-        ObjectNode cardBg = om.createObjectNode();
-        ArrayNode cardBgColors = om.createArrayNode();
-        cardBgColors.add(tokens.color("nba.bg.secondary"));
-        cardBgColors.add(tokens.color("nba.bg.tertiary"));
-        cardBg.set("colors", cardBgColors);
-        cardBg.put("direction", "vertical");
-        card.setBackground(cardBg);
+        card.setBackground(gradient(tokens.color("nba.bg.secondary"),
+                tokens.color("nba.bg.tertiary"), "vertical"));
         if (targetUri != null) {
             card.setActions(singleActionArray(tapNavigate(targetUri)));
             AccessibilityHelper.addButton(card, headline);
@@ -839,22 +834,22 @@ public class AtomicCompositeBuilder {
         if (gameStatusText != null) content.setAdditionalProperty("gameStatusText", gameStatusText);
         content.setAdditionalProperty("gameStatus", gameStatus);
 
-        ObjectNode home = om.createObjectNode();
+        Map<String, Object> home = new LinkedHashMap<>();
         home.put("score", homeTeam.score());
         home.put("tricode", homeTeam.tricode());
         content.setAdditionalProperty("homeTeam", home);
 
-        ObjectNode away = om.createObjectNode();
+        Map<String, Object> away = new LinkedHashMap<>();
         away.put("score", awayTeam.score());
         away.put("tricode", awayTeam.tricode());
         content.setAdditionalProperty("awayTeam", away);
 
         if (clock != null) {
-            ObjectNode clockNode = om.createObjectNode();
-            clockNode.put("snapshotSeconds", clock.snapshotSeconds());
-            if (clock.snapshotAtIso() != null) clockNode.put("snapshotAt", clock.snapshotAtIso());
-            clockNode.put("isRunning", clock.isRunning());
-            content.setAdditionalProperty("clock", clockNode);
+            Map<String, Object> clockMap = new LinkedHashMap<>();
+            clockMap.put("snapshotSeconds", clock.snapshotSeconds());
+            if (clock.snapshotAtIso() != null) clockMap.put("snapshotAt", clock.snapshotAtIso());
+            clockMap.put("isRunning", clock.isRunning());
+            content.setAdditionalProperty("clock", clockMap);
         }
 
         return content;
@@ -920,13 +915,8 @@ public class AtomicCompositeBuilder {
         // meta row (duration / live badge) meet the card edge flush.
         card.setWidth(240);
         card.setCornerRadius(0);
-        ObjectNode cardBg = om.createObjectNode();
-        ArrayNode cardBgColors = om.createArrayNode();
-        cardBgColors.add(tokens.color("nba.bg.secondary"));
-        cardBgColors.add(tokens.color("nba.bg.tertiary"));
-        cardBg.set("colors", cardBgColors);
-        cardBg.put("direction", "vertical");
-        card.setBackground(cardBg);
+        card.setBackground(gradient(tokens.color("nba.bg.secondary"),
+                tokens.color("nba.bg.tertiary"), "vertical"));
         if (targetUri != null) {
             card.setActions(singleActionArray(tapNavigate(targetUri)));
             AccessibilityHelper.addButton(card, title);
@@ -1163,13 +1153,7 @@ public class AtomicCompositeBuilder {
         overlay.setWidthMode(AtomicElement.SizingMode.fromValue("fill"));
         overlay.setPadding(padding(tokens.spacing("lg"), tokens.spacing("lg"),
                 tokens.spacing("lg"), tokens.spacing("lg")));
-        ObjectNode grad = om.createObjectNode();
-        ArrayNode gradColors = om.createArrayNode();
-        gradColors.add("#00000000");
-        gradColors.add("#000000CC");
-        grad.set("colors", gradColors);
-        grad.put("direction", "vertical");
-        overlay.setBackground(grad);
+        overlay.setBackground(gradient("#00000000", "#000000CC", "vertical"));
         List<AtomicElement> overlayChildren = new ArrayList<>();
 
         if (liveNow) {
@@ -1581,7 +1565,7 @@ public class AtomicCompositeBuilder {
         if (multiSlide) {
             AtomicElement scroll = scrollContainer("row", 0, false);
             scroll.setWidthMode(AtomicElement.SizingMode.fromValue("fill"));
-            ObjectNode indicator = om.createObjectNode();
+            Map<String, Object> indicator = new LinkedHashMap<>();
             indicator.put("style", "dashes");
             indicator.put("alignment", "bottomCenter");
             indicator.put("color", "#FFFFFF66");
@@ -1823,18 +1807,16 @@ public class AtomicCompositeBuilder {
 
         boolean singleCard = validCards.size() == 1;
         List<AtomicElement> scrollChildren = new ArrayList<>();
-        ObjectNode content = om.createObjectNode();
-        ObjectNode cardsContent = om.createObjectNode();
+        Map<String, Object> cardsContent = new LinkedHashMap<>();
         for (String[] card : validCards) {
             String cardId = value(card, 0);
             scrollChildren.add(featuredLiveGameHeroCard(card, singleCard));
-            ObjectNode state = om.createObjectNode();
+            Map<String, Object> state = new LinkedHashMap<>();
             state.put("awayScore", parseInt(value(card, 6), 0));
             state.put("homeScore", parseInt(value(card, 9), 0));
             if (value(card, 11) != null) state.put("statusText", value(card, 11));
-            cardsContent.set(cardId, state);
+            cardsContent.put(cardId, state);
         }
-        content.set("cards", cardsContent);
 
         // Single-card hero: emit a flush container so the card fills its
         // surface end-to-end. Multi-card hero: paged horizontal scroll
@@ -1857,7 +1839,8 @@ public class AtomicCompositeBuilder {
         Section section = newSection(sectionId, analyticsId, refreshPolicy);
         AtomicComposite data = new AtomicComposite();
         data.setUi(root);
-        Content typedContent = om.convertValue(content, Content.class);
+        Content typedContent = new Content();
+        typedContent.setAdditionalProperty("cards", cardsContent);
         data.setContent(typedContent);
         section.setData(data);
         if (dataBinding != null) {
@@ -2938,7 +2921,7 @@ public class AtomicCompositeBuilder {
         if (childCount > 1) {
             scroll.setPaging(true);
             scroll.setSnapAlignment(AtomicElement.SnapAlignment.fromValue("center"));
-            ObjectNode indicator = om.createObjectNode();
+            Map<String, Object> indicator = new LinkedHashMap<>();
             indicator.put("style", "dots");
             indicator.put("alignment", indicatorAlignment != null ? indicatorAlignment : "bottomCenter");
             indicator.put("color", inactiveDotColor != null ? inactiveDotColor : tokens.color("nba.label.tertiary"));
@@ -2948,12 +2931,9 @@ public class AtomicCompositeBuilder {
         return scroll;
     }
 
-    private ObjectNode gradient(String first, String second, String direction) {
-        ObjectNode gradient = om.createObjectNode();
-        ArrayNode colors = om.createArrayNode();
-        colors.add(first);
-        colors.add(second);
-        gradient.set("colors", colors);
+    private Map<String, Object> gradient(String first, String second, String direction) {
+        Map<String, Object> gradient = new LinkedHashMap<>();
+        gradient.put("colors", List.of(first, second));
         gradient.put("direction", direction);
         return gradient;
     }

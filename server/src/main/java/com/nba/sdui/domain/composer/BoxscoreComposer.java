@@ -3,11 +3,16 @@ package com.nba.sdui.domain.composer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.nba.sdui.models.generated.Action;
 import com.nba.sdui.models.generated.RefreshPolicy;
 import com.nba.sdui.models.generated.Screen;
 import com.nba.sdui.models.generated.Section;
 import com.nba.sdui.models.generated.SectionStates;
 import com.nba.sdui.models.generated.State;
+import com.nba.sdui.models.generated.Subsection;
+import com.nba.sdui.models.generated.TabContents;
+import com.nba.sdui.models.generated.TabData;
+import com.nba.sdui.models.generated.TabGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -91,18 +96,18 @@ public class BoxscoreComposer {
             log.warn("No boxscore data available for gameId={}, returning empty screen", gameId);
             response.setState(new State());
             List<Section> sections = new ArrayList<>();
-            ObjectNode emptySection = objectMapper.createObjectNode();
-            emptySection.put("id", SectionIdDeriver.derive(contentSourceId, "BoxscoreTable", "empty"));
-            emptySection.put("contentSourceId", contentSourceId);
-            emptySection.put("type", "BoxscoreTable");
+            Section emptySection = new Section();
+            emptySection.setId(SectionIdDeriver.derive(contentSourceId, "BoxscoreTable", "empty"));
+            emptySection.setContentSourceId(contentSourceId);
+            emptySection.setType(Section.Type.BOXSCORE_TABLE);
             ObjectNode emptyData = objectMapper.createObjectNode();
             emptyData.put("teamTricode", "");
             emptyData.put("teamName", "");
             emptyData.set("columns", utils.buildBoxscoreColumns());
             emptyData.set("players", objectMapper.createArrayNode());
             emptyData.put("emptyMessage", "Box score will be available once the game begins.");
-            emptySection.set("data", emptyData);
-            sections.add(objectMapper.convertValue(emptySection, Section.class));
+            emptySection.setData(emptyData);
+            sections.add(emptySection);
             response.setSections(sections);
             response.setTitle("Box Score");
             utils.prependAppBarHeaderIfNeeded(response);
@@ -129,59 +134,51 @@ public class BoxscoreComposer {
         // ── Sections ───────────────────────────────────────────────────
         List<Section> sections = new ArrayList<>();
 
-        ObjectNode awayTable = buildBoxscoreTableSectionNode(
+        Section awayTable = buildBoxscoreTableSectionInternal(
                 awayTeam, gameId, contentSourceId, "away",
                 "boxscore_away_sortCol", "boxscore_away_sortDir", gameStatus);
-        awayTable.set("surface", objectMapper.valueToTree(surfaces.flushSurface()));
-        ObjectNode homeTable = buildBoxscoreTableSectionNode(
+        awayTable.setSurface(surfaces.flushSurface());
+        Section homeTable = buildBoxscoreTableSectionInternal(
                 homeTeam, gameId, contentSourceId, "home",
                 "boxscore_home_sortCol", "boxscore_home_sortDir", gameStatus);
-        homeTable.set("surface", objectMapper.valueToTree(surfaces.flushSurface()));
+        homeTable.setSurface(surfaces.flushSurface());
 
         // Wrap in TabGroup for team toggling
-        ObjectNode tabGroup = objectMapper.createObjectNode();
-        tabGroup.put("id", SectionIdDeriver.derive(contentSourceId, "TabGroup", "team-tabs"));
-        tabGroup.put("contentSourceId", contentSourceId);
-        tabGroup.put("type", "TabGroup");
-        tabGroup.put("analyticsId", "boxscore_team_toggle");
+        Section tabGroup = new Section();
+        tabGroup.setId(SectionIdDeriver.derive(contentSourceId, "TabGroup", "team-tabs"));
+        tabGroup.setContentSourceId(contentSourceId);
+        tabGroup.setType(Section.Type.TAB_GROUP);
+        tabGroup.setAnalyticsId("boxscore_team_toggle");
 
-        ObjectNode tabData = objectMapper.createObjectNode();
-        tabData.put("stateKey", "boxscore_team");
-        tabData.put("defaultTab", awayTricode);
+        TabGroup tabData = new TabGroup();
+        tabData.setStateKey("boxscore_team");
+        tabData.setDefaultTab(awayTricode);
 
-        ArrayNode tabs = objectMapper.createArrayNode();
+        TabData awayTab = new TabData();
+        awayTab.setId("tab-" + awayTricode.toLowerCase());
+        awayTab.setLabel(awayTricode);
+        awayTab.setStateKey("boxscore_team");
+        awayTab.setStateValue(awayTricode);
 
-        ObjectNode awayTab = objectMapper.createObjectNode();
-        awayTab.put("id", "tab-" + awayTricode.toLowerCase());
-        awayTab.put("label", awayTricode);
-        awayTab.put("stateKey", "boxscore_team");
-        awayTab.put("stateValue", awayTricode);
-        tabs.add(awayTab);
+        TabData homeTab = new TabData();
+        homeTab.setId("tab-" + homeTricode.toLowerCase());
+        homeTab.setLabel(homeTricode);
+        homeTab.setStateKey("boxscore_team");
+        homeTab.setStateValue(homeTricode);
 
-        ObjectNode homeTab = objectMapper.createObjectNode();
-        homeTab.put("id", "tab-" + homeTricode.toLowerCase());
-        homeTab.put("label", homeTricode);
-        homeTab.put("stateKey", "boxscore_team");
-        homeTab.put("stateValue", homeTricode);
-        tabs.add(homeTab);
+        List<TabData> tabsList = List.of(awayTab, homeTab);
+        tabData.setTabs(tabsList);
 
-        tabData.set("tabs", tabs);
+        TabContents tabContents = new TabContents();
+        tabContents.setAdditionalProperty(awayTricode, List.of(awayTable));
+        tabContents.setAdditionalProperty(homeTricode, List.of(homeTable));
+        tabData.setTabContents(tabContents);
 
-        ObjectNode tabContents = objectMapper.createObjectNode();
-        ArrayNode awayContent = objectMapper.createArrayNode();
-        awayContent.add(awayTable);
-        tabContents.set(awayTricode, awayContent);
+        tabGroup.setData(tabData);
+        tabGroup.setSubsections(tabSelectSubsections(tabsList, "boxscore_team"));
+        tabGroup.setSurface(surfaces.stripSurfaceWithoutBackground());
 
-        ArrayNode homeContent = objectMapper.createArrayNode();
-        homeContent.add(homeTable);
-        tabContents.set(homeTricode, homeContent);
-
-        tabData.set("tabContents", tabContents);
-        tabGroup.set("data", tabData);
-        tabGroup.set("subsections", utils.tabSelectSubsections(tabs, "boxscore_team"));
-        tabGroup.set("surface", objectMapper.valueToTree(surfaces.stripSurfaceWithoutBackground()));
-
-        sections.add(objectMapper.convertValue(tabGroup, Section.class));
+        sections.add(tabGroup);
         response.setSections(sections);
 
         log.info("Boxscore screen composed: {} @ {}, gameStatus={}, awayPlayers={}, homePlayers={}",
@@ -200,22 +197,16 @@ public class BoxscoreComposer {
 
     /**
      * Build a single {@code BoxscoreTable} section for one team.
-     *
-     * <p>The body still composes the JSON via {@code ObjectNode} for now; the
-     * public return type is the typed {@link Section} so callers do not have
-     * to round-trip through {@code ObjectMapper.convertValue}.
      */
     public Section buildBoxscoreTableSection(BoxscoreTeam team, String gameId,
                                           String contentSourceId, String slug,
                                           String sortColKey, String sortDirKey,
                                           int gameStatus) {
-        return objectMapper.convertValue(
-                buildBoxscoreTableSectionNode(team, gameId, contentSourceId, slug,
-                        sortColKey, sortDirKey, gameStatus),
-                Section.class);
+        return buildBoxscoreTableSectionInternal(team, gameId, contentSourceId, slug,
+                sortColKey, sortDirKey, gameStatus);
     }
 
-    private ObjectNode buildBoxscoreTableSectionNode(BoxscoreTeam team, String gameId,
+    private Section buildBoxscoreTableSectionInternal(BoxscoreTeam team, String gameId,
                                           String contentSourceId, String slug,
                                           String sortColKey, String sortDirKey,
                                           int gameStatus) {
@@ -224,24 +215,25 @@ public class BoxscoreComposer {
         String teamCity = team != null && team.getTeamCity() != null ? team.getTeamCity() : "";
         int teamId = team != null && team.getTeamId() != null ? team.getTeamId() : 0;
 
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", SectionIdDeriver.derive(contentSourceId, "BoxscoreTable", slug));
-        section.put("contentSourceId", contentSourceId);
-        section.put("type", "BoxscoreTable");
-        section.put("analyticsId", "boxscore_table_" + teamTricode.toLowerCase());
+        Section section = new Section();
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "BoxscoreTable", slug);
+        section.setId(sectionId);
+        section.setContentSourceId(contentSourceId);
+        section.setType(Section.Type.BOXSCORE_TABLE);
+        section.setAnalyticsId("boxscore_table_" + teamTricode.toLowerCase());
 
         if (gameStatus == 2) {
-            ObjectNode refreshPolicy = objectMapper.createObjectNode();
-            refreshPolicy.put("type", "poll");
-            refreshPolicy.put("intervalMs", 30000);
-            refreshPolicy.put("url",
+            RefreshPolicy refreshPolicy = new RefreshPolicy();
+            refreshPolicy.setType(RefreshPolicy.RefreshType.POLL);
+            refreshPolicy.setIntervalMs(30000);
+            refreshPolicy.setUrl(
                     "https://cdn.nba.com/static/json/liveData/boxscore/boxscore_" + gameId + ".json");
-            refreshPolicy.put("dataPath", "game");
-            section.set("refreshPolicy", refreshPolicy);
+            refreshPolicy.setDataPath("game");
+            section.setRefreshPolicy(refreshPolicy);
 
-            section.set("sectionStates", utils.buildSectionStates(
-                    SectionIdDeriver.derive(contentSourceId, "BoxscoreTable", slug),
-                    "Unable to load boxscore", "shimmer", 200));
+            section.setSectionStates(objectMapper.convertValue(
+                    utils.buildSectionStates(sectionId, "Unable to load boxscore", "shimmer", 200),
+                    SectionStates.class));
         }
 
         ObjectNode data = objectMapper.createObjectNode();
@@ -275,8 +267,29 @@ public class BoxscoreComposer {
             data.put("emptyMessage", "Box score will be available once the game begins.");
         }
 
-        section.set("data", data);
+        section.setData(data);
         return section;
+    }
+
+    /**
+     * Build one {@link Subsection} per tab carrying an {@code onActivate→mutate}
+     * action for tab selection. Mirrors the typed helper in GameDetailComposer.
+     */
+    private List<Subsection> tabSelectSubsections(List<TabData> tabs, String stateKey) {
+        List<Subsection> subsections = new ArrayList<>(tabs.size());
+        for (TabData tab : tabs) {
+            String stateValue = tab.getStateValue() != null ? tab.getStateValue() : tab.getId();
+            Action mutate = new Action();
+            mutate.setTrigger(Action.ActionTrigger.ON_ACTIVATE);
+            mutate.setType(Action.ActionType.MUTATE);
+            mutate.setTarget(stateKey);
+            mutate.setValue(stateValue);
+            Subsection sub = new Subsection();
+            sub.setId(tab.getId());
+            sub.setActions(List.of(mutate));
+            subsections.add(sub);
+        }
+        return subsections;
     }
 
     // ── Private helpers ────────────────────────────────────────────────

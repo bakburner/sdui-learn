@@ -872,9 +872,7 @@ public class DemoScreenComposer {
         java.util.List<AtomicElement> children = new java.util.ArrayList<>();
         AtomicElement bannerTitle = atomicBuilder.text("Never Miss a Game", "titleMedium", "bold",
                 tokens.color("nba.label-dark.primary"), null);
-        ObjectNode bannerTitleNode = (ObjectNode) objectMapper.valueToTree(bannerTitle);
-        addHeading(objectMapper, bannerTitleNode, "Never Miss a Game", 2);
-        bannerTitle = objectMapper.convertValue(bannerTitleNode, AtomicElement.class);
+        addHeading(bannerTitle, "Never Miss a Game", 2);
         children.add(bannerTitle);
         children.add(atomicBuilder.text(
                 "Stream every out-of-market game live with NBA League Pass.",
@@ -920,16 +918,16 @@ public class DemoScreenComposer {
         root.put("widthMode", "fill");
         ArrayNode children = objectMapper.createArrayNode();
 
-        children.add(objectMapper.valueToTree(atomicBuilder.image(
-                DemoImageUrls.logoWide(), 0, 64, "contain")));
+        AtomicElement logoEl = atomicBuilder.image(
+                DemoImageUrls.logoWide(), 0, 64, "contain");
         // Logo is decorative — title below provides the accessible label.
-        addHidden(objectMapper, (ObjectNode) children.get(children.size() - 1));
+        addHidden(logoEl);
+        children.add(objectMapper.valueToTree(logoEl));
         children.add(objectMapper.valueToTree(atomicBuilder.spacer(tokens.spacing("md"))));
-        ObjectNode heroTitle = (ObjectNode) objectMapper.valueToTree(
-                atomicBuilder.text("NBA League Pass", "headlineMedium", "bold",
-                        tokens.color("nba.label-dark.primary"), null));
-        addHeading(objectMapper, heroTitle, "NBA League Pass", 2);
-        children.add(heroTitle);
+        AtomicElement heroTitleEl = atomicBuilder.text("NBA League Pass", "headlineMedium", "bold",
+                tokens.color("nba.label-dark.primary"), null);
+        addHeading(heroTitleEl, "NBA League Pass", 2);
+        children.add(objectMapper.valueToTree(heroTitleEl));
         children.add(objectMapper.valueToTree(atomicBuilder.text("Watch every game. Your way.",
                 "bodyLarge", null, tokens.color("nba.label-dark.primary"), null)));
         children.add(objectMapper.valueToTree(atomicBuilder.spacer(tokens.spacing("lg"))));
@@ -1018,11 +1016,10 @@ public class DemoScreenComposer {
             cardChildren.add(objectMapper.valueToTree(atomicBuilder.text(badgeText, "labelMedium", "bold",
                     tokens.color("nba.color.secondary.70"), null)));
         }
-        ObjectNode tierName = (ObjectNode) objectMapper.valueToTree(
-                atomicBuilder.text(name, "titleLarge", "bold",
-                        tokens.color("nba.label-dark.primary"), null));
-        addHeading(objectMapper, tierName, name, 3);
-        cardChildren.add(tierName);
+        AtomicElement tierNameEl = atomicBuilder.text(name, "titleLarge", "bold",
+                tokens.color("nba.label-dark.primary"), null);
+        addHeading(tierNameEl, name, 3);
+        cardChildren.add(objectMapper.valueToTree(tierNameEl));
         cardChildren.add(objectMapper.valueToTree(atomicBuilder.text(price, "headlineSmall", "bold",
                 tokens.color("nba.label-dark.primary"), null)));
         if (originalPrice != null) {
@@ -1177,14 +1174,10 @@ public class DemoScreenComposer {
 
         ArrayNode children = objectMapper.createArrayNode();
 
-        ObjectNode title = objectMapper.createObjectNode();
-        title.put("type", "Text");
-        title.put("content", "LAL vs BOS");
-        title.put("variant", "titleMedium");
-        title.put("weight", "bold");
-        title.put("color", tokens.color("nba.label.primary"));
-        addHeading(objectMapper, title, "LAL vs BOS", 3);
-        children.add(title);
+        AtomicElement titleEl = atomicBuilder.text("LAL vs BOS", "titleMedium", "bold",
+                tokens.color("nba.label.primary"), null);
+        addHeading(titleEl, "LAL vs BOS", 3);
+        children.add(objectMapper.valueToTree(titleEl));
 
         ObjectNode subtitle = objectMapper.createObjectNode();
         subtitle.put("type", "Text");

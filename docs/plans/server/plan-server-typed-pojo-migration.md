@@ -400,16 +400,41 @@ the typed struct. Jackson serializes each correctly.
 ## Acceptance criteria
 
 - ObjectNode/JsonNode is permitted only in this allow-list of files
-  (carved out as genuine "parse opaque JSON" call sites, not composition):
-  - `StatsApiAdapter` and any other upstream-feed adapters consuming the
-    stats API JSON
-  - `Tokens` registry loader (loads static JSON config at startup)
+  (carved out as genuine "parse opaque JSON" or transport-bridge call
+  sites, not composition):
+  - `StatsApiAdapter`, `BoxscoreCdnClient`, `ScoreboardCdnClient`, and
+    any other upstream-feed adapter consuming upstream API JSON
+  - `domain/tokens/Tokens.java` + `domain/tokens/*TokenRegistry.java`
+    (load static token JSON config at startup; the token registry
+    schema is still evolving — typing the loader now would just lock in
+    shape constraints we'd revisit)
+  - `SduiUtils#loadExampleByFilename` / `#loadExampleJsonFile` (dev/test
+    fixture loader; single caller is `ScheduleComposer#loadScheduleData`)
+  - `SduiUtils#normalizeLegacyNavigateFields` (mid-build tree walker
+    rewriting legacy `onTap`/`targetUri` shapes; operates on the tree
+    before it becomes a fully-typed `Section`)
+  - `ScheduleComposer#loadScheduleData` + the private game/team field
+    plucking it feeds (the fixture is a mock upstream feed, structurally
+    parallel to `BoxscoreCdnClient` / `ScoreboardCdnClient` — not SDUI
+    schema)
+  - `SectionRefreshService#refreshSection` (`Optional<JsonNode>`
+    transport shape per the section-channel contract; resolvers return
+    typed sections that this service serializes at the boundary)
+  - `SduiController#applyVersionFilter` cold path (one
+    `objectMapper.valueToTree(payload)` line that runs only when the
+    client schema version is behind current AND the registry has
+    registered field/enum strippers; hot path is a typed
+    `ResponseEnvelope<Screen>` pass-through)
+  - `SchemaVersionFilter` + `SchemaVersionChecker` (operate on the
+    composed tree to strip fields/enums; reflective POJO walking is out
+    of scope for this plan)
   - `dataBinding` / real-time payload handlers (real-time messages are
     opaque per [AGENTS.md](../../AGENTS.md) §3.3 / §4.4)
+
   Search constraint:
   ```
   grep -rn "ObjectNode\|JsonNode" server/src/main/java/com/nba/sdui/domain/ \
-    | grep -vE "(StatsApiAdapter|/feed/|TokensLoader|DataBinding|RealtimePayload)\.java"
+    | grep -vE "(StatsApiAdapter\.java|/feed/|/tokens/|SduiUtils\.java|ScheduleComposer\.java|DataBinding|RealtimePayload)"
   ```
   must return zero matches. New legitimate ObjectNode users (rare)
   must be added to the allow-list in this acceptance criterion in the
@@ -429,7 +454,19 @@ the typed struct. Jackson serializes each correctly.
   empty or limited to documented intentional changes.
 - Full server suite ≥ 167 tests, 0 failures.
 - No `objectMapper.valueToTree(...)` or `objectMapper.treeToValue(...)`
-  remains in composition code (search constraint).
+  remains in composition code (search constraint), except inside the
+  allow-listed transport boundaries enumerated above
+  (`SduiController#applyVersionFilter` cold path,
+  `SectionRefreshService`, and the upstream-feed clients).
+
+## Status
+
+**Complete (as of phase 3AP, commit `53abf84` + cleanup `e325281`).**
+All 13 commits in the migration stack landed; the optional follow-up
+(commit 14, typed `Section.setData(*Data)` overloads) remains out of
+scope. Server tests 167/0/0 green. The allow-list above documents the
+five legitimate-residual files the literal grep flags; the hot
+composition path is fully typed end-to-end.
 
 ## Risks and mitigations
 

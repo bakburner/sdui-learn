@@ -143,8 +143,7 @@ public class WatchComposer {
 
     /**
      * Build one {@link Subsection} per tab carrying an {@code onActivate→mutate}
-     * action for tab selection. Mirrors {@code SduiUtils.tabSelectSubsections}
-     * but stays in the typed-POJO world to avoid an ArrayNode round-trip.
+     * action for tab selection.
      */
     private List<Subsection> tabSelectSubsections(List<TabData> tabs, String stateKey) {
         List<Subsection> subsections = new ArrayList<>(tabs.size());

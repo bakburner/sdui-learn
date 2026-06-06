@@ -175,7 +175,7 @@ public class SduiUtils {
         return columns;
     }
 
-    public ObjectNode colDef(String key, String label, boolean sortable,
+    private ObjectNode colDef(String key, String label, boolean sortable,
                               boolean highlighted, String width) {
         ObjectNode col = objectMapper.createObjectNode();
         col.put("key", key);
@@ -420,30 +420,6 @@ public class SduiUtils {
             }
         }
         return node;
-    }
-
-    /**
-     * One {@code section.subsections} entry per tab, each carrying an
-     * {@code onActivate → mutate} action for tab selection (core action semantic).
-     */
-    public ArrayNode tabSelectSubsections(ArrayNode tabs, String stateKey) {
-        ArrayNode subsections = objectMapper.createArrayNode();
-        for (JsonNode tab : tabs) {
-            String tabId = tab.path("id").asText();
-            String stateValue = tab.path("stateValue").asText(tabId);
-            ObjectNode sub = objectMapper.createObjectNode();
-            sub.put("id", tabId);
-            ArrayNode actions = objectMapper.createArrayNode();
-            ObjectNode mutate = objectMapper.createObjectNode();
-            mutate.put("trigger", "onActivate");
-            mutate.put("type", "mutate");
-            mutate.put("target", stateKey);
-            mutate.put("value", stateValue);
-            actions.add(mutate);
-            sub.set("actions", actions);
-            subsections.add(sub);
-        }
-        return subsections;
     }
 
     // ── Error State ────────────────────────────────────────────────────

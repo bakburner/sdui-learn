@@ -1,7 +1,6 @@
 package com.nba.sdui.domain.composer;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.nba.sdui.models.generated.Action;
 import com.nba.sdui.models.generated.AtomicComposite;
 import com.nba.sdui.models.generated.AtomicElement;

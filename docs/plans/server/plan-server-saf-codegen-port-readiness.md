@@ -1,6 +1,8 @@
 # Plan: SDUI Server → SAF-Backed, Schema-Typed, Port-Ready Service
 
-**Status:** Proposed
+**Status:** Phases A1, A2a, A2b, A2c, A3 complete. A2d deferred (no
+WECS endpoint, no concrete SDUI surface demanding it). Phase B (port into
+`nba-client-backend` as `server:sdui-core`) is future, not active scope.
 **Scope:** `server/` (SDUI composition service, run from this repo for now)
 **Authoritative spec:** `docs/contracts/server-implementors-contract.md` — this
 plan is the implementation path toward conformance with that contract (which
@@ -949,18 +951,22 @@ and folding `meta` into its own response `meta`.
   fragments are locale-neutral and `locale` is excluded from the key
   (documented in the cache class javadoc). Server tests 166/166 green.
 
-### Phase A2d — WECS port seam (server-only)
+### Phase A2d — WECS port seam (server-only) — **deferred**
 
-- [ ] **A2d** Add `WatchExperiencePort` (`…domain.port`) over the existing
-  `WatchExperienceResponse` contract + a `RestClient` WECS adapter or
+WECS has not exposed an endpoint, and no concrete SDUI surface (game-detail
+watch CTAs, etc.) demands the port yet. Per the A2d entry criterion in the
+phase plan, A2d is deferred until either (a) WECS exposes an endpoint, or
+(b) an SDUI surface needs the port. Carrying a real-but-unused port + stub
+on `main` would be dead-ish code with no payoff.
+
+- [ ] **A2d** *(deferred)* Add `WatchExperiencePort` (`…domain.port`) over the
+  existing `WatchExperienceResponse` contract + a `RestClient` WECS adapter or
   profiled stub; wire it as an optional SAF `ServiceCall`
   (`failOnError(false)`, cached `STALE_IF_ERROR`) and map it into a
   watch-oriented composer.
-- [ ] **A2d** Pin the profiled stub with a contract test against the real
-  `WatchExperienceResponse` DTO (decode round-trip + required-field coverage)
-  so the stub cannot drift into a `null`-returner. **Defer A2d** if WECS still
-  has no endpoint AND no concrete SDUI surface needs the port — avoid carrying
-  real-but-unused code on `main`.
+- [ ] **A2d** *(deferred)* Pin the profiled stub with a contract test against the
+  real `WatchExperienceResponse` DTO (decode round-trip + required-field coverage)
+  so the stub cannot drift into a `null`-returner.
 
 ### Phase A3 — typed models
 
@@ -975,18 +981,23 @@ and folding `meta` into its own response `meta`.
   `server/build/classes/java/main/`. The dead `copyGeneratedModels` Copy task —
   which would have copied generated sources INTO `src/main/java`, exactly the
   anti-pattern AGENTS.md §1.2 forbids — is removed.
-- [ ] **A3** Migrate element-factory + builder-using composers from `ObjectNode`
+- [x] **A3** Migrate element-factory + builder-using composers from `ObjectNode`
   to generated `Screen`/`Section`/`AtomicElement`, composer-by-composer behind
-  round-trip tests. **Deferred** until either (a) `AtomicCompositeBuilder`
-  (3434 LOC, 68 public `ObjectNode`-returning methods) gains dual-emit typed
-  variants, or (b) we accept a one-shot builder flip. Composer-by-composer
-  migration is gated on builder strategy.
-- [ ] **A3** Migrate **`BoxscoreComposer`** (named — bypasses
-  `AtomicCompositeBuilder`, builds raw `ObjectNode` directly). **Deferred**
-  with the rest of the composer migration above.
-- [ ] **A3** Migrate **`CalendarComposer`** (named — bypasses
-  `AtomicCompositeBuilder`, builds raw `ObjectNode` directly). **Deferred**
-  with the rest of the composer migration above.
+  round-trip tests. **Done** via `plan-server-typed-pojo-migration.md` (now
+  retired; see commits `e54eadb` → `367c0eb`). All 67 public methods on
+  `AtomicCompositeBuilder` return typed POJOs (0 `ObjectNode`/`ArrayNode`
+  returns); `SectionSurfaces` returns `SectionSurface`; all 9 builder-using
+  composers (`Home`, `ForYou`, `Live`, `Watch`, `Schedule`, `Scoreboard`,
+  `GameDetail`, `DemoScreen`) flow typed `Screen` end-to-end.
+- [x] **A3** Migrate **`BoxscoreComposer`** (named — bypassed
+  `AtomicCompositeBuilder`, built raw `ObjectNode` directly). **Done** via
+  the typed-POJO plan (phases 3AL / 3AM / 3AN). Inner data tree is now
+  typed `BoxscoreTable` + `BoxscorePlayerRow` + `BoxscorePlayerStatistics`;
+  `composeBoxscore` returns `Screen`; dead `ObjectMapper` field dropped.
+- [x] **A3** Migrate **`CalendarComposer`** (named — bypassed
+  `AtomicCompositeBuilder`, built raw `ObjectNode` directly). **Done** via
+  the typed-POJO plan; both `composeCalendar` overloads return `Screen`
+  and emit typed sections.
 - [x] **A3** Add schema-conformance test validating every composed screen/section
   against `schema/sdui-schema.json`. **Implemented** as
   `server/src/test/java/com/nba/sdui/contract/SchemaConformanceTest.java`

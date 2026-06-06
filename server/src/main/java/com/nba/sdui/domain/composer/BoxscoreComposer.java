@@ -1,6 +1,5 @@
 package com.nba.sdui.domain.composer;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nba.sdui.models.generated.Action;
 import com.nba.sdui.models.generated.BoxscorePlayerRow;
 import com.nba.sdui.models.generated.BoxscoreTable;
@@ -43,7 +42,6 @@ public class BoxscoreComposer {
 
     private static final Logger log = LoggerFactory.getLogger(BoxscoreComposer.class);
 
-    private final ObjectMapper objectMapper;
     private final StatsPort statsPort;
     private final SduiUtils utils;
     private final SectionSurfaces surfaces;
@@ -51,8 +49,7 @@ public class BoxscoreComposer {
     @Value("${sdui.schema.version:1.0}")
     private String schemaVersion;
 
-    public BoxscoreComposer(ObjectMapper objectMapper, StatsPort statsPort, SduiUtils utils, SectionSurfaces surfaces) {
-        this.objectMapper = objectMapper;
+    public BoxscoreComposer(StatsPort statsPort, SduiUtils utils, SectionSurfaces surfaces) {
         this.statsPort = statsPort;
         this.utils = utils;
         this.surfaces = surfaces;

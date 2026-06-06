@@ -394,7 +394,6 @@ class LiveComposerTest {
         SectionRefreshService sectionRefreshService = new SectionRefreshService();
 
         LiveComposer composer = new LiveComposer(
-                objectMapper,
                 new StatsApiAdapter(statsApiClient),
                 utils,
                 surfaces, TestTokens.INSTANCE,

@@ -1,6 +1,5 @@
 package com.nba.sdui.domain.composer;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -37,7 +36,6 @@ public class ScoreboardComposer {
     private static final String FALLBACK_THUMB =
             "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png";
 
-    private final ObjectMapper objectMapper;
     private final ScoreboardPort scoreboardPort;
     private final SduiUtils utils;
     private final SectionSurfaces surfaces;
@@ -47,17 +45,15 @@ public class ScoreboardComposer {
     @Value("${sdui.schema.version:1.0}")
     private String schemaVersion;
 
-    public ScoreboardComposer(ObjectMapper objectMapper,
-                              ScoreboardPort scoreboardPort,
+    public ScoreboardComposer(ScoreboardPort scoreboardPort,
                               SduiUtils utils,
                               SectionSurfaces surfaces,
                               Tokens tokens) {
-        this.objectMapper = objectMapper;
         this.scoreboardPort = scoreboardPort;
         this.utils = utils;
         this.surfaces = surfaces;
         this.tokens = tokens;
-        this.atomicBuilder = new AtomicCompositeBuilder(objectMapper, tokens);
+        this.atomicBuilder = new AtomicCompositeBuilder(tokens);
     }
 
     // ── Public entry point ─────────────────────────────────────────────

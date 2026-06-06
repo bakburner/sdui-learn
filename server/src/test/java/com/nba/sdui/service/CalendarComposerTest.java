@@ -81,7 +81,7 @@ class CalendarComposerTest {
         ));
 
         CalendarComposer composer = new CalendarComposer(
-                objectMapper, seasonCalendarService, new StatsApiAdapter(statsApiClient), new SduiUtils(objectMapper, TestTokens.INSTANCE));
+                seasonCalendarService, new StatsApiAdapter(statsApiClient), new SduiUtils(objectMapper, TestTokens.INSTANCE));
         ReflectionTestUtils.setField(composer, "schemaVersion", "1.0");
 
         ObjectNode screen = (ObjectNode) objectMapper.valueToTree(composer.composeCalendar("trace-calendar-meta", "en"));
@@ -105,7 +105,7 @@ class CalendarComposerTest {
         when(statsApiClient.getSeasonGameCounts()).thenThrow(new java.io.IOException("CDN down"));
 
         CalendarComposer composer = new CalendarComposer(
-                objectMapper, seasonCalendarService, new StatsApiAdapter(statsApiClient), new SduiUtils(objectMapper, TestTokens.INSTANCE));
+                seasonCalendarService, new StatsApiAdapter(statsApiClient), new SduiUtils(objectMapper, TestTokens.INSTANCE));
         ReflectionTestUtils.setField(composer, "schemaVersion", "1.0");
 
         ObjectNode screen = (ObjectNode) objectMapper.valueToTree(composer.composeCalendar("trace-calendar-fail", "en"));
@@ -131,7 +131,6 @@ class CalendarComposerTest {
         SectionSurfaces surfaces = new SectionSurfaces(objectMapper, utils, TestTokens.INSTANCE);
 
         LiveComposer liveComposer = new LiveComposer(
-                objectMapper,
                 new StatsApiAdapter(statsApiClient),
                 utils,
                 surfaces, TestTokens.INSTANCE,
@@ -156,7 +155,7 @@ class CalendarComposerTest {
             StatsApiClient statsApiClient = mock(StatsApiClient.class);
             when(statsApiClient.getSeasonGameCounts()).thenReturn(java.util.Collections.emptyMap());
             CalendarComposer composer = new CalendarComposer(
-                    objectMapper, seasonCalendarService, new StatsApiAdapter(statsApiClient), new SduiUtils(objectMapper, TestTokens.INSTANCE));
+                    seasonCalendarService, new StatsApiAdapter(statsApiClient), new SduiUtils(objectMapper, TestTokens.INSTANCE));
             ReflectionTestUtils.setField(composer, "schemaVersion", "1.0");
             return composer;
         } catch (java.io.IOException e) {

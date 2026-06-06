@@ -36,7 +36,7 @@ class ForYouSectionIdDerivationTest {
         StatsApiClient statsApiClient = new StatsApiClient(objectMapper, new SeasonCalendarService());
         SduiUtils utils = new SduiUtils(objectMapper, TestTokens.INSTANCE);
         SectionSurfaces surfaces = new SectionSurfaces(objectMapper, utils, TestTokens.INSTANCE);
-        composer = new ForYouComposer(objectMapper, new StatsApiAdapter(statsApiClient), utils, surfaces, TestTokens.INSTANCE,
+        composer = new ForYouComposer(new StatsApiAdapter(statsApiClient), utils, surfaces, TestTokens.INSTANCE,
                 new SectionRefreshService());
     }
 

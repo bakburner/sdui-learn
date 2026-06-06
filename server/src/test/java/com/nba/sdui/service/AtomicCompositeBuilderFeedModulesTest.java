@@ -27,7 +27,7 @@ class AtomicCompositeBuilderFeedModulesTest {
     private static final String OVERLAY_SCRIM_TOKEN = "token:nba.effect.scrim";
 
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final AtomicCompositeBuilder builder = new AtomicCompositeBuilder(objectMapper, TestTokens.INSTANCE);
+    private final AtomicCompositeBuilder builder = new AtomicCompositeBuilder(TestTokens.INSTANCE);
 
     @Test
     void buildMediaOverlayCard_emitsAtomicCompositeWithDataUi() {

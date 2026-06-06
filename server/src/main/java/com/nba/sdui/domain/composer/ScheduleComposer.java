@@ -1,7 +1,6 @@
 package com.nba.sdui.domain.composer;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -41,7 +40,6 @@ public class ScheduleComposer {
 
     private static final Logger log = LoggerFactory.getLogger(ScheduleComposer.class);
 
-    private final ObjectMapper objectMapper;
     private final SduiUtils utils;
     private final SectionSurfaces surfaces;
     private final Tokens tokens;
@@ -50,12 +48,11 @@ public class ScheduleComposer {
     @Value("${sdui.schema.version:1.0}")
     private String schemaVersion;
 
-    public ScheduleComposer(ObjectMapper objectMapper, SduiUtils utils, SectionSurfaces surfaces, Tokens tokens) {
-        this.objectMapper = objectMapper;
+    public ScheduleComposer(SduiUtils utils, SectionSurfaces surfaces, Tokens tokens) {
         this.utils = utils;
         this.surfaces = surfaces;
         this.tokens = tokens;
-        this.atomicBuilder = new AtomicCompositeBuilder(objectMapper, tokens);
+        this.atomicBuilder = new AtomicCompositeBuilder(tokens);
     }
 
     public Screen composeSchedule(String traceId, String locale) {

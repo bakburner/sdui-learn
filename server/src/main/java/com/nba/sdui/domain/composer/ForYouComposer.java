@@ -1,6 +1,5 @@
 package com.nba.sdui.domain.composer;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nba.sdui.models.generated.AdSlot;
 import com.nba.sdui.models.generated.AtomicElement;
 import com.nba.sdui.models.generated.Placeholder;
@@ -80,7 +79,6 @@ public class ForYouComposer {
 
     private static final Logger log = LoggerFactory.getLogger(ForYouComposer.class);
 
-    private final ObjectMapper objectMapper;
     private final ScoreboardPort scoreboardPort;
     private final SduiUtils utils;
     private final SectionSurfaces surfaces;
@@ -91,18 +89,16 @@ public class ForYouComposer {
     @Value("${sdui.schema.version:1.0}")
     private String schemaVersion;
 
-    public ForYouComposer(ObjectMapper objectMapper,
-                          ScoreboardPort scoreboardPort,
+    public ForYouComposer(ScoreboardPort scoreboardPort,
                           SduiUtils utils,
                           SectionSurfaces surfaces,
                           Tokens tokens,
                           SectionRefreshService sectionRefreshService) {
-        this.objectMapper = objectMapper;
         this.scoreboardPort = scoreboardPort;
         this.utils = utils;
         this.surfaces = surfaces;
         this.tokens = tokens;
-        this.atomicBuilder = new AtomicCompositeBuilder(objectMapper, tokens);
+        this.atomicBuilder = new AtomicCompositeBuilder(tokens);
         this.sectionRefreshService = sectionRefreshService;
     }
 

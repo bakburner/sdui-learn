@@ -1,6 +1,5 @@
 package com.nba.sdui.domain.composer;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nba.sdui.models.generated.Action;
 import com.nba.sdui.models.generated.Screen;
 import com.nba.sdui.models.generated.Section;
@@ -28,7 +27,6 @@ public class CalendarComposer {
 
     private static final Logger log = LoggerFactory.getLogger(CalendarComposer.class);
 
-    private final ObjectMapper objectMapper;
     private final SeasonCalendarService seasonCalendarService;
     private final StatsPort statsPort;
     private final SduiUtils utils;
@@ -36,11 +34,9 @@ public class CalendarComposer {
     @Value("${sdui.schema.version:1.0}")
     private String schemaVersion;
 
-    public CalendarComposer(ObjectMapper objectMapper,
-                            SeasonCalendarService seasonCalendarService,
+    public CalendarComposer(SeasonCalendarService seasonCalendarService,
                             StatsPort statsPort,
                             SduiUtils utils) {
-        this.objectMapper = objectMapper;
         this.seasonCalendarService = seasonCalendarService;
         this.statsPort = statsPort;
         this.utils = utils;

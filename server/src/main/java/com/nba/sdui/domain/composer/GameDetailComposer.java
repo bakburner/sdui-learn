@@ -2,7 +2,6 @@ package com.nba.sdui.domain.composer;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nba.sdui.models.generated.Action;
 import com.nba.sdui.models.generated.AtomicComposite;
 import com.nba.sdui.models.generated.AtomicElement;
@@ -65,7 +64,6 @@ public class GameDetailComposer {
     private static final String FALLBACK_THUMB =
             "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png";
 
-    private final ObjectMapper objectMapper;
     private final StatsPort statsPort;
     private final BoxscoreComposer boxscoreComposer;
     private final SectionRefreshService sectionRefreshService;
@@ -77,21 +75,19 @@ public class GameDetailComposer {
     @Value("${sdui.schema.version:1.0}")
     private String schemaVersion;
 
-    public GameDetailComposer(ObjectMapper objectMapper,
-                              StatsPort statsPort,
+    public GameDetailComposer(StatsPort statsPort,
                               BoxscoreComposer boxscoreComposer,
                               SectionRefreshService sectionRefreshService,
                               SduiUtils utils,
                               SectionSurfaces surfaces,
                               Tokens tokens) {
-        this.objectMapper = objectMapper;
         this.statsPort = statsPort;
         this.boxscoreComposer = boxscoreComposer;
         this.sectionRefreshService = sectionRefreshService;
         this.utils = utils;
         this.surfaces = surfaces;
         this.tokens = tokens;
-        this.atomicBuilder = new AtomicCompositeBuilder(objectMapper, tokens);
+        this.atomicBuilder = new AtomicCompositeBuilder(tokens);
     }
 
     @PostConstruct

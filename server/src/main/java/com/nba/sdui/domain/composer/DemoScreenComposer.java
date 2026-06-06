@@ -1,6 +1,5 @@
 package com.nba.sdui.domain.composer;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nba.sdui.models.generated.Action;
 import com.nba.sdui.models.generated.AdSlot;
 import com.nba.sdui.models.generated.AtomicComposite;
@@ -53,7 +52,6 @@ import com.nba.sdui.orchestration.ParameterizedRefreshService;
 @Component
 public class DemoScreenComposer {
 
-    private final ObjectMapper objectMapper;
     private final SduiUtils utils;
     private final SectionSurfaces surfaces;
     private final Tokens tokens;
@@ -63,16 +61,14 @@ public class DemoScreenComposer {
     @Value("${sdui.schema.version:1.0}")
     private String schemaVersion;
 
-    public DemoScreenComposer(ObjectMapper objectMapper,
-                               SduiUtils utils,
+    public DemoScreenComposer(SduiUtils utils,
                                SectionSurfaces surfaces,
                                Tokens tokens,
                                ParameterizedRefreshService parameterizedRefreshService) {
-        this.objectMapper = objectMapper;
         this.utils = utils;
         this.surfaces = surfaces;
         this.tokens = tokens;
-        this.atomicBuilder = new AtomicCompositeBuilder(objectMapper, tokens);
+        this.atomicBuilder = new AtomicCompositeBuilder(tokens);
         this.parameterizedRefreshService = parameterizedRefreshService;
     }
 

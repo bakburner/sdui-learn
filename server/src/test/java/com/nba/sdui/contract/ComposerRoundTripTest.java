@@ -67,13 +67,13 @@ class ComposerRoundTripTest {
         ReflectionTestUtils.setField(seasonCalendarService, "clock", clock);
 
         liveComposer = new LiveComposer(
-                objectMapper, new StatsApiAdapter(statsApiClient), utils, surfaces, TestTokens.INSTANCE,
+                new StatsApiAdapter(statsApiClient), utils, surfaces, TestTokens.INSTANCE,
                 sectionRefreshService, parameterizedRefreshService, seasonCalendarService);
         ReflectionTestUtils.setField(liveComposer, "schemaVersion", "1.0");
         ReflectionTestUtils.invokeMethod(liveComposer, "registerResolvers");
 
         demoScreenComposer = new DemoScreenComposer(
-                objectMapper, utils, surfaces, TestTokens.INSTANCE, parameterizedRefreshService);
+                utils, surfaces, TestTokens.INSTANCE, parameterizedRefreshService);
         ReflectionTestUtils.setField(demoScreenComposer, "schemaVersion", "1.0");
         ReflectionTestUtils.invokeMethod(demoScreenComposer, "registerParameterizedRefreshResolvers");
     }

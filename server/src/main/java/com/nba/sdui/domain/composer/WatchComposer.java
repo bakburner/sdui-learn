@@ -1,6 +1,5 @@
 package com.nba.sdui.domain.composer;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nba.sdui.models.generated.AccessibilityProperties;
 import com.nba.sdui.models.generated.Action;
 import com.nba.sdui.models.generated.AdSlot;
@@ -49,7 +48,6 @@ public class WatchComposer {
     private static final String FALLBACK_THUMB =
             "https://cdn.nba.com/manage/2025/04/nba-247-logoman-yt-thumbnail__1_.png";
 
-    private final ObjectMapper objectMapper;
     private final ScoreboardPort scoreboardPort;
     private final SduiUtils utils;
     private final SectionSurfaces surfaces;
@@ -59,17 +57,15 @@ public class WatchComposer {
     @Value("${sdui.schema.version:1.0}")
     private String schemaVersion;
 
-    public WatchComposer(ObjectMapper objectMapper,
-                         ScoreboardPort scoreboardPort,
+    public WatchComposer(ScoreboardPort scoreboardPort,
                          SduiUtils utils,
                          SectionSurfaces surfaces,
                          Tokens tokens) {
-        this.objectMapper = objectMapper;
         this.scoreboardPort = scoreboardPort;
         this.utils = utils;
         this.surfaces = surfaces;
         this.tokens = tokens;
-        this.atomicBuilder = new AtomicCompositeBuilder(objectMapper, tokens);
+        this.atomicBuilder = new AtomicCompositeBuilder(tokens);
     }
 
     public Screen composeWatch(String traceId, String locale) {

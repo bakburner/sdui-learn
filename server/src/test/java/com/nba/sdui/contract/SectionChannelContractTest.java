@@ -66,7 +66,7 @@ class SectionChannelContractTest {
         ReflectionTestUtils.setField(seasonCalendarService, "clock", clock);
 
         LiveComposer liveComposer = new LiveComposer(
-                objectMapper, new StatsApiAdapter(statsApiClient), utils, surfaces, TestTokens.INSTANCE,
+                new StatsApiAdapter(statsApiClient), utils, surfaces, TestTokens.INSTANCE,
                 sectionRefreshService, parameterizedRefreshService, seasonCalendarService);
         ReflectionTestUtils.setField(liveComposer, "schemaVersion", "1.0");
         ReflectionTestUtils.invokeMethod(liveComposer, "registerResolvers");

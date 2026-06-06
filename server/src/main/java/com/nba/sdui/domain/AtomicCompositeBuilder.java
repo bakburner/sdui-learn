@@ -1,7 +1,6 @@
 package com.nba.sdui.domain;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -38,11 +37,9 @@ import com.nba.sdui.models.generated.Spacing;
  */
 public class AtomicCompositeBuilder {
 
-    private final ObjectMapper om;
     private final Tokens tokens;
 
-    public AtomicCompositeBuilder(ObjectMapper objectMapper, Tokens tokens) {
-        this.om = objectMapper;
+    public AtomicCompositeBuilder(Tokens tokens) {
         this.tokens = tokens;
     }
 

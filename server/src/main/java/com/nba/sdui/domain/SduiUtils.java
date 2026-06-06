@@ -46,7 +46,7 @@ public class SduiUtils {
     public SduiUtils(ObjectMapper objectMapper, Tokens tokens) {
         this.objectMapper = objectMapper;
         this.tokens = tokens;
-        this.atomicBuilder = new AtomicCompositeBuilder(objectMapper, tokens);
+        this.atomicBuilder = new AtomicCompositeBuilder(tokens);
     }
 
     // ── Navigation ─────────────────────────────────────────────────────

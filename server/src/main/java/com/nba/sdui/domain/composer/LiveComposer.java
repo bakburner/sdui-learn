@@ -1,6 +1,5 @@
 package com.nba.sdui.domain.composer;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -73,7 +72,6 @@ public class LiveComposer {
 
     private static final Logger log = LoggerFactory.getLogger(LiveComposer.class);
 
-    private final ObjectMapper objectMapper;
     private final ScoreboardPort scoreboardPort;
     private final SduiUtils utils;
     private final SectionSurfaces surfaces;
@@ -87,20 +85,18 @@ public class LiveComposer {
     private String schemaVersion;
 
     @Autowired
-    public LiveComposer(ObjectMapper objectMapper,
-                        ScoreboardPort scoreboardPort,
+    public LiveComposer(ScoreboardPort scoreboardPort,
                         SduiUtils utils,
                         SectionSurfaces surfaces,
                         Tokens tokens,
                         SectionRefreshService sectionRefreshService,
                         ParameterizedRefreshService parameterizedRefreshService,
                         SeasonCalendarService seasonCalendarService) {
-        this.objectMapper = objectMapper;
         this.scoreboardPort = scoreboardPort;
         this.utils = utils;
         this.surfaces = surfaces;
         this.tokens = tokens;
-        this.atomicBuilder = new AtomicCompositeBuilder(objectMapper, tokens);
+        this.atomicBuilder = new AtomicCompositeBuilder(tokens);
         this.sectionRefreshService = sectionRefreshService;
         this.parameterizedRefreshService = parameterizedRefreshService;
         this.seasonCalendarService = seasonCalendarService;

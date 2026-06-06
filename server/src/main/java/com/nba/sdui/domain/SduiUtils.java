@@ -150,8 +150,9 @@ public class SduiUtils {
      * Standard boxscore column definitions.
      * Clients render left-to-right; the first (player) column is frozen.
      */
-    public ArrayNode buildBoxscoreColumns() {
-        ArrayNode columns = objectMapper.createArrayNode();
+    public java.util.List<com.nba.sdui.models.generated.BoxscoreColumnDefinition> buildBoxscoreColumns() {
+        java.util.List<com.nba.sdui.models.generated.BoxscoreColumnDefinition> columns =
+                new java.util.ArrayList<>();
         columns.add(colDef("min",  "MIN",  true, false, null));
         columns.add(colDef("pts",  "PTS",  true, true,  null));
         columns.add(colDef("reb",  "REB",  true, false, null));
@@ -175,14 +176,15 @@ public class SduiUtils {
         return columns;
     }
 
-    private ObjectNode colDef(String key, String label, boolean sortable,
-                              boolean highlighted, String width) {
-        ObjectNode col = objectMapper.createObjectNode();
-        col.put("key", key);
-        col.put("label", label);
-        col.put("sortable", sortable);
-        col.put("highlighted", highlighted);
-        if (width != null) col.put("width", width);
+    private com.nba.sdui.models.generated.BoxscoreColumnDefinition colDef(String key, String label,
+                              boolean sortable, boolean highlighted, String width) {
+        com.nba.sdui.models.generated.BoxscoreColumnDefinition col =
+                new com.nba.sdui.models.generated.BoxscoreColumnDefinition();
+        col.setKey(key);
+        col.setLabel(label);
+        col.setSortable(sortable);
+        col.setHighlighted(highlighted);
+        if (width != null) col.setWidth(width);
         return col;
     }
 

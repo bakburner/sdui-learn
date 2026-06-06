@@ -103,7 +103,7 @@ public class BoxscoreComposer {
             ObjectNode emptyData = objectMapper.createObjectNode();
             emptyData.put("teamTricode", "");
             emptyData.put("teamName", "");
-            emptyData.set("columns", utils.buildBoxscoreColumns());
+            emptyData.set("columns", objectMapper.valueToTree(utils.buildBoxscoreColumns()));
             emptyData.set("players", objectMapper.createArrayNode());
             emptyData.put("emptyMessage", "Box score will be available once the game begins.");
             emptySection.setData(emptyData);
@@ -241,7 +241,7 @@ public class BoxscoreComposer {
         data.put("teamColor", SduiUtils.getTeamPrimaryColor(teamTricode));
         data.put("teamLogoUrl", SduiUtils.teamLogoUrl(teamId));
 
-        data.set("columns", utils.buildBoxscoreColumns());
+        data.set("columns", objectMapper.valueToTree(utils.buildBoxscoreColumns()));
 
         ArrayNode playerRows = objectMapper.createArrayNode();
         java.util.List<BoxscorePlayer> players = team != null && team.getPlayers() != null

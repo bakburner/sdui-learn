@@ -96,7 +96,7 @@ public class SduiController {
             log.info("SDUI response composed successfully");
 
             // Apply version-aware field stripping
-            JsonNode filtered = applyVersionFilter(objectMapper.valueToTree(result.response()), ctx);
+            Object filtered = applyVersionFilter(result.response(), ctx);
 
             // Cache-control based on server-derived game state
             CacheControl cache = resolveCacheControl(result.derivedGameState(), "pre");
@@ -135,7 +135,7 @@ public class SduiController {
             log.info("SDUI scoreboard response composed successfully");
             return ResponseEntity.ok()
                     .cacheControl(CacheControl.maxAge(Duration.ofSeconds(60)).cachePublic())
-                    .body(envelope(applyVersionFilter(objectMapper.valueToTree(screenResponse), ctx)));
+                    .body(envelope(applyVersionFilter(screenResponse, ctx)));
         } catch (Exception e) {
             log.error("Error composing SDUI scoreboard response", e);
             return ResponseEntity.internalServerError().build();
@@ -185,7 +185,7 @@ public class SduiController {
             setResponseHeaders(response, ctx);
             return ResponseEntity.ok()
                     .cacheControl(CacheControl.maxAge(Duration.ofSeconds(120)).cachePrivate())
-                    .body(envelope(applyVersionFilter(objectMapper.valueToTree(screenResponse), ctx)));
+                    .body(envelope(applyVersionFilter(screenResponse, ctx)));
         } catch (Exception e) {
             log.error("Error composing for-you screen", e);
             return ResponseEntity.internalServerError().build();
@@ -214,7 +214,7 @@ public class SduiController {
             setResponseHeaders(response, ctx);
             return ResponseEntity.ok()
                     .cacheControl(CacheControl.maxAge(Duration.ofSeconds(120)).cachePublic())
-                    .body(envelope(applyVersionFilter(objectMapper.valueToTree(screenResponse), ctx)));
+                    .body(envelope(applyVersionFilter(screenResponse, ctx)));
         } catch (Exception e) {
             log.error("Error composing watch screen", e);
             return ResponseEntity.internalServerError().build();
@@ -243,16 +243,16 @@ public class SduiController {
         if (mismatch != null) return mismatch;
 
         try {
-            JsonNode screenResponse;
+            Screen screenResponse;
             if (!userParams.isEmpty()) {
                 var resolved = parameterizedRefreshService.refreshScreen(
                         "games", ctx.getTraceId(), userParams, ctx);
                 if (resolved.isEmpty()) {
                     return ResponseEntity.notFound().build();
                 }
-                screenResponse = objectMapper.valueToTree(resolved.get());
+                screenResponse = resolved.get();
             } else {
-                screenResponse = objectMapper.valueToTree(compositionService.composeLive(ctx));
+                screenResponse = compositionService.composeLive(ctx);
             }
             setResponseHeaders(response, ctx);
             return ResponseEntity.ok()
@@ -293,7 +293,7 @@ public class SduiController {
             setResponseHeaders(response, ctx);
             return ResponseEntity.ok()
                     .cacheControl(CacheControl.noCache())
-                    .body(envelope(applyVersionFilter(objectMapper.valueToTree(screenResponse), ctx)));
+                    .body(envelope(applyVersionFilter(screenResponse, ctx)));
         } catch (Exception e) {
             log.error("Error composing calendar screen", e);
             return ResponseEntity.internalServerError().build();
@@ -325,7 +325,7 @@ public class SduiController {
             setResponseHeaders(response, ctx);
             return ResponseEntity.ok()
                     .cacheControl(CacheControl.maxAge(Duration.ofSeconds(300)).cachePublic())
-                    .body(envelope(applyVersionFilter(objectMapper.valueToTree(screenResponse), ctx)));
+                    .body(envelope(applyVersionFilter(screenResponse, ctx)));
         } catch (Exception e) {
             log.error("Error composing schedule screen", e);
             return ResponseEntity.internalServerError().build();
@@ -355,7 +355,7 @@ public class SduiController {
             setResponseHeaders(response, ctx);
             return ResponseEntity.ok()
                     .cacheControl(CacheControl.maxAge(Duration.ofSeconds(60)).cachePublic())
-                    .body(envelope(applyVersionFilter(objectMapper.valueToTree(screenResponse), ctx)));
+                    .body(envelope(applyVersionFilter(screenResponse, ctx)));
         } catch (Exception e) {
             log.error("Error composing demos screen", e);
             return ResponseEntity.internalServerError().build();
@@ -384,7 +384,7 @@ public class SduiController {
             setResponseHeaders(response, ctx);
             return ResponseEntity.ok()
                     .cacheControl(CacheControl.maxAge(Duration.ofSeconds(120)).cachePublic())
-                    .body(envelope(applyVersionFilter(objectMapper.valueToTree(screenResponse), ctx)));
+                    .body(envelope(applyVersionFilter(screenResponse, ctx)));
         } catch (Exception e) {
             log.error("Error composing home screen", e);
             return ResponseEntity.internalServerError().build();
@@ -413,16 +413,16 @@ public class SduiController {
         if (mismatch != null) return mismatch;
 
         try {
-            JsonNode screenResponse;
+            Screen screenResponse;
             if (!userParams.isEmpty()) {
                 var resolved = parameterizedRefreshService.refreshScreen(
                         "leaders", ctx.getTraceId(), userParams, ctx);
                 if (resolved.isEmpty()) {
                     return ResponseEntity.notFound().build();
                 }
-                screenResponse = objectMapper.valueToTree(resolved.get());
+                screenResponse = resolved.get();
             } else {
-                screenResponse = objectMapper.valueToTree(compositionService.composeLeaders(ctx));
+                screenResponse = compositionService.composeLeaders(ctx);
             }
             setResponseHeaders(response, ctx);
             return ResponseEntity.ok()
@@ -461,7 +461,7 @@ public class SduiController {
             log.info("SDUI boxscore response composed successfully");
             return ResponseEntity.ok()
                     .cacheControl(CacheControl.noCache())
-                    .body(envelope(applyVersionFilter(objectMapper.valueToTree(screenResponse), ctx)));
+                    .body(envelope(applyVersionFilter(screenResponse, ctx)));
         } catch (Exception e) {
             log.error("Error composing SDUI boxscore response", e);
             return ResponseEntity.internalServerError().build();
@@ -495,7 +495,7 @@ public class SduiController {
                 return ResponseEntity.notFound().build();
             }
 
-            JsonNode filtered = applyVersionFilter(section.get(), ctx);
+            Object filtered = applyVersionFilter(section.get(), ctx);
             log.info("SDUI section refresh response composed: sectionId={}", sectionId);
 
             // Section refresh returns a single Section JSON object, not a screen envelope.
@@ -599,8 +599,12 @@ public class SduiController {
      * built from the request-scoped {@link ResponseMetaCollector} so any
      * upstream failures or stale-if-error fragments observed during this
      * request are surfaced to the client.
+     *
+     * <p>Generic over {@code T} so the hot path stays typed
+     * ({@code ResponseEnvelope<Screen>}); the version-filter cold path may
+     * substitute a {@link JsonNode} when fields/enums need to be stripped.
      */
-    private ResponseEnvelope<JsonNode> envelope(JsonNode payload) {
+    private <T> ResponseEnvelope<T> envelope(T payload) {
         ResponseMetaCollector collector = metaCollector == null ? null : metaCollector.getIfAvailable();
         ResponseMeta meta = collector == null ? ResponseMeta.fresh() : collector.build();
         return new ResponseEnvelope<>(payload, meta);
@@ -628,17 +632,32 @@ public class SduiController {
 
     /**
      * Apply version-aware field stripping to a composed response.
-     * Strips fields and enum values that were introduced after the client's declared version.
+     *
+     * <p>Returns the {@code payload} unchanged (typed {@link Screen} or
+     * {@link JsonNode}) when the client's version matches or exceeds the
+     * server's current version, or when the registry has no fields/enums
+     * registered for the version gap. Only in the cold path (client behind
+     * + registry has applicable transformations) does the payload get
+     * converted to a mutable {@link JsonNode} tree so the filter can walk it.
+     *
+     * <p>This keeps the typical fast path a typed pass-through and confines
+     * {@code valueToTree} to the rare filter-required case.
      */
-    private JsonNode applyVersionFilter(JsonNode composedResponse, SduiRequestContext ctx) {
+    private Object applyVersionFilter(Object payload, SduiRequestContext ctx) {
+        SchemaVersion clientVersion;
         try {
-            SchemaVersion clientVersion = SchemaVersion.parse(ctx.getSchemaVersion());
-            return versionFilter.apply(composedResponse, clientVersion, versionConfig.currentVersion());
+            clientVersion = SchemaVersion.parse(ctx.getSchemaVersion());
         } catch (IllegalArgumentException e) {
             log.warn("Cannot parse client schema version '{}', returning unfiltered response",
                     ctx.getSchemaVersion());
-            return composedResponse;
+            return payload;
         }
+        SchemaVersion currentVersion = versionConfig.currentVersion();
+        if (clientVersion.compareTo(currentVersion) >= 0) {
+            return payload;
+        }
+        JsonNode tree = payload instanceof JsonNode jn ? jn : objectMapper.valueToTree(payload);
+        return versionFilter.apply(tree, clientVersion, currentVersion);
     }
 
     /**

@@ -1,8 +1,6 @@
 package com.nba.sdui.domain.composer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.nba.sdui.models.generated.Action;
 import com.nba.sdui.models.generated.AdSlot;
 import com.nba.sdui.models.generated.AtomicComposite;
@@ -30,7 +28,6 @@ import com.nba.sdui.models.generated.TabContents;
 import com.nba.sdui.models.generated.TabData;
 import com.nba.sdui.models.generated.TabGroup;
 import com.nba.sdui.models.generated.Targeting;
-import com.fasterxml.jackson.core.type.TypeReference;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -577,12 +574,26 @@ public class DemoScreenComposer {
         data.setTabContents(tabContents);
         section.setData(data);
 
-        ArrayNode tabsNode = (ArrayNode) objectMapper.valueToTree(tabs);
-        section.setSubsections(objectMapper.convertValue(
-                utils.tabSelectSubsections(tabsNode, "demo_active_tab"),
-                new TypeReference<List<Subsection>>() {}));
+        section.setSubsections(tabSelectSubsections(tabs, "demo_active_tab"));
         section.setSurface(surfaces.secondaryStripSurface());
         return section;
+    }
+
+    private List<Subsection> tabSelectSubsections(List<TabData> tabs, String stateKey) {
+        List<Subsection> subsections = new ArrayList<>(tabs.size());
+        for (TabData tab : tabs) {
+            String stateValue = tab.getStateValue() != null ? tab.getStateValue() : tab.getId();
+            Action mutate = new Action();
+            mutate.setTrigger(Action.ActionTrigger.ON_ACTIVATE);
+            mutate.setType(Action.ActionType.MUTATE);
+            mutate.setTarget(stateKey);
+            mutate.setValue(stateValue);
+            Subsection sub = new Subsection();
+            sub.setId(tab.getId());
+            sub.setActions(List.of(mutate));
+            subsections.add(sub);
+        }
+        return subsections;
     }
 
     /**

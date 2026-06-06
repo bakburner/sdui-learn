@@ -165,7 +165,7 @@ public class DemoScreenComposer {
         sections.add(buildDemoSubscribeUpsellBanner());
         // 17. SubscribeUpsell (hero layout)
         sections.add(buildTypeLabel("SubscribeUpsell (hero)"));
-        sections.add(objectMapper.convertValue(buildDemoSubscribeUpsellHero(), Section.class));
+        sections.add(buildDemoSubscribeUpsellHero());
         // 18. FollowingRail
         sections.add(buildTypeLabel("FollowingRail (Composite)"));
         sections.add(buildDemoFollowingRail());
@@ -895,42 +895,43 @@ public class DemoScreenComposer {
      * {@code data.tiers} is retained for the future IAP SDK to bind product
      * identifiers; the renderer reads nothing from it today.
      */
-    private ObjectNode buildDemoSubscribeUpsellHero() {
+    private Section buildDemoSubscribeUpsellHero() {
         String contentSourceId = "demo:subscribe-upsell-hero";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "SubscribeUpsell");
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", sectionId);
-        section.put("type", "SubscribeUpsell");
-        section.put("contentSourceId", contentSourceId);
-        section.put("analyticsId", "demo_subscribe_upsell_hero");
-        section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
+        Section section = new Section();
+        section.setId(sectionId);
+        section.setType(Section.Type.SUBSCRIBE_UPSELL);
+        section.setContentSourceId(contentSourceId);
+        section.setAnalyticsId("demo_subscribe_upsell_hero");
+        RefreshPolicy refreshStatic = new RefreshPolicy();
+        refreshStatic.setType(RefreshPolicy.RefreshType.STATIC);
+        section.setRefreshPolicy(refreshStatic);
         // Dark-blue surface token (resolves to the NBA tertiary blue family
         // across light/dark themes). Accent tokens like BRAND_NBA are for
         // labels — not backgrounds — so they're avoided here.
-        section.set("surface", objectMapper.valueToTree(surfaces.subscribeSurface(
+        section.setSurface(surfaces.subscribeSurface(
                 tokens.color("nba.bg.splash-screen"),
                 tokens.color("nba.bg.splash-screen"),
-                24)));
+                24));
 
-        ObjectNode root = (ObjectNode) objectMapper.valueToTree(
-                atomicBuilder.container("column", "start", "center"));
-        root.put("gap", 8); // §3.6: no semantic spacing token for 8
-        root.put("widthMode", "fill");
-        ArrayNode children = objectMapper.createArrayNode();
+        AtomicElement root = atomicBuilder.container("column", "start", "center");
+        root.setGap(8); // §3.6: no semantic spacing token for 8
+        root.setWidthMode(AtomicElement.SizingMode.FILL);
+        java.util.List<AtomicElement> children = new java.util.ArrayList<>();
 
         AtomicElement logoEl = atomicBuilder.image(
                 DemoImageUrls.logoWide(), 0, 64, "contain");
         // Logo is decorative — title below provides the accessible label.
         addHidden(logoEl);
-        children.add(objectMapper.valueToTree(logoEl));
-        children.add(objectMapper.valueToTree(atomicBuilder.spacer(tokens.spacing("md"))));
+        children.add(logoEl);
+        children.add(atomicBuilder.spacer(tokens.spacing("md")));
         AtomicElement heroTitleEl = atomicBuilder.text("NBA League Pass", "headlineMedium", "bold",
                 tokens.color("nba.label-dark.primary"), null);
         addHeading(heroTitleEl, "NBA League Pass", 2);
-        children.add(objectMapper.valueToTree(heroTitleEl));
-        children.add(objectMapper.valueToTree(atomicBuilder.text("Watch every game. Your way.",
-                "bodyLarge", null, tokens.color("nba.label-dark.primary"), null)));
-        children.add(objectMapper.valueToTree(atomicBuilder.spacer(tokens.spacing("lg"))));
+        children.add(heroTitleEl);
+        children.add(atomicBuilder.text("Watch every game. Your way.",
+                "bodyLarge", null, tokens.color("nba.label-dark.primary"), null));
+        children.add(atomicBuilder.spacer(tokens.spacing("lg")));
 
         String[] features = {
                 "Live & on-demand out-of-market games",
@@ -938,37 +939,33 @@ public class DemoScreenComposer {
                 "NBA TV included",
                 "Compatible with all major devices"
         };
-        ObjectNode featuresCol = (ObjectNode) objectMapper.valueToTree(
-                atomicBuilder.container("column", "start", "start"));
-        featuresCol.put("gap", 8); // §3.6: no semantic spacing token for 8
-        featuresCol.put("widthMode", "fill");
-        ArrayNode featureChildren = objectMapper.createArrayNode();
+        AtomicElement featuresCol = atomicBuilder.container("column", "start", "start");
+        featuresCol.setGap(8); // §3.6: no semantic spacing token for 8
+        featuresCol.setWidthMode(AtomicElement.SizingMode.FILL);
+        java.util.List<AtomicElement> featureChildren = new java.util.ArrayList<>();
         for (String feature : features) {
-            ObjectNode row = (ObjectNode) objectMapper.valueToTree(
-                    atomicBuilder.container("row", "start", "center"));
-            row.put("gap", 8); // §3.6: no semantic spacing token for 8
-            row.put("widthMode", "fill");
-            ArrayNode rowChildren = objectMapper.createArrayNode();
-            rowChildren.add(objectMapper.valueToTree(atomicBuilder.text("✓", "bodyLarge", "bold",
-                    "token:nba.color.feedback.success.70", null)));
-            ObjectNode featureText = (ObjectNode) objectMapper.valueToTree(
-                    atomicBuilder.text(feature, "bodyLarge", null,
-                            tokens.color("nba.label-dark.primary"), null));
-            featureText.put("flex", 1);
+            AtomicElement row = atomicBuilder.container("row", "start", "center");
+            row.setGap(8); // §3.6: no semantic spacing token for 8
+            row.setWidthMode(AtomicElement.SizingMode.FILL);
+            java.util.List<AtomicElement> rowChildren = new java.util.ArrayList<>();
+            rowChildren.add(atomicBuilder.text("✓", "bodyLarge", "bold",
+                    "token:nba.color.feedback.success.70", null));
+            AtomicElement featureText = atomicBuilder.text(feature, "bodyLarge", null,
+                    tokens.color("nba.label-dark.primary"), null);
+            featureText.setFlex(1.0d);
             rowChildren.add(featureText);
-            row.set("children", rowChildren);
+            row.setChildren(rowChildren);
             featureChildren.add(row);
         }
-        featuresCol.set("children", featureChildren);
+        featuresCol.setChildren(featureChildren);
         children.add(featuresCol);
 
-        children.add(objectMapper.valueToTree(atomicBuilder.spacer(20)));
+        children.add(atomicBuilder.spacer(20));
 
-        ObjectNode tiersCol = (ObjectNode) objectMapper.valueToTree(
-                atomicBuilder.container("column", "start", "stretch"));
-        tiersCol.put("gap", tokens.spacing("lg"));
-        tiersCol.put("widthMode", "fill");
-        ArrayNode tierChildren = objectMapper.createArrayNode();
+        AtomicElement tiersCol = atomicBuilder.container("column", "start", "stretch");
+        tiersCol.setGap(tokens.spacing("lg"));
+        tiersCol.setWidthMode(AtomicElement.SizingMode.FILL);
+        java.util.List<AtomicElement> tierChildren = new java.util.ArrayList<>();
         tierChildren.add(buildDemoTierUi("League Pass", "$14.99/mo", "$22.99/mo",
                 "MOST POPULAR",
                 new String[]{"All out-of-market games", "3 concurrent streams", "HD quality"},
@@ -978,75 +975,72 @@ public class DemoScreenComposer {
                 new String[]{"Everything in League Pass", "No ads on VOD",
                         "Unlimited concurrent streams", "In-arena camera angles"},
                 "Go Premium", "nba://subscribe/premium"));
-        tiersCol.set("children", tierChildren);
+        tiersCol.setChildren(tierChildren);
         children.add(tiersCol);
 
-        root.set("children", children);
+        root.setChildren(children);
 
-        ArrayNode tiers = objectMapper.createArrayNode();
+        java.util.List<java.util.Map<String, Object>> tiers = new java.util.ArrayList<>();
         tiers.add(demoTierProductId("tier-standard", "League Pass", "$14.99/mo"));
         tiers.add(demoTierProductId("tier-premium", "League Pass Premium", "$22.99/mo"));
 
-        ObjectNode data = (ObjectNode) objectMapper.valueToTree(
-                atomicBuilder.wrapUi(objectMapper.convertValue(root, AtomicElement.class)));
-        data.set("tiers", tiers);
-        section.set("data", data);
+        AtomicComposite data = atomicBuilder.wrapUi(root);
+        data.setAdditionalProperty("tiers", tiers);
+        section.setData(data);
         return section;
     }
 
     /** Build the atomic tree for one tier card in the hero. */
-    private ObjectNode buildDemoTierUi(String name, String price, String originalPrice,
+    private AtomicElement buildDemoTierUi(String name, String price, String originalPrice,
                                             String badgeText, String[] features,
                                             String ctaLabel, String ctaUri) {
-        ObjectNode card = (ObjectNode) objectMapper.valueToTree(
-                atomicBuilder.container("column", "start", "start"));
-        card.put("gap", 6); // §3.6: no semantic spacing token for 6
-        card.put("background", tokens.color("nba.color.t-white.10"));
-        card.put("cornerRadius", tokens.radius("lg"));
-        card.set("padding", objectMapper.valueToTree(atomicBuilder.padding(
+        AtomicElement card = atomicBuilder.container("column", "start", "start");
+        card.setGap(6); // §3.6: no semantic spacing token for 6
+        card.setBackground(tokens.color("nba.color.t-white.10"));
+        card.setCornerRadius(tokens.radius("lg"));
+        card.setPadding(atomicBuilder.padding(
                 22, // §3.6: no semantic spacing token for 22
                 22, // §3.6: no semantic spacing token for 22
                 20, // §3.6: no semantic spacing token for 20
                 20  // §3.6: no semantic spacing token for 20
-        )));
-        card.put("widthMode", "fill");
+        ));
+        card.setWidthMode(AtomicElement.SizingMode.FILL);
 
-        ArrayNode cardChildren = objectMapper.createArrayNode();
+        java.util.List<AtomicElement> cardChildren = new java.util.ArrayList<>();
         if (badgeText != null) {
-            cardChildren.add(objectMapper.valueToTree(atomicBuilder.text(badgeText, "labelMedium", "bold",
-                    tokens.color("nba.color.secondary.70"), null)));
+            cardChildren.add(atomicBuilder.text(badgeText, "labelMedium", "bold",
+                    tokens.color("nba.color.secondary.70"), null));
         }
         AtomicElement tierNameEl = atomicBuilder.text(name, "titleLarge", "bold",
                 tokens.color("nba.label-dark.primary"), null);
         addHeading(tierNameEl, name, 3);
-        cardChildren.add(objectMapper.valueToTree(tierNameEl));
-        cardChildren.add(objectMapper.valueToTree(atomicBuilder.text(price, "headlineSmall", "bold",
-                tokens.color("nba.label-dark.primary"), null)));
+        cardChildren.add(tierNameEl);
+        cardChildren.add(atomicBuilder.text(price, "headlineSmall", "bold",
+                tokens.color("nba.label-dark.primary"), null));
         if (originalPrice != null) {
-            cardChildren.add(objectMapper.valueToTree(atomicBuilder.text(originalPrice, "bodyMedium", null,
-                    tokens.color("nba.color.t-white.60"), null)));
+            cardChildren.add(atomicBuilder.text(originalPrice, "bodyMedium", null,
+                    tokens.color("nba.color.t-white.60"), null));
         }
         if (features != null) {
             for (String f : features) {
-                cardChildren.add(objectMapper.valueToTree(atomicBuilder.text("• " + f, "bodyMedium", null,
-                        tokens.color("nba.label-dark.primary"), null)));
+                cardChildren.add(atomicBuilder.text("• " + f, "bodyMedium", null,
+                        tokens.color("nba.label-dark.primary"), null));
             }
         }
-        cardChildren.add(objectMapper.valueToTree(atomicBuilder.spacer(10)));
+        cardChildren.add(atomicBuilder.spacer(10));
 
-        ObjectNode tierAction = objectMapper.createObjectNode();
-        tierAction.put("trigger", "onActivate");
-        tierAction.put("type", "navigate");
-        tierAction.put("targetUri", ctaUri);
-        cardChildren.add(objectMapper.valueToTree(atomicBuilder.button(ctaLabel, "primary",
-                objectMapper.convertValue(tierAction, Action.class))));
+        Action tierAction = new Action();
+        tierAction.setTrigger(Action.ActionTrigger.ON_ACTIVATE);
+        tierAction.setType(Action.ActionType.NAVIGATE);
+        tierAction.setTargetUri(ctaUri);
+        cardChildren.add(atomicBuilder.button(ctaLabel, "primary", tierAction));
 
-        card.set("children", cardChildren);
+        card.setChildren(cardChildren);
         return card;
     }
 
-    private ObjectNode demoTierProductId(String id, String name, String price) {
-        ObjectNode n = objectMapper.createObjectNode();
+    private java.util.Map<String, Object> demoTierProductId(String id, String name, String price) {
+        java.util.Map<String, Object> n = new java.util.LinkedHashMap<>();
         n.put("id", id);
         n.put("name", name);
         n.put("price", price);

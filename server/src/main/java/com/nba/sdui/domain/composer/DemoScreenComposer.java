@@ -311,7 +311,7 @@ public class DemoScreenComposer {
         }
         data.setColumns(columns);
 
-        List<ObjectNode> playerRows = new ArrayList<>();
+        List<LeadersPlayerRow> playerRows = new ArrayList<>();
         if ("2025-26".equals(season) && "regular".equals(seasonType)) {
             playerRows.add(leaderRow(1, "203999", "Luka Dončić", "LAL", 49,35.4,32.4,10.3,21.8,47.3,3.7,10.2,35.9, 8.0,10.4,77.3, 7.0,8.6,1.4,0.5,4.0,32.7));
             playerRows.add(leaderRow(2, "1630175", "Shai Gilgeous-Alexander", "OKC", 52,33.4,31.7,10.9,19.8,55.1,1.7,4.5,38.4, 8.2,9.2,89.3, 3.9,6.5,1.4,0.8,2.1,32.7));
@@ -348,11 +348,7 @@ public class DemoScreenComposer {
             playerRows.add(leaderRow(2, "1630175", "Shai Gilgeous-Alexander", "OKC", 40,33.0,29.5,10.5,20.0,52.5,2.0,5.0,40.0, 6.5,7.5,86.7, 5.0,6.0,1.8,1.0,2.5,30.0));
             playerRows.add(leaderRow(3, "203507", "Giannis Antetokounmpo", "MIL", 40,34.0,29.0,11.0,19.0,57.9,0.5,2.0,25.0, 6.5,9.5,68.4, 11.0,5.5,1.0,1.5,3.0,31.0));
         }
-        List<LeadersPlayerRow> players = new ArrayList<>();
-        for (ObjectNode row : playerRows) {
-            players.add(objectMapper.convertValue(row, LeadersPlayerRow.class));
-        }
-        data.setPlayers(players);
+        data.setPlayers(playerRows);
 
         data.setEmptyMessage("No stats available for " + season + " " + seasonTypeName);
 
@@ -612,20 +608,20 @@ public class DemoScreenComposer {
         data.setTeamLogoUrl(SduiUtils.teamLogoUrl("1610612738"));
 
         List<BoxscoreColumnDefinition> columns = List.of(
-                objectMapper.convertValue(utils.colDef("min", "MIN", true, false, null), BoxscoreColumnDefinition.class),
-                objectMapper.convertValue(utils.colDef("pts", "PTS", true, true, null), BoxscoreColumnDefinition.class),
-                objectMapper.convertValue(utils.colDef("reb", "REB", true, false, null), BoxscoreColumnDefinition.class),
-                objectMapper.convertValue(utils.colDef("ast", "AST", true, false, null), BoxscoreColumnDefinition.class),
-                objectMapper.convertValue(utils.colDef("fgPct", "FG%", true, false, null), BoxscoreColumnDefinition.class));
+                demoColDef("min", "MIN", true, false),
+                demoColDef("pts", "PTS", true, true),
+                demoColDef("reb", "REB", true, false),
+                demoColDef("ast", "AST", true, false),
+                demoColDef("fgPct", "FG%", true, false));
         data.setColumns(columns);
 
         List<BoxscorePlayerRow> players = List.of(
-                objectMapper.convertValue(demoPlayerRow("1628369", "J. Tatum", "SF", "0", true,
-                        Map.of("min", "38:12", "pts", 32, "reb", 8, "ast", 5, "fgPct", ".545")), BoxscorePlayerRow.class),
-                objectMapper.convertValue(demoPlayerRow("1627759", "J. Brown", "SG", "7", true,
-                        Map.of("min", "36:45", "pts", 26, "reb", 5, "ast", 3, "fgPct", ".480")), BoxscorePlayerRow.class),
-                objectMapper.convertValue(demoPlayerRow("1629684", "D. White", "PG", "9", false,
-                        Map.of("min", "32:10", "pts", 18, "reb", 4, "ast", 6, "fgPct", ".500")), BoxscorePlayerRow.class));
+                demoPlayerRow("1628369", "J. Tatum", "SF", "0", true,
+                        Map.of("min", "38:12", "pts", 32, "reb", 8, "ast", 5, "fgPct", ".545")),
+                demoPlayerRow("1627759", "J. Brown", "SG", "7", true,
+                        Map.of("min", "36:45", "pts", 26, "reb", 5, "ast", 3, "fgPct", ".480")),
+                demoPlayerRow("1629684", "D. White", "PG", "9", false,
+                        Map.of("min", "32:10", "pts", 18, "reb", 4, "ast", 6, "fgPct", ".500")));
         data.setPlayers(players);
 
         data.setSortStateKey("demo_boxscore_sortCol");
@@ -1338,47 +1334,70 @@ public class DemoScreenComposer {
         return section;
     }
 
-    private ObjectNode demoPlayerRow(String playerId, String name, String position,
+    private BoxscoreColumnDefinition demoColDef(String key, String label, boolean sortable, boolean highlighted) {
+        BoxscoreColumnDefinition col = new BoxscoreColumnDefinition();
+        col.setKey(key);
+        col.setLabel(label);
+        col.setSortable(sortable);
+        col.setHighlighted(highlighted);
+        return col;
+    }
+
+    private BoxscorePlayerRow demoPlayerRow(String playerId, String name, String position,
                                       String jerseyNumber, boolean starter,
                                       Map<String, Object> stats) {
-        ObjectNode row = objectMapper.createObjectNode();
-        row.put("playerId", playerId);
-        row.put("name", name);
-        row.put("position", position);
-        row.put("jerseyNumber", jerseyNumber);
-        row.put("imageUrl", DemoImageUrls.headshot(playerId));
-        row.put("starter", starter);
+        BoxscorePlayerRow row = new BoxscorePlayerRow();
+        row.setPlayerId(playerId);
+        row.setName(name);
+        row.setPosition(position);
+        row.setJerseyNumber(jerseyNumber);
+        row.setImageUrl(DemoImageUrls.headshot(playerId));
+        row.setStarter(starter);
 
-        ObjectNode statsNode = objectMapper.createObjectNode();
+        com.nba.sdui.models.generated.BoxscorePlayerStatistics statsNode =
+                new com.nba.sdui.models.generated.BoxscorePlayerStatistics();
         stats.forEach((key, value) -> {
             if (value instanceof Integer i) {
-                statsNode.put(key, i);
+                statsNode.setAdditionalProperty(key, i);
             } else {
-                statsNode.put(key, value.toString());
+                statsNode.setAdditionalProperty(key, value.toString());
             }
         });
-        row.set("stats", statsNode);
+        row.setStats(statsNode);
         return row;
     }
 
-    private ObjectNode leaderRow(int rank, String pid, String name, String team,
+    private LeadersPlayerRow leaderRow(int rank, String pid, String name, String team,
                                   int gp, double min, double pts, double fgm, double fga, double fgPct,
                                   double tpm, double tpa, double tpPct,
                                   double ftm, double fta, double ftPct,
                                   double reb, double ast, double stl, double blk, double tov, double eff) {
-        ObjectNode row = objectMapper.createObjectNode();
-        row.put("rank", rank);
-        row.put("playerId", pid);
-        row.put("name", name);
-        row.put("team", team);
-        ObjectNode stats = objectMapper.createObjectNode();
-        stats.put("gp", gp); stats.put("min", min); stats.put("pts", pts);
-        stats.put("fgm", fgm); stats.put("fga", fga); stats.put("fgPct", fgPct);
-        stats.put("tpm", tpm); stats.put("tpa", tpa); stats.put("tpPct", tpPct);
-        stats.put("ftm", ftm); stats.put("fta", fta); stats.put("ftPct", ftPct);
-        stats.put("reb", reb); stats.put("ast", ast); stats.put("stl", stl);
-        stats.put("blk", blk); stats.put("tov", tov); stats.put("eff", eff);
-        row.set("stats", stats);
+        LeadersPlayerRow row = new LeadersPlayerRow();
+        row.setRank(rank);
+        row.setPlayerId(pid);
+        row.setName(name);
+        row.setTeam(team);
+        com.nba.sdui.models.generated.BoxscorePlayerStatistics stats =
+                new com.nba.sdui.models.generated.BoxscorePlayerStatistics();
+        stats.setAdditionalProperty("gp", gp);
+        stats.setAdditionalProperty("min", min);
+        stats.setAdditionalProperty("pts", pts);
+        stats.setAdditionalProperty("fgm", fgm);
+        stats.setAdditionalProperty("fga", fga);
+        stats.setAdditionalProperty("fgPct", fgPct);
+        stats.setAdditionalProperty("tpm", tpm);
+        stats.setAdditionalProperty("tpa", tpa);
+        stats.setAdditionalProperty("tpPct", tpPct);
+        stats.setAdditionalProperty("ftm", ftm);
+        stats.setAdditionalProperty("fta", fta);
+        stats.setAdditionalProperty("ftPct", ftPct);
+        stats.setAdditionalProperty("reb", reb);
+        stats.setAdditionalProperty("ast", ast);
+        stats.setAdditionalProperty("stl", stl);
+        stats.setAdditionalProperty("blk", blk);
+        stats.setAdditionalProperty("tov", tov);
+        stats.setAdditionalProperty("eff", eff);
+        row.setStats(stats);
         return row;
     }
 }

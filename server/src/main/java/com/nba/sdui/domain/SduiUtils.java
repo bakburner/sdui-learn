@@ -444,26 +444,27 @@ public class SduiUtils {
      * Build a sectionStates node for sections with live data (SSE/poll).
      * Provides server-controlled loading skeleton and error message/retry.
      */
-    public ObjectNode buildSectionStates(String sectionId, String errorMessage,
+    public com.nba.sdui.models.generated.SectionStates buildSectionStates(String sectionId, String errorMessage,
                                           String skeletonType, int minHeightDp) {
-        ObjectNode states = objectMapper.createObjectNode();
+        com.nba.sdui.models.generated.SectionStates states =
+                new com.nba.sdui.models.generated.SectionStates();
 
-        ObjectNode loading = objectMapper.createObjectNode();
-        loading.put("skeleton", skeletonType);
-        loading.put("minHeightDp", minHeightDp);
-        states.set("loading", loading);
+        com.nba.sdui.models.generated.Loading loading = new com.nba.sdui.models.generated.Loading();
+        loading.setSkeleton(com.nba.sdui.models.generated.Loading.Skeleton.fromValue(skeletonType));
+        loading.setMinHeightDp(minHeightDp);
+        states.setLoading(loading);
 
-        ObjectNode error = objectMapper.createObjectNode();
-        error.put("message", errorMessage);
-        error.put("hideOnError", false);
+        com.nba.sdui.models.generated.ErrorState error = new com.nba.sdui.models.generated.ErrorState();
+        error.setMessage(errorMessage);
+        error.setHideOnError(false);
 
-        ObjectNode retryAction = objectMapper.createObjectNode();
-        retryAction.put("trigger", "onActivate");
-        retryAction.put("type", "refresh");
-        retryAction.put("target", sectionId);
-        error.set("retryAction", retryAction);
+        com.nba.sdui.models.generated.Action retryAction = new com.nba.sdui.models.generated.Action();
+        retryAction.setTrigger(com.nba.sdui.models.generated.Action.ActionTrigger.ON_ACTIVATE);
+        retryAction.setType(com.nba.sdui.models.generated.Action.ActionType.REFRESH);
+        retryAction.setTarget(sectionId);
+        error.setRetryAction(retryAction);
 
-        states.set("error", error);
+        states.setError(error);
         return states;
     }
 

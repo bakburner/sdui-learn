@@ -231,9 +231,8 @@ public class BoxscoreComposer {
             refreshPolicy.setDataPath("game");
             section.setRefreshPolicy(refreshPolicy);
 
-            section.setSectionStates(objectMapper.convertValue(
-                    utils.buildSectionStates(sectionId, "Unable to load boxscore", "shimmer", 200),
-                    SectionStates.class));
+            section.setSectionStates(
+                    utils.buildSectionStates(sectionId, "Unable to load boxscore", "shimmer", 200));
         }
 
         ObjectNode data = objectMapper.createObjectNode();

@@ -536,9 +536,8 @@ public class GameDetailComposer {
                 surfaces.gamePanelSurface());
 
         section.setContentSourceId(contentSourceId);
-        section.setSectionStates(objectMapper.convertValue(
-                utils.buildSectionStates(sectionId, "Unable to load live scores", "shimmer", 180),
-                SectionStates.class));
+        section.setSectionStates(
+                utils.buildSectionStates(sectionId, "Unable to load live scores", "shimmer", 180));
         return section;
     }
 

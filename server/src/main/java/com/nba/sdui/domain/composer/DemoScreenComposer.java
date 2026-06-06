@@ -162,7 +162,7 @@ public class DemoScreenComposer {
         sections.add(buildDemoNbaTvSchedule());
         // 16. SubscribeUpsell (inline-banner layout)
         sections.add(buildTypeLabel("SubscribeUpsell (inline banner)"));
-        sections.add(objectMapper.convertValue(buildDemoSubscribeUpsellBanner(), Section.class));
+        sections.add(buildDemoSubscribeUpsellBanner());
         // 17. SubscribeUpsell (hero layout)
         sections.add(buildTypeLabel("SubscribeUpsell (hero)"));
         sections.add(objectMapper.convertValue(buildDemoSubscribeUpsellHero(), Section.class));
@@ -847,25 +847,27 @@ public class DemoScreenComposer {
      * surface is expressed as an atomic tree under {@code data.ui}; reserved
      * SDK integration point.
      */
-    private ObjectNode buildDemoSubscribeUpsellBanner() {
+    private Section buildDemoSubscribeUpsellBanner() {
         String contentSourceId = "demo:subscribe-upsell-banner";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "SubscribeUpsell");
-        ObjectNode section = objectMapper.createObjectNode();
-        section.put("id", sectionId);
-        section.put("type", "SubscribeUpsell");
-        section.put("contentSourceId", contentSourceId);
-        section.put("analyticsId", "demo_subscribe_upsell_banner");
-        section.set("refreshPolicy", objectMapper.createObjectNode().put("type", "static"));
-        section.set("surface", objectMapper.valueToTree(surfaces.subscribeSurface(
+        Section section = new Section();
+        section.setId(sectionId);
+        section.setType(Section.Type.SUBSCRIBE_UPSELL);
+        section.setContentSourceId(contentSourceId);
+        section.setAnalyticsId("demo_subscribe_upsell_banner");
+        RefreshPolicy refreshStatic = new RefreshPolicy();
+        refreshStatic.setType(RefreshPolicy.RefreshType.STATIC);
+        section.setRefreshPolicy(refreshStatic);
+        section.setSurface(surfaces.subscribeSurface(
                 tokens.color("nba.label.accent.brand"),
                 "#862633",
-                20)));
+                20));
 
-        ObjectNode ctaAction = objectMapper.createObjectNode();
-        ctaAction.put("trigger", "onActivate");
-        ctaAction.put("type", "navigate");
-        ctaAction.put("targetUri", "nba://subscribe");
-        ctaAction.put("presentation", "modal");
+        Action ctaAction = new Action();
+        ctaAction.setTrigger(Action.ActionTrigger.ON_ACTIVATE);
+        ctaAction.setType(Action.ActionType.NAVIGATE);
+        ctaAction.setTargetUri("nba://subscribe");
+        ctaAction.setPresentation(Action.NavigationPresentation.MODAL);
 
         AtomicElement root = atomicBuilder.container("column", "start", "start");
         root.setGap(tokens.spacing("sm"));
@@ -878,14 +880,12 @@ public class DemoScreenComposer {
                 "Stream every out-of-market game live with NBA League Pass.",
                 "bodySmall", null, tokens.color("nba.label-dark.primary"), null));
         children.add(atomicBuilder.spacer(tokens.spacing("md")));
-        children.add(atomicBuilder.button("Subscribe Now", "primary",
-                objectMapper.convertValue(ctaAction.deepCopy(), com.nba.sdui.models.generated.Action.class)));
+        children.add(atomicBuilder.button("Subscribe Now", "primary", ctaAction));
         root.setChildren(children);
 
         com.nba.sdui.models.generated.AtomicComposite data = atomicBuilder.wrapUi(root);
-        ObjectNode dataNode = (ObjectNode) objectMapper.valueToTree(data);
-        dataNode.set("ctaAction", ctaAction);
-        section.set("data", dataNode);
+        data.setAdditionalProperty("ctaAction", ctaAction);
+        section.setData(data);
         return section;
     }
 

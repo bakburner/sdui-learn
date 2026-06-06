@@ -1,9 +1,9 @@
 package com.nba.sdui.domain.composer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.nba.sdui.models.generated.Action;
+import com.nba.sdui.models.generated.BoxscorePlayerRow;
+import com.nba.sdui.models.generated.BoxscoreTable;
 import com.nba.sdui.models.generated.RefreshPolicy;
 import com.nba.sdui.models.generated.Screen;
 import com.nba.sdui.models.generated.Section;
@@ -100,12 +100,12 @@ public class BoxscoreComposer {
             emptySection.setId(SectionIdDeriver.derive(contentSourceId, "BoxscoreTable", "empty"));
             emptySection.setContentSourceId(contentSourceId);
             emptySection.setType(Section.Type.BOXSCORE_TABLE);
-            ObjectNode emptyData = objectMapper.createObjectNode();
-            emptyData.put("teamTricode", "");
-            emptyData.put("teamName", "");
-            emptyData.set("columns", objectMapper.valueToTree(utils.buildBoxscoreColumns()));
-            emptyData.set("players", objectMapper.createArrayNode());
-            emptyData.put("emptyMessage", "Box score will be available once the game begins.");
+            BoxscoreTable emptyData = new BoxscoreTable();
+            emptyData.setTeamTricode("");
+            emptyData.setTeamName("");
+            emptyData.setColumns(utils.buildBoxscoreColumns());
+            emptyData.setPlayers(java.util.List.of());
+            emptyData.setEmptyMessage("Box score will be available once the game begins.");
             emptySection.setData(emptyData);
             sections.add(emptySection);
             response.setSections(sections);
@@ -235,35 +235,35 @@ public class BoxscoreComposer {
                     utils.buildSectionStates(sectionId, "Unable to load boxscore", "shimmer", 200));
         }
 
-        ObjectNode data = objectMapper.createObjectNode();
-        data.put("teamTricode", teamTricode);
-        data.put("teamName", teamCity + " " + teamName);
-        data.put("teamColor", SduiUtils.getTeamPrimaryColor(teamTricode));
-        data.put("teamLogoUrl", SduiUtils.teamLogoUrl(teamId));
+        BoxscoreTable data = new BoxscoreTable();
+        data.setTeamTricode(teamTricode);
+        data.setTeamName(teamCity + " " + teamName);
+        data.setTeamColor(SduiUtils.getTeamPrimaryColor(teamTricode));
+        data.setTeamLogoUrl(SduiUtils.teamLogoUrl(teamId));
 
-        data.set("columns", objectMapper.valueToTree(utils.buildBoxscoreColumns()));
+        data.setColumns(utils.buildBoxscoreColumns());
 
-        ArrayNode playerRows = objectMapper.createArrayNode();
+        java.util.List<BoxscorePlayerRow> playerRows = new java.util.ArrayList<>();
         java.util.List<BoxscorePlayer> players = team != null && team.getPlayers() != null
                 ? team.getPlayers() : java.util.List.of();
 
         for (BoxscorePlayer player : players) {
-            ObjectNode row = mapPlayerToBoxscoreRow(player, teamTricode);
+            BoxscorePlayerRow row = mapPlayerToBoxscoreRow(player, teamTricode);
             if (row != null) {
                 playerRows.add(row);
             }
         }
-        data.set("players", playerRows);
+        data.setPlayers(playerRows);
 
         if (team != null && team.getStatistics() != null) {
-            data.set("teamTotals", mapTeamStatistics(team.getStatistics()));
+            data.setTeamTotals(mapTeamStatistics(team.getStatistics()));
         }
 
-        data.put("sortStateKey", sortColKey);
-        data.put("sortDirectionStateKey", sortDirKey);
+        data.setSortStateKey(sortColKey);
+        data.setSortDirectionStateKey(sortDirKey);
 
         if (playerRows.isEmpty()) {
-            data.put("emptyMessage", "Box score will be available once the game begins.");
+            data.setEmptyMessage("Box score will be available once the game begins.");
         }
 
         section.setData(data);
@@ -296,7 +296,7 @@ public class BoxscoreComposer {
     /**
      * Map a single NBA API player node to a {@code BoxscorePlayerRow}.
      */
-    private ObjectNode mapPlayerToBoxscoreRow(BoxscorePlayer player, String teamTricode) {
+    private BoxscorePlayerRow mapPlayerToBoxscoreRow(BoxscorePlayer player, String teamTricode) {
         int personId = player.getPersonId() != null ? player.getPersonId() : 0;
         String played = player.getPlayed() != null ? player.getPlayed() : "0";
         String notPlayingReason = player.getNotPlayingReason() != null ? player.getNotPlayingReason() : "";
@@ -311,47 +311,48 @@ public class BoxscoreComposer {
             name = firstName + " " + familyName;
         }
 
-        ObjectNode row = objectMapper.createObjectNode();
-        row.put("playerId", String.valueOf(personId));
-        row.put("name", name.trim());
-        row.put("position", player.getPosition() != null ? player.getPosition() : "");
-        row.put("jerseyNumber", player.getJerseyNum() != null ? player.getJerseyNum() : "");
-        row.put("imageUrl",
+        BoxscorePlayerRow row = new BoxscorePlayerRow();
+        row.setPlayerId(String.valueOf(personId));
+        row.setName(name.trim());
+        row.setPosition(player.getPosition() != null ? player.getPosition() : "");
+        row.setJerseyNumber(player.getJerseyNum() != null ? player.getJerseyNum() : "");
+        row.setImageUrl(
                 "https://cdn.nba.com/headshots/nba/latest/1040x760/" + personId + ".png");
-        row.put("starter", "1".equals(player.getStarter() != null ? player.getStarter() : "0"));
+        row.setStarter("1".equals(player.getStarter() != null ? player.getStarter() : "0"));
 
         BoxscoreStatistics s = player.getStatistics();
-        ObjectNode stats = objectMapper.createObjectNode();
+        com.nba.sdui.models.generated.BoxscorePlayerStatistics stats =
+                new com.nba.sdui.models.generated.BoxscorePlayerStatistics();
 
         String minutesText = s != null && s.getMinutes() != null ? s.getMinutes() : "";
         boolean didPlay = "1".equals(played) && !"PT0M00.00S".equals(minutesText);
 
         if (didPlay && s != null) {
-            stats.put("min", SduiUtils.formatMinutes(minutesText));
-            stats.put("pts", s.getPoints());
-            stats.put("reb", s.getReboundsTotal());
-            stats.put("ast", s.getAssists());
-            stats.put("stl", s.getSteals());
-            stats.put("blk", s.getBlocks());
-            stats.put("to",  s.getTurnovers());
-            stats.put("pf",  s.getFoulsPersonal());
-            stats.put("fgm", s.getFieldGoalsMade());
-            stats.put("fga", s.getFieldGoalsAttempted());
-            stats.put("fgPct", SduiUtils.formatPct(s.getFieldGoalsPercentage()));
-            stats.put("tpm", s.getThreePointersMade());
-            stats.put("tpa", s.getThreePointersAttempted());
-            stats.put("tpPct", SduiUtils.formatPct(s.getThreePointersPercentage()));
-            stats.put("ftm", s.getFreeThrowsMade());
-            stats.put("fta", s.getFreeThrowsAttempted());
-            stats.put("ftPct", SduiUtils.formatPct(s.getFreeThrowsPercentage()));
-            stats.put("oreb", s.getReboundsOffensive());
-            stats.put("dreb", s.getReboundsDefensive());
-            stats.put("pm",  (int) s.getPlusMinusPoints());
+            stats.setAdditionalProperty("min", SduiUtils.formatMinutes(minutesText));
+            stats.setAdditionalProperty("pts", s.getPoints());
+            stats.setAdditionalProperty("reb", s.getReboundsTotal());
+            stats.setAdditionalProperty("ast", s.getAssists());
+            stats.setAdditionalProperty("stl", s.getSteals());
+            stats.setAdditionalProperty("blk", s.getBlocks());
+            stats.setAdditionalProperty("to",  s.getTurnovers());
+            stats.setAdditionalProperty("pf",  s.getFoulsPersonal());
+            stats.setAdditionalProperty("fgm", s.getFieldGoalsMade());
+            stats.setAdditionalProperty("fga", s.getFieldGoalsAttempted());
+            stats.setAdditionalProperty("fgPct", SduiUtils.formatPct(s.getFieldGoalsPercentage()));
+            stats.setAdditionalProperty("tpm", s.getThreePointersMade());
+            stats.setAdditionalProperty("tpa", s.getThreePointersAttempted());
+            stats.setAdditionalProperty("tpPct", SduiUtils.formatPct(s.getThreePointersPercentage()));
+            stats.setAdditionalProperty("ftm", s.getFreeThrowsMade());
+            stats.setAdditionalProperty("fta", s.getFreeThrowsAttempted());
+            stats.setAdditionalProperty("ftPct", SduiUtils.formatPct(s.getFreeThrowsPercentage()));
+            stats.setAdditionalProperty("oreb", s.getReboundsOffensive());
+            stats.setAdditionalProperty("dreb", s.getReboundsDefensive());
+            stats.setAdditionalProperty("pm",  (int) s.getPlusMinusPoints());
         } else {
-            stats.put("min", notPlayingReason.isEmpty() ? "DNP" : notPlayingReason);
+            stats.setAdditionalProperty("min", notPlayingReason.isEmpty() ? "DNP" : notPlayingReason);
         }
 
-        row.set("stats", stats);
+        row.setStats(stats);
 
 
         return row;
@@ -360,29 +361,30 @@ public class BoxscoreComposer {
     /**
      * Map the team-level statistics node to a totals map aligned to boxscore columns.
      */
-    private ObjectNode mapTeamStatistics(BoxscoreStatistics s) {
-        ObjectNode totals = objectMapper.createObjectNode();
+    private com.nba.sdui.models.generated.BoxscorePlayerStatistics mapTeamStatistics(BoxscoreStatistics s) {
+        com.nba.sdui.models.generated.BoxscorePlayerStatistics totals =
+                new com.nba.sdui.models.generated.BoxscorePlayerStatistics();
         if (s == null) return totals;
-        totals.put("min", SduiUtils.formatMinutes(s.getMinutes() != null ? s.getMinutes() : ""));
-        totals.put("pts", s.getPoints());
-        totals.put("reb", s.getReboundsTotal());
-        totals.put("ast", s.getAssists());
-        totals.put("stl", s.getSteals());
-        totals.put("blk", s.getBlocks());
-        totals.put("to",  s.getTurnovers());
-        totals.put("pf",  s.getFoulsPersonal());
-        totals.put("fgm", s.getFieldGoalsMade());
-        totals.put("fga", s.getFieldGoalsAttempted());
-        totals.put("fgPct", SduiUtils.formatPct(s.getFieldGoalsPercentage()));
-        totals.put("tpm", s.getThreePointersMade());
-        totals.put("tpa", s.getThreePointersAttempted());
-        totals.put("tpPct", SduiUtils.formatPct(s.getThreePointersPercentage()));
-        totals.put("ftm", s.getFreeThrowsMade());
-        totals.put("fta", s.getFreeThrowsAttempted());
-        totals.put("ftPct", SduiUtils.formatPct(s.getFreeThrowsPercentage()));
-        totals.put("oreb", s.getReboundsOffensive());
-        totals.put("dreb", s.getReboundsDefensive());
-        totals.put("pm",  (int) s.getPlusMinusPoints());
+        totals.setAdditionalProperty("min", SduiUtils.formatMinutes(s.getMinutes() != null ? s.getMinutes() : ""));
+        totals.setAdditionalProperty("pts", s.getPoints());
+        totals.setAdditionalProperty("reb", s.getReboundsTotal());
+        totals.setAdditionalProperty("ast", s.getAssists());
+        totals.setAdditionalProperty("stl", s.getSteals());
+        totals.setAdditionalProperty("blk", s.getBlocks());
+        totals.setAdditionalProperty("to",  s.getTurnovers());
+        totals.setAdditionalProperty("pf",  s.getFoulsPersonal());
+        totals.setAdditionalProperty("fgm", s.getFieldGoalsMade());
+        totals.setAdditionalProperty("fga", s.getFieldGoalsAttempted());
+        totals.setAdditionalProperty("fgPct", SduiUtils.formatPct(s.getFieldGoalsPercentage()));
+        totals.setAdditionalProperty("tpm", s.getThreePointersMade());
+        totals.setAdditionalProperty("tpa", s.getThreePointersAttempted());
+        totals.setAdditionalProperty("tpPct", SduiUtils.formatPct(s.getThreePointersPercentage()));
+        totals.setAdditionalProperty("ftm", s.getFreeThrowsMade());
+        totals.setAdditionalProperty("fta", s.getFreeThrowsAttempted());
+        totals.setAdditionalProperty("ftPct", SduiUtils.formatPct(s.getFreeThrowsPercentage()));
+        totals.setAdditionalProperty("oreb", s.getReboundsOffensive());
+        totals.setAdditionalProperty("dreb", s.getReboundsDefensive());
+        totals.setAdditionalProperty("pm",  (int) s.getPlusMinusPoints());
         return totals;
     }
 }

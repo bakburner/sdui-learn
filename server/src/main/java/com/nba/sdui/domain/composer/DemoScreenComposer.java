@@ -177,7 +177,7 @@ public class DemoScreenComposer {
         sections.add(buildDemoErrorState());
         // 21. SectionSlot (bidirectional bridge demo)
         sections.add(buildTypeLabel("SectionSlot (AdSlot in atomic tree) (Composite)"));
-        sections.add(objectMapper.convertValue(buildDemoSectionSlot(), Section.class));
+        sections.add(buildDemoSectionSlot());
         // 22-28. Feed atomic-composite patterns
         sections.add(buildTypeLabel("SectionHeaderComposite"));
         sections.add(buildDemoSectionHeaderComposite());
@@ -1126,84 +1126,80 @@ public class DemoScreenComposer {
      * with an embedded AdSlot section via the SectionSlot element type.
      * This demonstrates the bidirectional bridge: AtomicRouter → SectionRouter.
      */
-    private ObjectNode buildDemoSectionSlot() {
+    private Section buildDemoSectionSlot() {
         // Build the embedded AdSlot section
         String adContentSourceId = "ads:gam-demo-inline";
         String adSectionId = SectionIdDeriver.derive(adContentSourceId, "AdSlot");
-        ObjectNode adSection = objectMapper.createObjectNode();
-        adSection.put("id", adSectionId);
-        adSection.put("type", "AdSlot");
-        adSection.put("contentSourceId", adContentSourceId);
-        adSection.set("surface", objectMapper.valueToTree(surfaces.adSlotSurface()));
-        ObjectNode adData = objectMapper.createObjectNode();
-        adData.put("provider", "gam");
-        adData.put("adUnitPath", "/nba/game-card-inline");
-        ArrayNode adSizes = objectMapper.createArrayNode();
-        ArrayNode adSize = objectMapper.createArrayNode();
-        adSize.add(320); adSize.add(50);
-        adSizes.add(adSize);
-        adData.set("sizes", adSizes);
-        adData.put("collapseOnEmpty", true);
-        adData.put("label", "Advertisement");
-        ObjectNode adPlaceholder = objectMapper.createObjectNode();
-        adPlaceholder.put("backgroundColor", "token:nba.bg.tertiary");
-        adPlaceholder.put("text", "Advertisement");
-        adData.set("placeholder", adPlaceholder);
-        adSection.set("data", adData);
-        ObjectNode adRefresh = objectMapper.createObjectNode();
-        adRefresh.put("type", "static");
-        adSection.set("refreshPolicy", adRefresh);
-        ObjectNode adStates = objectMapper.createObjectNode();
-        ObjectNode errorState = objectMapper.createObjectNode();
-        errorState.put("hideOnError", true);
-        adStates.set("error", errorState);
-        adSection.set("sectionStates", adStates);
+        Section adSection = new Section();
+        adSection.setId(adSectionId);
+        adSection.setType(Section.Type.AD_SLOT);
+        adSection.setContentSourceId(adContentSourceId);
+        adSection.setSurface(surfaces.adSlotSurface());
+
+        AdSlot adData = new AdSlot();
+        adData.setProvider("gam");
+        adData.setAdUnitPath("/nba/game-card-inline");
+        adData.setSizes(java.util.List.of(java.util.List.of(320, 50)));
+        adData.setCollapseOnEmpty(true);
+        adData.setLabel("Advertisement");
+        Placeholder adPlaceholder = new Placeholder();
+        adPlaceholder.setBackgroundColor("token:nba.bg.tertiary");
+        adPlaceholder.setText("Advertisement");
+        adData.setPlaceholder(adPlaceholder);
+        adSection.setData(adData);
+
+        RefreshPolicy adRefresh = new RefreshPolicy();
+        adRefresh.setType(RefreshPolicy.RefreshType.STATIC);
+        adSection.setRefreshPolicy(adRefresh);
+
+        SectionStates adStates = new SectionStates();
+        com.nba.sdui.models.generated.ErrorState errorState =
+                new com.nba.sdui.models.generated.ErrorState();
+        errorState.setHideOnError(true);
+        adStates.setError(errorState);
+        adSection.setSectionStates(adStates);
 
         // Build the atomic tree: game card with inline ad via SectionSlot
-        ObjectNode root = objectMapper.createObjectNode();
-        root.put("type", "Container");
-        root.put("direction", "column");
-        root.put("background", tokens.color("nba.bg.primary"));
-        root.put("cornerRadius", tokens.radius("md"));
-        ObjectNode padding = objectMapper.createObjectNode();
-        padding.put("start", tokens.spacing("lg"));
-        padding.put("end", tokens.spacing("lg"));
-        padding.put("top", tokens.spacing("md"));
-        padding.put("bottom", tokens.spacing("md"));
-        root.set("padding", padding);
+        AtomicElement root = new AtomicElement();
+        root.setType(AtomicElement.Type.CONTAINER);
+        root.setDirection(AtomicElement.Direction.COLUMN);
+        root.setBackground(tokens.color("nba.bg.primary"));
+        root.setCornerRadius(tokens.radius("md"));
+        com.nba.sdui.models.generated.Spacing padding =
+                new com.nba.sdui.models.generated.Spacing();
+        padding.setStart(tokens.spacing("lg"));
+        padding.setEnd(tokens.spacing("lg"));
+        padding.setTop(tokens.spacing("md"));
+        padding.setBottom(tokens.spacing("md"));
+        root.setPadding(padding);
 
-        ArrayNode children = objectMapper.createArrayNode();
+        java.util.List<AtomicElement> children = new java.util.ArrayList<>();
 
         AtomicElement titleEl = atomicBuilder.text("LAL vs BOS", "titleMedium", "bold",
                 tokens.color("nba.label.primary"), null);
         addHeading(titleEl, "LAL vs BOS", 3);
-        children.add(objectMapper.valueToTree(titleEl));
+        children.add(titleEl);
 
-        ObjectNode subtitle = objectMapper.createObjectNode();
-        subtitle.put("type", "Text");
-        subtitle.put("content", "Q3 5:42 \u2022 LAL 87 - BOS 82");
-        subtitle.put("variant", "bodySmall");
-        subtitle.put("color", tokens.color("nba.label.tertiary"));
+        AtomicElement subtitle = atomicBuilder.text("Q3 5:42 \u2022 LAL 87 - BOS 82",
+                "bodySmall", null, tokens.color("nba.label.tertiary"), null);
         children.add(subtitle);
 
-        ObjectNode divider = objectMapper.createObjectNode();
-        divider.put("type", "Divider");
-        divider.put("color", tokens.color("nba.divider.moderate"));
-        divider.put("thickness", 1);
+        AtomicElement divider = new AtomicElement();
+        divider.setType(AtomicElement.Type.DIVIDER);
+        divider.setColor(tokens.color("nba.divider.moderate"));
+        divider.setThickness(1);
         children.add(divider);
 
         // SectionSlot: embed the AdSlot section
-        children.add(objectMapper.valueToTree(atomicBuilder.sectionSlot("inline-ad",
-                objectMapper.convertValue(adSection, com.nba.sdui.models.generated.Section.class))));
+        children.add(atomicBuilder.sectionSlot("inline-ad", adSection));
 
-        root.set("children", children);
+        root.setChildren(children);
 
         String contentSourceId = "demo:section-slot";
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite");
-        com.nba.sdui.models.generated.Section section = atomicBuilder.wrapAsComposite(sectionId, "demo-section-slot",
-                objectMapper.convertValue(root, AtomicElement.class));
+        Section section = atomicBuilder.wrapAsComposite(sectionId, "demo-section-slot", root);
         section.setContentSourceId(contentSourceId);
-        return (ObjectNode) objectMapper.valueToTree(section);
+        return section;
     }
 
     private Section buildDemoSectionHeaderComposite() {

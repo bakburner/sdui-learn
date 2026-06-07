@@ -13,6 +13,11 @@ concurrency:
 permissions:
   contents: read
   id-token: write
+  # `packages: read` lets `secrets.GITHUB_TOKEN` resolve
+  # `com.nba:service-aggregation-framework` from `maven.pkg.github.com/NBA/saf`.
+  # Same-org alone is not enough; the SAF package must also grant Actions read
+  # access to this repo (Package settings → Manage Actions access).
+  packages: read
 
 jobs:
   # -------------------------------------------------------

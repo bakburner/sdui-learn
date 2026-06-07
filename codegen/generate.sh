@@ -55,7 +55,7 @@ if ! command -v quicktype &> /dev/null; then
     cd "$SCRIPT_DIR"
     ./gradlew generateJsonSchema2Pojo
     echo ""
-    echo "Java POJOs generated in: $SCRIPT_DIR/build/generated-sources/jsonschema2pojo/"
+    echo "Java POJOs generated in: $SCRIPT_DIR/../server/src/generated/java/"
     exit 0
 fi
 
@@ -190,7 +190,7 @@ echo ""
 echo "=== Generation Complete ==="
 echo ""
 echo "Output locations:"
-echo "  Java (server POJOs):      $SCRIPT_DIR/build/generated-sources/jsonschema2pojo/"
+echo "  Java (server POJOs):      $SCRIPT_DIR/../server/src/generated/java/"
 echo "  Swift (iOS):              $IOS_MODELS_OUT"
 echo "  TypeScript (web):         $WEB_MODELS_OUT"
 echo "  Kotlin (Android):         $ANDROID_MODELS_OUT"
@@ -198,6 +198,6 @@ echo ""
 echo "Every client consumes its generated model file in place — there is no"
 echo "copy step. iOS includes SduiModels.swift in the SduiCore SwiftPM"
 echo "target, web resolves SduiModels.ts through the '@sdui/models' Vite"
-echo "alias, and Android compiles SduiModels.kt directly from its own"
-echo "source tree. The Java POJOs are currently generated for the Spring"
-echo "server (on the Gradle classpath) and are not consumed by Android."
+echo "alias, Android compiles SduiModels.kt directly from its own source"
+echo "tree, and the server compiles the Java POJOs from server/src/generated."
+echo "All four trees are committed alongside hand-written sources."

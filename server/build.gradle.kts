@@ -54,25 +54,19 @@ tasks.withType<Test> {
 }
 
 // ── Generated SDUI models ───────────────────────────────────
-// The `:codegen` composite build generates `com.nba.sdui.models.generated.*`
-// POJOs from `schema/sdui-schema.json`. We add the generator's output
-// directory directly to the server's main source set and make compileJava
-// depend on the generator task. AGENTS.md §1.2 makes the schema the wire
-// contract and bans hand-edits to generated files; this wiring lets the
-// server compile-time-bind to the schema without copying generated sources
-// into `src/main/java`.
-val generatedModelsDir = file("${rootDir}/../codegen/build/generated-sources/jsonschema2pojo")
-
+// `com.nba.sdui.models.generated.*` POJOs are generated from
+// `schema/sdui-schema.json` by the sibling `:codegen` project (run
+// via `make codegen`). The output is written directly into
+// `server/src/generated/java/` and committed alongside hand-written
+// sources, matching the iOS/web/Android pattern: each client commits
+// its own generated view of the schema. AGENTS.md §1.2 still bans
+// hand-edits to those files; the schema remains the wire contract.
 sourceSets {
     main {
         java {
-            srcDir(generatedModelsDir)
+            srcDir("${projectDir}/src/generated/java")
         }
     }
-}
-
-tasks.named<JavaCompile>("compileJava") {
-    dependsOn(gradle.includedBuild("codegen").task(":generateJsonSchema2Pojo"))
 }
 
 // Bundle the schema/ token registries into server resources so the runtime

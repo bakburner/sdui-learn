@@ -2,6 +2,7 @@
 # Build stage -- Gradle + Java 21
 # Build runs on native platform only (JAR is platform-independent)
 # ================================
+# syntax=docker/dockerfile:1.4
 ARG BUILDER_BASE_IMAGE=eclipse-temurin:21-jdk-alpine
 ARG RUNNER_BASE_IMAGE=eclipse-temurin:21-jre-alpine
 
@@ -9,20 +10,21 @@ FROM --platform=$BUILDPLATFORM $BUILDER_BASE_IMAGE AS build
 
 WORKDIR /app
 
-# SAF (service-aggregation-framework) is consumed via Maven Local. The build
-# context's .m2/repository/com/nba/ is populated by `make sync-saf` locally
-# (or the equivalent CI step) and copied into the builder image's ~/.m2 so
-# Gradle can resolve `com.nba:service-aggregation-framework` without network.
-# See nba-client-backend for the same pattern.
-COPY .m2/repository/com/nba /root/.m2/repository/com/nba
-
 # Copy Gradle wrapper and build files first (layer caching)
 COPY server/gradlew gradlew
 COPY server/gradle/ gradle/
 COPY server/build.gradle.kts server/settings.gradle.kts ./
+RUN chmod +x gradlew
 
-# Download dependencies (cached unless build files change)
-RUN chmod +x gradlew && ./gradlew dependencies --no-daemon
+# SAF (`com.nba:service-aggregation-framework`) resolves from GitHub Packages
+# (https://github.com/NBA/saf). Credentials are mounted as BuildKit secrets
+# so they never land in image layers. Caller supplies them via
+# `docker buildx bake --set sdui-prototype.secrets=...` or `--secret`.
+RUN --mount=type=secret,id=gpr_user --mount=type=secret,id=gpr_token \
+    GPR_USER="$(cat /run/secrets/gpr_user)" \
+    GPR_TOKEN="$(cat /run/secrets/gpr_token)" \
+    ./gradlew dependencies --no-daemon \
+      -Pgpr.user="$GPR_USER" -Pgpr.key="$GPR_TOKEN"
 
 # Copy schema tokens (referenced by processResources as ../schema)
 COPY schema/ ../schema/
@@ -36,7 +38,11 @@ ARG GIT_BRANCH_NAME
 ENV GIT_SHA=$GIT_SHA \
     GIT_BRANCH_NAME=$GIT_BRANCH_NAME
 
-RUN ./gradlew bootJar --no-daemon
+RUN --mount=type=secret,id=gpr_user --mount=type=secret,id=gpr_token \
+    GPR_USER="$(cat /run/secrets/gpr_user)" \
+    GPR_TOKEN="$(cat /run/secrets/gpr_token)" \
+    ./gradlew bootJar --no-daemon \
+      -Pgpr.user="$GPR_USER" -Pgpr.key="$GPR_TOKEN"
 
 # ================================
 # Runtime stage -- minimal JRE, non-root

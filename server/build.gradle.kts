@@ -12,11 +12,6 @@ java {
     targetCompatibility = JavaVersion.VERSION_21
 }
 
-repositories {
-    mavenLocal()
-    mavenCentral()
-}
-
 dependencies {
     // Spring Boot
     implementation("org.springframework.boot:spring-boot-starter-web")
@@ -24,8 +19,9 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-actuator")
 
     // SAF — orchestration, resilience, caching, correlation, metrics.
-    // Published to Maven Local from /Users/arobinson/Projects/service-aggregation-framework
-    // via `make publish-saf` / `make sync-saf`.
+    // Resolved from GitHub Packages (https://github.com/NBA/saf); see
+    // repository setup in settings.gradle.kts. `mavenLocal()` still wins
+    // when a developer publishes a SAF SNAPSHOT locally.
     implementation("com.nba:service-aggregation-framework:1.0.0-SNAPSHOT")
 
     // Micrometer Prometheus registry — emits /actuator/prometheus.

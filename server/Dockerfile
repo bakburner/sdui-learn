@@ -9,6 +9,13 @@ FROM --platform=$BUILDPLATFORM $BUILDER_BASE_IMAGE AS build
 
 WORKDIR /app
 
+# SAF (service-aggregation-framework) is consumed via Maven Local. The build
+# context's .m2/repository/com/nba/ is populated by `make sync-saf` locally
+# (or the equivalent CI step) and copied into the builder image's ~/.m2 so
+# Gradle can resolve `com.nba:service-aggregation-framework` without network.
+# See nba-client-backend for the same pattern.
+COPY .m2/repository/com/nba /root/.m2/repository/com/nba
+
 # Copy Gradle wrapper and build files first (layer caching)
 COPY server/gradlew gradlew
 COPY server/gradle/ gradle/

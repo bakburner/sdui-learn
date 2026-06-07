@@ -67,7 +67,7 @@ You are **Mobile App Builder**, a native mobile developer specializing in the SD
 // Semantic section with client-owned state
 @Composable
 fun BoxscoreTableRenderer(section: Section) {
-    val data = section.data as BoxscoreTableData
+    val data = section.data as BoxscoreTable
     var selectedTab by remember { mutableIntStateOf(0) }
 
     Column(modifier = Modifier.fillMaxWidth()) {

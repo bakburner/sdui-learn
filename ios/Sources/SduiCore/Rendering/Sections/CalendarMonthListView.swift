@@ -172,7 +172,7 @@ struct CalendarMonthListView: View {
     private func monthGrid(
         stateKey: String,
         dayCells: [CalendarGridCell],
-        data: DataClass,
+        data: SectionData,
         selectedISO: String,
         defaultDateISO: String
     ) -> some View {
@@ -252,7 +252,7 @@ struct CalendarMonthListView: View {
         }
     }
 
-    private static func buildMonths(data: DataClass, selectedISO: String) -> [CalendarMonthData] {
+    private static func buildMonths(data: SectionData, selectedISO: String) -> [CalendarMonthData] {
         let selected = parseISODate(selectedISO)
             ?? parseISODate(data.defaultDate ?? "")
             ?? DateComponents(year: 2026, month: 1, day: 1)

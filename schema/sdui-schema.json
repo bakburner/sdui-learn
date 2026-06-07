@@ -95,8 +95,7 @@
     "SizingMode": {
       "type": "string",
       "enum": ["hug", "fill", "fixed"],
-      "default": "hug",
-      "description": "Sizing behavior along one axis. 'hug' sizes to content (default). 'fill' stretches to parent available space. 'fixed' uses the explicit width/height value."
+      "description": "Sizing behavior along one axis. 'hug' sizes to content. 'fill' stretches to parent available space. 'fixed' uses the explicit width/height value. The correct value depends on whether width/height is also set, so there is no static schema default; an absent value means the server made no instruction and the client falls back to its platform-native intrinsic sizing rule."
     },
     "ImageFit": {
       "type": "string",
@@ -104,8 +103,8 @@
     },
     "ActionTrigger": {
       "type": "string",
-      "description": "Event that fires the action. Prefer onActivate for primary activation (tap, keyboard Enter/Space, accessibility activate). onTap is a deprecated alias for onActivate.",
-      "enum": ["onActivate", "onTap", "onLongPress", "onVisible", "onSwipe", "onFocus", "onBlur", "onSubmit"]
+      "description": "Event that fires the action. onActivate is the primary activation trigger and covers tap, keyboard Enter/Space, and accessibility activate uniformly across platforms.",
+      "enum": ["onActivate", "onLongPress", "onVisible", "onSwipe", "onFocus", "onBlur", "onSubmit"]
     },
     "ActionType": {
       "type": "string",
@@ -529,8 +528,7 @@
         "gap": { "$ref": "#/definitions/LayoutScalar", "description": "Gap between flex children (row/column), or grid gap where applicable." },
         "padding": { "$ref": "#/definitions/Spacing", "description": "Inner space between the element's own background/border and its content." },
         "margin": { "$ref": "#/definitions/Spacing", "description": "Outer space between the element and its siblings or parent edges. Applied outside the element's background, border, corner radius, and shadow — use this for sibling-to-sibling spacing instead of Spacer siblings when inhomogeneous gaps are needed." },
-        "background": { "$ref": "#/definitions/Background", "description": "DEPRECATED — use backgrounds (array) for new payloads. Single background. If both background and backgrounds are present, backgrounds wins." },
-        "backgrounds": { "type": "array", "items": { "$ref": "#/definitions/Background" }, "description": "Ordered array of background layers. Index 0 is the bottommost layer (Figma convention); higher indices paint on top. Web renderers must reverse the array when mapping to CSS background shorthand (CSS is top-to-bottom). When absent, falls back to singular background field." },
+        "backgrounds": { "type": "array", "items": { "$ref": "#/definitions/Background" }, "description": "Ordered array of background layers. Index 0 is the bottommost layer (Figma convention); higher indices paint on top. Web renderers must reverse the array when mapping to CSS background shorthand (CSS is top-to-bottom). Single-layer backgrounds ship as a one-element array." },
         "content": { "type": "string" },
         "variant": { "type": "string", "description": "Named variant preset. The vocabulary depends on the element's type: TextVariant for Text, ButtonVariant for Button, ContainerVariant for Container, ImageVariant for Image. Renderers parse this string against the primitive's enum and log a diagnostic on unrecognized values." },
         "weight": { "$ref": "#/definitions/TextWeight" },
@@ -546,7 +544,6 @@
         },
         "fit": { "$ref": "#/definitions/ImageFit" },
         "placeholder": { "type": "string" },
-        "alt": { "type": "string", "description": "Deprecated: use accessibility.label instead. Retained for backward compatibility; clients prefer accessibility.label when present." },
         "width": { "$ref": "#/definitions/LayoutScalar", "description": "Fixed width in dp/px or layout token." },
         "height": { "$ref": "#/definitions/LayoutScalar", "description": "Fixed height in dp/px or layout token." },
         "widthMode": { "$ref": "#/definitions/SizingMode", "description": "Sizing behavior along the width axis. 'hug' = intrinsic, 'fill' = stretch to parent, 'fixed' = use explicit width value." },
@@ -621,8 +618,7 @@
           "additionalProperties": false
         },
         "opacity": { "type": "number", "minimum": 0, "maximum": 1, "default": 1, "description": "Element opacity (0=transparent, 1=opaque). Enables duration badge overlays and faded states." },
-        "shadow": { "$ref": "#/definitions/ShadowOrToken", "description": "DEPRECATED — use shadows (array) for new payloads. Single shadow. If both shadow and shadows are present, shadows wins." },
-        "shadows": { "type": "array", "items": { "$ref": "#/definitions/ShadowOrToken" }, "description": "Ordered array of shadow layers. Index 0 is the outermost shadow (Figma convention); higher indices are closer to the element. Maps directly to CSS box-shadow list order. When absent, falls back to singular shadow field." },
+        "shadows": { "type": "array", "items": { "$ref": "#/definitions/ShadowOrToken" }, "description": "Ordered array of shadow layers. Index 0 is the outermost shadow (Figma convention); higher indices are closer to the element. Maps directly to CSS box-shadow list order. Single-layer shadows ship as a one-element array." },
         "badge": { "$ref": "#/definitions/Badge", "description": "Z-positioned child element (e.g. 'LIVE' pill, duration label) overlaid on this element." },
         "base": { "$ref": "#/definitions/AtomicElement", "description": "OverlayContainer base element. Rendered first and sized by its own atomic box model." },
         "overlays": {
@@ -630,22 +626,22 @@
           "description": "OverlayContainer layers rendered over the base element in server order.",
           "items": { "$ref": "#/definitions/AtomicOverlay" }
         },
-        "textAlign": { "type": "string", "enum": ["start", "center", "end"], "default": "start", "description": "Text alignment within the element. Used for centered headings, right-aligned numeric values." },
+        "textAlign": { "type": "string", "enum": ["start", "center", "end"], "description": "Text alignment within the element. Used for centered headings, right-aligned numeric values. Absent means the server made no instruction; clients fall back to platform-native locale-aware leading alignment." },
         "showIndicators": { "type": "boolean", "default": false, "description": "Whether to show scroll indicators on ScrollContainer. Default false for clean carousel presentation." },
         "pageIndicator": { "$ref": "#/definitions/PageIndicator", "description": "Optional ScrollContainer page indicator. Clients render it only when declared." },
         "monospacedDigits": { "type": "boolean", "default": false, "description": "Use tabular/monospaced digit rendering to prevent layout shift on numeric text changes (scores, clocks)." },
         "snapshotSeconds": { "type": "integer", "minimum": 0, "description": "LiveClock: clock value in seconds at the moment captured by snapshotAt. Clients interpolate from this anchor while isRunning == true. Required when type == 'LiveClock'." },
         "snapshotAt": { "type": "string", "format": "date-time", "description": "LiveClock: wall-clock instant (ISO-8601) at which snapshotSeconds was captured. Clients compute elapsed = now - snapshotAt and derive the displayed value. Required when type == 'LiveClock'." },
         "isRunning": { "type": "boolean", "default": false, "description": "LiveClock: whether the clock is actively ticking. When true, clients run a local tick loop at their platform-native refresh cadence (~10Hz) and update the displayed value. When false, clients render snapshotSeconds verbatim." },
-        "tickDirection": { "type": "string", "enum": ["down", "up"], "default": "down", "description": "LiveClock tick direction. 'down' decrements from snapshotSeconds toward stopAtSeconds (default 0); 'up' increments from snapshotSeconds with no upper bound unless stopAtSeconds is set." },
+        "tickDirection": { "type": "string", "enum": ["down", "up"], "description": "LiveClock tick direction. 'down' decrements from snapshotSeconds toward stopAtSeconds (default 0); 'up' increments from snapshotSeconds with no upper bound unless stopAtSeconds is set. Required on every LiveClock; no static schema default." },
         "stopAtSeconds": { "type": "integer", "description": "LiveClock: optional clamp. For direction 'down', clock holds at this value once reached. For direction 'up', clock holds once reached. Omit to disable the clamp." },
-        "format": { "type": "string", "enum": ["m:ss", "mm:ss", "h:mm:ss"], "default": "m:ss", "description": "LiveClock display format. Clients realize using their platform's tabular-numerals typography (equivalent to TextVariant.score)." },
+        "format": { "type": "string", "enum": ["m:ss", "mm:ss", "h:mm:ss"], "description": "LiveClock display format. Clients realize using their platform's tabular-numerals typography (equivalent to TextVariant.score). Required on every LiveClock; no static schema default." },
         "bindRef": { "type": "string", "description": "Dot-path into the enclosing AtomicComposite's `data.content` object. When set, renderers resolve the leaf's canonical live field from `data.content[bindRef]` at render time and fall back to the inline value when the path is absent. Canonical field per type: Text → content, Button → label, Image → src, LiveClock → an object with {snapshotSeconds, snapshotAt, isRunning}. Placing the binding identifier on the consuming node (rather than in a centrally-declared path-into-tree) lets composers reshape the ui tree without breaking real-time updates; data-bindings on the section envelope continue to write into `content.*`." }
       }
     },
-    "AtomicCompositeData": {
+    "AtomicComposite": {
       "type": "object",
-      "description": "Data payload for AtomicComposite sections — ui contains rendering instructions, content carries domain data",
+      "description": "Component payload for AtomicComposite sections — ui contains rendering instructions, content carries domain data",
       "required": ["ui"],
       "properties": {
         "ui": {
@@ -659,7 +655,7 @@
         }
       }
     },
-    "TabGroupData": {
+    "TabGroup": {
       "type": "object",
       "description": "Tabbed navigation with dynamic content sections per tab. Optional ui is the tab header/control row only; tabContents hosts nested sections. Tab selection uses section.subsections mutate actions.",
       "required": ["tabs"],
@@ -789,7 +785,7 @@
         }
       }
     },
-    "BoxscoreTableData": {
+    "BoxscoreTable": {
       "type": "object",
       "description": "Typed tabular data for an NBA-style boxscore (one per team)",
       "required": ["teamTricode", "teamName", "columns", "players"],
@@ -873,7 +869,7 @@
         }
       }
     },
-    "FormData": {
+    "Form": {
       "type": "object",
       "description": "Server-driven form section with typed fields bound to screen state",
       "required": ["fields", "submitAction"],
@@ -898,7 +894,7 @@
         }
       }
     },
-    "CalendarStripData": {
+    "CalendarStrip": {
       "type": "object",
       "description": "Platform-native horizontal date picker. All ISO date fields are ET-anchored (America/New_York) calendar days (YYYY-MM-DD). defaultDate is the league's current anchor/focus date — typically today in ET during the regular season, but may be a future date during offseason or breaks (e.g. the regular-season opener). Clients display defaultDate as-is and never compare it to device time.",
       "required": ["stateKey", "selectedDate", "defaultDate", "onDateSelected"],
@@ -937,7 +933,7 @@
         }
       }
     },
-    "CalendarMonthListData": {
+    "CalendarMonthList": {
       "type": "object",
       "description": "Vertically-scrollable month-grid calendar with per-date game metadata. All date fields are ET-anchored (America/New_York) ISO YYYY-MM-DD. defaultDate is the league's current anchor date; drives the 'today' visual highlight and the initial scroll position.",
       "required": ["stateKey", "selectedDate", "defaultDate", "onDateSelected"],
@@ -997,7 +993,7 @@
         "id": { "type": "string" },
         "type": {
           "type": "string",
-          "enum": ["TabGroup", "BoxscoreTable", "CalendarStrip", "CalendarMonthList", "Form", "AdSlot", "SeasonLeadersTable", "SubscribeBanner", "SubscribeHero", "AtomicComposite", "VideoPlayer"]
+          "enum": ["TabGroup", "BoxscoreTable", "CalendarStrip", "CalendarMonthList", "Form", "AdSlot", "SeasonLeadersTable", "SubscribeUpsell", "AtomicComposite", "VideoPlayer"]
         },
         "refreshPolicy": { "$ref": "#/definitions/RefreshPolicy" },
         "dataBinding": { "$ref": "#/definitions/DataBinding" },
@@ -1028,22 +1024,46 @@
           "additionalProperties": { "type": "string" }
         },
         "data": {
-          "description": "Section-specific data payload",
-          "oneOf": [
-            { "$ref": "#/definitions/TabGroupData" },
-            { "$ref": "#/definitions/BoxscoreTableData" },
-            { "$ref": "#/definitions/CalendarStripData" },
-            { "$ref": "#/definitions/CalendarMonthListData" },
-            { "$ref": "#/definitions/FormData" },
-            { "$ref": "#/definitions/AdSlotData" },
-            { "$ref": "#/definitions/LeadersTableData" },
-            { "$ref": "#/definitions/SubscribeBannerData" },
-            { "$ref": "#/definitions/SubscribeHeroData" },
-            { "$ref": "#/definitions/AtomicCompositeData" },
-            { "$ref": "#/definitions/VideoPlayerData" }
-          ]
+          "$ref": "#/definitions/SectionData"
         }
-      }
+      },
+      "allOf": [
+        { "if": { "properties": { "type": { "const": "TabGroup" } }, "required": ["type"] },
+          "then": { "properties": { "data": { "$ref": "#/definitions/TabGroup" } } } },
+        { "if": { "properties": { "type": { "const": "BoxscoreTable" } }, "required": ["type"] },
+          "then": { "properties": { "data": { "$ref": "#/definitions/BoxscoreTable" } } } },
+        { "if": { "properties": { "type": { "const": "CalendarStrip" } }, "required": ["type"] },
+          "then": { "properties": { "data": { "$ref": "#/definitions/CalendarStrip" } } } },
+        { "if": { "properties": { "type": { "const": "CalendarMonthList" } }, "required": ["type"] },
+          "then": { "properties": { "data": { "$ref": "#/definitions/CalendarMonthList" } } } },
+        { "if": { "properties": { "type": { "const": "Form" } }, "required": ["type"] },
+          "then": { "properties": { "data": { "$ref": "#/definitions/Form" } } } },
+        { "if": { "properties": { "type": { "const": "AdSlot" } }, "required": ["type"] },
+          "then": { "properties": { "data": { "$ref": "#/definitions/AdSlot" } } } },
+        { "if": { "properties": { "type": { "const": "SeasonLeadersTable" } }, "required": ["type"] },
+          "then": { "properties": { "data": { "$ref": "#/definitions/SeasonLeadersTable" } } } },
+        { "if": { "properties": { "type": { "const": "SubscribeUpsell" } }, "required": ["type"] },
+          "then": { "properties": { "data": { "$ref": "#/definitions/SubscribeUpsell" } } } },
+        { "if": { "properties": { "type": { "const": "AtomicComposite" } }, "required": ["type"] },
+          "then": { "properties": { "data": { "$ref": "#/definitions/AtomicComposite" } } } },
+        { "if": { "properties": { "type": { "const": "VideoPlayer" } }, "required": ["type"] },
+          "then": { "properties": { "data": { "$ref": "#/definitions/VideoPlayer" } } } }
+      ]
+    },
+    "SectionData": {
+      "description": "Section-specific component payload (content + per-component actions + configuration). The variants are listed via anyOf so codegen reaches every component definition; per-variant enforcement is the allOf/if/then chain on Section (discriminated by Section.type). Codegen merges the anyOf members into a single super-shape per platform — every per-component property surfaces as optional on the merged type, which is the shape renderers consume after dispatching on Section.type.",
+      "anyOf": [
+        { "$ref": "#/definitions/TabGroup" },
+        { "$ref": "#/definitions/BoxscoreTable" },
+        { "$ref": "#/definitions/CalendarStrip" },
+        { "$ref": "#/definitions/CalendarMonthList" },
+        { "$ref": "#/definitions/Form" },
+        { "$ref": "#/definitions/AdSlot" },
+        { "$ref": "#/definitions/SeasonLeadersTable" },
+        { "$ref": "#/definitions/SubscribeUpsell" },
+        { "$ref": "#/definitions/AtomicComposite" },
+        { "$ref": "#/definitions/VideoPlayer" }
+      ]
     },
     "SectionSurface": {
       "type": "object",
@@ -1105,7 +1125,7 @@
         }
       }
     },
-    "LeadersTableData": {
+    "SeasonLeadersTable": {
       "type": "object",
       "description": "Sortable, paginated table of season statistical leaders (league-wide)",
       "required": ["columns", "players"],
@@ -1177,36 +1197,21 @@
         }
       }
     },
-    "SubscribeBannerData": {
+    "SubscribeUpsell": {
       "type": "object",
-      "description": "Inline subscription upsell banner. Reserved SDK integration point: the banner's visible chrome is entirely server-composed via `ui` until the platform IAP SDK (StoreKit / Play Billing) lands and starts mounting the purchase flow on CTA tap. `tiers` carries the IAP product identifiers the SDK will later bind to; `ctaAction` is the (pre-SDK) fallback action.",
+      "description": "Subscription upsell. Reserved SDK integration point: the upsell's visible chrome is entirely server-composed via `ui` until the platform IAP SDK (StoreKit / Play Billing) lands and starts mounting the purchase flow on CTA tap. `tiers` carries the IAP product identifiers the SDK will later bind to; `ctaAction` is the optional pre-SDK fallback action. Layout intent (inline banner vs. full-screen hero) is expressed by the inner `ui` atomic tree and the section's outer `surface`, not by component identity.",
       "properties": {
         "ui": {
           "$ref": "#/definitions/AtomicElement",
-          "description": "Atomic tree describing the banner's full visible surface. Renderer walks this tree exactly as an AtomicComposite would; no client-side chrome defaults are permitted. See AGENTS.md §15.1."
+          "description": "Atomic tree describing the upsell's full visible surface — logo, title, subtitle, feature list, tier cards, CTAs. Renderer walks this tree exactly as an AtomicComposite would; no client-side chrome defaults are permitted."
         },
         "ctaAction": {
           "$ref": "#/definitions/Action",
-          "description": "Top-level fallback action invoked when the IAP SDK is not mounted (today, always)."
+          "description": "Optional top-level fallback action invoked when the IAP SDK is not mounted (today, always for inline banner uses; full-screen hero uses typically rely on per-tier CTAs inside `ui`)."
         },
         "tiers": {
           "type": "array",
           "description": "IAP product identifiers + server-emitted prices. Consumed by the IAP SDK when it lands; not used by the renderer, which reads the visible price copy out of `ui`.",
-          "items": { "$ref": "#/definitions/SubscriptionTier" }
-        }
-      }
-    },
-    "SubscribeHeroData": {
-      "type": "object",
-      "description": "Full-screen subscription upsell hero. Reserved SDK integration point — same contract as SubscribeBannerData: `ui` carries the full visible composition; `tiers` carries IAP product identifiers the SDK will bind to post-landing.",
-      "properties": {
-        "ui": {
-          "$ref": "#/definitions/AtomicElement",
-          "description": "Atomic tree describing the hero's full visible surface — logo, title, subtitle, feature list, tier cards, CTAs. Renderer walks this tree exactly as an AtomicComposite would."
-        },
-        "tiers": {
-          "type": "array",
-          "description": "IAP product identifiers + server-emitted prices. Consumed by the IAP SDK when it lands; not used by the renderer.",
           "items": { "$ref": "#/definitions/SubscriptionTier" }
         }
       }
@@ -1228,7 +1233,7 @@
         "ctaAction": { "$ref": "#/definitions/Action" }
       }
     },
-    "AdSlotData": {
+    "AdSlot": {
       "type": "object",
       "description": "Ad placement primitive — carries placement semantics while delegating auction/targeting to ad-platform SDKs (see ADR-007)",
       "required": ["provider", "adUnitPath", "sizes"],
@@ -1280,7 +1285,7 @@
         }
       }
     },
-    "VideoPlayerData": {
+    "VideoPlayer": {
       "type": "object",
       "description": "Video player section — reserved SDK integration point for DRM / HLS / ad insertion. `playerType`, `contentId`, `autoplay`, and `capabilities` are SDK inputs (the video SDK reads them and mounts); `ui` carries the pre-SDK placeholder composition that renders before the SDK is integrated and will serve as the loading/error placeholder afterwards.",
       "required": ["playerType", "contentId"],
@@ -1335,7 +1340,6 @@
           "description": "Legacy headline consumed at composition time to build the first AtomicComposite app-bar section (see prependAppBarHeader). Not rendered from screen.title by clients. Omit on bottom-nav tab destinations."
         },
         "analyticsId": { "type": "string" },
-        "traceId": { "type": "string" },
         "parentUri": {
           "type": "string",
           "description": "URI the back button should navigate to.  Clients always show a back button; this field tells them the target.  Omit for root screens (e.g. scoreboard)."

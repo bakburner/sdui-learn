@@ -1,5 +1,7 @@
 package com.nba.sdui.service;
 
+import com.nba.sdui.testsupport.TestTokens;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -10,6 +12,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import com.nba.sdui.domain.SduiUtils;
+import com.nba.sdui.domain.SectionIdDeriver;
+import com.nba.sdui.domain.SectionSurfaces;
+import com.nba.sdui.domain.composer.ForYouComposer;
+import com.nba.sdui.orchestration.SectionRefreshService;
+import com.nba.sdui.remote.SeasonCalendarService;
+import com.nba.sdui.remote.StatsApiAdapter;
+import com.nba.sdui.remote.StatsApiClient;
 
 /**
  * Integration test for section ID derivation in ForYouComposer.
@@ -19,20 +29,20 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ForYouSectionIdDerivationTest {
 
     private ForYouComposer composer;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @BeforeEach
     void setUp() {
-        ObjectMapper om = new ObjectMapper();
-        StatsApiClient statsApiClient = new StatsApiClient(om, new SeasonCalendarService());
-        SduiUtils utils = new SduiUtils(om);
-        SectionSurfaces surfaces = new SectionSurfaces(om, utils);
-        composer = new ForYouComposer(om, statsApiClient, utils, surfaces,
+        StatsApiClient statsApiClient = new StatsApiClient(objectMapper, new SeasonCalendarService());
+        SduiUtils utils = new SduiUtils(objectMapper, TestTokens.INSTANCE);
+        SectionSurfaces surfaces = new SectionSurfaces(objectMapper, utils, TestTokens.INSTANCE);
+        composer = new ForYouComposer(new StatsApiAdapter(statsApiClient), utils, surfaces, TestTokens.INSTANCE,
                 new SectionRefreshService());
     }
 
     @Test
     void allSectionsHaveContentSourceId() {
-        JsonNode response = composer.composeForYou("test-trace-id", "en");
+        JsonNode response = objectMapper.valueToTree(composer.composeForYou("test-trace-id", "en"));
 
         ArrayNode sections = (ArrayNode) response.get("sections");
         assertNotNull(sections, "Response must have sections");
@@ -51,49 +61,51 @@ class ForYouSectionIdDerivationTest {
 
     @Test
     void sectionIdsContainContentSourceId() {
-        JsonNode response = composer.composeForYou("test-trace-id", "en");
+        JsonNode response = objectMapper.valueToTree(composer.composeForYou("test-trace-id", "en"));
 
         ArrayNode sections = (ArrayNode) response.get("sections");
         for (JsonNode section : sections) {
             String sectionId = section.path("id").asText("");
             String contentSourceId = section.path("contentSourceId").asText("");
+            String sanitizedSource = SectionIdDeriver.sanitizeSource(contentSourceId);
 
-            assertTrue(sectionId.contains(contentSourceId),
-                    "Section id '" + sectionId + "' must contain its contentSourceId '" + contentSourceId + "'");
+            assertTrue(sectionId.startsWith(sanitizedSource + "__"),
+                    "Section id '" + sectionId + "' must begin with sanitized contentSourceId '"
+                            + sanitizedSource + "' (raw='" + contentSourceId + "')");
         }
     }
 
     @Test
     void sectionIdsContainSeparator() {
-        JsonNode response = composer.composeForYou("test-trace-id", "en");
+        JsonNode response = objectMapper.valueToTree(composer.composeForYou("test-trace-id", "en"));
 
         ArrayNode sections = (ArrayNode) response.get("sections");
         for (JsonNode section : sections) {
             String sectionId = section.path("id").asText("");
             assertTrue(SectionIdDeriver.isDerived(sectionId),
-                    "Section id '" + sectionId + "' must use '~type=' derived format");
+                    "Section id '" + sectionId + "' must use '__type-' derived format");
         }
     }
 
     @Test
     void noPositionalComponentsInIds() {
-        JsonNode response = composer.composeForYou("test-trace-id", "en");
+        JsonNode response = objectMapper.valueToTree(composer.composeForYou("test-trace-id", "en"));
 
         ArrayNode sections = (ArrayNode) response.get("sections");
         for (JsonNode section : sections) {
             String sectionId = section.path("id").asText("");
-            assertFalse(sectionId.matches(".*~slug=\\d+$"),
+            assertFalse(sectionId.matches(".*__slug-\\d+$"),
                     "Section id '" + sectionId + "' must not use positional indices as slug");
         }
     }
 
     @Test
     void stampStringTableAppliesDefaultContentInsets() {
-        JsonNode response = composer.composeForYou("test-trace-id", "en");
+        JsonNode response = objectMapper.valueToTree(composer.composeForYou("test-trace-id", "en"));
         JsonNode insets = response.get("contentInsets");
         assertNotNull(insets, "Screen must carry server-owned contentInsets");
-        assertEquals(LayoutTokens.SPACING_MD, insets.path("start").asText());
-        assertEquals(LayoutTokens.SPACING_MD, insets.path("end").asText());
-        assertEquals(LayoutTokens.SPACING_LG, insets.path("bottom").asText());
+        assertEquals(TestTokens.INSTANCE.spacing("md"), insets.path("start").asText());
+        assertEquals(TestTokens.INSTANCE.spacing("md"), insets.path("end").asText());
+        assertEquals(TestTokens.INSTANCE.spacing("lg"), insets.path("bottom").asText());
     }
 }

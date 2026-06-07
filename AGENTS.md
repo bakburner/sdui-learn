@@ -69,6 +69,38 @@ The lower rule never weakens the higher one.
 - **Forbidden:** editing the files above to “patch” types or enums without
   changing `schema/sdui-schema.json` and re-running the full generate step.
 
+#### Transport-framing exception
+
+The wire body is wrapped in a hand-written
+`ResponseEnvelope<T>(T data, ResponseMeta meta)` at the SDUI controller edge.
+`ResponseEnvelope` and `ResponseMeta` live in server code
+(`com.nba.sdui.controller`); they are **not** part of
+`schema/sdui-schema.json` and are **not** produced by codegen. Each client
+mirrors this with a hand-written `{data, meta}` wrapper that decodes
+`.data` as the schema-bound payload and decodes-but-ignores `.meta` for
+now (real freshness metadata lands in a later phase).
+
+- **Rationale.** The schema describes the composed UI tree; transport
+  framing (correlation, partial-failure metadata, staleness flags)
+  evolves on a different cadence than UI semantics. Keeping it out of
+  the schema avoids forcing every UI iteration to drag transport edits,
+  and keeps codegen output focused on UI types.
+- **Scope of the exception (what it permits).** Exactly one outer
+  `{data, meta}` wrapper at the controller edge, plus the
+  `ResponseMeta` shape itself. `ResponseMeta` is schema-shaped in the
+  hand-written wrapper (currently `degraded`, `staleSections`,
+  `failedSections`); it is just not codegen-driven.
+- **Anti-scope (what it forbids).**
+  - No nested envelopes — exactly one outer `{data, meta}`, period.
+  - No per-section frames — sections live inside `data` and remain
+    100% schema-bound.
+  - No ad-hoc fields outside `meta`. Any new wire-framing field rides
+    in `meta`; anywhere else is a schema change.
+  - The exception applies to the outermost transport wrapper only.
+    Anything inside `.data` IS schema-bound and codegen-driven.
+- **References.** ADR-017 (Transport-framing exception); see also
+  `docs/specs/sdui-envelope-spec.md`.
+
 ### 1.3 Strict decoding is intentional
 
 - Clients decode strictly on purpose.
@@ -357,7 +389,7 @@ shared envelope builder (`RequestEnvelopeBuilder` on each platform) and the
 single fetch primitive in `SduiRepository`. This contract is non-negotiable
 because it is what makes GET requests cacheable on the CDN, makes POST
 requests interchangeable with GET requests on the server, and makes
-`X-Trace-Id` correlation across screens, sections, and refreshes possible
+`X-Correlation-ID` correlation across screens, sections, and refreshes possible
 at all.
 
 The contract:
@@ -382,9 +414,10 @@ The contract:
 - **Deterministic key ordering.** User params are sorted by key; envelope
   ordering is fixed by the builder. Identical inputs produce byte-identical
   URLs across platforms and across runs — the CDN cache key depends on it.
-- **`X-Trace-Id` propagates from the parent fetch.** A parameterized
-  refresh inherits its screen's trace ID so server logs correlate the
-  refresh response with the screen that triggered it.
+- **`X-Correlation-ID` propagates from the parent fetch.** A parameterized
+  refresh inherits its screen's correlation ID so server logs correlate the
+  refresh response with the screen that triggered it. Correlation rides
+  on the response header only; there is no body-level `traceId` field.
 
 Every server route that accepts an SDUI envelope must be dual-mounted as
 `@GetMapping` *and* `@PostMapping` to the same handler. A GET-only or

@@ -80,15 +80,31 @@ public class BracketParamResolver implements HandlerMethodArgumentResolver {
     }
 
     /**
-     * During transition: accept deprecated headers as fallback if query params are absent.
+     * Populate header-derived fields on the context.
+     *
+     * <p>Correlation: SAF's {@code CorrelationIdFilter} runs before this resolver
+     * and is the single source of truth — it reads {@code X-Correlation-ID},
+     * generates one if absent or malformed, puts it on MDC under {@code correlationId},
+     * and echoes it on the response header. We mirror it onto the request context
+     * so composers and downstream services share the same ID. The legacy
+     * {@code X-Trace-Id} header is observed and warned about for the transition
+     * window but does <em>not</em> override SAF's value.
      */
     private void applyHeaderFallbacks(SduiRequestContext ctx, NativeWebRequest webRequest) {
-        // X-Trace-Id → traceId
+        if (webRequest.getHeader("X-Trace-Id") != null
+                && webRequest.getHeader("X-Correlation-ID") == null) {
+            log.warn("Deprecated X-Trace-Id header received; switch to X-Correlation-ID");
+        }
         if (ctx.getTraceId() == null) {
-            String headerTraceId = webRequest.getHeader("X-Trace-Id");
-            if (headerTraceId != null) {
-                ctx.setTraceId(headerTraceId);
+            String correlationId = webRequest.getHeader("X-Correlation-ID");
+            if (correlationId == null) {
+                correlationId = com.nba.saf.filter.CorrelationIdFilter.getCorrelationId();
             }
+            if (correlationId == null) {
+                // Defensive: SAF's filter may not be on the chain in tests / non-MVC contexts.
+                correlationId = java.util.UUID.randomUUID().toString();
+            }
+            ctx.setTraceId(correlationId);
         }
 
         // X-Request-Id — added to MDC for request-level log correlation and dedup

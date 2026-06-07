@@ -2,7 +2,8 @@
 	dev-android dev-android-local dev-android-remote _dev-android \
 	dev-ios-local dev-ios-remote ios-run-local ios-run-remote _dev-ios \
 	dev-all codegen server-test android-test web-test test \
-	lint-sdui-warn \
+	lint-sdui-warn publish-saf sync-saf \
+	run-redis stop-redis logs-redis \
 	stop stop-server stop-web stop-android \
 	ios-test ios-test-clean ios-build ios-demo-project ios-run ios-run-max ios-stop ios-fixtures-sync ios-sim-preflight
 
@@ -67,6 +68,38 @@ codegen:
 	@cd codegen && ./gradlew generateJsonSchema2Pojo
 	@echo "=== Codegen complete ==="
 
+# ── SAF (service-aggregation-framework) ──────────────────────
+# SAF is consumed from Maven Local for local dev (~/.m2) and from the
+# project-local .m2/repository/ for Docker builds (so the build context is
+# self-contained, no host-mount required). Mirrors the nba-client-backend
+# pattern.
+#   publish-saf : build SAF from its sibling repo and install to ~/.m2
+#   sync-saf    : publish-saf, then copy SAF into <repo>/.m2/repository/
+#                 for the Docker build context
+SAF_REPO ?= $(HOME)/Projects/service-aggregation-framework
+
+publish-saf:
+	@echo "=== Publishing SAF to Maven Local from $(SAF_REPO) ==="
+	@if [ ! -d "$(SAF_REPO)" ]; then \
+		echo "ERROR: SAF_REPO=$(SAF_REPO) does not exist."; \
+		echo "Override: make publish-saf SAF_REPO=/path/to/service-aggregation-framework"; \
+		exit 1; \
+	fi
+	@cd $(SAF_REPO) && ./gradlew publishToMavenLocal
+	@echo "=== SAF published ==="
+
+sync-saf: publish-saf
+	@echo "=== Syncing SAF from ~/.m2 to project-local .m2/ (Docker build context) ==="
+	@mkdir -p .m2/repository/com/nba
+	@if [ -d $(HOME)/.m2/repository/com/nba/service-aggregation-framework ]; then \
+		rm -rf .m2/repository/com/nba/service-aggregation-framework; \
+		cp -r $(HOME)/.m2/repository/com/nba/service-aggregation-framework .m2/repository/com/nba/; \
+		echo "✓ SAF synced to .m2/repository/com/nba/service-aggregation-framework"; \
+	else \
+		echo "✗ SAF not found in ~/.m2 - run 'make publish-saf' first"; \
+		exit 1; \
+	fi
+
 server-test:
 	@echo "=== Running server tests ==="
 	@cd server && ./gradlew test
@@ -113,8 +146,29 @@ dev:
 	@echo "Waiting 5s for server to start..."
 
 
-dev-server:
+dev-server: run-redis
 	cd server && ./gradlew bootRun
+
+# ── Local infrastructure (Redis) ─────────────────────────────
+# The SDUI server requires Redis on boot (SAF L2 cache + L1 invalidation
+# pub/sub). `run-redis` starts a single container in the background and is
+# idempotent; `dev-server` depends on it. Mirrors nba-client-backend's
+# `run-redis` target.
+.PHONY: run-redis stop-redis logs-redis
+
+run-redis:
+	@if [ -n "$$(docker ps -q -f name=^sdui-redis$$)" ]; then \
+		echo "✓ sdui-redis already running"; \
+	else \
+		echo "=== Starting sdui-redis (localhost:6379) ==="; \
+		docker compose -f docker-compose.local-infra.yml up -d redis; \
+	fi
+
+stop-redis:
+	docker compose -f docker-compose.local-infra.yml down
+
+logs-redis:
+	docker compose -f docker-compose.local-infra.yml logs -f redis
 
 dev-web: dev-web-remote
 
@@ -124,11 +178,11 @@ dev-web-local:
 		echo "         run 'make dev-server' in another terminal first"; \
 	fi
 	@echo "=== Starting web against local SDUI server: $(SDUI_WEB_LOCAL_SERVER) ==="
-	@osascript -e 'tell application "Terminal" to do script "cd \"$(PWD)/web\" && SDUI_SERVER=$(SDUI_WEB_LOCAL_SERVER) npm run dev"' >/dev/null
+	cd web && SDUI_SERVER=$(SDUI_WEB_LOCAL_SERVER) npm run dev
 
 dev-web-remote:
 	@echo "=== Starting web against remote SDUI server: $(SDUI_WEB_REMOTE_SERVER) ==="
-	@osascript -e 'tell application "Terminal" to do script "cd \"$(PWD)/web\" && SDUI_SERVER=$(SDUI_WEB_REMOTE_SERVER) npm run dev"' >/dev/null
+	cd web && SDUI_SERVER=$(SDUI_WEB_REMOTE_SERVER) npm run dev
 
 # ── Android (auto-launches emulator if none connected) ───────
 dev-android: dev-android-remote

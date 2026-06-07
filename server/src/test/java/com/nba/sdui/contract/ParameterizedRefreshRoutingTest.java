@@ -4,9 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.nba.sdui.controller.SduiController;
 import com.nba.sdui.request.SduiRequestContext;
-import com.nba.sdui.service.ParameterizedRefreshService;
-import com.nba.sdui.service.SduiCompositionService;
-import com.nba.sdui.service.SectionRefreshService;
+import com.nba.sdui.orchestration.ParameterizedRefreshService;
+import com.nba.sdui.orchestration.SduiCompositionService;
+import com.nba.sdui.orchestration.SectionRefreshService;
 import com.nba.sdui.versioning.SchemaVersionChecker;
 import com.nba.sdui.versioning.SchemaVersionConfig;
 import com.nba.sdui.versioning.SchemaVersionFilter;
@@ -34,7 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * called without params, the regular composer entry point is used.
  */
 @WebMvcTest(SduiController.class)
-@Import({SchemaVersionChecker.class, SchemaVersionConfig.class, SchemaVersionFilter.class, SchemaVersionRegistry.class})
+@Import({SchemaVersionChecker.class, SchemaVersionConfig.class, SchemaVersionFilter.class, SchemaVersionRegistry.class, com.nba.sdui.metrics.SduiMetrics.class})
 class ParameterizedRefreshRoutingTest {
 
     @Autowired
@@ -56,17 +56,21 @@ class ParameterizedRefreshRoutingTest {
     void setUp() throws Exception {
         ObjectNode gamesScreen = (ObjectNode) objectMapper.readTree(
                 "{\"id\":\"games\",\"schemaVersion\":\"1.0\",\"sections\":[]}");
+        com.nba.sdui.models.generated.Screen gamesScreenTyped =
+                objectMapper.treeToValue(gamesScreen, com.nba.sdui.models.generated.Screen.class);
         when(compositionService.composeLive(any(SduiRequestContext.class)))
-                .thenReturn(gamesScreen);
+                .thenReturn(gamesScreenTyped);
         when(parameterizedRefreshService.refreshScreen(eq("games"), anyString(), any(), any()))
-                .thenReturn(Optional.of(gamesScreen));
+                .thenReturn(Optional.of(gamesScreenTyped));
 
         ObjectNode leadersScreen = (ObjectNode) objectMapper.readTree(
                 "{\"id\":\"leaders\",\"schemaVersion\":\"1.0\",\"sections\":[]}");
+        com.nba.sdui.models.generated.Screen leadersScreenTyped =
+                objectMapper.treeToValue(leadersScreen, com.nba.sdui.models.generated.Screen.class);
         when(compositionService.composeLeaders(any(SduiRequestContext.class)))
-                .thenReturn(leadersScreen);
+                .thenReturn(leadersScreenTyped);
         when(parameterizedRefreshService.refreshScreen(eq("leaders"), anyString(), any(), any()))
-                .thenReturn(Optional.of(leadersScreen));
+                .thenReturn(Optional.of(leadersScreenTyped));
     }
 
     @Test

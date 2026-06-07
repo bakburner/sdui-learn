@@ -60,19 +60,12 @@
                   "crossAlignment": "center",
                   "width": 160,
                   "gap": 10,
-                  "background": "token:nba.bg.secondary",
                   "cornerRadius": 14,
                   "padding": {
                     "top": 14,
                     "bottom": 18,
                     "start": 14,
                     "end": "token:nba.spacing.lg"
-                  },
-                  "shadow": {
-                    "color": "#00000014",
-                    "radius": 4,
-                    "offsetX": 0,
-                    "offsetY": 2
                   },
                   "actions": [
                     {
@@ -97,6 +90,17 @@
                       "weight": "semiBold",
                       "color": "token:nba.label.primary",
                       "maxLines": 2
+                    }
+                  ],
+                  "backgrounds": [
+                    "token:nba.bg.secondary"
+                  ],
+                  "shadows": [
+                    {
+                      "color": "#00000014",
+                      "radius": 4,
+                      "offsetX": 0,
+                      "offsetY": 2
                     }
                   ]
                 }

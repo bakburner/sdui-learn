@@ -72,7 +72,7 @@ fun AtomicButton(
             }
 
         val inlineTextColor = ColorTokenResolver.resolve(element.color).takeIf { it != Color.Unspecified }
-        val inlineBgColor = (element.background as? BackgroundUnion.StringValue)?.value?.let {
+        val inlineBgColor = (element.backgrounds?.firstOrNull() as? BackgroundUnion.StringValue)?.value?.let {
             ColorTokenResolver.resolve(it).takeIf { c -> c != Color.Unspecified }
         }
 

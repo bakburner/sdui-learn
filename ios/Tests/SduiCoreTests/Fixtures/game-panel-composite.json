@@ -212,14 +212,16 @@
               "variant": "labelSmall",
               "fontWeight": "bold",
               "color": "#FFFFFF",
-              "background": "#E03131",
               "cornerRadius": "token:nba.radius.sm",
               "padding": {
                 "top": "token:nba.spacing.xs",
                 "bottom": "token:nba.spacing.xs",
                 "start": "token:nba.spacing.sm",
                 "end": "token:nba.spacing.sm"
-              }
+              },
+              "backgrounds": [
+                "#E03131"
+              ]
             },
             {
               "type": "Spacer",

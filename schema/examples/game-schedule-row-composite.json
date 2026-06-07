@@ -28,19 +28,12 @@
               "direction": "column",
               "crossAlignment": "stretch",
               "gap": 10,
-              "background": "token:nba.bg.secondary",
               "cornerRadius": "token:nba.radius.md",
               "padding": {
                 "top": "token:nba.spacing.lg",
                 "bottom": "token:nba.spacing.lg",
                 "start": "token:nba.spacing.lg",
                 "end": "token:nba.spacing.lg"
-              },
-              "shadow": {
-                "color": "#00000014",
-                "radius": 4,
-                "offsetX": 0,
-                "offsetY": 2
               },
               "actions": [
                 {
@@ -166,6 +159,17 @@
                     }
                   ],
                   "widthMode": "fill"
+                }
+              ],
+              "backgrounds": [
+                "token:nba.bg.secondary"
+              ],
+              "shadows": [
+                {
+                  "color": "#00000014",
+                  "radius": 4,
+                  "offsetX": 0,
+                  "offsetY": 2
                 }
               ]
             }

@@ -16,9 +16,10 @@ interface UseRefreshPolicyOptions {
   onStalenessChange?: (sectionId: string, isStale: boolean) => void;
   onUpgradeRequired?: () => void;
   enabled?: boolean;
-  /** Screen-level trace ID — propagated to section endpoint fetches so server
-   *  logs can correlate the refresh response with its parent screen (§4.1.1). */
-  traceId?: string;
+  /** Screen-level correlation ID — propagated to section endpoint fetches so
+   *  server logs can correlate the refresh response with its parent screen
+   *  (§4.1.1). Sent on the wire as `X-Correlation-ID`. */
+  correlationId?: string;
 }
 
 /**
@@ -38,7 +39,7 @@ export function useRefreshPolicy(options: UseRefreshPolicyOptions): void {
     onStalenessChange,
     onUpgradeRequired,
     enabled = true,
-    traceId,
+    correlationId,
   } = options;
   const timeoutRef = useRef<number | null>(null);
   const pollFailureCount = useRef(0);
@@ -61,7 +62,7 @@ export function useRefreshPolicy(options: UseRefreshPolicyOptions): void {
 
     if (sectionEndpoint) {
       try {
-        const section = await fetchSduiSection({ endpoint: sectionEndpoint, traceId });
+        const section = await fetchSduiSection({ endpoint: sectionEndpoint, correlationId });
         onSectionReplace?.(section);
         return true;
       } catch (err) {
@@ -98,7 +99,7 @@ export function useRefreshPolicy(options: UseRefreshPolicyOptions): void {
       console.error(`[RefreshPolicy] Poll failed for ${sectionId}:`, err);
       return false;
     }
-  }, [sectionId, policy, onUpdate, onSectionReplace, onSectionGone, traceId]);
+  }, [sectionId, policy, onUpdate, onSectionReplace, onSectionGone, correlationId]);
 
   // Poll with exponential backoff
   useEffect(() => {

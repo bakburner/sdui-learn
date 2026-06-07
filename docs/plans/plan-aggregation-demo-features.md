@@ -26,7 +26,7 @@ automated tests, and safe to ship behind a feature flag.
 | Multi-column layout | Partial | Schema supports `Container[direction=row]` + `SectionSlot`; no form-factor branching in composers |
 | Per-feed version negotiation | Partial | `schemaVersion` in envelope/response; server always returns latest (see `server/plan-schema-versioning.md`) |
 | Translation resolution stub | Built | `SduiUtils.stampStringTableOnSections()` resolves locale → fully resolved strings; static map backing |
-| Pagination cursor | Gap | `LeadersTableData` has numeric `page`/`pageSize`/`totalRows`; no opaque cursor |
+| Pagination cursor | Gap | `SeasonLeadersTable` has numeric `page`/`pageSize`/`totalRows`; no opaque cursor |
 | Analytics attribution | Partial | `analyticsId` on sections; `fireAndForget` actions with `params`; `contentSourceId` field present (Feature 7 automates impression action attachment) |
 
 ## Requirements Addressed
@@ -437,7 +437,7 @@ action.
 ### Tasks
 
 #### Phase 1: Schema & Codegen
-- [ ] Add `nextCursor` and `previousCursor` to `LeadersTableData` in `schema/sdui-schema.json`:
+- [ ] Add `nextCursor` and `previousCursor` to `SeasonLeadersTable` in `schema/sdui-schema.json`:
   ```json
   "nextCursor": {
     "type": "string",

@@ -177,10 +177,12 @@ export class RequestEnvelopeBuilder {
   }
 
   /**
-   * Generate a trace ID for this request.
+   * Generate a correlation ID for this request. Sent on the wire as the
+   * `X-Correlation-ID` header; the server echoes it back so client logs and
+   * server logs join on the same identifier.
    */
-  static generateTraceId(): string {
-    return `trace-${crypto.randomUUID().substring(0, 8)}`;
+  static generateCorrelationId(): string {
+    return `corr-${crypto.randomUUID().substring(0, 8)}`;
   }
 
   /** Returns the deviceId for use as the X-Device-Id header value. */

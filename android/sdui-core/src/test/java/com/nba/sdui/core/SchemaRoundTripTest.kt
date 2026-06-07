@@ -1,7 +1,7 @@
 package com.nba.sdui.core
 
 import com.fasterxml.jackson.databind.JsonNode
-import com.nba.sdui.core.models.generated.SduiModels
+import com.nba.sdui.core.models.generated.Screen
 import com.nba.sdui.core.models.generated.mapper
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -27,7 +27,7 @@ class SchemaRoundTripTest {
         for (fixture in fixtures) {
             val originalTree = mapper.readTree(fixture)
             if (isScreenPayload(originalTree)) {
-                val model = mapper.readValue(fixture, SduiModels::class.java)
+                val model = mapper.readValue(fixture, Screen::class.java)
                 val roundTripTree = mapper.readTree(mapper.writeValueAsString(model))
                 assertJsonEquals(fixture.name, originalTree, roundTripTree)
             } else {

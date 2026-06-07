@@ -442,12 +442,17 @@ class SduiScreenControllerTest {
         val request = chain.request()
         sink.add(request)
         val response = responseFor(request)
+        // Successful SDUI bodies are wrapped in the {data, meta} transport
+        // envelope on the wire. The fixture JSON in this file declares the
+        // payload shape; this interceptor wraps it so each test fixture
+        // stays focused on the Screen/Section it cares about.
+        val wireBody = if (response.code in 200..299) wrapEnvelope(response.body) else response.body
         val builder = Response.Builder()
             .request(request)
             .protocol(Protocol.HTTP_1_1)
             .code(response.code)
             .message(response.message)
-            .body(response.body.toResponseBody("application/json".toMediaType()))
+            .body(wireBody.toResponseBody("application/json".toMediaType()))
 
         response.headers.forEach { (name, value) ->
             builder.header(name, value)
@@ -455,6 +460,9 @@ class SduiScreenControllerTest {
 
         builder.build()
     }
+
+    private fun wrapEnvelope(payload: String): String =
+        """{"data":${payload.trim()},"meta":{"degraded":false,"staleSections":[],"failedSections":[]}}"""
 
     companion object {
         private const val SCREEN_PATH = "/v1/sdui/screen/test-screen"

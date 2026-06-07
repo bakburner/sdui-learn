@@ -39,7 +39,7 @@ No featured/hero card. No mock placeholder cards in either path.
 
 ```json
 {
-  "id": "server:games-calendar~type=CalendarStrip",
+  "id": "server-games-calendar__type-CalendarStrip",
   "type": "CalendarStrip",
   "contentSourceId": "server:games-calendar",
   "analyticsId": "games_calendar_strip",
@@ -139,10 +139,10 @@ load-bearing — the merge-by-id refresh contract in §9 depends on it.
 
 Examples:
 
-- `server:games-calendar~type=CalendarStrip`
-- `stats-api:live-games~type=GameScheduleList`
-- `stats-api:scoreboard~type=GameScheduleList~slug=upcoming-games`
-- `stats-api:scoreboard~type=GameScheduleList~slug=final-games`
+- `server-games-calendar__type-CalendarStrip`
+- `stats-api-live-games__type-GameScheduleList`
+- `stats-api-scoreboard__type-GameScheduleList__slug-upcomingGames`
+- `stats-api-scoreboard__type-GameScheduleList__slug-finalGames`
 
 The id does not change when a section's content changes (e.g. 0 games vs 5
 games). It also does not change between today's view and another date's

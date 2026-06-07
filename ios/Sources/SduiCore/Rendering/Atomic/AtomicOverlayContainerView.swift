@@ -17,6 +17,11 @@ struct AtomicOverlayContainerView: View {
                         ZStack {
                             ForEach(Array((element.overlays ?? []).enumerated()), id: \.offset) { _, overlay in
                                 overlayLayer(overlay)
+                                    .frame(
+                                        maxWidth: .infinity,
+                                        maxHeight: .infinity,
+                                        alignment: swiftUIAlignment(for: overlay.alignment)
+                                    )
                             }
                         }
                     }
@@ -37,22 +42,13 @@ struct AtomicOverlayContainerView: View {
         let el = overlay.element
         let fillWidth = el.widthMode == .fill
         let fillHeight = el.heightMode == .fill
-        let stretchToBase = fillWidth || fillHeight
 
-        ZStack(alignment: swiftUIAlignment(for: overlay.alignment)) {
-            if stretchToBase {
-                Color.clear
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-            AtomicRouter(element: el, screenState: screenState, onAction: onAction, depth: depth)
-                .frame(
-                    maxWidth: fillWidth ? .infinity : nil,
-                    maxHeight: fillHeight ? .infinity : nil,
-                    alignment: swiftUIAlignment(for: overlay.alignment)
-                )
-        }
-        .frame(maxWidth: stretchToBase ? .infinity : nil, maxHeight: stretchToBase ? .infinity : nil)
-        .padding(edgeInsets(from: overlay.inset))
+        AtomicRouter(element: el, screenState: screenState, onAction: onAction, depth: depth)
+            .frame(
+                maxWidth: fillWidth ? .infinity : nil,
+                maxHeight: fillHeight ? .infinity : nil
+            )
+            .padding(edgeInsets(from: overlay.inset))
     }
 
     private func swiftUIAlignment(for alignment: BadgeAlignment?) -> SwiftUI.Alignment {

@@ -63,15 +63,18 @@ function AtomicButtonInner({ element, onAction }: AtomicProps): React.ReactEleme
     }
   }
   const resolvedColor = resolveColor(element.color);
-  // `background` is a token-or-struct union: a string (token ref or raw color)
-  // or an object with `color` / gradient `colors`. The `in` operator throws
-  // on primitives, so narrow to object first.
+  // `backgrounds` is an array of token-or-struct values: each entry is a
+  // string (token ref or raw color) or an object with `color` / gradient
+  // `colors`. Buttons consume only the bottommost layer for the solid
+  // background-color hint; multi-layer backgrounds aren't meaningful here.
   let resolvedBg: string | undefined;
-  const bg = element.background as unknown;
-  if (typeof bg === 'string') {
-    resolvedBg = resolveColor(bg);
-  } else if (bg && typeof bg === 'object' && 'color' in (bg as Record<string, unknown>)) {
-    resolvedBg = resolveColor((bg as Record<string, unknown>).color as string);
+  const firstBg = element.backgrounds && element.backgrounds.length > 0
+    ? (element.backgrounds[0] as unknown)
+    : undefined;
+  if (typeof firstBg === 'string') {
+    resolvedBg = resolveColor(firstBg);
+  } else if (firstBg && typeof firstBg === 'object' && 'color' in (firstBg as Record<string, unknown>)) {
+    resolvedBg = resolveColor((firstBg as Record<string, unknown>).color as string);
   }
   const isTextLike = resolvedVariant === 'text' || resolvedVariant === 'tertiary';
   const buttonStyle: React.CSSProperties = {

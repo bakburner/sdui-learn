@@ -1,11 +1,12 @@
 package com.nba.sdui.contract;
 
+import com.nba.sdui.testsupport.TestTokens;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.nba.sdui.request.SduiRequestContext;
-import com.nba.sdui.service.*;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -21,6 +22,15 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import com.nba.sdui.domain.SduiUtils;
+import com.nba.sdui.domain.SectionSurfaces;
+import com.nba.sdui.domain.composer.DemoScreenComposer;
+import com.nba.sdui.domain.composer.LiveComposer;
+import com.nba.sdui.orchestration.ParameterizedRefreshService;
+import com.nba.sdui.orchestration.SectionRefreshService;
+import com.nba.sdui.remote.SeasonCalendarService;
+import com.nba.sdui.remote.StatsApiAdapter;
+import com.nba.sdui.remote.StatsApiClient;
 
 /**
  * Composer round-trip tests: fetch a screen with a parameter, extract the
@@ -50,20 +60,20 @@ class ComposerRoundTripTest {
         when(statsApiClient.getScoreboard()).thenReturn(emptyScoreboard);
         when(statsApiClient.getScoreboardForDate(any())).thenReturn(emptyScoreboard);
 
-        SduiUtils utils = new SduiUtils(objectMapper);
-        SectionSurfaces surfaces = new SectionSurfaces(objectMapper, utils);
+        SduiUtils utils = new SduiUtils(objectMapper, TestTokens.INSTANCE);
+        SectionSurfaces surfaces = new SectionSurfaces(objectMapper, utils, TestTokens.INSTANCE);
         SectionRefreshService sectionRefreshService = new SectionRefreshService();
         SeasonCalendarService seasonCalendarService = new SeasonCalendarService();
         ReflectionTestUtils.setField(seasonCalendarService, "clock", clock);
 
         liveComposer = new LiveComposer(
-                objectMapper, statsApiClient, utils, surfaces,
+                new StatsApiAdapter(statsApiClient), utils, surfaces, TestTokens.INSTANCE,
                 sectionRefreshService, parameterizedRefreshService, seasonCalendarService);
         ReflectionTestUtils.setField(liveComposer, "schemaVersion", "1.0");
         ReflectionTestUtils.invokeMethod(liveComposer, "registerResolvers");
 
         demoScreenComposer = new DemoScreenComposer(
-                objectMapper, utils, surfaces, parameterizedRefreshService);
+                utils, surfaces, TestTokens.INSTANCE, parameterizedRefreshService);
         ReflectionTestUtils.setField(demoScreenComposer, "schemaVersion", "1.0");
         ReflectionTestUtils.invokeMethod(demoScreenComposer, "registerParameterizedRefreshResolvers");
     }
@@ -80,10 +90,10 @@ class ComposerRoundTripTest {
 
         SduiRequestContext ctx = new SduiRequestContext();
         ctx.setLocale("en");
-        Optional<ObjectNode> firstPass = parameterizedRefreshService.refreshScreen(
+        Optional<com.nba.sdui.models.generated.Screen> firstPass = parameterizedRefreshService.refreshScreen(
                 "games", "trace-rt-1", Map.of("date", testDate), ctx);
         assertTrue(firstPass.isPresent());
-        ObjectNode screen1 = firstPass.get();
+        ObjectNode screen1 = (ObjectNode) objectMapper.valueToTree(firstPass.get());
 
         assertEquals(testDate, screen1.path("state").path("games_selected_date").asText(),
                 "first pass: screen state must echo the requested date");
@@ -96,10 +106,10 @@ class ComposerRoundTripTest {
         assertEquals("/v1/sdui/screen/games", emittedEndpoint,
                 "emitted endpoint must be the unified screen URL");
 
-        Optional<ObjectNode> secondPass = parameterizedRefreshService.refreshScreen(
+        Optional<com.nba.sdui.models.generated.Screen> secondPass = parameterizedRefreshService.refreshScreen(
                 "games", "trace-rt-2", Map.of("date", testDate), ctx);
         assertTrue(secondPass.isPresent());
-        ObjectNode screen2 = secondPass.get();
+        ObjectNode screen2 = (ObjectNode) objectMapper.valueToTree(secondPass.get());
 
         assertEquals(testDate, screen2.path("state").path("games_selected_date").asText(),
                 "second pass: screen state must still echo the date after round-trip");
@@ -124,10 +134,10 @@ class ComposerRoundTripTest {
 
         SduiRequestContext ctx = new SduiRequestContext();
         ctx.setLocale("en");
-        Optional<ObjectNode> firstPass = parameterizedRefreshService.refreshScreen(
+        Optional<com.nba.sdui.models.generated.Screen> firstPass = parameterizedRefreshService.refreshScreen(
                 "leaders", "trace-rt-3", testParams, ctx);
         assertTrue(firstPass.isPresent());
-        ObjectNode screen1 = firstPass.get();
+        ObjectNode screen1 = (ObjectNode) objectMapper.valueToTree(firstPass.get());
 
         assertEquals("leaders", screen1.path("id").asText());
         assertEquals("2024-25", screen1.path("state").path("form_season").asText(),
@@ -138,10 +148,10 @@ class ComposerRoundTripTest {
         assertEquals("/v1/sdui/screen/leaders", formEndpoint,
                 "emitted endpoint must be the unified screen URL");
 
-        Optional<ObjectNode> secondPass = parameterizedRefreshService.refreshScreen(
+        Optional<com.nba.sdui.models.generated.Screen> secondPass = parameterizedRefreshService.refreshScreen(
                 "leaders", "trace-rt-4", testParams, ctx);
         assertTrue(secondPass.isPresent());
-        ObjectNode screen2 = secondPass.get();
+        ObjectNode screen2 = (ObjectNode) objectMapper.valueToTree(secondPass.get());
 
         assertEquals("2024-25", screen2.path("state").path("form_season").asText(),
                 "second pass: screen state must still echo the season after round-trip");

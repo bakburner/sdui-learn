@@ -82,17 +82,8 @@ fun SectionRouter(
             )
         }
 
-        "SubscribeBanner" -> SectionContainer(section.surface, modifier) {
-            SubscribeBannerRenderer(
-                section = section,
-                screenState = screenState,
-                onAction = onAction,
-                onStateChange = onStateChange
-            )
-        }
-
-        "SubscribeHero" -> SectionContainer(section.surface, modifier) {
-            SubscribeHeroRenderer(
+        "SubscribeUpsell" -> SectionContainer(section.surface, modifier) {
+            SubscribeUpsellRenderer(
                 section = section,
                 screenState = screenState,
                 onAction = onAction,
@@ -160,8 +151,7 @@ val SUPPORTED_SECTION_TYPES = setOf(
     "TabGroup",
     "BoxscoreTable",
     "Form",
-    "SubscribeBanner",
-    "SubscribeHero",
+    "SubscribeUpsell",
     "AdSlot",
     "SeasonLeadersTable",
     "VideoPlayer",

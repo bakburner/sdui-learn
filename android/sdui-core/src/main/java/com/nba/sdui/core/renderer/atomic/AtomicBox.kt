@@ -132,19 +132,15 @@ fun Modifier.buildAtomicBox(element: AtomicElement): Modifier {
         variantName = element.variant
     )
 
-    // --- Shadow normalization: array wins over deprecated singular ---
-    val effectiveShadows: List<Shadow> = element.shadows?.let { LayoutTokenResolver.resolveShadowOrTokens(it) }
-        ?: element.shadow?.let { LayoutTokenResolver.resolveShadowOrToken(it)?.let { s -> listOf(s) } }
-        ?: emptyList()
+    val effectiveShadows: List<Shadow> =
+        element.shadows?.let { LayoutTokenResolver.resolveShadowOrTokens(it) }
+            ?: emptyList()
     val shadowAxisLocked = variantSpec?.overrideMatrix?.get("shadow") == OverridePolicy.LOCK
 
     val variantFillWidth: Boolean = variantSpec?.fillWidth == true
 
-    // --- Background normalization: array wins over deprecated singular ---
     val effectiveBackgrounds: List<BackgroundViewModel> = run {
-        val rawList = element.backgrounds
-            ?: element.background?.let { listOf(it) }
-            ?: emptyList()
+        val rawList = element.backgrounds ?: emptyList()
         rawList.mapNotNull { bg ->
             val vm = bg.toViewModel()
             if (vm is BackgroundViewModel.Image) {
@@ -159,7 +155,7 @@ fun Modifier.buildAtomicBox(element: AtomicElement): Modifier {
         effectiveBackgrounds.isEmpty() -> variantSpec.backgroundColorRole != null
         backgroundLocked -> {
             ContainerVariantResolver.logOverrideBlocked(
-                element.variant, "background", element.backgrounds ?: element.background
+                element.variant, "background", element.backgrounds
             )
             variantSpec.backgroundColorRole != null
         }

@@ -16,11 +16,6 @@ object SectionInteractions {
     fun primaryAction(section: Section, trigger: String = "onActivate"): SduiAction? {
         val list = actions(section)
         return list.firstOrNull { it.trigger.equals(trigger, ignoreCase = true) }
-            ?: if (trigger.equals("onActivate", ignoreCase = true)) {
-                list.firstOrNull { it.trigger.equals("onTap", ignoreCase = true) }
-            } else {
-                null
-            }
     }
 
     fun subsectionActions(section: Section, subsectionId: String): List<SduiAction> {
@@ -32,11 +27,6 @@ object SectionInteractions {
     fun subsectionPrimaryAction(section: Section, subsectionId: String, trigger: String = "onActivate"): SduiAction? {
         val list = subsectionActions(section, subsectionId)
         return list.firstOrNull { it.trigger.equals(trigger, ignoreCase = true) }
-            ?: if (trigger.equals("onActivate", ignoreCase = true)) {
-                list.firstOrNull { it.trigger.equals("onTap", ignoreCase = true) }
-            } else {
-                null
-            }
     }
 }
 

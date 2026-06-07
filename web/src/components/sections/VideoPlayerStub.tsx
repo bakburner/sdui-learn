@@ -1,7 +1,6 @@
 import React from 'react';
 import type { SectionProps } from '../SectionRouter';
 import { AtomicRouter } from '../atomic';
-import type { AtomicCompositeData } from '../atomic';
 
 /**
  * VideoPlayerStub — reserved SDK integration point for the video player.
@@ -22,8 +21,8 @@ export function VideoPlayerStub({
   onAction,
   onStateChange,
 }: SectionProps): React.ReactElement | null {
-  const data = section.data as unknown as AtomicCompositeData | undefined;
-  if (!data?.ui) {
+  const ui = section.data?.ui;
+  if (!ui) {
     console.debug(
       `[VideoPlayerStub] section ${section.id} has no data.ui atomic tree`,
     );
@@ -31,7 +30,7 @@ export function VideoPlayerStub({
   }
   return (
     <AtomicRouter
-      element={data.ui}
+      element={ui}
       state={state}
       onAction={onAction}
       onStateChange={onStateChange}

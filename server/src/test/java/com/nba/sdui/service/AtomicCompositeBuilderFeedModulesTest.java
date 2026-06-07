@@ -1,5 +1,7 @@
 package com.nba.sdui.service;
 
+import com.nba.sdui.testsupport.TestTokens;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -15,6 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import com.nba.sdui.domain.AtomicCompositeBuilder;
 
 /**
  * JSON-shape snapshots for feed-module helpers (Phase 4–6) — no renderer or codegen.
@@ -24,11 +27,11 @@ class AtomicCompositeBuilderFeedModulesTest {
     private static final String OVERLAY_SCRIM_TOKEN = "token:nba.effect.scrim";
 
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final AtomicCompositeBuilder builder = new AtomicCompositeBuilder(objectMapper);
+    private final AtomicCompositeBuilder builder = new AtomicCompositeBuilder(TestTokens.INSTANCE);
 
     @Test
     void buildMediaOverlayCard_emitsAtomicCompositeWithDataUi() {
-        ObjectNode section = builder.buildMediaOverlayCard(
+        ObjectNode section = (ObjectNode) objectMapper.valueToTree(builder.buildMediaOverlayCard(
                 "test-media",
                 "test_media",
                 "https://example.com/media/warriors-thunder.jpg",
@@ -38,7 +41,7 @@ class AtomicCompositeBuilderFeedModulesTest {
                 "nba://schedule/saturday",
                 "LIVE",
                 "nba://share/saturday-slate",
-                "nba://audio/saturday-slate");
+                "nba://audio/saturday-slate"));
 
         assertCompositeEnvelope(section);
         assertEquals("OverlayContainer", section.path("data").path("ui").path("type").asText());
@@ -60,7 +63,7 @@ class AtomicCompositeBuilderFeedModulesTest {
                         "C", "1", "https://example.com/lc.png", "D", "2", "https://example.com/ld.png",
                         "Q1", "0-0", bUrl, "nba://game/c2", "nba://game/c2/overflow"}
         };
-        ObjectNode section = builder.buildFeaturedLiveGameHero("h", "h", null, cards);
+        ObjectNode section = (ObjectNode) objectMapper.valueToTree(builder.buildFeaturedLiveGameHero("h", "h", null, cards));
         JsonNode scroll = firstScrollUnderUi(section);
         assertTrue(scroll.path("paging").asBoolean());
         assertEquals("center", scroll.path("snapAlignment").asText());
@@ -79,7 +82,7 @@ class AtomicCompositeBuilderFeedModulesTest {
                         "A", "1", "https://example.com/la.png", "B", "2", "https://example.com/lb.png",
                         "Q1", "0-0", "https://example.com/b.png", "nba://game/c1", null}
         };
-        ObjectNode section = builder.buildFeaturedLiveGameHero("h", "h", null, cards);
+        ObjectNode section = (ObjectNode) objectMapper.valueToTree(builder.buildFeaturedLiveGameHero("h", "h", null, cards));
         JsonNode scroll = firstScrollUnderUi(section);
         assertFalse(scroll.path("paging").asBoolean(false));
         assertTrue(scroll.path("pageIndicator").isMissingNode() || scroll.get("pageIndicator").isNull());
@@ -100,7 +103,7 @@ class AtomicCompositeBuilderFeedModulesTest {
                         "A", "1", "https://example.com/la.png", "B", "2", "https://example.com/lb.png",
                         "Q1", "0-0", bUrl, main, ov}
         };
-        ObjectNode section = builder.buildFeaturedLiveGameHero("h", "h", null, cards);
+        ObjectNode section = (ObjectNode) objectMapper.valueToTree(builder.buildFeaturedLiveGameHero("h", "h", null, cards));
         String json = section.toString();
         assertTrue(json.contains(bUrl), "broadcaster image URL from composer input");
         assertTrue(json.contains(ov), "overflow action target from composer input");
@@ -115,7 +118,7 @@ class AtomicCompositeBuilderFeedModulesTest {
         String[][] items = {
                 {"s1", "Warriors", "https://example.com/story/w1.png", "LIVE", "nba://story/w1"}
         };
-        ObjectNode section = builder.buildStoryCircleRail("sec", "a", "Stories", items);
+        ObjectNode section = (ObjectNode) objectMapper.valueToTree(builder.buildStoryCircleRail("sec", "a", "Stories", items));
         assertCompositeEnvelope(section);
         assertNoLegacyBadgeField(section);
         assertNoClientFabricatedNbaCdnUrls(section);
@@ -127,7 +130,7 @@ class AtomicCompositeBuilderFeedModulesTest {
         String[][] cards = {
                 {"e1", "Big headline", "Dek line", "https://example.com/ed/1.jpg", "NEW", "nba://ed/1"}
         };
-        ObjectNode section = builder.buildEditorialOverlayRail("sec", "a", "Editorial", cards);
+        ObjectNode section = (ObjectNode) objectMapper.valueToTree(builder.buildEditorialOverlayRail("sec", "a", "Editorial", cards));
         assertCompositeEnvelope(section);
         assertNoLegacyBadgeField(section);
         assertNoClientFabricatedNbaCdnUrls(section);
@@ -136,8 +139,8 @@ class AtomicCompositeBuilderFeedModulesTest {
 
     @Test
     void buildSectionHeaderComposite_emitsAtomicComposite() {
-        ObjectNode section = builder.buildSectionHeaderComposite(
-                "hdr", "a", "Latest", null, "More", "nba://latest/more");
+        ObjectNode section = (ObjectNode) objectMapper.valueToTree(builder.buildSectionHeaderComposite(
+                "hdr", "a", "Latest", null, "More", "nba://latest/more"));
         assertCompositeEnvelope(section);
         assertNoLegacyBadgeField(section);
         assertNoClientFabricatedNbaCdnUrls(section);
@@ -149,7 +152,7 @@ class AtomicCompositeBuilderFeedModulesTest {
                 {"u1", "Standings", "West order", "https://example.com/ic1.png", "nba://u1"},
                 {"u2", "Leaders", null, "https://example.com/ic2.png", "nba://u2"}
         };
-        ObjectNode section = builder.buildUtilityCardGrid("sec", "a", "Around", items);
+        ObjectNode section = (ObjectNode) objectMapper.valueToTree(builder.buildUtilityCardGrid("sec", "a", "Around", items));
         assertCompositeEnvelope(section);
         assertNoLegacyBadgeField(section);
         assertNoClientFabricatedNbaCdnUrls(section);
@@ -160,7 +163,7 @@ class AtomicCompositeBuilderFeedModulesTest {
         String[][] items = {
                 {"l1", "WNBA", "https://example.com/l1.png", "nba://league/wnba"}
         };
-        ObjectNode section = builder.buildLeagueCardRail("sec", "a", "Other leagues", items);
+        ObjectNode section = (ObjectNode) objectMapper.valueToTree(builder.buildLeagueCardRail("sec", "a", "Other leagues", items));
         assertCompositeEnvelope(section);
         assertNoLegacyBadgeField(section);
         assertNoClientFabricatedNbaCdnUrls(section);
@@ -177,7 +180,7 @@ class AtomicCompositeBuilderFeedModulesTest {
                 "nba://game/g1",
                 "nba://game/g1/more"
         };
-        ObjectNode section = builder.buildGameScheduleRow("sec", "a", row);
+        ObjectNode section = (ObjectNode) objectMapper.valueToTree(builder.buildGameScheduleRow("sec", "a", row));
         assertCompositeEnvelope(section);
         assertNotNull(section.path("data").get("content"));
         assertNoLegacyBadgeField(section);
@@ -197,7 +200,7 @@ class AtomicCompositeBuilderFeedModulesTest {
                         null
                 }
         };
-        ObjectNode section = builder.buildGameScheduleList("sec", "a", "Thursday", rows);
+        ObjectNode section = (ObjectNode) objectMapper.valueToTree(builder.buildGameScheduleList("sec", "a", "Thursday", rows));
         assertCompositeEnvelope(section);
         assertNotNull(section.path("data").get("content"));
         assertNoLegacyBadgeField(section);
@@ -372,7 +375,19 @@ class AtomicCompositeBuilderFeedModulesTest {
     }
 
     private static boolean nodeProvidesTextContrast(JsonNode node) {
-        JsonNode bg = node.get("background");
+        JsonNode bgs = node.get("backgrounds");
+        if (bgs == null || !bgs.isArray() || bgs.size() == 0) {
+            return false;
+        }
+        for (JsonNode bg : bgs) {
+            if (layerProvidesContrast(bg)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean layerProvidesContrast(JsonNode bg) {
         if (bg == null || bg.isNull() || bg.isMissingNode()) {
             return false;
         }

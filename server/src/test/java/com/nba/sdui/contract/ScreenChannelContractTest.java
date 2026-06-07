@@ -1,11 +1,12 @@
 package com.nba.sdui.contract;
 
+import com.nba.sdui.testsupport.TestTokens;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.nba.sdui.request.SduiRequestContext;
-import com.nba.sdui.service.*;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -24,6 +25,15 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import com.nba.sdui.domain.SduiUtils;
+import com.nba.sdui.domain.SectionSurfaces;
+import com.nba.sdui.domain.composer.DemoScreenComposer;
+import com.nba.sdui.domain.composer.LiveComposer;
+import com.nba.sdui.orchestration.ParameterizedRefreshService;
+import com.nba.sdui.orchestration.SectionRefreshService;
+import com.nba.sdui.remote.SeasonCalendarService;
+import com.nba.sdui.remote.StatsApiAdapter;
+import com.nba.sdui.remote.StatsApiClient;
 
 /**
  * Channel-contract tests for every screen served by the SDUI composition layer.
@@ -68,20 +78,20 @@ class ScreenChannelContractTest {
         when(statsApiClient.getScoreboard()).thenReturn(emptyScoreboard);
         when(statsApiClient.getScoreboardForDate(any())).thenReturn(emptyScoreboard);
 
-        SduiUtils utils = new SduiUtils(objectMapper);
-        SectionSurfaces surfaces = new SectionSurfaces(objectMapper, utils);
+        SduiUtils utils = new SduiUtils(objectMapper, TestTokens.INSTANCE);
+        SectionSurfaces surfaces = new SectionSurfaces(objectMapper, utils, TestTokens.INSTANCE);
         SectionRefreshService sectionRefreshService = new SectionRefreshService();
         SeasonCalendarService seasonCalendarService = new SeasonCalendarService();
         ReflectionTestUtils.setField(seasonCalendarService, "clock", clock);
 
         liveComposer = new LiveComposer(
-                objectMapper, statsApiClient, utils, surfaces,
+                new StatsApiAdapter(statsApiClient), utils, surfaces, TestTokens.INSTANCE,
                 sectionRefreshService, parameterizedRefreshService, seasonCalendarService);
         ReflectionTestUtils.setField(liveComposer, "schemaVersion", "1.0");
         ReflectionTestUtils.invokeMethod(liveComposer, "registerResolvers");
 
         demoScreenComposer = new DemoScreenComposer(
-                objectMapper, utils, surfaces, parameterizedRefreshService);
+                utils, surfaces, TestTokens.INSTANCE, parameterizedRefreshService);
         ReflectionTestUtils.setField(demoScreenComposer, "schemaVersion", "1.0");
         ReflectionTestUtils.invokeMethod(demoScreenComposer, "registerParameterizedRefreshResolvers");
     }
@@ -90,7 +100,7 @@ class ScreenChannelContractTest {
 
     @Test
     void gamesScreen_returnsScreenShapeWithMatchingId() {
-        ObjectNode screen = liveComposer.composeLive("trace-1", "en");
+        ObjectNode screen = (ObjectNode) objectMapper.valueToTree(liveComposer.composeLive("trace-1", "en"));
         assertScreenShape(screen, "games");
     }
 
@@ -98,15 +108,15 @@ class ScreenChannelContractTest {
     void gamesScreen_withDateParam_returnsScreenShapeWithMatchingId() {
         SduiRequestContext ctx = new SduiRequestContext();
         ctx.setLocale("en");
-        Optional<ObjectNode> result = parameterizedRefreshService.refreshScreen(
+        Optional<com.nba.sdui.models.generated.Screen> result = parameterizedRefreshService.refreshScreen(
                 "games", "trace-2", Map.of("date", "2026-05-18"), ctx);
         assertTrue(result.isPresent());
-        assertScreenShape(result.get(), "games");
+        assertScreenShape((ObjectNode) objectMapper.valueToTree(result.get()), "games");
     }
 
     @Test
     void leadersScreen_returnsScreenShapeWithMatchingId() {
-        ObjectNode screen = demoScreenComposer.composeLeaders("trace-3", "phone", "en");
+        ObjectNode screen = (ObjectNode) objectMapper.valueToTree(demoScreenComposer.composeLeaders("trace-3", "phone", "en"));
         assertScreenShape(screen, "leaders");
     }
 
@@ -114,17 +124,17 @@ class ScreenChannelContractTest {
     void leadersScreen_withParams_returnsScreenShapeWithMatchingId() {
         SduiRequestContext ctx = new SduiRequestContext();
         ctx.setLocale("en");
-        Optional<ObjectNode> result = parameterizedRefreshService.refreshScreen(
+        Optional<com.nba.sdui.models.generated.Screen> result = parameterizedRefreshService.refreshScreen(
                 "leaders", "trace-4",
                 Map.of("season", "2024-25", "seasonType", "regular",
                         "perMode", "per_game", "statCategory", "pts"), ctx);
         assertTrue(result.isPresent());
-        assertScreenShape(result.get(), "leaders");
+        assertScreenShape((ObjectNode) objectMapper.valueToTree(result.get()), "leaders");
     }
 
     @Test
     void demosScreen_returnsScreenShapeWithMatchingId() {
-        ObjectNode screen = demoScreenComposer.composeDemos("trace-5", "phone", "en");
+        ObjectNode screen = (ObjectNode) objectMapper.valueToTree(demoScreenComposer.composeDemos("trace-5", "phone", "en"));
         assertScreenShape(screen, "demos");
     }
 
@@ -132,14 +142,14 @@ class ScreenChannelContractTest {
 
     @Test
     void gamesScreen_neverReturnsBareSection() {
-        ObjectNode screen = liveComposer.composeLive("trace-shape-1", "en");
+        ObjectNode screen = (ObjectNode) objectMapper.valueToTree(liveComposer.composeLive("trace-shape-1", "en"));
         assertFalse(screen.has("type") && !screen.has("sections"),
                 "screen response must not look like a bare Section (has 'type' without 'sections')");
     }
 
     @Test
     void leadersScreen_neverReturnsBareSection() {
-        ObjectNode screen = demoScreenComposer.composeLeaders("trace-shape-2", "phone", "en");
+        ObjectNode screen = (ObjectNode) objectMapper.valueToTree(demoScreenComposer.composeLeaders("trace-shape-2", "phone", "en"));
         assertFalse(screen.has("type") && !screen.has("sections"),
                 "screen response must not look like a bare Section");
     }
@@ -148,7 +158,7 @@ class ScreenChannelContractTest {
 
     @Test
     void gamesScreen_allRefreshEndpoints_useUnifiedScreenUrl() {
-        ObjectNode screen = liveComposer.composeLive("trace-fence-1", "en");
+        ObjectNode screen = (ObjectNode) objectMapper.valueToTree(liveComposer.composeLive("trace-fence-1", "en"));
         assertNoLegacyRefreshEndpoints(screen, "games");
     }
 
@@ -156,21 +166,21 @@ class ScreenChannelContractTest {
     void gamesScreen_withDateParam_allRefreshEndpoints_useUnifiedScreenUrl() {
         SduiRequestContext ctx = new SduiRequestContext();
         ctx.setLocale("en");
-        Optional<ObjectNode> result = parameterizedRefreshService.refreshScreen(
+        Optional<com.nba.sdui.models.generated.Screen> result = parameterizedRefreshService.refreshScreen(
                 "games", "trace-fence-2", Map.of("date", "2026-05-18"), ctx);
         assertTrue(result.isPresent());
-        assertNoLegacyRefreshEndpoints(result.get(), "games (parameterized)");
+        assertNoLegacyRefreshEndpoints((ObjectNode) objectMapper.valueToTree(result.get()), "games (parameterized)");
     }
 
     @Test
     void leadersScreen_allRefreshEndpoints_useUnifiedScreenUrl() {
-        ObjectNode screen = demoScreenComposer.composeLeaders("trace-fence-3", "phone", "en");
+        ObjectNode screen = (ObjectNode) objectMapper.valueToTree(demoScreenComposer.composeLeaders("trace-fence-3", "phone", "en"));
         assertNoLegacyRefreshEndpoints(screen, "leaders");
     }
 
     @Test
     void demosScreen_allRefreshEndpoints_useUnifiedScreenUrl() {
-        ObjectNode screen = demoScreenComposer.composeDemos("trace-fence-4", "phone", "en");
+        ObjectNode screen = (ObjectNode) objectMapper.valueToTree(demoScreenComposer.composeDemos("trace-fence-4", "phone", "en"));
         assertNoLegacyRefreshEndpoints(screen, "demos");
     }
 
@@ -178,7 +188,7 @@ class ScreenChannelContractTest {
 
     @Test
     void gamesCalendarStrip_onDateSelected_usesUnifiedEndpoint() {
-        ObjectNode screen = liveComposer.composeLive("trace-cal-1", "en");
+        ObjectNode screen = (ObjectNode) objectMapper.valueToTree(liveComposer.composeLive("trace-cal-1", "en"));
         ObjectNode calendarData = (ObjectNode) screen.path("sections").get(0).path("data");
         String endpoint = calendarData.path("onDateSelected").path("endpoint").asText();
         assertEquals("/v1/sdui/screen/games", endpoint);
@@ -186,7 +196,7 @@ class ScreenChannelContractTest {
 
     @Test
     void leadersForm_submitAction_usesUnifiedEndpoint() {
-        ObjectNode screen = demoScreenComposer.composeLeaders("trace-form-1", "phone", "en");
+        ObjectNode screen = (ObjectNode) objectMapper.valueToTree(demoScreenComposer.composeLeaders("trace-form-1", "phone", "en"));
         ArrayNode sections = (ArrayNode) screen.path("sections");
         String endpoint = null;
         for (JsonNode section : sections) {

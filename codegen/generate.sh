@@ -14,17 +14,30 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCHEMA_FILE="$SCRIPT_DIR/../schema/sdui-schema.json"
+# Quicktype is run against the wrapper (sdui-all-types.json) rather
+# than the bare schema, for the same reason jsonschema2pojo is: the
+# wrapper $ref's every component definition by a distinct property
+# name so the codegen reachability walk emits a class per variant.
+# Pointing quicktype at the bare schema collapses Section.data's
+# structurally-similar anyOf variants (AtomicComposite / SubscribeUpsell
+# / Form / …) into a single canonical type and drops the rest.
+WRAPPER_FILE="$SCRIPT_DIR/../schema/sdui-all-types.json"
 IOS_MODELS_OUT="$SCRIPT_DIR/../ios/Sources/SduiCore/Models/SduiModels.swift"
 WEB_MODELS_OUT="$SCRIPT_DIR/../web/src/generated/SduiModels.ts"
 ANDROID_MODELS_OUT="$SCRIPT_DIR/../android/sdui-core/src/main/java/com/nba/sdui/core/models/generated/SduiModels.kt"
 
 echo "=== SDUI Code Generation ==="
-echo "Schema: $SCHEMA_FILE"
+echo "Schema:  $SCHEMA_FILE"
+echo "Wrapper: $WRAPPER_FILE"
 echo ""
 
 # Check if schema exists
 if [ ! -f "$SCHEMA_FILE" ]; then
     echo "Error: Schema file not found at $SCHEMA_FILE"
+    exit 1
+fi
+if [ ! -f "$WRAPPER_FILE" ]; then
+    echo "Error: Wrapper file not found at $WRAPPER_FILE"
     exit 1
 fi
 
@@ -54,7 +67,7 @@ echo "Generating Swift models (iOS SduiCore)..."
 # alongside the renderers in ios/Sources/SduiCore/Rendering/*Resolver.swift
 # and are intentionally not part of this generated file.
 quicktype \
-    --src "$SCHEMA_FILE" \
+    --src "$WRAPPER_FILE" \
     --src-lang schema \
     --lang swift \
     --struct-or-class struct \
@@ -70,7 +83,7 @@ echo "Generating TypeScript models (web src tree)..."
 # ...) are hand-written under web/src/utils/ and are intentionally not
 # part of this generated file.
 quicktype \
-    --src "$SCHEMA_FILE" \
+    --src "$WRAPPER_FILE" \
     --src-lang schema \
     --lang typescript \
     --just-types \
@@ -92,7 +105,7 @@ echo "Generating Kotlin models (Android sdui-core)..."
 # step below neutralizes strict routing-type enums for forward-compat,
 # mirroring the Swift post-process.
 quicktype \
-    --src "$SCHEMA_FILE" \
+    --src "$WRAPPER_FILE" \
     --src-lang schema \
     --lang kotlin \
     --framework jackson \
@@ -103,10 +116,10 @@ quicktype \
 echo ""
 echo "Post-processing Kotlin models (Android lenient routing types)..."
 # Same rationale as the Swift post-process (see next step): rewrite the
-# two routing-type fields — `Section.type` (quicktype name: OverlayType)
-# and `AtomicElement.type` (quicktype name: UIType) — as plain `String`
-# so unknown wire values fall into the renderer's `else` branch instead
-# of crashing decode. The sed deletes:
+# two routing-type fields — `Section.type` (quicktype name: SectionType)
+# and `AtomicElement.type` (quicktype name: AtomicElementType) — as
+# plain `String` so unknown wire values fall into the renderer's `else`
+# branch instead of crashing decode. The sed deletes:
 #   - the two `enum class` declarations (closing `}` is at column 0;
 #     companion object's `}` is indented, so `/^}/` matches only the
 #     enum's closing brace)
@@ -115,20 +128,21 @@ echo "Post-processing Kotlin models (Android lenient routing types)..."
 # and substitutes the two type names to `String` where they appear as
 # field types on `Section` and `AtomicElement`.
 TMP_KOTLIN="$(mktemp)"
-sed -e '/^enum class OverlayType/,/^}/d' \
-    -e '/^enum class UIType/,/^}/d' \
-    -e '/convert(OverlayType::class/d' \
-    -e '/convert(UIType::class/d' \
-    -e 's/OverlayType/String/g' \
-    -e 's/UIType/String/g' \
+sed -e '/^enum class SectionType/,/^}/d' \
+    -e '/^enum class AtomicElementType/,/^}/d' \
+    -e '/convert(SectionType::class/d' \
+    -e '/convert(AtomicElementType::class/d' \
+    -e 's/SectionType/String/g' \
+    -e 's/AtomicElementType/String/g' \
+    -e 's/BackgroundElement/BackgroundUnion/g' \
     "$ANDROID_MODELS_OUT" > "$TMP_KOTLIN" && mv "$TMP_KOTLIN" "$ANDROID_MODELS_OUT"
 
 echo ""
 echo "Post-processing Swift models (iOS lenient routing types)..."
 # Strip the strict `String, Codable` enums that quicktype emits for
 # the two routing-type fields — `Section.type` (quicktype name:
-# `OverlayType`) and `AtomicElement.type` (quicktype name: `UIType`) —
-# and rewrite both fields as plain `String`.
+# `SectionType`) and `AtomicElement.type` (quicktype name:
+# `AtomicElementType`) — and rewrite both fields as plain `String`.
 #
 # Why this exists (cross-platform parity):
 #   - Android's jsonschema2pojo emits both fields as plain `String`,
@@ -144,8 +158,8 @@ echo "Post-processing Swift models (iOS lenient routing types)..."
 #     that kills the entire atomic subtree it appears in. iOS is the
 #     only platform where unknown routing values are decode-fatal.
 #
-# Rewriting `OverlayType` and `UIType` to `String` aligns the iOS
-# runtime shape with Android and web so `SectionRouter` and
+# Rewriting `SectionType` and `AtomicElementType` to `String` aligns the
+# iOS runtime shape with Android and web so `SectionRouter` and
 # `AtomicRouter` can switch on string literals with a `default:`
 # branch, matching the other two clients. Applied to the generated
 # file before it reaches the SwiftPM target, so no hand edits are
@@ -160,29 +174,12 @@ echo "Post-processing Swift models (iOS lenient routing types)..."
 #     vocabulary, so all three codegens natively emit String. This
 #     route removes the need for any post-processing.
 TMP_SWIFT="$(mktemp)"
-sed '/^enum OverlayType:/,/^}/d
-     /^enum UIType:/,/^}/d
-     s/OverlayType/String/g
-     s/UIType/String/g' \
+sed '/^enum SectionType:/,/^}/d
+     /^enum AtomicElementType:/,/^}/d
+     s/SectionType/String/g
+     s/AtomicElementType/String/g
+     s/BackgroundElement/BackgroundUnion/g' \
     "$IOS_MODELS_OUT" > "$TMP_SWIFT" && mv "$TMP_SWIFT" "$IOS_MODELS_OUT"
-
-echo ""
-echo "Appending ActionTrigger isPrimaryActivation extension..."
-# Two call sites (RenderingHelpers.swift, AtomicButtonView.swift) use
-# `action.trigger.isPrimaryActivation` to detect the primary user
-# activation intent (onActivate or legacy onTap). The extension must
-# live in the generated models file because ActionTrigger is defined
-# there. Appended via cat so it survives every codegen run.
-cat >> "$IOS_MODELS_OUT" << 'SWIFT_EXT'
-
-// MARK: - ActionTrigger convenience (codegen post-process)
-extension ActionTrigger {
-    /// Primary user activation: `onActivate` (preferred) or legacy `onTap`.
-    var isPrimaryActivation: Bool {
-        self == .onActivate || self == .onTap
-    }
-}
-SWIFT_EXT
 
 echo ""
 echo "Generating Java POJOs (via jsonschema2pojo)..."

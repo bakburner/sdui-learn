@@ -31,7 +31,7 @@ import org.junit.Test
  * `ActionHandler.handleRefresh` used to assemble a URL by hand from raw
  * string concatenation, which (a) skipped envelope params, (b) skipped
  * RFC-3986 percent-encoding, (c) skipped the POST fallback, and (d) did
- * not propagate the parent `X-Trace-Id`. All of those invariants live in
+ * not propagate the parent `X-Correlation-ID`. All of those invariants live in
  * `SduiRepository.fetchScreen`, so the only safe design is to route
  * refresh through the same primitive.
  */
@@ -73,7 +73,7 @@ class SduiRepositoryRefreshTransportTest {
                 "season" to "2025-26",
                 "seasonType" to "Regular Season"
             ),
-            traceIdOverride = "trace-parent"
+            correlationIdOverride = "trace-parent"
         )
 
         val request = captured.single()
@@ -93,7 +93,7 @@ class SduiRepositoryRefreshTransportTest {
             query.contains("platform%5BdeviceClass%5D=phone"))
         assertTrue(query.contains("locale=en"))
 
-        assertEquals("trace-parent", request.header("X-Trace-Id"))
+        assertEquals("trace-parent", request.header("X-Correlation-ID"))
         assertEquals("GET", request.method)
     }
 
@@ -192,6 +192,6 @@ class SduiRepositoryRefreshTransportTest {
 
     companion object {
         private const val EMPTY_SCREEN_JSON =
-            """{"id":"stats-leaders","schemaVersion":"1.0","sections":[]}"""
+            """{"data":{"id":"stats-leaders","schemaVersion":"1.0","sections":[]},"meta":{"degraded":false,"staleSections":[],"failedSections":[]}}"""
     }
 }

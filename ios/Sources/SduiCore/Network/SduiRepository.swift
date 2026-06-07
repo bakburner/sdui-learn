@@ -3,25 +3,47 @@ import os
 
 private let logger = Logger(subsystem: "com.nba.sdui", category: "SduiRepository")
 
+/// Decoded screen/section payload paired with the response correlation id
+/// (`X-Correlation-ID` header). View models use the correlation id to seed
+/// continuation traces on parameterized refresh.
+struct SduiFetchResult<T> {
+    let value: T
+    let correlationId: String?
+}
+
+/// Hand-written `{data, meta}` envelope mirror. Per AGENTS.md §1.2, this
+/// transport-framing wrapper is intentionally outside the schema/codegen
+/// pipeline; `meta` is decoded but ignored until freshness wiring lands.
+private struct SduiResponseEnvelope<T: Decodable>: Decodable {
+    let data: T
+    let meta: SduiResponseMeta?
+}
+
+private struct SduiResponseMeta: Decodable {
+    let degraded: Bool?
+    let staleSections: [String]?
+    let failedSections: [String]?
+}
+
 /// Single entry point for all SDUI network requests — one generic fetch
 /// method, no dedicated `getGameDetail()` helpers.
 ///
 /// Transport contract (ADR-003 / plan-request-transport):
 /// - Bracket-notation GET query params below 8192 chars, otherwise POST with
 ///   the identical envelope as a JSON body.
-/// - Only `Authorization` and `X-Trace-Id` headers. Deprecated `X-Analytics-Platform`
+/// - Only `Authorization` and `X-Correlation-ID` headers. Deprecated `X-Analytics-Platform`
 ///   and `X-Schema-Version` headers are no longer sent.
 final class SduiRepository {
     private let config: SduiConfig
     private let session: URLSession
     private let envelopeProvider: @Sendable () -> RequestEnvelope
     private let fetchStateLock = NSLock()
-    private var activeScreenFetch: Task<SduiModels, Error>?
-    /// Per-request `X-Trace-Id` of the current in-flight screen fetch. Reused
-    /// as the active-fetch identity so the deferred cleanup only nils the slot
-    /// when no newer fetch has overwritten it (Task is a struct, so identity
-    /// comparison via `===` is unavailable).
-    private var activeScreenFetchTraceID: String?
+    private var activeScreenFetch: Task<SduiFetchResult<Screen>, Error>?
+    /// Per-request `X-Correlation-ID` of the current in-flight screen fetch.
+    /// Reused as the active-fetch identity so the deferred cleanup only nils
+    /// the slot when no newer fetch has overwritten it (Task is a struct, so
+    /// identity comparison via `===` is unavailable).
+    private var activeScreenFetchCorrelationId: String?
 
     deinit {
         fetchStateLock.withLock { activeScreenFetch?.cancel() }
@@ -46,29 +68,29 @@ final class SduiRepository {
     ///     bindings like `season=2025-26`). Always travel in the URL query
     ///     string regardless of GET vs POST so the server reads them
     ///     uniformly. They participate in the GET/POST length decision.
-    ///   - traceID: optional trace ID to reuse from a parent fetch (e.g.
-    ///     parameterized refresh inheriting its screen's trace). Falls back
-    ///     to the config's provider when absent.
+    ///   - correlationId: optional correlation id to reuse from a parent
+    ///     fetch (e.g. parameterized refresh inheriting its screen's
+    ///     correlation). Falls back to the config's provider when absent.
     func fetchScreen(
         endpoint: String,
         userParams: [String: String] = [:],
-        traceID: String? = nil
-    ) async throws -> SduiModels {
+        correlationId: String? = nil
+    ) async throws -> SduiFetchResult<Screen> {
         let envelope = envelopeProvider()
 
-        let resolvedTraceID = traceID ?? config.traceIDProvider()
+        let resolvedCorrelationId = correlationId ?? config.correlationIdProvider()
         let request = try buildRequest(
             endpoint: endpoint,
             envelope: envelope,
             userParams: userParams,
-            traceID: resolvedTraceID
+            correlationId: resolvedCorrelationId
         )
-        logger.debug("Fetching screen \(request.httpMethod ?? "GET"): \(request.url?.absoluteString ?? endpoint) [trace=\(resolvedTraceID, privacy: .public)]")
+        logger.debug("Fetching screen \(request.httpMethod ?? "GET"): \(request.url?.absoluteString ?? endpoint) [correlationId=\(resolvedCorrelationId, privacy: .public)]")
 
         fetchStateLock.withLock { activeScreenFetch?.cancel() }
 
         let httpSession = self.session
-        let task: Task<SduiModels, Error> = Task {
+        let task: Task<SduiFetchResult<Screen>, Error> = Task {
             let (data, response) = try await httpSession.data(for: request)
 
             guard let httpResponse = response as? HTTPURLResponse else {
@@ -87,9 +109,11 @@ final class SduiRepository {
             }
 
             do {
-                let screen = try SduiModels(data: data)
+                let envelopeDecoded = try newJSONDecoder().decode(SduiResponseEnvelope<Screen>.self, from: data)
+                let screen = envelopeDecoded.data
                 logger.debug("Fetched screen '\(screen.id)' with \(screen.sections.count) sections")
-                return screen
+                let responseCorrelationId = httpResponse.value(forHTTPHeaderField: "X-Correlation-ID")
+                return SduiFetchResult(value: screen, correlationId: responseCorrelationId)
             } catch {
                 let detail = Self.describeDecodingError(error)
                 logger.error("Failed to decode screen from \(endpoint, privacy: .public): \(detail, privacy: .public)")
@@ -98,13 +122,13 @@ final class SduiRepository {
         }
         fetchStateLock.withLock {
             activeScreenFetch = task
-            activeScreenFetchTraceID = resolvedTraceID
+            activeScreenFetchCorrelationId = resolvedCorrelationId
         }
         defer {
             fetchStateLock.withLock {
-                if activeScreenFetchTraceID == resolvedTraceID {
+                if activeScreenFetchCorrelationId == resolvedCorrelationId {
                     activeScreenFetch = nil
-                    activeScreenFetchTraceID = nil
+                    activeScreenFetchCorrelationId = nil
                 }
             }
         }
@@ -115,17 +139,17 @@ final class SduiRepository {
     /// transport as full-screen composition requests.
     func fetchSection(
         endpoint: String,
-        traceID: String? = nil
-    ) async throws -> Section {
+        correlationId: String? = nil
+    ) async throws -> SduiFetchResult<Section> {
         let envelope = envelopeProvider()
-        let resolvedTraceID = traceID ?? config.traceIDProvider()
+        let resolvedCorrelationId = correlationId ?? config.correlationIdProvider()
         let request = try buildRequest(
             endpoint: endpoint,
             envelope: envelope,
             userParams: [:],
-            traceID: resolvedTraceID
+            correlationId: resolvedCorrelationId
         )
-        logger.debug("Fetching section \(request.httpMethod ?? "GET"): \(request.url?.absoluteString ?? endpoint) [trace=\(resolvedTraceID, privacy: .public)]")
+        logger.debug("Fetching section \(request.httpMethod ?? "GET"): \(request.url?.absoluteString ?? endpoint) [correlationId=\(resolvedCorrelationId, privacy: .public)]")
 
         let (data, response) = try await session.data(for: request)
 
@@ -149,9 +173,11 @@ final class SduiRepository {
         }
 
         do {
-            let section = try newJSONDecoder().decode(Section.self, from: data)
+            let envelopeDecoded = try newJSONDecoder().decode(SduiResponseEnvelope<Section>.self, from: data)
+            let section = envelopeDecoded.data
             logger.debug("Fetched section '\(section.id)'")
-            return section
+            let responseCorrelationId = httpResponse.value(forHTTPHeaderField: "X-Correlation-ID")
+            return SduiFetchResult(value: section, correlationId: responseCorrelationId)
         } catch {
             let detail = Self.describeDecodingError(error)
             logger.error("Failed to decode section from \(endpoint, privacy: .public): \(detail, privacy: .public)")
@@ -184,11 +210,11 @@ final class SduiRepository {
     }
 
     /// Fetch raw JSON from a direct URL (for poll refresh with `dataPath` extraction).
-    /// - Parameter traceID: Optional trace ID to reuse from the parent screen fetch.
-    ///   Falls back to generating a fresh ID if nil.
-    func fetchRawJson(url: URL, traceID: String? = nil) async throws -> Any {
+    /// - Parameter correlationId: Optional correlation id to reuse from the
+    ///   parent screen fetch. Falls back to generating a fresh ID if nil.
+    func fetchRawJson(url: URL, correlationId: String? = nil) async throws -> Any {
         var request = URLRequest(url: url)
-        attachAuthHeaders(&request, traceID: traceID ?? config.traceIDProvider())
+        attachAuthHeaders(&request, correlationId: correlationId ?? config.correlationIdProvider())
 
         let (data, response) = try await session.data(for: request)
 
@@ -203,15 +229,15 @@ final class SduiRepository {
     /// Fetch raw (non-screen) JSON from an SDUI endpoint using the canonical
     /// request envelope. Used by ``BootstrapFetcher`` so the cold-start init
     /// call travels the same transport (envelope, GET/POST length fallback,
-    /// `X-Trace-Id`) as every screen fetch — no hand-rolled URL strings.
-    func fetchRawJson(endpoint: String, traceID: String? = nil) async throws -> Any {
+    /// `X-Correlation-ID`) as every screen fetch — no hand-rolled URL strings.
+    func fetchRawJson(endpoint: String, correlationId: String? = nil) async throws -> Any {
         let envelope = envelopeProvider()
-        let resolvedTraceID = traceID ?? config.traceIDProvider()
+        let resolvedCorrelationId = correlationId ?? config.correlationIdProvider()
         let request = try buildRequest(
             endpoint: endpoint,
             envelope: envelope,
             userParams: [:],
-            traceID: resolvedTraceID
+            correlationId: resolvedCorrelationId
         )
 
         let (data, response) = try await session.data(for: request)
@@ -237,7 +263,7 @@ final class SduiRepository {
         endpoint: String,
         envelope: RequestEnvelope,
         userParams: [String: String],
-        traceID: String
+        correlationId: String
     ) throws -> URLRequest {
         // Endpoints may already carry a query string when emitted by the server
         // (e.g. a server-composed variant chip's `navigate` targetUri:
@@ -284,7 +310,7 @@ final class SduiRepository {
             request.httpMethod = "POST"
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             request.httpBody = try envelope.jsonBody()
-            attachAuthHeaders(&request, traceID: traceID, envelope: envelope)
+            attachAuthHeaders(&request, correlationId: correlationId, envelope: envelope)
             return request
         }
 
@@ -294,7 +320,7 @@ final class SduiRepository {
             throw SduiError.invalidURL(endpoint)
         }
         var request = URLRequest(url: url)
-        attachAuthHeaders(&request, traceID: traceID, envelope: envelope)
+        attachAuthHeaders(&request, correlationId: correlationId, envelope: envelope)
         return request
     }
 
@@ -310,11 +336,11 @@ final class SduiRepository {
             .joined(separator: "&")
     }
 
-    private func attachAuthHeaders(_ request: inout URLRequest, traceID: String, envelope: RequestEnvelope? = nil) {
+    private func attachAuthHeaders(_ request: inout URLRequest, correlationId: String, envelope: RequestEnvelope? = nil) {
         if let token = config.authorizationToken {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
-        request.setValue(traceID, forHTTPHeaderField: "X-Trace-Id")
+        request.setValue(correlationId, forHTTPHeaderField: "X-Correlation-ID")
         request.setValue(UUID().uuidString, forHTTPHeaderField: "X-Request-Id")
         if let deviceID = envelope?.deviceID {
             request.setValue(deviceID, forHTTPHeaderField: "X-Device-Id")

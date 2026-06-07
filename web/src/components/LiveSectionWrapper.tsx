@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import type { Section, Action, Data } from '@sdui/models';
+import type { Section, SectionData, Action } from '@sdui/models';
 import { useRefreshPolicy, getEffectiveRefreshPolicy } from '../hooks/useRefreshPolicy';
 import { useSectionVisibility } from '../hooks/useSectionVisibility';
 import { useAppVisibility } from '../hooks/useAppVisibility';
@@ -23,7 +23,7 @@ interface LiveSectionWrapperProps {
   onUpgradeRequired?: () => void;
   /** Screen-level traceId for log correlation */
   traceId?: string;
-  children: (effectiveData: Data | undefined) => React.ReactElement | null;
+  children: (effectiveData: SectionData | undefined) => React.ReactElement | null;
 }
 
 /**
@@ -49,11 +49,11 @@ export function LiveSectionWrapper({
   const isAppVisible = useAppVisibility();
 
   // Initialize local data from section.data
-  const [liveData, setLiveData] = useState<Data | undefined>(section.data as Data | undefined);
+  const [liveData, setLiveData] = useState<SectionData | undefined>(section.data as SectionData | undefined);
 
   // Reset liveData when section.data changes (e.g., full screen refetch)
   useEffect(() => {
-    setLiveData(section.data as Data | undefined);
+    setLiveData(section.data as SectionData | undefined);
   }, [section.data]);
 
   // Get effective refresh policy (section-level takes precedence)
@@ -101,13 +101,13 @@ export function LiveSectionWrapper({
             section.id,
             traceId
           );
-          return updated as Data;
+          return updated as SectionData;
         }
 
         // If no bindings, try to merge incoming payload directly
         // (assumes incoming payload has same shape as section.data)
         if (typeof incomingPayload === 'object' && incomingPayload !== null) {
-          return { ...currentData, ...incomingPayload } as Data;
+          return { ...currentData, ...incomingPayload } as SectionData;
         }
       } catch (err) {
         console.error(
@@ -132,7 +132,7 @@ export function LiveSectionWrapper({
     onStalenessChange,
     onUpgradeRequired,
     enabled,
-    traceId,
+    correlationId: traceId,
   });
 
   if (!liveData && hasRefreshPolicy) {
@@ -161,11 +161,11 @@ export function useLiveData(
   section: Section,
   defaultRefreshPolicy?: Section['refreshPolicy'],
   traceId?: string,
-): Data | undefined {
-  const [liveData, setLiveData] = useState<Data | undefined>(section.data as Data | undefined);
+): SectionData | undefined {
+  const [liveData, setLiveData] = useState<SectionData | undefined>(section.data as SectionData | undefined);
 
   useEffect(() => {
-    setLiveData(section.data as Data | undefined);
+    setLiveData(section.data as SectionData | undefined);
   }, [section.data]);
 
   const effectivePolicy = getEffectiveRefreshPolicy(section, defaultRefreshPolicy);
@@ -189,11 +189,11 @@ export function useLiveData(
             section.id,
             traceId
           );
-          return updated as Data;
+          return updated as SectionData;
         }
 
         if (typeof incomingPayload === 'object' && incomingPayload !== null) {
-          return { ...currentData, ...incomingPayload } as Data;
+          return { ...currentData, ...incomingPayload } as SectionData;
         }
       } catch (err) {
         console.error(
@@ -211,7 +211,7 @@ export function useLiveData(
     refreshPolicy: effectivePolicy,
     onUpdate: handleUpdate,
     enabled: hasRefreshPolicy,
-    traceId,
+    correlationId: traceId,
   });
 
   return liveData;

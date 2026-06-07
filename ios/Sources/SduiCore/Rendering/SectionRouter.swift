@@ -64,14 +64,9 @@ struct SectionRouter: View {
                 FormSectionView(section: section, screenState: screenState, onAction: onAction)
             }
 
-        case "SubscribeHero":
+        case "SubscribeUpsell":
             SectionContainer(surface: section.surface) {
-                SubscribeHeroView(section: section, screenState: screenState, onAction: onAction)
-            }
-
-        case "SubscribeBanner":
-            SectionContainer(surface: section.surface) {
-                SubscribeBannerView(section: section, screenState: screenState, onAction: onAction)
+                SubscribeUpsellView(section: section, screenState: screenState, onAction: onAction)
             }
 
         case "AdSlot":

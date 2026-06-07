@@ -3,9 +3,9 @@ package com.nba.sdui.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.nba.sdui.request.SduiRequestContext;
-import com.nba.sdui.service.ParameterizedRefreshService;
-import com.nba.sdui.service.SduiCompositionService;
-import com.nba.sdui.service.SectionRefreshService;
+import com.nba.sdui.orchestration.ParameterizedRefreshService;
+import com.nba.sdui.orchestration.SduiCompositionService;
+import com.nba.sdui.orchestration.SectionRefreshService;
 import com.nba.sdui.versioning.SchemaVersionChecker;
 import com.nba.sdui.versioning.SchemaVersionConfig;
 import com.nba.sdui.versioning.SchemaVersionFilter;
@@ -50,7 +50,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * fully removed and returns 404.
  */
 @WebMvcTest(SduiController.class)
-@Import({SchemaVersionChecker.class, SchemaVersionConfig.class, SchemaVersionFilter.class, SchemaVersionRegistry.class})
+@Import({SchemaVersionChecker.class, SchemaVersionConfig.class, SchemaVersionFilter.class, SchemaVersionRegistry.class, com.nba.sdui.metrics.SduiMetrics.class})
 class SduiRefreshTransportTest {
 
     @Autowired
@@ -73,12 +73,12 @@ class SduiRefreshTransportTest {
         ObjectNode leadersResponse = (ObjectNode) objectMapper.readTree(
                 "{\"id\":\"leaders\",\"schemaVersion\":\"1.0\",\"sections\":[]}");
         when(parameterizedRefreshService.refreshScreen(eq("leaders"), anyString(), any(), any()))
-                .thenReturn(Optional.of(leadersResponse));
+                .thenReturn(Optional.of(objectMapper.treeToValue(leadersResponse, com.nba.sdui.models.generated.Screen.class)));
 
         ObjectNode scoreboardResponse = (ObjectNode) objectMapper.readTree(
                 "{\"id\":\"scoreboard\",\"schemaVersion\":\"1.0\",\"sections\":[]}");
         when(compositionService.composeScoreboard(any(SduiRequestContext.class)))
-                .thenReturn(scoreboardResponse);
+                .thenReturn(objectMapper.treeToValue(scoreboardResponse, com.nba.sdui.models.generated.Screen.class));
     }
 
     @Test
@@ -93,13 +93,13 @@ class SduiRefreshTransportTest {
                         .param("market[cohort]", "MARKET_UNKNOWN")
                         .param("experiments[gd_tab_order_v2]", "variant_b")
                         .header("X-Analytics-Platform", "ios")
-                        .header("X-Trace-Id", "trace-123")
+                        .header("X-Correlation-ID", "11111111-1111-1111-1111-111111111111")
         ).andExpect(status().isOk());
 
         ArgumentCaptor<Map<String, String>> userParams = ArgumentCaptor.forClass(Map.class);
         verify(parameterizedRefreshService).refreshScreen(
                 eq("leaders"),
-                eq("trace-123"),
+                eq("11111111-1111-1111-1111-111111111111"),
                 userParams.capture(),
                 any()
         );
@@ -134,13 +134,13 @@ class SduiRefreshTransportTest {
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsBytes(envelope))
                         .header("X-Analytics-Platform", "ios")
-                        .header("X-Trace-Id", "trace-456")
+                        .header("X-Correlation-ID", "22222222-2222-2222-2222-222222222222")
         ).andExpect(status().isOk());
 
         ArgumentCaptor<Map<String, String>> userParams = ArgumentCaptor.forClass(Map.class);
         verify(parameterizedRefreshService).refreshScreen(
                 eq("leaders"),
-                eq("trace-456"),
+                eq("22222222-2222-2222-2222-222222222222"),
                 userParams.capture(),
                 any()
         );
@@ -162,7 +162,7 @@ class SduiRefreshTransportTest {
                   "state": { "games_selected_date": "2026-05-26" },
                   "sections": [
                     {
-                      "id": "server:games-calendar~type=CalendarStrip",
+                      "id": "server-games-calendar__type-CalendarStrip",
                       "type": "CalendarStrip",
                       "data": {
                         "stateKey": "games_selected_date",
@@ -180,16 +180,22 @@ class SduiRefreshTransportTest {
                 }
                 """);
         when(parameterizedRefreshService.refreshScreen(eq("games"), anyString(), any(), any()))
-                .thenReturn(Optional.of(gamesResponse));
+                .thenReturn(Optional.of(objectMapper.treeToValue(gamesResponse, com.nba.sdui.models.generated.Screen.class)));
+
+        // The controller wraps every screen-channel response in
+        // ResponseEnvelope<T>(data, meta). The body shape is
+        // {"data": <gamesResponse>, "meta": {"degraded": false, ...}}.
+        ObjectNode expectedEnvelope = objectMapper.createObjectNode();
+        expectedEnvelope.set("data", gamesResponse);
 
         String getBody = mockMvc.perform(
                         get("/v1/sdui/screen/games")
                                 .param("date", "2026-05-26")
                                 .param("locale", "en")
                                 .header("X-Analytics-Platform", "web")
-                                .header("X-Trace-Id", "trace-games-get")
+                                .header("X-Correlation-ID", "33333333-3333-3333-3333-333333333333")
                 ).andExpect(status().isOk())
-                .andExpect(content().json(gamesResponse.toString()))
+                .andExpect(content().json(expectedEnvelope.toString()))
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
@@ -204,7 +210,7 @@ class SduiRefreshTransportTest {
                                 .contentType("application/json")
                                 .content(objectMapper.writeValueAsBytes(envelope))
                                 .header("X-Analytics-Platform", "web")
-                                .header("X-Trace-Id", "trace-games-post")
+                                .header("X-Correlation-ID", "44444444-4444-4444-4444-444444444444")
                 ).andExpect(status().isOk())
                 .andExpect(content().json(getBody));
     }

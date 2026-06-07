@@ -1,5 +1,7 @@
 package com.nba.sdui.service;
 
+import com.nba.sdui.testsupport.TestTokens;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -14,6 +16,14 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import com.nba.sdui.domain.SduiUtils;
+import com.nba.sdui.domain.SectionSurfaces;
+import com.nba.sdui.domain.composer.ForYouComposer;
+import com.nba.sdui.orchestration.SectionRefreshService;
+import com.nba.sdui.remote.SeasonCalendarService;
+import com.nba.sdui.remote.StatsApiAdapter;
+import com.nba.sdui.remote.StatsApiClient;
+import com.nba.sdui.domain.SectionIdDeriver;
 
 /**
  * Composition tests for the For You visual refresh: feed order, editorial hero,
@@ -22,24 +32,23 @@ import static org.mockito.Mockito.when;
 class ForYouVisualCompositionTest {
 
     private ForYouComposer composer;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @BeforeEach
     void setUp() {
-        ObjectMapper objectMapper = new ObjectMapper();
         composer = newComposer(new StatsApiClient(objectMapper, new SeasonCalendarService()));
     }
 
-    private static ForYouComposer newComposer(StatsApiClient statsApiClient) {
-        ObjectMapper objectMapper = new ObjectMapper();
-        SduiUtils utils = new SduiUtils(objectMapper);
-        SectionSurfaces surfaces = new SectionSurfaces(objectMapper, utils);
-        return new ForYouComposer(objectMapper, statsApiClient, utils, surfaces,
+    private ForYouComposer newComposer(StatsApiClient statsApiClient) {
+        SduiUtils utils = new SduiUtils(objectMapper, TestTokens.INSTANCE);
+        SectionSurfaces surfaces = new SectionSurfaces(objectMapper, utils, TestTokens.INSTANCE);
+        return new ForYouComposer(new StatsApiAdapter(statsApiClient), utils, surfaces, TestTokens.INSTANCE,
                 new SectionRefreshService());
     }
 
     @Test
     void firstContentModuleAfterStoryRailIsFeaturedHero() {
-        JsonNode response = composer.composeForYou("test-trace-id", "en");
+        JsonNode response = objectMapper.valueToTree(composer.composeForYou("test-trace-id", "en"));
         ArrayNode sections = (ArrayNode) response.get("sections");
 
         assertEquals("feed:for-you-following", sections.get(0).path("contentSourceId").asText());
@@ -51,7 +60,7 @@ class ForYouVisualCompositionTest {
 
     @Test
     void featuredHeroHasImageScrimAndCta() {
-        JsonNode response = composer.composeForYou("test-trace-id", "en");
+        JsonNode response = objectMapper.valueToTree(composer.composeForYou("test-trace-id", "en"));
         JsonNode hero = findSectionByContentSourceId(response, "cms:for-you-featured-hero");
 
         String tree = hero.path("data").path("ui").toString();
@@ -67,7 +76,7 @@ class ForYouVisualCompositionTest {
 
     @Test
     void topStoriesHeaderHasMoreCta() {
-        JsonNode response = composer.composeForYou("test-trace-id", "en");
+        JsonNode response = objectMapper.valueToTree(composer.composeForYou("test-trace-id", "en"));
         JsonNode header = findSectionByAnalyticsId(response, "for_you_top_stories_header");
         String tree = header.path("data").path("ui").toString();
         assertTrue(tree.contains("More"), "Top Stories header should expose More CTA");
@@ -80,14 +89,14 @@ class ForYouVisualCompositionTest {
         when(statsApiClient.getScoreboard()).thenThrow(new IOException("forced demo fallback"));
         ForYouComposer demoComposer = newComposer(statsApiClient);
 
-        JsonNode response = demoComposer.composeForYou("test-trace-id", "en");
+        JsonNode response = objectMapper.valueToTree(demoComposer.composeForYou("test-trace-id", "en"));
         JsonNode gamesHero = findSectionByContentSourceId(response, "stats-api:scoreboard");
 
         assertEquals("AtomicComposite", gamesHero.path("type").asText());
         assertEquals("poll", gamesHero.path("refreshPolicy").path("type").asText(),
                 "Mock fallback hero must poll the section endpoint, not SSE");
         String sectionEndpoint = gamesHero.path("refreshPolicy").path("sectionEndpoint").asText("");
-        assertTrue(sectionEndpoint.contains("tonights-games-hero"),
+        assertTrue(sectionEndpoint.contains("tonightsGamesHero"),
                 "Poll must target the Tonight's Games hero section id");
         assertTrue(gamesHero.path("dataBinding").isMissingNode()
                         || gamesHero.path("dataBinding").path("bindings").isEmpty(),
@@ -96,7 +105,7 @@ class ForYouVisualCompositionTest {
 
     @Test
     void feedOrderMatchesVisualRefreshPlan() {
-        JsonNode response = composer.composeForYou("test-trace-id", "en");
+        JsonNode response = objectMapper.valueToTree(composer.composeForYou("test-trace-id", "en"));
         ArrayNode sections = (ArrayNode) response.get("sections");
 
         String[] expectedAnalyticsOrder = {
@@ -128,26 +137,26 @@ class ForYouVisualCompositionTest {
 
     @Test
     void allSectionsRetainDerivedIdsAndContentSourceIds() {
-        JsonNode response = composer.composeForYou("test-trace-id", "en");
+        JsonNode response = objectMapper.valueToTree(composer.composeForYou("test-trace-id", "en"));
         ArrayNode sections = (ArrayNode) response.get("sections");
         for (JsonNode section : sections) {
             String sectionId = section.path("id").asText("");
             String contentSourceId = section.path("contentSourceId").asText("");
             assertFalse(contentSourceId.isBlank());
-            assertTrue(sectionId.contains(contentSourceId));
+            assertTrue(sectionId.startsWith(SectionIdDeriver.sanitizeSource(contentSourceId) + "__"));
             assertTrue(SectionIdDeriver.isDerived(sectionId));
-            assertFalse(sectionId.matches(".*~slug=\\d+$"));
+            assertFalse(sectionId.matches(".*__slug-\\d+$"));
         }
     }
 
     @Test
     void contentInsetsUnchanged() {
-        JsonNode response = composer.composeForYou("test-trace-id", "en");
+        JsonNode response = objectMapper.valueToTree(composer.composeForYou("test-trace-id", "en"));
         JsonNode insets = response.get("contentInsets");
         assertNotNull(insets);
-        assertEquals(LayoutTokens.SPACING_MD, insets.path("start").asText());
-        assertEquals(LayoutTokens.SPACING_MD, insets.path("end").asText());
-        assertEquals(LayoutTokens.SPACING_LG, insets.path("bottom").asText());
+        assertEquals(TestTokens.INSTANCE.spacing("md"), insets.path("start").asText());
+        assertEquals(TestTokens.INSTANCE.spacing("md"), insets.path("end").asText());
+        assertEquals(TestTokens.INSTANCE.spacing("lg"), insets.path("bottom").asText());
     }
 
     private JsonNode findSectionByContentSourceId(JsonNode response, String contentSourceId) {

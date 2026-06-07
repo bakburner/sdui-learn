@@ -81,17 +81,9 @@ struct AtomicBoxModifier: ViewModifier {
 
         let frameAlignment = alignmentForSizingContext(for: element)
 
-        // Effective backgrounds: plural field wins, else wrap singular, else empty.
-        let effectiveBackgrounds: [BackgroundUnion] = element.backgrounds
-            ?? element.background.map { [$0] }
-            ?? []
+        let effectiveBackgrounds: [BackgroundUnion] = element.backgrounds ?? []
 
-        // Effective shadows: plural field wins, else wrap singular, else empty.
-        let effectiveShadows: [Shadow] = element.shadows.map { LayoutTokenResolver.resolveShadowOrTokens($0) }
-            ?? element.shadow
-                .flatMap { LayoutTokenResolver.resolveShadowOrToken($0) }
-                .map { [$0] }
-            ?? []
+        let effectiveShadows: [Shadow] = element.shadows.map { LayoutTokenResolver.resolveShadowOrTokens($0) } ?? []
 
         let primaryBackground = effectiveBackgrounds.first
         let primaryShadow = effectiveShadows.first

@@ -38,12 +38,12 @@ final class DataBindingApplier {
         incomingMessage: [String: Any],
         dataBinding: DataBinding,
         sectionID: String?,
-        traceID: String?,
+        correlationId: String?,
         stringTable: [String: String]?
     ) -> [String: Any] {
         guard let bindings = dataBinding.bindings else { return currentData }
 
-        logger.debug("Applying \(bindings.count) bindings, traceId=\(traceID ?? "-", privacy: .public)")
+        logger.debug("Applying \(bindings.count) bindings, correlationId=\(correlationId ?? "-", privacy: .public)")
 
         var output = currentData
         for binding in bindings {
@@ -53,19 +53,19 @@ final class DataBindingApplier {
                     incoming: incomingMessage,
                     binding: binding,
                     sectionID: sectionID,
-                    traceID: traceID
+                    correlationId: correlationId
                 )
 
                 if let key = dataBinding.stringKeys?[binding.targetPath],
                    let table = stringTable,
                    let resolved = table[key] {
                     setValue(resolved, at: binding.targetPath, in: &output)
-                    logger.debug("Applied binding: \(binding.sourcePath, privacy: .public) -> \(binding.targetPath, privacy: .public) = \(Self.describe(resolved), privacy: .public) [stringKey=\(key, privacy: .public)], traceId=\(traceID ?? "-", privacy: .public)")
+                    logger.debug("Applied binding: \(binding.sourcePath, privacy: .public) -> \(binding.targetPath, privacy: .public) = \(Self.describe(resolved), privacy: .public) [stringKey=\(key, privacy: .public)], correlationId=\(correlationId ?? "-", privacy: .public)")
                 } else if let key = dataBinding.stringKeys?[binding.targetPath], stringTable == nil {
                     logger.warning("stringKey '\(key, privacy: .public)' present but no stringTable for section=\(sectionID ?? "?", privacy: .public)")
                 } else {
                     let applied = Self.valueAt(path: binding.targetPath, in: output)
-                    logger.debug("Applied binding: \(binding.sourcePath, privacy: .public) -> \(binding.targetPath, privacy: .public) = \(Self.describe(applied), privacy: .public), traceId=\(traceID ?? "-", privacy: .public)")
+                    logger.debug("Applied binding: \(binding.sourcePath, privacy: .public) -> \(binding.targetPath, privacy: .public) = \(Self.describe(applied), privacy: .public), correlationId=\(correlationId ?? "-", privacy: .public)")
                 }
             } catch {
                 // `applyOne` already bumps `consecutiveMisses` on a miss before
@@ -119,7 +119,7 @@ final class DataBindingApplier {
         incoming: [String: Any],
         binding: DataBindingPath,
         sectionID: String?,
-        traceID: String?
+        correlationId: String?
     ) throws {
         let sourceValue = Self.resolveSourcePath(binding.sourcePath, in: incoming)
 
@@ -129,7 +129,7 @@ final class DataBindingApplier {
                 let next = (consecutiveMisses[missKey] ?? 0) + 1
                 consecutiveMisses[missKey] = next
                 if next == Self.missThreshold {
-                    logger.warning("binding_path_missing: section=\(sectionID, privacy: .public) sourcePath=\(binding.sourcePath, privacy: .public) trace=\(traceID ?? "-", privacy: .public)")
+                    logger.warning("binding_path_missing: section=\(sectionID, privacy: .public) sourcePath=\(binding.sourcePath, privacy: .public) correlationId=\(correlationId ?? "-", privacy: .public)")
                     // Analytics beacon emission is the VM's concern; this
                     // module only measures the miss streak.
                 }

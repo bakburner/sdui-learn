@@ -55,7 +55,6 @@ public class SchemaVersionChecker {
     public JsonNode composeUpgradeRequiredResponse(String clientVersionStr, String traceId) {
         ObjectNode response = objectMapper.createObjectNode();
         response.put("id", "upgrade-required");
-        response.put("traceId", traceId != null ? traceId : "");
         response.put("schemaVersion", config.getCurrentVersion());
 
         ArrayNode sections = objectMapper.createArrayNode();

@@ -5,7 +5,7 @@ import { mapCalendarMonthList } from '../../../adapters/sectionUiAdapters';
 describe('CalendarMonthList schema decode contract', () => {
   it('decodes section data with metadata map', () => {
     const section = {
-      id: 'server:calendar~type=CalendarMonthList',
+      id: 'server-calendar__type-CalendarMonthList',
       type: 'CalendarMonthList',
       data: {
         stateKey: 'games_selected_date',
@@ -39,7 +39,7 @@ describe('CalendarMonthList schema decode contract', () => {
 
   it('fails decode when onDateSelected is missing', () => {
     const section = {
-      id: 'server:calendar~type=CalendarMonthList',
+      id: 'server-calendar__type-CalendarMonthList',
       type: 'CalendarMonthList',
       data: {
         stateKey: 'games_selected_date',

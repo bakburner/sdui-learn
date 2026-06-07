@@ -8,10 +8,10 @@ import com.nba.sdui.core.data.SchemaVersionMismatchException
 import com.nba.sdui.core.data.SduiException
 import com.nba.sdui.core.data.SectionNotFoundException
 import com.nba.sdui.core.data.SduiRepository
-import com.nba.sdui.core.models.generated.Data
 import com.nba.sdui.core.models.generated.RefreshType
-import com.nba.sdui.core.models.generated.SduiModels
+import com.nba.sdui.core.models.generated.Screen
 import com.nba.sdui.core.models.generated.Section
+import com.nba.sdui.core.models.generated.SectionData
 import com.nba.sdui.core.models.generated.mapper
 import com.nba.sdui.core.request.RequestEnvelopeBuilder
 import com.nba.sdui.core.state.ActionHandler
@@ -105,8 +105,8 @@ internal class SduiScreenController(
     val staleSections: StateFlow<Set<String>> = _staleSections.asStateFlow()
 
     // ── Internal bookkeeping ─────────────────────────────────────────
-    private val _currentScreen = MutableStateFlow<SduiModels?>(null)
-    private var currentScreen: SduiModels?
+    private val _currentScreen = MutableStateFlow<Screen?>(null)
+    private var currentScreen: Screen?
         get() = _currentScreen.value
         set(value) { _currentScreen.value = value }
     private var currentEndpoint: String? = null   // resolved server path — used for refresh / polling
@@ -114,12 +114,20 @@ internal class SduiScreenController(
     private var screenLevelPollJob: Job? = null
 
     /**
+     * Last `X-Correlation-ID` value the server echoed back on a successful
+     * fetch. Replayed as the seed correlation on subsequent refreshes,
+     * section polls, and live-data binding logs so a single user-visible
+     * screen ties to one correlation thread end-to-end.
+     */
+    private var lastCorrelationId: String? = null
+
+    /**
      * Last successfully loaded screen payload, exposed as a [StateFlow] so the
      * navigation shell recomposes the moment the very first load completes
      * (the value goes from null to non-null). Kept when a later fetch fails so
      * shell navigation (bottom bar) and [parentUri] remain available for escape.
      */
-    val shellScreen: StateFlow<SduiModels?> = _currentScreen.asStateFlow()
+    val shellScreen: StateFlow<Screen?> = _currentScreen.asStateFlow()
 
     private val pollingJobs = mutableMapOf<String, Job>()
 
@@ -177,8 +185,9 @@ internal class SduiScreenController(
 
             try {
                 Log.d(TAG, "Loading endpoint: $endpoint")
-                val screen = repository.fetchScreen(endpoint, buildEnvelope())
-                applyScreen(screen)
+                val result = repository.fetchScreen(endpoint, buildEnvelope())
+                lastCorrelationId = result.correlationId
+                applyScreen(result.value)
             } catch (e: SchemaVersionMismatchException) {
                 Log.w(TAG, "Schema version mismatch — upgrade required", e)
                 _uiState.value = SduiScreenUiState.UpgradeRequired(
@@ -194,7 +203,7 @@ internal class SduiScreenController(
     /**
      * Screen-channel full replace — fetches the supplied endpoint with
      * user-bound filter params via the canonical `fetchScreen` transport
-     * (envelope + GET/POST length fallback + `X-Trace-Id` propagation) and
+     * (envelope + GET/POST length fallback + `X-Correlation-ID` propagation) and
      * fully replaces the current screen with the response.
      *
      * This is the single entry point for all screen-channel refetches that
@@ -225,12 +234,13 @@ internal class SduiScreenController(
         scope.launch {
             try {
                 Log.d(TAG, "replaceCurrentScreen: endpoint=$endpoint params=$userParams")
-                val refreshScreen = repository.fetchScreen(
+                val result = repository.fetchScreen(
                     path = endpoint,
                     envelope = buildEnvelope(),
                     userParams = userParams,
-                    traceIdOverride = currentScreen?.traceID
+                    correlationIdOverride = lastCorrelationId
                 )
+                val refreshScreen = result.value
 
                 val current = currentScreen
                 if (current != null && refreshScreen.id != current.id) {
@@ -243,6 +253,7 @@ internal class SduiScreenController(
                     return@launch
                 }
 
+                lastCorrelationId = result.correlationId
                 currentUserParams = userParams
                 applyScreen(refreshScreen)
             } catch (e: Exception) {
@@ -257,12 +268,14 @@ internal class SduiScreenController(
         scope.launch {
             _isRefreshing.value = true
             try {
-                val screen = repository.fetchScreen(
+                val result = repository.fetchScreen(
                     path = endpoint,
                     envelope = buildEnvelope(),
-                    userParams = currentUserParams
+                    userParams = currentUserParams,
+                    correlationIdOverride = lastCorrelationId
                 )
-                applyScreen(screen)
+                lastCorrelationId = result.correlationId
+                applyScreen(result.value)
             } catch (e: Exception) {
                 Log.e(TAG, "Refresh failed", e)
             } finally {
@@ -316,7 +329,7 @@ internal class SduiScreenController(
     /**
      * Apply a fetched screen: seed state, emit success, start data channels.
      */
-    private fun applyScreen(screen: SduiModels) {
+    private fun applyScreen(screen: Screen) {
         val previous = currentScreen
         val oldIds = previous?.sections?.map { it.id }?.toSet().orEmpty()
         val newIds = screen.sections.map { it.id }.toSet()
@@ -331,7 +344,7 @@ internal class SduiScreenController(
                 stateManager.removeState(key)
             }
         }
-        Log.d(TAG, "Screen loaded: traceId=${screen.traceID}, sections=${screen.sections.size}")
+        Log.d(TAG, "Screen loaded: correlationId=$lastCorrelationId, sections=${screen.sections.size}")
         _uiState.value = SduiScreenUiState.Success(screen)
 
         // Defer data-channel bootstrap so the initial render is never blocked.
@@ -363,12 +376,14 @@ internal class SduiScreenController(
                 delay(intervalMs)
                 try {
                     val endpoint = currentEndpoint ?: continue
-                    val updated = repository.fetchScreen(
+                    val result = repository.fetchScreen(
                         path = endpoint,
                         envelope = buildEnvelope(),
-                        userParams = currentUserParams
+                        userParams = currentUserParams,
+                        correlationIdOverride = lastCorrelationId
                     )
-                    applyScreen(updated)
+                    lastCorrelationId = result.correlationId
+                    applyScreen(result.value)
                 } catch (e: Exception) {
                     Log.e(TAG, "Screen-level poll failed", e)
                 }
@@ -376,7 +391,7 @@ internal class SduiScreenController(
         }
     }
 
-    private fun setupPolling(screen: SduiModels) {
+    private fun setupPolling(screen: Screen) {
         stopAllPolling()
 
         val screenIsRefreshing = screen.defaultRefreshPolicy?.type == RefreshType.Poll
@@ -440,7 +455,9 @@ internal class SduiScreenController(
                 // sectionEndpoint takes precedence over url when both are set (schema §RefreshPolicy).
                 if (sectionEndpoint != null) {
                     try {
-                        val newSection = repository.fetchSection(sectionEndpoint, buildEnvelope(), currentScreen?.traceID)
+                        val sectionResult = repository.fetchSection(sectionEndpoint, buildEnvelope(), lastCorrelationId)
+                        val newSection = sectionResult.value
+                        sectionResult.correlationId?.let { lastCorrelationId = it }
                         // Load-bearing ordering: restartRealtimeForSection cancels THIS coroutine
                         // via pollingJobs[section.id]?.cancel(). Cancellation is cooperative, so
                         // we keep running until the next suspending call. The remaining statements
@@ -466,7 +483,7 @@ internal class SduiScreenController(
                         return
                     }
                 } else if (pollUrl != null) {
-                    val data = repository.fetchRawJson(pollUrl, dataPath, currentScreen?.traceID)
+                    val data = repository.fetchRawJson(pollUrl, dataPath, lastCorrelationId)
                     updateSectionData(section.id, data)
                 } else {
                     Log.w(TAG, "Poll section '${section.id}' has neither url nor sectionEndpoint — skipping tick")
@@ -522,7 +539,7 @@ internal class SduiScreenController(
         val dataBinding = section.dataBinding
         val merged: Map<String, Any?> = if (dataBinding != null) {
             dataBindingResolver.applyBindings(
-                currentData, newData, dataBinding, screen.traceID,
+                currentData, newData, dataBinding, lastCorrelationId,
                 section.stringTable, sectionId
             )
         } else {
@@ -578,7 +595,7 @@ internal class SduiScreenController(
 
     private var sseStaleJob: Job? = null
 
-    private fun setupAbly(screen: SduiModels) {
+    private fun setupAbly(screen: Screen) {
         val sseSections = screen.sections.filter { s ->
             s.refreshPolicy?.type == RefreshType.SSE && !s.refreshPolicy?.channel.isNullOrBlank()
         }
@@ -688,8 +705,8 @@ internal class SduiScreenController(
     private fun mergeSectionWithAblyMessage(
         section: Section,
         message: Map<String, Any?>,
-        screen: SduiModels
-    ): Data? {
+        screen: Screen
+    ): SectionData? {
         val dataBinding = section.dataBinding
         if (dataBinding == null) {
             Log.w(TAG, "No dataBinding config for section ${section.id} — message dropped")
@@ -699,7 +716,7 @@ internal class SduiScreenController(
             .find { it.id == section.id }?.data
             ?.let { toMap(it) } ?: return null
         val updatedData = dataBindingResolver.applyBindings(
-            currentData, message, dataBinding, screen.traceID,
+            currentData, message, dataBinding, lastCorrelationId,
             section.stringTable, section.id
         )
         return toData(updatedData)
@@ -748,7 +765,7 @@ internal class SduiScreenController(
     /**
      * Replace section data in the current screen and emit a new Success state.
      */
-    private fun updateSectionInScreen(sectionId: String, updatedData: Data?) {
+    private fun updateSectionInScreen(sectionId: String, updatedData: SectionData?) {
         val screen = currentScreen ?: return
         val updatedSections = screen.sections.map { s ->
             if (s.id == sectionId) s.copy(data = updatedData) else s
@@ -759,14 +776,14 @@ internal class SduiScreenController(
         Log.d(TAG, "Data binding applied to $sectionId")
     }
 
-    private fun toMap(data: Data?): Map<String, Any?> {
+    private fun toMap(data: SectionData?): Map<String, Any?> {
         if (data == null) return emptyMap()
         @Suppress("UNCHECKED_CAST")
         return mapper.convertValue(data, Map::class.java) as Map<String, Any?>
     }
 
-    private fun toData(data: Map<String, Any?>): Data? {
-        return mapper.convertValue(data, Data::class.java)
+    private fun toData(data: Map<String, Any?>): SectionData? {
+        return mapper.convertValue(data, SectionData::class.java)
     }
 
     private fun stopAbly() {

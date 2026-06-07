@@ -1,9 +1,10 @@
 package com.nba.sdui.contract;
 
+import com.nba.sdui.testsupport.TestTokens;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.nba.sdui.service.*;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -20,6 +21,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import com.nba.sdui.domain.SduiUtils;
+import com.nba.sdui.domain.SectionSurfaces;
+import com.nba.sdui.domain.composer.DemoScreenComposer;
+import com.nba.sdui.domain.composer.LiveComposer;
+import com.nba.sdui.orchestration.ParameterizedRefreshService;
+import com.nba.sdui.orchestration.SectionRefreshService;
+import com.nba.sdui.remote.SeasonCalendarService;
+import com.nba.sdui.remote.StatsApiAdapter;
+import com.nba.sdui.remote.StatsApiClient;
 
 /**
  * Audit test: walks every composer's emitted action sequences and asserts no
@@ -56,22 +66,22 @@ class MutateThenRefreshAuditTest {
         when(statsApiClient.getScoreboard()).thenReturn(emptyScoreboard);
         when(statsApiClient.getScoreboardForDate(any())).thenReturn(emptyScoreboard);
 
-        SduiUtils utils = new SduiUtils(objectMapper);
-        SectionSurfaces surfaces = new SectionSurfaces(objectMapper, utils);
+        SduiUtils utils = new SduiUtils(objectMapper, TestTokens.INSTANCE);
+        SectionSurfaces surfaces = new SectionSurfaces(objectMapper, utils, TestTokens.INSTANCE);
         SeasonCalendarService seasonCalendarService = new SeasonCalendarService();
         ReflectionTestUtils.setField(seasonCalendarService, "clock", clock);
 
         LiveComposer liveComposer = new LiveComposer(
-                objectMapper, statsApiClient, utils, surfaces,
+                new StatsApiAdapter(statsApiClient), utils, surfaces, TestTokens.INSTANCE,
                 sectionRefreshService, parameterizedRefreshService, seasonCalendarService);
         ReflectionTestUtils.setField(liveComposer, "schemaVersion", "1.0");
-        allScreens.add(liveComposer.composeLive("trace-audit-1", "en"));
+        allScreens.add((ObjectNode) objectMapper.valueToTree(liveComposer.composeLive("trace-audit-1", "en")));
 
         DemoScreenComposer demoScreenComposer = new DemoScreenComposer(
-                objectMapper, utils, surfaces, parameterizedRefreshService);
+                utils, surfaces, TestTokens.INSTANCE, parameterizedRefreshService);
         ReflectionTestUtils.setField(demoScreenComposer, "schemaVersion", "1.0");
-        allScreens.add(demoScreenComposer.composeDemos("trace-audit-2", "phone", "en"));
-        allScreens.add(demoScreenComposer.composeLeaders("trace-audit-3", "phone", "en"));
+        allScreens.add((ObjectNode) objectMapper.valueToTree(demoScreenComposer.composeDemos("trace-audit-2", "phone", "en")));
+        allScreens.add((ObjectNode) objectMapper.valueToTree(demoScreenComposer.composeLeaders("trace-audit-3", "phone", "en")));
     }
 
     @Test

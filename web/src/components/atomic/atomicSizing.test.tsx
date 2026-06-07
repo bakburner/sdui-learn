@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { render } from '@testing-library/react';
 import { AtomicBox } from './AtomicBox';
-import { SizingMode, UIType, type AtomicElement } from '@sdui/models';
+import { SizingMode, AtomicElementType, type AtomicElement } from '@sdui/models';
 
 describe('AtomicBox sizing (widthMode / heightMode)', () => {
   it('applies full width when widthMode is fill', () => {
     const element: AtomicElement = {
       id: 'fill-w',
-      type: UIType.Container,
+      type: AtomicElementType.Container,
       widthMode: SizingMode.Fill,
-      children: [{ id: 't', type: UIType.Text, content: 'Hi' }],
+      children: [{ id: 't', type: AtomicElementType.Text, content: 'Hi' }],
     };
 
     const { container } = render(
@@ -25,9 +25,9 @@ describe('AtomicBox sizing (widthMode / heightMode)', () => {
   it('does not read deprecated fillWidth from the wire shape', () => {
     const element = {
       id: 'legacy',
-      type: UIType.Container,
+      type: AtomicElementType.Container,
       fillWidth: true,
-      children: [{ id: 't', type: UIType.Text, content: 'Hi' }],
+      children: [{ id: 't', type: AtomicElementType.Text, content: 'Hi' }],
     } as AtomicElement;
 
     const { container } = render(

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import type { SduiModels, Section } from '@sdui/models';
+import type { Screen, Section } from '@sdui/models';
 
 /*
  * Schema / fixture drift sentinel.
@@ -49,7 +49,7 @@ function loadFixtures(): Fixture[] {
   });
 }
 
-function isScreenShaped(value: unknown): value is Partial<SduiModels> {
+function isScreenShaped(value: unknown): value is Partial<Screen> {
   if (value === null || typeof value !== 'object') return false;
   const v = value as Record<string, unknown>;
   return 'schemaVersion' in v && Array.isArray(v.sections);

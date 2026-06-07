@@ -1,0 +1,16 @@
+services:
+  # Redis backs SAF's L2 cache, request collapsing, and the L1 invalidation
+  # pub/sub channel. The SDUI server requires it on boot — without a Redis
+  # connection, `cacheInvalidationListenerContainer` fails to start and the
+  # Spring context aborts. Mirrors nba-client-backend's local-infra pattern,
+  # trimmed to only what SDUI needs today (no observability stack yet).
+  redis:
+    image: redis:7-alpine
+    container_name: sdui-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5

@@ -39,7 +39,7 @@ class DataBindingResolver {
      * @param currentData The current section data
      * @param incomingMessage The incoming real-time message
      * @param dataBinding The data binding configuration
-     * @param traceId Optional trace ID for logging
+     * @param correlationId Optional correlation ID for logging
      * @param stringTable Optional section-level string table for stringKey resolution
      * @return Updated section data with bound values applied
      */
@@ -47,12 +47,12 @@ class DataBindingResolver {
         currentData: Map<String, Any?>,
         incomingMessage: Map<String, Any?>,
         dataBinding: DataBinding,
-        traceId: String? = null,
+        correlationId: String? = null,
         stringTable: Map<String, String>? = null,
         sectionId: String? = null
     ): Map<String, Any?> {
         
-        Log.d(TAG, "Applying ${dataBinding.bindings?.size ?: 0} bindings, traceId=$traceId")
+        Log.d(TAG, "Applying ${dataBinding.bindings?.size ?: 0} bindings, correlationId=$correlationId")
         
         // Convert to JsonNode for easier path traversal
         val messageNode = objectMapper.valueToTree<JsonNode>(incomingMessage)
@@ -60,7 +60,7 @@ class DataBindingResolver {
         
         for (binding in dataBinding.bindings.orEmpty()) {
             try {
-                applyBinding(dataNode, messageNode, binding, traceId, sectionId)
+                applyBinding(dataNode, messageNode, binding, correlationId, sectionId)
 
                 // Resolve stringKey: if the binding target has a stringKey, replace the
                 // bound value with the corresponding localized string from the string table.
@@ -72,10 +72,10 @@ class DataBindingResolver {
                             objectMapper.valueToTree(resolved))
                         Log.d(TAG, "stringKey resolved: ${binding.targetPath} -> $stringKey = $resolved")
                     } else {
-                        Log.w(TAG, "stringKey lookup failed for key '$stringKey' on ${binding.targetPath}, keeping raw value, traceId=$traceId")
+                        Log.w(TAG, "stringKey lookup failed for key '$stringKey' on ${binding.targetPath}, keeping raw value, correlationId=$correlationId")
                     }
                 } else if (stringKey != null) {
-                    Log.w(TAG, "stringKey '$stringKey' present but no stringTable provided, keeping raw value, traceId=$traceId")
+                    Log.w(TAG, "stringKey '$stringKey' present but no stringTable provided, keeping raw value, correlationId=$correlationId")
                 }
             } catch (e: Exception) {
                 // Track miss on exception as well
@@ -84,7 +84,7 @@ class DataBindingResolver {
                     val count = (consecutiveMissCounts[missKey] ?: 0) + 1
                     consecutiveMissCounts[missKey] = count
                 }
-                Log.w(TAG, "Failed to apply binding: ${binding.sourcePath} -> ${binding.targetPath}, traceId=$traceId", e)
+                Log.w(TAG, "Failed to apply binding: ${binding.sourcePath} -> ${binding.targetPath}, correlationId=$correlationId", e)
             }
         }
         
@@ -108,7 +108,7 @@ class DataBindingResolver {
         targetData: ObjectNode,
         sourceMessage: JsonNode,
         binding: DataBindingPath,
-        traceId: String?,
+        correlationId: String?,
         sectionId: String?
     ) {
         val missKey = if (sectionId != null) "$sectionId:${binding.sourcePath}" else null
@@ -121,11 +121,11 @@ class DataBindingResolver {
                 val count = (consecutiveMissCounts[missKey] ?: 0) + 1
                 consecutiveMissCounts[missKey] = count
                 if (count >= MISS_THRESHOLD) {
-                    Log.w(TAG, "Binding path missing for $count consecutive cycles: sectionId=$sectionId, sourcePath=${binding.sourcePath}, traceId=$traceId")
+                    Log.w(TAG, "Binding path missing for $count consecutive cycles: sectionId=$sectionId, sourcePath=${binding.sourcePath}, correlationId=$correlationId")
                     // TODO: emit binding_path_missing analytics event
                 }
             }
-            Log.w(TAG, "Source value is null for path: ${binding.sourcePath}, keeping previous value, traceId=$traceId")
+            Log.w(TAG, "Source value is null for path: ${binding.sourcePath}, keeping previous value, correlationId=$correlationId")
             return
         }
 
@@ -137,7 +137,7 @@ class DataBindingResolver {
         val targetValue = applyTransform(binding.transform, sourceValue, sourceMessage)
         setTargetPath(targetData, binding.targetPath, targetValue)
         
-        Log.d(TAG, "Applied binding: ${binding.sourcePath} -> ${binding.targetPath} = $sourceValue, traceId=$traceId")
+        Log.d(TAG, "Applied binding: ${binding.sourcePath} -> ${binding.targetPath} = $sourceValue, correlationId=$correlationId")
     }
 
     private fun applyTransform(transform: Transform?, sourceValue: JsonNode, sourceMessage: JsonNode): JsonNode {

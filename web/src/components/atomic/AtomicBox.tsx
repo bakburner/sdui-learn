@@ -256,6 +256,14 @@ export function buildBoxStyle(
       case CrossAlignment.End:     style.alignSelf = 'flex-end'; break;
       case CrossAlignment.Stretch: style.alignSelf = 'stretch'; break;
     }
+    // Section roots are mounted inside a non-flex SectionContainer div, so
+    // alignSelf is inert there. Auto inline margins centre a width-constrained
+    // block at the section level without affecting flex-item behaviour, where
+    // alignSelf already wins.
+    if (element.alignSelf === CrossAlignment.Center && (element.maxWidth != null || element.width != null)) {
+      style.marginLeft = 'auto';
+      style.marginRight = 'auto';
+    }
   }
 
   // corner radius — per-corner wins when any corner is non-zero; else
@@ -291,12 +299,8 @@ export function buildBoxStyle(
   }
 
   // background — inline wins on `allow`; variant wins on `lock`.
-  // Normalize: backgrounds array > singular background > empty.
-  const effectiveBackgrounds: Array<Background | string> = element.backgrounds
-    ? element.backgrounds as Array<Background | string>
-    : element.background
-      ? [element.background as unknown as Background]
-      : [];
+  const effectiveBackgrounds: Array<Background | string> =
+    (element.backgrounds as Array<Background | string> | undefined) ?? [];
 
   if (effectiveBackgrounds.length > 0) {
     if (variantSpec && !axisAllowsOverride(variantSpec, 'background')) {
@@ -320,11 +324,9 @@ export function buildBoxStyle(
   }
 
   // shadow — inline wins on `allow`; variant wins on `lock`.
-  // Normalize: shadows array > singular shadow > empty.
-  const effectiveShadows: Shadow[] = element.shadows
-    ? resolveShadowOrTokens(element.shadows)
-    : element.shadow
-      ? ((resolved) => (resolved ? [resolved] : []))(resolveShadowOrToken(element.shadow))
+  const effectiveShadows: Shadow[] =
+    element.shadows && element.shadows.length > 0
+      ? resolveShadowOrTokens(element.shadows)
       : [];
   applyShadow(style, effectiveShadows, variantSpec, variantName, resolveColor);
 

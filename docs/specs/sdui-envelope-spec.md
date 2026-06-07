@@ -206,7 +206,7 @@ informational only — never load-bearing for content decisions.
 | `X-App-Version` | semver | Client version analytics |
 | `X-OS-Version` | string | OS version analytics |
 | `X-Device-Id` | uuid | Correlation ID; not trusted for decisions |
-| `X-Trace-Id` | uuid | Distributed tracing; inherited by parameterized refresh |
+| `X-Correlation-ID` | uuid | Request correlation; inherited by parameterized refresh and echoed on every response |
 | `X-Request-Id` | uuid | Request-level log correlation and dedup |
 | `Authorization` | `Bearer <token>` | Auth (out of scope for this spec) |
 
@@ -217,9 +217,11 @@ is per-request) or don't affect composition. Putting them in the query string
 would fragment the CDN cache with no benefit. Headers travel alongside the
 request without affecting the cache key.
 
-`X-Trace-Id` deserves special mention: parameterized refresh inherits the
-parent screen's trace ID so server logs can correlate a refresh response with
-the screen that triggered it.
+`X-Correlation-ID` deserves special mention: parameterized refresh inherits the
+parent screen's correlation ID so server logs can correlate a refresh response
+with the screen that triggered it. Correlation rides on the response header
+only — there is no body-level `traceId` field. See AGENTS.md §1.2
+("Transport-framing exception") and ADR-017 for the response envelope rules.
 
 ### Edge-Injected Headers
 
@@ -318,7 +320,7 @@ a JSON body (POST).
 SduiRequestContext
 ├── locale: String = "en"
 ├── schemaVersion: String = "1.0"
-├── traceId: String               ← from X-Trace-Id header
+├── correlationId: String          ← from X-Correlation-ID header
 ├── platform
 │   ├── deviceClass: String
 │   └── capabilities
@@ -366,7 +368,7 @@ The single fetch primitive on each platform. Owns:
 - RFC-3986 percent-encoding
 - Deterministic key ordering
 - Header attachment (trace, request ID, device ID, platform analytics, edge placeholders, auth)
-- `X-Trace-Id` propagation from parent fetch for parameterized refresh
+- `X-Correlation-ID` propagation from parent fetch for parameterized refresh
 
 | Platform | File |
 |---|---|
@@ -378,6 +380,47 @@ Every composition request — initial loads, navigation, pull-to-refresh,
 action-driven refresh (including parameterized refresh with `paramBindings`)
 — routes through this single primitive. Hand-rolled URL strings, bespoke
 `fetch`/`URLRequest` calls, or per-action transports are prohibited.
+
+## Response Body
+
+Every composition response (screen channel and section channel) is wrapped
+in a hand-written transport envelope at the SDUI controller edge:
+
+```json
+{
+  "data": <Screen | Section>,
+  "meta": {
+    "degraded": false,
+    "staleSections": [],
+    "failedSections": []
+  }
+}
+```
+
+`data` carries the schema-bound payload — a full `Screen` on the screen
+channel, a single `Section` on the section channel. `meta` is hand-written
+transport framing for partial-failure metadata.
+
+**Static-stub `meta` is Step 1.** The current implementation always emits
+`degraded: false`, `staleSections: []`, `failedSections: []`. Real values
+land in a later phase (A2c) when partial-failure metadata is wired through
+the composer pipeline. Clients decode-but-ignore `meta` for now;
+renderers consume `.data` exactly as before.
+
+**Correlation lives in the `X-Correlation-ID` response header only.** There
+is no body-level `traceId` field on `Screen`; the prior body field is
+removed. Parameterized refresh inherits the parent fetch's correlation ID
+via the response header.
+
+This envelope is **outside** `schema/sdui-schema.json` and outside the
+codegen pipeline. It is the one transport-framing exception to the
+schema-as-contract rule. The exception is bounded: exactly one outer
+`{data, meta}` wrapper, no nested envelopes, no per-section frames, and
+no ad-hoc fields outside `meta`. Every wire field inside `.data` remains
+schema-bound and codegen-driven.
+
+See AGENTS.md §1.2 ("Transport-framing exception") and ADR-017 for the
+full rules and rationale.
 
 ## Caching
 

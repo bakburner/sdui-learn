@@ -10,7 +10,7 @@ import XCTest
 /// `SduiScreenViewModel.replaceCurrentScreen()` (née `refresh()`) used to assemble a URL by hand from a
 /// relative endpoint, which (a) bypassed `SduiConfig.baseURL` (yielding
 /// `unsupported URL` errors), (b) skipped envelope params, (c) skipped the
-/// POST fallback, and (d) did not propagate the parent `X-Trace-Id`. All of
+/// POST fallback, and (d) did not propagate the parent `X-Correlation-ID`. All of
 /// those invariants live in `SduiRepository.fetchScreen`, so the only safe
 /// design is to route refresh through the same primitive.
 final class SduiRepositoryRefreshTransportTests: XCTestCase {
@@ -24,12 +24,12 @@ final class SduiRepositoryRefreshTransportTests: XCTestCase {
 
     private func makeRepository(
         envelope: RequestEnvelope = .compactTestEnvelope(),
-        traceID: String? = nil
+        correlationId: String? = nil
     ) -> SduiRepository {
         let config = SduiConfig(
             baseURL: URL(string: "https://example.test/api")!,
             ablyTokenURL: URL(string: "https://example.test/rttoken")!,
-            traceIDProvider: { traceID ?? "trace-fixed" }
+            correlationIdProvider: { correlationId ?? "trace-fixed" }
         )
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [CapturingURLProtocol.self]
@@ -54,7 +54,7 @@ final class SduiRepositoryRefreshTransportTests: XCTestCase {
                 "season": "2025-26",
                 "seasonType": "Regular Season"
             ],
-            traceID: "trace-parent"
+            correlationId: "trace-parent"
         )
 
         let request = try CapturingURLProtocol.requireCaptured()
@@ -72,8 +72,8 @@ final class SduiRepositoryRefreshTransportTests: XCTestCase {
                        "platform name must not appear in query string")
         XCTAssertTrue(query.contains("locale=en"))
 
-        XCTAssertEqual(request.value(forHTTPHeaderField: "X-Trace-Id"), "trace-parent",
-                       "parent screen's traceID must propagate so logs correlate")
+        XCTAssertEqual(request.value(forHTTPHeaderField: "X-Correlation-ID"), "trace-parent",
+                       "parent screen's correlation id must propagate so logs correlate")
         XCTAssertEqual(request.httpMethod, "GET")
     }
 
@@ -152,9 +152,16 @@ final class SduiRepositoryRefreshTransportTests: XCTestCase {
 
     private static let emptyScreenJSON: Data = """
         {
-          "id": "leaders",
-          "schemaVersion": "1.0",
-          "sections": []
+          "data": {
+            "id": "leaders",
+            "schemaVersion": "1.0",
+            "sections": []
+          },
+          "meta": {
+            "degraded": false,
+            "staleSections": [],
+            "failedSections": []
+          }
         }
         """.data(using: .utf8)!
 }
@@ -215,14 +222,36 @@ final class CapturingURLProtocol: URLProtocol {
     private static var captured: Captured?
 
     static func respond(with data: Data) {
-        lock.withLock { stubbedResponse = data }
+        lock.withLock { stubbedResponse = Self.wrapInEnvelopeIfNeeded(data) }
     }
 
     static func respond(with data: Data, statusCode: Int) {
         lock.withLock {
-            stubbedResponse = data
+            stubbedResponse = Self.wrapInEnvelopeIfNeeded(data)
             stubbedStatusCode = statusCode
         }
+    }
+
+    /// Mirrors the server's `{data, meta}` transport envelope so tests can
+    /// keep stubbing raw screen/section JSON. If the payload is already an
+    /// envelope (top-level `data` key) or isn't a JSON object, it is passed
+    /// through untouched.
+    private static func wrapInEnvelopeIfNeeded(_ data: Data) -> Data {
+        guard !data.isEmpty,
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        else {
+            return data
+        }
+        if json["data"] != nil && json["meta"] != nil {
+            return data
+        }
+        let prefix = Data("{\"data\":".utf8)
+        let suffix = Data(",\"meta\":{\"degraded\":false,\"staleSections\":[],\"failedSections\":[]}}".utf8)
+        var wrapped = Data()
+        wrapped.append(prefix)
+        wrapped.append(data)
+        wrapped.append(suffix)
+        return wrapped
     }
 
     static func reset() {

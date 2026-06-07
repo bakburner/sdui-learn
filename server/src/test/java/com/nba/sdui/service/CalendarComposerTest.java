@@ -1,5 +1,7 @@
 package com.nba.sdui.service;
 
+import com.nba.sdui.testsupport.TestTokens;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -15,6 +17,15 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import com.nba.sdui.domain.SduiUtils;
+import com.nba.sdui.domain.composer.CalendarComposer;
+import com.nba.sdui.remote.SeasonCalendarService;
+import com.nba.sdui.remote.StatsApiAdapter;
+import com.nba.sdui.remote.StatsApiClient;
+import com.nba.sdui.domain.SectionSurfaces;
+import com.nba.sdui.domain.composer.LiveComposer;
+import com.nba.sdui.orchestration.ParameterizedRefreshService;
+import com.nba.sdui.orchestration.SectionRefreshService;
 
 class CalendarComposerTest {
 
@@ -26,7 +37,7 @@ class CalendarComposerTest {
                 Clock.fixed(Instant.parse("2026-05-26T14:00:00Z"), ZoneOffset.UTC)
         );
 
-        ObjectNode screen = (ObjectNode) composer.composeCalendar("trace-calendar-1", "en");
+        ObjectNode screen = (ObjectNode) objectMapper.valueToTree(composer.composeCalendar("trace-calendar-1", "en"));
         ArrayNode sections = (ArrayNode) screen.path("sections");
         ObjectNode section = (ObjectNode) sections.get(0);
         ObjectNode data = (ObjectNode) section.path("data");
@@ -50,7 +61,7 @@ class CalendarComposerTest {
                 Clock.fixed(Instant.parse("2026-05-26T14:00:00Z"), ZoneOffset.UTC)
         );
 
-        ObjectNode screen = (ObjectNode) composer.composeCalendar("trace-calendar-2", "en", "2026-03-15");
+        ObjectNode screen = (ObjectNode) objectMapper.valueToTree(composer.composeCalendar("trace-calendar-2", "en", "2026-03-15"));
         ObjectNode data = (ObjectNode) screen.path("sections").get(0).path("data");
 
         assertEquals("2026-03-15", data.path("selectedDate").asText());
@@ -70,10 +81,10 @@ class CalendarComposerTest {
         ));
 
         CalendarComposer composer = new CalendarComposer(
-                objectMapper, seasonCalendarService, statsApiClient, new SduiUtils(objectMapper));
+                seasonCalendarService, new StatsApiAdapter(statsApiClient), new SduiUtils(objectMapper, TestTokens.INSTANCE));
         ReflectionTestUtils.setField(composer, "schemaVersion", "1.0");
 
-        ObjectNode screen = (ObjectNode) composer.composeCalendar("trace-calendar-meta", "en");
+        ObjectNode screen = (ObjectNode) objectMapper.valueToTree(composer.composeCalendar("trace-calendar-meta", "en"));
         ObjectNode data = (ObjectNode) screen.path("sections").get(0).path("data");
         ObjectNode meta = (ObjectNode) data.path("dateMetadata");
 
@@ -94,10 +105,10 @@ class CalendarComposerTest {
         when(statsApiClient.getSeasonGameCounts()).thenThrow(new java.io.IOException("CDN down"));
 
         CalendarComposer composer = new CalendarComposer(
-                objectMapper, seasonCalendarService, statsApiClient, new SduiUtils(objectMapper));
+                seasonCalendarService, new StatsApiAdapter(statsApiClient), new SduiUtils(objectMapper, TestTokens.INSTANCE));
         ReflectionTestUtils.setField(composer, "schemaVersion", "1.0");
 
-        ObjectNode screen = (ObjectNode) composer.composeCalendar("trace-calendar-fail", "en");
+        ObjectNode screen = (ObjectNode) objectMapper.valueToTree(composer.composeCalendar("trace-calendar-fail", "en"));
         ObjectNode data = (ObjectNode) screen.path("sections").get(0).path("data");
         ObjectNode meta = (ObjectNode) data.path("dateMetadata");
 
@@ -116,21 +127,20 @@ class CalendarComposerTest {
         when(statsApiClient.getScoreboardForDate(LocalDate.parse("2026-05-26")))
                 .thenReturn(emptyScoreboard("2026-05-26"));
 
-        SduiUtils utils = new SduiUtils(objectMapper);
-        SectionSurfaces surfaces = new SectionSurfaces(objectMapper, utils);
+        SduiUtils utils = new SduiUtils(objectMapper, TestTokens.INSTANCE);
+        SectionSurfaces surfaces = new SectionSurfaces(objectMapper, utils, TestTokens.INSTANCE);
 
         LiveComposer liveComposer = new LiveComposer(
-                objectMapper,
-                statsApiClient,
+                new StatsApiAdapter(statsApiClient),
                 utils,
-                surfaces,
+                surfaces, TestTokens.INSTANCE,
                 new SectionRefreshService(),
                 new ParameterizedRefreshService(),
                 seasonCalendarService
         );
         ReflectionTestUtils.setField(liveComposer, "schemaVersion", "1.0");
 
-        ObjectNode screen = liveComposer.composeLive("trace-live-1", "en");
+        ObjectNode screen = (ObjectNode) objectMapper.valueToTree(liveComposer.composeLive("trace-live-1", "en"));
         ObjectNode data = (ObjectNode) screen.path("sections").get(0).path("data");
 
         assertTrue(data.has("expandedAction"));
@@ -145,7 +155,7 @@ class CalendarComposerTest {
             StatsApiClient statsApiClient = mock(StatsApiClient.class);
             when(statsApiClient.getSeasonGameCounts()).thenReturn(java.util.Collections.emptyMap());
             CalendarComposer composer = new CalendarComposer(
-                    objectMapper, seasonCalendarService, statsApiClient, new SduiUtils(objectMapper));
+                    seasonCalendarService, new StatsApiAdapter(statsApiClient), new SduiUtils(objectMapper, TestTokens.INSTANCE));
             ReflectionTestUtils.setField(composer, "schemaVersion", "1.0");
             return composer;
         } catch (java.io.IOException e) {

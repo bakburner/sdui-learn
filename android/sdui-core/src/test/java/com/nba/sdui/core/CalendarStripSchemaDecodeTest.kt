@@ -16,7 +16,7 @@ class CalendarStripSchemaDecodeTest {
     fun `calendar-strip fixture decodes with expected fields`() {
         val section: Section = mapper.readValue(loadExample("calendar-strip.json"))
 
-        assertEquals("server:games-calendar~type=CalendarStrip", section.id)
+        assertEquals("server-games-calendar__type-CalendarStrip", section.id)
         assertEquals("CalendarStrip", section.type)
         assertEquals("server:games-calendar", section.contentSourceID)
         assertEquals("games_calendar_strip", section.analyticsID)
@@ -39,7 +39,7 @@ class CalendarStripSchemaDecodeTest {
     fun `calendar-strip decode fails when defaultDate missing`() {
         val invalid = """
             {
-              "id": "server:games-calendar~type=CalendarStrip",
+              "id": "server-games-calendar__type-CalendarStrip",
               "type": "CalendarStrip",
               "data": {
                 "stateKey": "games_selected_date",
@@ -63,7 +63,7 @@ class CalendarStripSchemaDecodeTest {
     fun `calendar-strip decode succeeds when min and max omitted`() {
         val payload = """
             {
-              "id": "server:games-calendar~type=CalendarStrip",
+              "id": "server-games-calendar__type-CalendarStrip",
               "type": "CalendarStrip",
               "data": {
                 "stateKey": "games_selected_date",
@@ -88,7 +88,7 @@ class CalendarStripSchemaDecodeTest {
     fun `calendar-strip decode fails when onDateSelected is array`() {
         val invalid = """
             {
-              "id": "server:games-calendar~type=CalendarStrip",
+              "id": "server-games-calendar__type-CalendarStrip",
               "type": "CalendarStrip",
               "data": {
                 "stateKey": "games_selected_date",

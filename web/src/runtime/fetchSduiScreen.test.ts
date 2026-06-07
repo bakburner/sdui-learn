@@ -10,7 +10,7 @@ import { fetchSduiScreen } from './fetchSduiScreen';
  * The systemic regression these tests guard against:
  * Web's `ActionHandler.handleRefresh` used to assemble URLs by hand from
  * `URLSearchParams` and skip the envelope, the GET/POST length fallback,
- * and `X-Trace-Id` propagation. All of those invariants live in
+ * and `X-Correlation-ID` propagation. All of those invariants live in
  * `fetchSduiScreen`, so the only safe design is to route refresh through
  * the same primitive.
  */
@@ -23,6 +23,10 @@ interface CapturedRequest {
 }
 
 const EMPTY_SCREEN = { id: 'stats-leaders', schemaVersion: '1.0', sections: [] };
+const EMPTY_ENVELOPE = {
+  data: EMPTY_SCREEN,
+  meta: { degraded: false, staleSections: [], failedSections: [] },
+};
 
 function installFetchStub(captured: CapturedRequest[]): void {
   vi.stubGlobal(
@@ -34,7 +38,7 @@ function installFetchStub(captured: CapturedRequest[]): void {
         headers: normalizeHeaders(init?.headers),
         body: typeof init?.body === 'string' ? init.body : undefined,
       });
-      return new Response(JSON.stringify(EMPTY_SCREEN), {
+      return new Response(JSON.stringify(EMPTY_ENVELOPE), {
         status: 200,
         headers: { 'Content-Type': 'application/json' },
       });
@@ -100,7 +104,7 @@ describe('fetchSduiScreen — parameterized refresh transport', () => {
         season: '2025-26',
         seasonType: 'Regular Season',
       },
-      traceId: 'trace-parent',
+      correlationId: 'corr-parent',
     });
 
     expect(captured).toHaveLength(1);
@@ -114,7 +118,7 @@ describe('fetchSduiScreen — parameterized refresh transport', () => {
     expect(query).toContain('seasonType=Regular%20Season');
     expect(query).toContain('locale=en');
 
-    expect(req.headers['x-trace-id']).toBe('trace-parent');
+    expect(req.headers['x-correlation-id']).toBe('corr-parent');
     expect(req.headers['x-analytics-platform']).toBe('web');
     expect(req.headers['x-resolved-country']).toBe('US');
     expect(req.headers['x-resolved-market-cohort']).toBe('MARKET_UNKNOWN');

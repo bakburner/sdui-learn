@@ -60,10 +60,10 @@ else is out of contract.
   response bytes. Server-internal state (cache, time-of-day) must not leak
   into the response unless the response also documents that volatility via
   `refreshPolicy` or `Cache-Control`.
-- **Trace propagation.** `X-Trace-Id` from the request must be echoed in the
-  response and carried into every downstream call (upstream fetches, section
-  re-composition, mutate→refresh chains). If absent on the request, the
-  server generates one and returns it.
+- **Correlation propagation.** `X-Correlation-ID` from the request must be
+  echoed in the response and carried into every downstream call (upstream
+  fetches, section re-composition, mutate→refresh chains). If absent on the
+  request, the server generates one and returns it.
 
 ### 2.2 Forbidden surface
 
@@ -94,7 +94,21 @@ Every screen response carries:
   or `sse`. A non-static `defaultRefreshPolicy` and any section's
   `refreshPolicy.sectionEndpoint` on the same screen are **mutually
   exclusive** (the server must not emit both)
-- `traceId` — echoed from envelope or freshly minted
+
+Correlation lives in the `X-Correlation-ID` response header only; there is
+no body-level `traceId` field on `Screen`.
+
+### 3.1.1 Response envelope wrap
+
+Every screen-channel and section-channel response is wrapped in a
+hand-written transport envelope at the controller edge:
+`ResponseEnvelope<T>(T data, ResponseMeta meta)`. `data` carries the
+schema-bound payload; `meta` carries transport framing
+(`degraded`, `staleSections`, `failedSections`). The current
+implementation emits a static stub (`degraded: false`, empty arrays);
+real partial-failure metadata lands in a later phase. The envelope is
+**outside** `schema/sdui-schema.json` and outside codegen; see ADR-017
+and AGENTS.md §1.2 ("Transport-framing exception") for the rules.
 
 ### 3.2 Section channel must emit a single `Section`
 
@@ -121,7 +135,8 @@ these properties:
   automatic client polling; it is not a precondition for the endpoint's
   existence or correctness.
 - **`sectionId` is the self-sufficient composition key.** The id format
-  (`{contentSource}~type={SectionType}[~slug={name}]`, per §3.4) must
+  (`{sanitizedContentSource}__type-{SectionType}[__slug-{camelCaseName}]`,
+  per §3.4) must
   encode every upstream identifier the resolver needs (gameId, leagueId,
   feed key, etc.). Resolvers must not depend on ambient screen state,
   caller-supplied screen context, or prior screen-channel requests to
@@ -129,7 +144,7 @@ these properties:
 - **Envelope-only context.** The only contextual inputs a section
   resolver may read are the request envelope fields enumerated in §4.1
   (deviceClass, capabilities, locale, schemaVersion, experiments,
-  market.cohort, traceId). Anything else is a contract violation.
+  market.cohort, correlationId). Anything else is a contract violation.
 - **Same-id invariant under repeat composition.** Composing the same
   `sectionId` via the section channel and via a full screen-channel
   response (where that section appears in `sections[]`) must yield the
@@ -157,11 +172,20 @@ runtime warnings.
 
 ### 3.4 IDs are stable and positional indices are forbidden
 
-Section IDs must be derived from `{contentSource}~type={SectionType}` with an
-optional `~slug={name}` disambiguator. Position in the section array must
-never appear in the ID. This guarantees that surgical section replacement
-(section channel) and SSE-driven section patches address the same logical
-unit even after the server reorders sections.
+Section IDs must be derived from
+`{sanitizedContentSource}__type-{SectionType}` with an optional
+`__slug-{camelCaseName}` disambiguator. The wire format is BEM-classic
+(`__` between groups, `-` inside groups). `contentSource` is sanitized
+by replacing every character outside `[A-Za-z0-9-]` with `-` and
+collapsing runs (trailing dashes on prefix-only sources are preserved
+so resolver `startsWith` matching works). `slug` is strict
+lowerCamelCase matching `^[a-z][a-zA-Z0-9]*$` — kebab-case slugs are
+rejected at composition time. The format is CSS-selector safe so
+clients can reflect ids into DOM class names without escaping. Position
+in the section array must never appear in the ID. This guarantees that
+surgical section replacement (section channel) and SSE-driven section
+patches address the same logical unit even after the server reorders
+sections.
 
 ### 3.5 Error states are first-class sections
 
@@ -189,7 +213,7 @@ from a parsed request context with these fields:
 | `schemaVersion` | Envelope | Composition input — drives field stripping (§7) |
 | `experiments[name]=variant` | Envelope | Composition input — A/B variant selection |
 | `market.cohort` | Envelope | Composition input — geo/market segmentation (server-attested) |
-| `traceId` | Envelope or `X-Trace-Id` header | Observability only |
+| `traceId` | `X-Correlation-ID` header **only** | Observability only — header echoed on every response; **never** a body field |
 | `device.deviceId` | `X-Device-Id` header **only** | Observability only — **never a cache key**, intentionally per-user-fragmented |
 
 User-supplied filter/sort/date params (`?date=...`, `?perMode=...`, form
@@ -238,7 +262,7 @@ Request
   ▼
 [A] Envelope decode + validation
   │   • Parse bracket params or JSON body; reject malformed
-  │   • Stamp traceId; bind to MDC for downstream logs
+  │   • Stamp correlationId from X-Correlation-ID; bind to MDC for downstream logs
   ▼
 [B] Version gate
   │   • If client schemaVersion < minimum → 426 / X-Schema-Version-Mismatch
@@ -442,7 +466,7 @@ For each upstream feed the server depends on, the build must declare:
 
 ### 8.3 Upstream identity in trace context
 
-Every upstream call carries the request's `X-Trace-Id` so server logs
+Every upstream call carries the request's `X-Correlation-ID` so server logs
 correlate composition latency with the upstream fetches it triggered. This
 is non-optional for any production deployment.
 
@@ -516,14 +540,14 @@ problems without reading source.
 
 ### 10.2 Required log correlation
 
-- Every log line in a composition request carries `traceId`, `requestId`,
+- Every log line in a composition request carries `correlationId`, `requestId`,
   `screenId`
-- Every upstream call logs the same `traceId` so the composition fan-out
+- Every upstream call logs the same `correlationId` so the composition fan-out
   is reconstructible from logs alone
 
 ### 10.3 Required headers
 
-- `X-Trace-Id` — echoed on every response
+- `X-Correlation-ID` — echoed on every response
 - `X-Schema-Version` — server's current schema version
 - `X-Schema-Version-Mismatch` — present when the client's version is below
   the server's minimum supported version
@@ -543,7 +567,7 @@ A new server passes contract when **all** of these hold:
 - [ ] Section channel composes with `sectionId` + envelope only — no `screenId` accepted, inferred, or required
 - [ ] Section channel works for any registered `sectionId` regardless of whether it is currently mounted in a screen or referenced by `refreshPolicy.sectionEndpoint`
 - [ ] Section-channel body for a given `sectionId` matches the same section as it appears in a screen-channel response for identical envelope + upstream state
-- [ ] `X-Trace-Id` echoed on every response
+- [ ] `X-Correlation-ID` echoed on every response
 
 ### Determinism
 
@@ -594,7 +618,7 @@ A new server passes contract when **all** of these hold:
 ### Observability
 
 - [ ] Composition latency, cache hit ratio, and upstream latency emitted as metrics
-- [ ] Every log line in a composition request carries `traceId`
+- [ ] Every log line in a composition request carries `correlationId`
 
 ### Tests
 

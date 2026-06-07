@@ -66,7 +66,7 @@ struct AtomicContainerView: View {
         }
     }
 
-    private var resolvedDirection: UIDirection? {
+    private var resolvedDirection: AtomicElementDirection? {
         guard element.direction == .row,
               let breakpoint = element.breakpoint,
               currentScreenWidth < CGFloat(breakpoint) else {
@@ -113,10 +113,19 @@ struct AtomicFlexStackLayout: SwiftUI.Layout {
             return partial + mainLength(item.element)
         } + baseSpacing
         let naturalCross = sizes.reduce(CGFloat.zero) { max($0, crossLength($1)) }
+        // Flex semantics: a container only claims its full proposed
+        // main-axis size when something explicit asks it to — a `flex`
+        // child, or a `widthMode/heightMode: fill` (applied as a `.frame`
+        // around this layout by AtomicBoxModifier). Alignment
+        // (`center`, `spaceBetween`, `end`, …) is a placement hint, not a
+        // sizing hint; it must not implicitly grow the container.
+        // Otherwise iOS would silently stretch row containers full-width
+        // while Android (correctly) wraps content, producing the same
+        // payload rendering at different sizes across clients.
         let resolvedMain = resolvedContainerMain(
             proposed: mainProposal,
             natural: naturalMain,
-            hasFlexibleLayout: totalFlex > 0 || alignment?.usesRemainingMainAxisSpace == true
+            hasFlexibleLayout: totalFlex > 0
         )
         let resolvedCross: CGFloat
         if crossAlignment == .stretch {
@@ -245,17 +254,6 @@ private struct MainAxisArrangement {
         default:
             leading = 0
             extraBetween = 0
-        }
-    }
-}
-
-private extension Alignment {
-    var usesRemainingMainAxisSpace: Bool {
-        switch self {
-        case .center, .end, .spaceAround, .spaceBetween, .spaceEvenly:
-            return true
-        case .start:
-            return false
         }
     }
 }

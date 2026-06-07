@@ -78,25 +78,25 @@ class SchemaVersionFilterTest {
     @Test
     void stripsEnumValuesIntroducedAfterClientVersion() throws Exception {
         // Register a new section type enum value introduced in 2.0
-        registry.registerEnumValue("sections[*].type", "SubscribeBanner", SchemaVersion.of(2, 0));
+        registry.registerEnumValue("sections[*].type", "SubscribeUpsell", SchemaVersion.of(2, 0));
 
         String json = """
                 {
                   "id": "screen",
                   "sections": [
                     {"type": "AtomicComposite", "data": {"type": "Box"}},
-                    {"type": "SubscribeBanner", "data": {"type": "Box"}}
+                    {"type": "SubscribeUpsell", "data": {"type": "Box"}}
                   ]
                 }
                 """;
         JsonNode response = mapper.readTree(json);
 
-        // Client at 1.0 should have SubscribeBanner type nullified
+        // Client at 1.0 should have SubscribeUpsell type nullified
         JsonNode result = filter.apply(response, SchemaVersion.of(1, 0), SchemaVersion.of(2, 0));
 
         assertEquals("AtomicComposite", result.path("sections").get(0).path("type").textValue());
         assertTrue(result.path("sections").get(1).path("type").isNull(),
-                "SubscribeBanner enum should be nullified for 1.0 client");
+                "SubscribeUpsell enum should be nullified for 1.0 client");
     }
 
     @Test

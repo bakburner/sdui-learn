@@ -7,7 +7,9 @@
     {
       "id": "chips-section",
       "type": "AtomicComposite",
-      "refreshPolicy": { "type": "static" },
+      "refreshPolicy": {
+        "type": "static"
+      },
       "data": {
         "ui": {
           "id": "chips-root",
@@ -19,16 +21,25 @@
           "layoutWrap": true,
           "gap": "token:nba.spacing.md",
           "crossAxisGap": "token:nba.spacing.md",
-          "padding": { "top": "token:nba.spacing.lg", "bottom": "token:nba.spacing.lg", "start": "token:nba.spacing.lg", "end": "token:nba.spacing.lg" },
+          "padding": {
+            "top": "token:nba.spacing.lg",
+            "bottom": "token:nba.spacing.lg",
+            "start": "token:nba.spacing.lg",
+            "end": "token:nba.spacing.lg"
+          },
           "children": [
             {
               "type": "Container",
               "direction": "row",
               "alignment": "center",
               "crossAlignment": "center",
-              "background": "token:nba.bg.secondary",
               "cornerRadius": "token:nba.radius.full",
-              "padding": { "top": "token:nba.spacing.sm", "bottom": "token:nba.spacing.sm", "start": "token:nba.spacing.lg", "end": "token:nba.spacing.lg" },
+              "padding": {
+                "top": "token:nba.spacing.sm",
+                "bottom": "token:nba.spacing.sm",
+                "start": "token:nba.spacing.lg",
+                "end": "token:nba.spacing.lg"
+              },
               "children": [
                 {
                   "type": "Text",
@@ -37,6 +48,9 @@
                   "weight": "semiBold",
                   "color": "token:nba.label.primary"
                 }
+              ],
+              "backgrounds": [
+                "token:nba.bg.secondary"
               ]
             },
             {
@@ -44,9 +58,13 @@
               "direction": "row",
               "alignment": "center",
               "crossAlignment": "center",
-              "background": "token:nba.bg.secondary",
               "cornerRadius": "token:nba.radius.full",
-              "padding": { "top": "token:nba.spacing.sm", "bottom": "token:nba.spacing.sm", "start": "token:nba.spacing.lg", "end": "token:nba.spacing.lg" },
+              "padding": {
+                "top": "token:nba.spacing.sm",
+                "bottom": "token:nba.spacing.sm",
+                "start": "token:nba.spacing.lg",
+                "end": "token:nba.spacing.lg"
+              },
               "children": [
                 {
                   "type": "Text",
@@ -55,6 +73,9 @@
                   "weight": "semiBold",
                   "color": "token:nba.label.primary"
                 }
+              ],
+              "backgrounds": [
+                "token:nba.bg.secondary"
               ]
             },
             {
@@ -62,9 +83,13 @@
               "direction": "row",
               "alignment": "center",
               "crossAlignment": "center",
-              "background": "token:nba.bg.secondary",
               "cornerRadius": "token:nba.radius.full",
-              "padding": { "top": "token:nba.spacing.sm", "bottom": "token:nba.spacing.sm", "start": "token:nba.spacing.lg", "end": "token:nba.spacing.lg" },
+              "padding": {
+                "top": "token:nba.spacing.sm",
+                "bottom": "token:nba.spacing.sm",
+                "start": "token:nba.spacing.lg",
+                "end": "token:nba.spacing.lg"
+              },
               "children": [
                 {
                   "type": "Text",
@@ -73,6 +98,9 @@
                   "weight": "semiBold",
                   "color": "token:nba.label.primary"
                 }
+              ],
+              "backgrounds": [
+                "token:nba.bg.secondary"
               ]
             },
             {
@@ -80,9 +108,13 @@
               "direction": "row",
               "alignment": "center",
               "crossAlignment": "center",
-              "background": "token:nba.bg.secondary",
               "cornerRadius": "token:nba.radius.full",
-              "padding": { "top": "token:nba.spacing.sm", "bottom": "token:nba.spacing.sm", "start": "token:nba.spacing.lg", "end": "token:nba.spacing.lg" },
+              "padding": {
+                "top": "token:nba.spacing.sm",
+                "bottom": "token:nba.spacing.sm",
+                "start": "token:nba.spacing.lg",
+                "end": "token:nba.spacing.lg"
+              },
               "children": [
                 {
                   "type": "Text",
@@ -91,6 +123,9 @@
                   "weight": "semiBold",
                   "color": "token:nba.label.primary"
                 }
+              ],
+              "backgrounds": [
+                "token:nba.bg.secondary"
               ]
             },
             {
@@ -98,9 +133,13 @@
               "direction": "row",
               "alignment": "center",
               "crossAlignment": "center",
-              "background": "token:nba.bg.secondary",
               "cornerRadius": "token:nba.radius.full",
-              "padding": { "top": "token:nba.spacing.sm", "bottom": "token:nba.spacing.sm", "start": "token:nba.spacing.lg", "end": "token:nba.spacing.lg" },
+              "padding": {
+                "top": "token:nba.spacing.sm",
+                "bottom": "token:nba.spacing.sm",
+                "start": "token:nba.spacing.lg",
+                "end": "token:nba.spacing.lg"
+              },
               "children": [
                 {
                   "type": "Text",
@@ -109,6 +148,9 @@
                   "weight": "semiBold",
                   "color": "token:nba.label.primary"
                 }
+              ],
+              "backgrounds": [
+                "token:nba.bg.secondary"
               ]
             }
           ]

@@ -7,7 +7,9 @@
     {
       "id": "multi-shadow-section",
       "type": "AtomicComposite",
-      "refreshPolicy": { "type": "static" },
+      "refreshPolicy": {
+        "type": "static"
+      },
       "data": {
         "ui": {
           "id": "multi-shadow-root",
@@ -15,7 +17,12 @@
           "direction": "column",
           "crossAlignment": "center",
           "widthMode": "fill",
-          "padding": { "top": "token:nba.spacing.xl", "bottom": "token:nba.spacing.xl", "start": "token:nba.spacing.lg", "end": "token:nba.spacing.lg" },
+          "padding": {
+            "top": "token:nba.spacing.xl",
+            "bottom": "token:nba.spacing.xl",
+            "start": "token:nba.spacing.lg",
+            "end": "token:nba.spacing.lg"
+          },
           "children": [
             {
               "id": "shadow-card",
@@ -24,8 +31,12 @@
               "crossAlignment": "stretch",
               "widthMode": "fill",
               "cornerRadius": "token:nba.radius.lg",
-              "background": "token:nba.bg.secondary",
-              "padding": { "top": "token:nba.spacing.lg", "bottom": "token:nba.spacing.lg", "start": "token:nba.spacing.lg", "end": "token:nba.spacing.lg" },
+              "padding": {
+                "top": "token:nba.spacing.lg",
+                "bottom": "token:nba.spacing.lg",
+                "start": "token:nba.spacing.lg",
+                "end": "token:nba.spacing.lg"
+              },
               "shadows": [
                 {
                   "type": "drop",
@@ -61,6 +72,9 @@
                   "color": "token:nba.label.secondary",
                   "maxLines": 3
                 }
+              ],
+              "backgrounds": [
+                "token:nba.bg.secondary"
               ]
             }
           ]

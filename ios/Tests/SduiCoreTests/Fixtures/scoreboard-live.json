@@ -25,7 +25,7 @@
           },
           "actions": [
             {
-              "trigger": "onTap",
+              "trigger": "onActivate",
               "type": "navigate",
               "targetUri": "nba://game/0042500113"
             }
@@ -195,7 +195,7 @@
           },
           "actions": [
             {
-              "trigger": "onTap",
+              "trigger": "onActivate",
               "type": "navigate",
               "targetUri": "nba://game/0042500173"
             }
@@ -365,7 +365,7 @@
           },
           "actions": [
             {
-              "trigger": "onTap",
+              "trigger": "onActivate",
               "type": "navigate",
               "targetUri": "nba://game/0042500153"
             }
@@ -514,7 +514,6 @@
       }
     }
   ],
-  "traceId": "trace-5d420b09",
   "schemaVersion": "1.0",
   "navigation": {
     "items": [

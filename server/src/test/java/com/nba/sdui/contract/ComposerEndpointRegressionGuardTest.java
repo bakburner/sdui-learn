@@ -49,8 +49,8 @@ class ComposerEndpointRegressionGuardTest {
 
     private static Path resolveComposersPath() {
         Path[] candidates = {
-                Path.of("src", "main", "java", "com", "nba", "sdui", "service"),
-                Path.of("server", "src", "main", "java", "com", "nba", "sdui", "service"),
+                Path.of("src", "main", "java", "com", "nba", "sdui", "domain", "composer"),
+                Path.of("server", "src", "main", "java", "com", "nba", "sdui", "domain", "composer"),
         };
         for (Path candidate : candidates) {
             if (Files.isDirectory(candidate)) {

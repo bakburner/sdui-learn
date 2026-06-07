@@ -127,15 +127,6 @@ final class ActionDispatcherTests: XCTestCase {
     }
 
     @MainActor
-    func testFireAndForgetLegacyOnTapStillDispatches() {
-        let analytics = InMemoryAnalyticsDispatcher()
-        let (dispatcher, _, _, _) = makeDispatcher(analytics: analytics)
-        dispatcher.dispatch(action(type: .fireAndForget, trigger: .onTap, event: "legacy_tap_event"))
-
-        XCTAssertEqual(analytics.events.first?.name, "legacy_tap_event")
-    }
-
-    @MainActor
     func testFireAndForgetOnVisibleDedupsPerScreen() async throws {
         let analytics = InMemoryAnalyticsDispatcher()
         let impressions = ImpressionTracker()

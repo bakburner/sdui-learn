@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeAll } from 'vitest';
 import { render } from '@testing-library/react';
 import type { AtomicElement, AccessibilityProperties } from '@sdui/models';
-import { ActionTrigger, ActionType, Align, UIDirection, UIType } from '@sdui/models';
+import { ActionTrigger, ActionType, Align, AtomicElementDirection, AtomicElementType } from '@sdui/models';
 import { AtomicText } from './AtomicText';
 import { AtomicImage } from './AtomicImage';
 import { AtomicContainer } from './AtomicContainer';
@@ -32,7 +32,7 @@ function withA11y(base: Partial<AtomicElement>, a11y: AccessibilityProperties): 
 describe('AtomicText — accessibility', () => {
   const baseText: Partial<AtomicElement> = {
     id: 'txt-1',
-    type: UIType.Text,
+    type: AtomicElementType.Text,
     content: 'Hello',
     variant: 'bodyMedium',
   };
@@ -95,7 +95,7 @@ describe('AtomicText — accessibility', () => {
 describe('AtomicImage — accessibility', () => {
   const baseImage: Partial<AtomicElement> = {
     id: 'img-1',
-    type: UIType.Image,
+    type: AtomicElementType.Image,
     src: 'https://example.com/photo.png',
   };
 
@@ -136,11 +136,11 @@ describe('AtomicImage — accessibility', () => {
     expect(img?.getAttribute('aria-description')).toBe('Double tap to enlarge');
   });
 
-  it('falls back to element.alt when no accessibility.label', () => {
-    const el = { ...baseImage, alt: 'Fallback alt' } as AtomicElement;
+  it('renders empty alt when no accessibility.label', () => {
+    const el = { ...baseImage } as AtomicElement;
     const { container } = render(<AtomicImage element={el} state={{}} onAction={noop} depth={0} />);
     const img = container.querySelector('img');
-    expect(img?.getAttribute('alt')).toBe('Fallback alt');
+    expect(img?.getAttribute('alt')).toBe('');
   });
 });
 
@@ -150,8 +150,8 @@ describe('AtomicImage — accessibility', () => {
 describe('AtomicContainer — accessibility', () => {
   const baseContainer: Partial<AtomicElement> = {
     id: 'ctr-1',
-    type: UIType.Container,
-    direction: UIDirection.Column,
+    type: AtomicElementType.Container,
+    direction: AtomicElementDirection.Column,
     children: [],
   };
 
@@ -219,13 +219,13 @@ describe('AtomicContainer — accessibility', () => {
 // ---------------------------------------------------------------------------
 describe('AtomicScrollContainer — accessibility', () => {
   function leafText(id: string, label: string): AtomicElement {
-    return { id, type: UIType.Text, content: label, variant: 'bodyMedium' } as AtomicElement;
+    return { id, type: AtomicElementType.Text, content: label, variant: 'bodyMedium' } as AtomicElement;
   }
 
   const baseScroll: Partial<AtomicElement> = {
     id: 'scroll-a11y',
-    type: UIType.ScrollContainer,
-    direction: UIDirection.Row,
+    type: AtomicElementType.ScrollContainer,
+    direction: AtomicElementDirection.Row,
     children: [leafText('c1', 'A'), leafText('c2', 'B')],
   };
 
@@ -266,7 +266,7 @@ describe('AtomicScrollContainer — accessibility', () => {
 describe('AtomicDisplayGrid — accessibility', () => {
   const baseGrid: Partial<AtomicElement> = {
     id: 'grid-1',
-    type: UIType.DisplayGrid,
+    type: AtomicElementType.DisplayGrid,
     columns: [
       { key: 'name', label: 'Name' },
       { key: 'pts', label: 'PTS', align: Align.End },

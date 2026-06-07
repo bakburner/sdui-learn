@@ -1,11 +1,11 @@
 import type {
   Action,
   BoxscoreColumnDefinition,
-  Data,
   DateMetadatum,
   FormField,
   PlayerRow,
   Section,
+  SectionData,
   TabData,
 } from '@sdui/models';
 
@@ -22,7 +22,7 @@ export interface CalendarStripUiModel {
 }
 
 export function mapCalendarStrip(section: Section): CalendarStripUiModel | null {
-  const data = section.data as Data | undefined;
+  const data = section.data as SectionData | undefined;
   if (!data) return null;
 
   const stateKey = data.stateKey as string | undefined;
@@ -70,7 +70,7 @@ export interface CalendarMonthListUiModel {
 }
 
 export function mapCalendarMonthList(section: Section): CalendarMonthListUiModel | null {
-  const data = section.data as Data | undefined;
+  const data = section.data as SectionData | undefined;
   if (!data) return null;
 
   const stateKey = data.stateKey as string | undefined;
@@ -119,7 +119,7 @@ export interface TabGroupUiModel {
 }
 
 export function mapTabGroup(section: Section, state: Record<string, unknown>): TabGroupUiModel | null {
-  const data = section.data as Data | undefined;
+  const data = section.data as SectionData | undefined;
   if (!data?.tabs?.length) return null;
 
   const stateKey = data.stateKey;
@@ -168,7 +168,7 @@ export interface BoxscoreTableUiModel {
 }
 
 export function mapBoxscoreTable(section: Section, state: Record<string, unknown>): BoxscoreTableUiModel | null {
-  const data = section.data as Data | undefined;
+  const data = section.data as SectionData | undefined;
   if (!data) return null;
 
   const sortStateKey = data.sortStateKey as string | undefined;
@@ -203,7 +203,7 @@ export interface FormUiModel {
 }
 
 export function mapForm(section: Section, _state: Record<string, unknown>): FormUiModel | null {
-  const data = section.data as Data | undefined;
+  const data = section.data as SectionData | undefined;
   if (!data?.fields) return null;
   return {
     fields: data.fields as FormField[],

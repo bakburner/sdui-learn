@@ -1,11 +1,12 @@
 package com.nba.sdui.contract;
 
+import com.nba.sdui.testsupport.TestTokens;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.nba.sdui.request.SduiRequestContext;
-import com.nba.sdui.service.*;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -20,6 +21,15 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import com.nba.sdui.domain.SduiUtils;
+import com.nba.sdui.domain.SectionIdDeriver;
+import com.nba.sdui.domain.SectionSurfaces;
+import com.nba.sdui.domain.composer.LiveComposer;
+import com.nba.sdui.orchestration.ParameterizedRefreshService;
+import com.nba.sdui.orchestration.SectionRefreshService;
+import com.nba.sdui.remote.SeasonCalendarService;
+import com.nba.sdui.remote.StatsApiAdapter;
+import com.nba.sdui.remote.StatsApiClient;
 
 /**
  * Channel-contract tests for the section channel ({@code /v1/sdui/section/{id}}).
@@ -50,13 +60,13 @@ class SectionChannelContractTest {
         when(statsApiClient.getScoreboard()).thenReturn(emptyScoreboard);
         when(statsApiClient.getScoreboardForDate(any())).thenReturn(emptyScoreboard);
 
-        SduiUtils utils = new SduiUtils(objectMapper);
-        SectionSurfaces surfaces = new SectionSurfaces(objectMapper, utils);
+        SduiUtils utils = new SduiUtils(objectMapper, TestTokens.INSTANCE);
+        SectionSurfaces surfaces = new SectionSurfaces(objectMapper, utils, TestTokens.INSTANCE);
         SeasonCalendarService seasonCalendarService = new SeasonCalendarService();
         ReflectionTestUtils.setField(seasonCalendarService, "clock", clock);
 
         LiveComposer liveComposer = new LiveComposer(
-                objectMapper, statsApiClient, utils, surfaces,
+                new StatsApiAdapter(statsApiClient), utils, surfaces, TestTokens.INSTANCE,
                 sectionRefreshService, parameterizedRefreshService, seasonCalendarService);
         ReflectionTestUtils.setField(liveComposer, "schemaVersion", "1.0");
         ReflectionTestUtils.invokeMethod(liveComposer, "registerResolvers");

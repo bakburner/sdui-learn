@@ -153,7 +153,7 @@ graph LR
 - **Codegen produces data models only** — not UI code. Platform teams write a thin renderer layer (~30 lines per section type) that wires generated models to existing design system components.
 - **Schema is versioned** — client sends its schema version, server responds with a compatible payload. Fields can never be removed without a major version bump.
 - **Subsection actions are required** — `actions` must be supported at section and nested component/subsection level (for example, tapping home team area within a game section).
-- **Request context is contract input** — composition must support a typed request envelope (platform, app version, locale, device context, experiments, capabilities, traceId).
+- **Request context is contract input** — composition must support a typed request envelope (platform, app version, locale, device context, experiments, capabilities, correlationId via `X-Correlation-ID` header).
 - **Server-driven back navigation** — `Screen.parentUri` (optional) tells the client where the back button should navigate.  Omit for root screens.  Clients always show the back button on non-root screens.
 
 ### Section Surface (Server-Driven Outer Frame)
@@ -959,7 +959,7 @@ sequenceDiagram
 ### 9l. Debugging & Observability
 
 **What's needed:**
-- Every SDUI response carries a `traceId` that follows it from composition through rendering
+- Every SDUI response carries an `X-Correlation-ID` header that follows it from composition through rendering (propagated through MDC for server-internal logging); correlation is header-only and not a wire body field
 - Section-level timing: when each section started rendering, when data binding connected, when first data arrived
 - Action execution logging: every action fired with timestamp, trigger, and outcome
 - Visual debug overlay (dev builds): tap a section to see its raw JSON, binding status, and action definitions
@@ -1000,7 +1000,7 @@ sequenceDiagram
   - device context (device ID, ZIP code, country code, region)
   - experiment assignments
   - client capabilities (e.g., SSE support)
-  - traceId
+  - correlationId (echoed on the `X-Correlation-ID` response header; not a body field)
 - Contract guarantees for required vs optional context fields.
 - Auth via `Authorization` header (bearer JWT/session token); do not pass tokens in query params.
 - Request method policy:
@@ -1021,7 +1021,7 @@ sequenceDiagram
 
 - GET-first with bracket-notation nested params (`platform[deviceClass]=phone`, `platform[capabilities]=sse`, `experiments[exp_id]=variant_b`). Composition-relevant context travels as query parameters — naturally part of the CDN cache key.
 - POST fallback on the same URL with a JSON body of the same shape, when query string exceeds 8192 characters.
-- `Authorization` is the only required header. Analytics/observability headers (`X-Analytics-Platform`, `X-App-Version`, `X-OS-Version`, `X-Trace-Id`, `X-Request-Id`) travel as headers, not query params. Edge-injected headers (`X-Resolved-Country`, `X-Resolved-Market-Cohort`) supply geo context.
+- `Authorization` is the only required header. Analytics/observability headers (`X-Analytics-Platform`, `X-App-Version`, `X-OS-Version`, `X-Correlation-ID`, `X-Request-Id`) travel as headers, not query params. Edge-injected headers (`X-Resolved-Country`, `X-Resolved-Market-Cohort`) supply geo context.
 - Platform identity travels as the `X-Analytics-Platform` header (analytics only); `schemaVersion` remains in the query. Device context for composition uses `platform[deviceClass]` and `platform[capabilities]` in the envelope.
 - All device context fields are optional — server tolerates missing fields gracefully with sensible defaults.
 - All timestamps in UTC — no timezone in the request envelope. Timezone-aware formatting is a client presentation concern.
@@ -1032,7 +1032,7 @@ sequenceDiagram
   - `/v1/sdui/section/{id}` — Section channel. Response is a single `Section` object. Used for section-level polling and SSE-triggered re-composition. Client replaces that one section in place.
   - `/v1/api/` — Raw domain data (not SDUI-shaped). Consumed via `dataBinding` path rules; never decoded as a screen or section.
 - **All composition routes are dual-mounted GET + POST to the same handler.** There are no GET-only or POST-only composition endpoints.
-- **Every composition fetch on every client routes through one shared primitive** (`SduiRepository.fetchScreen` / `fetchSduiScreen` on web), regardless of whether it's an initial load, a navigation, a pull-to-refresh, or an action-driven `refresh` with `paramBindings`. That primitive owns baseURL resolution, envelope serialization, GET/POST length-fallback, RFC-3986 percent-encoding, deterministic key ordering, and `X-Trace-Id` propagation. Hand-rolled URL strings or per-action transports are not allowed.
+- **Every composition fetch on every client routes through one shared primitive** (`SduiRepository.fetchScreen` / `fetchSduiScreen` on web), regardless of whether it's an initial load, a navigation, a pull-to-refresh, or an action-driven `refresh` with `paramBindings`. That primitive owns baseURL resolution, envelope serialization, GET/POST length-fallback, RFC-3986 percent-encoding, deterministic key ordering, and `X-Correlation-ID` propagation. Hand-rolled URL strings or per-action transports are not allowed.
 - **User-supplied filter params** (Form bindings such as `season=2025-26`, refresh `paramBindings`) ride the URL query string regardless of HTTP method, so the server reads them through `@RequestParam` on either side. They participate in the GET/POST length decision alongside the envelope.
 
 **ADR tracking:** [ADR-003](adr/003-composition-api-contract.md), [ADR-004](adr/004-transport-and-caching-policy.md)
@@ -1249,7 +1249,7 @@ Until approved, these remain directional requirements and may be refined.
 | Schema versioning protocol | **Built** | Server version routing, field stripping, and force-upgrade signal (`X-Schema-Version-Mismatch: upgrade-required`) implemented. All clients detect header and display upgrade prompt. Version format: major.minor. |
 | Composition ownership model (SDUI composer as source of truth) | **Partial** | Architecture intent clear; transitional CoreAPI-derived composition still in use |
 | Request context envelope for composition | **Built** | `SduiRequestContext` POJO + `BracketParamResolver` (bracket-notation GET, POST fallback). Android, iOS, and web `RequestEnvelopeBuilder`. All fields optional with defaults. |
-| Composition API contract (auth, method, cacheability) | **Built** | GET-first with bracket-notation params; POST fallback >8192 chars; `Authorization` header only; Cache-Control per D7 route mapping; `X-Trace-Id` header for observability |
+| Composition API contract (auth, method, cacheability) | **Built** | GET-first with bracket-notation params; POST fallback >8192 chars; `Authorization` header only; Cache-Control per D7 route mapping; `X-Correlation-ID` header for observability |
 | Actions at subsection level | **Partial** | Supported conceptually; needs explicit schema examples and conformance tests |
 | Form-factor layout manager | **Partial** | Cross-platform: settled (server-side composition). Within-family margins route through `Section.surface.margin`; section outer chrome via `Section.surface` and `SectionContainer`. Within-family responsive layout still requires design (see §9b). |
 | Ad support as first-class primitive | **Gap** | Needs ad primitive definition and fallback behavior |
@@ -1258,7 +1258,7 @@ Until approved, these remain directional requirements and may be refined.
 | Impression deduplication | **Partial** | Visibility infrastructure (`SectionVisibilityTracker`, `onVisible` dispatch, dedup registry) built on all platforms. Server does not yet compose `fireAndForget` impression beacons on `onVisible` triggers. ADR-009 accepted. |
 | A/B testing integration | **Built** | Fully client-authoritative (ADR-006 Accepted). `experiments` map replaces `variant` param. Kill switch is client-side. Exposure tracking via `fireAndForget` actions. Amplitude SDK integration deferred. |
 | Pagination / infinite scroll | **Gap** | Cursor-based, server-defined |
-| Debugging / observability | **Partial** | traceId in responses; structured Logcat; no dashboards |
+| Debugging / observability | **Partial** | `X-Correlation-ID` header echoed on responses; structured Logcat; no dashboards |
 | Contract testing | **Gap** | No automated contract tests yet. Contract tests verify cross-platform conformance (schema ↔ server ↔ clients) and are distinct from per-requirement unit tests. All other requirements should have appropriate unit and integration tests when productionized. |
 | Internationalization (i18n) | **Built** | Section-level `stringTable` stamped by server per locale. Server pre-translates initial text. Clients consume `stringTable` from each section. Parameterized strings via atomic decomposition. `stringKeys` on data bindings deferred to production server requirements. |
 | Tabular data sections (BoxscoreTable) | **Built** | Semantic table type with domain-typed data, client-side sort, frozen column/totals row. Built on Android, iOS, and web. |

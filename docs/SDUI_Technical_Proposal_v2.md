@@ -220,9 +220,9 @@ Tabular stat views (boxscore, roster, standings) share UX patterns — frozen fi
 
 **Key decision factors:** Semantic types over generic `DataTable` — different tables have genuinely different data shapes (boxscore ≠ roster ≠ standings). Semantic types provide compile-time safety, meaningful analytics, and per-platform rendering freedom. Generic `Form` is the correct exception because pickers genuinely share shape regardless of domain. Client-side sort works because payloads are small (≤15 rows) and state survives poll refreshes. Client teams share a `BaseDataTable` component internally; this reuse is invisible to the schema.
 
-**`BoxscoreTableData`** — domain-typed player statistics with `teamTotals` (frozen bottom row excluded from sort), `emptyMessage` (pre-game states), and `additionalStatistics` (forward-compatible escape hatch for new stats without schema changes). See [Appendix C](#appendix-c-boxscore-screen-response-example) for a full composed example.
+**`BoxscoreTable`** — domain-typed player statistics with `teamTotals` (frozen bottom row excluded from sort), `emptyMessage` (pre-game states), and `additionalStatistics` (forward-compatible escape hatch for new stats without schema changes). See [Appendix C](#appendix-c-boxscore-screen-response-example) for a full composed example.
 
-**`FormData`** — extensible settings fields with `picker` (dropdown), `segmented` (button group), `toggle` (switch), `datePicker`, and `text` field types. Field changes accumulate in `Screen.state`; submit fires the `refresh` action with `paramBindings` resolved from current state values. See [Appendix D](#appendix-d-form-section-response-example) for a full example.
+**`Form`** — extensible settings fields with `picker` (dropdown), `segmented` (button group), `toggle` (switch), `datePicker`, and `text` field types. Field changes accumulate in `Screen.state`; submit fires the `refresh` action with `paramBindings` resolved from current state values. See [Appendix D](#appendix-d-form-section-response-example) for a full example.
 
 ### 2a. Atomic Element Layer
 
@@ -440,7 +440,7 @@ This enables Form submit buttons to say "refresh the screen with `season={state.
 - Bracket-notation envelope params on the URL (or a JSON body of the same shape on POST when the envelope exceeds 8192 chars).
 - RFC-3986 percent-encoding for both halves of the query string (envelope params and user params), with deterministic key ordering.
 - User filter params on the URL query string regardless of HTTP method, so the server reads them through the same `@RequestParam` path on either side.
-- `X-Trace-Id` propagation from the parent screen so refresh logs correlate with the screen that triggered them.
+- `X-Correlation-ID` propagation from the parent screen so refresh logs correlate with the screen that triggered them.
 
 The server's screen channel (`/v1/sdui/screen/{id}` with optional user query
 params) is dual-mounted (`@GetMapping` + `@PostMapping`) to the same handler.
@@ -778,7 +778,7 @@ Composition must support a typed request envelope:
 - device context (device ID, ZIP code, country code, region)
 - experiment assignments
 - client capabilities
-- traceId
+- correlationId (echoed on the `X-Correlation-ID` response header; not a body field)
 
 Transport and caching:
 
@@ -986,8 +986,7 @@ The alternative is duplicated platform composition logic and drift in feature be
     "countryCode": "US",
     "region": "ny"
   },
-  "experiments": { "gd_tab_order_v2": "client_hint_variant_b" },
-  "traceId": "8d68d9d5-4512-4ff4-8d55-1f1b20ea4e11"
+  "experiments": { "gd_tab_order_v2": "client_hint_variant_b" }
 }
 ```
 
@@ -1000,7 +999,6 @@ The `device` object carries device signals that the composition service may use 
 ```json
 {
   "meta": {
-    "traceId": "8d68d9d5-4512-4ff4-8d55-1f1b20ea4e11",
     "schemaVersion": "1.1",
     "assignment": {
       "gd_tab_order_v2": "server_variant_a"
@@ -1203,7 +1201,6 @@ A composed boxscore screen using `TabGroup` to toggle between teams, each tab co
 ```json
 {
   "meta": {
-    "traceId": "c4f29a11-7e33-4b8a-a1d2-9f3c5e8b7a01",
     "schemaVersion": "1.2",
     "cacheability": "live"
   },

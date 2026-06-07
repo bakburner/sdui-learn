@@ -36,8 +36,9 @@ ios/SduiDemo/build/
 .env
 *.local
 
-# Project-local Maven repository (populated by `make sync-saf` for Docker
-# builds; see server/Dockerfile). Local dev resolves SAF from ~/.m2 directly.
+# Legacy project-local Maven repository. SAF now resolves from GitHub
+# Packages (https://github.com/NBA/saf); this directory is ignored so a
+# stale local copy never bleeds into the Docker build context.
 .m2/
 
 .trash/

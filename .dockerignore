@@ -13,4 +13,5 @@ server/build/
 server/.gradle
 server/.vscode
 server/.env
+.m2/
 *.md

@@ -46,28 +46,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      # SAF (service-aggregation-framework) is a sibling internal repo. We
-      # check it out, publish to Maven Local, then sync into the build context's
-      # project-local .m2/ so the Dockerfile can resolve it offline. Mirrors
-      # nba-client-backend's pattern. Set repo variables SAF_REPOSITORY (e.g.
-      # 'NBA/service-aggregation-framework') and SAF_REF (default 'main'); set
-      # secret SAF_REPO_PAT if SAF lives outside this repo's org.
-      - name: Checkout SAF
-        uses: actions/checkout@v6
-        with:
-          repository: ${{ vars.SAF_REPOSITORY }}
-          ref: ${{ vars.SAF_REF || 'main' }}
-          path: service-aggregation-framework
-          token: ${{ secrets.SAF_REPO_PAT || secrets.GITHUB_TOKEN }}
-
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '21'
-
-      - name: Publish + sync SAF to project-local .m2/
-        run: make sync-saf SAF_REPO=$GITHUB_WORKSPACE/service-aggregation-framework
+      # SAF (`com.nba:service-aggregation-framework`) resolves from GitHub
+      # Packages (https://github.com/NBA/saf, same org as this repo).
+      # Credentials are passed to the Docker build as BuildKit secrets so they
+      # never land in image layers. The default `GITHUB_TOKEN` has
+      # `read:packages` for org-internal artifacts.
 
       - name: Docker Setup QEMU for Multi-Arch Build
         uses: docker/setup-qemu-action@v3
@@ -94,6 +77,9 @@ jobs:
 
       - name: Docker Bake
         uses: docker/bake-action@v6
+        env:
+          GPR_USER: ${{ github.actor }}
+          GPR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           push: true
           files: |
@@ -103,6 +89,8 @@ jobs:
           set: |
             sdui-prototype.args.GIT_SHA=${{ github.sha }}
             sdui-prototype.args.GIT_BRANCH_NAME=${{ github.ref_name }}
+            sdui-prototype.secrets=id=gpr_user,env=GPR_USER
+            sdui-prototype.secrets=id=gpr_token,env=GPR_TOKEN
             *.cache-to=type=gha,mode=min
             *.cache-from=type=gha
 

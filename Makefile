@@ -2,7 +2,7 @@
 	dev-android dev-android-local dev-android-remote _dev-android \
 	dev-ios-local dev-ios-remote ios-run-local ios-run-remote _dev-ios \
 	dev-all codegen server-test android-test web-test test \
-	lint-sdui-warn publish-saf sync-saf \
+	lint-sdui-warn publish-saf-local \
 	run-redis stop-redis logs-redis \
 	stop stop-server stop-web stop-android \
 	ios-test ios-test-clean ios-build ios-demo-project ios-run ios-run-max ios-stop ios-fixtures-sync ios-sim-preflight
@@ -69,36 +69,26 @@ codegen:
 	@echo "=== Codegen complete ==="
 
 # ── SAF (service-aggregation-framework) ──────────────────────
-# SAF is consumed from Maven Local for local dev (~/.m2) and from the
-# project-local .m2/repository/ for Docker builds (so the build context is
-# self-contained, no host-mount required). Mirrors the nba-client-backend
-# pattern.
-#   publish-saf : build SAF from its sibling repo and install to ~/.m2
-#   sync-saf    : publish-saf, then copy SAF into <repo>/.m2/repository/
-#                 for the Docker build context
+# SAF (`com.nba:service-aggregation-framework:1.0.0-SNAPSHOT`) resolves from
+# GitHub Packages (https://github.com/NBA/saf). Credentials come from
+# `~/.gradle/gradle.properties` (`gpr.user`/`gpr.key`) or env (`GITHUB_ACTOR`/
+# `GITHUB_TOKEN`); CI passes them through BuildKit secret mounts.
+#
+# `publish-saf-local` is a dev convenience: when iterating on SAF source in
+# the sibling repo, publish to Maven Local so the server resolves your
+# in-progress build without waiting on a GitHub Packages push. Otherwise it
+# is not needed.
 SAF_REPO ?= $(HOME)/Projects/service-aggregation-framework
 
-publish-saf:
+publish-saf-local:
 	@echo "=== Publishing SAF to Maven Local from $(SAF_REPO) ==="
 	@if [ ! -d "$(SAF_REPO)" ]; then \
 		echo "ERROR: SAF_REPO=$(SAF_REPO) does not exist."; \
-		echo "Override: make publish-saf SAF_REPO=/path/to/service-aggregation-framework"; \
+		echo "Override: make publish-saf-local SAF_REPO=/path/to/service-aggregation-framework"; \
 		exit 1; \
 	fi
 	@cd $(SAF_REPO) && ./gradlew publishToMavenLocal
-	@echo "=== SAF published ==="
-
-sync-saf: publish-saf
-	@echo "=== Syncing SAF from ~/.m2 to project-local .m2/ (Docker build context) ==="
-	@mkdir -p .m2/repository/com/nba
-	@if [ -d $(HOME)/.m2/repository/com/nba/service-aggregation-framework ]; then \
-		rm -rf .m2/repository/com/nba/service-aggregation-framework; \
-		cp -r $(HOME)/.m2/repository/com/nba/service-aggregation-framework .m2/repository/com/nba/; \
-		echo "✓ SAF synced to .m2/repository/com/nba/service-aggregation-framework"; \
-	else \
-		echo "✗ SAF not found in ~/.m2 - run 'make publish-saf' first"; \
-		exit 1; \
-	fi
+	@echo "=== SAF published to ~/.m2 ==="
 
 server-test:
 	@echo "=== Running server tests ==="

@@ -7,6 +7,14 @@ spring:
   threads:
     virtual:
       enabled: true
+  jackson:
+    # Omit null and empty values from the wire. Typed jsonschema2pojo POJOs
+    # default-initialize List/Map fields to empty collections; without this,
+    # every emitted AtomicElement would ship `children: []`, `actions: []`,
+    # `overlays: []`, etc., turning "field absent" and "field empty" into
+    # two indistinguishable wire shapes for clients. NON_EMPTY makes
+    # absence the only signal.
+    default-property-inclusion: non_empty
   config:
     import: optional:dotenv:.env
 

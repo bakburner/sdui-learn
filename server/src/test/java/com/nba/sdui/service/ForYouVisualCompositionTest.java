@@ -96,7 +96,7 @@ class ForYouVisualCompositionTest {
         assertEquals("poll", gamesHero.path("refreshPolicy").path("type").asText(),
                 "Mock fallback hero must poll the section endpoint, not SSE");
         String sectionEndpoint = gamesHero.path("refreshPolicy").path("sectionEndpoint").asText("");
-        assertTrue(sectionEndpoint.contains("tonights-games-hero"),
+        assertTrue(sectionEndpoint.contains("tonightsGamesHero"),
                 "Poll must target the Tonight's Games hero section id");
         assertTrue(gamesHero.path("dataBinding").isMissingNode()
                         || gamesHero.path("dataBinding").path("bindings").isEmpty(),
@@ -143,9 +143,9 @@ class ForYouVisualCompositionTest {
             String sectionId = section.path("id").asText("");
             String contentSourceId = section.path("contentSourceId").asText("");
             assertFalse(contentSourceId.isBlank());
-            assertTrue(sectionId.contains(contentSourceId));
+            assertTrue(sectionId.startsWith(SectionIdDeriver.sanitizeSource(contentSourceId) + "__"));
             assertTrue(SectionIdDeriver.isDerived(sectionId));
-            assertFalse(sectionId.matches(".*~slug=\\d+$"));
+            assertFalse(sectionId.matches(".*__slug-\\d+$"));
         }
     }
 

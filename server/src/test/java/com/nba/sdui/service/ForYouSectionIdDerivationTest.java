@@ -67,9 +67,11 @@ class ForYouSectionIdDerivationTest {
         for (JsonNode section : sections) {
             String sectionId = section.path("id").asText("");
             String contentSourceId = section.path("contentSourceId").asText("");
+            String sanitizedSource = SectionIdDeriver.sanitizeSource(contentSourceId);
 
-            assertTrue(sectionId.contains(contentSourceId),
-                    "Section id '" + sectionId + "' must contain its contentSourceId '" + contentSourceId + "'");
+            assertTrue(sectionId.startsWith(sanitizedSource + "__"),
+                    "Section id '" + sectionId + "' must begin with sanitized contentSourceId '"
+                            + sanitizedSource + "' (raw='" + contentSourceId + "')");
         }
     }
 
@@ -81,7 +83,7 @@ class ForYouSectionIdDerivationTest {
         for (JsonNode section : sections) {
             String sectionId = section.path("id").asText("");
             assertTrue(SectionIdDeriver.isDerived(sectionId),
-                    "Section id '" + sectionId + "' must use '~type=' derived format");
+                    "Section id '" + sectionId + "' must use '__type-' derived format");
         }
     }
 
@@ -92,7 +94,7 @@ class ForYouSectionIdDerivationTest {
         ArrayNode sections = (ArrayNode) response.get("sections");
         for (JsonNode section : sections) {
             String sectionId = section.path("id").asText("");
-            assertFalse(sectionId.matches(".*~slug=\\d+$"),
+            assertFalse(sectionId.matches(".*__slug-\\d+$"),
                     "Section id '" + sectionId + "' must not use positional indices as slug");
         }
     }

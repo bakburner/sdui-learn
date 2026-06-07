@@ -999,7 +999,7 @@ public class DemoScreenComposer {
                                             String ctaLabel, String ctaUri) {
         AtomicElement card = atomicBuilder.container("column", "start", "start");
         card.setGap(6); // §3.6: no semantic spacing token for 6
-        card.setBackground(tokens.color("nba.color.t-white.10"));
+        card.setBackgrounds(List.of(tokens.color("nba.color.t-white.10")));
         card.setCornerRadius(tokens.radius("lg"));
         card.setPadding(atomicBuilder.padding(
                 22, // §3.6: no semantic spacing token for 22
@@ -1160,7 +1160,7 @@ public class DemoScreenComposer {
         AtomicElement root = new AtomicElement();
         root.setType(AtomicElement.Type.CONTAINER);
         root.setDirection(AtomicElement.Direction.COLUMN);
-        root.setBackground(tokens.color("nba.bg.primary"));
+        root.setBackgrounds(List.of(tokens.color("nba.bg.primary")));
         root.setCornerRadius(tokens.radius("md"));
         com.nba.sdui.models.generated.Spacing padding =
                 new com.nba.sdui.models.generated.Spacing();
@@ -1201,7 +1201,7 @@ public class DemoScreenComposer {
 
     private Section buildDemoSectionHeaderComposite() {
         String contentSourceId = "feed:demo";
-        String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite", "section-header");
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite", "sectionHeader");
         Section section = atomicBuilder.buildSectionHeaderComposite(
                 sectionId,
                 "demo_section_header_composite",
@@ -1333,12 +1333,34 @@ public class DemoScreenComposer {
      */
     private Section buildTypeLabel(String sectionType) {
         String contentSourceId = "feed:demo";
-        String slug = "label-" + sectionType.toLowerCase().replaceAll("[^a-z0-9\\-]", "-");
+        String slug = labelToCamelSlug(sectionType);
         String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite", slug);
         Section section = atomicBuilder.buildSectionHeader(
                 sectionId, sectionType, null, null, null);
         section.setContentSourceId(contentSourceId);
         return section;
+    }
+
+    /**
+     * Convert a free-form demo label (e.g. {@code "Game Card (scoreboard) (Composite)"})
+     * into a {@code SectionIdDeriver}-valid lowerCamelCase slug
+     * (e.g. {@code "labelGameCardScoreboardComposite"}). Splits on every
+     * non-alphanumeric character and prefixes {@code label} so the slug
+     * always starts with a lowercase letter.
+     */
+    private static String labelToCamelSlug(String label) {
+        StringBuilder sb = new StringBuilder("label");
+        boolean nextUpper = true;
+        for (int i = 0; i < label.length(); i++) {
+            char c = label.charAt(i);
+            if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')) {
+                sb.append(nextUpper ? Character.toUpperCase(c) : Character.toLowerCase(c));
+                nextUpper = false;
+            } else {
+                nextUpper = true;
+            }
+        }
+        return sb.toString();
     }
 
     private BoxscoreColumnDefinition demoColDef(String key, String label, boolean sortable, boolean highlighted) {

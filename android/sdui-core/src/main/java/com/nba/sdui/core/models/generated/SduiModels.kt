@@ -65,7 +65,7 @@ val mapper = jacksonObjectMapper().apply {
     convert(TickDirection::class,          { TickDirection.fromValue(it.asText()) },          { "\"${it.value}\"" })
     convert(TextWeight::class,             { TextWeight.fromValue(it.asText()) },             { "\"${it.value}\"" })
     convert(TextVariant::class,            { TextVariant.fromValue(it.asText()) },            { "\"${it.value}\"" })
-    convert(BackgroundUnion::class,        { BackgroundUnion.fromJson(it) },                  { it.toJson() }, true)
+    convert(BackgroundUnion::class,      { BackgroundUnion.fromJson(it) },                { it.toJson() }, true)
     convert(Overlay::class,                { Overlay.fromJson(it) },                          { it.toJson() }, true)
     convert(LayoutScalar::class,           { LayoutScalar.fromJson(it) },                     { it.toJson() }, true)
     convert(ShadowOrToken::class,          { ShadowOrToken.fromJson(it) },                    { it.toJson() }, true)
@@ -415,8 +415,8 @@ enum class NavigationPresentation(val value: String) {
 }
 
 /**
- * Event that fires the action. Prefer onActivate for primary activation (tap, keyboard
- * Enter/Space, accessibility activate). onTap is a deprecated alias for onActivate.
+ * Event that fires the action. onActivate is the primary activation trigger and covers tap,
+ * keyboard Enter/Space, and accessibility activate uniformly across platforms.
  */
 enum class ActionTrigger(val value: String) {
     OnActivate("onActivate"),
@@ -425,7 +425,6 @@ enum class ActionTrigger(val value: String) {
     OnLongPress("onLongPress"),
     OnSubmit("onSubmit"),
     OnSwipe("onSwipe"),
-    OnTap("onTap"),
     OnVisible("onVisible");
 
     companion object {
@@ -436,7 +435,6 @@ enum class ActionTrigger(val value: String) {
             "onLongPress" -> OnLongPress
             "onSubmit"    -> OnSubmit
             "onSwipe"     -> OnSwipe
-            "onTap"       -> OnTap
             "onVisible"   -> OnVisible
             else          -> throw IllegalArgumentException()
         }
@@ -1014,27 +1012,15 @@ data class AtomicElement (
     val alignSelf: CrossAlignment? = null,
 
     /**
-     * Deprecated: use accessibility.label instead. Retained for backward compatibility; clients
-     * prefer accessibility.label when present.
-     */
-    val alt: String? = null,
-
-    /**
      * Aspect ratio: legacy numeric (w/h), or named ratio string for semantic layout.
      */
     val aspectRatio: AspectRatioUnion? = null,
 
     /**
-     * DEPRECATED — use backgrounds (array) for new payloads. Single background. If both
-     * background and backgrounds are present, backgrounds wins.
-     */
-    val background: BackgroundUnion? = null,
-
-    /**
      * Ordered array of background layers. Index 0 is the bottommost layer (Figma convention);
      * higher indices paint on top. Web renderers must reverse the array when mapping to CSS
-     * background shorthand (CSS is top-to-bottom). When absent, falls back to singular
-     * background field.
+     * background shorthand (CSS is top-to-bottom). Single-layer backgrounds ship as a
+     * one-element array.
      */
     val backgrounds: List<BackgroundUnion>? = null,
 
@@ -1227,15 +1213,9 @@ data class AtomicElement (
     val section: Section? = null,
 
     /**
-     * DEPRECATED — use shadows (array) for new payloads. Single shadow. If both shadow and
-     * shadows are present, shadows wins.
-     */
-    val shadow: ShadowOrToken? = null,
-
-    /**
      * Ordered array of shadow layers. Index 0 is the outermost shadow (Figma convention);
      * higher indices are closer to the element. Maps directly to CSS box-shadow list order.
-     * When absent, falls back to singular shadow field.
+     * Single-layer shadows ship as a one-element array.
      */
     val shadows: List<ShadowOrToken>? = null,
 
@@ -1983,9 +1963,6 @@ data class SectionSurface (
 )
 
 /**
- * DEPRECATED — use backgrounds (array) for new payloads. Single background. If both
- * background and backgrounds are present, backgrounds wins.
- *
  * Shared background type — solid color, gradient, or image with overlay
  *
  * Surface background (solid, gradient, or image).
@@ -2199,9 +2176,6 @@ data class Spacing (
  *
  * Either a full Shadow struct or a shorthand token. Clients expand shorthand tokens to the
  * full Shadow struct at resolve time.
- *
- * DEPRECATED — use shadows (array) for new payloads. Single shadow. If both shadow and
- * shadows are present, shadows wins.
  */
 sealed class ShadowOrToken {
     class ShadowValue(val value: Shadow) : ShadowOrToken()

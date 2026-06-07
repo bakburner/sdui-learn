@@ -134,6 +134,7 @@ sed -e '/^enum class SectionType/,/^}/d' \
     -e '/convert(AtomicElementType::class/d' \
     -e 's/SectionType/String/g' \
     -e 's/AtomicElementType/String/g' \
+    -e 's/BackgroundElement/BackgroundUnion/g' \
     "$ANDROID_MODELS_OUT" > "$TMP_KOTLIN" && mv "$TMP_KOTLIN" "$ANDROID_MODELS_OUT"
 
 echo ""
@@ -176,26 +177,9 @@ TMP_SWIFT="$(mktemp)"
 sed '/^enum SectionType:/,/^}/d
      /^enum AtomicElementType:/,/^}/d
      s/SectionType/String/g
-     s/AtomicElementType/String/g' \
+     s/AtomicElementType/String/g
+     s/BackgroundElement/BackgroundUnion/g' \
     "$IOS_MODELS_OUT" > "$TMP_SWIFT" && mv "$TMP_SWIFT" "$IOS_MODELS_OUT"
-
-echo ""
-echo "Appending ActionTrigger isPrimaryActivation extension..."
-# Two call sites (RenderingHelpers.swift, AtomicButtonView.swift) use
-# `action.trigger.isPrimaryActivation` to detect the primary user
-# activation intent (onActivate or legacy onTap). The extension must
-# live in the generated models file because ActionTrigger is defined
-# there. Appended via cat so it survives every codegen run.
-cat >> "$IOS_MODELS_OUT" << 'SWIFT_EXT'
-
-// MARK: - ActionTrigger convenience (codegen post-process)
-extension ActionTrigger {
-    /// Primary user activation: `onActivate` (preferred) or legacy `onTap`.
-    var isPrimaryActivation: Bool {
-        self == .onActivate || self == .onTap
-    }
-}
-SWIFT_EXT
 
 echo ""
 echo "Generating Java POJOs (via jsonschema2pojo)..."

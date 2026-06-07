@@ -162,7 +162,7 @@ class SduiRefreshTransportTest {
                   "state": { "games_selected_date": "2026-05-26" },
                   "sections": [
                     {
-                      "id": "server:games-calendar~type=CalendarStrip",
+                      "id": "server-games-calendar__type-CalendarStrip",
                       "type": "CalendarStrip",
                       "data": {
                         "stateKey": "games_selected_date",

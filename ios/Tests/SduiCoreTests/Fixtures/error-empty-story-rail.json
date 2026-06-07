@@ -1,7 +1,7 @@
 {
   "id": "error-empty-story-rail",
   "schemaVersion": "1.0",
-  "title": "Story rail — empty content (server empty state)",
+  "title": "Story rail \u2014 empty content (server empty state)",
   "analyticsId": "error_story_rail_empty",
   "sections": [
     {
@@ -25,7 +25,7 @@
           "children": [
             {
               "type": "Text",
-              "content": "🔍",
+              "content": "\ud83d\udd0d",
               "variant": "titleLarge"
             },
             {

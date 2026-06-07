@@ -70,18 +70,22 @@ function findPathToText(
 }
 
 function nodeProvidesTextContrast(n: Record<string, unknown>): boolean {
-  const bg = n.background;
-  if (bg == null) return false;
-  if (typeof bg === 'string') {
-    return bg.length > 0;
-  }
-  if (typeof bg === 'object' && bg != null) {
-    const b = bg as { colors?: unknown[] };
-    const colors = b.colors;
-    if (Array.isArray(colors) && colors.length >= 2) {
-      const last = String(colors[colors.length - 1] ?? '');
-      if (last.includes('overlay.scrim')) return true;
-      if (SCRIM_END_HINTS.some(h => last.includes(h))) return true;
+  const bgs = n.backgrounds;
+  if (!Array.isArray(bgs) || bgs.length === 0) return false;
+  for (const bg of bgs) {
+    if (bg == null) continue;
+    if (typeof bg === 'string') {
+      if (bg.length > 0) return true;
+      continue;
+    }
+    if (typeof bg === 'object') {
+      const b = bg as { colors?: unknown[] };
+      const colors = b.colors;
+      if (Array.isArray(colors) && colors.length >= 2) {
+        const last = String(colors[colors.length - 1] ?? '');
+        if (last.includes('overlay.scrim')) return true;
+        if (SCRIM_END_HINTS.some(h => last.includes(h))) return true;
+      }
     }
   }
   return false;
@@ -135,7 +139,7 @@ describe('Overlay scrim — wire contract (static shapes)', () => {
               element: {
                 type: 'Container',
                 widthMode: 'fill',
-                background: { colors: ['#00000000', '#000000CC'], direction: 'vertical' },
+                backgrounds: [{ colors: ['#00000000', '#000000CC'], direction: 'vertical' }],
                 children: [
                   { type: 'Text', content: 'Title', variant: 'bodyMedium' },
                 ],
@@ -161,10 +165,10 @@ describe('Overlay scrim — wire contract (static shapes)', () => {
             children: [
               { type: 'Text', content: 'Head', variant: 'titleMedium' },
             ],
-            background: {
+            backgrounds: [{
               colors: ['#00000000', 'token:nba.effect.scrim'],
               direction: 'vertical',
-            },
+            }],
           },
         },
       ],

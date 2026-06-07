@@ -3,7 +3,6 @@ import Foundation
 enum AtomicActionTriggerRegistry {
     static let supported: Set<ActionTrigger> = [
         .onActivate,
-        .onTap,
         .onVisible,
         .onLongPress,
         .onFocus,
@@ -17,12 +16,7 @@ enum AtomicActionTriggerRegistry {
 
     static func actions(for trigger: ActionTrigger, in actions: [Action]?) -> [Action] {
         guard let actions else { return [] }
-        switch trigger {
-        case .onActivate:
-            return actions.filter { $0.trigger.isPrimaryActivation }
-        default:
-            return actions.filter { $0.trigger == trigger }
-        }
+        return actions.filter { $0.trigger == trigger }
     }
 }
 
@@ -34,7 +28,6 @@ extension ActionTrigger {
         .onLongPress,
         .onSubmit,
         .onSwipe,
-        .onTap,
         .onVisible,
     ]
 }

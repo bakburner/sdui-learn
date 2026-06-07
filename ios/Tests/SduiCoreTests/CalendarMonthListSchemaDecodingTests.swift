@@ -15,7 +15,7 @@ final class CalendarMonthListSchemaDecodingTests: XCTestCase {
         let data = try loadFixture("calendar-month-list")
         let section = try newJSONDecoder().decode(Section.self, from: data)
 
-        XCTAssertEqual(section.id, "server:games-calendar~type=CalendarMonthList")
+        XCTAssertEqual(section.id, "server-games-calendar__type-CalendarMonthList")
         XCTAssertEqual(section.type, "CalendarMonthList")
         XCTAssertEqual(section.contentSourceID, "server:games-calendar")
         XCTAssertEqual(section.analyticsID, "games_calendar_month_list")
@@ -37,7 +37,7 @@ final class CalendarMonthListSchemaDecodingTests: XCTestCase {
     func testCalendarStripExpandedActionDecodesWhenPresent() throws {
         let payload = """
         {
-          "id": "server:games-calendar~type=CalendarStrip",
+          "id": "server-games-calendar__type-CalendarStrip",
           "type": "CalendarStrip",
           "data": {
             "stateKey": "games_selected_date",
@@ -67,7 +67,7 @@ final class CalendarMonthListSchemaDecodingTests: XCTestCase {
     func testCalendarStripExpandedActionDecodesWhenAbsent() throws {
         let payload = """
         {
-          "id": "server:games-calendar~type=CalendarStrip",
+          "id": "server-games-calendar__type-CalendarStrip",
           "type": "CalendarStrip",
           "data": {
             "stateKey": "games_selected_date",

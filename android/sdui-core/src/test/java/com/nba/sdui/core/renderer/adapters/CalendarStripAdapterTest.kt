@@ -15,7 +15,7 @@ class CalendarStripAdapterTest {
         val section = decodeSection(
             """
             {
-              "id": "server:games-calendar~type=CalendarStrip",
+              "id": "server-games-calendar__type-CalendarStrip",
               "type": "CalendarStrip",
               "data": {
                 "stateKey": "games_selected_date",
@@ -52,7 +52,7 @@ class CalendarStripAdapterTest {
         val malformed = decodeSection(
             """
             {
-              "id": "server:games-calendar~type=CalendarStrip",
+              "id": "server-games-calendar__type-CalendarStrip",
               "type": "CalendarStrip",
               "data": {
                 "stateKey": "games_selected_date",
@@ -75,7 +75,7 @@ class CalendarStripAdapterTest {
         val section = decodeSection(
             """
             {
-              "id": "server:calendar~type=CalendarMonthList",
+              "id": "server-calendar__type-CalendarMonthList",
               "type": "CalendarMonthList",
               "data": {
                 "stateKey": "games_selected_date",
@@ -115,7 +115,7 @@ class CalendarStripAdapterTest {
         val malformed = decodeSection(
             """
             {
-              "id": "server:calendar~type=CalendarMonthList",
+              "id": "server-calendar__type-CalendarMonthList",
               "type": "CalendarMonthList",
               "data": {
                 "selectedDate": "2026-05-25",

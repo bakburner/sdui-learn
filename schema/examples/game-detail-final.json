@@ -27,11 +27,10 @@
           "alignment": "center",
           "crossAlignment": "center",
           "height": 220,
-          "background": "#000000",
           "children": [
             {
               "type": "Text",
-              "content": "▶",
+              "content": "\u25b6",
               "variant": "displayLarge",
               "weight": "bold",
               "color": "#FFFFFF"
@@ -48,12 +47,15 @@
             },
             {
               "type": "Text",
-              "content": "game • 0042300102",
+              "content": "game \u2022 0042300102",
               "variant": "bodySmall",
               "color": "rgba(255,255,255,0.6)"
             }
           ],
-          "widthMode": "fill"
+          "widthMode": "fill",
+          "backgrounds": [
+            "#000000"
+          ]
         },
         "playerType": "game",
         "contentId": "0042300102",
@@ -263,7 +265,7 @@
           "message": "Unable to load live scores",
           "hideOnError": false,
           "retryAction": {
-            "trigger": "onTap",
+            "trigger": "onActivate",
             "type": "refresh",
             "target": "scoreboard"
           }
@@ -1094,7 +1096,7 @@
                   "direction": "column",
                   "actions": [
                     {
-                      "trigger": "onTap",
+                      "trigger": "onActivate",
                       "type": "navigate",
                       "targetUri": "nba://article/heat-even-series",
                       "webUrl": "https://www.nba.com/news/heat-even-series"
@@ -1105,7 +1107,6 @@
                       "type": "Container",
                       "direction": "column",
                       "cornerRadius": "token:nba.radius.md",
-                      "background": "#2A2A4A",
                       "children": [
                         {
                           "type": "Image",
@@ -1130,7 +1131,9 @@
                               "variant": "labelSmall",
                               "weight": "bold",
                               "color": "#FFFFFF",
-                              "background": "#FF6B6B"
+                              "backgrounds": [
+                                "#FF6B6B"
+                              ]
                             },
                             {
                               "type": "Spacer",
@@ -1138,6 +1141,9 @@
                             }
                           ]
                         }
+                      ],
+                      "backgrounds": [
+                        "#2A2A4A"
                       ]
                     },
                     {
@@ -1160,7 +1166,7 @@
                   "direction": "column",
                   "actions": [
                     {
-                      "trigger": "onTap",
+                      "trigger": "onActivate",
                       "type": "navigate",
                       "targetUri": "nba://video/game4-highlights",
                       "webUrl": "https://www.nba.com/video/game4-highlights"
@@ -1171,7 +1177,6 @@
                       "type": "Container",
                       "direction": "column",
                       "cornerRadius": "token:nba.radius.md",
-                      "background": "#2A2A4A",
                       "children": [
                         {
                           "type": "Image",
@@ -1196,7 +1201,9 @@
                               "variant": "labelSmall",
                               "weight": "bold",
                               "color": "#FFFFFF",
-                              "background": "#FF6B6B"
+                              "backgrounds": [
+                                "#FF6B6B"
+                              ]
                             },
                             {
                               "type": "Text",
@@ -1207,6 +1214,9 @@
                             }
                           ]
                         }
+                      ],
+                      "backgrounds": [
+                        "#2A2A4A"
                       ]
                     },
                     {
@@ -1229,7 +1239,7 @@
                   "direction": "column",
                   "actions": [
                     {
-                      "trigger": "onTap",
+                      "trigger": "onActivate",
                       "type": "navigate",
                       "targetUri": "nba://video/butler-postgame",
                       "webUrl": "https://www.nba.com/video/butler-postgame"
@@ -1240,7 +1250,6 @@
                       "type": "Container",
                       "direction": "column",
                       "cornerRadius": "token:nba.radius.md",
-                      "background": "#2A2A4A",
                       "children": [
                         {
                           "type": "Image",
@@ -1265,7 +1274,9 @@
                               "variant": "labelSmall",
                               "weight": "bold",
                               "color": "#FFFFFF",
-                              "background": "#FF6B6B"
+                              "backgrounds": [
+                                "#FF6B6B"
+                              ]
                             },
                             {
                               "type": "Text",
@@ -1276,6 +1287,9 @@
                             }
                           ]
                         }
+                      ],
+                      "backgrounds": [
+                        "#2A2A4A"
                       ]
                     },
                     {
@@ -2363,16 +2377,9 @@
                           "direction": "column",
                           "id": "hl-1",
                           "cornerRadius": "token:nba.radius.md",
-                          "background": "token:nba.bg.primary",
-                          "shadow": {
-                            "color": "#00000020",
-                            "radius": 4,
-                            "offsetX": 0,
-                            "offsetY": 2
-                          },
                           "actions": [
                             {
-                              "trigger": "onTap",
+                              "trigger": "onActivate",
                               "type": "mutate",
                               "target": "screenState.selectedHighlight",
                               "operation": "set",
@@ -2392,7 +2399,6 @@
                                   "type": "Container",
                                   "direction": "row",
                                   "cornerRadius": "token:nba.radius.sm",
-                                  "background": "#000000B3",
                                   "opacity": 0.85,
                                   "padding": {
                                     "start": "token:nba.spacing.sm",
@@ -2407,6 +2413,9 @@
                                       "variant": "labelSmall",
                                       "color": "token:nba.label-inverted.primary"
                                     }
+                                  ],
+                                  "backgrounds": [
+                                    "#000000B3"
                                   ]
                                 },
                                 "alignment": "bottomEnd"
@@ -2430,6 +2439,17 @@
                                 "bottom": "token:nba.spacing.sm"
                               }
                             }
+                          ],
+                          "backgrounds": [
+                            "token:nba.bg.primary"
+                          ],
+                          "shadows": [
+                            {
+                              "color": "#00000020",
+                              "radius": 4,
+                              "offsetX": 0,
+                              "offsetY": 2
+                            }
                           ]
                         },
                         {
@@ -2437,16 +2457,9 @@
                           "direction": "column",
                           "id": "hl-2",
                           "cornerRadius": "token:nba.radius.md",
-                          "background": "token:nba.bg.primary",
-                          "shadow": {
-                            "color": "#00000020",
-                            "radius": 4,
-                            "offsetX": 0,
-                            "offsetY": 2
-                          },
                           "actions": [
                             {
-                              "trigger": "onTap",
+                              "trigger": "onActivate",
                               "type": "mutate",
                               "target": "screenState.selectedHighlight",
                               "operation": "set",
@@ -2466,7 +2479,6 @@
                                   "type": "Container",
                                   "direction": "row",
                                   "cornerRadius": "token:nba.radius.sm",
-                                  "background": "#000000B3",
                                   "opacity": 0.85,
                                   "padding": {
                                     "start": "token:nba.spacing.sm",
@@ -2481,6 +2493,9 @@
                                       "variant": "labelSmall",
                                       "color": "token:nba.label-inverted.primary"
                                     }
+                                  ],
+                                  "backgrounds": [
+                                    "#000000B3"
                                   ]
                                 },
                                 "alignment": "bottomEnd"
@@ -2504,6 +2519,17 @@
                                 "bottom": "token:nba.spacing.sm"
                               }
                             }
+                          ],
+                          "backgrounds": [
+                            "token:nba.bg.primary"
+                          ],
+                          "shadows": [
+                            {
+                              "color": "#00000020",
+                              "radius": 4,
+                              "offsetX": 0,
+                              "offsetY": 2
+                            }
                           ]
                         },
                         {
@@ -2511,16 +2537,9 @@
                           "direction": "column",
                           "id": "hl-3",
                           "cornerRadius": "token:nba.radius.md",
-                          "background": "token:nba.bg.primary",
-                          "shadow": {
-                            "color": "#00000020",
-                            "radius": 4,
-                            "offsetX": 0,
-                            "offsetY": 2
-                          },
                           "actions": [
                             {
-                              "trigger": "onTap",
+                              "trigger": "onActivate",
                               "type": "mutate",
                               "target": "screenState.selectedHighlight",
                               "operation": "set",
@@ -2540,7 +2559,6 @@
                                   "type": "Container",
                                   "direction": "row",
                                   "cornerRadius": "token:nba.radius.sm",
-                                  "background": "#000000B3",
                                   "opacity": 0.85,
                                   "padding": {
                                     "start": "token:nba.spacing.sm",
@@ -2555,6 +2573,9 @@
                                       "variant": "labelSmall",
                                       "color": "token:nba.label-inverted.primary"
                                     }
+                                  ],
+                                  "backgrounds": [
+                                    "#000000B3"
                                   ]
                                 },
                                 "alignment": "bottomEnd"
@@ -2578,6 +2599,17 @@
                                 "bottom": "token:nba.spacing.sm"
                               }
                             }
+                          ],
+                          "backgrounds": [
+                            "token:nba.bg.primary"
+                          ],
+                          "shadows": [
+                            {
+                              "color": "#00000020",
+                              "radius": 4,
+                              "offsetX": 0,
+                              "offsetY": 2
+                            }
                           ]
                         },
                         {
@@ -2585,16 +2617,9 @@
                           "direction": "column",
                           "id": "hl-4",
                           "cornerRadius": "token:nba.radius.md",
-                          "background": "token:nba.bg.primary",
-                          "shadow": {
-                            "color": "#00000020",
-                            "radius": 4,
-                            "offsetX": 0,
-                            "offsetY": 2
-                          },
                           "actions": [
                             {
-                              "trigger": "onTap",
+                              "trigger": "onActivate",
                               "type": "mutate",
                               "target": "screenState.selectedHighlight",
                               "operation": "set",
@@ -2614,7 +2639,6 @@
                                   "type": "Container",
                                   "direction": "row",
                                   "cornerRadius": "token:nba.radius.sm",
-                                  "background": "#000000B3",
                                   "opacity": 0.85,
                                   "padding": {
                                     "start": "token:nba.spacing.sm",
@@ -2629,6 +2653,9 @@
                                       "variant": "labelSmall",
                                       "color": "token:nba.label-inverted.primary"
                                     }
+                                  ],
+                                  "backgrounds": [
+                                    "#000000B3"
                                   ]
                                 },
                                 "alignment": "bottomEnd"
@@ -2651,6 +2678,17 @@
                                 "top": 0,
                                 "bottom": "token:nba.spacing.sm"
                               }
+                            }
+                          ],
+                          "backgrounds": [
+                            "token:nba.bg.primary"
+                          ],
+                          "shadows": [
+                            {
+                              "color": "#00000020",
+                              "radius": 4,
+                              "offsetX": 0,
+                              "offsetY": 2
                             }
                           ]
                         }
@@ -2695,7 +2733,6 @@
             "top": "token:nba.spacing.xl",
             "bottom": "token:nba.spacing.xl"
           },
-          "background": "token:nba.bg.primary",
           "cornerRadius": "token:nba.radius.lg",
           "children": [
             {
@@ -2737,11 +2774,14 @@
               "variant": "primary",
               "actions": [
                 {
-                  "trigger": "onTap",
+                  "trigger": "onActivate",
                   "type": "dismiss"
                 }
               ]
             }
+          ],
+          "backgrounds": [
+            "token:nba.bg.primary"
           ]
         }
       }
@@ -2764,7 +2804,6 @@
             "top": "token:nba.spacing.xl",
             "bottom": "token:nba.spacing.xl"
           },
-          "background": "token:nba.bg.primary",
           "cornerRadius": "token:nba.radius.lg",
           "children": [
             {
@@ -2806,12 +2845,15 @@
               "variant": "primary",
               "actions": [
                 {
-                  "trigger": "onTap",
+                  "trigger": "onActivate",
                   "type": "navigate",
                   "targetUri": "nba://leaguepass"
                 }
               ]
             }
+          ],
+          "backgrounds": [
+            "token:nba.bg.primary"
           ]
         }
       }
@@ -2834,7 +2876,6 @@
             "top": "token:nba.spacing.xl",
             "bottom": "token:nba.spacing.xl"
           },
-          "background": "token:nba.bg.primary",
           "cornerRadius": "token:nba.radius.lg",
           "children": [
             {
@@ -2876,12 +2917,15 @@
               "variant": "primary",
               "actions": [
                 {
-                  "trigger": "onTap",
+                  "trigger": "onActivate",
                   "type": "navigate",
                   "targetUri": "nba://leaguepass"
                 }
               ]
             }
+          ],
+          "backgrounds": [
+            "token:nba.bg.primary"
           ]
         }
       }

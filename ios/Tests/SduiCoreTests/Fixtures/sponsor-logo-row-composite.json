@@ -24,7 +24,6 @@
             "start": "token:nba.spacing.lg",
             "end": "token:nba.spacing.lg"
           },
-          "background": "token:nba.bg.secondary",
           "children": [
             {
               "type": "Text",
@@ -47,7 +46,10 @@
               "fit": "contain"
             }
           ],
-          "widthMode": "fill"
+          "widthMode": "fill",
+          "backgrounds": [
+            "token:nba.bg.secondary"
+          ]
         }
       }
     }

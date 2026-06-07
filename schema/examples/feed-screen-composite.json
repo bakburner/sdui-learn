@@ -95,18 +95,20 @@
                   "element": {
                     "type": "Container",
                     "height": 128,
-                    "background": {
-                      "colors": [
-                        "#00000000",
-                        "#000000CC"
-                      ],
-                      "direction": "vertical"
-                    },
                     "cornerRadii": {
                       "bottomStart": "token:nba.radius.lg",
                       "bottomEnd": "token:nba.radius.lg"
                     },
-                    "widthMode": "fill"
+                    "widthMode": "fill",
+                    "backgrounds": [
+                      {
+                        "colors": [
+                          "#00000000",
+                          "#000000CC"
+                        ],
+                        "direction": "vertical"
+                      }
+                    ]
                   }
                 },
                 {
@@ -127,14 +129,16 @@
                         "variant": "labelSmall",
                         "weight": "bold",
                         "color": "token:nba.label-inverted.primary",
-                        "background": "token:nba.label.accent.live",
                         "cornerRadius": "token:nba.radius.sm",
                         "padding": {
                           "top": "token:nba.spacing.xs",
                           "bottom": "token:nba.spacing.xs",
                           "start": "token:nba.spacing.sm",
                           "end": "token:nba.spacing.sm"
-                        }
+                        },
+                        "backgrounds": [
+                          "token:nba.label.accent.live"
+                        ]
                       },
                       {
                         "type": "Text",
@@ -205,7 +209,6 @@
                           },
                           "element": {
                             "type": "Container",
-                            "background": "token:nba.label.accent.live",
                             "cornerRadius": "token:nba.radius.sm",
                             "padding": {
                               "top": "token:nba.spacing.xs",
@@ -221,6 +224,9 @@
                                 "weight": "bold",
                                 "color": "token:nba.label-inverted.primary"
                               }
+                            ],
+                            "backgrounds": [
+                              "token:nba.label.accent.live"
                             ]
                           }
                         }
@@ -263,7 +269,6 @@
                   },
                   "element": {
                     "type": "Container",
-                    "background": "token:nba.label.accent.brand",
                     "cornerRadius": "token:nba.radius.sm",
                     "padding": {
                       "top": "token:nba.spacing.xs",
@@ -279,6 +284,9 @@
                         "weight": "bold",
                         "color": "token:nba.label-inverted.primary"
                       }
+                    ],
+                    "backgrounds": [
+                      "token:nba.label.accent.brand"
                     ]
                   }
                 }
@@ -315,13 +323,6 @@
                       "end": "token:nba.spacing.lg",
                       "top": "token:nba.spacing.lg",
                       "bottom": 20
-                    },
-                    "background": {
-                      "colors": [
-                        "#00000000",
-                        "token:nba.effect.scrim"
-                      ],
-                      "direction": "vertical"
                     },
                     "cornerRadii": {
                       "bottomStart": "token:nba.radius.md",
@@ -361,7 +362,16 @@
                         ]
                       }
                     ],
-                    "widthMode": "fill"
+                    "widthMode": "fill",
+                    "backgrounds": [
+                      {
+                        "colors": [
+                          "#00000000",
+                          "token:nba.effect.scrim"
+                        ],
+                        "direction": "vertical"
+                      }
+                    ]
                   }
                 },
                 {
@@ -373,7 +383,6 @@
                   },
                   "element": {
                     "type": "Container",
-                    "background": "token:nba.label.accent.live",
                     "cornerRadius": "token:nba.radius.sm",
                     "padding": {
                       "top": "token:nba.spacing.xs",
@@ -389,6 +398,9 @@
                         "weight": "bold",
                         "color": "token:nba.label-inverted.primary"
                       }
+                    ],
+                    "backgrounds": [
+                      "token:nba.label.accent.live"
                     ]
                   }
                 },
@@ -493,18 +505,20 @@
                       "element": {
                         "type": "Container",
                         "height": 96,
-                        "background": {
-                          "colors": [
-                            "#00000000",
-                            "#000000CC"
-                          ],
-                          "direction": "vertical"
-                        },
                         "cornerRadii": {
                           "bottomStart": "token:nba.radius.lg",
                           "bottomEnd": "token:nba.radius.lg"
                         },
-                        "widthMode": "fill"
+                        "widthMode": "fill",
+                        "backgrounds": [
+                          {
+                            "colors": [
+                              "#00000000",
+                              "#000000CC"
+                            ],
+                            "direction": "vertical"
+                          }
+                        ]
                       }
                     },
                     {
@@ -532,7 +546,7 @@
                       },
                       "element": {
                         "type": "Button",
-                        "label": "⋯",
+                        "label": "\u22ef",
                         "variant": "text",
                         "color": "token:nba.label-inverted.primary",
                         "actions": [
@@ -575,18 +589,20 @@
                       "element": {
                         "type": "Container",
                         "height": 96,
-                        "background": {
-                          "colors": [
-                            "#00000000",
-                            "#000000CC"
-                          ],
-                          "direction": "vertical"
-                        },
                         "cornerRadii": {
                           "bottomStart": "token:nba.radius.lg",
                           "bottomEnd": "token:nba.radius.lg"
                         },
-                        "widthMode": "fill"
+                        "widthMode": "fill",
+                        "backgrounds": [
+                          {
+                            "colors": [
+                              "#00000000",
+                              "#000000CC"
+                            ],
+                            "direction": "vertical"
+                          }
+                        ]
                       }
                     },
                     {
@@ -636,18 +652,20 @@
                       "element": {
                         "type": "Container",
                         "height": 96,
-                        "background": {
-                          "colors": [
-                            "#00000000",
-                            "#000000CC"
-                          ],
-                          "direction": "vertical"
-                        },
                         "cornerRadii": {
                           "bottomStart": "token:nba.radius.lg",
                           "bottomEnd": "token:nba.radius.lg"
                         },
-                        "widthMode": "fill"
+                        "widthMode": "fill",
+                        "backgrounds": [
+                          {
+                            "colors": [
+                              "#00000000",
+                              "#000000CC"
+                            ],
+                            "direction": "vertical"
+                          }
+                        ]
                       }
                     },
                     {

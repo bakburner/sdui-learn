@@ -103,8 +103,8 @@
     },
     "ActionTrigger": {
       "type": "string",
-      "description": "Event that fires the action. Prefer onActivate for primary activation (tap, keyboard Enter/Space, accessibility activate). onTap is a deprecated alias for onActivate.",
-      "enum": ["onActivate", "onTap", "onLongPress", "onVisible", "onSwipe", "onFocus", "onBlur", "onSubmit"]
+      "description": "Event that fires the action. onActivate is the primary activation trigger and covers tap, keyboard Enter/Space, and accessibility activate uniformly across platforms.",
+      "enum": ["onActivate", "onLongPress", "onVisible", "onSwipe", "onFocus", "onBlur", "onSubmit"]
     },
     "ActionType": {
       "type": "string",
@@ -528,8 +528,7 @@
         "gap": { "$ref": "#/definitions/LayoutScalar", "description": "Gap between flex children (row/column), or grid gap where applicable." },
         "padding": { "$ref": "#/definitions/Spacing", "description": "Inner space between the element's own background/border and its content." },
         "margin": { "$ref": "#/definitions/Spacing", "description": "Outer space between the element and its siblings or parent edges. Applied outside the element's background, border, corner radius, and shadow — use this for sibling-to-sibling spacing instead of Spacer siblings when inhomogeneous gaps are needed." },
-        "background": { "$ref": "#/definitions/Background", "description": "DEPRECATED — use backgrounds (array) for new payloads. Single background. If both background and backgrounds are present, backgrounds wins." },
-        "backgrounds": { "type": "array", "items": { "$ref": "#/definitions/Background" }, "description": "Ordered array of background layers. Index 0 is the bottommost layer (Figma convention); higher indices paint on top. Web renderers must reverse the array when mapping to CSS background shorthand (CSS is top-to-bottom). When absent, falls back to singular background field." },
+        "backgrounds": { "type": "array", "items": { "$ref": "#/definitions/Background" }, "description": "Ordered array of background layers. Index 0 is the bottommost layer (Figma convention); higher indices paint on top. Web renderers must reverse the array when mapping to CSS background shorthand (CSS is top-to-bottom). Single-layer backgrounds ship as a one-element array." },
         "content": { "type": "string" },
         "variant": { "type": "string", "description": "Named variant preset. The vocabulary depends on the element's type: TextVariant for Text, ButtonVariant for Button, ContainerVariant for Container, ImageVariant for Image. Renderers parse this string against the primitive's enum and log a diagnostic on unrecognized values." },
         "weight": { "$ref": "#/definitions/TextWeight" },
@@ -545,7 +544,6 @@
         },
         "fit": { "$ref": "#/definitions/ImageFit" },
         "placeholder": { "type": "string" },
-        "alt": { "type": "string", "description": "Deprecated: use accessibility.label instead. Retained for backward compatibility; clients prefer accessibility.label when present." },
         "width": { "$ref": "#/definitions/LayoutScalar", "description": "Fixed width in dp/px or layout token." },
         "height": { "$ref": "#/definitions/LayoutScalar", "description": "Fixed height in dp/px or layout token." },
         "widthMode": { "$ref": "#/definitions/SizingMode", "description": "Sizing behavior along the width axis. 'hug' = intrinsic, 'fill' = stretch to parent, 'fixed' = use explicit width value." },
@@ -620,8 +618,7 @@
           "additionalProperties": false
         },
         "opacity": { "type": "number", "minimum": 0, "maximum": 1, "default": 1, "description": "Element opacity (0=transparent, 1=opaque). Enables duration badge overlays and faded states." },
-        "shadow": { "$ref": "#/definitions/ShadowOrToken", "description": "DEPRECATED — use shadows (array) for new payloads. Single shadow. If both shadow and shadows are present, shadows wins." },
-        "shadows": { "type": "array", "items": { "$ref": "#/definitions/ShadowOrToken" }, "description": "Ordered array of shadow layers. Index 0 is the outermost shadow (Figma convention); higher indices are closer to the element. Maps directly to CSS box-shadow list order. When absent, falls back to singular shadow field." },
+        "shadows": { "type": "array", "items": { "$ref": "#/definitions/ShadowOrToken" }, "description": "Ordered array of shadow layers. Index 0 is the outermost shadow (Figma convention); higher indices are closer to the element. Maps directly to CSS box-shadow list order. Single-layer shadows ship as a one-element array." },
         "badge": { "$ref": "#/definitions/Badge", "description": "Z-positioned child element (e.g. 'LIVE' pill, duration label) overlaid on this element." },
         "base": { "$ref": "#/definitions/AtomicElement", "description": "OverlayContainer base element. Rendered first and sized by its own atomic box model." },
         "overlays": {

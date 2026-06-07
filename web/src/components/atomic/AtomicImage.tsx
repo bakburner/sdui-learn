@@ -115,7 +115,7 @@ function AtomicImageInner({ element, onAction }: AtomicProps): React.ReactElemen
   };
 
   const a11y = element.accessibility;
-  const altText = a11y?.hidden ? '' : (a11y?.label ?? element.alt ?? '');
+  const altText = a11y?.hidden ? '' : (a11y?.label ?? '');
 
   const img = (
     <img

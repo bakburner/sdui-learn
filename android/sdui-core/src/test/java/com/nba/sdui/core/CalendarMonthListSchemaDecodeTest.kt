@@ -13,7 +13,7 @@ class CalendarMonthListSchemaDecodeTest {
     fun `calendar-month-list section decodes and round-trips`() {
         val payload = """
             {
-              "id": "server:calendar~type=CalendarMonthList",
+              "id": "server-calendar__type-CalendarMonthList",
               "type": "CalendarMonthList",
               "data": {
                 "stateKey": "games_selected_date",

@@ -489,8 +489,8 @@ enum NavigationPresentation: String, Codable {
     case replace = "replace"
 }
 
-/// Event that fires the action. Prefer onActivate for primary activation (tap, keyboard
-/// Enter/Space, accessibility activate). onTap is a deprecated alias for onActivate.
+/// Event that fires the action. onActivate is the primary activation trigger and covers tap,
+/// keyboard Enter/Space, and accessibility activate uniformly across platforms.
 enum ActionTrigger: String, Codable {
     case onActivate = "onActivate"
     case onBlur = "onBlur"
@@ -498,7 +498,6 @@ enum ActionTrigger: String, Codable {
     case onLongPress = "onLongPress"
     case onSubmit = "onSubmit"
     case onSwipe = "onSwipe"
-    case onTap = "onTap"
     case onVisible = "onVisible"
 }
 
@@ -1239,18 +1238,12 @@ class AtomicElement: Codable {
     /// Per-child cross-axis alignment override. When set, wins over parent crossAlignment for
     /// this child (matches Figma and CSS align-self semantics).
     let alignSelf: CrossAlignment?
-    /// Deprecated: use accessibility.label instead. Retained for backward compatibility; clients
-    /// prefer accessibility.label when present.
-    let alt: String?
     /// Aspect ratio: legacy numeric (w/h), or named ratio string for semantic layout.
     let aspectRatio: AspectRatioUnion?
-    /// DEPRECATED — use backgrounds (array) for new payloads. Single background. If both
-    /// background and backgrounds are present, backgrounds wins.
-    let background: BackgroundUnion?
     /// Ordered array of background layers. Index 0 is the bottommost layer (Figma convention);
     /// higher indices paint on top. Web renderers must reverse the array when mapping to CSS
-    /// background shorthand (CSS is top-to-bottom). When absent, falls back to singular
-    /// background field.
+    /// background shorthand (CSS is top-to-bottom). Single-layer backgrounds ship as a
+    /// one-element array.
     let backgrounds: [BackgroundUnion]?
     /// Z-positioned child element (e.g. 'LIVE' pill, duration label) overlaid on this element.
     let badge: Badge?
@@ -1347,12 +1340,9 @@ class AtomicElement: Codable {
     let rows: [[String: String]]?
     /// Full section object to render via SectionRouter. Only used when type is SectionSlot.
     let section: Section?
-    /// DEPRECATED — use shadows (array) for new payloads. Single shadow. If both shadow and
-    /// shadows are present, shadows wins.
-    let shadow: ShadowOrToken?
     /// Ordered array of shadow layers. Index 0 is the outermost shadow (Figma convention);
     /// higher indices are closer to the element. Maps directly to CSS box-shadow list order.
-    /// When absent, falls back to singular shadow field.
+    /// Single-layer shadows ship as a one-element array.
     let shadows: [ShadowOrToken]?
     /// Whether to show scroll indicators on ScrollContainer. Default false for clean carousel
     /// presentation.
@@ -1395,14 +1385,12 @@ class AtomicElement: Codable {
     /// 'fixed' = use explicit width value.
     let widthMode: SizingMode?
 
-    init(accessibility: AccessibilityProperties?, actions: [Action]?, alignment: Alignment?, alignSelf: CrossAlignment?, alt: String?, aspectRatio: AspectRatioUnion?, background: BackgroundUnion?, backgrounds: [BackgroundUnion]?, badge: Badge?, base: AtomicElement?, bindRef: String?, breakpoint: Int?, children: [AtomicElement]?, color: String?, columns: [Column]?, condition: String?, content: String?, cornerRadii: CornerRadii?, cornerRadius: LayoutScalar?, crossAlignment: CrossAlignment?, crossAxisGap: LayoutScalar?, direction: AtomicElementDirection?, disabled: Bool?, falseChild: AtomicElement?, fit: ImageFit?, flex: Double?, format: Format?, gap: LayoutScalar?, height: LayoutScalar?, heightMode: SizingMode?, icon: String?, id: String?, isRunning: Bool?, label: String?, layoutWrap: Bool?, margin: Spacing?, maxHeight: LayoutScalar?, maxLines: Int?, maxWidth: LayoutScalar?, minHeight: LayoutScalar?, minWidth: LayoutScalar?, monospacedDigits: Bool?, opacity: Double?, orientation: Orientation?, overlays: [AtomicOverlay]?, padding: Spacing?, pageIndicator: PageIndicator?, paging: Bool?, placeholder: String?, rows: [[String: String]]?, section: Section?, shadow: ShadowOrToken?, shadows: [ShadowOrToken]?, showIndicators: Bool?, size: Int?, snapAlignment: Align?, snapshotAt: Date?, snapshotSeconds: Int?, src: String?, stopAtSeconds: Int?, striped: Bool?, textAlign: Align?, thickness: Int?, tickDirection: TickDirection?, trueChild: AtomicElement?, type: String, variant: String?, weight: TextWeight?, width: LayoutScalar?, widthMode: SizingMode?) {
+    init(accessibility: AccessibilityProperties?, actions: [Action]?, alignment: Alignment?, alignSelf: CrossAlignment?, aspectRatio: AspectRatioUnion?, backgrounds: [BackgroundUnion]?, badge: Badge?, base: AtomicElement?, bindRef: String?, breakpoint: Int?, children: [AtomicElement]?, color: String?, columns: [Column]?, condition: String?, content: String?, cornerRadii: CornerRadii?, cornerRadius: LayoutScalar?, crossAlignment: CrossAlignment?, crossAxisGap: LayoutScalar?, direction: AtomicElementDirection?, disabled: Bool?, falseChild: AtomicElement?, fit: ImageFit?, flex: Double?, format: Format?, gap: LayoutScalar?, height: LayoutScalar?, heightMode: SizingMode?, icon: String?, id: String?, isRunning: Bool?, label: String?, layoutWrap: Bool?, margin: Spacing?, maxHeight: LayoutScalar?, maxLines: Int?, maxWidth: LayoutScalar?, minHeight: LayoutScalar?, minWidth: LayoutScalar?, monospacedDigits: Bool?, opacity: Double?, orientation: Orientation?, overlays: [AtomicOverlay]?, padding: Spacing?, pageIndicator: PageIndicator?, paging: Bool?, placeholder: String?, rows: [[String: String]]?, section: Section?, shadows: [ShadowOrToken]?, showIndicators: Bool?, size: Int?, snapAlignment: Align?, snapshotAt: Date?, snapshotSeconds: Int?, src: String?, stopAtSeconds: Int?, striped: Bool?, textAlign: Align?, thickness: Int?, tickDirection: TickDirection?, trueChild: AtomicElement?, type: String, variant: String?, weight: TextWeight?, width: LayoutScalar?, widthMode: SizingMode?) {
         self.accessibility = accessibility
         self.actions = actions
         self.alignment = alignment
         self.alignSelf = alignSelf
-        self.alt = alt
         self.aspectRatio = aspectRatio
-        self.background = background
         self.backgrounds = backgrounds
         self.badge = badge
         self.base = base
@@ -1447,7 +1435,6 @@ class AtomicElement: Codable {
         self.placeholder = placeholder
         self.rows = rows
         self.section = section
-        self.shadow = shadow
         self.shadows = shadows
         self.showIndicators = showIndicators
         self.size = size
@@ -1474,7 +1461,7 @@ class AtomicElement: Codable {
 extension AtomicElement {
     convenience init(data: Data) throws {
         let me = try newJSONDecoder().decode(AtomicElement.self, from: data)
-        self.init(accessibility: me.accessibility, actions: me.actions, alignment: me.alignment, alignSelf: me.alignSelf, alt: me.alt, aspectRatio: me.aspectRatio, background: me.background, backgrounds: me.backgrounds, badge: me.badge, base: me.base, bindRef: me.bindRef, breakpoint: me.breakpoint, children: me.children, color: me.color, columns: me.columns, condition: me.condition, content: me.content, cornerRadii: me.cornerRadii, cornerRadius: me.cornerRadius, crossAlignment: me.crossAlignment, crossAxisGap: me.crossAxisGap, direction: me.direction, disabled: me.disabled, falseChild: me.falseChild, fit: me.fit, flex: me.flex, format: me.format, gap: me.gap, height: me.height, heightMode: me.heightMode, icon: me.icon, id: me.id, isRunning: me.isRunning, label: me.label, layoutWrap: me.layoutWrap, margin: me.margin, maxHeight: me.maxHeight, maxLines: me.maxLines, maxWidth: me.maxWidth, minHeight: me.minHeight, minWidth: me.minWidth, monospacedDigits: me.monospacedDigits, opacity: me.opacity, orientation: me.orientation, overlays: me.overlays, padding: me.padding, pageIndicator: me.pageIndicator, paging: me.paging, placeholder: me.placeholder, rows: me.rows, section: me.section, shadow: me.shadow, shadows: me.shadows, showIndicators: me.showIndicators, size: me.size, snapAlignment: me.snapAlignment, snapshotAt: me.snapshotAt, snapshotSeconds: me.snapshotSeconds, src: me.src, stopAtSeconds: me.stopAtSeconds, striped: me.striped, textAlign: me.textAlign, thickness: me.thickness, tickDirection: me.tickDirection, trueChild: me.trueChild, type: me.type, variant: me.variant, weight: me.weight, width: me.width, widthMode: me.widthMode)
+        self.init(accessibility: me.accessibility, actions: me.actions, alignment: me.alignment, alignSelf: me.alignSelf, aspectRatio: me.aspectRatio, backgrounds: me.backgrounds, badge: me.badge, base: me.base, bindRef: me.bindRef, breakpoint: me.breakpoint, children: me.children, color: me.color, columns: me.columns, condition: me.condition, content: me.content, cornerRadii: me.cornerRadii, cornerRadius: me.cornerRadius, crossAlignment: me.crossAlignment, crossAxisGap: me.crossAxisGap, direction: me.direction, disabled: me.disabled, falseChild: me.falseChild, fit: me.fit, flex: me.flex, format: me.format, gap: me.gap, height: me.height, heightMode: me.heightMode, icon: me.icon, id: me.id, isRunning: me.isRunning, label: me.label, layoutWrap: me.layoutWrap, margin: me.margin, maxHeight: me.maxHeight, maxLines: me.maxLines, maxWidth: me.maxWidth, minHeight: me.minHeight, minWidth: me.minWidth, monospacedDigits: me.monospacedDigits, opacity: me.opacity, orientation: me.orientation, overlays: me.overlays, padding: me.padding, pageIndicator: me.pageIndicator, paging: me.paging, placeholder: me.placeholder, rows: me.rows, section: me.section, shadows: me.shadows, showIndicators: me.showIndicators, size: me.size, snapAlignment: me.snapAlignment, snapshotAt: me.snapshotAt, snapshotSeconds: me.snapshotSeconds, src: me.src, stopAtSeconds: me.stopAtSeconds, striped: me.striped, textAlign: me.textAlign, thickness: me.thickness, tickDirection: me.tickDirection, trueChild: me.trueChild, type: me.type, variant: me.variant, weight: me.weight, width: me.width, widthMode: me.widthMode)
     }
 
     convenience init(_ json: String, using encoding: String.Encoding = .utf8) throws {
@@ -1493,9 +1480,7 @@ extension AtomicElement {
         actions: [Action]?? = nil,
         alignment: Alignment?? = nil,
         alignSelf: CrossAlignment?? = nil,
-        alt: String?? = nil,
         aspectRatio: AspectRatioUnion?? = nil,
-        background: BackgroundUnion?? = nil,
         backgrounds: [BackgroundUnion]?? = nil,
         badge: Badge?? = nil,
         base: AtomicElement?? = nil,
@@ -1540,7 +1525,6 @@ extension AtomicElement {
         placeholder: String?? = nil,
         rows: [[String: String]]?? = nil,
         section: Section?? = nil,
-        shadow: ShadowOrToken?? = nil,
         shadows: [ShadowOrToken]?? = nil,
         showIndicators: Bool?? = nil,
         size: Int?? = nil,
@@ -1565,9 +1549,7 @@ extension AtomicElement {
             actions: actions ?? self.actions,
             alignment: alignment ?? self.alignment,
             alignSelf: alignSelf ?? self.alignSelf,
-            alt: alt ?? self.alt,
             aspectRatio: aspectRatio ?? self.aspectRatio,
-            background: background ?? self.background,
             backgrounds: backgrounds ?? self.backgrounds,
             badge: badge ?? self.badge,
             base: base ?? self.base,
@@ -1612,7 +1594,6 @@ extension AtomicElement {
             placeholder: placeholder ?? self.placeholder,
             rows: rows ?? self.rows,
             section: section ?? self.section,
-            shadow: shadow ?? self.shadow,
             shadows: shadows ?? self.shadows,
             showIndicators: showIndicators ?? self.showIndicators,
             size: size ?? self.size,
@@ -2734,9 +2715,6 @@ extension SectionSurface {
     }
 }
 
-/// DEPRECATED — use backgrounds (array) for new payloads. Single background. If both
-/// background and backgrounds are present, backgrounds wins.
-///
 /// Shared background type — solid color, gradient, or image with overlay
 ///
 /// Surface background (solid, gradient, or image).
@@ -3093,9 +3071,6 @@ extension Spacing {
 ///
 /// Either a full Shadow struct or a shorthand token. Clients expand shorthand tokens to the
 /// full Shadow struct at resolve time.
-///
-/// DEPRECATED — use shadows (array) for new payloads. Single shadow. If both shadow and
-/// shadows are present, shadows wins.
 enum ShadowOrToken: Codable {
     case shadow(Shadow)
     case string(String)
@@ -4815,13 +4790,5 @@ class JSONAny: Codable {
                     var container = encoder.singleValueContainer()
                     try JSONAny.encode(to: &container, value: self.value)
             }
-    }
-}
-
-// MARK: - ActionTrigger convenience (codegen post-process)
-extension ActionTrigger {
-    /// Primary user activation: `onActivate` (preferred) or legacy `onTap`.
-    var isPrimaryActivation: Bool {
-        self == .onActivate || self == .onTap
     }
 }

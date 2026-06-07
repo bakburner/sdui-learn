@@ -1,5 +1,5 @@
 {
-  "id": "server:games-calendar~type=CalendarStrip",
+  "id": "server-games-calendar__type-CalendarStrip",
   "type": "CalendarStrip",
   "contentSourceId": "server:games-calendar",
   "analyticsId": "games_calendar_strip",
@@ -16,7 +16,9 @@
       "trigger": "onActivate",
       "type": "refresh",
       "endpoint": "/v1/sdui/screen/games",
-      "paramBindings": { "date": "{{games_selected_date}}" }
+      "paramBindings": {
+        "date": "{{games_selected_date}}"
+      }
     }
   }
 }

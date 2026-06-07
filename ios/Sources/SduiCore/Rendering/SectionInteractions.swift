@@ -20,16 +20,13 @@ enum SectionInteractions {
         return legacyActions(in: section)
     }
 
-    /// First action matching `trigger`. If `trigger` is `onActivate` and none
-    /// is found, falls back to legacy `onTap`. Matches Android's `primaryAction`.
+    /// First action matching `trigger`. Matches Android's `primaryAction`.
     static func primaryAction(
         for section: Section,
         trigger: ActionTrigger = .onActivate
     ) -> Action? {
         let all = actions(for: section)
-        if let a = all.first(where: { $0.trigger == trigger }) { return a }
-        if trigger == .onActivate, let legacy = all.first(where: { $0.trigger == .onTap }) { return legacy }
-        return nil
+        return all.first(where: { $0.trigger == trigger })
     }
 
     /// Actions declared on a subsection (interactive nested element).
@@ -46,9 +43,7 @@ enum SectionInteractions {
         trigger: ActionTrigger = .onActivate
     ) -> Action? {
         let sub = subsectionActions(for: section, subsectionID: subsectionID)
-        if let a = sub.first(where: { $0.trigger == trigger }) { return a }
-        if trigger == .onActivate, let legacy = sub.first(where: { $0.trigger == .onTap }) { return legacy }
-        return nil
+        return sub.first(where: { $0.trigger == trigger })
     }
 
     /// Extract a legacy `data.actions` array by round-tripping through

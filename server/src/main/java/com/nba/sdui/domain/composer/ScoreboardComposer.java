@@ -116,7 +116,7 @@ public class ScoreboardComposer {
         List<Section> sections = new ArrayList<>();
         String contentSourceId = "stats-api:scoreboard";
         Section error = utils.buildErrorSection(
-                SectionIdDeriver.derive(contentSourceId, "AtomicComposite", "error-no-scores"),
+                SectionIdDeriver.derive(contentSourceId, "AtomicComposite", "errorNoScores"),
                 "Scores unavailable",
                 "We couldn't load today's scoreboard. Please try again later.",
                 "wifi_off",
@@ -267,7 +267,7 @@ public class ScoreboardComposer {
                         "article", null, "nba://standings"}
         };
         String headerContentSourceId = "feed:scoreboard";
-        String headerSectionId = SectionIdDeriver.derive(headerContentSourceId, "AtomicComposite", "content-rail-header");
+        String headerSectionId = SectionIdDeriver.derive(headerContentSourceId, "AtomicComposite", "contentRailHeader");
         Section header = atomicBuilder.buildSectionHeader(
                 headerSectionId, "Around the League", null, null, null);
         header.setContentSourceId(headerContentSourceId);
@@ -275,7 +275,7 @@ public class ScoreboardComposer {
         sections.add(header);
 
         String railContentSourceId = "feed:scoreboard";
-        String railSectionId = SectionIdDeriver.derive(railContentSourceId, "AtomicComposite", "content-rail");
+        String railSectionId = SectionIdDeriver.derive(railContentSourceId, "AtomicComposite", "contentRail");
         Section rail = atomicBuilder.buildContentRail(railSectionId,
                 "scoreboard_content_rail", null, cards);
         rail.setContentSourceId(railContentSourceId);

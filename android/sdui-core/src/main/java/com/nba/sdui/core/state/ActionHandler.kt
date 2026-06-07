@@ -35,7 +35,7 @@ data class FailureFeedback(
  * and dispatched to the ActionHandler.
  */
 data class SduiAction(
-    val trigger: String, // "onActivate", "onTap" (deprecated), "onLongPress", "onVisible", …
+    val trigger: String, // "onActivate", "onLongPress", "onVisible", "onSubmit", …
     val type: String, // "navigate", "fireAndForget", "mutate", "refresh", "dismiss", "toast"
     val targetUri: String? = null,
     val webUrl: String? = null,
@@ -135,9 +135,6 @@ class ActionHandler {
      * Handle an SDUI action and return the result.
      */
     fun handle(action: SduiAction, stateManager: StateManager): ActionResult {
-        if (action.trigger.equals("onTap", ignoreCase = true) && Log.isLoggable(TAG, Log.DEBUG)) {
-            Log.d(TAG, "deprecated_trigger_used: onTap is a deprecated alias for onActivate")
-        }
         // Resolve `{{stateKey}}` placeholders against the live state map
         // before the per-type handlers run. This lets the server emit
         // parameterised navigate/refresh actions (e.g. nba://games?date={{x}})

@@ -7,14 +7,21 @@
     {
       "id": "responsive-card-section",
       "type": "AtomicComposite",
-      "refreshPolicy": { "type": "static" },
+      "refreshPolicy": {
+        "type": "static"
+      },
       "data": {
         "ui": {
           "id": "responsive-card-root",
           "type": "Container",
           "direction": "column",
           "crossAlignment": "center",
-          "padding": { "top": "token:nba.spacing.lg", "bottom": "token:nba.spacing.lg", "start": "token:nba.spacing.lg", "end": "token:nba.spacing.lg" },
+          "padding": {
+            "top": "token:nba.spacing.lg",
+            "bottom": "token:nba.spacing.lg",
+            "start": "token:nba.spacing.lg",
+            "end": "token:nba.spacing.lg"
+          },
           "widthMode": "fill",
           "children": [
             {
@@ -25,7 +32,6 @@
               "widthMode": "fill",
               "maxWidth": "token:nba.spacing.2xl",
               "cornerRadius": "token:nba.radius.lg",
-              "background": "token:nba.bg.secondary",
               "children": [
                 {
                   "type": "Image",
@@ -44,7 +50,12 @@
                   "type": "Container",
                   "direction": "column",
                   "gap": "token:nba.spacing.sm",
-                  "padding": { "top": "token:nba.spacing.lg", "bottom": "token:nba.spacing.lg", "start": "token:nba.spacing.lg", "end": "token:nba.spacing.lg" },
+                  "padding": {
+                    "top": "token:nba.spacing.lg",
+                    "bottom": "token:nba.spacing.lg",
+                    "start": "token:nba.spacing.lg",
+                    "end": "token:nba.spacing.lg"
+                  },
                   "children": [
                     {
                       "type": "Text",
@@ -55,7 +66,7 @@
                     },
                     {
                       "type": "Text",
-                      "content": "Lakers vs Celtics — Game 7 Preview",
+                      "content": "Lakers vs Celtics \u2014 Game 7 Preview",
                       "variant": "titleMedium",
                       "weight": "bold",
                       "color": "token:nba.label.primary"
@@ -69,6 +80,9 @@
                     }
                   ]
                 }
+              ],
+              "backgrounds": [
+                "token:nba.bg.secondary"
               ]
             }
           ]

@@ -185,7 +185,9 @@ public class ScheduleComposer {
             if (!date.equals(currentDate)) {
                 currentDate = date;
                 String headerContentSourceId = "feed:schedule";
-                String headerSectionId = SectionIdDeriver.derive(headerContentSourceId, "AtomicComposite", "header-" + date);
+                String headerSectionId = SectionIdDeriver.derive(
+                        headerContentSourceId, "AtomicComposite",
+                        "header" + date.replace("-", ""));
                 Section header = atomicBuilder.buildSectionHeader(
                         headerSectionId, formatDate(date, locale), null, null, null);
                 header.setContentSourceId(headerContentSourceId);

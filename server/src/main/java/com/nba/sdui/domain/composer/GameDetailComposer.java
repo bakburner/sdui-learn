@@ -91,7 +91,9 @@ public class GameDetailComposer {
 
     @PostConstruct
     void registerSectionRefreshResolvers() {
-        sectionRefreshService.registerResolver("stats-api:game-", this::refreshGameDetailSection);
+        sectionRefreshService.registerResolver(
+                SectionIdDeriver.prefixFor("stats-api:game-"),
+                this::refreshGameDetailSection);
     }
 
     /**
@@ -193,7 +195,8 @@ public class GameDetailComposer {
         String normalized = (activeVariant == null || activeVariant.isBlank())
                 ? "A" : activeVariant.toUpperCase();
         Section chips = atomicBuilder.buildVariantChipsComposite(
-                "game-detail-variant-chips", "game_detail_variant_chips",
+                SectionIdDeriver.derive("game-detail-" + gameId, "AtomicComposite", "variantChips"),
+                "game_detail_variant_chips",
                 currentUri, experimentId, options, normalized);
         chips.setSurface(surfaces.flushSurface());
 
@@ -206,7 +209,7 @@ public class GameDetailComposer {
         int insertAt = 0;
         if (!sections.isEmpty()) {
             String firstId = sections.get(0).getId();
-            if (firstId != null && firstId.endsWith(":app-bar")) {
+            if (SectionIdDeriver.endsWithSlug(firstId, "appBar")) {
                 merged.add(sections.get(0));
                 insertAt = 1;
             }
@@ -319,11 +322,12 @@ public class GameDetailComposer {
 
     private Section refreshGameDetailSection(String sectionId, SduiRequestContext ctx) throws IOException {
         SectionIdDeriver.Parsed parsed = SectionIdDeriver.parse(sectionId);
-        if (!parsed.isDerived() || !parsed.source().startsWith("stats-api:game-")) {
+        String gameSourcePrefix = SectionIdDeriver.prefixFor("stats-api:game-");
+        if (!parsed.isDerived() || !parsed.source().startsWith(gameSourcePrefix)) {
             throw new IllegalArgumentException("Invalid game detail sectionId: " + sectionId);
         }
 
-        String gameId = parsed.source().substring("stats-api:game-".length());
+        String gameId = parsed.source().substring(gameSourcePrefix.length());
         if (!"scoreboard".equals(parsed.slug())) {
             throw new UnsupportedSectionException(
                 "Game detail composer does not support section refresh for slug='" + parsed.slug() + "'");
@@ -370,7 +374,7 @@ public class GameDetailComposer {
 
         List<Section> sections = new ArrayList<>();
         Section error = utils.buildErrorSection(
-                SectionIdDeriver.derive("stats-api:game-" + gameId, "AtomicComposite", "error-not-found"),
+                SectionIdDeriver.derive("stats-api:game-" + gameId, "AtomicComposite", "errorNotFound"),
                 "Game not available",
                 "We couldn't load this game. Please try again later.",
                 "not_found",
@@ -391,7 +395,7 @@ public class GameDetailComposer {
      * the server is the single source of truth for every section it emits.
      */
     private Section buildGameDetailContentRail(String contentSourceId) {
-        String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite", "content-rail");
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite", "contentRail");
         String[][] cards = {
             {"content-1", "Game Preview", "What to watch for tonight", FALLBACK_THUMB, "article", null, "nba://article/game-preview"},
             {"content-2", "Key Matchups", "Players to follow", FALLBACK_THUMB, "article", null, "nba://article/key-matchups"},
@@ -415,7 +419,7 @@ public class GameDetailComposer {
         int gameStatus = game.getGameStatus();
 
         Section section = new Section();
-        section.setId(SectionIdDeriver.derive(contentSourceId, "TabGroup", "boxscore-tabs"));
+        section.setId(SectionIdDeriver.derive(contentSourceId, "TabGroup", "boxscoreTabs"));
         section.setContentSourceId(contentSourceId);
         section.setType(Section.Type.TAB_GROUP);
         section.setAnalyticsId("game_detail_boxscore_tabs");
@@ -557,7 +561,7 @@ public class GameDetailComposer {
             return null;
         }
 
-        String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite", "top-performers");
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite", "topPerformers");
         Section section = atomicBuilder.buildStatLine(
                 sectionId, null, "Top Performers", "vertical",
                 stats.toArray(new String[0][]));
@@ -602,7 +606,7 @@ public class GameDetailComposer {
             children.add(awaySlot);
 
             root.setChildren(children);
-            String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite", "team-leaders-row");
+            String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite", "teamLeadersRow");
             Section section = atomicBuilder.wrapAsComposite(sectionId, null, root);
             section.setContentSourceId(contentSourceId);
             return section;
@@ -679,7 +683,7 @@ public class GameDetailComposer {
         int gameStatus = game.getGameStatus();
 
         Section section = new Section();
-        section.setId(SectionIdDeriver.derive(contentSourceId, "VideoPlayer", "video-player"));
+        section.setId(SectionIdDeriver.derive(contentSourceId, "VideoPlayer", "videoPlayer"));
         section.setContentSourceId(contentSourceId);
         section.setType(Section.Type.VIDEO_PLAYER);
         section.setAnalyticsId("game_detail_video_player");
@@ -692,7 +696,7 @@ public class GameDetailComposer {
         AtomicElement root = atomicBuilder.container("column", "center", "center");
         atomicBuilder.widthMode(root, "fill");
         root.setHeight(440);
-        root.setBackground("#000000");
+        root.setBackgrounds(List.of("#000000"));
         List<AtomicElement> rootChildren = new ArrayList<>();
         rootChildren.add(atomicBuilder.text("▶", "displayLarge", "bold", "#FFFFFF", null));
         rootChildren.add(atomicBuilder.spacer(tokens.spacing("md")));
@@ -722,7 +726,7 @@ public class GameDetailComposer {
         Overlays overlays = new Overlays();
 
         overlays.setAdditionalProperty("couchRightsWarning", buildOverlaySection(
-                contentSourceId, "couch-rights-warning",
+                contentSourceId, "couchRightsWarning",
                 tokens.icon("warning"),
                 "Viewing Time Limited",
                 "Your couch rights viewing window is active. You have limited time remaining on this stream.",
@@ -731,7 +735,7 @@ public class GameDetailComposer {
         ));
 
         overlays.setAdditionalProperty("couchRightsExpired", buildOverlaySection(
-                contentSourceId, "couch-rights-expired",
+                contentSourceId, "couchRightsExpired",
                 tokens.icon("warning"),
                 "Viewing Time Expired",
                 "Your couch rights viewing window has ended. Subscribe to League Pass for unlimited access.",
@@ -760,7 +764,7 @@ public class GameDetailComposer {
                 tokens.spacing("xl"),
                 tokens.spacing("xl")
         ));
-        root.setBackground(tokens.color("nba.bg.primary"));
+        root.setBackgrounds(List.of(tokens.color("nba.bg.primary")));
         root.setCornerRadius(tokens.radius("lg"));
 
         List<AtomicElement> children = new ArrayList<>();
@@ -813,7 +817,7 @@ public class GameDetailComposer {
         int gameStatus = game.getGameStatus();
 
         Section section = new Section();
-        section.setId(SectionIdDeriver.derive(contentSourceId, "TabGroup", "game-detail-tabs"));
+        section.setId(SectionIdDeriver.derive(contentSourceId, "TabGroup", "gameDetailTabs"));
         section.setContentSourceId(contentSourceId);
         section.setType(Section.Type.TAB_GROUP);
         section.setAnalyticsId("game_detail_tabs");
@@ -880,7 +884,7 @@ public class GameDetailComposer {
             AtomicElement card = atomicBuilder.container("column", null, null);
             card.setId(hl[0]);
             card.setCornerRadius(8); // §3.6: no semantic token mapping for corner radius 8
-            card.setBackground(tokens.color("nba.bg.primary"));
+            card.setBackgrounds(List.of(tokens.color("nba.bg.primary")));
             atomicBuilder.shadow(card, "#00000020", 4, 0, 2);
 
             Action mutateAction = new Action();
@@ -899,7 +903,7 @@ public class GameDetailComposer {
 
             AtomicElement durationBadgeEl = atomicBuilder.container("row", null, null);
             durationBadgeEl.setCornerRadius(tokens.radius("sm"));
-            durationBadgeEl.setBackground("#000000B3");
+            durationBadgeEl.setBackgrounds(List.of("#000000B3"));
             durationBadgeEl.setOpacity(0.85);
             durationBadgeEl.setPadding(atomicBuilder.padding(
                     tokens.spacing("sm"), tokens.spacing("sm"),
@@ -1022,9 +1026,9 @@ public class GameDetailComposer {
     /**
      * Re-derive section IDs so every section — whether from live composition
      * or from an example fallback JSON — carries the canonical
-     * {@code contentSourceId~type=SectionType~slug=name} format.
+     * {@code contentSourceId__type-SectionType__slug-name} format.
      *
-     * <p>For sections that already carry a derived ID (contains {@code ~type=}),
+     * <p>For sections that already carry a derived ID (contains {@code __type-}),
      * the ID is left untouched. For flat-ID sections (example JSON), the
      * existing ID is treated as the slug, the section's {@code type} is read,
      * and {@link SectionIdDeriver#derive} produces the canonical form.
@@ -1040,11 +1044,38 @@ public class GameDetailComposer {
             String id = section.getId() != null ? section.getId() : "";
             if (SectionIdDeriver.isDerived(id)) continue;
             String type = section.getType() != null ? section.getType().value() : "AtomicComposite";
-            section.setId(SectionIdDeriver.derive(contentSourceId, type, id));
+            section.setId(SectionIdDeriver.derive(contentSourceId, type, toCamelSlug(id)));
             if (section.getContentSourceId() == null) {
                 section.setContentSourceId(contentSourceId);
             }
         }
+    }
+
+    /**
+     * Coerce a free-form flat ID (e.g. {@code "content-rail"}) into a
+     * lowerCamelCase slug accepted by {@link SectionIdDeriver#derive}. Used
+     * when promoting example-JSON flat IDs into the derived form.
+     */
+    private static String toCamelSlug(String raw) {
+        if (raw == null || raw.isEmpty()) return "section";
+        StringBuilder sb = new StringBuilder();
+        boolean nextUpper = false;
+        for (int i = 0; i < raw.length(); i++) {
+            char c = raw.charAt(i);
+            if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')) {
+                if (sb.length() == 0 && c >= '0' && c <= '9') {
+                    sb.append('s').append(c);
+                } else {
+                    sb.append(sb.length() == 0
+                            ? Character.toLowerCase(c)
+                            : (nextUpper ? Character.toUpperCase(c) : Character.toLowerCase(c)));
+                }
+                nextUpper = false;
+            } else {
+                nextUpper = true;
+            }
+        }
+        return sb.length() == 0 ? "section" : sb.toString();
     }
 
     // ── Variant transformations ────────────────────────────────────────
@@ -1066,8 +1097,8 @@ public class GameDetailComposer {
         List<Section> sections = response.getSections();
         if (sections == null) return;
         Map<String, Integer> slugIndex = buildSlugIndex(sections);
-        Integer contentRailIndex = slugIndex.get("content-rail");
-        Integer tabGroupIndex = slugIndex.get("game-detail-tabs");
+        Integer contentRailIndex = slugIndex.get("contentRail");
+        Integer tabGroupIndex = slugIndex.get("gameDetailTabs");
 
         if (contentRailIndex != null && tabGroupIndex != null && contentRailIndex < tabGroupIndex) {
             Section contentRail = sections.get(contentRailIndex);
@@ -1079,7 +1110,7 @@ public class GameDetailComposer {
     }
 
     private static final Set<String> VARIANT_C_KEEP = Set.of(
-            "scoreboard", "game-detail-tabs"
+            "scoreboard", "gameDetailTabs"
     );
 
     private void applyVariantC(Screen response) {
@@ -1108,13 +1139,15 @@ public class GameDetailComposer {
             {"trending-3", "Post-Game Press Conference", "Hear from the coaches", FALLBACK_THUMB, "video", "6:00", "nba://video/post-game-presser"}
         };
         Section extraHeader = atomicBuilder.buildSectionHeader(
-                "trending-videos-header", "Trending Videos", null, null, null);
+                SectionIdDeriver.derive("variant:trending-videos", "AtomicComposite", "trendingHeader"),
+                "Trending Videos", null, null, null);
         extraHeader.setSurface(surfaces.sectionHeaderSurface());
-        Section extraRail = atomicBuilder.buildContentRail("trending-videos",
+        Section extraRail = atomicBuilder.buildContentRail(
+                SectionIdDeriver.derive("variant:trending-videos", "AtomicComposite", "trendingVideos"),
                 "trending_videos_rail", null, trendingCards);
         extraRail.setSurface(surfaces.railSurface());
 
-        Integer insertAfter = slugIndex.get("content-rail");
+        Integer insertAfter = slugIndex.get("contentRail");
         if (insertAfter != null) {
             List<Section> updated = new ArrayList<>();
             for (int i = 0; i < sections.size(); i++) {
@@ -1127,7 +1160,7 @@ public class GameDetailComposer {
             response.setSections(updated);
             log.debug("Applied variant D: added Trending Videos rail, {} sections total", updated.size());
         } else {
-            log.debug("Applied variant D: content-rail not found, skipping insertion");
+            log.debug("Applied variant D: contentRail not found, skipping insertion");
         }
     }
 }

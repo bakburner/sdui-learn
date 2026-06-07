@@ -1,5 +1,5 @@
 {
-  "id": "server:games-calendar~type=CalendarMonthList",
+  "id": "server-games-calendar__type-CalendarMonthList",
   "type": "CalendarMonthList",
   "contentSourceId": "server:games-calendar",
   "analyticsId": "games_calendar_month_list",

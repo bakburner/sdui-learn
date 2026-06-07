@@ -41,7 +41,7 @@ object SduiActionLogger {
 
     /**
      * Action-scoped debug entry. Prefixes the message with the action's
-     * trigger/type so logcat filtering by trigger ("onVisible", "onTap")
+     * trigger/type so logcat filtering by trigger ("onVisible", "onActivate")
      * or type ("fireAndForget") works without bespoke tagging at every
      * call site.
      */

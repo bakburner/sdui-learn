@@ -105,7 +105,7 @@ public class ForYouComposer {
     @PostConstruct
     private void registerSectionResolvers() {
         String sectionId = SectionIdDeriver.derive(
-                "stats-api:scoreboard", "AtomicComposite", "tonights-games-hero");
+                "stats-api:scoreboard", "AtomicComposite", "tonightsGamesHero");
         sectionRefreshService.registerResolver(sectionId, (id, ctx) -> buildTonightsGamesHero());
     }
 
@@ -123,7 +123,7 @@ public class ForYouComposer {
         sections.add(buildFollowingStoryCircleRail());
         sections.add(buildFeaturedEditorialHero());
 
-        sections.add(buildSectionHeaderComposite("top-stories-header",
+        sections.add(buildSectionHeaderComposite("topStoriesHeader",
                 "for_you_top_stories_header",
                 "Top Stories", null, "More", "nba://news"));
         sections.add(buildTopStoriesArticleList());
@@ -131,12 +131,12 @@ public class ForYouComposer {
         sections.add(buildAdSlot("for-you-ad-1", "for_you_ad_1",
                 "/21234567/sports/nba/homepage_mid1", "mid_feed_1"));
 
-        sections.add(buildSectionHeaderComposite("tonights-games-header",
+        sections.add(buildSectionHeaderComposite("tonightsGamesHeader",
                 "for_you_tonights_games_header",
                 "Tonight's Games", null, "See Schedule", "nba://scoreboard"));
         sections.add(buildTonightsGamesHero());
 
-        sections.add(buildSectionHeaderComposite("trending-header",
+        sections.add(buildSectionHeaderComposite("trendingHeader",
                 "for_you_trending_header",
                 "Trending Now", null, null, null));
         sections.add(buildTrendingRail());
@@ -144,7 +144,7 @@ public class ForYouComposer {
         sections.add(buildAdSlot("for-you-ad-2", "for_you_ad_2",
                 "/21234567/sports/nba/homepage_mid2", "mid_feed_2"));
 
-        sections.add(buildSectionHeaderComposite("lp-picks-header",
+        sections.add(buildSectionHeaderComposite("lpPicksHeader",
                 "for_you_lp_picks_header",
                 "League Pass Picks", null, "Browse League Pass", "nba://leaguepass"));
         sections.add(buildLeaguePassPicksRail());
@@ -154,7 +154,7 @@ public class ForYouComposer {
 
         sections.add(buildOtherLeaguesRail());
 
-        sections.add(buildSectionHeaderComposite("around-league-header",
+        sections.add(buildSectionHeaderComposite("aroundLeagueHeader",
                 "for_you_around_league_header",
                 "Around the League", null, null, null));
         sections.add(buildAroundTheLeagueUtilityGrid());
@@ -288,7 +288,7 @@ public class ForYouComposer {
                     "0022400779"));
         }
 
-        String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite", "tonights-games-hero");
+        String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite", "tonightsGamesHero");
         RefreshPolicy refreshPolicy;
         DataBinding dataBindingForHero = liveBindings;
         if (fromMockFallback) {
@@ -452,7 +452,7 @@ public class ForYouComposer {
                 AtomicElement line = atomicBuilder.container("row", null, null);
                 atomicBuilder.widthMode(line, "fill");
                 line.setHeight(1);
-                line.setBackground(tokens.color("nba.divider.subtle"));
+                line.setBackgrounds(List.of(tokens.color("nba.divider.subtle")));
                 dividerKids.add(line);
                 divider.setChildren(dividerKids);
                 children.add(divider);

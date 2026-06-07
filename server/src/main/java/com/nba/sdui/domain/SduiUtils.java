@@ -129,7 +129,7 @@ public class SduiUtils {
             return;
         }
 
-        String sectionId = screenId + ":app-bar";
+        String sectionId = SectionIdDeriver.derive(screenId, "AtomicComposite", "appBar");
         Section header = atomicBuilder.buildAppBarHeaderComposite(
                 sectionId, screenId + "_app_bar", title, backUri);
         header.setSurface(new SectionSurface());

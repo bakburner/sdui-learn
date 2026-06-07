@@ -7,7 +7,9 @@
     {
       "id": "stacked-bg-section",
       "type": "AtomicComposite",
-      "refreshPolicy": { "type": "static" },
+      "refreshPolicy": {
+        "type": "static"
+      },
       "data": {
         "ui": {
           "id": "stacked-bg-root",
@@ -17,11 +19,19 @@
           "crossAlignment": "start",
           "widthMode": "fill",
           "cornerRadius": "token:nba.radius.lg",
-          "padding": { "top": "token:nba.spacing.xl", "bottom": "token:nba.spacing.xl", "start": "token:nba.spacing.lg", "end": "token:nba.spacing.lg" },
+          "padding": {
+            "top": "token:nba.spacing.xl",
+            "bottom": "token:nba.spacing.xl",
+            "start": "token:nba.spacing.lg",
+            "end": "token:nba.spacing.lg"
+          },
           "backgrounds": [
             "token:nba.bg.secondary",
             {
-              "colors": ["#00000000", "#000000CC"],
+              "colors": [
+                "#00000000",
+                "#000000CC"
+              ],
               "direction": "vertical"
             }
           ],

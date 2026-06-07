@@ -115,7 +115,7 @@ fun AtomicImage(
         }
         SubcomposeAsyncImage(
             model = modelUrl,
-            contentDescription = element.accessibility?.label ?: element.alt ?: "",
+            contentDescription = element.accessibility?.label ?: "",
             contentScale = contentScale,
             modifier = imageModifier.applyAccessibility(element.accessibility),
             loading = {

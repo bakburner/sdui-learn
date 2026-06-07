@@ -135,7 +135,8 @@ these properties:
   automatic client polling; it is not a precondition for the endpoint's
   existence or correctness.
 - **`sectionId` is the self-sufficient composition key.** The id format
-  (`{contentSource}~type={SectionType}[~slug={name}]`, per §3.4) must
+  (`{sanitizedContentSource}__type-{SectionType}[__slug-{camelCaseName}]`,
+  per §3.4) must
   encode every upstream identifier the resolver needs (gameId, leagueId,
   feed key, etc.). Resolvers must not depend on ambient screen state,
   caller-supplied screen context, or prior screen-channel requests to
@@ -171,11 +172,20 @@ runtime warnings.
 
 ### 3.4 IDs are stable and positional indices are forbidden
 
-Section IDs must be derived from `{contentSource}~type={SectionType}` with an
-optional `~slug={name}` disambiguator. Position in the section array must
-never appear in the ID. This guarantees that surgical section replacement
-(section channel) and SSE-driven section patches address the same logical
-unit even after the server reorders sections.
+Section IDs must be derived from
+`{sanitizedContentSource}__type-{SectionType}` with an optional
+`__slug-{camelCaseName}` disambiguator. The wire format is BEM-classic
+(`__` between groups, `-` inside groups). `contentSource` is sanitized
+by replacing every character outside `[A-Za-z0-9-]` with `-` and
+collapsing runs (trailing dashes on prefix-only sources are preserved
+so resolver `startsWith` matching works). `slug` is strict
+lowerCamelCase matching `^[a-z][a-zA-Z0-9]*$` — kebab-case slugs are
+rejected at composition time. The format is CSS-selector safe so
+clients can reflect ids into DOM class names without escaping. Position
+in the section array must never appear in the ID. This guarantees that
+surgical section replacement (section channel) and SSE-driven section
+patches address the same logical unit even after the server reorders
+sections.
 
 ### 3.5 Error states are first-class sections
 

@@ -136,11 +136,11 @@ describe('AtomicImage — accessibility', () => {
     expect(img?.getAttribute('aria-description')).toBe('Double tap to enlarge');
   });
 
-  it('falls back to element.alt when no accessibility.label', () => {
-    const el = { ...baseImage, alt: 'Fallback alt' } as AtomicElement;
+  it('renders empty alt when no accessibility.label', () => {
+    const el = { ...baseImage } as AtomicElement;
     const { container } = render(<AtomicImage element={el} state={{}} onAction={noop} depth={0} />);
     const img = container.querySelector('img');
-    expect(img?.getAttribute('alt')).toBe('Fallback alt');
+    expect(img?.getAttribute('alt')).toBe('');
   });
 });
 

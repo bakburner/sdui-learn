@@ -375,7 +375,19 @@ class AtomicCompositeBuilderFeedModulesTest {
     }
 
     private static boolean nodeProvidesTextContrast(JsonNode node) {
-        JsonNode bg = node.get("background");
+        JsonNode bgs = node.get("backgrounds");
+        if (bgs == null || !bgs.isArray() || bgs.size() == 0) {
+            return false;
+        }
+        for (JsonNode bg : bgs) {
+            if (layerProvidesContrast(bg)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean layerProvidesContrast(JsonNode bg) {
         if (bg == null || bg.isNull() || bg.isMissingNode()) {
             return false;
         }

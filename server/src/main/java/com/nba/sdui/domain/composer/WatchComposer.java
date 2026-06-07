@@ -268,7 +268,7 @@ public class WatchComposer {
         // Full-screen subscription upsell with pricing tiers
         sections.add(buildSubscribeUpsellHero());
 
-        sections.add(buildSectionHeader("live-games", "Live Games", null, null));
+        sections.add(buildSectionHeader("feed:watch-live-games", "Live Games", null, null));
 
         // Pull real games if available
         addLiveGamePanels(sections);
@@ -315,22 +315,20 @@ public class WatchComposer {
 
     // ── Reusable section builders ──────────────────────────────────────
 
-    private Section buildSectionHeader(String slug, String title,
+    private Section buildSectionHeader(String headerContentSourceId, String title,
                                            String actionLabel, String actionUri) {
-        String contentSourceId = "feed:watch";
-        String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite", slug + "-header");
+        String sectionId = SectionIdDeriver.derive(headerContentSourceId, "AtomicComposite", "header");
         Section section = atomicBuilder.buildSectionHeader(sectionId, title, null, actionLabel, actionUri);
-        section.setContentSourceId(contentSourceId);
+        section.setContentSourceId(headerContentSourceId);
         section.setSurface(surfaces.sectionHeaderSurface());
         return section;
     }
 
-    private Section buildSectionHeader(String slug, String title, String subtitle,
+    private Section buildSectionHeader(String headerContentSourceId, String title, String subtitle,
                                            String actionLabel, String actionUri) {
-        String contentSourceId = "feed:watch";
-        String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite", slug + "-header");
+        String sectionId = SectionIdDeriver.derive(headerContentSourceId, "AtomicComposite", "header");
         Section section = atomicBuilder.buildSectionHeader(sectionId, title, subtitle, actionLabel, actionUri);
-        section.setContentSourceId(contentSourceId);
+        section.setContentSourceId(headerContentSourceId);
         section.setSurface(surfaces.sectionHeaderSurface());
         return section;
     }
@@ -631,7 +629,7 @@ public class WatchComposer {
     private AtomicElement buildTierUi(TierSpec t) {
         AtomicElement card = atomicBuilder.container("column", "start", "start");
         card.setGap(6); // §3.6: no semantic spacing token for 6
-        card.setBackground(tokens.color("nba.color.t-white.10"));
+        card.setBackgrounds(List.of(tokens.color("nba.color.t-white.10")));
         card.setCornerRadius(tokens.radius("lg"));
         card.setPadding(atomicBuilder.padding(
                 22, // §3.6: no semantic spacing token for 22

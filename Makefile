@@ -178,11 +178,11 @@ dev-web-local:
 		echo "         run 'make dev-server' in another terminal first"; \
 	fi
 	@echo "=== Starting web against local SDUI server: $(SDUI_WEB_LOCAL_SERVER) ==="
-	@osascript -e 'tell application "Terminal" to do script "cd \"$(PWD)/web\" && SDUI_SERVER=$(SDUI_WEB_LOCAL_SERVER) npm run dev"' >/dev/null
+	cd web && SDUI_SERVER=$(SDUI_WEB_LOCAL_SERVER) npm run dev
 
 dev-web-remote:
 	@echo "=== Starting web against remote SDUI server: $(SDUI_WEB_REMOTE_SERVER) ==="
-	@osascript -e 'tell application "Terminal" to do script "cd \"$(PWD)/web\" && SDUI_SERVER=$(SDUI_WEB_REMOTE_SERVER) npm run dev"' >/dev/null
+	cd web && SDUI_SERVER=$(SDUI_WEB_REMOTE_SERVER) npm run dev
 
 # ── Android (auto-launches emulator if none connected) ───────
 dev-android: dev-android-remote

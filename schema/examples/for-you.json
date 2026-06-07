@@ -87,7 +87,7 @@
                   "id": "lebron",
                   "actions": [
                     {
-                      "trigger": "onTap",
+                      "trigger": "onActivate",
                       "type": "navigate",
                       "targetUri": "nba://player/2544"
                     }
@@ -122,7 +122,7 @@
                   "id": "cavaliers",
                   "actions": [
                     {
-                      "trigger": "onTap",
+                      "trigger": "onActivate",
                       "type": "navigate",
                       "targetUri": "nba://team/1610612739"
                     }
@@ -157,7 +157,7 @@
                   "id": "curry",
                   "actions": [
                     {
-                      "trigger": "onTap",
+                      "trigger": "onActivate",
                       "type": "navigate",
                       "targetUri": "nba://player/201939"
                     }
@@ -192,7 +192,7 @@
                   "id": "nba-news",
                   "actions": [
                     {
-                      "trigger": "onTap",
+                      "trigger": "onActivate",
                       "type": "navigate",
                       "targetUri": "nba://news"
                     }
@@ -227,7 +227,7 @@
                   "id": "twitter",
                   "actions": [
                     {
-                      "trigger": "onTap",
+                      "trigger": "onActivate",
                       "type": "navigate",
                       "targetUri": "nba://social/twitter"
                     }
@@ -308,7 +308,7 @@
               "variant": "text",
               "actions": [
                 {
-                  "trigger": "onTap",
+                  "trigger": "onActivate",
                   "type": "navigate",
                   "targetUri": "nba://scoreboard"
                 }
@@ -385,7 +385,7 @@
                         },
                         "actions": [
                           {
-                            "trigger": "onTap",
+                            "trigger": "onActivate",
                             "type": "navigate",
                             "targetUri": "nba://game/0042500113"
                           }
@@ -534,7 +534,7 @@
                         },
                         "actions": [
                           {
-                            "trigger": "onTap",
+                            "trigger": "onActivate",
                             "type": "navigate",
                             "targetUri": "nba://game/0042500173"
                           }
@@ -683,7 +683,7 @@
                         },
                         "actions": [
                           {
-                            "trigger": "onTap",
+                            "trigger": "onActivate",
                             "type": "navigate",
                             "targetUri": "nba://game/0042500153"
                           }
@@ -839,7 +839,7 @@
           },
           "actions": [
             {
-              "trigger": "onTap",
+              "trigger": "onActivate",
               "type": "navigate",
               "targetUri": "nba://game/0042500113"
             }
@@ -851,14 +851,16 @@
               "variant": "labelSmall",
               "weight": "bold",
               "color": "#FFFFFF",
-              "background": "#E03131",
               "cornerRadius": "token:nba.radius.sm",
               "padding": {
                 "start": 8,
                 "end": 8,
                 "top": "token:nba.spacing.xs",
                 "bottom": "token:nba.spacing.xs"
-              }
+              },
+              "backgrounds": [
+                "#E03131"
+              ]
             },
             {
               "type": "Spacer",
@@ -1082,16 +1084,9 @@
                   "id": "hl-1",
                   "width": 200,
                   "cornerRadius": "token:nba.radius.md",
-                  "background": {
-                    "colors": [
-                      "token:nba.bg.secondary",
-                      "token:nba.bg.tertiary"
-                    ],
-                    "direction": "vertical"
-                  },
                   "actions": [
                     {
-                      "trigger": "onTap",
+                      "trigger": "onActivate",
                       "type": "navigate",
                       "targetUri": "nba://video/top10-plays"
                     }
@@ -1117,7 +1112,6 @@
                           "alignment": "center",
                           "crossAlignment": "center",
                           "cornerRadius": "token:nba.radius.sm",
-                          "background": "#000000B3",
                           "opacity": 0.7,
                           "padding": {
                             "start": "token:nba.spacing.sm",
@@ -1133,6 +1127,9 @@
                               "weight": "semiBold",
                               "color": "token:nba.label-inverted.primary"
                             }
+                          ],
+                          "backgrounds": [
+                            "#000000B3"
                           ]
                         },
                         "alignment": "bottomEnd"
@@ -1157,6 +1154,15 @@
                         "bottom": 8
                       }
                     }
+                  ],
+                  "backgrounds": [
+                    {
+                      "colors": [
+                        "token:nba.bg.secondary",
+                        "token:nba.bg.tertiary"
+                      ],
+                      "direction": "vertical"
+                    }
                   ]
                 },
                 {
@@ -1165,16 +1171,9 @@
                   "id": "hl-2",
                   "width": 200,
                   "cornerRadius": "token:nba.radius.md",
-                  "background": {
-                    "colors": [
-                      "token:nba.bg.secondary",
-                      "token:nba.bg.tertiary"
-                    ],
-                    "direction": "vertical"
-                  },
                   "actions": [
                     {
-                      "trigger": "onTap",
+                      "trigger": "onActivate",
                       "type": "navigate",
                       "targetUri": "nba://video/dunk-night"
                     }
@@ -1200,7 +1199,6 @@
                           "alignment": "center",
                           "crossAlignment": "center",
                           "cornerRadius": "token:nba.radius.sm",
-                          "background": "#000000B3",
                           "opacity": 0.7,
                           "padding": {
                             "start": "token:nba.spacing.sm",
@@ -1216,6 +1214,9 @@
                               "weight": "semiBold",
                               "color": "token:nba.label-inverted.primary"
                             }
+                          ],
+                          "backgrounds": [
+                            "#000000B3"
                           ]
                         },
                         "alignment": "bottomEnd"
@@ -1240,6 +1241,15 @@
                         "bottom": 8
                       }
                     }
+                  ],
+                  "backgrounds": [
+                    {
+                      "colors": [
+                        "token:nba.bg.secondary",
+                        "token:nba.bg.tertiary"
+                      ],
+                      "direction": "vertical"
+                    }
                   ]
                 },
                 {
@@ -1248,16 +1258,9 @@
                   "id": "hl-3",
                   "width": 200,
                   "cornerRadius": "token:nba.radius.md",
-                  "background": {
-                    "colors": [
-                      "token:nba.bg.secondary",
-                      "token:nba.bg.tertiary"
-                    ],
-                    "direction": "vertical"
-                  },
                   "actions": [
                     {
-                      "trigger": "onTap",
+                      "trigger": "onActivate",
                       "type": "navigate",
                       "targetUri": "nba://article/trade-recap"
                     }
@@ -1295,6 +1298,15 @@
                         "top": 8,
                         "bottom": 8
                       }
+                    }
+                  ],
+                  "backgrounds": [
+                    {
+                      "colors": [
+                        "token:nba.bg.secondary",
+                        "token:nba.bg.tertiary"
+                      ],
+                      "direction": "vertical"
                     }
                   ]
                 }
@@ -1456,16 +1468,9 @@
                   "id": "tr-1",
                   "width": 200,
                   "cornerRadius": "token:nba.radius.md",
-                  "background": {
-                    "colors": [
-                      "token:nba.bg.secondary",
-                      "token:nba.bg.tertiary"
-                    ],
-                    "direction": "vertical"
-                  },
                   "actions": [
                     {
-                      "trigger": "onTap",
+                      "trigger": "onActivate",
                       "type": "navigate",
                       "targetUri": "nba://article/mvp-race"
                     }
@@ -1504,6 +1509,15 @@
                         "bottom": 8
                       }
                     }
+                  ],
+                  "backgrounds": [
+                    {
+                      "colors": [
+                        "token:nba.bg.secondary",
+                        "token:nba.bg.tertiary"
+                      ],
+                      "direction": "vertical"
+                    }
                   ]
                 },
                 {
@@ -1512,16 +1526,9 @@
                   "id": "tr-2",
                   "width": 200,
                   "cornerRadius": "token:nba.radius.md",
-                  "background": {
-                    "colors": [
-                      "token:nba.bg.secondary",
-                      "token:nba.bg.tertiary"
-                    ],
-                    "direction": "vertical"
-                  },
                   "actions": [
                     {
-                      "trigger": "onTap",
+                      "trigger": "onActivate",
                       "type": "navigate",
                       "targetUri": "nba://video/rookie-spotlight"
                     }
@@ -1547,7 +1554,6 @@
                           "alignment": "center",
                           "crossAlignment": "center",
                           "cornerRadius": "token:nba.radius.sm",
-                          "background": "#000000B3",
                           "opacity": 0.7,
                           "padding": {
                             "start": "token:nba.spacing.sm",
@@ -1563,6 +1569,9 @@
                               "weight": "semiBold",
                               "color": "token:nba.label-inverted.primary"
                             }
+                          ],
+                          "backgrounds": [
+                            "#000000B3"
                           ]
                         },
                         "alignment": "bottomEnd"
@@ -1587,6 +1596,15 @@
                         "bottom": 8
                       }
                     }
+                  ],
+                  "backgrounds": [
+                    {
+                      "colors": [
+                        "token:nba.bg.secondary",
+                        "token:nba.bg.tertiary"
+                      ],
+                      "direction": "vertical"
+                    }
                   ]
                 },
                 {
@@ -1595,16 +1613,9 @@
                   "id": "tr-3",
                   "width": 200,
                   "cornerRadius": "token:nba.radius.md",
-                  "background": {
-                    "colors": [
-                      "token:nba.bg.secondary",
-                      "token:nba.bg.tertiary"
-                    ],
-                    "direction": "vertical"
-                  },
                   "actions": [
                     {
-                      "trigger": "onTap",
+                      "trigger": "onActivate",
                       "type": "navigate",
                       "targetUri": "nba://article/playoff-picture"
                     }
@@ -1642,6 +1653,15 @@
                         "top": 8,
                         "bottom": 8
                       }
+                    }
+                  ],
+                  "backgrounds": [
+                    {
+                      "colors": [
+                        "token:nba.bg.secondary",
+                        "token:nba.bg.tertiary"
+                      ],
+                      "direction": "vertical"
                     }
                   ]
                 }
@@ -1758,7 +1778,7 @@
               "variant": "text",
               "actions": [
                 {
-                  "trigger": "onTap",
+                  "trigger": "onActivate",
                   "type": "navigate",
                   "targetUri": "nba://leaguepass"
                 }
@@ -1815,16 +1835,9 @@
                   "id": "lp-1",
                   "width": 200,
                   "cornerRadius": "token:nba.radius.md",
-                  "background": {
-                    "colors": [
-                      "token:nba.bg.secondary",
-                      "token:nba.bg.tertiary"
-                    ],
-                    "direction": "vertical"
-                  },
                   "actions": [
                     {
-                      "trigger": "onTap",
+                      "trigger": "onActivate",
                       "type": "navigate",
                       "targetUri": "nba://article/gsw-okc-preview"
                     }
@@ -1863,6 +1876,15 @@
                         "bottom": 8
                       }
                     }
+                  ],
+                  "backgrounds": [
+                    {
+                      "colors": [
+                        "token:nba.bg.secondary",
+                        "token:nba.bg.tertiary"
+                      ],
+                      "direction": "vertical"
+                    }
                   ]
                 },
                 {
@@ -1871,16 +1893,9 @@
                   "id": "lp-2",
                   "width": 200,
                   "cornerRadius": "token:nba.radius.md",
-                  "background": {
-                    "colors": [
-                      "token:nba.bg.secondary",
-                      "token:nba.bg.tertiary"
-                    ],
-                    "direction": "vertical"
-                  },
                   "actions": [
                     {
-                      "trigger": "onTap",
+                      "trigger": "onActivate",
                       "type": "navigate",
                       "targetUri": "nba://video/lp-week-20"
                     }
@@ -1906,7 +1921,6 @@
                           "alignment": "center",
                           "crossAlignment": "center",
                           "cornerRadius": "token:nba.radius.sm",
-                          "background": "#000000B3",
                           "opacity": 0.7,
                           "padding": {
                             "start": "token:nba.spacing.sm",
@@ -1922,6 +1936,9 @@
                               "weight": "semiBold",
                               "color": "token:nba.label-inverted.primary"
                             }
+                          ],
+                          "backgrounds": [
+                            "#000000B3"
                           ]
                         },
                         "alignment": "bottomEnd"
@@ -1946,6 +1963,15 @@
                         "bottom": 8
                       }
                     }
+                  ],
+                  "backgrounds": [
+                    {
+                      "colors": [
+                        "token:nba.bg.secondary",
+                        "token:nba.bg.tertiary"
+                      ],
+                      "direction": "vertical"
+                    }
                   ]
                 },
                 {
@@ -1954,16 +1980,9 @@
                   "id": "lp-3",
                   "width": 200,
                   "cornerRadius": "token:nba.radius.md",
-                  "background": {
-                    "colors": [
-                      "token:nba.bg.secondary",
-                      "token:nba.bg.tertiary"
-                    ],
-                    "direction": "vertical"
-                  },
                   "actions": [
                     {
-                      "trigger": "onTap",
+                      "trigger": "onActivate",
                       "type": "navigate",
                       "targetUri": "nba://video/ind-orl-hidden-gem"
                     }
@@ -1989,7 +2008,6 @@
                           "alignment": "center",
                           "crossAlignment": "center",
                           "cornerRadius": "token:nba.radius.sm",
-                          "background": "#000000B3",
                           "opacity": 0.7,
                           "padding": {
                             "start": "token:nba.spacing.sm",
@@ -2005,6 +2023,9 @@
                               "weight": "semiBold",
                               "color": "token:nba.label-inverted.primary"
                             }
+                          ],
+                          "backgrounds": [
+                            "#000000B3"
                           ]
                         },
                         "alignment": "bottomEnd"
@@ -2028,6 +2049,15 @@
                         "top": 8,
                         "bottom": 8
                       }
+                    }
+                  ],
+                  "backgrounds": [
+                    {
+                      "colors": [
+                        "token:nba.bg.secondary",
+                        "token:nba.bg.tertiary"
+                      ],
+                      "direction": "vertical"
                     }
                   ]
                 }
@@ -2144,7 +2174,7 @@
               "variant": "text",
               "actions": [
                 {
-                  "trigger": "onTap",
+                  "trigger": "onActivate",
                   "type": "navigate",
                   "targetUri": "nba://news"
                 }
@@ -2201,16 +2231,9 @@
                   "id": "al-1",
                   "width": 200,
                   "cornerRadius": "token:nba.radius.md",
-                  "background": {
-                    "colors": [
-                      "token:nba.bg.secondary",
-                      "token:nba.bg.tertiary"
-                    ],
-                    "direction": "vertical"
-                  },
                   "actions": [
                     {
-                      "trigger": "onTap",
+                      "trigger": "onActivate",
                       "type": "navigate",
                       "targetUri": "nba://article/injury-report"
                     }
@@ -2249,6 +2272,15 @@
                         "bottom": 8
                       }
                     }
+                  ],
+                  "backgrounds": [
+                    {
+                      "colors": [
+                        "token:nba.bg.secondary",
+                        "token:nba.bg.tertiary"
+                      ],
+                      "direction": "vertical"
+                    }
                   ]
                 },
                 {
@@ -2257,16 +2289,9 @@
                   "id": "al-2",
                   "width": 200,
                   "cornerRadius": "token:nba.radius.md",
-                  "background": {
-                    "colors": [
-                      "token:nba.bg.secondary",
-                      "token:nba.bg.tertiary"
-                    ],
-                    "direction": "vertical"
-                  },
                   "actions": [
                     {
-                      "trigger": "onTap",
+                      "trigger": "onActivate",
                       "type": "navigate",
                       "targetUri": "nba://article/power-rankings-march"
                     }
@@ -2305,6 +2330,15 @@
                         "bottom": 8
                       }
                     }
+                  ],
+                  "backgrounds": [
+                    {
+                      "colors": [
+                        "token:nba.bg.secondary",
+                        "token:nba.bg.tertiary"
+                      ],
+                      "direction": "vertical"
+                    }
                   ]
                 },
                 {
@@ -2313,16 +2347,9 @@
                   "id": "al-3",
                   "width": 200,
                   "cornerRadius": "token:nba.radius.md",
-                  "background": {
-                    "colors": [
-                      "token:nba.bg.secondary",
-                      "token:nba.bg.tertiary"
-                    ],
-                    "direction": "vertical"
-                  },
                   "actions": [
                     {
-                      "trigger": "onTap",
+                      "trigger": "onActivate",
                       "type": "navigate",
                       "targetUri": "nba://video/allstar-recap"
                     }
@@ -2348,7 +2375,6 @@
                           "alignment": "center",
                           "crossAlignment": "center",
                           "cornerRadius": "token:nba.radius.sm",
-                          "background": "#000000B3",
                           "opacity": 0.7,
                           "padding": {
                             "start": "token:nba.spacing.sm",
@@ -2364,6 +2390,9 @@
                               "weight": "semiBold",
                               "color": "token:nba.label-inverted.primary"
                             }
+                          ],
+                          "backgrounds": [
+                            "#000000B3"
                           ]
                         },
                         "alignment": "bottomEnd"
@@ -2387,6 +2416,15 @@
                         "top": 8,
                         "bottom": 8
                       }
+                    }
+                  ],
+                  "backgrounds": [
+                    {
+                      "colors": [
+                        "token:nba.bg.secondary",
+                        "token:nba.bg.tertiary"
+                      ],
+                      "direction": "vertical"
                     }
                   ]
                 }
@@ -2469,7 +2507,7 @@
                   },
                   "actions": [
                     {
-                      "trigger": "onTap",
+                      "trigger": "onActivate",
                       "type": "navigate",
                       "targetUri": "nba://video/giannis-40"
                     }
@@ -2490,7 +2528,6 @@
                           "alignment": "center",
                           "crossAlignment": "center",
                           "cornerRadius": "token:nba.radius.sm",
-                          "background": "#000000B3",
                           "opacity": 0.7,
                           "padding": {
                             "start": "token:nba.spacing.sm",
@@ -2506,6 +2543,9 @@
                               "weight": "semiBold",
                               "color": "token:nba.label-inverted.primary"
                             }
+                          ],
+                          "backgrounds": [
+                            "#000000B3"
                           ]
                         },
                         "alignment": "bottomEnd"
@@ -2527,7 +2567,7 @@
                         },
                         {
                           "type": "Text",
-                          "content": "Last night · Bucks vs Heat",
+                          "content": "Last night \u00b7 Bucks vs Heat",
                           "variant": "labelSmall",
                           "color": "token:nba.label.secondary",
                           "maxLines": 1
@@ -2536,7 +2576,7 @@
                     },
                     {
                       "type": "Text",
-                      "content": "›",
+                      "content": "\u203a",
                       "variant": "titleMedium",
                       "color": "token:nba.label.secondary"
                     }
@@ -2566,7 +2606,7 @@
                   },
                   "actions": [
                     {
-                      "trigger": "onTap",
+                      "trigger": "onActivate",
                       "type": "navigate",
                       "targetUri": "nba://video/kerr-pressconf"
                     }
@@ -2587,7 +2627,6 @@
                           "alignment": "center",
                           "crossAlignment": "center",
                           "cornerRadius": "token:nba.radius.sm",
-                          "background": "#000000B3",
                           "opacity": 0.7,
                           "padding": {
                             "start": "token:nba.spacing.sm",
@@ -2603,6 +2642,9 @@
                               "weight": "semiBold",
                               "color": "token:nba.label-inverted.primary"
                             }
+                          ],
+                          "backgrounds": [
+                            "#000000B3"
                           ]
                         },
                         "alignment": "bottomEnd"
@@ -2624,7 +2666,7 @@
                         },
                         {
                           "type": "Text",
-                          "content": "Warriors · Postgame",
+                          "content": "Warriors \u00b7 Postgame",
                           "variant": "labelSmall",
                           "color": "token:nba.label.secondary",
                           "maxLines": 1
@@ -2633,7 +2675,7 @@
                     },
                     {
                       "type": "Text",
-                      "content": "›",
+                      "content": "\u203a",
                       "variant": "titleMedium",
                       "color": "token:nba.label.secondary"
                     }
@@ -2663,7 +2705,7 @@
                   },
                   "actions": [
                     {
-                      "trigger": "onTap",
+                      "trigger": "onActivate",
                       "type": "navigate",
                       "targetUri": "nba://video/lakers-nuggets-live"
                     }
@@ -2684,7 +2726,6 @@
                           "alignment": "center",
                           "crossAlignment": "center",
                           "cornerRadius": "token:nba.radius.sm",
-                          "background": "token:nba.label.accent.live",
                           "padding": {
                             "start": 6,
                             "end": 6,
@@ -2699,6 +2740,9 @@
                               "weight": "bold",
                               "color": "token:nba.label-inverted.primary"
                             }
+                          ],
+                          "backgrounds": [
+                            "token:nba.label.accent.live"
                           ]
                         },
                         "alignment": "topStart"
@@ -2720,7 +2764,7 @@
                         },
                         {
                           "type": "Text",
-                          "content": "On now · League Pass",
+                          "content": "On now \u00b7 League Pass",
                           "variant": "labelSmall",
                           "color": "token:nba.label.secondary",
                           "maxLines": 1
@@ -2729,7 +2773,7 @@
                     },
                     {
                       "type": "Text",
-                      "content": "›",
+                      "content": "\u203a",
                       "variant": "titleMedium",
                       "color": "token:nba.label.secondary"
                     }
@@ -2759,7 +2803,7 @@
                   },
                   "actions": [
                     {
-                      "trigger": "onTap",
+                      "trigger": "onActivate",
                       "type": "navigate",
                       "targetUri": "nba://video/top10-buzzer-beaters"
                     }
@@ -2780,7 +2824,6 @@
                           "alignment": "center",
                           "crossAlignment": "center",
                           "cornerRadius": "token:nba.radius.sm",
-                          "background": "#000000B3",
                           "opacity": 0.7,
                           "padding": {
                             "start": "token:nba.spacing.sm",
@@ -2796,6 +2839,9 @@
                               "weight": "semiBold",
                               "color": "token:nba.label-inverted.primary"
                             }
+                          ],
+                          "backgrounds": [
+                            "#000000B3"
                           ]
                         },
                         "alignment": "bottomEnd"
@@ -2826,7 +2872,7 @@
                     },
                     {
                       "type": "Text",
-                      "content": "›",
+                      "content": "\u203a",
                       "variant": "titleMedium",
                       "color": "token:nba.label.secondary"
                     }

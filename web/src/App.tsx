@@ -266,7 +266,7 @@ export function App(): React.ReactElement {
           </button>
         </div>
       )}
-      {/* App bar title/back are server-composed (:app-bar AtomicComposite). */}
+      {/* App bar title/back are server-composed (__slug-appBar AtomicComposite). */}
       <button
         type="button"
         style={styles.themeFloating}

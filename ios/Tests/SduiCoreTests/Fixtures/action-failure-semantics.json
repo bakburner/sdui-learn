@@ -1,8 +1,8 @@
 {
-  "description": "Examples demonstrating action failure semantics — onFailure overrides and failureFeedback",
+  "description": "Examples demonstrating action failure semantics \u2014 onFailure overrides and failureFeedback",
   "examples": [
     {
-      "note": "Navigate with default failure behavior (halt) — onFailure absent, client applies default",
+      "note": "Navigate with default failure behavior (halt) \u2014 onFailure absent, client applies default",
       "action": {
         "trigger": "onActivate",
         "type": "navigate",
@@ -23,7 +23,7 @@
       }
     },
     {
-      "note": "Navigate overridden to continue — useful for optional deep links that should not block the sequence",
+      "note": "Navigate overridden to continue \u2014 useful for optional deep links that should not block the sequence",
       "action": {
         "trigger": "onActivate",
         "type": "navigate",
@@ -32,7 +32,7 @@
       }
     },
     {
-      "note": "Refresh with default failure behavior (continue) — shows stale indicator",
+      "note": "Refresh with default failure behavior (continue) \u2014 shows stale indicator",
       "action": {
         "trigger": "onActivate",
         "type": "refresh",
@@ -41,7 +41,7 @@
       }
     },
     {
-      "note": "Refresh overridden to halt — critical live-game section where stale data is unacceptable",
+      "note": "Refresh overridden to halt \u2014 critical live-game section where stale data is unacceptable",
       "action": {
         "trigger": "onActivate",
         "type": "refresh",
@@ -55,13 +55,16 @@
       }
     },
     {
-      "note": "Multi-action sequence: fireAndForget → navigate (demonstrates fire-and-forget-before-navigation pattern)",
+      "note": "Multi-action sequence: fireAndForget \u2192 navigate (demonstrates fire-and-forget-before-navigation pattern)",
       "actions": [
         {
           "trigger": "onActivate",
           "type": "fireAndForget",
           "event": "game_card_tapped",
-          "params": { "gameId": "0022500384", "source": "scoreboard" }
+          "params": {
+            "gameId": "0022500384",
+            "source": "scoreboard"
+          }
         },
         {
           "trigger": "onActivate",

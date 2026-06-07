@@ -244,8 +244,8 @@ export enum NavigationPresentation {
 }
 
 /**
- * Event that fires the action. Prefer onActivate for primary activation (tap, keyboard
- * Enter/Space, accessibility activate). onTap is a deprecated alias for onActivate.
+ * Event that fires the action. onActivate is the primary activation trigger and covers tap,
+ * keyboard Enter/Space, and accessibility activate uniformly across platforms.
  */
 export enum ActionTrigger {
     OnActivate = "onActivate",
@@ -254,7 +254,6 @@ export enum ActionTrigger {
     OnLongPress = "onLongPress",
     OnSubmit = "onSubmit",
     OnSwipe = "onSwipe",
-    OnTap = "onTap",
     OnVisible = "onVisible",
 }
 
@@ -726,24 +725,14 @@ export interface AtomicElement {
      */
     alignSelf?: CrossAlignment;
     /**
-     * Deprecated: use accessibility.label instead. Retained for backward compatibility; clients
-     * prefer accessibility.label when present.
-     */
-    alt?: string;
-    /**
      * Aspect ratio: legacy numeric (w/h), or named ratio string for semantic layout.
      */
     aspectRatio?: number | AspectRatioEnum;
     /**
-     * DEPRECATED — use backgrounds (array) for new payloads. Single background. If both
-     * background and backgrounds are present, backgrounds wins.
-     */
-    background?: Background | string;
-    /**
      * Ordered array of background layers. Index 0 is the bottommost layer (Figma convention);
      * higher indices paint on top. Web renderers must reverse the array when mapping to CSS
-     * background shorthand (CSS is top-to-bottom). When absent, falls back to singular
-     * background field.
+     * background shorthand (CSS is top-to-bottom). Single-layer backgrounds ship as a
+     * one-element array.
      */
     backgrounds?: Array<Background | string>;
     /**
@@ -898,14 +887,9 @@ export interface AtomicElement {
      */
     section?: Section;
     /**
-     * DEPRECATED — use shadows (array) for new payloads. Single shadow. If both shadow and
-     * shadows are present, shadows wins.
-     */
-    shadow?: Shadow | string;
-    /**
      * Ordered array of shadow layers. Index 0 is the outermost shadow (Figma convention);
      * higher indices are closer to the element. Maps directly to CSS box-shadow list order.
-     * When absent, falls back to singular shadow field.
+     * Single-layer shadows ship as a one-element array.
      */
     shadows?: Array<Shadow | string>;
     /**

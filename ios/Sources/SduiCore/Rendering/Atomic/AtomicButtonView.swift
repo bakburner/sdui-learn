@@ -63,9 +63,9 @@ struct AtomicButtonView: View {
         ColorTokenResolver.resolve(element.color, colorScheme: colorScheme)
     }
 
-    /// Inline background override from `element.background` (solid ColorToken case).
+    /// Inline background override from `element.backgrounds.first` (solid ColorToken case).
     private var resolvedInlineBg: Color? {
-        guard let bg = element.background else { return nil }
+        guard let bg = element.backgrounds?.first else { return nil }
         switch bg {
         case .string(let token):
             return ColorTokenResolver.resolve(token, colorScheme: colorScheme)

@@ -49,7 +49,7 @@ class LiveComposerTest {
         ObjectNode calendarStrip = (ObjectNode) sections.get(0);
         ObjectNode data = (ObjectNode) calendarStrip.path("data");
 
-        assertEquals("server:games-calendar~type=CalendarStrip", calendarStrip.path("id").asText());
+        assertEquals("server-games-calendar__type-CalendarStrip", calendarStrip.path("id").asText());
         assertEquals("CalendarStrip", calendarStrip.path("type").asText());
         assertEquals("server:games-calendar", calendarStrip.path("contentSourceId").asText());
         assertEquals("games_calendar_strip", calendarStrip.path("analyticsId").asText());

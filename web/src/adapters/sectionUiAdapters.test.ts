@@ -52,7 +52,7 @@ describe('mapTabGroup', () => {
 describe('mapCalendarStrip', () => {
   it('maps all required and optional fields', () => {
     const section = {
-      id: 'server:games-calendar~type=CalendarStrip',
+      id: 'server-games-calendar__type-CalendarStrip',
       type: 'CalendarStrip',
       data: {
         stateKey: 'games_selected_date',
@@ -83,7 +83,7 @@ describe('mapCalendarStrip', () => {
 
   it('returns null when required field is missing', () => {
     const section = {
-      id: 'server:games-calendar~type=CalendarStrip',
+      id: 'server-games-calendar__type-CalendarStrip',
       type: 'CalendarStrip',
       data: {
         stateKey: 'games_selected_date',
@@ -101,7 +101,7 @@ describe('mapCalendarStrip', () => {
 
   it('maps expandedAction when present', () => {
     const section = {
-      id: 'server:games-calendar~type=CalendarStrip',
+      id: 'server-games-calendar__type-CalendarStrip',
       type: 'CalendarStrip',
       data: {
         stateKey: 'games_selected_date',
@@ -129,7 +129,7 @@ describe('mapCalendarStrip', () => {
 describe('mapCalendarMonthList', () => {
   it('maps required and optional fields', () => {
     const section = {
-      id: 'server:calendar~type=CalendarMonthList',
+      id: 'server-calendar__type-CalendarMonthList',
       type: 'CalendarMonthList',
       data: {
         stateKey: 'games_selected_date',
@@ -159,7 +159,7 @@ describe('mapCalendarMonthList', () => {
 
   it('returns null for malformed dateMetadata shape', () => {
     const section = {
-      id: 'server:calendar~type=CalendarMonthList',
+      id: 'server-calendar__type-CalendarMonthList',
       type: 'CalendarMonthList',
       data: {
         stateKey: 'games_selected_date',

@@ -287,8 +287,8 @@ public class AtomicCompositeBuilder {
         card.setCornerRadius(0);
         // Subtle vertical gradient so the card silhouette reads against
         // the feed background without relying on a drop shadow.
-        card.setBackground(gradient(tokens.color("nba.bg.secondary"),
-                tokens.color("nba.bg.tertiary"), "vertical"));
+        card.setBackgrounds(List.of(gradient(tokens.color("nba.bg.secondary"),
+                tokens.color("nba.bg.tertiary"), "vertical")));
         if (targetUri != null) {
             card.setActions(singleActionArray(tapNavigate(targetUri)));
             AccessibilityHelper.addButton(card, headline);
@@ -675,7 +675,7 @@ public class AtomicCompositeBuilder {
 
         if (badgeText != null && !badgeText.isEmpty()) {
             AtomicElement badge = text(badgeText, "labelSmall", "bold", "#FFFFFF", null);
-            badge.setBackground("#E03131");
+            badge.setBackgrounds(List.of("#E03131"));
             badge.setCornerRadius(tokens.radius("sm"));
             badge.setPadding(padding(tokens.spacing("sm"), tokens.spacing("sm"),
                     tokens.spacing("xs"), tokens.spacing("xs")));
@@ -884,8 +884,8 @@ public class AtomicCompositeBuilder {
         // meta row (duration / live badge) meet the card edge flush.
         card.setWidth(240);
         card.setCornerRadius(0);
-        card.setBackground(gradient(tokens.color("nba.bg.secondary"),
-                tokens.color("nba.bg.tertiary"), "vertical"));
+        card.setBackgrounds(List.of(gradient(tokens.color("nba.bg.secondary"),
+                tokens.color("nba.bg.tertiary"), "vertical")));
         if (targetUri != null) {
             card.setActions(singleActionArray(tapNavigate(targetUri)));
             AccessibilityHelper.addButton(card, title);
@@ -906,6 +906,11 @@ public class AtomicCompositeBuilder {
         }
 
         AtomicElement metaContainer = container("row", "spaceBetween", "center");
+        // widthMode:fill is load-bearing: spaceBetween only has slack to
+        // distribute when the row spans the parent's full main-axis. With
+        // wrap-content sizing the badge and duration pack against each
+        // other and the alignment is meaningless.
+        metaContainer.setWidthMode(AtomicElement.SizingMode.fromValue("fill"));
         // Start/end match the image's 8pt inset so the meta row aligns
         // with the image's left/right edges instead of the card's outer
         // edges.
@@ -1099,7 +1104,7 @@ public class AtomicCompositeBuilder {
         overlay.setWidthMode(AtomicElement.SizingMode.fromValue("fill"));
         overlay.setPadding(padding(tokens.spacing("lg"), tokens.spacing("lg"),
                 tokens.spacing("lg"), tokens.spacing("lg")));
-        overlay.setBackground(gradient("#00000000", "#000000CC", "vertical"));
+        overlay.setBackgrounds(List.of(gradient("#00000000", "#000000CC", "vertical")));
         List<AtomicElement> overlayChildren = new ArrayList<>();
 
         if (liveNow) {
@@ -1183,7 +1188,7 @@ public class AtomicCompositeBuilder {
         row.setWidthMode(AtomicElement.SizingMode.fromValue("fill"));
         row.setGap(tokens.spacing("md"));
         row.setCornerRadius(tokens.radius("md"));
-        row.setBackground(tokens.color("nba.bg.primary"));
+        row.setBackgrounds(List.of(tokens.color("nba.bg.primary")));
         row.setPadding(padding(tokens.spacing("md"), tokens.spacing("md"),
                 tokens.spacing("md"), tokens.spacing("md")));
         if (targetUri != null) {
@@ -1243,7 +1248,7 @@ public class AtomicCompositeBuilder {
     private AtomicElement durationBadgeNode(String duration) {
         AtomicElement bg = container("row", "center", "center");
         bg.setCornerRadius(tokens.radius("sm"));
-        bg.setBackground("#000000B3");
+        bg.setBackgrounds(List.of("#000000B3"));
         // iOS ref app uses 0.7 for duration pill opacity; normalised here so
         // Android + web match without each platform inventing its own value.
         bg.setOpacity(0.7);
@@ -1259,7 +1264,7 @@ public class AtomicCompositeBuilder {
     private AtomicElement liveBadgeNode() {
         AtomicElement bg = container("row", "center", "center");
         bg.setCornerRadius(tokens.radius("sm"));
-        bg.setBackground(tokens.color("nba.label.accent.live"));
+        bg.setBackgrounds(List.of(tokens.color("nba.label.accent.live")));
         bg.setPadding(padding(tokens.spacing("xs"), tokens.spacing("xs"),
                 tokens.spacing("xs"), tokens.spacing("xs")));
         bg.setChildren(List.of(
@@ -1520,7 +1525,7 @@ public class AtomicCompositeBuilder {
         scrimOverlay.setHeightMode(AtomicElement.SizingMode.fromValue("fill"));
         scrimOverlay.setPadding(padding(tokens.spacing("lg"), tokens.spacing("lg"),
                 0, tokens.spacing("xl")));
-        scrimOverlay.setBackground(gradient("#00000000", "#000000E6", "vertical"));
+        scrimOverlay.setBackgrounds(List.of(gradient("#00000000", "#000000E6", "vertical")));
         List<AtomicElement> scrimChildren = new ArrayList<>();
 
         if (badgeText != null) {
@@ -1539,7 +1544,7 @@ public class AtomicCompositeBuilder {
             AtomicElement cta = button(ctaLabel, "secondary",
                     targetUri != null ? tapNavigate(targetUri) : null);
             cta.setColor(tokens.color("nba.label-dark.primary"));
-            cta.setBackground("#00000000");
+            cta.setBackgrounds(List.of("#00000000"));
             scrimChildren.add(cta);
         }
         scrimOverlay.setChildren(scrimChildren);
@@ -1620,7 +1625,7 @@ public class AtomicCompositeBuilder {
         scrimContent.setHeightMode(AtomicElement.SizingMode.fromValue("fill"));
         scrimContent.setPadding(padding(tokens.spacing("md"), tokens.spacing("md"),
                 0, tokens.spacing("md")));
-        scrimContent.setBackground(gradient("#00000000", "#000000CC", "vertical"));
+        scrimContent.setBackgrounds(List.of(gradient("#00000000", "#000000CC", "vertical")));
         scrimContent.setCornerRadii(cornerRadiiOf(0, 0, radius, radius));
         scrimContent.setChildren(List.of(
                 text(title, "titleSmall", "bold",
@@ -2145,7 +2150,7 @@ public class AtomicCompositeBuilder {
         copyCol.setHeightMode(AtomicElement.SizingMode.fromValue("fill"));
         copyCol.setPadding(padding(tokens.spacing("lg"), tokens.spacing("lg"),
                 tokens.spacing("lg"), tokens.spacing("lg")));
-        copyCol.setBackground(mediaBottomScrimGradient());
+        copyCol.setBackgrounds(List.of(mediaBottomScrimGradient()));
         copyCol.setCornerRadii(cornerRadiiOf(0, 0, radius, radius));
         List<AtomicElement> copyChildren = new ArrayList<>();
         copyChildren.add(text(title, "titleMedium", "bold",
@@ -2157,7 +2162,7 @@ public class AtomicCompositeBuilder {
         if (ctaLabel != null && ctaTargetUri != null) {
             AtomicElement cta = button(ctaLabel, "secondary", tapNavigate(ctaTargetUri));
             cta.setColor(tokens.color("nba.label-dark.primary"));
-            cta.setBackground("#00000000");
+            cta.setBackgrounds(List.of("#00000000"));
             copyChildren.add(spacer(tokens.spacing("md")));
             copyChildren.add(cta);
         }
@@ -2251,7 +2256,7 @@ public class AtomicCompositeBuilder {
         avatar.setCornerRadius(inner / 2);
         // Defense in depth: opaque inner fill so a missing image doesn't
         // reveal the BRAND_LIVE ring color through to the whole disc.
-        avatar.setBackground(tokens.color("nba.bg.tertiary"));
+        avatar.setBackgrounds(List.of(tokens.color("nba.bg.tertiary")));
         if (badgeText != null) {
             avatar = overlayContainer(avatar, List.of(overlay("bottomCenter",
                     padding(0, 0, 0, 0),
@@ -2261,7 +2266,7 @@ public class AtomicCompositeBuilder {
         ringWrap.setWidth(inner + ring * 2);
         ringWrap.setHeight(inner + ring * 2);
         ringWrap.setCornerRadius((inner + ring * 2) / 2);
-        ringWrap.setBackground(tokens.color("nba.label.accent.live"));
+        ringWrap.setBackgrounds(List.of(tokens.color("nba.label.accent.live")));
         ringWrap.setPadding(padding(ring, ring, ring, ring));
         ringWrap.setChildren(List.of(avatar));
         children.add(ringWrap);
@@ -2296,7 +2301,7 @@ public class AtomicCompositeBuilder {
         scrimContent.setHeightMode(AtomicElement.SizingMode.fromValue("fill"));
         scrimContent.setPadding(padding(tokens.spacing("md"), tokens.spacing("md"),
                 tokens.spacing("md"), tokens.spacing("md")));
-        scrimContent.setBackground(mediaBottomScrimGradient());
+        scrimContent.setBackgrounds(List.of(mediaBottomScrimGradient()));
         scrimContent.setCornerRadii(cornerRadiiOf(0, 0, radius, radius));
         List<AtomicElement> children = new ArrayList<>();
         if (badgeText != null) {
@@ -2340,7 +2345,7 @@ public class AtomicCompositeBuilder {
             hero.setWidth(338);
         }
         hero.setCornerRadius(heroRadius);
-        hero.setBackground(tokens.color("nba.bg.secondary"));
+        hero.setBackgrounds(List.of(tokens.color("nba.bg.secondary")));
         shadow(hero);
         if (value(card, 14) != null) hero.setActions(singleActionArray(tapNavigate(value(card, 14))));
         AccessibilityHelper.addButton(hero, value(card, 2));
@@ -2357,7 +2362,7 @@ public class AtomicCompositeBuilder {
         titleOverlay.setHeightMode(AtomicElement.SizingMode.fromValue("fill"));
         titleOverlay.setPadding(padding(tokens.spacing("lg"), tokens.spacing("lg"),
                 tokens.spacing("md"), tokens.spacing("md")));
-        titleOverlay.setBackground(mediaBottomScrimGradient());
+        titleOverlay.setBackgrounds(List.of(mediaBottomScrimGradient()));
         List<AtomicElement> overlayChildren = new ArrayList<>();
         if (value(card, 1) != null) {
             overlayChildren.add(pillBadgeTyped(value(card, 1), tokens.color("nba.label.accent.live")));
@@ -2386,6 +2391,9 @@ public class AtomicCompositeBuilder {
         if (!sponsorLogos.isEmpty()) {
             heroChildren.add(cardHairlineDivider());
             AtomicElement sponsors = container("row", "end", "center");
+            // widthMode:fill is load-bearing: alignment:end has no slack
+            // unless the row spans the parent's full main-axis.
+            sponsors.setWidthMode(AtomicElement.SizingMode.fromValue("fill"));
             sponsors.setGap(tokens.spacing("sm"));
             sponsors.setPadding(padding(tokens.spacing("lg"), tokens.spacing("lg"),
                     0, tokens.spacing("md")));
@@ -2485,7 +2493,7 @@ public class AtomicCompositeBuilder {
         // visually stable on mobile.
         card.setHeight(132);
         card.setWidthMode(AtomicElement.SizingMode.fromValue("fill"));
-        card.setBackground(tokens.color("nba.bg.secondary"));
+        card.setBackgrounds(List.of(tokens.color("nba.bg.secondary")));
         card.setCornerRadius(tokens.radius("md"));
         card.setPadding(padding(tokens.spacing("md"), tokens.spacing("md"),
                 tokens.spacing("lg"), tokens.spacing("md")));
@@ -2518,7 +2526,7 @@ public class AtomicCompositeBuilder {
         card.setId(id);
         card.setWidth(160);
         card.setGap(tokens.spacing("sm"));
-        card.setBackground(tokens.color("nba.bg.secondary"));
+        card.setBackgrounds(List.of(tokens.color("nba.bg.secondary")));
         card.setCornerRadius(tokens.radius("md"));
         card.setPadding(padding(tokens.spacing("md"), tokens.spacing("md"),
                 tokens.spacing("lg"), tokens.spacing("lg")));
@@ -2555,7 +2563,7 @@ public class AtomicCompositeBuilder {
         // shadow. Inter-card spacing is owned by the parent list `gap` rather than per-card
         // margin, so cards stack with consistent vertical rhythm without each renderer
         // having to set its own outer margin.
-        card.setBackground("token:nba.bg.secondary");
+        card.setBackgrounds(List.of("token:nba.bg.secondary"));
         card.setCornerRadius(0);
         card.setPadding(padding(tokens.spacing("lg"), tokens.spacing("lg"),
                 tokens.spacing("lg"), tokens.spacing("lg")));
@@ -2775,7 +2783,7 @@ public class AtomicCompositeBuilder {
         badge.setWidth(24);
         badge.setHeight(24);
         badge.setCornerRadius(12);
-        badge.setBackground(tokens.color("nba.label.accent.brand"));
+        badge.setBackgrounds(List.of(tokens.color("nba.label.accent.brand")));
         List<AtomicElement> kids = new ArrayList<>();
         kids.add(text("\u25B6", "labelSmall", "bold",
                 tokens.color("nba.label-inverted.primary"), 1));
@@ -2789,7 +2797,7 @@ public class AtomicCompositeBuilder {
         dot.setWidth(6);
         dot.setHeight(6);
         dot.setCornerRadius(tokens.radius("sm"));
-        dot.setBackground(tokens.color("nba.label.accent.live"));
+        dot.setBackgrounds(List.of(tokens.color("nba.label.accent.live")));
         dot.setChildren(new ArrayList<>());
         return dot;
     }
@@ -2840,7 +2848,7 @@ public class AtomicCompositeBuilder {
         box.setWidth(width);
         box.setHeight(height);
         if (radius != null) box.setCornerRadius(radius);
-        box.setBackground(tokens.color("nba.bg.tertiary"));
+        box.setBackgrounds(List.of(tokens.color("nba.bg.tertiary")));
         box.setChildren(List.of(
                 text(initials(label), "labelSmall", "bold",
                         tokens.color("nba.label.secondary"), 1)));
@@ -3126,7 +3134,7 @@ public class AtomicCompositeBuilder {
     /** Generic pill badge with custom background color (used for NEW/LIVE chips, durations). */
     public AtomicElement pillBadgeTyped(String label, String backgroundColor) {
         AtomicElement badge = container("row", null, "center");
-        badge.setBackground(backgroundColor);
+        badge.setBackgrounds(List.of(backgroundColor));
         badge.setCornerRadius(tokens.radius("sm"));
         badge.setPadding(padding(tokens.spacing("xs"), tokens.spacing("xs"),
                 tokens.spacing("xs"), tokens.spacing("xs")));
@@ -3222,7 +3230,7 @@ public class AtomicCompositeBuilder {
             s.put("radius", radius);
             s.put("offsetX", offsetX);
             s.put("offsetY", offsetY);
-            element.setShadow(s);
+            element.setShadows(List.of(s));
         }
         return element;
     }

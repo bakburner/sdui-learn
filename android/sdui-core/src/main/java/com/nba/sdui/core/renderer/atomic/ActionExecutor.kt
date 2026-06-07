@@ -20,18 +20,10 @@ val LocalActionExecutor = compositionLocalOf<((List<SduiAction>) -> Unit)?> { nu
 
 /**
  * Filter an element's actions to those matching the requested trigger.
- * Primary activation preserves the onActivate/onTap alias contract.
  */
 fun selectActions(actions: List<Action>?, trigger: ActionTrigger): List<SduiAction> {
     if (actions.isNullOrEmpty()) return emptyList()
-    val filtered = if (trigger == ActionTrigger.OnActivate) {
-        actions.filter { action ->
-            action.trigger == ActionTrigger.OnActivate || action.trigger == ActionTrigger.OnTap
-        }
-    } else {
-        actions.filter { action -> action.trigger == trigger }
-    }
-    return filtered.map { it.toSduiAction() }
+    return actions.filter { action -> action.trigger == trigger }.map { it.toSduiAction() }
 }
 
 fun dispatchActions(

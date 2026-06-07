@@ -15,7 +15,7 @@ final class CalendarStripSchemaDecodingTests: XCTestCase {
         let data = try loadFixture("calendar-strip")
         let section = try newJSONDecoder().decode(Section.self, from: data)
 
-        XCTAssertEqual(section.id, "server:games-calendar~type=CalendarStrip")
+        XCTAssertEqual(section.id, "server-games-calendar__type-CalendarStrip")
         XCTAssertEqual(section.type, "CalendarStrip")
         XCTAssertEqual(section.contentSourceID, "server:games-calendar")
         XCTAssertEqual(section.analyticsID, "games_calendar_strip")
@@ -40,7 +40,7 @@ final class CalendarStripSchemaDecodingTests: XCTestCase {
     func testCalendarStripDecodeDoesNotThrowWhenDefaultDateMissing_unionCollapse() throws {
         let payload = """
         {
-          "id": "server:games-calendar~type=CalendarStrip",
+          "id": "server-games-calendar__type-CalendarStrip",
           "type": "CalendarStrip",
           "data": {
             "stateKey": "games_selected_date",
@@ -62,7 +62,7 @@ final class CalendarStripSchemaDecodingTests: XCTestCase {
     func testCalendarStripDecodeSucceedsWithoutMinAndMax() throws {
         let payload = """
         {
-          "id": "server:games-calendar~type=CalendarStrip",
+          "id": "server-games-calendar__type-CalendarStrip",
           "type": "CalendarStrip",
           "data": {
             "stateKey": "games_selected_date",
@@ -86,7 +86,7 @@ final class CalendarStripSchemaDecodingTests: XCTestCase {
     func testCalendarStripDecodeFailsWhenOnDateSelectedIsArray() {
         let payload = """
         {
-          "id": "server:games-calendar~type=CalendarStrip",
+          "id": "server-games-calendar__type-CalendarStrip",
           "type": "CalendarStrip",
           "data": {
             "stateKey": "games_selected_date",

@@ -142,7 +142,7 @@ public class BoxscoreComposer {
 
         // Wrap in TabGroup for team toggling
         Section tabGroup = new Section();
-        tabGroup.setId(SectionIdDeriver.derive(contentSourceId, "TabGroup", "team-tabs"));
+        tabGroup.setId(SectionIdDeriver.derive(contentSourceId, "TabGroup", "teamTabs"));
         tabGroup.setContentSourceId(contentSourceId);
         tabGroup.setType(Section.Type.TAB_GROUP);
         tabGroup.setAnalyticsId("boxscore_team_toggle");

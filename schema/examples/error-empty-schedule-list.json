@@ -1,7 +1,7 @@
 {
   "id": "error-empty-schedule-list",
   "schemaVersion": "1.0",
-  "title": "Schedule list — empty schedule (server empty state)",
+  "title": "Schedule list \u2014 empty schedule (server empty state)",
   "analyticsId": "error_schedule_empty",
   "sections": [
     {
@@ -25,7 +25,7 @@
           "children": [
             {
               "type": "Text",
-              "content": "⏱️",
+              "content": "\u23f1\ufe0f",
               "variant": "titleLarge"
             },
             {

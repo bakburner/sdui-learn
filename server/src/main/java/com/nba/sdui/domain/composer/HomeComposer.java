@@ -85,19 +85,19 @@ public class HomeComposer {
         sections.add(buildStoriesAndAdRow());
 
         // 6-7. Trending Now
-        sections.add(buildSectionHeader("trending-header", "TRENDING NOW", null, null));
+        sections.add(buildSectionHeader("trendingHeader", "TRENDING NOW", null, null));
         sections.add(buildTrendingVideoRail());
 
         // 8-9. 2026 Postseason
-        sections.add(buildSectionHeader("postseason-header", "2026 POSTSEASON", null, null));
+        sections.add(buildSectionHeader("postseasonHeader", "2026 POSTSEASON", null, null));
         sections.add(buildPostseasonRail());
 
         // 10-11. Game Recaps
-        sections.add(buildSectionHeader("recaps-header", "2025-26 GAME RECAPS", "See More", "nba://recaps"));
+        sections.add(buildSectionHeader("recapsHeader", "2025-26 GAME RECAPS", "See More", "nba://recaps"));
         sections.add(buildRecapsVideoRail());
 
         // 12-13. Around the NBA
-        sections.add(buildSectionHeader("around-header", "AROUND THE NBA", null, null));
+        sections.add(buildSectionHeader("aroundHeader", "AROUND THE NBA", null, null));
         sections.add(buildAroundTheNbaList());
 
         response.setSections(sections);

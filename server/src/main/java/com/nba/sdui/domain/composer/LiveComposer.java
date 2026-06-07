@@ -206,11 +206,11 @@ public class LiveComposer {
             sections.add(buildLiveScheduleList(liveGames));
         }
         if (!upcomingGames.isEmpty()) {
-            sections.add(buildScheduleList("upcoming-games", "upcoming_games",
+            sections.add(buildScheduleList("upcomingGames", "upcoming_games",
                     "Upcoming", upcomingGames, false));
         }
         if (!finishedGames.isEmpty()) {
-            sections.add(buildScheduleList("final-games", "final_games",
+            sections.add(buildScheduleList("finalGames", "final_games",
                     "Final", finishedGames, false));
         }
 

@@ -14,7 +14,7 @@ describe('CalendarStrip schema decode contract', () => {
     const section = loadFixtureSection();
     const model = mapCalendarStrip(section);
 
-    expect(section.id).toBe('server:games-calendar~type=CalendarStrip');
+    expect(section.id).toBe('server-games-calendar__type-CalendarStrip');
     expect(section.type).toBe('CalendarStrip');
     expect(section.contentSourceId).toBe('server:games-calendar');
     expect(section.analyticsId).toBe('games_calendar_strip');
@@ -35,7 +35,7 @@ describe('CalendarStrip schema decode contract', () => {
 
   it('fails decode when defaultDate is omitted', () => {
     const section = {
-      id: 'server:games-calendar~type=CalendarStrip',
+      id: 'server-games-calendar__type-CalendarStrip',
       type: 'CalendarStrip',
       data: {
         stateKey: 'games_selected_date',
@@ -54,7 +54,7 @@ describe('CalendarStrip schema decode contract', () => {
 
   it('succeeds decode when minDate and maxDate are omitted', () => {
     const section = {
-      id: 'server:games-calendar~type=CalendarStrip',
+      id: 'server-games-calendar__type-CalendarStrip',
       type: 'CalendarStrip',
       data: {
         stateKey: 'games_selected_date',
@@ -77,7 +77,7 @@ describe('CalendarStrip schema decode contract', () => {
 
   it('fails decode when onDateSelected is an array', () => {
     const section = {
-      id: 'server:games-calendar~type=CalendarStrip',
+      id: 'server-games-calendar__type-CalendarStrip',
       type: 'CalendarStrip',
       data: {
         stateKey: 'games_selected_date',
@@ -99,7 +99,7 @@ describe('CalendarStrip schema decode contract', () => {
 
   it('decodes when expandedAction is present', () => {
     const section = {
-      id: 'server:games-calendar~type=CalendarStrip',
+      id: 'server-games-calendar__type-CalendarStrip',
       type: 'CalendarStrip',
       data: {
         stateKey: 'games_selected_date',

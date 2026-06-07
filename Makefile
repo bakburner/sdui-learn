@@ -62,10 +62,15 @@ EMU_FLAGS   ?= -memory $(EMU_MEMORY) -cores $(EMU_CORES) -gpu $(EMU_GPU) -no-boo
 
 
 # ── Codegen ──────────────────────────────────────────────────
+# `generate.sh` writes models directly into each client's source tree:
+#   server/src/generated/java/      (jsonschema2pojo, via gradle)
+#   web/src/generated/SduiModels.ts (quicktype)
+#   ios/Sources/SduiCore/Models/    (quicktype)
+#   android/sdui-core/.../models/   (quicktype)
+# Each tree is committed alongside hand-written sources.
 codegen:
 	@echo "=== Running codegen ==="
 	@cd codegen && bash generate.sh
-	@cd codegen && ./gradlew generateJsonSchema2Pojo
 	@echo "=== Codegen complete ==="
 
 # ── SAF (service-aggregation-framework) ──────────────────────

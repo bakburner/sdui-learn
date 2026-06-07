@@ -58,7 +58,7 @@ The lower rule never weakens the higher one.
   `codegen/generate.sh`).
 - **Checked-in generated models** must be **produced only** by the codegen
   pipeline, not by ad-hoc PR edits. Outputs live at:
-  - Java: `codegen/build/generated-sources/jsonschema2pojo/`
+  - Java: `server/src/generated/java/`
   - Kotlin: `android/sdui-core/src/main/java/com/nba/sdui/core/models/generated/SduiModels.kt`
   - Swift: `ios/Sources/SduiCore/Models/SduiModels.swift`
   - TypeScript: `web/src/generated/SduiModels.ts`

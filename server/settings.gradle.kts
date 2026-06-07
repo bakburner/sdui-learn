@@ -1,9 +1,11 @@
 rootProject.name = "sdui-server"
 
-// Include the codegen build so the server can depend on its
-// `generateJsonSchema2Pojo` task and consume its generated POJOs as
-// regular compile sources. The codegen project lives at ../codegen.
-includeBuild("../codegen")
+// Generated SDUI POJOs live at `server/src/generated/java/` and are
+// committed alongside hand-written sources. Regenerate via `make codegen`
+// (drives `codegen/generate.sh`, which writes Swift/TS/Kotlin/Java models
+// directly into each client's source tree). There is no composite build:
+// the schema is the source of truth, each client commits its own generated
+// view of it.
 
 // SAF (`com.nba:service-aggregation-framework`) resolves from GitHub
 // Packages (https://github.com/NBA/saf). `mavenLocal()` is kept first

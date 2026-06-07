@@ -23,8 +23,12 @@ jsonSchema2Pojo {
         "${projectDir}/../schema/sdui-all-types.json"
     )
     
-    // Target directory for generated sources
-    targetDirectory = layout.buildDirectory.dir("generated-sources/jsonschema2pojo").get().asFile
+    // Target directory for generated sources. Mirrors the iOS / TypeScript /
+    // Kotlin pattern (see codegen/generate.sh): models are written directly
+    // into the consuming client's source tree and committed. The server
+    // reads these as plain `src/main/java` sources at compile time, with no
+    // composite-build dependency on codegen.
+    targetDirectory = file("${projectDir}/../server/src/generated/java")
     
     // Package name for generated classes
     targetPackage = "com.nba.sdui.models.generated"
@@ -76,7 +80,7 @@ tasks.compileJava {
 sourceSets {
     main {
         java {
-            srcDir(layout.buildDirectory.dir("generated-sources/jsonschema2pojo"))
+            srcDir(file("${projectDir}/../server/src/generated/java"))
         }
     }
 }

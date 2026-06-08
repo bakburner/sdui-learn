@@ -15,11 +15,6 @@ permissions:
   contents: write
   pull-requests: write
   id-token: write
-  # `packages: read` lets `secrets.GITHUB_TOKEN` resolve
-  # `com.nba:service-aggregation-framework` from `maven.pkg.github.com/NBA/saf`.
-  # Same-org alone is not enough; the SAF package must also grant Actions read
-  # access to this repo (Package settings → Manage Actions access).
-  packages: read
 
 jobs:
   build:
@@ -31,9 +26,13 @@ jobs:
 
       # SAF (`com.nba:service-aggregation-framework`) resolves from GitHub
       # Packages (https://github.com/NBA/saf, same org as this repo).
-      # Credentials are passed to the Docker build as BuildKit secrets so they
-      # never land in image layers. The default `GITHUB_TOKEN` has
-      # `read:packages` for org-internal artifacts.
+      # Maven packages on GitHub Packages do not expose per-package Actions
+      # access controls (only the Container Registry does), so the default
+      # GITHUB_TOKEN cannot read packages owned by another repo. We mint a
+      # short-lived installation token from the `nba-saf-package-reader`
+      # GitHub App (installed on NBA/saf with Packages: Read) and pass it
+      # to the Docker build as a BuildKit secret so it never lands in image
+      # layers.
 
       - name: Docker Setup QEMU for Multi-Arch Build
         uses: docker/setup-qemu-action@v3
@@ -58,11 +57,20 @@ jobs:
           username: ${{ secrets.OTTNPUE2IMAGECI002_TOKEN_NAME }}
           password: ${{ secrets.OTTNPUE2IMAGECI002_TOKEN_PW }}
 
+      - name: Mint SAF package read token
+        id: saf_token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.SAF_APP_ID }}
+          private-key: ${{ secrets.SAF_APP_PRIVATE_KEY }}
+          owner: NBA
+          repositories: saf
+
       - name: Docker Bake
         uses: docker/bake-action@v6
         env:
-          GPR_USER: ${{ github.actor }}
-          GPR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GPR_USER: x-access-token
+          GPR_TOKEN: ${{ steps.saf_token.outputs.token }}
         with:
           push: true
           files: |

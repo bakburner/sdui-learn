@@ -21,8 +21,17 @@ RUN chmod +x gradlew
 # so they never land in image layers. Caller supplies them via
 # `docker buildx bake --set sdui-prototype.secrets=...` or `--secret`.
 RUN --mount=type=secret,id=gpr_user --mount=type=secret,id=gpr_token \
-    GPR_USER="$(cat /run/secrets/gpr_user)" \
-    GPR_TOKEN="$(cat /run/secrets/gpr_token)" \
+    apk add --no-cache curl >/dev/null && \
+    USER_LEN=$(wc -c < /run/secrets/gpr_user) && \
+    TOKEN_LEN=$(wc -c < /run/secrets/gpr_token) && \
+    echo "[diag] secret file bytes: user=$USER_LEN token=$TOKEN_LEN" && \
+    GPR_USER="$(cat /run/secrets/gpr_user)" && \
+    GPR_TOKEN="$(cat /run/secrets/gpr_token)" && \
+    echo "[diag] var lengths after substitution: user=${#GPR_USER} token=${#GPR_TOKEN}" && \
+    STATUS=$(curl -sS -o /dev/null -w '%{http_code}' \
+      -u "$GPR_USER:$GPR_TOKEN" -I \
+      https://maven.pkg.github.com/NBA/saf/com/nba/service-aggregation-framework/1.0.0-SNAPSHOT/maven-metadata.xml) && \
+    echo "[diag] in-container curl status: $STATUS" && \
     ./gradlew dependencies --no-daemon \
       -Pgpr.user="$GPR_USER" -Pgpr.key="$GPR_TOKEN"
 

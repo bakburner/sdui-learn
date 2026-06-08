@@ -56,6 +56,31 @@ jobs:
           username: ${{ secrets.OTTNPUE2IMAGECI002_TOKEN_NAME }}
           password: ${{ secrets.OTTNPUE2IMAGECI002_TOKEN_PW }}
 
+      - name: Verify GH Packages credentials
+        env:
+          GPR_USER: ${{ secrets.GH_PACKAGES_READ_USER }}
+          GPR_TOKEN: ${{ secrets.GH_PACKAGES_READ_TOKEN }}
+        run: |
+          set -u
+          echo "GPR_USER length: ${#GPR_USER}"
+          echo "GPR_TOKEN length: ${#GPR_TOKEN}"
+          if printf '%s' "$GPR_USER" | grep -qE '[[:space:]]'; then
+            echo "::warning::GPR_USER contains whitespace"
+          fi
+          if printf '%s' "$GPR_TOKEN" | grep -qE '[[:space:]]'; then
+            echo "::warning::GPR_TOKEN contains whitespace"
+          fi
+          STATUS=$(curl -sS -o /dev/null -w '%{http_code}' \
+            -u "$GPR_USER:$GPR_TOKEN" -I \
+            https://maven.pkg.github.com/NBA/saf/com/nba/service-aggregation-framework/1.0.0-SNAPSHOT/maven-metadata.xml)
+          echo "GH Packages HTTP status: $STATUS"
+          case "$STATUS" in
+            200) echo "Credentials work; Docker build should succeed." ;;
+            401) echo "::error::401 Unauthorized — secret value is not a valid PAT (typo, stale, whitespace, or SSO-unauthorized for NBA org)."; exit 1 ;;
+            403) echo "::error::403 Forbidden — credentials valid but user lacks read access on the SAF package."; exit 1 ;;
+            *)   echo "::error::Unexpected status $STATUS"; exit 1 ;;
+          esac
+
       - name: Docker Bake
         uses: docker/bake-action@v6
         env:

@@ -49,6 +49,21 @@ resources:
 autoscaling:
   enabled: false
 env:
+  - name: SPRING_DATA_REDIS_HOST
+    valueFrom:
+      secretKeyRef:
+        name: sdui
+        key: SPRING_DATA_REDIS_HOST
+  - name: SPRING_DATA_REDIS_PORT
+    valueFrom:
+      secretKeyRef:
+        name: sdui
+        key: SPRING_DATA_REDIS_PORT
+  - name: SPRING_DATA_REDIS_PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: sdui
+        key: SPRING_DATA_REDIS_PASSWORD
   - name: STATS_API_KEY
     valueFrom:
       secretKeyRef:

@@ -26,13 +26,12 @@ jobs:
 
       # SAF (`com.nba:service-aggregation-framework`) resolves from GitHub
       # Packages (https://github.com/NBA/saf, same org as this repo).
-      # Maven packages on GitHub Packages do not expose per-package Actions
-      # access controls (only the Container Registry does), so the default
-      # GITHUB_TOKEN cannot read packages owned by another repo. We mint a
-      # short-lived installation token from the `nba-saf-package-reader`
-      # GitHub App (installed on NBA/saf with Packages: Read) and pass it
-      # to the Docker build as a BuildKit secret so it never lands in image
-      # layers.
+      # GitHub Packages Maven/Gradle registries officially only accept
+      # classic personal access tokens (Apps, OIDC, and GITHUB_TOKEN cannot
+      # read packages owned by a sibling repo). Authenticate with a classic
+      # PAT (`read:packages` scope only) stored as `GH_PACKAGES_READ_TOKEN`.
+      # Credentials are passed to the Docker build as BuildKit secrets so
+      # they never land in image layers.
 
       - name: Docker Setup QEMU for Multi-Arch Build
         uses: docker/setup-qemu-action@v3
@@ -57,20 +56,11 @@ jobs:
           username: ${{ secrets.OTTNPUE2IMAGECI002_TOKEN_NAME }}
           password: ${{ secrets.OTTNPUE2IMAGECI002_TOKEN_PW }}
 
-      - name: Mint SAF package read token
-        id: saf_token
-        uses: actions/create-github-app-token@v1
-        with:
-          app-id: ${{ secrets.SAF_APP_ID }}
-          private-key: ${{ secrets.SAF_APP_PRIVATE_KEY }}
-          owner: NBA
-          repositories: saf
-
       - name: Docker Bake
         uses: docker/bake-action@v6
         env:
-          GPR_USER: x-access-token
-          GPR_TOKEN: ${{ steps.saf_token.outputs.token }}
+          GPR_USER: ${{ secrets.GH_PACKAGES_READ_USER }}
+          GPR_TOKEN: ${{ secrets.GH_PACKAGES_READ_TOKEN }}
         with:
           push: true
           files: |

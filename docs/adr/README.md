@@ -19,6 +19,9 @@ This directory stores architecture decisions in chronological order.
 - [ADR-013: Style Tokens for Atomic Primitives](./013-style-tokens-for-atomic-primitives.md)
 - [ADR-014: Dynamic Conditional Properties](./014-dynamic-conditional-properties.md)
 - [ADR-015: Section Chrome Single Ownership](./015-section-chrome-single-ownership.md)
+- [ADR-016: Update Channel Unification](./016-update-channel-unification.md)
+- [ADR-017: Transport-framing Exception](./017-transport-framing-exception.md)
+- [ADR-018: Generated Models Distribution — In-Tree Today, Packaged Tomorrow](./018-generated-models-distribution.md)
 
 ## Templates
 

@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: sdui-composition-service
+    name: sdui-prototype-server
   data:
     redis:
       host: ${SPRING_DATA_REDIS_HOST:localhost}

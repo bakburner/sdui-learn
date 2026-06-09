@@ -124,8 +124,9 @@ class SduiScreenControllerTest {
 
         val success = controller.uiState.value as SduiScreenUiState.Success
         val scoreboard = success.screen.sections.first { it.id == "scoreboard" }
-        assertEquals(RefreshType.SSE, scoreboard.refreshPolicy?.type)
-        assertEquals("game:123:scoreboard", scoreboard.refreshPolicy?.channel)
+        val ssePolicy = scoreboard.refreshPolicy?.firstOrNull { it.type == RefreshType.SSE }
+        assertEquals(RefreshType.SSE, ssePolicy?.type)
+        assertEquals("game:123:scoreboard", ssePolicy?.channel)
         assertEquals(1, requestCount(SECTION_PATH))
 
         advanceTimeBy(2_000)
@@ -346,7 +347,7 @@ class SduiScreenControllerTest {
         verify {
             Log.w(
                 any<String>(),
-                match<String> { it.contains("skipping sectionEndpoint poll") && it.contains("screen-level refresh owns this section") }
+                match<String> { it.contains("skipping sectionEndpoint poll") && it.contains("screen defaultRefreshPolicy is non-static") }
             )
         }
 
@@ -513,12 +514,12 @@ class SduiScreenControllerTest {
                 {
                   "id":"scoreboard",
                   "type":"AtomicComposite",
-                  "refreshPolicy":{
+                  "refreshPolicy":[{
                     "type":"poll",
                     "intervalMs":500,
                     "sectionEndpoint":"/v1/sdui/section/scoreboard",
                     "pauseWhenOffScreen":false
-                  }
+                  }]
                 },
                 {
                   "id":"headline",
@@ -539,11 +540,11 @@ class SduiScreenControllerTest {
             {
               "id":"scoreboard",
               "type":"AtomicComposite",
-              "refreshPolicy":{
+              "refreshPolicy":[{
                 "type":"sse",
                 "channel":"game:123:scoreboard",
                 "pauseWhenOffScreen":false
-              }
+              }]
             }
         """
 
@@ -571,12 +572,12 @@ class SduiScreenControllerTest {
                 {
                   "id":"scoreboard",
                   "type":"AtomicComposite",
-                  "refreshPolicy":{
+                  "refreshPolicy":[{
                     "type":"poll",
                     "intervalMs":500,
                     "sectionEndpoint":"/v1/sdui/section/scoreboard",
                     "pauseWhenOffScreen":false
-                  }
+                  }]
                 }
               ]
             }

@@ -98,7 +98,7 @@ public class ScheduleComposer {
         section.setType(Section.Type.FORM);
         section.setContentSourceId(contentSourceId);
         section.setAnalyticsId("schedule_filters");
-        section.setRefreshPolicy(staticPolicy());
+        section.setRefreshPolicy(List.of(staticPolicy()));
 
         Form data = new Form();
         data.setLayout(Form.Layout.VERTICAL);

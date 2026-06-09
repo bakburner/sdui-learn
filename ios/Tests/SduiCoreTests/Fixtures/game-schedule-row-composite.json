@@ -8,9 +8,11 @@
       "id": "schedule-row-section",
       "type": "AtomicComposite",
       "analyticsId": "schedule_row",
-      "refreshPolicy": {
-        "type": "static"
-      },
+      "refreshPolicy": [
+        {
+          "type": "static"
+        }
+      ],
       "data": {
         "ui": {
           "type": "Container",

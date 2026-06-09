@@ -18,6 +18,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.annotation.JsonValue;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({
@@ -54,9 +55,15 @@ public class Section {
     @JsonProperty("type")
     @NotNull
     private Section.Type type;
+    /**
+     * Array of concurrent refresh mechanisms (max 2): at most one opaque/streaming element (sse channel or url poll, consumes dataBinding) plus at most one section-refresh element (sectionEndpoint, full-replace). A static section is a single {type:static} element. Cross-element invariants (<=1 opaque, <=1 sectionEndpoint, static-solo) are validated server-side.
+     * 
+     */
     @JsonProperty("refreshPolicy")
+    @JsonPropertyDescription("Array of concurrent refresh mechanisms (max 2): at most one opaque/streaming element (sse channel or url poll, consumes dataBinding) plus at most one section-refresh element (sectionEndpoint, full-replace). A static section is a single {type:static} element. Cross-element invariants (<=1 opaque, <=1 sectionEndpoint, static-solo) are validated server-side.")
+    @Size(max = 2)
     @Valid
-    private RefreshPolicy refreshPolicy;
+    private List<RefreshPolicy> refreshPolicy = new ArrayList<RefreshPolicy>();
     @JsonProperty("dataBinding")
     @Valid
     private DataBinding dataBinding;
@@ -178,17 +185,25 @@ public class Section {
         return this;
     }
 
+    /**
+     * Array of concurrent refresh mechanisms (max 2): at most one opaque/streaming element (sse channel or url poll, consumes dataBinding) plus at most one section-refresh element (sectionEndpoint, full-replace). A static section is a single {type:static} element. Cross-element invariants (<=1 opaque, <=1 sectionEndpoint, static-solo) are validated server-side.
+     * 
+     */
     @JsonProperty("refreshPolicy")
-    public RefreshPolicy getRefreshPolicy() {
+    public List<RefreshPolicy> getRefreshPolicy() {
         return refreshPolicy;
     }
 
+    /**
+     * Array of concurrent refresh mechanisms (max 2): at most one opaque/streaming element (sse channel or url poll, consumes dataBinding) plus at most one section-refresh element (sectionEndpoint, full-replace). A static section is a single {type:static} element. Cross-element invariants (<=1 opaque, <=1 sectionEndpoint, static-solo) are validated server-side.
+     * 
+     */
     @JsonProperty("refreshPolicy")
-    public void setRefreshPolicy(RefreshPolicy refreshPolicy) {
+    public void setRefreshPolicy(List<RefreshPolicy> refreshPolicy) {
         this.refreshPolicy = refreshPolicy;
     }
 
-    public Section withRefreshPolicy(RefreshPolicy refreshPolicy) {
+    public Section withRefreshPolicy(List<RefreshPolicy> refreshPolicy) {
         this.refreshPolicy = refreshPolicy;
         return this;
     }

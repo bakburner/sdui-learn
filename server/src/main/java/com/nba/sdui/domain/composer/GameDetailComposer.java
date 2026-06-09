@@ -350,8 +350,8 @@ public class GameDetailComposer {
         // Override the section's refresh policy to the canonical game-state-aware policy
         // so the returned section always carries consistent 60 s poll or SSE semantics.
         String gameState = deriveGameState(gameId);
-        section.setRefreshPolicy(buildRefreshPolicyForGameSection(
-                gameState, section.getId() == null ? "" : section.getId(), gameId));
+        section.setRefreshPolicy(List.of(buildRefreshPolicyForGameSection(
+                gameState, section.getId() == null ? "" : section.getId(), gameId)));
         return section;
     }
 
@@ -690,7 +690,7 @@ public class GameDetailComposer {
 
         RefreshPolicy refreshPolicy = new RefreshPolicy();
         refreshPolicy.setType(RefreshPolicy.RefreshType.STATIC);
-        section.setRefreshPolicy(refreshPolicy);
+        section.setRefreshPolicy(List.of(refreshPolicy));
         section.setSurface(surfaces.videoPlayerSurface());
 
         AtomicElement root = atomicBuilder.container("column", "center", "center");
@@ -974,7 +974,7 @@ public class GameDetailComposer {
             String slug = SectionIdDeriver.extractSlug(section.getId() != null ? section.getId() : "");
             if (!"scoreboard".equals(slug)) continue;
             String sectionId = section.getId() != null ? section.getId() : "";
-            section.setRefreshPolicy(buildRefreshPolicyForGameSection(gameState, sectionId, gameId));
+            section.setRefreshPolicy(List.of(buildRefreshPolicyForGameSection(gameState, sectionId, gameId)));
         }
     }
 
@@ -1013,7 +1013,9 @@ public class GameDetailComposer {
         List<Section> sections = response.getSections();
         if (sections == null) return;
         for (Section section : sections) {
-            RefreshPolicy refreshPolicy = section.getRefreshPolicy();
+            List<RefreshPolicy> refreshPolicies = section.getRefreshPolicy();
+            if (refreshPolicies == null || refreshPolicies.isEmpty()) continue;
+            RefreshPolicy refreshPolicy = refreshPolicies.get(0);
             if (refreshPolicy == null) continue;
             String channel = refreshPolicy.getChannel();
             if (channel == null) continue;

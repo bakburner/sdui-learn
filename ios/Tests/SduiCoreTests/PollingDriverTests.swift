@@ -52,6 +52,7 @@ final class PollingDriverTests: XCTestCase {
 
         // Start and immediately stop — validates the start path doesn't throw
         await driver.start(
+            pollID: "s1#section",
             sectionID: "s1",
             intervalMs: 60_000, // Long interval so it doesn't actually fire
             directURL: nil,
@@ -78,6 +79,7 @@ final class PollingDriverTests: XCTestCase {
 
         // Start with pauseWhenOffScreen=false — gate should NOT block
         await driver.start(
+            pollID: "gamepanel#section",
             sectionID: "gamepanel",
             intervalMs: 60_000,
             directURL: nil,
@@ -105,11 +107,11 @@ final class PollingDriverTests: XCTestCase {
         await driver.setVisible("s2", visible: true)
 
         await driver.start(
-            sectionID: "s1", intervalMs: 60_000, directURL: nil,
+            pollID: "s1#section", sectionID: "s1", intervalMs: 60_000, directURL: nil,
             sectionEndpoint: "/v1/sdui/test", dataPath: nil, pauseWhenOffScreen: true
         )
         await driver.start(
-            sectionID: "s2", intervalMs: 60_000, directURL: nil,
+            pollID: "s2#section", sectionID: "s2", intervalMs: 60_000, directURL: nil,
             sectionEndpoint: "/v1/sdui/test", dataPath: nil, pauseWhenOffScreen: true
         )
 
@@ -144,7 +146,7 @@ final class PollingDriverTests: XCTestCase {
     private static let minimalSectionJSON: Data =
         #"{"id":"s1","type":"AtomicComposite"}"#.data(using: .utf8)!
     private static let sseSectionJSON: Data =
-        #"{"id":"s1","type":"AtomicComposite","refreshPolicy":{"type":"sse","channel":"game:123:scoreboard"}}"#.data(using: .utf8)!
+        #"{"id":"s1","type":"AtomicComposite","refreshPolicy":[{"type":"sse","channel":"game:123:scoreboard"}]}"#.data(using: .utf8)!
 
     private func makeNetworkRepository() -> SduiRepository {
         let config = SduiConfig(
@@ -165,6 +167,7 @@ final class PollingDriverTests: XCTestCase {
         await driver.setForegroundActive(true)
         await driver.setVisible("s1", visible: true)
         await driver.start(
+            pollID: "s1#section",
             sectionID: "s1",
             intervalMs: 100,
             directURL: nil,
@@ -185,7 +188,7 @@ final class PollingDriverTests: XCTestCase {
         await driver.stopAll()
 
         XCTAssertFalse(events.isEmpty, "expected at least one poll event")
-        guard case .sectionSuccess(let sectionID, _) = events.first else {
+        guard case .sectionSuccess(let sectionID, _, _) = events.first else {
             XCTFail("expected .sectionSuccess, got \(String(describing: events.first))")
             return
         }
@@ -200,6 +203,7 @@ final class PollingDriverTests: XCTestCase {
         await driver.setForegroundActive(true)
         await driver.setVisible("s1", visible: true)
         await driver.start(
+            pollID: "s1#section",
             sectionID: "s1",
             intervalMs: 100,
             directURL: nil,
@@ -220,13 +224,14 @@ final class PollingDriverTests: XCTestCase {
         await driver.stopAll()
 
         XCTAssertFalse(events.isEmpty, "expected at least one poll event")
-        guard case .sectionSuccess(let sectionID, let section) = events.first else {
+        guard case .sectionSuccess(let sectionID, _, let section) = events.first else {
             XCTFail("expected .sectionSuccess, got \(String(describing: events.first))")
             return
         }
         XCTAssertEqual(sectionID, "s1")
-        XCTAssertEqual(section.refreshPolicy?.type, .sse)
-        XCTAssertEqual(section.refreshPolicy?.channel, "game:123:scoreboard")
+        let ssePolicy = section.refreshPolicy?.first(where: { $0.type == .sse })
+        XCTAssertEqual(ssePolicy?.type, .sse)
+        XCTAssertEqual(ssePolicy?.channel, "game:123:scoreboard")
     }
 
     func testSectionEndpoint404YieldsFailureKindSectionNotFound() async throws {
@@ -237,6 +242,7 @@ final class PollingDriverTests: XCTestCase {
         await driver.setForegroundActive(true)
         await driver.setVisible("s1", visible: true)
         await driver.start(
+            pollID: "s1#section",
             sectionID: "s1",
             intervalMs: 100,
             directURL: nil,
@@ -275,6 +281,7 @@ final class PollingDriverTests: XCTestCase {
         await driver.setForegroundActive(true)
         await driver.setVisible("s1", visible: true)
         await driver.start(
+            pollID: "s1#section",
             sectionID: "s1",
             intervalMs: 100,
             directURL: nil,
@@ -313,6 +320,7 @@ final class PollingDriverTests: XCTestCase {
         await driver.setForegroundActive(true)
         await driver.setVisible("s1", visible: true)
         await driver.start(
+            pollID: "s1#section",
             sectionID: "s1",
             intervalMs: 100,
             directURL: nil,

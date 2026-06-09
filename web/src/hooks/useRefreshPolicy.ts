@@ -12,14 +12,21 @@ interface UseRefreshPolicyOptions {
   refreshPolicy: Section['refreshPolicy'];
   onUpdate: (data: unknown) => void;
   onSectionReplace?: (section: Section) => void;
-  onSectionGone?: () => void;
   onStalenessChange?: (sectionId: string, isStale: boolean) => void;
   onUpgradeRequired?: () => void;
   enabled?: boolean;
+  isAppVisible?: boolean;
+  isNearViewport?: boolean;
   /** Screen-level correlation ID — propagated to section endpoint fetches so
    *  server logs can correlate the refresh response with its parent screen
    *  (§4.1.1). Sent on the wire as `X-Correlation-ID`. */
   correlationId?: string;
+}
+
+interface EffectiveRefreshPolicy {
+  allPolicies: RefreshPolicy[];
+  opaquePolicy?: RefreshPolicy;
+  sectionRefreshPolicy?: RefreshPolicy;
 }
 
 /**
@@ -32,63 +39,70 @@ interface UseRefreshPolicyOptions {
 export function useRefreshPolicy(options: UseRefreshPolicyOptions): void {
   const {
     sectionId,
-    refreshPolicy: policy,
+    refreshPolicy: policies,
     onUpdate,
     onSectionReplace,
-    onSectionGone,
     onStalenessChange,
     onUpgradeRequired,
     enabled = true,
+    isAppVisible = true,
+    isNearViewport = true,
     correlationId,
   } = options;
-  const timeoutRef = useRef<number | null>(null);
-  const pollFailureCount = useRef(0);
-  const currentIntervalRef = useRef<number | null>(null);
-  const isStaleFlagRef = useRef(false);
-  const isSectionGoneRef = useRef(false);
+  const {
+    opaquePolicy,
+    sectionRefreshPolicy,
+  } = resolveRefreshPolicyElements(policies, sectionId);
 
-  const markStale = useCallback((isStale: boolean) => {
-    if (isStaleFlagRef.current !== isStale) {
-      isStaleFlagRef.current = isStale;
+  const opaqueTimeoutRef = useRef<number | null>(null);
+  const sectionTimeoutRef = useRef<number | null>(null);
+  const opaquePollFailureCount = useRef(0);
+  const sectionPollFailureCount = useRef(0);
+  const opaqueCurrentIntervalRef = useRef<number | null>(null);
+  const sectionCurrentIntervalRef = useRef<number | null>(null);
+  const isOpaqueStaleRef = useRef(false);
+  const isSectionStaleRef = useRef(false);
+  const isSectionGoneRef = useRef(false);
+  const isCombinedStaleRef = useRef(false);
+
+  const emitCombinedStaleness = useCallback(() => {
+    const isStale = isOpaqueStaleRef.current || isSectionStaleRef.current;
+    if (isCombinedStaleRef.current !== isStale) {
+      isCombinedStaleRef.current = isStale;
       onStalenessChange?.(sectionId, isStale);
     }
   }, [sectionId, onStalenessChange]);
 
-  const fetchData = useCallback(async (): Promise<boolean> => {
-    if (!policy) return false;
+  const markOpaqueStale = useCallback((isStale: boolean) => {
+    isOpaqueStaleRef.current = isStale;
+    emitCombinedStaleness();
+  }, [emitCombinedStaleness]);
 
-    const sectionEndpoint = policy.sectionEndpoint;
-    const pollUrl = policy.url;
+  const markSectionStale = useCallback((isStale: boolean) => {
+    isSectionStaleRef.current = isStale;
+    emitCombinedStaleness();
+  }, [emitCombinedStaleness]);
 
-    if (sectionEndpoint) {
-      try {
-        const section = await fetchSduiSection({ endpoint: sectionEndpoint, correlationId });
-        onSectionReplace?.(section);
-        return true;
-      } catch (err) {
-        if (err instanceof SectionNotFoundError) {
-          console.warn(`[RefreshPolicy] Section ${sectionId} returned 404 — stopping poll`);
-          isSectionGoneRef.current = true;
-          onSectionGone?.();
-          return false;
-        }
-        if (err instanceof SchemaVersionMismatchError) {
-          console.warn(`[RefreshPolicy] Schema version mismatch on section ${sectionId} — upgrade required`);
-          isSectionGoneRef.current = true;
-          onUpgradeRequired?.();
-          return false;
-        }
-        console.error(`[RefreshPolicy] sectionEndpoint fetch failed for ${sectionId}:`, err);
-        return false;
-      }
-    }
+  const opaquePauseWhenOffScreen = opaquePolicy?.pauseWhenOffScreen ?? true;
+  const sectionPauseWhenOffScreen = sectionRefreshPolicy?.pauseWhenOffScreen ?? true;
+  const baseEnabled = enabled && isAppVisible;
+  const opaqueEnabled = baseEnabled && (opaquePauseWhenOffScreen ? isNearViewport : true);
+  const sectionEnabled = baseEnabled && (sectionPauseWhenOffScreen ? isNearViewport : true);
 
-    if (!pollUrl) {
+  const opaqueType = opaquePolicy?.type;
+  const opaqueChannel = opaquePolicy?.channel;
+  const opaquePollUrl = opaquePolicy?.url;
+  const opaqueIntervalMs = opaquePolicy?.intervalMs;
+  const sectionEndpoint = sectionRefreshPolicy?.sectionEndpoint;
+  const sectionIntervalMs = sectionRefreshPolicy?.intervalMs;
+
+  const fetchOpaquePoll = useCallback(async (): Promise<boolean> => {
+    if (!opaquePollUrl) {
       return false;
     }
 
     try {
-      const response = await fetch(pollUrl);
+      const response = await fetch(opaquePollUrl);
       if (response.ok) {
         const data = await response.json();
         onUpdate(data);
@@ -99,46 +113,90 @@ export function useRefreshPolicy(options: UseRefreshPolicyOptions): void {
       console.error(`[RefreshPolicy] Poll failed for ${sectionId}:`, err);
       return false;
     }
-  }, [sectionId, policy, onUpdate, onSectionReplace, onSectionGone, correlationId]);
+  }, [opaquePollUrl, onUpdate, sectionId]);
 
-  // Poll with exponential backoff
-  useEffect(() => {
-    if (!enabled || !policy || policy.type !== 'poll' || !policy.intervalMs) return;
+  const fetchSectionRefresh = useCallback(async (): Promise<boolean> => {
+    if (!sectionEndpoint) return false;
 
-    const baseInterval = policy.intervalMs;
-    pollFailureCount.current = 0;
-    currentIntervalRef.current = baseInterval;
-    isStaleFlagRef.current = false;
-    isSectionGoneRef.current = false;
+    try {
+      const section = await fetchSduiSection({ endpoint: sectionEndpoint, correlationId });
+      onSectionReplace?.(section);
+      return true;
+    } catch (err) {
+      if (err instanceof SectionNotFoundError) {
+        console.warn(`[RefreshPolicy] Section ${sectionId} returned 404 — stopping poll`);
+        isSectionGoneRef.current = true;
+        markSectionStale(true);
+        return false;
+      }
+      if (err instanceof SchemaVersionMismatchError) {
+        console.warn(`[RefreshPolicy] Schema version mismatch on section ${sectionId} — upgrade required`);
+        isSectionGoneRef.current = true;
+        onUpgradeRequired?.();
+        return false;
+      }
+      console.error(`[RefreshPolicy] sectionEndpoint fetch failed for ${sectionId}:`, err);
+      return false;
+    }
+  }, [sectionEndpoint, correlationId, onSectionReplace, sectionId, onUpgradeRequired, markSectionStale]);
 
-    console.log(`[RefreshPolicy] Starting poll for ${sectionId} every ${baseInterval}ms`);
+  const runPollWithBackoff = useCallback((args: {
+    effectName: string;
+    enabledFlag: boolean;
+    intervalMs?: number;
+    timeoutRef: React.MutableRefObject<number | null>;
+    failureRef: React.MutableRefObject<number>;
+    currentIntervalRef: React.MutableRefObject<number | null>;
+    shouldStop?: () => boolean;
+    fetcher: () => Promise<boolean>;
+    markStale: (isStale: boolean) => void;
+  }) => {
+    const {
+      effectName,
+      enabledFlag,
+      intervalMs,
+      timeoutRef,
+      failureRef,
+      currentIntervalRef,
+      shouldStop,
+      fetcher,
+      markStale,
+    } = args;
+    if (!enabledFlag || !intervalMs) {
+      return () => {};
+    }
+
+    failureRef.current = 0;
+    currentIntervalRef.current = intervalMs;
+    markStale(false);
+
+    console.log(`[RefreshPolicy] Starting ${effectName} poll for ${sectionId} every ${intervalMs}ms`);
 
     const schedulePoll = () => {
       timeoutRef.current = window.setTimeout(async () => {
-        if (isSectionGoneRef.current) return;
+        if (shouldStop?.()) return;
 
-        const success = await fetchData();
+        const success = await fetcher();
 
         if (success) {
-          pollFailureCount.current = 0;
-          currentIntervalRef.current = baseInterval;
+          failureRef.current = 0;
+          currentIntervalRef.current = intervalMs;
           markStale(false);
         } else {
-          pollFailureCount.current += 1;
-          // Exponential backoff: double on failure, cap at MAX_BACKOFF_MS
+          failureRef.current += 1;
           currentIntervalRef.current = Math.min(
-            (currentIntervalRef.current ?? baseInterval) * 2,
-            MAX_BACKOFF_MS
+            (currentIntervalRef.current ?? intervalMs) * 2,
+            MAX_BACKOFF_MS,
           );
-          if (pollFailureCount.current >= POLL_FAILURE_THRESHOLD) {
+          if (failureRef.current >= POLL_FAILURE_THRESHOLD) {
             markStale(true);
           }
         }
 
-        if (!isSectionGoneRef.current) {
+        if (!shouldStop?.()) {
           schedulePoll();
         }
-      }, currentIntervalRef.current ?? baseInterval);
+      }, currentIntervalRef.current ?? intervalMs);
     };
 
     // Cross-platform aligned: Android/iOS wait `intervalMs` before the first
@@ -152,19 +210,38 @@ export function useRefreshPolicy(options: UseRefreshPolicyOptions): void {
         timeoutRef.current = null;
       }
     };
-  }, [enabled, policy, sectionId, fetchData, markStale]);
+  }, [sectionId]);
 
-  // SSE subscription with disconnect staleness
+  // Opaque element execution: SSE channel or URL poll.
   useEffect(() => {
-    if (!enabled || !policy || policy.type !== 'sse' || !policy.channel) return;
+    if (!opaqueEnabled || !opaqueType) {
+      markOpaqueStale(false);
+      return;
+    }
 
-    console.log(`[RefreshPolicy] Subscribing to Ably channel "${policy.channel}" for ${sectionId}`);
-    isStaleFlagRef.current = false;
+    if (opaqueType === 'poll') {
+      return runPollWithBackoff({
+        effectName: 'opaque',
+        enabledFlag: opaqueEnabled,
+        intervalMs: opaqueIntervalMs,
+        timeoutRef: opaqueTimeoutRef,
+        failureRef: opaquePollFailureCount,
+        currentIntervalRef: opaqueCurrentIntervalRef,
+        fetcher: fetchOpaquePoll,
+        markStale: markOpaqueStale,
+      });
+    }
+
+    if (opaqueType !== 'sse' || !opaqueChannel) {
+      return;
+    }
+
+    console.log(`[RefreshPolicy] Subscribing to Ably channel "${opaqueChannel}" for ${sectionId}`);
+    markOpaqueStale(false);
     let staleTimerId: number | null = null;
 
-    const unsubscribeChannel = subscribeToChannel(policy.channel, (data) => {
-      // Successful message — clear staleness
-      markStale(false);
+    const unsubscribeChannel = subscribeToChannel(opaqueChannel, (data) => {
+      markOpaqueStale(false);
       if (staleTimerId !== null) {
         clearTimeout(staleTimerId);
         staleTimerId = null;
@@ -176,16 +253,13 @@ export function useRefreshPolicy(options: UseRefreshPolicyOptions): void {
       if (state === 'disconnected' || state === 'suspended' || state === 'failed') {
         if (staleTimerId === null) {
           staleTimerId = window.setTimeout(() => {
-            markStale(true);
+            markOpaqueStale(true);
             staleTimerId = null;
           }, SSE_STALE_DELAY_MS);
         }
-      } else if (state === 'connected') {
-        if (staleTimerId !== null) {
-          clearTimeout(staleTimerId);
-          staleTimerId = null;
-        }
-        // Don't clear staleness here — wait for an actual message (above)
+      } else if (state === 'connected' && staleTimerId !== null) {
+        clearTimeout(staleTimerId);
+        staleTimerId = null;
       }
     });
 
@@ -196,7 +270,46 @@ export function useRefreshPolicy(options: UseRefreshPolicyOptions): void {
         clearTimeout(staleTimerId);
       }
     };
-  }, [enabled, policy, sectionId, onUpdate, markStale]);
+  }, [
+    opaqueEnabled,
+    opaqueType,
+    opaqueChannel,
+    opaqueIntervalMs,
+    sectionId,
+    onUpdate,
+    fetchOpaquePoll,
+    markOpaqueStale,
+    runPollWithBackoff,
+  ]);
+
+  // Section refresh element execution: sectionEndpoint poll only.
+  useEffect(() => {
+    if (!sectionEnabled || !sectionEndpoint || sectionRefreshPolicy?.type !== 'poll') {
+      markSectionStale(false);
+      return;
+    }
+
+    isSectionGoneRef.current = false;
+    return runPollWithBackoff({
+      effectName: 'sectionEndpoint',
+      enabledFlag: sectionEnabled,
+      intervalMs: sectionIntervalMs,
+      timeoutRef: sectionTimeoutRef,
+      failureRef: sectionPollFailureCount,
+      currentIntervalRef: sectionCurrentIntervalRef,
+      shouldStop: () => isSectionGoneRef.current,
+      fetcher: fetchSectionRefresh,
+      markStale: markSectionStale,
+    });
+  }, [
+    sectionEnabled,
+    sectionEndpoint,
+    sectionIntervalMs,
+    sectionRefreshPolicy?.type,
+    fetchSectionRefresh,
+    markSectionStale,
+    runPollWithBackoff,
+  ]);
 }
 
 /**
@@ -205,6 +318,63 @@ export function useRefreshPolicy(options: UseRefreshPolicyOptions): void {
 export function getEffectiveRefreshPolicy(
   section: Section,
   defaultPolicy?: RefreshPolicy,
-): RefreshPolicy | undefined {
-  return section.refreshPolicy ?? defaultPolicy;
+): EffectiveRefreshPolicy {
+  const allPolicies = section.refreshPolicy ?? (defaultPolicy ? [defaultPolicy] : []);
+  const { opaquePolicy, sectionRefreshPolicy } = resolveRefreshPolicyElements(allPolicies, section.id);
+  return {
+    allPolicies,
+    opaquePolicy,
+    sectionRefreshPolicy,
+  };
+}
+
+function resolveRefreshPolicyElements(
+  policies: Section['refreshPolicy'] | undefined,
+  sectionId: string,
+): Pick<EffectiveRefreshPolicy, 'opaquePolicy' | 'sectionRefreshPolicy'> {
+  let opaquePolicy: RefreshPolicy | undefined;
+  let sectionRefreshPolicy: RefreshPolicy | undefined;
+
+  if (!policies) {
+    return { opaquePolicy, sectionRefreshPolicy };
+  }
+
+  for (const policy of policies) {
+    const isOpaque = Boolean(policy.channel || policy.url);
+    const isSectionRefresh = Boolean(policy.sectionEndpoint);
+
+    if (policy.type === 'static') {
+      if (policies.length > 1) {
+        console.warn(
+          `[RefreshPolicy] Section ${sectionId} has static in a multi-policy array; ignoring static element.`,
+          policy,
+        );
+      }
+      continue;
+    }
+
+    if (isOpaque) {
+      if (!opaquePolicy) {
+        opaquePolicy = policy;
+      } else {
+        console.warn(
+          `[RefreshPolicy] Section ${sectionId} has multiple opaque refresh policies; ignoring extra element.`,
+          policy,
+        );
+      }
+    }
+
+    if (isSectionRefresh) {
+      if (!sectionRefreshPolicy) {
+        sectionRefreshPolicy = policy;
+      } else {
+        console.warn(
+          `[RefreshPolicy] Section ${sectionId} has multiple sectionEndpoint policies; ignoring extra element.`,
+          policy,
+        );
+      }
+    }
+  }
+
+  return { opaquePolicy, sectionRefreshPolicy };
 }

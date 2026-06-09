@@ -7,9 +7,11 @@
     {
       "id": "chips-section",
       "type": "AtomicComposite",
-      "refreshPolicy": {
-        "type": "static"
-      },
+      "refreshPolicy": [
+        {
+          "type": "static"
+        }
+      ],
       "data": {
         "ui": {
           "id": "chips-root",

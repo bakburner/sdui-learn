@@ -1030,7 +1030,12 @@ struct Section: Codable {
     let data: SectionData?
     let dataBinding: DataBinding?
     let id: String
-    let refreshPolicy: RefreshPolicy?
+    /// Array of concurrent refresh mechanisms (max 2): at most one opaque/streaming element (sse
+    /// channel or url poll, consumes dataBinding) plus at most one section-refresh element
+    /// (sectionEndpoint, full-replace). A static section is a single {type:static} element.
+    /// Cross-element invariants (<=1 opaque, <=1 sectionEndpoint, static-solo) are validated
+    /// server-side.
+    let refreshPolicy: [RefreshPolicy]?
     let sectionStates: SectionStates?
     /// Section-level map of translation key to localized string. Used by DataBindingResolver to
     /// resolve stringKeys on real-time updates.
@@ -1074,7 +1079,7 @@ extension Section {
         data: SectionData?? = nil,
         dataBinding: DataBinding?? = nil,
         id: String? = nil,
-        refreshPolicy: RefreshPolicy?? = nil,
+        refreshPolicy: [RefreshPolicy]?? = nil,
         sectionStates: SectionStates?? = nil,
         stringTable: [String: String]?? = nil,
         subsections: [Subsection]?? = nil,
@@ -2354,7 +2359,8 @@ enum Transform: String, Codable {
 
 // MARK: - RefreshPolicy
 struct RefreshPolicy: Codable {
-    /// For sse type: Ably channel name pattern (e.g., '{gameId}:linescore')
+    /// For sse type: subscription channel name pattern (e.g., '{gameId}:linescore'). Transport
+    /// binding is a client implementation detail.
     let channel: String?
     /// JSONPath to extract section data from response (e.g., '$.game' or '$.sections[0].data')
     let dataPath: String?

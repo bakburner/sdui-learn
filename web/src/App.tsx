@@ -81,7 +81,6 @@ export function App(): React.ReactElement {
     setScreen,
     replaceCurrentScreen,
     onSectionReplace,
-    onSectionGone,
   } = useSduiScreen({
     endpoint,
   });
@@ -373,7 +372,6 @@ export function App(): React.ReactElement {
                 onAction={handleAction}
                 onStateChange={handleStateChange}
                 onSectionReplace={onSectionReplace}
-                onSectionGone={onSectionGone}
                 onStalenessChange={handleStalenessChange}
                 traceId={correlationId ?? undefined}
               />

@@ -90,9 +90,11 @@ Every screen response carries:
   (clients drop mismatched responses)
 - `sections[]` — the full ordered list; structural changes (insertions,
   removals, reorderings) happen by emitting a new full list, never by patch
-- `defaultRefreshPolicy` — optional; when present, type is `static`, `poll`,
-  or `sse`. A non-static `defaultRefreshPolicy` and any section's
-  `refreshPolicy.sectionEndpoint` on the same screen are **mutually
+- `defaultRefreshPolicy` — optional single `RefreshPolicy` object; when
+  present, type is `static`, `poll`, or `sse`. This field remains single-object
+  even though section `refreshPolicy` is an array. A non-static
+  `defaultRefreshPolicy` and any section element with
+  `refreshPolicy[].sectionEndpoint` on the same screen are **mutually
   exclusive** (the server must not emit both)
 
 Correlation lives in the `X-Correlation-ID` response header only; there is
@@ -130,8 +132,8 @@ these properties:
 - **Standalone callability.** Any caller in possession of a valid
   `sectionId` may invoke the endpoint directly, whether or not that
   section is currently mounted in any screen and whether or not any
-  `refreshPolicy.sectionEndpoint` ever pointed at it.
-  `refreshPolicy.sectionEndpoint` is a *scheduling* mechanism for
+  `refreshPolicy[].sectionEndpoint` element ever pointed at it.
+  `refreshPolicy[].sectionEndpoint` is a *scheduling* mechanism for
   automatic client polling; it is not a precondition for the endpoint's
   existence or correctness.
 - **`sectionId` is the self-sufficient composition key.** The id format
@@ -483,12 +485,22 @@ Per AGENTS.md §3.8:
   tick, action-driven `refresh` targeting the current screen, parameterized
   re-composition (form submit, date picker).
 - **Section channel** (`/v1/sdui/section/{id}`) — single-section replace.
-  Handles: section-level polls via `refreshPolicy.sectionEndpoint`, mutate
-  → section refresh chains.
+  Handles: section-level polls via a `refreshPolicy[]` poll element carrying
+  `sectionEndpoint`, and mutate → section refresh chains.
 
-There is no third channel. A `refreshPolicy.type` of `sse` does not
-introduce a new channel — clients subscribe to the Ably channel named in
-`refreshPolicy.channel` and apply opaque payloads through `dataBinding`.
+There is no third channel. A section may run one opaque element
+(`type: "sse"` + `channel` or `type: "poll"` + `url`) and one section-refresh
+element (`type: "poll"` + `sectionEndpoint`) concurrently through the bounded
+`refreshPolicy[]` array (`maxItems: 2`). `dataBinding` stays section-level and
+binds to the single opaque element only; section-refresh responses are full
+section replacements.
+
+Draft-07 enforces the array shape (`maxItems`, element type/enum). The server
+additionally validates cross-element invariants: ≤1 opaque element,
+≤1 section-refresh element, and `type: "static"` as a solo terminal element.
+
+On section-channel `404`, the expected client behavior is: mark section stale,
+stop that section's poll, and retain the section node on screen.
 
 ### 9.2 Section channel dispatcher
 
@@ -565,7 +577,7 @@ A new server passes contract when **all** of these hold:
 - [ ] Section responses carry one `Section`, not a `Screen`
 - [ ] Response `id` matches request `id` on both channels
 - [ ] Section channel composes with `sectionId` + envelope only — no `screenId` accepted, inferred, or required
-- [ ] Section channel works for any registered `sectionId` regardless of whether it is currently mounted in a screen or referenced by `refreshPolicy.sectionEndpoint`
+- [ ] Section channel works for any registered `sectionId` regardless of whether it is currently mounted in a screen or referenced by a `refreshPolicy[]` `sectionEndpoint` element
 - [ ] Section-channel body for a given `sectionId` matches the same section as it appears in a screen-channel response for identical envelope + upstream state
 - [ ] `X-Correlation-ID` echoed on every response
 
@@ -608,7 +620,7 @@ A new server passes contract when **all** of these hold:
 
 - [ ] Section channel always `no-cache`
 - [ ] Live-data screens are `no-cache`; editorial screens carry `max-age`
-- [ ] `defaultRefreshPolicy` and section-level `sectionEndpoint` are mutually exclusive per screen
+- [ ] `defaultRefreshPolicy` and section-level `sectionEndpoint` elements are mutually exclusive per screen
 
 ### Schema versioning
 

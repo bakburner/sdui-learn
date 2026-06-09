@@ -20,7 +20,6 @@ export function AtomicSectionSlot({
   onStateChange,
   sectionSlotDepth = 0,
   onSectionReplace,
-  onSectionGone,
 }: AtomicProps): React.ReactElement | null {
   if (sectionSlotDepth >= MAX_SECTION_SLOT_DEPTH) {
     console.warn(`[AtomicSectionSlot] Max SectionSlot depth (${MAX_SECTION_SLOT_DEPTH}) exceeded — skipping element: ${element.id}`);
@@ -42,7 +41,6 @@ export function AtomicSectionSlot({
       onAction={onAction}
       onStateChange={noopStateChange}
       onSectionReplace={onSectionReplace}
-      onSectionGone={onSectionGone}
     />
   );
 }

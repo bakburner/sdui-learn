@@ -104,6 +104,8 @@ public final class SduiScreenViewModel {
     /// Sections that should never have their refresh paused on scroll-out.
     /// Set from `refreshPolicy.pauseWhenOffScreen == false`.
     private var alwaysRefreshSections: Set<String> = []
+    /// Stable restart key per section derived from every refreshPolicy element.
+    private var sectionPolicyFingerprints: [String: String] = [:]
 
     public init(
         endpoint: String,
@@ -352,6 +354,70 @@ public final class SduiScreenViewModel {
         endpoint.hasPrefix("/v1/sdui/section/")
     }
 
+    private struct SelectedRefreshElements {
+        var opaque: RefreshPolicy?
+        var sectionRefresh: RefreshPolicy?
+    }
+
+    private static func hasNonStaticScreenRefreshPolicy(_ screen: Screen?) -> Bool {
+        guard let policy = screen?.defaultRefreshPolicy else { return false }
+        return policy.type != .refreshTypeStatic
+    }
+
+    private static func selectRefreshElements(from policies: [RefreshPolicy]?, sectionID: String) -> SelectedRefreshElements {
+        guard let policies else { return SelectedRefreshElements() }
+        var selected = SelectedRefreshElements()
+        for policy in policies {
+            let isSectionRefresh = policy.sectionEndpoint != nil
+            let isOpaque = !isSectionRefresh && (
+                (policy.type == .sse && policy.channel != nil) ||
+                (policy.type == .poll && policy.url != nil)
+            )
+
+            if isOpaque {
+                if selected.opaque == nil {
+                    selected.opaque = policy
+                } else {
+                    logger.warning("Section '\(sectionID, privacy: .public)' has multiple opaque refresh elements; ignoring extras")
+                }
+            }
+
+            if isSectionRefresh {
+                if selected.sectionRefresh == nil {
+                    selected.sectionRefresh = policy
+                } else {
+                    logger.warning("Section '\(sectionID, privacy: .public)' has multiple sectionEndpoint refresh elements; ignoring extras")
+                }
+            }
+        }
+        return selected
+    }
+
+    private static func policyFingerprint(for policies: [RefreshPolicy]?) -> String {
+        guard let policies else { return "none" }
+        return policies.map { policy in
+            [
+                policy.type.rawValue,
+                policy.channel ?? "",
+                policy.url ?? "",
+                policy.sectionEndpoint ?? "",
+                policy.dataPath ?? "",
+                policy.intervalMS.map(String.init) ?? "",
+                policy.pauseWhenOffScreen.map(String.init) ?? ""
+            ].joined(separator: "|")
+        }.joined(separator: "||")
+    }
+
+    private static func pollIdentifier(sectionID: String, policy: RefreshPolicy, kind: String) -> String {
+        [
+            sectionID,
+            kind,
+            policy.sectionEndpoint ?? "",
+            policy.url ?? "",
+            policy.intervalMS.map(String.init) ?? ""
+        ].joined(separator: "|")
+    }
+
     // MARK: - Screen update
 
     private func applyScreen(_ newScreen: Screen) {
@@ -406,6 +472,8 @@ public final class SduiScreenViewModel {
         Task { await polling.stopAll() }
         cancelAllAbly()
         sectionAblyChannels.removeAll()
+        alwaysRefreshSections.removeAll()
+        sectionPolicyFingerprints.removeAll()
 
         if pollEventsTask == nil {
             pollEventsTask = Task { [weak self] in
@@ -417,22 +485,20 @@ public final class SduiScreenViewModel {
             }
         }
 
-        let screenIsRefreshing = screen.defaultRefreshPolicy?.type == .poll
+        let screenHasNonStaticDefaultRefresh = Self.hasNonStaticScreenRefreshPolicy(screen)
 
         for section in screen.sections {
-            guard let policy = section.refreshPolicy else { continue }
-            switch policy.type {
-            case .poll:
-                startPolling(section: section, policy: policy, screenIsRefreshing: screenIsRefreshing)
-            case .sse:
-                startSSE(section: section, policy: policy)
-            case .refreshTypeStatic:
-                break
-            }
+            startRealtime(for: section, screenHasNonStaticDefaultRefresh: screenHasNonStaticDefaultRefresh)
         }
     }
 
     private func restartRealtimeForSection(_ sectionID: String, newSection: Section) async {
+        let nextFingerprint = Self.policyFingerprint(for: newSection.refreshPolicy)
+        if sectionPolicyFingerprints[sectionID] == nextFingerprint {
+            logger.debug("refreshPolicy unchanged for section=\(sectionID, privacy: .public); keeping existing realtime drivers")
+            return
+        }
+
         // Stop the existing poll for this section only.
         await polling.stop(sectionID: sectionID)
 
@@ -441,23 +507,51 @@ public final class SduiScreenViewModel {
         ablyTasks.removeValue(forKey: sectionID)
         sectionAblyChannels.removeValue(forKey: sectionID)
         alwaysRefreshSections.remove(sectionID)
+        sectionPolicyFingerprints.removeValue(forKey: sectionID)
 
-        // Start the new section's policy.
-        guard let policy = newSection.refreshPolicy else { return }
-        switch policy.type {
-        case .poll:
-            startPolling(section: newSection, policy: policy)
-        case .sse:
-            startSSE(section: newSection, policy: policy)
-        case .refreshTypeStatic:
-            break
+        startRealtime(
+            for: newSection,
+            screenHasNonStaticDefaultRefresh: Self.hasNonStaticScreenRefreshPolicy(screen)
+        )
+    }
+
+    private func startRealtime(for section: Section, screenHasNonStaticDefaultRefresh: Bool) {
+        let selected = Self.selectRefreshElements(from: section.refreshPolicy, sectionID: section.id)
+        sectionPolicyFingerprints[section.id] = Self.policyFingerprint(for: section.refreshPolicy)
+        if let opaque = selected.opaque {
+            switch opaque.type {
+            case .sse:
+                startSSE(section: section, policy: opaque)
+            case .poll:
+                startPolling(
+                    pollID: Self.pollIdentifier(sectionID: section.id, policy: opaque, kind: "opaque"),
+                    section: section,
+                    policy: opaque,
+                    screenHasNonStaticDefaultRefresh: screenHasNonStaticDefaultRefresh
+                )
+            case .refreshTypeStatic:
+                break
+            }
+        }
+        if let sectionRefresh = selected.sectionRefresh {
+            startPolling(
+                pollID: Self.pollIdentifier(sectionID: section.id, policy: sectionRefresh, kind: "section"),
+                section: section,
+                policy: sectionRefresh,
+                screenHasNonStaticDefaultRefresh: screenHasNonStaticDefaultRefresh
+            )
         }
     }
 
-    private func startPolling(section: Section, policy: RefreshPolicy, screenIsRefreshing: Bool = false) {
+    private func startPolling(
+        pollID: String,
+        section: Section,
+        policy: RefreshPolicy,
+        screenHasNonStaticDefaultRefresh: Bool = false
+    ) {
         // Guard: sectionEndpoint and a non-static screen defaultRefreshPolicy are mutually exclusive.
-        if policy.sectionEndpoint != nil && screenIsRefreshing {
-            logger.warning("Section '\(section.id)' has sectionEndpoint but screen defaultRefreshPolicy is Poll — skipping sectionEndpoint poll; screen-level refresh owns this section.")
+        if policy.sectionEndpoint != nil && screenHasNonStaticDefaultRefresh {
+            logger.warning("Section '\(section.id)' has sectionEndpoint but screen defaultRefreshPolicy is non-static — skipping sectionEndpoint poll; screen-level refresh owns this section.")
             return
         }
         guard let intervalMs = policy.intervalMS else { return }
@@ -474,6 +568,7 @@ public final class SduiScreenViewModel {
             await polling.setVisible(sectionID, visible: initiallyVisible)
             await polling.setForegroundActive(isForegroundActive)
             await polling.start(
+                pollID: pollID,
                 sectionID: sectionID,
                 intervalMs: intervalMs,
                 directURL: directURL,
@@ -560,7 +655,7 @@ public final class SduiScreenViewModel {
             } else if let newScreen = success.payload as? Screen {
                 applyScreen(newScreen)
             }
-        case .sectionSuccess(let sectionID, let newSection):
+        case .sectionSuccess(let sectionID, _, let newSection):
             // Cancel old jobs before merging so the replacement policy owns future ticks.
             await restartRealtimeForSection(sectionID, newSection: newSection)
             stalenessTracker.clear(sectionID)

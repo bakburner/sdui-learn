@@ -9,9 +9,7 @@ import org.springframework.stereotype.Component;
 import jakarta.annotation.PostConstruct;
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import com.nba.sdui.domain.AtomicCompositeBuilder;
 import com.nba.sdui.domain.SduiUtils;
 import com.nba.sdui.domain.SectionIdDeriver;
@@ -104,21 +102,35 @@ public class LiveComposer {
 
     @PostConstruct
     private void registerResolvers() {
-        String sectionId = SectionIdDeriver.derive("stats-api:live-games", "GameScheduleList");
-        sectionRefreshService.registerResolver(sectionId, (id, ctx) -> {
+        String gamesCardPrefix = SectionIdDeriver.prefixFor("games:card-");
+        sectionRefreshService.registerResolver(gamesCardPrefix, (id, ctx) -> {
+            SectionIdDeriver.Parsed parsed = SectionIdDeriver.parse(id);
+            String source = parsed.source();
+            if (source == null || !source.startsWith(gamesCardPrefix)) {
+                log.warn("Games card refresh misroute for sectionId='{}' source='{}'", id, source);
+                return null;
+            }
+
+            String gameId = source.substring(gamesCardPrefix.length());
+            if (gameId.isBlank()) {
+                log.warn("Games card refresh missing gameId in sectionId='{}'", id);
+                return null;
+            }
+
             ScoreboardResponse scoreboard = safeGetScoreboard();
-            List<Game> liveGames = new ArrayList<>();
-            if (scoreboard != null) {
-                for (Game game : scoreboard.getGames()) {
-                    if (game.getGameStatus() == 2) {
-                        liveGames.add(game);
-                    }
+            if (scoreboard == null || scoreboard.getGames() == null) {
+                log.warn("Games card refresh scoreboard unavailable for gameId='{}' sectionId='{}'", gameId, id);
+                return null;
+            }
+
+            for (Game game : scoreboard.getGames()) {
+                if (gameId.equals(game.getGameId())) {
+                    return buildGameCardSection(game);
                 }
             }
-            Section section = liveGames.isEmpty()
-                    ? buildEmptyLiveScheduleList()
-                    : buildLiveScheduleList(liveGames);
-            return section;
+
+            log.info("Games card refresh gameId='{}' not found in current slate for sectionId='{}'", gameId, id);
+            return null;
         });
 
         parameterizedRefreshService.registerResolver("games",
@@ -202,19 +214,15 @@ public class LiveComposer {
             }
         }
 
-        if (!liveGames.isEmpty()) {
-            sections.add(buildLiveScheduleList(liveGames));
-        }
-        if (!upcomingGames.isEmpty()) {
-            sections.add(buildScheduleList("upcomingGames", "upcoming_games",
-                    "Upcoming", upcomingGames, false));
-        }
-        if (!finishedGames.isEmpty()) {
-            sections.add(buildScheduleList("finalGames", "final_games",
-                    "Final", finishedGames, false));
+        List<Game> orderedGames = new ArrayList<>(games.size());
+        orderedGames.addAll(liveGames);
+        orderedGames.addAll(upcomingGames);
+        orderedGames.addAll(finishedGames);
+        for (Game game : orderedGames) {
+            sections.add(buildGameCardSection(game));
         }
 
-        insertGamesScreenAdSlot(sections, liveGames.size(), upcomingGames.size(), finishedGames.size());
+        insertGamesScreenAdSlot(sections, orderedGames.size());
 
         // Stamp a uniform bottom margin on every section so cards on the games
         // screen render with visible separation rather than flush. Margin is a
@@ -359,81 +367,45 @@ public class LiveComposer {
 
     // ── Section builders ───────────────────────────────────────────────
 
-    /**
-     * Build the live games schedule list with SSE per-row data binding.
-     * Each live game row gets a LiveClock element that counts down via
-     * its per-game SSE channel.
-     */
-    private Section buildLiveScheduleList(List<Game> liveGames) {
-        String contentSourceId = "stats-api:live-games";
-        String sectionId = SectionIdDeriver.derive(contentSourceId, "GameScheduleList");
+    private Section buildGameCardSection(Game game) {
+        String gameId = game.getGameId() != null ? game.getGameId() : "0000000000";
+        String contentSourceId = "games:card-" + gameId;
+        String sectionId = SectionIdDeriver.derive(contentSourceId, Section.Type.ATOMIC_COMPOSITE.value());
+        int status = game.getGameStatus();
 
-        String[][] rows = new String[liveGames.size()][];
-        Map<String, AtomicCompositeBuilder.GameClockSnapshot> clockSnapshots = new HashMap<>();
+        List<RefreshPolicy> refreshPolicies;
+        DataBinding dataBinding = null;
+        java.util.Map<String, AtomicCompositeBuilder.GameClockSnapshot> clockSnapshots = null;
 
-        for (int i = 0; i < liveGames.size(); i++) {
-            Game game = liveGames.get(i);
-            String gameId = game.getGameId() != null ? game.getGameId() : "0000000000";
-            rows[i] = gameToRow(game);
-            clockSnapshots.put(gameId, clockSnapshotFromGame(game));
+        if (status == 2) {
+            RefreshPolicy sectionPoll = new RefreshPolicy()
+                    .withType(RefreshPolicy.RefreshType.POLL)
+                    .withSectionEndpoint("/v1/sdui/section/" + sectionId)
+                    .withIntervalMs(60_000)
+                    .withPauseWhenOffScreen(true);
+            refreshPolicies = List.of(ssePolicy(game), sectionPoll);
+            dataBinding = buildScheduleListBindings(List.of(game));
+            clockSnapshots = java.util.Map.of(gameId, clockSnapshotFromGame(game));
+        } else if (status == 1) {
+            RefreshPolicy sectionPoll = new RefreshPolicy()
+                    .withType(RefreshPolicy.RefreshType.POLL)
+                    .withSectionEndpoint("/v1/sdui/section/" + sectionId)
+                    .withIntervalMs(300_000)
+                    .withPauseWhenOffScreen(true);
+            refreshPolicies = List.of(sectionPoll);
+        } else {
+            refreshPolicies = List.of(staticPolicy());
         }
 
-        // SSE refresh on the first live game's channel; all rows get clock
-        // snapshots seeded from the initial composition. Subsequent Ably/SSE
-        // frames update per-row content via the dataBinding map.
-        RefreshPolicy refreshPolicy = ssePolicy(liveGames.get(0));
-        DataBinding dataBinding = buildScheduleListBindings(liveGames);
-
         Section section = atomicBuilder.buildGameScheduleList(
-                sectionId, "live_games", "Live Now", rows,
-                refreshPolicy, dataBinding, clockSnapshots);
-        section.setContentSourceId(contentSourceId);
-        section.setSurface(surfaces.gameCardFlushSurface());
-        return section;
-    }
-
-    /**
-     * Empty live schedule list returned by the section-refresh resolver when
-     * all previously-live games have concluded. We can't emit SSE refresh on
-     * "no games", so the section drops back to a static poll so the client
-     * can keep checking. Composition will omit the section entirely on the
-     * next full screen fetch.
-     */
-    private Section buildEmptyLiveScheduleList() {
-        String contentSourceId = "stats-api:live-games";
-        String sectionId = SectionIdDeriver.derive(contentSourceId, "GameScheduleList");
-
-        RefreshPolicy pollPolicy = new RefreshPolicy()
-                .withType(RefreshPolicy.RefreshType.POLL)
-                .withSectionEndpoint("/v1/sdui/section/" + sectionId)
-                .withIntervalMs(30_000)
-                .withPauseWhenOffScreen(true);
-
-        Section section = atomicBuilder.buildGameScheduleList(
-                sectionId, "live_games", "Live Now", new String[0][],
-                pollPolicy, null);
-        section.setContentSourceId(contentSourceId);
-        section.setSurface(surfaces.gameCardFlushSurface());
-        return section;
-    }
-
-    /**
-     * Build a static (or non-live) schedule list for upcoming / final games.
-     * Uses the 3-arg SectionIdDeriver form because multiple schedule lists
-     * share the same contentSourceId + sectionType (slug disambiguates).
-     */
-    private Section buildScheduleList(String slug, String analyticsId,
-                                      String title, List<Game> gamesList,
-                                      boolean live) {
-        String contentSourceId = "stats-api:scoreboard";
-        String sectionId = SectionIdDeriver.derive(contentSourceId, "GameScheduleList", slug);
-
-        String[][] rows = new String[gamesList.size()][];
-        for (int i = 0; i < gamesList.size(); i++) {
-            rows[i] = gameToRow(gamesList.get(i));
-        }
-        Section section = atomicBuilder.buildGameScheduleList(
-                sectionId, analyticsId, title, rows, staticPolicy(), null);
+                sectionId,
+                "games_game_" + gameId,
+                null,
+                new String[][]{ gameToRow(game) },
+                null,
+                dataBinding,
+                clockSnapshots);
+        section.setRefreshPolicy(refreshPolicies);
         section.setContentSourceId(contentSourceId);
         section.setSurface(surfaces.gameCardFlushSurface());
         return section;
@@ -550,8 +522,10 @@ public class LiveComposer {
 
     /**
      * Build per-row data bindings for all live games in the schedule list.
-     * Each game's SSE channel pushes linescore frames that update scores
-     * and the clock snapshot for its row.
+     * The section subscribes to a single SSE channel ({@code refreshPolicy.channel}
+     * = first live game's linescore); only the row whose gameId matches the
+     * channel's frames updates in real-time. Other rows refresh on the next
+     * full screen composition.
      */
     private DataBinding buildScheduleListBindings(List<Game> liveGames) {
         DataBinding dataBinding = new DataBinding();
@@ -559,7 +533,6 @@ public class LiveComposer {
 
         for (Game game : liveGames) {
             String gameId = game.getGameId() != null ? game.getGameId() : "0000000000";
-            // Per-row score bindings from the SSE linescore frame
             bindings.add(utils.bindingPath(
                     "$.homeTeam.score", "content." + gameId + ".homeScore"));
             bindings.add(utils.bindingPath(
@@ -571,14 +544,6 @@ public class LiveComposer {
         }
 
         dataBinding.setBindings(bindings);
-        // Multi-channel: the section subscribes to all live game channels.
-        // `channels` is not in the schema; ride additionalProperties.
-        java.util.List<String> channels = new java.util.ArrayList<>();
-        for (Game game : liveGames) {
-            String gameId = game.getGameId() != null ? game.getGameId() : "0000000000";
-            channels.add(gameId + ":linescore");
-        }
-        dataBinding.setAdditionalProperty("channels", channels);
         return dataBinding;
     }
 
@@ -682,38 +647,23 @@ public class LiveComposer {
      *   <li>2+ games: ad inserted after the section containing the second game</li>
      * </ul>
      *
-     * <p>The roster order is live → upcoming → final, mirroring the on-screen section
-     * order. The ad is inserted at the section boundary that contains the Nth game so
-     * that section integrity is preserved (we never split a status group). All
-     * dimensions, sizes, and creative metadata are server-owned on the emitted section.
+     * <p>The roster order is live → upcoming → final, mirroring the on-screen card
+     * order. All dimensions, sizes, and creative metadata are server-owned on the
+     * emitted section.
      *
      * <p>The {@code sections} list passed in must already include the {@code CalendarStrip}
-     * as the first entry and the per-status game sections in roster order; only those
-     * game sections participate in ad placement.
+     * as the first entry, promo as the second entry, and game-card sections after that;
+     * only game-card sections participate in ad placement.
      */
-    private void insertGamesScreenAdSlot(List<Section> sections, int liveCount, int upcomingCount, int finalCount) {
-        int totalGames = liveCount + upcomingCount + finalCount;
+    private void insertGamesScreenAdSlot(List<Section> sections, int gameCardCount) {
+        int totalGames = gameCardCount;
         if (totalGames == 0) return;
 
         int targetGameIndex = totalGames == 1 ? 1 : 2; // 1-based: after game N
-        int[] perStatusCounts = new int[]{ liveCount, upcomingCount, finalCount };
-
-        int sectionIndex = 0; // section index in the input list, relative to the first game section
         // CalendarStrip is index 0; League Pass promo banner is index 1;
         // game sections start at index 2.
         final int firstGameSectionIndex = 2;
-        int runningGameTotal = 0;
-        int insertAfter = -1;
-        for (int count : perStatusCounts) {
-            if (count == 0) continue;
-            runningGameTotal += count;
-            if (runningGameTotal >= targetGameIndex) {
-                insertAfter = firstGameSectionIndex + sectionIndex;
-                break;
-            }
-            sectionIndex++;
-        }
-        if (insertAfter < 0) return; // defensive — totalGames > 0 guarantees a match
+        int insertAfter = firstGameSectionIndex + targetGameIndex - 1;
 
         Section adSection = buildGamesScreenAdSlot();
         sections.add(insertAfter + 1, adSection);
@@ -736,7 +686,7 @@ public class LiveComposer {
 
         RefreshPolicy refreshPolicy = new RefreshPolicy();
         refreshPolicy.setType(RefreshPolicy.RefreshType.STATIC);
-        section.setRefreshPolicy(refreshPolicy);
+        section.setRefreshPolicy(List.of(refreshPolicy));
 
         AdSlot data = new AdSlot();
         data.setProvider("gam");

@@ -8,9 +8,11 @@
       "id": "live-clock-composite",
       "type": "AtomicComposite",
       "analyticsId": "live_clock_composite",
-      "refreshPolicy": {
-        "type": "static"
-      },
+      "refreshPolicy": [
+        {
+          "type": "static"
+        }
+      ],
       "surface": {
         "margin": {
           "top": 16,

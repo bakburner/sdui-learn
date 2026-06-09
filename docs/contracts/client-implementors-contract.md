@@ -91,9 +91,9 @@ Conditional elements show/hide based on state.
 
 | # | Component | What it does |
 |---|-----------|--------------|
-| 13 | **RefreshOrchestrator** | For each section with `refreshPolicy.type == "poll"`: schedule interval, fetch from `refreshPolicy.url` (or re-fetch screen), merge result. |
+| 13 | **RefreshOrchestrator** | Iterate each section's `refreshPolicy[]` elements. Run at most one opaque element (`sse` channel or `poll` `url`) and at most one section-refresh element (`poll` `sectionEndpoint`) concurrently; enforce extras defensively with warn+ignore. |
 | 14 | **fetchRawJson** | Fetch arbitrary JSON URL, optionally extract nested data via `refreshPolicy.dataPath` dot-notation. |
-| 15 | **RealTimeManager** | Connect to Ably. Token-based auth via `authUrl`. Subscribe to channels from `refreshPolicy.channel`. Parse messages as opaque `Map<String, Any>`. |
+| 15 | **RealTimeManager** | Connect to Ably. Token-based auth via `authUrl`. Subscribe to channels from the section's single opaque `sse` element (`refreshPolicy.channel`). Parse messages as opaque `Map<String, Any>`. |
 | 16 | **DataBindingResolver** | Apply bindings from real-time or poll messages to section data. Algorithm in §4. |
 | 17 | **Surgical section merge** | When refreshing, replace only the affected section's data — don't re-render the entire screen. |
 | 17a | **Visibility-gated refresh** | Pause poll/SSE for off-screen sections; resume on scroll-back. Respect `pauseWhenOffScreen` field. Algorithm in §8a. |
@@ -101,7 +101,7 @@ Conditional elements show/hide based on state.
 
 **Milestone:** Live scores update in `AtomicComposite` game-card sections
 via `bindRef` resolution against `data.content` (see §4b). Boxscore stats
-poll and refresh. Sections with `refreshPolicy.type == "static"` never
+poll and refresh. Sections with `refreshPolicy: [{ type: "static" }]` never
 refresh.
 
 ### Phase 4 — Section Renderers (domain-specific)
@@ -427,9 +427,9 @@ mirrors the keep-previous-value rule in §5 `applyBindings`.
 
 **What `bindRef` does *not* do.** It is a read-only lookup at render
 time. It does not fire analytics, it does not register bindings
-centrally, and it is not a substitute for `section.dataBindings`
+centrally, and it is not a substitute for `section.dataBinding`
 (which writes SSE / poll payloads into `content.*`). Think of it as
-the read side of a read/write pair where `dataBindings` is the write
+the read side of a read/write pair where `dataBinding` is the write
 side.
 
 ### 4c. `LiveClock` — client-owned tick animation
@@ -890,19 +890,29 @@ Owner note: `docs/appendix-kitchen-sink.md` needs a manual sweep for this trigge
 
 ## 7. Refresh & Polling Algorithm
 
-Each section carries a `refreshPolicy` that tells the client how and when
+Each section carries a `refreshPolicy` array that tells the client how and when
 to update its data. The client must not hardcode intervals or decide which
-sections to poll.
+sections to poll. `Screen.defaultRefreshPolicy` remains a separate single-object
+screen-level policy.
 
 ### RefreshPolicy Model
 
 ```
-RefreshPolicy:
+Section.refreshPolicy: RefreshPolicy[] (maxItems: 2)
+
+RefreshPolicy element:
     type: "static" | "poll" | "sse"
     intervalMs: integer?       // Poll interval in milliseconds
     url: string?               // Direct poll URL (bypass SDUI endpoint)
+    sectionEndpoint: string?   // Poll endpoint that returns a full Section replacement
     dataPath: string?          // Dot-path to extract nested data from poll response
-    channel: string?           // Ably channel name for SSE
+    channel: string?           // Subscription channel name for SSE (transport binding is a client implementation detail; Ably today)
+
+Array invariants:
+    - ≤1 opaque element (`type:sse + channel` OR `type:poll + url + intervalMs`)
+    - ≤1 section-refresh element (`type:poll + sectionEndpoint + intervalMs`)
+    - `type:static` is terminal and solo
+    - Cross-element invariants are server-validated; clients warn-and-ignore extras defensively
 ```
 
 ### Polling Orchestration
@@ -912,25 +922,41 @@ FUNCTION setupPolling(screen):
     stopAllActivePolls()
 
     FOR section IN screen.sections:
-        policy = section.refreshPolicy
-        IF policy IS NULL OR policy.type != "poll" OR policy.intervalMs IS NULL:
-            CONTINUE
+        policies = section.refreshPolicy ?? []
+        sectionRefresh = SELECT_ONE(policies, p -> p.type == "poll" AND p.sectionEndpoint IS NOT NULL)
+        opaquePoll = SELECT_ONE(policies, p -> p.type == "poll" AND p.url IS NOT NULL)
 
-        // Schedule repeating poll
-        SCHEDULE_REPEATING(intervalMs = policy.intervalMs):
-            TRY:
-                IF policy.url IS NOT NULL:
-                    // Direct URL poll (e.g., CDN feed)
-                    data = fetchRawJson(policy.url, policy.dataPath)
-                    updateSectionData(section.id, data)
-                ELSE:
-                    // Re-fetch entire screen, merge surgically
-                    updatedScreen = fetchScreen(currentEndpoint)
-                    mergeSections(updatedScreen)
-            CATCH error:
-                LOG_ERROR("Poll failed for section " + section.id + ": " + error)
-                // Do NOT remove the section or stop polling on transient failure
+        // Section refresh poll: fetch full Section, replace in place
+        IF sectionRefresh IS NOT NULL AND sectionRefresh.intervalMs IS NOT NULL:
+            SCHEDULE_REPEATING(intervalMs = sectionRefresh.intervalMs):
+                TRY:
+                    replacement = fetchSection(sectionRefresh.sectionEndpoint)
+                    replaceSection(section.id, replacement)
+                CATCH error:
+                    IF error.status == 404:
+                        markSectionStale(section.id)
+                        stopPollFor(section.id, "sectionEndpoint")
+                        // Retain node on screen (no removal path)
+                    ELSE:
+                        LOG_ERROR("Section poll failed for section " + section.id + ": " + error)
+
+        // Opaque URL poll: fetch JSON and apply section.dataBinding
+        IF opaquePoll IS NOT NULL AND opaquePoll.intervalMs IS NOT NULL:
+            SCHEDULE_REPEATING(intervalMs = opaquePoll.intervalMs):
+                TRY:
+                    data = fetchRawJson(opaquePoll.url, opaquePoll.dataPath)
+                    IF section.dataBinding IS NOT NULL:
+                        updatedData = applyBindings(section.data, data, section.dataBinding)
+                        updateSectionData(section.id, updatedData)
+                    ELSE:
+                        LOG_WARNING("Opaque poll payload without dataBinding for section " + section.id)
+                CATCH error:
+                    LOG_ERROR("Opaque poll failed for section " + section.id + ": " + error)
 ```
+
+`dataBinding` remains section-level and binds only to the section's single
+opaque element. `sectionEndpoint` polls ignore `dataBinding` because they return
+a full `Section` replacement.
 
 ### fetchRawJson (Direct Data Poll)
 
@@ -961,9 +987,8 @@ FUNCTION fetchRawJson(url, dataPath):
 
 ### Surgical Section Merge
 
-When a poll response arrives (either from `fetchRawJson` or a full screen
-re-fetch), update **only** the affected section's data — do not re-render
-the entire screen.
+When an opaque poll response arrives from `fetchRawJson`, update **only** the
+affected section's data — do not re-render the entire screen.
 
 ```
 FUNCTION updateSectionData(sectionId, newData):
@@ -976,12 +1001,26 @@ FUNCTION updateSectionData(sectionId, newData):
     LOG_WARNING("Section not found for update: " + sectionId)
 ```
 
+### In-place Section Replace
+
+When a `sectionEndpoint` poll response arrives, replace that section in place
+and re-evaluate the replacement section's full `refreshPolicy[]`.
+
+```
+FUNCTION replaceSection(sectionId, replacementSection):
+    ASSERT replacementSection.id == sectionId
+    currentScreen.sections = MAP(currentScreen.sections, section ->
+        section.id == sectionId ? replacementSection : section
+    )
+    restartRefreshDriversFor(sectionId)
+```
+
 ---
 
 ## 8. Real-Time (Ably SSE) Algorithm
 
-Sections with `refreshPolicy.type == "sse"` receive live updates via Ably
-channels.
+Sections with an opaque `sse` element in `refreshPolicy[]` receive live updates
+via Ably channels.
 
 ### Connection Lifecycle
 
@@ -1049,16 +1088,17 @@ FUNCTION subscribeToChannel(channelName, onMessage):
 ```
 FUNCTION setupRealTimeForScreen(screen):
     FOR section IN screen.sections:
-        policy = section.refreshPolicy
-        IF policy IS NULL OR policy.type != "sse" OR policy.channel IS NULL:
+        policies = section.refreshPolicy ?? []
+        opaqueSse = SELECT_ONE(policies, p -> p.type == "sse" AND p.channel IS NOT NULL)
+        IF opaqueSse IS NULL:
             CONTINUE
 
-        subscribeToChannel(policy.channel, message):
-            IF section.dataBindings IS NOT NULL:
-                updatedData = applyBindings(section.data, message, section.dataBindings)
+        subscribeToChannel(opaqueSse.channel, message):
+            IF section.dataBinding IS NOT NULL:
+                updatedData = applyBindings(section.data, message, section.dataBinding)
                 updateSectionData(section.id, updatedData)
             ELSE:
-                LOG_WARNING("SSE message received but no dataBindings for section " + section.id)
+                LOG_WARNING("SSE message received but no dataBinding for section " + section.id)
 ```
 
 ### Key Decisions
@@ -1070,6 +1110,8 @@ FUNCTION setupRealTimeForScreen(screen):
 | Reconnection | Ably SDK handles automatic reconnection; client logs state changes |
 | Channel cleanup | Unsubscribe on screen exit or section removal |
 | Missing bindings | Log warning; do not crash or discard message |
+| Data-binding scope | `dataBinding` applies only to the section's opaque element; section-refresh polls ignore it |
+| Section 404 behavior | Mark stale + stop that section's poll; retain node on screen |
 
 ---
 
@@ -1090,12 +1132,12 @@ a `LiveClock`) that should never go stale.
 
 ### sectionEndpoint and screen.defaultRefreshPolicy are mutually exclusive
 
-A section's `refreshPolicy.sectionEndpoint` and a non-static
+A section's `refreshPolicy[].sectionEndpoint` (if any element has one) and a non-static
 `screen.defaultRefreshPolicy` MUST NOT appear together on the same screen.
 
 When the screen has a non-static `defaultRefreshPolicy`, the screen is
 re-fetched as a whole. Every section — including any section that might
-otherwise warrant a `sectionEndpoint` poll — is replaced by the new
+otherwise warrant a `sectionEndpoint` poll element — is replaced by the new
 server composition. Adding per-section `sectionEndpoint` polls on top
 creates two owners for the same section content, with conflicting
 lifecycles and race conditions.
@@ -1107,11 +1149,11 @@ lifecycles and race conditions.
 | `static` | `sectionEndpoint`, `url`, `channel` |
 | `poll` or `sse` | `url`, `channel` only |
 
-**Client guard (required):** Before starting a `sectionEndpoint` poll for
-any section, the client MUST check whether `screen.defaultRefreshPolicy.type`
+**Client guard (required):** Before starting any `sectionEndpoint` poll element,
+the client MUST check whether `screen.defaultRefreshPolicy.type`
 is non-static. If it is, the client MUST:
 1. Emit a warning log identifying the screen and section IDs.
-2. Skip the `sectionEndpoint` poll for those sections.
+2. Skip all `sectionEndpoint` poll elements for those sections.
 3. Defer to the screen-level refresh policy for that section's content.
 
 ### App Background / Foreground (Phase 0)
@@ -1161,8 +1203,8 @@ FUNCTION isSectionNearViewport(sectionElement):
 ```
 FUNCTION setupPolling(screen):
     FOR section IN screen.sections:
-        policy = section.refreshPolicy
-        IF policy.type != "poll": CONTINUE
+        policy = SELECT_ONE(section.refreshPolicy ?? [], p -> p.type == "poll" AND p.url IS NOT NULL)
+        IF policy IS NULL: CONTINUE
 
         shouldPause = policy.pauseWhenOffScreen ?? true
 
@@ -1189,7 +1231,8 @@ FUNCTION setupPolling(screen):
 
 ```
 FUNCTION onSseMessage(section, message):
-    shouldPause = section.refreshPolicy.pauseWhenOffScreen ?? true
+    ssePolicy = SELECT_ONE(section.refreshPolicy ?? [], p -> p.type == "sse" AND p.channel IS NOT NULL)
+    shouldPause = ssePolicy?.pauseWhenOffScreen ?? true
     isForeground = isAppForeground
     isVisible = NOT shouldPause OR isSectionNearViewport(section.id)
 
@@ -1345,7 +1388,8 @@ family, one response shape, and one client-side application method.
 ### Section channel
 
 - **URL family:** `/v1/sdui/section/{id}` (poll via `sectionEndpoint`) and
-  SSE via `refreshPolicy.channel`.
+  SSE via a section `refreshPolicy[]` element with `type: "sse"` and
+  `channel`.
 - **Response:** a single `Section` object with `id` matching the requested
   section (never a `Screen`, never a list).
 - **Client semantic:** replace that one section in place by `id`. All other
@@ -1806,7 +1850,7 @@ easing curves come from `LayoutTokenResolver.motionEasing(token)`.
 | **Clock interpolation** | `LiveClock` primitive with `isRunning: true`, `snapshotSeconds`, `snapshotAt`, `tickDirection`, `stopAtSeconds`, `format` (see §4c) | Run the tick loop in §4c. Each frame's displayed value is `snapshotSeconds ± (now − snapshotAt)`, clamped by `stopAtSeconds`. When an SSE update rewrites `content.*`, `bindRef` re-resolves on next render and the tick loop re-anchors — no drift accumulation. Set `isRunning: false` to freeze on the snapshot value. |
 | **Color mixing** | Pre-computed hex colors | Server computes gradient tints from team colors at composition time. No runtime color math on clients. |
 | **Image load states** | `src` + `placeholder` on Image elements | Show loading placeholder → success image, or fall back to `placeholder` URL on failure. **iOS:** `AsyncImage { phase in }`. **Compose:** Coil `AsyncImage`. **Web:** `<img>` with `onError` fallback. |
-| **Pull-to-refresh** | `refreshPolicy: { type: "poll" }` on screen | Add platform pull-to-refresh gesture. **iOS:** `.refreshable {}`. **Compose:** `pullRefresh()`. **Web:** custom gesture or library. |
+| **Pull-to-refresh** | `defaultRefreshPolicy` on screen (single object; often `static`) | Add platform pull-to-refresh gesture. **iOS:** `.refreshable {}`. **Compose:** `pullRefresh()`. **Web:** custom gesture or library. |
 | **Opacity-based overlays** | `opacity: 0.7` on a Container element | Apply the opacity value directly. Used for duration badge backgrounds and faded states. |
 | **Shadow rendering** | `shadow` / `shadows[]` as `Shadow` object or `token:nba.shadow.*` string | Normalize with `LayoutTokenResolver.resolveShadowOrToken(...)`, then render. **SwiftUI:** `.shadow(color:radius:x:y:)` — exact match. **Compose:** `Modifier.shadow(elevation = radius * 1.5)` — approximation (offset not supported). **Web:** `box-shadow` — exact match. |
 | **Badge positioning** | `badge: { element, alignment }` on parent | **SwiftUI:** `.overlay(alignment:) { ... }`. **Compose:** `Box { content; Box(Modifier.align(...)) { ... } }`. **Web:** `position: relative` parent + `position: absolute` child. |

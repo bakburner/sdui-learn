@@ -911,7 +911,15 @@ data class Section (
     @get:JsonProperty(required=true)@field:JsonProperty(required=true)
     val id: String,
 
-    val refreshPolicy: RefreshPolicy? = null,
+    /**
+     * Array of concurrent refresh mechanisms (max 2): at most one opaque/streaming element (sse
+     * channel or url poll, consumes dataBinding) plus at most one section-refresh element
+     * (sectionEndpoint, full-replace). A static section is a single {type:static} element.
+     * Cross-element invariants (<=1 opaque, <=1 sectionEndpoint, static-solo) are validated
+     * server-side.
+     */
+    val refreshPolicy: List<RefreshPolicy>? = null,
+
     val sectionStates: SectionStates? = null,
 
     /**
@@ -1773,7 +1781,8 @@ enum class Transform(val value: String) {
 
 data class RefreshPolicy (
     /**
-     * For sse type: Ably channel name pattern (e.g., '{gameId}:linescore')
+     * For sse type: subscription channel name pattern (e.g., '{gameId}:linescore'). Transport
+     * binding is a client implementation detail.
      */
     val channel: String? = null,
 

@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import type { Section, SectionData, Action } from '@sdui/models';
+import type { Section, SectionData, Action, RefreshPolicy } from '@sdui/models';
 import { useRefreshPolicy, getEffectiveRefreshPolicy } from '../hooks/useRefreshPolicy';
 import { useSectionVisibility } from '../hooks/useSectionVisibility';
 import { useAppVisibility } from '../hooks/useAppVisibility';
@@ -12,13 +12,11 @@ interface LiveSectionWrapperProps {
   onAction: (action: Action | Action[]) => void;
   onStateChange: (key: string, value: unknown) => void;
   /** Optional screen-level default refresh policy */
-  defaultRefreshPolicy?: Section['refreshPolicy'];
+  defaultRefreshPolicy?: RefreshPolicy;
   /** Callback when section data channel becomes stale or recovers */
   onStalenessChange?: (sectionId: string, isStale: boolean) => void;
   /** Callback when a sectionEndpoint refresh returns a replacement section */
   onSectionReplace?: (section: Section) => void;
-  /** Callback when a sectionEndpoint refresh returns 404 — section is gone */
-  onSectionGone?: (sectionId: string) => void;
   /** Callback when the section endpoint signals the client schema is too old */
   onUpgradeRequired?: () => void;
   /** Screen-level traceId for log correlation */
@@ -39,7 +37,6 @@ export function LiveSectionWrapper({
   defaultRefreshPolicy,
   onStalenessChange,
   onSectionReplace,
-  onSectionGone,
   onUpgradeRequired,
   traceId,
   children,
@@ -62,22 +59,24 @@ export function LiveSectionWrapper({
   // Guard: sectionEndpoint and a non-static screen defaultRefreshPolicy are mutually exclusive.
   // The screen-level refresh owns the section when both are present.
   const screenIsRefreshing = defaultRefreshPolicy && defaultRefreshPolicy.type !== 'static';
-  if (section.refreshPolicy?.sectionEndpoint && screenIsRefreshing) {
+  const hasSectionEndpointPolicy = Boolean(section.refreshPolicy?.some((policy) => Boolean(policy.sectionEndpoint)));
+  if (hasSectionEndpointPolicy && screenIsRefreshing) {
     console.warn(
       `[LiveSectionWrapper] Section '${section.id}' has sectionEndpoint but screen defaultRefreshPolicy ` +
       `is '${defaultRefreshPolicy?.type}' — skipping sectionEndpoint poll; screen-level refresh owns this section.`
     );
   }
-  const effectivePolicy =
-    section.refreshPolicy?.sectionEndpoint && screenIsRefreshing ? undefined : baseEffectivePolicy;
+  const effectivePolicy = hasSectionEndpointPolicy && screenIsRefreshing
+    ? {
+      allPolicies: baseEffectivePolicy.allPolicies.filter((policy) => !policy.sectionEndpoint),
+      opaquePolicy: baseEffectivePolicy.opaquePolicy,
+      sectionRefreshPolicy: undefined,
+    }
+    : baseEffectivePolicy;
 
   // Determine if this section has refresh/binding capabilities
-  const hasRefreshPolicy = Boolean(effectivePolicy?.type && effectivePolicy.type !== 'static');
+  const hasRefreshPolicy = Boolean(effectivePolicy.opaquePolicy || effectivePolicy.sectionRefreshPolicy);
   const hasDataBindings = Boolean(section.dataBinding?.bindings?.length);
-
-  // Visibility-gated enabled: respects pauseWhenOffScreen from server + app visibility
-  const pauseWhenOffScreen = effectivePolicy?.pauseWhenOffScreen ?? true;
-  const enabled = hasRefreshPolicy && isAppVisible && (pauseWhenOffScreen ? isNearViewport : true);
 
   // Handle incoming data from poll/SSE
   const handleUpdate = useCallback((incomingPayload: unknown) => {
@@ -119,19 +118,16 @@ export function LiveSectionWrapper({
       return currentData;
     });
   }, [section.id, section.dataBinding, hasDataBindings, section.stringTable, traceId]);
-  const handleSectionGone = useCallback(() => {
-    onSectionGone?.(section.id);
-  }, [onSectionGone, section.id]);
-
   useRefreshPolicy({
     sectionId: section.id,
-    refreshPolicy: effectivePolicy,
+    refreshPolicy: effectivePolicy.allPolicies,
     onUpdate: handleUpdate,
     onSectionReplace,
-    onSectionGone: handleSectionGone,
     onStalenessChange,
     onUpgradeRequired,
-    enabled,
+    enabled: hasRefreshPolicy,
+    isAppVisible,
+    isNearViewport,
     correlationId: traceId,
   });
 
@@ -148,9 +144,17 @@ export function LiveSectionWrapper({
  * tearing down the old useRefreshPolicy instance and starting fresh with the new policy.
  */
 export function sectionPolicyKey(section: Section): string {
-  const p = section.refreshPolicy;
-  if (!p) return `${section.id}::static`;
-  return `${section.id}::${p.type}::${p.channel ?? p.sectionEndpoint ?? ''}`;
+  const policies = section.refreshPolicy;
+  if (!policies?.length) return `${section.id}::static`;
+  const fingerprint = policies
+    .map((policy) => [
+      policy.type,
+      policy.channel ?? '',
+      policy.sectionEndpoint ?? '',
+      String(policy.intervalMs ?? ''),
+    ].join(':'))
+    .join('|');
+  return `${section.id}::${fingerprint}`;
 }
 
 /**
@@ -159,7 +163,7 @@ export function sectionPolicyKey(section: Section): string {
  */
 export function useLiveData(
   section: Section,
-  defaultRefreshPolicy?: Section['refreshPolicy'],
+  defaultRefreshPolicy?: RefreshPolicy,
   traceId?: string,
 ): SectionData | undefined {
   const [liveData, setLiveData] = useState<SectionData | undefined>(section.data as SectionData | undefined);
@@ -169,7 +173,7 @@ export function useLiveData(
   }, [section.data]);
 
   const effectivePolicy = getEffectiveRefreshPolicy(section, defaultRefreshPolicy);
-  const hasRefreshPolicy = Boolean(effectivePolicy?.type && effectivePolicy.type !== 'static');
+  const hasRefreshPolicy = Boolean(effectivePolicy.opaquePolicy || effectivePolicy.sectionRefreshPolicy);
   const hasDataBindings = Boolean(section.dataBinding?.bindings?.length);
 
   const handleUpdate = useCallback((incomingPayload: unknown) => {
@@ -208,7 +212,7 @@ export function useLiveData(
 
   useRefreshPolicy({
     sectionId: section.id,
-    refreshPolicy: effectivePolicy,
+    refreshPolicy: effectivePolicy.allPolicies,
     onUpdate: handleUpdate,
     enabled: hasRefreshPolicy,
     correlationId: traceId,

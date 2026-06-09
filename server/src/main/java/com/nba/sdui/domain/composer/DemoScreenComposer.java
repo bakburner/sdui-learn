@@ -268,7 +268,7 @@ public class DemoScreenComposer {
         section.setAnalyticsId("season_leaders_table");
         RefreshPolicy refreshPolicy = new RefreshPolicy();
         refreshPolicy.setType(RefreshPolicy.RefreshType.STATIC);
-        section.setRefreshPolicy(refreshPolicy);
+        section.setRefreshPolicy(List.of(refreshPolicy));
 
         SeasonLeadersTable data = new SeasonLeadersTable();
 
@@ -653,7 +653,7 @@ public class DemoScreenComposer {
         section.setAnalyticsId("demo_stats_filter_form");
         RefreshPolicy refreshPolicy = new RefreshPolicy();
         refreshPolicy.setType(RefreshPolicy.RefreshType.STATIC);
-        section.setRefreshPolicy(refreshPolicy);
+        section.setRefreshPolicy(List.of(refreshPolicy));
 
         Form data = new Form();
         // Wide viewports (web/desktop) use horizontal form layout; narrow (phone/tablet/tv) use vertical
@@ -744,7 +744,7 @@ public class DemoScreenComposer {
         section.setAnalyticsId("demo_ad_slot");
         RefreshPolicy refreshPolicy = new RefreshPolicy();
         refreshPolicy.setType(RefreshPolicy.RefreshType.STATIC);
-        section.setRefreshPolicy(refreshPolicy);
+        section.setRefreshPolicy(List.of(refreshPolicy));
         section.setSurface(surfaces.adSlotSurface());
 
         AdSlot data = new AdSlot();
@@ -860,7 +860,7 @@ public class DemoScreenComposer {
         section.setAnalyticsId("demo_subscribe_upsell_banner");
         RefreshPolicy refreshStatic = new RefreshPolicy();
         refreshStatic.setType(RefreshPolicy.RefreshType.STATIC);
-        section.setRefreshPolicy(refreshStatic);
+        section.setRefreshPolicy(List.of(refreshStatic));
         section.setSurface(surfaces.subscribeSurface(
                 tokens.color("nba.label.accent.brand"),
                 "#862633",
@@ -908,7 +908,7 @@ public class DemoScreenComposer {
         section.setAnalyticsId("demo_subscribe_upsell_hero");
         RefreshPolicy refreshStatic = new RefreshPolicy();
         refreshStatic.setType(RefreshPolicy.RefreshType.STATIC);
-        section.setRefreshPolicy(refreshStatic);
+        section.setRefreshPolicy(List.of(refreshStatic));
         // Dark-blue surface token (resolves to the NBA tertiary blue family
         // across light/dark themes). Accent tokens like BRAND_NBA are for
         // labels — not backgrounds — so they're avoided here.
@@ -1147,7 +1147,7 @@ public class DemoScreenComposer {
 
         RefreshPolicy adRefresh = new RefreshPolicy();
         adRefresh.setType(RefreshPolicy.RefreshType.STATIC);
-        adSection.setRefreshPolicy(adRefresh);
+        adSection.setRefreshPolicy(List.of(adRefresh));
 
         SectionStates adStates = new SectionStates();
         com.nba.sdui.models.generated.ErrorState errorState =

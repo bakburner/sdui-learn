@@ -8,9 +8,11 @@
       "id": "utility-grid-section",
       "type": "AtomicComposite",
       "analyticsId": "utility_grid",
-      "refreshPolicy": {
-        "type": "static"
-      },
+      "refreshPolicy": [
+        {
+          "type": "static"
+        }
+      ],
       "data": {
         "ui": {
           "type": "Container",

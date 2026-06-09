@@ -22,6 +22,7 @@ This directory stores architecture decisions in chronological order.
 - [ADR-016: Update Channel Unification](./016-update-channel-unification.md)
 - [ADR-017: Transport-framing Exception](./017-transport-framing-exception.md)
 - [ADR-018: Generated Models Distribution — In-Tree Today, Packaged Tomorrow](./018-generated-models-distribution.md)
+- [ADR-019: Concurrent section refresh mechanisms](./019-concurrent-section-refresh-mechanisms.md)
 
 ## Templates
 

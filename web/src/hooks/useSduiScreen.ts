@@ -36,9 +36,6 @@ interface UseSduiScreenResult {
   replaceCurrentScreen: (endpoint: string, userParams?: Record<string, string>) => Promise<void>;
   /** Merge a replacement section into the current screen by section ID. */
   onSectionReplace: (section: Section) => void;
-  /** Remove a section from the current screen by section ID (used when a
-   *  section endpoint returns 404 — the section is gone from the feed). */
-  onSectionGone: (sectionId: string) => void;
 }
 
 /**
@@ -206,16 +203,6 @@ export function useSduiScreen(options: UseSduiScreenOptions): UseSduiScreenResul
     });
   }, []);
 
-  const handleSectionGone = useCallback((sectionId: string) => {
-    setScreen((current) => {
-      if (!current) return current;
-      const idx = current.sections.findIndex((s) => s.id === sectionId);
-      if (idx < 0) return current;
-      const sections = current.sections.filter((s) => s.id !== sectionId);
-      return { ...current, sections };
-    });
-  }, []);
-
   return {
     screen,
     shellScreen,
@@ -227,6 +214,5 @@ export function useSduiScreen(options: UseSduiScreenOptions): UseSduiScreenResul
     setScreen,
     replaceCurrentScreen,
     onSectionReplace: handleSectionReplace,
-    onSectionGone: handleSectionGone,
   };
 }

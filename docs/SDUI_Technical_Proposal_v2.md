@@ -75,7 +75,7 @@ What the SDUI response payload carries and what each subsystem does. Each row li
 | Capability | What the server sends | What the client does | Detail |
 |---|---|---|---|
 | **Hybrid rendering** | Dual-layer section model: semantic section types (`BoxscoreTable`, `Form`, `TabGroup`, …) for domain renderers with client-owned state, plus `AtomicComposite` trees of 12 atomic element types for server-composed layouts. `SectionSlot` bridges atomic → section; `data.ui` carries the atomic tree, `data.content` carries bindable domain data. Semantic sections may carry an optional `data.ui` — when present the server owns presentation (visual redesigns without releases) while the client owns only the stateful behavior that justified the section. | `SectionRouter` dispatches by `type`; `AtomicRouter` renders atomic trees generically. No business logic in atomic renderers. | [§2 Schema Design](#2-schema-design), [§2a Atomic Element Layer](#2a-atomic-element-layer), [§2b Section vs. Atomic Decision Framework](#2b-section-vs-atomic-decision-framework) |
-| **Data binding & refresh** | `refreshPolicy` (static / poll / sse), field-level `dataBindings` with JSONPath source → target mappings, `stringKeys` for i18n on bound fields, `pauseWhenOffScreen` | Opens channels, patches fields, tracks staleness per section, pauses off-screen sections | [§3 Data Binding System](#3-data-binding-system) |
+| **Data binding & refresh** | section-level `refreshPolicy` array (static / poll / sse), field-level `dataBinding` with JSONPath source → target mappings, `stringKeys` for i18n on bound fields, `pauseWhenOffScreen` | Opens channels, patches fields, tracks staleness per section, pauses off-screen sections | [§3 Data Binding System](#3-data-binding-system) |
 | **Action system** | `actions` array on sections and subsections — 6 action types (`navigate`, `fireAndForget`, `mutate`, `dismiss`, `refresh`, `toast`), 8 interaction triggers (`onActivate`, `onTap` (deprecated), `onLongPress`, `onVisible`, `onSwipe`, `onFocus`, `onBlur`, `onSubmit`), per-action `onFailure` policy, ordered execution | Generic executor dispatches in declared order; `fireAndForget` before navigate; failure policy halts or continues the chain | [§4 Action System](#4-action-system) |
 | **Screen state** | `state` field on sections — initial values for tabs, toggles, accordions, sort columns; `mutate` actions write to state keys | `ScreenStateManager` holds mutable state, drives recomposition on change | [§5 Screen-Level State Management](#5-screen-level-state-management) |
 | **Design system** | Three-layer token architecture: inline style primitives, semantic `variant` per element type, `token:nba.color.*` / `token:nba.label.*` references. Registries: `style-tokens.json`, `color-tokens.json` | Per-platform `AtomicBox` execution path resolves variants to native idioms (Liquid Glass / Material 3 / CSS); `ColorTokenResolver` picks light/dark at render time | [§2c Design System Integration](#2c-design-system-integration), [`sdui-design-system.md`](design/sdui-design-system.md) |
@@ -139,21 +139,22 @@ Every response follows `Screen -> Section -> Component`, where each section can 
 
 ```json
 {
-  "meta": { "schemaVersion": "1.1" },
-  "screen": {
+  "data": {
     "id": "game-detail",
+    "schemaVersion": "1.0",
     "parentUri": "nba://scoreboard",
     "sections": [
       {
         "id": "scoreboard-001",
         "type": "AtomicComposite",
         "data": { "ui": { "...":  "server-composed game card tree" }, "gameId": "0022500384", "...": "..." },
-        "refreshPolicy": { "type": "sse", "channel": "{gameId}:linescore" },
-        "dataBindings": { "bindings": [ { "sourcePath": "$.home.score", "targetPath": "home.score" } ] },
+        "refreshPolicy": [ { "type": "sse", "channel": "{gameId}:linescore" } ],
+        "dataBinding": { "bindings": [ { "sourcePath": "$.home.score", "targetPath": "home.score" } ] },
         "actions": [ { "trigger": "onTap", "type": "navigate", "targetUri": "nba://game/0022500384/boxscore" } ]
       }
     ]
-  }
+  },
+  "meta": { "degraded": false, "staleSections": [], "failedSections": [] }
 }
 ```
 
@@ -198,8 +199,12 @@ action targets is sufficient.
         "id": { "type": "string" },
         "type": { "type": "string" },
         "data": { "type": "object" },
-        "refreshPolicy": { "$ref": "#/definitions/RefreshPolicy" },
-        "dataBindings": { "$ref": "#/definitions/DataBindings" },
+        "refreshPolicy": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/RefreshPolicy" },
+          "maxItems": 2
+        },
+        "dataBinding": { "$ref": "#/definitions/DataBinding" },
         "actions": {
           "type": "array",
           "items": { "$ref": "#/definitions/Action" }
@@ -346,7 +351,7 @@ The server declares how section fields stay fresh after initial render.
 ### Field-Level Binding Example
 
 ```json
-"dataBindings": {
+"dataBinding": {
   "bindings": [
     { "sourcePath": "$.homeTeam.score", "targetPath": "homeTeam.score" },
     { "sourcePath": "$.awayTeam.score", "targetPath": "awayTeam.score" },
@@ -573,7 +578,7 @@ Each client platform builds these systems once:
 | System             | Responsibility                                | Inputs                           |
 | ------------------ | --------------------------------------------- | -------------------------------- |
 | Section Router     | section type -> native renderer mapping       | `section.type`                   |
-| State Manager      | apply binding patches, hold observable models | `refreshPolicy`, `dataBindings`  |
+| State Manager      | apply binding patches, hold observable models | `refreshPolicy`, `dataBinding`  |
 | Action Executor    | dispatch action chains to app systems         | `actions`                        |
 | Screen State Store | shared mutable screen state                   | `screen.state`, `mutate` actions |
 | Channel Manager    | polling/SSE lifecycle and reconnect policy    | section refresh config           |
@@ -747,7 +752,7 @@ Operational-hardening items remaining:
 - Client-authoritative assignment via Amplitude SDK.
 - Server trusts assignments and uses them for composition branching.
 - Server kill switch can reject disabled variants (fallback to control).
-- Response must echo final assignment used.
+- Response echo of the final assignment used — **not implemented**: the server branches composition on the request `experiments` map but does not echo an assignment back (the response `meta` is `ResponseMeta` = `degraded`/`staleSections`/`failedSections` only).
 
 Reference: ADR-006
 
@@ -805,7 +810,7 @@ The composition server pre-translates all text in the initial response based on 
 - General-purpose mechanism — applies to any string field arriving via a binding (status text, player names, team names, labels, etc.). The server decides which fields need keys.
 
 ```json
-"dataBindings": {
+"dataBinding": {
   "bindings": [
     { "sourcePath": "$.homeTeam.score", "targetPath": "homeTeam.score" },
     { "sourcePath": "$.gameStatusText", "targetPath": "gameStatusText" }
@@ -930,6 +935,7 @@ The alternative is duplicated platform composition logic and drift in feature be
 
 | Date | Summary |
 |---|---|
+| 2026-06-09 | Reconciled JSON examples and schema fragments with the live schema: `Section.refreshPolicy` is a bounded array (maxItems 2), `dataBinding` (singular), `intervalMs`, transport envelope `{data, meta}` with `schemaVersion` on the screen and `meta` as the implemented `ResponseMeta` (`degraded`/`staleSections`/`failedSections`). Removed non-schema `retryMs`/`intervalSec` and non-emitted `meta.assignment`/`meta.cacheability` (experiments arrive in the request envelope; cacheability is an HTTP `Cache-Control` header). |
 | 2026-05-27 | Doc consistency audit. Section count 10 → 11 (`CalendarMonthList` added as semantic section); semantic-section count 9 → 10 in atomic-layer narrative. |
 | 2026-05-25 | Box-model architectural cleanup. Removed `SectionLayoutHints` from the schema. Section outer chrome (margin, padding, background, cornerRadius, shadow, border) now flows through a single ownership path: `Section.surface` consumed by the shared `SectionContainer`. Inter-section margins live in `Section.surface.margin`. ADR-008 superseded; successor ADR documents the box-model cascade (`docs/design/sdui-design-system.md §2`). | Doc consistency audit. §9m bullets rewritten from the stale layoutHints model (`Server provides layout intent` / `Client applies native best-fit rules` / `Contract defines fallback behavior for unsupported hints`) to the single chrome path (`Section.surface` → `SectionContainer`, inter-section margins via `Section.surface.margin`, cross-reference to design-system §2). §9m reference updated from ADR-008 to ADR-015 (supersedes ADR-008). ADR Status Summary: ADR-008 moved from Accepted to a new Superseded line; ADR-015 added under Accepted. §11b roadmap item: layout strategy reference updated from ADR-008/Option C to ADR-015 supersedes ADR-008. |
 | 2026-05-24 | Doc consistency audit. Terminology: `fire-and-forget` → `` `fireAndForget` `` (×3, in capability map and §11). ADR Status Summary: merged `Proposed (draft)` tier into `Proposed` — ADR-011 and ADR-012 listed as `Proposed` (matches actual ADR file headers). | Doc consistency audit: updated URI resolution convention to `/v1/sdui/screen/{path}` — removed stale legacy exception note (old game-detail path retired). Updated GET/POST fallback examples in envelope spec. | Doc consistency audit: added element-level action scope to §4, added the current cross-platform trigger-hosting matrix, and synced the action-system narrative with the trigger-alignment work. |
@@ -998,15 +1004,10 @@ The `device` object carries device signals that the composition service may use 
 
 ```json
 {
-  "meta": {
-    "schemaVersion": "1.1",
-    "assignment": {
-      "gd_tab_order_v2": "server_variant_a"
-    },
-    "cacheability": "contextual"
-  },
-  "screen": {
+  "data": {
     "id": "game-detail",
+    "schemaVersion": "1.0",
+    "parentUri": "nba://scoreboard",
     "state": {
       "selectedTab": "recap",
       "expandedCards": []
@@ -1042,12 +1043,10 @@ The `device` object carries device signals that the composition service may use 
           "gameStatusText": "4:32 Q3",
           "period": 3
         },
-        "refreshPolicy": {
-          "type": "sse",
-          "channel": "0022500384:linescore",
-          "retryMs": 1500
-        },
-        "dataBindings": {
+        "refreshPolicy": [
+          { "type": "sse", "channel": "0022500384:linescore" }
+        ],
+        "dataBinding": {
           "bindings": [
             { "sourcePath": "$.homeTeam.score", "targetPath": "homeTeam.score" },
             { "sourcePath": "$.awayTeam.score", "targetPath": "awayTeam.score" },
@@ -1108,11 +1107,9 @@ The `device` object carries device signals that the composition service may use 
             ]
           }
         },
-        "refreshPolicy": {
-          "type": "poll",
-          "intervalSec": 30,
-          "url": "https://cdn.nba.com/static/json/liveData/boxscore/boxscore_0022500384.json"
-        },
+        "refreshPolicy": [
+          { "type": "poll", "intervalMs": 30000, "url": "https://cdn.nba.com/static/json/liveData/boxscore/boxscore_0022500384.json" }
+        ],
         "actions": [
           {
             "trigger": "onVisible",
@@ -1150,7 +1147,7 @@ The `device` object carries device signals that the composition service may use 
           },
           "collapse_on_empty": true
         },
-        "refreshPolicy": { "type": "static" }
+        "refreshPolicy": [ { "type": "static" } ]
       },
       {
         "id": "content-rail-001",
@@ -1171,20 +1168,21 @@ The `device` object carries device signals that the composition service may use 
             ]
           }
         },
-        "refreshPolicy": { "type": "static" },
+        "refreshPolicy": [ { "type": "static" } ],
         "actions": [
           { "trigger": "onTap", "type": "navigate", "targetUri": "nba://game/{itemId}" }
         ]
       }
     ]
-  }
+  },
+  "meta": { "degraded": false, "staleSections": [], "failedSections": [] }
 }
 ```
 
 This expanded example demonstrates:
 
 - typed request envelope as composition input
-- server-echoed experiment assignment
+- experiment-driven composition branching (variant supplied via the request envelope `experiments` map)
 - screen/section/subsection action scopes
 - precedence-compatible nested actions
 - mixed refresh policies (sse, poll, static)
@@ -1200,12 +1198,10 @@ A composed boxscore screen using `TabGroup` to toggle between teams, each tab co
 
 ```json
 {
-  "meta": {
-    "schemaVersion": "1.2",
-    "cacheability": "live"
-  },
-  "screen": {
+  "data": {
     "id": "game-boxscore",
+    "schemaVersion": "1.0",
+    "parentUri": "nba://scoreboard",
     "state": {
       "boxscore_team": "BKN",
       "boxscore_away_sortCol": "points",
@@ -1292,11 +1288,9 @@ A composed boxscore screen using `TabGroup` to toggle between teams, each tab co
           "sortDirectionStateKey": "boxscore_away_sortDir",
           "emptyMessage": null
         },
-        "refreshPolicy": {
-          "type": "poll",
-          "intervalSec": 30,
-          "url": "https://cdn.nba.com/static/json/liveData/boxscore/boxscore_0022500384.json"
-        },
+        "refreshPolicy": [
+          { "type": "poll", "intervalMs": 30000, "url": "https://cdn.nba.com/static/json/liveData/boxscore/boxscore_0022500384.json" }
+        ],
         "actions": [
           {
             "trigger": "onVisible",
@@ -1307,7 +1301,8 @@ A composed boxscore screen using `TabGroup` to toggle between teams, each tab co
         ]
       }
     ]
-  }
+  },
+  "meta": { "degraded": false, "staleSections": [], "failedSections": [] }
 }
 ```
 

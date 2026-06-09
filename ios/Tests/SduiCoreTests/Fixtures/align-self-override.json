@@ -7,9 +7,11 @@
     {
       "id": "align-self-section",
       "type": "AtomicComposite",
-      "refreshPolicy": {
-        "type": "static"
-      },
+      "refreshPolicy": [
+        {
+          "type": "static"
+        }
+      ],
       "data": {
         "ui": {
           "id": "align-self-root",

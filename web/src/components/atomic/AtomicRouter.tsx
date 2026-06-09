@@ -25,7 +25,6 @@ export interface AtomicProps {
   sectionSlotDepth?: number;
   /** Section refresh callbacks propagated to nested SectionSlot children. */
   onSectionReplace?: (section: Section) => void;
-  onSectionGone?: (sectionId: string) => void;
 }
 
 /**
@@ -48,14 +47,13 @@ export function AtomicRouter({
   onStateChange,
   sectionSlotDepth = 0,
   onSectionReplace,
-  onSectionGone,
 }: AtomicProps): React.ReactElement | null {
   if (depth > MAX_TREE_DEPTH) {
     console.warn(`[AtomicRouter] Max tree depth (${MAX_TREE_DEPTH}) exceeded — skipping element: ${element.type}`);
     return null;
   }
   const childDepth = depth + 1;
-  const childProps = { state, onAction, onStateChange, sectionSlotDepth, onSectionReplace, onSectionGone };
+  const childProps = { state, onAction, onStateChange, sectionSlotDepth, onSectionReplace };
 
   switch (element.type) {
     case 'Container':

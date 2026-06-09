@@ -8,9 +8,11 @@
       "id": "game-pre-0042300101",
       "type": "AtomicComposite",
       "analyticsId": "game_panel_0042300101",
-      "refreshPolicy": {
-        "type": "static"
-      },
+      "refreshPolicy": [
+        {
+          "type": "static"
+        }
+      ],
       "surface": {
         "margin": {
           "top": 0,
@@ -151,11 +153,13 @@
       "id": "game-live-0042300102",
       "type": "AtomicComposite",
       "analyticsId": "game_panel_0042300102",
-      "refreshPolicy": {
-        "type": "sse",
-        "channel": "0042300102:linescore",
-        "pauseWhenOffScreen": false
-      },
+      "refreshPolicy": [
+        {
+          "type": "sse",
+          "channel": "0042300102:linescore",
+          "pauseWhenOffScreen": false
+        }
+      ],
       "dataBinding": {
         "bindings": [
           {
@@ -343,9 +347,11 @@
       "id": "game-final-0042300103",
       "type": "AtomicComposite",
       "analyticsId": "game_panel_0042300103",
-      "refreshPolicy": {
-        "type": "static"
-      },
+      "refreshPolicy": [
+        {
+          "type": "static"
+        }
+      ],
       "surface": {
         "margin": {
           "top": 0,

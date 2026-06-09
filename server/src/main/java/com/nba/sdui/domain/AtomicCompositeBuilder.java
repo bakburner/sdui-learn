@@ -47,8 +47,8 @@ public class AtomicCompositeBuilder {
         section.setId(id);
         section.setType(Section.Type.fromValue("AtomicComposite"));
         if (analyticsId != null) section.setAnalyticsId(analyticsId);
-        section.setRefreshPolicy(new RefreshPolicy()
-                .withType(RefreshPolicy.RefreshType.fromValue("static")));
+        section.setRefreshPolicy(List.of(new RefreshPolicy()
+                .withType(RefreshPolicy.RefreshType.fromValue("static"))));
         return section;
     }
 
@@ -56,7 +56,7 @@ public class AtomicCompositeBuilder {
     private Section newSection(String id, String analyticsId, RefreshPolicy refreshPolicy) {
         Section section = newSection(id, analyticsId);
         if (refreshPolicy != null) {
-            section.setRefreshPolicy(refreshPolicy);
+            section.setRefreshPolicy(List.of(refreshPolicy));
         }
         return section;
     }
@@ -3333,7 +3333,7 @@ public class AtomicCompositeBuilder {
 
     public void attachRefreshPolicy(Section section, RefreshPolicy refreshPolicy) {
         if (section == null || refreshPolicy == null) return;
-        section.setRefreshPolicy(refreshPolicy);
+        section.setRefreshPolicy(List.of(refreshPolicy));
     }
 
     /**

@@ -13,7 +13,40 @@ final class ScreenRoundTripTests: XCTestCase {
             Bundle.module.url(forResource: name, withExtension: "json", subdirectory: "Fixtures"),
             "Missing fixture Fixtures/\(name).json"
         )
-        return try Data(contentsOf: url)
+        let data = try Data(contentsOf: url)
+        return try normalizeRefreshPolicyArrays(in: data)
+    }
+
+    private func normalizeRefreshPolicyArrays(in data: Data) throws -> Data {
+        guard var root = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return data
+        }
+        root = normalizeRefreshPolicyArrays(in: root)
+        return try JSONSerialization.data(withJSONObject: root)
+    }
+
+    private func normalizeRefreshPolicyArrays(in dict: [String: Any]) -> [String: Any] {
+        var normalized = dict
+        for (key, value) in dict {
+            if key == "refreshPolicy", let policyObject = value as? [String: Any] {
+                normalized[key] = [normalizeRefreshPolicyArrays(in: policyObject)]
+                continue
+            }
+            switch value {
+            case let childDict as [String: Any]:
+                normalized[key] = normalizeRefreshPolicyArrays(in: childDict)
+            case let childArray as [Any]:
+                normalized[key] = childArray.map { element -> Any in
+                    if let dictElement = element as? [String: Any] {
+                        return normalizeRefreshPolicyArrays(in: dictElement)
+                    }
+                    return element
+                }
+            default:
+                break
+            }
+        }
+        return normalized
     }
 
     func testGameDetailLiveDecodes() throws {
@@ -35,7 +68,7 @@ final class ScreenRoundTripTests: XCTestCase {
     /// migrated section shape.
     private func isLiveGamePanelComposite(_ section: Section) -> Bool {
         guard section.type == "AtomicComposite" else { return false }
-        guard let channel = section.refreshPolicy?.channel else { return false }
+        guard let channel = section.refreshPolicy?.first(where: { $0.type == .sse })?.channel else { return false }
         return channel.hasSuffix(":linescore")
     }
 
@@ -93,7 +126,7 @@ final class ScreenRoundTripTests: XCTestCase {
         let data = try loadFixture("game-detail-live")
         let screen = try Screen(data: data)
         let gamePanel = try XCTUnwrap(screen.sections.first(where: isLiveGamePanelComposite))
-        let policy = try XCTUnwrap(gamePanel.refreshPolicy)
+        let policy = try XCTUnwrap(gamePanel.refreshPolicy?.first(where: { $0.type == .sse }))
         XCTAssertEqual(policy.pauseWhenOffScreen, false,
                        "Live game panel SSE section should have pauseWhenOffScreen=false")
     }
@@ -102,10 +135,10 @@ final class ScreenRoundTripTests: XCTestCase {
         let data = try loadFixture("game-detail-live")
         let screen = try Screen(data: data)
         // Find a section whose refreshPolicy does NOT include pauseWhenOffScreen
-        let pollSection = screen.sections.first(where: {
-            $0.refreshPolicy?.type == .poll
+        let pollSection = screen.sections.first(where: { section in
+            section.refreshPolicy?.contains(where: { $0.type == .poll }) == true
         })
-        if let pollPolicy = pollSection?.refreshPolicy {
+        if let pollPolicy = pollSection?.refreshPolicy?.first(where: { $0.type == .poll }) {
             XCTAssertNil(pollPolicy.pauseWhenOffScreen,
                          "Sections without explicit pauseWhenOffScreen should decode as nil (client defaults to true)")
         }

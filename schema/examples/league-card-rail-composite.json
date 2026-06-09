@@ -8,9 +8,11 @@
       "id": "league-rail-section",
       "type": "AtomicComposite",
       "analyticsId": "league_rail",
-      "refreshPolicy": {
-        "type": "static"
-      },
+      "refreshPolicy": [
+        {
+          "type": "static"
+        }
+      ],
       "data": {
         "ui": {
           "type": "Container",

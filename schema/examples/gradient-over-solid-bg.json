@@ -7,9 +7,11 @@
     {
       "id": "stacked-bg-section",
       "type": "AtomicComposite",
-      "refreshPolicy": {
-        "type": "static"
-      },
+      "refreshPolicy": [
+        {
+          "type": "static"
+        }
+      ],
       "data": {
         "ui": {
           "id": "stacked-bg-root",

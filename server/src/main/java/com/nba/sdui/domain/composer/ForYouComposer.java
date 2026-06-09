@@ -644,7 +644,7 @@ public class ForYouComposer {
         section.setContentSourceId(contentSourceId);
         RefreshPolicy refreshPolicy = new RefreshPolicy();
         refreshPolicy.setType(RefreshPolicy.RefreshType.STATIC);
-        section.setRefreshPolicy(refreshPolicy);
+        section.setRefreshPolicy(List.of(refreshPolicy));
         section.setSurface(surfaces.adSlotSurface());
 
         AdSlot data = new AdSlot();

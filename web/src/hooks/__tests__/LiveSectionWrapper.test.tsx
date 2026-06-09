@@ -19,7 +19,14 @@ vi.mock('../../hooks/useAppVisibility', () => ({
 const mockUseRefreshPolicy = vi.fn();
 vi.mock('../../hooks/useRefreshPolicy', () => ({
   useRefreshPolicy: (opts: unknown) => mockUseRefreshPolicy(opts),
-  getEffectiveRefreshPolicy: (section: Section) => section.refreshPolicy,
+  getEffectiveRefreshPolicy: (section: Section) => {
+    const allPolicies = section.refreshPolicy ?? [];
+    return {
+      allPolicies,
+      opaquePolicy: allPolicies.find((policy) => Boolean(policy.channel || policy.url)),
+      sectionRefreshPolicy: allPolicies.find((policy) => Boolean(policy.sectionEndpoint)),
+    };
+  },
 }));
 
 vi.mock('../../runtime/DataBindingApplier', () => ({
@@ -45,7 +52,7 @@ function makeSection(overrides: Partial<Section> = {}): Section {
     id: 'section-1',
     type: 'AtomicComposite',
     data: { title: 'Hello' },
-    refreshPolicy: { type: RefreshType.Poll, intervalMs: 5000, url: '/api/poll', pauseWhenOffScreen: true },
+    refreshPolicy: [{ type: RefreshType.Poll, intervalMs: 5000, url: '/api/poll', pauseWhenOffScreen: true }],
     ...overrides,
   } as Section;
 }
@@ -73,12 +80,12 @@ describe('LiveSectionWrapper — visibility gating', () => {
     );
   });
 
-  it('passes enabled=false when section is off-screen (pauseWhenOffScreen=true)', () => {
+  it('passes visibility flags when section is off-screen (pauseWhenOffScreen=true)', () => {
     visibilityState = false;
     appVisibilityState = true;
 
     const section = makeSection({
-      refreshPolicy: { type: RefreshType.Poll, intervalMs: 5000, url: '/api/poll', pauseWhenOffScreen: true },
+      refreshPolicy: [{ type: RefreshType.Poll, intervalMs: 5000, url: '/api/poll', pauseWhenOffScreen: true }],
     });
 
     render(
@@ -93,7 +100,7 @@ describe('LiveSectionWrapper — visibility gating', () => {
     );
 
     expect(mockUseRefreshPolicy).toHaveBeenCalledWith(
-      expect.objectContaining({ enabled: false }),
+      expect.objectContaining({ enabled: true, isNearViewport: false, isAppVisible: true }),
     );
   });
 
@@ -102,7 +109,7 @@ describe('LiveSectionWrapper — visibility gating', () => {
     appVisibilityState = true;
 
     const section = makeSection({
-      refreshPolicy: { type: RefreshType.SSE, channel: 'game:1', pauseWhenOffScreen: false },
+      refreshPolicy: [{ type: RefreshType.SSE, channel: 'game:1', pauseWhenOffScreen: false }],
     });
 
     render(
@@ -121,7 +128,7 @@ describe('LiveSectionWrapper — visibility gating', () => {
     );
   });
 
-  it('passes enabled=false when app is backgrounded', () => {
+  it('passes app visibility when app is backgrounded', () => {
     visibilityState = true;
     appVisibilityState = false;
 
@@ -139,16 +146,16 @@ describe('LiveSectionWrapper — visibility gating', () => {
     );
 
     expect(mockUseRefreshPolicy).toHaveBeenCalledWith(
-      expect.objectContaining({ enabled: false }),
+      expect.objectContaining({ enabled: true, isNearViewport: true, isAppVisible: false }),
     );
   });
 
-  it('passes enabled=false when app backgrounded even with pauseWhenOffScreen=false', () => {
+  it('passes app visibility when backgrounded with pauseWhenOffScreen=false', () => {
     visibilityState = true;
     appVisibilityState = false;
 
     const section = makeSection({
-      refreshPolicy: { type: RefreshType.SSE, channel: 'game:1', pauseWhenOffScreen: false },
+      refreshPolicy: [{ type: RefreshType.SSE, channel: 'game:1', pauseWhenOffScreen: false }],
     });
 
     render(
@@ -163,16 +170,16 @@ describe('LiveSectionWrapper — visibility gating', () => {
     );
 
     expect(mockUseRefreshPolicy).toHaveBeenCalledWith(
-      expect.objectContaining({ enabled: false }),
+      expect.objectContaining({ enabled: true, isNearViewport: true, isAppVisible: false }),
     );
   });
 
-  it('defaults pauseWhenOffScreen to true when not specified', () => {
+  it('defaults pauseWhenOffScreen to true when not specified in policy element', () => {
     visibilityState = false;
     appVisibilityState = true;
 
     const section = makeSection({
-      refreshPolicy: { type: RefreshType.Poll, intervalMs: 5000, url: '/api/poll' },
+      refreshPolicy: [{ type: RefreshType.Poll, intervalMs: 5000, url: '/api/poll' }],
     });
 
     render(
@@ -186,9 +193,8 @@ describe('LiveSectionWrapper — visibility gating', () => {
       </LiveSectionWrapper>,
     );
 
-    // Default true + off-screen → enabled=false
     expect(mockUseRefreshPolicy).toHaveBeenCalledWith(
-      expect.objectContaining({ enabled: false }),
+      expect.objectContaining({ enabled: true, isNearViewport: false, isAppVisible: true }),
     );
   });
 

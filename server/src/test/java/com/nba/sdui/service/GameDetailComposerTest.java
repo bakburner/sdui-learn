@@ -34,10 +34,21 @@ class GameDetailComposerTest {
     void liveGameDetailResponseDoesNotEmitTopLevelType() throws Exception {
         StatsApiClient statsApiClient = mock(StatsApiClient.class);
         BoxscoreComposer boxscoreComposer = mock(BoxscoreComposer.class);
+        com.nba.sdui.domain.composer.LiveComposer liveComposer = mock(com.nba.sdui.domain.composer.LiveComposer.class);
+        when(liveComposer.buildGameCardSection(
+                any(com.nba.sdui.integration.model.boxscore.BoxscoreGame.class),
+                anyString(), anyString(), anyString()))
+                .thenAnswer(invocation -> {
+                    Section section = new Section();
+                    section.setId("game-card-stub");
+                    section.setType(Section.Type.fromValue("AtomicComposite"));
+                    section.setData(objectMapper.createObjectNode());
+                    return section;
+                });
         SduiUtils utils = new SduiUtils(objectMapper, TestTokens.INSTANCE);
         SectionSurfaces surfaces = new SectionSurfaces(objectMapper, utils, TestTokens.INSTANCE);
         SectionRefreshService sectionRefreshService = mock(SectionRefreshService.class);
-        GameDetailComposer composer = new GameDetailComposer(new StatsApiAdapter(statsApiClient), boxscoreComposer, sectionRefreshService, utils, surfaces, TestTokens.INSTANCE);
+        GameDetailComposer composer = new GameDetailComposer(new StatsApiAdapter(statsApiClient), boxscoreComposer, liveComposer, sectionRefreshService, utils, surfaces, TestTokens.INSTANCE);
         ReflectionTestUtils.setField(composer, "schemaVersion", "1.0");
 
         JsonNode liveBoxscore = objectMapper.readTree("""

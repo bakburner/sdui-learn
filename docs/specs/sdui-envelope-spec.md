@@ -401,6 +401,15 @@ in a hand-written transport envelope at the SDUI controller edge:
 channel, a single `Section` on the section channel. `meta` is hand-written
 transport framing for partial-failure metadata.
 
+Refresh semantics remain schema-bound inside `.data`:
+
+- `Screen.defaultRefreshPolicy` is a single `RefreshPolicy` object (or absent).
+- `Section.refreshPolicy` is a bounded `RefreshPolicy[]` (`maxItems: 2`),
+  allowing at most one opaque element (`sse channel` or `poll url`) plus at
+  most one section-refresh element (`poll sectionEndpoint`) concurrently.
+- `dataBinding` remains section-level and binds to the single opaque element;
+  section-refresh responses are full section replacements.
+
 **Static-stub `meta` is Step 1.** The current implementation always emits
 `degraded: false`, `staleSections: []`, `failedSections: []`. Real values
 land in a later phase (A2c) when partial-failure metadata is wired through

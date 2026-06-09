@@ -208,20 +208,34 @@ The following are **not** valid client exceptions:
 
 ### 3.3 Refresh, polling, and live updates are server-driven
 
-- `refreshPolicy` tells the client when and how to refresh.
+- Section `refreshPolicy` is a server-declared array of `RefreshPolicy`
+  mechanisms (`maxItems: 2`) that tells the client when and how to refresh.
 - Clients must not decide which screens poll, which sections subscribe, or what
   interval to use based on screen identity.
+- The array supports at most two concurrent mechanism kinds: ≤1 opaque element
+  (`type: sse` + `channel` or `type: poll` + `url` + `intervalMs`) and
+  ≤1 section-refresh element (`type: poll` + `sectionEndpoint` + `intervalMs`).
+  `type: static` is terminal and solo.
+- Draft-07 enforces `maxItems` / wire shape constraints; cross-element
+  invariants (≤1 opaque, ≤1 section-refresh, `static` solo) are validated
+  server-side.
 - `refreshPolicy.sectionEndpoint` is a server-declared path for section-level
-  SDUI re-composition; the client replaces the section in place and re-evaluates
-  the new section's `refreshPolicy` (enabling transitions such as poll→SSE).
-  This is the section channel (see §3.8).
+  SDUI re-composition; that element full-replaces the section in place and
+  re-evaluates the returned section's `refreshPolicy` (enabling transitions
+  such as poll→SSE and concurrent stream+poll lifecycles). This is the section
+  channel (see §3.8).
+- `dataBinding` stays section-level and binds to the single opaque element.
+  `sectionEndpoint` refreshes return full `Section` payloads and do not consume
+  `dataBinding`.
 - `screen.defaultRefreshPolicy` is server-declared screen-level refresh; clients
-  must honor its `type` and `intervalMs`. Screen-level polls use the screen
-  channel (see §3.8) and carry the current query params.
+  must honor its `type` and `intervalMs`. This field stays a single
+  `RefreshPolicy` object (not an array): a screen has one default and the screen
+  channel is always full-replace. Screen-level polls use the screen channel
+  (see §3.8) and carry the current query params.
 - A non-static `screen.defaultRefreshPolicy` and section-level
   `sectionEndpoint` are mutually exclusive on the same screen. Clients must skip
-  `sectionEndpoint` polls when the screen-level policy is non-static (log and
-  defer to the screen policy).
+  section-level polls when the screen-level policy is non-static (log and defer
+  to the screen policy).
 - Real-time payloads are opaque JSON and are applied only through shared
   data-binding infrastructure.
 
@@ -340,8 +354,11 @@ family, one response shape, and one client-side application semantic.
   polling, form re-composition, and parameterized re-composition (date
   pickers, filters).
 - **Section channel** (`/v1/sdui/section/{id}` and SSE) — returns a single
-  `Section` (or a `dataBinding` patch). The client replaces that one section
-  in place; everything else is structurally untouched.
+  `Section` (or an opaque `dataBinding` patch on the section channel stream).
+  A section may run one opaque streaming element and one section-refresh poll
+  concurrently via its `refreshPolicy` array. The client replaces that one
+  section in place on section-refresh responses; everything else is
+  structurally untouched.
 
 There is no third channel and no partial-screen response shape. Structural
 changes to a screen's section list (insertions, removals, reorderings) flow
@@ -363,6 +380,9 @@ manual, or SSE-nudged immediate refetch).
 - **Poll-timer reset rule.** A successful screen-channel fetch resets the
   screen-level poll timer. Out-of-band fetches (pull-to-refresh,
   action-driven refresh) must not cause a double-fetch one tick later.
+- **Section 404 handling rule.** On a section-channel `404`, clients mark that
+  section stale and stop that section's poll, but retain the section node on
+  screen.
 
 ## 4. Shared Infrastructure Owns Shared Concerns
 

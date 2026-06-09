@@ -17,23 +17,20 @@ date picker. It is paired with the implementation in
 - Owned by `LiveComposer`.
 - Screen-channel endpoint: `/v1/sdui/screen/games` (with optional
   `?date=YYYY-MM-DD` for parameterized re-composition).
-- Section-channel endpoint (live-games SSE/poll only):
-  `/v1/sdui/section/{liveSectionId}`.
+- Section-channel endpoint (per-card refresh): `/v1/sdui/section/{sectionId}`.
 
 ## 2. Section roster & ordering
 
-The Games screen emits sections in this order, with sections omitted when
-empty (see §6):
+The Games screen emits sections in this order:
 
 1. **CalendarStrip** — always present, first section.
-2. **GameScheduleList "Live Now"** — emitted only when at least one game has
-   `gameStatus == 2`. SSE-bound per row.
-3. **GameScheduleList "Upcoming"** — emitted only when at least one game has
-   `gameStatus == 1`. Static refresh.
-4. **GameScheduleList "Final"** — emitted only when at least one game has
-   `gameStatus >= 3`. Static refresh.
+2. **Promo** — optional server-composed section.
+3. **Per-game card sections** in roster order (live, then upcoming, then
+   final), one section per game.
+4. **AdSlot** — optional, inserted by server placement rule.
 
-No featured/hero card. No mock placeholder cards in either path.
+No grouped `GameScheduleList` status bands ("Live Now", "Upcoming", "Final").
+No mock placeholder cards in either path.
 
 ## 3. CalendarStrip wire contract
 
@@ -132,17 +129,16 @@ section.
 
 ## 8. Stable section identity
 
-Section IDs are stable across requests. The CalendarStrip and each
-GameScheduleList slug derive their IDs deterministically from
+Section IDs are stable across requests. The CalendarStrip and each game-card
+section derive their IDs deterministically from
 `(contentSourceId, sectionType[, slug])` via `SectionIdDeriver`. This is
 load-bearing — the merge-by-id refresh contract in §9 depends on it.
 
 Examples:
 
 - `server-games-calendar__type-CalendarStrip`
-- `stats-api-live-games__type-GameScheduleList`
-- `stats-api-scoreboard__type-GameScheduleList__slug-upcomingGames`
-- `stats-api-scoreboard__type-GameScheduleList__slug-finalGames`
+- `games-card-0022400123__type-AtomicComposite`
+- `games-card-0022400456__type-AtomicComposite`
 
 The id does not change when a section's content changes (e.g. 0 games vs 5
 games). It also does not change between today's view and another date's
@@ -217,9 +213,9 @@ cadence assignments.
 | Surface | Channel | Cadence | Mechanism |
 |---|---|---|---|
 | Full screen (initial load, date change, pull-to-refresh) | Screen (`/v1/sdui/screen/games`) | Manual / on-demand | User action or pull-to-refresh triggers `replaceCurrentScreen` |
-| Screen-level poll | Screen (`/v1/sdui/screen/games?date=…`) | `defaultRefreshPolicy` (server-declared; currently static on Games) | Poll timer with current-params replay |
-| Live Now section data | Section (SSE via `refreshPolicy.channel`) | Real-time | Ably channel pushes; `dataBinding` applies in place |
-| Section re-composition (e.g. game status transitions) | Section (`/v1/sdui/section/{id}`) | `refreshPolicy.sectionEndpoint` poll | Periodic poll; section replaced in place |
+| Screen-level poll | Screen (`/v1/sdui/screen/games?date=…`) | `defaultRefreshPolicy` (single object; server-declared, currently static on Games) | Poll timer with current-params replay |
+| Live card opaque stream | Section (SSE via `refreshPolicy[]` opaque element) | Real-time | Ably channel pushes; `dataBinding` applies in place |
+| Section re-composition (status transitions / reconciliation) | Section (`/v1/sdui/section/{id}`) | `refreshPolicy[]` `sectionEndpoint` poll element | Periodic poll; section replaced in place |
 
 ### Invariants
 
@@ -227,9 +223,20 @@ cadence assignments.
   The client full-replaces; there is no merge.
 - The section channel returns a single `Section` with matching `id`. The
   client replaces only that section.
+- `Section.refreshPolicy` is a bounded array (`maxItems: 2`): ≤1 opaque
+  element (`sse channel` or `poll url`) and ≤1 section-refresh element
+  (`poll sectionEndpoint`). `static` is terminal and solo.
+- `dataBinding` stays section-level and binds only to the single opaque
+  element. Section-refresh poll elements ignore `dataBinding` because they
+  return full `Section` replacements.
+- Live cards may run SSE and section-refresh polls concurrently.
+- `Screen.defaultRefreshPolicy` remains a single object; only sections use the
+  concurrent bounded-array model.
 - A successful screen-channel fetch resets the screen-level poll timer.
 - Pull-to-refresh carries the current `date` param (current-params replay
   rule from §3.8).
+- On section-channel `404`, the client marks the section stale, stops that
+  section's poll, and retains the section node on screen.
 
 ## 12. Form-factor / paging behavior (client)
 
@@ -322,11 +329,10 @@ composition, governed by a server-owned placement rule:
 |---|---|
 | 0 | not emitted |
 | 1 | inserted after the (single) game section |
-| 2+ | inserted after the section containing the **2nd** game in roster order (live → upcoming → final) |
+| 2+ | inserted after the **2nd** game-card section in roster order (live → upcoming → final) |
 
-The ad is inserted at a section boundary, never inside a status group. If
-the 2nd game falls within a section that holds multiple games, the ad
-appears below that whole section.
+The ad is inserted at a section boundary between card sections (there are no
+status-group containers in the per-game-card shape).
 
 AdSlot payload:
 
@@ -354,7 +360,8 @@ add new doctrine:
   server-declared semantic and the client honors the strict same-screen
   contract.
 - §3.8 Update channels — the Games screen uses the screen channel for
-  date-based re-composition and the section channel for live-game SSE.
+  date-based re-composition and the section channel for concurrent live-card
+  SSE plus section-refresh polling.
 - §3.6 Composers emit design-system tokens — the CalendarStrip's chrome
   (gaps, padding, colors) flows through tokens; date numbers stay raw
   because they're computed from `LocalDate` at render time.

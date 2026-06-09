@@ -7,9 +7,11 @@
       "id": "game-0042500113",
       "type": "AtomicComposite",
       "analyticsId": "scoreboard_row_0042500113",
-      "refreshPolicy": {
-        "type": "static"
-      },
+      "refreshPolicy": [
+        {
+          "type": "static"
+        }
+      ],
       "data": {
         "ui": {
           "type": "Container",
@@ -177,9 +179,11 @@
       "id": "game-0042500173",
       "type": "AtomicComposite",
       "analyticsId": "scoreboard_row_0042500173",
-      "refreshPolicy": {
-        "type": "static"
-      },
+      "refreshPolicy": [
+        {
+          "type": "static"
+        }
+      ],
       "data": {
         "ui": {
           "type": "Container",
@@ -347,9 +351,11 @@
       "id": "game-0042500153",
       "type": "AtomicComposite",
       "analyticsId": "scoreboard_row_0042500153",
-      "refreshPolicy": {
-        "type": "static"
-      },
+      "refreshPolicy": [
+        {
+          "type": "static"
+        }
+      ],
       "data": {
         "ui": {
           "type": "Container",

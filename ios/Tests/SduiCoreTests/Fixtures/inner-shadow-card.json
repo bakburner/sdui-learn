@@ -7,9 +7,11 @@
     {
       "id": "inner-shadow-section",
       "type": "AtomicComposite",
-      "refreshPolicy": {
-        "type": "static"
-      },
+      "refreshPolicy": [
+        {
+          "type": "static"
+        }
+      ],
       "data": {
         "ui": {
           "id": "inner-shadow-root",

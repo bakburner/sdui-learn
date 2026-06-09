@@ -104,7 +104,7 @@ public class WatchComposer {
         section.setType(Section.Type.TAB_GROUP);
         section.setAnalyticsId("watch_tabs");
         section.setContentSourceId(contentSourceId);
-        section.setRefreshPolicy(staticRefreshPolicy());
+        section.setRefreshPolicy(List.of(staticRefreshPolicy()));
 
         TabData featuredTab = buildTab("watch-featured", "Featured", "watch_active_tab", "featured");
         TabData nbaTvTab = buildTab("watch-nbatv", "NBA TV", "watch_active_tab", "nbatv");
@@ -473,7 +473,7 @@ public class WatchComposer {
         section.setId(sectionId);
         section.setType(Section.Type.SUBSCRIBE_UPSELL);
         section.setContentSourceId(contentSourceId);
-        section.setRefreshPolicy(staticRefreshPolicy());
+        section.setRefreshPolicy(List.of(staticRefreshPolicy()));
         section.setSurface(surfaces.subscribeSurface(
                 tokens.color("nba.label.accent.brand"),
                 "#862633",
@@ -521,7 +521,7 @@ public class WatchComposer {
         section.setId(sectionId);
         section.setType(Section.Type.SUBSCRIBE_UPSELL);
         section.setContentSourceId(contentSourceId);
-        section.setRefreshPolicy(staticRefreshPolicy());
+        section.setRefreshPolicy(List.of(staticRefreshPolicy()));
         section.setSurface(surfaces.subscribeSurface(
                 "#0C1B3A",
                 tokens.color("nba.label.accent.brand"),
@@ -698,7 +698,7 @@ public class WatchComposer {
         section.setId(sectionId);
         section.setType(Section.Type.AD_SLOT);
         section.setContentSourceId(contentSourceId);
-        section.setRefreshPolicy(staticRefreshPolicy());
+        section.setRefreshPolicy(List.of(staticRefreshPolicy()));
         section.setSurface(surfaces.adSlotSurface());
 
         AdSlot data = new AdSlot();

@@ -40,7 +40,7 @@ function makeSection(overrides: Partial<Section> = {}): Section {
 describe('useRefreshPolicy — poll', () => {
   it('does not poll when enabled is false', async () => {
     const section = makeSection({
-      refreshPolicy: { type: RefreshType.Poll, intervalMs: 1000, url: '/api/data' },
+      refreshPolicy: [{ type: RefreshType.Poll, intervalMs: 1000, url: '/api/data' }],
     });
     const onUpdate = vi.fn();
 
@@ -63,7 +63,7 @@ describe('useRefreshPolicy — poll', () => {
 
   it('starts polling when enabled is true and stops when disabled', async () => {
     const section = makeSection({
-      refreshPolicy: { type: RefreshType.Poll, intervalMs: 1000, url: '/api/data' },
+      refreshPolicy: [{ type: RefreshType.Poll, intervalMs: 1000, url: '/api/data' }],
     });
     const onUpdate = vi.fn();
     (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
@@ -116,7 +116,7 @@ describe('useRefreshPolicy — poll', () => {
 
   it('applies exponential backoff on poll failure', async () => {
     const section = makeSection({
-      refreshPolicy: { type: RefreshType.Poll, intervalMs: 1000, url: '/api/data' },
+      refreshPolicy: [{ type: RefreshType.Poll, intervalMs: 1000, url: '/api/data' }],
     });
     const onUpdate = vi.fn();
     const onStalenessChange = vi.fn();
@@ -151,7 +151,7 @@ describe('useRefreshPolicy — poll', () => {
 
   it('does not poll static sections', () => {
     const section = makeSection({
-      refreshPolicy: { type: RefreshType.Static },
+      refreshPolicy: [{ type: RefreshType.Static }],
     });
     const onUpdate = vi.fn();
 
@@ -168,13 +168,13 @@ describe('useRefreshPolicy — poll', () => {
   });
 });
 
-describe('useRefreshPolicy — sectionEndpoint precedence', () => {
-  it('routes to sectionEndpoint when both url and sectionEndpoint are present', async () => {
+describe('useRefreshPolicy — concurrent policy elements', () => {
+  it('runs opaque URL poll and sectionEndpoint poll concurrently', async () => {
     const replacedSection: Section = {
       id: 'test-section',
       type: 'AtomicComposite',
       data: { live: true },
-      refreshPolicy: { type: RefreshType.Static },
+      refreshPolicy: [{ type: RefreshType.Static }],
     } as Section;
 
     const fetchSduiSectionSpy = vi
@@ -182,18 +182,29 @@ describe('useRefreshPolicy — sectionEndpoint precedence', () => {
       .mockResolvedValue(replacedSection);
 
     const onSectionReplace = vi.fn();
-    const policy = {
-      type: RefreshType.Poll,
-      intervalMs: 1000,
-      url: '/cdn/should-not-be-called',
-      sectionEndpoint: '/v1/sdui/section/stats-api:game-123::AtomicComposite::scoreboard',
-    };
+    const policy = [
+      {
+        type: RefreshType.Poll,
+        intervalMs: 1000,
+        url: '/cdn/opaque',
+      },
+      {
+        type: RefreshType.Poll,
+        intervalMs: 1000,
+        sectionEndpoint: '/v1/sdui/section/stats-api:game-123::AtomicComposite::scoreboard',
+      },
+    ];
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ok: true,
+      json: async () => ({ score: 100 }),
+    });
+    const onUpdate = vi.fn();
 
     renderHook(() =>
       useRefreshPolicy({
         sectionId: 'test-section',
         refreshPolicy: policy,
-        onUpdate: vi.fn(),
+        onUpdate,
         onSectionReplace,
         enabled: true,
       }),
@@ -204,38 +215,88 @@ describe('useRefreshPolicy — sectionEndpoint precedence', () => {
       await vi.advanceTimersByTimeAsync(1000);
     });
 
-    // fetchSduiSection (sectionEndpoint) must have been called, not the raw url fetch
+    // Both drivers run: raw URL poll for opaque payload and sectionEndpoint for full replace.
+    expect(fetch).toHaveBeenCalledWith('/cdn/opaque');
+    expect(onUpdate).toHaveBeenCalledWith({ score: 100 });
     expect(fetchSduiSectionSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ endpoint: policy.sectionEndpoint }),
+      expect.objectContaining({ endpoint: policy[1].sectionEndpoint }),
     );
     expect(onSectionReplace).toHaveBeenCalledWith(replacedSection);
-    // Raw fetch must not have been called for the CDN url
-    expect(fetch).not.toHaveBeenCalledWith('/cdn/should-not-be-called', expect.anything());
 
     fetchSduiSectionSpy.mockRestore();
+  });
+
+  it('ignores extra opaque and sectionEndpoint elements beyond one each', async () => {
+    const fetchSduiSectionSpy = vi
+      .spyOn(fetchSduiScreenModule, 'fetchSduiSection')
+      .mockResolvedValue(makeSection({ id: 'replaced-section' }));
+    (globalThis.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ok: true,
+      json: async () => ({ score: 50 }),
+    });
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    renderHook(() =>
+      useRefreshPolicy({
+        sectionId: 'test-section',
+        refreshPolicy: [
+          { type: RefreshType.Poll, intervalMs: 1000, url: '/opaque-primary' },
+          { type: RefreshType.Poll, intervalMs: 1000, url: '/opaque-extra' },
+          { type: RefreshType.Poll, intervalMs: 1000, sectionEndpoint: '/v1/sdui/section/primary' },
+          { type: RefreshType.Poll, intervalMs: 1000, sectionEndpoint: '/v1/sdui/section/extra' },
+        ],
+        onUpdate: vi.fn(),
+        onSectionReplace: vi.fn(),
+        enabled: true,
+      }),
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(fetch).toHaveBeenCalledWith('/opaque-primary');
+    expect(fetchSduiSectionSpy).toHaveBeenCalledTimes(1);
+    expect(fetchSduiSectionSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ endpoint: '/v1/sdui/section/primary' }),
+    );
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('multiple opaque refresh policies'),
+      expect.any(Object),
+    );
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('multiple sectionEndpoint policies'),
+      expect.any(Object),
+    );
+
+    fetchSduiSectionSpy.mockRestore();
+    warnSpy.mockRestore();
   });
 });
 
 describe('useRefreshPolicy — sectionEndpoint error semantics', () => {
-  it('calls onSectionGone and stops polling when sectionEndpoint returns 404', async () => {
+  it('marks section stale and stops polling when sectionEndpoint returns 404', async () => {
     const fetchSduiSectionSpy = vi
       .spyOn(fetchSduiScreenModule, 'fetchSduiSection')
       .mockRejectedValue(new SectionNotFoundError('Section not found: /v1/sdui/section/gone'));
 
-    const onSectionGone = vi.fn();
+    const onSectionReplace = vi.fn();
+    const onStalenessChange = vi.fn();
     const section = makeSection();
-    const policy = {
+    const policy = [{
       type: RefreshType.Poll,
       intervalMs: 1000,
       sectionEndpoint: '/v1/sdui/section/gone',
-    };
+    }];
 
     renderHook(() =>
       useRefreshPolicy({
         sectionId: section.id,
         refreshPolicy: policy,
         onUpdate: vi.fn(),
-        onSectionGone,
+        onSectionReplace,
+        onStalenessChange,
         enabled: true,
       }),
     );
@@ -244,7 +305,8 @@ describe('useRefreshPolicy — sectionEndpoint error semantics', () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1000);
     });
-    expect(onSectionGone).toHaveBeenCalledTimes(1);
+    expect(onStalenessChange).toHaveBeenCalledWith(section.id, true);
+    expect(onSectionReplace).not.toHaveBeenCalled();
 
     const callCountAfterGone = fetchSduiSectionSpy.mock.calls.length;
 
@@ -266,11 +328,11 @@ describe('useRefreshPolicy — sectionEndpoint error semantics', () => {
 
     const onStalenessChange = vi.fn();
     const section = makeSection();
-    const policy = {
+    const policy = [{
       type: RefreshType.Poll,
       intervalMs: 1000,
       sectionEndpoint: '/v1/sdui/section/scoreboard',
-    };
+    }];
 
     renderHook(() =>
       useRefreshPolicy({
@@ -304,7 +366,7 @@ describe('useRefreshPolicy — SSE', () => {
 
   it('does not subscribe when enabled is false', () => {
     const section = makeSection({
-      refreshPolicy: { type: RefreshType.SSE, channel: 'game:123' },
+      refreshPolicy: [{ type: RefreshType.SSE, channel: 'game:123' }],
     });
 
     renderHook(() =>
@@ -321,7 +383,7 @@ describe('useRefreshPolicy — SSE', () => {
 
   it('subscribes to SSE channel when enabled', () => {
     const section = makeSection({
-      refreshPolicy: { type: RefreshType.SSE, channel: 'game:123' },
+      refreshPolicy: [{ type: RefreshType.SSE, channel: 'game:123' }],
     });
 
     renderHook(() =>
@@ -338,7 +400,7 @@ describe('useRefreshPolicy — SSE', () => {
 
   it('unsubscribes on disable (Option A behavior)', () => {
     const section = makeSection({
-      refreshPolicy: { type: RefreshType.SSE, channel: 'game:123' },
+      refreshPolicy: [{ type: RefreshType.SSE, channel: 'game:123' }],
     });
 
     const { rerender } = renderHook(

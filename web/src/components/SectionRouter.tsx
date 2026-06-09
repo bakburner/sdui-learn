@@ -23,8 +23,6 @@ export interface SectionProps {
   onStateChange: (key: string, value: unknown) => void;
   /** Callback when a sectionEndpoint refresh returns a replacement section */
   onSectionReplace?: (section: Section) => void;
-  /** Callback when a sectionEndpoint refresh returns 404 — section is gone */
-  onSectionGone?: (sectionId: string) => void;
   /** React key (passed by parent, not used in component) */
   key?: React.Key;
 }
@@ -49,9 +47,8 @@ function SectionRenderer({
   onAction, 
   onStateChange,
   onSectionReplace,
-  onSectionGone,
 }: SectionProps): React.ReactElement | null {
-  const commonProps = { section, state, onAction, onStateChange, onSectionReplace, onSectionGone };
+  const commonProps = { section, state, onAction, onStateChange, onSectionReplace };
   // Every section, permanent or AtomicComposite, is wrapped by
   // SectionContainer so outer chrome is server-driven via
   // `section.surface`. `SectionContainer` is a no-op when
@@ -105,7 +102,6 @@ function SectionRenderer({
             onAction={onAction}
             onStateChange={onStateChange}
             onSectionReplace={onSectionReplace}
-            onSectionGone={onSectionGone}
           />
         </CompositeContentContext.Provider>
       );
@@ -130,7 +126,6 @@ export function SectionRouter({
   onAction, 
   onStateChange,
   onSectionReplace,
-  onSectionGone,
   defaultRefreshPolicy,
   onStalenessChange,
   onUpgradeRequired,
@@ -146,7 +141,7 @@ export function SectionRouter({
   });
 
   const needsLiveWrapper = Boolean(
-    (section.refreshPolicy?.type && section.refreshPolicy.type !== 'static') ||
+    (section.refreshPolicy?.some((policy) => policy.type !== 'static')) ||
     (section.dataBinding?.bindings?.length) ||
     (defaultRefreshPolicy?.type && defaultRefreshPolicy.type !== 'static')
   );
@@ -164,7 +159,6 @@ export function SectionRouter({
         defaultRefreshPolicy={defaultRefreshPolicy}
         onStalenessChange={onStalenessChange}
         onSectionReplace={onSectionReplace}
-        onSectionGone={onSectionGone}
         onUpgradeRequired={onUpgradeRequired}
         traceId={traceId}
       >
@@ -180,7 +174,6 @@ export function SectionRouter({
               onAction={onAction}
               onStateChange={onStateChange}
               onSectionReplace={onSectionReplace}
-              onSectionGone={onSectionGone}
             />
           );
         }}
@@ -194,7 +187,6 @@ export function SectionRouter({
         onAction={onAction}
         onStateChange={onStateChange}
         onSectionReplace={onSectionReplace}
-        onSectionGone={onSectionGone}
       />
     );
   }
@@ -222,7 +214,6 @@ export function SectionList({
   onAction, 
   onStateChange,
   onSectionReplace,
-  onSectionGone,
   onStalenessChange,
   onUpgradeRequired,
   defaultRefreshPolicy,
@@ -233,7 +224,6 @@ export function SectionList({
   onAction: (action: Action | Action[]) => void;
   onStateChange: (key: string, value: unknown) => void;
   onSectionReplace?: (section: Section) => void;
-  onSectionGone?: (sectionId: string) => void;
   onStalenessChange?: (sectionId: string, isStale: boolean) => void;
   onUpgradeRequired?: () => void;
   defaultRefreshPolicy?: RefreshPolicy;
@@ -249,7 +239,6 @@ export function SectionList({
           onAction={onAction}
           onStateChange={onStateChange}
           onSectionReplace={onSectionReplace}
-          onSectionGone={onSectionGone}
           onStalenessChange={onStalenessChange}
           onUpgradeRequired={onUpgradeRequired}
           defaultRefreshPolicy={defaultRefreshPolicy}

@@ -82,11 +82,15 @@ class SchemaConformanceTest {
         ParameterizedRefreshService parameterizedRefreshService = new ParameterizedRefreshService();
 
         StatsApiClient statsApiClient = mock(StatsApiClient.class);
-        ObjectNode emptyScoreboard = objectMapper.createObjectNode();
-        ObjectNode sb = emptyScoreboard.putObject("scoreboard");
-        sb.set("games", objectMapper.createArrayNode());
-        when(statsApiClient.getScoreboard()).thenReturn(emptyScoreboard);
-        when(statsApiClient.getScoreboardForDate(any())).thenReturn(emptyScoreboard);
+        ObjectNode scoreboard = objectMapper.createObjectNode();
+        ObjectNode sb = scoreboard.putObject("scoreboard");
+        ArrayNode games = objectMapper.createArrayNode();
+        games.add(buildGameNode("0022600001", 1, "8:00 PM ET", 0, 0));
+        games.add(buildGameNode("0022600002", 2, "Q2 06:11", 101, 99));
+        games.add(buildGameNode("0022600003", 3, "Final", 113, 108));
+        sb.set("games", games);
+        when(statsApiClient.getScoreboard()).thenReturn(scoreboard);
+        when(statsApiClient.getScoreboardForDate(any())).thenReturn(scoreboard);
 
         SduiUtils utils = new SduiUtils(objectMapper, TestTokens.INSTANCE);
         SectionSurfaces surfaces = new SectionSurfaces(objectMapper, utils, TestTokens.INSTANCE);
@@ -177,6 +181,11 @@ class SchemaConformanceTest {
                         failures.add("[%s] sections[%d] (%s id=%s): %s".formatted(
                                 sample.getKey(), i, sectionType, sectionId, v.getMessage()));
                     }
+                    List<String> refreshPolicyViolations = RefreshPolicyInvariantValidator.validateSection(section);
+                    for (String violation : refreshPolicyViolations) {
+                        failures.add("[%s] sections[%d] (%s id=%s): %s".formatted(
+                                sample.getKey(), i, sectionType, sectionId, violation));
+                    }
                 }
             }
         }
@@ -198,5 +207,28 @@ class SchemaConformanceTest {
             }
             return objectMapper.readTree(in);
         }
+    }
+
+    private ObjectNode buildGameNode(
+            String gameId,
+            int status,
+            String statusText,
+            int awayScore,
+            int homeScore) {
+        ObjectNode game = objectMapper.createObjectNode();
+        game.put("gameId", gameId);
+        game.put("gameStatus", status);
+        game.put("gameStatusText", statusText);
+        game.putObject("awayTeam")
+                .put("teamTricode", "AWY")
+                .put("teamName", "Away")
+                .put("teamId", "1610612700")
+                .put("score", awayScore);
+        game.putObject("homeTeam")
+                .put("teamTricode", "HME")
+                .put("teamName", "Home")
+                .put("teamId", "1610612710")
+                .put("score", homeScore);
+        return game;
     }
 }

@@ -93,9 +93,9 @@ class ForYouVisualCompositionTest {
         JsonNode gamesHero = findSectionByContentSourceId(response, "stats-api:scoreboard");
 
         assertEquals("AtomicComposite", gamesHero.path("type").asText());
-        assertEquals("poll", gamesHero.path("refreshPolicy").path("type").asText(),
+        assertEquals("poll", gamesHero.path("refreshPolicy").path(0).path("type").asText(),
                 "Mock fallback hero must poll the section endpoint, not SSE");
-        String sectionEndpoint = gamesHero.path("refreshPolicy").path("sectionEndpoint").asText("");
+        String sectionEndpoint = gamesHero.path("refreshPolicy").path(0).path("sectionEndpoint").asText("");
         assertTrue(sectionEndpoint.contains("tonightsGamesHero"),
                 "Poll must target the Tonight's Games hero section id");
         assertTrue(gamesHero.path("dataBinding").isMissingNode()

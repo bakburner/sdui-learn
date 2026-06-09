@@ -60,11 +60,40 @@ class MutateThenRefreshAuditTest {
         SectionRefreshService sectionRefreshService = new SectionRefreshService();
 
         StatsApiClient statsApiClient = mock(StatsApiClient.class);
-        ObjectNode emptyScoreboard = objectMapper.createObjectNode();
-        ObjectNode sb = emptyScoreboard.putObject("scoreboard");
-        sb.set("games", objectMapper.createArrayNode());
-        when(statsApiClient.getScoreboard()).thenReturn(emptyScoreboard);
-        when(statsApiClient.getScoreboardForDate(any())).thenReturn(emptyScoreboard);
+        ObjectNode scoreboard = objectMapper.createObjectNode();
+        ObjectNode sb = scoreboard.putObject("scoreboard");
+        var games = objectMapper.createArrayNode();
+        ObjectNode gameOne = games.addObject()
+                .put("gameId", "0022600001")
+                .put("gameStatus", 2)
+                .put("gameStatusText", "Q2 06:11")
+                .putObject("awayTeam")
+                .put("teamTricode", "AWY1")
+                .put("teamName", "Away 1")
+                .put("teamId", "1610612701")
+                .put("score", 101);
+        gameOne.putObject("homeTeam")
+                .put("teamTricode", "HME1")
+                .put("teamName", "Home 1")
+                .put("teamId", "1610612711")
+                .put("score", 99);
+        ObjectNode gameTwo = games.addObject()
+                .put("gameId", "0022600002")
+                .put("gameStatus", 1)
+                .put("gameStatusText", "8:00 PM ET")
+                .putObject("awayTeam")
+                .put("teamTricode", "AWY2")
+                .put("teamName", "Away 2")
+                .put("teamId", "1610612702")
+                .put("score", 0);
+        gameTwo.putObject("homeTeam")
+                .put("teamTricode", "HME2")
+                .put("teamName", "Home 2")
+                .put("teamId", "1610612712")
+                .put("score", 0);
+        sb.set("games", games);
+        when(statsApiClient.getScoreboard()).thenReturn(scoreboard);
+        when(statsApiClient.getScoreboardForDate(any())).thenReturn(scoreboard);
 
         SduiUtils utils = new SduiUtils(objectMapper, TestTokens.INSTANCE);
         SectionSurfaces surfaces = new SectionSurfaces(objectMapper, utils, TestTokens.INSTANCE);

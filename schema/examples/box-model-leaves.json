@@ -8,9 +8,11 @@
       "id": "box-model-composite",
       "type": "AtomicComposite",
       "analyticsId": "box_model_composite",
-      "refreshPolicy": {
-        "type": "static"
-      },
+      "refreshPolicy": [
+        {
+          "type": "static"
+        }
+      ],
       "surface": {
         "margin": {
           "top": 16,

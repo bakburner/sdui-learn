@@ -7,9 +7,11 @@
     {
       "id": "schedule-list-empty",
       "type": "AtomicComposite",
-      "refreshPolicy": {
-        "type": "static"
-      },
+      "refreshPolicy": [
+        {
+          "type": "static"
+        }
+      ],
       "data": {
         "ui": {
           "type": "Container",

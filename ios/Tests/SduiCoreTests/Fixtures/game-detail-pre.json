@@ -14,9 +14,11 @@
       "id": "video-player-0042300102",
       "type": "VideoPlayer",
       "analyticsId": "game_detail_video_player",
-      "refreshPolicy": {
-        "type": "static"
-      },
+      "refreshPolicy": [
+        {
+          "type": "static"
+        }
+      ],
       "surface": {
         "background": "#1A1F2E"
       },
@@ -83,11 +85,13 @@
     {
       "id": "scoreboard",
       "type": "AtomicComposite",
-      "refreshPolicy": {
-        "type": "sse",
-        "channel": "0042300102:linescore",
-        "pauseWhenOffScreen": false
-      },
+      "refreshPolicy": [
+        {
+          "type": "sse",
+          "channel": "0042300102:linescore",
+          "pauseWhenOffScreen": false
+        }
+      ],
       "data": {
         "ui": {
           "type": "Container",
@@ -286,9 +290,11 @@
     {
       "id": "top-performers",
       "type": "AtomicComposite",
-      "refreshPolicy": {
-        "type": "static"
-      },
+      "refreshPolicy": [
+        {
+          "type": "static"
+        }
+      ],
       "data": {
         "ui": {
           "type": "Container",
@@ -703,9 +709,11 @@
     {
       "id": "team-leaders-row",
       "type": "AtomicComposite",
-      "refreshPolicy": {
-        "type": "static"
-      },
+      "refreshPolicy": [
+        {
+          "type": "static"
+        }
+      ],
       "data": {
         "ui": {
           "type": "Container",
@@ -719,9 +727,11 @@
               "section": {
                 "id": "row-home-stats",
                 "type": "AtomicComposite",
-                "refreshPolicy": {
-                  "type": "static"
-                },
+                "refreshPolicy": [
+                  {
+                    "type": "static"
+                  }
+                ],
                 "data": {
                   "ui": {
                     "type": "Container",
@@ -882,9 +892,11 @@
               "section": {
                 "id": "row-away-stats",
                 "type": "AtomicComposite",
-                "refreshPolicy": {
-                  "type": "static"
-                },
+                "refreshPolicy": [
+                  {
+                    "type": "static"
+                  }
+                ],
                 "data": {
                   "ui": {
                     "type": "Container",
@@ -1059,9 +1071,11 @@
       "id": "content-rail",
       "type": "AtomicComposite",
       "analyticsId": "content_rail",
-      "refreshPolicy": {
-        "type": "static"
-      },
+      "refreshPolicy": [
+        {
+          "type": "static"
+        }
+      ],
       "data": {
         "ui": {
           "type": "Container",
@@ -2244,9 +2258,11 @@
               "id": "highlights-0042300102",
               "type": "AtomicComposite",
               "analyticsId": "game_detail_highlights",
-              "refreshPolicy": {
-                "type": "static"
-              },
+              "refreshPolicy": [
+                {
+                  "type": "static"
+                }
+              ],
               "data": {
                 "ui": {
                   "type": "Container",
@@ -2610,9 +2626,11 @@
     "couchRightsWarning": {
       "id": "couch-rights-warning",
       "type": "AtomicComposite",
-      "refreshPolicy": {
-        "type": "static"
-      },
+      "refreshPolicy": [
+        {
+          "type": "static"
+        }
+      ],
       "data": {
         "ui": {
           "type": "Container",
@@ -2681,9 +2699,11 @@
     "couchRightsExpired": {
       "id": "couch-rights-expired",
       "type": "AtomicComposite",
-      "refreshPolicy": {
-        "type": "static"
-      },
+      "refreshPolicy": [
+        {
+          "type": "static"
+        }
+      ],
       "data": {
         "ui": {
           "type": "Container",
@@ -2753,9 +2773,11 @@
     "unentitled": {
       "id": "unentitled",
       "type": "AtomicComposite",
-      "refreshPolicy": {
-        "type": "static"
-      },
+      "refreshPolicy": [
+        {
+          "type": "static"
+        }
+      ],
       "data": {
         "ui": {
           "type": "Container",

@@ -45,7 +45,7 @@ class SectionChannelContractTest {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private SectionRefreshService sectionRefreshService;
-    private String liveGamesSectionId;
+    private String gameCardSectionId;
 
     @BeforeAll
     void setup() throws Exception {
@@ -54,11 +54,26 @@ class SectionChannelContractTest {
         ParameterizedRefreshService parameterizedRefreshService = new ParameterizedRefreshService();
 
         StatsApiClient statsApiClient = mock(StatsApiClient.class);
-        ObjectNode emptyScoreboard = objectMapper.createObjectNode();
-        ObjectNode sb = emptyScoreboard.putObject("scoreboard");
-        sb.set("games", objectMapper.createArrayNode());
-        when(statsApiClient.getScoreboard()).thenReturn(emptyScoreboard);
-        when(statsApiClient.getScoreboardForDate(any())).thenReturn(emptyScoreboard);
+        ObjectNode scoreboard = objectMapper.createObjectNode();
+        ObjectNode sb = scoreboard.putObject("scoreboard");
+        var games = objectMapper.createArrayNode();
+        ObjectNode game = games.addObject();
+        game.put("gameId", "0022600001");
+        game.put("gameStatus", 2);
+        game.put("gameStatusText", "Q2 06:11");
+        game.putObject("awayTeam")
+                .put("teamTricode", "AWY")
+                .put("teamName", "Away")
+                .put("teamId", "1610612700")
+                .put("score", 101);
+        game.putObject("homeTeam")
+                .put("teamTricode", "HME")
+                .put("teamName", "Home")
+                .put("teamId", "1610612710")
+                .put("score", 99);
+        sb.set("games", games);
+        when(statsApiClient.getScoreboard()).thenReturn(scoreboard);
+        when(statsApiClient.getScoreboardForDate(any())).thenReturn(scoreboard);
 
         SduiUtils utils = new SduiUtils(objectMapper, TestTokens.INSTANCE);
         SectionSurfaces surfaces = new SectionSurfaces(objectMapper, utils, TestTokens.INSTANCE);
@@ -71,16 +86,16 @@ class SectionChannelContractTest {
         ReflectionTestUtils.setField(liveComposer, "schemaVersion", "1.0");
         ReflectionTestUtils.invokeMethod(liveComposer, "registerResolvers");
 
-        liveGamesSectionId = SectionIdDeriver.derive("stats-api:live-games", "GameScheduleList");
+        gameCardSectionId = SectionIdDeriver.derive("games:card-0022600001", "AtomicComposite");
     }
 
     @Test
-    void liveGamesSection_returnsASingleSectionObject_notAScreen() {
+    void gameCardSection_returnsASingleSectionObject_notAScreen() {
         SduiRequestContext ctx = new SduiRequestContext();
         ctx.setLocale("en");
 
-        Optional<JsonNode> result = sectionRefreshService.refreshSection(liveGamesSectionId, ctx);
-        assertTrue(result.isPresent(), "section resolver must be registered for live-games");
+        Optional<JsonNode> result = sectionRefreshService.refreshSection(gameCardSectionId, ctx);
+        assertTrue(result.isPresent(), "section resolver must be registered for games-card");
 
         JsonNode section = result.get();
         assertTrue(section.isObject(), "section response must be a JSON object");
@@ -90,11 +105,11 @@ class SectionChannelContractTest {
     }
 
     @Test
-    void liveGamesSection_doesNotCarryScreenLevelFields() {
+    void gameCardSection_doesNotCarryScreenLevelFields() {
         SduiRequestContext ctx = new SduiRequestContext();
         ctx.setLocale("en");
 
-        Optional<JsonNode> result = sectionRefreshService.refreshSection(liveGamesSectionId, ctx);
+        Optional<JsonNode> result = sectionRefreshService.refreshSection(gameCardSectionId, ctx);
         assertTrue(result.isPresent());
 
         JsonNode section = result.get();

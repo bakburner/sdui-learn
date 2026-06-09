@@ -267,7 +267,7 @@ final class SduiScreenViewModelRefreshTests: XCTestCase {
           "schemaVersion": "1.0",
           "sections": [
             {"id": "section-a", "type": "AtomicComposite"},
-            {"id": "section-b", "type": "AtomicComposite", "refreshPolicy": {"type": "poll", "intervalMs": 5000}},
+            {"id": "section-b", "type": "AtomicComposite", "refreshPolicy": [{"type": "poll", "intervalMs": 5000}]},
             {"id": "section-c", "type": "AtomicComposite"}
           ]
         }
@@ -304,12 +304,12 @@ final class SduiScreenViewModelRefreshTests: XCTestCase {
           "sections": [{
             "id": "scoreboard",
             "type": "AtomicComposite",
-            "refreshPolicy": {
+            "refreshPolicy": [{
               "type": "poll",
               "intervalMs": 200,
               "sectionEndpoint": "/v1/sdui/section/scoreboard",
               "pauseWhenOffScreen": false
-            }
+            }]
           }]
         }
         """.data(using: .utf8)!
@@ -326,12 +326,12 @@ final class SduiScreenViewModelRefreshTests: XCTestCase {
           "sections": [{
             "id": "scoreboard",
             "type": "AtomicComposite",
-            "refreshPolicy": {
+            "refreshPolicy": [{
               "type": "poll",
               "intervalMs": 200,
               "sectionEndpoint": "/v1/sdui/section/scoreboard",
               "pauseWhenOffScreen": false
-            }
+            }]
           }]
         }
         """.data(using: .utf8)!

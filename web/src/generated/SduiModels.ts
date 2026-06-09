@@ -634,8 +634,15 @@ export interface Section {
     data?:            SectionData;
     dataBinding?:     DataBinding;
     id:               string;
-    refreshPolicy?:   RefreshPolicy;
-    sectionStates?:   SectionStates;
+    /**
+     * Array of concurrent refresh mechanisms (max 2): at most one opaque/streaming element (sse
+     * channel or url poll, consumes dataBinding) plus at most one section-refresh element
+     * (sectionEndpoint, full-replace). A static section is a single {type:static} element.
+     * Cross-element invariants (<=1 opaque, <=1 sectionEndpoint, static-solo) are validated
+     * server-side.
+     */
+    refreshPolicy?: RefreshPolicy[];
+    sectionStates?: SectionStates;
     /**
      * Section-level map of translation key to localized string. Used by DataBindingResolver to
      * resolve stringKeys on real-time updates.
@@ -1288,7 +1295,8 @@ export enum Transform {
 
 export interface RefreshPolicy {
     /**
-     * For sse type: Ably channel name pattern (e.g., '{gameId}:linescore')
+     * For sse type: subscription channel name pattern (e.g., '{gameId}:linescore'). Transport
+     * binding is a client implementation detail.
      */
     channel?: string;
     /**

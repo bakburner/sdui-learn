@@ -226,7 +226,7 @@ public class BoxscoreComposer {
             refreshPolicy.setUrl(
                     "https://cdn.nba.com/static/json/liveData/boxscore/boxscore_" + gameId + ".json");
             refreshPolicy.setDataPath("game");
-            section.setRefreshPolicy(refreshPolicy);
+            section.setRefreshPolicy(List.of(refreshPolicy));
 
             section.setSectionStates(
                     utils.buildSectionStates(sectionId, "Unable to load boxscore", "shimmer", 200));

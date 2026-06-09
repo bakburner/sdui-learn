@@ -8,6 +8,7 @@ import com.nba.sdui.core.data.SchemaVersionMismatchException
 import com.nba.sdui.core.data.SduiException
 import com.nba.sdui.core.data.SectionNotFoundException
 import com.nba.sdui.core.data.SduiRepository
+import com.nba.sdui.core.models.generated.RefreshPolicy
 import com.nba.sdui.core.models.generated.RefreshType
 import com.nba.sdui.core.models.generated.Screen
 import com.nba.sdui.core.models.generated.Section
@@ -66,6 +67,15 @@ internal class SduiScreenController(
     private val _isAppForeground = MutableStateFlow(true)
 
     private data class BufferedSseEntry(val message: Map<String, Any?>, val receivedAtMs: Long)
+    private data class SectionPolicySelection(
+        val opaquePolicy: RefreshPolicy?,
+        val sectionRefreshPolicy: RefreshPolicy?,
+        val fingerprint: String
+    )
+    private data class SectionDriverKeys(
+        var opaqueDriverKey: String? = null,
+        var sectionRefreshDriverKey: String? = null
+    )
 
     /** Buffer of latest SSE messages per section, applied on visibility resume. */
     private val sseMessageBuffer = mutableMapOf<String, BufferedSseEntry>()
@@ -82,6 +92,7 @@ internal class SduiScreenController(
 
     // Ably (only initialised when sse is required)
     private var ablyChannelManager: AblyChannelManager? = null
+    private var activeSseSectionIds: Set<String> = emptySet()
     private val ablyJobs = mutableMapOf<String, Job>()
 
     // ── Public state ─────────────────────────────────────────────────
@@ -112,6 +123,8 @@ internal class SduiScreenController(
     private var currentEndpoint: String? = null   // resolved server path — used for refresh / polling
     private var currentUserParams: Map<String, String> = emptyMap()  // last user-supplied filter params — replayed on pull-to-refresh and poll
     private var screenLevelPollJob: Job? = null
+    private val sectionPolicyFingerprints = mutableMapOf<String, String>()
+    private val sectionDriverKeys = mutableMapOf<String, SectionDriverKeys>()
 
     /**
      * Last `X-Correlation-ID` value the server echoed back on a successful
@@ -350,8 +363,7 @@ internal class SduiScreenController(
         // Defer data-channel bootstrap so the initial render is never blocked.
         // Polling and Ably are server-driven — always inspect refreshPolicy.
         scope.launch {
-            setupPolling(screen)
-            setupAbly(screen)
+            reconcileRealtimeDrivers(screen)
         }
 
         val defaultPolicy = screen.defaultRefreshPolicy
@@ -391,49 +403,227 @@ internal class SduiScreenController(
         }
     }
 
-    private fun setupPolling(screen: Screen) {
-        stopAllPolling()
-
-        val screenIsRefreshing = screen.defaultRefreshPolicy?.type == RefreshType.Poll
+    private fun reconcileRealtimeDrivers(screen: Screen) {
+        val screenHasNonStaticDefaultRefresh = screen.defaultRefreshPolicy?.type?.let { it != RefreshType.Static } == true
+        val liveSectionIds = screen.sections.map { it.id }.toSet()
+        val staleDriverSectionIds = sectionDriverKeys.keys - liveSectionIds
+        staleDriverSectionIds.forEach(::stopDriversForSection)
 
         screen.sections.forEach { section ->
-            val policy = section.refreshPolicy
-            val policyIntervalMs = policy?.intervalMS
-            if (policy?.type == RefreshType.Poll && policyIntervalMs != null) {
-                val baseIntervalMs: Long = policyIntervalMs
-                val pollUrl = policy.url
-                val sectionEndpoint = policy.sectionEndpoint
-                val dataPath = policy.dataPath
-                val shouldPause = policy.pauseWhenOffScreen ?: true
+            reconcileSectionDrivers(section, screenHasNonStaticDefaultRefresh)
+        }
 
-                // Guard: sectionEndpoint and a non-static screen defaultRefreshPolicy are mutually exclusive.
-                if (sectionEndpoint != null && screenIsRefreshing) {
-                    Log.w(TAG, "Section '${section.id}' has sectionEndpoint but screen defaultRefreshPolicy " +
-                        "is Poll — skipping sectionEndpoint poll; screen-level refresh owns this section.")
-                    return@forEach
+        val activeSseIds = sectionDriverKeys
+            .filterValues { !it.opaqueDriverKey.isNullOrBlank() && it.opaqueDriverKey!!.startsWith("sse:") }
+            .keys
+        activeSseSectionIds = activeSseIds
+        if (activeSseSectionIds.isEmpty()) {
+            sseStaleJob?.cancel()
+            sseStaleJob = null
+        }
+    }
+
+    private fun reconcileSectionDrivers(
+        section: Section,
+        screenHasNonStaticDefaultRefresh: Boolean
+    ) {
+        val sectionId = section.id
+        val selection = splitSectionPolicies(section)
+        val previousFingerprint = sectionPolicyFingerprints[sectionId]
+        if (selection.fingerprint != previousFingerprint) {
+            Log.d(TAG, "RefreshPolicy fingerprint changed for section '$sectionId': '${previousFingerprint ?: "<none>"}' -> '${selection.fingerprint}'")
+            sectionPolicyFingerprints[sectionId] = selection.fingerprint
+        }
+
+        val sectionRefreshPolicy = if (screenHasNonStaticDefaultRefresh && selection.sectionRefreshPolicy != null) {
+            Log.w(
+                TAG,
+                "Section '$sectionId' has sectionEndpoint policy while screen defaultRefreshPolicy is non-static; " +
+                    "skipping sectionEndpoint poll for this section."
+            )
+            null
+        } else {
+            selection.sectionRefreshPolicy
+        }
+        val opaquePolicy = selection.opaquePolicy
+
+        val desiredOpaqueKey = when {
+            opaquePolicy?.type == RefreshType.SSE && !opaquePolicy.channel.isNullOrBlank() ->
+                opaqueSseDriverKey(sectionId, opaquePolicy.channel!!)
+            opaquePolicy?.type == RefreshType.Poll &&
+                !opaquePolicy.url.isNullOrBlank() &&
+                opaquePolicy.intervalMS != null &&
+                opaquePolicy.sectionEndpoint.isNullOrBlank() ->
+                opaquePollDriverKey(sectionId, opaquePolicy.url!!, opaquePolicy.intervalMS, opaquePolicy.dataPath)
+            else -> null
+        }
+        val desiredSectionRefreshKey = when {
+            sectionRefreshPolicy?.type == RefreshType.Poll &&
+                !sectionRefreshPolicy.sectionEndpoint.isNullOrBlank() &&
+                sectionRefreshPolicy.intervalMS != null ->
+                sectionRefreshDriverKey(sectionId, sectionRefreshPolicy.sectionEndpoint!!, sectionRefreshPolicy.intervalMS)
+            else -> null
+        }
+
+        val activeKeys = sectionDriverKeys.getOrPut(sectionId) { SectionDriverKeys() }
+
+        if (activeKeys.opaqueDriverKey != desiredOpaqueKey) {
+            activeKeys.opaqueDriverKey?.let { stopDriver(it) }
+            activeKeys.opaqueDriverKey = null
+        }
+        if (activeKeys.sectionRefreshDriverKey != desiredSectionRefreshKey) {
+            activeKeys.sectionRefreshDriverKey?.let { stopDriver(it) }
+            activeKeys.sectionRefreshDriverKey = null
+        }
+
+        if (desiredOpaqueKey != null && activeKeys.opaqueDriverKey == null) {
+            when {
+                opaquePolicy?.type == RefreshType.SSE && !opaquePolicy.channel.isNullOrBlank() -> {
+                    subscribeToChannel(
+                        sectionId = sectionId,
+                        channel = opaquePolicy.channel!!,
+                        driverKey = desiredOpaqueKey,
+                        shouldPause = opaquePolicy.pauseWhenOffScreen ?: true
+                    )
+                    activeKeys.opaqueDriverKey = desiredOpaqueKey
                 }
-
-                // sectionEndpoint takes precedence over url when both are set (schema §RefreshPolicy).
-                if (sectionEndpoint != null) {
-                    Log.i(TAG, "SECTION poll: section='${section.id}' sectionEndpoint=$sectionEndpoint every ${baseIntervalMs}ms pauseWhenOffScreen=$shouldPause")
-                } else if (pollUrl != null) {
-                    Log.i(TAG, "DIRECT poll: section='${section.id}' url=$pollUrl every ${baseIntervalMs}ms pauseWhenOffScreen=$shouldPause")
-                } else {
-                    Log.w(TAG, "POLL section='${section.id}' has neither url nor sectionEndpoint — ticks will no-op")
-                }
-
-                pollFailureCounts[section.id] = 0
-
-                pollingJobs[section.id] = scope.launch {
-                    startSectionPollJob(section, baseIntervalMs, pollUrl, sectionEndpoint, dataPath, shouldPause)
+                opaquePolicy?.type == RefreshType.Poll &&
+                    !opaquePolicy.url.isNullOrBlank() &&
+                    opaquePolicy.intervalMS != null &&
+                    opaquePolicy.sectionEndpoint.isNullOrBlank() -> {
+                    startPollDriver(
+                        sectionId = sectionId,
+                        driverKey = desiredOpaqueKey,
+                        baseIntervalMs = opaquePolicy.intervalMS.toLong(),
+                        pollUrl = opaquePolicy.url,
+                        sectionEndpoint = null,
+                        dataPath = opaquePolicy.dataPath,
+                        shouldPause = opaquePolicy.pauseWhenOffScreen ?: true
+                    )
+                    activeKeys.opaqueDriverKey = desiredOpaqueKey
                 }
             }
         }
-        if (pollingJobs.isNotEmpty()) Log.i(TAG, "Active polls: ${pollingJobs.keys}")
+
+        if (desiredSectionRefreshKey != null && activeKeys.sectionRefreshDriverKey == null) {
+            val sectionRefreshIntervalMs = sectionRefreshPolicy?.intervalMS ?: return
+            startPollDriver(
+                sectionId = sectionId,
+                driverKey = desiredSectionRefreshKey,
+                baseIntervalMs = sectionRefreshIntervalMs.toLong(),
+                pollUrl = null,
+                sectionEndpoint = sectionRefreshPolicy.sectionEndpoint,
+                dataPath = sectionRefreshPolicy.dataPath,
+                shouldPause = sectionRefreshPolicy.pauseWhenOffScreen ?: true
+            )
+            activeKeys.sectionRefreshDriverKey = desiredSectionRefreshKey
+        }
+
+        if (activeKeys.opaqueDriverKey == null && activeKeys.sectionRefreshDriverKey == null) {
+            sectionDriverKeys.remove(sectionId)
+            sectionPolicyFingerprints.remove(sectionId)
+        }
+    }
+
+    private fun splitSectionPolicies(section: Section): SectionPolicySelection {
+        val policies = section.refreshPolicy.orEmpty()
+        var opaquePolicy: RefreshPolicy? = null
+        var sectionRefreshPolicy: RefreshPolicy? = null
+        var seenStatic = false
+
+        for ((index, policy) in policies.withIndex()) {
+            val isStatic = policy.type == RefreshType.Static
+            val isSectionRefresh = policy.type == RefreshType.Poll && !policy.sectionEndpoint.isNullOrBlank()
+            val isOpaque = policy.type == RefreshType.SSE ||
+                (policy.type == RefreshType.Poll && policy.sectionEndpoint.isNullOrBlank() && !policy.url.isNullOrBlank())
+
+            if (isStatic) {
+                if (policies.size > 1) {
+                    Log.w(TAG, "Section '${section.id}' includes static refresh policy with additional elements; static must be solo")
+                }
+                seenStatic = true
+                continue
+            }
+
+            if (isSectionRefresh) {
+                if (sectionRefreshPolicy == null) {
+                    sectionRefreshPolicy = policy
+                } else {
+                    Log.w(TAG, "Section '${section.id}' has multiple section-refresh policies; ignoring extra element at index $index")
+                }
+                continue
+            }
+
+            if (isOpaque) {
+                if (opaquePolicy == null) {
+                    opaquePolicy = policy
+                } else {
+                    Log.w(TAG, "Section '${section.id}' has multiple opaque refresh policies; ignoring extra element at index $index")
+                }
+                continue
+            }
+
+            Log.w(TAG, "Section '${section.id}' has unsupported refresh policy element at index $index: type=${policy.type}")
+        }
+
+        if (seenStatic && (opaquePolicy != null || sectionRefreshPolicy != null)) {
+            Log.w(TAG, "Section '${section.id}' mixes static with active refresh policies; active policies will be used")
+        }
+
+        return SectionPolicySelection(
+            opaquePolicy = opaquePolicy,
+            sectionRefreshPolicy = sectionRefreshPolicy,
+            fingerprint = policies.joinToString(separator = "|") { policyFingerprint(it) }
+        )
+    }
+
+    private fun policyFingerprint(policy: RefreshPolicy): String {
+        return listOf(
+            "type=${policy.type}",
+            "channel=${policy.channel.orEmpty()}",
+            "url=${policy.url.orEmpty()}",
+            "sectionEndpoint=${policy.sectionEndpoint.orEmpty()}",
+            "intervalMs=${policy.intervalMS ?: -1}",
+            "dataPath=${policy.dataPath.orEmpty()}",
+            "pauseWhenOffScreen=${policy.pauseWhenOffScreen ?: true}"
+        ).joinToString(separator = ";")
+    }
+
+    private fun sectionRefreshDriverKey(sectionId: String, endpoint: String, intervalMs: Long): String =
+        "section-poll:$sectionId:$endpoint:$intervalMs"
+
+    private fun opaquePollDriverKey(sectionId: String, url: String, intervalMs: Long, dataPath: String?): String =
+        "opaque-poll:$sectionId:$url:$intervalMs:${dataPath.orEmpty()}"
+
+    private fun opaqueSseDriverKey(sectionId: String, channel: String): String =
+        "sse:$sectionId:$channel"
+
+    private fun startPollDriver(
+        sectionId: String,
+        driverKey: String,
+        baseIntervalMs: Long,
+        pollUrl: String?,
+        sectionEndpoint: String?,
+        dataPath: String?,
+        shouldPause: Boolean
+    ) {
+        pollFailureCounts[driverKey] = 0
+        pollingJobs[driverKey] = scope.launch {
+            startSectionPollJob(
+                sectionId = sectionId,
+                driverKey = driverKey,
+                baseIntervalMs = baseIntervalMs,
+                pollUrl = pollUrl,
+                sectionEndpoint = sectionEndpoint,
+                dataPath = dataPath,
+                shouldPause = shouldPause
+            )
+        }
     }
 
     private suspend fun startSectionPollJob(
-        section: Section,
+        sectionId: String,
+        driverKey: String,
         baseIntervalMs: Long,
         pollUrl: String?,
         sectionEndpoint: String?,
@@ -442,64 +632,52 @@ internal class SduiScreenController(
     ) {
         var currentIntervalMs: Long = baseIntervalMs
         while (currentCoroutineContext().isActive) {
-            // Gate: wait for app foreground
             _isAppForeground.first { it }
-
-            // Gate: wait for section to be near viewport (if pauseWhenOffScreen)
             if (shouldPause) {
-                visibilityTracker.awaitNearViewport(section.id)
+                visibilityTracker.awaitNearViewport(sectionId)
             }
 
             delay(currentIntervalMs)
             try {
-                // sectionEndpoint takes precedence over url when both are set (schema §RefreshPolicy).
-                if (sectionEndpoint != null) {
+                if (!sectionEndpoint.isNullOrBlank()) {
                     try {
                         val sectionResult = repository.fetchSection(sectionEndpoint, buildEnvelope(), lastCorrelationId)
                         val newSection = sectionResult.value
                         sectionResult.correlationId?.let { lastCorrelationId = it }
-                        // Load-bearing ordering: restartRealtimeForSection cancels THIS coroutine
-                        // via pollingJobs[section.id]?.cancel(). Cancellation is cooperative, so
-                        // we keep running until the next suspending call. The remaining statements
-                        // here (mergeSingleSection, _staleSections update, return) are all
-                        // non-suspending. Do NOT insert any suspending call between this line
-                        // and `return` — a suspension would observe the cancellation and abort
-                        // the merge, leaving the screen in an inconsistent state.
-                        restartRealtimeForSection(section.id, newSection)
                         mergeSingleSection(newSection)
-                        _staleSections.value = _staleSections.value - section.id
-                        return
+                        _staleSections.value = _staleSections.value - sectionId
+                        val screenHasNonStaticDefaultRefresh =
+                            currentScreen?.defaultRefreshPolicy?.type?.let { it != RefreshType.Static } == true
+                        reconcileSectionDrivers(newSection, screenHasNonStaticDefaultRefresh)
                     } catch (e: SchemaVersionMismatchException) {
-                        Log.w(TAG, "Schema version mismatch on section '${section.id}' — upgrade required", e)
+                        Log.w(TAG, "Schema version mismatch on section '$sectionId' — upgrade required", e)
                         _uiState.value = SduiScreenUiState.UpgradeRequired(
                             e.message ?: "Please update the app to continue."
                         )
                         return
                     } catch (e: SectionNotFoundException) {
-                        Log.w(TAG, "Section '${section.id}' returned 404 — stopping poll", e)
-                        pollingJobs[section.id]?.cancel()
-                        pollingJobs.remove(section.id)
-                        _staleSections.value = _staleSections.value + section.id
+                        Log.w(TAG, "Section '$sectionId' returned 404 — stopping section drivers", e)
+                        stopDriversForSection(sectionId)
+                        _staleSections.value = _staleSections.value + sectionId
                         return
                     }
-                } else if (pollUrl != null) {
+                } else if (!pollUrl.isNullOrBlank()) {
                     val data = repository.fetchRawJson(pollUrl, dataPath, lastCorrelationId)
-                    updateSectionData(section.id, data)
+                    updateSectionData(sectionId, data)
+                    _staleSections.value = _staleSections.value - sectionId
                 } else {
-                    Log.w(TAG, "Poll section '${section.id}' has neither url nor sectionEndpoint — skipping tick")
+                    Log.w(TAG, "Poll driver '$driverKey' for section '$sectionId' has no url or sectionEndpoint — skipping tick")
                 }
-                // Success — reset failure count and backoff
-                pollFailureCounts[section.id] = 0
+
+                pollFailureCounts[driverKey] = 0
                 currentIntervalMs = baseIntervalMs
-                _staleSections.value = _staleSections.value - section.id
             } catch (e: Exception) {
-                Log.e(TAG, "Poll failed for section: ${section.id}", e)
-                val failures = (pollFailureCounts[section.id] ?: 0) + 1
-                pollFailureCounts[section.id] = failures
-                // Exponential backoff: double on failure, cap at MAX_BACKOFF_MS
+                Log.e(TAG, "Poll failed for driver '$driverKey' section '$sectionId'", e)
+                val failures = (pollFailureCounts[driverKey] ?: 0) + 1
+                pollFailureCounts[driverKey] = failures
                 currentIntervalMs = (currentIntervalMs * 2).coerceAtMost(MAX_BACKOFF_MS)
                 if (failures >= POLL_FAILURE_THRESHOLD) {
-                    _staleSections.value = _staleSections.value + section.id
+                    _staleSections.value = _staleSections.value + sectionId
                 }
             }
         }
@@ -549,60 +727,45 @@ internal class SduiScreenController(
     }
 
     private fun stopAllPolling() {
-        pollingJobs.forEach { (id, job) ->
-            Log.d(TAG, "Stop polling: $id")
+        pollingJobs.forEach { (key, job) ->
+            Log.d(TAG, "Stop polling: $key")
             job.cancel()
         }
         pollingJobs.clear()
         pollFailureCounts.clear()
+        sectionDriverKeys.values.forEach { keys ->
+            keys.sectionRefreshDriverKey?.let { pollFailureCounts.remove(it) }
+        }
     }
 
-    private fun restartRealtimeForSection(sectionId: String, newSection: Section) {
-        // Cancel old poll job for this section only
-        pollingJobs[sectionId]?.cancel()
-        pollingJobs.remove(sectionId)
-        pollFailureCounts.remove(sectionId)
-
-        // Cancel old Ably job for this section only
-        ablyJobs[sectionId]?.cancel()
-        ablyJobs.remove(sectionId)
-        sseMessageBuffer.remove(sectionId)
-
-        // Start the new section's policy
-        val policy = newSection.refreshPolicy ?: return
-        when (policy.type) {
-            RefreshType.Poll -> {
-                val policyIntervalMs = policy.intervalMS ?: return
-                val pollUrl = policy.url
-                val sectionEndpoint = policy.sectionEndpoint
-                val dataPath = policy.dataPath
-                val shouldPause = policy.pauseWhenOffScreen ?: true
-
-                pollFailureCounts[sectionId] = 0
-                pollingJobs[sectionId] = scope.launch {
-                    startSectionPollJob(newSection, policyIntervalMs.toLong(), pollUrl, sectionEndpoint, dataPath, shouldPause)
-                }
+    private fun stopDriver(driverKey: String) {
+        if (driverKey.startsWith("sse:")) {
+            ablyJobs.remove(driverKey)?.let { job ->
+                Log.d(TAG, "Stop Ably driver: $driverKey")
+                job.cancel()
             }
-            RefreshType.SSE -> {
-                val channel = policy.channel ?: return
-                subscribeToChannel(newSection, channel)
-            }
-            else -> { /* static — no action */ }
+            return
         }
+        pollingJobs.remove(driverKey)?.let { job ->
+            Log.d(TAG, "Stop poll driver: $driverKey")
+            job.cancel()
+        }
+        pollFailureCounts.remove(driverKey)
+    }
+
+    private fun stopDriversForSection(sectionId: String) {
+        val keys = sectionDriverKeys.remove(sectionId) ?: return
+        keys.opaqueDriverKey?.let(::stopDriver)
+        keys.sectionRefreshDriverKey?.let(::stopDriver)
+        sectionPolicyFingerprints.remove(sectionId)
+        sseMessageBuffer.remove(sectionId)
     }
 
     // ── Ably ─────────────────────────────────────────────────────────
 
     private var sseStaleJob: Job? = null
 
-    private fun setupAbly(screen: Screen) {
-        val sseSections = screen.sections.filter { s ->
-            s.refreshPolicy?.type == RefreshType.SSE && !s.refreshPolicy?.channel.isNullOrBlank()
-        }
-        if (sseSections.isEmpty()) return
-
-        val sseSectionIds = sseSections.map { it.id }.toSet()
-
+    private fun ensureAblyManager() {
         if (ablyChannelManager == null) {
             ablyChannelManager = AblyChannelManager(config.ablyTokenUrl)
             ablyChannelManager?.onConnectionStateChange = { connectionState ->
@@ -612,8 +775,10 @@ internal class SduiScreenController(
                         if (sseStaleJob?.isActive != true) {
                             sseStaleJob = scope.launch {
                                 delay(SSE_STALE_DELAY_MS)
-                                _staleSections.value = _staleSections.value + sseSectionIds
-                                Log.w(TAG, "Ably disconnected for ${SSE_STALE_DELAY_MS}ms — marking SSE sections stale: $sseSectionIds")
+                                if (activeSseSectionIds.isNotEmpty()) {
+                                    _staleSections.value = _staleSections.value + activeSseSectionIds
+                                    Log.w(TAG, "Ably disconnected for ${SSE_STALE_DELAY_MS}ms — marking SSE sections stale: $activeSseSectionIds")
+                                }
                             }
                         }
                     }
@@ -627,11 +792,6 @@ internal class SduiScreenController(
             }
             ablyChannelManager?.initialize()
         }
-
-        sseSections.forEach { section ->
-            if (ablyJobs[section.id]?.isActive == true) return@forEach
-            subscribeToChannel(section, section.refreshPolicy!!.channel!!)
-        }
     }
 
     /**
@@ -639,11 +799,16 @@ internal class SduiScreenController(
      * from opaque incoming messages.  No field-level knowledge of the
      * message content exists here — DataBindingResolver does the mapping.
      */
-    private fun subscribeToChannel(section: Section, channel: String) {
-        ablyJobs[section.id]?.cancel()
-        val shouldPause = section.refreshPolicy?.pauseWhenOffScreen ?: true
-        Log.i(TAG, "Subscribe Ably: channel='$channel' section='${section.id}' pauseWhenOffScreen=$shouldPause")
-        ablyJobs[section.id] = scope.launch {
+    private fun subscribeToChannel(
+        sectionId: String,
+        channel: String,
+        driverKey: String,
+        shouldPause: Boolean
+    ) {
+        ensureAblyManager()
+        ablyJobs[driverKey]?.cancel()
+        Log.i(TAG, "Subscribe Ably: channel='$channel' section='$sectionId' pauseWhenOffScreen=$shouldPause key='$driverKey'")
+        ablyJobs[driverKey] = scope.launch {
             try {
                 ablyChannelManager?.subscribeToChannel(channel)?.collect { message ->
                     // Per-message isolation: a single bad payload (e.g. a binding
@@ -653,33 +818,33 @@ internal class SduiScreenController(
                     // every subsequent tick. Catch here so the next message
                     // still gets a chance.
                     try {
-                        Log.d(TAG, "Ably update for ${section.id}: keys=${message.keys}")
-                        _staleSections.value = _staleSections.value - section.id
+                        Log.d(TAG, "Ably update for $sectionId: keys=${message.keys}")
+                        _staleSections.value = _staleSections.value - sectionId
 
                         val isForeground = _isAppForeground.value
-                        val isVisible = !shouldPause || visibilityTracker.isNearViewport(section.id)
+                        val isVisible = !shouldPause || visibilityTracker.isNearViewport(sectionId)
 
                         if (!isForeground || !isVisible) {
                             val now = System.currentTimeMillis()
-                            sseMessageBuffer[section.id] = BufferedSseEntry(message, now)
+                            sseMessageBuffer[sectionId] = BufferedSseEntry(message, now)
                             pruneExpiredSseBuffer(now)
-                            Log.d(TAG, "SSE message buffered for ${section.id} (fg=$isForeground, vis=$isVisible)")
+                            Log.d(TAG, "SSE message buffered for $sectionId (fg=$isForeground, vis=$isVisible)")
                             return@collect
                         }
 
-                        applyAblyMessage(section, message)
+                        applyAblyMessage(sectionId, message)
                     } catch (e: CancellationException) {
                         // Cooperative cancellation — let it propagate so the
                         // job actually stops when stopAbly() / restart fires.
                         throw e
                     } catch (e: Exception) {
-                        Log.e(TAG, "Ably message apply failed for ${section.id} (subscription stays open)", e)
+                        Log.e(TAG, "Ably message apply failed for $sectionId (subscription stays open)", e)
                     }
                 }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                Log.e(TAG, "Ably stream error for ${section.id}", e)
+                Log.e(TAG, "Ably stream error for $sectionId", e)
             }
         }
 
@@ -687,14 +852,14 @@ internal class SduiScreenController(
         if (shouldPause) {
             scope.launch {
                 visibilityTracker.visibleSections.collect { visibleSet ->
-                    if (section.id in visibleSet) {
-                        val entry = sseMessageBuffer.remove(section.id)
+                    if (sectionId in visibleSet) {
+                        val entry = sseMessageBuffer.remove(sectionId)
                         val buffered = entry?.takeIf {
                             System.currentTimeMillis() - it.receivedAtMs <= SSE_BUFFER_TTL_MS
                         }?.message
                         if (buffered != null) {
-                            Log.d(TAG, "Applying buffered SSE message for ${section.id}")
-                            applyAblyMessage(section, buffered)
+                            Log.d(TAG, "Applying buffered SSE message for $sectionId")
+                            applyAblyMessage(sectionId, buffered)
                         }
                     }
                 }
@@ -703,29 +868,30 @@ internal class SduiScreenController(
     }
 
     private fun mergeSectionWithAblyMessage(
-        section: Section,
+        sectionId: String,
         message: Map<String, Any?>,
         screen: Screen
     ): SectionData? {
+        val section = screen.sections.find { it.id == sectionId } ?: return null
         val dataBinding = section.dataBinding
         if (dataBinding == null) {
-            Log.w(TAG, "No dataBinding config for section ${section.id} — message dropped")
+            Log.w(TAG, "No dataBinding config for section $sectionId — message dropped")
             return null
         }
         val currentData = screen.sections
-            .find { it.id == section.id }?.data
+            .find { it.id == sectionId }?.data
             ?.let { toMap(it) } ?: return null
         val updatedData = dataBindingResolver.applyBindings(
             currentData, message, dataBinding, lastCorrelationId,
-            section.stringTable, section.id
+            section.stringTable, sectionId
         )
         return toData(updatedData)
     }
 
-    private fun applyAblyMessage(section: Section, message: Map<String, Any?>) {
+    private fun applyAblyMessage(sectionId: String, message: Map<String, Any?>) {
         val screen = currentScreen ?: return
-        val merged = mergeSectionWithAblyMessage(section, message, screen) ?: return
-        updateSectionInScreen(section.id, merged)
+        val merged = mergeSectionWithAblyMessage(sectionId, message, screen) ?: return
+        updateSectionInScreen(sectionId, merged)
     }
 
     private fun pruneExpiredSseBuffer(now: Long) {
@@ -747,8 +913,7 @@ internal class SduiScreenController(
         var screen = currentScreen ?: return
         var appliedCount = 0
         for ((sectionId, message) in entries) {
-            val section = screen.sections.find { it.id == sectionId } ?: continue
-            val merged = mergeSectionWithAblyMessage(section, message, screen) ?: continue
+            val merged = mergeSectionWithAblyMessage(sectionId, message, screen) ?: continue
             screen = screen.copy(
                 sections = screen.sections.map { if (it.id == sectionId) it.copy(data = merged) else it }
             )
@@ -787,12 +952,15 @@ internal class SduiScreenController(
     }
 
     private fun stopAbly() {
-        ablyJobs.forEach { (id, job) ->
-            Log.d(TAG, "Stop Ably: $id")
+        ablyJobs.forEach { (key, job) ->
+            Log.d(TAG, "Stop Ably: $key")
             job.cancel()
         }
         ablyJobs.clear()
         sseMessageBuffer.clear()
+        activeSseSectionIds = emptySet()
+        sseStaleJob?.cancel()
+        sseStaleJob = null
         ablyChannelManager?.disconnect()
         ablyChannelManager = null
     }

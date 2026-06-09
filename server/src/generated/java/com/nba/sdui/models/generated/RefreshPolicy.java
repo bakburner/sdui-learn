@@ -62,11 +62,11 @@ public class RefreshPolicy {
     @JsonPropertyDescription("For poll type: server-relative SDUI path to re-fetch this section (e.g. '/v1/sdui/section/stats-api:game-123::AtomicComposite::scoreboard'). The response is a single Section object that replaces this section in place; the client then re-evaluates the new section's refreshPolicy (enabling poll\u2192SSE transition). Mutually exclusive with url; sectionEndpoint takes precedence when both are present.")
     private String sectionEndpoint;
     /**
-     * For sse type: Ably channel name pattern (e.g., '{gameId}:linescore')
+     * For sse type: subscription channel name pattern (e.g., '{gameId}:linescore'). Transport binding is a client implementation detail.
      * 
      */
     @JsonProperty("channel")
-    @JsonPropertyDescription("For sse type: Ably channel name pattern (e.g., '{gameId}:linescore')")
+    @JsonPropertyDescription("For sse type: subscription channel name pattern (e.g., '{gameId}:linescore'). Transport binding is a client implementation detail.")
     private String channel;
     /**
      * JSONPath to extract section data from response (e.g., '$.game' or '$.sections[0].data')
@@ -181,7 +181,7 @@ public class RefreshPolicy {
     }
 
     /**
-     * For sse type: Ably channel name pattern (e.g., '{gameId}:linescore')
+     * For sse type: subscription channel name pattern (e.g., '{gameId}:linescore'). Transport binding is a client implementation detail.
      * 
      */
     @JsonProperty("channel")
@@ -190,7 +190,7 @@ public class RefreshPolicy {
     }
 
     /**
-     * For sse type: Ably channel name pattern (e.g., '{gameId}:linescore')
+     * For sse type: subscription channel name pattern (e.g., '{gameId}:linescore'). Transport binding is a client implementation detail.
      * 
      */
     @JsonProperty("channel")

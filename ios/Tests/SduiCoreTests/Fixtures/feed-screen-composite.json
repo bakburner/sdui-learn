@@ -8,9 +8,11 @@
       "id": "feed-screen-atomic-composite",
       "type": "AtomicComposite",
       "analyticsId": "feed_screen_atomic_composite",
-      "refreshPolicy": {
-        "type": "static"
-      },
+      "refreshPolicy": [
+        {
+          "type": "static"
+        }
+      ],
       "surface": {
         "margin": {
           "top": "token:nba.spacing.lg",

@@ -25,6 +25,7 @@ actor PollingDriver {
     // downstream, so there is no shared mutable state to race on.
     struct PollSuccess: @unchecked Sendable {
         let sectionID: String
+        let pollID: String
         /// When the poll hits a direct URL, the JSON payload after
         /// applying `dataPath`.
         let payload: Any
@@ -43,6 +44,7 @@ actor PollingDriver {
 
     struct PollFailure: Sendable {
         let sectionID: String
+        let pollID: String
         let consecutiveFailures: Int
         let reason: String
         let kind: PollFailureKind
@@ -50,7 +52,7 @@ actor PollingDriver {
 
     enum PollEvent: @unchecked Sendable {
         case success(PollSuccess)
-        case sectionSuccess(sectionID: String, section: Section)
+        case sectionSuccess(sectionID: String, pollID: String, section: Section)
         case failure(PollFailure)
     }
 
@@ -59,6 +61,7 @@ actor PollingDriver {
 
     private let repository: SduiRepository
     private var tasks: [String: Task<Void, Never>] = [:]
+    private var sectionPollIDs: [String: Set<String>] = [:]
     private var failureCounts: [String: Int] = [:]
     private var eventContinuations: [UUID: AsyncStream<PollEvent>.Continuation] = [:]
 
@@ -123,6 +126,7 @@ actor PollingDriver {
     ///   - pauseWhenOffScreen: when `true`, skips ticks while the section is
     ///     not in ``visibleSections``. Foreground gating always applies.
     func start(
+        pollID: String,
         sectionID: String,
         intervalMs: Int,
         directURL: URL?,
@@ -131,13 +135,16 @@ actor PollingDriver {
         pauseWhenOffScreen: Bool,
         correlationId: String? = nil
     ) {
-        tasks[sectionID]?.cancel()
-        failureCounts[sectionID] = 0
+        tasks[pollID]?.cancel()
+        failureCounts[pollID] = 0
+        var ids = sectionPollIDs[sectionID] ?? Set<String>()
+        ids.insert(pollID)
+        sectionPollIDs[sectionID] = ids
 
         let baseInterval = Duration.milliseconds(intervalMs)
         let repository = self.repository
 
-        tasks[sectionID] = Task { [weak self] in
+        tasks[pollID] = Task { [weak self] in
             var currentInterval = baseInterval
             while !Task.isCancelled {
                 await self?.awaitGate(sectionID: sectionID, pauseWhenOffScreen: pauseWhenOffScreen)
@@ -151,11 +158,11 @@ actor PollingDriver {
                     // sectionEndpoint takes precedence over directURL when both are set (schema §RefreshPolicy).
                     if let sectionEndpoint {
                         let result = try await repository.fetchSection(endpoint: sectionEndpoint, correlationId: correlationId)
-                        event = .sectionSuccess(sectionID: sectionID, section: result.value)
+                        event = .sectionSuccess(sectionID: sectionID, pollID: pollID, section: result.value)
                     } else if let directURL {
                         let raw = try await repository.fetchRawJson(url: directURL, correlationId: correlationId)
                         let trimmed = Self.extract(dataPath: dataPath, from: raw)
-                        event = .success(PollSuccess(sectionID: sectionID, payload: trimmed, isDirect: true))
+                        event = .success(PollSuccess(sectionID: sectionID, pollID: pollID, payload: trimmed, isDirect: true))
                     } else {
                         throw NSError(domain: "PollingDriver", code: 0, userInfo: [
                             NSLocalizedDescriptionKey: "no directURL and no sectionEndpoint for section \(sectionID)"
@@ -164,7 +171,7 @@ actor PollingDriver {
                     await self?.emitSuccess(event)
                     currentInterval = baseInterval
                 } catch {
-                    let failures = await self?.recordFailure(sectionID: sectionID) ?? 1
+                    let failures = await self?.recordFailure(pollID: pollID) ?? 1
                     currentInterval = Self.doubled(currentInterval, cap: Self.maxBackoff)
                     let kind: PollFailureKind
                     if let sduiError = error as? SduiError {
@@ -178,12 +185,13 @@ actor PollingDriver {
                     }
                     let failure = PollFailure(
                         sectionID: sectionID,
+                        pollID: pollID,
                         consecutiveFailures: failures,
                         reason: error.localizedDescription,
                         kind: kind
                     )
                     await self?.emit(.failure(failure))
-                    logger.warning("poll failed section=\(sectionID, privacy: .public) attempt=\(failures) reason=\(error.localizedDescription, privacy: .public)")
+                    logger.warning("poll failed section=\(sectionID, privacy: .public) pollID=\(pollID, privacy: .public) attempt=\(failures) reason=\(error.localizedDescription, privacy: .public)")
                 }
             }
         }
@@ -202,32 +210,36 @@ actor PollingDriver {
 
     /// Stop polling a specific section.
     func stop(sectionID: String) {
-        tasks[sectionID]?.cancel()
-        tasks.removeValue(forKey: sectionID)
-        failureCounts.removeValue(forKey: sectionID)
+        guard let pollIDs = sectionPollIDs.removeValue(forKey: sectionID) else { return }
+        for pollID in pollIDs {
+            tasks[pollID]?.cancel()
+            tasks.removeValue(forKey: pollID)
+            failureCounts.removeValue(forKey: pollID)
+        }
     }
 
     /// Stop all active polls.
     func stopAll() {
         for task in tasks.values { task.cancel() }
         tasks.removeAll()
+        sectionPollIDs.removeAll()
         failureCounts.removeAll()
     }
 
     // MARK: - Helpers
 
-    private func recordFailure(sectionID: String) -> Int {
-        let next = (failureCounts[sectionID] ?? 0) + 1
-        failureCounts[sectionID] = next
+    private func recordFailure(pollID: String) -> Int {
+        let next = (failureCounts[pollID] ?? 0) + 1
+        failureCounts[pollID] = next
         return next
     }
 
     private func emitSuccess(_ event: PollEvent) {
         switch event {
         case .success(let success):
-            failureCounts[success.sectionID] = 0
-        case .sectionSuccess(let sectionID, _):
-            failureCounts[sectionID] = 0
+            failureCounts[success.pollID] = 0
+        case .sectionSuccess(_, let pollID, _):
+            failureCounts[pollID] = 0
         case .failure:
             break
         }

@@ -49,6 +49,10 @@ resources:
 autoscaling:
   enabled: false
 env:
+  - name: SAF_CACHE_L2_ENABLED
+    value: "false"
+  - name: SAF_COLLAPSING_CROSS_SERVICE_ENABLED
+    value: "false"
   - name: SPRING_DATA_REDIS_HOST
     valueFrom:
       secretKeyRef:

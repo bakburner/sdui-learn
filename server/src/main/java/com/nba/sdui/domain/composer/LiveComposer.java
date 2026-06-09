@@ -34,6 +34,7 @@ import com.nba.sdui.orchestration.SectionRefreshService;
 import com.nba.sdui.remote.SeasonCalendarService;
 import com.nba.sdui.domain.port.ScoreboardPort;
 import com.nba.sdui.domain.tokens.Tokens;
+import com.nba.sdui.integration.model.boxscore.BoxscoreGame;
 import com.nba.sdui.integration.model.scoreboard.Broadcasters;
 import com.nba.sdui.integration.model.scoreboard.Game;
 import com.nba.sdui.integration.model.scoreboard.PlayoffSeries;
@@ -369,8 +370,23 @@ public class LiveComposer {
 
     private Section buildGameCardSection(Game game) {
         String gameId = game.getGameId() != null ? game.getGameId() : "0000000000";
-        String contentSourceId = "games:card-" + gameId;
-        String sectionId = SectionIdDeriver.derive(contentSourceId, Section.Type.ATOMIC_COMPOSITE.value());
+        return buildGameCardSection(game, "games:card-" + gameId, null);
+    }
+
+    /**
+     * Build a single per-game card section. The same atomic tree, surface, and
+     * status-derived refresh-policy array power the games screen and any
+     * embedded card on other screens (e.g. the game-detail header). Callers
+     * supply {@code contentSourceId} so each screen's section-refresh resolver
+     * can be registered against its own family without colliding, and an
+     * optional {@code slug} so cross-screen variant transforms can target the
+     * card by name.
+     */
+    public Section buildGameCardSection(Game game, String contentSourceId, String slug) {
+        String gameId = game.getGameId() != null ? game.getGameId() : "0000000000";
+        String sectionId = slug == null
+                ? SectionIdDeriver.derive(contentSourceId, Section.Type.ATOMIC_COMPOSITE.value())
+                : SectionIdDeriver.derive(contentSourceId, Section.Type.ATOMIC_COMPOSITE.value(), slug);
         int status = game.getGameStatus();
 
         List<RefreshPolicy> refreshPolicies;
@@ -409,6 +425,42 @@ public class LiveComposer {
         section.setContentSourceId(contentSourceId);
         section.setSurface(surfaces.gameCardFlushSurface());
         return section;
+    }
+
+    /**
+     * Build a per-game card section from a boxscore-shaped game payload. Adapts
+     * the {@link BoxscoreGame} into the same {@link Game} shape consumed by the
+     * scoreboard pipeline so the games screen and game-detail share one builder.
+     * Boxscore payloads carry no broadcaster, series, or seed metadata; those
+     * fields render only when present on the row, so this is a safe adaptation.
+     */
+    public Section buildGameCardSection(BoxscoreGame boxGame, String gameId,
+                                            String contentSourceId, String slug) {
+        return buildGameCardSection(adaptBoxscoreToScoreboardGame(boxGame, gameId), contentSourceId, slug);
+    }
+
+    private Game adaptBoxscoreToScoreboardGame(BoxscoreGame boxGame, String gameId) {
+        Game game = new Game();
+        game.setGameId(gameId);
+        game.setGameStatus(boxGame.getGameStatus());
+        if (boxGame.getGameStatusText() != null) {
+            game.setGameStatusText(boxGame.getGameStatusText());
+        }
+        game.setGameClock(boxGame.getGameClock() != null ? boxGame.getGameClock() : "");
+        game.setAwayTeam(adaptBoxscoreTeam(boxGame.getAwayTeam()));
+        game.setHomeTeam(adaptBoxscoreTeam(boxGame.getHomeTeam()));
+        return game;
+    }
+
+    private ScoreboardTeam adaptBoxscoreTeam(
+            com.nba.sdui.integration.model.boxscore.BoxscoreTeam team) {
+        if (team == null) return null;
+        ScoreboardTeam adapted = new ScoreboardTeam();
+        adapted.setTeamId(team.getTeamId() != null ? String.valueOf(team.getTeamId()) : null);
+        adapted.setTeamTricode(team.getTeamTricode());
+        adapted.setTeamName(team.getTeamName());
+        adapted.setScore(team.getScore() != null ? team.getScore() : 0);
+        return adapted;
     }
 
     // ── Row conversion ─────────────────────────────────────────────────

@@ -1,8 +1,6 @@
 package com.nba.sdui.domain.composer;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.nba.sdui.models.generated.Action;
-import com.nba.sdui.models.generated.AtomicComposite;
 import com.nba.sdui.models.generated.AtomicElement;
 import com.nba.sdui.models.generated.Capability;
 import com.nba.sdui.models.generated.DisplayConfig;
@@ -12,7 +10,6 @@ import com.nba.sdui.models.generated.Overlays;
 import com.nba.sdui.models.generated.RefreshPolicy;
 import com.nba.sdui.models.generated.Screen;
 import com.nba.sdui.models.generated.Section;
-import com.nba.sdui.models.generated.SectionStates;
 import com.nba.sdui.models.generated.State;
 import com.nba.sdui.models.generated.Subsection;
 import com.nba.sdui.models.generated.TabContents;
@@ -65,6 +62,7 @@ public class GameDetailComposer {
 
     private final StatsPort statsPort;
     private final BoxscoreComposer boxscoreComposer;
+    private final LiveComposer liveComposer;
     private final SectionRefreshService sectionRefreshService;
     private final SduiUtils utils;
     private final SectionSurfaces surfaces;
@@ -76,12 +74,14 @@ public class GameDetailComposer {
 
     public GameDetailComposer(StatsPort statsPort,
                               BoxscoreComposer boxscoreComposer,
+                              LiveComposer liveComposer,
                               SectionRefreshService sectionRefreshService,
                               SduiUtils utils,
                               SectionSurfaces surfaces,
                               Tokens tokens) {
         this.statsPort = statsPort;
         this.boxscoreComposer = boxscoreComposer;
+        this.liveComposer = liveComposer;
         this.sectionRefreshService = sectionRefreshService;
         this.utils = utils;
         this.surfaces = surfaces;
@@ -168,7 +168,6 @@ public class GameDetailComposer {
         log.debug("SDUI response composed: variant={}, sections={}",
                 variant, response.getSections() != null ? response.getSections().size() : 0);
 
-        applyGameSectionRefreshPolicies(response, derivedGameState, gameId);
         prependVariantChipsIfPresent(response, gameId, variant);
 
         utils.prependAppBarHeaderIfNeeded(response);
@@ -283,8 +282,10 @@ public class GameDetailComposer {
             // 1. VideoPlayer — inline video for the game (platform SDK integration)
             sections.add(buildVideoPlayerSection(gameId, game, contentSourceId));
 
-            // 2. GamePanel (scoreboard displayConfig)
-            sections.add(buildGamePanelScoreboardFromLive(game, gameId, contentSourceId));
+            // 2. GameCard — same atomic card the games screen renders, now
+            //    embedded as the game-detail header so the scoreboard view and
+            //    the game-detail card stay visually identical.
+            sections.add(liveComposer.buildGameCardSection(game, gameId, contentSourceId, "gameCard"));
 
             // 3. StatLine (top performers)
             Section statLineSection = buildStatLineSectionFromLive(game, gameId, contentSourceId);
@@ -328,7 +329,7 @@ public class GameDetailComposer {
         }
 
         String gameId = parsed.source().substring(gameSourcePrefix.length());
-        if (!"scoreboard".equals(parsed.slug())) {
+        if (!"gameCard".equals(parsed.slug())) {
             throw new UnsupportedSectionException(
                 "Game detail composer does not support section refresh for slug='" + parsed.slug() + "'");
         }
@@ -346,13 +347,7 @@ public class GameDetailComposer {
             throw new IOException("No game data in boxscore for gameId=" + gameId);
         }
 
-        Section section = buildGamePanelScoreboardFromLive(game, gameId, parsed.source());
-        // Override the section's refresh policy to the canonical game-state-aware policy
-        // so the returned section always carries consistent 60 s poll or SSE semantics.
-        String gameState = deriveGameState(gameId);
-        section.setRefreshPolicy(List.of(buildRefreshPolicyForGameSection(
-                gameState, section.getId() == null ? "" : section.getId(), gameId)));
-        return section;
+        return liveComposer.buildGameCardSection(game, gameId, "stats-api:game-" + gameId, "gameCard");
     }
 
     /**
@@ -486,68 +481,6 @@ public class GameDetailComposer {
         return subsections;
     }
 
-
-    private Section buildGamePanelScoreboardFromLive(BoxscoreGame game, String gameId, String contentSourceId) {
-        int gameStatus = game.getGameStatus();
-        boolean live = gameStatus == 2;
-        String sectionId = SectionIdDeriver.derive(contentSourceId, "AtomicComposite", "scoreboard");
-
-        RefreshPolicy refreshPolicy;
-        if (live) {
-            refreshPolicy = new RefreshPolicy()
-                    .withType(RefreshPolicy.RefreshType.SSE)
-                    .withChannel(gameId + ":linescore")
-                    .withPauseWhenOffScreen(false);
-        } else if (gameStatus == 1) {
-            // Pre-game: poll the SDUI section endpoint every 5 minutes so the
-            // client re-composes the section. When the game goes live the server
-            // returns sse policy and the client transitions the subscription.
-            refreshPolicy = new RefreshPolicy()
-                    .withType(RefreshPolicy.RefreshType.POLL)
-                    .withSectionEndpoint("/v1/sdui/section/" + sectionId)
-                    .withIntervalMs(300_000)
-                    .withPauseWhenOffScreen(true);
-        } else {
-            refreshPolicy = new RefreshPolicy().withType(RefreshPolicy.RefreshType.STATIC);
-        }
-
-        AtomicCompositeBuilder.GameClockSnapshot clock = live
-                ? new AtomicCompositeBuilder.GameClockSnapshot(
-                        parseGameClockSeconds(game.getGameClock() != null ? game.getGameClock() : ""),
-                        java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS).toString(),
-                        AtomicCompositeBuilder.INITIAL_CLOCK_RUNNING)
-                : null;
-
-        Section section = atomicBuilder.buildGamePanelComposite(
-                sectionId,
-                null,
-                "scoreboard",
-                game.getGameId() != null ? game.getGameId() : "",
-                gameStatus,
-                game.getGameStatusText() != null ? game.getGameStatusText() : "",
-                null,
-                atomicBuilder.gamePanelTeam(game.getAwayTeam()),
-                atomicBuilder.gamePanelTeam(game.getHomeTeam()),
-                clock,
-                null,
-                refreshPolicy,
-                utils.buildCompositeLinescoreBindings(),
-                surfaces.gamePanelSurface());
-
-        section.setContentSourceId(contentSourceId);
-        section.setSectionStates(
-                utils.buildSectionStates(sectionId, "Unable to load live scores", "shimmer", 180));
-        return section;
-    }
-
-    private static int parseGameClockSeconds(String iso) {
-        if (iso == null || iso.isEmpty()) return 0;
-        try {
-            return (int) java.time.Duration.parse(iso).getSeconds();
-        } catch (Exception e) {
-            return 0;
-        }
-    }
 
     private Section buildStatLineSectionFromLive(BoxscoreGame game, String gameId, String contentSourceId) {
         List<String[]> homePerformers = getTopPerformersFromTeam(game.getHomeTeam(), 3);
@@ -814,8 +747,6 @@ public class GameDetailComposer {
         BoxscoreTeam awayTeam = game.getAwayTeam();
         if (homeTeam == null || awayTeam == null) return null;
 
-        int gameStatus = game.getGameStatus();
-
         Section section = new Section();
         section.setId(SectionIdDeriver.derive(contentSourceId, "TabGroup", "gameDetailTabs"));
         section.setContentSourceId(contentSourceId);
@@ -947,65 +878,7 @@ public class GameDetailComposer {
         return section;
     }
 
-    // ── Section refresh policy ─────────────────────────────────────────
-
-    /**
-     * Override the {@code refreshPolicy} on every scoreboard section to match the
-     * canonical rules for the current game state:
-     *
-     * <ul>
-     *   <li><b>Pre-game (any data source)</b> — section-level poll every 60 s.
-     *       When the game goes live the server returns {@code sse} policy on the
-     *       next poll and the client transitions automatically.</li>
-     *   <li><b>Live, real data</b> — SSE via Ably channel ({@code gameId:linescore}).</li>
-     *   <li><b>Live, mock data</b> — section-level poll every 60 s; no real Ably
-     *       channel is available for mock games.</li>
-     *   <li><b>Post-game (any data source)</b> — section-level poll every 60 s so
-     *       E2E tests can verify the refresh lifecycle end to end.</li>
-     * </ul>
-     *
-     * <p>Called at the end of {@link #composeGameDetail} after all variant
-     * transforms so every code path that produces sections is covered uniformly.
-     */
-    private void applyGameSectionRefreshPolicies(Screen response, String gameState, String gameId) {
-        List<Section> sections = response.getSections();
-        if (sections == null) return;
-        for (Section section : sections) {
-            String slug = SectionIdDeriver.extractSlug(section.getId() != null ? section.getId() : "");
-            if (!"scoreboard".equals(slug)) continue;
-            String sectionId = section.getId() != null ? section.getId() : "";
-            section.setRefreshPolicy(List.of(buildRefreshPolicyForGameSection(gameState, sectionId, gameId)));
-        }
-    }
-
-    /**
-     * Build the {@code refreshPolicy} node for a scoreboard-type section.
-     *
-     * <p>Mirrors the games-screen game-card policy: SSE on {@code {gameId}:linescore}
-     * when the game is in progress, otherwise a 60 s section poll so the client
-     * picks up the live transition without a screen refresh.
-     *
-     * @param gameState  {@code "pre"}, {@code "live"}, or {@code "post"}
-     * @param sectionId  fully-derived section ID (used to build {@code sectionEndpoint})
-     * @param gameId     NBA game ID (used to build the Ably channel name)
-     */
-    private RefreshPolicy buildRefreshPolicyForGameSection(String gameState,
-                                                            String sectionId, String gameId) {
-        RefreshPolicy policy = new RefreshPolicy();
-        if ("live".equals(gameState)) {
-            policy.setType(RefreshPolicy.RefreshType.SSE);
-            policy.setChannel(gameId + ":linescore");
-            policy.setPauseWhenOffScreen(false);
-        } else {
-            // pre or post: section-level poll every 60 s so the client picks up
-            // the live transition without a screen refresh.
-            policy.setType(RefreshPolicy.RefreshType.POLL);
-            policy.setSectionEndpoint("/v1/sdui/section/" + sectionId);
-            policy.setIntervalMs(60_000);
-            policy.setPauseWhenOffScreen(true);
-        }
-        return policy;
-    }
+    // ── Channel resolution ─────────────────────────────────────────────
 
     // ── Channel resolution ─────────────────────────────────────────────
 
@@ -1112,7 +985,7 @@ public class GameDetailComposer {
     }
 
     private static final Set<String> VARIANT_C_KEEP = Set.of(
-            "scoreboard", "gameDetailTabs"
+            "gameCard", "gameDetailTabs"
     );
 
     private void applyVariantC(Screen response) {

@@ -753,9 +753,11 @@
 
 .reorder-buttons {
   position: absolute;
-  top: 0;
-  right: 0;
+  top: 50%;
+  right: -28px;
+  transform: translateY(-50%);
   display: none;
+  flex-direction: column;
   gap: 2px;
   z-index: 10;
 }

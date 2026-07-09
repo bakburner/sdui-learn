@@ -174,9 +174,12 @@ export function Playground() {
     // Scroll textarea to center the element
     ta.focus()
     ta.setSelectionRange(braceStart, braceEnd)
-    const totalLines = jsonInput.split('\n').length
-    const scrollTarget = (startLine / totalLines) * ta.scrollHeight - ta.clientHeight / 3
+    const lineHeight = ta.scrollHeight / jsonInput.split('\n').length
+    const scrollTarget = startLine * lineHeight - ta.clientHeight / 3
     ta.scrollTop = Math.max(0, scrollTarget)
+    // Sync the highlight overlay scroll
+    const overlay = ta.previousElementSibling as HTMLElement | null
+    if (overlay) overlay.scrollTop = ta.scrollTop
 
     // Clear highlight after a delay
     setTimeout(() => setHighlightLines(null), 2500)
@@ -412,7 +415,7 @@ export function Playground() {
                         setSelectedElement(el.type)
                         setInspectedElement(el)
                         setEditorMode('edit')
-                        scrollToElement(el)
+                        setTimeout(() => scrollToElement(el), 50)
                       }} />
                     ) : (
                       <div className="preview-empty">Fix the JSON to see a preview</div>

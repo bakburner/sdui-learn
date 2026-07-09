@@ -3,28 +3,6 @@ import { useScrollReveal, useStaggerReveal } from '../hooks/useScrollReveal'
 import '../hooks/useScrollReveal.css'
 import './TokenMap.css'
 
-const EXAMPLE_JSON = `{
-  "type": "Container",
-  "direction": "column",
-  "gap": "md",
-  "padding": "lg",
-  "cornerRadius": "lg",
-  "background": { "color": "surface-raised" },
-  "children": [
-    {
-      "type": "Text",
-      "text": "Game Day",
-      "variant": "titleLarge",
-      "color": "text-primary"
-    },
-    {
-      "type": "Text",
-      "text": "LAL vs BOS — 7:30 PM ET",
-      "variant": "bodyMedium",
-      "color": "text-secondary"
-    }
-  ]
-}`
 
 const SPACING_TOKENS = [
   { name: 'xs', px: 4 },

@@ -53,6 +53,7 @@ export function SchemaReference({ selectedElement, inspectedElement, focusedProp
           <ElementsTab
             expanded={expandedElement}
             focusedProperty={focusedProperty}
+            inspectedElement={inspectedElement}
             onExpand={(type) => {
               setExpandedElement(type)
               if (type && onSelectType) onSelectType(type)
@@ -72,6 +73,7 @@ export function SchemaReference({ selectedElement, inspectedElement, focusedProp
 function ElementsTab({
   expanded,
   focusedProperty,
+  inspectedElement,
   onExpand,
   onInsert,
   onInsertAtCursor,
@@ -79,6 +81,7 @@ function ElementsTab({
 }: {
   expanded: string | null
   focusedProperty?: string | null
+  inspectedElement?: Record<string, any> | null
   onExpand: (id: string | null) => void
   onInsert: (snippet: string) => void
   onInsertAtCursor?: (snippet: string) => void

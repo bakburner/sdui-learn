@@ -137,52 +137,51 @@ export function Playground() {
   const scrollToElement = useCallback((el: Record<string, any>) => {
     const ta = textareaRef.current
     if (!ta) return
-    // Find the element's "type": "X" in the JSON and select that block
+    const text = ta.value
+    // Find the element's "type": "X" in the JSON
     const typeStr = `"type": "${el.type}"`
     let searchFrom = 0
     let matchIndex = -1
-    // If there are multiple elements of the same type, find one with a matching distinguishing property
     const distinguisher = el.content || el.src || el.label || el.bindRef
     while (true) {
-      const idx = jsonInput.indexOf(typeStr, searchFrom)
+      const idx = text.indexOf(typeStr, searchFrom)
       if (idx === -1) break
       matchIndex = idx
       if (!distinguisher) break
-      // Check if the distinguishing value is nearby (within 300 chars)
-      const nearby = jsonInput.slice(idx, idx + 300)
+      const nearby = text.slice(idx, idx + 300)
       if (nearby.includes(String(distinguisher))) break
       searchFrom = idx + 1
     }
     if (matchIndex === -1) return
 
     // Find the opening brace of this element
-    let braceStart = jsonInput.lastIndexOf('{', matchIndex)
+    let braceStart = text.lastIndexOf('{', matchIndex)
     // Find the matching closing brace
     let depth = 1
     let braceEnd = braceStart + 1
-    while (braceEnd < jsonInput.length && depth > 0) {
-      if (jsonInput[braceEnd] === '{') depth++
-      if (jsonInput[braceEnd] === '}') depth--
+    while (braceEnd < text.length && depth > 0) {
+      if (text[braceEnd] === '{') depth++
+      if (text[braceEnd] === '}') depth--
       braceEnd++
     }
 
     // Calculate line numbers for highlight
-    const startLine = jsonInput.slice(0, braceStart).split('\n').length - 1
-    const endLine = jsonInput.slice(0, braceEnd).split('\n').length - 1
+    const lines = text.split('\n')
+    const startLine = text.slice(0, braceStart).split('\n').length - 1
+    const endLine = text.slice(0, braceEnd).split('\n').length - 1
     setHighlightLines({ start: startLine, end: endLine })
 
-    // Scroll textarea to center the element
-    ta.focus()
-    ta.setSelectionRange(braceStart, braceEnd)
-    const lineHeight = ta.scrollHeight / jsonInput.split('\n').length
-    const scrollTarget = startLine * lineHeight - ta.clientHeight / 3
-    ta.scrollTop = Math.max(0, scrollTarget)
-    // Sync the highlight overlay scroll
-    const overlay = ta.previousElementSibling as HTMLElement | null
-    if (overlay) overlay.scrollTop = ta.scrollTop
+    // Scroll: use character position to calculate proportional scroll
+    const lineHeight = ta.scrollHeight / lines.length
+    const targetScroll = Math.max(0, startLine * lineHeight - ta.clientHeight / 3)
+    ta.scrollTop = targetScroll
+
+    // Sync highlight overlay
+    const overlay = ta.parentElement?.querySelector('.editor-highlight-overlay') as HTMLElement | null
+    if (overlay) overlay.scrollTop = targetScroll
 
     // Clear highlight after a delay
-    setTimeout(() => setHighlightLines(null), 2500)
+    setTimeout(() => setHighlightLines(null), 3000)
   }, [jsonInput])
 
   useEffect(() => {

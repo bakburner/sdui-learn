@@ -132,6 +132,7 @@ export function Playground() {
   const [editorMode, setEditorMode] = useState<'edit' | 'diff' | 'network'>('edit')
   const [baseJson] = useState(DEFAULT_JSON)
   const [selectedElement, setSelectedElement] = useState<string | null>(null)
+  const [selectedContext, setSelectedContext] = useState<{ parentChildren: any[] | null; index: number } | null>(null)
   const [highlightLines, setHighlightLines] = useState<{ start: number; end: number } | null>(null)
 
   const scrollToElement = useCallback((el: Record<string, any>) => {
@@ -421,9 +422,10 @@ export function Playground() {
                 <div className="preview-frame">
                   <div className="preview-content">
                     {parsedData ? (
-                      <SduiRenderer data={parsedData} onReorder={handleReorder} onSelectElement={(el) => {
+                      <SduiRenderer data={parsedData} onReorder={handleReorder} onSelectElement={(el, parentChildren, index) => {
                         setSelectedElement(el.type)
                         setInspectedElement(el)
+                        setSelectedContext(parentChildren ? { parentChildren, index: index! } : null)
                         setEditorMode('edit')
                         setTimeout(() => scrollToElement(el), 50)
                       }} />
@@ -432,6 +434,31 @@ export function Playground() {
                     )}
                   </div>
                 </div>
+                {selectedContext && selectedContext.parentChildren && (
+                  <div className="position-toolbar">
+                    <span className="position-label">{selectedElement}</span>
+                    <div className="position-buttons">
+                      <button
+                        className="position-btn"
+                        disabled={selectedContext.index === 0}
+                        onClick={() => {
+                          handleReorder(selectedContext.parentChildren!, selectedContext.index, selectedContext.index - 1)
+                          setSelectedContext({ ...selectedContext, index: selectedContext.index - 1 })
+                        }}
+                        title="Move up"
+                      >↑</button>
+                      <button
+                        className="position-btn"
+                        disabled={selectedContext.index >= selectedContext.parentChildren!.length - 1}
+                        onClick={() => {
+                          handleReorder(selectedContext.parentChildren!, selectedContext.index, selectedContext.index + 1)
+                          setSelectedContext({ ...selectedContext, index: selectedContext.index + 1 })
+                        }}
+                        title="Move down"
+                      >↓</button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1079,7 +1106,7 @@ function NetworkView({ json }: { json: string }) {
 }
 
 // Lightweight SDUI renderer for the playground
-function SduiRenderer({ data, onSelectElement, onReorder }: { data: any; onSelectElement: (el: any) => void; onReorder?: (parent: any, fromIndex: number, toIndex: number) => void }) {
+function SduiRenderer({ data, onSelectElement, onReorder }: { data: any; onSelectElement: (el: any, parentChildren?: any[] | null, index?: number) => void; onReorder?: (parent: any, fromIndex: number, toIndex: number) => void }) {
   const sections = data?.data?.sections || data?.sections
   if (!sections) return <div className="preview-empty">Add a "sections" array</div>
 
@@ -1097,23 +1124,13 @@ function SduiRenderer({ data, onSelectElement, onReorder }: { data: any; onSelec
   )
 }
 
-function AtomicElement({ element, onSelect, onReorder, parentChildren, index }: { element: any; onSelect: (el: any) => void; onReorder?: (parent: any, fromIndex: number, toIndex: number) => void; parentChildren: any[] | null; index: number }) {
+function AtomicElement({ element, onSelect, onReorder, parentChildren, index }: { element: any; onSelect: (el: any, parentChildren?: any[] | null, index?: number) => void; onReorder?: (parent: any, fromIndex: number, toIndex: number) => void; parentChildren: any[] | null; index: number }) {
   if (!element || !element.type) return null
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation()
-    onSelect(element)
+    onSelect(element, parentChildren, index)
   }
-
-  const canMoveUp = parentChildren && index > 0
-  const canMoveDown = parentChildren && index < parentChildren.length - 1
-
-  const reorderButtons = parentChildren && onReorder ? (
-    <div className="reorder-buttons" onClick={(e) => e.stopPropagation()}>
-      {canMoveUp && <button className="reorder-btn" onClick={() => onReorder(parentChildren, index, index - 1)}>↑</button>}
-      {canMoveDown && <button className="reorder-btn" onClick={() => onReorder(parentChildren, index, index + 1)}>↓</button>}
-    </div>
-  ) : null
 
   switch (element.type) {
     case 'Container':
@@ -1132,7 +1149,6 @@ function AtomicElement({ element, onSelect, onReorder, parentChildren, index }: 
             width: element.widthMode === 'fill' ? '100%' : undefined,
           }}
         >
-          {reorderButtons}
           {element.children?.map((child: any, i: number) => (
             <AtomicElement key={i} element={child} onSelect={onSelect} onReorder={onReorder} parentChildren={element.children} index={i} />
           ))}
@@ -1141,22 +1157,20 @@ function AtomicElement({ element, onSelect, onReorder, parentChildren, index }: 
     case 'Text':
       return (
         <span
-          className={`atomic-text variant-${element.variant || 'bodyMedium'} atomic-hoverable atomic-reorderable`}
+          className={`atomic-text variant-${element.variant || 'bodyMedium'} atomic-hoverable`}
           style={{ color: element.color, fontWeight: element.weight === 'bold' ? 700 : element.weight === 'semiBold' ? 600 : undefined }}
           onClick={handleClick}
         >
-          {reorderButtons}
           {element.content || element.text}
         </span>
       )
     case 'Image':
       return (
         <div
-          className="atomic-image atomic-hoverable atomic-reorderable"
+          className="atomic-image atomic-hoverable"
           style={{ width: element.width, height: element.height }}
           onClick={handleClick}
         >
-          {reorderButtons}
           <img
             src={element.src || element.url}
             alt={element.accessibility?.label || element.alt || ''}
@@ -1172,36 +1186,27 @@ function AtomicElement({ element, onSelect, onReorder, parentChildren, index }: 
     case 'Button':
       return (
         <button
-          className={`atomic-button button-${element.variant || 'primary'} atomic-hoverable atomic-reorderable`}
+          className={`atomic-button button-${element.variant || 'primary'} atomic-hoverable`}
           onClick={handleClick}
         >
-          {reorderButtons}
           {element.label}
         </button>
       )
     case 'Spacer':
       return (
-        <div className="atomic-hoverable atomic-reorderable" style={{ height: tokenToPixels(element.height) || tokenToPixels(element.width) || element.size || 8 }} onClick={handleClick}>
-          {reorderButtons}
-        </div>
+        <div className="atomic-hoverable" style={{ height: tokenToPixels(element.height) || tokenToPixels(element.width) || element.size || 8 }} onClick={handleClick} />
       )
     case 'Divider':
-      return (
-        <div className="atomic-divider atomic-hoverable atomic-reorderable" onClick={handleClick}>
-          {reorderButtons}
-        </div>
-      )
+      return <div className="atomic-divider atomic-hoverable" onClick={handleClick} />
     case 'LiveClock':
       return (
-        <span className={`atomic-text variant-${element.variant || 'bodyMedium'} atomic-hoverable atomic-reorderable`} onClick={handleClick}>
-          {reorderButtons}
+        <span className={`atomic-text variant-${element.variant || 'bodyMedium'} atomic-hoverable`} onClick={handleClick}>
           {formatClock(element.snapshotSeconds, element.format)}
         </span>
       )
     case 'Conditional':
       return (
-        <div className="atomic-conditional atomic-hoverable atomic-reorderable" onClick={handleClick}>
-          {reorderButtons}
+        <div className="atomic-conditional atomic-hoverable" onClick={handleClick}>
           <span className="conditional-badge">IF</span>
           <AtomicElement element={element.then} onSelect={onSelect} onReorder={onReorder} parentChildren={null} index={0} />
         </div>
@@ -1209,7 +1214,6 @@ function AtomicElement({ element, onSelect, onReorder, parentChildren, index }: 
     case 'ScrollContainer':
       return (
         <div className="atomic-container atomic-hoverable" onClick={handleClick} style={{ flexDirection: 'row', overflowX: 'auto', gap: gapValue(element.gap) }}>
-          {reorderButtons}
           {element.children?.map((child: any, i: number) => (
             <AtomicElement key={i} element={child} onSelect={onSelect} onReorder={onReorder} parentChildren={element.children} index={i} />
           ))}
@@ -1218,7 +1222,6 @@ function AtomicElement({ element, onSelect, onReorder, parentChildren, index }: 
     case 'OverlayContainer':
       return (
         <div className="atomic-container atomic-hoverable" onClick={handleClick} style={{ position: 'relative' }}>
-          {reorderButtons}
           {element.base && <AtomicElement element={element.base} onSelect={onSelect} onReorder={onReorder} parentChildren={null} index={0} />}
           {element.overlays?.map((child: any, i: number) => (
             <AtomicElement key={i} element={child} onSelect={onSelect} onReorder={onReorder} parentChildren={element.overlays} index={i} />
@@ -1227,8 +1230,7 @@ function AtomicElement({ element, onSelect, onReorder, parentChildren, index }: 
       )
     default:
       return (
-        <div className="atomic-unknown atomic-hoverable atomic-reorderable" onClick={handleClick}>
-          {reorderButtons}
+        <div className="atomic-unknown atomic-hoverable" onClick={handleClick}>
           Unknown: {element.type}
         </div>
       )

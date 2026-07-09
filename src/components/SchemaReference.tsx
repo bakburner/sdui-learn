@@ -3,6 +3,7 @@ import './SchemaReference.css'
 
 interface SchemaReferenceProps {
   selectedElement: string | null
+  inspectedElement?: Record<string, any> | null
   focusedProperty?: string | null
   onInsertSnippet: (snippet: string) => void
   onInsertAtCursor?: (snippet: string) => void
@@ -10,7 +11,7 @@ interface SchemaReferenceProps {
   onSelectType?: (elementType: string) => void
 }
 
-export function SchemaReference({ selectedElement, focusedProperty, onInsertSnippet, onInsertAtCursor, onPropertyChange, onSelectType }: SchemaReferenceProps) {
+export function SchemaReference({ selectedElement, inspectedElement, focusedProperty, onInsertSnippet, onInsertAtCursor, onPropertyChange, onSelectType }: SchemaReferenceProps) {
   const [activeTab, setActiveTab] = useState<'elements' | 'tokens' | 'actions'>('elements')
   const [expandedElement, setExpandedElement] = useState<string | null>(selectedElement)
 
@@ -160,6 +161,7 @@ function ElementsTab({
                               elementType={el.type}
                               property={p.name}
                               placeholder={p.desc || ''}
+                              currentValue={inspectedElement?.type === el.type ? inspectedElement?.[p.name] : undefined}
                               onCommit={onValueClick}
                             />
                           ) : (
@@ -186,13 +188,17 @@ function ElementsTab({
   )
 }
 
-function EditablePropertyInput({ elementType, property, placeholder, onCommit }: {
+function EditablePropertyInput({ elementType, property, placeholder, currentValue, onCommit }: {
   elementType: string
   property: string
   placeholder: string
+  currentValue?: string
   onCommit?: (elementType: string, property: string, value: string) => void
 }) {
-  const [value, setValue] = useState('')
+  const [value, setValue] = useState(currentValue || '')
+  useEffect(() => {
+    setValue(currentValue || '')
+  }, [currentValue])
   const commit = () => {
     if (value.trim() && onCommit) {
       onCommit(elementType, property, value.trim())

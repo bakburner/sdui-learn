@@ -734,6 +734,7 @@ export function Playground() {
             {showReference && (
               <SchemaReference
                 selectedElement={selectedElement}
+                inspectedElement={inspectedElement}
                 focusedProperty={cursorContext.propertyName}
                 onInsertSnippet={handleInsertSnippet}
                 onInsertAtCursor={handleInsertAtCursor}

@@ -133,6 +133,7 @@ export function Playground() {
   const [baseJson] = useState(DEFAULT_JSON)
   const [selectedElement, setSelectedElement] = useState<string | null>(null)
   const [highlightLines, setHighlightLines] = useState<{ primary: { start: number; end: number }; secondary?: { start: number; end: number } } | null>(null)
+  const [validationExpanded, setValidationExpanded] = useState(false)
 
   const scrollToElement = useCallback((el: Record<string, any>) => {
     const ta = textareaRef.current
@@ -282,23 +283,103 @@ export function Playground() {
     }
   }
 
+  const handleInsertAtCursor = useCallback((elementSnippet: string) => {
+    const ta = textareaRef.current
+    if (!ta) return
+    const text = ta.value
+
+    // Strategy: parse the JSON, find the nearest children array, and append to it.
+    // Then re-serialize. This guarantees valid JSON output.
+    try {
+      const data = JSON.parse(text)
+      const childrenArr = findNearestChildrenArray(data)
+      if (childrenArr) {
+        const parsed = JSON.parse(elementSnippet)
+        childrenArr.push(parsed)
+        const newJson = JSON.stringify(data, null, 2)
+        handleChange(newJson)
+
+        // Scroll to the new element
+        setTimeout(() => {
+          if (ta) {
+            const snippetType = parsed.type || ''
+            const lastIdx = newJson.lastIndexOf(`"type": "${snippetType}"`)
+            if (lastIdx !== -1) {
+              const line = newJson.slice(0, lastIdx).split('\n').length - 1
+              const lines = newJson.split('\n')
+              const lineHeight = ta.scrollHeight / lines.length
+              ta.scrollTop = Math.max(0, line * lineHeight - ta.clientHeight / 3)
+              setHighlightLines({ primary: { start: line, end: Math.min(line + 3, lines.length - 1) } })
+              setTimeout(() => setHighlightLines(null), 2000)
+            }
+          }
+        }, 50)
+      }
+    } catch {
+      // If JSON is currently broken, can't insert safely
+    }
+
+    ta.focus()
+  }, [handleChange])
+
+  const [validationMarkers, setValidationMarkers] = useState<ValidationMarker[]>([])
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setValidationMarkers(validateSchema(jsonInput))
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [jsonInput])
+
   const handlePropertyChange = useCallback((elementType: string, property: string, value: string) => {
-    if (!inspectedElement || inspectedElement.type !== elementType) return
-    const updated = { ...inspectedElement, [property]: value }
+    const ta = textareaRef.current
+    let targetElement = inspectedElement?.type === elementType ? inspectedElement : null
+
+    if (!targetElement) {
+      // Try to find element at cursor position, or fall back to first match
+      try {
+        const data = JSON.parse(jsonInput)
+        if (ta && cursorContext.elementType === elementType) {
+          targetElement = findElementAtCursor(data, jsonInput, ta.selectionStart, elementType)
+        }
+        if (!targetElement) {
+          targetElement = findElementByType(data, elementType)
+        }
+      } catch {
+        return
+      }
+    }
+    if (!targetElement) return
+
+    const updated = { ...targetElement, [property]: value }
     setInspectedElement(updated)
 
-    // Update the JSON string by finding and patching the element in the parsed data
     try {
       const data = JSON.parse(jsonInput)
-      patchElement(data, inspectedElement, property, value)
+      patchElement(data, targetElement, property, value)
       const newJson = JSON.stringify(data, null, 2)
       setJsonInput(newJson)
       setParsedData(data)
       setParseError(null)
+
+      // Scroll to the changed property in the editor
+      if (ta) {
+        const propStr = `"${property}"`
+        const idx = newJson.indexOf(propStr)
+        if (idx !== -1) {
+          const line = newJson.slice(0, idx).split('\n').length - 1
+          const lines = newJson.split('\n')
+          const lineHeight = ta.scrollHeight / lines.length
+          const targetScroll = Math.max(0, line * lineHeight - ta.clientHeight / 3)
+          ta.scrollTop = targetScroll
+          setHighlightLines({ primary: { start: line, end: line } })
+          setTimeout(() => setHighlightLines(null), 1500)
+        }
+      }
     } catch {
-      // fallback: ignore if JSON is broken
+      // ignore if JSON is broken
     }
-  }, [inspectedElement, jsonInput])
+  }, [inspectedElement, jsonInput, cursorContext])
 
   return (
     <section id="playground">
@@ -320,10 +401,11 @@ export function Playground() {
           <div className="fullscreen-header">
             <div className="fullscreen-header-left">
               <div className="playground-examples">
-                <button className="example-btn" onClick={() => handleInsertSnippet(EXAMPLE_SCORE)}>Game Score</button>
-                <button className="example-btn" onClick={() => handleInsertSnippet(EXAMPLE_RAIL)}>Content Rail</button>
+                <button className="example-btn example-btn-new" onClick={() => handleInsertSnippet(EXAMPLE_BLANK)}>+ New</button>
+                <span className="examples-label">Samples:</span>
+                <button className="example-btn" onClick={() => handleInsertSnippet(EXAMPLE_GAME_CARD)}>Game Card</button>
+                <button className="example-btn" onClick={() => handleInsertSnippet(EXAMPLE_NEWS_CARD)}>News Card</button>
                 <button className="example-btn" onClick={() => handleInsertSnippet(EXAMPLE_PROMO)}>Promo Banner</button>
-                <button className="example-btn" onClick={() => handleInsertSnippet(EXAMPLE_CONDITIONAL)}>Conditional</button>
               </div>
             </div>
             <span className="fullscreen-brand">SDUI Playground</span>
@@ -359,10 +441,10 @@ export function Playground() {
                   This is a live SDUI response editor. The JSON on the left is what the server sends; the preview on the right is what the client renders natively.
                 </p>
                 <div className="onboarding-hints">
-                  <div className="onboarding-hint"><span className="onboarding-hint-icon">✏️</span> Edit the JSON to see the preview update in real-time</div>
-                  <div className="onboarding-hint"><span className="onboarding-hint-icon">💬</span> Use the prompt bar to generate sections by describing what you want</div>
-                  <div className="onboarding-hint"><span className="onboarding-hint-icon">📖</span> Open Schema to browse element types and their properties</div>
-                  <div className="onboarding-hint"><span className="onboarding-hint-icon">🎯</span> Click any element in the preview to inspect it</div>
+                  <div className="onboarding-hint"><span className="onboarding-hint-icon">✏️</span> Edit JSON directly or double-click text in the preview to change it</div>
+                  <div className="onboarding-hint"><span className="onboarding-hint-icon">💬</span> Use the prompt bar to generate layouts by describing what you want</div>
+                  <div className="onboarding-hint"><span className="onboarding-hint-icon">📖</span> Open Schema to browse elements — click value chips to apply them</div>
+                  <div className="onboarding-hint"><span className="onboarding-hint-icon">➕</span> Use + buttons in Schema to insert new elements into your layout</div>
                 </div>
                 <button className="onboarding-dismiss" onClick={() => setShowOnboarding(false)}>Got it</button>
               </div>
@@ -400,20 +482,84 @@ export function Playground() {
                           })}
                         </div>
                       )}
+                      {validationMarkers.length > 0 && (
+                        <div className="editor-validation-gutter" aria-hidden="true">
+                          {jsonInput.split('\n').map((_, i) => {
+                            const marker = validationMarkers.find(m => m.line === i)
+                            return (
+                              <div key={i} className="gutter-line">
+                                {marker && (
+                                  <span
+                                    className={`gutter-marker ${marker.severity}`}
+                                    title={marker.message}
+                                  >
+                                    {marker.severity === 'error' ? '●' : '◐'}
+                                  </span>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
                       <textarea
                         ref={textareaRef}
-                        className="editor-textarea"
+                        className={`editor-textarea ${validationMarkers.length > 0 ? 'with-gutter' : ''}`}
                         value={jsonInput}
                         onChange={(e) => handleChange(e.target.value)}
                         onClick={handleEditorCursor}
                         onKeyUp={handleEditorCursor}
                         spellCheck={false}
                         onScroll={(e) => {
-                          const overlay = (e.target as HTMLElement).previousElementSibling as HTMLElement | null
-                          if (overlay) overlay.scrollTop = (e.target as HTMLElement).scrollTop
+                          const target = e.target as HTMLElement
+                          const overlay = target.parentElement?.querySelector('.editor-highlight-overlay') as HTMLElement | null
+                          if (overlay) overlay.scrollTop = target.scrollTop
+                          const gutter = target.parentElement?.querySelector('.editor-validation-gutter') as HTMLElement | null
+                          if (gutter) gutter.scrollTop = target.scrollTop
                         }}
                       />
                     </div>
+                    {validationMarkers.length > 0 && !parseError && (
+                      <div className={`editor-validation-summary ${validationExpanded ? 'expanded' : ''}`}>
+                        <button
+                          className="validation-summary-toggle"
+                          onClick={() => setValidationExpanded(!validationExpanded)}
+                        >
+                          <span className="validation-icon">◐</span>
+                          <span className="validation-count">{validationMarkers.length} schema {validationMarkers.length === 1 ? 'issue' : 'issues'}</span>
+                          <span className="validation-chevron">{validationExpanded ? '▾' : '▸'}</span>
+                        </button>
+                        {validationExpanded && (
+                          <ul className="validation-list">
+                            {validationMarkers.map((m, i) => (
+                              <li
+                                key={i}
+                                className={`validation-item ${m.severity}`}
+                                onClick={() => {
+                                  const ta = textareaRef.current
+                                  if (!ta) return
+                                  const lines = ta.value.split('\n')
+                                  let charPos = 0
+                                  for (let l = 0; l < m.line && l < lines.length; l++) {
+                                    charPos += lines[l].length + 1
+                                  }
+                                  ta.focus()
+                                  ta.setSelectionRange(charPos, charPos + (lines[m.line]?.length || 0))
+                                  const lineHeight = ta.scrollHeight / lines.length
+                                  const targetScroll = Math.max(0, m.line * lineHeight - ta.clientHeight / 3)
+                                  ta.scrollTop = targetScroll
+                                  setHighlightLines({ primary: { start: m.line, end: m.line } })
+                                  setTimeout(() => setHighlightLines(null), 2000)
+                                }}
+                              >
+                                <span className="validation-item-marker">{m.severity === 'error' ? '●' : '◐'}</span>
+                                <span className="validation-item-message">{m.message}</span>
+                                <span className="validation-item-line">line {m.line + 1}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    )}
                     {parseError && (
                       <div className="editor-error">
                         <span className="error-icon">✕</span>
@@ -447,6 +593,16 @@ export function Playground() {
                         setInspectedElement(el)
                         setEditorMode('edit')
                         setTimeout(() => scrollToElement(el), 50)
+                      }} onTextEdit={(el, newText) => {
+                        const prop = el.content !== undefined ? 'content' : 'text'
+                        try {
+                          const data = JSON.parse(jsonInput)
+                          patchElement(data, el, prop, newText)
+                          const newJson = JSON.stringify(data, null, 2)
+                          setJsonInput(newJson)
+                          setParsedData(data)
+                          setParseError(null)
+                        } catch { /* ignore */ }
                       }} />
                     ) : (
                       <div className="preview-empty">Fix the JSON to see a preview</div>
@@ -461,6 +617,7 @@ export function Playground() {
                 selectedElement={selectedElement}
                 focusedProperty={cursorContext.propertyName}
                 onInsertSnippet={handleInsertSnippet}
+                onInsertAtCursor={handleInsertAtCursor}
                 onPropertyChange={handlePropertyChange}
                 onSelectType={(type) => {
                   const typeStr = `"type": "${type}"`
@@ -478,69 +635,12 @@ export function Playground() {
             )}
           </div>
 
-          {selectedElement && inspectedElement && (
-            <PropertyInspector elementType={selectedElement} elementData={inspectedElement} onFocus={() => scrollToElement(inspectedElement)} />
-          )}
         </div>
       )}
     </section>
   )
 }
 
-function PropertyInspector({ elementType, elementData, onFocus }: { elementType: string; elementData: Record<string, any>; onFocus?: () => void }) {
-  const schema = ELEMENT_SCHEMAS[elementType]
-  if (!schema) return null
-
-  const SPACING_MAP: Record<string, string> = { xs: '4px', sm: '8px', md: '12px', lg: '16px', xl: '24px', xxl: '32px' }
-
-  return (
-    <div className="property-inspector">
-      <div className="inspector-header" onClick={onFocus} style={{ cursor: onFocus ? 'pointer' : undefined }}>
-        <span className="inspector-type">{elementType}</span>
-        <span className="inspector-hint">{onFocus ? 'Click to locate in editor' : 'Current values for this instance'}</span>
-      </div>
-      <div className="inspector-grid">
-        {schema.properties.map((prop) => {
-          const currentValue = elementData[prop.name]
-          const isSet = currentValue !== undefined
-          const displayValue = isSet
-            ? (typeof currentValue === 'object' ? JSON.stringify(currentValue) : String(currentValue))
-            : null
-
-          return (
-            <div key={prop.name} className={`inspector-prop ${isSet ? 'has-value' : 'unset'}`}>
-              <div className="prop-name-row">
-                <span className="prop-name">{prop.name}</span>
-                {prop.required && <span className="prop-required">required</span>}
-              </div>
-              <div className="prop-current">
-                {isSet ? (
-                  <>
-                    <span className="prop-current-value">{displayValue}</span>
-                    {prop.values && SPACING_MAP[currentValue] && (
-                      <span className="prop-resolved">= {SPACING_MAP[currentValue]}</span>
-                    )}
-                  </>
-                ) : (
-                  <span className="prop-not-set">not set</span>
-                )}
-              </div>
-              {prop.values && (
-                <div className="prop-values">
-                  {prop.values.map((v) => (
-                    <span key={v} className={`prop-value ${v === String(currentValue) ? 'active' : ''}`}>{v}</span>
-                  ))}
-                  {isSet && <span className="prop-try-hint">Try changing in editor</span>}
-                </div>
-              )}
-              {!prop.values && <span className="prop-desc">{prop.description}</span>}
-            </div>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
 
 // ── Prompt Bar ─────────────────────────────────
 function PromptBar({ onGenerate }: { onGenerate: (json: string) => void }) {
@@ -1101,7 +1201,7 @@ function NetworkView({ json }: { json: string }) {
 }
 
 // Lightweight SDUI renderer for the playground
-function SduiRenderer({ data, onSelectElement, selectedEl }: { data: any; onSelectElement: (el: any) => void; selectedEl: any }) {
+function SduiRenderer({ data, onSelectElement, selectedEl, onTextEdit }: { data: any; onSelectElement: (el: any) => void; selectedEl: any; onTextEdit?: (el: any, newText: string) => void }) {
   const sections = data?.data?.sections || data?.sections
   if (!sections) return <div className="preview-empty">Add a "sections" array</div>
 
@@ -1111,7 +1211,7 @@ function SduiRenderer({ data, onSelectElement, selectedEl }: { data: any; onSele
         const ui = section.data?.ui || section.content
         return (
           <div key={section.id || section.sectionId || i} className="sdui-section">
-            {ui && <AtomicElement element={ui} onSelect={onSelectElement} selectedEl={selectedEl} />}
+            {ui && <AtomicElement element={ui} onSelect={onSelectElement} selectedEl={selectedEl} onTextEdit={onTextEdit} />}
           </div>
         )
       })}
@@ -1119,7 +1219,56 @@ function SduiRenderer({ data, onSelectElement, selectedEl }: { data: any; onSele
   )
 }
 
-function AtomicElement({ element, onSelect, selectedEl }: { element: any; onSelect: (el: any) => void; selectedEl: any }) {
+function EditableText({ element, isSelected, onClick, onTextEdit }: { element: any; isSelected: boolean; onClick: (e: React.MouseEvent) => void; onTextEdit?: (el: any, newText: string) => void }) {
+  const [editing, setEditing] = useState(false)
+  const [editValue, setEditValue] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const startEdit = () => {
+    setEditValue(element.content || element.text || '')
+    setEditing(true)
+    setTimeout(() => inputRef.current?.select(), 0)
+  }
+
+  const commitEdit = () => {
+    setEditing(false)
+    const newText = editValue.trim()
+    if (newText && newText !== (element.content || element.text)) {
+      onTextEdit?.(element, newText)
+    }
+  }
+
+  if (editing) {
+    return (
+      <input
+        ref={inputRef}
+        className={`atomic-text-input variant-${element.variant || 'bodyMedium'}`}
+        value={editValue}
+        onChange={(e) => setEditValue(e.target.value)}
+        onBlur={commitEdit}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') commitEdit()
+          if (e.key === 'Escape') setEditing(false)
+        }}
+        style={{ color: element.color, fontWeight: element.weight === 'bold' ? 700 : element.weight === 'semiBold' ? 600 : undefined }}
+      />
+    )
+  }
+
+  return (
+    <span
+      className={`atomic-text variant-${element.variant || 'bodyMedium'} atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`}
+      style={{ color: element.color, fontWeight: element.weight === 'bold' ? 700 : element.weight === 'semiBold' ? 600 : undefined }}
+      onClick={onClick}
+      onDoubleClick={(e) => { e.stopPropagation(); startEdit() }}
+      title="Double-click to edit text"
+    >
+      {element.content || element.text}
+    </span>
+  )
+}
+
+function AtomicElement({ element, onSelect, selectedEl, onTextEdit }: { element: any; onSelect: (el: any) => void; selectedEl: any; onTextEdit?: (el: any, newText: string) => void }) {
   if (!element || !element.type) return null
   const isSelected = element === selectedEl
 
@@ -1146,19 +1295,18 @@ function AtomicElement({ element, onSelect, selectedEl }: { element: any; onSele
           }}
         >
           {element.children?.map((child: any, i: number) => (
-            <AtomicElement key={i} element={child} onSelect={onSelect} selectedEl={selectedEl} />
+            <AtomicElement key={i} element={child} onSelect={onSelect} selectedEl={selectedEl} onTextEdit={onTextEdit} />
           ))}
         </div>
       )
     case 'Text':
       return (
-        <span
-          className={`atomic-text variant-${element.variant || 'bodyMedium'} atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`}
-          style={{ color: element.color, fontWeight: element.weight === 'bold' ? 700 : element.weight === 'semiBold' ? 600 : undefined }}
+        <EditableText
+          element={element}
+          isSelected={isSelected}
           onClick={handleClick}
-        >
-          {element.content || element.text}
-        </span>
+          onTextEdit={onTextEdit}
+        />
       )
     case 'Image':
       return (
@@ -1204,23 +1352,23 @@ function AtomicElement({ element, onSelect, selectedEl }: { element: any; onSele
       return (
         <div className={`atomic-conditional atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`} onClick={handleClick}>
           <span className="conditional-badge">IF</span>
-          <AtomicElement element={element.then} onSelect={onSelect} selectedEl={selectedEl} />
+          <AtomicElement element={element.then} onSelect={onSelect} selectedEl={selectedEl} onTextEdit={onTextEdit} />
         </div>
       )
     case 'ScrollContainer':
       return (
         <div className={`atomic-container atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`} onClick={handleClick} style={{ flexDirection: 'row', overflowX: 'auto', gap: gapValue(element.gap) }}>
           {element.children?.map((child: any, i: number) => (
-            <AtomicElement key={i} element={child} onSelect={onSelect} selectedEl={selectedEl} />
+            <AtomicElement key={i} element={child} onSelect={onSelect} selectedEl={selectedEl} onTextEdit={onTextEdit} />
           ))}
         </div>
       )
     case 'OverlayContainer':
       return (
         <div className={`atomic-container atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`} onClick={handleClick} style={{ position: 'relative' }}>
-          {element.base && <AtomicElement element={element.base} onSelect={onSelect} selectedEl={selectedEl} />}
+          {element.base && <AtomicElement element={element.base} onSelect={onSelect} selectedEl={selectedEl} onTextEdit={onTextEdit} />}
           {element.overlays?.map((child: any, i: number) => (
-            <AtomicElement key={i} element={child} onSelect={onSelect} selectedEl={selectedEl} />
+            <AtomicElement key={i} element={child} onSelect={onSelect} selectedEl={selectedEl} onTextEdit={onTextEdit} />
           ))}
         </div>
       )
@@ -1233,7 +1381,98 @@ function AtomicElement({ element, onSelect, selectedEl }: { element: any; onSele
   }
 }
 
-// Walk the parsed data tree to find the element by reference and patch a property
+function findNearestChildrenArray(obj: any): any[] | null {
+  if (!obj || typeof obj !== 'object') return null
+  if (Array.isArray(obj)) {
+    for (const item of obj) {
+      const found = findNearestChildrenArray(item)
+      if (found) return found
+    }
+    return null
+  }
+  if (obj.children && Array.isArray(obj.children)) return obj.children
+  for (const val of Object.values(obj)) {
+    if (typeof val === 'object' && val !== null) {
+      const found = findNearestChildrenArray(val)
+      if (found) return found
+    }
+  }
+  return null
+}
+
+function findElementAtCursor(obj: any, json: string, cursorPos: number, type: string): any {
+  // Find which element object the cursor is inside, then match it in the parsed tree
+  let braceStart = cursorPos
+  let depth = 0
+  while (braceStart >= 0) {
+    if (json[braceStart] === '}') depth++
+    if (json[braceStart] === '{') {
+      if (depth === 0) break
+      depth--
+    }
+    braceStart--
+  }
+  if (braceStart < 0) return null
+
+  // Extract the block and check if it has the expected type
+  let endDepth = 1
+  let braceEnd = braceStart + 1
+  while (braceEnd < json.length && endDepth > 0) {
+    if (json[braceEnd] === '{') endDepth++
+    if (json[braceEnd] === '}') endDepth--
+    braceEnd++
+  }
+  const block = json.slice(braceStart, braceEnd)
+  const typeMatch = block.match(/"type"\s*:\s*"([^"]+)"/)
+  if (!typeMatch || typeMatch[1] !== type) return null
+
+  // Parse the block to get a reference object, then find matching element in tree
+  try {
+    const parsed = JSON.parse(block)
+    return findMatchingElement(obj, parsed)
+  } catch {
+    return null
+  }
+}
+
+function findMatchingElement(tree: any, target: any): any {
+  if (!tree || typeof tree !== 'object') return null
+  if (Array.isArray(tree)) {
+    for (const item of tree) {
+      const found = findMatchingElement(item, target)
+      if (found) return found
+    }
+    return null
+  }
+  if (tree.type === target.type && shallowMatch(tree, target)) return tree
+  for (const val of Object.values(tree)) {
+    if (typeof val === 'object' && val !== null) {
+      const found = findMatchingElement(val, target)
+      if (found) return found
+    }
+  }
+  return null
+}
+
+function findElementByType(obj: any, type: string): any {
+  if (!obj || typeof obj !== 'object') return null
+  if (Array.isArray(obj)) {
+    for (const item of obj) {
+      const found = findElementByType(item, type)
+      if (found) return found
+    }
+    return null
+  }
+  if (obj.type === type) return obj
+  for (const val of Object.values(obj)) {
+    if (typeof val === 'object' && val !== null) {
+      const found = findElementByType(val, type)
+      if (found) return found
+    }
+  }
+  return null
+}
+
 function patchElement(obj: any, target: any, property: string, value: string): boolean {
   if (!obj || typeof obj !== 'object') return false
   if (obj === target || (obj.type === target.type && shallowMatch(obj, target))) {
@@ -1269,9 +1508,9 @@ function tokenToPixels(token: string | number | undefined): number | undefined {
   if (token == null) return undefined
   if (typeof token === 'number') return token
   const map: Record<string, number> = {
-    'token:nba.spacing.xs': 4, 'token:nba.spacing.sm': 8, 'token:nba.spacing.md': 12,
-    'token:nba.spacing.lg': 16, 'token:nba.spacing.xl': 24, 'token:nba.spacing.xxl': 32,
-    xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32,
+    'token:nba.spacing.xs': 2, 'token:nba.spacing.sm': 4, 'token:nba.spacing.md': 12,
+    'token:nba.spacing.lg': 16, 'token:nba.spacing.xl': 32, 'token:nba.spacing.2xl': 40,
+    xs: 2, sm: 4, md: 12, lg: 16, xl: 32, '2xl': 40,
   }
   return map[token]
 }
@@ -1298,9 +1537,10 @@ function paddingValue(padding: any): string | undefined {
 function radiusValue(token: string | undefined): string {
   if (!token) return '0'
   const map: Record<string, string> = {
-    'token:nba.radius.sm': '4px', 'token:nba.radius.md': '8px', 'token:nba.radius.lg': '12px',
-    'token:nba.radius.xl': '16px', 'token:nba.radius.full': '9999px',
-    sm: '4px', md: '6px', lg: '8px', xl: '12px', full: '9999px',
+    'token:nba.radius.xs': '2px', 'token:nba.radius.sm': '4px', 'token:nba.radius.md': '12px',
+    'token:nba.radius.lg': '16px', 'token:nba.radius.xl': '24px', 'token:nba.radius.2xl': '32px',
+    'token:nba.radius.full': '9999px',
+    xs: '2px', sm: '4px', md: '12px', lg: '16px', xl: '24px', '2xl': '32px', full: '9999px',
   }
   return map[token] || '0'
 }
@@ -1336,23 +1576,23 @@ const ELEMENT_SCHEMAS: Record<string, ElementSchema> = {
     description: 'Flex layout container — the primary building block for server-composed layouts.',
     properties: [
       { name: 'direction', type: 'string', description: 'Flex axis direction', required: true, values: ['row', 'column'] },
-      { name: 'gap', type: 'spacing token', description: 'Space between children', values: ['xs', 'sm', 'md', 'lg', 'xl', 'xxl'] },
-      { name: 'padding', type: 'spacing token', description: 'Inner padding on all sides', values: ['xs', 'sm', 'md', 'lg', 'xl', 'xxl'] },
-      { name: 'mainAxisAlignment', type: 'string', description: 'Justify content along main axis', values: ['start', 'end', 'center', 'spaceBetween', 'spaceAround'] },
-      { name: 'crossAxisAlignment', type: 'string', description: 'Align items along cross axis', values: ['start', 'end', 'center', 'stretch', 'baseline'] },
-      { name: 'background', type: 'object', description: 'Background color or gradient ({ color } or { type, colors, angle })' },
-      { name: 'cornerRadius', type: 'radius token', description: 'Border radius', values: ['sm', 'md', 'lg', 'xl', 'full'] },
+      { name: 'gap', type: 'spacing token', description: 'Space between children', values: ['xs', 'sm', 'md', 'lg', 'xl', '2xl'] },
+      { name: 'padding', type: 'Spacing', description: '{ top, bottom, start, end } with token values' },
+      { name: 'alignment', type: 'string', description: 'Justify content along main axis', values: ['start', 'end', 'center', 'spaceBetween', 'spaceAround'] },
+      { name: 'crossAlignment', type: 'string', description: 'Align items along cross axis', values: ['start', 'end', 'center', 'stretch', 'baseline'] },
+      { name: 'backgrounds', type: 'array', description: 'Array of ColorToken, Gradient, or Image backgrounds' },
+      { name: 'cornerRadius', type: 'radius token', description: 'Border radius', values: ['xs', 'sm', 'md', 'lg', 'xl', '2xl', 'full'] },
       { name: 'widthMode', type: 'string', description: 'How width is calculated', values: ['hug', 'fill', 'fixed'] },
       { name: 'heightMode', type: 'string', description: 'How height is calculated', values: ['hug', 'fill', 'fixed'] },
       { name: 'flex', type: 'number', description: 'Flex grow weight relative to siblings' },
-      { name: 'shadows', type: 'array', description: 'Box shadows array ({ type, color, radius, offsetX, offsetY })' },
+      { name: 'shadow', type: 'object', description: '{ color, radius, offsetX, offsetY }' },
       { name: 'children', type: 'element[]', description: 'Child atomic elements (max 20)', required: true },
     ],
   },
   Text: {
     description: 'Styled text element mapped to the design system\'s typography scale.',
     properties: [
-      { name: 'text', type: 'string', description: 'The text content to display', required: true },
+      { name: 'content', type: 'string', description: 'The text content to display', required: true },
       { name: 'variant', type: 'string', description: 'Typography variant from the type scale', required: true, values: ['displayLarge', 'displayMedium', 'displaySmall', 'headlineLarge', 'headlineMedium', 'headlineSmall', 'titleLarge', 'titleMedium', 'titleSmall', 'bodyLarge', 'bodyMedium', 'bodySmall', 'labelLarge', 'labelMedium', 'labelSmall', 'score'] },
       { name: 'color', type: 'string', description: 'Override text color (hex or CSS color)' },
       { name: 'weight', type: 'number', description: 'Override font weight (100–900)' },
@@ -1363,20 +1603,20 @@ const ELEMENT_SCHEMAS: Record<string, ElementSchema> = {
   Image: {
     description: 'Remote image with dimensions and content scaling.',
     properties: [
-      { name: 'url', type: 'string', description: 'Image URL (remote)', required: true },
+      { name: 'src', type: 'string', description: 'Image URL (remote)', required: true },
       { name: 'width', type: 'number', description: 'Display width in logical pixels' },
       { name: 'height', type: 'number', description: 'Display height in logical pixels' },
-      { name: 'alt', type: 'string', description: 'Accessibility description' },
-      { name: 'contentScale', type: 'string', description: 'How image fills its bounds', values: ['fit', 'fill', 'crop', 'none'] },
-      { name: 'cornerRadius', type: 'radius token', description: 'Clip the image with rounded corners', values: ['sm', 'md', 'lg', 'xl', 'full'] },
+      { name: 'accessibility', type: 'object', description: '{ label: "description" }' },
+      { name: 'fit', type: 'string', description: 'How image fills its bounds', values: ['cover', 'contain', 'fill', 'none'] },
+      { name: 'cornerRadius', type: 'radius token', description: 'Clip the image with rounded corners', values: ['xs', 'sm', 'md', 'lg', 'xl', '2xl', 'full'] },
     ],
   },
   Button: {
     description: 'Interactive button with label and actions array.',
     properties: [
       { name: 'label', type: 'string', description: 'Button text', required: true },
-      { name: 'variant', type: 'string', description: 'Visual style', required: true, values: ['primary', 'secondary', 'text', 'destructive'] },
-      { name: 'actions', type: 'action[]', description: 'Actions to fire on tap (navigate, analytics, refresh, etc.)' },
+      { name: 'variant', type: 'string', description: 'Visual style', required: true, values: ['primary', 'secondary', 'tertiary', 'text'] },
+      { name: 'actions', type: 'action[]', description: 'Actions to fire on tap (navigate, fireAndForget, refresh, etc.)' },
       { name: 'disabled', type: 'boolean', description: 'Whether the button is non-interactive' },
       { name: 'icon', type: 'string', description: 'Optional icon identifier shown before label' },
     ],
@@ -1409,10 +1649,10 @@ const ELEMENT_SCHEMAS: Record<string, ElementSchema> = {
     properties: [
       { name: 'snapshotSeconds', type: 'number', description: 'Clock value at snapshot time', required: true },
       { name: 'snapshotAt', type: 'string', description: 'ISO timestamp of when snapshot was taken' },
-      { name: 'isRunning', type: 'boolean', description: 'Whether the clock is ticking', required: true },
+      { name: 'isRunning', type: 'boolean', description: 'Whether the clock is ticking' },
       { name: 'tickDirection', type: 'string', description: 'Count up or down', values: ['up', 'down'] },
       { name: 'stopAtSeconds', type: 'number', description: 'Stop ticking at this value' },
-      { name: 'format', type: 'string', description: 'Display format', values: ['mm:ss', 'h:mm:ss', 'ss.t'] },
+      { name: 'format', type: 'string', description: 'Display format', values: ['m:ss', 'mm:ss', 'h:mm:ss', 'ss.t'] },
     ],
   },
   Conditional: {
@@ -1425,114 +1665,254 @@ const ELEMENT_SCHEMAS: Record<string, ElementSchema> = {
   },
 }
 
+// ── Schema Validation ────────────────────────────
+
+interface ValidationMarker {
+  line: number
+  severity: 'error' | 'warning'
+  message: string
+}
+
+const VALIDATION_SCHEMAS: Record<string, { required: string[]; enums: Record<string, string[]> }> = {
+  Container: {
+    required: ['direction', 'children'],
+    enums: {
+      direction: ['row', 'column'],
+      gap: ['xs', 'sm', 'md', 'lg', 'xl', '2xl'],
+      alignment: ['start', 'end', 'center', 'spaceBetween', 'spaceAround'],
+      mainAxisAlignment: ['start', 'end', 'center', 'spaceBetween', 'spaceAround'],
+      crossAlignment: ['start', 'end', 'center', 'stretch', 'baseline'],
+      crossAxisAlignment: ['start', 'end', 'center', 'stretch', 'baseline'],
+      cornerRadius: ['xs', 'sm', 'md', 'lg', 'xl', '2xl', 'full'],
+      widthMode: ['hug', 'fill', 'fixed'],
+      heightMode: ['hug', 'fill', 'fixed'],
+    },
+  },
+  Text: {
+    required: ['content|text', 'variant'],
+    enums: {
+      variant: ['displayLarge', 'displayMedium', 'displaySmall', 'headlineLarge', 'headlineMedium', 'headlineSmall', 'titleLarge', 'titleMedium', 'titleSmall', 'bodyLarge', 'bodyMedium', 'bodySmall', 'labelLarge', 'labelMedium', 'labelSmall', 'score'],
+      textAlign: ['start', 'center', 'end'],
+    },
+  },
+  Image: {
+    required: ['src|url'],
+    enums: {
+      fit: ['cover', 'contain', 'fill', 'none'],
+      cornerRadius: ['xs', 'sm', 'md', 'lg', 'xl', '2xl', 'full'],
+    },
+  },
+  Button: {
+    required: ['label', 'variant'],
+    enums: {
+      variant: ['primary', 'secondary', 'tertiary', 'text'],
+    },
+  },
+  Spacer: { required: [], enums: {} },
+  Divider: {
+    required: [],
+    enums: { direction: ['horizontal', 'vertical'] },
+  },
+  ScrollContainer: {
+    required: ['direction', 'children'],
+    enums: { direction: ['horizontal', 'vertical'] },
+  },
+  LiveClock: {
+    required: ['snapshotSeconds'],
+    enums: {
+      tickDirection: ['up', 'down'],
+      format: ['m:ss', 'mm:ss', 'h:mm:ss', 'ss.t'],
+    },
+  },
+  Conditional: {
+    required: ['condition', 'then'],
+    enums: {},
+  },
+}
+
+function validateSchema(json: string): ValidationMarker[] {
+  let parsed: any
+  try { parsed = JSON.parse(json) } catch { return [] }
+
+  const markers: ValidationMarker[] = []
+  const lines = json.split('\n')
+
+  function findLineOfProperty(elementStartLine: number, propName: string): number {
+    for (let i = elementStartLine; i < lines.length && i < elementStartLine + 30; i++) {
+      if (lines[i].includes(`"${propName}"`)) return i
+    }
+    return elementStartLine
+  }
+
+  function findLineOfType(startSearchFrom: number, type: string): number {
+    for (let i = startSearchFrom; i < lines.length; i++) {
+      if (lines[i].includes(`"type"`) && lines[i].includes(`"${type}"`)) return i
+    }
+    return 0
+  }
+
+  let typeOccurrenceIndex = 0
+  function walkElements(obj: any) {
+    if (!obj || typeof obj !== 'object') return
+    if (Array.isArray(obj)) {
+      obj.forEach(item => walkElements(item))
+      return
+    }
+
+    if (obj.type && typeof obj.type === 'string') {
+      const schema = VALIDATION_SCHEMAS[obj.type]
+      if (schema) {
+        const typeLine = findLineOfType(typeOccurrenceIndex, obj.type)
+        typeOccurrenceIndex = typeLine + 1
+
+        // Check missing required fields (supports "a|b" alternatives)
+        for (const req of schema.required) {
+          const alternatives = req.split('|')
+          const hasAny = alternatives.some(alt => obj[alt] !== undefined)
+          if (!hasAny) {
+            markers.push({
+              line: typeLine,
+              severity: 'error',
+              message: `${obj.type}: missing required "${alternatives[0]}"`,
+            })
+          }
+        }
+
+        // Check invalid enum values
+        for (const [prop, validValues] of Object.entries(schema.enums)) {
+          if (obj[prop] !== undefined && typeof obj[prop] === 'string' && !validValues.includes(obj[prop])) {
+            const propLine = findLineOfProperty(typeLine, prop)
+            markers.push({
+              line: propLine,
+              severity: 'warning',
+              message: `${obj.type}.${prop}: "${obj[prop]}" is not valid (expected: ${validValues.join(', ')})`,
+            })
+          }
+        }
+      }
+    }
+
+    // Recurse into all object values
+    for (const val of Object.values(obj)) {
+      if (typeof val === 'object' && val !== null) {
+        walkElements(val)
+      }
+    }
+  }
+
+  walkElements(parsed)
+  return markers
+}
+
 // ── Example presets ──────────────────────────────
 
-const EXAMPLE_SCORE = `{
-  "screenId": "game",
+const EXAMPLE_BLANK = `{
+  "screenId": "my-screen",
   "sections": [
     {
-      "sectionId": "score-1",
+      "sectionId": "section-1",
       "sectionType": "AtomicComposite",
       "content": {
         "type": "Container",
         "direction": "column",
         "gap": "md",
-        "padding": "lg",
-        "background": { "color": "#191C23" },
+        "padding": { "top": "lg", "bottom": "lg", "start": "lg", "end": "lg" },
+        "backgrounds": [{ "color": "#191C23" }],
         "cornerRadius": "lg",
         "children": [
-          { "type": "Text", "text": "FINAL", "variant": "labelSmall", "color": "#8E9196" },
-          {
-            "type": "Container",
-            "direction": "row",
-            "mainAxisAlignment": "spaceBetween",
-            "children": [
-              {
-                "type": "Container",
-                "direction": "row",
-                "gap": "lg",
-                "crossAxisAlignment": "center",
-                "children": [
-                  { "type": "Text", "text": "LAL", "variant": "titleMedium" },
-                  { "type": "Text", "text": "108", "variant": "headlineMedium" }
-                ]
-              },
-              {
-                "type": "Container",
-                "direction": "row",
-                "gap": "sm",
-                "crossAxisAlignment": "center",
-                "children": [
-                  { "type": "Text", "text": "BOS", "variant": "titleMedium" },
-                  { "type": "Text", "text": "112", "variant": "headlineMedium" }
-                ]
-              }
-            ]
-          },
-          { "type": "Divider" },
-          { "type": "Text", "text": "L. James: 32 PTS, 8 REB, 7 AST", "variant": "bodySmall", "color": "#8E9196" }
+          { "type": "Text", "content": "Your Title Here", "variant": "headlineSmall" },
+          { "type": "Text", "content": "Start building by adding elements from the Schema panel.", "variant": "bodySmall", "color": "#8E9196" }
         ]
       }
     }
   ]
 }`
 
-const EXAMPLE_RAIL = `{
-  "screenId": "feed",
+const EXAMPLE_GAME_CARD = `{
+  "screenId": "game",
   "sections": [
     {
-      "sectionId": "rail-1",
+      "sectionId": "game-card-1",
       "sectionType": "AtomicComposite",
       "content": {
         "type": "Container",
         "direction": "column",
         "gap": "md",
-        "padding": "lg",
+        "padding": { "top": "lg", "bottom": "lg", "start": "lg", "end": "lg" },
+        "backgrounds": [{ "color": "#191C23" }],
+        "cornerRadius": "lg",
         "children": [
+          { "type": "Text", "content": "LIVE · Q4 2:34", "variant": "labelSmall", "color": "#C8102E" },
           {
             "type": "Container",
             "direction": "row",
-            "mainAxisAlignment": "spaceBetween",
-            "crossAxisAlignment": "center",
+            "alignment": "spaceBetween",
+            "crossAlignment": "center",
             "children": [
-              { "type": "Text", "text": "TRENDING NOW", "variant": "labelLarge" },
               {
-                "type": "Button",
-                "label": "See All",
-                "variant": "text",
-                "actions": [{ "actionType": "navigate", "destination": "nba://trending" }]
+                "type": "Container",
+                "direction": "column",
+                "crossAlignment": "center",
+                "gap": "sm",
+                "children": [
+                  { "type": "Image", "src": "https://cdn.nba.com/logos/nba/1610612747/primary/D/512x512/logo.png", "width": 48, "height": 48, "fit": "contain" },
+                  { "type": "Text", "content": "LAL", "variant": "titleMedium" },
+                  { "type": "Text", "content": "108", "variant": "headlineMedium" }
+                ]
+              },
+              {
+                "type": "LiveClock",
+                "snapshotSeconds": 154,
+                "isRunning": true,
+                "tickDirection": "down",
+                "format": "m:ss"
+              },
+              {
+                "type": "Container",
+                "direction": "column",
+                "crossAlignment": "center",
+                "gap": "sm",
+                "children": [
+                  { "type": "Image", "src": "https://cdn.nba.com/logos/nba/1610612738/primary/D/512x512/logo.png", "width": 48, "height": 48, "fit": "contain" },
+                  { "type": "Text", "content": "BOS", "variant": "titleMedium" },
+                  { "type": "Text", "content": "112", "variant": "headlineMedium" }
+                ]
               }
             ]
           },
+          { "type": "Divider" },
+          { "type": "Button", "label": "Watch Live", "variant": "primary", "actions": [{ "type": "navigate", "targetUri": "nba://watch/0022400123" }] }
+        ]
+      }
+    }
+  ]
+}`
+
+const EXAMPLE_NEWS_CARD = `{
+  "screenId": "news",
+  "sections": [
+    {
+      "sectionId": "news-card-1",
+      "sectionType": "AtomicComposite",
+      "content": {
+        "type": "Container",
+        "direction": "column",
+        "gap": "md",
+        "padding": { "top": "lg", "bottom": "lg", "start": "lg", "end": "lg" },
+        "backgrounds": [{ "color": "#191C23" }],
+        "cornerRadius": "lg",
+        "children": [
+          { "type": "Text", "content": "BREAKING", "variant": "labelSmall", "color": "#C8102E" },
+          { "type": "Text", "content": "Lakers Acquire All-Star in Blockbuster Trade", "variant": "headlineSmall" },
+          { "type": "Text", "content": "The Los Angeles Lakers have completed a trade sending two first-round picks for a three-time All-Star, sources confirm.", "variant": "bodyMedium", "color": "#8E9196" },
+          { "type": "Spacer", "size": 4 },
           {
             "type": "Container",
             "direction": "row",
             "gap": "md",
             "children": [
-              {
-                "type": "Container",
-                "direction": "column",
-                "gap": "sm",
-                "padding": "md",
-                "background": { "color": "#2B2F37" },
-                "cornerRadius": "md",
-                "children": [
-                  { "type": "Text", "text": "Top Play", "variant": "labelSmall", "color": "#FBCD44" },
-                  { "type": "Text", "text": "LeBron's clutch three", "variant": "titleSmall" }
-                ]
-              },
-              {
-                "type": "Container",
-                "direction": "column",
-                "gap": "sm",
-                "padding": "md",
-                "background": { "color": "#2B2F37" },
-                "cornerRadius": "md",
-                "children": [
-                  { "type": "Text", "text": "Highlight", "variant": "labelSmall", "color": "#69ABF3" },
-                  { "type": "Text", "text": "Curry's 50-pt game", "variant": "titleSmall" }
-                ]
-              }
+              { "type": "Button", "label": "Full Story", "variant": "primary", "actions": [{ "type": "navigate", "targetUri": "nba://news/trade-123" }] },
+              { "type": "Button", "label": "Share", "variant": "text", "actions": [{ "type": "fireAndForget", "event": "share_tap", "params": { "article": "trade-123" } }] }
             ]
           }
         ]
@@ -1551,79 +1931,21 @@ const EXAMPLE_PROMO = `{
         "type": "Container",
         "direction": "column",
         "gap": "md",
-        "padding": "xl",
-        "background": { "color": "#1D428A" },
+        "padding": { "top": "xl", "bottom": "xl", "start": "xl", "end": "xl" },
+        "backgrounds": [{ "color": "#1D428A" }],
         "cornerRadius": "xl",
         "children": [
-          { "type": "Text", "text": "NBA LEAGUE PASS", "variant": "labelLarge", "color": "#FBCD44" },
-          { "type": "Text", "text": "Watch Every Game", "variant": "headlineLarge" },
-          { "type": "Text", "text": "Stream live and on-demand games all season long. Start your free trial today.", "variant": "bodyMedium", "color": "#B8C4D9" },
+          { "type": "Text", "content": "NBA LEAGUE PASS", "variant": "labelLarge", "color": "#FBCD44" },
+          { "type": "Text", "content": "Watch Every Game", "variant": "headlineLarge" },
+          { "type": "Text", "content": "Stream live and on-demand games all season long. Start your free trial today.", "variant": "bodyMedium", "color": "#B8C4D9" },
           {
             "type": "Container",
             "direction": "row",
             "gap": "md",
             "children": [
-              {
-                "type": "Button",
-                "label": "Start Free Trial",
-                "variant": "primary",
-                "actions": [{ "actionType": "navigate", "destination": "nba://subscribe" }]
-              },
-              {
-                "type": "Button",
-                "label": "Learn More",
-                "variant": "secondary",
-                "actions": [{ "actionType": "navigate", "destination": "nba://league-pass" }]
-              }
+              { "type": "Button", "label": "Start Free Trial", "variant": "primary", "actions": [{ "type": "navigate", "targetUri": "nba://subscribe" }] },
+              { "type": "Button", "label": "Learn More", "variant": "secondary", "actions": [{ "type": "navigate", "targetUri": "nba://league-pass" }] }
             ]
-          }
-        ]
-      }
-    }
-  ]
-}`
-
-const EXAMPLE_CONDITIONAL = `{
-  "screenId": "personalized",
-  "sections": [
-    {
-      "sectionId": "welcome-1",
-      "sectionType": "AtomicComposite",
-      "content": {
-        "type": "Container",
-        "direction": "column",
-        "gap": "lg",
-        "padding": "lg",
-        "background": { "color": "#191C23" },
-        "cornerRadius": "lg",
-        "children": [
-          {
-            "type": "Conditional",
-            "condition": {
-              "field": "user.isSubscribed",
-              "operator": "equals",
-              "value": true
-            },
-            "then": {
-              "type": "Container",
-              "direction": "column",
-              "gap": "sm",
-              "children": [
-                { "type": "Text", "text": "LEAGUE PASS", "variant": "labelSmall", "color": "#30D158" },
-                { "type": "Text", "text": "Your Games Tonight", "variant": "headlineSmall" }
-              ]
-            },
-            "else": {
-              "type": "Container",
-              "direction": "column",
-              "gap": "md",
-              "children": [
-                { "type": "Text", "text": "UPGRADE", "variant": "labelSmall", "color": "#FBCD44" },
-                { "type": "Text", "text": "Don't Miss a Moment", "variant": "headlineSmall" },
-                { "type": "Text", "text": "Get access to every out-of-market game.", "variant": "bodySmall", "color": "#8E9196" },
-                { "type": "Button", "label": "Subscribe", "variant": "primary" }
-              ]
-            }
           }
         ]
       }

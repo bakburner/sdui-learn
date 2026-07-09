@@ -6,7 +6,6 @@ import { BeforeAfter } from './sections/BeforeAfter'
 import { HowItWorks } from './sections/HowItWorks'
 import { Architecture } from './sections/Architecture'
 import { DeepDive } from './sections/DeepDive'
-import { DayInTheLife } from './sections/DayInTheLife'
 import { Playground } from './sections/Playground'
 import { FAQ } from './sections/FAQ'
 import { useScrollSpy } from './hooks/useScrollSpy'
@@ -24,7 +23,6 @@ function App() {
           <HowItWorks />
           <Architecture />
           <DeepDive />
-          <DayInTheLife />
           <Playground />
           <FAQ />
         </main>

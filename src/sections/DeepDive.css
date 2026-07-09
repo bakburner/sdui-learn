@@ -75,8 +75,8 @@
 /* ── Action System Panel ─────────────────────── */
 
 .dd-chips {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: var(--space-2);
   margin-bottom: var(--space-4);
 }

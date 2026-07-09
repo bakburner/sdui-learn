@@ -5,11 +5,12 @@ interface SchemaReferenceProps {
   selectedElement: string | null
   focusedProperty?: string | null
   onInsertSnippet: (snippet: string) => void
+  onInsertAtCursor?: (snippet: string) => void
   onPropertyChange?: (elementType: string, property: string, value: string) => void
   onSelectType?: (elementType: string) => void
 }
 
-export function SchemaReference({ selectedElement, focusedProperty, onInsertSnippet, onPropertyChange, onSelectType }: SchemaReferenceProps) {
+export function SchemaReference({ selectedElement, focusedProperty, onInsertSnippet, onInsertAtCursor, onPropertyChange, onSelectType }: SchemaReferenceProps) {
   const [activeTab, setActiveTab] = useState<'elements' | 'tokens' | 'actions'>('elements')
   const [expandedElement, setExpandedElement] = useState<string | null>(selectedElement)
 
@@ -56,6 +57,7 @@ export function SchemaReference({ selectedElement, focusedProperty, onInsertSnip
               if (type && onSelectType) onSelectType(type)
             }}
             onInsert={onInsertSnippet}
+            onInsertAtCursor={onInsertAtCursor}
             onValueClick={onPropertyChange}
           />
         )}
@@ -71,12 +73,14 @@ function ElementsTab({
   focusedProperty,
   onExpand,
   onInsert,
+  onInsertAtCursor,
   onValueClick,
 }: {
   expanded: string | null
   focusedProperty?: string | null
   onExpand: (id: string | null) => void
   onInsert: (snippet: string) => void
+  onInsertAtCursor?: (snippet: string) => void
   onValueClick?: (elementType: string, property: string, value: string) => void
 }) {
   const highlightRef = useRef<HTMLTableRowElement>(null)
@@ -91,14 +95,28 @@ function ElementsTab({
     <div className="ref-list">
       {ELEMENT_DOCS.map((el) => (
         <div key={el.type} className={`ref-item ${expanded === el.type ? 'expanded' : ''}`}>
-          <button
-            className="ref-item-header"
-            onClick={() => onExpand(expanded === el.type ? null : el.type)}
-          >
-            <span className="ref-item-type">{el.type}</span>
-            <span className="ref-item-desc">{el.shortDesc}</span>
-            <span className="ref-chevron">{expanded === el.type ? '−' : '+'}</span>
-          </button>
+          <div className="ref-item-header-row">
+            <button
+              className="ref-item-header"
+              onClick={() => onExpand(expanded === el.type ? null : el.type)}
+            >
+              <span className="ref-item-type">{el.type}</span>
+              <span className="ref-item-desc">{el.shortDesc}</span>
+              <span className="ref-chevron">{expanded === el.type ? '▾' : '›'}</span>
+            </button>
+            {onInsertAtCursor && (
+              <button
+                className="ref-insert-cursor-btn"
+                title={`Insert ${el.type} at cursor`}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onInsertAtCursor(STARTER_SNIPPETS[el.type] || `{ "type": "${el.type}" }`)
+                }}
+              >
+                +
+              </button>
+            )}
+          </div>
           {expanded === el.type && (
             <div className="ref-item-body">
               <p className="ref-item-detail">{el.detail}</p>
@@ -137,6 +155,13 @@ function ElementsTab({
                                 </code>
                               ))}
                             </div>
+                          ) : p.name === 'content' || p.name === 'label' ? (
+                            <EditablePropertyInput
+                              elementType={el.type}
+                              property={p.name}
+                              placeholder={p.desc || ''}
+                              onCommit={onValueClick}
+                            />
                           ) : (
                             <span className="desc-text">{p.desc}</span>
                           )}
@@ -146,15 +171,44 @@ function ElementsTab({
                   })}
                 </tbody>
               </table>
-              {el.snippet && (
-                <button className="insert-btn" onClick={() => onInsert(el.snippet!)}>
-                  Insert Example →
-                </button>
-              )}
+              <div className="ref-item-actions">
+                {el.snippet && (
+                  <button className="insert-btn" onClick={() => onInsert(el.snippet!)}>
+                    Replace with Example →
+                  </button>
+                )}
+              </div>
             </div>
           )}
         </div>
       ))}
+    </div>
+  )
+}
+
+function EditablePropertyInput({ elementType, property, placeholder, onCommit }: {
+  elementType: string
+  property: string
+  placeholder: string
+  onCommit?: (elementType: string, property: string, value: string) => void
+}) {
+  const [value, setValue] = useState('')
+  const commit = () => {
+    if (value.trim() && onCommit) {
+      onCommit(elementType, property, value.trim())
+    }
+  }
+  return (
+    <div className="editable-prop-input">
+      <input
+        type="text"
+        className="prop-text-input"
+        placeholder={placeholder}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => { if (e.key === 'Enter') commit() }}
+      />
     </div>
   )
 }
@@ -239,6 +293,22 @@ function ActionsTab() {
   )
 }
 
+// ── Starter Snippets (minimal valid elements) ───
+
+const STARTER_SNIPPETS: Record<string, string> = {
+  Container: '{ "type": "Container", "direction": "column", "gap": "md", "children": [] }',
+  Text: '{ "type": "Text", "content": "Hello", "variant": "bodyMedium" }',
+  Image: '{ "type": "Image", "src": "https://cdn.nba.com/logos/nba/1610612747/primary/D/512x512/logo.png", "width": 48, "height": 48 }',
+  Button: '{ "type": "Button", "label": "Tap Me", "variant": "primary" }',
+  Spacer: '{ "type": "Spacer", "size": 16 }',
+  Divider: '{ "type": "Divider" }',
+  ScrollContainer: '{ "type": "ScrollContainer", "direction": "horizontal", "children": [] }',
+  LiveClock: '{ "type": "LiveClock", "snapshotSeconds": 720, "isRunning": true, "tickDirection": "down", "format": "mm:ss" }',
+  Conditional: '{ "type": "Conditional", "condition": { "field": "user.isSubscribed", "operator": "equals", "value": true }, "then": { "type": "Text", "content": "Subscribed", "variant": "bodyMedium" } }',
+  DisplayGrid: '{ "type": "DisplayGrid", "columns": [{ "header": "Player", "width": "fill" }, { "header": "PTS", "width": "fixed" }], "rows": [["LeBron James", "25"], ["Stephen Curry", "30"]] }',
+  OverlayContainer: '{ "type": "OverlayContainer", "base": { "type": "Image", "src": "https://cdn.nba.com/logos/nba/1610612747/primary/D/512x512/logo.png", "width": 200, "height": 120 }, "overlays": [{ "type": "Text", "content": "Overlay", "variant": "headlineSmall" }] }',
+}
+
 // ── Data ────────────────────────────────────────
 
 interface PropDoc {
@@ -264,16 +334,16 @@ const ELEMENT_DOCS: ElementDoc[] = [
     detail: 'The primary layout building block. Supports flex direction, alignment, gap, padding, backgrounds, shadows, and responsive behavior. Max 20 children, max depth 6.',
     props: [
       { name: 'direction', type: 'string', required: true, values: ['row', 'column'] },
-      { name: 'gap', type: 'token', values: ['xs', 'sm', 'md', 'lg', 'xl', 'xxl'] },
-      { name: 'padding', type: 'token', values: ['xs', 'sm', 'md', 'lg', 'xl', 'xxl'] },
-      { name: 'mainAxisAlignment', type: 'string', values: ['start', 'end', 'center', 'spaceBetween', 'spaceAround'] },
-      { name: 'crossAxisAlignment', type: 'string', values: ['start', 'end', 'center', 'stretch', 'baseline'] },
-      { name: 'background', type: 'object', desc: '{ color } or { type: "gradient", colors, angle }' },
-      { name: 'cornerRadius', type: 'token', values: ['sm', 'md', 'lg', 'xl', 'full'] },
+      { name: 'gap', type: 'token', values: ['xs', 'sm', 'md', 'lg', 'xl', '2xl'] },
+      { name: 'padding', type: 'Spacing', desc: '{ top, bottom, start, end } with token values' },
+      { name: 'alignment', type: 'string', values: ['start', 'end', 'center', 'spaceBetween', 'spaceAround'] },
+      { name: 'crossAlignment', type: 'string', values: ['start', 'end', 'center', 'stretch', 'baseline'] },
+      { name: 'backgrounds', type: 'array', desc: 'Array of ColorToken, Gradient, or Image backgrounds' },
+      { name: 'cornerRadius', type: 'token', values: ['xs', 'sm', 'md', 'lg', 'xl', '2xl', 'full'] },
       { name: 'widthMode', type: 'string', values: ['hug', 'fill', 'fixed'] },
       { name: 'heightMode', type: 'string', values: ['hug', 'fill', 'fixed'] },
       { name: 'flex', type: 'number', desc: 'Flex grow weight (e.g. 1, 2)' },
-      { name: 'shadows', type: 'array', desc: '[{ type, color, radius, offsetX, offsetY }]' },
+      { name: 'shadow', type: 'object', desc: '{ color, radius, offsetX, offsetY }' },
       { name: 'children', type: 'element[]', required: true, desc: 'Child elements (max 20)' },
     ],
   },
@@ -282,7 +352,7 @@ const ELEMENT_DOCS: ElementDoc[] = [
     shortDesc: 'Styled typography',
     detail: 'Renders text using the platform\'s native typography scale. Variant maps to the design system — each platform interprets it with its native fonts.',
     props: [
-      { name: 'text', type: 'string', required: true, desc: 'Content to display' },
+      { name: 'content', type: 'string', required: true, desc: 'Content to display' },
       { name: 'variant', type: 'string', required: true, values: ['displayLarge', 'displayMedium', 'displaySmall', 'headlineLarge', 'headlineMedium', 'headlineSmall', 'titleLarge', 'titleMedium', 'titleSmall', 'bodyLarge', 'bodyMedium', 'bodySmall', 'labelLarge', 'labelMedium', 'labelSmall', 'score'] },
       { name: 'color', type: 'string', desc: 'Hex color override (e.g. "#8E9196")' },
       { name: 'weight', type: 'number', desc: 'Font weight override (100–900)' },
@@ -295,21 +365,21 @@ const ELEMENT_DOCS: ElementDoc[] = [
     shortDesc: 'Remote image',
     detail: 'Loads and displays a remote image with specified dimensions. Falls back to empty space on load failure.',
     props: [
-      { name: 'url', type: 'string', required: true, desc: 'Image URL' },
+      { name: 'src', type: 'string', required: true, desc: 'Image URL' },
       { name: 'width', type: 'number', desc: 'Display width in logical pixels' },
       { name: 'height', type: 'number', desc: 'Display height in logical pixels' },
-      { name: 'alt', type: 'string', desc: 'Accessibility text' },
-      { name: 'contentScale', type: 'string', values: ['fit', 'fill', 'crop', 'none'] },
-      { name: 'cornerRadius', type: 'token', values: ['sm', 'md', 'lg', 'xl', 'full'] },
+      { name: 'accessibility', type: 'object', desc: '{ label: "description" }' },
+      { name: 'fit', type: 'string', values: ['cover', 'contain', 'fill', 'none'] },
+      { name: 'cornerRadius', type: 'token', values: ['xs', 'sm', 'md', 'lg', 'xl', '2xl', 'full'] },
     ],
   },
   {
     type: 'Button',
     shortDesc: 'Interactive CTA',
-    detail: 'A tappable button that fires an actions array on press. Supports primary, secondary, text, and destructive visual variants.',
+    detail: 'A tappable button that fires an actions array on press. Supports primary, secondary, tertiary, and text visual variants.',
     props: [
       { name: 'label', type: 'string', required: true, desc: 'Button text' },
-      { name: 'variant', type: 'string', required: true, values: ['primary', 'secondary', 'text', 'destructive'] },
+      { name: 'variant', type: 'string', required: true, values: ['primary', 'secondary', 'tertiary', 'text'] },
       { name: 'actions', type: 'action[]', desc: 'Array of action objects to fire' },
       { name: 'disabled', type: 'boolean', desc: 'Non-interactive state' },
       { name: 'icon', type: 'string', desc: 'Icon identifier before label' },
@@ -402,98 +472,111 @@ const ELEMENT_DOCS: ElementDoc[] = [
   {
     type: 'OverlayContainer',
     shortDesc: 'Stacked layers',
-    detail: 'Foreground content over a background (image, gradient, scrim). Used for hero cards, video thumbnails with labels.',
+    detail: 'Content layered over a base element. Used for hero cards, video thumbnails with labels.',
     props: [
-      { name: 'background', type: 'element', required: true, desc: 'Background layer (usually Image)' },
-      { name: 'foreground', type: 'element', required: true, desc: 'Content on top' },
+      { name: 'base', type: 'element', required: true, desc: 'Background layer (usually Image)' },
+      { name: 'overlays', type: 'element[]', required: true, desc: 'Elements layered on top' },
       { name: 'scrim', type: 'boolean', desc: 'Dark overlay for readability' },
-      { name: 'cornerRadius', type: 'token', values: ['sm', 'md', 'lg', 'xl'] },
+      { name: 'cornerRadius', type: 'token', values: ['xs', 'sm', 'md', 'lg', 'xl', '2xl'] },
     ],
   },
 ]
 
 const SPACING_TOKENS = [
-  { name: 'xs', px: 4 },
-  { name: 'sm', px: 8 },
+  { name: 'xs', px: 2 },
+  { name: 'sm', px: 4 },
   { name: 'md', px: 12 },
   { name: 'lg', px: 16 },
-  { name: 'xl', px: 24 },
-  { name: 'xxl', px: 32 },
+  { name: 'xl', px: 32 },
+  { name: '2xl', px: 40 },
 ]
 
 const RADIUS_TOKENS = [
+  { name: 'xs', px: 2 },
   { name: 'sm', px: 4 },
-  { name: 'md', px: 6 },
-  { name: 'lg', px: 8 },
-  { name: 'xl', px: 12 },
+  { name: 'md', px: 12 },
+  { name: 'lg', px: 16 },
+  { name: 'xl', px: 24 },
+  { name: '2xl', px: 32 },
   { name: 'full', px: 9999 },
 ]
 
 const TYPO_TOKENS = [
-  { variant: 'displayLarge', size: 48, family: 'display', familyName: 'Knockout', weight: 395, preview: 'DISPLAY LARGE' },
-  { variant: 'headlineLarge', size: 32, family: 'headline', familyName: 'Action NBA', weight: 360, preview: 'HEADLINE LARGE' },
-  { variant: 'headlineMedium', size: 28, family: 'headline', familyName: 'Action NBA', weight: 360, preview: 'HEADLINE MEDIUM' },
-  { variant: 'titleLarge', size: 20, family: 'body', familyName: 'Roboto', weight: 500, preview: 'Title Large' },
+  { variant: 'displayLarge', size: 57, family: 'display', familyName: 'Knockout', weight: 395, preview: 'DISPLAY LARGE' },
+  { variant: 'displayMedium', size: 45, family: 'display', familyName: 'Knockout', weight: 395, preview: 'DISPLAY MEDIUM' },
+  { variant: 'displaySmall', size: 36, family: 'display', familyName: 'Knockout', weight: 395, preview: 'DISPLAY SMALL' },
+  { variant: 'headlineLarge', size: 32, family: 'headline', familyName: 'Knockout', weight: 360, preview: 'HEADLINE LARGE' },
+  { variant: 'headlineMedium', size: 28, family: 'headline', familyName: 'Knockout', weight: 360, preview: 'HEADLINE MEDIUM' },
+  { variant: 'headlineSmall', size: 24, family: 'headline', familyName: 'Knockout', weight: 360, preview: 'HEADLINE SMALL' },
+  { variant: 'titleLarge', size: 22, family: 'body', familyName: 'Roboto', weight: 500, preview: 'Title Large' },
   { variant: 'titleMedium', size: 16, family: 'body', familyName: 'Roboto', weight: 500, preview: 'Title Medium' },
+  { variant: 'titleSmall', size: 14, family: 'body', familyName: 'Roboto', weight: 500, preview: 'Title Small' },
   { variant: 'bodyLarge', size: 16, family: 'body', familyName: 'Roboto', weight: 400, preview: 'Body large text for reading' },
   { variant: 'bodyMedium', size: 14, family: 'body', familyName: 'Roboto', weight: 400, preview: 'Body medium text' },
   { variant: 'bodySmall', size: 12, family: 'body', familyName: 'Roboto', weight: 400, preview: 'Body small text' },
-  { variant: 'labelLarge', size: 14, family: 'label', familyName: 'Roboto', weight: 400, preview: 'LABEL LARGE' },
-  { variant: 'labelSmall', size: 11, family: 'label', familyName: 'Roboto', weight: 400, preview: 'LABEL SMALL' },
-  { variant: 'score', size: 20, family: 'headline', familyName: 'Knockout', weight: 360, preview: '108' },
+  { variant: 'labelLarge', size: 14, family: 'label', familyName: 'Roboto', weight: 500, preview: 'LABEL LARGE' },
+  { variant: 'labelMedium', size: 12, family: 'label', familyName: 'Roboto', weight: 500, preview: 'LABEL MEDIUM' },
+  { variant: 'labelSmall', size: 11, family: 'label', familyName: 'Roboto', weight: 500, preview: 'LABEL SMALL' },
+  { variant: 'score', size: 14, family: 'display', familyName: 'Knockout', weight: 360, preview: '108' },
 ]
 
 const ACTION_DOCS = [
   {
     type: 'navigate',
-    description: 'Navigate to an internal screen via URI scheme',
+    description: 'Navigate to an internal screen or external URL',
     fields: [
-      { name: 'destination', type: 'string', desc: 'URI (e.g. "nba://game-detail/123")' },
+      { name: 'type', type: '"navigate"', desc: 'Action type identifier' },
+      { name: 'targetUri', type: 'string', desc: 'Internal URI (e.g. "nba://game/0022400123")' },
+      { name: 'webUrl', type: 'string', desc: 'Fallback web URL for external navigation' },
+      { name: 'presentation', type: 'string', desc: '"push", "modal", "sheet", or "external"' },
     ],
-    example: '{ "actionType": "navigate", "destination": "nba://game-detail/0022400123" }',
+    example: '{ "type": "navigate", "targetUri": "nba://game/0022400123" }',
+  },
+  {
+    type: 'fireAndForget',
+    description: 'Fire-and-forget event (analytics, logging)',
+    fields: [
+      { name: 'type', type: '"fireAndForget"', desc: 'Action type identifier' },
+      { name: 'event', type: 'string', desc: 'Event name to track' },
+      { name: 'params', type: 'object', desc: 'Key-value event parameters' },
+    ],
+    example: '{ "type": "fireAndForget", "event": "cta_tap", "params": { "source": "promo" } }',
+  },
+  {
+    type: 'mutate',
+    description: 'Modify local screen state (toggle, update value)',
+    fields: [
+      { name: 'type', type: '"mutate"', desc: 'Action type identifier' },
+      { name: 'field', type: 'string', desc: 'State field to modify' },
+      { name: 'value', type: 'any', desc: 'New value to set' },
+    ],
+    example: '{ "type": "mutate", "field": "ui.expanded", "value": true }',
   },
   {
     type: 'refresh',
     description: 'Re-fetch the current screen or a specific section',
     fields: [
-      { name: 'target', type: 'string', desc: '"screen" or sectionId' },
+      { name: 'type', type: '"refresh"', desc: 'Action type identifier' },
+      { name: 'target', type: 'string', desc: '"screen" or a specific sectionId' },
     ],
-    example: '{ "actionType": "refresh", "target": "screen" }',
+    example: '{ "type": "refresh", "target": "screen" }',
   },
   {
-    type: 'deeplink',
-    description: 'Open platform URL with in-app fallback',
+    type: 'dismiss',
+    description: 'Close the current modal, sheet, or overlay',
     fields: [
-      { name: 'url', type: 'string', desc: 'Universal/deep link URL' },
-      { name: 'fallback', type: 'string', desc: 'Internal URI if deep link fails' },
+      { name: 'type', type: '"dismiss"', desc: 'Action type identifier' },
     ],
-    example: '{ "actionType": "deeplink", "url": "https://nba.com/game/123", "fallback": "nba://game-detail/123" }',
+    example: '{ "type": "dismiss" }',
   },
   {
-    type: 'web',
-    description: 'Open URL in browser or modal webview',
+    type: 'toast',
+    description: 'Show a brief toast notification',
     fields: [
-      { name: 'url', type: 'string', desc: 'Web URL to open' },
-      { name: 'presentation', type: 'string', desc: '"browser", "modal", or "sheet"' },
+      { name: 'type', type: '"toast"', desc: 'Action type identifier' },
+      { name: 'message', type: 'string', desc: 'Toast message to display' },
+      { name: 'variant', type: 'string', desc: '"info", "success", or "error"' },
     ],
-    example: '{ "actionType": "web", "url": "https://leaguepass.nba.com", "presentation": "modal" }',
-  },
-  {
-    type: 'analytics',
-    description: 'Fire-and-forget event tracking',
-    fields: [
-      { name: 'event', type: 'string', desc: 'Event name' },
-      { name: 'properties', type: 'object', desc: 'Key-value event properties' },
-    ],
-    example: '{ "actionType": "analytics", "event": "cta_tap", "properties": { "source": "promo" } }',
-  },
-  {
-    type: 'share',
-    description: 'Trigger native share sheet',
-    fields: [
-      { name: 'title', type: 'string', desc: 'Share title/subject' },
-      { name: 'url', type: 'string', desc: 'URL to share' },
-    ],
-    example: '{ "actionType": "share", "title": "Check this out!", "url": "https://nba.com/game/123" }',
+    example: '{ "type": "toast", "message": "Added to favorites", "variant": "success" }',
   },
 ]

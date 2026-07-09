@@ -79,6 +79,25 @@
   text-decoration: none;
 }
 
+.btn-playground {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-3) var(--space-6);
+  background: var(--nba-tint);
+  color: #000;
+  font-weight: 600;
+  font-size: var(--text-sm);
+  border-radius: var(--rounded-lg);
+  border: none;
+  text-decoration: none;
+  transition: background var(--duration-fast) var(--ease-default);
+}
+
+.btn-playground:hover {
+  background: #f5d060;
+  text-decoration: none;
+}
+
 /* ── Hero Diagram ─────────────────────────────── */
 
 .hero-visual {

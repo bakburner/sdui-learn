@@ -6,7 +6,6 @@ const SECTION_IDS = [
   'how-it-works',
   'architecture',
   'deep-dive',
-  'day-in-the-life',
   'playground',
   'faq',
 ]

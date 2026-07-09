@@ -6,7 +6,6 @@ const NAV_ITEMS = [
   { id: 'how-it-works', label: 'How It Works' },
   { id: 'architecture', label: 'Architecture' },
   { id: 'deep-dive', label: 'Deep Dive' },
-  { id: 'day-in-the-life', label: 'Game Day' },
   { id: 'playground', label: 'Playground' },
   { id: 'faq', label: 'FAQ' },
 ]

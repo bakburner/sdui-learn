@@ -71,20 +71,6 @@ const ENVELOPE_HIGHLIGHTS = [
   'market[cohort] — subscription tier for content gating',
 ]
 
-const WHY_BUILD_REASONS = [
-  {
-    title: 'No mixed refresh strategies',
-    description: 'NBA needs scoreboard SSE + cached editorial on the same screen. Vendor systems assume one refresh mode per page.',
-  },
-  {
-    title: 'No data binding to our services',
-    description: 'Vendor backends create a dual source of truth. Our data lives in NBA services; binding must point there directly.',
-  },
-  {
-    title: 'Limited design system integration',
-    description: 'Off-the-shelf solutions replace native components rather than wrapping them. We need our design system rendered natively.',
-  },
-]
 
 export function Architecture() {
   const header = useScrollReveal<HTMLDivElement>()
@@ -92,8 +78,6 @@ export function Architecture() {
   const ownershipReveal = useScrollReveal<HTMLDivElement>({ threshold: 0.05 })
   const envelopeReveal = useScrollReveal<HTMLDivElement>({ threshold: 0.05 })
   const platformReveal = useScrollReveal<HTMLDivElement>({ threshold: 0.05 })
-  const buildReveal = useScrollReveal<HTMLDivElement>({ threshold: 0.05 })
-  const { containerRef: buildRef, visibleItems: buildVisible } = useStaggerReveal(WHY_BUILD_REASONS.length, 150)
 
   return (
     <section id="architecture">
@@ -234,27 +218,6 @@ export function Architecture() {
         </div>
       </div>
 
-      {/* Why Build, Not Buy */}
-      <div ref={buildReveal.ref} className={`arch-build reveal ${buildReveal.isVisible ? 'visible' : ''}`}>
-        <h3 className="arch-subsection-title">Why Build, Not Buy</h3>
-        <p className="arch-subsection-desc">
-          Evaluated DivKit (Yandex) and Nativeblocks. They fail on NBA-specific requirements:
-        </p>
-        <div className="build-reasons" ref={buildRef}>
-          {WHY_BUILD_REASONS.map((reason, index) => (
-            <div
-              key={reason.title}
-              className={`build-reason stagger-item ${buildVisible.has(index) ? 'visible' : ''}`}
-            >
-              <div className="reason-x">&#10005;</div>
-              <div className="reason-content">
-                <span className="reason-title">{reason.title}</span>
-                <span className="reason-desc">{reason.description}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
     </section>
   )
 }

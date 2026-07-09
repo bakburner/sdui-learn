@@ -7,7 +7,6 @@ const TABS = [
   'Action System',
   'Data Binding & Refresh',
   'Token Architecture',
-  'Platform & Envelope',
 ] as const
 
 const ACTION_TYPES = [
@@ -56,30 +55,6 @@ const SEMANTIC_ALIASES = [
   'primary', 'secondary', 'feedback', 'team colors',
 ]
 
-const ENVELOPE_FIELDS = [
-  { key: 'platform[deviceClass]', value: 'phone | tablet | tv | desktop' },
-  { key: 'platform[capabilities]', value: '["sse", "onFocus", "haptics"]' },
-  { key: 'schemaVersion', value: '"2.4" (major.minor)' },
-  { key: 'experiments', value: '{ "new-scoreboard": "variant-b" }' },
-  { key: 'market[cohort]', value: '"league-pass-premium"' },
-  { key: 'X-Correlation-ID', value: 'per-request UUID (header, not body)' },
-]
-
-const SHARED_ACROSS = [
-  'Schema definitions',
-  'Codegen',
-  'Upstream data pipeline',
-  'Section-type semantics',
-  'Action / binding structure',
-]
-
-const DIFFERS_PER_PLATFORM = [
-  'Which sections are composed and in what order',
-  'Information density',
-  'Action URIs (targetUri for native deeplinks, webUrl for web)',
-  'Image dimensions',
-  'Interaction triggers (touch vs D-pad vs hover)',
-]
 
 const ACTION_EXAMPLE = `{
   "actions": [
@@ -139,7 +114,6 @@ export function DeepDive() {
           {activeTab === 0 && <ActionSystemPanel />}
           {activeTab === 1 && <DataBindingPanel />}
           {activeTab === 2 && <TokenArchitecturePanel />}
-          {activeTab === 3 && <PlatformEnvelopePanel />}
         </div>
       </div>
     </section>
@@ -299,42 +273,6 @@ function TokenArchitecturePanel() {
   )
 }
 
-function PlatformEnvelopePanel() {
-  return (
-    <div className="dd-platform-panel">
-      <h4 className="dd-panel-heading">Request Envelope (RequestEnvelope)</h4>
-      <p className="dd-panel-desc">
-        The structured query/POST body for every composition fetch. Serialized as bracket-notation query params for GET, JSON body for POST; flips to POST when the encoded query exceeds 8192 chars. Locale is intentionally absent — language and formatting are client-owned and cache-neutral.
-      </p>
-      <div className="dd-envelope-fields">
-        {ENVELOPE_FIELDS.map((f) => (
-          <div key={f.key} className="dd-envelope-field">
-            <span className="dd-envelope-key">{f.key}</span>
-            <span className="dd-envelope-val">{f.value}</span>
-          </div>
-        ))}
-      </div>
-
-      <h4 className="dd-panel-heading">Shared Across Platforms</h4>
-      <ul className="dd-list dd-list-shared">
-        {SHARED_ACROSS.map((item) => (
-          <li key={item}>{item}</li>
-        ))}
-      </ul>
-
-      <h4 className="dd-panel-heading">Differs Per Platform Family</h4>
-      <ul className="dd-list dd-list-differs">
-        {DIFFERS_PER_PLATFORM.map((item) => (
-          <li key={item}>{item}</li>
-        ))}
-      </ul>
-
-      <p className="dd-panel-note">
-        The composition service routes requests to per-platform composers that assemble the final response.
-      </p>
-    </div>
-  )
-}
 
 function RefreshIcon({ type }: { type: string }) {
   switch (type) {

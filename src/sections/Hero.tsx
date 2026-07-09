@@ -20,7 +20,7 @@ export function Hero() {
         </p>
         <div className="hero-cta">
           <a href="#how-it-works" className="btn-primary">Start Learning</a>
-          <a href="#playground" className="btn-secondary">Try the Playground</a>
+          <button className="btn-playground" onClick={() => window.dispatchEvent(new CustomEvent('launch-editor'))}>Try Playground</button>
         </div>
       </div>
       <div ref={visual.ref} className={`hero-visual reveal-right ${visual.isVisible ? 'visible' : ''}`}>

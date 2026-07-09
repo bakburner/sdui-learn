@@ -41,11 +41,6 @@ const FAQS: FAQItem[] = [
     answer: 'Design tokens keep payloads compact — "gap": "md" instead of pixel values. A typical screen is ~15KB raw, ~4KB gzipped. Constraints (max depth 6, max 10 children per container, max 256 nodes per atomic tree) prevent unbounded growth.',
   },
   {
-    question: 'Why build our own instead of using an off-the-shelf SDUI platform?',
-    misconception: 'DivKit, Nativeblocks, etc. already solve this',
-    answer: 'We evaluated existing platforms and they don\'t meet our requirements. Our game screens need the scoreboard updating in real time (SSE) while editorial content below is cached for hours — off-the-shelf platforms treat the entire screen as one data unit. They also can\'t bind to our live data services (dual source of truth) and their rendering engines replace native components rather than wrapping them, breaking design system consistency.',
-  },
-  {
     question: 'How does A/B testing work with SDUI?',
     misconception: 'Experiments require client code per variant',
     answer: 'Clients send their experiment assignments in the request envelope. The server uses those assignments to branch composition — different section ordering, content, or layout per variant. No client code changes needed per experiment. The client SDK owns assignment and kill switches; exposure tracking fires via fireAndForget actions.',

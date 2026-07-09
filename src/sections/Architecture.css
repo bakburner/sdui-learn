@@ -24,13 +24,16 @@
 }
 
 .areas-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: var(--space-3);
   margin-top: var(--space-6);
 }
 
 .area-card {
+  flex: 0 1 calc(33.333% - var(--space-3));
+  min-width: 280px;
   display: flex;
   align-items: flex-start;
   gap: var(--space-4);
@@ -454,8 +457,8 @@
 /* ── Responsive ──────────────────────────────── */
 
 @media (max-width: 900px) {
-  .areas-grid {
-    grid-template-columns: 1fr 1fr;
+  .area-card {
+    flex: 0 1 calc(50% - var(--space-3));
   }
 
   .ownership-split {
@@ -492,8 +495,8 @@
 }
 
 @media (max-width: 500px) {
-  .areas-grid {
-    grid-template-columns: 1fr;
+  .area-card {
+    flex: 1 1 100%;
   }
 
   .envelope-highlight {

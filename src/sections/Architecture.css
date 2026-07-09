@@ -205,32 +205,22 @@
   font-size: var(--text-lg);
 }
 
-.envelope-fields {
+.envelope-highlights {
+  list-style: none;
+  padding: 0;
+  margin: 0;
   display: flex;
   flex-direction: column;
   gap: 1px;
   background: var(--divider);
 }
 
-.envelope-field {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.envelope-highlight {
   padding: var(--space-3) var(--space-5);
   background: var(--surface);
-}
-
-.envelope-key {
   font-family: var(--font-mono);
   font-size: var(--text-xs);
-  color: var(--nba-tint);
-  font-weight: 500;
-}
-
-.envelope-val {
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 /* ── Platform-Aware Composition ──────────────── */
@@ -506,9 +496,7 @@
     grid-template-columns: 1fr;
   }
 
-  .envelope-field {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--space-1);
+  .envelope-highlight {
+    font-size: var(--text-xxs, 10px);
   }
 }

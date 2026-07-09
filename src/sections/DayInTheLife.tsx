@@ -17,12 +17,14 @@ const TIMELINE_STEPS: TimelineStep[] = [
     id: 'pregame',
     time: '5:00 PM',
     label: 'Pre-Game',
-    narrative: 'The server sends an upcoming game card with a countdown timer, team stats comparison, and injury report. The feed is composed around building anticipation.',
+    narrative: 'The server composes an AtomicComposite section with a countdown timer, team stats, and injury report. The feed is built around anticipation.',
     json: `{
-  "sectionType": "GameCard",
-  "status": "scheduled",
-  "countdown": "2h 30m",
-  "elements": ["teamStats", "injuryReport"]
+  "type": "AtomicComposite",
+  "refreshPolicy": [{ "type": "poll", "intervalMs": 60000 }],
+  "data": {
+    "ui": { "type": "Container", "children": [...] },
+    "content": { "countdown": "2h 30m", "status": "scheduled" }
+  }
 }`,
     preview: [
       'LAL vs BOS — 7:30 PM',
@@ -34,12 +36,19 @@ const TIMELINE_STEPS: TimelineStep[] = [
     id: 'almost-time',
     time: '7:25 PM',
     label: 'Almost Time',
-    narrative: 'Countdown shifts to "Starting Soon." A "Watch Live" CTA button is injected by the server — no client update required. Urgency elements appear.',
+    narrative: 'The server re-composes — countdown becomes "Starting Soon" and a "Watch Live" Button with a navigate action is injected. No client update required.',
     json: `{
-  "sectionType": "GameCard",
-  "status": "starting_soon",
-  "countdown": null,
-  "cta": { "label": "Watch Live", "action": "deeplink://watch" }
+  "type": "AtomicComposite",
+  "refreshPolicy": [{ "type": "poll", "intervalMs": 10000 }],
+  "data": {
+    "ui": {
+      "type": "Container", "children": [
+        { "type": "Button", "label": "Watch Live",
+          "actions": [{ "trigger": "onActivate", "type": "navigate",
+            "targetUri": "nba://watch/0022400123" }] }
+      ]
+    }
+  }
 }`,
     preview: [
       'LAL vs BOS — Starting Soon',
@@ -51,13 +60,19 @@ const TIMELINE_STEPS: TimelineStep[] = [
     id: 'tipoff',
     time: '7:30 PM',
     label: 'Tip-Off',
-    narrative: 'The game goes live. The server swaps the static card for a live scoreboard with a ticking clock. refreshPolicy changes from "poll" to "sse" for real-time updates.',
+    narrative: 'The game goes live. refreshPolicy switches to SSE for real-time score pushes. A LiveClock element ticks down the game clock. Data binding patches scores without re-fetching.',
     json: `{
-  "sectionType": "LiveScoreboard",
-  "status": "in_progress",
-  "refreshPolicy": "sse",
-  "score": { "LAL": 0, "BOS": 0 },
-  "clock": "12:00 Q1"
+  "type": "AtomicComposite",
+  "refreshPolicy": [{ "type": "sse", "channel": "0022400123:linescore" }],
+  "data": {
+    "ui": {
+      "type": "Container", "children": [
+        { "type": "Text", "content": "0", "bindRef": "homeTeam.score" },
+        { "type": "LiveClock", "bindRef": "clock", "tickDirection": "down" }
+      ]
+    },
+    "content": { "homeTeam": { "score": 0 }, "awayTeam": { "score": 0 } }
+  }
 }`,
     preview: [
       'LIVE  LAL 0 — BOS 0',
@@ -69,12 +84,15 @@ const TIMELINE_STEPS: TimelineStep[] = [
     id: 'halftime',
     time: '8:15 PM',
     label: 'Halftime',
-    narrative: 'Score freezes. The server injects halftime stats and a "Top Plays" carousel section — all through a new SDUI payload, zero code changes on the client.',
+    narrative: 'Score freezes. The server re-composes the screen — injects halftime stats and a "Top Plays" ScrollContainer section. Zero code changes on the client.',
     json: `{
-  "sectionType": "LiveScoreboard",
-  "status": "halftime",
-  "score": { "LAL": 54, "BOS": 51 },
-  "injectedSections": ["halftimeStats", "topPlays"]
+  "data": {
+    "sections": [
+      { "type": "AtomicComposite", "id": "scoreboard", "..." : "..." },
+      { "type": "AtomicComposite", "id": "halftime-stats" },
+      { "type": "AtomicComposite", "id": "top-plays-rail" }
+    ]
+  }
 }`,
     preview: [
       'HALFTIME  LAL 54 — BOS 51',
@@ -86,13 +104,22 @@ const TIMELINE_STEPS: TimelineStep[] = [
     id: 'final',
     time: '9:45 PM',
     label: 'Final',
-    narrative: 'Game ends. The scoreboard becomes static. Highlight cards and a "Watch Replay" button are composed in. The server reshapes the entire section hierarchy.',
+    narrative: 'Game ends. refreshPolicy reverts to static. The server reshapes the section — highlight cards and a "Watch Replay" navigate action are composed in.',
     json: `{
-  "sectionType": "GameCard",
-  "status": "final",
-  "score": { "LAL": 112, "BOS": 105 },
-  "highlights": ["LeBron: 32 PTS, 8 AST"],
-  "cta": { "label": "Watch Replay" }
+  "type": "AtomicComposite",
+  "refreshPolicy": [{ "type": "static" }],
+  "data": {
+    "ui": {
+      "type": "Container", "children": [
+        { "type": "Text", "content": "FINAL", "variant": "labelSmall" },
+        { "type": "Text", "content": "112", "bindRef": "homeTeam.score" },
+        { "type": "Button", "label": "Watch Replay",
+          "actions": [{ "trigger": "onActivate", "type": "navigate",
+            "targetUri": "nba://video/recap/0022400123" }] }
+      ]
+    },
+    "content": { "homeTeam": { "score": 112 }, "awayTeam": { "score": 105 } }
+  }
 }`,
     preview: [
       'FINAL  LAL 112 — BOS 105',
@@ -104,14 +131,16 @@ const TIMELINE_STEPS: TimelineStep[] = [
     id: 'postgame',
     time: '10:00 PM',
     label: 'Post-Game',
-    narrative: 'The feed completely reorganizes. A recap card, next game preview, and League Pass promo are composed server-side. Same app, entirely different experience — no deploy.',
+    narrative: 'The feed completely reorganizes. A recap card, next game preview, and SubscribeUpsell promo are composed server-side. Same app, entirely different experience — no deploy.',
     json: `{
-  "screenId": "for-you",
-  "sections": [
-    { "type": "GameRecap", "gameId": "lal-bos" },
-    { "type": "NextGame", "matchup": "LAL@MIA" },
-    { "type": "Promo", "campaign": "league-pass" }
-  ]
+  "data": {
+    "id": "for-you",
+    "sections": [
+      { "type": "AtomicComposite", "id": "game-recap" },
+      { "type": "AtomicComposite", "id": "next-game-lal-mia" },
+      { "type": "SubscribeUpsell", "id": "league-pass-promo" }
+    ]
+  }
 }`,
     preview: [
       'Game Recap: Lakers defeat Celtics',

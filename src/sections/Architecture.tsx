@@ -63,13 +63,12 @@ const CLIENT_CONTROLS = [
   'Platform accessibility',
 ]
 
-const ENVELOPE_FIELDS = [
-  { key: 'platform[deviceClass]', value: '"phone" | "tablet" | "tv" | "desktop"' },
-  { key: 'platform[capabilities]', value: '["sse", "video-inline", "haptics"]' },
-  { key: 'schemaVersion', value: '"2.4" (major.minor)' },
-  { key: 'experiments', value: '{ "new-scoreboard": "variant-b" }' },
-  { key: 'market[cohort]', value: '"league-pass-premium"' },
-  { key: 'X-Correlation-ID', value: 'per-request UUID (header)' },
+const ENVELOPE_HIGHLIGHTS = [
+  'platform[deviceClass] — phone, tablet, tv, desktop',
+  'platform[capabilities] — what the client supports (SSE, haptics, etc.)',
+  'schemaVersion — drives additive-only version negotiation',
+  'experiments — client-authoritative A/B assignments',
+  'market[cohort] — subscription tier for content gating',
 ]
 
 const WHY_BUILD_REASONS = [
@@ -175,14 +174,11 @@ export function Architecture() {
             <span className="envelope-arrow">&#8594;</span>
             <span className="envelope-label">Server Composer</span>
           </div>
-          <div className="envelope-fields">
-            {ENVELOPE_FIELDS.map((field) => (
-              <div key={field.key} className="envelope-field">
-                <span className="envelope-key">{field.key}</span>
-                <span className="envelope-val">{field.value}</span>
-              </div>
+          <ul className="envelope-highlights">
+            {ENVELOPE_HIGHLIGHTS.map((item) => (
+              <li key={item} className="envelope-highlight">{item}</li>
             ))}
-          </div>
+          </ul>
         </div>
       </div>
 

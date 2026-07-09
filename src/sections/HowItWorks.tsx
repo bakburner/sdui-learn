@@ -204,7 +204,7 @@ function FlowVisual({ step }: { step: string }) {
             </div>
             <div className="router-arrow-down">↓</div>
             <div className="router-decision">
-              <span className="router-q">sectionType?</span>
+              <span className="router-q">section.type?</span>
             </div>
             <div className="router-branches">
               <div className="router-branch branch-atomic">

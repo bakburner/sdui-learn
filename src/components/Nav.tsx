@@ -40,7 +40,7 @@ export function Nav({ activeSection }: NavProps) {
           className="nav-launch-btn"
           onClick={() => window.dispatchEvent(new CustomEvent('launch-editor'))}
         >
-          Launch Editor
+          Launch Playground
         </button>
       </div>
     </nav>

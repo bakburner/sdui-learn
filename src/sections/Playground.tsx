@@ -231,7 +231,7 @@ export function Playground() {
         </p>
         <div className="open-playground-cta">
           <button className="open-playground-btn" onClick={() => setIsFullscreen(true)}>
-            Launch Editor
+            Launch Playground
           </button>
         </div>
       </div>
@@ -247,7 +247,7 @@ export function Playground() {
                 <button className="example-btn" onClick={() => handleInsertSnippet(EXAMPLE_CONDITIONAL)}>Conditional</button>
               </div>
             </div>
-            <span className="fullscreen-brand">SDUI Editor</span>
+            <span className="fullscreen-brand">SDUI Playground</span>
             <div className="fullscreen-header-right">
               <button
                 className={`reference-toggle ${showReference ? 'active' : ''}`}

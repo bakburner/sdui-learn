@@ -128,6 +128,7 @@ export function Playground() {
   const [showReference, setShowReference] = useState(false)
   const [showPlatform, setShowPlatform] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const [showOnboarding, setShowOnboarding] = useState(true)
   const [editorMode, setEditorMode] = useState<'edit' | 'diff' | 'network'>('edit')
   const [baseJson] = useState(DEFAULT_JSON)
   const [selectedElement, setSelectedElement] = useState<string | null>(null)
@@ -246,7 +247,7 @@ export function Playground() {
                 <button className="example-btn" onClick={() => handleInsertSnippet(EXAMPLE_CONDITIONAL)}>Conditional</button>
               </div>
             </div>
-            <span className="fullscreen-brand">SDUI</span>
+            <span className="fullscreen-brand">SDUI Editor</span>
             <div className="fullscreen-header-right">
               <button
                 className={`reference-toggle ${showReference ? 'active' : ''}`}
@@ -270,6 +271,24 @@ export function Playground() {
           </div>
 
           <PromptBar onGenerate={handleInsertSnippet} />
+
+          {showOnboarding && (
+            <div className="playground-onboarding">
+              <div className="onboarding-content">
+                <h3 className="onboarding-title">SDUI Playground</h3>
+                <p className="onboarding-desc">
+                  This is a live SDUI response editor. The JSON on the left is what the server sends; the preview on the right is what the client renders natively.
+                </p>
+                <div className="onboarding-hints">
+                  <div className="onboarding-hint"><span className="onboarding-hint-icon">✏️</span> Edit the JSON to see the preview update in real-time</div>
+                  <div className="onboarding-hint"><span className="onboarding-hint-icon">💬</span> Use the prompt bar to generate sections by describing what you want</div>
+                  <div className="onboarding-hint"><span className="onboarding-hint-icon">📖</span> Open Schema to browse element types and their properties</div>
+                  <div className="onboarding-hint"><span className="onboarding-hint-icon">🎯</span> Click any element in the preview to inspect it</div>
+                </div>
+                <button className="onboarding-dismiss" onClick={() => setShowOnboarding(false)}>Got it</button>
+              </div>
+            </div>
+          )}
 
           <div className={`playground-layout ${showReference || showPlatform ? 'with-reference' : ''}`}>
             <div className="playground-container">

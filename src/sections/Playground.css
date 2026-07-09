@@ -168,7 +168,8 @@
   transition: all var(--duration-fast) var(--ease-default);
 }
 
-.fullscreen-header .help-toggle:hover {
+.fullscreen-header .help-toggle:hover,
+.fullscreen-header .help-toggle.active {
   background: rgba(251, 205, 68, 0.1);
   border-color: rgba(251, 205, 68, 0.3);
   color: var(--nba-tint);

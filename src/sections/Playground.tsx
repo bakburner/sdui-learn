@@ -483,12 +483,6 @@ export function Playground() {
           <div className="fullscreen-header">
             <div className="fullscreen-header-left">
               <button className="example-btn example-btn-new" onClick={() => handleInsertSnippet(EXAMPLE_BLANK)}>+ New</button>
-              <button
-                className={`reference-toggle ${showSamples ? 'active' : ''}`}
-                onClick={() => { setShowSamples(!showSamples); if (!showSamples) { setShowReference(false); setShowPlatform(false) } }}
-              >
-                {showSamples ? '✕ Samples' : '📋 Samples'}
-              </button>
             </div>
             <span className="fullscreen-brand">SDUI Playground</span>
             <div className="fullscreen-header-right">
@@ -503,6 +497,12 @@ export function Playground() {
                 onClick={() => { setShowPlatform(!showPlatform); if (!showPlatform) { setShowReference(false); setShowSamples(false) } }}
               >
                 {showPlatform ? '✕ Platform' : '💻 Platform'}
+              </button>
+              <button
+                className={`help-toggle ${showSamples ? 'active' : ''}`}
+                onClick={() => { setShowSamples(!showSamples); if (!showSamples) { setShowReference(false); setShowPlatform(false) } }}
+              >
+                {showSamples ? '✕ Samples' : '📋 Samples'}
               </button>
               <button
                 className="help-toggle"

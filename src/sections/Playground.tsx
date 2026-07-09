@@ -544,8 +544,8 @@ export function Playground() {
                     <button className={`mode-tab ${editorMode === 'network' ? 'active' : ''}`} onClick={() => setEditorMode('network')}>Network</button>
                   </div>
                   <div className="toolbar-actions">
-                    <button className="toolbar-btn" onClick={handleUndo} disabled={historyIndex === 0}>Undo</button>
-                    <button className="toolbar-btn" onClick={handleRedo} disabled={historyIndex === history.length - 1}>Redo</button>
+                    {historyIndex > 0 && <button className="toolbar-btn" onClick={handleUndo}>Undo</button>}
+                    {historyIndex < history.length - 1 && <button className="toolbar-btn" onClick={handleRedo}>Redo</button>}
                     <button className="toolbar-btn" onClick={handleCopyJson}>{copied ? '✓ Copied' : 'Copy'}</button>
                     <button className="toolbar-btn" onClick={handleFormat}>Format</button>
                     <button className="toolbar-btn" onClick={handleReset}>Reset</button>

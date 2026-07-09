@@ -747,6 +747,47 @@
   white-space: nowrap;
 }
 
+.atomic-reorderable {
+  position: relative;
+}
+
+.reorder-buttons {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: none;
+  gap: 2px;
+  z-index: 10;
+}
+
+.atomic-reorderable:hover > .reorder-buttons,
+.atomic-container:hover > .reorder-buttons {
+  display: flex;
+}
+
+.reorder-btn {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  border: 1px solid var(--divider);
+  border-radius: var(--rounded-sm);
+  color: var(--text-secondary);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-default);
+  padding: 0;
+  line-height: 1;
+}
+
+.reorder-btn:hover {
+  background: rgba(251, 205, 68, 0.15);
+  border-color: var(--nba-tint);
+  color: var(--nba-tint);
+}
+
 .atomic-text {
   display: block;
 }

@@ -38,7 +38,32 @@ const FAQS: FAQItem[] = [
   {
     question: 'Won\'t the JSON payloads get huge?',
     misconception: 'Describing UI in JSON is bloated',
-    answer: 'Design tokens keep payloads compact — "gap": "md" instead of pixel values. A typical screen is ~15KB raw, ~4KB gzipped. Constraints (max depth 6, max 20 children) prevent unbounded growth.',
+    answer: 'Design tokens keep payloads compact — "gap": "md" instead of pixel values. A typical screen is ~15KB raw, ~4KB gzipped. Constraints (max depth 6, max 10 children per container, max 256 nodes per atomic tree) prevent unbounded growth.',
+  },
+  {
+    question: 'Why build our own instead of using an off-the-shelf SDUI platform?',
+    misconception: 'DivKit, Nativeblocks, etc. already solve this',
+    answer: 'We evaluated existing platforms and they don\'t meet our requirements. Our game screens need the scoreboard updating in real time (SSE) while editorial content below is cached for hours — off-the-shelf platforms treat the entire screen as one data unit. They also can\'t bind to our live data services (dual source of truth) and their rendering engines replace native components rather than wrapping them, breaking design system consistency.',
+  },
+  {
+    question: 'How does A/B testing work with SDUI?',
+    misconception: 'Experiments require client code per variant',
+    answer: 'Clients send their experiment assignments in the request envelope. The server uses those assignments to branch composition — different section ordering, content, or layout per variant. No client code changes needed per experiment. The client SDK owns assignment and kill switches; exposure tracking fires via fireAndForget actions.',
+  },
+  {
+    question: 'How does the schema evolve without breaking older app versions?',
+    misconception: 'Schema changes require forced app updates',
+    answer: 'Schema evolution is additive-only. Clients send their schemaVersion in the request envelope; the server strips unsupported fields and signals force-upgrade via an X-Schema-Version-Mismatch header only when absolutely necessary. Unknown section types and action types are gracefully skipped.',
+  },
+  {
+    question: 'How are typed models generated for each platform?',
+    misconception: 'Each platform hand-writes its own models',
+    answer: 'A single JSON Schema file is the source of truth. A codegen pipeline produces Java POJOs (via jsonschema2pojo) for server and Android, Swift structs (via quicktype) for iOS, and TypeScript types for web. Generated models are never hand-edited — if the schema changes, regenerate.',
+  },
+  {
+    question: 'What about internationalization?',
+    misconception: 'The server must know the user\'s language',
+    answer: 'The server is locale-blind. It emits LocalizedString keys with English fallbacks. Clients resolve strings from their bundled translation catalog using device locale. For real-time data (like game status text arriving via SSE), the server attaches string keys to data bindings so the client can translate dynamically-bound fields too.',
   },
 ]
 

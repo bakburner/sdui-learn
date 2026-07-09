@@ -450,9 +450,19 @@
 
 .concepts-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: var(--space-3);
   margin-top: var(--space-12);
+}
+
+.concepts-label {
+  grid-column: 1 / -1;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--nba-tint);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: var(--space-2);
 }
 
 .concept-card {

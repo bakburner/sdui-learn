@@ -4,6 +4,8 @@ const SECTION_IDS = [
   'hero',
   'before-after',
   'how-it-works',
+  'architecture',
+  'deep-dive',
   'day-in-the-life',
   'playground',
   'faq',

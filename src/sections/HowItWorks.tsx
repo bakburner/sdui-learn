@@ -80,21 +80,38 @@ export function HowItWorks() {
       </div>
 
       <div className="concepts-grid">
+        <div className="concepts-label">Key Concepts</div>
         <ConceptCard
-          title="Section"
-          description="A block of UI on the screen (scoreboard, content rail, promo card)"
+          title="Sections"
+          description="A typed block of UI on the screen — semantic sections (BoxscoreTable, Form) use native renderers; atomic sections (AtomicComposite) are fully server-composed"
         />
         <ConceptCard
-          title="Elements"
-          description="UI building blocks — containers hold other elements, leaves display content"
+          title="Atomic Elements"
+          description="12 building blocks the server composes: Container, Text, Image, Button, Spacer, Divider, ScrollContainer, Conditional, DisplayGrid, SectionSlot, LiveClock, OverlayContainer"
         />
         <ConceptCard
-          title="Token"
-          description="A named design value — spacing, radius, color, or font style"
+          title="Design Tokens"
+          description="Named design values in three layers: inline primitives (spacing, radius), variants (platform-native presets), and color tokens (light/dark resolution)"
         />
         <ConceptCard
           title="Refresh Policy"
-          description="Rules for when the app should fetch updated content (timer, push, or manual)"
+          description="Rules for when the app should fetch updated content — static (never), poll (interval), or SSE (real-time stream)"
+        />
+        <ConceptCard
+          title="Actions"
+          description="8 types of interaction: navigate, fireAndForget, mutate, refresh, request, purchase, dismiss, flashMessage — triggered by taps, long-press, visibility, or swipe"
+        />
+        <ConceptCard
+          title="Data Binding"
+          description="JSONPath mappings that patch specific fields from real-time data sources — the scoreboard updates without re-fetching the entire screen"
+        />
+        <ConceptCard
+          title="Request Envelope"
+          description="Context the client sends to the server — platform, device class, schema version, experiments, capabilities — driving per-platform composition"
+        />
+        <ConceptCard
+          title="A/B Variants"
+          description="Server composes different section ordering and content per experiment variant — clients send their assignment, the server branches composition"
         />
       </div>
     </section>

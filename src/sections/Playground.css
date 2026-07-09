@@ -230,8 +230,8 @@
 .samples-panel-header {
   display: flex;
   align-items: center;
-  padding: var(--space-3) var(--space-4);
-  min-height: 44px;
+  padding: 0 var(--space-4);
+  height: 44px;
   box-sizing: border-box;
   font-size: var(--text-xs);
   font-weight: 600;
@@ -587,8 +587,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-3) var(--space-4);
-  min-height: 44px;
+  padding: 0 var(--space-4);
+  height: 44px;
   box-sizing: border-box;
   border-bottom: 1px solid var(--divider);
   background: var(--surface);

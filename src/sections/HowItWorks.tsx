@@ -160,28 +160,36 @@ function FlowVisual({ step }: { step: string }) {
           <div className="visual-header">SDUI Payload</div>
           <div className="payload-structure">
             <div className="payload-item">
-              <span className="payload-key">screenId</span>
+              <span className="payload-key">data.id</span>
               <span className="payload-val">"for-you"</span>
             </div>
             <div className="payload-item">
-              <span className="payload-key">sections[]</span>
-              <span className="payload-val">ordered renderable areas</span>
-            </div>
-            <div className="payload-item payload-nested">
-              <span className="payload-key">sectionType</span>
-              <span className="payload-val">router instruction</span>
-            </div>
-            <div className="payload-item payload-nested">
-              <span className="payload-key">content</span>
-              <span className="payload-val">elements (Container / Leaf)</span>
-            </div>
-            <div className="payload-item payload-nested">
-              <span className="payload-key">refreshPolicy</span>
-              <span className="payload-val">when to update</span>
+              <span className="payload-key">data.schemaVersion</span>
+              <span className="payload-val">"1.0"</span>
             </div>
             <div className="payload-item">
-              <span className="payload-key">tokens</span>
-              <span className="payload-val">design values (spacing, color)</span>
+              <span className="payload-key">data.sections[]</span>
+              <span className="payload-val">ordered renderable sections</span>
+            </div>
+            <div className="payload-item payload-nested">
+              <span className="payload-key">id / type</span>
+              <span className="payload-val">section identity + router instruction</span>
+            </div>
+            <div className="payload-item payload-nested">
+              <span className="payload-key">data.ui</span>
+              <span className="payload-val">atomic element tree</span>
+            </div>
+            <div className="payload-item payload-nested">
+              <span className="payload-key">data.content</span>
+              <span className="payload-val">bindRef resolution data</span>
+            </div>
+            <div className="payload-item payload-nested">
+              <span className="payload-key">refreshPolicy / surface</span>
+              <span className="payload-val">lifecycle + chrome</span>
+            </div>
+            <div className="payload-item">
+              <span className="payload-key">meta.degraded</span>
+              <span className="payload-val">service health signal</span>
             </div>
           </div>
         </div>

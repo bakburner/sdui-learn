@@ -82,21 +82,26 @@ const DIFFERS_PER_PLATFORM = [
 ]
 
 const ACTION_EXAMPLE = `{
-  "trigger": "onActivate",
   "actions": [
-    { "type": "fireAndForget", "event": "card_tap" },
-    { "type": "navigate", "targetUri": "nba://game/123" }
+    { "trigger": "onActivate", "type": "fireAndForget", "event": "card_tap" },
+    { "trigger": "onActivate", "type": "navigate", "targetUri": "nba://game/0022400999" }
   ]
 }`
 
 const BINDING_EXAMPLE = `{
   "refreshPolicy": [{ "type": "sse", "channel": "{gameId}:linescore" }],
-  "dataBinding": {
-    "bindings": [
-      { "sourcePath": "$.homeTeam.score", "targetPath": "homeScore" },
-      { "sourcePath": "$.awayTeam.score", "targetPath": "awayScore" },
-      { "sourcePath": "$.gameStatusText", "targetPath": "statusText" }
-    ]
+  "data": {
+    "ui": {
+      "type": "Text",
+      "content": "94",
+      "variant": "score",
+      "bindRef": "homeTeam.score"
+    },
+    "content": {
+      "homeTeam": { "score": 94, "tricode": "BOS" },
+      "awayTeam": { "score": 89, "tricode": "LAL" },
+      "clock": { "snapshotSeconds": 272, "isRunning": false }
+    }
   }
 }`
 

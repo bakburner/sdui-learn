@@ -28,7 +28,7 @@ const FAQS: FAQItem[] = [
   {
     question: 'Can each platform look different?',
     misconception: 'One JSON = identical UI everywhere',
-    answer: 'Yes. The server can produce different compositions per platform family. Phone, tablet, TV, and web each get layouts tuned to their form factor. And "semantic" sections invoke platform-specific components (video players, tab bars) when needed.',
+    answer: 'Yes. The server produces different compositions per platform family. Phone, tablet, TV, and web each get layouts tuned to their form factor. Semantic sections (TabGroup, BoxscoreTable, Form, SeasonLeadersTable, AdSlot, SubscribeUpsell) invoke dedicated platform-native renderers. Surfaces (section.surface) adapt per OS tier — Liquid Glass on iOS 26+, Material 3 on Android, CSS filter on Web.',
   },
   {
     question: 'How do we decide what should be SDUI vs. native?',

@@ -7,92 +7,116 @@ import { useJsonCursorContext } from '../hooks/useJsonCursorContext'
 import './Playground.css'
 
 const DEFAULT_JSON = `{
-  "screenId": "playground",
-  "sections": [
-    {
-      "sectionId": "hero-1",
-      "sectionType": "AtomicComposite",
-      "content": {
-        "type": "Container",
-        "direction": "column",
-        "gap": "md",
-        "padding": "lg",
-        "background": { "color": "#191C23" },
-        "cornerRadius": "lg",
-        "children": [
-          {
-            "type": "Container",
-            "direction": "row",
-            "gap": "md",
-            "crossAxisAlignment": "center",
-            "children": [
-              {
-                "type": "Image",
-                "url": "https://cdn.nba.com/logos/nba/1610612747/primary/L/logo.svg",
-                "width": 48,
-                "height": 48,
-                "alt": "Lakers logo"
-              },
-              {
-                "type": "Container",
-                "direction": "column",
-                "children": [
-                  { "type": "Text", "text": "Los Angeles Lakers", "variant": "titleMedium" },
-                  { "type": "Text", "text": "vs Boston Celtics", "variant": "bodySmall", "color": "#8E9196" }
-                ]
-              }
-            ]
+  "data": {
+    "id": "playground",
+    "schemaVersion": "1.0",
+    "defaultRefreshPolicy": { "type": "static" },
+    "sections": [
+      {
+        "id": "game-panel__type-AtomicComposite",
+        "type": "AtomicComposite",
+        "refreshPolicy": [{ "type": "static" }],
+        "surface": {
+          "margin": {
+            "top": "token:nba.spacing.lg",
+            "bottom": "token:nba.spacing.lg",
+            "start": "token:nba.spacing.lg",
+            "end": "token:nba.spacing.lg"
           },
-          {
+          "background": "token:nba.bg.secondary",
+          "cornerRadius": "token:nba.radius.md",
+          "shadow": { "color": "#00000014", "radius": 6, "offsetX": 0, "offsetY": 2 }
+        },
+        "data": {
+          "ui": {
             "type": "Container",
-            "direction": "row",
-            "mainAxisAlignment": "spaceBetween",
-            "padding": "md",
-            "background": { "color": "#2B2F37" },
-            "cornerRadius": "md",
-            "children": [
-              {
-                "type": "Container",
-                "direction": "column",
-                "gap": "sm",
-                "crossAxisAlignment": "center",
-                "children": [
-                  { "type": "Text", "text": "LAL", "variant": "labelMedium", "color": "#8E9196" },
-                  { "type": "Text", "text": "108", "variant": "headlineMedium" }
-                ]
-              },
-              {
-                "type": "Container",
-                "direction": "column",
-                "crossAxisAlignment": "center",
-                "children": [
-                  { "type": "Text", "text": "Q4", "variant": "labelMedium", "color": "#C8102E" },
-                  { "type": "Text", "text": "2:34", "variant": "bodyMedium" }
-                ]
-              },
-              {
-                "type": "Container",
-                "direction": "column",
-                "crossAxisAlignment": "center",
-                "children": [
-                  { "type": "Text", "text": "BOS", "variant": "labelMedium", "color": "#8E9196" },
-                  { "type": "Text", "text": "112", "variant": "headlineMedium" }
-                ]
-              }
-            ]
-          },
-          {
-            "type": "Button",
-            "label": "Watch Live",
-            "variant": "primary",
+            "direction": "column",
+            "crossAlignment": "stretch",
+            "padding": {
+              "top": "token:nba.spacing.lg",
+              "bottom": "token:nba.spacing.lg",
+              "start": "token:nba.spacing.lg",
+              "end": "token:nba.spacing.lg"
+            },
+            "widthMode": "fill",
             "actions": [
-              { "actionType": "navigate", "destination": "nba://watch/0022400123" }
+              { "trigger": "onActivate", "type": "navigate", "targetUri": "nba://game/0022400123" }
+            ],
+            "children": [
+              {
+                "type": "Container",
+                "direction": "row",
+                "alignment": "spaceBetween",
+                "crossAlignment": "center",
+                "widthMode": "fill",
+                "children": [
+                  {
+                    "type": "Container",
+                    "direction": "column",
+                    "alignment": "center",
+                    "crossAlignment": "center",
+                    "children": [
+                      {
+                        "type": "Image",
+                        "src": "https://cdn.nba.com/logos/nba/1610612747/primary/D/512x512/logo.png",
+                        "fit": "contain",
+                        "width": 48,
+                        "height": 48
+                      },
+                      { "type": "Spacer", "height": "token:nba.spacing.sm" },
+                      { "type": "Text", "content": "LAL", "variant": "titleMedium", "weight": "semiBold" },
+                      { "type": "Text", "content": "108", "variant": "score", "weight": "bold", "bindRef": "awayTeam.score" }
+                    ]
+                  },
+                  {
+                    "type": "LiveClock",
+                    "variant": "titleMedium",
+                    "snapshotSeconds": 0,
+                    "tickDirection": "down",
+                    "format": "m:ss",
+                    "bindRef": "clock"
+                  },
+                  {
+                    "type": "Container",
+                    "direction": "column",
+                    "alignment": "center",
+                    "crossAlignment": "center",
+                    "children": [
+                      {
+                        "type": "Image",
+                        "src": "https://cdn.nba.com/logos/nba/1610612738/primary/D/512x512/logo.png",
+                        "fit": "contain",
+                        "width": 48,
+                        "height": 48
+                      },
+                      { "type": "Spacer", "height": "token:nba.spacing.sm" },
+                      { "type": "Text", "content": "BOS", "variant": "titleMedium", "weight": "semiBold" },
+                      { "type": "Text", "content": "112", "variant": "score", "weight": "bold", "bindRef": "homeTeam.score" }
+                    ]
+                  }
+                ]
+              },
+              { "type": "Spacer", "height": "token:nba.spacing.md" },
+              {
+                "type": "Button",
+                "label": "Watch Live",
+                "variant": "primary",
+                "actions": [
+                  { "trigger": "onActivate", "type": "navigate", "targetUri": "nba://watch/0022400123" }
+                ]
+              }
             ]
+          },
+          "content": {
+            "homeTeam": { "score": 112, "tricode": "BOS" },
+            "awayTeam": { "score": 108, "tricode": "LAL" },
+            "clock": { "snapshotSeconds": 154, "snapshotAt": "2026-06-09T19:09:04Z", "isRunning": true }
           }
-        ]
+        }
       }
-    }
-  ]
+    ]
+  },
+  "meta": { "degraded": false }
 }`
 
 export function Playground() {
@@ -950,15 +974,19 @@ function NetworkView({ json }: { json: string }) {
 
 // Lightweight SDUI renderer for the playground
 function SduiRenderer({ data, onSelectElement }: { data: any; onSelectElement: (el: any) => void }) {
-  if (!data?.sections) return <div className="preview-empty">Add a "sections" array</div>
+  const sections = data?.data?.sections || data?.sections
+  if (!sections) return <div className="preview-empty">Add a "sections" array</div>
 
   return (
     <div className="sdui-screen">
-      {data.sections.map((section: any, i: number) => (
-        <div key={section.sectionId || i} className="sdui-section">
-          {section.content && <AtomicElement element={section.content} onSelect={onSelectElement} />}
-        </div>
-      ))}
+      {sections.map((section: any, i: number) => {
+        const ui = section.data?.ui || section.content
+        return (
+          <div key={section.id || section.sectionId || i} className="sdui-section">
+            {ui && <AtomicElement element={ui} onSelect={onSelectElement} />}
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -980,11 +1008,12 @@ function AtomicElement({ element, onSelect }: { element: any; onSelect: (el: any
           style={{
             flexDirection: element.direction === 'row' ? 'row' : 'column',
             gap: gapValue(element.gap),
-            padding: gapValue(element.padding),
-            background: element.background?.color,
+            padding: paddingValue(element.padding),
+            background: element.background?.color || (typeof element.background === 'string' ? undefined : undefined),
             borderRadius: radiusValue(element.cornerRadius),
-            justifyContent: alignValue(element.mainAxisAlignment),
-            alignItems: alignValue(element.crossAxisAlignment),
+            justifyContent: alignValue(element.alignment || element.mainAxisAlignment),
+            alignItems: alignValue(element.crossAlignment || element.crossAxisAlignment),
+            width: element.widthMode === 'fill' ? '100%' : undefined,
           }}
         >
           {element.children?.map((child: any, i: number) => (
@@ -996,10 +1025,10 @@ function AtomicElement({ element, onSelect }: { element: any; onSelect: (el: any
       return (
         <span
           className={`atomic-text variant-${element.variant || 'bodyMedium'} atomic-hoverable`}
-          style={{ color: element.color }}
+          style={{ color: element.color, fontWeight: element.weight === 'bold' ? 700 : element.weight === 'semiBold' ? 600 : undefined }}
           onClick={handleClick}
         >
-          {element.text}
+          {element.content || element.text}
         </span>
       )
     case 'Image':
@@ -1010,9 +1039,9 @@ function AtomicElement({ element, onSelect }: { element: any; onSelect: (el: any
           onClick={handleClick}
         >
           <img
-            src={element.url}
-            alt={element.alt || ''}
-            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+            src={element.src || element.url}
+            alt={element.accessibility?.label || element.alt || ''}
+            style={{ width: '100%', height: '100%', objectFit: (element.fit as any) || 'contain' }}
             onError={(e) => {
               (e.target as HTMLImageElement).style.display = 'none'
               const parent = (e.target as HTMLImageElement).parentElement
@@ -1031,12 +1060,12 @@ function AtomicElement({ element, onSelect }: { element: any; onSelect: (el: any
         </button>
       )
     case 'Spacer':
-      return <div className="atomic-hoverable" style={{ height: element.size || 8 }} onClick={handleClick} />
+      return <div className="atomic-hoverable" style={{ height: tokenToPixels(element.height) || tokenToPixels(element.width) || element.size || 8 }} onClick={handleClick} />
     case 'Divider':
       return <div className="atomic-divider atomic-hoverable" onClick={handleClick} />
     case 'LiveClock':
       return (
-        <span className="atomic-text variant-bodyMedium atomic-hoverable" onClick={handleClick}>
+        <span className={`atomic-text variant-${element.variant || 'bodyMedium'} atomic-hoverable`} onClick={handleClick}>
           {formatClock(element.snapshotSeconds, element.format)}
         </span>
       )
@@ -1045,6 +1074,23 @@ function AtomicElement({ element, onSelect }: { element: any; onSelect: (el: any
         <div className="atomic-conditional atomic-hoverable" onClick={handleClick}>
           <span className="conditional-badge">IF</span>
           <AtomicElement element={element.then} onSelect={onSelect} />
+        </div>
+      )
+    case 'ScrollContainer':
+      return (
+        <div className="atomic-container atomic-hoverable" onClick={handleClick} style={{ flexDirection: 'row', overflowX: 'auto', gap: gapValue(element.gap) }}>
+          {element.children?.map((child: any, i: number) => (
+            <AtomicElement key={i} element={child} onSelect={onSelect} />
+          ))}
+        </div>
+      )
+    case 'OverlayContainer':
+      return (
+        <div className="atomic-container atomic-hoverable" onClick={handleClick} style={{ position: 'relative' }}>
+          {element.base && <AtomicElement element={element.base} onSelect={onSelect} />}
+          {element.overlays?.map((child: any, i: number) => (
+            <AtomicElement key={i} element={child} onSelect={onSelect} />
+          ))}
         </div>
       )
     default:
@@ -1088,18 +1134,44 @@ function formatClock(seconds: number | undefined, format: string | undefined): s
   return `${m}:${s.toString().padStart(2, '0')}`
 }
 
-function gapValue(token: string | undefined): string {
-  const map: Record<string, string> = {
-    xs: '4px', sm: '8px', md: '12px', lg: '16px', xl: '24px', xxl: '32px',
+function tokenToPixels(token: string | number | undefined): number | undefined {
+  if (token == null) return undefined
+  if (typeof token === 'number') return token
+  const map: Record<string, number> = {
+    'token:nba.spacing.xs': 4, 'token:nba.spacing.sm': 8, 'token:nba.spacing.md': 12,
+    'token:nba.spacing.lg': 16, 'token:nba.spacing.xl': 24, 'token:nba.spacing.xxl': 32,
+    xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32,
   }
-  return token ? (map[token] || '0') : '0'
+  return map[token]
+}
+
+function gapValue(token: string | undefined): string {
+  if (!token) return '0'
+  const px = tokenToPixels(token)
+  return px ? `${px}px` : '0'
+}
+
+function paddingValue(padding: any): string | undefined {
+  if (!padding) return undefined
+  if (typeof padding === 'string') return gapValue(padding)
+  if (typeof padding === 'object') {
+    const t = tokenToPixels(padding.top) || 0
+    const r = tokenToPixels(padding.end) || 0
+    const b = tokenToPixels(padding.bottom) || 0
+    const l = tokenToPixels(padding.start) || 0
+    return `${t}px ${r}px ${b}px ${l}px`
+  }
+  return undefined
 }
 
 function radiusValue(token: string | undefined): string {
+  if (!token) return '0'
   const map: Record<string, string> = {
+    'token:nba.radius.sm': '4px', 'token:nba.radius.md': '8px', 'token:nba.radius.lg': '12px',
+    'token:nba.radius.xl': '16px', 'token:nba.radius.full': '9999px',
     sm: '4px', md: '6px', lg: '8px', xl: '12px', full: '9999px',
   }
-  return token ? (map[token] || '0') : '0'
+  return map[token] || '0'
 }
 
 function alignValue(alignment: string | undefined): string {

@@ -844,10 +844,53 @@
   overflow: auto;
 }
 
+.preview-frame.device-phone .preview-content {
+  max-width: 375px;
+}
+
+.preview-frame.device-tablet .preview-content {
+  max-width: 768px;
+}
+
+.preview-frame.device-watch .preview-content {
+  max-width: 184px;
+  border-radius: 40px;
+  border: 3px solid var(--divider);
+  padding: var(--space-3);
+}
+
 .preview-content {
   width: 100%;
   max-width: 375px;
   overflow: hidden;
+}
+
+.device-toggle {
+  display: flex;
+  gap: 2px;
+  background: var(--surface-raised);
+  border-radius: var(--rounded-md);
+  padding: 2px;
+}
+
+.device-btn {
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-xs);
+  border-radius: var(--rounded-sm);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity var(--duration-fast) var(--ease-default), background var(--duration-fast) var(--ease-default);
+}
+
+.device-btn.active {
+  opacity: 1;
+  background: var(--surface);
+}
+
+.device-btn:hover {
+  opacity: 0.8;
 }
 
 .preview-empty {

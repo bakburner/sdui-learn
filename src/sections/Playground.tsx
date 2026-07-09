@@ -134,6 +134,8 @@ export function Playground() {
   const [selectedElement, setSelectedElement] = useState<string | null>(null)
   const [highlightLines, setHighlightLines] = useState<{ primary: { start: number; end: number }; secondary?: { start: number; end: number } } | null>(null)
   const [validationExpanded, setValidationExpanded] = useState(false)
+  const [deviceFrame, setDeviceFrame] = useState<'phone' | 'tablet' | 'watch'>('phone')
+  const [copied, setCopied] = useState(false)
 
   const scrollToElement = useCallback((el: Record<string, any>) => {
     const ta = textareaRef.current
@@ -261,6 +263,13 @@ export function Playground() {
     } catch {
       // already has a parse error shown
     }
+  }
+
+  const handleCopyJson = () => {
+    navigator.clipboard.writeText(jsonInput).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
   }
 
   const handleInsertSnippet = (snippet: string) => {
@@ -461,6 +470,7 @@ export function Playground() {
                     <button className={`mode-tab ${editorMode === 'network' ? 'active' : ''}`} onClick={() => setEditorMode('network')}>Network</button>
                   </div>
                   <div className="toolbar-actions">
+                    <button className="toolbar-btn" onClick={handleCopyJson}>{copied ? '✓ Copied' : 'Copy'}</button>
                     <button className="toolbar-btn" onClick={handleFormat}>Format</button>
                     <button className="toolbar-btn" onClick={handleReset}>Reset</button>
                   </div>
@@ -579,13 +589,18 @@ export function Playground() {
               <div className="playground-preview">
                 <div className="preview-toolbar">
                   <span className="toolbar-title">Preview</span>
+                  <div className="device-toggle">
+                    <button className={`device-btn ${deviceFrame === 'phone' ? 'active' : ''}`} onClick={() => setDeviceFrame('phone')} title="Phone">📱</button>
+                    <button className={`device-btn ${deviceFrame === 'tablet' ? 'active' : ''}`} onClick={() => setDeviceFrame('tablet')} title="Tablet">📋</button>
+                    <button className={`device-btn ${deviceFrame === 'watch' ? 'active' : ''}`} onClick={() => setDeviceFrame('watch')} title="Watch">⌚</button>
+                  </div>
                   {selectedElement && (
                     <span className="selected-indicator">
                       Inspecting: <strong>{selectedElement}</strong>
                     </span>
                   )}
                 </div>
-                <div className="preview-frame">
+                <div className={`preview-frame device-${deviceFrame}`}>
                   <div className="preview-content">
                     {parsedData ? (
                       <SduiRenderer data={parsedData} selectedEl={inspectedElement} onSelectElement={(el) => {

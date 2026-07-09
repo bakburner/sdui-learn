@@ -131,8 +131,7 @@ export function Playground() {
   const [showPlatform, setShowPlatform] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [showOnboarding, setShowOnboarding] = useState(false)
-  const [editorMode, setEditorMode] = useState<'edit' | 'diff' | 'network'>('edit')
-  const [baseJson] = useState(DEFAULT_JSON)
+  const [editorMode, setEditorMode] = useState<'edit' | 'network'>('edit')
   const [selectedElement, setSelectedElement] = useState<string | null>(null)
   const [selectedPath, setSelectedPath] = useState<string[]>([])
   const [hoveredPath, setHoveredPath] = useState<string[]>([])
@@ -542,7 +541,6 @@ export function Playground() {
                 <div className="editor-toolbar">
                   <div className="editor-mode-tabs">
                     <button className={`mode-tab ${editorMode === 'edit' ? 'active' : ''}`} onClick={() => setEditorMode('edit')}>Editor</button>
-                    <button className={`mode-tab ${editorMode === 'diff' ? 'active' : ''}`} onClick={() => setEditorMode('diff')}>Diff</button>
                     <button className={`mode-tab ${editorMode === 'network' ? 'active' : ''}`} onClick={() => setEditorMode('network')}>Network</button>
                   </div>
                   <div className="toolbar-actions">
@@ -671,9 +669,6 @@ export function Playground() {
                       </div>
                     )}
                   </>
-                )}
-                {editorMode === 'diff' && (
-                  <DiffView baseJson={baseJson} currentJson={jsonInput} />
                 )}
                 {editorMode === 'network' && (
                   <NetworkView json={jsonInput} />
@@ -1214,46 +1209,6 @@ function buildSection(intent: string, ctx: PromptContext) {
   }
 }
 
-// ── Diff View ──────────────────────────────────
-function DiffView({ baseJson, currentJson }: { baseJson: string; currentJson: string }) {
-  const baseLines = baseJson.split('\n')
-  const currentLines = currentJson.split('\n')
-  const maxLen = Math.max(baseLines.length, currentLines.length)
-  const diffLines: { type: 'same' | 'added' | 'removed' | 'changed'; line: string; lineNum: number }[] = []
-
-  for (let i = 0; i < maxLen; i++) {
-    const baseLine = baseLines[i] ?? ''
-    const currLine = currentLines[i] ?? ''
-    if (i >= baseLines.length) {
-      diffLines.push({ type: 'added', line: currLine, lineNum: i + 1 })
-    } else if (i >= currentLines.length) {
-      diffLines.push({ type: 'removed', line: baseLine, lineNum: i + 1 })
-    } else if (baseLine !== currLine) {
-      diffLines.push({ type: 'changed', line: currLine, lineNum: i + 1 })
-    } else {
-      diffLines.push({ type: 'same', line: currLine, lineNum: i + 1 })
-    }
-  }
-
-  const hasChanges = diffLines.some(d => d.type !== 'same')
-
-  return (
-    <div className="diff-view">
-      {!hasChanges && (
-        <div className="diff-empty">No changes from the original. Edit the JSON to see a diff.</div>
-      )}
-      <pre className="diff-content">
-        {diffLines.map((d, i) => (
-          <div key={i} className={`diff-line diff-${d.type}`}>
-            <span className="diff-gutter">{d.lineNum}</span>
-            <span className="diff-marker">{d.type === 'added' ? '+' : d.type === 'removed' ? '-' : d.type === 'changed' ? '~' : ' '}</span>
-            <span className="diff-text">{d.line}</span>
-          </div>
-        ))}
-      </pre>
-    </div>
-  )
-}
 
 // ── Network Simulation View ────────────────────
 function NetworkView({ json }: { json: string }) {

@@ -129,6 +129,7 @@ export function Playground() {
   })
   const [showReference, setShowReference] = useState(false)
   const [showPlatform, setShowPlatform] = useState(false)
+  const [showSamples, setShowSamples] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [editorMode, setEditorMode] = useState<'edit' | 'network'>('edit')
@@ -481,25 +482,25 @@ export function Playground() {
         <div className="playground-fullscreen">
           <div className="fullscreen-header">
             <div className="fullscreen-header-left">
-              <div className="playground-examples">
-                <button className="example-btn example-btn-new" onClick={() => handleInsertSnippet(EXAMPLE_BLANK)}>+ New</button>
-                <span className="examples-label">Samples:</span>
-                <button className={`example-btn ${activeSample === EXAMPLE_GAME_CARD ? 'active' : ''}`} onClick={() => handleInsertSnippet(EXAMPLE_GAME_CARD)}>Game Card</button>
-                <button className={`example-btn ${activeSample === EXAMPLE_NEWS_CARD ? 'active' : ''}`} onClick={() => handleInsertSnippet(EXAMPLE_NEWS_CARD)}>News Card</button>
-                <button className={`example-btn ${activeSample === EXAMPLE_PROMO ? 'active' : ''}`} onClick={() => handleInsertSnippet(EXAMPLE_PROMO)}>Promo Banner</button>
-              </div>
+              <button className="example-btn example-btn-new" onClick={() => handleInsertSnippet(EXAMPLE_BLANK)}>+ New</button>
+              <button
+                className={`reference-toggle ${showSamples ? 'active' : ''}`}
+                onClick={() => { setShowSamples(!showSamples); if (!showSamples) { setShowReference(false); setShowPlatform(false) } }}
+              >
+                {showSamples ? '✕ Samples' : '📋 Samples'}
+              </button>
             </div>
             <span className="fullscreen-brand">SDUI Playground</span>
             <div className="fullscreen-header-right">
               <button
                 className={`reference-toggle ${showReference ? 'active' : ''}`}
-                onClick={() => { setShowReference(!showReference); if (!showReference) setShowPlatform(false) }}
+                onClick={() => { setShowReference(!showReference); if (!showReference) { setShowPlatform(false); setShowSamples(false) } }}
               >
                 {showReference ? '✕ Schema' : '📖 Schema'}
               </button>
               <button
                 className={`reference-toggle ${showPlatform ? 'active' : ''}`}
-                onClick={() => { setShowPlatform(!showPlatform); if (!showPlatform) setShowReference(false) }}
+                onClick={() => { setShowPlatform(!showPlatform); if (!showPlatform) { setShowReference(false); setShowSamples(false) } }}
               >
                 {showPlatform ? '✕ Platform' : '💻 Platform'}
               </button>
@@ -539,6 +540,16 @@ export function Playground() {
           )}
 
           <div className={`playground-layout ${showReference || showPlatform ? 'with-reference' : ''}`}>
+            {showSamples && (
+              <div className="samples-panel">
+                <div className="samples-panel-header">Samples</div>
+                <div className="samples-panel-list">
+                  <button className={`samples-panel-item ${activeSample === EXAMPLE_GAME_CARD ? 'active' : ''}`} onClick={() => handleInsertSnippet(EXAMPLE_GAME_CARD)}>Game Card</button>
+                  <button className={`samples-panel-item ${activeSample === EXAMPLE_NEWS_CARD ? 'active' : ''}`} onClick={() => handleInsertSnippet(EXAMPLE_NEWS_CARD)}>News Card</button>
+                  <button className={`samples-panel-item ${activeSample === EXAMPLE_PROMO ? 'active' : ''}`} onClick={() => handleInsertSnippet(EXAMPLE_PROMO)}>Promo Banner</button>
+                </div>
+              </div>
+            )}
             <div className="playground-container">
               <div className="playground-editor">
                 <div className="editor-toolbar">

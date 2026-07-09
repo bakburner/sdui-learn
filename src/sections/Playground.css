@@ -268,6 +268,17 @@
   cursor: not-allowed;
 }
 
+.input-error {
+  border-color: #C8102E !important;
+  animation: shake 0.3s ease;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
 /* ── Editor Mode Tabs ───────────────────────── */
 
 .editor-mode-tabs {
@@ -846,18 +857,43 @@
 
 .preview-frame.device-phone .preview-content {
   max-width: 375px;
+  border: 3px solid var(--divider);
+  border-radius: 24px;
+  padding: var(--space-4);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
 }
 
 .preview-frame.device-tablet .preview-content {
-  max-width: 768px;
+  max-width: 600px;
+  border: 3px solid var(--divider);
+  border-radius: 16px;
+  padding: var(--space-4);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
 }
 
 .preview-frame.device-tv .preview-content {
   max-width: 100%;
+  border: 4px solid var(--divider);
+  border-radius: 8px;
+  padding: var(--space-5);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
 }
 
 .preview-frame.device-desktop .preview-content {
-  max-width: 1024px;
+  max-width: 800px;
+  border: 3px solid var(--divider);
+  border-radius: 8px;
+  padding: var(--space-4);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+  position: relative;
+}
+
+.preview-frame.device-watch .preview-content {
+  max-width: 184px;
+  border: 3px solid var(--divider);
+  border-radius: 40px;
+  padding: var(--space-3);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
 }
 
 .preview-content {

@@ -134,7 +134,8 @@ export function Playground() {
   const [selectedElement, setSelectedElement] = useState<string | null>(null)
   const [highlightLines, setHighlightLines] = useState<{ primary: { start: number; end: number }; secondary?: { start: number; end: number } } | null>(null)
   const [validationExpanded, setValidationExpanded] = useState(false)
-  const [deviceFrame, setDeviceFrame] = useState<'phone' | 'tablet' | 'tv' | 'desktop'>('phone')
+  const [deviceFrame, setDeviceFrame] = useState<'phone' | 'tablet' | 'tv' | 'desktop' | 'watch'>('phone')
+  const [isAuthed, setIsAuthed] = useState(() => sessionStorage.getItem('sdui-auth') === 'true')
   const [copied, setCopied] = useState(false)
 
   const scrollToElement = useCallback((el: Record<string, any>) => {
@@ -440,7 +441,8 @@ export function Playground() {
             </div>
           </div>
 
-          <PromptBar onGenerate={handleInsertSnippet} />
+          {isAuthed && <PromptBar onGenerate={handleInsertSnippet} />}
+          {!isAuthed && <LoginBar onAuth={() => { setIsAuthed(true); sessionStorage.setItem('sdui-auth', 'true') }} />}
 
           {showOnboarding && (
             <div className="playground-onboarding">
@@ -602,6 +604,9 @@ export function Playground() {
                     <button className={`device-btn ${deviceFrame === 'desktop' ? 'active' : ''}`} onClick={() => setDeviceFrame('desktop')} title="Desktop / Web">
                       <svg width="18" height="16" viewBox="0 0 18 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="1" y="1" width="16" height="11" rx="1.5"/><path d="M4 14h10M7 12v2M11 12v2"/></svg>
                     </button>
+                    <button className={`device-btn ${deviceFrame === 'watch' ? 'active' : ''}`} onClick={() => setDeviceFrame('watch')} title="Watch">
+                      <svg width="14" height="18" viewBox="0 0 14 18" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="4" width="8" height="10" rx="3"/><path d="M5 4V2h4v2M5 14v2h4v-2"/></svg>
+                    </button>
                   </div>
                   {selectedElement && (
                     <span className="selected-indicator">
@@ -696,6 +701,37 @@ function PromptBar({ onGenerate }: { onGenerate: (json: string) => void }) {
       />
       <button className="prompt-submit" type="submit" disabled={isGenerating || !prompt.trim()}>
         {isGenerating ? 'Building...' : 'Generate'}
+      </button>
+    </form>
+  )
+}
+
+function LoginBar({ onAuth }: { onAuth: () => void }) {
+  const [value, setValue] = useState('')
+  const [error, setError] = useState(false)
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (value === 'nbasdui') {
+      onAuth()
+    } else {
+      setError(true)
+      setTimeout(() => setError(false), 2000)
+    }
+  }
+
+  return (
+    <form className="prompt-bar login-bar" onSubmit={handleSubmit}>
+      <span className="prompt-icon">🔒</span>
+      <input
+        className={`prompt-input ${error ? 'input-error' : ''}`}
+        type="password"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        placeholder="Enter password to unlock AI generation..."
+      />
+      <button className="prompt-submit" type="submit" disabled={!value.trim()}>
+        Unlock
       </button>
     </form>
   )

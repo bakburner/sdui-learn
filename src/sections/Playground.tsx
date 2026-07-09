@@ -141,6 +141,7 @@ export function Playground() {
   const [copied, setCopied] = useState(false)
   const [history, setHistory] = useState<string[]>([DEFAULT_JSON])
   const [historyIndex, setHistoryIndex] = useState(0)
+  const [activeSample, setActiveSample] = useState<string | null>(null)
 
   const scrollToElement = useCallback((el: Record<string, any>) => {
     const ta = textareaRef.current
@@ -255,6 +256,7 @@ export function Playground() {
   const handleChange = useCallback((value: string) => {
     setJsonInput(value)
     setInspectedElement(null)
+    setActiveSample(null)
     try {
       const parsed = JSON.parse(value)
       setParsedData(parsed)
@@ -342,6 +344,7 @@ export function Playground() {
   const handleInsertSnippet = (snippet: string) => {
     setJsonInput(snippet)
     setInspectedElement(null)
+    setActiveSample(snippet)
     try {
       setParsedData(JSON.parse(snippet))
       setParseError(null)
@@ -481,9 +484,9 @@ export function Playground() {
               <div className="playground-examples">
                 <button className="example-btn example-btn-new" onClick={() => handleInsertSnippet(EXAMPLE_BLANK)}>+ New</button>
                 <span className="examples-label">Samples:</span>
-                <button className="example-btn" onClick={() => handleInsertSnippet(EXAMPLE_GAME_CARD)}>Game Card</button>
-                <button className="example-btn" onClick={() => handleInsertSnippet(EXAMPLE_NEWS_CARD)}>News Card</button>
-                <button className="example-btn" onClick={() => handleInsertSnippet(EXAMPLE_PROMO)}>Promo Banner</button>
+                <button className={`example-btn ${activeSample === EXAMPLE_GAME_CARD ? 'active' : ''}`} onClick={() => handleInsertSnippet(EXAMPLE_GAME_CARD)}>Game Card</button>
+                <button className={`example-btn ${activeSample === EXAMPLE_NEWS_CARD ? 'active' : ''}`} onClick={() => handleInsertSnippet(EXAMPLE_NEWS_CARD)}>News Card</button>
+                <button className={`example-btn ${activeSample === EXAMPLE_PROMO ? 'active' : ''}`} onClick={() => handleInsertSnippet(EXAMPLE_PROMO)}>Promo Banner</button>
               </div>
             </div>
             <span className="fullscreen-brand">SDUI Playground</span>

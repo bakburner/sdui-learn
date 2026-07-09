@@ -65,6 +65,12 @@
   border-color: var(--text-tertiary);
 }
 
+.example-btn.active {
+  background: rgba(251, 205, 68, 0.1);
+  border-color: rgba(251, 205, 68, 0.3);
+  color: var(--nba-tint);
+}
+
 .example-btn-new {
   border-color: rgba(48, 209, 88, 0.4);
   color: #30D158;

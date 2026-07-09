@@ -132,7 +132,7 @@ export function Playground() {
   const [editorMode, setEditorMode] = useState<'edit' | 'diff' | 'network'>('edit')
   const [baseJson] = useState(DEFAULT_JSON)
   const [selectedElement, setSelectedElement] = useState<string | null>(null)
-  const [highlightLines, setHighlightLines] = useState<{ start: number; end: number } | null>(null)
+  const [highlightLines, setHighlightLines] = useState<{ primary: { start: number; end: number }; secondary?: { start: number; end: number } } | null>(null)
 
   const scrollToElement = useCallback((el: Record<string, any>) => {
     const ta = textareaRef.current
@@ -169,22 +169,46 @@ export function Playground() {
     }
     if (bestStart === -1) return
 
-    // Calculate line numbers for highlight
     const lines = text.split('\n')
-    const startLine = text.slice(0, bestStart).split('\n').length - 1
-    const endLine = text.slice(0, bestEnd).split('\n').length - 1
-    setHighlightLines({ start: startLine, end: endLine })
+    const primaryStart = text.slice(0, bestStart).split('\n').length - 1
+    const primaryEnd = text.slice(0, bestEnd).split('\n').length - 1
 
-    // Scroll: use character position to calculate proportional scroll
+    // Find the parent container block (one level up)
+    let parentStart = -1
+    let parentEnd = -1
+    if (bestStart > 0) {
+      // Search backwards for the parent opening brace
+      let pStart = bestStart - 1
+      while (pStart >= 0 && text[pStart] !== '{') pStart--
+      if (pStart >= 0) {
+        let depth = 1
+        let pEnd = pStart + 1
+        while (pEnd < text.length && depth > 0) {
+          if (text[pEnd] === '{') depth++
+          if (text[pEnd] === '}') depth--
+          pEnd++
+        }
+        // Only use as secondary if it's actually larger than the primary
+        if (pStart < bestStart && pEnd > bestEnd) {
+          parentStart = text.slice(0, pStart).split('\n').length - 1
+          parentEnd = text.slice(0, pEnd).split('\n').length - 1
+        }
+      }
+    }
+
+    setHighlightLines({
+      primary: { start: primaryStart, end: primaryEnd },
+      secondary: parentStart >= 0 ? { start: parentStart, end: parentEnd } : undefined,
+    })
+
+    // Scroll to center on the primary element
     const lineHeight = ta.scrollHeight / lines.length
-    const targetScroll = Math.max(0, startLine * lineHeight - ta.clientHeight / 3)
+    const targetScroll = Math.max(0, primaryStart * lineHeight - ta.clientHeight / 3)
     ta.scrollTop = targetScroll
 
-    // Sync highlight overlay
     const overlay = ta.parentElement?.querySelector('.editor-highlight-overlay') as HTMLElement | null
     if (overlay) overlay.scrollTop = targetScroll
 
-    // Clear highlight after a delay
     setTimeout(() => setHighlightLines(null), 3000)
   }, [jsonInput])
 
@@ -364,12 +388,16 @@ export function Playground() {
                     <div className="editor-wrapper">
                       {highlightLines && (
                         <div className="editor-highlight-overlay" aria-hidden="true">
-                          {jsonInput.split('\n').map((_, i) => (
-                            <div
-                              key={i}
-                              className={`highlight-line ${i >= highlightLines.start && i <= highlightLines.end ? 'active' : ''}`}
-                            />
-                          ))}
+                          {jsonInput.split('\n').map((_, i) => {
+                            const isPrimary = i >= highlightLines.primary.start && i <= highlightLines.primary.end
+                            const isSecondary = highlightLines.secondary && i >= highlightLines.secondary.start && i <= highlightLines.secondary.end && !isPrimary
+                            return (
+                              <div
+                                key={i}
+                                className={`highlight-line ${isPrimary ? 'active' : ''} ${isSecondary ? 'secondary' : ''}`}
+                              />
+                            )
+                          })}
                         </div>
                       )}
                       <textarea

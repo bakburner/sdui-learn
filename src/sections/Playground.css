@@ -627,6 +627,11 @@
   border-left: 3px solid var(--nba-tint);
 }
 
+.highlight-line.secondary {
+  background: rgba(251, 205, 68, 0.07);
+  border-left: 2px solid rgba(251, 205, 68, 0.3);
+}
+
 .editor-textarea {
   position: absolute;
   inset: 0;

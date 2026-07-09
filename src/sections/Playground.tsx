@@ -245,15 +245,18 @@ export function Playground() {
     }
   }
 
-  const handleReorder = (parentChildren: any[], fromIndex: number, toIndex: number) => {
-    // Swap in place (parentChildren is a live ref into parsedData)
-    const item = parentChildren[fromIndex]
-    parentChildren.splice(fromIndex, 1)
-    parentChildren.splice(toIndex, 0, item)
-    // Re-serialize from the mutated tree and set fresh state
-    const updated = JSON.stringify(parsedData, null, 2)
+  const handleReorder = (fromIndex: number, toIndex: number) => {
+    if (!selectedContext?.parentChildren) return
+    const cloned = JSON.parse(JSON.stringify(parsedData))
+    // Find the matching children array in the cloned tree
+    const parentArr = findArrayInTree(cloned, selectedContext.parentChildren)
+    if (!parentArr) return
+    const item = parentArr[fromIndex]
+    parentArr.splice(fromIndex, 1)
+    parentArr.splice(toIndex, 0, item)
+    const updated = JSON.stringify(cloned, null, 2)
     setJsonInput(updated)
-    setParsedData(JSON.parse(updated))
+    setParsedData(cloned)
   }
 
   const handleEditorCursor = () => {
@@ -422,7 +425,7 @@ export function Playground() {
                 <div className="preview-frame">
                   <div className="preview-content">
                     {parsedData ? (
-                      <SduiRenderer data={parsedData} onReorder={handleReorder} onSelectElement={(el, parentChildren, index) => {
+                      <SduiRenderer data={parsedData} onSelectElement={(el, parentChildren, index) => {
                         setSelectedElement(el.type)
                         setInspectedElement(el)
                         setSelectedContext(parentChildren ? { parentChildren, index: index! } : null)
@@ -442,8 +445,19 @@ export function Playground() {
                         className="position-btn"
                         disabled={selectedContext.index === 0}
                         onClick={() => {
-                          handleReorder(selectedContext.parentChildren!, selectedContext.index, selectedContext.index - 1)
-                          setSelectedContext({ ...selectedContext, index: selectedContext.index - 1 })
+                          const newIndex = selectedContext.index - 1
+                          handleReorder(selectedContext.index, newIndex)
+                          setSelectedContext({ ...selectedContext, index: newIndex })
+                        }}
+                        title="Move left / up"
+                      >←</button>
+                      <button
+                        className="position-btn"
+                        disabled={selectedContext.index === 0}
+                        onClick={() => {
+                          const newIndex = selectedContext.index - 1
+                          handleReorder(selectedContext.index, newIndex)
+                          setSelectedContext({ ...selectedContext, index: newIndex })
                         }}
                         title="Move up"
                       >↑</button>
@@ -451,11 +465,22 @@ export function Playground() {
                         className="position-btn"
                         disabled={selectedContext.index >= selectedContext.parentChildren!.length - 1}
                         onClick={() => {
-                          handleReorder(selectedContext.parentChildren!, selectedContext.index, selectedContext.index + 1)
-                          setSelectedContext({ ...selectedContext, index: selectedContext.index + 1 })
+                          const newIndex = selectedContext.index + 1
+                          handleReorder(selectedContext.index, newIndex)
+                          setSelectedContext({ ...selectedContext, index: newIndex })
                         }}
                         title="Move down"
                       >↓</button>
+                      <button
+                        className="position-btn"
+                        disabled={selectedContext.index >= selectedContext.parentChildren!.length - 1}
+                        onClick={() => {
+                          const newIndex = selectedContext.index + 1
+                          handleReorder(selectedContext.index, newIndex)
+                          setSelectedContext({ ...selectedContext, index: newIndex })
+                        }}
+                        title="Move right / down"
+                      >→</button>
                     </div>
                   </div>
                 )}
@@ -1106,7 +1131,7 @@ function NetworkView({ json }: { json: string }) {
 }
 
 // Lightweight SDUI renderer for the playground
-function SduiRenderer({ data, onSelectElement, onReorder }: { data: any; onSelectElement: (el: any, parentChildren?: any[] | null, index?: number) => void; onReorder?: (parent: any, fromIndex: number, toIndex: number) => void }) {
+function SduiRenderer({ data, onSelectElement }: { data: any; onSelectElement: (el: any, parentChildren?: any[] | null, index?: number) => void }) {
   const sections = data?.data?.sections || data?.sections
   if (!sections) return <div className="preview-empty">Add a "sections" array</div>
 
@@ -1116,7 +1141,7 @@ function SduiRenderer({ data, onSelectElement, onReorder }: { data: any; onSelec
         const ui = section.data?.ui || section.content
         return (
           <div key={section.id || section.sectionId || i} className="sdui-section">
-            {ui && <AtomicElement element={ui} onSelect={onSelectElement} onReorder={onReorder} parentChildren={null} index={0} />}
+            {ui && <AtomicElement element={ui} onSelect={onSelectElement} parentChildren={null} index={0} />}
           </div>
         )
       })}
@@ -1124,7 +1149,7 @@ function SduiRenderer({ data, onSelectElement, onReorder }: { data: any; onSelec
   )
 }
 
-function AtomicElement({ element, onSelect, onReorder, parentChildren, index }: { element: any; onSelect: (el: any, parentChildren?: any[] | null, index?: number) => void; onReorder?: (parent: any, fromIndex: number, toIndex: number) => void; parentChildren: any[] | null; index: number }) {
+function AtomicElement({ element, onSelect, parentChildren, index }: { element: any; onSelect: (el: any, parentChildren?: any[] | null, index?: number) => void; parentChildren: any[] | null; index: number }) {
   if (!element || !element.type) return null
 
   const handleClick = (e: React.MouseEvent) => {
@@ -1150,7 +1175,7 @@ function AtomicElement({ element, onSelect, onReorder, parentChildren, index }: 
           }}
         >
           {element.children?.map((child: any, i: number) => (
-            <AtomicElement key={i} element={child} onSelect={onSelect} onReorder={onReorder} parentChildren={element.children} index={i} />
+            <AtomicElement key={i} element={child} onSelect={onSelect} parentChildren={element.children} index={i} />
           ))}
         </div>
       )
@@ -1208,23 +1233,23 @@ function AtomicElement({ element, onSelect, onReorder, parentChildren, index }: 
       return (
         <div className="atomic-conditional atomic-hoverable" onClick={handleClick}>
           <span className="conditional-badge">IF</span>
-          <AtomicElement element={element.then} onSelect={onSelect} onReorder={onReorder} parentChildren={null} index={0} />
+          <AtomicElement element={element.then} onSelect={onSelect} parentChildren={null} index={0} />
         </div>
       )
     case 'ScrollContainer':
       return (
         <div className="atomic-container atomic-hoverable" onClick={handleClick} style={{ flexDirection: 'row', overflowX: 'auto', gap: gapValue(element.gap) }}>
           {element.children?.map((child: any, i: number) => (
-            <AtomicElement key={i} element={child} onSelect={onSelect} onReorder={onReorder} parentChildren={element.children} index={i} />
+            <AtomicElement key={i} element={child} onSelect={onSelect} parentChildren={element.children} index={i} />
           ))}
         </div>
       )
     case 'OverlayContainer':
       return (
         <div className="atomic-container atomic-hoverable" onClick={handleClick} style={{ position: 'relative' }}>
-          {element.base && <AtomicElement element={element.base} onSelect={onSelect} onReorder={onReorder} parentChildren={null} index={0} />}
+          {element.base && <AtomicElement element={element.base} onSelect={onSelect} parentChildren={null} index={0} />}
           {element.overlays?.map((child: any, i: number) => (
-            <AtomicElement key={i} element={child} onSelect={onSelect} onReorder={onReorder} parentChildren={element.overlays} index={i} />
+            <AtomicElement key={i} element={child} onSelect={onSelect} parentChildren={element.overlays} index={i} />
           ))}
         </div>
       )
@@ -1267,6 +1292,20 @@ function formatClock(seconds: number | undefined, format: string | undefined): s
   const s = seconds % 60
   if (format === 'mm:ss') return `${m}:${s.toString().padStart(2, '0')}`
   return `${m}:${s.toString().padStart(2, '0')}`
+}
+
+function findArrayInTree(obj: any, target: any[]): any[] | null {
+  if (!obj || typeof obj !== 'object') return null
+  if (Array.isArray(obj)) {
+    if (obj.length === target.length && obj.every((item, i) => item?.type === target[i]?.type)) {
+      return obj
+    }
+  }
+  for (const key of Object.keys(obj)) {
+    const result = findArrayInTree(obj[key], target)
+    if (result) return result
+  }
+  return null
 }
 
 function tokenToPixels(token: string | number | undefined): number | undefined {

@@ -244,14 +244,16 @@ export function Playground() {
     }
   }
 
-  const handleReorder = useCallback((parentChildren: any[], fromIndex: number, toIndex: number) => {
+  const handleReorder = (parentChildren: any[], fromIndex: number, toIndex: number) => {
+    // Swap in place (parentChildren is a live ref into parsedData)
     const item = parentChildren[fromIndex]
     parentChildren.splice(fromIndex, 1)
     parentChildren.splice(toIndex, 0, item)
+    // Re-serialize from the mutated tree and set fresh state
     const updated = JSON.stringify(parsedData, null, 2)
     setJsonInput(updated)
     setParsedData(JSON.parse(updated))
-  }, [parsedData])
+  }
 
   const handleEditorCursor = () => {
     const ta = textareaRef.current

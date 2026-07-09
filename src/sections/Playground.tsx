@@ -3,6 +3,7 @@ import { useScrollReveal } from '../hooks/useScrollReveal'
 import '../hooks/useScrollReveal.css'
 import { SchemaReference } from '../components/SchemaReference'
 import { PlatformCode } from '../components/PlatformCode'
+import { useAuthLevel } from '../components/PasswordGate'
 import { useJsonCursorContext } from '../hooks/useJsonCursorContext'
 import './Playground.css'
 
@@ -120,6 +121,7 @@ const DEFAULT_JSON = `{
 }`
 
 export function Playground() {
+  const authLevel = useAuthLevel()
   const [jsonInput, setJsonInput] = useState(DEFAULT_JSON)
   const [parseError, setParseError] = useState<string | null>(null)
   const [parsedData, setParsedData] = useState(() => {
@@ -135,7 +137,6 @@ export function Playground() {
   const [highlightLines, setHighlightLines] = useState<{ primary: { start: number; end: number }; secondary?: { start: number; end: number } } | null>(null)
   const [validationExpanded, setValidationExpanded] = useState(false)
   const [deviceFrame, setDeviceFrame] = useState<'phone' | 'tablet' | 'tv' | 'desktop' | 'watch'>('phone')
-  const [isAuthed, setIsAuthed] = useState(() => sessionStorage.getItem('sdui-auth') === 'true')
   const [copied, setCopied] = useState(false)
 
   const scrollToElement = useCallback((el: Record<string, any>) => {
@@ -441,8 +442,7 @@ export function Playground() {
             </div>
           </div>
 
-          {isAuthed && <PromptBar onGenerate={handleInsertSnippet} />}
-          {!isAuthed && <LoginBar onAuth={() => { setIsAuthed(true); sessionStorage.setItem('sdui-auth', 'true') }} />}
+          {authLevel === 'full' && <PromptBar onGenerate={handleInsertSnippet} />}
 
           {showOnboarding && (
             <div className="playground-onboarding">
@@ -592,17 +592,17 @@ export function Playground() {
                 <div className="preview-toolbar">
                   <span className="toolbar-title">Preview</span>
                   <div className="device-toggle">
+                    <button className={`device-btn ${deviceFrame === 'desktop' ? 'active' : ''}`} onClick={() => setDeviceFrame('desktop')} title="Desktop / Web">
+                      <svg width="18" height="16" viewBox="0 0 18 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="1" y="1" width="16" height="11" rx="1.5"/><path d="M4 14h10M7 12v2M11 12v2"/></svg>
+                    </button>
                     <button className={`device-btn ${deviceFrame === 'phone' ? 'active' : ''}`} onClick={() => setDeviceFrame('phone')} title="Phone">
                       <svg width="12" height="18" viewBox="0 0 12 18" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="1" y="1" width="10" height="16" rx="2"/><line x1="5" y1="14" x2="7" y2="14"/></svg>
                     </button>
                     <button className={`device-btn ${deviceFrame === 'tablet' ? 'active' : ''}`} onClick={() => setDeviceFrame('tablet')} title="Tablet">
-                      <svg width="16" height="18" viewBox="0 0 16 18" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="1" y="1" width="14" height="16" rx="2"/><line x1="7" y1="14" x2="9" y2="14"/></svg>
+                      <svg width="14" height="18" viewBox="0 0 14 18" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="1" y="1" width="12" height="16" rx="2"/><line x1="6" y1="14" x2="8" y2="14"/></svg>
                     </button>
-                    <button className={`device-btn ${deviceFrame === 'tv' ? 'active' : ''}`} onClick={() => setDeviceFrame('tv')} title="Connected TV">
+                    <button className={`device-btn ${deviceFrame === 'tv' ? 'active' : ''}`} onClick={() => setDeviceFrame('tv')} title="Connected">
                       <svg width="18" height="16" viewBox="0 0 18 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="1" y="1" width="16" height="11" rx="1.5"/><line x1="6" y1="14" x2="12" y2="14"/><line x1="9" y1="12" x2="9" y2="14"/></svg>
-                    </button>
-                    <button className={`device-btn ${deviceFrame === 'desktop' ? 'active' : ''}`} onClick={() => setDeviceFrame('desktop')} title="Desktop / Web">
-                      <svg width="18" height="16" viewBox="0 0 18 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="1" y="1" width="16" height="11" rx="1.5"/><path d="M4 14h10M7 12v2M11 12v2"/></svg>
                     </button>
                     <button className={`device-btn ${deviceFrame === 'watch' ? 'active' : ''}`} onClick={() => setDeviceFrame('watch')} title="Watch">
                       <svg width="14" height="18" viewBox="0 0 14 18" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="4" width="8" height="10" rx="3"/><path d="M5 4V2h4v2M5 14v2h4v-2"/></svg>
@@ -706,36 +706,6 @@ function PromptBar({ onGenerate }: { onGenerate: (json: string) => void }) {
   )
 }
 
-function LoginBar({ onAuth }: { onAuth: () => void }) {
-  const [value, setValue] = useState('')
-  const [error, setError] = useState(false)
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (value === 'nbasdui') {
-      onAuth()
-    } else {
-      setError(true)
-      setTimeout(() => setError(false), 2000)
-    }
-  }
-
-  return (
-    <form className="prompt-bar login-bar" onSubmit={handleSubmit}>
-      <span className="prompt-icon">🔒</span>
-      <input
-        className={`prompt-input ${error ? 'input-error' : ''}`}
-        type="password"
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        placeholder="Enter password to unlock AI generation..."
-      />
-      <button className="prompt-submit" type="submit" disabled={!value.trim()}>
-        Unlock
-      </button>
-    </form>
-  )
-}
 
 function generateFromPrompt(prompt: string): string {
   const p = prompt.toLowerCase()

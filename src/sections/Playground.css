@@ -864,7 +864,7 @@
 }
 
 .preview-frame.device-tablet .preview-content {
-  max-width: 600px;
+  max-width: 500px;
   border: 3px solid var(--divider);
   border-radius: 16px;
   padding: var(--space-4);
@@ -880,12 +880,11 @@
 }
 
 .preview-frame.device-desktop .preview-content {
-  max-width: 800px;
+  max-width: 100%;
   border: 3px solid var(--divider);
   border-radius: 8px;
   padding: var(--space-4);
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
-  position: relative;
 }
 
 .preview-frame.device-watch .preview-content {

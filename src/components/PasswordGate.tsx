@@ -1,26 +1,40 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, createContext, useContext } from 'react'
 import './PasswordGate.css'
 
 const STORAGE_KEY = 'sdui-learn-auth'
-const PASS_HASH = 'adrian'
+
+type AuthLevel = 'none' | 'basic' | 'full'
+
+const AuthContext = createContext<AuthLevel>('none')
+export const useAuthLevel = () => useContext(AuthContext)
+
+function getAuthLevel(password: string): AuthLevel {
+  const p = password.toLowerCase()
+  if (p === 'nbasdui') return 'full'
+  if (p === 'adrian') return 'basic'
+  return 'none'
+}
 
 export function PasswordGate({ children }: { children: React.ReactNode }) {
-  const [authenticated, setAuthenticated] = useState(() => {
-    return sessionStorage.getItem(STORAGE_KEY) === 'true'
+  const [authLevel, setAuthLevel] = useState<AuthLevel>(() => {
+    return (sessionStorage.getItem(STORAGE_KEY) as AuthLevel) || 'none'
   })
   const [input, setInput] = useState('')
   const [error, setError] = useState(false)
 
   useEffect(() => {
-    if (authenticated) sessionStorage.setItem(STORAGE_KEY, 'true')
-  }, [authenticated])
+    if (authLevel !== 'none') sessionStorage.setItem(STORAGE_KEY, authLevel)
+  }, [authLevel])
 
-  if (authenticated) return <>{children}</>
+  if (authLevel !== 'none') {
+    return <AuthContext.Provider value={authLevel}>{children}</AuthContext.Provider>
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (input.toLowerCase() === PASS_HASH) {
-      setAuthenticated(true)
+    const level = getAuthLevel(input)
+    if (level !== 'none') {
+      setAuthLevel(level)
     } else {
       setError(true)
       setTimeout(() => setError(false), 1500)

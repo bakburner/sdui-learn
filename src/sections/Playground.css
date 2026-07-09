@@ -732,6 +732,12 @@
   outline-color: rgba(251, 205, 68, 0.4);
 }
 
+.atomic-selected {
+  outline-color: var(--nba-tint) !important;
+  outline-style: solid;
+  background: rgba(251, 205, 68, 0.06);
+}
+
 .atomic-hoverable:hover::after {
   content: attr(data-type);
   position: absolute;
@@ -1030,6 +1036,13 @@
   color: var(--nba-tint);
   font-weight: 600;
   border: 1px solid rgba(251, 205, 68, 0.5);
+}
+
+.prop-try-hint {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  font-style: italic;
+  margin-left: auto;
 }
 
 .inspector-prop.has-value {

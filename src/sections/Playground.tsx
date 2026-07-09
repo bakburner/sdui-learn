@@ -410,7 +410,7 @@ export function Playground() {
                 <div className="preview-frame">
                   <div className="preview-content">
                     {parsedData ? (
-                      <SduiRenderer data={parsedData} onSelectElement={(el) => {
+                      <SduiRenderer data={parsedData} selectedEl={inspectedElement} onSelectElement={(el) => {
                         setSelectedElement(el.type)
                         setInspectedElement(el)
                         setEditorMode('edit')
@@ -498,6 +498,7 @@ function PropertyInspector({ elementType, elementData, onFocus }: { elementType:
                   {prop.values.map((v) => (
                     <span key={v} className={`prop-value ${v === String(currentValue) ? 'active' : ''}`}>{v}</span>
                   ))}
+                  {isSet && <span className="prop-try-hint">Try changing in editor</span>}
                 </div>
               )}
               {!prop.values && <span className="prop-desc">{prop.description}</span>}
@@ -1068,7 +1069,7 @@ function NetworkView({ json }: { json: string }) {
 }
 
 // Lightweight SDUI renderer for the playground
-function SduiRenderer({ data, onSelectElement }: { data: any; onSelectElement: (el: any) => void }) {
+function SduiRenderer({ data, onSelectElement, selectedEl }: { data: any; onSelectElement: (el: any) => void; selectedEl: any }) {
   const sections = data?.data?.sections || data?.sections
   if (!sections) return <div className="preview-empty">Add a "sections" array</div>
 
@@ -1078,7 +1079,7 @@ function SduiRenderer({ data, onSelectElement }: { data: any; onSelectElement: (
         const ui = section.data?.ui || section.content
         return (
           <div key={section.id || section.sectionId || i} className="sdui-section">
-            {ui && <AtomicElement element={ui} onSelect={onSelectElement} />}
+            {ui && <AtomicElement element={ui} onSelect={onSelectElement} selectedEl={selectedEl} />}
           </div>
         )
       })}
@@ -1086,8 +1087,9 @@ function SduiRenderer({ data, onSelectElement }: { data: any; onSelectElement: (
   )
 }
 
-function AtomicElement({ element, onSelect }: { element: any; onSelect: (el: any) => void }) {
+function AtomicElement({ element, onSelect, selectedEl }: { element: any; onSelect: (el: any) => void; selectedEl: any }) {
   if (!element || !element.type) return null
+  const isSelected = element === selectedEl
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -1098,7 +1100,7 @@ function AtomicElement({ element, onSelect }: { element: any; onSelect: (el: any
     case 'Container':
       return (
         <div
-          className="atomic-container atomic-hoverable"
+          className={`atomic-container atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`}
           onClick={handleClick}
           style={{
             flexDirection: element.direction === 'row' ? 'row' : 'column',
@@ -1112,14 +1114,14 @@ function AtomicElement({ element, onSelect }: { element: any; onSelect: (el: any
           }}
         >
           {element.children?.map((child: any, i: number) => (
-            <AtomicElement key={i} element={child} onSelect={onSelect} />
+            <AtomicElement key={i} element={child} onSelect={onSelect} selectedEl={selectedEl} />
           ))}
         </div>
       )
     case 'Text':
       return (
         <span
-          className={`atomic-text variant-${element.variant || 'bodyMedium'} atomic-hoverable`}
+          className={`atomic-text variant-${element.variant || 'bodyMedium'} atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`}
           style={{ color: element.color, fontWeight: element.weight === 'bold' ? 700 : element.weight === 'semiBold' ? 600 : undefined }}
           onClick={handleClick}
         >
@@ -1129,7 +1131,7 @@ function AtomicElement({ element, onSelect }: { element: any; onSelect: (el: any
     case 'Image':
       return (
         <div
-          className="atomic-image atomic-hoverable"
+          className={`atomic-image atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`}
           style={{ width: element.width, height: element.height }}
           onClick={handleClick}
         >
@@ -1148,7 +1150,7 @@ function AtomicElement({ element, onSelect }: { element: any; onSelect: (el: any
     case 'Button':
       return (
         <button
-          className={`atomic-button button-${element.variant || 'primary'} atomic-hoverable`}
+          className={`atomic-button button-${element.variant || 'primary'} atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`}
           onClick={handleClick}
         >
           {element.label}
@@ -1156,43 +1158,43 @@ function AtomicElement({ element, onSelect }: { element: any; onSelect: (el: any
       )
     case 'Spacer':
       return (
-        <div className="atomic-hoverable" style={{ height: tokenToPixels(element.height) || tokenToPixels(element.width) || element.size || 8 }} onClick={handleClick} />
+        <div className={`atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`} style={{ height: tokenToPixels(element.height) || tokenToPixels(element.width) || element.size || 8 }} onClick={handleClick} />
       )
     case 'Divider':
-      return <div className="atomic-divider atomic-hoverable" onClick={handleClick} />
+      return <div className={`atomic-divider atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`} onClick={handleClick} />
     case 'LiveClock':
       return (
-        <span className={`atomic-text variant-${element.variant || 'bodyMedium'} atomic-hoverable`} onClick={handleClick}>
+        <span className={`atomic-text variant-${element.variant || 'bodyMedium'} atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`} onClick={handleClick}>
           {formatClock(element.snapshotSeconds, element.format)}
         </span>
       )
     case 'Conditional':
       return (
-        <div className="atomic-conditional atomic-hoverable" onClick={handleClick}>
+        <div className={`atomic-conditional atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`} onClick={handleClick}>
           <span className="conditional-badge">IF</span>
-          <AtomicElement element={element.then} onSelect={onSelect} />
+          <AtomicElement element={element.then} onSelect={onSelect} selectedEl={selectedEl} />
         </div>
       )
     case 'ScrollContainer':
       return (
-        <div className="atomic-container atomic-hoverable" onClick={handleClick} style={{ flexDirection: 'row', overflowX: 'auto', gap: gapValue(element.gap) }}>
+        <div className={`atomic-container atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`} onClick={handleClick} style={{ flexDirection: 'row', overflowX: 'auto', gap: gapValue(element.gap) }}>
           {element.children?.map((child: any, i: number) => (
-            <AtomicElement key={i} element={child} onSelect={onSelect} />
+            <AtomicElement key={i} element={child} onSelect={onSelect} selectedEl={selectedEl} />
           ))}
         </div>
       )
     case 'OverlayContainer':
       return (
-        <div className="atomic-container atomic-hoverable" onClick={handleClick} style={{ position: 'relative' }}>
-          {element.base && <AtomicElement element={element.base} onSelect={onSelect} />}
+        <div className={`atomic-container atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`} onClick={handleClick} style={{ position: 'relative' }}>
+          {element.base && <AtomicElement element={element.base} onSelect={onSelect} selectedEl={selectedEl} />}
           {element.overlays?.map((child: any, i: number) => (
-            <AtomicElement key={i} element={child} onSelect={onSelect} />
+            <AtomicElement key={i} element={child} onSelect={onSelect} selectedEl={selectedEl} />
           ))}
         </div>
       )
     default:
       return (
-        <div className="atomic-unknown atomic-hoverable" onClick={handleClick}>
+        <div className={`atomic-unknown atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`} onClick={handleClick}>
           Unknown: {element.type}
         </div>
       )

@@ -138,37 +138,41 @@ export function Playground() {
     const ta = textareaRef.current
     if (!ta) return
     const text = ta.value
-    // Find the element's "type": "X" in the JSON
     const typeStr = `"type": "${el.type}"`
-    let searchFrom = 0
-    let matchIndex = -1
     const distinguisher = el.content || el.src || el.label || el.bindRef
+    let searchFrom = 0
+    let bestStart = -1
+    let bestEnd = -1
+
     while (true) {
       const idx = text.indexOf(typeStr, searchFrom)
       if (idx === -1) break
-      matchIndex = idx
-      if (!distinguisher) break
-      const nearby = text.slice(idx, idx + 300)
-      if (nearby.includes(String(distinguisher))) break
+
+      // Find the enclosing { for this "type" occurrence
+      let braceStart = text.lastIndexOf('{', idx)
+      let depth = 1
+      let braceEnd = braceStart + 1
+      while (braceEnd < text.length && depth > 0) {
+        if (text[braceEnd] === '{') depth++
+        if (text[braceEnd] === '}') depth--
+        braceEnd++
+      }
+
+      // Check distinguisher within this specific block only
+      const block = text.slice(braceStart, braceEnd)
+      if (!distinguisher || block.includes(`"${String(distinguisher)}"`)) {
+        bestStart = braceStart
+        bestEnd = braceEnd
+        break
+      }
       searchFrom = idx + 1
     }
-    if (matchIndex === -1) return
-
-    // Find the opening brace of this element
-    let braceStart = text.lastIndexOf('{', matchIndex)
-    // Find the matching closing brace
-    let depth = 1
-    let braceEnd = braceStart + 1
-    while (braceEnd < text.length && depth > 0) {
-      if (text[braceEnd] === '{') depth++
-      if (text[braceEnd] === '}') depth--
-      braceEnd++
-    }
+    if (bestStart === -1) return
 
     // Calculate line numbers for highlight
     const lines = text.split('\n')
-    const startLine = text.slice(0, braceStart).split('\n').length - 1
-    const endLine = text.slice(0, braceEnd).split('\n').length - 1
+    const startLine = text.slice(0, bestStart).split('\n').length - 1
+    const endLine = text.slice(0, bestEnd).split('\n').length - 1
     setHighlightLines({ start: startLine, end: endLine })
 
     // Scroll: use character position to calculate proportional scroll

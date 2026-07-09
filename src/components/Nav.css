@@ -52,6 +52,24 @@
   border-bottom-color: var(--nba-tint);
 }
 
+.nav-launch-btn {
+  margin-left: auto;
+  padding: var(--space-2) var(--space-4);
+  background: var(--nba-tint);
+  color: #000;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  border-radius: var(--rounded-md);
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--duration-fast) var(--ease-default);
+}
+
+.nav-launch-btn:hover {
+  background: #ffe066;
+}
+
 @media (max-width: 768px) {
   .nav-inner {
     padding: var(--space-3) var(--space-4);

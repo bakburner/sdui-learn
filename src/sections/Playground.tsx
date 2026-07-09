@@ -120,6 +120,12 @@ export function Playground() {
       document.body.style.overflow = ''
     }
   }, [isFullscreen])
+
+  useEffect(() => {
+    const open = () => setIsFullscreen(true)
+    window.addEventListener('launch-editor', open)
+    return () => window.removeEventListener('launch-editor', open)
+  }, [])
   const [inspectedElement, setInspectedElement] = useState<Record<string, any> | null>(null)
   const { context: cursorContext, handleCursorChange } = useJsonCursorContext()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -200,7 +206,7 @@ export function Playground() {
         </p>
         <div className="open-playground-cta">
           <button className="open-playground-btn" onClick={() => setIsFullscreen(true)}>
-            Open Playground Editor
+            Launch Editor
           </button>
         </div>
       </div>

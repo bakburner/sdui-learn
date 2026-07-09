@@ -1,4 +1,5 @@
 import './App.css'
+import { PasswordGate } from './components/PasswordGate'
 import { Nav } from './components/Nav'
 import { Hero } from './sections/Hero'
 import { BeforeAfter } from './sections/BeforeAfter'
@@ -12,17 +13,19 @@ function App() {
   const activeSection = useScrollSpy()
 
   return (
-    <div className="app">
-      <Nav activeSection={activeSection} />
-      <main>
-        <Hero />
-        <BeforeAfter />
-        <HowItWorks />
-        <DayInTheLife />
-        <Playground />
-        <FAQ />
-      </main>
-    </div>
+    <PasswordGate>
+      <div className="app">
+        <Nav activeSection={activeSection} />
+        <main>
+          <Hero />
+          <BeforeAfter />
+          <HowItWorks />
+          <DayInTheLife />
+          <Playground />
+          <FAQ />
+        </main>
+      </div>
+    </PasswordGate>
   )
 }
 

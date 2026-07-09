@@ -849,7 +849,10 @@
 .selected-indicator {
   font-family: var(--font-mono);
   font-size: var(--text-xs);
-  color: var(--nba-tint);
+  color: var(--text-tertiary);
+  flex: 1;
+  text-align: center;
+  min-height: 1em;
 }
 
 .selected-indicator strong {
@@ -996,32 +999,6 @@
   width: 100%;
 }
 
-.atomic-hoverable:hover::after {
-  content: attr(data-type);
-  position: absolute;
-  top: -18px;
-  left: 0;
-  font-family: var(--font-mono);
-  font-size: 9px;
-  color: var(--nba-tint);
-  background: var(--surface);
-  z-index: 10;
-  max-width: 160px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  padding: 1px 4px;
-  border-radius: 2px;
-  pointer-events: none;
-  white-space: nowrap;
-}
-
-.atomic-hoverable:hover > .atomic-hoverable:hover::after {
-  content: none;
-}
-
-.atomic-hoverable:has(.atomic-hoverable:hover)::after {
-  content: none !important;
-}
 
 .atomic-text {
   display: block;

@@ -134,9 +134,11 @@ export function Playground() {
   const [editorMode, setEditorMode] = useState<'edit' | 'diff' | 'network'>('edit')
   const [baseJson] = useState(DEFAULT_JSON)
   const [selectedElement, setSelectedElement] = useState<string | null>(null)
+  const [selectedPath, setSelectedPath] = useState<string[]>([])
+  const [hoveredPath, setHoveredPath] = useState<string[]>([])
   const [highlightLines, setHighlightLines] = useState<{ primary: { start: number; end: number }; secondary?: { start: number; end: number } } | null>(null)
   const [validationExpanded, setValidationExpanded] = useState(false)
-  const [deviceFrame, setDeviceFrame] = useState<'phone' | 'tablet' | 'tv' | 'desktop' | 'watch'>('phone')
+  const [deviceFrame, setDeviceFrame] = useState<'phone' | 'tablet' | 'tv' | 'desktop'>('phone')
   const [copied, setCopied] = useState(false)
   const [history, setHistory] = useState<string[]>([DEFAULT_JSON])
   const [historyIndex, setHistoryIndex] = useState(0)
@@ -664,6 +666,16 @@ export function Playground() {
               <div className="playground-preview">
                 <div className="preview-toolbar">
                   <span className="toolbar-title">Preview</span>
+                  <span className="selected-indicator">
+                    {(() => {
+                      const displayPath = hoveredPath.length > 0 ? hoveredPath : selectedPath
+                      if (displayPath.length > 1) {
+                        return <>{displayPath.slice(0, -1).join(' › ')} › <strong>{displayPath[displayPath.length - 1]}</strong></>
+                      }
+                      if (displayPath.length === 1) return <strong>{displayPath[0]}</strong>
+                      return null
+                    })()}
+                  </span>
                   <div className="device-toggle">
                     <button className={`device-btn ${deviceFrame === 'desktop' ? 'active' : ''}`} onClick={() => setDeviceFrame('desktop')} title="Desktop / Web">
                       <svg width="18" height="16" viewBox="0 0 18 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="1" y="1" width="16" height="11" rx="1.5"/><path d="M4 14h10M7 12v2M11 12v2"/></svg>
@@ -677,21 +689,14 @@ export function Playground() {
                     <button className={`device-btn ${deviceFrame === 'tv' ? 'active' : ''}`} onClick={() => setDeviceFrame('tv')} title="Connected">
                       <svg width="18" height="16" viewBox="0 0 18 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="1" y="1" width="16" height="11" rx="1.5"/><line x1="6" y1="14" x2="12" y2="14"/><line x1="9" y1="12" x2="9" y2="14"/></svg>
                     </button>
-                    <button className={`device-btn ${deviceFrame === 'watch' ? 'active' : ''}`} onClick={() => setDeviceFrame('watch')} title="Watch">
-                      <svg width="14" height="18" viewBox="0 0 14 18" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="4" width="8" height="10" rx="3"/><path d="M5 4V2h4v2M5 14v2h4v-2"/></svg>
-                    </button>
                   </div>
-                  {selectedElement && (
-                    <span className="selected-indicator">
-                      Inspecting: <strong>{selectedElement}</strong>
-                    </span>
-                  )}
                 </div>
-                <div className={`preview-frame device-${deviceFrame}`}>
+                <div className={`preview-frame device-${deviceFrame}`} onMouseLeave={() => setHoveredPath([])}>
                   <div className="preview-content">
                     {parsedData ? (
-                      <SduiRenderer data={parsedData} selectedEl={inspectedElement} onSelectElement={(el) => {
+                      <SduiRenderer data={parsedData} selectedEl={inspectedElement} onHoverElement={(_el, path) => setHoveredPath(path)} onSelectElement={(el, path) => {
                         setSelectedElement(el.type)
+                        setSelectedPath(path)
                         setInspectedElement(el)
                         setEditorMode('edit')
                         setHighlightLines(null)
@@ -1305,7 +1310,7 @@ function NetworkView({ json }: { json: string }) {
 }
 
 // Lightweight SDUI renderer for the playground
-function SduiRenderer({ data, onSelectElement, selectedEl, onTextEdit }: { data: any; onSelectElement: (el: any) => void; selectedEl: any; onTextEdit?: (el: any, newText: string) => void }) {
+function SduiRenderer({ data, onSelectElement, onHoverElement, selectedEl, onTextEdit }: { data: any; onSelectElement: (el: any, path: string[]) => void; onHoverElement?: (el: any, path: string[]) => void; selectedEl: any; onTextEdit?: (el: any, newText: string) => void }) {
   const sections = data?.data?.sections || data?.sections
   if (!sections) return <div className="preview-empty">Add a "sections" array</div>
 
@@ -1315,7 +1320,7 @@ function SduiRenderer({ data, onSelectElement, selectedEl, onTextEdit }: { data:
         const ui = section.data?.ui || section.content
         return (
           <div key={section.id || section.sectionId || i} className="sdui-section">
-            {ui && <AtomicElement element={ui} onSelect={onSelectElement} selectedEl={selectedEl} onTextEdit={onTextEdit} />}
+            {ui && <AtomicElement element={ui} onSelect={onSelectElement} onHover={onHoverElement} selectedEl={selectedEl} onTextEdit={onTextEdit} />}
           </div>
         )
       })}
@@ -1323,7 +1328,7 @@ function SduiRenderer({ data, onSelectElement, selectedEl, onTextEdit }: { data:
   )
 }
 
-function EditableText({ element, isSelected, onClick, onTextEdit, dataType }: { element: any; isSelected: boolean; onClick: (e: React.MouseEvent) => void; onTextEdit?: (el: any, newText: string) => void; dataType?: string }) {
+function EditableText({ element, isSelected, onClick, onMouseEnter, onTextEdit, dataType }: { element: any; isSelected: boolean; onClick: (e: React.MouseEvent) => void; onMouseEnter?: (e: React.MouseEvent) => void; onTextEdit?: (el: any, newText: string) => void; dataType?: string }) {
   const [editing, setEditing] = useState(false)
   const [editValue, setEditValue] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -1364,6 +1369,7 @@ function EditableText({ element, isSelected, onClick, onTextEdit, dataType }: { 
       className={`atomic-text variant-${element.variant || 'bodyMedium'} atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`}
       style={{ color: element.color, fontWeight: element.weight === 'bold' ? 700 : element.weight === 'semiBold' ? 600 : undefined }}
       onClick={onClick}
+      onMouseEnter={onMouseEnter}
       onDoubleClick={(e) => { e.stopPropagation(); startEdit() }}
       data-type={dataType}
     >
@@ -1372,15 +1378,20 @@ function EditableText({ element, isSelected, onClick, onTextEdit, dataType }: { 
   )
 }
 
-function AtomicElement({ element, onSelect, selectedEl, onTextEdit, path = [] }: { element: any; onSelect: (el: any) => void; selectedEl: any; onTextEdit?: (el: any, newText: string) => void; path?: string[] }) {
+function AtomicElement({ element, onSelect, onHover, selectedEl, onTextEdit, path = [] }: { element: any; onSelect: (el: any, path: string[]) => void; onHover?: (el: any, path: string[]) => void; selectedEl: any; onTextEdit?: (el: any, newText: string) => void; path?: string[] }) {
   if (!element || !element.type) return null
   const isSelected = element === selectedEl
   const currentPath = [...path, element.type]
-  const pathString = path.length > 0 ? `${path[path.length - 1]} › ${element.type}` : element.type
+  const pathString = currentPath.join(' › ')
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation()
-    onSelect(element)
+    onSelect(element, currentPath)
+  }
+
+  const handleMouseEnter = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    onHover?.(element, currentPath)
   }
 
   switch (element.type) {
@@ -1389,6 +1400,7 @@ function AtomicElement({ element, onSelect, selectedEl, onTextEdit, path = [] }:
         <div
           className={`atomic-container atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`}
           onClick={handleClick}
+          onMouseEnter={handleMouseEnter}
           data-type={pathString}
           style={{
             flexDirection: element.direction === 'row' ? 'row' : 'column',
@@ -1402,7 +1414,7 @@ function AtomicElement({ element, onSelect, selectedEl, onTextEdit, path = [] }:
           }}
         >
           {element.children?.map((child: any, i: number) => (
-            <AtomicElement key={i} element={child} onSelect={onSelect} selectedEl={selectedEl} onTextEdit={onTextEdit} path={currentPath} />
+            <AtomicElement key={i} element={child} onSelect={onSelect} onHover={onHover} selectedEl={selectedEl} onTextEdit={onTextEdit} path={currentPath} />
           ))}
         </div>
       )
@@ -1412,6 +1424,7 @@ function AtomicElement({ element, onSelect, selectedEl, onTextEdit, path = [] }:
           element={element}
           isSelected={isSelected}
           onClick={handleClick}
+          onMouseEnter={handleMouseEnter}
           onTextEdit={onTextEdit}
           dataType={pathString}
         />
@@ -1420,14 +1433,15 @@ function AtomicElement({ element, onSelect, selectedEl, onTextEdit, path = [] }:
       return (
         <div
           className={`atomic-image atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`}
-          style={{ width: element.width, height: element.height }}
+          style={{ width: element.width || '100%', height: element.height, borderRadius: radiusValue(element.cornerRadius), overflow: 'hidden' }}
           onClick={handleClick}
+          onMouseEnter={handleMouseEnter}
           data-type={pathString}
         >
           <img
             src={element.src || element.url}
             alt={element.accessibility?.label || element.alt || ''}
-            style={{ width: '100%', height: '100%', objectFit: (element.fit as any) || 'contain' }}
+            style={{ width: '100%', height: '100%', objectFit: (element.fit as any) || 'contain', display: 'block' }}
             onError={(e) => {
               (e.target as HTMLImageElement).style.display = 'none'
               const parent = (e.target as HTMLImageElement).parentElement
@@ -1441,6 +1455,7 @@ function AtomicElement({ element, onSelect, selectedEl, onTextEdit, path = [] }:
         <button
           className={`atomic-button button-${element.variant || 'primary'} atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`}
           onClick={handleClick}
+          onMouseEnter={handleMouseEnter}
           data-type={pathString}
         >
           {element.label}
@@ -1448,43 +1463,43 @@ function AtomicElement({ element, onSelect, selectedEl, onTextEdit, path = [] }:
       )
     case 'Spacer':
       return (
-        <div className={`atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`} style={{ height: tokenToPixels(element.height) || tokenToPixels(element.width) || element.size || 8 }} onClick={handleClick} data-type={pathString} />
+        <div className={`atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`} style={{ height: tokenToPixels(element.height) || tokenToPixels(element.width) || element.size || 8 }} onClick={handleClick} onMouseEnter={handleMouseEnter} data-type={pathString} />
       )
     case 'Divider':
-      return <div className={`atomic-divider atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`} onClick={handleClick} data-type={pathString} />
+      return <div className={`atomic-divider atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`} onClick={handleClick} onMouseEnter={handleMouseEnter} data-type={pathString} />
     case 'LiveClock':
       return (
-        <span className={`atomic-text variant-${element.variant || 'bodyMedium'} atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`} onClick={handleClick} data-type={pathString}>
+        <span className={`atomic-text variant-${element.variant || 'bodyMedium'} atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`} onClick={handleClick} onMouseEnter={handleMouseEnter} data-type={pathString}>
           {formatClock(element.snapshotSeconds, element.format)}
         </span>
       )
     case 'Conditional':
       return (
-        <div className={`atomic-conditional atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`} onClick={handleClick} data-type={pathString}>
+        <div className={`atomic-conditional atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`} onClick={handleClick} onMouseEnter={handleMouseEnter} data-type={pathString}>
           <span className="conditional-badge">IF</span>
-          <AtomicElement element={element.then} onSelect={onSelect} selectedEl={selectedEl} onTextEdit={onTextEdit} path={currentPath} />
+          <AtomicElement element={element.then} onSelect={onSelect} onHover={onHover} selectedEl={selectedEl} onTextEdit={onTextEdit} path={currentPath} />
         </div>
       )
     case 'ScrollContainer':
       return (
-        <div className={`atomic-container atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`} onClick={handleClick} style={{ flexDirection: 'row', overflowX: 'auto', gap: gapValue(element.gap) }} data-type={pathString}>
+        <div className={`atomic-container atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`} onClick={handleClick} onMouseEnter={handleMouseEnter} style={{ flexDirection: 'row', overflowX: 'auto', gap: gapValue(element.gap) }} data-type={pathString}>
           {element.children?.map((child: any, i: number) => (
-            <AtomicElement key={i} element={child} onSelect={onSelect} selectedEl={selectedEl} onTextEdit={onTextEdit} path={currentPath} />
+            <AtomicElement key={i} element={child} onSelect={onSelect} onHover={onHover} selectedEl={selectedEl} onTextEdit={onTextEdit} path={currentPath} />
           ))}
         </div>
       )
     case 'OverlayContainer':
       return (
-        <div className={`atomic-container atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`} onClick={handleClick} style={{ position: 'relative' }} data-type={pathString}>
-          {element.base && <AtomicElement element={element.base} onSelect={onSelect} selectedEl={selectedEl} onTextEdit={onTextEdit} path={currentPath} />}
+        <div className={`atomic-container atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`} onClick={handleClick} onMouseEnter={handleMouseEnter} style={{ position: 'relative' }} data-type={pathString}>
+          {element.base && <AtomicElement element={element.base} onSelect={onSelect} onHover={onHover} selectedEl={selectedEl} onTextEdit={onTextEdit} path={currentPath} />}
           {element.overlays?.map((child: any, i: number) => (
-            <AtomicElement key={i} element={child} onSelect={onSelect} selectedEl={selectedEl} onTextEdit={onTextEdit} path={currentPath} />
+            <AtomicElement key={i} element={child} onSelect={onSelect} onHover={onHover} selectedEl={selectedEl} onTextEdit={onTextEdit} path={currentPath} />
           ))}
         </div>
       )
     default:
       return (
-        <div className={`atomic-unknown atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`} onClick={handleClick} data-type={pathString}>
+        <div className={`atomic-unknown atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`} onClick={handleClick} onMouseEnter={handleMouseEnter} data-type={pathString}>
           Unknown: {element.type}
         </div>
       )
@@ -1904,6 +1919,8 @@ const EXAMPLE_NEWS_CARD = `{
         "backgrounds": [{ "color": "#191C23" }],
         "cornerRadius": "lg",
         "children": [
+          { "type": "Image", "src": "${import.meta.env.BASE_URL}news-lakers.png", "height": 200, "fit": "cover", "cornerRadius": "md" },
+          { "type": "Spacer", "size": 4 },
           { "type": "Text", "content": "BREAKING", "variant": "labelSmall", "color": "#C8102E" },
           { "type": "Text", "content": "Lakers Acquire All-Star in Blockbuster Trade", "variant": "headlineSmall" },
           { "type": "Text", "content": "The Los Angeles Lakers have completed a trade sending two first-round picks for a three-time All-Star, sources confirm.", "variant": "bodyMedium", "color": "#8E9196" },

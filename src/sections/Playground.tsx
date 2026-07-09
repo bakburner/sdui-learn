@@ -132,7 +132,6 @@ export function Playground() {
   const [editorMode, setEditorMode] = useState<'edit' | 'diff' | 'network'>('edit')
   const [baseJson] = useState(DEFAULT_JSON)
   const [selectedElement, setSelectedElement] = useState<string | null>(null)
-  const [selectedContext, setSelectedContext] = useState<{ parentChildren: any[] | null; index: number } | null>(null)
   const [highlightLines, setHighlightLines] = useState<{ start: number; end: number } | null>(null)
 
   const scrollToElement = useCallback((el: Record<string, any>) => {
@@ -243,20 +242,6 @@ export function Playground() {
     } catch (e) {
       setParseError((e as Error).message)
     }
-  }
-
-  const handleReorder = (fromIndex: number, toIndex: number) => {
-    if (!selectedContext?.parentChildren) return
-    const cloned = JSON.parse(JSON.stringify(parsedData))
-    // Find the matching children array in the cloned tree
-    const parentArr = findArrayInTree(cloned, selectedContext.parentChildren)
-    if (!parentArr) return
-    const item = parentArr[fromIndex]
-    parentArr.splice(fromIndex, 1)
-    parentArr.splice(toIndex, 0, item)
-    const updated = JSON.stringify(cloned, null, 2)
-    setJsonInput(updated)
-    setParsedData(cloned)
   }
 
   const handleEditorCursor = () => {
@@ -425,10 +410,9 @@ export function Playground() {
                 <div className="preview-frame">
                   <div className="preview-content">
                     {parsedData ? (
-                      <SduiRenderer data={parsedData} onSelectElement={(el, parentChildren, index) => {
+                      <SduiRenderer data={parsedData} onSelectElement={(el) => {
                         setSelectedElement(el.type)
                         setInspectedElement(el)
-                        setSelectedContext(parentChildren ? { parentChildren, index: index! } : null)
                         setEditorMode('edit')
                         setTimeout(() => scrollToElement(el), 50)
                       }} />
@@ -437,53 +421,6 @@ export function Playground() {
                     )}
                   </div>
                 </div>
-                {selectedContext && selectedContext.parentChildren && (
-                  <div className="position-toolbar">
-                    <span className="position-label">{selectedElement}</span>
-                    <div className="position-buttons">
-                      <button
-                        className="position-btn"
-                        disabled={selectedContext.index === 0}
-                        onClick={() => {
-                          const newIndex = selectedContext.index - 1
-                          handleReorder(selectedContext.index, newIndex)
-                          setSelectedContext({ ...selectedContext, index: newIndex })
-                        }}
-                        title="Move left / up"
-                      >←</button>
-                      <button
-                        className="position-btn"
-                        disabled={selectedContext.index === 0}
-                        onClick={() => {
-                          const newIndex = selectedContext.index - 1
-                          handleReorder(selectedContext.index, newIndex)
-                          setSelectedContext({ ...selectedContext, index: newIndex })
-                        }}
-                        title="Move up"
-                      >↑</button>
-                      <button
-                        className="position-btn"
-                        disabled={selectedContext.index >= selectedContext.parentChildren!.length - 1}
-                        onClick={() => {
-                          const newIndex = selectedContext.index + 1
-                          handleReorder(selectedContext.index, newIndex)
-                          setSelectedContext({ ...selectedContext, index: newIndex })
-                        }}
-                        title="Move down"
-                      >↓</button>
-                      <button
-                        className="position-btn"
-                        disabled={selectedContext.index >= selectedContext.parentChildren!.length - 1}
-                        onClick={() => {
-                          const newIndex = selectedContext.index + 1
-                          handleReorder(selectedContext.index, newIndex)
-                          setSelectedContext({ ...selectedContext, index: newIndex })
-                        }}
-                        title="Move right / down"
-                      >→</button>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
 
@@ -1131,7 +1068,7 @@ function NetworkView({ json }: { json: string }) {
 }
 
 // Lightweight SDUI renderer for the playground
-function SduiRenderer({ data, onSelectElement }: { data: any; onSelectElement: (el: any, parentChildren?: any[] | null, index?: number) => void }) {
+function SduiRenderer({ data, onSelectElement }: { data: any; onSelectElement: (el: any) => void }) {
   const sections = data?.data?.sections || data?.sections
   if (!sections) return <div className="preview-empty">Add a "sections" array</div>
 
@@ -1141,7 +1078,7 @@ function SduiRenderer({ data, onSelectElement }: { data: any; onSelectElement: (
         const ui = section.data?.ui || section.content
         return (
           <div key={section.id || section.sectionId || i} className="sdui-section">
-            {ui && <AtomicElement element={ui} onSelect={onSelectElement} parentChildren={null} index={0} />}
+            {ui && <AtomicElement element={ui} onSelect={onSelectElement} />}
           </div>
         )
       })}
@@ -1149,12 +1086,12 @@ function SduiRenderer({ data, onSelectElement }: { data: any; onSelectElement: (
   )
 }
 
-function AtomicElement({ element, onSelect, parentChildren, index }: { element: any; onSelect: (el: any, parentChildren?: any[] | null, index?: number) => void; parentChildren: any[] | null; index: number }) {
+function AtomicElement({ element, onSelect }: { element: any; onSelect: (el: any) => void }) {
   if (!element || !element.type) return null
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation()
-    onSelect(element, parentChildren, index)
+    onSelect(element)
   }
 
   switch (element.type) {
@@ -1175,7 +1112,7 @@ function AtomicElement({ element, onSelect, parentChildren, index }: { element: 
           }}
         >
           {element.children?.map((child: any, i: number) => (
-            <AtomicElement key={i} element={child} onSelect={onSelect} parentChildren={element.children} index={i} />
+            <AtomicElement key={i} element={child} onSelect={onSelect} />
           ))}
         </div>
       )
@@ -1233,23 +1170,23 @@ function AtomicElement({ element, onSelect, parentChildren, index }: { element: 
       return (
         <div className="atomic-conditional atomic-hoverable" onClick={handleClick}>
           <span className="conditional-badge">IF</span>
-          <AtomicElement element={element.then} onSelect={onSelect} parentChildren={null} index={0} />
+          <AtomicElement element={element.then} onSelect={onSelect} />
         </div>
       )
     case 'ScrollContainer':
       return (
         <div className="atomic-container atomic-hoverable" onClick={handleClick} style={{ flexDirection: 'row', overflowX: 'auto', gap: gapValue(element.gap) }}>
           {element.children?.map((child: any, i: number) => (
-            <AtomicElement key={i} element={child} onSelect={onSelect} parentChildren={element.children} index={i} />
+            <AtomicElement key={i} element={child} onSelect={onSelect} />
           ))}
         </div>
       )
     case 'OverlayContainer':
       return (
         <div className="atomic-container atomic-hoverable" onClick={handleClick} style={{ position: 'relative' }}>
-          {element.base && <AtomicElement element={element.base} onSelect={onSelect} parentChildren={null} index={0} />}
+          {element.base && <AtomicElement element={element.base} onSelect={onSelect} />}
           {element.overlays?.map((child: any, i: number) => (
-            <AtomicElement key={i} element={child} onSelect={onSelect} parentChildren={element.overlays} index={i} />
+            <AtomicElement key={i} element={child} onSelect={onSelect} />
           ))}
         </div>
       )
@@ -1292,20 +1229,6 @@ function formatClock(seconds: number | undefined, format: string | undefined): s
   const s = seconds % 60
   if (format === 'mm:ss') return `${m}:${s.toString().padStart(2, '0')}`
   return `${m}:${s.toString().padStart(2, '0')}`
-}
-
-function findArrayInTree(obj: any, target: any[]): any[] | null {
-  if (!obj || typeof obj !== 'object') return null
-  if (Array.isArray(obj)) {
-    if (obj.length === target.length && obj.every((item, i) => item?.type === target[i]?.type)) {
-      return obj
-    }
-  }
-  for (const key of Object.keys(obj)) {
-    const result = findArrayInTree(obj[key], target)
-    if (result) return result
-  }
-  return null
 }
 
 function tokenToPixels(token: string | number | undefined): number | undefined {

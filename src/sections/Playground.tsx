@@ -132,6 +132,55 @@ export function Playground() {
   const [editorMode, setEditorMode] = useState<'edit' | 'diff' | 'network'>('edit')
   const [baseJson] = useState(DEFAULT_JSON)
   const [selectedElement, setSelectedElement] = useState<string | null>(null)
+  const [highlightLines, setHighlightLines] = useState<{ start: number; end: number } | null>(null)
+
+  const scrollToElement = useCallback((el: Record<string, any>) => {
+    const ta = textareaRef.current
+    if (!ta) return
+    // Find the element's "type": "X" in the JSON and select that block
+    const typeStr = `"type": "${el.type}"`
+    let searchFrom = 0
+    let matchIndex = -1
+    // If there are multiple elements of the same type, find one with a matching distinguishing property
+    const distinguisher = el.content || el.src || el.label || el.bindRef
+    while (true) {
+      const idx = jsonInput.indexOf(typeStr, searchFrom)
+      if (idx === -1) break
+      matchIndex = idx
+      if (!distinguisher) break
+      // Check if the distinguishing value is nearby (within 300 chars)
+      const nearby = jsonInput.slice(idx, idx + 300)
+      if (nearby.includes(String(distinguisher))) break
+      searchFrom = idx + 1
+    }
+    if (matchIndex === -1) return
+
+    // Find the opening brace of this element
+    let braceStart = jsonInput.lastIndexOf('{', matchIndex)
+    // Find the matching closing brace
+    let depth = 1
+    let braceEnd = braceStart + 1
+    while (braceEnd < jsonInput.length && depth > 0) {
+      if (jsonInput[braceEnd] === '{') depth++
+      if (jsonInput[braceEnd] === '}') depth--
+      braceEnd++
+    }
+
+    // Calculate line numbers for highlight
+    const startLine = jsonInput.slice(0, braceStart).split('\n').length - 1
+    const endLine = jsonInput.slice(0, braceEnd).split('\n').length - 1
+    setHighlightLines({ start: startLine, end: endLine })
+
+    // Scroll textarea to center the element
+    ta.focus()
+    ta.setSelectionRange(braceStart, braceEnd)
+    const totalLines = jsonInput.split('\n').length
+    const scrollTarget = (startLine / totalLines) * ta.scrollHeight - ta.clientHeight / 3
+    ta.scrollTop = Math.max(0, scrollTarget)
+
+    // Clear highlight after a delay
+    setTimeout(() => setHighlightLines(null), 2500)
+  }, [jsonInput])
 
   useEffect(() => {
     if (!isFullscreen) return
@@ -306,15 +355,31 @@ export function Playground() {
                 </div>
                 {editorMode === 'edit' && (
                   <>
-                    <textarea
-                      ref={textareaRef}
-                      className="editor-textarea"
-                      value={jsonInput}
-                      onChange={(e) => handleChange(e.target.value)}
-                      onClick={handleEditorCursor}
-                      onKeyUp={handleEditorCursor}
-                      spellCheck={false}
-                    />
+                    <div className="editor-wrapper">
+                      {highlightLines && (
+                        <div className="editor-highlight-overlay" aria-hidden="true">
+                          {jsonInput.split('\n').map((_, i) => (
+                            <div
+                              key={i}
+                              className={`highlight-line ${i >= highlightLines.start && i <= highlightLines.end ? 'active' : ''}`}
+                            />
+                          ))}
+                        </div>
+                      )}
+                      <textarea
+                        ref={textareaRef}
+                        className="editor-textarea"
+                        value={jsonInput}
+                        onChange={(e) => handleChange(e.target.value)}
+                        onClick={handleEditorCursor}
+                        onKeyUp={handleEditorCursor}
+                        spellCheck={false}
+                        onScroll={(e) => {
+                          const overlay = (e.target as HTMLElement).previousElementSibling as HTMLElement | null
+                          if (overlay) overlay.scrollTop = (e.target as HTMLElement).scrollTop
+                        }}
+                      />
+                    </div>
                     {parseError && (
                       <div className="editor-error">
                         <span className="error-icon">✕</span>
@@ -346,6 +411,8 @@ export function Playground() {
                       <SduiRenderer data={parsedData} onSelectElement={(el) => {
                         setSelectedElement(el.type)
                         setInspectedElement(el)
+                        setEditorMode('edit')
+                        scrollToElement(el)
                       }} />
                     ) : (
                       <div className="preview-empty">Fix the JSON to see a preview</div>
@@ -361,6 +428,13 @@ export function Playground() {
                 focusedProperty={cursorContext.propertyName}
                 onInsertSnippet={handleInsertSnippet}
                 onPropertyChange={handlePropertyChange}
+                onSelectType={(type) => {
+                  const typeStr = `"type": "${type}"`
+                  const idx = jsonInput.indexOf(typeStr)
+                  if (idx === -1) return
+                  setSelectedElement(type)
+                  scrollToElement({ type })
+                }}
               />
             )}
             {showPlatform && (
@@ -371,7 +445,7 @@ export function Playground() {
           </div>
 
           {selectedElement && inspectedElement && (
-            <PropertyInspector elementType={selectedElement} elementData={inspectedElement} />
+            <PropertyInspector elementType={selectedElement} elementData={inspectedElement} onFocus={() => scrollToElement(inspectedElement)} />
           )}
         </div>
       )}
@@ -379,7 +453,7 @@ export function Playground() {
   )
 }
 
-function PropertyInspector({ elementType, elementData }: { elementType: string; elementData: Record<string, any> }) {
+function PropertyInspector({ elementType, elementData, onFocus }: { elementType: string; elementData: Record<string, any>; onFocus?: () => void }) {
   const schema = ELEMENT_SCHEMAS[elementType]
   if (!schema) return null
 
@@ -387,9 +461,9 @@ function PropertyInspector({ elementType, elementData }: { elementType: string; 
 
   return (
     <div className="property-inspector">
-      <div className="inspector-header">
+      <div className="inspector-header" onClick={onFocus} style={{ cursor: onFocus ? 'pointer' : undefined }}>
         <span className="inspector-type">{elementType}</span>
-        <span className="inspector-hint">Current values for this instance</span>
+        <span className="inspector-hint">{onFocus ? 'Click to locate in editor' : 'Current values for this instance'}</span>
       </div>
       <div className="inspector-grid">
         {schema.properties.map((prop) => {

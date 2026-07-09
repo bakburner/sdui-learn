@@ -600,9 +600,37 @@
   color: var(--text-primary);
 }
 
+.editor-wrapper {
+  position: relative;
+  flex: 1;
+  display: flex;
+  min-height: 400px;
+  background: var(--code-bg);
+}
+
+.editor-highlight-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  padding: var(--space-4) 0;
+  z-index: 1;
+}
+
+.highlight-line {
+  height: 1.6em;
+  width: 100%;
+}
+
+.highlight-line.active {
+  background: rgba(251, 205, 68, 0.22);
+  border-left: 3px solid var(--nba-tint);
+}
+
 .editor-textarea {
   flex: 1;
-  background: var(--code-bg);
+  width: 100%;
+  background: transparent;
   color: var(--code-text);
   font-family: var(--font-mono);
   font-size: var(--text-sm);
@@ -612,6 +640,8 @@
   resize: none;
   outline: none;
   min-height: 400px;
+  position: relative;
+  z-index: 2;
 }
 
 .editor-error {

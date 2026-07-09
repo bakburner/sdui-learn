@@ -6,9 +6,10 @@ interface SchemaReferenceProps {
   focusedProperty?: string | null
   onInsertSnippet: (snippet: string) => void
   onPropertyChange?: (elementType: string, property: string, value: string) => void
+  onSelectType?: (elementType: string) => void
 }
 
-export function SchemaReference({ selectedElement, focusedProperty, onInsertSnippet, onPropertyChange }: SchemaReferenceProps) {
+export function SchemaReference({ selectedElement, focusedProperty, onInsertSnippet, onPropertyChange, onSelectType }: SchemaReferenceProps) {
   const [activeTab, setActiveTab] = useState<'elements' | 'tokens' | 'actions'>('elements')
   const [expandedElement, setExpandedElement] = useState<string | null>(selectedElement)
 
@@ -50,7 +51,10 @@ export function SchemaReference({ selectedElement, focusedProperty, onInsertSnip
           <ElementsTab
             expanded={expandedElement}
             focusedProperty={focusedProperty}
-            onExpand={setExpandedElement}
+            onExpand={(type) => {
+              setExpandedElement(type)
+              if (type && onSelectType) onSelectType(type)
+            }}
             onInsert={onInsertSnippet}
             onValueClick={onPropertyChange}
           />

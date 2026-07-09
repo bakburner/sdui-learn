@@ -590,9 +590,15 @@ export function Playground() {
                 <div className="preview-toolbar">
                   <span className="toolbar-title">Preview</span>
                   <div className="device-toggle">
-                    <button className={`device-btn ${deviceFrame === 'phone' ? 'active' : ''}`} onClick={() => setDeviceFrame('phone')} title="Phone">📱</button>
-                    <button className={`device-btn ${deviceFrame === 'tablet' ? 'active' : ''}`} onClick={() => setDeviceFrame('tablet')} title="Tablet">📋</button>
-                    <button className={`device-btn ${deviceFrame === 'watch' ? 'active' : ''}`} onClick={() => setDeviceFrame('watch')} title="Watch">⌚</button>
+                    <button className={`device-btn ${deviceFrame === 'phone' ? 'active' : ''}`} onClick={() => setDeviceFrame('phone')} title="Phone">
+                      <svg width="12" height="18" viewBox="0 0 12 18" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="1" y="1" width="10" height="16" rx="2"/><line x1="5" y1="14" x2="7" y2="14"/></svg>
+                    </button>
+                    <button className={`device-btn ${deviceFrame === 'tablet' ? 'active' : ''}`} onClick={() => setDeviceFrame('tablet')} title="Tablet">
+                      <svg width="16" height="18" viewBox="0 0 16 18" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="1" y="1" width="14" height="16" rx="2"/><line x1="7" y1="14" x2="9" y2="14"/></svg>
+                    </button>
+                    <button className={`device-btn ${deviceFrame === 'watch' ? 'active' : ''}`} onClick={() => setDeviceFrame('watch')} title="Watch">
+                      <svg width="14" height="18" viewBox="0 0 14 18" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="4" width="8" height="10" rx="3"/><path d="M5 4V2h4v2M5 14v2h4v-2"/></svg>
+                    </button>
                   </div>
                   {selectedElement && (
                     <span className="selected-indicator">

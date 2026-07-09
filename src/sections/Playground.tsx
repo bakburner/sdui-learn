@@ -130,7 +130,7 @@ export function Playground() {
   const [showReference, setShowReference] = useState(false)
   const [showPlatform, setShowPlatform] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
-  const [showOnboarding, setShowOnboarding] = useState(true)
+  const [showOnboarding, setShowOnboarding] = useState(false)
   const [editorMode, setEditorMode] = useState<'edit' | 'diff' | 'network'>('edit')
   const [baseJson] = useState(DEFAULT_JSON)
   const [selectedElement, setSelectedElement] = useState<string | null>(null)
@@ -500,6 +500,12 @@ export function Playground() {
                 onClick={() => { setShowPlatform(!showPlatform); if (!showPlatform) setShowReference(false) }}
               >
                 {showPlatform ? '✕ Platform' : '💻 Platform'}
+              </button>
+              <button
+                className="help-toggle"
+                onClick={() => setShowOnboarding(true)}
+              >
+                ? Help
               </button>
               <button
                 className="fullscreen-toggle"

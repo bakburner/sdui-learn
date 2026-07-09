@@ -138,6 +138,8 @@ export function Playground() {
   const [validationExpanded, setValidationExpanded] = useState(false)
   const [deviceFrame, setDeviceFrame] = useState<'phone' | 'tablet' | 'tv' | 'desktop' | 'watch'>('phone')
   const [copied, setCopied] = useState(false)
+  const [history, setHistory] = useState<string[]>([DEFAULT_JSON])
+  const [historyIndex, setHistoryIndex] = useState(0)
 
   const scrollToElement = useCallback((el: Record<string, any>) => {
     const ta = textareaRef.current
@@ -214,7 +216,7 @@ export function Playground() {
     const overlay = ta.parentElement?.querySelector('.editor-highlight-overlay') as HTMLElement | null
     if (overlay) overlay.scrollTop = targetScroll
 
-    setTimeout(() => setHighlightLines(null), 3000)
+    // Don't auto-clear - highlight persists until next selection
   }, [jsonInput])
 
   useEffect(() => {
@@ -249,7 +251,13 @@ export function Playground() {
     } catch (e) {
       setParseError((e as Error).message)
     }
-  }, [])
+
+    // Add to history (debounced via timeout)
+    const newHistory = history.slice(0, historyIndex + 1)
+    newHistory.push(value)
+    setHistory(newHistory)
+    setHistoryIndex(newHistory.length - 1)
+  }, [history, historyIndex])
 
   const handleReset = () => {
     setJsonInput(DEFAULT_JSON)
@@ -273,6 +281,53 @@ export function Playground() {
       setTimeout(() => setCopied(false), 2000)
     })
   }
+
+  const handleUndo = () => {
+    if (historyIndex > 0) {
+      const newIndex = historyIndex - 1
+      setHistoryIndex(newIndex)
+      const value = history[newIndex]
+      setJsonInput(value)
+      try {
+        const parsed = JSON.parse(value)
+        setParsedData(parsed)
+        setParseError(null)
+      } catch (e) {
+        setParseError((e as Error).message)
+      }
+    }
+  }
+
+  const handleRedo = () => {
+    if (historyIndex < history.length - 1) {
+      const newIndex = historyIndex + 1
+      setHistoryIndex(newIndex)
+      const value = history[newIndex]
+      setJsonInput(value)
+      try {
+        const parsed = JSON.parse(value)
+        setParsedData(parsed)
+        setParseError(null)
+      } catch (e) {
+        setParseError((e as Error).message)
+      }
+    }
+  }
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
+        e.preventDefault()
+        if (e.shiftKey) {
+          handleRedo()
+        } else {
+          handleUndo()
+        }
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [historyIndex, history])
 
   const handleInsertSnippet = (snippet: string) => {
     setJsonInput(snippet)
@@ -472,6 +527,8 @@ export function Playground() {
                     <button className={`mode-tab ${editorMode === 'network' ? 'active' : ''}`} onClick={() => setEditorMode('network')}>Network</button>
                   </div>
                   <div className="toolbar-actions">
+                    <button className="toolbar-btn" onClick={handleUndo} disabled={historyIndex === 0}>Undo</button>
+                    <button className="toolbar-btn" onClick={handleRedo} disabled={historyIndex === history.length - 1}>Redo</button>
                     <button className="toolbar-btn" onClick={handleCopyJson}>{copied ? '✓ Copied' : 'Copy'}</button>
                     <button className="toolbar-btn" onClick={handleFormat}>Format</button>
                     <button className="toolbar-btn" onClick={handleReset}>Reset</button>
@@ -504,6 +561,23 @@ export function Playground() {
                                   <span
                                     className={`gutter-marker ${marker.severity}`}
                                     title={marker.message}
+                                    onClick={() => {
+                                      const ta = textareaRef.current
+                                      if (!ta) return
+                                      const lines = ta.value.split('\n')
+                                      let charPos = 0
+                                      for (let l = 0; l < marker.line && l < lines.length; l++) {
+                                        charPos += lines[l].length + 1
+                                      }
+                                      ta.focus()
+                                      ta.setSelectionRange(charPos, charPos + (lines[marker.line]?.length || 0))
+                                      const lineHeight = ta.scrollHeight / lines.length
+                                      const targetScroll = Math.max(0, marker.line * lineHeight - ta.clientHeight / 3)
+                                      ta.scrollTop = targetScroll
+                                      const overlay = ta.parentElement?.querySelector('.editor-highlight-overlay') as HTMLElement | null
+                                      if (overlay) overlay.scrollTop = targetScroll
+                                      setHighlightLines({ primary: { start: marker.line, end: marker.line } })
+                                    }}
                                   >
                                     {marker.severity === 'error' ? '●' : '◐'}
                                   </span>
@@ -560,7 +634,6 @@ export function Playground() {
                                   const targetScroll = Math.max(0, m.line * lineHeight - ta.clientHeight / 3)
                                   ta.scrollTop = targetScroll
                                   setHighlightLines({ primary: { start: m.line, end: m.line } })
-                                  setTimeout(() => setHighlightLines(null), 2000)
                                 }}
                               >
                                 <span className="validation-item-marker">{m.severity === 'error' ? '●' : '◐'}</span>
@@ -621,6 +694,7 @@ export function Playground() {
                         setSelectedElement(el.type)
                         setInspectedElement(el)
                         setEditorMode('edit')
+                        setHighlightLines(null)
                         setTimeout(() => scrollToElement(el), 50)
                       }} onTextEdit={(el, newText) => {
                         const prop = el.content !== undefined ? 'content' : 'text'
@@ -1249,7 +1323,7 @@ function SduiRenderer({ data, onSelectElement, selectedEl, onTextEdit }: { data:
   )
 }
 
-function EditableText({ element, isSelected, onClick, onTextEdit }: { element: any; isSelected: boolean; onClick: (e: React.MouseEvent) => void; onTextEdit?: (el: any, newText: string) => void }) {
+function EditableText({ element, isSelected, onClick, onTextEdit, dataType }: { element: any; isSelected: boolean; onClick: (e: React.MouseEvent) => void; onTextEdit?: (el: any, newText: string) => void; dataType?: string }) {
   const [editing, setEditing] = useState(false)
   const [editValue, setEditValue] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -1291,16 +1365,18 @@ function EditableText({ element, isSelected, onClick, onTextEdit }: { element: a
       style={{ color: element.color, fontWeight: element.weight === 'bold' ? 700 : element.weight === 'semiBold' ? 600 : undefined }}
       onClick={onClick}
       onDoubleClick={(e) => { e.stopPropagation(); startEdit() }}
-      title="Double-click to edit text"
+      data-type={dataType}
     >
       {element.content || element.text}
     </span>
   )
 }
 
-function AtomicElement({ element, onSelect, selectedEl, onTextEdit }: { element: any; onSelect: (el: any) => void; selectedEl: any; onTextEdit?: (el: any, newText: string) => void }) {
+function AtomicElement({ element, onSelect, selectedEl, onTextEdit, path = [] }: { element: any; onSelect: (el: any) => void; selectedEl: any; onTextEdit?: (el: any, newText: string) => void; path?: string[] }) {
   if (!element || !element.type) return null
   const isSelected = element === selectedEl
+  const currentPath = [...path, element.type]
+  const pathString = path.length > 0 ? `${path[path.length - 1]} › ${element.type}` : element.type
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -1313,6 +1389,7 @@ function AtomicElement({ element, onSelect, selectedEl, onTextEdit }: { element:
         <div
           className={`atomic-container atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`}
           onClick={handleClick}
+          data-type={pathString}
           style={{
             flexDirection: element.direction === 'row' ? 'row' : 'column',
             gap: gapValue(element.gap),
@@ -1325,7 +1402,7 @@ function AtomicElement({ element, onSelect, selectedEl, onTextEdit }: { element:
           }}
         >
           {element.children?.map((child: any, i: number) => (
-            <AtomicElement key={i} element={child} onSelect={onSelect} selectedEl={selectedEl} onTextEdit={onTextEdit} />
+            <AtomicElement key={i} element={child} onSelect={onSelect} selectedEl={selectedEl} onTextEdit={onTextEdit} path={currentPath} />
           ))}
         </div>
       )
@@ -1336,6 +1413,7 @@ function AtomicElement({ element, onSelect, selectedEl, onTextEdit }: { element:
           isSelected={isSelected}
           onClick={handleClick}
           onTextEdit={onTextEdit}
+          dataType={pathString}
         />
       )
     case 'Image':
@@ -1344,6 +1422,7 @@ function AtomicElement({ element, onSelect, selectedEl, onTextEdit }: { element:
           className={`atomic-image atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`}
           style={{ width: element.width, height: element.height }}
           onClick={handleClick}
+          data-type={pathString}
         >
           <img
             src={element.src || element.url}
@@ -1362,49 +1441,50 @@ function AtomicElement({ element, onSelect, selectedEl, onTextEdit }: { element:
         <button
           className={`atomic-button button-${element.variant || 'primary'} atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`}
           onClick={handleClick}
+          data-type={pathString}
         >
           {element.label}
         </button>
       )
     case 'Spacer':
       return (
-        <div className={`atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`} style={{ height: tokenToPixels(element.height) || tokenToPixels(element.width) || element.size || 8 }} onClick={handleClick} />
+        <div className={`atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`} style={{ height: tokenToPixels(element.height) || tokenToPixels(element.width) || element.size || 8 }} onClick={handleClick} data-type={pathString} />
       )
     case 'Divider':
-      return <div className={`atomic-divider atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`} onClick={handleClick} />
+      return <div className={`atomic-divider atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`} onClick={handleClick} data-type={pathString} />
     case 'LiveClock':
       return (
-        <span className={`atomic-text variant-${element.variant || 'bodyMedium'} atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`} onClick={handleClick}>
+        <span className={`atomic-text variant-${element.variant || 'bodyMedium'} atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`} onClick={handleClick} data-type={pathString}>
           {formatClock(element.snapshotSeconds, element.format)}
         </span>
       )
     case 'Conditional':
       return (
-        <div className={`atomic-conditional atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`} onClick={handleClick}>
+        <div className={`atomic-conditional atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`} onClick={handleClick} data-type={pathString}>
           <span className="conditional-badge">IF</span>
-          <AtomicElement element={element.then} onSelect={onSelect} selectedEl={selectedEl} onTextEdit={onTextEdit} />
+          <AtomicElement element={element.then} onSelect={onSelect} selectedEl={selectedEl} onTextEdit={onTextEdit} path={currentPath} />
         </div>
       )
     case 'ScrollContainer':
       return (
-        <div className={`atomic-container atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`} onClick={handleClick} style={{ flexDirection: 'row', overflowX: 'auto', gap: gapValue(element.gap) }}>
+        <div className={`atomic-container atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`} onClick={handleClick} style={{ flexDirection: 'row', overflowX: 'auto', gap: gapValue(element.gap) }} data-type={pathString}>
           {element.children?.map((child: any, i: number) => (
-            <AtomicElement key={i} element={child} onSelect={onSelect} selectedEl={selectedEl} onTextEdit={onTextEdit} />
+            <AtomicElement key={i} element={child} onSelect={onSelect} selectedEl={selectedEl} onTextEdit={onTextEdit} path={currentPath} />
           ))}
         </div>
       )
     case 'OverlayContainer':
       return (
-        <div className={`atomic-container atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`} onClick={handleClick} style={{ position: 'relative' }}>
-          {element.base && <AtomicElement element={element.base} onSelect={onSelect} selectedEl={selectedEl} onTextEdit={onTextEdit} />}
+        <div className={`atomic-container atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`} onClick={handleClick} style={{ position: 'relative' }} data-type={pathString}>
+          {element.base && <AtomicElement element={element.base} onSelect={onSelect} selectedEl={selectedEl} onTextEdit={onTextEdit} path={currentPath} />}
           {element.overlays?.map((child: any, i: number) => (
-            <AtomicElement key={i} element={child} onSelect={onSelect} selectedEl={selectedEl} onTextEdit={onTextEdit} />
+            <AtomicElement key={i} element={child} onSelect={onSelect} selectedEl={selectedEl} onTextEdit={onTextEdit} path={currentPath} />
           ))}
         </div>
       )
     default:
       return (
-        <div className={`atomic-unknown atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`} onClick={handleClick}>
+        <div className={`atomic-unknown atomic-hoverable ${isSelected ? 'atomic-selected' : ''}`} onClick={handleClick} data-type={pathString}>
           Unknown: {element.type}
         </div>
       )

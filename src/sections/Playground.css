@@ -618,9 +618,14 @@
   transition: all var(--duration-fast) var(--ease-default);
 }
 
-.toolbar-btn:hover {
+.toolbar-btn:hover:not(:disabled) {
   background: var(--surface-alt);
   color: var(--text-primary);
+}
+
+.toolbar-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .editor-wrapper {
@@ -684,7 +689,6 @@
   overflow: hidden;
   padding-top: var(--space-4);
   z-index: 3;
-  pointer-events: none;
 }
 
 .gutter-line {
@@ -692,13 +696,19 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  pointer-events: none;
 }
 
 .gutter-marker {
   font-size: 10px;
   line-height: 1;
   pointer-events: auto;
-  cursor: help;
+  cursor: pointer;
+  transition: transform var(--duration-fast) var(--ease-default);
+}
+
+.gutter-marker:hover {
+  transform: scale(1.3);
 }
 
 .gutter-marker.error {
@@ -995,12 +1005,23 @@
   font-size: 9px;
   color: var(--nba-tint);
   background: var(--surface);
+  z-index: 10;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
   padding: 1px 4px;
   border-radius: 2px;
   pointer-events: none;
   white-space: nowrap;
 }
 
+.atomic-hoverable:hover > .atomic-hoverable:hover::after {
+  content: none;
+}
+
+.atomic-hoverable:has(.atomic-hoverable:hover)::after {
+  content: none !important;
+}
 
 .atomic-text {
   display: block;

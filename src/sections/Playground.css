@@ -754,7 +754,7 @@
 .reorder-buttons {
   position: absolute;
   top: 50%;
-  right: -28px;
+  right: -30px;
   transform: translateY(-50%);
   display: none;
   flex-direction: column;
@@ -762,8 +762,18 @@
   z-index: 10;
 }
 
+.reorder-buttons::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  left: -14px;
+  right: -4px;
+}
+
 .atomic-reorderable:hover > .reorder-buttons,
-.atomic-container:hover > .reorder-buttons {
+.atomic-container:hover > .reorder-buttons,
+.reorder-buttons:hover {
   display: flex;
 }
 

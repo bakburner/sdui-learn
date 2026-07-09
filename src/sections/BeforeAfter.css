@@ -1,0 +1,204 @@
+/* ── Comparison Cards ─────────────────────────── */
+
+.ba-comparison {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: var(--space-6);
+  margin-top: var(--space-10);
+  align-items: stretch;
+}
+
+.ba-card {
+  background: var(--surface);
+  border: 1px solid var(--divider);
+  border-radius: var(--rounded-xl);
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+}
+
+.ba-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-5);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--divider);
+}
+
+.ba-badge {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--rounded-full);
+  font-weight: 500;
+}
+
+.ba-badge-before {
+  background: rgba(142, 145, 150, 0.15);
+  color: var(--text-secondary);
+}
+
+.ba-badge-after {
+  background: rgba(48, 209, 88, 0.15);
+  color: var(--positive);
+}
+
+.ba-timeline {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+/* ── Steps ───────────────────────────────────── */
+
+.ba-steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: 1;
+}
+
+.ba-step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--rounded-md);
+  background: var(--surface-raised);
+}
+
+.ba-step-number {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  min-width: 16px;
+}
+
+.ba-step-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.ba-step-label {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.ba-step-detail {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+.ba-step-duration {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* ── Result ──────────────────────────────────── */
+
+.ba-result {
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--divider);
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.ba-result-metric {
+  font-family: var(--font-headline);
+  font-size: var(--text-5xl);
+  text-transform: uppercase;
+  line-height: var(--leading-headline);
+}
+
+.ba-result-before .ba-result-metric {
+  color: var(--text-secondary);
+}
+
+.ba-result-after .ba-result-metric {
+  color: var(--positive);
+}
+
+.ba-result-label {
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+}
+
+/* ── VS Divider ──────────────────────────────── */
+
+.ba-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ba-vs {
+  font-family: var(--font-headline);
+  font-size: var(--text-xl);
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--divider);
+  border-radius: var(--rounded-full);
+}
+
+/* ── Benefits ────────────────────────────────── */
+
+.ba-benefits {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-4);
+  margin-top: var(--space-10);
+}
+
+.benefit-card {
+  padding: var(--space-5);
+  background: var(--surface);
+  border: 1px solid var(--divider);
+  border-radius: var(--rounded-lg);
+}
+
+.benefit-title {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-transform: none;
+  color: var(--text-primary);
+  margin-bottom: var(--space-2);
+}
+
+.benefit-desc {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  line-height: var(--leading-normal);
+  margin: 0;
+}
+
+@media (max-width: 900px) {
+  .ba-comparison {
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+  }
+
+  .ba-divider {
+    padding: var(--space-2) 0;
+  }
+
+  .ba-benefits {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 500px) {
+  .ba-benefits {
+    grid-template-columns: 1fr;
+  }
+}

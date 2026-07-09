@@ -1,0 +1,217 @@
+.decision-container {
+  margin-top: var(--space-10);
+  background: var(--surface);
+  border: 1px solid var(--divider);
+  border-radius: var(--rounded-xl);
+  padding: var(--space-8);
+  max-width: 680px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ── Path ────────────────────────────────────── */
+
+.decision-path {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+  min-height: 24px;
+}
+
+.path-step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.path-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--rounded-full);
+}
+
+.path-dot[data-answer="yes"] {
+  background: var(--positive);
+}
+
+.path-dot[data-answer="no"] {
+  background: var(--negative);
+}
+
+.path-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-tertiary);
+}
+
+.path-step + .path-step::before {
+  content: '→';
+  color: var(--text-tertiary);
+  margin-right: var(--space-2);
+  font-size: var(--text-xs);
+}
+
+/* ── Question ────────────────────────────────── */
+
+.decision-question {
+  text-align: center;
+  padding: var(--space-8) var(--space-4);
+}
+
+.question-number {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--nba-tint);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: var(--space-3);
+}
+
+.question-text {
+  font-family: var(--font-body);
+  font-size: var(--text-xl);
+  font-weight: 500;
+  text-transform: none;
+  line-height: var(--leading-snug);
+  margin-bottom: var(--space-6);
+  color: var(--text-primary);
+}
+
+.question-actions {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-4);
+}
+
+.answer-btn {
+  padding: var(--space-3) var(--space-8);
+  font-size: var(--text-base);
+  font-weight: 600;
+  border-radius: var(--rounded-lg);
+  transition: all var(--duration-fast) var(--ease-default);
+}
+
+.answer-yes {
+  background: rgba(48, 209, 88, 0.15);
+  color: var(--positive);
+  border: 1px solid rgba(48, 209, 88, 0.3);
+}
+
+.answer-yes:hover {
+  background: rgba(48, 209, 88, 0.25);
+  transform: translateY(-1px);
+}
+
+.answer-no {
+  background: rgba(255, 69, 58, 0.1);
+  color: var(--negative);
+  border: 1px solid rgba(255, 69, 58, 0.2);
+}
+
+.answer-no:hover {
+  background: rgba(255, 69, 58, 0.2);
+  transform: translateY(-1px);
+}
+
+/* ── Outcome ─────────────────────────────────── */
+
+.decision-outcome {
+  text-align: center;
+  padding: var(--space-8) var(--space-6);
+  border: 2px solid;
+  border-radius: var(--rounded-lg);
+  background: var(--surface-raised);
+}
+
+.outcome-badge {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: var(--space-2);
+}
+
+.outcome-title {
+  font-family: var(--font-body);
+  font-size: var(--text-2xl);
+  font-weight: 600;
+  text-transform: none;
+  margin-bottom: var(--space-3);
+}
+
+.outcome-description {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: var(--leading-normal);
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+/* ── Controls ────────────────────────────────── */
+
+.decision-controls {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--divider);
+}
+
+.control-btn {
+  padding: var(--space-2) var(--space-4);
+  background: var(--surface-raised);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  border-radius: var(--rounded-md);
+  transition: all var(--duration-fast) var(--ease-default);
+}
+
+.control-btn:hover:not(:disabled) {
+  background: var(--surface-alt);
+  color: var(--text-primary);
+}
+
+.control-btn:disabled {
+  color: var(--disabled);
+  cursor: not-allowed;
+}
+
+/* ── Principles ──────────────────────────────── */
+
+.decision-principles {
+  margin-top: var(--space-8);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--divider);
+}
+
+.principles-title {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: var(--space-4);
+}
+
+.principles-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.principle {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: var(--leading-snug);
+}
+
+.principle-icon {
+  font-size: 8px;
+  padding-top: 4px;
+  flex-shrink: 0;
+}

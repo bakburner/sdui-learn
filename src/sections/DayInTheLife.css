@@ -1,0 +1,301 @@
+/* ── Day in the Life ─────────────────────────── */
+
+.ditl-scenario {
+  text-align: center;
+  margin-top: var(--space-6);
+  margin-bottom: var(--space-8);
+}
+
+.ditl-scenario-text {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--nba-tint);
+  background: rgba(251, 205, 68, 0.08);
+  border: 1px solid rgba(251, 205, 68, 0.2);
+  border-radius: var(--rounded-lg);
+  padding: var(--space-3) var(--space-5);
+  letter-spacing: 0.5px;
+}
+
+/* ── Layout ──────────────────────────────────── */
+
+.ditl-container {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-8);
+  margin-top: var(--space-4);
+}
+
+/* ── Vertical Timeline ───────────────────────── */
+
+.ditl-timeline {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4) 0;
+}
+
+.ditl-timeline-line {
+  position: absolute;
+  left: 7px;
+  top: var(--space-6);
+  bottom: var(--space-6);
+  width: 2px;
+  background: var(--divider);
+  border-radius: 1px;
+}
+
+.ditl-step {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4) var(--space-3) 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--rounded-md);
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.25s var(--ease-default);
+  color: var(--text-secondary);
+}
+
+.ditl-step:hover {
+  background: var(--surface);
+}
+
+.ditl-step.active {
+  background: var(--surface);
+}
+
+/* Dot on the timeline */
+.ditl-step-dot {
+  position: relative;
+  z-index: 1;
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  border-radius: var(--rounded-full);
+  background: var(--surface-raised);
+  border: 2px solid var(--divider);
+  transition: all 0.25s var(--ease-default);
+}
+
+.ditl-step.active .ditl-step-dot {
+  background: var(--nba-tint);
+  border-color: var(--nba-tint);
+  box-shadow: 0 0 12px rgba(251, 205, 68, 0.4);
+}
+
+.ditl-step-time {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  min-width: 68px;
+  transition: color 0.25s var(--ease-default);
+}
+
+.ditl-step.active .ditl-step-time {
+  color: var(--nba-tint);
+}
+
+.ditl-step-label {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  transition: color 0.25s var(--ease-default);
+}
+
+.ditl-step.active .ditl-step-label {
+  color: var(--text-primary);
+}
+
+/* ── Detail Panel ────────────────────────────── */
+
+.ditl-detail {
+  background: var(--surface);
+  border: 1px solid var(--divider);
+  border-radius: var(--rounded-xl);
+  padding: var(--space-6);
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+}
+
+.ditl-detail-header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--divider);
+}
+
+.ditl-detail-time {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--nba-tint);
+  font-weight: 600;
+}
+
+.ditl-detail-label {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.ditl-narrative {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: var(--leading-normal);
+  margin: 0 0 var(--space-5);
+}
+
+/* ── JSON + Preview Panels ───────────────────── */
+
+.ditl-panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+  flex: 1;
+}
+
+.ditl-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.ditl-panel-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: var(--space-2);
+}
+
+.ditl-panel-json {
+  flex: 1;
+}
+
+.ditl-json {
+  flex: 1;
+  margin: 0;
+  padding: var(--space-4);
+  background: var(--code-bg);
+  border: 1px solid var(--divider);
+  border-radius: var(--rounded-lg);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.ditl-panel-preview {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Mini Device Preview ─────────────────────── */
+
+.ditl-preview-device {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--code-bg);
+  border: 1px solid var(--divider);
+  border-radius: var(--rounded-lg);
+  padding: var(--space-4);
+  position: relative;
+  overflow: hidden;
+}
+
+.ditl-preview-notch {
+  width: 40px;
+  height: 4px;
+  background: var(--divider);
+  border-radius: 2px;
+  margin: 0 auto var(--space-3);
+}
+
+.ditl-preview-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: 1;
+  justify-content: center;
+}
+
+.ditl-preview-line {
+  font-size: var(--text-xs);
+  color: var(--text-primary);
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface-raised);
+  border-radius: var(--rounded-sm);
+  text-align: center;
+  font-family: var(--font-mono);
+  letter-spacing: 0.3px;
+}
+
+.ditl-preview-line:first-child {
+  font-weight: 600;
+  color: var(--nba-tint);
+  background: rgba(251, 205, 68, 0.08);
+  border: 1px solid rgba(251, 205, 68, 0.15);
+}
+
+/* ── Responsive ──────────────────────────────── */
+
+@media (max-width: 900px) {
+  .ditl-container {
+    grid-template-columns: 1fr;
+  }
+
+  .ditl-timeline {
+    flex-direction: row;
+    overflow-x: auto;
+    gap: 0;
+    padding: var(--space-2) 0;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .ditl-timeline-line {
+    top: 7px;
+    left: var(--space-6);
+    right: var(--space-6);
+    bottom: auto;
+    width: auto;
+    height: 2px;
+  }
+
+  .ditl-step {
+    flex-direction: column;
+    align-items: center;
+    min-width: 90px;
+    padding: var(--space-3) var(--space-2);
+    gap: var(--space-1);
+  }
+
+  .ditl-step-time {
+    min-width: auto;
+    text-align: center;
+  }
+
+  .ditl-panels {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 500px) {
+  .ditl-detail {
+    padding: var(--space-4);
+    min-height: auto;
+  }
+
+  .ditl-json {
+    font-size: 10px;
+  }
+}

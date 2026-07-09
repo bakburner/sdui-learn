@@ -1,0 +1,228 @@
+.tutorial-container {
+  margin-top: var(--space-10);
+}
+
+.tutorial-progress {
+  display: flex;
+  gap: var(--space-1);
+  margin-bottom: var(--space-8);
+  overflow-x: auto;
+  padding-bottom: var(--space-2);
+}
+
+.progress-step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: transparent;
+  color: var(--text-tertiary);
+  font-size: var(--text-xs);
+  border-radius: var(--rounded-full);
+  white-space: nowrap;
+  transition: all var(--duration-fast) var(--ease-default);
+}
+
+.progress-step:hover {
+  background: var(--surface);
+  color: var(--text-secondary);
+}
+
+.progress-step.active {
+  background: var(--surface);
+  color: var(--text-primary);
+}
+
+.progress-step.completed {
+  color: var(--positive);
+}
+
+.progress-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--rounded-full);
+  background: var(--divider);
+  transition: background var(--duration-fast) var(--ease-default);
+}
+
+.progress-step.active .progress-dot {
+  background: var(--nba-tint);
+}
+
+.progress-step.completed .progress-dot {
+  background: var(--positive);
+}
+
+/* ── Tutorial Content ────────────────────────── */
+
+.tutorial-content {
+  background: var(--surface);
+  border: 1px solid var(--divider);
+  border-radius: var(--rounded-xl);
+  overflow: hidden;
+}
+
+.tutorial-header {
+  padding: var(--space-6);
+  border-bottom: 1px solid var(--divider);
+}
+
+.tutorial-concept {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--nba-tint);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: var(--space-2);
+}
+
+.tutorial-title {
+  font-family: var(--font-body);
+  font-size: var(--text-2xl);
+  font-weight: 600;
+  text-transform: none;
+  margin-bottom: var(--space-2);
+}
+
+.tutorial-description {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: var(--leading-normal);
+  margin: 0;
+  max-width: 600px;
+}
+
+/* ── Split View ──────────────────────────────── */
+
+.tutorial-split {
+  display: grid;
+  grid-template-columns: 3fr 2fr;
+}
+
+.tutorial-code {
+  border-right: 1px solid var(--divider);
+}
+
+.code-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: var(--code-bg);
+  border-bottom: 1px solid var(--code-border);
+}
+
+.code-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--rounded-full);
+}
+
+.code-dot.red { background: #FF5F57; }
+.code-dot.yellow { background: #FEBC2E; }
+.code-dot.green { background: #28C840; }
+
+.code-filename {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  margin-left: var(--space-2);
+}
+
+.code-body {
+  background: var(--code-bg);
+  margin: 0;
+  padding: var(--space-4);
+  overflow-x: auto;
+  font-size: var(--text-sm);
+  line-height: 1.6;
+  color: var(--code-text);
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+/* ── Notes Panel ─────────────────────────────── */
+
+.tutorial-notes {
+  padding: var(--space-5);
+}
+
+.notes-header {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: var(--space-4);
+}
+
+.notes-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.note-item {
+  display: flex;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  color: var(--text-secondary);
+}
+
+.note-bullet {
+  color: var(--nba-tint);
+  flex-shrink: 0;
+}
+
+/* ── Navigation ──────────────────────────────── */
+
+.tutorial-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-6);
+  border-top: 1px solid var(--divider);
+}
+
+.tutorial-btn {
+  padding: var(--space-2) var(--space-4);
+  background: var(--surface-raised);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  border-radius: var(--rounded-md);
+  transition: background var(--duration-fast) var(--ease-default);
+}
+
+.tutorial-btn:hover:not(:disabled) {
+  background: var(--surface-alt);
+}
+
+.tutorial-btn:disabled {
+  color: var(--disabled);
+  cursor: not-allowed;
+}
+
+.tutorial-counter {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+@media (max-width: 768px) {
+  .tutorial-split {
+    grid-template-columns: 1fr;
+  }
+
+  .tutorial-code {
+    border-right: none;
+    border-bottom: 1px solid var(--divider);
+  }
+
+  .code-body {
+    max-height: 300px;
+  }
+}

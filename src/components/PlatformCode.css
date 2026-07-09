@@ -1,0 +1,134 @@
+.platform-code {
+  background: var(--surface);
+  border: 1px solid var(--divider);
+  border-radius: var(--rounded-xl);
+  overflow: hidden;
+  margin-top: var(--space-4);
+}
+
+.platform-header {
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--divider);
+}
+
+.platform-title {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: var(--space-3);
+  color: var(--text-primary);
+}
+
+.platform-tabs {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.platform-tab {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  background: transparent;
+  border-radius: var(--rounded-md);
+  transition: all var(--duration-fast) var(--ease-default);
+  font-weight: 500;
+}
+
+.platform-tab:hover {
+  background: var(--surface-raised);
+  color: var(--text-primary);
+}
+
+.platform-tab.active {
+  background: var(--surface-raised);
+  color: var(--nba-tint);
+}
+
+.platform-tab-icon {
+  font-size: var(--text-sm);
+}
+
+/* ── Body ────────────────────────────────────── */
+
+.platform-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.platform-context {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-4);
+  background: var(--surface-raised);
+  border-bottom: 1px solid var(--divider);
+}
+
+.context-element {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.context-element strong {
+  color: var(--code-property);
+  font-family: var(--font-mono);
+}
+
+.context-file {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.platform-pre {
+  margin: 0;
+  padding: var(--space-4);
+  background: var(--code-bg);
+  overflow-x: auto;
+  font-size: var(--text-sm);
+  line-height: 1.6;
+  color: var(--code-text);
+  max-height: 380px;
+  overflow-y: auto;
+  border-bottom: 1px solid var(--divider);
+}
+
+.platform-notes {
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.platform-note {
+  display: flex;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  line-height: var(--leading-snug);
+}
+
+.note-marker {
+  color: var(--nba-tint);
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .platform-tabs {
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  .platform-pre {
+    font-size: var(--text-xs);
+    max-height: 300px;
+  }
+
+  .context-file {
+    display: none;
+  }
+}

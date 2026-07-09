@@ -147,18 +147,33 @@ export function Playground() {
     const ta = textareaRef.current
     if (!ta) return
     const text = ta.value
+
+    // Build a set of identifying key-value pairs from the element (excluding children/nested objects)
+    const identifiers: string[] = []
+    for (const [key, val] of Object.entries(el)) {
+      if (key === 'children' || key === 'then' || key === 'else' || key === 'actions' || key === 'overlays' || key === 'base') continue
+      if (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean') {
+        identifiers.push(`"${key}": ${JSON.stringify(val)}`)
+      }
+    }
+
+    // Find all occurrences of "type": "<type>" and score each block by how many identifiers match
     const typeStr = `"type": "${el.type}"`
-    const distinguisher = el.content || el.src || el.label || el.bindRef
     let searchFrom = 0
     let bestStart = -1
     let bestEnd = -1
+    let bestScore = -1
 
     while (true) {
       const idx = text.indexOf(typeStr, searchFrom)
       if (idx === -1) break
 
-      // Find the enclosing { for this "type" occurrence
-      let braceStart = text.lastIndexOf('{', idx)
+      // Find the enclosing { before this "type" key
+      let braceStart = idx - 1
+      while (braceStart >= 0 && text[braceStart] !== '{') braceStart--
+      if (braceStart < 0) { searchFrom = idx + 1; continue }
+
+      // Find the matching closing brace
       let depth = 1
       let braceEnd = braceStart + 1
       while (braceEnd < text.length && depth > 0) {
@@ -167,13 +182,22 @@ export function Playground() {
         braceEnd++
       }
 
-      // Check distinguisher within this specific block only
-      const block = text.slice(braceStart, braceEnd)
-      if (!distinguisher || block.includes(`"${String(distinguisher)}"`)) {
+      // Score: count how many of the element's properties appear in this block's first level
+      // Only check up to the first nested { to avoid matching child properties
+      const blockHeader = text.slice(braceStart, text.indexOf('{', braceStart + 1) > -1 && text.indexOf('{', braceStart + 1) < braceEnd
+        ? Math.min(braceEnd, braceStart + 500)
+        : braceEnd)
+      let score = 0
+      for (const id of identifiers) {
+        if (blockHeader.includes(id)) score++
+      }
+
+      if (score > bestScore) {
+        bestScore = score
         bestStart = braceStart
         bestEnd = braceEnd
-        break
       }
+
       searchFrom = idx + 1
     }
     if (bestStart === -1) return
@@ -182,32 +206,8 @@ export function Playground() {
     const primaryStart = text.slice(0, bestStart).split('\n').length - 1
     const primaryEnd = text.slice(0, bestEnd).split('\n').length - 1
 
-    // Find the parent container block (one level up)
-    let parentStart = -1
-    let parentEnd = -1
-    if (bestStart > 0) {
-      // Search backwards for the parent opening brace
-      let pStart = bestStart - 1
-      while (pStart >= 0 && text[pStart] !== '{') pStart--
-      if (pStart >= 0) {
-        let depth = 1
-        let pEnd = pStart + 1
-        while (pEnd < text.length && depth > 0) {
-          if (text[pEnd] === '{') depth++
-          if (text[pEnd] === '}') depth--
-          pEnd++
-        }
-        // Only use as secondary if it's actually larger than the primary
-        if (pStart < bestStart && pEnd > bestEnd) {
-          parentStart = text.slice(0, pStart).split('\n').length - 1
-          parentEnd = text.slice(0, pEnd).split('\n').length - 1
-        }
-      }
-    }
-
     setHighlightLines({
       primary: { start: primaryStart, end: primaryEnd },
-      secondary: parentStart >= 0 ? { start: parentStart, end: parentEnd } : undefined,
     })
 
     // Scroll to center on the primary element
@@ -217,8 +217,6 @@ export function Playground() {
 
     const overlay = ta.parentElement?.querySelector('.editor-highlight-overlay') as HTMLElement | null
     if (overlay) overlay.scrollTop = targetScroll
-
-    // Don't auto-clear - highlight persists until next selection
   }, [jsonInput])
 
   useEffect(() => {
@@ -244,27 +242,38 @@ export function Playground() {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const header = useScrollReveal<HTMLDivElement>()
 
+  const historyTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const pushHistory = useCallback((value: string) => {
+    setHistory(prev => {
+      const sliced = prev.slice(0, historyIndex + 1)
+      sliced.push(value)
+      setHistoryIndex(sliced.length - 1)
+      return sliced
+    })
+  }, [historyIndex])
+
   const handleChange = useCallback((value: string) => {
     setJsonInput(value)
+    setInspectedElement(null)
     try {
       const parsed = JSON.parse(value)
       setParsedData(parsed)
       setParseError(null)
+
+      if (historyTimer.current) clearTimeout(historyTimer.current)
+      historyTimer.current = setTimeout(() => pushHistory(value), 400)
     } catch (e) {
       setParseError((e as Error).message)
     }
-
-    // Add to history (debounced via timeout)
-    const newHistory = history.slice(0, historyIndex + 1)
-    newHistory.push(value)
-    setHistory(newHistory)
-    setHistoryIndex(newHistory.length - 1)
-  }, [history, historyIndex])
+  }, [pushHistory])
 
   const handleReset = () => {
     setJsonInput(DEFAULT_JSON)
     setParsedData(JSON.parse(DEFAULT_JSON))
     setParseError(null)
+    setInspectedElement(null)
+    pushHistory(DEFAULT_JSON)
   }
 
   const handleFormat = () => {
@@ -329,13 +338,15 @@ export function Playground() {
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [historyIndex, history])
+  })
 
   const handleInsertSnippet = (snippet: string) => {
     setJsonInput(snippet)
+    setInspectedElement(null)
     try {
       setParsedData(JSON.parse(snippet))
       setParseError(null)
+      pushHistory(snippet)
     } catch (e) {
       setParseError((e as Error).message)
     }

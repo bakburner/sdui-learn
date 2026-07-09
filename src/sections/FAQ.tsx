@@ -18,12 +18,12 @@ const FAQS: FAQItem[] = [
   {
     question: 'What happens if the server is down?',
     misconception: 'SDUI requires constant connectivity',
-    answer: 'Clients cache the last successful response. Offline users see slightly stale content rather than blank screens. Unknown section types are gracefully skipped — never crash.',
+    answer: 'Clients cache the last successful response. Offline users see slightly stale content rather than blank screens. Sections declare their own ErrorState (message, retryAction, hideOnError) and Skeleton (shimmer / spinner / placeholder / none) for loading states. Unknown section types are gracefully skipped — never crash.',
   },
   {
     question: 'Who controls what?',
     misconception: 'SDUI means the server controls everything',
-    answer: 'The server controls what appears and where — screen structure, sections, ordering, content. Platform teams still own how things render: animations, interactions, accessibility, and platform-native behaviors. It\'s a clear split.',
+    answer: 'The server controls what appears and where — section composition, ordering, content, actions, refresh policies. Platform teams still own how things render: native component implementation, gesture/focus handling, networking primitives, nav/analytics SDK integration, and platform accessibility. The section is the boundary of server authority.',
   },
   {
     question: 'Can each platform look different?',
@@ -33,7 +33,7 @@ const FAQS: FAQItem[] = [
   {
     question: 'How do we decide what should be SDUI vs. native?',
     misconception: 'Everything must go through SDUI',
-    answer: 'Simple rule: if the UI changes frequently, varies by user segment, or needs to ship without a release — use SDUI (Atomic). If it requires complex native state, gestures, or platform SDKs — keep it native (Semantic). Both coexist on the same screen.',
+    answer: 'Simple rule: if the UI changes frequently, varies by user segment, or needs to ship without a release — use an AtomicComposite section (server-composed tree of atomic primitives, the default section type for stateless layout surfaces). If it requires client-owned state, SDK hosting, or runtime lifecycle — use a Semantic section (dedicated client renderer). Both coexist on the same screen.',
   },
   {
     question: 'Won\'t the JSON payloads get huge?',
@@ -53,17 +53,17 @@ const FAQS: FAQItem[] = [
   {
     question: 'How does the schema evolve without breaking older app versions?',
     misconception: 'Schema changes require forced app updates',
-    answer: 'Schema evolution is additive-only. Clients send their schemaVersion in the request envelope; the server strips unsupported fields and signals force-upgrade via an X-Schema-Version-Mismatch header only when absolutely necessary. Unknown section types and action types are gracefully skipped.',
+    answer: 'Schema evolution is additive-only. Clients send their schemaVersion (major.minor) in the request envelope. When below currentVersion, the server strips fields/enums introduced after that version. When below minSupportedVersion, the server returns X-Schema-Version-Mismatch: upgrade-required and an ErrorState section — clients detect the header and show a platform-appropriate upgrade prompt. Unknown section types and action types are gracefully skipped.',
   },
   {
     question: 'How are typed models generated for each platform?',
     misconception: 'Each platform hand-writes its own models',
-    answer: 'A single JSON Schema file is the source of truth. A codegen pipeline produces Java POJOs (via jsonschema2pojo) for server and Android, Swift structs (via quicktype) for iOS, and TypeScript types for web. Generated models are never hand-edited — if the schema changes, regenerate.',
+    answer: 'A single JSON Schema file (schema/sdui-schema.json) is the source of truth for the wire contract. A codegen build step (make codegen) emits Swift, Kotlin, TypeScript, and Java models. Generated files are checked in; do not hand-edit.',
   },
   {
     question: 'What about internationalization?',
     misconception: 'The server must know the user\'s language',
-    answer: 'The server is locale-blind. It emits LocalizedString keys with English fallbacks. Clients resolve strings from their bundled translation catalog using device locale. For real-time data (like game status text arriving via SSE), the server attaches string keys to data bindings so the client can translate dynamically-bound fields too.',
+    answer: 'The server is locale-blind — locale and Accept-Language are not composition inputs or cache-key dimensions. It emits LocalizedString values: either a bare string literal (render as-is) or { key, args?, fallback }. Clients resolve keyed values from their bundled catalog using device locale; misses render the required English fallback. For live-data strings, dataBinding.stringKeys map target paths to localization keys so clients translate dynamically-bound fields.',
   },
 ]
 

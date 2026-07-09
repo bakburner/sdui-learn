@@ -11,40 +11,41 @@ const TABS = [
 ] as const
 
 const ACTION_TYPES = [
-  { name: 'navigate', desc: 'route / deeplink' },
-  { name: 'fireAndForget', desc: 'analytics beacon' },
-  { name: 'mutate', desc: 'update screen state' },
-  { name: 'refresh', desc: 'force fetch' },
-  { name: 'request', desc: 'server-managed write (favorite / dismiss)' },
-  { name: 'purchase', desc: 'IAP' },
-  { name: 'dismiss', desc: 'close overlay' },
-  { name: 'flashMessage', desc: 'show transient message' },
+  { name: 'navigate', desc: 'change route (push / replace / external / modal / fullscreen)' },
+  { name: 'fireAndForget', desc: 'emit a Beacon (analytics event) — no UI side effect' },
+  { name: 'mutate', desc: 'apply set / toggle / increment / append to Screen state' },
+  { name: 'refresh', desc: 're-fetch a section or full screen, optionally with Param bindings' },
+  { name: 'request', desc: 'server-managed write (POST / PUT / DELETE) with optional bodyBindings' },
+  { name: 'purchase', desc: 'IAP via productRef' },
+  { name: 'dismiss', desc: 'close the current presented host (modal / sheet / overlay)' },
+  { name: 'flashMessage', desc: 'show a transient message' },
 ]
 
 const TRIGGERS = [
-  { name: 'onActivate', desc: 'tap / click / enter' },
-  { name: 'onLongPress', desc: '' },
-  { name: 'onVisible', desc: '' },
-  { name: 'onSwipe', desc: '' },
-  { name: 'onFocus', desc: '' },
-  { name: 'onBlur', desc: '' },
-  { name: 'onSubmit', desc: '' },
+  { name: 'onActivate', desc: 'tap / click / keyboard Enter / TV select (preferred)' },
+  { name: 'onTap', desc: 'deprecated alias for onActivate' },
+  { name: 'onLongPress', desc: 'Android / iOS only' },
+  { name: 'onVisible', desc: 'routes through Impression policy for dedup' },
+  { name: 'onSwipe', desc: 'ScrollContainer-level' },
+  { name: 'onFocus', desc: 'focusable primitives' },
+  { name: 'onBlur', desc: 'focusable primitives' },
+  { name: 'onSubmit', desc: 'form-context only' },
 ]
 
 const FAILURE_POLICIES = [
-  { name: 'halt', desc: 'Show error, stop action chain' },
-  { name: 'continue', desc: 'Log error, proceed to next action' },
-  { name: 'silent', desc: 'Swallow error entirely' },
+  { name: 'halt', desc: 'Show error (failure feedback), stop sequence. Default for navigate / request / purchase' },
+  { name: 'continue', desc: 'Log error, proceed to next action. Default for mutate / refresh' },
+  { name: 'silent', desc: 'Swallow error entirely. Default for fireAndForget / dismiss / flashMessage' },
 ]
 
 const REFRESH_TYPES = [
   { name: 'static', desc: 'No refresh — editorial content', icon: 'lock' },
-  { name: 'poll', desc: 'Interval HTTP fetch — slower-changing stats', icon: 'clock' },
-  { name: 'sse', desc: 'Realtime channel via Ably — live scores', icon: 'bolt' },
+  { name: 'poll', desc: 'Interval HTTP fetch via sectionEndpoint — slower-changing stats', icon: 'clock' },
+  { name: 'sse / ably', desc: 'Realtime push channel — live scores. Both feed the same Data-binding pipeline', icon: 'bolt' },
 ]
 
 const INLINE_PRIMITIVES = [
-  'padding', 'cornerRadius', 'shadow', 'gap', 'opacity', 'border', 'background',
+  'padding', 'cornerRadius', 'background.color', 'gap', 'opacity', 'border', 'shadows',
 ]
 
 const TOKEN_FAMILIES = [
@@ -56,12 +57,12 @@ const SEMANTIC_ALIASES = [
 ]
 
 const ENVELOPE_FIELDS = [
-  { key: 'platform.name', value: 'android | ios | web' },
-  { key: 'deviceClass', value: 'phone | tablet | tv' },
-  { key: 'schemaVersion', value: '"2.4"' },
+  { key: 'platform[deviceClass]', value: 'phone | tablet | tv | desktop' },
+  { key: 'platform[capabilities]', value: '["sse", "onFocus", "haptics"]' },
+  { key: 'schemaVersion', value: '"2.4" (major.minor)' },
   { key: 'experiments', value: '{ "new-scoreboard": "variant-b" }' },
-  { key: 'capabilities', value: '["sse", "onFocus"]' },
-  { key: 'correlationId', value: '"req-abc123"' },
+  { key: 'market[cohort]', value: '"league-pass-premium"' },
+  { key: 'X-Correlation-ID', value: 'per-request UUID (header, not body)' },
 ]
 
 const SHARED_ACROSS = [
@@ -206,9 +207,9 @@ function DataBindingPanel() {
         ))}
       </div>
 
-      <h4 className="dd-panel-heading">Field-Level Binding</h4>
+      <h4 className="dd-panel-heading">Data Binding (DataBindingPath)</h4>
       <p className="dd-panel-desc">
-        The server declares JSONPath mappings (sourcePath to targetPath). The client patches individual fields without re-fetching the entire section.
+        Declarative mapping from a path in an incoming live-data payload to a path inside a section's <code>data</code>. The binding runtime walks these and patches sections with structural sharing so unrelated subtrees keep their object identity. Leaf elements use <code>bindRef</code> to resolve content from <code>data.content[bindRef]</code> at render time.
       </p>
 
       <h4 className="dd-panel-heading">Example</h4>
@@ -228,9 +229,9 @@ function TokenArchitecturePanel() {
       <div className="dd-token-layers">
         <div className="dd-token-layer dd-layer-1">
           <div className="dd-layer-badge">Layer 1</div>
-          <span className="dd-layer-title">Inline Primitives</span>
+          <span className="dd-layer-title">Inline Style Primitives</span>
           <p className="dd-layer-desc">
-            All sizes use semantic tokens (nba.spacing.md, nba.radius.lg) not raw pixels.
+            Directly-expressible properties on any element. Used for fine-grained intent that doesn't yet warrant a named variant. Values reference <code>token:nba.*</code> scalars (e.g. <code>nba.spacing.md</code>) — never raw pixels.
           </p>
           <div className="dd-inline-tokens">
             {INLINE_PRIMITIVES.map((t) => (
@@ -245,7 +246,7 @@ function TokenArchitecturePanel() {
           <div className="dd-layer-badge">Layer 2</div>
           <span className="dd-layer-title">Variants</span>
           <p className="dd-layer-desc">
-            Named presets that carry platform-native treatments. A <code>hero</code> container becomes Liquid Glass on iOS, Material elevation on Android, CSS backdrop-blur on web. Variants express what inline properties cannot (materials, press animations, OS-adaptive surfaces).
+            Predefined visual treatments that map to a native idiom (<code>ContainerVariant</code>, <code>ButtonVariant</code>, <code>TextVariant</code>). Express semantic visual intent; realize differently per OS tier (Liquid Glass iOS 26+, Material 3 expressive on Android 14+, CSS filter on Web). New variant values must clear a strict governance bar.
           </p>
         </div>
 
@@ -255,7 +256,7 @@ function TokenArchitecturePanel() {
           <div className="dd-layer-badge">Layer 3</div>
           <span className="dd-layer-title">Color Tokens</span>
           <p className="dd-layer-desc">
-            <code>token:nba.color.*</code> / <code>token:nba.label.*</code> references resolved to light/dark hex at render time.
+            Named color references in <code>color-tokens.json</code>. Resolved per scheme (light / dark / contrast) and may have OS-tier-specific values.
           </p>
           <div className="dd-color-families">
             <span className="dd-color-family-label">Families:</span>
@@ -274,19 +275,19 @@ function TokenArchitecturePanel() {
         </div>
       </div>
 
-      <h4 className="dd-panel-heading">Decision Rule</h4>
+      <h4 className="dd-panel-heading">Override Matrix (Precedence)</h4>
       <div className="dd-decision-rule">
         <div className="dd-decision-step">
-          <span className="dd-decision-q">Can inline express it?</span>
-          <span className="dd-decision-a">&#8594; Inline primitive</span>
+          <span className="dd-decision-q">style token</span>
+          <span className="dd-decision-a">&lt; variant</span>
         </div>
         <div className="dd-decision-step">
-          <span className="dd-decision-q">Need platform API / interaction?</span>
-          <span className="dd-decision-a">&#8594; Variant</span>
+          <span className="dd-decision-q">variant</span>
+          <span className="dd-decision-a">&lt; inline override</span>
         </div>
         <div className="dd-decision-step">
-          <span className="dd-decision-q">Need light/dark adaptation?</span>
-          <span className="dd-decision-a">&#8594; Color token</span>
+          <span className="dd-decision-q">Inline overrides win.</span>
+          <span className="dd-decision-a">Use for one-off intent that doesn't warrant a variant</span>
         </div>
       </div>
     </div>
@@ -296,9 +297,9 @@ function TokenArchitecturePanel() {
 function PlatformEnvelopePanel() {
   return (
     <div className="dd-platform-panel">
-      <h4 className="dd-panel-heading">Request Envelope</h4>
+      <h4 className="dd-panel-heading">Request Envelope (RequestEnvelope)</h4>
       <p className="dd-panel-desc">
-        The client sends platform context on every request so the composition service can tailor the response.
+        The structured query/POST body for every composition fetch. Serialized as bracket-notation query params for GET, JSON body for POST; flips to POST when the encoded query exceeds 8192 chars. Locale is intentionally absent — language and formatting are client-owned and cache-neutral.
       </p>
       <div className="dd-envelope-fields">
         {ENVELOPE_FIELDS.map((f) => (

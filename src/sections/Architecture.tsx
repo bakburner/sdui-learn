@@ -12,7 +12,7 @@ const SERVER_OWNED_AREAS = [
   {
     id: 'content',
     title: 'Content',
-    description: 'Copy, labels, localized strings',
+    description: 'Copy, labels, LocalizedString keys with English fallbacks',
     icon: 'text',
   },
   {
@@ -24,19 +24,19 @@ const SERVER_OWNED_AREAS = [
   {
     id: 'style',
     title: 'Style',
-    description: 'Design-system tokens for spacing, color, typography, radius',
+    description: 'Style tokens (style-tokens.json), color tokens (color-tokens.json), variants, surfaces',
     icon: 'palette',
   },
   {
     id: 'refresh',
     title: 'Refresh Policy',
-    description: 'Static / poll / SSE, staleness handling',
+    description: 'Static / poll (sectionEndpoint) / SSE / Ably — section-level live-data control',
     icon: 'refresh',
   },
   {
     id: 'data-flow',
     title: 'Data Flow',
-    description: 'First-paint data, live patches via dataBinding',
+    description: 'First-paint data in section.data, live patches via DataBindingPath mappings and BindRef resolution',
     icon: 'flow',
   },
   {
@@ -64,12 +64,12 @@ const CLIENT_CONTROLS = [
 ]
 
 const ENVELOPE_FIELDS = [
-  { key: 'platform.name', value: '"ios" | "android" | "web" | "tv"' },
-  { key: 'deviceClass', value: '"phone" | "tablet" | "tv" | "desktop"' },
-  { key: 'schemaVersion', value: '"2.4"' },
+  { key: 'platform[deviceClass]', value: '"phone" | "tablet" | "tv" | "desktop"' },
+  { key: 'platform[capabilities]', value: '["sse", "video-inline", "haptics"]' },
+  { key: 'schemaVersion', value: '"2.4" (major.minor)' },
   { key: 'experiments', value: '{ "new-scoreboard": "variant-b" }' },
-  { key: 'capabilities', value: '["sse", "video-inline", "haptics"]' },
-  { key: 'correlationId', value: '"req-abc123"' },
+  { key: 'market[cohort]', value: '"league-pass-premium"' },
+  { key: 'X-Correlation-ID', value: 'per-request UUID (header)' },
 ]
 
 const WHY_BUILD_REASONS = [
@@ -167,7 +167,7 @@ export function Architecture() {
       <div ref={envelopeReveal.ref} className={`arch-envelope reveal ${envelopeReveal.isVisible ? 'visible' : ''}`}>
         <h3 className="arch-subsection-title">Request Envelope</h3>
         <p className="arch-subsection-desc">
-          The client sends context to the server on every request. The server uses this for platform-aware composition.
+          The structured query/POST body for every composition fetch. The server uses this for platform-aware composition. Locale is intentionally absent — language is client-owned and cache-neutral.
         </p>
         <div className="envelope-card">
           <div className="envelope-header">

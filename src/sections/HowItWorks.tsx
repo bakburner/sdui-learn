@@ -15,14 +15,14 @@ const STEPS = [
     id: 'payload',
     number: '02',
     title: 'JSON Describes the UI',
-    description: 'The server sends a JSON response that describes the entire screen: sections, layout elements, design tokens, and when to refresh. This is the single source of truth.',
+    description: 'The server sends a JSON response describing the screen. Each Section carries id, type, data, sectionStates (skeleton/error), and optionally a refreshPolicy. The schema (sdui-schema.json) is the single source of truth.',
     visual: 'payload',
   },
   {
     id: 'router',
     number: '03',
     title: 'Client Routes Each Section',
-    description: 'The app reads each section\'s type and decides how to render it. Some sections are fully server-controlled (Atomic), others use native components (Semantic) for complex interactions.',
+    description: 'The app reads each section\'s type and decides how to render it. AtomicComposite sections are fully server-composed trees; Semantic sections invoke dedicated client renderers justified by client-owned state, SDK hosting, or runtime lifecycle.',
     visual: 'router',
   },
   {
@@ -83,35 +83,35 @@ export function HowItWorks() {
         <div className="concepts-label">Key Concepts</div>
         <ConceptCard
           title="Sections"
-          description="A typed block of UI on the screen — semantic sections (BoxscoreTable, Form) use native renderers; atomic sections (AtomicComposite) are fully server-composed"
+          description="Top-level unit of refresh and visibility — the smallest chunk the server can replace independently. Semantic sections (BoxscoreTable, Form) have dedicated client renderers; AtomicComposite sections are fully server-composed"
         />
         <ConceptCard
-          title="Atomic Elements"
-          description="12 building blocks the server composes: Container, Text, Image, Button, Spacer, Divider, ScrollContainer, Conditional, DisplayGrid, SectionSlot, LiveClock, OverlayContainer"
+          title="Atomic Primitives"
+          description="12 element types the server composes into AtomicComposite trees: Container, Text, Image, Button, Spacer, Divider, ScrollContainer, Conditional, DisplayGrid, SectionSlot, LiveClock, OverlayContainer"
         />
         <ConceptCard
           title="Design Tokens"
-          description="Named design values in three layers: inline primitives (spacing, radius), variants (platform-native presets), and color tokens (light/dark resolution)"
+          description="Three-layer style model: inline primitives (padding, cornerRadius), style tokens (nba.spacing.md — registered in style-tokens.json), and color tokens (light/dark/contrast in color-tokens.json). Variants express semantic visual intent. Override matrix: style token < variant < inline override"
         />
         <ConceptCard
           title="Refresh Policy"
-          description="Rules for when the app should fetch updated content — static (never), poll (interval), or SSE (real-time stream)"
+          description="Section-level rules for live data — static (no refresh), poll (interval HTTP fetch via sectionEndpoint), SSE (server-sent events), or Ably channel. All push paths feed the same data-binding pipeline"
         />
         <ConceptCard
           title="Actions"
-          description="8 types of interaction: navigate, fireAndForget, mutate, refresh, request, purchase, dismiss, flashMessage — triggered by taps, long-press, visibility, or swipe"
+          description="Server-declared commands: navigate, fireAndForget (beacon), mutate, refresh, request, purchase, dismiss, flashMessage — fired by triggers (onActivate, onLongPress, onVisible, onSwipe, onFocus, onBlur, onSubmit)"
         />
         <ConceptCard
           title="Data Binding"
-          description="JSONPath mappings that patch specific fields from real-time data sources — the scoreboard updates without re-fetching the entire screen"
+          description="Declarative mappings from incoming live-data payloads to paths inside a section's data. BindRef on atomic primitives resolves from data.content — the scoreboard updates without re-fetching the section"
         />
         <ConceptCard
           title="Request Envelope"
-          description="Context the client sends to the server — platform, device class, schema version, experiments, capabilities — driving per-platform composition"
+          description="Structured query/POST body for every composition fetch — platform, deviceClass, schemaVersion, experiments, capabilities, market/cohort. Locale is intentionally absent (client-owned, cache-neutral)"
         />
         <ConceptCard
-          title="A/B Variants"
-          description="Server composes different section ordering and content per experiment variant — clients send their assignment, the server branches composition"
+          title="Screen State"
+          description="Runtime per-screen key-value map owned by the client — mutate actions read/write it, paramBindings resolve against it, refresh responses merge into it. The client-side counterpart to server-emitted data"
         />
       </div>
     </section>

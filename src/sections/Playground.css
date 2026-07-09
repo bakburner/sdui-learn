@@ -852,11 +852,12 @@
   max-width: 768px;
 }
 
-.preview-frame.device-watch .preview-content {
-  max-width: 184px;
-  border-radius: 40px;
-  border: 3px solid var(--divider);
-  padding: var(--space-3);
+.preview-frame.device-tv .preview-content {
+  max-width: 100%;
+}
+
+.preview-frame.device-desktop .preview-content {
+  max-width: 1024px;
 }
 
 .preview-content {

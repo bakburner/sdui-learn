@@ -134,7 +134,7 @@ export function Playground() {
   const [selectedElement, setSelectedElement] = useState<string | null>(null)
   const [highlightLines, setHighlightLines] = useState<{ primary: { start: number; end: number }; secondary?: { start: number; end: number } } | null>(null)
   const [validationExpanded, setValidationExpanded] = useState(false)
-  const [deviceFrame, setDeviceFrame] = useState<'phone' | 'tablet' | 'watch'>('phone')
+  const [deviceFrame, setDeviceFrame] = useState<'phone' | 'tablet' | 'tv' | 'desktop'>('phone')
   const [copied, setCopied] = useState(false)
 
   const scrollToElement = useCallback((el: Record<string, any>) => {
@@ -596,8 +596,11 @@ export function Playground() {
                     <button className={`device-btn ${deviceFrame === 'tablet' ? 'active' : ''}`} onClick={() => setDeviceFrame('tablet')} title="Tablet">
                       <svg width="16" height="18" viewBox="0 0 16 18" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="1" y="1" width="14" height="16" rx="2"/><line x1="7" y1="14" x2="9" y2="14"/></svg>
                     </button>
-                    <button className={`device-btn ${deviceFrame === 'watch' ? 'active' : ''}`} onClick={() => setDeviceFrame('watch')} title="Watch">
-                      <svg width="14" height="18" viewBox="0 0 14 18" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="4" width="8" height="10" rx="3"/><path d="M5 4V2h4v2M5 14v2h4v-2"/></svg>
+                    <button className={`device-btn ${deviceFrame === 'tv' ? 'active' : ''}`} onClick={() => setDeviceFrame('tv')} title="Connected TV">
+                      <svg width="18" height="16" viewBox="0 0 18 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="1" y="1" width="16" height="11" rx="1.5"/><line x1="6" y1="14" x2="12" y2="14"/><line x1="9" y1="12" x2="9" y2="14"/></svg>
+                    </button>
+                    <button className={`device-btn ${deviceFrame === 'desktop' ? 'active' : ''}`} onClick={() => setDeviceFrame('desktop')} title="Desktop / Web">
+                      <svg width="18" height="16" viewBox="0 0 18 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="1" y="1" width="16" height="11" rx="1.5"/><path d="M4 14h10M7 12v2M11 12v2"/></svg>
                     </button>
                   </div>
                   {selectedElement && (

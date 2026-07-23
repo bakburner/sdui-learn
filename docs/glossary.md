@@ -19,8 +19,8 @@ glossary is strictly about runtime, wire, and design-system vocabulary.
 | **Atomic primitive** | `AtomicElement` `type` from the schema enum: `Container`, `Text`, `Image`, `Button`, `Spacer`, `Divider`, `ScrollContainer`, `Conditional`, `DisplayGrid`, `SectionSlot`, `LiveClock`, `OverlayContainer`. Each has one `AtomicRouter` branch per platform. Product-specific layout belongs in `AtomicComposite` trees, not new primitives, unless the schema gains a type. |
 | **AtomicComposite section** | Section whose `type` is `"AtomicComposite"` and whose `data.ui` is a server-composed tree of atomic primitives rather than a fixed-shape payload. The default section type for stateless layout surfaces. Lets the server build new product surfaces without shipping new client renderers. |
 | **Semantic section** | A section type with a dedicated client renderer (not `AtomicComposite`). The allowed set is the schema `Section` enum minus `AtomicComposite`. Justified by client-owned state, SDK hosting, or runtime lifecycle. |
-| **Surface** | Design-system tier-adaptive container (e.g. `hero` surface, `canvas` surface). Realized natively per OS tier (Liquid Glass on iOS 26+, blur-fallback below; Material 3 expressive on Android; CSS filter on Web). Distinct from `Section`: a surface is presentational, a section is structural. See `docs/sdui-design-system.md` §4. |
-| **Section frame** / **outer frame** | The wrapper styling owned by `SectionContainer` (margin, padding, background, cornerRadius, shadow, border via `section.surface`, plus error/loading scaffolding). Renderers do not paint the frame themselves; ownership of this layer is shared infrastructure, not per-section. See ADR-015 and `docs/sdui-design-system.md §2` for the cascade. |
+| **Surface** | Design-system tier-adaptive container (e.g. `hero` surface, `canvas` surface). Realized natively per OS tier (Liquid Glass on iOS 26+, blur-fallback below; Material 3 expressive on Android; CSS filter on Web). Distinct from `Section`: a surface is presentational, a section is structural. See `docs/design/sdui-design-system.md` §4. |
+| **Section frame** / **outer frame** | The wrapper styling owned by `SectionContainer` (margin, padding, background, cornerRadius, shadow, border via `section.surface`, plus error/loading scaffolding). Renderers do not paint the frame themselves; ownership of this layer is shared infrastructure, not per-section. See ADR-015 and `docs/design/sdui-design-system.md §2` for the cascade. |
 | **Skeleton** | Loading-state placeholder shape declared via `sectionStates.loading.skeleton`. One of `shimmer` / `spinner` / `placeholder` / `none`. |
 | **ErrorState** | The section's server-declared error presentation (`message`, `retryAction`, `hideOnError`) under `sectionStates.error`. Schema name avoids colliding with host `Error` types in generated code. |
 
@@ -35,7 +35,7 @@ design-system rhythm (margins, padding, background, corner radius, shadow) so
 composers pick a named treatment instead of inlining margin/padding constants.
 Section outer chrome flows through `SectionContainer` per ADR-015
 (`docs/adr/015-section-chrome-single-ownership.md`); see also
-`docs/sdui-design-system.md` §2 (Box-model cascade).
+`docs/design/sdui-design-system.md` §2 (Box-model cascade).
 
 All scalar values below are emitted as `token:nba.…` references on the wire
 (per AGENTS.md §3.6); clients resolve them per form factor against the
@@ -64,13 +64,18 @@ shown in parentheses.
 | --- | --- |
 | **Schema** | `schema/sdui-schema.json`. The single source of truth for the wire contract. All client and server types are generated from it. |
 | **Codegen** | The build step that emits Swift, Kotlin, TypeScript, and Java models from the schema. Run via `make codegen`. Generated files are checked in; do not hand-edit. |
-| **Envelope** (`RequestEnvelope`) | The structured query/POST body for every composition fetch. Query fields: `locale`, `schemaVersion`, `platform[deviceClass]`, `platform[capabilities]`, and `experiments`. Analytics context (`X-Analytics-Platform`, `X-App-Version`, `X-OS-Version`, `X-Correlation-ID`, `X-Request-Id`) travels as headers. Geo context (`X-Resolved-Country`, `X-Resolved-Market-Cohort`) is injected by edge infrastructure. Serialized as bracket-notation query params for GET and as a JSON body of the same shape for POST; flips to POST when the encoded query exceeds 8192 chars. The single transport contract every composition request rides on, owned by `RequestEnvelopeBuilder` per platform. |
+| **Envelope** (`RequestEnvelope`) | The structured query/POST body for every composition fetch. Query fields include `schemaVersion`, `platform[deviceClass]`, `platform[capabilities]`, `market[cohort]`, and `experiments`; `locale` is intentionally absent because language and formatting region are client-owned and cache-neutral. Analytics context (`X-Analytics-Platform`, `X-App-Version`, `X-OS-Version`, `X-Correlation-ID`, `X-Request-Id`) travels as headers. Serialized as bracket-notation query params for GET and as a JSON body of the same shape for POST; flips to POST when the encoded query exceeds 8192 chars. The single transport contract every composition request rides on, owned by `RequestEnvelopeBuilder` per platform. |
+| **`RequestContext`** (rendering-side) | Immutable ambient context object derived from the URL/envelope that produced a screen or section response. Shape: `deviceClass`, `capabilities`, `pathParams` (identity bindings parsed from URL path segments or section-ID `__key-value` segments), `queryParams`, `sourceUrl`. Client locale is a separate local preference consumed by localization and formatting helpers. Convenience accessor: `teamAbbr = pathParams["teamAbbr"]`. Propagated to renderers via the platform's implicit-context primitive: SwiftUI `@Environment` (`EnvironmentValues.requestContext`), Compose `CompositionLocal` (`LocalRequestContext`), React Context (`RequestContextProvider`). Screen-scoped by default; a section-channel refresh response installs a section-scoped override keyed by `sectionId` that persists until the next screen-channel fetch. Section IDs may also supplement identity bindings into the ambient context at render time (e.g. nested tab bodies). Distinct from the outbound `RequestEnvelope` (which builds outgoing requests) and from `SduiRequestContext` (which is the server-inbound parsed form). See `docs/contracts/client-implementors-contract.md` §4d. |
+| **`SduiRequestContext`** (server-inbound) | Server-side typed context resolved from a composition request's bracket-notation query params (or POST body) by `BracketParamResolver`. Carries `deviceClass`, `capabilities`, `schemaVersion`, market, experiments, and correlation fields the server reads during composition. It is locale-blind: locale is not a server composition input. The server-side counterpart to the client's outbound `RequestEnvelope`; not to be confused with the rendering-side `RequestContext`. |
 | **Fetch primitive** | The one shared screen-fetch entry point on every client (`SduiRepository.fetchScreen` on iOS/Android, `fetchSduiScreen` on web). Owns baseURL resolution, envelope serialization, GET/POST length-fallback, RFC-3986 percent-encoding, deterministic key ordering, and `X-Correlation-ID` propagation. Every composition request — initial loads, navigation, pull-to-refresh, action-driven `refresh` — routes through it. |
 | **Parameterized refresh** | A `refresh` action whose `paramBindings` resolve Screen-state values into user filter params (e.g. `season=2025-26`, `perMode=Totals`) that travel on the URL query string regardless of HTTP method. Routes through the shared fetch primitive so envelope, encoding, length fallback, and trace-ID inheritance all apply. |
 | **Endpoint** | A server-relative path that returns an SDUI screen payload. Endpoints are server-owned; clients never hardcode them. |
 | **Fixture** | A schema-validated example screen JSON kept under `ios/Tests/.../Fixtures/` and `schema/examples/`. Used for round-trip decoder tests and to seed the demo server. |
 | **Correlation ID** (`X-Correlation-ID`) | Per-request UUID emitted on every outbound SDUI request and echoed on every response. Reused inside the client as the active-fetch identity so a newer fetch can dethrone an older one without inventing a parallel ID. Parameterized refreshes inherit their parent screen's correlation from the response header so server logs correlate refresh responses with the screens that triggered them. Header-only — not a wire body field. |
 | **Schema versioning** | Server-side version routing based on the client's declared `schemaVersion` (major.minor). When a client's version is below `currentVersion`, the server strips fields/enums introduced after that version. When below `minSupportedVersion`, the server returns `X-Schema-Version-Mismatch: upgrade-required` header and an ErrorState section. Clients detect the header and display a platform-appropriate upgrade prompt. Config: `sdui.schema.current-version` / `min-supported-version` in `application.yml`. |
+| **`LocalizedString`** | Human-text wire union: either a bare string literal (render as-is, never translated) or `{ key, args?, fallback }`. Keyed values resolve through the client's bundled catalog using the client's own locale; misses render the required English `fallback`. Positional `args` interpolate client-side, with numeric/date args region-formatted locally. |
+| **Client-owned translation** | Model where clients resolve all rendered strings (chrome + dynamic) from their bundled catalog. The server chooses the semantic key and emits English fallback, but never chooses the rendered language. |
+| **Locale-blind server** | Server composition model where `locale` and `Accept-Language` are not composition inputs or cache-key dimensions, rendered text is not resolved server-side, and `ResponseMeta` does not echo `resolvedLocale`. |
 
 ---
 
@@ -78,13 +83,14 @@ shown in parentheses.
 
 | Term | Definition |
 | --- | --- |
-| **Action** | Server-declared command attached to an interactive or visible element. Always has a `type` and a `trigger` plus type-specific payload fields. Canonical wire names are `targetUri` / `webUrl` for `navigate`, `target` / `operation` / `value` for `mutate`, and `target` for `refresh`. Executes through the platform's Dispatcher / Handler. |
+| **Action** | Server-declared command attached to an interactive or visible element. Always has a `type` and a `trigger` plus type-specific payload fields. Canonical wire names are `targetUri` / `webUrl` for `navigate`, `target` / `operation` / `value` for `mutate`, `target` for `refresh`, `endpoint` / `method` / `body` / `bodyBindings` for `request` (server-managed writes), and `productRef` for `purchase`. Executes through the platform's Dispatcher / Handler. |
 | **Trigger** | When an action fires: `onActivate` (preferred), `onTap` (deprecated alias for onActivate), `onLongPress`, `onVisible`, `onSwipe`, `onFocus`, `onBlur`, `onSubmit`. `onVisible` routes through Impression policy for dedup. Current hosting: `onActivate`/`onTap` and `onVisible` dispatch at element level on web, Android, and iOS; `onLongPress` dispatches at element level on Android/iOS and is not hosted on web atomics; `onFocus`/`onBlur` dispatch on focusable primitives; `onSubmit` is form-context only; `onSwipe` remains `ScrollContainer`-level rather than a generic atomic trigger. |
 | **onActivate** | Preferred activation trigger. Neutral name for tap, click, keyboard Enter, or TV select. Replaces legacy `onTap`. |
 | **Beacon** | An emitted `fireAndForget` event. Cross-platform synonym for "an analytics ping". Has no on-screen effect, so during local testing it is verifiable only via the Action logger. |
-| **Failure policy** | Sequence-control verb on a failed action: `halt` / `continue` / `silent`. When the server omits `onFailure`, per-type defaults apply (navigate → halt; mutate/refresh → continue; fireAndForget/dismiss/toast → silent). See ADR-005. |
-| **Failure feedback** | Server-provided error message + presentation hint (`snackbar` / `toast` / `inline`) shown when a halted action surfaces an error. |
+| **Failure policy** | Sequence-control verb on a failed action: `halt` / `continue` / `silent`. When the server omits `onFailure`, per-type defaults apply (navigate → halt; request → halt; purchase → halt; mutate/refresh → continue; fireAndForget/dismiss/flashMessage → silent). See ADR-005. |
+| **Failure feedback** | Server-provided error message + presentation hint (`transient` / `persistent` / `inline`) shown when a halted action surfaces an error. |
 | **Param bindings** | Mustache-style template values in a `refresh` action's `paramBindings` map (e.g. `{ "season": "{{form_season}}" }`). One slice of the broader **placeholder substitution** contract: the shared client substitutor resolves `{{stateKey}}` tokens across `targetUri`, `webUrl`, `endpoint`, and every `paramBindings` value at dispatch time. In `paramBindings`, unknown keys resolve to empty so the dispatcher drops the parameter; in URI / endpoint fields unknown keys are left intact so the failure surfaces at the network layer. The resolved values are handed to the shared fetch primitive as user-params; the primitive (not the action handler) is the only thing that builds URL strings. See **Parameterized refresh**. |
+| **Body bindings** | Mustache-style template values in a `request` action's `bodyBindings` map. The shared substitutor resolves `{{stateKey}}` against Screen state at dispatch time; empty resolutions drop the field. Resolved bindings are merged into the action's literal `body` (bindings win on key collisions) before the HTTP write. |
 
 ### Action types
 
@@ -94,8 +100,10 @@ shown in parentheses.
 | **`fireAndForget`** | Emit a Beacon (analytics event). No UI side effect. |
 | **`mutate`** | Apply a `set` / `toggle` / `increment` / `append` operation to Screen state. `set` with `value: null` removes the key. |
 | **`refresh`** | Re-fetch a section or full screen, optionally with Param bindings. |
+| **`request`** | Issue a server-managed write (POST / PUT / DELETE) to an `endpoint` with optional `body` and `bodyBindings`. Sequence suspends until the write resolves so a following `refresh` observes the post-write state. Default failure policy is `halt`. |
+| **`purchase`** | Initiate a purchase flow for the product identified by `productRef`. Default failure policy is `halt`. |
 | **`dismiss`** | Close the current presented host (modal / sheet / overlay). |
-| **`toast`** | Show a transient banner. |
+| **`flashMessage`** | Show a transient message. |
 
 ---
 
@@ -106,7 +114,7 @@ shown in parentheses.
 | **Screen state** | Runtime per-screen key-value map. `mutate` actions read/write it; `paramBindings` resolve against it; refresh responses merge into it. The client-owned counterpart to server-emitted `data`. |
 | **Data binding** (`DataBindingPath`) | Declarative mapping from a path in an incoming live-data payload to a path inside a section's `data`. The binding runtime walks these and patches sections with structural sharing so unrelated subtrees keep their object identity. |
 | **BindRef** | Dot-path on an atomic primitive (`Text`, `Button`, `Image`, `LiveClock`) that points into the enclosing `AtomicComposite`'s `data.content` object. Renderers resolve the leaf's canonical field from `data.content[bindRef]` at render time and fall back to the inline value when the path is absent (Text → `content`, Button → `label`, Image → `src`, LiveClock → `{snapshotSeconds, snapshotAt, isRunning}`). Lets composers reshape the `ui` tree without breaking real-time updates: live bindings continue to write into `content.*`, and any leaf carrying a `bindRef` to that path picks up the new value automatically. |
-| **String table** | Section-scoped translation map (`stringTable: { key → localized }`) emitted by the server. Live-data bindings can deliver string keys instead of resolved strings; the runtime swaps them through the section's table at apply time. |
+| **String keys** | Optional `dataBinding.stringKeys` map from target path to localization key for external live-data strings. Clients resolve these through the same bundled catalog used for `LocalizedString`; the server no longer stamps section `stringTable` values. |
 | **Mutate operation** | Verb a `mutate` action applies to Screen state: `set`, `toggle`, `increment`, or `append`. Defaults to `set` when omitted. `set` with `value: null` removes the key. |
 
 ---
@@ -125,7 +133,7 @@ shown in parentheses.
 
 ## Design system
 
-For the long-form treatment of these terms, see `docs/sdui-design-system.md`.
+For the long-form treatment of these terms, see `docs/design/sdui-design-system.md`.
 
 | Term | Definition |
 | --- | --- |
@@ -134,7 +142,7 @@ For the long-form treatment of these terms, see `docs/sdui-design-system.md`.
 | **Variant** | Predefined visual treatment that maps to a native idiom (`ContainerVariant`, `ButtonVariant`, `TextVariant`, …). The preferred way to express semantic visual intent; new variant values must clear a strict governance bar. |
 | **Tier** / **OS-version tiering** | Variants and surfaces realize differently across OS tiers (e.g. Liquid Glass iOS 26+ vs blur fallback below; Material 3 expressive on Android 14+ vs M3 below). Tier is a property of the runtime realization, not the wire payload. |
 | **Inline style primitive** | A directly-expressible property (`padding`, `cornerRadius`, `background.color`, …). Layer 1 of the three-layer style model; used to express fine-grained intent that doesn't yet warrant a named variant. |
-| **Override matrix** | The precedence stack for resolving styling: `style token < variant < inline override`. Inline overrides win. See `docs/sdui-design-system.md` §4. |
+| **Override matrix** | The precedence stack for resolving styling: `style token < variant < inline override`. Inline overrides win. See `docs/design/sdui-design-system.md` §4. |
 | **Scrim** | Contrast layer painted between an image base and overlaid foreground content (text, badges, CTAs) inside an `OverlayContainer`. Anchored to the `color.overlay.scrim` semantic token; typically realized as the bottom-of-media transparent-to-scrim gradient produced server-side by `AtomicCompositeBuilder.mediaBottomScrimGradient()`. Required (by static-shape contract test) on any `OverlayContainer` whose base is an `Image` and whose overlays carry `Text`, so foreground copy stays legible regardless of the image content. |
 
 ---
@@ -182,7 +190,7 @@ participates in.
 
 | Document | Covers |
 | --- | --- |
-| `docs/sdui-design-system.md` | Full Surface / Variant / Token model. |
+| `docs/design/sdui-design-system.md` | Full Surface / Variant / Token model. |
 | `docs/SDUI_Technical_Proposal_v2.md` | Architecture overview, dual-layer model, and capability roadmap. |
-| `docs/client-implementors-contract.md` | Section / Action / lifecycle obligations on each client. |
+| `docs/contracts/client-implementors-contract.md` | Section / Action / lifecycle obligations on each client. |
 | `docs/adr/` | Architectural decisions referenced above. |
